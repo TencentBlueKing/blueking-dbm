@@ -37,6 +37,7 @@ class MysqlDtsRegisterClusterMetaService(BaseService):
                 updater=kwargs.get("creator", ""),
             )
             trans_data.deploy_context.deployed_worker_nodes.extend(kwargs["new_worker_nodes"])
+            data.outputs["trans_data"] = trans_data
             self.log_info(_("追加 Worker 元数据成功: {}").format(kwargs["dts_cluster_id"]))
             return True
 
@@ -59,6 +60,7 @@ class MysqlDtsRegisterClusterMetaService(BaseService):
         trans_data.migrate_context.bk_cloud_id = kwargs["bk_cloud_id"]
         trans_data.migrate_context.dts_cluster_id = dts_cluster.id
         data.outputs.dts_cluster_id = dts_cluster.id
+        data.outputs["trans_data"] = trans_data
         self.log_info(_("MySQL DTS 集群元数据注册成功: id={}").format(dts_cluster.id))
         return True
 

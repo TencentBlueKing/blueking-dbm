@@ -34,6 +34,7 @@
           :key="index">
           <HostColumn
             v-model="item.host"
+            :append-rules="rules"
             :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
             :columns="['instance']"
             :selected="selected"
@@ -54,16 +55,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -129,6 +124,14 @@
     payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
+
+  const rules = [
+    {
+      message: t('主机不包含任何 Mongos 实例'),
+      trigger: 'blur',
+      validator: (value: string, { rowData }: { rowData: RowData }) => rowData.host.role === 'proxy',
+    },
+  ];
 
   const tabListConfig = {
     mongoCluster: [
@@ -196,24 +199,22 @@
     }[];
   }>(TicketTypes.MONGODB_INSTANCE_FIX_STATUS);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.host.bk_cloud_id,
-          cluster_id: item.host.related_instances[0].cluster_id,
-          dry_run: false,
-          instance_address: item.host.related_instances[0].instance_address,
-          ip: item.host.ip,
-          master_domain: item.host.related_instances[0].master_domain,
-          port: item.host.port,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            bk_cloud_id: item.host.bk_cloud_id,
+            cluster_id: item.host.related_instances[0].cluster_id,
+            dry_run: false,
+            instance_address: item.host.related_instances[0].instance_address,
+            ip: item.host.ip,
+            master_domain: item.host.related_instances[0].master_domain,
+            port: item.host.port,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

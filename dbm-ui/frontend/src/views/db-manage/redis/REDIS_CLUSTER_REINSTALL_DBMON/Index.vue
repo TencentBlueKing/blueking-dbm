@@ -59,16 +59,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -161,20 +155,18 @@
     restart_exporter: boolean;
   }>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        bk_cloud_id: formData.tableData?.[0]?.cluster.bk_cloud_id,
-        cluster_ids: formData.tableData.map((item) => item.cluster.id),
-        is_stop: false,
-        restart_exporter: formData.restart_exporter,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_cloud_id: formData.tableData?.[0]?.cluster.bk_cloud_id,
+          cluster_ids: formData.tableData.map((item) => item.cluster.id),
+          is_stop: false,
+          restart_exporter: formData.restart_exporter,
+        },
+        ...formData.payload,
+      });
     });
   };
 

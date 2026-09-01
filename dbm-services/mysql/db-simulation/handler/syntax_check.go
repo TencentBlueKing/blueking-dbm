@@ -69,6 +69,7 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 		r.POST("/parse/file/relation/db", s.ParseSQLFileRelationDb)
 		r.POST("/parse/sql/relation/db", s.ParseSQLRelationDb)
 		r.POST("/parse/sql/statement", s.ParseSQLTables)
+		r.POST("/parse/file/statement", s.ParseSQLFileStatement)
 		r.POST("/parse/set/dumpall", s.SetDumpAll)
 	}
 }
@@ -114,6 +115,17 @@ type InjectCheckParam struct {
 type CheckSQLStringParam struct {
 	SyntaxCheckParam
 	Sqls []string `json:"sqls" binding:"gt=0,dive,required"`
+}
+
+// ParseSQLFileStatementParam 分析 SQL 文件语句请求参数
+type ParseSQLFileStatementParam struct {
+	CheckFileParam
+	// IncludeSQLText 是否在 alter_tables 中返回 sql_text；不传时默认 true
+	IncludeSQLText *bool `json:"include_sql_text"`
+}
+
+func (p ParseSQLFileStatementParam) includeSQLText() bool {
+	return p.IncludeSQLText == nil || *p.IncludeSQLText
 }
 
 // ParseSQLTablesParam 单条 SQL string 解析表/语句类型参数
@@ -415,6 +427,37 @@ func isAllOperateTable(allCommands []string) bool {
 		syntax.SQLTypeInsert, syntax.SQLTypeDelete, syntax.SQLTypeUpdate,
 		syntax.SQLTypeCreateTable, syntax.SQLTypeReplace,
 	}, allCommands)
+}
+
+// ParseSQLFileStatement 分析制品库 SQL 文件：按 command 合计计数，并按文件返回 ALTER TABLE 明细
+func (s *SyntaxHandler) ParseSQLFileStatement(r *gin.Context) {
+	var param ParseSQLFileStatementParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		return
+	}
+	p := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+		},
+	}
+	defer p.DelTempDir()
+	byFile, err := p.DoParseSQLTablesByFile("")
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	summary, err := syntax.SummarizeParsedStatements(byFile, param.Files, param.includeSQLText())
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	s.SendResponse(r, nil, summary)
 }
 
 // ParseSQLTables 解析单条 SQL string，返回 []ParseIncludeTableBase

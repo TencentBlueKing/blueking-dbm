@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, Machine, MysqlDtsCluster
+from backend.db_meta.models.mysql_dts import MysqlDtsInfo
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.flow.engine.controller.mysql import MySQLController
@@ -26,11 +27,23 @@ from backend.flow.utils.mysql.dts.constants import (
     get_default_deploy_path,
 )
 from backend.flow.utils.mysql.dts.migrate_credentials import parse_dts_migrate_major_version
-from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plan
+from backend.flow.utils.mysql.dts.migrate_helper import resolve_destroy_cluster_ids
+from backend.flow.utils.mysql.dts.migrate_plan import (
+    TICKET_LIFECYCLE_FIELDS,
+    build_migrate_plan,
+    build_migrate_plans,
+    infer_dts_resource_intent,
+    infer_rename_migrate_type_from_plan,
+    is_real_rename_route,
+    patch_deploy_cluster_names_into_details,
+    resolve_ticket_destroy_policy,
+    resolve_ticket_lifecycle,
+)
+from backend.flow.utils.mysql.dts.sync_scope_overlap import landing_objects, objects_overlap, source_objects
 from backend.flow.utils.mysql.dts.task_name import patch_migrate_task_names_into_details
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
+from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
@@ -190,32 +203,41 @@ class DtsDeploySerializer(serializers.Serializer):
     master_ha = serializers.BooleanField(default=False, help_text=_("是否 Master HA"))
 
 
-class DtsResourceSerializer(serializers.Serializer):
-    """DTS 集群从哪来、迁完怎么办。"""
+class DtsResourceBaseSerializer(serializers.Serializer):
+    """DTS 集群从哪来（不含整单生命周期）。"""
 
     mode = serializers.ChoiceField(
         choices=DtsLifecycleMode.get_choices(),
-        help_text=_("DTS 资源模式: use_existing | deploy_ephemeral | deploy_persistent"),
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text=_("可选，默认不传；按 dts_cluster_id / deploy 推断 use_existing | deploy"),
     )
-    dts_cluster_id = serializers.IntegerField(
-        required=False, help_text=_("已有 DTS 集群 ID（mode=use_existing 时必填，MysqlDtsCluster.id）")
-    )
-    deploy = DtsDeploySerializer(required=False, help_text=_("部署参数（mode=deploy_* 时必填）"))
-    cleanup_after_migrate = serializers.BooleanField(required=False, help_text=_("迁移结束后是否清理临时 DTS（默认：ephemeral=true）"))
-    recycle_hosts = serializers.BooleanField(required=False, default=True, help_text=_("清理时是否回收主机"))
-    destroy_after_migrate = serializers.BooleanField(required=False, default=False, help_text=_("迁移成功后是否销毁已有 DTS 集群"))
+    dts_cluster_id = serializers.IntegerField(required=False, help_text=_("已有 DTS 集群 ID（复用时必填，MysqlDtsCluster.id）"))
+    deploy = DtsDeploySerializer(required=False, help_text=_("本单现场部署参数（与 dts_cluster_id 二选一）"))
 
     def validate(self, attrs):
-        mode = attrs["mode"]
-        if mode == DtsLifecycleMode.USE_EXISTING.value:
-            if not attrs.get("dts_cluster_id"):
-                raise serializers.ValidationError(gettext_runtime("mode=use_existing 时必须填写 dts_cluster_id"))
-        elif mode in (DtsLifecycleMode.DEPLOY_EPHEMERAL.value, DtsLifecycleMode.DEPLOY_PERSISTENT.value):
-            if not attrs.get("deploy"):
-                raise serializers.ValidationError(gettext_runtime("mode={} 时必须填写 deploy").format(mode))
-        if attrs.get("destroy_after_migrate") and mode != DtsLifecycleMode.USE_EXISTING.value:
-            raise serializers.ValidationError(gettext_runtime("destroy_after_migrate 仅在 mode=use_existing 时允许为 true"))
+        try:
+            infer_dts_resource_intent(attrs)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
         return attrs
+
+
+class DtsResourceSerializer(DtsResourceBaseSerializer):
+    """单行 dts_resource：集群来源 + 生命周期。"""
+
+    cleanup_after_migrate = serializers.BooleanField(
+        required=False, help_text=_("迁移结束后是否清理 DTS（deploy 默认 true，复用默认 false）")
+    )
+    recycle_hosts = serializers.BooleanField(required=False, default=True, help_text=_("清理时是否回收主机"))
+    destroy_after_migrate = serializers.BooleanField(
+        required=False, default=True, help_text=_("迁移成功后是否串联销毁单据（默认 true；复用或本单部署均可）")
+    )
+
+
+class MysqlMigrateRowResourceSerializer(DtsResourceBaseSerializer):
+    """多行 infos[].dts_resource：只允许集群来源，生命周期写在单据顶层。"""
 
 
 class FullLoadSerializer(serializers.Serializer):
@@ -234,7 +256,7 @@ class TaskSpecSerializer(serializers.Serializer):
     full_load = FullLoadSerializer(required=False, help_text=_("全量导入配置"))
     enable_validator = serializers.BooleanField(required=False, default=False, help_text=_("是否开启数据校验"))
     shard_mode = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("分片模式（可选）"))
-    on_duplicate = serializers.CharField(required=False, default="replace", help_text=_("冲突策略"))
+    on_duplicate = serializers.CharField(required=False, default="error", help_text=_("冲突策略"))
     meta_schema = serializers.CharField(required=False, default="dm_meta", help_text=_("元数据库名"))
     ignore_checking_items = serializers.ListField(
         child=serializers.CharField(), required=False, default=list, help_text=_("忽略的检查项")
@@ -246,26 +268,160 @@ class TaskSpecSerializer(serializers.Serializer):
     )
 
 
-class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
-    """迁移单据分层入参：dts_resource + migrate + task。"""
+class MysqlMigrateRowSerializer(serializers.Serializer):
+    """多行 infos 中的一行：资源来源 + 拓扑；生命周期写在单据顶层。"""
 
-    dts_resource = DtsResourceSerializer(help_text=_("DTS 资源（集群来源与生命周期）"))
+    dts_resource = MysqlMigrateRowResourceSerializer(help_text=_("DTS 资源（集群来源）"))
     migrate = MigrateSpecSerializer(help_text=_("迁移拓扑与源/目标"))
     task = TaskSpecSerializer(required=False, help_text=_("任务运行参数"))
+
+
+class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
+    """迁移单据分层入参：dts_resource + migrate + task，或多行 infos。"""
+
+    dts_resource = DtsResourceSerializer(required=False, help_text=_("DTS 资源（集群来源与生命周期）"))
+    migrate = MigrateSpecSerializer(required=False, help_text=_("迁移拓扑与源/目标"))
+    task = TaskSpecSerializer(required=False, help_text=_("任务运行参数"))
+    infos = MysqlMigrateRowSerializer(many=True, required=False, help_text=_("多行独立 one_to_one"))
+    destroy_after_migrate = serializers.BooleanField(
+        required=False,
+        help_text=_("迁移成功后是否串联销毁单据（多行 infos 时整单生效，默认 true；单行请写在 dts_resource）"),
+    )
+    recycle_hosts = serializers.BooleanField(
+        required=False,
+        help_text=_("销毁时是否回收主机（多行 infos 时整单生效，默认 true；单行请写在 dts_resource）"),
+    )
+    cleanup_after_migrate = serializers.BooleanField(
+        required=False,
+        help_text=_("迁移结束后是否在本流程清理 DTS（多行 infos 时整单生效，默认 false；单行请写在 dts_resource）"),
+    )
 
     def validate(self, attrs):
         # 仅做结构校验：此时尚无 ticket.id，不要求最终 task_name（创单后由 patch 回写）
         # 勿写入 attrs：DtsMigratePlan 不可 JSON 序列化，会污染 Ticket.details
-        migrate_plan = build_migrate_plan(
-            {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
-            require_task_name=False,
-        )
-        self.context["migrate_plan"] = migrate_plan
-        _validate_migrate_grant_cluster_versions(migrate_plan)
+        infos = attrs.get("infos") or []
+        if infos:
+            if attrs.get("dts_resource") or attrs.get("migrate"):
+                raise serializers.ValidationError(gettext_runtime("有 infos 时不要再传顶层 migrate / dts_resource"))
+            _validate_infos_one_to_one(infos)
+            _validate_infos_row_lifecycle_forbidden(_raw_ticket_details(self, attrs))
+            _validate_infos_deploy_hosts_unique(infos)
+            attrs.update(resolve_ticket_lifecycle(attrs))
+            plans = build_migrate_plans(
+                {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
+                require_task_name=False,
+            )
+        else:
+            if not attrs.get("dts_resource") or not attrs.get("migrate"):
+                raise serializers.ValidationError(gettext_runtime("必须提供 dts_resource 与 migrate，或多行 infos"))
+            _validate_single_row_top_lifecycle_forbidden(_raw_ticket_details(self, attrs))
+            plans = [
+                build_migrate_plan(
+                    {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
+                    require_task_name=False,
+                )
+            ]
+        self.context["migrate_plans"] = plans
+        self.context["migrate_plan"] = plans[0]
+        for plan in plans:
+            _validate_migrate_grant_cluster_versions(plan)
+        has_infos = bool(infos)
+        _validate_sync_scope_nonempty(plans, has_infos=has_infos)
+        _validate_src_ne_dst(plans, has_infos=has_infos)
+        if has_infos:
+            _validate_infos_object_overlap(plans)
         return attrs
 
 
 _MYSQL_TO_MYSQL_ALLOWED_TYPES = {ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value}
+
+
+def _raw_ticket_details(serializer, attrs) -> dict:
+    """取原始 details，用于检查 DRF 会丢弃的行内生命周期字段。
+
+    建单走 TicketDetailsSerializer 时只调 exact.validate(attrs)，实例没有 initial_data，
+    需回退 request.data.details；直连 Serializer(data=) 时仍用 initial_data。
+    """
+    raw = getattr(serializer, "initial_data", None)
+    if isinstance(raw, dict):
+        return raw
+    request = (serializer.context or {}).get("request")
+    if request is not None:
+        details = (getattr(request, "data", None) or {}).get("details")
+        if isinstance(details, dict):
+            return details
+    return attrs if isinstance(attrs, dict) else {}
+
+
+def _validate_infos_row_lifecycle_forbidden(initial_data) -> None:
+    """拦 infos 行内 / 行内 dts_resource 再写生命周期字段。
+    生效：仅 infos[]。合法反例：destroy_after_migrate 等写在单据顶层。
+    """
+    if not isinstance(initial_data, dict):
+        return
+    for idx, row in enumerate(initial_data.get("infos") or []):
+        if not isinstance(row, dict):
+            continue
+        leaked = [field for field in TICKET_LIFECYCLE_FIELDS if field in row]
+        resource = row.get("dts_resource") or {}
+        if isinstance(resource, dict):
+            leaked.extend(field for field in TICKET_LIFECYCLE_FIELDS if field in resource)
+        if leaked:
+            raise serializers.ValidationError(
+                gettext_runtime("infos[{}] 的 {} 请写在单据顶层，不要放在行内 dts_resource").format(
+                    idx, " / ".join(dict.fromkeys(leaked))
+                )
+            )
+
+
+def _validate_single_row_top_lifecycle_forbidden(initial_data) -> None:
+    """拦无 infos 时把生命周期写在单据顶层。
+    生效：仅单行 migrate。合法反例：字段写在 dts_resource。
+    """
+    if not isinstance(initial_data, dict):
+        return
+    if initial_data.get("infos"):
+        return
+    leaked = [field for field in TICKET_LIFECYCLE_FIELDS if field in initial_data]
+    if leaked:
+        raise serializers.ValidationError(
+            gettext_runtime("无 infos 时 {} 请写在 dts_resource，不要写在单据顶层").format(" / ".join(dict.fromkeys(leaked)))
+        )
+
+
+def _validate_infos_one_to_one(infos: list) -> None:
+    """拦 infos 行拓扑不是 one_to_one。生效：仅 infos[]。合法反例：每行 topology=one_to_one。"""
+    for idx, row in enumerate(infos):
+        topology = (row.get("migrate") or {}).get("topology")
+        if topology != MigrateTopology.ONE_TO_ONE.value:
+            raise serializers.ValidationError(
+                gettext_runtime("infos[{}] 仅支持 one_to_one 拓扑，实际为 {}").format(idx, topology)
+            )
+
+
+def _collect_deploy_host_keys(deploy: dict | None) -> list[tuple]:
+    if not deploy:
+        return []
+    keys = []
+    for host in list(deploy.get("master_hosts") or []) + list(deploy.get("worker_hosts") or []):
+        ip = host.get("ip")
+        if not ip:
+            continue
+        keys.append((ip, int(host.get("bk_cloud_id") or 0)))
+    return keys
+
+
+def _validate_infos_deploy_hosts_unique(infos: list) -> None:
+    """拦跨行 deploy 机器交叉。生效：仅 infos[]。合法反例：同行 master/worker 同机；不同行用不同 IP。"""
+    seen: dict[tuple, int] = {}
+    for idx, row in enumerate(infos):
+        deploy = (row.get("dts_resource") or {}).get("deploy")
+        for key in set(_collect_deploy_host_keys(deploy)):
+            if key in seen and seen[key] != idx:
+                raise serializers.ValidationError(
+                    gettext_runtime("多行 deploy 机器交叉：{} 同时出现在 infos[{}] 与 infos[{}]").format(key[0], seen[key], idx)
+                )
+            seen[key] = idx
 
 
 def _collect_migrate_plan_cluster_ids(migrate_plan) -> set[int]:
@@ -277,8 +433,82 @@ def _collect_migrate_plan_cluster_ids(migrate_plan) -> set[int]:
     return cluster_ids
 
 
+def _row_label(idx: int, has_infos: bool) -> str:
+    return "infos[{}]".format(idx) if has_infos else "migrate"
+
+
+def _iter_plan_sources(plans):
+    for idx, plan in enumerate(plans):
+        for spec in plan.task_specs:
+            for source in spec.sources:
+                yield idx, spec, source
+
+
+def _validate_sync_scope_nonempty(plans, *, has_infos: bool) -> None:
+    """拦空同步范围（空规则在引擎侧等于全库，产品不允许靠空范围表达全量）。
+    生效：每行，三种迁移单。合法反例：do_dbs 列出库名，或 do_dbs=['*'] 表示整实例。
+    """
+    for idx, _spec, source in _iter_plan_sources(plans):
+        if source_objects(source.sync_scope):
+            continue
+        raise serializers.ValidationError(
+            gettext_runtime("{} 同步范围为空，请填写 do_dbs / table_routes（整实例全量请传 do_dbs=['*']）").format(
+                _row_label(idx, has_infos)
+            )
+        )
+
+
+def _validate_src_ne_dst(plans, *, has_infos: bool) -> None:
+    """拦源集群等于目标集群（自己迁自己）。生效：每行，普通迁移与重命名。合法反例：源 ID 与目标 ID 不同。"""
+    for idx, spec, source in _iter_plan_sources(plans):
+        if source.cluster_id != spec.target_cluster_id:
+            continue
+        raise serializers.ValidationError(
+            gettext_runtime("{} 源集群与目标集群不能相同（当前均为 {}）").format(_row_label(idx, has_infos), source.cluster_id)
+        )
+
+
+def _validate_infos_object_overlap(plans) -> None:
+    """拦 infos 中同一源+同一目标的库表对象重叠。
+    生效：仅 infos[] 跨行。合法反例：同源同目标但库不同；同源不同目标同库。
+    """
+    buckets: dict[tuple[int, int], list[tuple[int, set]]] = {}
+    for idx, spec, source in _iter_plan_sources(plans):
+        key = (source.cluster_id, spec.target_cluster_id)
+        buckets.setdefault(key, []).append((idx, source_objects(source.sync_scope)))
+    for (src_id, dst_id), items in buckets.items():
+        for left_i, left_objs in items:
+            for right_i, right_objs in items:
+                if right_i <= left_i:
+                    continue
+                if objects_overlap(left_objs, right_objs):
+                    raise serializers.ValidationError(
+                        gettext_runtime("infos[{}] 与 infos[{}] 在源集群 {} 到目标集群 {} 上迁移对象重叠").format(
+                            left_i, right_i, src_id, dst_id
+                        )
+                    )
+
+
+def _validate_infos_rename_dest_landing(plans) -> None:
+    """拦重命名 infos 不同行落到同一目标库表。
+    生效：仅 MYSQL_RENAME_MIGRATE 的 infos[]。合法反例：目标集群不同，或落地库表不同。
+    """
+    by_dst: dict[int, list[tuple[int, set]]] = {}
+    for idx, spec, source in _iter_plan_sources(plans):
+        by_dst.setdefault(spec.target_cluster_id, []).append((idx, landing_objects(source.sync_scope)))
+    for dst_id, items in by_dst.items():
+        for left_i, left_objs in items:
+            for right_i, right_objs in items:
+                if right_i <= left_i:
+                    continue
+                if objects_overlap(left_objs, right_objs):
+                    raise serializers.ValidationError(
+                        gettext_runtime("infos[{}] 与 infos[{}] 重命名后落到目标集群 {} 的同一库表").format(left_i, right_i, dst_id)
+                    )
+
+
 def _validate_migrate_grant_cluster_versions(migrate_plan) -> None:
-    """校验迁移授权相关业务集群 major_version 可解析（空/无数字 → 拒单）。"""
+    """拦业务集群 major_version 无法解析。生效：每行。合法反例：集群存在且版本含数字。"""
     cluster_ids = _collect_migrate_plan_cluster_ids(migrate_plan)
     if not cluster_ids:
         return
@@ -315,7 +545,75 @@ class MysqlToMysqlMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        _validate_mysql_to_mysql_cluster_types(self.context["migrate_plan"])
+        for plan in self.context.get("migrate_plans") or [self.context["migrate_plan"]]:
+            _validate_mysql_to_mysql_cluster_types(plan)
+        return attrs
+
+
+def _validate_rename_one_to_one(attrs: dict) -> None:
+    """拦重命名单据拓扑不是 one_to_one。生效：重命名单行与 infos[]。合法反例：topology=one_to_one。"""
+    infos = attrs.get("infos") or []
+    if infos:
+        _validate_infos_one_to_one(infos)
+        return
+    topology = (attrs.get("migrate") or {}).get("topology")
+    if topology != MigrateTopology.ONE_TO_ONE.value:
+        raise serializers.ValidationError(gettext_runtime("重命名迁移仅支持 one_to_one 拓扑，实际为 {}").format(topology))
+
+
+def _validate_rename_routes(plan) -> None:
+    """拦重命名缺少真实改名路由。生效：重命名每行。合法反例：table_routes 的 target 与源不同。"""
+    for spec in plan.task_specs:
+        for source in spec.sources:
+            routes = source.sync_scope.table_routes or []
+            if not routes:
+                raise serializers.ValidationError(
+                    gettext_runtime("重命名迁移必须提供 source.sync_scope.table_routes，不能只传 do_dbs")
+                )
+            for route in routes:
+                if not is_real_rename_route(route):
+                    raise serializers.ValidationError(
+                        gettext_runtime("重命名迁移的 table_routes 必须填写与源不同的 target_db / target_table")
+                    )
+
+
+def _collect_plans_clusters(plans) -> dict:
+    cluster_ids: set[int] = set()
+    for plan in plans:
+        cluster_ids.update(_collect_migrate_plan_cluster_ids(plan))
+    if not cluster_ids:
+        return {}
+    return {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+
+
+def _write_back_rename_migrate_types(attrs: dict, plans, clusters: dict) -> None:
+    infos = attrs.get("infos") or []
+    if infos:
+        for idx, plan in enumerate(plans):
+            try:
+                infos[idx]["migrate_type"] = infer_rename_migrate_type_from_plan(plan, clusters)
+            except ValueError as exc:
+                raise serializers.ValidationError(str(exc))
+        return
+    try:
+        attrs["migrate_type"] = infer_rename_migrate_type_from_plan(plans[0], clusters)
+    except ValueError as exc:
+        raise serializers.ValidationError(str(exc))
+
+
+class MysqlRenameMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
+    """MySQL 重命名迁移：one_to_one + 强制改名路由，按行推断 migrate_type。"""
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        _validate_rename_one_to_one(attrs)
+        plans = self.context.get("migrate_plans") or [self.context["migrate_plan"]]
+        for plan in plans:
+            _validate_rename_routes(plan)
+        if attrs.get("infos"):
+            _validate_infos_rename_dest_landing(plans)
+        clusters = _collect_plans_clusters(plans)
+        _write_back_rename_migrate_types(attrs, plans, clusters)
         return attrs
 
 
@@ -355,10 +653,23 @@ class RecycleHostsFlagOrListField(serializers.Field):
 
 
 class MysqlDtsClusterDestroyDetailSerializer(serializers.Serializer):
-    dts_cluster_id = serializers.IntegerField(help_text=_("DTS集群ID"))
+    dts_cluster_id = serializers.IntegerField(required=False, help_text=_("DTS集群ID（单集群销毁）"))
+    dts_cluster_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text=_("多个 DTS 集群 ID（一张销毁单清多集群，与 dts_cluster_id 二选一）"),
+    )
     force_destroy = serializers.BooleanField(default=False)
     recycle_hosts = RecycleHostsFlagOrListField(help_text=_("清理时是否回收主机；补齐后为回收主机列表"))
     clean_data_dir = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        ids = resolve_destroy_cluster_ids(attrs)
+        if not ids:
+            raise serializers.ValidationError(gettext_runtime("必须提供 dts_cluster_id 或 dts_cluster_ids"))
+        if attrs.get("dts_cluster_id") and attrs.get("dts_cluster_ids"):
+            raise serializers.ValidationError(gettext_runtime("dts_cluster_id 与 dts_cluster_ids 不能同时传入"))
+        return attrs
 
 
 class MysqlDtsClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
@@ -411,45 +722,59 @@ class MysqlDtsClusterDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
         供成功钩子 `create_recycle_ticket` 消费。显式 False 时写空列表以跳过关联单。
         """
         details = self.ticket.details
+        # 派生的 RECYCLE_OLD_HOST 属于 mysql 分组，但必须保留 DTS 子类型和部署目录，
+        # 供清机 Flow 选择 DTS 专用脚本，禁止误用 MySQL 通用清机脚本。
+        details["cluster_type"] = ClusterType.MySQLDTS.value
         should_recycle = details.get("recycle_hosts", True)
         if should_recycle is False:
             details["recycle_hosts"] = []
             return
 
-        dts_cluster_id = details.get("dts_cluster_id")
-        dts_cluster = MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
-        if not dts_cluster:
-            logger.warning(gettext_runtime("DTS 销毁补齐回收主机失败: 集群 {} 不存在").format(dts_cluster_id))
+        cluster_ids = resolve_destroy_cluster_ids(details)
+        dts_clusters = list(MysqlDtsCluster.objects.filter(id__in=cluster_ids))
+        if not dts_clusters:
+            logger.warning(gettext_runtime("DTS 销毁补齐回收主机失败: 集群 {} 不存在").format(cluster_ids))
             details["recycle_hosts"] = []
             return
 
-        # master/worker 同机部署时按 (ip, bk_cloud_id) 去重
+        if len(dts_clusters) == 1 and dts_clusters[0].deploy_path:
+            details["dts_deploy_path"] = dts_clusters[0].deploy_path
+
         host_keys = []
         seen = set()
-        for node in list(dts_cluster.master_nodes or []) + list(dts_cluster.worker_nodes or []):
-            ip = node.get("ip")
-            if not ip:
-                continue
-            bk_cloud_id = node.get("bk_cloud_id", dts_cluster.bk_cloud_id)
-            key = (ip, bk_cloud_id)
-            if key in seen:
-                continue
-            seen.add(key)
-            host_keys.append(key)
-
+        path_by_host_id: dict[int, str] = {}
         recycle_hosts = []
-        for ip, bk_cloud_id in host_keys:
+        for dts_cluster in dts_clusters:
+            for node in list(dts_cluster.master_nodes or []) + list(dts_cluster.worker_nodes or []):
+                ip = node.get("ip")
+                if not ip:
+                    continue
+                bk_cloud_id = node.get("bk_cloud_id", dts_cluster.bk_cloud_id)
+                key = (ip, bk_cloud_id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                host_keys.append((key, dts_cluster.deploy_path))
+
+        for (ip, bk_cloud_id), deploy_path in host_keys:
             machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
             if not machine or not machine.bk_host_id:
                 logger.warning(gettext_runtime("DTS 销毁回收跳过主机 {}:{}，未找到 Machine 或 bk_host_id").format(bk_cloud_id, ip))
                 continue
             recycle_hosts.append({"bk_host_id": machine.bk_host_id})
+            if deploy_path:
+                path_by_host_id[int(machine.bk_host_id)] = deploy_path
 
         if not recycle_hosts:
             details["recycle_hosts"] = []
             return
 
         details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts)
+        paths = {p for p in path_by_host_id.values() if p}
+        if len(paths) > 1:
+            details["dts_deploy_path_by_host"] = {str(hid): path for hid, path in path_by_host_id.items()}
+        elif paths:
+            details["dts_deploy_path"] = next(iter(paths))
 
     def patch_ticket_detail(self):
         self.patch_recycle_dts_host_details()
@@ -463,57 +788,140 @@ def _patch_migrate_task_names(ticket) -> None:
     patch_migrate_task_names_into_details(ticket.details, ticket.id)
 
 
-def _has_related_destroy_for_cluster(ticket, dts_cluster_id) -> bool:
-    """父单据是否已关联同 dts_cluster_id 的 MYSQL_DTS_CLUSTER_DESTROY。"""
+def _patch_migrate_deploy_cluster_names(ticket) -> None:
+    """多行 infos 本单部署：cluster_name 追加随机后缀并写回，避免同源/同目标撞名。"""
+    if not getattr(ticket, "id", None):
+        return
+    patch_deploy_cluster_names_into_details(ticket.details, ticket.id)
+
+
+def _related_destroy_ticket_ids(ticket) -> list[int]:
     flow_set = getattr(ticket, "flow_set", None)
     if flow_set is None:
-        return False
+        return []
     try:
-        related_ids = [
+        return [
             flow.details.get("related_ticket")
             for flow in flow_set.filter(flow_type=FlowType.DELIVERY.value)
             if (flow.details or {}).get("related_ticket")
         ]
-        if not related_ids:
-            return False
-        return Ticket.objects.filter(
+    except Exception:
+        return []
+
+
+def _has_related_destroy_for_clusters(ticket, cluster_ids: list[int]) -> bool:
+    """父单据是否已关联覆盖相同 ID 集合的 MYSQL_DTS_CLUSTER_DESTROY。"""
+    related_ids = _related_destroy_ticket_ids(ticket)
+    if not related_ids:
+        return False
+    wanted = sorted(set(int(cid) for cid in cluster_ids if cid))
+    if not wanted:
+        return False
+    try:
+        for destroy_ticket in Ticket.objects.filter(
             id__in=related_ids,
             ticket_type=TicketType.MYSQL_DTS_CLUSTER_DESTROY,
-            details__dts_cluster_id=dts_cluster_id,
-        ).exists()
-    except Exception:
-        # mock / 非 ORM 场景下幂等探测失败时不阻断创单
+        ):
+            existing = sorted(resolve_destroy_cluster_ids(destroy_ticket.details or {}))
+            if existing == wanted:
+                return True
         return False
+    except Exception:
+        return False
+
+
+def _iter_ticket_dts_resources(details: dict) -> list[dict]:
+    infos = details.get("infos") or []
+    if infos:
+        return [row.get("dts_resource") or {} for row in infos]
+    resource = details.get("dts_resource") or {}
+    return [resource] if resource else []
+
+
+def _collect_destroy_dts_cluster_ids(ticket) -> list[int]:
+    """收集本单应销毁的全部 DTS 集群 ID。"""
+    details = ticket.details or {}
+    if not resolve_ticket_destroy_policy(details)["destroy_after_migrate"]:
+        return []
+    resources = _iter_ticket_dts_resources(details)
+    if not resources:
+        return []
+
+    ids: list[int] = []
+    seen: set[int] = set()
+
+    def _add(cid):
+        if not cid:
+            return
+        cid = int(cid)
+        if cid not in seen:
+            seen.add(cid)
+            ids.append(cid)
+
+    need_info_lookup = False
+    for resource in resources:
+        try:
+            intent = infer_dts_resource_intent(resource)
+        except ValueError:
+            continue
+        if intent.dts_cluster_id:
+            _add(intent.dts_cluster_id)
+        else:
+            need_info_lookup = True
+
+    if need_info_lookup:
+        try:
+            for cid in MysqlDtsInfo.objects.filter(ticket_id=ticket.id).values_list("dts_cluster_id", flat=True):
+                _add(cid)
+        except Exception:
+            logger.exception(
+                gettext_runtime("收集销毁 DTS 集群 ID 失败，中止本次销毁创建 ticket_id={}").format(getattr(ticket, "id", None))
+            )
+            return []
+    return ids
+
+
+DTS_MIGRATE_TICKET_TYPES = frozenset(
+    {
+        TicketType.MYSQL_TO_MYSQL_MIGRATE,
+        TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
+        TicketType.MYSQL_RENAME_MIGRATE,
+    }
+)
 
 
 def _maybe_create_destroy_after_migrate(ticket) -> None:
     """
-    迁移单据成功后，按需串联 MYSQL_DTS_CLUSTER_DESTROY。
+    迁移单据整单 SUCCEEDED 后，按需串联 MYSQL_DTS_CLUSTER_DESTROY。
 
-    仅 use_existing + destroy_after_migrate=true 时生效；创单异常只记日志，不回滚迁移成功态。
+    由 ticket_status_trigger 调用，不在 inner post_callback 里挂单，避免校验 PENDING 时再插
+    SUCCEEDED 销毁节点卡住 run_next_flow。destroy_after_migrate=true 时生效；多行只建一张。
+    创单异常只记日志，不回滚迁移成功态。
     """
     try:
-        dts_resource = (ticket.details or {}).get("dts_resource") or {}
-        if dts_resource.get("mode") != DtsLifecycleMode.USE_EXISTING.value:
+        details = ticket.details or {}
+        policy = resolve_ticket_destroy_policy(details)
+        if not policy["destroy_after_migrate"]:
             return
-        if not dts_resource.get("destroy_after_migrate"):
+        cluster_ids = _collect_destroy_dts_cluster_ids(ticket)
+        if not cluster_ids:
             return
-        dts_cluster_id = dts_resource.get("dts_cluster_id")
-        if not dts_cluster_id:
+        if _has_related_destroy_for_clusters(ticket, cluster_ids):
+            logger.info(gettext_runtime("迁移单据 {} 已关联 DTS 集群 {} 的销毁单，跳过重复创建").format(ticket.id, cluster_ids))
             return
-        if _has_related_destroy_for_cluster(ticket, dts_cluster_id):
-            logger.info(gettext_runtime("迁移单据 {} 已关联 DTS 集群 {} 的销毁单，跳过重复创建").format(ticket.id, dts_cluster_id))
-            return
+
+        recycle_hosts = policy["recycle_hosts"]
+        if len(cluster_ids) == 1:
+            destroy_details = {"dts_cluster_id": cluster_ids[0], "recycle_hosts": recycle_hosts}
+        else:
+            destroy_details = {"dts_cluster_ids": cluster_ids, "recycle_hosts": recycle_hosts}
 
         destroy_ticket = Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_DTS_CLUSTER_DESTROY,
             creator=ticket.creator,
             bk_biz_id=ticket.bk_biz_id,
             remark=gettext_runtime("迁移单据{}成功后自动销毁 DTS").format(ticket.id),
-            details={
-                "dts_cluster_id": dts_cluster_id,
-                "recycle_hosts": dts_resource.get("recycle_hosts", True),
-            },
+            details=destroy_details,
             auto_execute=True,
         )
         ticket.add_related_ticket(destroy_ticket, done=True)
@@ -521,53 +929,60 @@ def _maybe_create_destroy_after_migrate(ticket) -> None:
         logger.error(gettext_runtime("迁移单据 {} 串联销毁 DTS 失败: {}").format(getattr(ticket, "id", None), str(e)))
 
 
-class MysqlToMysqlMigrateFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_to_mysql_migrate_scene
+class DtsMigrateFlowParamBuilder(builders.FlowParamBuilder):
+    """三种 DTS 迁移单据共用：写入 ticket_id；可选整单 migrate_type。
+
+    migrate_plan 由 flow 内 build_migrate_plan(self.data) 构建，勿写入 ticket_data（不可 JSON 序列化）。
+    """
+
+    migrate_type = None
 
     def format_ticket_data(self):
         self.ticket_data["ticket_id"] = self.ticket.id
-        self.ticket_data["migrate_type"] = "mysql_to_mysql"
-        # migrate_plan 由 flow 内 build_migrate_plan(self.data) 构建，勿写入 ticket_data（不可 JSON 序列化）
+        if self.migrate_type:
+            self.ticket_data["migrate_type"] = self.migrate_type
 
-    def post_callback(self):
-        flow = self.ticket.current_flow()
-        if flow.status != TicketFlowStatus.SUCCEEDED:
-            return
-        _maybe_create_destroy_after_migrate(self.ticket)
+
+class DtsMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
+    """三种 DTS 迁移单据共用 patch_ticket_detail。"""
+
+    def patch_ticket_detail(self):
+        _patch_migrate_task_names(self.ticket)
+        _patch_migrate_deploy_cluster_names(self.ticket)
+        super().patch_ticket_detail()
+
+
+class MysqlToMysqlMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
+    controller = MySQLController.mysql_to_mysql_migrate_scene
+    migrate_type = "mysql_to_mysql"
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_TO_MYSQL_MIGRATE)
-class MysqlToMysqlMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlToMysqlMigrateDetailSerializer
     inner_flow_builder = MysqlToMysqlMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 数据迁移")
 
-    def patch_ticket_detail(self):
-        _patch_migrate_task_names(self.ticket)
-        super().patch_ticket_detail()
 
-
-class MysqlHaToClusterMigrateFlowParamBuilder(builders.FlowParamBuilder):
+class MysqlHaToClusterMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
     controller = MySQLController.mysql_ha_to_cluster_migrate_scene
-
-    def format_ticket_data(self):
-        self.ticket_data["ticket_id"] = self.ticket.id
-        self.ticket_data["migrate_type"] = "ha_to_cluster"
-        # migrate_plan 由 flow 内 build_migrate_plan(self.data) 构建，勿写入 ticket_data（不可 JSON 序列化）
-
-    def post_callback(self):
-        flow = self.ticket.current_flow()
-        if flow.status != TicketFlowStatus.SUCCEEDED:
-            return
-        _maybe_create_destroy_after_migrate(self.ticket)
+    migrate_type = "ha_to_cluster"
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE)
-class MysqlHaToClusterMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlHaToClusterMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlMigrateBaseDetailSerializer
     inner_flow_builder = MysqlHaToClusterMigrateFlowParamBuilder
     inner_flow_name = _("MySQL HA到Cluster数据迁移")
 
-    def patch_ticket_detail(self):
-        _patch_migrate_task_names(self.ticket)
-        super().patch_ticket_detail()
+
+class MysqlRenameMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
+    controller = MySQLController.mysql_rename_migrate_scene
+    # 不整单写死 migrate_type：由 Serializer / Flow 按行推断
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_RENAME_MIGRATE)
+class MysqlRenameMigrateFlowBuilder(DtsMigrateFlowBuilder):
+    serializer = MysqlRenameMigrateDetailSerializer
+    inner_flow_builder = MysqlRenameMigrateFlowParamBuilder
+    inner_flow_name = _("MySQL 重命名迁移")

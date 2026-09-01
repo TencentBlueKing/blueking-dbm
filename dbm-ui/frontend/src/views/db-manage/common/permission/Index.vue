@@ -31,20 +31,17 @@
       </BkAlert>
       <div class="operation-box">
         <AuthButton
-          :action-id="
-            accountType === AccountTypes.SQLSERVER ? `${accountType}_priv_manage` : `${accountType}_account_create`
-          "
+          :action-id="configMap[accountType].createAccountAction"
           theme="primary"
           @click="handleShowAccountDialog">
           {{ t('新建账号') }}
         </AuthButton>
-        <DbSearchSelect
+        <DbQuickSearch
           v-model="tableSearch"
           :data="filters"
+          parse-url
           :placeholder="t('账号名称_DB名称_权限名称')"
           style="width: 500px"
-          unique-select
-          value-behavior="need-key"
           @change="handleSearchChange" />
       </div>
       <DbTable
@@ -53,12 +50,9 @@
         :columns="columns"
         :data-source="dataSource"
         releate-url-query
-        :row-class="setRowClass"
-        row-hover="auto"
-        :show-overflow="false"
-        :show-settgings="false"
-        @clear-search="handleClearSearch"
-        @refresh="fetchData" />
+        :row-class-name="setRowClass"
+        row-key="account.account_id"
+        @clear-search="handleClearSearch" />
     </div>
     <!-- 创建账户 -->
     <AccountCreate
@@ -91,7 +85,8 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
-  import { differenceInHours } from 'date-fns';
+  import dayjs from 'dayjs';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -119,7 +114,9 @@
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
-  import DbTable from '@components/db-table/index.vue';
+  import AuthTemplate from '@components/auth-component/component.vue';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
@@ -127,8 +124,6 @@
   import MongoCreateRule from '@views/db-manage/common/permission/components/mongo/CreateRule.vue';
   import MysqlCreateRule from '@views/db-manage/common/permission/components/mysql/create-rule/Index.vue';
   import SqlserverCreateRule from '@views/db-manage/common/permission/components/sqlserver/CreateRule.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   import AccountCreate from './components/common/AccountCreate.vue';
   import AccountDetail from './components/common/AccountDetail.vue';
@@ -161,51 +156,63 @@
    */
   const configMap = {
     [AccountTypes.MONGODB]: {
+      addRuleAction: 'mongodb_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: false,
       },
       clusterTypes: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
+      createAccountAction: 'mongodb_priv_manage',
       createRuleComponent: MongoCreateRule,
       dataSource: getMongodbPermissionRules,
       dbOperations: mongoDbOperations,
       ddlSensitiveWords: [],
+      deleteAccountAction: 'mongodb_priv_manage',
       ticketType: TicketTypes.MONGODB_AUTHORIZE_RULES,
     },
     [AccountTypes.MYSQL]: {
+      addRuleAction: 'mysql_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: true,
       },
       clusterTypes: [ClusterTypes.TENDBHA, 'tendbhaSlave', ClusterTypes.TENDBSINGLE],
+      createAccountAction: 'mysql_priv_manage',
       createRuleComponent: MysqlCreateRule,
       dataSource: getMysqlPermissionRules,
       dbOperations: mysqlDbOperations[AccountTypes.MYSQL].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.MYSQL].ddlSensitiveWords,
+      deleteAccountAction: 'mysql_priv_manage',
       ticketType: TicketTypes.MYSQL_AUTHORIZE_RULES,
     },
     [AccountTypes.SQLSERVER]: {
+      addRuleAction: 'sqlserver_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: false,
         [ButtonTypes.EDIT_RULE]: false,
       },
       clusterTypes: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
+      createAccountAction: 'sqlserver_priv_manage',
       createRuleComponent: SqlserverCreateRule,
       dataSource: getSqlserverPermissionRules,
       dbOperations: sqlserverDbOperations,
       ddlSensitiveWords: [],
+      deleteAccountAction: 'sqlserver_priv_manage',
       ticketType: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
     },
     [AccountTypes.TENDBCLUSTER]: {
+      addRuleAction: 'tendbcluster_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: true,
       },
       clusterTypes: [ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave'],
+      createAccountAction: 'tendbcluster_priv_manage',
       createRuleComponent: MysqlCreateRule,
       dataSource: getMysqlPermissionRules,
       dbOperations: mysqlDbOperations[AccountTypes.TENDBCLUSTER].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.TENDBCLUSTER].ddlSensitiveWords,
+      deleteAccountAction: 'tendbcluster_priv_manage',
       ticketType: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
     },
   };
@@ -257,7 +264,7 @@
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const tableSearch = ref([]);
+  const tableSearch = ref<Record<string, string>>({});
   const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
   /**
    * 集群授权
@@ -314,21 +321,20 @@
       name: t('DB名称'),
     },
     {
-      children: Object.values(configMap[props.accountType].dbOperations).reduce<
+      id: 'privilege',
+      list: Object.values(configMap[props.accountType].dbOperations).reduce<
         {
-          id: string;
-          name: string;
+          label: string;
+          value: string;
         }[]
       >((acc, item) => {
-        acc.push(...item.map((id) => ({ id: id.toLowerCase(), name: id })));
+        acc.push(...item.map((id) => ({ label: id, value: id.toLowerCase() })));
         return acc;
       }, []),
-      id: 'privilege',
-      logical: '&',
-      multiple: true,
       name: t('权限'),
+      type: 'multiple',
     },
-  ];
+  ] as QuickSearchProps['data'];
 
   // 判断是否为新账号规则
   const isNewUser = (row: PermissionRule) => {
@@ -337,21 +343,17 @@
 
     const createDay = new Date(createTime);
     const today = new Date();
-    return differenceInHours(today, createDay) <= 24;
+    return dayjs(today).diff(createDay, 'hour') <= 24;
   };
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'user',
-      fixed: 'left',
-      label: t('账号名称'),
-      minWidth: 200,
-      render: ({ data }: { data: PermissionRule }) => (
+      cell: (_, { row: data }) => (
         <TextOverflowLayout>
           {{
             append: () => (
               <>
-                {isNewUser(data) && (
+                {isNewUser(data as PermissionRule) && (
                   <bk-tag
                     class='ml-4'
                     size='small'
@@ -360,22 +362,11 @@
                   </bk-tag>
                 )}
                 <auth-button
-                  action-id={
-                    props.accountType === AccountTypes.SQLSERVER
-                      ? `${props.accountType}_priv_manage`
-                      : `${props.accountType}_add_account_rule`
-                  }
+                  action-id={configMap[props.accountType].addRuleAction}
                   class='add-rule-btn'
-                  permission={
-                    data.permission[
-                      props.accountType === AccountTypes.SQLSERVER
-                        ? `${props.accountType}_priv_manage`
-                        : `${props.accountType}_add_account_rule`
-                    ]
-                  }
-                  resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
+                  permission={data.permission[configMap[props.accountType].addRuleAction]}
                   size='small'
-                  onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
+                  onClick={(event: PointerEvent) => handleShowCreateRule(data as PermissionRule, event)}>
                   {t('添加授权规则')}
                 </auth-button>
               </>
@@ -384,7 +375,7 @@
               <bk-button
                 text
                 theme='primary'
-                onClick={(event: MouseEvent) => handleViewAccount(data, event)}>
+                onClick={(event: MouseEvent) => handleViewAccount(data as PermissionRule, event)}>
                 {data.account.user}
               </bk-button>
             ),
@@ -392,7 +383,7 @@
               data.rules.length > 1 && (
                 <div
                   class='row-expand-btn'
-                  onClick={() => handleToggleExpand(data)}>
+                  onClick={() => handleToggleExpand(data as PermissionRule)}>
                   <db-icon
                     class={{
                       'expand-flag': true,
@@ -405,57 +396,44 @@
           }}
         </TextOverflowLayout>
       ),
-      showOverflow: false,
+      colKey: 'user',
+      fixed: 'left',
+      minWidth: 200,
+      title: t('账号名称'),
     },
     {
-      className: 'access-db-column',
-      field: 'access_db',
-      label: t('访问的DB名'),
-      minWidth: 200,
-      render: ({ data }: { data: PermissionRule }) => {
+      cell: (_, { row: data }) => {
         if (data.rules.length === 0) {
           return (
             <div class='cell-row'>
               <span>{t('暂无规则')}，</span>
               <auth-button
-                action-id={
-                  props.accountType === AccountTypes.SQLSERVER
-                    ? `${props.accountType}_priv_manage`
-                    : `${props.accountType}_add_account_rule`
-                }
-                permission={
-                  data.permission[
-                    props.accountType === AccountTypes.SQLSERVER
-                      ? `${props.accountType}_priv_manage`
-                      : `${props.accountType}_add_account_rule`
-                  ]
-                }
-                resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
+                action-id={configMap[props.accountType].addRuleAction}
+                permission={data.permission[configMap[props.accountType].addRuleAction]}
                 size='small'
                 text
                 theme='primary'
-                onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
+                onClick={(event: PointerEvent) => handleShowCreateRule(data as PermissionRule, event)}>
                 {t('立即新建')}
               </auth-button>
             </div>
           );
         }
-        return getRenderList(data).map((rule) => (
+        return getRenderList(data as PermissionRule).map((rule) => (
           <div class='cell-row'>
             <bk-tag>{rule.access_db || '--'}</bk-tag>
             {rule.priv_ticket && <RenderActionTag data={rule.priv_ticket} />}
           </div>
         ));
       },
-      showOverflow: false,
+      className: 'access-db-column',
+      colKey: 'access_db',
+      minWidth: 200,
+      title: t('访问的DB名'),
     },
     {
-      className: 'privilege-column',
-      field: 'privilege',
-      label: t('权限'),
-      minWidth: 250,
-      render: ({ data }: { data: PermissionRule }) =>
-        getRenderList(data).map((rule) => {
+      cell: (_, { row: data }) =>
+        getRenderList(data as PermissionRule).map((rule) => {
           const { privilege } = rule;
           const privileges = privilege.split(',');
           return (
@@ -482,32 +460,22 @@
             </div>
           );
         }),
-      showOverflow: false,
+      className: 'privilege-column',
+      colKey: 'privilege',
+      minWidth: 250,
+      title: t('权限'),
     },
     {
-      className: 'privilege-column',
-      label: t('操作'),
-      render: ({ data }: { data: PermissionRule }) => {
+      cell: (_, { row: data }) => {
         if (data.rules.length === 0) {
           return (
             <div class='cell-row'>
               <auth-button
-                action-id={
-                  props.accountType === AccountTypes.SQLSERVER
-                    ? `${props.accountType}_priv_manage`
-                    : `${props.accountType}_account_delete`
-                }
-                permission={
-                  data.permission[
-                    props.accountType === AccountTypes.SQLSERVER
-                      ? `${props.accountType}_priv_manage`
-                      : `${props.accountType}_account_delete`
-                  ]
-                }
-                resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
+                action-id={configMap[props.accountType].deleteAccountAction}
+                permission={data.permission[configMap[props.accountType].deleteAccountAction]}
                 text
                 theme='primary'
-                onClick={() => handleDeleteAccount(data)}>
+                onClick={() => handleDeleteAccount(data as PermissionRule)}>
                 {t('删除账号')}
               </auth-button>
             </div>
@@ -519,88 +487,61 @@
           delete: t('删除'),
         };
 
-        return getRenderList(data).map((item, index) => (
+        return getRenderList(data as PermissionRule).map((item, index) => (
           <div class='cell-row'>
-            {props.accountType === AccountTypes.SQLSERVER ? (
-              <auth-button
-                action-id={`${props.accountType}_priv_manage`}
-                permission={data.permission[`${props.accountType}_priv_manage`]}
-                text
-                theme='primary'
-                onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
-                {t('授权')}
-              </auth-button>
-            ) : (
-              <bk-button
-                text
-                theme='primary'
-                onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
-                {t('授权')}
-              </bk-button>
-            )}
+            <auth-button
+              action-id={configMap[props.accountType].addRuleAction}
+              permission={data.permission[configMap[props.accountType].addRuleAction]}
+              text
+              theme='primary'
+              onClick={(event: PointerEvent) => handleShowAuthorize(data as PermissionRule, item, event)}>
+              {t('授权')}
+            </auth-button>
             {configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] && (
               <OperationBtnStatusTips
                 data={{
                   operationStatusText: t('权限规则_t_任务正在进行中', {
-                    t: actionMap[data.rules[index].priv_ticket?.action],
+                    t: actionMap[data.rules[index].priv_ticket?.action as keyof typeof actionMap],
                   }),
                   operationTicketId: data.rules[index].priv_ticket?.ticket_id,
                 }}
                 disabled={!data.rules[index].priv_ticket}>
-                {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
-                  (props.accountType === AccountTypes.SQLSERVER ? (
-                    <auth-button
-                      action-id={`${props.accountType}_priv_manage`}
-                      class='ml-8'
-                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      permission={data.permission[`${props.accountType}_priv_manage`]}
-                      text
-                      theme='primary'
-                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                      {t('编辑')}
-                    </auth-button>
-                  ) : (
-                    <bk-button
-                      class='ml-8'
-                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      text
-                      theme='primary'
-                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                      {t('编辑')}
-                    </bk-button>
-                  ))}
+                {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] && (
+                  <auth-button
+                    action-id={configMap[props.accountType].addRuleAction}
+                    class='ml-8'
+                    disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
+                    permission={data.permission[configMap[props.accountType].addRuleAction]}
+                    text
+                    theme='primary'
+                    onClick={(event: PointerEvent) => handleShowEditRule(event, data as PermissionRule, index)}>
+                    {t('编辑')}
+                  </auth-button>
+                )}
               </OperationBtnStatusTips>
             )}
             {configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] && (
               <OperationBtnStatusTips
                 data={{
                   operationStatusText: t('权限规则_t_任务正在进行中', {
-                    t: actionMap[data.rules[index].priv_ticket?.action],
+                    t: actionMap[data.rules[index].priv_ticket?.action as keyof typeof actionMap],
                   }),
                   operationTicketId: data.rules[index].priv_ticket?.ticket_id,
                 }}
                 disabled={!data.rules[index].priv_ticket}>
-                <bk-pop-confirm
-                  content={
-                    skipApproval.value
-                      ? t('删除规则后将不能恢复，请谨慎操作')
-                      : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')
-                  }
-                  title={t('确认删除该规则？')}
-                  trigger='click'
-                  width='288'
-                  onConfirm={() => handleDeleteRule(data, index)}>
-                  {props.accountType === AccountTypes.SQLSERVER ? (
-                    <auth-button
-                      action-id={`${props.accountType}_priv_manage`}
-                      class='ml-8'
-                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      permission={data.permission[`${props.accountType}_priv_manage`]}
-                      text
-                      theme='primary'>
-                      {t('删除')}
-                    </auth-button>
-                  ) : (
+                <AuthTemplate
+                  actionId={configMap[props.accountType].addRuleAction}
+                  permission={data.permission[configMap[props.accountType].addRuleAction]}>
+                  <bk-pop-confirm
+                    content={
+                      skipApproval.value
+                        ? t('删除规则后将不能恢复，请谨慎操作')
+                        : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')
+                    }
+                    title={t('确认删除该规则？')}
+                    trigger='click'
+                    width='288'
+                    onConfirm={() => handleDeleteRule(data as PermissionRule, index)}>
                     <bk-button
                       class='ml-8'
                       disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
@@ -608,14 +549,16 @@
                       theme='primary'>
                       {t('删除')}
                     </bk-button>
-                  )}
-                </bk-pop-confirm>
+                  </bk-pop-confirm>
+                </AuthTemplate>
               </OperationBtnStatusTips>
             )}
           </div>
         ));
       },
-      showOverflow: false,
+      className: 'privilege-column',
+      colKey: 'operation',
+      title: t('操作'),
       width: 150,
     },
   ];
@@ -646,12 +589,12 @@
   });
 
   // 设置行样式
-  const setRowClass = (row: PermissionRule) => (isNewUser(row) ? 'is-new' : '');
+  const setRowClass = ({ row }: { row: PermissionRule }) => (isNewUser(row) ? 'is-new' : '');
 
   const dataSource = (params: ServiceParameters<typeof getMysqlPermissionRules>) =>
     configMap[props.accountType].dataSource({
       ...params,
-      ...getSearchSelectorParams(tableSearch.value),
+      ...tableSearch.value,
       account_type: props.accountType,
     });
 
@@ -664,7 +607,7 @@
   };
 
   const handleClearSearch = () => {
-    tableSearch.value = [];
+    tableSearch.value = {};
     fetchData();
   };
 
@@ -720,7 +663,7 @@
           await apiMap[props.accountType]({
             account_id: row.account.account_id,
             account_type: props.accountType,
-            bizId,
+            bk_biz_id: bizId,
           });
           Message({
             message: t('成功删除账号'),
@@ -872,10 +815,8 @@
 
       .access-db-column,
       .privilege-column {
-        .vxe-cell {
-          padding-right: 0 !important;
-          padding-left: 0 !important;
-        }
+        padding-right: 0 !important;
+        padding-left: 0 !important;
       }
     }
   }

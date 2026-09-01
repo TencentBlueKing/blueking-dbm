@@ -92,7 +92,7 @@
             :label="t('访问端口')"
             property="details.proxy_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.proxy_port"
               clearable
               :max="60000"
@@ -175,7 +175,7 @@
                     label-width="110"
                     property="details.proxy_port"
                     required>
-                    <BkInput
+                    <DbInput
                       v-model="formData.details.proxy_port"
                       :max="65535"
                       :min="1025"
@@ -310,7 +310,7 @@
                     :label="t('数量')"
                     property="details.resource_spec.proxy.count"
                     required>
-                    <BkInput
+                    <DbInput
                       v-model="formData.details.resource_spec.proxy.count"
                       :min="2"
                       type="number" />
@@ -362,7 +362,7 @@
             :biz-id="formData.bk_biz_id"
             :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -385,12 +385,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <BkButton
-        class="ml-8 w-88"
-        :disabled="baseState.isSubmitting"
-        @click="handleResetFormdata">
-        {{ t('重置') }}
-      </BkButton>
+      <DbResetButton
+        class="ml-8"
+        :confirm-handler="handleResetFormdata"
+        :disabled="baseState.isSubmitting" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -410,7 +408,6 @@
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
@@ -839,17 +836,9 @@
 
   /** 重置表单 */
   const handleResetFormdata = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, initData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, initData());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -1081,7 +1070,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

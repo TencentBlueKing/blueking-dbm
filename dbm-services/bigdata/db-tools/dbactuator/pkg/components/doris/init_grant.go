@@ -7,7 +7,6 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/dorisutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
-	"strings"
 )
 
 // InitGrantParams TODO
@@ -40,7 +39,7 @@ func (i *InitGrantService) AlterRootPassword() (err error) {
 		RootUser, "", i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
-		logger.Error("连接Doris数据库失败，%v", err)
+		logger.Error("connect doris database failed, %v", err)
 		return err
 	}
 	defer func(db *sql.DB) {
@@ -50,7 +49,8 @@ func (i *InitGrantService) AlterRootPassword() (err error) {
 		}
 	}(db)
 	pwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
-	alterSql := fmt.Sprintf("ALTER USER root@'%%' IDENTIFIED BY '%s';", pwd)
+	// Doris 不支持 prepared statement 传参 ALTER USER，对密码做单引号/反斜杠转义防注入
+	alterSql := fmt.Sprintf("ALTER USER root@'%%' IDENTIFIED BY '%s';", dorisutil.EscapeSQLString(pwd))
 	// 执行SQL
 	if _, err = db.Exec(alterSql); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (i *InitGrantService) AlterAdminPassword() (err error) {
 		RootUser, rootPwd, i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
-		logger.Error("连接Doris数据库失败，%v", err)
+		logger.Error("connect doris database failed, %v", err)
 		return err
 	}
 	defer func(db *sql.DB) {
@@ -78,7 +78,8 @@ func (i *InitGrantService) AlterAdminPassword() (err error) {
 		}
 	}(db)
 	pwd := dorisutil.DefaultString(i.Params.AdminPassword, i.Params.Password)
-	alterSql := fmt.Sprintf("ALTER USER `admin`@'%%' IDENTIFIED BY '%s';", pwd)
+	// Doris 不支持 prepared statement 传参 ALTER USER，对密码做单引号/反斜杠转义防注入
+	alterSql := fmt.Sprintf("ALTER USER `admin`@'%%' IDENTIFIED BY '%s';", dorisutil.EscapeSQLString(pwd))
 	// 执行SQL
 	if _, err = db.Exec(alterSql); err != nil {
 		return err
@@ -95,7 +96,7 @@ func (i *InitGrantService) CreateCustomUser() (err error) {
 		RootUser, pwd, i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
-		logger.Error("连接Doris数据库失败，%v", err)
+		logger.Error("connect doris database failed, %v", err)
 		return err
 	}
 	defer func(db *sql.DB) {
@@ -105,35 +106,46 @@ func (i *InitGrantService) CreateCustomUser() (err error) {
 		}
 	}(db)
 
+	// Doris 不支持 prepared statement 传参 CREATE USER/GRANT，且用户名会以裸标识符出现在 SQL 中，
+	// 必须先做标识符合法性校验（防注入 + 防语法破坏），密码走字符串字面值转义。
+	if err = dorisutil.ValidateSQLIdentifier(i.Params.UserName); err != nil {
+		logger.Error("invalid custom username, %v", err)
+		return err
+	}
+	// 自定义用户仅需 admin 角色：NODE_PRIV 非必要，用户属性（resource_tags.location 等）由运行时配置管理下发
 	alterSql := fmt.Sprintf("CREATE USER %s@'%%' IDENTIFIED BY '%s'; grant 'admin' to '%s'@'%%' ;",
-		i.Params.UserName, i.Params.Password, i.Params.UserName)
+		i.Params.UserName, dorisutil.EscapeSQLString(i.Params.Password), i.Params.UserName)
 	// 执行SQL
 	if _, err = db.Exec(alterSql); err != nil {
-		return err
-	}
-	alterSql = fmt.Sprintf("grant NODE_PRIV on *.*.* to '%s'@'%%' ;", i.Params.UserName)
-	// 执行SQL
-	if _, err = db.Exec(alterSql); err != nil {
-		return err
-	}
-	// 用户变量 UserProperty调整
-	// 不管是否存在温/冷 节点，均对自定义用户配置
-	setPropSql := fmt.Sprintf("set property for '%s' 'resource_tags.location' = '%s';",
-		i.Params.UserName, getAllResourceTags())
-	if _, err = db.Exec(setPropSql); err != nil {
 		return err
 	}
 	return
 }
 
-// InitGrantTxn Doris集群账号初始化事务，保证原子性
+// InitGrantTxn Doris集群账号初始化
+//
+// TODO: 函数名保留了 "Txn" 后缀，但 Doris 当前并不支持账号/DDL 类语句的多语句事务：
+//
+//	ALTER USER / CREATE USER / GRANT 在 Doris 侧执行时即已原子提交，此处的 tx.Begin/Commit
+//	仅在 MySQL 协议层建立会话状态，Rollback 实际无法回滚前置步骤已产生的账号变更。
+//	因此本函数并不能保证跨步骤的原子性，任一步失败时前面已执行的账号操作不会被撤销。
+//	另外，本函数首步会修改 root 密码，后续步骤若失败，简单重试未必能自动收敛；
+//	如需真正支持重试/补偿，需要显式记录阶段状态，或调整执行顺序与重连凭据策略。
+//	等 Doris 支持 DDL 事务，或这里补齐显式补偿后，再回来去掉这条 TODO。
 func (i *InitGrantService) InitGrantTxn() (err error) {
+	// Doris 不支持 prepared statement 传参 DDL，用户名会以裸标识符落到 SQL，必须先校验；
+	// 密码通过 EscapeSQLString 做字面值转义，避免包含 ' 或 \ 时破坏 SQL。
+	if err = dorisutil.ValidateSQLIdentifier(i.Params.UserName); err != nil {
+		logger.Error("invalid custom username, %v", err)
+		return err
+	}
+
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		RootUser, "", i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
-		logger.Error("连接Doris数据库失败，%v", err)
+		logger.Error("connect doris database failed, %v", err)
 		return err
 	}
 	defer func(db *sql.DB) {
@@ -142,46 +154,58 @@ func (i *InitGrantService) InitGrantTxn() (err error) {
 			return
 		}
 	}(db)
-	// 开启事务
+	// 开启事务（见函数注释 TODO：实际不具备跨步骤原子性，仅走 MySQL 协议层）
 	tx, err := db.Begin()
 	if err != nil {
-		logger.Fatal("开启事务失败: %v", err)
+		logger.Error("begin transaction failed, %v", err)
+		return err
 	}
 	rootPwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
-	alterRootSql := fmt.Sprintf("ALTER USER root@'%%' IDENTIFIED BY '%s';", rootPwd)
+	alterRootSql := fmt.Sprintf("ALTER USER root@'%%' IDENTIFIED BY '%s';",
+		dorisutil.EscapeSQLString(rootPwd))
 	// 1. 修改root用户密码
-	_, err = tx.Exec(alterRootSql)
-	if err != nil {
-		tx.Rollback()
-		logger.Fatal("修改root用户密码失败: %v", err)
+	if _, err = tx.Exec(alterRootSql); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Warn("rollback failed after altering root password, %v", rbErr)
+		}
+		logger.Error("alter root password failed, %v", err)
+		return err
 	}
 	adminPwd := dorisutil.DefaultString(i.Params.AdminPassword, i.Params.Password)
 
-	alterAdminSql := fmt.Sprintf("ALTER USER `admin`@'%%' IDENTIFIED BY '%s';", adminPwd)
+	alterAdminSql := fmt.Sprintf("ALTER USER `admin`@'%%' IDENTIFIED BY '%s';",
+		dorisutil.EscapeSQLString(adminPwd))
 	// 2. 修改admin用户密码
-	_, err = tx.Exec(alterAdminSql)
-	if err != nil {
-		tx.Rollback()
-		logger.Fatal("修改admin用户密码失败: %v", err)
+	if _, err = tx.Exec(alterAdminSql); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Warn("rollback failed after altering admin password, %v", rbErr)
+		}
+		logger.Error("alter admin password failed, %v", err)
+		return err
 	}
 	// 3. 创建自定义用户
 	createUserSql := fmt.Sprintf("CREATE USER %s@'%%' IDENTIFIED BY '%s'",
-		i.Params.UserName, i.Params.Password)
-	_, err = tx.Exec(createUserSql)
-	if err != nil {
-		tx.Rollback()
-		logger.Fatal("创建自定义用户失败: %v", err)
+		i.Params.UserName, dorisutil.EscapeSQLString(i.Params.Password))
+	if _, err = tx.Exec(createUserSql); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Warn("rollback failed after creating custom user, %v", rbErr)
+		}
+		logger.Error("create custom user failed, %v", err)
+		return err
+	}
+	// 4. 给自定义用户授予 admin 角色
+	grantAdminSql := fmt.Sprintf("GRANT 'admin' TO '%s'@'%%';", i.Params.UserName)
+	if _, err = tx.Exec(grantAdminSql); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Warn("rollback failed after granting admin role, %v", rbErr)
+		}
+		logger.Error("grant admin role to custom user failed, %v", err)
+		return err
 	}
 	// 提交事务
-	if err := tx.Commit(); err != nil {
-		logger.Fatal("提交事务失败: %v", err)
+	if err = tx.Commit(); err != nil {
+		logger.Error("commit transaction failed, %v", err)
+		return err
 	}
 	return nil
-
-}
-
-// getAllResourceTags 返回自定义用户 UserProperty 'resource_tags.location' 的取值。
-// 与历史行为保持一致：cold,default。后续若 BE tag 体系扩展，仅在切片中追加常量即可。
-func getAllResourceTags() string {
-	return strings.Join([]string{BeTagLocationCold, BeTagLocationDefault}, ",")
 }

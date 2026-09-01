@@ -130,7 +130,7 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &addon.BKAuth,
+		BkAdditional: &addon.BKAdditional,
 	}
 	addedAddon, err := a.addonProvider.CreateStorageAddon(&dbsCtx, &addonEntity)
 	if err != nil {
@@ -165,7 +165,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &addon.BKAuth,
+		BkAdditional: &addon.BKAdditional,
 	}
 	addonEntity.ID = id
 	rows, err := a.addonProvider.UpdateStorageAddon(&dbsCtx, &addonEntity)

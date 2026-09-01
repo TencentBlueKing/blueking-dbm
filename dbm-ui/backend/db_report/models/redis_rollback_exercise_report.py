@@ -178,6 +178,13 @@ class RedisRollbackExerciseReport(BaseReportABS):
                     self.state = ReportStateType.ABNORMAL
                     update_fields.extend(["recover_end_time", "task_end_time", "state"])
 
+                case TaskStage.SCENE_PRESERVED:
+                    # Scene still open: do not set task_end_time.
+                    # DBA confirmation later marks ROLLBACK_FAILED/CLEANUP_FAILED and fills it.
+                    self.recover_end_time = timezone.now()
+                    self.state = ReportStateType.ABNORMAL
+                    update_fields.extend(["recover_end_time", "state"])
+
                 case TaskStage.ROLLBACK_SUCCEEDED:
                     self.recover_end_time = timezone.now()
                     update_fields.append("recover_end_time")

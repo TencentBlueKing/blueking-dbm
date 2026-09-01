@@ -33,7 +33,14 @@ def cluster_execute_script(
     # 创建子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-    # 执行脚本
+    # 检查长事务
+    kwargs = sub_get_kwargs.get_check_long_transaction_kwargs(info=info)
+    sub_pipeline.add_act(
+        act_name=_("Oracle-检查长事务:{}".format(info["ip"])),
+        act_component_code=OracleExecuteDBActuatorJobComponent.code,
+        kwargs=kwargs,
+    )
+    # 执行变更脚本
     kwargs = sub_get_kwargs.get_execute_script_kwargs(info=info)
     sub_pipeline.add_act(
         act_name=_("Oracle-执行脚本:{}".format(info["ip"])),

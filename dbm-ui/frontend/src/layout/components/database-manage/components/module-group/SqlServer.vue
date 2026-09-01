@@ -3,69 +3,54 @@
     <MenuGroup
       :db-type="DBTypes.SQLSERVER"
       :is-error="isError">
-      <BkSubmenu key="SqlServerHaClusterManage">
-        <template #icon>
-          <DbIcon type="cluster" />
-        </template>
-        <template #title>
-          <span>{{ t('主从') }}</span>
+      <DbSubmenu
+        id="SqlServerHaClusterManage"
+        icon="cluster"
+        :title="t('主从')">
+        <template #append>
           <CountTag
             :cluster-type="ClusterTypes.SQLSERVER_HA"
             role="cluster" />
         </template>
-        <BkMenuItem key="SqlServerHaCluster">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('集群视图') }}
-          </span>
+        <DbMenuItem route-name="SqlServerHaCluster">
+          {{ t('集群视图') }}
+          <template #append>
+            <CountTag
+              :cluster-type="ClusterTypes.SQLSERVER_HA"
+              role="cluster" />
+          </template>
+        </DbMenuItem>
+        <DbMenuItem
+          v-db-console="'sqlserver.haInstanceList'"
+          route-name="SqlServerHaInstanceList">
+          {{ t('实例视图') }}
+          <template #append>
+            <CountTag
+              :cluster-type="ClusterTypes.SQLSERVER_HA"
+              role="instance" />
+          </template>
+        </DbMenuItem>
+      </DbSubmenu>
+      <DbMenuItem
+        v-db-console="'sqlserver.singleClusterList'"
+        icon="node"
+        route-name="SqlServerSingle">
+        {{ t('单节点') }}
+        <template #append>
           <CountTag
-            :cluster-type="ClusterTypes.SQLSERVER_HA"
+            :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
             role="cluster" />
-        </BkMenuItem>
-        <BkMenuItem
-          key="SqlServerHaInstanceList"
-          v-db-console="'sqlserver.haInstanceList'">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('实例视图') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.SQLSERVER_HA"
-            role="instance" />
-        </BkMenuItem>
-      </BkSubmenu>
-      <BkMenuItem
-        key="SqlServerSingle"
-        v-db-console="'sqlserver.singleClusterList'">
-        <template #icon>
-          <DbIcon type="node" />
         </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('单节点') }}
-        </span>
-        <CountTag
-          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-          role="cluster" />
-      </BkMenuItem>
-      <BkSubmenu
-        key="sqlserver-permission"
+      </DbMenuItem>
+      <DbSubmenu
+        id="sqlserver-permission"
         v-db-console="'sqlserver.permissionManage'"
+        icon="history"
         :title="t('权限管理')">
-        <template #icon>
-          <DbIcon type="history" />
-        </template>
-        <BkMenuItem key="SqlServerPermissionRules">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('授权规则') }}
-          </span>
-        </BkMenuItem>
-      </BkSubmenu>
+        <DbMenuItem route-name="SqlServerPermissionRules">
+          {{ t('授权规则') }}
+        </DbMenuItem>
+      </DbSubmenu>
       <div
         v-if="Object.keys(toolboxFavorMap).length > 0"
         class="split-line" />
@@ -78,16 +63,11 @@
       <FunController
         controller-id="sqlserver_tool"
         module-id="sqlserver">
-        <BkMenuItem key="sqlserverToolbox">
-          <template #icon>
-            <DbIcon type="tools" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('工具箱') }}
-          </span>
-        </BkMenuItem>
+        <DbMenuItem
+          icon="tools"
+          route-name="sqlserverToolbox">
+          {{ t('工具箱') }}
+        </DbMenuItem>
       </FunController>
     </MenuGroup>
   </FunController>
@@ -98,6 +78,9 @@
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import { toolboxMenuList } from '@views/db-manage/sqlserver/toolbox/toolboxMenuList';
+
+  import DbMenuItem from '../../../menu/Item.vue';
+  import DbSubmenu from '../../../menu/Submenu.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';

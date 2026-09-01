@@ -26,7 +26,11 @@ from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import observe
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.bk_web.swagger import (
+    PaginatedResponseSwaggerAutoSchema,
+    ResponseSwaggerAutoSchema,
+    common_swagger_auto_schema,
+)
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -69,6 +73,8 @@ from backend.ticket.serializers import (
     BatchTicketOperateSerializer,
     BatchTodoOperateSerializer,
     CheckDomainRepeatSerializer,
+    CheckTicketFlowConfigClusterRepeatSerializer,
+    CheckTicketFlowConfigClusterTagRepeatSerializer,
     ClusterDisableTodoSerializer,
     ClusterModifyOpSerializer,
     CreateTicketFlowConfigSerializer,
@@ -82,6 +88,7 @@ from backend.ticket.serializers import (
     RetryFlowSLZ,
     RevokeFlowSLZ,
     RevokeTicketSLZ,
+    SaveTicketFlowConfigSerializer,
     SensitiveTicketSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
@@ -97,6 +104,19 @@ from backend.ticket.todos import TodoActorFactory
 logger = logging.getLogger("ticket.views")
 
 TICKET_TAG = "ticket"
+
+
+class _NoFilterSwaggerAutoSchema(ResponseSwaggerAutoSchema):
+    """Swagger schema that skips filter/paginator parameter generation.
+    Use on custom @action endpoints whose query_serializer fields overlap
+    with the viewset's filter_backends or paginator_class.
+    """
+
+    def should_filter(self):
+        return False
+
+    def should_page(self):
+        return False
 
 
 class TicketViewSet(viewsets.AuditedModelViewSet):
@@ -131,7 +151,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
             return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
         # 单据流程设置，关联单据流程设置动作
-        elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config", "delete_ticket_flow_config"]:
+        elif self.action in [
+            "save_ticket_flow_config",
+            "update_ticket_flow_config",
+            "create_ticket_flow_config",
+            "delete_ticket_flow_config",
+        ]:
             return ticket_flows_config_permission(self.action, self.request)
         # 对于处理todo的接口，可以不用鉴权，todo本身会判断是否是确认人
         elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket", "cluster_disable_todo"]:
@@ -150,6 +175,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             "revoke_ticket",
             "ticket_group_types",
             "check_domain_repeat",
+            "check_ticket_flow_config_cluster_repeat",
+            "check_ticket_flow_config_cluster_tag_repeat",
         ]:
             return []
         # 回调和处理无需鉴权
@@ -697,6 +724,23 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return Response()
 
     @swagger_auto_schema(
+        operation_summary=_("保存单据流程规则"),
+        request_body=SaveTicketFlowConfigSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SaveTicketFlowConfigSerializer)
+    def save_ticket_flow_config(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        config_ids = data.get("config_ids") or []
+
+        if config_ids:
+            TicketHandler.update_ticket_flow_config(**data, operator=request.user.username)
+        else:
+            data.pop("config_ids", None)
+            TicketHandler.create_ticket_flow_config(**data, operator=request.user.username)
+        return Response()
+
+    @swagger_auto_schema(
         operation_summary=_("创建单据流程规则"),
         request_body=CreateTicketFlowConfigSerializer(),
         tags=[TICKET_TAG],
@@ -706,6 +750,27 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         TicketHandler.create_ticket_flow_config(**data, operator=request.user.username)
         return Response()
+
+    @swagger_auto_schema(
+        operation_summary=_("查询单据流程规则集群是否重复"),
+        query_serializer=CheckTicketFlowConfigClusterRepeatSerializer(),
+        auto_schema=_NoFilterSwaggerAutoSchema,
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=CheckTicketFlowConfigClusterRepeatSerializer)
+    def check_ticket_flow_config_cluster_repeat(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(TicketHandler.check_ticket_flow_config_cluster_repeat(**data))
+
+    @swagger_auto_schema(
+        operation_summary=_("查询单据流程规则集群标签是否重复"),
+        request_body=CheckTicketFlowConfigClusterTagRepeatSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CheckTicketFlowConfigClusterTagRepeatSerializer)
+    def check_ticket_flow_config_cluster_tag_repeat(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(TicketHandler.check_ticket_flow_config_cluster_tag_repeat(**data))
 
     @swagger_auto_schema(
         operation_summary=_("删除单据流程规则"),

@@ -27,17 +27,17 @@ from backend.dbm_aiagent.mcp_tools.pulsar.impl.pulsar_toolbox import (
     topic_internal_stats,
 )
 from backend.dbm_aiagent.mcp_tools.pulsar.serializers.pulsar_toolbox import (
-    ClusterHealthCheckOutputSerializer,
-    DescribeTopicOutputSerializer,
     ListBrokersOutputSerializer,
     ListNamespacesInputSerializer,
     ListNamespacesOutputSerializer,
     ListSubscriptionsOutputSerializer,
     ListTenantsOutputSerializer,
-    ListTopicsInputSerializer,
-    ListTopicsOutputSerializer,
     NamespaceInputSerializer,
     NamespacePoliciesOutputSerializer,
+    PulsarClusterHealthCheckOutputSerializer,
+    PulsarDescribeTopicOutputSerializer,
+    PulsarListTopicsInputSerializer,
+    PulsarListTopicsOutputSerializer,
     PulsarToolboxClusterInputSerializer,
     TopicInputSerializer,
     TopicInternalStatsOutputSerializer,
@@ -92,8 +92,8 @@ class PulsarToolboxMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _("列出Pulsar namespace下的所有topic。" "参数：cluster_domain（集群域名），namespace（格式 tenant/namespace，如 public/default）")
         ),
-        request_slz=ListTopicsInputSerializer,
-        response_slz=ListTopicsOutputSerializer,
+        request_slz=PulsarListTopicsInputSerializer,
+        response_slz=PulsarListTopicsOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.PULSAR_TOOLBOX],
         name_prefix="pulsar_toolbox",
@@ -115,7 +115,7 @@ class PulsarToolboxMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=TopicInputSerializer,
-        response_slz=DescribeTopicOutputSerializer,
+        response_slz=PulsarDescribeTopicOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.PULSAR_TOOLBOX],
         name_prefix="pulsar_toolbox",
@@ -209,7 +209,7 @@ class PulsarToolboxMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=PulsarToolboxClusterInputSerializer,
-        response_slz=ClusterHealthCheckOutputSerializer,
+        response_slz=PulsarClusterHealthCheckOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.PULSAR_TOOLBOX],
         name_prefix="pulsar_toolbox",

@@ -66,7 +66,7 @@ class EsFakeApplyFlow(EsFlow):
 
         act_kwargs = EsActKwargs(bk_cloud_id=self.bk_cloud_id)
         act_kwargs.set_trans_data_dataclass = EsApplyContext.__name__
-        act_kwargs.file_list = trans_files.es_apply(db_version=self.db_version)
+        act_kwargs.file_list = trans_files.es_apply(db_version=self.db_version, install_plugin_list=self.plugin_list)
         es_pipeline.add_act(
             act_name=_("获取集群部署配置"), act_component_code=GetEsActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )

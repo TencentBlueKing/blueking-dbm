@@ -324,3 +324,40 @@ class TestPeriodicRegistration:
         )
 
         assert redis_rollback_exercise_ticket_anomaly_detect is mod.redis_rollback_exercise_ticket_anomaly_detect
+
+
+class TestScenePreservedDetection:
+    def test_preserved_ticket_reports_scene_preserved_reason(self):
+        """Preserved tickets report REASON_SCENE_PRESERVED, not a daily missing_cleanup_child false positive."""
+        from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
+        from backend.db_report.models import RedisRollbackExerciseReport as Report
+
+        mod = _import_mod()
+        ticket = _make_drill_ticket(TicketStatus.FAILED, {"recycle_hosts": [_host()]})
+        report = Report.objects.create(
+            cluster_id=1,
+            cluster_domain="d",
+            cluster_type="Redis",
+            instance_ip="127.0.0.1",
+            instance_port=6379,
+            redis_version="7.0",
+            ticket_id=ticket.id,
+            task_stage=TaskStage.SCENE_PRESERVED,
+        )
+        try:
+            anomalies = mod.collect_redis_rollback_exercise_ticket_anomalies(3600)
+            preserved = [a for a in anomalies if a.ticket_id == ticket.id]
+            assert len(preserved) == 1
+            assert preserved[0].reason == mod.REASON_SCENE_PRESERVED
+            assert not any(a.ticket_id == ticket.id and a.reason == mod.REASON_MISSING_CLEANUP for a in anomalies)
+        finally:
+            report.delete()
+            ticket.delete()
+
+    def test_failed_ticket_without_preserved_report_stays_missing_cleanup(self):
+        """Control: a FAILED ticket without a preserved report still flags missing_cleanup."""
+        mod = _import_mod()
+        ticket = _make_drill_ticket(TicketStatus.FAILED, {"recycle_hosts": [_host()]})
+        anomalies = mod.collect_redis_rollback_exercise_ticket_anomalies(3600)
+        assert any(a.ticket_id == ticket.id and a.reason == mod.REASON_MISSING_CLEANUP for a in anomalies)
+        ticket.delete()

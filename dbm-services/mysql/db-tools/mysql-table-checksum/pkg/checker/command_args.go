@@ -1,9 +1,11 @@
 package checker
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -11,6 +13,21 @@ func (r *Checker) ptPrecheck() error {
 	if _, err := os.Stat(r.Config.PtChecksum.Path); err != nil {
 		slog.Error("pt pre check", slog.String("error", err.Error()))
 		return err
+	}
+	return checkPerlDBDMySQL()
+}
+
+func checkPerlDBDMySQL() error {
+	cmd := exec.Command("perl", "-MDBD::mysql", "-e", "1")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		slog.Error(
+			"perl DBD::mysql pre check",
+			slog.String("error", err.Error()),
+			slog.String("stderr", stderr.String()),
+		)
+		return fmt.Errorf("perl DBD::mysql unavailable: %w, stderr: %s", err, stderr.String())
 	}
 	return nil
 }

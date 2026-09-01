@@ -20,26 +20,26 @@
       v-if="flowStatus !== 'pending'"
       class="mt-16"
       style="padding: 0 45px">
-      <BkTable
+      <PrimaryTable
         :data="semanticExecuteResult"
-        :show-overflow="false">
-        <BkTableColumn
-          field="dbnames"
-          :label="t('变更的 DB')"
+        row-key="task_id">
+        <TableColumn
+          col-key="dbnames"
+          :title="t('变更的 DB')"
           :width="200">
-          <template #default="{ data }: { data: RowData }">
+          <template #default="{ row: data }: { row: RowData }">
             <BkTag
               v-for="(tag, index) in data.dbnames"
               :key="index">
               {{ tag }}
             </BkTag>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="ignore_dbnames"
-          :label="t('忽略的 DB')"
+        </TableColumn>
+        <TableColumn
+          col-key="ignore_dbnames"
+          :title="t('忽略的 DB')"
           :width="200">
-          <template #default="{ data }: { data: RowData }">
+          <template #default="{ row: data }: { row: RowData }">
             <template v-if="data.ignore_dbnames.length > 0">
               <BkTag
                 v-for="(tag, index) in data.ignore_dbnames"
@@ -49,12 +49,12 @@
             </template>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="status"
-          :label="t('SQL 文件执行结果')"
+        </TableColumn>
+        <TableColumn
+          col-key="status"
+          :title="t('SQL 文件执行结果')"
           :width="200">
-          <template #default="{ data }: { data: RowData }">
+          <template #default="{ row: data }: { row: RowData }">
             <span v-if="data.status === 'Failed'">
               <DbIcon
                 svg
@@ -74,9 +74,11 @@
               {{ t('待执行') }}
             </span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn :label="t('失败原因')">
-          <template #default="{ data }: { data: RowData }">
+        </TableColumn>
+        <TableColumn
+          col-key="err_msg"
+          :title="t('失败原因')">
+          <template #default="{ row: data }: { row: RowData }">
             <div v-if="data.status === 'Failed'">
               <div style="font-size: 12px; font-weight: bold; line-height: 22px; color: #ea3636">
                 {{ getSQLFilename(data.file_name) }}
@@ -89,8 +91,8 @@
             </div>
             <div v-else>--</div>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </div>
   </div>
 </template>

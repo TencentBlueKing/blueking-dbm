@@ -93,16 +93,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -235,23 +229,21 @@
     is_verify_checksum: boolean;
   }>(TicketTypes.MYSQL_MASTER_FAIL_OVER);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: item.master.related_clusters.map((item) => item.id),
-          master_ip: item.master,
-          slave_ip: item.slave,
-        })),
-        is_check_delay: formData.is_check_delay,
-        is_check_process: formData.is_check_process,
-        is_verify_checksum: formData.is_verify_checksum,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: item.master.related_clusters.map((item) => item.id),
+            master_ip: item.master,
+            slave_ip: item.slave,
+          })),
+          is_check_delay: formData.is_check_delay,
+          is_check_process: formData.is_check_process,
+          is_verify_checksum: formData.is_verify_checksum,
+        },
+        ...formData.payload,
+      });
     });
   };
 

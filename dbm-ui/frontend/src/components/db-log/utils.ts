@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import dayjs from 'dayjs';
 
 export interface NodeLog {
   levelname: string;
@@ -10,7 +10,7 @@ export const formatLogData = (data: NodeLog[] = [], isSetColor = true) => {
   const regex = /^##\[[a-z]+]/;
   return data.map((item) => {
     const { levelname, message, timestamp } = item;
-    const time = timestamp ? format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss') : '';
+    const time = timestamp ? dayjs(Number(timestamp)).format('YYYY-MM-DD HH:mm:ss') : '';
     if (!time && !levelname) {
       return message;
     }

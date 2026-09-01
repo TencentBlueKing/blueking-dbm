@@ -86,8 +86,8 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.CreateCluster,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.CreateCluster,
 	}
 	if err := c.clusterProvider.CreateCluster(dbsCtx, clusterConfig); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
@@ -218,8 +218,8 @@ func (c *ClusterController) ExposeCluster(ctx *gin.Context) {
 	}
 
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.ExposeService,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.ExposeService,
 	}
 
 	responseData, err := c.opsRequestProvider.ExposeCluster(dbsCtx, request)
@@ -293,8 +293,8 @@ func (c *ClusterController) UpdateClusterConfig(ctx *gin.Context) {
 	}
 
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.PartialUpdateCluster,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.PartialUpdateCluster,
 	}
 
 	// 获取集群元数据

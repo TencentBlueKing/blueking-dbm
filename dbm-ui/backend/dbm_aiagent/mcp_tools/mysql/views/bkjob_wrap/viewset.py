@@ -11,15 +11,15 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.impl.bkcc_wrap.check_ips_biz_scope import check_ips_biz_scope
 from backend.dbm_aiagent.mcp_tools.common.impl.bkcc_wrap.check_machines_operator import check_machines_operator
 from backend.dbm_aiagent.mcp_tools.common.impl.bkjob_wrap.execute_script import execute_script
 from backend.dbm_aiagent.mcp_tools.common.serializers.bkjob_wrap.execute_script import ExecuteScriptOutputSerializer
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.scripts import (
-    CURRENT_DATE_AND_IP_SCRIPT,
-    DISK_DIR_SIZE_SCRIPT,
-)
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.concurrency import acquire_host_locks, release_host_locks
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.mysql_current_date_and_ip import CURRENT_DATE_AND_IP_SCRIPT
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.mysql_query_disk_dir_size import DISK_DIR_SIZE_SCRIPT
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bkjob_wrap.mysql_current_date_and_ip import (
     MysqlCurrentDateAndIpInputSerializer,
 )
@@ -46,13 +46,15 @@ class BKJobWrapMcpToolsViewSet(McpToolsViewSet):
     def mysql_current_date_and_ip(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
         ips = sorted(set(self.get_param("ips")))
-        bk_scope_type = self.get_param("bk_scope_type")
         bk_scope_id = self.get_param("bk_scope_id")
 
         username = request.user.username
 
         # 机器存在 + 执行者校验（复用公共 helper）
-        check_machines_operator(bk_cloud_id=bk_cloud_id, ips=ips, username=username)
+        hosts = check_machines_operator(bk_cloud_id=bk_cloud_id, ips=ips, username=username)
+        # 业务归属校验：IP 必须属于用户提供的 CMDB 业务ID，禁止猜测
+        bk_scope_type = "biz"  # 仅支持单业务，禁止 biz_set
+        check_ips_biz_scope(bk_scope_type=bk_scope_type, bk_scope_id=bk_scope_id, hosts=hosts)
 
         script = CURRENT_DATE_AND_IP_SCRIPT
         name = "mysql_current_date_and_ip"
@@ -89,28 +91,38 @@ class BKJobWrapMcpToolsViewSet(McpToolsViewSet):
     def mysql_query_disk_dir_size(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
         ips = sorted(set(self.get_param("ips")))
-        bk_scope_type = self.get_param("bk_scope_type")
         bk_scope_id = self.get_param("bk_scope_id")
 
         username = request.user.username
 
         # 机器存在 + 执行者校验（复用公共 helper）
-        check_machines_operator(bk_cloud_id=bk_cloud_id, ips=ips, username=username)
+        hosts = check_machines_operator(bk_cloud_id=bk_cloud_id, ips=ips, username=username)
+        # 业务归属校验：IP 必须属于用户提供的 CMDB 业务ID，禁止猜测
+        bk_scope_type = "biz"  # 仅支持单业务，禁止 biz_set
+        check_ips_biz_scope(bk_scope_type=bk_scope_type, bk_scope_id=bk_scope_id, hosts=hosts)
 
         script = DISK_DIR_SIZE_SCRIPT
         name = "mysql_query_disk_dir_size"
         run_as = "mysql"
 
-        job_instance_id = execute_script(
-            name=name,
-            username=username,
-            bk_cloud_id=bk_cloud_id,
-            ips=ips,
-            script=script,
-            run_as=run_as,
-            bk_scope_type=bk_scope_type,
-            bk_scope_id=bk_scope_id,
-        )
+        # 并发防护：磁盘扫描为高 IO 重任务，对目标机器逐一加锁，
+        # 同机器存在未结束的同名任务时拒绝重复下发（锁按 TTL 自动过期）
+        acquire_host_locks(name=name, bk_cloud_id=bk_cloud_id, ips=ips)
+        try:
+            job_instance_id = execute_script(
+                name=name,
+                username=username,
+                bk_cloud_id=bk_cloud_id,
+                ips=ips,
+                script=script,
+                run_as=run_as,
+                bk_scope_type=bk_scope_type,
+                bk_scope_id=bk_scope_id,
+            )
+        except Exception:
+            # 下发失败时立即释放锁，避免锁泄漏导致后续任务被误拒
+            release_host_locks(name=name, bk_cloud_id=bk_cloud_id, ips=ips)
+            raise
         return Response(
             {
                 "job_instance_id": job_instance_id,

@@ -14,7 +14,7 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 
 
-class SubmitBillOutputSerializer(serializers.Serializer):
+class KafkaSubmitBillOutputSerializer(serializers.Serializer):
     bill_id = serializers.IntegerField(help_text=_("单据id, 理论上都会返回，如果没有返回说明有错误，需要把错误暴露出来"))
     bill_url = serializers.CharField(help_text=_("单据地址"))
 

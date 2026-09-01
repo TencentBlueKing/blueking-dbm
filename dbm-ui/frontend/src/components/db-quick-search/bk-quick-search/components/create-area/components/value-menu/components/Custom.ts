@@ -22,7 +22,7 @@ export default defineComponent({
   setup(props, context) {
     return () => {
       return h(props.config.component, {
-        onChange: (value: any) => {
+        onChange: (value: unknown) => {
           context.emit('change', value);
         },
         remoteSearch: props.remoteSearch,

@@ -27,7 +27,7 @@ class KafkaToolboxBaseInputSerializer(serializers.Serializer):
 # ============================================================
 
 
-class ListTopicsInputSerializer(KafkaToolboxBaseInputSerializer):
+class KafkaListTopicsInputSerializer(KafkaToolboxBaseInputSerializer):
     pass
 
 
@@ -214,7 +214,7 @@ class ResetConsumerGroupOffsetInputSerializer(KafkaToolboxBaseInputSerializer):
 # ============================================================
 
 
-class ListTopicsOutputSerializer(serializers.Serializer):
+class KafkaListTopicsOutputSerializer(serializers.Serializer):
     topics = serializers.ListField(child=serializers.CharField(), help_text=_("topic 列表"))
     count = serializers.IntegerField(help_text=_("topic 数量"))
 
@@ -226,7 +226,7 @@ class PartitionInfoSerializer(serializers.Serializer):
     isr = serializers.ListField(child=serializers.IntegerField(), help_text=_("ISR 列表"), required=False)
 
 
-class DescribeTopicOutputSerializer(serializers.Serializer):
+class KafkaDescribeTopicOutputSerializer(serializers.Serializer):
     topic = serializers.CharField(help_text=_("topic 名称"))
     partition_count = serializers.IntegerField(help_text=_("分区数"))
     replication_factor = serializers.IntegerField(help_text=_("副本因子"))
@@ -277,7 +277,7 @@ class ProblemPartitionSerializer(serializers.Serializer):
     isr = serializers.ListField(child=serializers.IntegerField(), help_text=_("ISR 列表"), required=False)
 
 
-class ClusterHealthCheckOutputSerializer(serializers.Serializer):
+class KafkaClusterHealthCheckOutputSerializer(serializers.Serializer):
     brokers = BrokerInfoSerializer(many=True, help_text=_("在线 broker 列表"))
     broker_count = serializers.IntegerField(help_text=_("在线 broker 数量"))
     under_replicated_partitions = ProblemPartitionSerializer(many=True, help_text=_("副本不足的分区列表"))

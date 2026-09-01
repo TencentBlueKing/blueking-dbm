@@ -120,7 +120,7 @@
                 :label="t('数量')"
                 property="details.resource_spec.influxdb.count"
                 required>
-                <BkInput
+                <DbInput
                   v-model="formData.details.resource_spec.influxdb.count"
                   :min="1"
                   type="number" />
@@ -132,7 +132,7 @@
           :label="t('访问端口')"
           property="details.port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.port"
             clearable
             :min="1"
@@ -145,7 +145,7 @@
             resource_spec: formData.details.resource_spec,
           }" />
         <BkFormItem :label="t('备注')">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -163,12 +163,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleReset"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -181,7 +179,6 @@
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -404,18 +401,10 @@
    * 重置表单
    */
   const handleReset = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, getInitFormdata());
-        formRef.value.clearValidate();
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, getInitFormdata());
+    formRef.value.clearValidate();
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -485,7 +474,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

@@ -189,6 +189,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         1. Validate SQL syntax across MySQL 5.5/5.6/5.7/8.0 versions - 支持多版本MySQL语法验证
         2. Check DBM platform constraints (banned commands, high-risk operations) - 检查DBM平台约束（禁用命令、高风险操作）
         3. SQL statement/file compatibility checking - SQL语句/文件兼容性检查
+        4. Parse SQL file statement types and ALTER/DROP/TRUNCATE tables - 解析SQL文件语句类型与ALTER/DROP/TRUNCATE表
 
         Use Cases / 使用场景:
         - Validate SQL before execution to prevent syntax errors - 执行前验证SQL防止语法错误

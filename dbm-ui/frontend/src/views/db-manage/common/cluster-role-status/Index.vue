@@ -1,6 +1,7 @@
 <template>
   <div class="dbm-cluster-role-status">
     <BkPopover
+      :disabled="data.cluster_type.includes('k8s')"
       :max-width="500"
       placement="top"
       :popover-delay="[200, 100]"
@@ -54,12 +55,15 @@
 
   import type { ClusterListNode } from '@services/types';
 
+  import type { ClusterTypes } from '@common/const';
+
   import ClusterStatus from '@components/cluster-status/Index.vue';
 
   import { execCopy } from '@utils';
 
   interface Props {
     data: {
+      cluster_type: ClusterTypes;
       roleFailedInstanceInfo: Record<any, ClusterListNode[]>;
       status: string;
     };

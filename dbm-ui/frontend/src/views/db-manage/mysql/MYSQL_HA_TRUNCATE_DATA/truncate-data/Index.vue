@@ -103,16 +103,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -248,38 +242,36 @@
 
   const isSubmitting = computed(() => isHaSubmitting.value || isSingleSubmitting.value);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const clearMode: TicketDetails['clear_mode'] = {
-      mode: 'manual',
-    };
-    if (formData.clear_mode !== 'manual') {
-      Object.assign(clearMode, {
-        days: formData.clear_mode,
-        mode: 'timer',
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const clearMode: TicketDetails['clear_mode'] = {
+        mode: 'manual',
+      };
+      if (formData.clear_mode !== 'manual') {
+        Object.assign(clearMode, {
+          days: formData.clear_mode,
+          mode: 'timer',
+        });
+      }
+      let createTicketRun = haCreateTicketRun;
+      if (formData.tableData[0].cluster.cluster_type === ClusterTypes.TENDBSINGLE) {
+        createTicketRun = singleCreateTicketRun;
+      }
+      createTicketRun({
+        details: {
+          clear_mode: clearMode,
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            db_patterns: item.db_patterns,
+            force: formData.force,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            table_patterns: item.table_patterns,
+            truncate_data_type: item.truncate_data_type,
+          })),
+        },
+        ...formData.payload,
       });
-    }
-    let createTicketRun = haCreateTicketRun;
-    if (formData.tableData[0].cluster.cluster_type === ClusterTypes.TENDBSINGLE) {
-      createTicketRun = singleCreateTicketRun;
-    }
-    createTicketRun({
-      details: {
-        clear_mode: clearMode,
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          db_patterns: item.db_patterns,
-          force: formData.force,
-          ignore_dbs: item.ignore_dbs,
-          ignore_tables: item.ignore_tables,
-          table_patterns: item.table_patterns,
-          truncate_data_type: item.truncate_data_type,
-        })),
-      },
-      ...formData.payload,
     });
   };
 

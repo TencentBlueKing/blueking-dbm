@@ -47,20 +47,20 @@
         :label="t('所属DB')"
         property="resource_type"
         required>
-        <BkSelect v-model="formData.resource_type">
-          <BkOptionGroup group-style="divider">
-            <BkOption
+        <DbSelect v-model="formData.resource_type">
+          <DbOptionGroup group-style="divider">
+            <DbOption
               v-for="item in editResourceDbTypes"
               :key="item.value"
               :label="item.label"
               :value="item.value" />
-          </BkOptionGroup>
-          <BkOptionGroup group-style="divider">
-            <BkOption
+          </DbOptionGroup>
+          <DbOptionGroup group-style="divider">
+            <DbOption
               :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
               :value="SpecialOptions.PUBLIC" />
-          </BkOptionGroup>
-        </BkSelect>
+          </DbOptionGroup>
+        </DbSelect>
       </BkFormItem>
       <BkFormItem
         v-if="currentApp?.bk_biz_id !== 0"

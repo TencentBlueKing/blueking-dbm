@@ -35,6 +35,8 @@ class RedisRollbackExerciseTaskStage(StrStructuredEnum):
 
     CLEANUP_FAILED = EnumField("cleanup_failed", _("清理失败"))
 
+    SCENE_PRESERVED = EnumField("scene_preserved", _("现场保留待排查"))
+
     DONE = EnumField("done", _("已完成"))
 
 
@@ -44,4 +46,6 @@ FAILED_STAGES = [
     RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
     RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
     RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
+    # Count as failed: weights the cluster now; DBA confirmation later marks a terminal failure
+    RedisRollbackExerciseTaskStage.SCENE_PRESERVED,
 ]

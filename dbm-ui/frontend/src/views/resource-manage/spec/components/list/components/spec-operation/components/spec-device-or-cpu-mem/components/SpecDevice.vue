@@ -19,7 +19,7 @@
         required
         :rules="rules"
         style="width: 100%">
-        <BkSelect
+        <DbSelect
           :allow-empty-values="['']"
           class="device-class-select"
           :clearable="false"
@@ -32,7 +32,6 @@
           :remote-method="remoteMethod"
           :scroll-height="384"
           :scroll-loading="scrollLoading"
-          selected-style="checkbox"
           @change="handleSelectChange"
           @scroll-end="handleScrollEnd">
           <template #trigger>
@@ -46,7 +45,7 @@
               {{ t('添加机型') }}
             </BkButton>
           </template>
-          <BkOption
+          <DbOption
             v-for="item in deviceClassList"
             :key="item.value"
             :value="item.value">
@@ -56,8 +55,8 @@
               </span>
               <span style="color: #c4c6cc">{{ `${item.cpu}${t('核')}${item.mem}G` }}</span>
             </div>
-          </BkOption>
-        </BkSelect>
+          </DbOption>
+        </DbSelect>
         <!-- <div
           v-bk-tooltips="{
             content: t('不支持修改'),
@@ -294,7 +293,7 @@
   }
 </style>
 <style lang="less">
-  .bk-select-option {
+  .dbm-select-option {
     padding-right: 12px !important;
   }
 

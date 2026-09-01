@@ -89,16 +89,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -203,21 +197,19 @@
     }[];
   }>(TicketTypes.MYSQL_HA_FULL_BACKUP);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        backup_type: formData.backup_type,
-        file_tag: formData.file_tag,
-        infos: formData.tableData.map((item) => ({
-          backup_local: item.backup_local,
-          cluster_id: item.cluster.id,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          backup_type: formData.backup_type,
+          file_tag: formData.file_tag,
+          infos: formData.tableData.map((item) => ({
+            backup_local: item.backup_local,
+            cluster_id: item.cluster.id,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

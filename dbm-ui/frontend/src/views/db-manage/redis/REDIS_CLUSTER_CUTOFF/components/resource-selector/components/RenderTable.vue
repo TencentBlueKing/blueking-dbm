@@ -13,38 +13,45 @@
 
 <template>
   <div class="resource-selector-render-table">
-    <DbSearchSelect
+    <DbQuickSearch
       v-model="searchSelectValue"
       class="mb-12"
-      :data="searchSelectData" />
+      :data="searchSelectData"
+      parse-url />
     <DbTable
       ref="table"
       :data-source="dataSource"
+      fixed-pagination
       :height="550"
-      primary-key="ip"
+      row-key="ip"
       selectable
       :selected="selected"
-      @column-filter="handleFilter"
+      @filter-change="handleFilter"
       @selection="handleSelect">
-      <BkTableColumn
-        field="ip"
-        label="IP"
-        :min-width="120" />
-      <BkTableColumn
-        field="instance_role"
-        :filter="filterOption.instance_role"
-        :label="t('角色类型')"
-        :min-width="120" />
-      <BkTableColumn
-        field="bk_cloud_name"
-        :label="t('云区域')"
-        :min-width="100" />
-      <BkTableColumn
-        :label="t('Agent 状态')"
-        :min-width="120">
-        <template #default="{ data }: { data: IValue }">
+      <TableColumn
+        col-key="ip"
+        :min-width="120"
+        title="IP" />
+      <TableColumn
+        col-key="instance_role"
+        :filter="{
+          list: instanceRoleFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :min-width="120"
+        :title="t('角色类型')" />
+      <TableColumn
+        col-key="bk_cloud_name"
+        :min-width="100"
+        :title="t('云区域')" />
+      <TableColumn
+        col-key="agent_status"
+        :min-width="120"
+        :title="t('Agent 状态')">
+        <template #default="{ row }: { row: IValue }">
           <DbStatus
-            v-if="data.host_info?.alive === 1"
+            v-if="row.host_info?.alive === 1"
             theme="success">
             {{ t('正常') }}
           </DbStatus>
@@ -54,25 +61,23 @@
             {{ t('异常') }}
           </DbStatus>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="cluster_type_name"
-        :label="t('架构类型')"
-        :min-width="120" />
+      </TableColumn>
+      <TableColumn
+        col-key="cluster_type_name"
+        :min-width="120"
+        :title="t('架构类型')" />
     </DbTable>
   </div>
 </template>
 <script setup lang="ts">
-  import type { SearchSelect } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
 
-  import { getSearchSelectorParams } from '@utils';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { type TopoTreeNode } from './TopoTree.vue';
 
-  type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
   type Parameters = ServiceParameters<typeof getRedisMachineList>;
   export type IValue = ServiceReturnType<typeof getRedisMachineList>['results'][0];
 
@@ -95,41 +100,29 @@
     },
   ];
 
-  const filterOption: Record<
-    string,
+  const instanceRoleFilterList = [
     {
-      checked: string[];
-      key: string;
-      list: { text: string; value: string | number }[];
-    }
-  > = {
-    instance_role: {
-      checked: [],
-      key: 'instance_role',
-      list: [
-        {
-          text: 'redis_master',
-          value: 'redis_master',
-        },
-        {
-          text: 'redis_slave',
-          value: 'redis_slave',
-        },
-        {
-          text: 'proxy',
-          value: 'proxy',
-        },
-      ],
+      label: 'redis_master',
+      value: 'redis_master',
     },
-  };
+    {
+      label: 'redis_slave',
+      value: 'redis_slave',
+    },
+    {
+      label: 'proxy',
+      value: 'proxy',
+    },
+  ];
 
-  const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const dbTableRef = useTemplateRef('table');
 
   const getNodeParams = (node?: TopoTreeNode) => (node?.obj === 'cluster' ? `${node?.id}` : undefined);
 
   watchEffect(() => {
-    dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), {
+    dbTableRef.value?.fetchData({
+      ...searchSelectValue.value,
       cluster_ids: getNodeParams(props.node),
     });
   });
@@ -146,10 +139,16 @@
       });
     });
 
-  const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
-    dbTableRef.value?.fetchData({
-      [filterOption[field].key]: checked.join(','),
-    });
+  const handleFilter = (filterValue: Record<string, string[]>) => {
+    const columnFilterParams = Object.keys(filterValue).reduce<Record<string, string>>((result, key) => {
+      if (filterValue[key]?.length) {
+        Object.assign(result, {
+          [key]: filterValue[key].join(','),
+        });
+      }
+      return result;
+    }, {});
+    dbTableRef.value?.fetchData(columnFilterParams);
   };
 
   const handleSelect = (_values: string[], rows: IValue[]) => {
@@ -161,7 +160,7 @@
   .resource-selector-render-table {
     padding: 24px;
 
-    .bk-table-body {
+    .t-table__body {
       tr {
         cursor: pointer;
       }

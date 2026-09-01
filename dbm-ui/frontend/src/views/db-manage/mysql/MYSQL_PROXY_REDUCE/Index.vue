@@ -54,16 +54,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <DbPopconfirm
+        <DbResetButton
+          class="ml8"
           :confirm-handler="handleReset"
-          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton
-            class="ml8 w-88"
-            :disabled="isSubmitting">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+          :disabled="isSubmitting" />
       </template>
     </SmartAction>
   </ProxyWrapper>
@@ -177,41 +171,39 @@
     is_safe: boolean;
   }>(TicketTypes.MYSQL_PROXY_REDUCE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: item.host.related_instances.map((item) => item.cluster_id),
-          old_nodes: {
-            origin_proxy: [
-              {
-                bk_biz_id: item.host.bk_biz_id,
-                bk_cloud_id: item.host.bk_cloud_id,
-                bk_host_id: item.host.bk_host_id,
-                ip: item.host.ip,
-                spec: item.host.spec_config,
-              },
-            ],
-          },
-          origin_proxy_ip: {
-            bk_biz_id: item.host.bk_biz_id,
-            bk_cloud_id: item.host.bk_cloud_id,
-            bk_host_id: item.host.bk_host_id,
-            ip: item.host.ip,
-            spec: item.host.spec_config,
-          },
-          related_instances: item.host.related_instances.map((item) => ({
-            cluster_id: item.cluster_id,
-            instance_address: item.instance_address,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: item.host.related_instances.map((item) => item.cluster_id),
+            old_nodes: {
+              origin_proxy: [
+                {
+                  bk_biz_id: item.host.bk_biz_id,
+                  bk_cloud_id: item.host.bk_cloud_id,
+                  bk_host_id: item.host.bk_host_id,
+                  ip: item.host.ip,
+                  spec: item.host.spec_config,
+                },
+              ],
+            },
+            origin_proxy_ip: {
+              bk_biz_id: item.host.bk_biz_id,
+              bk_cloud_id: item.host.bk_cloud_id,
+              bk_host_id: item.host.bk_host_id,
+              ip: item.host.ip,
+              spec: item.host.spec_config,
+            },
+            related_instances: item.host.related_instances.map((item) => ({
+              cluster_id: item.cluster_id,
+              instance_address: item.instance_address,
+            })),
           })),
-        })),
-        is_safe: formData.is_safe,
-      },
-      ...formData.payload,
+          is_safe: formData.is_safe,
+        },
+        ...formData.payload,
+      });
     });
   };
 

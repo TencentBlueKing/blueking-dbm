@@ -54,7 +54,7 @@ class MySQLCheckSumTicket(BaseService):
         )
         trans_data.auto_checksum_ticket_id = int(checksum_ticket.id)
         data.outputs["trans_data"] = trans_data
-        restore_ticket.add_related_ticket(checksum_ticket)
+        restore_ticket.add_related_ticket(checksum_ticket, done=bool(kwargs.get("related_ticket_done")))
         return True
 
 

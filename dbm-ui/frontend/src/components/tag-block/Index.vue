@@ -3,23 +3,21 @@
     ref="rootRef"
     class="dbm-tag-block">
     <template v-if="data && data.length">
-      <BkTag
+      <DbTag
         v-for="item in renderData"
         :key="item"
         :size="size"
         :theme="theme">
-        <BkOverflowTitle type="tips">
-          {{ item }}
-        </BkOverflowTitle>
-      </BkTag>
-      <BkTag
+        {{ item }}
+      </DbTag>
+      <DbTag
         v-if="moreTagCount > 0"
         key="more"
         ref="moreRef"
         :size="size"
         :theme="theme">
         +{{ moreTagCount }}
-      </BkTag>
+      </DbTag>
       <div
         v-if="copyenable"
         v-bk-tooltips="t('复制所有')"
@@ -33,36 +31,37 @@
       v-if="isCalcRenderTagNum"
       ref="tagList"
       style="position: absolute; word-break: keep-all; white-space: nowrap; visibility: hidden">
-      <BkTag
+      <DbTag
         v-for="item in data"
         :key="item"
         :size="size"
         :theme="theme">
         {{ item }}
-      </BkTag>
+      </DbTag>
     </div>
     <div style="display: none">
       <div
         ref="tipsPanel"
         class="dbm-tag-block-more-panel">
-        <BkTag
+        <DbTag
           v-for="item in data.slice(renderData.length)"
           :key="item"
           :size="size"
           :theme="theme">
           {{ item }}
-        </BkTag>
+        </DbTag>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import BkTag from 'bkui-vue/lib/tag';
   import { throttle } from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
+
+  import type DbTag from '@components/bkui-vue/tag/Index.vue';
 
   import { execCopy } from '@utils';
 
@@ -72,7 +71,7 @@
     data: Array<string>;
     size?: 'default' | 'small';
     // eslint-disable-next-line vue/require-default-prop
-    theme?: ComponentProps<typeof BkTag>['theme'];
+    theme?: ComponentProps<typeof DbTag>['theme'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -113,7 +112,7 @@
         const tipsTagPlaceholderWidth = 45;
         const copyBtnWidth = props.copyenable ? 30 : 0;
 
-        const allTagEleList = Array.from(tagListRef.value!.querySelectorAll('.bk-tag'));
+        const allTagEleList = Array.from(tagListRef.value!.querySelectorAll('.dbm-tag'));
         if (tagListRef.value!.getBoundingClientRect().width + copyBtnWidth <= maxWidth) {
           renderTagNum.value = props.data.length;
         } else {
@@ -241,12 +240,10 @@
       }
     }
 
-    .bk-tag {
+    .dbm-tag {
       max-width: calc(100% - 40px);
-      margin-right: 0;
-      margin-left: 0;
 
-      & ~ .bk-tag {
+      & ~ .dbm-tag {
         margin-left: 6px;
       }
     }
@@ -267,7 +264,7 @@
   .dbm-tag-block-more-panel {
     margin-top: -8px;
 
-    .bk-tag {
+    .dbm-tag {
       margin-top: 8px;
     }
   }

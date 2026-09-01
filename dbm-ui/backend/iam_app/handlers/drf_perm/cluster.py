@@ -21,11 +21,7 @@ from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ResourceInvalidError
-from backend.iam_app.handlers.drf_perm.base import (
-    MoreResourceActionPermission,
-    ResourceActionPermission,
-    get_request_key_id,
-)
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 from backend.ticket.builders.common.base import fetch_cluster_ids
 
 
@@ -129,30 +125,46 @@ class PartitionManagePermission(ResourceActionPermission):
     def instance_ids_getter(self, request, view):
         # 从获取到业务ID和集群类型后，决定动作和资源类型
         convert = ClusterType.cluster_type_to_db_type
+        self.resource_meta = ResourceEnum.BUSINESS
         if view.action in ["create", "update"]:
             cluster = Cluster.objects.get(id=request.data["cluster_id"])
             bk_biz_id, db_type = cluster.bk_biz_id, convert(cluster.cluster_type)
-            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_{view.action.upper()}")]
-            if view.action == "create":
-                self.resource_meta = ResourceEnum.BUSINESS
-                return [bk_biz_id]
-            else:
-                self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
-                return [cluster.id]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            return [bk_biz_id]
+
+        elif view.action == "clone_conf_v2":
+            target_clusters = []
+            for info in request.data.get("infos") or []:
+                target = info.get("target") or {}
+                cluster = None
+                if target.get("cluster_id"):
+                    cluster = Cluster.objects.filter(id=target["cluster_id"]).first()
+                elif target.get("immute_domain"):
+                    cluster = Cluster.objects.filter(
+                        bk_biz_id=target.get("bk_biz_id"),
+                        bk_cloud_id=target.get("bk_cloud_id"),
+                        immute_domain=target["immute_domain"],
+                    ).first()
+                if cluster:
+                    target_clusters.append(cluster)
+
+            db_types = {convert(cluster.cluster_type) for cluster in target_clusters}
+            if not target_clusters or len(db_types) != 1:
+                raise ResourceInvalidError(_("目标集群不存在或集群类型不一致"))
+
+            db_type = db_types.pop()
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_CREATE")]
+            self.resource_meta = ResourceEnum.BUSINESS
+            return list({cluster.bk_biz_id for cluster in target_clusters})
 
         elif view.action in ["enable", "disable", "batch_delete"]:
             db_type = convert(request.data["cluster_type"])
-            params = {"limit": len(request.data["ids"]), "offset": 0, **request.data}
-            partition_data = DBPartitionApi.query_conf(params=params)["items"]
-            cluster_ids = [data["cluster_id"] for data in partition_data]
-            if view.action == "batch_delete":
-                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_DELETE")]
-            else:
-                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_ENABLE_DISABLE")]
-            self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
-            return list(set(cluster_ids))
+            bk_biz_id = request.data["bk_biz_id"]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            return [bk_biz_id]
 
         elif view.action in ["dry_run", "execute_partition", "query_log"]:
+
             if view.action == "query_log":
                 config_id, cluster_type = int(request.query_params["config_id"]), request.query_params["cluster_type"]
                 params = {"limit": 1, "offset": 0, "ids": [config_id], "cluster_type": cluster_type}
@@ -161,9 +173,9 @@ class PartitionManagePermission(ResourceActionPermission):
                 cluster_id = request.data["cluster_id"]
             cluster = Cluster.objects.get(id=cluster_id)
             db_type = convert(cluster.cluster_type)
-            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION")]
-            self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
-            return [cluster.id]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            bk_biz_id = request.data["bk_biz_id"]
+            return [bk_biz_id]
 
 
 class ModifyClusterPasswordPermission(ResourceActionPermission):
@@ -181,11 +193,8 @@ class ModifyClusterPasswordPermission(ResourceActionPermission):
         machines = Machine.objects.filter(machine_ip_filters)
         # 根据集群类型获得关联实例和动作
         db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
-        self.actions = (
-            [getattr(ActionEnum, f"{db_type}_admin_pwd_modify".upper())]
-            if db_type != "sqlserver"
-            else [getattr(ActionEnum, "SQLSERVER_MANAGE")]
-        )
+        self.actions = [getattr(ActionEnum, f"{db_type}_manage".upper())]
+
         self.resource_meta = getattr(ResourceEnum, db_type.upper())
         # 通过machine获取关联集群，用于鉴权
         cluster_id_tuples = list(machines.values("storageinstance__cluster", "proxyinstance__cluster"))
@@ -196,34 +205,42 @@ class ModifyClusterPasswordPermission(ResourceActionPermission):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
-class QueryClusterPasswordPermission(MoreResourceActionPermission):
+class QueryClusterPasswordPermission(ResourceActionPermission):
     """
     集群admin密码查询相关动作鉴权
     """
 
-    @staticmethod
-    def instance_ids_getters(request, view):
+    def inst_ids_getter(self, request, view):
         data = request.data or request.query_params
         # admin密码查询鉴权
         if view.action == "query_admin_password":
-            if "bk_biz_id" in data:
-                return [(data["bk_biz_id"], data.get("db_type", "mysql"))]
-            elif "instances" in data:
-                instance = data["instances"].split(",")[0]
-                bk_cloud_id, ip, __ = instance.split(":")
-                machine = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
-                return [(machine.bk_biz_id, ClusterType.cluster_type_to_db_type(machine.cluster_type))]
+            db_type = data["db_type"]
+            if hasattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW"):
+                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW")]
+                self.resource_meta = getattr(ResourceEnum, db_type.upper())
+                instances = data["instances"]
+                return set([instance.get("cluster_id") for instance in instances])
             else:
                 raise NotImplementedError
         else:
             return []
 
     def __init__(self):
-        super().__init__(
-            actions=[ActionEnum.ADMIN_PWD_VIEW],
-            resource_metes=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-            instance_ids_getters=self.instance_ids_getters,
-        )
+        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
+
+
+class PasswordPolicyPermission(ResourceActionPermission):
+    """密码安全规则设置相关动作鉴权"""
+
+    def inst_ids_getter(self, request, view):
+        data = request.data or request.query_params
+        db_type = data["db_type"]
+        self.resource_meta = ResourceEnum.DBTYPE
+        self.actions = [ActionEnum.SET_PASSWORD_POLICY]
+        return [db_type]
+
+    def __init__(self):
+        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
 class ClusterWebconsolePermission(ResourceActionPermission):

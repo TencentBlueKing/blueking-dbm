@@ -33,8 +33,21 @@ REDIS_HOST = get_type_env(key="REDIS_HOST", _type=str, default="localhost")
 REDIS_PORT = get_type_env(key="REDIS_PORT", _type=int, default=6379)
 REDIS_PASSWORD = get_type_env(key="REDIS_PASSWORD", _type=str, default="")
 REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/1"
+# aidev redis缓存配置
+MESSAGE_REDIS_URL = get_type_env(key="MESSAGE_REDIS_URL", _type=str, default=REDIS_URL)
+
+# Redis 开发最佳实践文档地址(内网iwiki),开源环境默认留空,内网环境通过环境变量 REDIS_DEV_BEST_PRACTICE_URL 配置
+REDIS_DEV_BEST_PRACTICE_URL = get_type_env(key="REDIS_DEV_BEST_PRACTICE_URL", _type=str, default="")
+
+# Dispatch 队列 Redis 池：逗号分隔的 URL 列表；未配置则回落 REDIS_URL
+# 例：DISPATCH_REDIS_URLS=redis://:pwd@a:6379/0,redis://:pwd@b:6379/0
+# 密码含逗号需 URL 编码为 %2C；default Redis 仅保留 dispatch:registered
+DISPATCH_REDIS_URL_LIST = [url for url in get_type_env(key="DISPATCH_REDIS_URLS", default=[], _type=list) if url] or [
+    REDIS_URL
+]
 
 BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
+CACHE_URL = get_type_env(key="CACHE_URL", default=REDIS_URL, _type=str)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
 ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", _type=bool, default=False)
@@ -150,6 +163,8 @@ BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
 BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
 BK_AIDEV_URL = get_type_env(key="BK_AIDEV_URL", _type=str, default=None)
 BK_AIDEV_LOG_ANALYSIS_URL = get_type_env(key="BK_AIDEV_LOG_ANALYSIS_URL", _type=str, default=None)
+BK_IAM_URL = get_type_env(key="BK_IAM_URL", _type=str, default="") or IAM_APP_URL
+BK_USER_MANAGE_URL = get_type_env(key="BK_USER_MANAGE_URL", _type=str, default="")
 
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")

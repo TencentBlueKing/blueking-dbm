@@ -29,11 +29,53 @@
       </BkButton>
       <div :class="{ 'cluster-checking': isLoading }">
         <BkLoading :loading="isLoading">
-          <DbOriginalTable
+          <PrimaryTable
             v-if="targetClusterList.length > 0"
             class="mt-16"
-            :columns="colums"
-            :data="targetClusterList" />
+            :data="targetClusterList"
+            row-key="id">
+            <TableColumn
+              col-key="master_domain"
+              :min-width="250"
+              :title="t('集群')" />
+            <TableColumn
+              col-key="cluster_type"
+              :title="t('类型')"
+              :width="100">
+              <template #default="{ row }">
+                {{ clusterNameMap[row.cluster_type] }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="major_version"
+              :title="t('版本')"
+              :width="200">
+              <template #default="{ row }">
+                {{ row.major_version || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="status"
+              :title="t('状态')"
+              :width="200">
+              <template #default="{ row }">
+                <RenderClusterStatus :data="row.status" />
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="action"
+              :title="t('操作')"
+              :width="200">
+              <template #default="{ row }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleRemove(row)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </TableColumn>
+          </PrimaryTable>
         </BkLoading>
       </div>
     </DbFormItem>
@@ -74,11 +116,7 @@
   }
 
   type SelectorRowDataType =
-    | TendbhaModel
-    | TendbsingleModel
-    | SqlServerHaClusterModel
-    | SqlServerSingleClusterModel
-    | TendbclusterModel;
+    TendbhaModel | TendbsingleModel | SqlServerHaClusterModel | SqlServerSingleClusterModel | TendbclusterModel;
 
   defineProps<Props>();
 
@@ -93,51 +131,13 @@
 
   const { t } = useI18n();
 
-  const colums = [
-    {
-      field: 'master_domain',
-      label: t('集群'),
-      minWidth: 250,
-    },
-    {
-      field: 'cluster_type',
-      label: t('类型'),
-      render: ({ data }: { data: IClusterData }) => {
-        const clusterNameMap = {
-          [ClusterTypes.SQLSERVER_HA]: t('主从集群'),
-          [ClusterTypes.SQLSERVER_SINGLE]: t('单节点集群'),
-          [ClusterTypes.TENDBCLUSTER]: 'Tendb Cluster',
-          [ClusterTypes.TENDBHA]: t('高可用'),
-          [ClusterTypes.TENDBSINGLE]: t('单节点'),
-        };
-        return clusterNameMap[data.cluster_type as keyof typeof clusterNameMap];
-      },
-      width: 100,
-    },
-    {
-      label: t('版本'),
-      render: ({ data }: { data: IClusterData }) => data.major_version || '--',
-      width: 200,
-    },
-    {
-      label: t('状态'),
-      render: ({ data }: { data: IClusterData }) => <RenderClusterStatus data={data.status} />,
-      width: 200,
-    },
-    {
-      field: 'action',
-      label: t('操作'),
-      render: ({ data }: { data: IClusterData }) => (
-        <bk-button
-          theme='primary'
-          text
-          onClick={() => handleRemove(data)}>
-          {t('删除')}
-        </bk-button>
-      ),
-      width: 200,
-    },
-  ];
+  const clusterNameMap: Record<string, string> = {
+    [ClusterTypes.SQLSERVER_HA]: t('主从集群'),
+    [ClusterTypes.SQLSERVER_SINGLE]: t('单节点集群'),
+    [ClusterTypes.TENDBCLUSTER]: 'Tendb Cluster',
+    [ClusterTypes.TENDBHA]: t('高可用'),
+    [ClusterTypes.TENDBSINGLE]: t('单节点'),
+  };
 
   const rules = [
     {

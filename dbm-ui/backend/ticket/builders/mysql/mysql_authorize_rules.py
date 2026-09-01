@@ -18,6 +18,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbpermission.db_authorize.serializers import PreCheckAuthorizeRulesSerializer
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -91,7 +92,7 @@ class MySQLAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
         flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.MYSQL_AUTHORIZE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
 class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
@@ -116,7 +117,7 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
         self.ticket.update_details(rules_set=data)
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
 class MySQLExcelAuthorizeRulesFlowBuilder(MySQLAuthorizeRulesFlowBuilder):
     serializer = MySQLExcelAuthorizeRulesSerializer
     inner_flow_name = _("MySQL Excel授权执行")

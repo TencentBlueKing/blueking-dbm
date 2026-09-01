@@ -13,6 +13,7 @@ package manage
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	rf "github.com/gin-gonic/gin"
@@ -26,6 +27,14 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
+)
+
+const orderBySameSvrOwnerCount = "same_svr_owner_count"
+
+// 按同母机台数排序时的防护阈值（全量候选进内存）
+const (
+	maxSameSvrOwnerSortCandidates = 20000
+	maxSameSvrOwnerSortLimit      = 500
 )
 
 // MachineResourceGetterInputParam TODO
@@ -56,8 +65,12 @@ type MachineResourceGetterInputParam struct {
 	Status []string `json:"status"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
-	Limit         int    `json:"limit"`
-	Offset        int    `json:"offset"`
+	// OrderBy 仅支持 same_svr_owner_count；空则默认 create_time desc
+	OrderBy string `json:"order_by"`
+	// Order asc|desc，配合 order_by；默认 desc
+	Order  string `json:"order"`
+	Limit  int    `json:"limit"`
+	Offset int    `json:"offset"`
 }
 
 // List TODO
@@ -72,6 +85,7 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 		c.SendResponse(r, errno.ErrErrInvalidParam.AddErr(err), nil)
 		return
 	}
+	sortByCount := strings.EqualFold(strings.TrimSpace(input.OrderBy), orderBySameSvrOwnerCount)
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	if err := input.queryBs(db); err != nil {
 		c.SendResponse(r, err, err.Error())
@@ -81,15 +95,96 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 		c.SendResponse(r, err, err.Error())
 		return
 	}
-	if input.Limit > 0 {
-		db = db.Offset(input.Offset).Limit(input.Limit)
-	}
+
 	var data []model.TbRpDetail
-	if err := db.Find(&data).Error; err != nil {
-		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error())
-		return
+	if sortByCount {
+		if count > maxSameSvrOwnerSortCandidates {
+			c.SendResponse(r, errno.ErrErrInvalidParam.AddErr(fmt.Errorf(
+				"order_by=%s 候选数 %d 超过上限 %d，请缩小筛选条件",
+				orderBySameSvrOwnerCount, count, maxSameSvrOwnerSortCandidates,
+			)), nil)
+			return
+		}
+		// 按同母机台数排序：先取全量候选，内存填台数排序后再分页
+		if err := db.Find(&data).Error; err != nil {
+			c.SendResponse(r, errno.ErrDBQuery.AddErr(err), nil)
+			return
+		}
+		if err := attachSameSvrOwnerCounts(data); err != nil {
+			c.SendResponse(r, errno.ErrDBQuery.AddErr(err), nil)
+			return
+		}
+		sortDetailsBySameSvrOwnerCount(data, input.Order)
+		data = slicePage(data, input.Offset, input.Limit)
+	} else {
+		if input.Limit > 0 {
+			db = db.Offset(input.Offset).Limit(input.Limit)
+		}
+		if err := db.Find(&data).Error; err != nil {
+			c.SendResponse(r, errno.ErrDBQuery.AddErr(err), nil)
+			return
+		}
+		if err := attachSameSvrOwnerCounts(data); err != nil {
+			c.SendResponse(r, errno.ErrDBQuery.AddErr(err), nil)
+			return
+		}
 	}
 	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count})
+}
+
+// sortDetailsBySameSvrOwnerCount 按同母机台数排序（默认 desc）
+func sortDetailsBySameSvrOwnerCount(data []model.TbRpDetail, order string) {
+	desc := !strings.EqualFold(strings.TrimSpace(order), "asc")
+	sort.SliceStable(data, func(i, j int) bool {
+		if desc {
+			return data[i].SameSvrOwnerCount > data[j].SameSvrOwnerCount
+		}
+		return data[i].SameSvrOwnerCount < data[j].SameSvrOwnerCount
+	})
+}
+
+// attachSameSvrOwnerCounts 按详情中的母机固资号 IN 拉取 Unused 同伴并填台数。
+func attachSameSvrOwnerCounts(details []model.TbRpDetail) error {
+	if len(details) == 0 {
+		return nil
+	}
+	assetIDs := CollectSvrOwnerAssetIDs(details)
+	pool, err := loadUnusedSameSvrOwnerPool(assetIDs)
+	if err != nil {
+		return err
+	}
+	FillSameSvrOwnerCounts(details, GroupBySvrOwnerAsset(pool))
+	return nil
+}
+
+func loadUnusedSameSvrOwnerPool(assetIDs []string) ([]model.TbRpDetail, error) {
+	if len(assetIDs) == 0 {
+		return nil, nil
+	}
+	var pool []model.TbRpDetail
+	err := model.DB.Self.Table(model.TbRpDetailName()).
+		Select("bk_host_id", "ip", "bk_svr_owner_asset_id", "dedicated_biz", "rs_type", "labels", "status").
+		Where("status = ? AND bk_svr_owner_asset_id in (?)", model.Unused, assetIDs).
+		Find(&pool).Error
+	return pool, err
+}
+
+func slicePage(data []model.TbRpDetail, offset, limit int) []model.TbRpDetail {
+	// 与非排序 SQL 路径一致：limit<=0 表示不分页，忽略 offset
+	if limit <= 0 {
+		return data
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(data) {
+		return []model.TbRpDetail{}
+	}
+	data = data[offset:]
+	if limit < len(data) {
+		data = data[:limit]
+	}
+	return data
 }
 
 func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
@@ -98,6 +193,25 @@ func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
 	}
 	if !c.Mem.Legal() {
 		return fmt.Errorf("非法参数 mem min:%d,max:%d", c.Mem.Min, c.Mem.Max)
+	}
+	orderBy := strings.TrimSpace(c.OrderBy)
+	if orderBy != "" && !strings.EqualFold(orderBy, orderBySameSvrOwnerCount) {
+		return fmt.Errorf("unsupported order_by: %s", c.OrderBy)
+	}
+	order := strings.TrimSpace(c.Order)
+	if order != "" && !strings.EqualFold(order, "asc") && !strings.EqualFold(order, "desc") {
+		return fmt.Errorf("unsupported order: %s", c.Order)
+	}
+	if order != "" && orderBy == "" {
+		return fmt.Errorf("order requires order_by")
+	}
+	if strings.EqualFold(orderBy, orderBySameSvrOwnerCount) {
+		if c.Limit <= 0 {
+			return fmt.Errorf("order_by=%s 时 limit 必须为正整数", orderBySameSvrOwnerCount)
+		}
+		if c.Limit > maxSameSvrOwnerSortLimit {
+			return fmt.Errorf("order_by=%s 时 limit 不能超过 %d", orderBySameSvrOwnerCount, maxSameSvrOwnerSortLimit)
+		}
 	}
 	return nil
 }

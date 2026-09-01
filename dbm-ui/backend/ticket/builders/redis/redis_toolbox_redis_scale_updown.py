@@ -19,6 +19,7 @@ from backend.flow.consts import RedisCapacityUpdateType
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
 from backend.flow.utils.redis.redis_util import get_tendisplus_shutdown_hosts
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -103,7 +104,9 @@ class RedisScaleUpDownResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_SCALE_UPDOWN, is_apply=True, is_recycle=True, iam=ActionEnum.REDIS_MANAGE
+)
 class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisScaleUpDownDetailSerializer
     inner_flow_builder = RedisScaleUpDownParamBuilder

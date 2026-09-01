@@ -70,7 +70,7 @@
           :label="t('访问端口')"
           property="details.http_port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.http_port"
             disabled
             style="width: 185px;"
@@ -129,7 +129,7 @@
               :label="t('节点数量')"
               property="details.resource_spec.riak.count"
               required>
-              <BkInput
+              <DbInput
                 v-model="formData.details.resource_spec.riak.count"
                 clearable
                 :min="3"
@@ -175,7 +175,7 @@
             resource_spec: resourceSepc,
           }" />
         <BkFormItem :label="t('备注')">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -193,12 +193,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleReset"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -210,7 +208,6 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -288,7 +285,7 @@
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
-        db_module_id: details.db_module_name,
+        db_module_id: details.db_module_id,
         db_version: details.db_version,
         disaster_tolerance_level: details.disaster_tolerance_level,
         ip_source: details.ip_source,
@@ -431,18 +428,10 @@
   };
 
   const handleReset = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, genDefaultFormData());
-        formRef.value.clearValidate();
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, genDefaultFormData());
+    formRef.value.clearValidate();
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 

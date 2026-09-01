@@ -35,6 +35,7 @@ data:
       bk_app_code: {{ .Values.dbm.envs.bkAppCode }}
       bk_app_secret: {{ .Values.dbm.envs.bkAppToken }}
       bk_biz_id: {{ .Values.dbm.envs.dbaAppBkBizId }}
+      bk_username: "{{ .Values.dbm.envs.bkAdminUser }}"
       bkmonitor_api_url: "{{ .Values.bk.bkMonitorApiUrl }}"
       bklog_api_url: "{{ .Values.dbm.envs.BKLOG_APIGW_DOMAIN }}"
     otel_port: 8000
@@ -47,7 +48,7 @@ data:
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
-        charset: utf8
+        charset: utf8mb4
     - name: prod_bk_dbm_report_raw
       type: mysql_raw
       dsn:
@@ -55,7 +56,7 @@ data:
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
-        charset: utf8
+        charset: utf8mb4
     - name: doris_bk_dbm_stats
       type: doris
       dsn:
@@ -63,6 +64,15 @@ data:
         user: "{{ $statsDB.user }}"
         password: "{{ $statsDB.password }}"
         database: "{{ $statsDB.name }}"
-        charset: utf8
+        charset: utf8mb4
+    - name: doris_http_bk_dbm_stats
+      type: doris_http
+      dsn:
+        address: "{{ $statsDB.host }}:{{ $statsDB.port }}"
+        fe_http_address: "{{ $statsDB.fe_http_address | default "" }}"
+        user: "{{ $statsDB.user }}"
+        password: "{{ $statsDB.password }}"
+        database: "{{ $statsDB.name }}"
+        charset: utf8mb4
   data.sinkers.yaml: |
     {{- toYaml (index .Values "db-event-consumer").sinkers | nindent 4 }}

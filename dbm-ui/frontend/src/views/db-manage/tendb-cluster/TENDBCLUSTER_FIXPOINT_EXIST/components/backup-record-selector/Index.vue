@@ -39,27 +39,27 @@
           @clear="handleDateClear"
           @pick-success="handleDateChange" />
       </div>
-      <DbSearchSelect
+      <DbQuickSearch
         v-model="searchSelectValue"
         :data="searchSelectData"
+        parse-url
         :placeholder="t('搜索文件名或选择条件搜索')"
         style="flex: 1" />
     </div>
     <BkLoading :loading="loading">
-      <BkTable
+      <PrimaryTable
         ref="tableRef"
         :data="renderData"
+        :filter-value="tableFilterValue"
         :height="500"
         :max-height="tableMaxHeight"
-        :pagination="pagination.count > 0 ? pagination : false"
-        :show-overflow="false"
-        @column-filter="handleFilter"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage">
-        <BkTableColumn
-          :label="t('文件名')"
-          :min-width="270">
-          <template #header>
+        row-key="backup_id"
+        @filter-change="handleTableFilterChange">
+        <TableColumn
+          col-key="backup_consistent_time"
+          :min-width="270"
+          :title="t('文件名')">
+          <template #title>
             <div class="ml-35">{{ t('备份记录') }}</div>
           </template>
           <template #default="{ row }: { row: BackupLogRecordModel }">
@@ -72,20 +72,24 @@
               </div>
             </BkRadio>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="backup_id"
-          :label="t('备份 ID')"
-          :min-width="270">
+        </TableColumn>
+        <TableColumn
+          col-key="backup_id"
+          :min-width="270"
+          :title="t('备份 ID')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row.backup_id }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="backup_type_list"
-          :filter="filterOption.backup_type_list"
-          :label="t('备份类型')"
-          :min-width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="backup_type_list"
+          :filter="{
+            list: filterOption.backup_type_list.list,
+            showConfirmAndReset: true,
+            type: 'multiple',
+          }"
+          :min-width="120"
+          :title="t('备份类型')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <span v-if="row.backup_type_list.length < 1">--</span>
             <p
@@ -95,12 +99,16 @@
               <BkTag :theme="backupTypeMap[item].theme">{{ backupTypeMap[item].label }}</BkTag>
             </p>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="backup_method"
-          :filter="filterOption.backup_method"
-          :label="t('备份范围')"
-          :min-width="150">
+        </TableColumn>
+        <TableColumn
+          col-key="backup_method"
+          :filter="{
+            list: filterOption.backup_method.list,
+            showConfirmAndReset: true,
+            type: 'multiple',
+          }"
+          :min-width="150"
+          :title="t('备份范围')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <span
               :class="{
@@ -109,12 +117,16 @@
               {{ backupMethodMap[row.backup_method] || '--' }}
             </span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="backup_tool_list"
-          :filter="filterOption.backup_tool_list"
-          :label="t('备份工具')"
-          :min-width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="backup_tool_list"
+          :filter="{
+            list: filterOption.backup_tool_list.list,
+            showConfirmAndReset: true,
+            type: 'multiple',
+          }"
+          :min-width="120"
+          :title="t('备份工具')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <span v-if="row.backup_tool_list.length < 1">--</span>
             <p
@@ -123,17 +135,19 @@
               {{ item }}
             </p>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('备份大小')"
-          :min-width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="total_filesize"
+          :min-width="120"
+          :title="t('备份大小')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ bytePretty(row?.total_filesize ?? 0) }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('关联单据')"
-          :min-width="110">
+        </TableColumn>
+        <TableColumn
+          col-key="bill_id"
+          :min-width="110"
+          :title="t('关联单据')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <RouterLink
               v-if="row.bill_id"
@@ -148,8 +162,18 @@
             </RouterLink>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
+      <div
+        v-if="pagination.count > 0"
+        class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
     <template #footer>
       <div class="tendbcluster-backup-record-selector-footer">
@@ -188,7 +212,6 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
@@ -198,7 +221,9 @@
 
   import { useDefaultPagination, useSelectorDialogWidth, useTableMaxHeight } from '@hooks';
 
-  import { bytePretty, getSearchSelectorParams, utcDisplayTime } from '@utils';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
+  import { bytePretty, utcDisplayTime } from '@utils';
 
   interface Props {
     backupSource: 'local' | 'remote';
@@ -233,14 +258,14 @@
   const daterange = ref<[string, string] | [Date, Date]>(['', '']);
   // 用于时间选择器点确定时赋值
   const comfirmDaterange = ref<[string, string] | [Date, Date]>(daterange.value);
-  const searchSelectValue = ref<ISearchValue[]>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const searchSelectData = [
     {
       id: 'display',
-      multiple: true,
       name: t('文件名'),
+      type: 'multiple-input',
     },
-  ];
+  ] as QuickSearchProps['data'];
   // 存储原始数据（请求到的所有备份记录）
   const originalData = shallowRef<BackupLogRecordModel[]>([]);
   // 全量结果
@@ -256,7 +281,7 @@
       {
         checked: string[];
         key: string;
-        list: { text: string; value: string }[];
+        list: { label: string; value: string }[];
       }
     >
   >({
@@ -265,15 +290,15 @@
       key: 'backup_method',
       list: [
         {
-          text: t('全库备份（例行）'),
+          label: t('全库备份（例行）'),
           value: 'full_by_regular',
         },
         {
-          text: t('全库备份（单据）'),
+          label: t('全库备份（单据）'),
           value: 'full_by_ticket',
         },
         {
-          text: t('库表备份（单据）'),
+          label: t('库表备份（单据）'),
           value: 'partial_by_ticket',
         },
       ],
@@ -288,11 +313,11 @@
       key: 'backup_type_list',
       list: [
         {
-          text: t('物理备份'),
+          label: t('物理备份'),
           value: 'physical',
         },
         {
-          text: t('逻辑备份'),
+          label: t('逻辑备份'),
           value: 'logical',
         },
       ],
@@ -336,6 +361,15 @@
     return filterOption.value[field]?.checked?.length ? filterOption.value[field].checked.includes(row[field]) : true;
   };
 
+  const tableFilterValue = computed(() =>
+    Object.keys(filterOption.value).reduce<Record<string, string[]>>((result, key) => {
+      Object.assign(result, {
+        [key]: filterOption.value[key].checked,
+      });
+      return result;
+    }, {}),
+  );
+
   const renderData = computed(() => {
     const [start, end] = comfirmDaterange.value;
     const dateParams =
@@ -346,7 +380,7 @@
           }
         : undefined;
 
-    const searchParams = getSearchSelectorParams(searchSelectValue.value);
+    const searchParams = searchSelectValue.value;
 
     filteredData.value = [];
     tableData.value.forEach((row) => {
@@ -384,7 +418,7 @@
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
-    tableRef.value!.getVxeTableInstance().scrollTo(0, 0);
+    tableRef.value!.scrollToElement({ index: 0, top: 44 });
   };
 
   const handeChangeLimit = (value: number) => {
@@ -402,8 +436,10 @@
     comfirmDaterange.value = ['', ''];
   };
 
-  const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
-    filterOption.value[field].checked = checked;
+  const handleTableFilterChange = (filterValue: Record<string, string[]>) => {
+    Object.keys(filterOption.value).forEach((key) => {
+      filterOption.value[key].checked = filterValue[key] || [];
+    });
   };
 
   const fetchData = async () => {
@@ -435,10 +471,10 @@
 
       filterOption.value.backup_tool_list.list = _.uniqBy(
         backupToolList.map((item) => ({
-          text: item,
+          label: item,
           value: item,
         })),
-        'text',
+        'label',
       );
       pagination.value.count = results.length;
       checkedBackupId.value = modelValue.value?.backup_id;
@@ -501,6 +537,12 @@
 
     .backup-type-tag-block {
       line-height: 28px;
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
     }
 
     // 全库备份（例行）

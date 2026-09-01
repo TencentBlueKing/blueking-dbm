@@ -164,6 +164,9 @@ class ModifyMySQLPasswordRandomCycleSerializer(serializers.Serializer):
         day_of_month = serializers.CharField(help_text=_("每月几天(eg: 1, 11, 13 表示每月的1号，11号，13号)"), required=False)
 
     crontab = CrontabSerializer(help_text=_("crontab表达式"))
+    db_type = serializers.ChoiceField(
+        help_text=_("db类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL.value
+    )
 
 
 class GetAdminPasswordSerializer(serializers.Serializer):
@@ -177,6 +180,19 @@ class GetAdminPasswordSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(
         help_text=_("db类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL.value
     )
+
+
+class GetInstancesPasswordSerializer(serializers.Serializer):
+    class InstancesInfoSerializer(serializers.Serializer):
+        port = serializers.IntegerField()
+        ip = serializers.CharField()
+        cluster_id = serializers.IntegerField()
+
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=100)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
+    db_type = serializers.ChoiceField(help_text=_("db类型"), choices=DBType.get_choices())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    instances = serializers.ListField(help_text=_("实例信息"), child=InstancesInfoSerializer())
 
 
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
@@ -240,6 +256,9 @@ class PasswordPolicySerializer(serializers.Serializer):
     name = serializers.CharField(help_text=_("密码安全规则策略名称"))
     id = serializers.IntegerField(help_text=_("密码安全规则策略id"))
     reset = serializers.BooleanField(help_text=_("是否重置"), required=False, default=False)
+    db_type = serializers.ChoiceField(
+        help_text=_("db类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL.value
+    )
 
     class Meta:
         swagger_schema_fields = {"example": PASSWORD_POLICY}

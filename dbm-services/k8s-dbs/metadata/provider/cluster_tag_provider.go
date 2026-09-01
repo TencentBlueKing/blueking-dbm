@@ -70,8 +70,8 @@ func (k K8sCrdClusterTagProviderImpl) BatchCreate(
 ) (uint64, error) {
 	dbModels := make([]*models.K8sCrdClusterTagModel, 0, len(inputEntities))
 	for _, inputEntity := range inputEntities {
-		inputEntity.CreatedBy = dbsCtx.BkAuth.BkUserName
-		inputEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+		inputEntity.CreatedBy = dbsCtx.BkAdditional.BkUserName
+		inputEntity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	}
 	if err := copier.Copy(&dbModels, &inputEntities); err != nil {
 		return 0, errors.Wrap(err, "failed to copy")
@@ -90,8 +90,8 @@ func (k K8sCrdClusterTagProviderImpl) Create(
 	inputEntity *entitys.K8sCrdClusterTagEntity,
 ) (*entitys.K8sCrdClusterTagEntity, error) {
 	dbModel := models.K8sCrdClusterTagModel{}
-	inputEntity.CreatedBy = dbsCtx.BkAuth.BkUserName
-	inputEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	inputEntity.CreatedBy = dbsCtx.BkAdditional.BkUserName
+	inputEntity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	if err := copier.Copy(&dbModel, inputEntity); err != nil {
 		return nil, errors.Wrap(err, "failed to copy")
 	}

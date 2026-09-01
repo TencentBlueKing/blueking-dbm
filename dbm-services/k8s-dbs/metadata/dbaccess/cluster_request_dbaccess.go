@@ -34,10 +34,13 @@ import (
 type ClusterRequestRecordDbAccess interface {
 	Create(model *metamodel.ClusterRequestRecordModel) (*metamodel.ClusterRequestRecordModel, error)
 	DeleteByID(id uint64) (uint64, error)
+	DeleteByParams(params *metaentity.ClusterRequestQueryParams) (uint64, error)
 	FindByID(id uint64) (*metamodel.ClusterRequestRecordModel, error)
 	Update(model *metamodel.ClusterRequestRecordModel) (uint64, error)
 	ListByPage(params *metaentity.ClusterRequestQueryParams, pagination *entity.Pagination) (
 		[]*metamodel.ClusterRequestRecordModel, uint64, error)
+	FindLatestEmptyTicketByCondition(params *metaentity.UpdateClusterRequestParams) (
+		*metamodel.ClusterRequestRecordModel, error)
 }
 
 // ClusterRequestRecordDbAccessImpl ClusterRequestRecordDbAccess 的具体实现
@@ -122,22 +125,21 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 	}
 	if !params.StartTime.IsZero() {
 		query = query.Where("created_at >= ?", params.StartTime)
-
 	}
 	if !params.EndTime.IsZero() {
 		query = query.Where("created_at <= ?", params.EndTime)
 	}
-
 	if len(params.RequestTypes) > 0 {
 		query = query.Where("request_type in ?", params.RequestTypes)
 	}
-
 	if len(params.ClusterNames) > 0 {
 		query = query.Where("cluster_name in ?", params.ClusterNames)
 	}
-
 	if params.RequestParams != "" {
 		query = query.Where("request_params like ?", "%"+params.RequestParams+"%")
+	}
+	if params.TicketID != nil {
+		query = query.Where("ticket_id = ?", *params.TicketID)
 	}
 
 	if err := query.Count(&count).Error; err != nil {
@@ -154,4 +156,54 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 		return nil, 0, errors.Wrapf(err, "failed to find request record with pagination %+v", pagination)
 	}
 	return recordModels, uint64(count), nil
+}
+
+// DeleteByParams 按条件删除元数据接口实现
+func (k *ClusterRequestRecordDbAccessImpl) DeleteByParams(
+	params *metaentity.ClusterRequestQueryParams,
+) (uint64, error) {
+	if params.K8sClusterName == "" && params.NameSpace == "" && len(params.ClusterNames) == 0 {
+		return 0, errors.New("k8sClusterName, nameSpace or clusterNames is required")
+	}
+	query := k.db.Model(&metamodel.ClusterRequestRecordModel{})
+	if params.K8sClusterName != "" {
+		query = query.Where("k8s_cluster_name = ?", params.K8sClusterName)
+	}
+	if params.NameSpace != "" {
+		query = query.Where("namespace = ?", params.NameSpace)
+	}
+	if len(params.ClusterNames) > 0 {
+		query = query.Where("cluster_name in ?", params.ClusterNames)
+	}
+	result := query.Delete(&metamodel.ClusterRequestRecordModel{})
+	if result.Error != nil {
+		return 0, errors.Wrapf(result.Error, "failed to delete request record with params %+v", params)
+	}
+	return uint64(result.RowsAffected), nil
+}
+
+// FindLatestEmptyTicketByCondition 根据条件查询最新一条 ticket_id 为空的记录
+func (k *ClusterRequestRecordDbAccessImpl) FindLatestEmptyTicketByCondition(
+	params *metaentity.UpdateClusterRequestParams,
+) (*metamodel.ClusterRequestRecordModel, error) {
+	if params.K8sClusterName == "" || params.NameSpace == "" ||
+		params.ClusterName == "" || params.RequestType == "" {
+		return nil, errors.New("k8sClusterName, nameSpace, clusterName and requestType are all required")
+	}
+	var record metamodel.ClusterRequestRecordModel
+	query := k.db.Model(&metamodel.ClusterRequestRecordModel{})
+	query = query.Where("k8s_cluster_name = ?", params.K8sClusterName)
+	query = query.Where("namespace = ?", params.NameSpace)
+	query = query.Where("cluster_name = ?", params.ClusterName)
+	query = query.Where("request_type = ?", params.RequestType)
+	query = query.Where("ticket_id IS NULL")
+	query = query.Order("created_at DESC")
+	result := query.First(&record)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, errors.Wrapf(result.Error, "failed to find latest empty ticket record with params: %+v", params)
+	}
+	return &record, nil
 }

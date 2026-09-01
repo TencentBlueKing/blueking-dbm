@@ -75,16 +75,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -236,39 +230,36 @@
     need_checksum: boolean;
   }>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-
-    createTicketRun({
-      details: {
-        backup_source: formData.backupSource,
-        infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.cluster.bk_cloud_id,
-          cluster_id: item.cluster.id,
-          cluster_shard_num: item.cluster.cluster_shard_num,
-          db_module_id: item.cluster.db_module_id,
-          prev_cluster_spec_name: item.cluster.cluster_spec.spec_name,
-          prev_machine_pair: item.cluster.machine_pair_cnt,
-          remote_shard_num: Math.ceil(item.cluster.cluster_shard_num / item.targetCapacity.machine_pair),
-          resource_spec: {
-            backend_group: {
-              affinity: item.cluster.disaster_tolerance_level,
-              count: item.targetCapacity.machine_pair,
-              futureCapacity: item.targetCapacity.cluster_capacity,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.targetCapacity.spec_id,
-              specName: item.targetCapacity.spec_name,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          backup_source: formData.backupSource,
+          infos: formData.tableData.map((item) => ({
+            bk_cloud_id: item.cluster.bk_cloud_id,
+            cluster_id: item.cluster.id,
+            cluster_shard_num: item.cluster.cluster_shard_num,
+            db_module_id: item.cluster.db_module_id,
+            prev_cluster_spec_name: item.cluster.cluster_spec.spec_name,
+            prev_machine_pair: item.cluster.machine_pair_cnt,
+            remote_shard_num: Math.ceil(item.cluster.cluster_shard_num / item.targetCapacity.machine_pair),
+            resource_spec: {
+              backend_group: {
+                affinity: item.cluster.disaster_tolerance_level,
+                count: item.targetCapacity.machine_pair,
+                futureCapacity: item.targetCapacity.cluster_capacity,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.targetCapacity.spec_id,
+                specName: item.targetCapacity.spec_name,
+              },
             },
-          },
-          spec_id: item.cluster.cluster_spec.spec_id,
-        })),
-        need_checksum: formData.need_checksum,
-      },
-      remark: formData.payload.remark,
+            spec_id: item.cluster.cluster_spec.spec_id,
+          })),
+          need_checksum: formData.need_checksum,
+        },
+        remark: formData.payload.remark,
+      });
     });
   };
 
@@ -327,7 +318,7 @@
    * 统一设置目标容量
    * 仅对 cluster_shard_num 能被 count 整除的行应用，跳过不满足条件的行
    */
-  const handleBatchEditCapacity = (value: { specId: number; count: number; specData: TicketSpecInfo }) => {
+  const handleBatchEditCapacity = (value: { count: number; specData: TicketSpecInfo; specId: number }) => {
     formData.tableData.forEach((rowData) => {
       const shardNum = rowData.cluster.cluster_shard_num;
       if (shardNum > 0 && shardNum % value.count === 0) {

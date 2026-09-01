@@ -51,7 +51,7 @@ export const createAccount = (params: CreateAccountParams) => http.post(`${getRo
 /**
  * 删除账号
  */
-export const deleteAccount = (params: { account_id: number; account_type?: AccountTypesValues; bizId: number }) =>
+export const deleteAccount = (params: { account_id: number; account_type?: AccountTypesValues; bk_biz_id: number }) =>
   http.delete(`${getRootPath()}/delete_account/`, params);
 
 /**

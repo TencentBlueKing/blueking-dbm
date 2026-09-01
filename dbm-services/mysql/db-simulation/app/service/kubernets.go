@@ -877,7 +877,8 @@ func (k *DbPodSets) getBackendEnv() []v1.EnvVar {
 		Name:  "MYSQL_ROOT_PASSWORD",
 		Value: k.BaseInfo.RootPwd,
 	}}
-	if strings.ToLower(k.BaseInfo.Engine) == app.TokudbEngine {
+	engine := strings.ToLower(k.BaseInfo.Engine)
+	if engine == app.TokudbEngine {
 		envs = append(envs, v1.EnvVar{
 			Name:  "INIT_TOKUDB",
 			Value: "1",

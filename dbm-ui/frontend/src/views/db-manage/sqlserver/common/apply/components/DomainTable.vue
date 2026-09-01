@@ -1,16 +1,17 @@
 <template>
   <div class="sqlserver-domains">
-    <DbOriginalTable
+    <PrimaryTable
       class="custom-edit-table"
       :columns="columns"
       :data="tableData"
-      :empty-text="t('请选择业务和DB模块名')" />
+      :empty="t('请选择业务和DB模块名')"
+      row-key="key" />
   </div>
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes } from '@common/const';
@@ -99,16 +100,58 @@
   ];
 
   const columns = computed(() => {
-    const columns: Column[] = [
+    const columns: PrimaryTableCol[] = [
       {
-        label: t('序号'),
-        render: ({ index }: { index: number }) => index + 1,
+        cell: (_, { rowIndex }) => String(rowIndex + 1),
+        colKey: 'index',
+        title: t('序号'),
         // type: 'index',
         width: 80,
       },
       {
-        field: 'mainDomain',
-        label: () => (
+        cell: (_, { rowIndex }) => (
+          <div class='domain-address'>
+            <span>
+              {/* {props.moduleAliasName}db. */}
+              {getDomainPreview(domains.value[rowIndex]?.key)['masterDomain']?.prefix}
+            </span>
+            <bk-form-item
+              key={rowIndex}
+              class={{
+                'domain-address-item': true,
+                'domain-address-item-empty': !domains.value[rowIndex]?.key,
+              }}
+              errorDisplayType='tooltips'
+              label-width={0}
+              property={`details.domains.${rowIndex}.key`}
+              rules={domainRule}>
+              <db-input
+                v-bk-tooltips={{
+                  content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
+                  placement: 'top',
+                  theme: 'light',
+                  trigger: 'click',
+                }}
+                maxlength={63}
+                model-value={domains.value[rowIndex]?.key}
+                placeholder={t('请输入')}
+                show-word-limit
+                style='width:260px'
+                onChange={(value: string) => handleChangeDomain(value, rowIndex)}>
+                {{
+                  suffix: () => domains.value[rowIndex]?.key && <span class='domain-address-placeholder ml-4'></span>,
+                }}
+              </db-input>
+            </bk-form-item>
+            <span>
+              {/* {`.${props.dbAppAbbr}.db`} */}
+              {getDomainPreview(domains.value[rowIndex]?.key)['masterDomain']?.suffix}
+            </span>
+          </div>
+        ),
+        colKey: 'mainDomain',
+        minWidth: 500,
+        title: () => (
           <span>
             {props.isSqlserverSingle ? t('域名') : t('主域名')}
             {tableData.value.length !== 0 && (
@@ -122,65 +165,24 @@
             )}
           </span>
         ),
-        minWidth: 500,
-        render: ({ index }: { index: number }) => (
-          <div class='domain-address'>
-            <span>
-              {/* {props.moduleAliasName}db. */}
-              {getDomainPreview(domains.value[index]?.key)['masterDomain']?.prefix}
-            </span>
-            <bk-form-item
-              key={index}
-              class={{
-                'domain-address-item': true,
-                'domain-address-item-empty': !domains.value[index]?.key,
-              }}
-              errorDisplayType='tooltips'
-              label-width={0}
-              property={`details.domains.${index}.key`}
-              rules={domainRule}>
-              <bk-input
-                v-bk-tooltips={{
-                  content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
-                  placement: 'top',
-                  theme: 'light',
-                  trigger: 'click',
-                }}
-                maxlength={63}
-                model-value={domains.value[index]?.key}
-                placeholder={t('请输入')}
-                show-word-limit
-                style='width:260px'
-                onChange={(value: string) => handleChangeDomain(value, index)}>
-                {{
-                  suffix: () => domains.value[index]?.key && <span class='domain-address-placeholder ml-4'></span>,
-                }}
-              </bk-input>
-            </bk-form-item>
-            <span>
-              {/* {`.${props.dbAppAbbr}.db`} */}
-              {getDomainPreview(domains.value[index]?.key)['masterDomain']?.suffix}
-            </span>
-          </div>
-        ),
       },
     ];
 
     if (!props.isSqlserverSingle) {
       columns.push({
-        field: 'slaveDomain',
-        label: t('从域名'),
-        minWidth: 400,
-        render: ({ index }: { index: number }) => (
+        cell: (_, { rowIndex }) => (
           <div class='domain-address'>
             {/* <span>{props.moduleAliasName}dr.</span>
-            <span>{domains.value[index]?.key}</span>
+            <span>{domains.value[rowIndex]?.key}</span>
             <span>{`.${props.dbAppAbbr}.db`}</span> */}
-            <span>{getDomainPreview(domains.value[index]?.key)['masterDomain']?.prefix}</span>
-            <span>{domains.value[index]?.key || t('集群标识')}</span>
-            <span>{getDomainPreview(domains.value[index]?.key)['masterDomain']?.suffix}</span>
+            <span>{getDomainPreview(domains.value[rowIndex]?.key)['masterDomain']?.prefix}</span>
+            <span>{domains.value[rowIndex]?.key || t('集群标识')}</span>
+            <span>{getDomainPreview(domains.value[rowIndex]?.key)['masterDomain']?.suffix}</span>
           </div>
         ),
+        colKey: 'slaveDomain',
+        minWidth: 400,
+        title: t('从域名'),
       });
     }
 
@@ -210,16 +212,12 @@
       props.isSqlserverSingle ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA,
     );
 
-    return strategy(
-      {
-        clusterName,
-        dbAppAbbr: props.dbAppAbbr,
-        moduleName: props.moduleAliasName,
-      },
-      {
-        bizId: props.bizId,
-      },
-    );
+    return strategy({
+      clusterName,
+      clusterType: props.isSqlserverSingle ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA,
+      dbAppAbbr: props.dbAppAbbr,
+      moduleName: props.moduleAliasName,
+    });
   };
 </script>
 

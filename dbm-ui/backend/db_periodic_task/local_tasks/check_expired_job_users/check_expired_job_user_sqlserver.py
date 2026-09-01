@@ -27,6 +27,7 @@ from backend.db_periodic_task.local_tasks.check_expired_job_users.dispatcher imp
     ExpiredJobUserDispatcher,
     run_batch_with_lock,
 )
+from backend.db_periodic_task.utils import TimeUnit
 from backend.flow.consts import DBM_JOB_TMP_USER_REGULAR, DBM_MYSQL_JOB_TMP_USER_PREFIX, StateType
 from backend.flow.models import FlowTree
 
@@ -272,8 +273,28 @@ def check_expired_job_users_for_sqlserver_batch(cluster_ids: List[int], lock_key
 # ------------------------------ 模块级 dispatcher 实例 ------------------------------
 
 # SQLServer 巡检 dispatcher（Single 与 HA 合并覆盖，供 task.py 直接调用 dispatch()）
+#
+# 参数选型说明（针对 ~753 套 SQLServer 集群规模）：
+#   - batch_size=15：单批 15 集群串行处理，正常 1.25~2min 内结束，最坏含慢集群 <3min；
+#     753/15 = 51 batch，相比默认 batch_size=5 时的 151 batch 显著降低总消息数。
+#   - dispatch_window_seconds=1h：错峰投递到 1 小时内平摊，避免瞬时冲击 SQLServer 后端 DRS；
+#     hash_cnt=51 与 window=1h 组合下 unit=max(70,60)=70s ≥ 60s，
+#     calculate_countdown__mod 每桶恰好 1 batch，达到彻底均匀分布（不踩 60s 硬下限）；
+#     相比默认 5min 窗口时的 30 batch/60s 尖峰改善约 30x。
+#   - batch_lock_timeout=3h：与 1h 错峰窗口匹配的最坏链路兜底 TTL，
+#     覆盖 (countdown 1h + broker 排队 ~30min + 硬超时 30min + 余量 1h)，
+#     比默认 12h 缩短 worker 崩溃后的恢复时间；3h < 24h 保证次日 beat 一定可抢到锁。
+#   - 其他 timeout（batch soft/hard、dispatch_lock）沿用默认值，15 集群单批耗时
+#     远低于 20min soft 上限，无需调整。
+#   - 触发时机 07:00 与 MySQL 尾巴（06:00~08:00 窗口 + ~5min 尾巴）在 07:00~08:05
+#     有约 1h 执行重叠期，两者 DRS 后端隔离互不干扰，worker 池叠加占用预计 <10 slot。
+#   - 若集群数变化：>2000 需上调至 batch_size=30 且窗口 2h 以维持均匀分布；
+#     <200 可回退为默认值。
 sqlserver_dispatcher: ExpiredJobUserDispatcher = ExpiredJobUserDispatcher(
     name="sqlserver",
     cluster_types=_DEFAULT_SQLSERVER_CLUSTER_TYPES,
     worker_task=check_expired_job_users_for_sqlserver_batch,
+    batch_size=15,
+    dispatch_window_seconds=1 * TimeUnit.HOUR,
+    batch_lock_timeout=3 * TimeUnit.HOUR,
 )

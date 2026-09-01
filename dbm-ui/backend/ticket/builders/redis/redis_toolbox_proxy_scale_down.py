@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import ShrinkType
@@ -72,7 +73,7 @@ class ProxyScaleDownParamBuilder(builders.FlowParamBuilder):
             info["proxy_reduced_hosts"] = info["old_nodes"]["proxy_reduced_hosts"]
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_PROXY_SCALE_DOWN, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_SCALE_DOWN, is_recycle=True, iam=ActionEnum.REDIS_MANAGE)
 class ProxyScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleDownDetailSerializer
     inner_flow_builder = ProxyScaleDownParamBuilder

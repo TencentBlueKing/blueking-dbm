@@ -75,7 +75,8 @@ func (c *PrivTaskPara) prepareTenDBHA(targetMetaInfos []*service.Instance) (
 		)
 		if ele.BindTo == internal.MachineTypeProxy {
 			if ele.PaddingProxy {
-				clientIps = append(c.SourceIPs, proxyIps...)
+				// 显式复制 c.SourceIPs, 避免和其他并发调用共享底层数组
+				clientIps = append(append([]string{}, c.SourceIPs...), proxyIps...)
 			} else {
 				clientIps = proxyIps
 			}
@@ -107,7 +108,8 @@ func (c *PrivTaskPara) prepareTenDBHA(targetMetaInfos []*service.Instance) (
 	if len(c.SourceIPs) == 1 && c.SourceIPs[0] == "localhost" {
 		clientIps = []string{"localhost"}
 	} else if slices.Index(c.SourceIPs, "localhost") >= 0 {
-		clientIps = append(clientIps, "localhost")
+		// clientIps 可能是 c.SourceIPs 的别名, 先复制再 append 避免写共享底层数组
+		clientIps = append(append([]string{}, clientIps...), "localhost")
 	}
 
 	return

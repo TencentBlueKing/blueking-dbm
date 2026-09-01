@@ -11,19 +11,18 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import type { ComponentInternalInstance, Ref } from 'vue';
 import { useRequest } from 'vue-request';
 
 import { useGlobalBizs } from '@stores';
 
-import { getSearchSelectorParams } from '@utils';
+import { transfromDataToQuery } from '@utils';
 
 /**
  * 处理集群列表数据
  */
 export function useTableData<T>(
-  searchSelectValue: Ref<ISearchValue[]>,
+  searchSelectValue: Ref<Record<string, string>>,
   role?: Ref<string | undefined>,
   clusterId?: Ref<number | undefined>,
 ) {
@@ -72,7 +71,7 @@ export function useTableData<T>(
       extra: 1,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
-      ...getSearchSelectorParams(searchSelectValue.value),
+      ...transfromDataToQuery(searchSelectValue.value),
     };
     if (role?.value) {
       Object.assign(params, {
@@ -123,6 +122,7 @@ export function useTableData<T>(
     generateParams,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
   };

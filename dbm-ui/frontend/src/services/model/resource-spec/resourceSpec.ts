@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { differenceInSeconds } from 'date-fns';
+import dayjs from 'dayjs';
 
 import type { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 
@@ -36,8 +36,7 @@ export default class ResourceSpec {
   };
   permission: {
     spec_create: boolean;
-    spec_delete: boolean;
-    spec_update: boolean;
+    spec_manage: boolean;
   };
   qps: {
     max: number;
@@ -55,15 +54,15 @@ export default class ResourceSpec {
     size?: number;
     type: string;
   }[];
-  update_at: string;
-  updater: string;
   tags: {
     id: number;
-    key: string;
-    value: string;
     is_builtin: boolean;
+    key: string;
     system: boolean;
+    value: string;
   }[];
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as ResourceSpec) {
     this.capacity = payload.capacity;
@@ -94,11 +93,15 @@ export default class ResourceSpec {
   get isRecentSeconds() {
     const createDay = new Date(this.create_at);
     const today = new Date();
-    return differenceInSeconds(today, createDay) < 30;
+    return dayjs(today).diff(createDay, 'second') < 30;
   }
 
   get name() {
     return this.spec_name;
+  }
+
+  get needReplenish() {
+    return this.tags.some((tag) => tag.key === 'replenish' && tag.value === 'True');
   }
 
   get qpsText() {
@@ -111,9 +114,5 @@ export default class ResourceSpec {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
-  }
-
-  get needReplenish() {
-    return this.tags.some((tag) => tag.key === 'replenish' && tag.value === 'True');
   }
 }

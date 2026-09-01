@@ -13,16 +13,17 @@
 
 <template>
   <div class="mysql-domains">
-    <DbOriginalTable
+    <PrimaryTable
       class="custom-edit-table"
       :columns="columns"
       :data="tableData"
-      :empty-text="$t('请选择业务和DB模块名')" />
+      :empty="t('请选择业务和DB模块名')"
+      row-key="key" />
   </div>
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { checkDomainRepeat } from '@services/source/ticket.tsx';
@@ -148,16 +149,19 @@
     },
   );
   const columns = computed(() => {
-    const columns: Column[] = [
+    const columns: PrimaryTableCol[] = [
       {
-        label: t('序号'),
-        render: ({ index }: { index: number }) => index + 1,
+        cell: (_, { rowIndex }) => String(rowIndex + 1),
+        colKey: 'index',
+        title: t('序号'),
         // type: 'index',
         width: 80,
       },
       {
-        field: 'mainDomain',
-        label: () => (
+        cell: (_, { rowIndex }) => renderDomain(rowIndex, true),
+        colKey: 'mainDomain',
+        minWidth: 500,
+        title: () => (
           <span>
             {t('主访问入口')}
             {tableData.value.length === 0 ? null : (
@@ -169,16 +173,14 @@
             )}
           </span>
         ),
-        minWidth: 500,
-        render: ({ index }: { index: number }) => renderDomain(index, true),
       },
     ];
     if (!isMysqlSingle.value) {
       columns.push({
-        field: 'slaveDomain',
-        label: t('从访问入口'),
+        cell: (_, { rowIndex }) => renderDomain(rowIndex),
+        colKey: 'slaveDomain',
         minWidth: 400,
-        render: ({ index }: { index: number }) => renderDomain(index),
+        title: t('从访问入口'),
       });
     }
     return columns;
@@ -240,7 +242,7 @@
             label-width={0}
             property={`details.domains.${rowIndex}.key`}
             rules={domainRule}>
-            <bk-input
+            <db-input
               v-bk-tooltips={{
                 content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
                 placement: 'top',
@@ -259,7 +261,7 @@
                     <span class='domain-address-placeholder ml-4'></span>
                   ),
               }}
-            </bk-input>
+            </db-input>
           </bk-form-item>
         ) : (
           <span class='domain-address-placeholder'>
@@ -280,22 +282,18 @@
   const getDomainPreview = (clusterName: string) => {
     const strategy = getDomainStrategy(isMysqlSingle.value ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA);
 
-    return strategy(
-      {
-        clusterName,
-        dbAppAbbr: props.formdata.details.db_app_abbr,
-        moduleName: props.moduleAliasName,
-      },
-      {
-        bizId: props.formdata.bk_biz_id,
-      },
-    );
+    return strategy({
+      clusterName,
+      clusterType: isMysqlSingle.value ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA,
+      dbAppAbbr: props.formdata.details.db_app_abbr,
+      moduleName: props.moduleAliasName,
+    });
   };
 </script>
 
 <style lang="less">
   .mysql-domains {
-    .bk-table {
+    .custom-edit-table {
       .bk-form-content {
         margin-left: 0 !important;
       }

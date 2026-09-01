@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.flow.utils.mysql.dts.backup_helper import resolve_dest_worker_ip
 from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateTopology
 from backend.flow.utils.mysql.dts.migrate_helper import (
@@ -62,9 +62,42 @@ class ExpandTendbclusterSourceTest(SimpleTestCase):
         self.assertEqual(expanded[0].shard_count, 4)
         self.assertEqual(expanded[0].spider_cluster_id, "spider.db.test")
         self.assertEqual(expanded[0].source_name, "remote-0")
-        self.assertEqual(expanded[0].source_instance_id, 1000)
+        self.assertEqual(expanded[0].source_instance_id, 1100)
         self.assertEqual(expanded[2].myloader.shard_id, 2)
         self.assertEqual(expanded[2].myloader.backup_id, "bk-1")
+
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get")
+    def test_expand_honors_remote_slave_role(self, mock_get):
+        cluster = MagicMock()
+        cluster.id = 100
+        cluster.cluster_type = ClusterType.TenDBCluster.value
+        cluster.immute_domain = "spider.db.test"
+        cluster.tendbclusterstorageset_set.all.return_value.order_by.return_value = [_make_shard(0, 1000)]
+        mock_get.return_value = cluster
+
+        base = SourceSpec(
+            cluster_id=100,
+            source_name="remote",
+            sync_scope=SyncScope(),
+            source_instance_role=InstanceRole.REMOTE_SLAVE.value,
+        )
+        expanded = expand_tendbcluster_source_specs(base)
+        self.assertEqual(expanded[0].source_instance_id, 1000)
+
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get")
+    def test_expand_without_ejector_fails(self, mock_get):
+        cluster = MagicMock()
+        cluster.id = 100
+        cluster.cluster_type = ClusterType.TenDBCluster.value
+        cluster.immute_domain = "spider.db.test"
+        shard = _make_shard(0, 1000)
+        shard.storage_instance_tuple.ejector = None
+        cluster.tendbclusterstorageset_set.all.return_value.order_by.return_value = [shard]
+        mock_get.return_value = cluster
+
+        base = SourceSpec(cluster_id=100, source_name="remote", sync_scope=SyncScope())
+        with self.assertRaises(ValueError):
+            expand_tendbcluster_source_specs(base)
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get")
     def test_skip_already_expanded(self, mock_get):

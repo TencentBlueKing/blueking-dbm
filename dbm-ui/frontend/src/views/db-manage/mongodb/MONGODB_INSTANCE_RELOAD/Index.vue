@@ -77,16 +77,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -162,33 +156,30 @@
   }>(TicketTypes.MONGODB_INSTANCE_RELOAD);
 
   // 提交处理
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const tableRef = currentTableRef.value;
     if (!tableRef) {
       return;
     }
 
-    const result = await Promise.all([tableRef.validate, currentTableRef.value!.validate]);
-    if (!result) {
-      return;
-    }
+    tableRef.validate().then(() => {
+      console.log({
+        details: {
+          force: formData.force,
+          infos: tableRef.getValue(),
+          target_select_mode: formData.targetSelectMode,
+        },
+        ...formData.payload,
+      });
 
-    console.log({
-      details: {
-        force: formData.force,
-        infos: currentTableRef.value.getValue(),
-        target_select_mode: formData.targetSelectMode,
-      },
-      ...formData.payload,
-    });
-
-    createTicketRun({
-      details: {
-        force: formData.force,
-        infos: currentTableRef.value.getValue(),
-        target_select_mode: formData.targetSelectMode,
-      },
-      ...formData.payload,
+      createTicketRun({
+        details: {
+          force: formData.force,
+          infos: tableRef.getValue(),
+          target_select_mode: formData.targetSelectMode,
+        },
+        ...formData.payload,
+      });
     });
   };
 

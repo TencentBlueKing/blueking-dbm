@@ -12,7 +12,13 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
@@ -79,22 +85,19 @@ export default class Es extends ClusterBase {
   es_datanode_hot: Array<ClusterListNode>;
   es_master: Array<ClusterListNode>;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     es_access_entry_view: boolean;
-    es_create_clb: boolean;
-    es_create_polaris: boolean;
+    es_dbconfig_edit: boolean;
     es_destroy: boolean;
-    es_dns_bind_clb: boolean;
     es_edit: boolean;
     es_enable_disable: boolean;
-    es_reboot: boolean;
-    es_replace: boolean;
-    es_scale_up: boolean;
-    es_shrink: boolean;
+    es_loadbalance_manage: boolean;
+    es_manage: boolean;
+    es_subscribe_monitor: boolean;
     es_view: boolean;
   };
   phase: 'online' | 'offline';
@@ -116,6 +119,7 @@ export default class Es extends ClusterBase {
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.dns_to_clb = payload.dns_to_clb;

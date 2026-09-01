@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<!--
+  DBM 页面框架骨架
+  新建 HTML 页面时复制本文件，业务内容写在 content-wrapper 内。
+  框架固定占用：顶栏 52px + 面包屑 52px；内容区可用高度 = 100vh - 公告栏 - 104px。
+  图标使用 bk-dbm 图标字体：<i class="bk-dbm-icon db-icon-{type}"></i>
+
+  交付要求：原型必须交付为单个独立 HTML，不允许 iconfont/、nav-logo.png 等附带资源。
+  交付前把 iconfont/style.css（woff 转 base64，只保留用到的图标）与图片（base64 data URI）
+  全部内联进本文件，并删除复制出来的资源文件。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>页面标题</title>
+  <link rel="stylesheet" href="iconfont/style.css">
+  <style>
+    /* ===== 设计令牌 ===== */
+    :root {
+      --notice-height: 0px; /* 有公告栏时改为 40px */
+
+      --primary-color: #3a84ff;
+      --success-color: #2dcb56;
+      --warning-color: #ff9c01;
+      --danger-color: #ea3636;
+      --default-color: #63656e;
+      --gray-color: #979ba5;
+      --light-gray: #c4c6cc;
+      --disable-color: #dcdee5;
+      --title-color: #313238;
+      --bg-gray: #f5f7fa;
+      --bg-dark-gray: #f0f1f5;
+
+      --border-radius-base: 2px;
+    }
+
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* 全局滚动条：4px，thumb #dcdee5，hover #979ba5 */
+    *::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+      background-color: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background-color: var(--disable-color);
+      border-radius: 4px;
+    }
+    *:hover::-webkit-scrollbar-thumb {
+      background-color: var(--gray-color);
+    }
+
+    body {
+      height: 100vh;
+      min-width: 1366px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      color: var(--default-color);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 公告栏（可选，默认隐藏） ===== */
+    .notice-bar {
+      display: none; /* 需要时改为 flex */
+      height: 40px;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      background: var(--bg-dark-gray);
+    }
+
+    /* ===== 导航框架 ===== */
+    .bk-navigation {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: calc(100vh - var(--notice-height));
+    }
+
+    /* 顶栏 52px #0e1525 */
+    .bk-navigation-header {
+      display: flex;
+      flex: 0 0 52px;
+      align-items: center;
+      padding-right: 24px;
+      overflow: hidden;
+      background: #0e1525;
+    }
+
+    /* 顶栏左侧 logo 区：固定 260px，与侧栏同宽 */
+    .bk-navigation-title {
+      display: flex;
+      flex: 0 0 260px;
+      align-items: center;
+      height: 100%;
+      padding: 0 16px;
+      overflow: hidden;
+    }
+    .bk-navigation-title img {
+      width: 30px;
+      height: 30px;
+    }
+    .bk-navigation-title .title-desc {
+      margin-left: 8px;
+      overflow: hidden;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 24px;
+      color: #96a2b9;
+      white-space: nowrap;
+    }
+
+    /* 顶栏导航项 */
+    .db-navigation-header {
+      display: flex;
+      white-space: nowrap;
+    }
+    .db-navigation-header .nav-item {
+      position: relative;
+      padding: 0 16px;
+      color: #96a2b9;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .db-navigation-header .nav-item.active,
+    .db-navigation-header .nav-item:hover {
+      color: #fff;
+    }
+    .db-navigation-header .nav-item:last-child::before {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 1px;
+      height: 12px;
+      background: #434853;
+      content: '';
+      transform: translateY(-50%);
+    }
+
+    /* 顶栏右侧 */
+    .db-navigation-header-right {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: flex-end;
+      margin-left: 80px;
+      color: var(--gray-color);
+    }
+    .db-navigation-header-right .header-icon {
+      margin-right: 16px;
+      font-size: 16px;
+      color: var(--gray-color);
+      cursor: pointer;
+    }
+    .db-navigation-header-right .header-icon:hover {
+      color: #fff;
+    }
+    .db-navigation-header-right .user-name {
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* ===== 导航主体 ===== */
+    .bk-navigation-wrapper {
+      position: relative;
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* 侧栏：展开 260px / 折叠 60px，背景 #182132 */
+    .nav-slider {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      width: 260px;
+      height: 100%;
+      overflow: hidden;
+      background-color: #182132;
+      transition: width cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
+    }
+    .nav-slider.is-collapse {
+      width: 60px;
+    }
+    .nav-slider-list {
+      flex: 1;
+      padding: 12px 0 4px;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    /* 深色区域滚动条：6px */
+    .nav-slider-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .nav-slider-list::-webkit-scrollbar-thumb {
+      background: rgb(151 155 165 / 80%);
+    }
+
+    /* ===== 业务选择器（深色态） ===== */
+    .bk-app-select {
+      position: relative;
+      height: 32px;
+      margin: 0 12px 8px;
+      overflow: hidden;
+      font-size: 12px;
+      color: #c4c6cc;
+      cursor: pointer;
+      background: #293447;
+      border: 1px solid #293447;
+      border-radius: var(--border-radius-base);
+    }
+    .bk-app-select-value {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      padding: 0 10px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .bk-app-select-value .biz-id {
+      color: var(--gray-color);
+    }
+    .bk-app-select-menu-flag {
+      position: absolute;
+      top: 7px;
+      right: 5px;
+      font-size: 18px;
+      color: #999;
+    }
+    .nav-slider.is-collapse .bk-app-select {
+      display: none;
+    }
+
+    /* ===== 菜单分组名 ===== */
+    .bk-menu-group .group-name {
+      display: flex;
+      align-items: center;
+      height: 40px;
+      margin: 0 18px;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 16px;
+      color: #6e788b;
+      white-space: nowrap;
+    }
+    /* DB 模块分组：改用 padding，hover 可显示置顶按钮 */
+    .module-menu-group .group-name {
+      padding: 0 18px;
+      margin: 0;
+    }
+    .module-menu-group .group-name:hover {
+      background-color: #2b313f;
+    }
+    .module-menu-group .group-name:hover .top-button {
+      display: inline-block;
+    }
+    .module-menu-group .top-button {
+      display: none;
+      margin-left: auto;
+      font-size: 18px;
+      color: var(--light-gray);
+    }
+    .module-menu-group .top-button:hover {
+      color: #fff;
+    }
+    .nav-slider.is-collapse .group-name {
+      display: none;
+    }
+
+    /* ===== 菜单项 ===== */
+    .bk-menu-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 40px;
+      min-height: 40px;
+      margin: 2px 0;
+      overflow: hidden;
+      font-size: 14px;
+      color: #96a2b9;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .bk-menu-item:hover {
+      color: #fff;
+      background-color: #31394f;
+    }
+    .bk-menu-item.is-active {
+      color: #fff;
+      background: linear-gradient(90deg, #3f87ff, #3a84ff);
+    }
+    /* 图标列固定 60px 居中 —— 折叠时正好占满侧栏宽度 */
+    .bk-menu-item .item-icon {
+      display: flex;
+      flex: 0 0 60px;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 18px;
+    }
+    /* 子菜单项无图标，用 3px 圆点占位 */
+    .bk-menu-item .item-icon .default-icon {
+      width: 3px;
+      height: 3px;
+      background-color: #fff;
+      border-radius: 50%;
+    }
+    .bk-menu-item .item-content {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ===== 二级菜单 ===== */
+    .bk-menu-submenu {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .bk-menu-submenu.is-opened {
+      background: #151d2c;
+    }
+    .submenu-header {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 40px;
+      cursor: pointer;
+    }
+    .submenu-header:hover {
+      color: #fff;
+    }
+    .submenu-header-icon {
+      display: flex;
+      flex: 0 0 60px;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 18px;
+      color: #b0bdd5;
+    }
+    .submenu-header-content {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      height: 100%;
+      overflow: hidden;
+      color: #acb9d1;
+    }
+    .submenu-header-collapse {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-right: 16px;
+      font-size: 16px;
+      color: #acb9d1;
+      transition: transform 0.3s ease-out;
+      transform: rotate(-90deg);
+    }
+    .submenu-header-collapse.is-collapse {
+      transform: rotate(0);
+    }
+    .submenu-list {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .nav-slider.is-collapse .submenu-header-content,
+    .nav-slider.is-collapse .submenu-header-collapse,
+    .nav-slider.is-collapse .submenu-list {
+      display: none;
+    }
+
+    /* ===== 集群 / 实例数量标签 ===== */
+    .dbm-cluster-instance-count-tag {
+      display: inline-block;
+      height: 16px;
+      padding: 0 8px;
+      margin-left: 4px;
+      font-size: 12px;
+      line-height: 16px;
+      color: #fff;
+      background: #333a47;
+      border-radius: 8px;
+    }
+    .bk-menu-item.is-active .dbm-cluster-instance-count-tag {
+      color: var(--primary-color);
+      background: #e1ecff;
+    }
+
+    /* 侧栏底部折叠触发器 */
+    .nav-slider-footer {
+      display: flex;
+      flex: 0 0 56px;
+      align-items: center;
+      padding-left: 14px;
+    }
+    .nav-slider-footer .footer-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+      color: #96a2b9;
+      border-radius: 100%;
+      cursor: pointer;
+    }
+    .nav-slider-footer .footer-icon:hover {
+      color: #d3d9e4;
+      background: linear-gradient(270deg, #253047, #263247);
+    }
+    .nav-slider-footer .footer-icon i {
+      transition: transform cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
+    }
+    .nav-slider.is-collapse .nav-slider-footer .footer-icon i {
+      transform: rotate(180deg);
+    }
+
+    /* ===== 内容容器 ===== */
+    .navigation-container {
+      position: relative;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    /* 面包屑栏 52px，白底，标题 16px/#313238 */
+    .db-navigation-content-header {
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      height: 52px;
+      padding: 0 14px;
+      background: #fff;
+      box-shadow: 0 3px 4px 0 #0000000a;
+    }
+    .db-navigation-content-title {
+      display: flex;
+      align-items: center;
+      font-size: 16px;
+      color: var(--title-color);
+    }
+    /* 扩展点：标题右侧（挂当前页面子标题） */
+    #dbContentTitleAppend {
+      display: flex;
+      align-items: center;
+      margin-left: 12px;
+      font-size: 12px;
+      color: var(--gray-color);
+    }
+    /* 扩展点：整栏最右侧（挂页面级操作） */
+    #dbContentHeaderAppend {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: flex-end;
+      color: var(--title-color);
+    }
+
+    /* 内容区：padding 20px 24px 0，无 bottom padding，底部留白页面自补 */
+    .db-navigation-content-wrapper {
+      flex: 1;
+      padding: 20px 24px 0;
+      overflow: auto;
+      background: var(--bg-gray);
+    }
+    /* 全屏页面：padding 归零，页面根节点必须 height: 100% */
+    .db-navigation-content-wrapper.is-fullscreen {
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- 公告栏（可选，默认隐藏） -->
+  <div class="notice-bar">公告内容</div>
+
+  <div class="bk-navigation">
+    <!-- 顶栏 -->
+    <header class="bk-navigation-header">
+      <div class="bk-navigation-title">
+        <img src="nav-logo.png" alt="logo">
+        <span class="title-desc">数据库管理</span>
+      </div>
+      <nav class="db-navigation-header">
+        <div class="nav-item active">数据库管理</div>
+        <div class="nav-item">可观测</div>
+        <div class="nav-item">业务配置</div>
+        <div class="nav-item">资源管理</div>
+        <div class="nav-item">全局配置</div>
+        <div class="nav-item">平台管理</div>
+        <div class="nav-item">个人工作台</div>
+      </nav>
+      <div class="db-navigation-header-right">
+        <i class="bk-dbm-icon db-icon-help header-icon" title="帮助"></i>
+        <span class="user-name">用户名</span>
+      </div>
+    </header>
+
+    <!-- 导航主体 -->
+    <div class="bk-navigation-wrapper">
+      <!-- 侧栏 -->
+      <aside class="nav-slider" id="navSlider">
+        <!-- 业务选择器 -->
+        <div class="bk-app-select">
+          <div class="bk-app-select-value">
+            dba测试环境&nbsp;<span class="biz-id">(#5016766, dbatest)</span>
+          </div>
+          <i class="bk-dbm-icon db-icon-down-big bk-app-select-menu-flag"></i>
+        </div>
+
+        <nav class="nav-slider-list">
+          <!-- MySQL 模块 -->
+          <div class="bk-menu-group module-menu-group">
+            <div class="group-name">
+              MySQL
+              <i class="bk-dbm-icon db-icon-zhiding top-button" title="置顶当前数据库"></i>
+            </div>
+
+            <!-- 主从（展开态） -->
+            <div class="bk-menu-submenu is-opened">
+              <div class="submenu-header">
+                <span class="submenu-header-icon"><i class="bk-dbm-icon db-icon-cluster"></i></span>
+                <span class="submenu-header-content">主从</span>
+                <span class="submenu-header-collapse is-collapse">
+                  <i class="bk-dbm-icon db-icon-down-big"></i>
+                </span>
+              </div>
+              <div class="submenu-list">
+                <div class="bk-menu-item is-active">
+                  <span class="item-icon"><span class="default-icon"></span></span>
+                  <span class="item-content">
+                    集群视图
+                    <span class="dbm-cluster-instance-count-tag">17</span>
+                  </span>
+                </div>
+                <div class="bk-menu-item">
+                  <span class="item-icon"><span class="default-icon"></span></span>
+                  <span class="item-content">
+                    实例视图
+                    <span class="dbm-cluster-instance-count-tag">68</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-node"></i></span>
+              <span class="item-content">
+                单节点
+                <span class="dbm-cluster-instance-count-tag">27</span>
+              </span>
+            </div>
+
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-mobanshili"></i></span>
+              <span class="item-content">分区管理</span>
+            </div>
+
+            <!-- 权限管理（收起态） -->
+            <div class="bk-menu-submenu">
+              <div class="submenu-header">
+                <span class="submenu-header-icon"><i class="bk-dbm-icon db-icon-history"></i></span>
+                <span class="submenu-header-content">权限管理</span>
+                <span class="submenu-header-collapse">
+                  <i class="bk-dbm-icon db-icon-down-big"></i>
+                </span>
+              </div>
+            </div>
+
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-tools"></i></span>
+              <span class="item-content">工具箱</span>
+            </div>
+          </div>
+
+          <!-- 数据库部署 -->
+          <div class="bk-menu-group">
+            <div class="group-name">数据库部署</div>
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-ticket"></i></span>
+              <span class="item-content">部署申请</span>
+            </div>
+          </div>
+
+          <!-- 安全 -->
+          <div class="bk-menu-group">
+            <div class="group-name">安全</div>
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-password"></i></span>
+              <span class="item-content">临时密码修改</span>
+            </div>
+          </div>
+
+          <!-- 单据中心 -->
+          <div class="bk-menu-group">
+            <div class="group-name">单据中心</div>
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-ticket"></i></span>
+              <span class="item-content">单据</span>
+            </div>
+            <div class="bk-menu-item">
+              <span class="item-icon"><i class="bk-dbm-icon db-icon-history"></i></span>
+              <span class="item-content">历史任务</span>
+            </div>
+          </div>
+        </nav>
+
+        <div class="nav-slider-footer">
+          <span class="footer-icon" id="collapseTrigger" title="收起 / 展开">
+            <i class="bk-dbm-icon db-icon-arrow-left"></i>
+          </span>
+        </div>
+      </aside>
+
+      <!-- 内容容器 -->
+      <main class="navigation-container">
+        <!-- 面包屑栏 -->
+        <div class="db-navigation-content-header">
+          <div class="db-navigation-content-title">
+            页面标题
+            <div id="dbContentTitleAppend"></div>
+          </div>
+          <div id="dbContentHeaderAppend"></div>
+        </div>
+        <!-- 内容区：业务页面内容写在这里 -->
+        <div class="db-navigation-content-wrapper">
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('collapseTrigger').addEventListener('click', function () {
+      document.getElementById('navSlider').classList.toggle('is-collapse');
+    });
+  </script>
+</body>
+</html>

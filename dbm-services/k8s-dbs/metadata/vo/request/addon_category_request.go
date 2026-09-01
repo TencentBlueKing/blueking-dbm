@@ -24,9 +24,9 @@ import commentity "k8s-dbs/common/entity"
 
 // AddonCategoryRequest request vo 定义
 type AddonCategoryRequest struct {
-	ID                uint64 `json:"id"`
-	CategoryName      string `json:"categoryName"`
-	CategoryAlias     string `json:"categoryAlias"`
-	Description       string `json:"description"`
-	commentity.BKAuth `json:",inline"`
+	ID                      uint64 `json:"id"`
+	CategoryName            string `json:"categoryName"`
+	CategoryAlias           string `json:"categoryAlias"`
+	Description             string `json:"description"`
+	commentity.BKAdditional `json:",inline"`
 }

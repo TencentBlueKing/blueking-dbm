@@ -61,17 +61,18 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn
-          ref="operationColumnRef"
-          :cluster-type="ClusterTypes.TENDBHA">
+        <OperationColumn :cluster-type="ClusterTypes.TENDBHA">
           <template #default="{ data }: { data: TendbhaModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mysql.haClusterList.authorize'">
-                <BkButton
+                <AuthButton
+                  action-id="mysql_authorize"
+                  :permission="data.permission.mysql_authorize"
+                  :resource="data.id"
                   text
                   @click="handleShowAuthorize(data)">
                   {{ t('授权') }}
-                </BkButton>
+                </AuthButton>
               </div>
               <div v-db-console="'mysql.haClusterList.webconsole'">
                 <AuthRouterLink
@@ -113,7 +114,6 @@
               <ClusterAlarmSubscribe
                 :data="data"
                 db-console-prefix="mysql.haClusterList"
-                @click="hideOperationColumn"
                 @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
               <div
                 v-if="!data.isOnlineCLB"
@@ -122,8 +122,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="mysql_add_clb"
-                    :permission="data.permission.mysql_add_clb"
+                    action-id="mysql_loadbalance_manage"
+                    :permission="data.permission.mysql_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
@@ -138,8 +138,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="mysql_clb_bind_domain"
-                    :permission="data.permission.mysql_clb_bind_domain"
+                    action-id="mysql_loadbalance_manage"
+                    :permission="data.permission.mysql_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="
@@ -376,7 +376,6 @@
   } = useGoClusterDetail('tendbHaDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<TendbhaModel>();
 
-  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const isShowCreateSubscribeRule = ref(false);
@@ -387,7 +386,7 @@
 
   const isShowDumperEntry = computed(() => {
     const currentKey = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as MySQLFunctions;
-    return funControllerStore.funControllerData.mysql.children[currentKey];
+    return funControllerStore.funControllerData.mysql.children[currentKey]?.is_enabled;
   });
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, {
@@ -396,10 +395,6 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
-  };
-
-  const hideOperationColumn = () => {
-    operationColumnRef.value?.hide();
   };
 
   const handleShowAuthorize = (data: TendbhaModel) => {

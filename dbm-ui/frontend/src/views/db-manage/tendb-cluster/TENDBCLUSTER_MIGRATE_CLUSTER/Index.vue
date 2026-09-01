@@ -88,16 +88,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -238,33 +232,31 @@
     need_checksum: boolean;
   }>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        backup_source: formData.backupSource,
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.oldMaster.cluster_id,
-          old_nodes: {
-            old_master: [item.oldMaster],
-            old_slave: [item.oldSlave],
-          },
-          resource_spec: {
-            backend_group: {
-              count: 1,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.oldMaster.spec_id,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          backup_source: formData.backupSource,
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.oldMaster.cluster_id,
+            old_nodes: {
+              old_master: [item.oldMaster],
+              old_slave: [item.oldSlave],
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-        need_checksum: formData.need_checksum,
-      },
-      ...formData.payload,
+            resource_spec: {
+              backend_group: {
+                count: 1,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.oldMaster.spec_id,
+              },
+            },
+          })),
+          ip_source: 'resource_pool',
+          need_checksum: formData.need_checksum,
+        },
+        ...formData.payload,
+      });
     });
   };
 

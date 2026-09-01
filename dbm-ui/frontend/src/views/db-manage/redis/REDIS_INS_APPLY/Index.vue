@@ -68,7 +68,7 @@
             :label="t('集群数量')"
             property="details.cluster_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.cluster_count"
               clearable
               :min="1"
@@ -82,7 +82,7 @@
             :label="t('每组主机部署集群')"
             property="details.group_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.group_count"
               clearable
               :max="formData.details.cluster_count"
@@ -96,7 +96,7 @@
             :label="t('Redis 起始端口')"
             property="details.port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.port"
               :max="65535"
               :min="1025"
@@ -194,7 +194,7 @@
             :biz-id="formData.bk_biz_id"
             :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -217,12 +217,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <BkButton
-        class="ml-8 w-88"
-        :disabled="baseState.isSubmitting"
-        @click="handleResetFormdata">
-        {{ t('重置') }}
-      </BkButton>
+      <DbResetButton
+        class="ml-8"
+        :confirm-handler="handleResetFormdata"
+        :disabled="baseState.isSubmitting" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -235,7 +233,6 @@
 
 <script setup lang="ts">
   import { Form } from 'bkui-vue';
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
@@ -399,6 +396,7 @@
   const specRef = ref<InstanceType<typeof SpecSelector>>();
   const clusterCountRef = ref<InstanceType<typeof Form.FormItem>>();
   const groupCountRef = ref<InstanceType<typeof Form.FormItem>>();
+  const passwordRef = ref<InstanceType<typeof PasswordInput>>();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
@@ -430,6 +428,18 @@
           clusterCountRef.value!.clearValidate();
           return formData.details.cluster_count % value === 0;
         },
+      },
+    ],
+    'details.redis_pwd': [
+      {
+        message: t('密码不能为空'),
+        trigger: 'blur',
+        validator: (value: string) => !!value,
+      },
+      {
+        message: t('密码不满足要求'),
+        trigger: 'blur',
+        validator: () => passwordRef.value!.validate(),
       },
     ],
   };
@@ -574,17 +584,9 @@
   };
 
   const handleResetFormdata = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, initData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, initData());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -705,7 +707,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px;
           }
         }

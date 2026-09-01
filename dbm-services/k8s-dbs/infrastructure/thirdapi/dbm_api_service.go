@@ -143,8 +143,34 @@ func (d *DbmAPIService) SyncClusterUpdated(request *infreq.UpdateClusterRequest)
 	return d.sendDBMRequest(url, request)
 }
 
+// SyncClusterStatusUpdated 同步集群状态更新到 DBM
+func (d *DbmAPIService) SyncClusterStatusUpdated(
+	request *infreq.UpdateClusterStatusRequest,
+) (infresp.DbmAPIResponse, error) {
+	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/domain/update_cluster_status/", d.syncDataAPIURL)
+	return d.sendDBMRequest(url, request)
+}
+
 // SyncClusterDeleted 同步集群下架到 DBM
 func (d *DbmAPIService) SyncClusterDeleted(request *infreq.DeleteClusterRequest) (infresp.DbmAPIResponse, error) {
 	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/cluster/delete/", d.syncDataAPIURL)
+	return d.sendDBMRequest(url, request)
+}
+
+// SyncDomainCreated 同步域名创建到 DBM DNS 服务，在 ClusterEntry 表中创建接入层条目。
+func (d *DbmAPIService) SyncDomainCreated(request *infreq.CreateDomainRequest) (infresp.DbmAPIResponse, error) {
+	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/domain/create/", d.syncDataAPIURL)
+	return d.sendDBMRequest(url, request)
+}
+
+// SyncDomainGet 查询域名解析记录
+func (d *DbmAPIService) SyncDomainGet(request *infreq.GetDomainRequest) (infresp.DbmAPIResponse, error) {
+	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/domain/get/", d.syncDataAPIURL)
+	return d.sendDBMRequest(url, request)
+}
+
+// SyncDomainDeleted 删除域名解析记录及 ClusterEntry
+func (d *DbmAPIService) SyncDomainDeleted(request *infreq.DeleteDomainRequest) (infresp.DbmAPIResponse, error) {
+	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/domain/delete/", d.syncDataAPIURL)
 	return d.sendDBMRequest(url, request)
 }

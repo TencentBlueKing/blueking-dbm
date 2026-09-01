@@ -70,7 +70,11 @@
             v-for="(item, index) in configItemList"
             :key="index"
             class="config-detail-item">
-            <span class="config-detail-label">{{ item.label }}:</span>
+            <span
+              class="config-detail-label"
+              :class="{ 'has-description': item.hasDescription }">
+              {{ item.label }}:
+            </span>
             <span class="config-detail-value">{{ item.value }}</span>
           </div>
         </div>
@@ -94,7 +98,7 @@
 
 <script setup lang="ts">
   import { Form } from 'bkui-vue';
-  import { computed, type UnwrapRef } from 'vue';
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -161,16 +165,6 @@
   const moduleRef = ref<InstanceType<typeof Form.FormItem>>();
   const isBindModule = ref(false);
 
-  /**
-   * 自然序排序比较函数（将字符串中的数字按数值比较）
-   */
-  const naturalSort = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
-
-  const sortedModuleList = computed(() => {
-    const list = moduleList.value || [];
-    return [...list].sort((a, b) => naturalSort(a.alias_name, b.alias_name));
-  });
-
   const configItemList = computed(() => {
     const confItems = levelConfigData.value?.conf_items || [];
     if (!confItems.length) {
@@ -215,6 +209,7 @@
 
         return ['db_version', 'charset', 'system_version', 'buffer_percent', 'max_remain_mem_gb', 'sync_type'].map(
           (key) => ({
+            hasDescription: !!configMap[key],
             label: labelMap[key],
             value: configMap[key],
           }),
@@ -222,17 +217,25 @@
       }
     }
     return confItems.map((confItem) => ({
+      hasDescription: !!confItem.description,
       label: confItem.description || confItem.conf_name,
       value: confItem.conf_value,
     }));
   });
 
-  const {
-    data: moduleList,
-    loading: moduleLoading,
-    run: runGetModules,
-  } = useRequest(getModules, {
+  /**
+   * 自然序排序比较函数（将字符串中的数字按数值比较）
+   */
+  const naturalSort = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
+  // 模块列表：ref + onSuccess 排序，与 computed 排序等价（保证 getModules 返回后 watcher 可重新解析）
+  const sortedModuleList = ref<ServiceReturnType<typeof getModules>>([]);
+
+  const { loading: moduleLoading, run: runGetModules } = useRequest(getModules, {
     manual: true,
+    onSuccess(moduleListResult) {
+      sortedModuleList.value = [...moduleListResult].sort((a, b) => naturalSort(a.alias_name, b.alias_name));
+    },
   });
 
   const {
@@ -279,9 +282,9 @@
   );
 
   watch(
-    [modelValue, moduleList],
+    [modelValue, sortedModuleList],
     () => {
-      const item = (moduleList.value || []).find((item) => item.db_module_id === modelValue.value);
+      const item = (sortedModuleList.value || []).find((item) => item.db_module_id === modelValue.value);
       moduleAliasName.value = item?.alias_name ?? '';
 
       fetchLevelConfig();
@@ -313,7 +316,7 @@
     moduleLevelConfig.value = confInfo;
   });
 
-  const getBaseInfo = (moduleItem: NonNullable<UnwrapRef<typeof moduleList>>[number]) => {
+  const getBaseInfo = (moduleItem: ServiceReturnType<typeof getModules>[number]) => {
     const confItems = moduleItem.db_module_info.conf_items;
     if (dbType === DBTypes.RIAK || !confItems.length) {
       return '';
@@ -415,6 +418,10 @@
         min-width: 172px;
         padding-right: 8px;
         text-align: right;
+      }
+
+      .has-description {
+        text-align: left;
       }
 
       .config-detail-value {

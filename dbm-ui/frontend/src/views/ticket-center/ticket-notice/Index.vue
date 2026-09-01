@@ -29,30 +29,26 @@
               <span class="main-label">{{ t('单据变更通知') }}</span>
               <span class="sub-label ml-4">（{{ t('单据状态发生变更时发送的通知') }}）</span>
             </template>
-            <BkTable
-              align="center"
-              border="full"
+            <PrimaryTable
+              bordered
               class="notice-table"
               :columns="changeColumns"
               :data="changeDataList"
-              header-align="center"
-              :header-cell-class-name="setHeadCellClassName">
-            </BkTable>
+              row-key="status">
+            </PrimaryTable>
           </DbFormItem>
           <DbFormItem>
             <template #label>
               <span class="main-label">{{ t('单据执行通知') }}</span>
               <span class="sub-label ml-4">（{{ t('单据执行期间检测到异常而触发的通知') }}）</span>
             </template>
-            <BkTable
-              align="center"
-              border="full"
+            <PrimaryTable
+              bordered
               class="notice-table"
               :columns="excuteColumns"
               :data="excuteDataList"
-              header-align="center"
-              :header-cell-class-name="setHeadCellClassName">
-            </BkTable>
+              row-key="status">
+            </PrimaryTable>
           </DbFormItem>
         </DbForm>
       </BkCard>
@@ -67,28 +63,23 @@
           @click="handleSave">
           {{ t('保存') }}
         </AuthButton>
-        <DbPopconfirm
-          ref="dbPopconfirm"
-          :confirm-handler="handleReset"
-          :content="t('重置将会恢复默认设置的内容')"
-          :title="t('确认重置')">
-          <span>
-            <AuthButton
-              action-id="biz_notify_config"
-              class="ml-8 w-88"
-              :disabled="updateSettingLoading"
-              :loading="resetSettingLoading"
-              :resource="bizId">
-              {{ t('重置') }}
-            </AuthButton>
-          </span>
-        </DbPopconfirm>
+        <AuthButton
+          action-id="biz_notify_config"
+          class="ml-8 w-88"
+          :disabled="updateSettingLoading"
+          :loading="resetSettingLoading"
+          :resource="bizId"
+          @click="handleReset">
+          {{ t('恢复默认') }}
+        </AuthButton>
       </template>
     </SmartAction>
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -130,16 +121,18 @@
   const TicketExcuteList = Object.entries(TicketExcuteMap);
 
   const getColumns = (statusTextLabel: string) => {
-    const baseColumns = [
+    const baseColumns: PrimaryTableCol[] = [
       {
-        field: 'statusText',
-        label: statusTextLabel,
+        align: 'center',
+        colKey: 'statusText',
+        title: statusTextLabel,
         width: 100,
       },
       {
-        field: 'noticeMember',
-        label: t('通知对象'),
-        render: ({ data }: { data: DataRow }) => data.noticeMember.join('，'),
+        align: 'center',
+        cell: (_, { row }) => row.noticeMember.join('，'),
+        colKey: 'noticeMember',
+        title: t('通知对象'),
         width: 200,
       },
     ];
@@ -165,24 +158,25 @@
       },
     );
 
-    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map((item) => {
+    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map((item): PrimaryTableCol => {
       const isInputType = InputMessageTypes.includes(item.type);
       const messageTip = MessageTipMap[item.type];
       return {
-        field: item.type,
-        minWidth: isInputType ? 320 : 120,
-        render: ({ data }: { data: DataRow }) => {
+        align: 'center',
+        cell: (_, { row }) => {
           if (isInputType) {
             return (
               <bk-input
-                v-model={data.input[item.type]}
+                v-model={row.input[item.type]}
                 placeholder={t('请输入群ID')}
               />
             );
           }
-          return <bk-checkbox v-model={data.checkbox[item.type]} />;
+          return <Checkbox v-model={row.checkbox[item.type]} />;
         },
-        renderHead: () => (
+        colKey: item.type,
+        minWidth: isInputType ? 320 : 120,
+        title: () => (
           <div class='message-type-head'>
             <img
               height='20'
@@ -201,7 +195,6 @@
             )}
           </div>
         ),
-        showOverflowTooltip: false,
       };
     });
 
@@ -238,7 +231,7 @@
   const { loading: resetSettingLoading, run: runResetBizSetting } = useRequest(updateBizSetting, {
     manual: true,
     onSuccess: () => {
-      messageSuccess(t('重置成功'));
+      messageSuccess(t('恢复默认成功'));
       getData();
     },
   });
@@ -304,8 +297,6 @@
     return list;
   };
 
-  const setHeadCellClassName = ({ columnIndex }: { columnIndex: number }) => (columnIndex < 2 ? 'common-head' : '');
-
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getData = () => {
@@ -349,22 +340,31 @@
   };
 
   const handleReset = () => {
-    runResetBizSetting({
-      bk_biz_id: bizId,
-      key: BizSettingKeys.NOTIFY_CONFIG,
-      value: [...NoticeTicketTypeList, ...TicketExcuteList].reduce<TicketNoticeSetting>(
-        (prevSettingMap, [status]) =>
-          Object.assign({}, prevSettingMap, {
-            [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>(
-              (prevValueMap, type) =>
-                Object.assign({}, prevValueMap, {
-                  [type]: true,
-                }),
-              {},
-            ),
-          }),
-        {},
-      ),
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () => {
+        runResetBizSetting({
+          bk_biz_id: bizId,
+          key: BizSettingKeys.NOTIFY_CONFIG,
+          value: [...NoticeTicketTypeList, ...TicketExcuteList].reduce<TicketNoticeSetting>(
+            (prevSettingMap, [status]) =>
+              Object.assign({}, prevSettingMap, {
+                [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>(
+                  (prevValueMap, type) =>
+                    Object.assign({}, prevValueMap, {
+                      [type]: true,
+                    }),
+                  {},
+                ),
+              }),
+            {},
+          ),
+        });
+      },
+      title: t('确认恢复默认值？'),
+      type: 'warning',
     });
   };
 
@@ -402,7 +402,7 @@
 
     :deep(.notice-table) {
       th {
-        &.common-head {
+        &:nth-child(-n + 2) {
           font-weight: bolder;
         }
 

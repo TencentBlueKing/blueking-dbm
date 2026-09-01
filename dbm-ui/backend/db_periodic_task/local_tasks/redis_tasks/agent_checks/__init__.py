@@ -8,11 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# Importing ``signals`` triggers ``register_agent_check_failure_handlers()``
-# at module load time, which connects the WorkerLost / unhandled-error
-# observability handler to each agent-check celery task.
+# Importing ``signals`` triggers failure-handler registration.
+# Check modules self-register consumers via ``@ai_task``.
 from . import signals  # noqa: F401
-from .base import DEFAULT_LOOKBACK_DAYS, BaseCheckConfig, BaseRedisAgentCheckTask  # noqa: F401
 from .check_backend_data_skew import CheckBackendDataSkewTask  # noqa: F401
 from .check_backend_load_skew import CheckBackendLoadSkewTask  # noqa: F401
 from .check_cluster_capacity_growth import CheckClusterCapacityGrowthTask  # noqa: F401
+from .redis_adapter import RedisAgentCheckTask, RedisClusterSelector  # noqa: F401

@@ -25,6 +25,13 @@ class _SQLSimulationApi(BaseApi):
             url="/syntax/check/file",
             description=_("sql语法检查"),
         )
+
+        self.sqlserver_grammar_check = self.generate_data_api(
+            method="POST",
+            url="/sqlserver/syntax/check/file",
+            description=_("sql语法检查-sqlserver专属"),
+        )
+
         # 使用示例：
         # {
         #     "cluster_type": "mysql",
@@ -82,6 +89,17 @@ class _SQLSimulationApi(BaseApi):
             method="POST",
             url="/syntax/parse/file/relation/db",
             description=_("查询语义执行结果"),
+        )
+        # 使用示例：
+        # {
+        #     "path": "mysql/sqlfile/123",
+        #     "files": ["change.sql"],
+        #     "include_sql_text": false
+        # }
+        self.parse_file_statement = self.generate_data_api(
+            method="POST",
+            url="/syntax/parse/file/statement",
+            description=_("按文件解析 SQL 语句类型与 ALTER/DROP/TRUNCATE 表"),
         )
 
 

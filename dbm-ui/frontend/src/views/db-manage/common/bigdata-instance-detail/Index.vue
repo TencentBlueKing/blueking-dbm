@@ -19,9 +19,36 @@
       <BkCollapsePanel name="baseInfo">
         <span class="panel-title">{{ t('基本信息') }}</span>
         <template #content>
-          <EditInfo
-            :columns="infoColumns"
-            :data="data" />
+          <div class="base-info-list">
+            <ul
+              v-for="(list, index) of infoColumns"
+              :key="index"
+              class="base-info-column">
+              <li
+                v-for="config of list"
+                :key="config.key"
+                class="base-info-item">
+                <span class="base-info-label">
+                  <span
+                    v-overflow-tips
+                    class="text-overflow">
+                    {{ config.label }}
+                  </span>
+                  ：
+                </span>
+                <div class="base-info-value-container">
+                  <span
+                    v-overflow-tips
+                    class="base-info-value text-overflow">
+                    <Component
+                      :is="config.render"
+                      v-if="config.render" />
+                    <template v-else>{{ getInfoValue(config.key) || '--' }}</template>
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
         </template>
       </BkCollapsePanel>
       <BkCollapsePanel
@@ -40,10 +67,16 @@
           <BkLoading
             :loading="isLoading"
             :z-index="2">
-            <DbOriginalTable
+            <PrimaryTable
               :columns="tableColumns"
               :data="tableData"
-              :is-anomalies="isAnomalies" />
+              row-key="id">
+              <template #empty>
+                <EmptyStatus
+                  :is-anomalies="isAnomalies"
+                  :is-searching="false" />
+              </template>
+            </PrimaryTable>
           </BkLoading>
         </template>
       </BkCollapsePanel>
@@ -56,6 +89,8 @@
   lang="tsx"
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { InfoBox } from 'bkui-vue';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type DorisInstanceModel from '@services/model/doris/doris-instance';
@@ -81,7 +116,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
@@ -90,22 +125,24 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  type InstanceModel =
-    | EsInstanceModel
-    | HdfsInstanceModel
-    | KafkaInstanceModel
-    | PulsarInstanceModel
-    | DorisInstanceModel;
+  export type InstanceModel =
+    EsInstanceModel | HdfsInstanceModel | KafkaInstanceModel | PulsarInstanceModel | DorisInstanceModel;
 
-  interface Props {
+  export interface Props<T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel> {
     clusterId: number;
     clusterType: ClusterTypes.ES | ClusterTypes.HDFS | ClusterTypes.KAFKA | ClusterTypes.PULSAR | ClusterTypes.DORIS;
     data: T;
   }
 
-  type Emits = (e: 'close') => void;
+  export type Emits = (e: 'close') => void;
 
-  const props = defineProps<Props>();
+  interface InfoColumn {
+    key: string;
+    label: string;
+    render?: () => VNode | string | null;
+  }
+
+  const props = defineProps<Props<T>>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -159,44 +196,43 @@
     ],
   ];
 
-  const tableColumns = [
+  const getInfoValue = (key: string) => (props.data as unknown as Record<string, unknown>)[key];
+
+  const tableColumns: PrimaryTableCol[] = [
     {
-      label: () => (
-        <bk-checkbox
-          disabled={mainSelectDisable.value}
-          indeterminate={isIndeterminate.value}
-          label={true}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectAll}
-        />
-      ),
-      render: ({ data }: { data: InstanceModel }) => (
+      cell: (_, { row }) => (
         <bk-popover
           placement='top'
           theme='dark'>
           {{
             content: () => <span>{t('实例正在重启中，不能勾选')}</span>,
             default: () => (
-              <bk-checkbox
-                disabled={Boolean(data.operationRunningStatus)}
-                label={true}
-                model-value={Boolean(batchSelectNodeMap.value[data.id])}
+              <Checkbox
+                checked={Boolean(batchSelectNodeMap.value[row.id])}
+                disabled={Boolean(row.operationRunningStatus)}
                 style='vertical-align: middle;'
-                onChange={(value: boolean) => handleSelectRow(data, value)}
+                onChange={(value: boolean) => handleSelectRow(row as InstanceModel, value)}
               />
             ),
           }}
         </bk-popover>
       ),
+      colKey: 'row-select',
+      title: () => (
+        <Checkbox
+          checked={isSelectedAll.value}
+          disabled={mainSelectDisable.value}
+          indeterminate={isIndeterminate.value}
+          onChange={handleSelectAll}
+        />
+      ),
       width: 60,
     },
     {
-      field: 'instance_address',
-      label: t('实例'),
-      render: ({ data }: { data: InstanceModel }) => (
+      cell: (_, { row }) => (
         <div>
-          <span>{data.instance_address || '--'}</span>
-          {data.operationTagTips.map((item) => (
+          <span>{row.instance_address || '--'}</span>
+          {(row as InstanceModel).operationTagTips.map((item) => (
             <RenderOperationTag
               class='ml-4'
               data={item}
@@ -204,44 +240,48 @@
           ))}
         </div>
       ),
+      colKey: 'instance_address',
+      title: t('实例'),
     },
     {
-      field: 'status',
-      label: t('实例状态'),
-      render: ({ data }: { data: InstanceModel }) => (
+      cell: (_, { row }) => (
         <>
-          {data.operationRunningStatus ? (
+          {row.operationRunningStatus ? (
             <div class='loading-box'>
               <db-icon
                 class='rotate-loading mr-4'
-                type='loading'
                 svg
+                type='loading'
               />
               <div>{t('重启中')}</div>
             </div>
           ) : (
-            <RenderInstanceStatus data={data.status} />
+            <RenderInstanceStatus data={row.status} />
           )}
         </>
       ),
+      colKey: 'status',
+      title: t('实例状态'),
     },
     {
-      label: t('上次重启时间'),
-      render: ({ data }: { data: InstanceModel }) => data.restart_at || '--',
+      cell: (_, { row }) => row.restart_at || '--',
+      colKey: 'restart_at',
+      title: t('上次重启时间'),
     },
     {
-      label: t('操作'),
-      render: ({ data }: { data: InstanceModel }) => (
-        <OperationBtnStatusTips data={data}>
+      cell: (_, { row }) => (
+        <OperationBtnStatusTips data={row as InstanceModel}>
           <bk-button
-            disabled={data.operationDisabled || isRestartActionDisabled.value}
-            theme='primary'
+            disabled={row.operationDisabled || isRestartActionDisabled.value}
             text
-            onClick={() => handleRestart(data)}>
+            theme='primary'
+            onClick={() => handleRestart(row as InstanceModel)}>
             {t('重启')}
           </bk-button>
         </OperationBtnStatusTips>
       ),
+      colKey: 'row-operation',
+      title: t('操作'),
       width: 116,
     },
   ];
@@ -256,7 +296,6 @@
       pulsar: getPulsarInstanceList,
     };
     apiMap[props.clusterType]({
-      bk_biz_id: currentBizId,
       cluster_id: props.clusterId,
       ip: props.data.ip,
     })
@@ -426,8 +465,43 @@
   }
 </style>
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .bigdata-instance-detail {
     padding: 20px 24px;
+
+    .base-info-list {
+      display: flex;
+      font-size: @font-size-mini;
+
+      .base-info-column {
+        flex: 0 1 50%;
+        max-width: 50%;
+      }
+
+      .base-info-item {
+        .flex-center();
+
+        line-height: 32px;
+      }
+
+      .base-info-label {
+        display: flex;
+        min-width: 80px !important;
+        padding-left: 10px;
+        text-align: right;
+        flex-shrink: 0;
+        justify-content: flex-end;
+      }
+
+      .base-info-value-container {
+        .flex-center();
+
+        overflow: hidden;
+        color: @title-color;
+        flex: 1;
+      }
+    }
 
     .panel-title {
       font-weight: 700;

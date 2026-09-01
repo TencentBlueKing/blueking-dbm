@@ -71,16 +71,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -263,46 +257,44 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.REDIS_SCALE_UPDOWN);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.cluster.bk_cloud_id,
-          capacity: item.backend_group.capacity,
-          cluster_id: item.cluster.id,
-          db_version: item.db_version,
-          display_info: {
-            cluster_capacity: item.cluster.cluster_capacity,
-            cluster_shard_num: item.cluster.cluster_shard_num,
-            cluster_spec: item.cluster.cluster_spec,
-            cluster_stats: item.cluster.cluster_stats,
-            machine_pair_cnt: item.cluster.machine_pair_cnt,
-          },
-          future_capacity: item.backend_group.future_capacity,
-          group_num: item.backend_group.group_num,
-          old_nodes: {
-            backend_hosts: item.backend_group.old_machine_info,
-          },
-          online_switch_type: item.online_switch_type,
-          resource_spec: {
-            backend_group: {
-              affinity: item.backend_group.affinity as Affinity,
-              count: item.backend_group.count,
-              label_names: item.backend_group.labels.map((item) => item.value),
-              labels: item.backend_group.labels.map((item) => String(item.id)),
-              spec_id: item.backend_group.spec_id,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            bk_cloud_id: item.cluster.bk_cloud_id,
+            capacity: item.backend_group.capacity,
+            cluster_id: item.cluster.id,
+            db_version: item.db_version,
+            display_info: {
+              cluster_capacity: item.cluster.cluster_capacity,
+              cluster_shard_num: item.cluster.cluster_shard_num,
+              cluster_spec: item.cluster.cluster_spec,
+              cluster_stats: item.cluster.cluster_stats,
+              machine_pair_cnt: item.cluster.machine_pair_cnt,
             },
-          },
-          shard_num: item.backend_group.shard_num,
-          update_mode: item.backend_group.update_mode,
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+            future_capacity: item.backend_group.future_capacity,
+            group_num: item.backend_group.group_num,
+            old_nodes: {
+              backend_hosts: item.backend_group.old_machine_info,
+            },
+            online_switch_type: item.online_switch_type,
+            resource_spec: {
+              backend_group: {
+                affinity: item.backend_group.affinity as Affinity,
+                count: item.backend_group.count,
+                label_names: item.backend_group.labels.map((item) => item.value),
+                labels: item.backend_group.labels.map((item) => String(item.id)),
+                spec_id: item.backend_group.spec_id,
+              },
+            },
+            shard_num: item.backend_group.shard_num,
+            update_mode: item.backend_group.update_mode,
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

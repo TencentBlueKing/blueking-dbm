@@ -9,4 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from .task import sync_cluster_master, sync_cluster_remote_used
+from .sync_cluster_master import sync_cluster_master
+from .sync_cluster_remote_used import sync_cluster_remote_used
+from .task import doris_sync_master_task, doris_sync_remote_used_task

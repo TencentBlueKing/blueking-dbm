@@ -38,7 +38,7 @@
           :max="formModel.peopleList.length"
           type="number">
           <template #suffix>
-            <span class="suffix-slot">人</span>
+            <span class="suffix-slot">{{ t('人') }}</span>
           </template>
         </BkInput>
       </BkFormItem>
@@ -119,10 +119,11 @@
     <div class="title">
       {{ t('排班预览') }}
     </div>
-    <BkTable
+    <PrimaryTable
       class="table-box"
       :columns="columns"
-      :data="tableData" />
+      :data="tableData"
+      row-key="dateTime" />
     <div
       v-if="showMoreTip"
       class="more-tip">
@@ -134,6 +135,7 @@
 <script setup lang="tsx">
   import dayjs from 'dayjs';
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import type { DutyCycleItem } from '@services/model/monitor/duty-rule';
@@ -245,29 +247,29 @@
     },
   ];
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'dateTime',
-      label: t('日期'),
+      colKey: 'dateTime',
+      title: t('日期'),
       width: 120,
     },
     {
-      field: 'timeRange',
-      label: t('时段'),
-      render: ({ data }: { data: RowData }) => data.timeRange.join(','),
-      showOverflow: 'tooltip',
+      cell: (_, { row }) => row.timeRange.join(','),
+      colKey: 'timeRange',
+      ellipsis: true,
+      title: t('时段'),
       width: 200,
     },
     {
-      field: 'peoples',
-      label: t('轮值人员'),
-      render: ({ data }: { data: RowData }) => (
+      cell: (_, { row }) => (
         <div class='peoples'>
-          {data.peoples.map((item) => (
+          {row.peoples.map((item: string) => (
             <bk-tag>{item}</bk-tag>
           ))}
         </div>
       ),
+      colKey: 'peoples',
+      title: t('轮值人员'),
       width: 528,
     },
   ];
@@ -528,10 +530,5 @@
       color: #63656e;
       background: #fff;
     }
-  }
-</style>
-<style lang="less">
-  .vxe-table--tooltip-wrapper {
-    z-index: 99999 !important;
   }
 </style>

@@ -126,8 +126,8 @@ func (a *AddonSpecPlanProviderImpl) CreateSpecPlan(
 	entity *metaentity.AddonSpecPlanEntity,
 ) (*metaentity.AddonSpecPlanEntity, error) {
 	specPlanModel := metamodel.AddonSpecPlanModel{}
-	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.CreatedBy = dbsCtx.BkAdditional.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 
 	if err := copier.Copy(&specPlanModel, entity); err != nil {
 		return nil, errors.Wrapf(err, "failed to copy")
@@ -188,7 +188,7 @@ func (a *AddonSpecPlanProviderImpl) UpdateSpecPlan(
 	entity *metaentity.AddonSpecPlanEntity,
 ) (uint64, error) {
 	specPlanModel := metamodel.AddonSpecPlanModel{}
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	if err := copier.Copy(&specPlanModel, entity); err != nil {
 		return 0, errors.Wrapf(err, "failed to copy")
 	}

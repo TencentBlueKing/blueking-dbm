@@ -24,7 +24,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/xdg-go/scram v1.1.2
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.22.0
 	gopkg.in/ini.v1 v1.67.0
 	vitess.io/vitess v0.22.4
 )
@@ -92,9 +92,9 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zclconf/go-cty v1.14.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/mod v0.30.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/grpc v1.72.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
@@ -114,7 +114,7 @@ require (
 	github.com/pkg/sftp v1.13.9
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/cast v1.10.0
-	golang.org/x/crypto v0.44.0
-	golang.org/x/net v0.47.0
+	golang.org/x/crypto v0.55.0
+	golang.org/x/net v0.57.0
 	gopkg.in/yaml.v2 v2.4.0
 )

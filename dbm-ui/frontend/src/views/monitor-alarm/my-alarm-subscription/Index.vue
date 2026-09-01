@@ -31,12 +31,11 @@
           :ellipsis="false"
           :max-height="tableMaxHeight"
           resizable
-          row-class-name="alarm-subscription-table-row"
           row-key="id"
           title-ellipsis
           @change="handleFilterChange">
           <TableColumn
-            col-key="id"
+            col-key="row-selection"
             fixed="left"
             resizable
             :width="60">
@@ -59,11 +58,10 @@
                     @change="handleToggleWholeSelect" />
                 </template>
                 <BkPopover
-                  v-if="!isOnlyOnePage"
                   :arrow="false"
                   click-content-auto-hide
                   placement="bottom-start"
-                  theme="light ticket-table-select-menu"
+                  theme="light my-alarm-subscription-table-select-menu"
                   trigger="click">
                   <DbIcon
                     class="select-menu-flag"
@@ -100,12 +98,6 @@
             title="ID"
             :width="100">
             <template #default="{ row }: { row: IRowData }">
-              <!-- <BkButton
-              text
-              theme="primary"
-              @click="() => handleEditSubscription(row)">
-              {{ row.id }}
-            </BkButton> -->
               {{ row.id }}
             </template>
           </TableColumn>
@@ -184,7 +176,7 @@
             </template>
           </TableColumn>
           <TableColumn
-            col-key="cluster_id"
+            col-key="row-operation"
             fixed="right"
             resizable
             :title="t('操作')"
@@ -588,19 +580,6 @@
         }
       }
 
-      .alarm-subscription-table {
-        .t-table__header {
-          th {
-            border-top: none !important;
-            // border-right: 1px solid #f0f1f5 !important;
-
-            // &:not(:last-child) {
-            //   border-right: 1px solid #f0f1f5 !important;
-            // }
-          }
-        }
-      }
-
       .table-selection-head {
         position: relative;
         display: flex;
@@ -657,7 +636,7 @@
     }
   }
 
-  [data-theme~='ticket-table-select-menu'] {
+  [data-theme~='my-alarm-subscription-table-select-menu'] {
     padding: 0 !important;
 
     .select-menu {
@@ -687,12 +666,6 @@
       button {
         width: 64px;
       }
-    }
-  }
-
-  .alarm-subscription-table-row {
-    td {
-      padding: 8.5px 16px !important;
     }
   }
 </style>

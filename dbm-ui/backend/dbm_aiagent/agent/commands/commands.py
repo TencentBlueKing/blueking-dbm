@@ -76,7 +76,6 @@ class MySQLSlowLogCommand(CommandHandler):
         最大查询条数：{{limit}}
         instance_role: {{ instance_role}}
         只返回总结 Summary 部分的内容，具体 sql优化详情根据 skill 的指示存入 dbm 报告中心(markdown格式)返回链接即可。
-        所有返回输出控制在 1800 字符以内。
         """
 
 
@@ -91,6 +90,23 @@ class MySQLAlarmAnalyzerCommand(CommandHandler):
         /mysql_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 1800 字符以内。
         告警内容:
         {{alarm_content}}
+        """
+
+
+@command
+class MySQLConfAnalyzeCommand(CommandHandler):
+    name = _("mysql参数调优")
+    command = "mysql_conf_analyze"
+    agent_code = DBMAgentCode.MYSQL_CONFIG_PERF_TUNER
+
+    def get_template(self) -> str:
+        return """
+        /mysql-config-optimization
+        结合机器的规格，帮我分析集群 {{cluster_domain}} 的配置参数
+
+        instance_role: {{ instance_role}}
+        只返回总结 Summary 部分的内容，具体 sql优化详情根据 skill 的指示存入 dbm 报告中心(markdown格式)返回链接即可。
+        所有返回输出控制在 1800 字符以内。
         """
 
 
@@ -129,4 +145,83 @@ class CheckSQLServerClusterCommand(CommandHandler):
         是否过滤掉已屏蔽的告警记录：True
         告警级别过滤列表：[1]
         告警状态过滤列表：["ABNORMAL"]
+        """
+
+
+@command
+class RedisLatencyAlarmRootCauseCommand(CommandHandler):
+    name = _("Redis 延迟告警归因分析")
+    command = "redis_latency_alarm_root_cause"
+    agent_code = DBMAgentCode.REDIS_REPORT
+
+    def get_template(self) -> str:
+        return """
+        以下 Redis 集群发生了 L0 延迟告警，请帮我分析这批告警的关联性，判断是集群自身问题还是网络/机房等基础设施共性故障。
+
+        ## 告警信息
+        - 受影响集群列表：{{ cluster_domains }}
+
+        ## 分析步骤
+        1. 根据集群名查询每个集群的机器信息（机房、子Zone、交换机、云区域等）
+        2. 对比各集群的机房/网络拓扑，判断是否集中在同一机房或共享同一交换机
+        3. 结合告警时间是否集中，综合给出根因判断
+
+        ## 输出格式
+        **结论**：[孤立集群问题 / 单机房故障 / 交换机故障 / 跨机房网络抖动 / 其他基础设施问题]
+        **置信度**：[高 / 中 / 低]
+        **关键证据**：列出支撑结论的 2-3 条核心数据
+        **建议排查方向**：针对结论给出具体的排查步骤
+
+        返回输出控制在 800 字符以内。
+        """
+
+
+@command
+class RedisPersistAnomalyRootCauseCommand(CommandHandler):
+    name = _("Redis Persist 异常归因分析")
+    command = "redis_persist_anomaly_root_cause"
+    agent_code = DBMAgentCode.REDIS_REPORT
+
+    def get_template(self) -> str:
+        return """
+        Redis 集群 {{ cluster_domain }} 发生了 Persist 异常告警，请帮我分析根因，重点判断是否为宿主机（母鸡）故障导致。
+
+        ## 分析步骤
+        1. 查询集群 {{ cluster_domain }} 的实例列表及所在宿主机信息
+        2. 检查对应宿主机的健康状态（CPU、内存、磁盘 IO、系统告警等）
+        3. 判断是宿主机故障导致的 Persist 异常，还是 Redis 实例自身的持久化问题
+
+        ## 输出格式
+        **结论**：[宿主机故障 / Redis 实例自身问题 / 磁盘 IO 瓶颈 / 其他]
+        **置信度**：[高 / 中 / 低]
+        **关键证据**：列出支撑结论的 2-3 条核心数据
+        **建议排查方向**：针对结论给出具体的排查步骤
+
+        返回输出控制在 800 字符以内。
+        """
+
+
+@command
+class RedisSingleCpuHighRootCauseCommand(CommandHandler):
+    name = _("Redis 单核 CPU 使用率归因分析")
+    command = "redis_single_cpu_high_root_cause"
+    agent_code = DBMAgentCode.REDIS_REPORT
+
+    def get_template(self) -> str:
+        return """
+        Redis 集群 {{ cluster_domain }} 发生了单核 CPU 使用率过高告警，请帮我分析根因，重点判断是负载不均衡还是热 Key 导致。
+
+        ## 分析步骤
+        1. 查询集群 {{ cluster_domain }} 各实例的 CPU 使用情况，确认是哪个实例的单核 CPU 异常
+        2. 检查该实例的热 Key 情况（访问频率最高的 Key、命令分布等）
+        3. 对比同集群其他实例的 CPU 负载，判断是否存在负载不均衡（如 Slot 分布不均、主从流量差异等）
+        4. 综合热 Key 和负载分布给出根因判断
+
+        ## 输出格式
+        **结论**：[热 Key 导致 / 负载不均衡 / 大 Key 操作 / 其他]
+        **置信度**：[高 / 中 / 低]
+        **关键证据**：列出支撑结论的 2-3 条核心数据
+        **建议排查方向**：针对结论给出具体的排查步骤（如热 Key 打散、Slot 迁移、扩容等）
+
+        返回输出控制在 800 字符以内。
         """

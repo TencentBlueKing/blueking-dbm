@@ -26,6 +26,8 @@ import (
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreutil "k8s-dbs/core/util"
+	thirdapi "k8s-dbs/infrastructure/thirdapi"
+	infrautil "k8s-dbs/infrastructure/util"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
@@ -130,7 +132,6 @@ func (s *ServiceInformer) onAddOrUpdate(obj interface{}) {
 
 	entity := s.buildServiceEntity(service, clusterEntity.ID, componentName, clusterName)
 
-	// 使用事务性 per-service upsert: 原子性地删除旧记录并插入新记录
 	if err := s.clusterServiceProvider.UpsertSingleService(entity); err != nil {
 		slog.Error("ServiceInformer: failed to upsert service record",
 			"service", service.Name, "error", err)
@@ -164,11 +165,27 @@ func (s *ServiceInformer) onDelete(obj interface{}) {
 		return
 	}
 
-	if _, err := s.clusterServiceProvider.DeleteByClusterIDAndServiceName(
+	rows, err := s.clusterServiceProvider.DeleteByClusterIDAndServiceName(
 		clusterEntity.ID, service.Name,
-	); err != nil {
-		slog.Warn("ServiceInformer: failed to delete service record on service deletion",
+	)
+	if err != nil {
+		slog.Warn("ServiceInformer: failed to delete service record on service deletion, skip DNS delete",
 			"service", service.Name, "error", err)
+		return
+	}
+	if rows == 0 {
+		slog.Debug("ServiceInformer: no service row deleted, continue DNS cleanup check",
+			"cluster_id", clusterEntity.ID, "service", service.Name)
+	}
+
+	count, countErr := s.clusterServiceProvider.CountExternalByClusterID(clusterEntity.ID)
+	if countErr != nil {
+		slog.Error("ServiceInformer: failed to count external services",
+			"cluster_id", clusterEntity.ID, "error", countErr)
+		return
+	}
+	if count == 0 {
+		infrautil.AsyncDomainDelete(clusterEntity, thirdapi.GetDbmAPIService())
 	}
 }
 

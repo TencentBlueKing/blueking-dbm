@@ -28,6 +28,7 @@ import (
 	"k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/response"
+	"log/slog"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -78,6 +79,23 @@ func (c *ClusterController) GetClusterTopology(ctx *gin.Context) {
 	api.SuccessResponse(ctx, clusterTopology, commconst.Success)
 }
 
+// respondCluster 根据 ID 查找 cluster 实体，转换为响应并返回
+func (c *ClusterController) respondCluster(ctx *gin.Context, id uint64) {
+	cluster, err := c.clusterProvider.FindClusterByID(id)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	var data response.K8sCrdClusterResponse
+	if err := copier.Copy(&data, cluster); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
+	data.TopoNameAlias = getTopoNameAlias(data.AddonInfo.AddonType, data.TopoName)
+	api.SuccessResponse(ctx, data, commconst.Success)
+}
+
 // GetClusterInfoByClusterID 按照 cluster_id（dbm_cluster_id）获取存储集群实例
 func (c *ClusterController) GetClusterInfoByClusterID(ctx *gin.Context) {
 	ctx.Set(commconst.APIName, commconst.APIMetaClusterDetailByClusterID)
@@ -97,19 +115,7 @@ func (c *ClusterController) GetClusterInfoByClusterID(ctx *gin.Context) {
 			fmt.Errorf("cluster not found with cluster_id %d", clusterID)))
 		return
 	}
-	cluster, err := c.clusterProvider.FindClusterByID(clusterInfo.ID)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
-		return
-	}
-	var data response.K8sCrdClusterResponse
-	if err = copier.Copy(&data, cluster); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
-		return
-	}
-	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
-	data.TopoNameAlias = getTopoNameAlias(data.AddonInfo.AddonType, data.TopoName)
-	api.SuccessResponse(ctx, data, commconst.Success)
+	c.respondCluster(ctx, clusterInfo.ID)
 }
 
 // GetClusterInfo 按照 ID 获取存储集群实例
@@ -121,19 +127,7 @@ func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	cluster, err := c.clusterProvider.FindClusterByID(id)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
-		return
-	}
-	var data response.K8sCrdClusterResponse
-	if err = copier.Copy(&data, cluster); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
-		return
-	}
-	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
-	data.TopoNameAlias = getTopoNameAlias(data.AddonInfo.AddonType, data.TopoName)
-	api.SuccessResponse(ctx, data, commconst.Success)
+	c.respondCluster(ctx, id)
 }
 
 // ListCluster 分页检索集群实例列表
@@ -168,4 +162,39 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		Result: data,
 	}
 	api.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
+// UpdateCluster 外部系统传入参数更新集群元数据
+func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
+	var req provider.UpdateClusterMetadataRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		api.HandleValidationError(ctx, err, &req)
+		return
+	}
+
+	clusterEntity, err := c.clusterProvider.FindByParams(&entity.ClusterQueryParams{
+		Namespace:   req.Namespace,
+		ClusterName: req.ClusterName,
+	})
+	if err != nil {
+		slog.Error("获取集群失败", "error", err)
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	if clusterEntity == nil {
+		notFoundErr := fmt.Errorf("集群不存在 (clusterName=%s, namespace=%s)", req.ClusterName, req.Namespace)
+		slog.Error("获取集群失败", "error", notFoundErr)
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, notFoundErr))
+		return
+	}
+
+	req.ApplyTo(clusterEntity)
+
+	if _, err := c.clusterProvider.UpdateCluster(clusterEntity); err != nil {
+		slog.Error("更新集群元数据失败", "error", err)
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
+		return
+	}
+
+	api.SuccessResponse(ctx, nil, "更新集群元数据成功")
 }

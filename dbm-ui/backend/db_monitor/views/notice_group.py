@@ -105,15 +105,9 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
             qs = qs.filter(bk_biz_id__in=(PLAT_BIZ_ID, bk_biz_id))
         return qs.order_by("is_built_in", "name")
 
-    @Permission.decorator_permission_field(
-        id_field=lambda d: d["id"],
-        data_field=lambda d: d["results"],
-        actions=ActionEnum.get_actions_by_resource(ResourceEnum.NOTIFY_GROUP.id),
-        resource_meta=ResourceEnum.NOTIFY_GROUP,
-    )
     @Permission.decorator_external_permission_field(
         param_field=lambda d: d["bk_biz_id"],
-        actions=[ActionEnum.NOTIFY_GROUP_CREATE],
+        actions=[ActionEnum.NOTIFY_GROUP_MANAGE],
         resource_meta=ResourceEnum.BUSINESS,
     )
     def list(self, request, *args, **kwargs):

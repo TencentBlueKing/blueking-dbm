@@ -82,16 +82,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <DbPopconfirm
+        <DbResetButton
+          class="ml-8"
           :confirm-handler="handleReset"
-          :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton
-            class="ml-8 w-88"
-            :disabled="isSubmitting">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+          :disabled="isSubmitting" />
       </template>
     </SmartAction>
   </UpgradeWrapper>
@@ -291,23 +285,21 @@
     }
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        bk_cloud_id: formData.tableData[0]?.cluster.bk_cloud_id ?? 0,
-        infos: formData.tableData.map((tableRow) => ({
-          bk_cloud_id: tableRow.cluster.bk_cloud_id ?? 0,
-          cluster_id_list: [tableRow.cluster.id, ...tableRow.cluster.related_clusters.map((item) => item.id)],
-          current_version: tableRow.cluster.major_version!,
-          dest_version: tableRow.dest_version,
-          strategy: formData.strategy,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          bk_cloud_id: formData.tableData[0]?.cluster.bk_cloud_id ?? 0,
+          infos: formData.tableData.map((tableRow) => ({
+            bk_cloud_id: tableRow.cluster.bk_cloud_id ?? 0,
+            cluster_id_list: [tableRow.cluster.id, ...tableRow.cluster.related_clusters.map((item) => item.id)],
+            current_version: tableRow.cluster.major_version!,
+            dest_version: tableRow.dest_version,
+            strategy: formData.strategy,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

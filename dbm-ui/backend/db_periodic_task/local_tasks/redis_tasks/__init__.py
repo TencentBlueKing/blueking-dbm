@@ -8,11 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .task import (  # noqa: F401
-    redis_agent_alarm_daily_domain_cache_build_task,
-    redis_backend_data_skew_check_task,
-    redis_backend_load_skew_check_task,
-    redis_cluster_memory_growth_check_task,
-    redis_conf_check_task,
-    redis_exporter_check_task,
+from .agent_checks import (  # noqa: F401 — registers @ai_task producers
+    CheckBackendDataSkewTask,
+    CheckBackendLoadSkewTask,
+    CheckClusterCapacityGrowthTask,
 )
+from .task import redis_conf_check_task, redis_exporter_check_task  # noqa: F401

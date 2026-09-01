@@ -35,12 +35,14 @@ import (
 type ClusterRequestRecordProvider interface {
 	CreateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (*metaentity.ClusterRequestRecordEntity, error)
 	DeleteRequestRecordByID(id uint64) (uint64, error)
+	DeleteRequestRecords(params *metaentity.ClusterRequestQueryParams) (uint64, error)
 	FindRequestRecordByID(id uint64) (*metaentity.ClusterRequestRecordEntity, error)
 	UpdateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (uint64, error)
 	ListRecords(
 		params *metaentity.ClusterRequestQueryParams,
 		pagination *entity.Pagination,
 	) ([]*metaentity.ClusterRequestRecordEntity, uint64, error)
+	AssociateTicketRecord(ticketID uint64, params *metaentity.UpdateClusterRequestParams) error
 }
 
 // ClusterRequestRecordProviderImpl ClusterRequestRecordProvider 具体实现
@@ -79,6 +81,17 @@ func (k *ClusterRequestRecordProviderImpl) ListRecords(
 	}
 	return recordEntities, count, nil
 
+}
+
+// DeleteRequestRecords 按条件删除 request record
+func (k *ClusterRequestRecordProviderImpl) DeleteRequestRecords(
+	params *metaentity.ClusterRequestQueryParams,
+) (uint64, error) {
+	rows, err := k.dbAccess.DeleteByParams(params)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to delete request record with params: %+v", params)
+	}
+	return rows, nil
 }
 
 // CreateRequestRecord 创建 request record
@@ -139,4 +152,48 @@ func (k *ClusterRequestRecordProviderImpl) UpdateRequestRecord(entity *metaentit
 		return 0, errors.Wrapf(err, "failed to update request record with entity: %+v", entity)
 	}
 	return rows, nil
+}
+
+// AssociateTicketRecord 关联 ticket 与 request record
+func (k *ClusterRequestRecordProviderImpl) AssociateTicketRecord(
+	ticketID uint64,
+	params *metaentity.UpdateClusterRequestParams,
+) error {
+	// 1. 通过 ticket_id 查询数据（复用 ListByPage）
+	listParams := &metaentity.ClusterRequestQueryParams{
+		TicketID: &ticketID,
+	}
+	pagination := &entity.Pagination{Page: 1, Limit: 1}
+	ticketRecords, _, err := k.dbAccess.ListByPage(listParams, pagination)
+	if err != nil {
+		return errors.Wrapf(err, "failed to list request record by ticket_id %d", ticketID)
+	}
+
+	// 2. 查询最新一条 ticket_id 为空的记录
+	emptyTicketRecord, err := k.dbAccess.FindLatestEmptyTicketByCondition(params)
+	if err != nil {
+		return errors.Wrapf(err, "failed to find latest empty ticket record with params: %+v", params)
+	}
+	if emptyTicketRecord == nil {
+		return nil
+	}
+
+	if len(ticketRecords) > 0 {
+		// 3. ticket_id 对应记录存在：把空 ticket 记录的 request_params 赋值给 ticket 记录，更新并删除空 ticket 记录
+		ticketRecord := ticketRecords[0]
+		ticketRecord.RequestParams = emptyTicketRecord.RequestParams
+		if _, err := k.dbAccess.Update(ticketRecord); err != nil {
+			return errors.Wrapf(err, "failed to update request record with ticket_id %d", ticketID)
+		}
+		if _, err := k.dbAccess.DeleteByID(emptyTicketRecord.ID); err != nil {
+			return errors.Wrapf(err, "failed to delete empty ticket record with id %d", emptyTicketRecord.ID)
+		}
+	} else {
+		// 4. ticket_id 对应记录不存在：把 ticket_id 赋值给空 ticket 记录并更新
+		emptyTicketRecord.TicketID = &ticketID
+		if _, err := k.dbAccess.Update(emptyTicketRecord); err != nil {
+			return errors.Wrapf(err, "failed to update empty ticket record with ticket_id %d", ticketID)
+		}
+	}
+	return nil
 }

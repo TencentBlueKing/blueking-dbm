@@ -46,7 +46,7 @@ var addonClusterVersionRequest = vo.AddonClusterVersionRequest{
 	AddonClusterName: "addon_cluster_name_01",
 	Active:           true,
 	Description:      "addon_cluster_version_description_01",
-	BKAuth:           baseBKAuth,
+	BKAdditional:     baseBKAdditional,
 }
 
 type AddonClusterVersionControllerTestSuite struct {

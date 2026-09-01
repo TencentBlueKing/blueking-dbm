@@ -20,14 +20,26 @@ SWAGGER_TAG = _("透传服务(proxypass)")
 
 NGINX_PUSH_TARGET_PATH = "/usr/local/bkdb/nginx-portable/conf/cluster_service/"
 
+# 已软删除的大数据管理端nginx子配置单批清理数量
+CLEAN_DELETED_NGINX_CONF_BATCH_SIZE = 50
+# 已软删除的大数据管理端nginx子配置清理job请求间隔，单位秒
+CLEAN_DELETED_NGINX_CONF_JOB_REQUEST_INTERVAL = 1
+
 # 缓存inst_id和nginx id，用于回调job，默认缓存时间5min
 JOB_INSTANCE_EXPIRE_TIME = 5 * 60
 # 定义token过期时间1天，防止废弃的token复用
 DB_CLOUD_TOKEN_EXPIRE_TIME = 1 * 24 * 60 * 60
+# 云区域 token 进程内缓存：命中则跳过 redis，缩短于 redis TTL 以便进程间最终收敛
+DB_CLOUD_TOKEN_LOCAL_CACHE_TTL = 10 * 60
+DB_CLOUD_TOKEN_LOCAL_CACHE_MAXSIZE = 512
 # 定义云区域proxy缓存过期时间为1天
 DB_CLOUD_PROXY_EXPIRE_TIME = 1 * 24 * 60 * 60
 # 定义machine缓存过期时间为1天
 DB_CLOUD_MACHINE_EXPIRE_TIME = 1 * 24 * 60 * 60
+# 云区域组件元数据的进程内缓存时间。不走redis，保证redis故障时也不会穿透到mysql
+DB_EXTENSION_LOCAL_CACHE_TTL = 60
+# 云区域组件元数据的进程内缓存容量，按(云区域, 组件类型)维度计数
+DB_EXTENSION_LOCAL_CACHE_MAXSIZE = 512
 
 
 class ExtensionType(StrStructuredEnum):

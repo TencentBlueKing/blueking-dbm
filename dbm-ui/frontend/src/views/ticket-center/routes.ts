@@ -66,7 +66,7 @@ export default () => {
   if (checkDbConsole('globalConfigManage.ticketFlowSetting')) {
     registerModule([
       {
-        path: 'ticket-flow-global-settings',
+        path: 'ticket-flow-global-settings/:dbType?',
         name: 'PlatformTicketFlowSetting',
         meta: {
           fullscreen: true,
@@ -104,11 +104,11 @@ export default () => {
   if (checkDbConsole('bizConfigManage.ticketFlowSetting')) {
     registerBusinessModule([
       {
-        path: 'ticket-flow-settings',
+        path: 'ticket-flow-settings/:dbType?',
         name: 'TicketFlowSetting',
         meta: {
           fullscreen: true,
-          navName: t('单据免审批设置'),
+          navName: t('单据审批设置'),
         },
         component: () => import('@views/ticket-center/ticket-flow-settings/Index.vue'),
       },

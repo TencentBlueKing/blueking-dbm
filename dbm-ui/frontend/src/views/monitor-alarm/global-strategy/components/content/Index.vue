@@ -52,10 +52,10 @@
               <template #default="{ row }: { row: MonitorPolicyModel }">
                 <TextOverflowLayout>
                   <AuthButton
-                    action-id="global_monitor_policy_edit"
+                    action-id="global_alarm_policy_manage"
                     class="mr-4"
-                    :permission="row.permission.global_monitor_policy_edit"
-                    :resource="row.id"
+                    :permission="row.permission.global_alarm_policy_manage"
+                    :resource="dbType"
                     text
                     theme="primary"
                     @click="() => handleEdit(row)">
@@ -85,27 +85,32 @@
               :title="t('启停')"
               :width="60">
               <template #default="{ row }: { row: MonitorPolicyModel }">
-                <BkPopConfirm
-                  :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
-                  :is-show="showSwitchEnableTipMap[row.id]"
-                  placement="bottom"
-                  :popover-options="{
-                    disabled: !row.is_enabled,
-                  }"
-                  :title="t('确认停用该策略？')"
-                  trigger="click"
-                  width="320"
-                  @cancel="() => handleSwitchEnableCancelConfirm(row)"
-                  @confirm="() => handleSwitchEnableClickConfirm(row)">
-                  <AuthSwitcher
-                    v-model="row.is_enabled"
-                    action-id="global_monitor_policy_start_stop"
-                    :permission="row.permission.global_monitor_policy_start_stop"
-                    :resource="row.id"
-                    size="small"
-                    theme="primary"
-                    @change="() => handleChangeSwitch(row)" />
-                </BkPopConfirm>
+                <AuthTemplate
+                  action-id="global_alarm_policy_manage"
+                  :permission="row.permission.global_alarm_policy_manage"
+                  :resource="dbType">
+                  <BkPopConfirm
+                    :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
+                    :is-show="showSwitchEnableTipMap[row.id]"
+                    placement="bottom"
+                    :popover-options="{
+                      disabled: !row.is_enabled,
+                    }"
+                    :title="t('确认停用该策略？')"
+                    trigger="click"
+                    width="320"
+                    @cancel="() => handleSwitchEnableCancelConfirm(row)"
+                    @confirm="() => handleSwitchEnableClickConfirm(row)">
+                    <AuthSwitcher
+                      v-model="row.is_enabled"
+                      action-id="global_alarm_policy_manage"
+                      :permission="row.permission.global_alarm_policy_manage"
+                      :resource="dbType"
+                      size="small"
+                      theme="primary"
+                      @change="() => handleChangeSwitch(row)" />
+                  </BkPopConfirm>
+                </AuthTemplate>
               </template>
             </TableColumn>
             <TableColumn
@@ -151,7 +156,7 @@
                   <DbIcon
                     style="font-size: 16px; color: #979ba5"
                     type="yonghuzu" />
-                  <span class="dba">{{ `{${DBTypeInfos[props.dbType].name}_DBA}` }}</span>
+                  <span class="dba">{{ '{' + getDbaLabel(dbType) + '}' }}</span>
                 </span>
               </template>
             </TableColumn>
@@ -178,19 +183,19 @@
               :width="120">
               <template #default="{ row }: { row: MonitorPolicyModel }">
                 <AuthButton
-                  action-id="global_monitor_policy_edit"
-                  :permission="row.permission.global_monitor_policy_edit"
-                  :resource="row.id"
+                  action-id="global_alarm_policy_manage"
+                  :permission="row.permission.global_alarm_policy_manage"
+                  :resource="dbType"
                   text
                   theme="primary"
                   @click="() => handleEdit(row)">
                   {{ t('编辑') }}
                 </AuthButton>
                 <AuthButton
-                  action-id="global_monitor_policy_edit"
+                  action-id="global_alarm_policy_manage"
                   class="ml-8"
-                  :permission="row.permission.global_monitor_policy_edit"
-                  :resource="row.id"
+                  :permission="row.permission.global_alarm_policy_manage"
+                  :resource="dbType"
                   text
                   theme="primary"
                   @click="() => handleResetClickConfirm(row)">
@@ -219,7 +224,7 @@
 
   import { useTableSettings, useUrlSearch } from '@hooks';
 
-  import { DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
+  import { DBTypes, UserPersonalSettings } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -227,6 +232,7 @@
 
   import TestRules from '@views/monitor-alarm/common/table/TestRules.vue';
   import { useStrategyQuickSearch } from '@views/monitor-alarm/common/useStrategyQuickSearch';
+  import { getDbaLabel } from '@views/monitor-alarm/common/utils';
 
   import { getOffset, messageSuccess } from '@utils';
 

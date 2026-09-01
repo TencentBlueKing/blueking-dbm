@@ -110,10 +110,11 @@
           @change="fetchData" />
         {{ t('仅显示已启用的规格') }}
       </div>
-      <DbSearchSelect
+      <DbQuickSearch
+        v-model="searchValue"
         class="ml-8"
         :data="searchData"
-        :model-value="searchValue"
+        parse-url
         :placeholder="t('搜索ID，规格名称，应用范围，业务')"
         style="width: 500px"
         @change="handleSearchValueChange" />
@@ -144,8 +145,8 @@
         <template #default="{ row }: { row: ResourceSpecModel }">
           <TextOverflowLayout>
             <AuthButton
-              action-id="spec_update"
-              :permission="row.permission.spec_update"
+              action-id="spec_manage"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               text
               theme="primary"
@@ -183,26 +184,31 @@
         :title="t('启停')"
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          <BkPopConfirm
-            :confirm-text="row.enable ? t('停用') : t('启用')"
-            :content="
-              row.enable
-                ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
-                : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
-            "
-            placement="bottom"
-            :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
-            trigger="click"
-            width="308"
-            @confirm="() => handleConfirmSwitch(row)">
-            <AuthSwitcher
-              action-id="spec_update"
-              :model-value="row.enable"
-              :permission="row.permission.spec_update"
-              :resource="dbType"
-              size="small"
-              theme="primary" />
-          </BkPopConfirm>
+          <AuthTemplate
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
+            :resource="dbType">
+            <BkPopConfirm
+              :confirm-text="row.enable ? t('停用') : t('启用')"
+              :content="
+                row.enable
+                  ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
+                  : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
+              "
+              placement="bottom"
+              :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
+              trigger="click"
+              width="308"
+              @confirm="() => handleConfirmSwitch(row)">
+              <AuthSwitcher
+                action-id="spec_manage"
+                :model-value="row.enable"
+                :permission="row.permission.spec_manage"
+                :resource="dbType"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm>
+          </AuthTemplate>
         </template>
       </TableColumn>
       <TableColumn
@@ -211,23 +217,31 @@
         :title="t('自动补货')"
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          <BkPopConfirm
-            :confirm-text="row.needReplenish ? t('停用') : t('开启')"
-            :content="
-              row.needReplenish
-                ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
-                : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
-            "
-            placement="bottom"
-            :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
-            trigger="click"
-            width="308"
-            @confirm="() => handleConfirmNeedReplenish(row)">
-            <BkSwitcher
-              v-model="row.needReplenish"
-              size="small"
-              theme="primary" />
-          </BkPopConfirm>
+          <AuthTemplate
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
+            :resource="dbType">
+            <BkPopConfirm
+              :confirm-text="row.needReplenish ? t('停用') : t('开启')"
+              :content="
+                row.needReplenish
+                  ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
+                  : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
+              "
+              placement="bottom"
+              :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
+              trigger="click"
+              width="308"
+              @confirm="() => handleConfirmNeedReplenish(row)">
+              <AuthSwitcher
+                v-model="row.needReplenish"
+                action-id="spec_manage"
+                :permission="row.permission.spec_manage"
+                :resource="dbType"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm>
+          </AuthTemplate>
         </template>
       </TableColumn>
       <TableColumn
@@ -272,9 +286,9 @@
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
           <AuthButton
-            action-id="spec_update"
+            action-id="spec_manage"
             class="mr-12"
-            :permission="row.permission.spec_update"
+            :permission="row.permission.spec_manage"
             :resource="dbType"
             text
             theme="primary"
@@ -296,9 +310,9 @@
             v-bk-tooltips="t('仅可删除“未使用”的规格')"
             class="inline-block;">
             <AuthButton
-              action-id="spec_delete"
+              action-id="spec_manage"
               disabled
-              :permission="row.permission.spec_delete"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               text
               theme="primary">
@@ -307,8 +321,8 @@
           </span>
           <AuthButton
             v-else
-            action-id="spec_delete"
-            :permission="row.permission.spec_delete"
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
             :resource="dbType"
             text
             theme="primary"
@@ -369,16 +383,17 @@
     getSpecReplenishRatio,
   } from '@services/source/dbresourceSpec';
 
-  import { useBeforeClose, useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useBeforeClose, useTableSettings } from '@hooks';
 
   import { useFunController, useGlobalBizs } from '@stores';
 
-  import { DBTypes, UserPersonalSettings } from '@common/const';
+  import { DBTypes, MachineTypes, UserPersonalSettings } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { getSearchSelectorParams, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import BatchEditBizScope from './components/BatchEditBizScope.vue';
   import BatchSetRatio from './components/BatchSetRatio.vue';
@@ -395,7 +410,7 @@
   interface Props {
     dbType: DBTypes;
     dbTypeLabel: string;
-    machineType: string;
+    machineType: MachineTypes;
     machineTypeLabel: string;
   }
 
@@ -407,13 +422,7 @@
   const handleBeforeClose = useBeforeClose();
   const funControllerStore = useFunController();
 
-  const { clearSearchValue, handleSearchValueChange, searchValue } = useLinkQueryColumnSerach({
-    attrs: [],
-    fetchDataFn: () => fetchData(),
-    isCluster: false,
-    isQueryAttrs: false,
-    searchType: 'resource_record',
-  });
+  const searchValue = ref<Record<string, string>>({});
 
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
@@ -429,7 +438,9 @@
 
   const disabled = computed(() => selectedList.value.length === 0);
 
-  const hasInstance = computed(() => [`${DBTypes.ES}_es_datanode`].includes(`${props.dbType}_${props.machineType}`));
+  const hasInstance = computed(() =>
+    [`${DBTypes.ES}_${MachineTypes.ES_DATANODE}`].includes(`${props.dbType}_${props.machineType}`),
+  );
 
   const batchDeleteTooltips = computed(() => {
     if (selectedList.value.length === 0) {
@@ -441,35 +452,39 @@
     return '';
   });
 
-  const searchData = computed(() => [
-    {
-      id: 'spec_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'spec_name',
-      multiple: true,
-      name: t('规格名称'),
-    },
-    {
-      children: BizScopesInfoList.map((bizScopeItem) => ({
-        id: bizScopeItem.id,
-        name: bizScopeItem.label,
-      })),
-      id: 'biz_scope',
-      name: t('应用范围'),
-    },
-    {
-      children: globalBizsStore.bizs.map((item) => ({
-        id: `${item.bk_biz_id}`,
-        name: item.name,
-      })),
-      id: 'biz_ids',
-      multiple: true,
-      name: t('业务'),
-    },
-  ]);
+  const searchData = computed(
+    () =>
+      [
+        {
+          id: 'spec_ids',
+          name: 'ID',
+          type: 'multiple-input',
+        },
+        {
+          id: 'spec_name',
+          name: t('规格名称'),
+          type: 'multiple-input',
+        },
+        {
+          id: 'biz_scope',
+          list: BizScopesInfoList.map((bizScopeItem) => ({
+            label: bizScopeItem.label,
+            value: bizScopeItem.id,
+          })),
+          name: t('应用范围'),
+          type: 'single',
+        },
+        {
+          id: 'biz_ids',
+          list: globalBizsStore.bizs.map((item) => ({
+            label: item.name,
+            value: `${item.bk_biz_id}`,
+          })),
+          name: t('业务'),
+          type: 'multiple',
+        },
+      ] as QuickSearchProps['data'],
+  );
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS, {
     checked: [
@@ -506,7 +521,9 @@
     },
   });
 
-  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio);
+  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio, {
+    manual: true,
+  });
 
   watch(
     () => [props.dbType, props.machineType],
@@ -531,11 +548,10 @@
 
   const fetchData = () => {
     // tableRef.value!.clearSelected();
-    const searchSelectorParams = getSearchSelectorParams(searchValue.value);
     const params = {
       spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
-      ...searchSelectorParams,
+      ...searchValue.value,
     };
     if (isEnableSpec.value) {
       Object.assign(params, { enable: isEnableSpec.value });
@@ -570,8 +586,17 @@
   };
 
   const handleClearSearch = () => {
-    clearSearchValue();
+    searchValue.value = {};
+    fetchData();
   };
+
+  const handleSearchValueChange = () => {
+    fetchData();
+  };
+
+  onMounted(() => {
+    fetchData();
+  });
 
   const handleBacthDelete = () => {
     handleDelete(selectedList.value);

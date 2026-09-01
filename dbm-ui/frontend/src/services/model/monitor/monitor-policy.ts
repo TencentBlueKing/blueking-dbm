@@ -132,14 +132,13 @@ export default class MonitorPolicy {
   notify_rules: string[];
   parent_id: number;
   permission: {
-    global_monitor_policy_clone: boolean;
-    global_monitor_policy_edit: boolean;
-    global_monitor_policy_start_stop: boolean;
+    global_alarm_policy_manage: boolean;
     monitor_policy_alarm_view: boolean;
-    monitor_policy_clone: boolean;
-    monitor_policy_delete: boolean;
-    monitor_policy_edit: boolean;
-    monitor_policy_start_stop: boolean;
+    // monitor_policy_clone: boolean;
+    // monitor_policy_delete: boolean;
+    // monitor_policy_edit: boolean;
+    monitor_policy_manage: boolean;
+    // monitor_policy_start_stop: boolean;
   };
   policy_status: string; // 策略状态：valid(正常)|invalid（异常）
   policy_tag: 'inner' | 'custom' | 'subord'; // 内置、自定义、子策略

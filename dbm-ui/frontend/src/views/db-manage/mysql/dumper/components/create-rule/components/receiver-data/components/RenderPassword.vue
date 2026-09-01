@@ -15,7 +15,7 @@
   <TableEditInput
     ref="editRef"
     v-model="localValue"
-    :placeholder="$t('请输入密码')"
+    :placeholder="t('请输入密码')"
     :rules="rules"
     type="password" />
 </template>

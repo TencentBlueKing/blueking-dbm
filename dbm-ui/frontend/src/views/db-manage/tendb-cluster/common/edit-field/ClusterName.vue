@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入或选择集群')"
+      :placeholder="t('请输入或选择集群')"
       :rules="rules"
       @submit="handleInputFinish" />
   </div>

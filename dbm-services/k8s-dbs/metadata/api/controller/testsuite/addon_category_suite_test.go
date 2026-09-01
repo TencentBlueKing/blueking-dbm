@@ -44,7 +44,7 @@ var addonCategoryRequest = request2.AddonCategoryRequest{
 	CategoryName:  "category_name_01",
 	CategoryAlias: "category_alias_01",
 	Description:   "description_01",
-	BKAuth:        baseBKAuth,
+	BKAdditional:  baseBKAdditional,
 }
 
 type AddonCategoryControllerTestSuite struct {

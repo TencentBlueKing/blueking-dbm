@@ -93,16 +93,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <DbPopconfirm
+        <DbResetButton
+          class="ml8"
           :confirm-handler="handleReset"
-          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton
-            class="ml8 w-88"
-            :disabled="isSubmitting">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+          :disabled="isSubmitting" />
       </template>
     </SmartAction>
   </SpiderWrapper>
@@ -254,42 +248,40 @@
     is_safe: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          old_nodes: {
-            [item.role]: item.hostList.map((host) => ({
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            old_nodes: {
+              [item.role]: item.hostList.map((host) => ({
+                bk_cloud_id: host.bk_cloud_id,
+                bk_host_id: host.bk_host_id,
+                ip: host.ip,
+              })),
+            },
+            resource_spec: {
+              [item.role]: {
+                count: item.hostList.length,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
+            },
+            spider_old_ip_list: item.hostList.map((host) => ({
               bk_cloud_id: host.bk_cloud_id,
               bk_host_id: host.bk_host_id,
               ip: host.ip,
+              spec: host.spec_config,
             })),
-          },
-          resource_spec: {
-            [item.role]: {
-              count: item.hostList.length,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.specId,
-            },
-          },
-          spider_old_ip_list: item.hostList.map((host) => ({
-            bk_cloud_id: host.bk_cloud_id,
-            bk_host_id: host.bk_host_id,
-            ip: host.ip,
-            spec: host.spec_config,
+            switch_spider_role: item.role,
           })),
-          switch_spider_role: item.role,
-        })),
-        ip_source: 'resource_pool',
-        is_safe: formData.is_safe,
-      },
-      ...formData.payload,
+          ip_source: 'resource_pool',
+          is_safe: formData.is_safe,
+        },
+        ...formData.payload,
+      });
     });
   };
 

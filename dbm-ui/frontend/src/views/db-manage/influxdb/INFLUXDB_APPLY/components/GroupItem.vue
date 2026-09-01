@@ -13,7 +13,7 @@
 
 <template>
   <BkFormItem
-    :label="$t('分组名')"
+    :label="t('分组名')"
     property="details.group_id"
     required>
     <BkSelect
@@ -44,7 +44,7 @@
               text
               @click="handleCreateGroup">
               <i class="db-icon-plus-circle mr-4" />
-              {{ $t('新建分组') }}
+              {{ t('新建分组') }}
             </BkButton>
           </span>
           <BkForm
@@ -57,12 +57,12 @@
               property="name"
               required
               :rules="rules">
-              <BkInput
+              <DbInput
                 ref="inputRef"
                 v-model="createState.name"
                 class="create-input"
                 :maxlength="64"
-                :placeholder="$t('以小写英文字符开头_且只能包含英文字母_数字_连字符')"
+                :placeholder="t('以小写英文字符开头_且只能包含英文字母_数字_连字符')"
                 show-word-limit
                 @enter="handleConfirm" />
               <a

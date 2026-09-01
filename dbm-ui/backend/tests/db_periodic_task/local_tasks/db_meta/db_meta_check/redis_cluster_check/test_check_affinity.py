@@ -85,4 +85,56 @@ def test_get_candidate_clusters_checks_all_clouds_when_bk_cloud_ids_empty(redis_
 
     query.filter.assert_not_called()
 
-    query.filter.assert_not_called()
+
+def test_check_all_clusters_ingests_portrait_and_survives_ingest_failure(redis_affinity_module):
+    config = redis_affinity_module.RedisAffinityCheckConfig(enabled=True, cluster_types=["RedisInstance"])
+    cluster = SimpleNamespace(id=1, immute_domain="a.redis.db", bk_biz_id=1001)
+    warning_row = {
+        "cluster": cluster,
+        "state": redis_affinity_module.ReportStateType.WARNING,
+        "msg": "affinity warning",
+        "subtype": redis_affinity_module.MetaCheckSubType.AffinityViolation,
+    }
+
+    with patch.object(redis_affinity_module, "RedisReportWriter"):
+        checker = redis_affinity_module.RedisAffinityChecker(config)
+
+    with patch.object(redis_affinity_module.BKSubzone, "get_subzone_map", return_value={}), patch.object(
+        redis_affinity_module, "delete_old_meta_check_reports"
+    ), patch.object(redis_affinity_module, "_get_candidate_cluster_ids", return_value=[1]), patch.object(
+        redis_affinity_module, "_fetch_affinity_ignore_cluster_ids", return_value=set()
+    ), patch.object(
+        redis_affinity_module, "_load_affinity_clusters_page", return_value=[cluster]
+    ), patch.object(
+        checker, "_should_ignore_cluster", return_value=False
+    ), patch.object(
+        checker, "_check_cluster_affinity", return_value=[warning_row]
+    ), patch.object(
+        redis_affinity_module, "safe_write_meta_reports"
+    ) as write_mock, patch.object(
+        redis_affinity_module, "ingest_daily_cluster_rows"
+    ) as ingest:
+        checker.check_all_clusters()
+
+    write_mock.assert_called_once()
+    ingest.assert_called_once()
+    assert ingest.call_args.kwargs["prefix"] == "[亲和性]"
+    assert ingest.call_args.kwargs["dimension"] == redis_affinity_module.RedisPortraitDimensionCode.TOPOLOGY_SCALE
+
+    with patch.object(redis_affinity_module.BKSubzone, "get_subzone_map", return_value={}), patch.object(
+        redis_affinity_module, "delete_old_meta_check_reports"
+    ), patch.object(redis_affinity_module, "_get_candidate_cluster_ids", return_value=[1]), patch.object(
+        redis_affinity_module, "_fetch_affinity_ignore_cluster_ids", return_value=set()
+    ), patch.object(
+        redis_affinity_module, "_load_affinity_clusters_page", return_value=[cluster]
+    ), patch.object(
+        checker, "_should_ignore_cluster", return_value=False
+    ), patch.object(
+        checker, "_check_cluster_affinity", return_value=[warning_row]
+    ), patch.object(
+        redis_affinity_module, "safe_write_meta_reports"
+    ), patch(
+        "backend.db_report.portrait.redis_ingest.ingest_summary",
+        side_effect=RuntimeError("portrait boom"),
+    ):
+        checker.check_all_clusters()

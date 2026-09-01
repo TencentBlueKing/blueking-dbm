@@ -9,4 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from .task import sync_cluster_service_nginx_conf, sync_db_extension_stat_task
+from .task import (
+    clean_deleted_cluster_service_nginx_conf_task,
+    inspect_cluster_service_nginx_conf_task,
+    sync_cluster_service_nginx_conf,
+    sync_db_extension_stat_task,
+)

@@ -33,15 +33,15 @@ type OpsRequestParams struct {
 
 // Request Receive request structure
 type Request struct {
-	K8sClusterName    string   `json:"k8sClusterName,omitempty" binding:"required" msg:"k8sClusterName 字段不能为空"`
-	BkBizID           uint64   `json:"bkBizId,omitempty"`
-	BkBizName         string   `json:"bkBizName,omitempty"`
-	BkAppAbbr         string   `json:"bkAppAbbr,omitempty"`
-	Tags              []string `json:"tags,omitempty"`
-	Metadata          `json:",inline"`
-	Spec              `json:",inline"`
-	coreentity.BKAuth `json:",inline"`
-	Description       string `json:"description,omitempty"`
+	K8sClusterName          string   `json:"k8sClusterName,omitempty" binding:"required" msg:"k8sClusterName 字段不能为空"`
+	BkBizID                 uint64   `json:"bkBizId,omitempty"`
+	BkBizName               string   `json:"bkBizName,omitempty"`
+	BkAppAbbr               string   `json:"bkAppAbbr,omitempty"`
+	Tags                    []string `json:"tags,omitempty"`
+	Metadata                `json:",inline"`
+	Spec                    `json:",inline"`
+	coreentity.BKAdditional `json:",inline"`
+	Description             string `json:"description,omitempty"`
 }
 
 // OpsService 定义 OpsService 结构体

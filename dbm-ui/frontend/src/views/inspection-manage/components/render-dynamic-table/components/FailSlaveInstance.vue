@@ -27,7 +27,7 @@
               activeItem?.port
             }}（从）
           </div>
-          <BkTable
+          <PrimaryTable
             :columns="tableColumns"
             :data="tableData" />
         </div>
@@ -37,6 +37,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import type { UnwrapRef } from 'vue';
   import { computed, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -77,33 +78,33 @@
     return instanceList.value.filter((item) => rule.test(item.ip));
   });
 
-  const tableColumns = [
+  const tableColumns: PrimaryTableCol[] = [
     {
-      field: 'db_name',
-      label: t('库名'),
-      minWidth: 220,
-      render: ({ data }: { data: IDataRow }) => (
+      cell: (_, { row }) => (
         <TextOverflowLayout>
           {{
-            default: () => data.db_name,
+            default: () => row.db_name,
           }}
         </TextOverflowLayout>
       ),
+      colKey: 'db_name',
+      minWidth: 220,
+      title: t('库名'),
     },
     {
-      field: 'table_name',
-      label: t('表名'),
-      render: ({ data, index }: { data: IDataRow; index: number }) => (
+      cell: (_, { row, rowIndex }) => (
         <p
-          row-key={`row-${index}`}
+          row-key={`row-${rowIndex}`}
           v-bk-tooltips={{
-            content: data.table_name,
-            disabled: !isTextOverflow.value[`row-${index}`],
+            content: row.table_name,
+            disabled: !isTextOverflow.value[`row-${rowIndex}`],
           }}
           class='table-name'>
-          {data.table_name}
+          {row.table_name}
         </p>
       ),
+      colKey: 'table_name',
+      title: t('表名'),
     },
   ];
 
@@ -223,7 +224,7 @@
         align-items: center;
       }
 
-      .bk-vxe-table td .vxe-cell .table-name {
+      .t-table td .table-name {
         display: -webkit-box;
         overflow: hidden;
         text-overflow: ellipsis;

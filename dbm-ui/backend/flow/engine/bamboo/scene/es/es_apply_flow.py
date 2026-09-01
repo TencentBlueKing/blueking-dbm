@@ -41,10 +41,14 @@ from backend.flow.plugins.components.collections.es.get_es_resource import GetEs
 from backend.flow.plugins.components.collections.es.rewrite_es_config import WriteBackEsConfigComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
+from backend.flow.plugins.components.collections.name_service.es_name_service import (
+    EsExecNameServiceOperationComponent,
+)
 from backend.flow.utils.es.es_act_payload import EsActPayload
 from backend.flow.utils.es.es_context_dataclass import EsActKwargs, EsApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import P2PFileKwargs
+from backend.flow.utils.name_service.name_service_dataclass import ActKwargs, TransDataKwargs
 
 logger = logging.getLogger("flow")
 
@@ -61,6 +65,12 @@ class EsApplyFlow(EsFlow):
         """
         super().__init__(root_id, data)
         self.cluster_alias = data.get("cluster_alias")
+
+        # 是否在集群部署成功后创建CLB/北极星，默认False
+        self.apply_clb = data.get("apply_clb", False)
+        self.apply_polaris = data.get("apply_polaris", False)
+        if not isinstance(self.apply_clb, bool) or not isinstance(self.apply_polaris, bool):
+            raise ValueError(_("apply_clb/apply_polaris 参数必须为bool类型"))
 
         # 定义证书文件分发的目标路径
         self.cer_target_path = "/data/install/"
@@ -251,5 +261,56 @@ class EsApplyFlow(EsFlow):
         es_pipeline.add_act(
             act_name=_("添加到DBMeta"), act_component_code=EsMetaComponent.code, kwargs=asdict(act_kwargs)
         )
+
+        # 集群元数据落库后，根据单据传参决定是否创建CLB/北极星。
+        # 此处不在编排构建阶段查询cluster_id，而是通过bk_biz_id+domain_name在节点执行态实时解析
+        clb_polaris_sub_pipelines = []
+        if self.apply_clb or self.apply_polaris:
+            ns_kwargs = ActKwargs()
+            ns_kwargs.set_trans_data_dataclass = TransDataKwargs.__name__
+            ns_kwargs.bk_biz_id = self.bk_biz_id
+            ns_kwargs.domain_name = self.domain
+            ns_kwargs.creator = self.created_by
+
+        if self.apply_clb:
+            clb_sub_pipeline = SubBuilder(root_id=self.root_id, data=es_deploy_data)
+            ns_kwargs.name_service_operation_type = "create_clb"
+            clb_sub_pipeline.add_act(
+                act_name=_("创建clb"),
+                act_component_code=EsExecNameServiceOperationComponent.code,
+                kwargs=asdict(ns_kwargs),
+            )
+            ns_kwargs.name_service_operation_type = "add_clb_info_to_meta"
+            clb_sub_pipeline.add_act(
+                act_name=_("clb信息写入meta"),
+                act_component_code=EsExecNameServiceOperationComponent.code,
+                kwargs=asdict(ns_kwargs),
+            )
+            ns_kwargs.name_service_operation_type = "add_clb_domain_to_dns"
+            clb_sub_pipeline.add_act(
+                act_name=_("clb域名添加到dns，clb域名信息写入meta"),
+                act_component_code=EsExecNameServiceOperationComponent.code,
+                kwargs=asdict(ns_kwargs),
+            )
+            clb_polaris_sub_pipelines.append(clb_sub_pipeline.build_sub_process(sub_name=_("创建clb")))
+
+        if self.apply_polaris:
+            polaris_sub_pipeline = SubBuilder(root_id=self.root_id, data=es_deploy_data)
+            ns_kwargs.name_service_operation_type = "create_polaris"
+            polaris_sub_pipeline.add_act(
+                act_name=_("创建polaris"),
+                act_component_code=EsExecNameServiceOperationComponent.code,
+                kwargs=asdict(ns_kwargs),
+            )
+            ns_kwargs.name_service_operation_type = "add_polaris_info_to_meta"
+            polaris_sub_pipeline.add_act(
+                act_name=_("polaris信息写入meta"),
+                act_component_code=EsExecNameServiceOperationComponent.code,
+                kwargs=asdict(ns_kwargs),
+            )
+            clb_polaris_sub_pipelines.append(polaris_sub_pipeline.build_sub_process(sub_name=_("创建北极星")))
+
+        if clb_polaris_sub_pipelines:
+            es_pipeline.add_parallel_sub_pipeline(sub_flow_list=clb_polaris_sub_pipelines)
 
         es_pipeline.run_pipeline()

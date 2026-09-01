@@ -16,7 +16,6 @@ from backend.configuration.constants import DBType
 from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResourceSLZ, PaginatedMachineResourceSLZ
 from backend.db_services.mysql.resources import constants
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 from . import yasg_slz
@@ -92,6 +91,7 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
 
     list_perm_actions = [
         ActionEnum.MYSQL_ENABLE_DISABLE,
+        ActionEnum.MYSQL_MANAGE,
         ActionEnum.MYSQL_DESTROY,
         ActionEnum.MYSQL_VIEW,
         ActionEnum.MYSQL_EDIT,
@@ -99,13 +99,6 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_WEBCONSOLE,
         ActionEnum.MYSQL_SUBSCRIBE_MONITOR,
         ActionEnum.MYSQL_DBCONFIG_EDIT,
+        ActionEnum.MYSQL_AUTHORIZE,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }

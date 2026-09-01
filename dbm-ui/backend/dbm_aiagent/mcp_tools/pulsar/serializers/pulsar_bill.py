@@ -69,7 +69,7 @@ def validate_role_nodes(value, allowed_roles, field_name="nodes"):
     return value
 
 
-class SubmitBillOutputSerializer(serializers.Serializer):
+class PulsarSubmitBillOutputSerializer(serializers.Serializer):
     bill_id = serializers.IntegerField(help_text=_("单据id, 理论上都会返回，如果没有返回说明有错误，需要把错误暴露出来"))
     bill_url = serializers.CharField(help_text=_("单据地址"))
 

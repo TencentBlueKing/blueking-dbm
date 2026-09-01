@@ -12,33 +12,34 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     filterable
     :input-search="false"
     :loading="isLoading"
     :model-value="modelValue"
     multiple
+    multiple-mode="tag"
     :placeholder="t('请选择机型')"
     :remote-method="remoteMethod"
     :scroll-height="384"
     :scroll-loading="scrollLoading"
     @change="handleChange"
     @scroll-end="handleScrollEnd">
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    <DbOptionGroup group-style="divider">
+      <DbOption
         v-for="(item, index) in deviceList"
         :key="`${item}#${index}`"
         :label="item"
         :value="item">
         {{ item }}
-      </BkOption>
-    </BkOptionGroup>
-    <BkOptionGroup group-style="divider">
-      <BkOption
+      </DbOption>
+    </DbOptionGroup>
+    <DbOptionGroup group-style="divider">
+      <DbOption
         :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
         :value="SpecialOptions.EMPTY" />
-    </BkOptionGroup>
-  </BkSelect>
+    </DbOptionGroup>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

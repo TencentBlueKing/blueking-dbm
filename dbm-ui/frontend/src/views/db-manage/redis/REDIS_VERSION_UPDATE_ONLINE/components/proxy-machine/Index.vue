@@ -233,43 +233,40 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          const clusterMap = tableData.value.reduce<Record<string, Awaited<ReturnType<Exposes['getValue']>>[number]>>(
-            (prev, item) => {
-              const clusterId = item.host.related_clusters[0].id;
-              const targetVersionItem = {
-                instance_role: '',
-                ip: item.host.ip,
-                related_clusters: item.host.related_clusters.map((item) => item.immute_domain),
-                slave_ip: '',
-                version: item.target_version,
-              };
-              if (prev[clusterId]) {
-                return Object.assign(prev, {
-                  [clusterId]: {
-                    ...prev[clusterId],
-                    target_versions: prev[clusterId].target_versions.concat(targetVersionItem),
-                  },
-                });
-              } else {
-                return Object.assign(prev, {
-                  [clusterId]: {
-                    cluster_id: clusterId,
-                    current_versions: item.current_versions,
-                    node_type: props.nodeType,
-                    slave_current_versions: [],
-                    target_versions: [targetVersionItem],
-                  },
-                });
-              }
-            },
-            {},
-          );
+      editableTableRef.value!.validate().then(() => {
+        const clusterMap = tableData.value.reduce<Record<string, Awaited<ReturnType<Exposes['getValue']>>[number]>>(
+          (prev, item) => {
+            const clusterId = item.host.related_clusters[0].id;
+            const targetVersionItem = {
+              instance_role: '',
+              ip: item.host.ip,
+              related_clusters: item.host.related_clusters.map((item) => item.immute_domain),
+              slave_ip: '',
+              version: item.target_version,
+            };
+            if (prev[clusterId]) {
+              return Object.assign(prev, {
+                [clusterId]: {
+                  ...prev[clusterId],
+                  target_versions: prev[clusterId].target_versions.concat(targetVersionItem),
+                },
+              });
+            } else {
+              return Object.assign(prev, {
+                [clusterId]: {
+                  cluster_id: clusterId,
+                  current_versions: item.current_versions,
+                  node_type: props.nodeType,
+                  slave_current_versions: [],
+                  target_versions: [targetVersionItem],
+                },
+              });
+            }
+          },
+          {},
+        );
 
-          return Object.values(clusterMap);
-        }
-        return Promise.reject([]);
+        return Object.values(clusterMap);
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

@@ -27,29 +27,31 @@
       </BkButton>
       <div :class="{ 'cluster-checking': isLoading }">
         <BkLoading :loading="isLoading">
-          <BkTable
+          <PrimaryTable
             v-if="targetClusterList.length > 0"
             class="mt-16"
-            :data="targetClusterList">
-            <BkTableColumn
-              field="master_domain"
-              :label="t('集群')">
-            </BkTableColumn>
-            <BkTableColumn
-              field="clusterTypeText"
-              :label="t('集群类型')">
-            </BkTableColumn>
-            <BkTableColumn
-              field="status"
-              :label="t('状态')">
-              <template #default="{data}: {data: MongodbModel}">
+            :data="targetClusterList"
+            row-key="id">
+            <TableColumn
+              col-key="master_domain"
+              :title="t('集群')">
+            </TableColumn>
+            <TableColumn
+              col-key="clusterTypeText"
+              :title="t('集群类型')">
+            </TableColumn>
+            <TableColumn
+              col-key="status"
+              :title="t('状态')">
+              <template #default="{ row: data }: { row: MongodbModel }">
                 <RenderClusterStatus :data="data.status" />
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              :label="t('操作')"
+            </TableColumn>
+            <TableColumn
+              col-key="row-operation"
+              :title="t('操作')"
               :width="100">
-              <template #default="{data}: {data: MongodbModel}">
+              <template #default="{ row: data }: { row: MongodbModel }">
                 <BkButton
                   text
                   theme="primary"
@@ -57,8 +59,8 @@
                   {{ t('删除') }}
                 </BkButton>
               </template>
-            </BkTableColumn>
-          </BkTable>
+            </TableColumn>
+          </PrimaryTable>
         </BkLoading>
       </div>
     </DbFormItem>

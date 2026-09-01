@@ -19,28 +19,29 @@
       :height="760"
       :title="t('请确认以下开区内容：')"
       :width="1536">
-      <BkTable
+      <PrimaryTable
         :data="tableData"
-        :max-height="600">
-        <BkTableColumn
-          field="target_cluster_domain"
-          :label="t('目标集群')"
+        :max-height="600"
+        row-key="target_db">
+        <TableColumn
+          col-key="target_cluster_domain"
+          :title="t('目标集群')"
           :width="300" />
-        <BkTableColumn
-          field="target_db"
-          :label="t('新 DB')"
+        <TableColumn
+          col-key="target_db"
+          :title="t('新 DB')"
           :width="300" />
-        <BkTableColumn
-          field="data_tblist"
-          :label="t('表结构')"
+        <TableColumn
+          col-key="data_tblist"
+          :title="t('表结构')"
           :width="180">
           <template #default>
             {{ t('所有表') }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="schema_tblist"
-          :label="t('表数据')"
+        </TableColumn>
+        <TableColumn
+          col-key="schema_tblist"
+          :title="t('表数据')"
           :width="180">
           <template #default="{ row }: { row: RowData }">
             <span v-if="row.schema_tblist.length === 0">--</span>
@@ -48,24 +49,28 @@
               v-else
               :data="_.flatMap(row.schema_tblist)" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn :label="t('授权 IP')">
+        </TableColumn>
+        <TableColumn
+          col-key="authorize_ips"
+          :title="t('授权 IP')">
           <template #default="{ row }: { row: RowData }">
             {{ row.authorize_ips?.join(',') || '--' }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
       <template #footer>
-        <BkButton
-          class="mr-2"
+        <AuthButton
+          action-id="tendbcluster_openarea"
           :loading="isSubmitting"
+          :resource="props.sourceClusterId"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
-        </BkButton>
+        </AuthButton>
         <BkButton
-          :disabled="isSubmitting"
-          @click="handleClose">
+          class="ml-8"
+          :loading="isSubmitting"
+          @click="isShow = false">
           {{ t('关闭') }}
         </BkButton>
       </template>
@@ -145,10 +150,6 @@
       immediate: true,
     },
   );
-
-  const handleClose = () => {
-    isShow.value = false;
-  };
 
   const handleSubmit = () => {
     const errorRow = tableData.value.find((item) => item.error_msg);

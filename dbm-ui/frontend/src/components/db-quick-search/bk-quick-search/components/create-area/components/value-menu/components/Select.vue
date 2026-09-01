@@ -28,7 +28,7 @@
         v-if="filterKey && renderList.length < 1 && !isRemoteListLoading"
         class="bk-quick-search-value-panel-filter-empty">
         <BkException
-          description="搜索为空"
+          :description="t('搜索为空')"
           scene="part"
           type="search-empty" />
       </div>
@@ -39,6 +39,7 @@
   import _ from 'lodash';
   import { Radio } from 'tdesign-vue-next';
   import { onMounted, ref, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { SpecialOptions } from '@common/const';
 
@@ -71,6 +72,8 @@
 
   const defaultModelValue = [...modelValue.value];
 
+  const { t } = useI18n();
+
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IResult>(props.config);
 
   const layoutRef = useTemplateRef('layout');
@@ -78,6 +81,9 @@
   const localValue = ref<string | number>('');
 
   const renderList = computed(() => {
+    if (props.config.remoteSearch) {
+      return list.value;
+    }
     const keyword = filterKey.value.trim().toLowerCase();
     if (!keyword) {
       const modelValueMap = makeMap(defaultModelValue.map((item) => item.value));
@@ -88,6 +94,8 @@
         const specificItem = filterList.splice(emptyIndex, 1)[0];
         filterList.push(specificItem);
       }
+
+      return filterList;
     }
 
     return _.filter(list.value, (item) => isSearchKeywordMatch(item.label, filterKey.value));

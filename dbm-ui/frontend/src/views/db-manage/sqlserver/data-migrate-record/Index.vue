@@ -12,40 +12,41 @@
     <BkLoading
       :loading="isLoading"
       :pagination="pagination">
-      <BkTable
+      <PrimaryTable
         class="mt-16"
-        :data="data">
-        <BkTableColumn
-          field="source_cluster_domain"
+        :data="data"
+        row-key="id">
+        <TableColumn
+          col-key="source_cluster_domain"
           fixed="left"
-          :label="t('源集群')"
+          :title="t('源集群')"
           :width="220" />
-        <BkTableColumn
-          field="target_cluster_domain"
+        <TableColumn
+          col-key="target_cluster_domain"
           fixed="left"
-          :label="t('目标集群')"
+          :title="t('目标集群')"
           :width="220" />
-        <BkTableColumn
-          field="dtsModeText"
-          :label="t('迁移类型')"
+        <TableColumn
+          col-key="dtsModeText"
+          :title="t('迁移类型')"
           :width="180" />
-        <BkTableColumn
-          field="dtsModeText"
-          :label="t('迁移 DB')"
+        <TableColumn
+          col-key="tagetDb"
+          :title="t('迁移 DB')"
           :width="180">
-          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+          <template #default="{ row: rowData }: { row: MigrateRecordModel }">
             <BkTag
               v-for="item in rowData.tagetDb"
               :key="item">
               {{ item }}
             </BkTag>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="dtsModeText"
-          :label="t('忽略 DB')"
+        </TableColumn>
+        <TableColumn
+          col-key="ignore_db_list"
+          :title="t('忽略 DB')"
           :width="180">
-          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+          <template #default="{ row: rowData }: { row: MigrateRecordModel }">
             <BkTag
               v-for="item in rowData.ignore_db_list"
               :key="item">
@@ -53,12 +54,12 @@
             </BkTag>
             <span v-if="rowData.ignore_db_list.length < 1">--</span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="dtsModeText"
-          :label="t('关联单据')"
+        </TableColumn>
+        <TableColumn
+          col-key="ticket_id"
+          :title="t('关联单据')"
           :width="100">
-          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+          <template #default="{ row: rowData }: { row: MigrateRecordModel }">
             <RouterLink
               target="_blank"
               :to="{
@@ -70,12 +71,12 @@
               {{ rowData.ticket_id }}
             </RouterLink>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="dtsModeText"
-          :label="t('状态')"
+        </TableColumn>
+        <TableColumn
+          col-key="status"
+          :title="t('状态')"
           :width="180">
-          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+          <template #default="{ row: rowData }: { row: MigrateRecordModel }">
             <span
               :class="{ 'rotate-loading': rowData.isRunning }"
               style="display: inline-block; line-height: 0; vertical-align: middle">
@@ -89,16 +90,17 @@
               {{ MigrateRecordModel.statusTextMap[rowData.status] }}
             </span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="createAtDisplay"
-          :label="t('创建时间')"
+        </TableColumn>
+        <TableColumn
+          col-key="createAtDisplay"
+          :title="t('创建时间')"
           :width="250" />
-        <BkTableColumn
+        <TableColumn
+          col-key="operation"
           fixed="right"
-          :label="t('操作')"
+          :title="t('操作')"
           :width="150">
-          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+          <template #default="{ row: rowData }: { row: MigrateRecordModel }">
             <span
               v-bk-tooltips="{
                 content: rowData.forcedTerminationDisableTips,
@@ -135,8 +137,8 @@
               </DbPopconfirm>
             </span>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </BkLoading>
   </div>
 </template>

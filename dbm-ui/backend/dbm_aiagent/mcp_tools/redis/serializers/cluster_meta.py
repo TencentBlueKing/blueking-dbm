@@ -140,7 +140,12 @@ class RedisInstancesTopoSerializer(serializers.Serializer):
 
     node_count = serializers.IntegerField(help_text=_("存储节点总数"))
     by_status = serializers.DictField(child=serializers.IntegerField(), help_text=_("按状态分布统计，如 {'running': 112}"))
-    versions = serializers.ListField(child=serializers.CharField(), help_text=_("版本列表"))
+    by_version = serializers.DictField(
+        child=serializers.IntegerField(), help_text=_("按版本分布统计，如 {'6.2.7': 12, '7.0.5': 4}")
+    )
+    by_machine_type = serializers.DictField(
+        child=serializers.IntegerField(), help_text=_("按机型分布统计，如 {'tendiscache': 8, 'twemproxy': 4}")
+    )
     machine_count = serializers.IntegerField(help_text=_("机器数量"))
     by_os = serializers.DictField(child=serializers.IntegerField(), help_text=_("按操作系统分布统计"))
     by_sub_zone = serializers.DictField(child=serializers.IntegerField(), help_text=_("按子Zone分布统计"))

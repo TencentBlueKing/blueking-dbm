@@ -60,16 +60,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -242,29 +236,26 @@
     }, 200);
   };
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (!valid) {
-      return;
-    }
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      // 按 cluster_id + role 双维度聚合：每个 (cluster, role) 生成一个 info 项
+      const infos: TendbCluster.ResourcePool.SpiderRebuild['infos'] = Object.values(sameRoleRowsMap).map((rows) => ({
+        cluster_id: rows[0].originSpider.cluster_id,
+        rebuild_spider_role: rows[0].originSpider.role,
+        spider_ip_list: rows.map((row) => ({
+          bk_cloud_id: row.originSpider.bk_cloud_id,
+          bk_host_id: row.originSpider.bk_host_id,
+          ip: row.originSpider.ip,
+          port: row.originSpider.port,
+        })),
+      }));
 
-    // 按 cluster_id + role 双维度聚合：每个 (cluster, role) 生成一个 info 项
-    const infos: TendbCluster.ResourcePool.SpiderRebuild['infos'] = Object.values(sameRoleRowsMap).map((rows) => ({
-      cluster_id: rows[0].originSpider.cluster_id,
-      rebuild_spider_role: rows[0].originSpider.role,
-      spider_ip_list: rows.map((row) => ({
-        bk_cloud_id: row.originSpider.bk_cloud_id,
-        bk_host_id: row.originSpider.bk_host_id,
-        ip: row.originSpider.ip,
-        port: row.originSpider.port,
-      })),
-    }));
-
-    createTicketRun({
-      details: {
-        infos,
-      },
-      ...formData.payload,
+      createTicketRun({
+        details: {
+          infos,
+        },
+        ...formData.payload,
+      });
     });
   };
 

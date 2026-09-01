@@ -1,4 +1,6 @@
-# https://github.com/GoogleCloudPlatform/golang-samples/actions/runs/750090553/workflow
+# dbm-services 下有多个 Go module，go 版本从 1.19 到 1.25.11 不等。
+# goimports / go mod tidy 用仓库当前最高版本即可：新 toolchain 能处理旧 module，反过来不行。
+# GOTOOLCHAIN=local 避免 CI 再去拉各模块自己的 toolchain，也不改写 go.mod 里的 toolchain 行。
 
 name: Go Lint
 
@@ -7,51 +9,59 @@ on:
   push:
     paths:
       - "dbm-services/**"
+      - ".github/workflows/go_code_check.yml"
   pull_request:
     paths:
       - "dbm-services/**"
+      - ".github/workflows/go_code_check.yml"
 
 jobs:
-  build:
-    name: Build and Lint
+  lint:
+    name: goimports and tidy
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.23
+          go-version: "1.25.11"
+          cache: false
+
       - name: Install goimports
         run: go install golang.org/x/tools/cmd/goimports@v0.24.0
-      - name: Check code
-        uses: actions/checkout@v4
-      - run: goimports -w .
+
+      - name: Run goimports
+        run: goimports -w dbm-services
+
       - name: Run go mod tidy on all modules
-        run: find . -name go.mod -execdir go mod tidy \;
-      # If there are any diffs from goimports or go mod tidy, fail.
-      - name: Verify no changes from goimports and go mod tidy.
+        run: find dbm-services -name go.mod -not -path "*/vendor/*" -execdir go mod tidy \;
+
+      - name: Verify no changes from goimports and go mod tidy
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo 'To fix this check, run "goimports -w . && find . -name go.mod -execdir go mod tidy \;"'
-            git status # Show the files that failed to pass the check.
+            echo 'To fix this check, run:'
+            echo '  goimports -w dbm-services && find dbm-services -name go.mod -not -path "*/vendor/*" -execdir go mod tidy \;'
+            git status
+            git diff
             exit 1
           fi
 
 # TODO
 #    - name: go vet
-#      # Use find to build all modules. '-execdir ... ;' doesn't set an exit code
-#      # based on command results. So, create a file if a build fails and check
-#      # if the file exists to set the right exit code.
 #      run: |
 #        ROOT_DIR=$(pwd) \
-#        find . -name go.mod -execdir sh -c 'go vet ./... || touch $ROOT_DIR/vet_failed.txt' \; ; \
+#        find dbm-services -name go.mod -not -path "*/vendor/*" \
+#          -execdir sh -c 'go vet ./... || touch $ROOT_DIR/vet_failed.txt' \; ; \
 #        test ! -f vet_failed.txt
 #    - name: Build code
-#      # Use find to build all modules. '-execdir ... ;' doesn't set an exit code
-#      # based on command results. So, create a file if a build fails and check
-#      # if the file exists to set the right exit code.
 #      run: |
 #        ROOT_DIR=$(pwd) \
-#        find . -name go.mod -execdir sh -c 'go build ./... || touch $ROOT_DIR/build_failed.txt' \; ; \
+#        find dbm-services -name go.mod -not -path "*/vendor/*" \
+#          -execdir sh -c 'go build ./... || touch $ROOT_DIR/build_failed.txt' \; ; \
 #        test ! -f build_failed.txt
 #    - name: shellcheck
-#      run: find . -name "*.sh" -exec shellcheck {} \;
+#      run: find dbm-services -name "*.sh" -exec shellcheck {} \;

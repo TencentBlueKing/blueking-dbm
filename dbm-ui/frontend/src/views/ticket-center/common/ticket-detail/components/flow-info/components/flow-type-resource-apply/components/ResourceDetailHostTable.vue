@@ -10,7 +10,7 @@
       :width="200">
       <template #default="{ row: rowData }: { row: IResouce & { tag: string } }">
         {{ rowData.ip }}
-        <BkTag v-if="rowData.tag">{{ rowData.tag }}</BkTag>
+        <DbTag v-if="rowData.tag">{{ rowData.tag }}</DbTag>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn

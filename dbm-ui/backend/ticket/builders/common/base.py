@@ -46,7 +46,7 @@ from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import CROSS_BIZ_TICKET_TYPES, TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.utils.basic import get_target_items_from_details
 
@@ -201,6 +201,9 @@ class ResourceSpecBaseSerializer(serializers.Serializer):
 class TicketBaseValidateSerializerMixin(object):
     # 检查提单集群所在业务是否与当前业务一致
     def validated_biz(self, attrs):
+        # 特殊单据需要跨业务提单 跳过校验
+        if self.context.get("ticket_type") in CROSS_BIZ_TICKET_TYPES:
+            return attrs
         if not self.context.get("bk_biz_id"):
             return attrs
         bk_biz_id = int(self.context["bk_biz_id"])
@@ -704,6 +707,10 @@ class BigDataTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
 
 
 class MySQLTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
+    pass
+
+
+class SurrealDBTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
     pass
 
 

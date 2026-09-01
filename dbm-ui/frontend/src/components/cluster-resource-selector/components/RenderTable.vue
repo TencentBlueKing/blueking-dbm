@@ -13,36 +13,41 @@
 
 <template>
   <div class="cluster-resource-selector-render-table">
-    <DbSearchSelect
+    <DbQuickSearch
       v-model="searchSelectValue"
       class="mb-12"
-      :data="searchSelectData" />
+      :data="searchSelectData"
+      parse-url />
     <DbTable
       ref="table"
       :data-source="dataSource"
+      fixed-pagination
       :height="540"
-      ignore-biz
-      primary-key="id"
+      row-key="id"
       selectable
       :selected="selected"
-      @column-filter="handleFilter"
+      @filter-change="handleFilter"
       @selection="handleSelect">
-      <BkTableColumn
-        field="master_domain"
-        :label="t('目标集群')"
-        :min-width="240" />
-      <BkTableColumn
-        field="cluster_type_name"
-        :label="t('集群类型')"
-        :min-width="160" />
-      <BkTableColumn
-        field="phase"
-        :filter="filterOption.status"
-        :label="t('状态')"
-        :min-width="120">
-        <template #default="{ data }: { data: IValue }">
+      <TableColumn
+        col-key="master_domain"
+        :min-width="240"
+        :title="t('目标集群')" />
+      <TableColumn
+        col-key="cluster_type_name"
+        :min-width="160"
+        :title="t('集群类型')" />
+      <TableColumn
+        col-key="phase"
+        :filter="{
+          list: statusFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :min-width="120"
+        :title="t('状态')">
+        <template #default="{ row }: { row: IValue }">
           <DbStatus
-            v-if="data.phase === 'online'"
+            v-if="row.phase === 'online'"
             theme="success">
             {{ t('正常') }}
           </DbStatus>
@@ -52,28 +57,27 @@
             {{ t('异常') }}
           </DbStatus>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('所属业务')"
-        :min-width="120">
-        <template #default="{ data }: { data: IValue }">
-          {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
+      </TableColumn>
+      <TableColumn
+        col-key="bk_biz_id"
+        :min-width="120"
+        :title="t('所属业务')">
+        <template #default="{ row }: { row: IValue }">
+          {{ getBizInfoById(row.bk_biz_id)?.name || '--' }}
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
 <script setup lang="ts">
-  import type { SearchSelect } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getGlobalCluster } from '@services/source/dbbase';
 
   import { useGlobalBizs } from '@stores';
 
-  import { getSearchSelectorParams } from '@utils';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
-  type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
   type Parameters = ServiceParameters<typeof getGlobalCluster>;
   export type IValue = ServiceReturnType<typeof getGlobalCluster>[0];
 
@@ -97,35 +101,22 @@
     },
   ];
 
-  const filterOption: Record<
-    string,
+  const statusFilterList = [
     {
-      checked: string[];
-      key: string;
-      list: { text: string; value: string }[];
-    }
-  > = {
-    status: {
-      checked: [],
-      key: 'status',
-      list: [
-        {
-          text: t('正常'),
-          value: 'running',
-        },
-        {
-          text: t('异常'),
-          value: 'unavailable',
-        },
-      ],
+      label: t('正常'),
+      value: 'running',
     },
-  };
+    {
+      label: t('异常'),
+      value: 'unavailable',
+    },
+  ];
 
-  const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const dbTableRef = useTemplateRef('table');
 
   watchEffect(() => {
-    dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), props.params);
+    dbTableRef.value?.fetchData(searchSelectValue.value);
   });
 
   const dataSource = (params: Parameters) =>
@@ -134,9 +125,9 @@
       ...params,
     });
 
-  const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
+  const handleFilter = (filterValue: Record<string, string[]>) => {
     dbTableRef.value?.fetchData({
-      [filterOption[field].key]: checked.join(','),
+      status: filterValue.phase?.join(','),
     });
   };
 
@@ -149,7 +140,7 @@
   .cluster-resource-selector-render-table {
     padding: 12px 24px;
 
-    .bk-table-body {
+    .t-table__body {
       tr {
         cursor: pointer;
       }

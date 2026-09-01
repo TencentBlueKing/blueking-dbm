@@ -65,6 +65,21 @@
               {{ t('删除Key') }}
             </AuthButton>
           </OperationBtnStatusTips>
+          <div v-db-console="'redis.clusterManage.getAccess'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="redis_access_entry_view"
+                class="ml-4"
+                :permission="data.permission.redis_access_entry_view"
+                :resource="data.id"
+                size="small"
+                @click="handleShowPassword(data.id)">
+                {{ t('获取访问方式') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </div>
           <AuthRouterLink
             action-id="redis_webconsole"
             class="ml-4"
@@ -120,21 +135,6 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'redis.clusterManage.getAccess'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_access_entry_view"
-                  :permission="data.permission.redis_access_entry_view"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleShowPassword(data.id)">
-                  {{ t('获取访问方式') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
             <div v-db-console="'redis.clusterManage.queryAccessSource'">
               <OperationBtnStatusTips
                 :data="data"
@@ -162,8 +162,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="redis_plugin_create_clb"
-                  :permission="data.permission.redis_plugin_create_clb"
+                  action-id="redis_loadbalance_manage"
+                  :permission="data.permission.redis_loadbalance_manage"
                   :resource="data.id"
                   style="width: 100%; height: 32px"
                   text
@@ -179,8 +179,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="redis_plugin_dns_bind_clb"
-                  :permission="data.permission.redis_plugin_dns_bind_clb"
+                  action-id="redis_loadbalance_manage"
+                  :permission="data.permission.redis_loadbalance_manage"
                   :resource="data.id"
                   style="width: 100%; height: 32px"
                   text
@@ -196,8 +196,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="redis_plugin_create_polaris"
-                  :permission="data.permission.redis_plugin_create_polaris"
+                  action-id="redis_loadbalance_manage"
+                  :permission="data.permission.redis_loadbalance_manage"
                   :resource="data.id"
                   style="width: 100%; height: 32px"
                   text
@@ -329,6 +329,7 @@
   } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
   interface Props {
@@ -363,6 +364,8 @@
     isShow: false,
   });
 
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
+
   const clusterRoleNodeGroup = computed(() => {
     /* eslint-disable perfectionist/sort-objects */
     return {
@@ -383,6 +386,12 @@
     manual: true,
     onSuccess(result) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'redis_access_entry_view',
+        data: result,
+        onOpen: () => handleShowPassword(result.id),
+      });
     },
   });
 

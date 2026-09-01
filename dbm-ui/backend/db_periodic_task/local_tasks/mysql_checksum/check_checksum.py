@@ -7,6 +7,8 @@ from blueapps.core.celery.celery import app
 from celery import shared_task
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import LevelName
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
@@ -16,6 +18,7 @@ from backend.db_periodic_task.local_tasks.mysql_checksum.cluster_checksum import
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
+from backend.flow.utils.mysql.mysql_bk_config import get_cluster_config, get_engine_from_bk_mysql_config
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -38,7 +41,7 @@ def check_mysql_checksum():
     total = len(cluster_ids)
     logger.info("[auto_check_checksum] scheduling checksum check for %d clusters", total)
     for index, cluster_id in enumerate(cluster_ids):
-        countdown = calculate_countdown(count=total, index=index, duration=TimeUnit.HOUR)
+        countdown = calculate_countdown(count=total, index=index, duration=3 * TimeUnit.HOUR)
         logger.info("cluster(%s) checksum will be run after %s seconds.", cluster_id, countdown)
         # 每个集群在独立任务中执行
         with start_new_span(check_cluster_checksum):
@@ -61,6 +64,32 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
     logger.info(
         "begin generate checksum report index = {}, immute_domain = {}".format(index, cluster_obj.immute_domain)
     )
+
+    cluster_config = get_cluster_config(
+        cluster_obj.immute_domain,
+        cluster_obj.major_version,
+        cluster_obj.db_module_id,
+        cluster_obj.cluster_type,
+        str(cluster_obj.bk_biz_id),
+    )
+    engine = get_engine_from_bk_mysql_config(cluster_config)
+    checksum_yaml = DBConfigApi.query_conf_item(
+        {
+            "bk_biz_id": f"{cluster_obj.bk_biz_id}",
+            "level_name": LevelName.CLUSTER,
+            "level_value": cluster_obj.immute_domain,
+            "conf_file": "checksum.yaml",
+            "conf_type": "checksum",
+            "namespace": cluster_obj.cluster_type.lower(),
+            "level_info": {"module": f"{cluster_obj.db_module_id}"},
+            "format": "map.",
+        }
+    )["content"]
+    checksum_enabled = engine.lower() not in ["rocksdb", "tokudb"] and checksum_yaml.get("enable", True)
+
+    if not checksum_enabled:
+        logger.info("{} checksum disabled, skip check", cluster_obj.immute_domain)
+        return
 
     cluster_task = ChecksumService(cluster_id)
 

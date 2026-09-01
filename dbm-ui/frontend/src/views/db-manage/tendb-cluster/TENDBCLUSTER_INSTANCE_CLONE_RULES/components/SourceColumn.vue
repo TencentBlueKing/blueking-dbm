@@ -36,7 +36,6 @@
       v-model:is-show="isShowIpSelector"
       :cluster-types="[ClusterTypes.TENDBCLUSTER]"
       :data-source-map="dataSourceMap"
-      repeatable
       @change="handleSelectorChange" />
   </EditableColumn>
   <EditableColumn

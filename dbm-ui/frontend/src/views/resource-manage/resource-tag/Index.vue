@@ -55,28 +55,109 @@
           @click="handleBatchDelete">
           {{ t('批量删除') }}
         </BkButton>
-        <BkSearchSelect
+        <DbQuickSearch
           v-model="searchValue"
           class="search-selector"
           :data="searchSelectData"
-          :placeholder="t('请输入标签关键字')"
-          unique-select
-          value-split-code="+"
-          @search="fetchData" />
+          :placeholder="t('请输入标签关键字')" />
       </div>
       <DbTable
         ref="tableRef"
         class="table-box"
-        :columns="tableColumn"
         :data-source="listTag"
         :disable-select-method="disableSelectMethod"
-        remote-sort
-        row-class="table-row"
+        row-class-name="table-row"
+        row-key="id"
         selectable
-        sort-type="ordering"
         @clear-search="clearSearchValue"
         @request-success="handleRequestSuccess"
-        @selection="handleSelection" />
+        @selection="handleSelection">
+        <TableColumn
+          col-key="id"
+          title="ID"
+          :width="80">
+          <template #default="{ row: data }: { row: ResourceTagModel }">
+            {{ data.id || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="value"
+          :min-width="200"
+          :title="t('标签')">
+          <template #default="{ row: data }: { row: ResourceTagModel }">
+            <span v-if="bindIpMap.get(data.id)">{{ data.value }}</span>
+            <EditableCell
+              v-else
+              :data="data"
+              :edit-id="curEditId"
+              @blur="handleBlur"
+              @edit="handleEdit" />
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="count"
+          :title="t('绑定的IP')"
+          :width="120">
+          <template #default="{ row: data }: { row: ResourceTagModel }">
+            <a
+              v-if="bindIpMap.get(data.id)"
+              :href="getResourcePoolUrl(data)"
+              target="_blank">
+              {{ bindIpMap.get(data.id) }}
+            </a>
+            <span v-else>0</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="creator"
+          sorter
+          :title="t('创建人')"
+          :width="160">
+          <template #default="{ row: data }: { row: ResourceTagModel }">
+            {{ data.creator || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="create_at"
+          sorter
+          :title="t('创建时间')"
+          :width="180">
+          <template #default="{ row: data }: { row: ResourceTagModel }">
+            {{ data.createAtDisplay || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="row-operation"
+          :title="t('操作')"
+          :width="120">
+          <template #default="{ row: data }: { row: ResourceTagModel }">
+            <BkPopConfirm
+              ext-cls="tag-delelte-popconfirm-content-wrapper"
+              :title="t('确认删除该标签值？')"
+              trigger="click"
+              :width="280"
+              @confirm="handleDelete(data)">
+              <template #content>
+                <div>
+                  {{ t('标签：') }}
+                  <span style="color: #313238">{{ data.value }}</span>
+                </div>
+                <div class="mb-10 mt-4">{{ t('删除操作无法撤回，请谨慎操作！') }}</div>
+              </template>
+              <BkButton
+                v-bk-tooltips="{
+                  content: t('该标签已被绑定 ，不能删除'),
+                  disabled: !bindIpMap.get(data.id),
+                }"
+                :disabled="!!bindIpMap.get(data.id)"
+                text
+                theme="primary">
+                {{ t('删除') }}
+              </BkButton>
+            </BkPopConfirm>
+          </template>
+        </TableColumn>
+      </DbTable>
     </div>
     <CreateTag
       v-model:is-show="isCreateTagDialogShow"
@@ -86,8 +167,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { Button, InfoBox } from 'bkui-vue';
-  import BKPopConfirm from 'bkui-vue/lib/pop-confirm';
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -98,8 +178,10 @@
   import { useGlobalBizs } from '@stores';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { getSearchSelectorParams, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import CreateTag from './components/CreateTag.vue';
   import EditableCell from './components/EditableCell.vue';
@@ -118,19 +200,21 @@
   const isCreateTagDialogShow = ref(false);
 
   const curEditId = ref(-1);
-  const searchValue = ref([]);
+  const searchValue = ref<Record<string, string>>({});
 
   const curBiz = shallowRef(isBusiness ? currentBizInfo : publicBiz);
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
-  const searchSelectData = [
+  const searchSelectData: QuickSearchProps['data'] = [
     {
       id: 'value',
       name: t('标签'),
+      type: 'multiple-input',
     },
     {
       id: 'creator',
       name: t('创建人'),
+      type: 'multiple-input',
     },
   ];
 
@@ -144,102 +228,6 @@
       messageSuccess(t('删除成功'));
     },
   });
-
-  const tableColumn = computed(() => [
-    {
-      field: 'id',
-      label: 'ID',
-      render: ({ data }: { data: ResourceTagModel }) => data.id || '--',
-    },
-    {
-      field: 'value',
-      label: t('标签'),
-      render: ({ data }: { data: ResourceTagModel }) =>
-        bindIpMap.value.get(data.id) ? (
-          data.value
-        ) : (
-          <EditableCell
-            onBlur={handleBlur}
-            onEdit={handleEdit}
-            data={data}
-            editId={curEditId.value}
-          />
-        ),
-    },
-    {
-      field: 'count',
-      label: t('绑定的IP'),
-      render: ({ data }: { data: ResourceTagModel }) => {
-        if (!bindIpMap.value.get(data.id)) {
-          return 0;
-        }
-        const { href } = router.resolve({
-          name: isBusiness ? 'BizResourcePool' : 'resourcePool',
-          params: {
-            page: isBusiness ? 'business' : 'host-list',
-          },
-          query: {
-            label_names: data.value,
-          },
-        });
-        return (
-          <a
-            href={href}
-            target='_blank'>
-            {bindIpMap.value.get(data.id)}
-          </a>
-        );
-      },
-    },
-    {
-      field: 'creator',
-      label: t('创建人'),
-      render: ({ data }: { data: ResourceTagModel }) => data.creator || '--',
-      sort: true,
-    },
-    {
-      field: 'create_at',
-      label: t('创建时间'),
-      render: ({ data }: { data: ResourceTagModel }) => data.createAtDisplay || '--',
-      sort: true,
-    },
-    {
-      label: t('操作'),
-      render: ({ data }: { data: ResourceTagModel }) => (
-        <BKPopConfirm
-          onConfirm={() => handleDelete(data)}
-          ext-cls='tag-delelte-popconfirm-content-wrapper'
-          title={t('确认删除该标签值？')}
-          trigger='click'
-          width={280}>
-          {{
-            content: () => (
-              <>
-                <div>
-                  {t('标签：')}
-                  <span style="color: '#313238'">{data.value}</span>
-                </div>
-                <div class='mb-10 mt-4'>{t('删除操作无法撤回，请谨慎操作！')}</div>
-              </>
-            ),
-            default: () => (
-              <Button
-                v-bk-tooltips={{
-                  content: t('该标签已被绑定 ，不能删除'),
-                  disabled: !bindIpMap.value.get(data.id),
-                }}
-                disabled={!!bindIpMap.value.get(data.id)}
-                text
-                theme='primary'>
-                {t('删除')}
-              </Button>
-            ),
-          }}
-        </BKPopConfirm>
-      ),
-      width: 120,
-    },
-  ]);
 
   const { run: getRelatedResource } = useRequest(getTagRelatedResource, {
     manual: true,
@@ -262,16 +250,28 @@
   });
 
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
-      ...searchParams,
+      ...searchValue.value,
       bk_biz_id: curBiz.value?.bk_biz_id,
       ordering: '-create_at',
       type: 'resource',
     });
   };
 
-  const handleSelection = (_data: ResourceTagModel, list: ResourceTagModel[]) => {
+  const getResourcePoolUrl = (data: ResourceTagModel) => {
+    const { href } = router.resolve({
+      name: isBusiness ? 'BizResourcePool' : 'resourcePool',
+      params: {
+        page: isBusiness ? 'business' : 'host-list',
+      },
+      query: {
+        label_names: data.value,
+      },
+    });
+    return href;
+  };
+
+  const handleSelection = (_idList: string[], list: ResourceTagModel[]) => {
     selected.value = list;
   };
 
@@ -348,8 +348,7 @@
     bindIpMap.value.get(data.id) ? t('该标签已被绑定 ，不能删除') : false;
 
   const clearSearchValue = () => {
-    searchValue.value = [];
-    tableRef.value?.fetchData();
+    searchValue.value = {};
   };
 
   const handleCreateSuccess = () => {

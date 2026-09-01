@@ -317,6 +317,11 @@ class BaseVmTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuil
     cluster_types = [ClusterType.Vm.value]
 
 
+class BaseQdrantTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.K8sQdrant.value
+    cluster_types = [ClusterType.K8sQdrantHa.value]
+
+
 class BaseHdfsTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Hdfs.value
     cluster_types = [ClusterType.Hdfs.value]

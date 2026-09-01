@@ -244,6 +244,12 @@ class TestPureHelpers:
         assert cfg.bk_cloud_ids is None
         assert cfg.ai_analysis_enabled is False
 
+    def test_config_preserve_scene_defaults(self):
+        """Preserve-mode defaults: stop and keep the scene; 72h alarm shield."""
+        cfg = _config_cls()()
+        assert cfg.error_ignorable is False
+        assert cfg.preserve_scene_shield_minutes == 4320
+
     def test_config_from_settings_ignores_unknown_keys(self):
         """shell_plus-friendly loader should tolerate stale keys in SystemSettings."""
         with patch(
@@ -343,6 +349,29 @@ class TestReportStateMapping(TestCase):
 
     def test_backup_invalid_in_failed_stages(self):
         assert TaskStage.BACKUP_INVALID in REDIS_ROLLBACK_EXER_FAILED_STAGES
+
+    def test_scene_preserved_in_failed_stages(self):
+        assert TaskStage.SCENE_PRESERVED in REDIS_ROLLBACK_EXER_FAILED_STAGES
+
+    def test_mark_scene_preserved_then_rollback_failed_transition(self):
+        """SCENE_PRESERVED stays open until DBA confirmation marks a terminal failure."""
+        report = Report.objects.create(**self.common_kwargs)
+
+        report.mark(TaskStage.SCENE_PRESERVED, task_message="scene held")
+        report.refresh_from_db()
+
+        assert report.task_stage == TaskStage.SCENE_PRESERVED
+        assert report.state == ReportStateType.ABNORMAL
+        assert report.recover_end_time is not None
+        assert report.task_end_time is None
+
+        # Drill ends as failed: SCENE_PRESERVED -> ROLLBACK_FAILED overwrites the stage and fills task_end_time
+        report.mark(TaskStage.ROLLBACK_FAILED, task_message="rollback failed")
+        report.refresh_from_db()
+
+        assert report.task_stage == TaskStage.ROLLBACK_FAILED
+        assert report.state == ReportStateType.ABNORMAL
+        assert report.task_end_time is not None
 
     def test_get_previously_failed_clusters_picks_backup_invalid(self):
         kwargs = dict(self.common_kwargs)

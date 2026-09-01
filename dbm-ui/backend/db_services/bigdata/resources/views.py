@@ -168,15 +168,6 @@ class BigdataResourceViewSet(ResourceViewSet):
         data = self.paginator.paginate_list(request, data["bk_biz_id"], self.query_class.list_nodes, data)
         return self.get_paginated_response(data)
 
-    @decorator_cluster_permission_field()
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"].db_type,
-        actions=[ActionEnum.ACCESS_ENTRY_EDIT],
-        resource_meta=ResourceEnum.DBTYPE,
-    )
-    def list(self, request, bk_biz_id: int, *args, **kwargs):
-        return super().list(request, bk_biz_id)
-
 
 class ResourceTreeViewSet(SystemViewSet):
     serializer_class = SearchResourceTreeSLZ

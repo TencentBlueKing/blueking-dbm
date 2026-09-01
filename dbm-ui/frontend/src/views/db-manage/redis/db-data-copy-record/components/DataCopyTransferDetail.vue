@@ -21,13 +21,13 @@
     @closed="handleClose">
     <template #header>
       <div class="header-box">
-        <span style="margin-right: 7px">{{ $t('【数据复制】传输详情') }}</span>
-        <BkTag> {{ $t('源集群') }}：{{ data?.src_cluster }} </BkTag>
+        <span style="margin-right: 7px">{{ t('【数据复制】传输详情') }}</span>
+        <BkTag> {{ t('源集群') }}：{{ data?.src_cluster }} </BkTag>
         <DbIcon
           style="margin-right: 6px; color: #979ba5"
           svg
           type="arrow-right" />
-        <BkTag> {{ $t('目标集群') }}：{{ data?.dst_cluster }} </BkTag>
+        <BkTag> {{ t('目标集群') }}：{{ data?.dst_cluster }} </BkTag>
       </div>
     </template>
     <div class="main-box">
@@ -41,20 +41,20 @@
                 :class="{ 'active-icon': !activeIndex.includes('base-info') }"
                 svg
                 type="down-shape" />
-              <span style="margin-left: 5px">{{ $t('基础信息') }}</span>
+              <span style="margin-left: 5px">{{ t('基础信息') }}</span>
             </div>
           </template>
           <template #content>
             <div class="base-info">
               <div class="row-item">
                 <div class="column-item">
-                  <div class="title">{{ $t('复制类型') }}：</div>
+                  <div class="title">{{ t('复制类型') }}：</div>
                   <div class="content">
                     {{ data?.dts_copy_type && copyTypesMap[data.dts_copy_type] }}
                   </div>
                 </div>
                 <div class="column-item">
-                  <div class="title">{{ $t('目标业务') }}：</div>
+                  <div class="title">{{ t('目标业务') }}：</div>
                   <div class="content">
                     {{ data?.dst_bk_biz_id && bizsMap[data.dst_bk_biz_id] }}
                   </div>
@@ -62,13 +62,13 @@
               </div>
               <div class="row-item">
                 <div class="column-item">
-                  <div class="title">{{ $t('状态') }}：</div>
+                  <div class="title">{{ t('状态') }}：</div>
                   <div class="content">
                     <ExecuteStatus :type="data?.status" />
                   </div>
                 </div>
                 <div class="column-item">
-                  <div class="title">{{ $t('关联单据') }}：</div>
+                  <div class="title">{{ t('关联单据') }}：</div>
                   <div class="content">
                     {{ data?.bill_id }}
                   </div>
@@ -76,7 +76,7 @@
               </div>
               <div class="row-item">
                 <div class="column-item">
-                  <div class="title">{{ $t('包含 Key') }}：</div>
+                  <div class="title">{{ t('包含 Key') }}：</div>
                   <div class="content">
                     <span v-if="whiteRegexs.length === 0">--</span>
                     <template v-else>
@@ -90,7 +90,7 @@
                   </div>
                 </div>
                 <div class="column-item">
-                  <div class="title">{{ $t('忽略 key') }}：</div>
+                  <div class="title">{{ t('忽略 key') }}：</div>
                   <div class="content">
                     <span v-if="blackRegexs.length === 0">--</span>
                     <template v-else>
@@ -106,13 +106,13 @@
               </div>
               <div class="row-item">
                 <div class="column-item">
-                  <div class="title">{{ $t('写入类型') }}：</div>
+                  <div class="title">{{ t('写入类型') }}：</div>
                   <div class="content">
                     {{ data?.write_mode && writeModesMap[data.write_mode] }}
                   </div>
                 </div>
                 <div class="column-item">
-                  <div class="title">{{ $t('校验与修复类型') }}：</div>
+                  <div class="title">{{ t('校验与修复类型') }}：</div>
                   <div class="content">
                     {{ data?.data_check_repair_type && repairAndVerifyModesMap[data.data_check_repair_type] }}
                   </div>
@@ -120,13 +120,13 @@
               </div>
               <div class="row-item">
                 <div class="column-item">
-                  <div class="title">{{ $t('断开设置') }}：</div>
+                  <div class="title">{{ t('断开设置') }}：</div>
                   <div class="content">
                     {{ data?.sync_disconnect_type && disconnectModesMap[data.sync_disconnect_type] }}
                   </div>
                 </div>
                 <div class="column-item">
-                  <div class="title">{{ $t('定时频率') }}：</div>
+                  <div class="title">{{ t('定时频率') }}：</div>
                   <div class="content">
                     {{
                       data?.sync_disconnect_reminder_frequency &&
@@ -137,7 +137,7 @@
               </div>
               <div class="row-item">
                 <div class="column-item">
-                  <div class="title">{{ $t('创建时间') }}：</div>
+                  <div class="title">{{ t('创建时间') }}：</div>
                   <div class="content">
                     {{ data?.create_time }}
                   </div>
@@ -153,7 +153,7 @@
                 :class="{ 'active-icon': !activeIndex.includes('detail') }"
                 svg
                 type="down-shape" />
-              <span style="margin-left: 5px">{{ $t('执行详情') }}</span>
+              <span style="margin-left: 5px">{{ t('执行详情') }}</span>
             </div>
           </template>
           <template #content>
@@ -164,19 +164,20 @@
                   :disabled="failedList.length === 0"
                   theme="primary"
                   @click="handleClickFailRetry">
-                  {{ $t('失败重试') }}
+                  {{ t('失败重试') }}
                 </BkButton>
                 <BkInput
                   v-model="searchValue"
                   clearable
-                  :placeholder="$t('请选择条件进行搜索')"
+                  :placeholder="t('请选择条件进行搜索')"
                   style="width: 565px"
                   type="search" />
               </div>
-              <DbOriginalTable
+              <PrimaryTable
                 class="deploy-table"
                 :columns="columns"
-                :data="tableData" />
+                :data="tableData"
+                row-key="id" />
             </div>
           </template>
         </BkCollapsePanel>
@@ -187,6 +188,7 @@
 
 <script setup lang="tsx">
   import { Message } from 'bkui-vue';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import RedisDSTHistoryJobModel, {
@@ -257,67 +259,67 @@
 
   const failedList = computed(() => tableData.value.filter((item) => item.isFailedStatus));
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'src_instance',
-      label: () => (
+      cell: (_, { row, rowIndex }) => (
         <div style='display:flex;align-items:center;'>
-          <bk-checkbox
-            disabled={failedList.value.length === 0}
-            indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
-            label={t('源实例')}
-            model-value={isSelectedAll.value}
-            onChange={handleSelectPageAll}
-            onClick={(e: Event) => e.stopPropagation()}
-          />
-        </div>
-      ),
-      render: ({ data, index }: { data: RedisDSTJobTaskModel; index: number }) => (
-        <div style='display:flex;align-items:center;'>
-          <bk-checkbox
-            disabled={!data.isFailedStatus}
-            label={false}
-            model-value={Boolean(checkedMap.value[data.id])}
-            onChange={() => handleSelectOne(index)}
+          <Checkbox
+            checked={Boolean(checkedMap.value[row.id])}
+            disabled={!row.isFailedStatus}
+            onChange={() => handleSelectOne(rowIndex)}
           />
           <span class='ml-8'>
-            {data.src_ip}:{data.src_port}
+            {row.src_ip}:{row.src_port}
           </span>
         </div>
       ),
-      showOverflowTooltip: true,
+      colKey: 'src_instance',
+      ellipsis: true,
+      title: () => (
+        <div style='display:flex;align-items:center;'>
+          <span onClick={(e: Event) => e.stopPropagation()}>
+            <Checkbox
+              checked={isSelectedAll.value}
+              disabled={failedList.value.length === 0}
+              indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
+              onChange={handleSelectPageAll}>
+              {t('源实例')}
+            </Checkbox>
+          </span>
+        </div>
+      ),
       width: 220,
     },
     {
-      field: 'dts_server',
-      label: 'DtsServer',
-      showOverflowTooltip: true,
+      colKey: 'dts_server',
+      ellipsis: true,
+      title: 'DtsServer',
       width: 100,
     },
     {
-      field: 'task_type',
-      label: t('Task 类型'),
-      showOverflowTooltip: true,
+      colKey: 'task_type',
+      ellipsis: true,
+      title: t('Task 类型'),
       width: 120,
     },
     {
-      field: 'status',
-      label: t('执行状态'),
-      render: ({ data }: { data: RedisDSTJobTaskModel }) => <ExecuteStatus type={data.status} />,
-      showOverflowTooltip: true,
+      cell: (_, { row }) => <ExecuteStatus type={row.status} />,
+      colKey: 'status',
+      ellipsis: true,
+      title: t('执行状态'),
       width: 100,
     },
     {
-      field: 'update_time',
-      label: t('执行时间'),
-      showOverflowTooltip: true,
+      colKey: 'update_time',
+      ellipsis: true,
+      title: t('执行时间'),
       width: 180,
     },
     {
-      field: 'message',
-      label: t('任务信息'),
+      colKey: 'message',
+      ellipsis: true,
       minWidth: 200,
-      showOverflowTooltip: true,
+      title: t('任务信息'),
     },
   ];
 
@@ -542,8 +544,8 @@
   }
 
   .deploy-table {
-    .bk-table-head {
-      :deep(tr) {
+    :deep(.t-table__header) {
+      tr {
         th:first-child {
           width: 32px !important;
         }

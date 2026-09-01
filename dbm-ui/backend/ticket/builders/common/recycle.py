@@ -42,6 +42,8 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     cluster_type = serializers.CharField(help_text=_("所属集群"), default="")
+    dts_deploy_path = serializers.CharField(help_text=_("DTS 部署目录"), default="", allow_blank=True)
+    dts_deploy_path_by_host = serializers.JSONField(help_text=_("按主机的 DTS 部署目录"), required=False, default=dict)
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
     immediate_recycle = serializers.BooleanField(help_text=_("立即回收"), default=False)
     parent_ticket_type = serializers.CharField(help_text=_("发起的单据类型"), default="")
@@ -168,6 +170,10 @@ class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
     machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
 
     def check_independent_recycle(self):
+        # sqlserver 业务均为独立管控业务，且下架派生的回收单 cluster_type 仅能取到 db_type 级别的
+        if self.ticket.details["cluster_type"] == DBType.Sqlserver.value:
+            return self.ticket.ticket_type == TicketType.RECYCLE_OLD_HOST
+
         cluster_type = self.ticket.details.get("cluster_type") or self.ticket.details["group"]
         hosting_biz = BizSettings.get_exact_hosting_biz(self.ticket.bk_biz_id, cluster_type)
         return self.ticket.ticket_type == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID

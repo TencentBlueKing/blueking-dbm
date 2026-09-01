@@ -108,16 +108,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -301,23 +295,21 @@
     need_auto_rename: boolean;
   }>(TicketTypes.SQLSERVER_FULL_MIGRATE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          db_list: item.dbName,
-          dst_cluster_list: item.dstCluster.map((cur) => cur.id),
-          ignore_db_list: item.dbIgnoreName,
-          rename_infos: item.renameInfoList,
-          src_cluster: item.srcCluster.id,
-        })),
-        need_auto_rename: formData.need_auto_rename,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            db_list: item.dbName,
+            dst_cluster_list: item.dstCluster.map((cur) => cur.id),
+            ignore_db_list: item.dbIgnoreName,
+            rename_infos: item.renameInfoList,
+            src_cluster: item.srcCluster.id,
+          })),
+          need_auto_rename: formData.need_auto_rename,
+        },
+        ...formData.payload,
+      });
     });
   };
 

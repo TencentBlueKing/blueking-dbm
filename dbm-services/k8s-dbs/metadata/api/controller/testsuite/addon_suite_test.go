@@ -52,7 +52,7 @@ var addonRequest = vo.AddonRequest{
 	Topologies:           `[{"name": "topology_01"}]`,
 	Releases:             `[{"version": "1.0"}]`,
 	Description:          "description_01",
-	BKAuth:               baseBKAuth,
+	BKAdditional:         baseBKAdditional,
 }
 
 type AddonControllerTestSuite struct {

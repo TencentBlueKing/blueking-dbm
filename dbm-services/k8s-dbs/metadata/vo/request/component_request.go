@@ -25,8 +25,8 @@ import (
 
 // K8sCrdComponentRequest represents the request data structure of component meta.
 type K8sCrdComponentRequest struct {
-	CrdClusterID      uint64 `json:"crdClusterId" binding:"required"`
-	ComponentName     string `json:"componentName" binding:"required"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	CrdClusterID            uint64 `json:"crdClusterId" binding:"required"`
+	ComponentName           string `json:"componentName" binding:"required"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

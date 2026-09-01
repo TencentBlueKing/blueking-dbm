@@ -2,14 +2,14 @@
   <div class="spider-manage-paritition-page">
     <div class="header-action mb-16">
       <AuthButton
-        action-id="tendbcluster_partition_create"
+        action-id="tendbcluster_partition_manage"
         class="w-88"
         theme="primary"
         @click="handleCreate">
         {{ t('新建策略') }}
       </AuthButton>
       <AuthButton
-        action-id="tendbcluster_partition_create"
+        action-id="tendbcluster_partition_manage"
         class="w-88 ml-8"
         @click="handleShowExcelImport">
         {{ t('导入策略') }}
@@ -139,8 +139,8 @@
         :width="100">
         <template #default="{ row }: { row: PartitionModel }">
           <AuthButton
-            action-id="tendbcluster_partition_update"
-            :permission="row.permission.tendbcluster_partition_update"
+            action-id="tendbcluster_partition_manage"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -248,17 +248,17 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="operation"
+        col-key="row-operation"
         fixed="right"
         :title="t('操作')"
         :width="130">
         <template #default="{ row }: { row: PartitionModel }">
           <!-- 执行按钮 -->
           <AuthButton
-            action-id="tendbcluster_partition"
+            action-id="tendbcluster_partition_manage"
             :disabled="row.isOffline"
             :loading="executeLoadingMap[row.id]"
-            :permission="row.permission.tendbcluster_partition"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -267,9 +267,9 @@
           </AuthButton>
           <!-- 编辑按钮 -->
           <AuthButton
-            action-id="tendbcluster_partition_update"
+            action-id="tendbcluster_partition_manage"
             class="ml-8"
-            :permission="row.permission.tendbcluster_partition_update"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -279,9 +279,9 @@
           <!-- 禁用/启用按钮 -->
           <AuthButton
             v-if="row.isOnline"
-            action-id="tendb_partition_enable_disable"
+            action-id="tendbcluster_partition_manage"
             class="ml-8"
-            :permission="row.permission.tendb_partition_enable_disable"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -290,9 +290,9 @@
           </AuthButton>
           <AuthButton
             v-else
-            action-id="tendb_partition_enable_disable"
+            action-id="tendbcluster_partition_manage"
             class="ml-8"
-            :permission="row.permission.tendb_partition_enable_disable"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -304,8 +304,8 @@
             <template #default>
               <div>
                 <AuthButton
-                  action-id="tendbcluster_partition_create"
-                  :permission="row.permission.tendbcluster_partition_create"
+                  action-id="tendbcluster_partition_manage"
+                  :permission="row.permission.tendbcluster_partition_manage"
                   text
                   @click="handleClone(row)">
                   {{ t('克隆') }}
@@ -318,8 +318,8 @@
                   :title="t('确认删除该分区策略？')">
                   <div style="height: 100%">
                     <AuthButton
-                      action-id="tendbcluster_partition_delete"
-                      :permission="row.permission.tendbcluster_partition_delete"
+                      action-id="tendbcluster_partition_manage"
+                      :permission="row.permission.tendbcluster_partition_manage"
                       :resource="row.cluster_id"
                       text>
                       {{ t('删除') }}
@@ -349,12 +349,10 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { InfoBox, Table as BkTable } from 'bkui-vue';
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  const BkTableColumn = BkTable.Column;
 
   import PartitionModel from '@services/model/partition/partition';
   import {
@@ -373,6 +371,7 @@
   import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import { PrimaryTable, TableColumn } from '@components/tdesign-ui/table';
 
   import { messageSuccess, utcDisplayTime } from '@utils';
 
@@ -397,7 +396,6 @@
         'expire_time',
         'status',
         'execute_time',
-        'operation',
       ],
     },
   );
@@ -502,9 +500,7 @@
   };
 
   const fetchData = () => {
-    tableRef.value?.fetchData(searchValue.value, {
-      cluster_type: ClusterTypes.TENDBCLUSTER,
-    });
+    tableRef.value?.fetchData(searchValue.value);
   };
 
   // 新建
@@ -549,40 +545,41 @@
               {t(options.description)}
             </div>
           )}
-          <BkTable
-            border='outer'
+          <PrimaryTable
+            row-key='id'
+            bordered
             data={validRows.map((row) => ({
               dblike: row.dblike,
               id: row.id,
               immute_domain: row.immute_domain,
               tblike: row.tblike,
             }))}>
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='id'
-              label={t('策略ID')}
+              colKey='id'
               minWidth={80}
+              title={t('策略ID')}
             />
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='immute_domain'
-              label={t('集群')}
+              colKey='immute_domain'
+              ellipsis
               minWidth={120}
-              showOverflowTooltip
+              title={t('集群')}
             />
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='dblike'
-              label={t('DB名')}
+              colKey='dblike'
               minWidth={80}
+              title={t('DB名')}
             />
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='tblike'
-              label={t('表名')}
+              colKey='tblike'
               minWidth={80}
+              title={t('表名')}
             />
-          </BkTable>
+          </PrimaryTable>
         </>
       ),
       footerAlign: 'center',

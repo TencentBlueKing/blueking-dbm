@@ -290,3 +290,22 @@ def test_periodic_repair_running_child_under_3_timeout_no_warning():
     mock_warning.assert_not_called()
     report.delete()
     flow_tree.delete()
+
+
+# ==================== SCENE_PRESERVED reports are never auto-repaired ====================
+
+
+def test_periodic_repair_skips_scene_preserved_report():
+    """SCENE_PRESERVED reports are never auto-repaired; the filter is only ROLLBACK_STARTED / ROLLBACK_SUCCEEDED."""
+    report = _make_report(TaskStage.SCENE_PRESERVED, rollback_child_root_id="preserved_child")
+    flow_tree = _make_flow_tree("preserved_child", StateType.FAILED)
+
+    with _PATCH_EXERCISE_CFG, patch(
+        "backend.db_periodic_task.local_tasks.redis_backup_rollback.task.wakeup_redis_rollback_runner_by_child",
+        return_value=1,
+    ) as mock_wakeup:
+        _import_repair()()
+
+    mock_wakeup.assert_not_called()
+    report.delete()
+    flow_tree.delete()

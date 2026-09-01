@@ -33,11 +33,14 @@ type SinkerConfig struct {
 	FromBeginning bool `yaml:"from_beginning"`
 	// FetchMinBytes consumer fetch messages at least this size, default 1024 bytes
 	FetchMinBytes int32 `yaml:"fetch_min_bytes"`
-	// SinkBatchSize 一次 fetch 可能有多条记录，sink_batch_size 控制多少次 fetch 合并成一次 sink. default 1
+	// SinkBatchSize 一次 fetch 可能有多条记录，sink_batch_size 控制多少次 fetch 合并成一次 sink. default 10
 	SinkBatchSize int `yaml:"sink_batch_size"`
 	// WriteMode default is upsert, allowed: insert_ignore, insert, upsert
 	WriteMode  string `yaml:"write_mode"`
 	Datasource string `yaml:"datasource"`
+	// IngestThreads 每个 partition 启动的并发写入 goroutine 数量。
+	// 当为 0 或 1 时保持同步处理逻辑；当 > 1 时启用固定数量的 goroutine 并发处理消息
+	IngestThreads int `yaml:"ingest_threads"`
 	// Enable 是否启用。默认是启用 true
 	Enable *bool `yaml:"enable"`
 }

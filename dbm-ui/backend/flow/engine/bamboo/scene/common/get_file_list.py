@@ -287,7 +287,7 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
-        if db_version.startswith("Redis-"):
+        if db_version.startswith(("Redis-", "Valkey-")):
             # 如果是 cache Redis,则下发 redis modules 介质
             redismodules_pkg = Package.get_latest_package(
                 version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
@@ -790,8 +790,7 @@ class GetFileList(object):
         - file_list: 用于 TransFileComponent 下发的文件路径列表
         - pkg_name: 包文件名，用于 shell 脚本中动态解压（自动适配版本更新）
         """
-        probe_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest,
+        probe_pkg = Package.get_latest_package_by_semver(
             pkg_type=MediumEnum.DBHAV2Probe,
             db_type=DBType.Cloud,
         )

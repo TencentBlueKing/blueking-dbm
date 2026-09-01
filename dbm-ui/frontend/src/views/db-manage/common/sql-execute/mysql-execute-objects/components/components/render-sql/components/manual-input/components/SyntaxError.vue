@@ -14,10 +14,14 @@
 <template>
   <div class="sql-execute-syntax-error">
     <DbIcon type="check-line" />
-    <span>{{ $t('语法检测服务异常_请联系管理员') }}</span>
+    <span>{{ t('语法检测服务异常_请联系管理员') }}</span>
   </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
+</script>
 <style lang="less">
   .sql-execute-syntax-error {
     display: flex;

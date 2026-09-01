@@ -10,15 +10,55 @@ specific language governing permissions and limitations under the License.
 """
 
 import json
+import threading
 import uuid
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Hashable, Optional, Union
 
+from cachetools import TTLCache
 from django.core.cache import cache
 
 from backend.utils.md5 import count_md5
 
 DEFAULT_CACHE_TIME = 60 * 15
+
+
+class LocalTTLCache:
+    """
+    进程内的 TTL 缓存，适用于变更极少但读取极频繁的元数据。
+
+    与 django cache 的区别是不依赖 redis：redis 故障时这类查询会全部穿透到 mysql，
+    正是需要兜底的场景。代价是各进程独立，写入方主动 clear 也只对本进程生效，
+    其余进程最长在 ttl 后才能看到新数据，因此只适合能容忍 ttl 级别陈旧的数据。
+    """
+
+    def __init__(self, ttl: int, maxsize: int):
+        self._cache = TTLCache(maxsize=maxsize, ttl=ttl)
+        self._lock = threading.Lock()
+
+    def get_or_load(self, key: Hashable, loader: Callable[[], Any]) -> Any:
+        """
+        读缓存，未命中时用 loader 回源并回填。
+
+        回源过程刻意不持锁：worker 是 threads 池，持锁回源会让所有线程排队在一次回源上。
+        代价是缓存失效瞬间同一进程可能有多个线程同时回源，相比穿透量级可以忽略。
+        """
+        with self._lock:
+            try:
+                return self._cache[key]
+            except KeyError:
+                pass
+
+        value = loader()
+
+        with self._lock:
+            self._cache[key] = value
+
+        return value
+
+    def clear(self) -> None:
+        with self._lock:
+            self._cache.clear()
 
 
 def class_member_cache(name: Optional[str] = None):

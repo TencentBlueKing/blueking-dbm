@@ -189,6 +189,7 @@ class RedisClusterCMRSceneFlow(object):
     def complete_machine_replace(self):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-整机替换"))
         sub_pipelines, cluster_ids = [], []
+        has_storage_replacement = False
         unique_cluster_ids = {
             int(cluster_id)
             for cluster_replacement in self.data["infos"]
@@ -198,6 +199,8 @@ class RedisClusterCMRSceneFlow(object):
         self._prefetch_cluster_cache(cluster_ids)
 
         for cluster_replacement in self.data["infos"]:
+            if cluster_replacement.get("redis_master") or cluster_replacement.get("redis_slave"):
+                has_storage_replacement = True
             if len(cluster_replacement["cluster_ids"]) > 1:
                 # 单机多实例，主从架构的整机替换单据
                 sub_pipeline = self.generate_single_replacement(self.data, deepcopy(act_kwargs), cluster_replacement)
@@ -222,21 +225,22 @@ class RedisClusterCMRSceneFlow(object):
 
         if len(sub_pipelines) > 0:
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-            # 整机替换完成后，自动提交一张 Redis 备份单据（3 小时后未执行自动终止）
-            redis_pipeline.add_act(
-                act_name=_("自动提交Redis备份单据"),
-                act_component_code=RedisSubmitBackupTicketComponent.code,
-                kwargs={
-                    "cluster_ids": cluster_ids,
-                    "bk_biz_id": self.data["bk_biz_id"],
-                    "created_by": self.data.get("created_by"),
-                    "backup_target": "slave",
-                    "backup_type": "normal_backup",
-                    "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
-                    "parent_ticket_id": self.data.get("uid"),
-                    "remark": _("整机替换完成后自动提交备份单据"),
-                },
-            )
+            # 仅在涉及存储节点(master/slave)替换时，自动提交一张 Redis 备份单据（3 小时后未执行自动终止）
+            if has_storage_replacement:
+                redis_pipeline.add_act(
+                    act_name=_("自动提交Redis备份单据"),
+                    act_component_code=RedisSubmitBackupTicketComponent.code,
+                    kwargs={
+                        "cluster_ids": cluster_ids,
+                        "bk_biz_id": self.data["bk_biz_id"],
+                        "created_by": self.data.get("created_by"),
+                        "backup_target": "slave",
+                        "backup_type": "normal_backup",
+                        "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
+                        "parent_ticket_id": self.data.get("uid"),
+                        "remark": _("整机替换完成后自动提交备份单据"),
+                    },
+                )
         # return redis_pipeline.run_pipeline()
         return redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
 

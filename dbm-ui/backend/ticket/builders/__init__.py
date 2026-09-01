@@ -26,8 +26,6 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.enums import MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
-from backend.dbm_aiagent.agent.constants import DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
@@ -533,6 +531,9 @@ class TicketFlowBuilder:
         if not env.ENABLE_DBM_AI:
             return ticket.details
         try:
+            from backend.dbm_aiagent.agent.constants import DBMAgentCode
+            from backend.dbm_aiagent.agent.handlers import AgentHandler
+
             return AgentHandler.ask_agent_with_content(
                 agent_code=DBMAgentCode.LOG_ANALYSIS,
                 content=str(_("{} 总结需求摘要").format(ticket.details)),
@@ -577,7 +578,7 @@ class TicketFlowBuilder:
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
-        need_manual_confirm = any([c.configs["need_manual_confirm"] for c in self.ticket_configs])
+        need_manual_confirm = any([c.configs.get("need_manual_confirm") for c in self.ticket_configs])
         return need_manual_confirm
 
     @property
@@ -683,7 +684,7 @@ class TicketFlowBuilder:
     def _add_itsm_pause_describe(cls, flow_desc, flow_config_map):
         if flow_config_map[cls.ticket_type]["need_itsm"]:
             flow_desc.append(FlowType.get_choice_label(FlowType.BK_ITSM))
-        if flow_config_map[cls.ticket_type]["need_manual_confirm"]:
+        if flow_config_map[cls.ticket_type].get("need_manual_confirm"):
             flow_desc.append(FlowType.get_choice_label(FlowType.PAUSE))
         return flow_desc
 
@@ -768,6 +769,16 @@ class BuilderFactory:
             return wrapped_class
 
         return inner_wrapper
+
+    @classmethod
+    def get_ticket_iam_action(cls, ticket_type):
+        action = cls.ticket_type__iam_action.get(ticket_type)
+        if not action:
+            db_type = TicketType.get_db_type_by_ticket(ticket_type)
+            if not db_type:
+                return None
+            action = getattr(ActionEnum, f"{db_type.upper()}_MANAGE")
+        return action
 
     @classmethod
     def get_builder_cls(cls, ticket_type: str):

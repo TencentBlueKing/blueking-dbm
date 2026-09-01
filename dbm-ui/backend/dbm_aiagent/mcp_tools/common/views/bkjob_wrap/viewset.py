@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.impl.bkcc_wrap.check_ips_biz_scope import check_ips_biz_scope
+from backend.dbm_aiagent.mcp_tools.common.impl.bkcc_wrap.check_machines_operator import check_machines_operator
 from backend.dbm_aiagent.mcp_tools.common.impl.bkjob_wrap.execute_script import execute_script
 from backend.dbm_aiagent.mcp_tools.common.impl.bkjob_wrap.query_result import query_result
 from backend.dbm_aiagent.mcp_tools.common.serializers.bkjob_wrap.current_date_and_ip import (
@@ -42,10 +44,15 @@ class BKJobWrapMcpToolsViewSet(McpToolsViewSet):
     def current_date_and_ip(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
         ips = self.get_param("ips")
-        bk_scope_type = self.get_param("bk_scope_type")
         bk_scope_id = self.get_param("bk_scope_id")
 
         username = request.user.username
+
+        # 机器存在 + 执行者校验（复用公共 helper）
+        hosts = check_machines_operator(bk_cloud_id=bk_cloud_id, ips=ips, username=username)
+        # 业务归属校验：IP 必须属于用户提供的 CMDB 业务ID，禁止猜测
+        bk_scope_type = "biz"  # 仅支持单业务，禁止 biz_set
+        check_ips_biz_scope(bk_scope_type=bk_scope_type, bk_scope_id=bk_scope_id, hosts=hosts)
 
         script = """echo $LOCAL_IP && date"""
         name = "current_data_and_ip"
@@ -79,8 +86,8 @@ class BKJobWrapMcpToolsViewSet(McpToolsViewSet):
         enable=True,
     )
     def query_result(self, request, *args, **kwargs):
-        bk_scope_type = self.get_param("bk_scope_type")
         bk_scope_id = self.get_param("bk_scope_id")
+        bk_scope_type = "biz"  # 仅支持单业务，禁止 biz_set
         job_instance_id = self.get_param("job_instance_id")
 
         result = query_result(

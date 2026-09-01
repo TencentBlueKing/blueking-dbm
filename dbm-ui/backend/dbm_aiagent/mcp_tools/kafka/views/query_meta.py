@@ -28,9 +28,9 @@ from backend.dbm_aiagent.mcp_tools.kafka.serializers.cluster_meta import (
     KafkaBizNameInputSerializer,
     KafkaClusterInputSerializer,
     KafkaClusterOutputSerializer,
+    KafkaSpecOutputSerializer,
+    KafkaSpecSearchInputSerializer,
     KafkaTopoOutputSerializer,
-    SpecOutputSerializer,
-    SpecSearchInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -94,8 +94,8 @@ class KafkaQueryMetaMcpToolsViewSet(McpToolsViewSet):
 
     @mcp_tools_api_decorator(
         description=str(_("根据规格名称模糊查询规格信息，支持如 '16核32G' 等规格名称搜索")),
-        request_slz=SpecSearchInputSerializer,
-        response_slz=SpecOutputSerializer(many=True),
+        request_slz=KafkaSpecSearchInputSerializer,
+        response_slz=KafkaSpecOutputSerializer(many=True),
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.KAFKA_QUERY_META],
         name_prefix="kafka_query_meta",

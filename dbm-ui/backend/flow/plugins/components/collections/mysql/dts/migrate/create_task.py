@@ -19,8 +19,7 @@ from backend.flow.utils.mysql.dts.constants import DEFAULT_MYLOADER_PATH, FullLo
 from backend.flow.utils.mysql.dts.migrate_helper import (
     apply_myloader_dirs_to_sources,
     build_dts_task_request,
-    load_dts_cluster_name,
-    resolve_dts_cluster_id,
+    resolve_dts_cluster_name,
 )
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec, dts_migrate_plan_from_dict, dts_task_spec_from_dict
 
@@ -58,8 +57,8 @@ class MysqlDtsCreateTaskService(BaseService):
             return False
         plan = dts_migrate_plan_from_dict(kwargs["migrate_plan"])
         task_spec = dts_task_spec_from_dict(kwargs["task_spec"])
-        dts_user = trans_data.migrate_context.dts_user
-        dts_password = trans_data.migrate_context.dts_password
+        dts_user = kwargs.get("dts_user") or trans_data.migrate_context.dts_user
+        dts_password = kwargs.get("dts_password") or trans_data.migrate_context.dts_password
         if not dts_user or not dts_password:
             self.log_error(_("DTS 迁移临时账号未创建，请先执行 prepare_user / AddUser 步骤"))
             return False
@@ -67,13 +66,9 @@ class MysqlDtsCreateTaskService(BaseService):
         use_myloader = task_spec.dts_task_config.full_load_engine == FullLoadEngine.MYLOADER.value
         cluster_name = None
         if not use_myloader:
-            dts_cluster_id = resolve_dts_cluster_id(plan, trans_data.migrate_context)
-            if not dts_cluster_id:
-                self.log_error(_("DTS 集群 ID 为空，无法生成 dump data_dir"))
-                return False
-            cluster_name = load_dts_cluster_name(dts_cluster_id)
+            cluster_name = (kwargs.get("cluster_name") or "").strip() or resolve_dts_cluster_name(plan)
             if not cluster_name:
-                self.log_error(_("DTS 集群 {} 不存在或名称为空").format(dts_cluster_id))
+                self.log_error(_("DTS 集群名为空，无法生成 dump data_dir"))
                 return False
         request = build_dts_task_request(
             plan,

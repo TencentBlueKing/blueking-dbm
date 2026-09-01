@@ -25,10 +25,10 @@ import (
 
 // AddonTypeRequest request 定义
 type AddonTypeRequest struct {
-	ID                uint64 `json:"id"`
-	CategoryID        uint64 `json:"categoryId"`
-	TypeName          string `json:"typeName"`
-	TypeAlias         string `json:"typeAlias"`
-	Description       string `json:"description"`
-	commentity.BKAuth `json:",inline"`
+	ID                      uint64 `json:"id"`
+	CategoryID              uint64 `json:"categoryId"`
+	TypeName                string `json:"typeName"`
+	TypeAlias               string `json:"typeAlias"`
+	Description             string `json:"description"`
+	commentity.BKAdditional `json:",inline"`
 }

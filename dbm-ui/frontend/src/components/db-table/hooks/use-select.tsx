@@ -103,6 +103,8 @@ export const useSelect = (
     options?.callback();
   };
 
+  const isSelectPlanVisible = computed(() => !props.selectSingle && !isOnlyOnePage.value && props.showSelectAllPage);
+
   const selectColumn = defineComponent({
     setup() {
       return () => (
@@ -110,7 +112,7 @@ export const useSelect = (
           colKey='row-select'
           fixed='left'
           resizable={false}
-          width={60}>
+          width={isSelectPlanVisible.value ? 60 : 36}>
           {{
             default: ({ row }: { row: any }) => {
               const selectDisabled = props.disableSelectMethod ? props.disableSelectMethod(row) : false;
@@ -164,7 +166,7 @@ export const useSelect = (
                       )}
                     </>
                   )}
-                  {!isOnlyOnePage.value && (
+                  {isSelectPlanVisible.value && (
                     <Popover
                       v-slots={{
                         content: () => (

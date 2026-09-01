@@ -47,6 +47,7 @@ func GetGormDB(dsn *InstanceDsn) (*gorm.DB, error) {
 			LogLevel:      logger.Warn,
 		},
 	)
+	slowLogger = logger.Discard
 
 	db, err := gorm.Open(mysql.New(mysql.Config{
 		Conn: dbc,

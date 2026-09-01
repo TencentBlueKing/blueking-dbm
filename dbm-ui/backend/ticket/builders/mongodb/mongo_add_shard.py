@@ -15,6 +15,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
@@ -76,7 +77,7 @@ class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
                     info["mongo_add_shards"].append(info.pop(f"mongodb_{i}"))
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD, is_apply=True, iam=ActionEnum.MONGODB_MANAGE)
 class MongoDBAddShardFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBAddShardDetailSerializer
     inner_flow_builder = MongoDBAddShardFlowParamBuilder

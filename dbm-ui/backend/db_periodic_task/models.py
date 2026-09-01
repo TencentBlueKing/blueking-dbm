@@ -13,6 +13,7 @@ import json
 import logging
 from datetime import timedelta
 
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext
@@ -87,6 +88,160 @@ class DBPeriodicTask(AuditedModel):
                 celery_task.save(update_fields=[model_field, "args", "kwargs"])
 
         return db_task
+
+
+class DispatchQueueSettings(AuditedModel):
+    """Persisted settings for one Redis dispatch queue namespace."""
+
+    namespace = models.CharField(_("队列命名空间"), max_length=128, unique=True)
+    config = models.JSONField(_("配置覆盖项"), default=dict, blank=True)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("Dispatch队列设置")
+        ordering = ["namespace"]
+
+    def __str__(self):
+        return self.namespace
+
+    def clean(self):
+        super().clean()
+        from backend.db_periodic_task.dispatch.config import DispatchQueueConfig
+        from backend.db_periodic_task.dispatch.queue import DispatchQueue
+        from backend.db_periodic_task.dispatch.routing import validate_namespace
+
+        validate_namespace(self.namespace)
+        queue_cls = DispatchQueue.queue_for_namespace(self.namespace)
+        config_cls = queue_cls.config_cls if queue_cls else DispatchQueueConfig
+        config_cls.validate_raw(self.config)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        # Invalidate after commit so concurrent loaders cannot refill the cache
+        # from the pre-commit DB snapshot (e.g. Admin save + watch_queue).
+        namespace = self.namespace
+        transaction.on_commit(lambda: _invalidate_queue_config(namespace))
+
+    def delete(self, *args, **kwargs):
+        namespace = self.namespace
+        result = super().delete(*args, **kwargs)
+        transaction.on_commit(lambda: _invalidate_queue_config(namespace))
+        return result
+
+
+class DispatchTaskSettings(AuditedModel):
+    """Persisted settings for one registered dispatch task."""
+
+    queue = models.ForeignKey(
+        DispatchQueueSettings,
+        verbose_name=_("队列设置"),
+        related_name="task_settings",
+        on_delete=models.PROTECT,
+    )
+    task_key = models.CharField(_("任务唯一标识"), max_length=255, unique=True)
+    config = models.JSONField(_("配置覆盖项"), default=dict, blank=True)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("Dispatch任务设置")
+        ordering = ["queue__namespace", "task_key"]
+        indexes = [models.Index(fields=["queue", "task_key"], name="idx_dispatch_queue_task")]
+
+    def __str__(self):
+        return self.task_key
+
+    def clean(self):
+        super().clean()
+        from backend.db_periodic_task.dispatch.registry import DISPATCH_REGISTRY
+
+        task_cls = DISPATCH_REGISTRY.get(self.task_key)
+        if task_cls:
+            if self.queue_id and self.queue.namespace != task_cls.namespace:
+                raise ValidationError({"queue": f"task {self.task_key} belongs to namespace {task_cls.namespace}"})
+            task_cls.config_cls.validate_raw(self.config)
+        elif not isinstance(self.config, dict):
+            raise ValidationError({"config": "must be a JSON object"})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        task_key = self.task_key
+        transaction.on_commit(lambda: _invalidate_task_config(task_key))
+
+    def delete(self, *args, **kwargs):
+        task_key = self.task_key
+        result = super().delete(*args, **kwargs)
+        transaction.on_commit(lambda: _invalidate_task_config(task_key))
+        return result
+
+
+class DispatchQueueRoute(AuditedModel):
+    """Which Redis instance owns one dispatch namespace's keys.
+
+    The route map must survive a Redis flush (unlike ``dispatch:registered``),
+    so it lives in MySQL. It must NOT be folded into
+    ``DispatchQueueSettings.config``: ``DispatchQueueConfig.save_to_db()``
+    rewrites the whole config row and would silently reset ``redis_alias``.
+
+    Editing either field through the admin is disabled on purpose —
+    ``remap_namespace()`` is the only sanctioned mutation path because moving a
+    live namespace also requires pausing, sweeping the old shard, and waiting
+    out the route caches.
+    """
+
+    namespace = models.CharField(_("队列命名空间"), max_length=128, unique=True)
+    redis_alias = models.CharField(_("Redis 实例别名"), max_length=64)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("Dispatch队列路由")
+        ordering = ["namespace"]
+
+    def __str__(self):
+        return f"{self.namespace} -> {self.redis_alias}"
+
+    def clean(self):
+        super().clean()
+        from django.conf import settings
+
+        from backend.db_periodic_task.dispatch.routing import validate_namespace
+
+        validate_namespace(self.namespace)
+        aliases = getattr(settings, "DISPATCH_REDIS_ALIASES", None) or []
+        if not aliases:
+            raise ValidationError({"redis_alias": "no dispatch Redis aliases configured"})
+        if self.redis_alias not in aliases:
+            raise ValidationError(
+                {"redis_alias": f"must be one of the configured dispatch aliases: {', '.join(aliases)}"}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        namespace = self.namespace
+        transaction.on_commit(lambda: _invalidate_dispatch_route(namespace))
+
+    def delete(self, *args, **kwargs):
+        namespace = self.namespace
+        result = super().delete(*args, **kwargs)
+        transaction.on_commit(lambda: _invalidate_dispatch_route(namespace))
+        return result
+
+
+def _invalidate_queue_config(namespace: str) -> None:
+    from backend.db_periodic_task.dispatch.config_cache import DispatchSettingsCache
+
+    DispatchSettingsCache.invalidate_queue(namespace)
+
+
+def _invalidate_task_config(task_key: str) -> None:
+    from backend.db_periodic_task.dispatch.config_cache import DispatchSettingsCache
+
+    DispatchSettingsCache.invalidate_task(task_key)
+
+
+def _invalidate_dispatch_route(namespace: str) -> None:
+    from backend.db_periodic_task.dispatch.routing import invalidate_route
+
+    invalidate_route(namespace)
 
 
 class TaskStatus:

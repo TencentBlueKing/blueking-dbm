@@ -5,11 +5,60 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
-from backend.flow.utils.mysql.dts.checksum_helper import build_dts_checksum_ticket_info
+from backend.flow.utils.mysql.dts.checksum_helper import _scope_to_checksum_patterns, build_dts_checksum_ticket_info
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec, SourceSpec, SyncScope
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode
 from backend.ticket.builders.mysql.mysql_checksum import MySQLChecksumFlowBuilder
 from backend.ticket.constants import TicketType
+
+
+class ScopeToChecksumPatternsTest(SimpleTestCase):
+    def test_table_routes_source_db_all_tables(self):
+        scope = SyncScope(
+            table_routes=[{"source_db": "bkapp-power--aqe", "source_table": "*", "target_db": "bkapp-power--djp"}]
+        )
+        db_patterns, ignore_dbs, table_patterns, ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(db_patterns, ["bkapp-power--aqe"])
+        self.assertEqual(table_patterns, ["*"])
+        self.assertEqual(ignore_dbs, [])
+        self.assertEqual(ignore_tables, [])
+
+    def test_table_routes_prefix_star_becomes_percent(self):
+        scope = SyncScope(table_routes=[{"source_db": "bkapp-power--aqe", "source_table": "tb_*"}])
+        db_patterns, _ignore_dbs, table_patterns, _ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(db_patterns, ["bkapp-power--aqe"])
+        self.assertEqual(table_patterns, ["tb_%"])
+
+    def test_source_db_pattern_preferred(self):
+        scope = SyncScope(
+            table_routes=[{"source_db": "db_exact", "source_db_pattern": "shard_*", "source_table": "*"}]
+        )
+        db_patterns, _ignore_dbs, table_patterns, _ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(db_patterns, ["shard_%"])
+        self.assertEqual(table_patterns, ["*"])
+
+    def test_missing_source_table_defaults_star(self):
+        scope = SyncScope(table_routes=[{"source_db": "db_a"}])
+        _db_patterns, _ignore_dbs, table_patterns, _ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(table_patterns, ["*"])
+
+    def test_table_routes_win_over_do_dbs(self):
+        scope = SyncScope(
+            do_dbs=["should_not_use"],
+            table_routes=[{"source_db": "bkapp-power--aqe", "source_table": "*"}],
+        )
+        db_patterns, _ignore_dbs, table_patterns, _ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(db_patterns, ["bkapp-power--aqe"])
+        self.assertEqual(table_patterns, ["*"])
+
+    def test_do_dbs_without_routes_unchanged(self):
+        db_patterns, ignore_dbs, table_patterns, ignore_tables = _scope_to_checksum_patterns(
+            SyncScope(do_dbs=["db_a"])
+        )
+        self.assertEqual(db_patterns, ["db_a"])
+        self.assertEqual(table_patterns, ["*"])
+        self.assertEqual(ignore_dbs, [])
+        self.assertEqual(ignore_tables, [])
 
 
 def _role_value(role):
@@ -58,6 +107,12 @@ class _StorageQS:
 
     def first(self):
         return self._storages[0] if self._storages else None
+
+    def get(self, **kwargs):
+        for s in self._storages:
+            if all(getattr(s, k) == v for k, v in kwargs.items()):
+                return s
+        raise LookupError(kwargs)
 
 
 class _ProxyQS:
@@ -145,6 +200,9 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
     """AE1–AE4：TenDBCluster 目标对齐 DTS Spider；HA 目标与源端行为不变。"""
 
     def _ha_src_cluster(self):
+        master = _make_storage_instance(inst_id=9, ip="127.0.0.10", port=20000, role=InstanceRole.BACKEND_MASTER.value)
+        master.is_stand_by = False
+        master.instance_inner_role = InstanceInnerRole.MASTER.value
         standby = _make_storage_instance(
             inst_id=11, ip="127.0.0.12", port=20000, role=InstanceRole.BACKEND_SLAVE.value
         )
@@ -156,7 +214,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
         return _cluster(
             cluster_id=100,
             cluster_type=ClusterType.TenDBHA.value,
-            storages=[other, standby],
+            storages=[other, standby, master],
         )
 
     def _cluster_dst(self):
@@ -236,13 +294,11 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
         self.assertEqual((slave["ip"], slave["port"]), (primary.machine.ip, primary.port))
         self.assertNotEqual((slave["ip"], slave["port"]), (remote.machine.ip, remote.port))
 
-    @patch("backend.flow.utils.mysql.dts.checksum_helper.resolve_source_endpoint")
     @patch("backend.flow.utils.mysql.dts.checksum_helper.Cluster")
-    def test_ae2_source_endpoint_unchanged(self, mock_cluster_cls, mock_resolve_source):
+    def test_ae2_unspecified_source_is_master(self, mock_cluster_cls):
         src = self._ha_src_cluster()
         dst, unused_remote, unused_primary, unused_secondary = self._cluster_dst()
         mock_cluster_cls.objects.get.side_effect = [src, dst]
-        mock_resolve_source.return_value = ("127.0.0.12", 20000)
 
         task_spec = DtsTaskSpec(
             task_name="ha-to-cluster-ae2",
@@ -258,8 +314,30 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
         )
         info = build_dts_checksum_ticket_info(task_spec=task_spec, bk_biz_id=21)
         master = info["details"]["infos"][0]["master"]
-        mock_resolve_source.assert_called_once()
-        self.assertEqual((master["ip"], master["port"]), ("127.0.0.12", 20000))
+        self.assertEqual((master["ip"], master["port"]), ("127.0.0.10", 20000))
+
+    @patch("backend.flow.utils.mysql.dts.checksum_helper.Cluster")
+    def test_checksum_follows_backend_slave_role(self, mock_cluster_cls):
+        src = self._ha_src_cluster()
+        dst, unused_remote, unused_primary, unused_secondary = self._cluster_dst()
+        mock_cluster_cls.objects.get.side_effect = [src, dst]
+
+        task_spec = DtsTaskSpec(
+            task_name="ha-to-cluster-slave-role",
+            target_cluster_id=200,
+            target_spider="127.0.0.5:25000",
+            sources=[
+                SourceSpec(
+                    cluster_id=100,
+                    source_name="src-100",
+                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    source_instance_role=InstanceRole.BACKEND_SLAVE.value,
+                )
+            ],
+        )
+        info = build_dts_checksum_ticket_info(task_spec=task_spec, bk_biz_id=21)
+        master = info["details"]["infos"][0]["master"]
+        self.assertEqual((master["ip"], master["port"]), ("127.0.0.11", 20000))
 
     @patch("backend.flow.utils.mysql.dts.checksum_helper.Cluster")
     def test_ae4_ha_to_ha_still_uses_backend_master(self, mock_cluster_cls):
@@ -356,3 +434,40 @@ class DtsModePatchTicketDetailTest(SimpleTestCase):
 
         self.assertEqual(ticket.details["infos"][0]["master"]["ip"], "127.0.0.9")
         self.assertEqual(ticket.details["infos"][0]["slaves"][0]["ip"], "127.0.0.2")
+
+
+class DtsChecksumPayloadTest(SimpleTestCase):
+    """get_checksum_payload 必须把 MYSQL_DTS_CHECKSUM 的 db_patterns 下发给 actuator。"""
+
+    def _payload(self, ticket_type, db_patterns):
+        from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+
+        obj = MysqlActPayload.__new__(MysqlActPayload)
+        obj.account = {}
+        obj.ticket_data = {
+            "ticket_type": ticket_type,
+            "bk_biz_id": 20,
+            "cluster_id": 322,
+            "immute_domain": "mysql57db.brook.make.db",
+            "master": {"ip": "127.0.0.1", "port": 20000, "instance_inner_role": "master"},
+            "slaves": [],
+            "db_patterns": db_patterns,
+            "ignore_dbs": [],
+            "table_patterns": ["*"],
+            "ignore_tables": [],
+            "runtime_hour": 48,
+            "repl_table": "checksum_967",
+            "dts_mode": True,
+        }
+        return obj.get_checksum_payload(
+            trans_data={"master_access_slave_user": "u", "master_access_slave_password": "p"}
+        )
+
+    def test_mysql_dts_checksum_keeps_db_patterns(self):
+        result = self._payload(TicketType.MYSQL_DTS_CHECKSUM.value, ["make001"])
+        self.assertEqual(result["payload"]["extend"]["db_patterns"], ["make001"])
+        self.assertEqual(result["payload"]["extend"]["table_patterns"], ["*"])
+
+    def test_mysql_checksum_keeps_db_patterns(self):
+        result = self._payload(TicketType.MYSQL_CHECKSUM.value, ["make001"])
+        self.assertEqual(result["payload"]["extend"]["db_patterns"], ["make001"])

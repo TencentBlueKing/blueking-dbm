@@ -25,10 +25,10 @@ import (
 
 // AddonClusterVersionRequest request vo 定义
 type AddonClusterVersionRequest struct {
-	AddonID           uint64 `json:"addonId" binding:"required"`
-	Version           string `json:"version" binding:"required"`
-	AddonClusterName  string `json:"addonClusterName" binding:"required"`
-	Active            bool   `json:"active"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	AddonID                 uint64 `json:"addonId" binding:"required"`
+	Version                 string `json:"version" binding:"required"`
+	AddonClusterName        string `json:"addonClusterName" binding:"required"`
+	Active                  bool   `json:"active"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

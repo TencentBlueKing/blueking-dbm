@@ -113,29 +113,32 @@
           </ul>
         </BkFormItem>
       </DbCard>
-      <BkFormItem class="password-policy-footer">
+      <BkFormItem
+        v-if="dbType"
+        :key="dbType"
+        class="password-policy-footer">
         <AuthButton
-          action-id="password_policy_set"
+          action-id="set_password_policy"
           class="mr-8"
           :loading="isSubmitting"
+          :resource="dbType"
           theme="primary"
           @click="handleSubmit">
           {{ t('保存') }}
         </AuthButton>
-        <DbPopconfirm
-          :confirm-handler="handleReset"
-          :content="t('重置将会恢复默认设置的内容')"
-          :title="t('确认重置')">
-          <BkButton>
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+        <AuthButton
+          action-id="set_password_policy"
+          :resource="dbType"
+          @click="handleReset">
+          {{ t('恢复默认') }}
+        </AuthButton>
       </BkFormItem>
     </DbForm>
   </BkLoading>
 </template>
 
 <script setup lang="ts">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -275,6 +278,7 @@
       await formRef.value.validate();
       await updatePasswordPolicyRunAsync({
         ...passwordPolicyData,
+        db_type: props.dbType,
         reset: false,
         rule: {
           ...formData,
@@ -288,18 +292,28 @@
     }
   };
 
-  const handleReset = () =>
-    updatePasswordPolicyRunAsync({
-      ...passwordPolicyData,
-      reset: true,
-      rule: {
-        ...formData,
-        symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
-      },
-    }).then(() => {
-      messageSuccess(t('重置成功'));
-      fetchData();
+  const handleReset = () => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () =>
+        updatePasswordPolicyRunAsync({
+          ...passwordPolicyData,
+          db_type: props.dbType,
+          reset: true,
+          rule: {
+            ...formData,
+            symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+          },
+        }).then(() => {
+          messageSuccess(t('恢复默认成功'));
+          fetchData();
+        }),
+      title: t('确认恢复默认值？'),
+      type: 'warning',
     });
+  };
 </script>
 
 <style lang="less" scoped>

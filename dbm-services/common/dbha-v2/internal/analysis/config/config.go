@@ -72,7 +72,7 @@ var Cfg = Configuration{
 			AllowedSlowBytes:                 0,
 			AllowedMaxChecksumFailCnt:        2,
 			AllowedMaxHeartbeatDelay:         600,
-			AllowedMaxIODelay:                300,
+			AllowedMaxSecondsBehindMaster:    600,
 		},
 	},
 
@@ -109,21 +109,21 @@ type DbmApi struct {
 
 // SwitchFlowConfig defines the configuration for the switch flow
 type SwitchFlowConfig struct {
-	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"      mapstructure:"dbmApiMaxConcurrentRequests"`
-	HostLevelSwitchMaxHostNum        int           `yaml:"hostLevelSwitchMaxHostNum"        mapstructure:"hostLevelSwitchMaxHostNum"`
-	HostLevelSwitchMaxInstanceNum    int           `yaml:"hostLevelSwitchMaxInstanceNum"    mapstructure:"hostLevelSwitchMaxInstanceNum"`
-	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
-	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
-	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`
-	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                 mapstructure:"dbConnectTimeout"`
-	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"               mapstructure:"clusterLockTimeout"`
-	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                   mapstructure:"execSqlTimeout"`
-	AllowedIgnoreCheckSum            bool          `yaml:"slaveAllowedIgnoreCheckSum"       mapstructure:"slaveAllowedIgnoreCheckSum"`
-	AllowedIgnoreSlaveDelay          bool          `yaml:"slaveAllowedIgnoreSlaveDelay"     mapstructure:"slaveAllowedIgnoreSlaveDelay"`
-	AllowedSlowBytes                 int           `yaml:"slaveAllowedSlowBytes"            mapstructure:"slaveAllowedSlowBytes"`
-	AllowedMaxChecksumFailCnt        int           `yaml:"slaveAllowedMaxChecksumFailCnt"   mapstructure:"slaveAllowedMaxChecksumFailCnt"`
-	AllowedMaxHeartbeatDelay         int           `yaml:"slaveAllowedMaxHeartbeatDelay"    mapstructure:"slaveAllowedMaxHeartbeatDelay"`
-	AllowedMaxIODelay                int           `yaml:"slaveAllowedMaxIODelay"           mapstructure:"slaveAllowedMaxIODelay"`
+	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"        mapstructure:"dbmApiMaxConcurrentRequests"`
+	HostLevelSwitchMaxHostNum        int           `yaml:"hostLevelSwitchMaxHostNum"          mapstructure:"hostLevelSwitchMaxHostNum"`
+	HostLevelSwitchMaxInstanceNum    int           `yaml:"hostLevelSwitchMaxInstanceNum"      mapstructure:"hostLevelSwitchMaxInstanceNum"`
+	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"    mapstructure:"clusterLevelSwitchMaxClusterNum"`
+	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum"   mapstructure:"clusterLevelSwitchMaxInstanceNum"`
+	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"              mapstructure:"switchLogWriteTimeout"`
+	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                   mapstructure:"dbConnectTimeout"`
+	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"                 mapstructure:"clusterLockTimeout"`
+	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                     mapstructure:"execSqlTimeout"`
+	AllowedIgnoreCheckSum            bool          `yaml:"slaveAllowedIgnoreCheckSum"         mapstructure:"slaveAllowedIgnoreCheckSum"`
+	AllowedIgnoreSlaveDelay          bool          `yaml:"slaveAllowedIgnoreSlaveDelay"       mapstructure:"slaveAllowedIgnoreSlaveDelay"`
+	AllowedSlowBytes                 int           `yaml:"slaveAllowedSlowBytes"              mapstructure:"slaveAllowedSlowBytes"`
+	AllowedMaxChecksumFailCnt        int           `yaml:"slaveAllowedMaxChecksumFailCnt"     mapstructure:"slaveAllowedMaxChecksumFailCnt"`
+	AllowedMaxHeartbeatDelay         int           `yaml:"slaveAllowedMaxHeartbeatDelay"      mapstructure:"slaveAllowedMaxHeartbeatDelay"`
+	AllowedMaxSecondsBehindMaster    int           `yaml:"slaveAllowedMaxSecondsBehindMaster" mapstructure:"slaveAllowedMaxSecondsBehindMaster"`
 }
 
 // WorkflowConfig workflow's configuration

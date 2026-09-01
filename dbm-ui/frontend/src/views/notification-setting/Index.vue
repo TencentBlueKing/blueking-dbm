@@ -55,38 +55,35 @@
         </DbForm>
       </div>
       <template #action>
-        <div>
+        <div :key="dbType">
           <AuthButton
-            action-id="update_duty_notices_config"
+            action-id="duty_notice_config_update"
             class="mr-8 w-88"
             :disabled="sendLoading || resetLoading"
             :loading="updateLoading"
+            :resource="dbType"
             theme="primary"
             @click="handleSave">
             {{ t('保存') }}
           </AuthButton>
           <AuthButton
-            action-id="update_duty_notices_config"
+            action-id="duty_notice_config_update"
             class="mr-8 w-88"
             :disabled="updateLoading || resetLoading"
             :loading="sendLoading"
+            :resource="dbType"
             @click="handleSend">
             {{ t('立即发送') }}
           </AuthButton>
-          <DbPopconfirm
-            :confirm-handler="handleReset"
-            :content="t('重置将会恢复默认设置的内容！')"
-            :title="t('确认重置当前配置？')">
-            <span>
-              <AuthButton
-                action-id="update_duty_notices_config"
-                class="w-88"
-                :disabled="updateLoading || sendLoading"
-                :loading="resetLoading">
-                {{ t('重置') }}
-              </AuthButton>
-            </span>
-          </DbPopconfirm>
+          <AuthButton
+            action-id="duty_notice_config_update"
+            class="w-88"
+            :disabled="updateLoading || sendLoading"
+            :loading="resetLoading"
+            :resource="dbType"
+            @click="handleReset">
+            {{ t('恢复默认') }}
+          </AuthButton>
         </div>
       </template>
     </SmartAction>
@@ -94,6 +91,7 @@
 </template>
 
 <script setup lang="ts">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -166,7 +164,7 @@
   const { loading: resetLoading, run: runResetDutyNoticeConfig } = useRequest(updateDutyNoticeConfig, {
     manual: true,
     onSuccess: () => {
-      messageSuccess(t('重置成功'));
+      messageSuccess(t('恢复默认成功'));
       runGetDutyNoticeConfig();
     },
   });
@@ -211,7 +209,16 @@
   };
 
   const handleReset = () => {
-    runResetDutyNoticeConfig({ ...initData(), db_type: dbType.value });
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () => {
+        runResetDutyNoticeConfig({ ...initData(), db_type: dbType.value });
+      },
+      title: t('确认恢复默认值？'),
+      type: 'warning',
+    });
   };
 
   onMounted(() => {

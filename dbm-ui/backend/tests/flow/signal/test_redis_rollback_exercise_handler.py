@@ -18,6 +18,7 @@ from backend.flow.consts import StateType
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import CHILD2RUNNER_CACHE_PREFIX
 from backend.flow.signal.callback_map import TICKET_TYPE_HANDLERS
 from backend.flow.signal.redis_rollback_exercise_handler import (
+    TERMINAL_STATES,
     _resolve_runner_node_id,
     redis_data_structure_callback_handler,
     redis_data_structure_task_delete_callback_handler,
@@ -27,166 +28,145 @@ from backend.ticket.constants import TicketType
 
 pytestmark = pytest.mark.django_db
 
+CHILD_ROOT_ID = "child_root_id"
+PARENT_ROOT_ID = "parent_root_id"
+RUNNER_NODE_ID = "runner_node_id"
+CACHE_KEY = f"{CHILD2RUNNER_CACHE_PREFIX}:{CHILD_ROOT_ID}"
+CACHE_MAPPING = {"parent_root_id": PARENT_ROOT_ID, "runner_node_id": RUNNER_NODE_ID}
+HANDLER_MOD = "backend.flow.signal.redis_rollback_exercise_handler"
+
+
+def _make_report(**overrides):
+    kwargs = {
+        "cluster_id": 1,
+        "cluster_domain": "d",
+        "cluster_type": "Redis",
+        "instance_ip": "1.1.1.1",
+        "instance_port": 6379,
+        "redis_version": "7.0",
+        "ticket_id": 1,
+        "rollback_flow_obj_id": CHILD_ROOT_ID,
+    }
+    kwargs.update(overrides)
+    return Report.objects.create(**kwargs)
+
+
+def _configure_cache_hit(mock_cache_get, mock_flownode_filter, mock_schedule_filter=None, alive=True):
+    mock_cache_get.return_value = CACHE_MAPPING
+    mock_flownode_filter.return_value.exists.return_value = alive
+    if mock_schedule_filter is not None:
+        mock_schedule_filter.return_value.update = MagicMock(return_value=1)
+
+
+def _mock_candidate_nodes(mock_node_filter, node_ids):
+    mock_node_filter.return_value.order_by.return_value.values_list.return_value = node_ids
+
+
+def _wakeup(child_state=StateType.FINISHED):
+    return wakeup_redis_rollback_runner_by_child(CHILD_ROOT_ID, child_state, "unit_test")
+
 
 # ==================== wakeup: cache hit path ====================
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Schedule.objects.filter")
+@patch(f"{HANDLER_MOD}.cache.get")
+@patch(f"{HANDLER_MOD}.Schedule.objects.filter")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
 @patch(
-    "backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.callback",
+    f"{HANDLER_MOD}.BambooEngine.callback",
     return_value=EngineAPIResult(result=True, data={}, message=""),
 )
-def test_wakeup_cache_hit_skips_report_query(mock_callback, mock_schedule_filter, mock_cache_get):
-    mock_cache_get.return_value = {"parent_root_id": "parent_root_id", "runner_node_id": "runner_node_id"}
-    mock_schedule_filter.return_value.update = MagicMock(return_value=1)
+def test_wakeup_cache_hit_skips_report_query(
+    mock_callback, mock_flownode_filter, mock_schedule_filter, mock_cache_get
+):
+    _configure_cache_hit(mock_cache_get, mock_flownode_filter, mock_schedule_filter)
 
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
-
-    assert result == 1
-    mock_cache_get.assert_called_once_with(f"{CHILD2RUNNER_CACHE_PREFIX}:child_root_id")
-    mock_schedule_filter.assert_called_once_with(node_id="runner_node_id", scheduling=True, finished=False)
+    assert _wakeup() == 1
+    mock_cache_get.assert_called_once_with(CACHE_KEY)
+    mock_schedule_filter.assert_called_once_with(node_id=RUNNER_NODE_ID, scheduling=True, finished=False)
     mock_schedule_filter.return_value.update.assert_called_once_with(scheduling=False)
     mock_callback.assert_called_once_with(
-        node_id="runner_node_id",
-        desc={"child_root_id": "child_root_id", "child_state": StateType.FINISHED, "trigger": "unit_test"},
+        node_id=RUNNER_NODE_ID,
+        desc={"child_root_id": CHILD_ROOT_ID, "child_state": StateType.FINISHED, "trigger": "unit_test"},
     )
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Schedule.objects.filter")
-@patch(
-    "backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.callback",
-    return_value=EngineAPIResult(result=False, data={}, message="callback rejected"),
+@pytest.mark.parametrize(
+    "callback_result, callback_error",
+    [
+        (EngineAPIResult(result=False, data={}, message="callback rejected"), None),
+        (None, Exception("callback boom")),
+    ],
+    ids=["rejected", "exception"],
 )
-def test_wakeup_cache_hit_callback_fails_returns_0(mock_callback, mock_schedule_filter, mock_cache_get):
-    """When the callback itself returns result=False, wakeup should return 0."""
-    mock_cache_get.return_value = {"parent_root_id": "parent_root_id", "runner_node_id": "runner_node_id"}
-    mock_schedule_filter.return_value.update = MagicMock(return_value=1)
+@patch(f"{HANDLER_MOD}.cache.get")
+@patch(f"{HANDLER_MOD}.Schedule.objects.filter")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.BambooEngine.callback")
+def test_wakeup_cache_hit_callback_failure_returns_0(
+    mock_callback, mock_flownode_filter, mock_schedule_filter, mock_cache_get, callback_result, callback_error
+):
+    _configure_cache_hit(mock_cache_get, mock_flownode_filter, mock_schedule_filter)
+    if callback_error is not None:
+        mock_callback.side_effect = callback_error
+    else:
+        mock_callback.return_value = callback_result
 
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
-
-    assert result == 0
-    mock_callback.assert_called_once()
-
-
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Schedule.objects.filter")
-@patch(
-    "backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.callback",
-    side_effect=Exception("callback boom"),
-)
-def test_wakeup_cache_hit_callback_exception_returns_0(mock_callback, mock_schedule_filter, mock_cache_get):
-    """When the callback raises an exception, wakeup should catch it and return 0."""
-    mock_cache_get.return_value = {"parent_root_id": "parent_root_id", "runner_node_id": "runner_node_id"}
-    mock_schedule_filter.return_value.update = MagicMock(return_value=1)
-
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
-
-    assert result == 0
+    assert _wakeup() == 0
 
 
 # ==================== wakeup: cache miss fallback path ====================
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get", return_value=None)
-@patch("backend.flow.signal.redis_rollback_exercise_handler._resolve_parent_root_id", return_value="parent_root_id")
-@patch("backend.flow.signal.redis_rollback_exercise_handler._resolve_runner_node_id", return_value="runner_node_id")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Schedule.objects.filter")
+@patch(f"{HANDLER_MOD}.cache.get", return_value=None)
+@patch(f"{HANDLER_MOD}._resolve_parent_root_id", return_value=PARENT_ROOT_ID)
+@patch(f"{HANDLER_MOD}._resolve_runner_node_id", return_value=RUNNER_NODE_ID)
+@patch(f"{HANDLER_MOD}.Schedule.objects.filter")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
 @patch(
-    "backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.callback",
+    f"{HANDLER_MOD}.BambooEngine.callback",
     return_value=EngineAPIResult(result=True, data={}, message=""),
 )
 def test_wakeup_cache_miss_falls_back_to_report(
-    mock_callback, mock_schedule_filter, _mock_resolve_runner, _mock_resolve_parent, _mock_cache_get
+    mock_callback,
+    mock_flownode_filter,
+    mock_schedule_filter,
+    _mock_resolve_runner,
+    _mock_resolve_parent,
+    _mock_cache_get,
 ):
-    report = Report.objects.create(
-        cluster_id=1,
-        cluster_domain="d",
-        cluster_type="Redis",
-        instance_ip="127.0.0.1",
-        instance_port=6379,
-        redis_version="7.0",
-        ticket_id=1,
-        rollback_flow_obj_id="child_root_id",
-    )
-
+    _make_report()
     mock_schedule_filter.return_value.update = MagicMock(return_value=1)
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
+    mock_flownode_filter.return_value.exists.return_value = True
 
-    assert result == 1
+    assert _wakeup() == 1
     mock_callback.assert_called_once()
-    report.delete()
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get", return_value=None)
-def test_wakeup_cache_miss_no_report_returns_0(_mock_cache_get):
-    """When cache misses and no report matches, wakeup should return 0."""
-    result = wakeup_redis_rollback_runner_by_child("orphan_child_root_id", StateType.FINISHED, "unit_test")
-    assert result == 0
+@pytest.mark.parametrize(
+    "ticket_id, parent_id, runner_id, create_report",
+    [
+        pytest.param(1, PARENT_ROOT_ID, RUNNER_NODE_ID, False, id="no_report"),
+        pytest.param(0, PARENT_ROOT_ID, RUNNER_NODE_ID, True, id="falsy_ticket_id"),
+        pytest.param(1, None, RUNNER_NODE_ID, True, id="no_parent_root_id"),
+        pytest.param(1, PARENT_ROOT_ID, None, True, id="no_runner_node_id"),
+    ],
+)
+@patch(f"{HANDLER_MOD}.cache.get", return_value=None)
+@patch(f"{HANDLER_MOD}._resolve_parent_root_id")
+@patch(f"{HANDLER_MOD}._resolve_runner_node_id")
+def test_wakeup_cache_miss_returns_0_when_mapping_incomplete(
+    mock_resolve_runner, mock_resolve_parent, _mock_cache_get, ticket_id, parent_id, runner_id, create_report
+):
+    if create_report:
+        _make_report(ticket_id=ticket_id)
+        child_root_id = CHILD_ROOT_ID
+    else:
+        child_root_id = "orphan_child_root_id"
+    mock_resolve_parent.return_value = parent_id
+    mock_resolve_runner.return_value = runner_id
 
-
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get", return_value=None)
-@patch("backend.flow.signal.redis_rollback_exercise_handler._resolve_parent_root_id", return_value=None)
-def test_wakeup_cache_miss_no_parent_root_id_returns_0(_mock_resolve_parent, _mock_cache_get):
-    """When parent_root_id cannot be resolved, wakeup should return 0."""
-    report = Report.objects.create(
-        cluster_id=1,
-        cluster_domain="d",
-        cluster_type="Redis",
-        instance_ip="127.0.0.1",
-        instance_port=6379,
-        redis_version="7.0",
-        ticket_id=1,
-        rollback_flow_obj_id="child_root_id",
-    )
-
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
-
-    assert result == 0
-    report.delete()
-
-
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get", return_value=None)
-@patch("backend.flow.signal.redis_rollback_exercise_handler._resolve_parent_root_id", return_value="parent_root_id")
-@patch("backend.flow.signal.redis_rollback_exercise_handler._resolve_runner_node_id", return_value=None)
-def test_wakeup_cache_miss_no_runner_node_id_returns_0(_mock_resolve_runner, _mock_resolve_parent, _mock_cache_get):
-    """When runner_node_id cannot be resolved, wakeup should return 0."""
-    report = Report.objects.create(
-        cluster_id=1,
-        cluster_domain="d",
-        cluster_type="Redis",
-        instance_ip="127.0.0.1",
-        instance_port=6379,
-        redis_version="7.0",
-        ticket_id=1,
-        rollback_flow_obj_id="child_root_id",
-    )
-
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
-
-    assert result == 0
-    report.delete()
-
-
-@patch("backend.flow.signal.redis_rollback_exercise_handler.cache.get", return_value=None)
-def test_wakeup_cache_miss_report_without_ticket_id_returns_0(_mock_cache_get):
-    """When the matching report has ticket_id=0 (falsy), wakeup should return 0."""
-    report = Report.objects.create(
-        cluster_id=1,
-        cluster_domain="d",
-        cluster_type="Redis",
-        instance_ip="127.0.0.1",
-        instance_port=6379,
-        redis_version="7.0",
-        ticket_id=0,
-        rollback_flow_obj_id="child_root_id",
-    )
-
-    result = wakeup_redis_rollback_runner_by_child("child_root_id", StateType.FINISHED, "unit_test")
-
-    assert result == 0
-    report.delete()
+    assert wakeup_redis_rollback_runner_by_child(child_root_id, StateType.FINISHED, "unit_test") == 0
 
 
 # ==================== handler registration ====================
@@ -203,57 +183,37 @@ def test_redis_sub_ticket_handlers_registered():
 # ==================== _handle_redis_sub_ticket_callback ====================
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowTree.objects.get")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
-def test_callback_handler_terminal_state_with_drill_ticket(mock_wakeup, mock_ticket_filter, mock_flowtree_get):
-    mock_ticket_filter.return_value.only.return_value.first.return_value = MagicMock(
-        ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE
-    )
-    mock_flowtree_get.return_value = MagicMock(status=StateType.FINISHED)
-    redis_data_structure_callback_handler(
-        node_id="node_id",
-        root_id="child_root_id",
-        status=StateType.FINISHED,
-        ticket_id=1,
-    )
-    mock_wakeup.assert_called_once_with(
-        child_root_id="child_root_id", child_state=StateType.FINISHED, trigger="post_set_state"
-    )
-
-
-@pytest.mark.parametrize("terminal_state", [StateType.FAILED, StateType.REVOKED])
-@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowTree.objects.get")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
-def test_callback_handler_failed_and_revoked_also_trigger_wakeup(
+@pytest.mark.parametrize("terminal_state", sorted(TERMINAL_STATES))
+@patch(f"{HANDLER_MOD}.FlowTree.objects.get")
+@patch(f"{HANDLER_MOD}.Ticket.objects.filter")
+@patch(f"{HANDLER_MOD}.wakeup_redis_rollback_runner_by_child")
+def test_callback_handler_terminal_state_with_drill_ticket(
     mock_wakeup, mock_ticket_filter, mock_flowtree_get, terminal_state
 ):
-    """FAILED and REVOKED are also terminal states that should trigger wakeup."""
     mock_ticket_filter.return_value.only.return_value.first.return_value = MagicMock(
         ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE
     )
     mock_flowtree_get.return_value = MagicMock(status=terminal_state)
     redis_data_structure_callback_handler(
         node_id="node_id",
-        root_id="child_root_id",
+        root_id=CHILD_ROOT_ID,
         status=terminal_state,
         ticket_id=1,
     )
     mock_wakeup.assert_called_once_with(
-        child_root_id="child_root_id", child_state=terminal_state, trigger="post_set_state"
+        child_root_id=CHILD_ROOT_ID, child_state=terminal_state, trigger="post_set_state"
     )
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
+@patch(f"{HANDLER_MOD}.Ticket.objects.filter")
+@patch(f"{HANDLER_MOD}.wakeup_redis_rollback_runner_by_child")
 def test_callback_handler_ignores_non_drill_or_non_terminal(mock_wakeup, mock_ticket_filter):
     mock_ticket_filter.return_value.only.return_value.first.return_value = MagicMock(
         ticket_type=TicketType.REDIS_DATA_STRUCTURE
     )
     redis_data_structure_task_delete_callback_handler(
         node_id="node_id",
-        root_id="child_root_id",
+        root_id=CHILD_ROOT_ID,
         status=StateType.FINISHED,
         ticket_id=2,
     )
@@ -264,20 +224,19 @@ def test_callback_handler_ignores_non_drill_or_non_terminal(mock_wakeup, mock_ti
     )
     redis_data_structure_callback_handler(
         node_id="node_id",
-        root_id="child_root_id",
+        root_id=CHILD_ROOT_ID,
         status=StateType.RUNNING,
         ticket_id=1,
     )
     mock_wakeup.assert_not_called()
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
+@patch(f"{HANDLER_MOD}.Ticket.objects.filter")
+@patch(f"{HANDLER_MOD}.wakeup_redis_rollback_runner_by_child")
 def test_callback_handler_no_ticket_id_returns_early(mock_wakeup, mock_ticket_filter):
-    """When ticket_id is 0 (falsy), the handler should return early without querying Ticket."""
     redis_data_structure_callback_handler(
         node_id="node_id",
-        root_id="child_root_id",
+        root_id=CHILD_ROOT_ID,
         status=StateType.FINISHED,
         ticket_id=0,
     )
@@ -285,14 +244,13 @@ def test_callback_handler_no_ticket_id_returns_early(mock_wakeup, mock_ticket_fi
     mock_wakeup.assert_not_called()
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
+@patch(f"{HANDLER_MOD}.Ticket.objects.filter")
+@patch(f"{HANDLER_MOD}.wakeup_redis_rollback_runner_by_child")
 def test_callback_handler_ticket_not_found_returns_early(mock_wakeup, mock_ticket_filter):
-    """When ticket is not found in DB, handler should return without calling wakeup."""
     mock_ticket_filter.return_value.only.return_value.first.return_value = None
     redis_data_structure_callback_handler(
         node_id="node_id",
-        root_id="child_root_id",
+        root_id=CHILD_ROOT_ID,
         status=StateType.FINISHED,
         ticket_id=999,
     )
@@ -302,53 +260,76 @@ def test_callback_handler_ticket_not_found_returns_early(mock_wakeup, mock_ticke
 # ==================== _resolve_runner_node_id ====================
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.get_node_output_data")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.BambooEngine.get_node_output_data")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
 def test_resolve_runner_node_id_scan(mock_node_filter, mock_get_node_output):
-    mock_node_filter.return_value.order_by.return_value.values_list.return_value = ["node_1", "node_2"]
-    mock_get_node_output.return_value = MagicMock(data={"child_root_id": "child_root_id"})
+    _mock_candidate_nodes(mock_node_filter, ["node_1", "node_2"])
+    mock_get_node_output.return_value = MagicMock(data={"child_root_id": CHILD_ROOT_ID})
 
-    node_id = _resolve_runner_node_id(parent_root_id="parent_root_id", child_root_id="child_root_id")
+    node_id = _resolve_runner_node_id(parent_root_id=PARENT_ROOT_ID, child_root_id=CHILD_ROOT_ID)
 
     assert node_id == "node_1"
     mock_node_filter.assert_called_once_with(
-        root_id="parent_root_id", status__in=[StateType.RUNNING, StateType.CREATED, StateType.READY]
+        root_id=PARENT_ROOT_ID, status__in=[StateType.RUNNING, StateType.CREATED, StateType.READY]
     )
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
 def test_resolve_runner_node_id_no_candidates_returns_none(mock_node_filter):
-    """When no candidate nodes exist, should return None."""
-    mock_node_filter.return_value.order_by.return_value.values_list.return_value = []
+    _mock_candidate_nodes(mock_node_filter, [])
 
-    node_id = _resolve_runner_node_id(parent_root_id="parent_root_id", child_root_id="child_root_id")
-
-    assert node_id is None
+    assert _resolve_runner_node_id(parent_root_id=PARENT_ROOT_ID, child_root_id=CHILD_ROOT_ID) is None
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.get_node_output_data")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.BambooEngine.get_node_output_data")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
 def test_resolve_runner_node_id_no_matching_output_returns_none(mock_node_filter, mock_get_node_output):
-    """When no candidate node outputs match child_root_id, should return None."""
-    mock_node_filter.return_value.order_by.return_value.values_list.return_value = ["node_1", "node_2"]
+    _mock_candidate_nodes(mock_node_filter, ["node_1", "node_2"])
     mock_get_node_output.return_value = MagicMock(data={"child_root_id": "other_child_id"})
 
-    node_id = _resolve_runner_node_id(parent_root_id="parent_root_id", child_root_id="child_root_id")
-
-    assert node_id is None
+    assert _resolve_runner_node_id(parent_root_id=PARENT_ROOT_ID, child_root_id=CHILD_ROOT_ID) is None
     assert mock_get_node_output.call_count == 2
 
 
-@patch("backend.flow.signal.redis_rollback_exercise_handler.BambooEngine.get_node_output_data")
-@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.BambooEngine.get_node_output_data")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
 def test_resolve_runner_node_id_output_exception_continues(mock_node_filter, mock_get_node_output):
-    """When get_node_output_data raises for one node, should continue scanning others."""
-    mock_node_filter.return_value.order_by.return_value.values_list.return_value = ["node_1", "node_2"]
+    _mock_candidate_nodes(mock_node_filter, ["node_1", "node_2"])
     mock_get_node_output.side_effect = [
         Exception("node_1 failed"),
-        MagicMock(data={"child_root_id": "child_root_id"}),
+        MagicMock(data={"child_root_id": CHILD_ROOT_ID}),
     ]
 
-    node_id = _resolve_runner_node_id(parent_root_id="parent_root_id", child_root_id="child_root_id")
+    assert _resolve_runner_node_id(parent_root_id=PARENT_ROOT_ID, child_root_id=CHILD_ROOT_ID) == "node_2"
 
-    assert node_id == "node_2"
+
+# ==================== Wakeup guard: failed runner nodes are not woken ====================
+
+
+@patch(f"{HANDLER_MOD}.cache.get")
+@patch(f"{HANDLER_MOD}.cache.delete")
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.BambooEngine.callback")
+def test_wakeup_cache_hit_runner_failed_skips_callback(
+    mock_callback, mock_flownode_filter, mock_cache_delete, mock_cache_get
+):
+    _configure_cache_hit(mock_cache_get, mock_flownode_filter, alive=False)
+
+    assert _wakeup(StateType.FAILED) == 0
+    mock_callback.assert_not_called()
+    mock_cache_delete.assert_called_once_with(CACHE_KEY)
+
+
+@patch(f"{HANDLER_MOD}.cache.get", return_value=None)
+@patch(f"{HANDLER_MOD}._resolve_parent_root_id", return_value=PARENT_ROOT_ID)
+@patch(f"{HANDLER_MOD}._resolve_runner_node_id", return_value=RUNNER_NODE_ID)
+@patch(f"{HANDLER_MOD}.FlowNode.objects.filter")
+@patch(f"{HANDLER_MOD}.BambooEngine.callback")
+def test_wakeup_cache_miss_runner_failed_skips_callback(
+    mock_callback, mock_flownode_filter, _mock_resolve_runner, _mock_resolve_parent, _mock_cache_get
+):
+    _make_report()
+    mock_flownode_filter.return_value.exists.return_value = False
+
+    assert _wakeup(StateType.FAILED) == 0
+    mock_callback.assert_not_called()

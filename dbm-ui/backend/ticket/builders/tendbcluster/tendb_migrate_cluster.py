@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -65,7 +66,9 @@ class TendbClusterMigrateClusterResourceParamBuilder(MysqlMigrateClusterResource
         self.patch_info_common_affinity(role="backend_group")
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MIGRATE_CLUSTER, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_MIGRATE_CLUSTER, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TendbClusterMigrateClusterFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterMigrateClusterDetailSerializer
     inner_flow_builder = TendbClusterMigrateClusterParamBuilder

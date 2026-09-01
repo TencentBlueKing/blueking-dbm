@@ -20,20 +20,26 @@
         cluster-detail-router-name="MongoDBSharedClusterDetail"
         :data="data">
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mongodb.sharedClusterList.importAuthorize'"
+            action-id="mongodb_authorize"
             class="ml-4"
+            :permission="data.permission.mongodb_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
-          <BkButton
+          </AuthButton>
+          <AuthButton
             v-db-console="'mongodb.sharedClusterList.getAccess'"
+            action-id="mongodb_access_entry_view"
             class="ml-4"
+            :permission="data.permission.mongodb_access_entry_view"
+            :resource="data.id"
             size="small"
             @click="handleShowAccessEntry">
             {{ t('获取访问方式') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'mongodb.sharedClusterList.webconsole'"
             action-id="mongodb_webconsole"
@@ -82,8 +88,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="mongodb_plugin_create_clb"
-                  :permission="data.permission.mongodb_plugin_create_clb"
+                  action-id="mongodb_loadbalance_manage"
+                  :permission="data.permission.mongodb_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="handleAddClb({ details: { cluster_id: data.id } })">
@@ -196,6 +202,7 @@
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
   import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
 
@@ -217,6 +224,7 @@
 
   const isAuthorizeShow = ref(false);
   const isShowAccessEntryInfo = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     return {
@@ -230,6 +238,12 @@
     manual: true,
     onSuccess(result: MongodbDetailModel) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'mongodb_access_entry_view',
+        data: result,
+        onOpen: () => handleShowAccessEntry(),
+      });
     },
   });
 

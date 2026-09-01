@@ -189,8 +189,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="redis_plugin_create_clb"
-                    :permission="data.permission.redis_plugin_create_clb"
+                    action-id="redis_loadbalance_manage"
+                    :permission="data.permission.redis_loadbalance_manage"
                     :resource="data.id"
                     style="width: 100%; height: 32px"
                     text
@@ -206,8 +206,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="redis_plugin_dns_bind_clb"
-                    :permission="data.permission.redis_plugin_dns_bind_clb"
+                    action-id="redis_loadbalance_manage"
+                    :permission="data.permission.redis_loadbalance_manage"
                     :resource="data.id"
                     style="width: 100%; height: 32px"
                     text
@@ -223,8 +223,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="redis_plugin_create_polaris"
-                    :permission="data.permission.redis_plugin_create_polaris"
+                    action-id="redis_loadbalance_manage"
+                    :permission="data.permission.redis_loadbalance_manage"
                     :resource="data.id"
                     style="width: 100%; height: 32px"
                     text

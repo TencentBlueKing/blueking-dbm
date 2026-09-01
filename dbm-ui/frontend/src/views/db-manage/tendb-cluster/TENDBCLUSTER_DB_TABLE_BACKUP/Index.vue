@@ -82,16 +82,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -226,23 +220,21 @@
     }[];
   }>(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          backup_local: item.backup_local,
-          cluster_id: item.cluster.id,
-          db_patterns: item.db_patterns,
-          ignore_dbs: item.ignore_dbs,
-          ignore_tables: item.ignore_tables,
-          table_patterns: item.table_patterns,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            backup_local: item.backup_local,
+            cluster_id: item.cluster.id,
+            db_patterns: item.db_patterns,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            table_patterns: item.table_patterns,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

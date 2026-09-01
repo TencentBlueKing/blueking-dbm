@@ -47,11 +47,8 @@
           <BkFormItem
             :label="t('是否启用')"
             required>
-            <AuthSwitcher
+            <BkSwitcher
               v-model="formModel.isEnabled"
-              action-id="global_monitor_policy_start_stop"
-              :permission="data.permission.global_monitor_policy_start_stop"
-              :resource="data.id"
               size="small"
               theme="primary" />
           </BkFormItem>
@@ -145,23 +142,23 @@
         :width="320"
         @confirm="() => handleConfirm()">
         <AuthButton
-          action-id="global_monitor_policy_edit"
+          action-id="global_alarm_policy_manage"
           :disabled="resetLoading"
           :loading="updateLoading"
-          :permission="data.permission.global_monitor_policy_edit"
-          :resource="data.id"
+          :permission="data.permission.global_alarm_policy_manage"
+          :resource="dbType"
           theme="primary">
           {{ t('确定') }}
         </AuthButton>
       </BkPopConfirm>
       <AuthButton
-        action-id="global_monitor_policy_edit"
+        action-id="global_alarm_policy_manage"
         class="ml-8"
         :disabled="updateLoading"
         :loading="resetLoading"
         outline
-        :permission="data.permission.global_monitor_policy_edit"
-        :resource="data.id"
+        :permission="data.permission.global_alarm_policy_manage"
+        :resource="dbType"
         theme="primary"
         @click="() => handleResetClickConfirm()">
         {{ t('恢复初始值') }}
@@ -189,13 +186,14 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypes } from '@common/const';
 
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
   import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
   import PromQL from '@views/monitor-alarm/common/monitor-data/PromQL.vue';
   import NoticeInterval from '@views/monitor-alarm/common/notice-interval/Index.vue';
   import TestRules from '@views/monitor-alarm/common/test-rules/Index.vue';
+  import { getDbaLabel } from '@views/monitor-alarm/common/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -220,7 +218,7 @@
 
   // const monitorTarget = ref(t('全部业务'));
   const formRef = ref();
-  const nofityTarget = ref(`{${DBTypeInfos[props.dbType].name}_DBA}`);
+  const nofityTarget = ref(`{${getDbaLabel(props.dbType)}}`);
   // const showSwitchEnableTip = ref(false);
 
   const formModel = reactive({

@@ -32,13 +32,18 @@
         </BkButton>
       </div>
       <BkLoading :loading="loading">
-        <DbOriginalTable
+        <PrimaryTable
+          :bk-ui-settings="settings"
           :columns="columns"
           :data="data"
-          :height="474"
-          :is-anomalies="isAnomalies"
-          :settings="settings"
-          @refresh="fetchHosts" />
+          :height="474">
+          <template #empty>
+            <EmptyStatus
+              :is-anomalies="isAnomalies"
+              :is-searching="false"
+              @refresh="fetchHosts" />
+          </template>
+        </PrimaryTable>
       </BkLoading>
     </div>
     <template #footer>
@@ -50,6 +55,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -57,6 +63,7 @@
   import type { HostInfo } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { execCopy } from '@utils';
 
@@ -71,68 +78,69 @@
 
   const isAnomalies = ref(false);
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'ip',
-      label: 'IP',
+      colKey: 'ip',
+      title: 'IP',
     },
     {
-      field: 'ipv6',
-      label: 'IPv6',
-      render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
+      cell: (_, { row }) => (row as HostInfo).ipv6 || '--',
+      colKey: 'ipv6',
+      title: 'IPv6',
     },
     {
-      field: 'bk_cloud_name',
-      label: t('管控区域'),
-      render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
+      cell: (_, { row }) => (row as HostInfo).cloud_area.name || '--',
+      colKey: 'bk_cloud_name',
+      title: t('管控区域'),
     },
     {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: HostInfo }) => {
+      cell: (_, { row }) => {
+        const data = row as HostInfo;
         if (typeof data.alive !== 'number') return '--';
 
         const text = [t('异常'), t('正常')];
         return <DbStatus theme={data.alive === 1 ? 'success' : 'danger'}>{text[data.alive]}</DbStatus>;
       },
+      colKey: 'alive',
+      title: t('Agent状态'),
     },
     {
-      field: 'host_name',
-      label: t('主机名称'),
-      render: ({ data }: { data: HostInfo }) => data.host_name || '--',
+      cell: (_, { row }) => (row as HostInfo).host_name || '--',
+      colKey: 'host_name',
+      title: t('主机名称'),
     },
     {
-      field: 'os_name',
-      label: t('OS名称'),
-      render: ({ data }: { data: HostInfo }) => data.os_name || '--',
+      cell: (_, { row }) => (row as HostInfo).os_name || '--',
+      colKey: 'os_name',
+      title: t('OS名称'),
     },
     {
-      field: 'cloud_vendor',
-      label: t('所属云厂商'),
-      render: ({ data }: { data: HostInfo }) => data.cloud_vendor || '--',
+      cell: (_, { row }) => (row as HostInfo).cloud_vendor || '--',
+      colKey: 'cloud_vendor',
+      title: t('所属云厂商'),
     },
     {
-      field: 'os_type',
-      label: t('OS类型'),
-      render: ({ data }: { data: HostInfo }) => data.os_type || '--',
+      cell: (_, { row }) => (row as HostInfo).os_type || '--',
+      colKey: 'os_type',
+      title: t('OS类型'),
     },
     {
-      field: 'host_id',
-      label: t('主机ID'),
-      render: ({ data }: { data: HostInfo }) => data.host_id || '--',
+      cell: (_, { row }) => String((row as HostInfo).host_id ?? '--'),
+      colKey: 'host_id',
+      title: t('主机ID'),
     },
     {
-      field: 'agent_id',
-      label: 'Agent ID',
-      render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
+      cell: (_, { row }) => String((row as HostInfo).agent_id ?? '--'),
+      colKey: 'agent_id',
+      title: 'Agent ID',
     },
   ];
   const settings = {
     checked: ['ip', 'bk_host_name', 'alive'],
     fields: columns.map((item) => ({
-      disabled: ['ip'].includes(item.field),
-      field: item.field,
-      label: item.label,
+      disabled: ['ip'].includes(item.colKey as string),
+      field: item.colKey as string,
+      label: item.title as string,
     })),
   };
 

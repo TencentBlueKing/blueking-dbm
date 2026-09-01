@@ -30,14 +30,14 @@
         <div class="title-spot mt-12 mb-10">{{ t('重建对象') }}<span class="required" /></div>
         <CardCheckbox
           v-model="formData.role"
-          desc="重建集群中所有的 Spider Master 节点"
+          :desc="t('重建集群中所有的 Spider Master 节点')"
           icon="host"
           :title="t('Spider Master')"
           true-value="spider_master" />
         <CardCheckbox
           v-model="formData.role"
           class="ml-8"
-          desc="重建集群中所有的 Spider Slave 节点"
+          :desc="t('重建集群中所有的 Spider Slave 节点')"
           icon="rebuild"
           :title="t('Spider Slave')"
           true-value="spider_slave" />
@@ -113,16 +113,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -293,40 +287,39 @@
     },
   );
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const role = formData.role;
-    const resourceSpecKey = role === 'spider_master' ? 'spider_master_new_ip_list' : 'spider_slave_new_ip_list';
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => {
-          const oldHosts = role === 'spider_slave' ? item.cluster.spider_slave || [] : item.cluster.spider_master || [];
-          return {
-            cluster_id: item.cluster.id,
-            old_nodes: {
-              proxy: oldHosts.map((host: ClusterListNode) => ({
-                bk_cloud_id: host.bk_cloud_id,
-                bk_host_id: host.bk_host_id,
-                ip: host.ip,
-              })),
-            },
-            resource_spec: {
-              [resourceSpecKey]: {
-                count: Number(item.count),
-                label_names: item.labels.map((label) => label.value),
-                labels: item.labels.map((label) => String(label.id)),
-                spec_id: item.specId,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const role = formData.role;
+      const resourceSpecKey = role === 'spider_master' ? 'spider_master_new_ip_list' : 'spider_slave_new_ip_list';
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => {
+            const oldHosts =
+              role === 'spider_slave' ? item.cluster.spider_slave || [] : item.cluster.spider_master || [];
+            return {
+              cluster_id: item.cluster.id,
+              old_nodes: {
+                proxy: oldHosts.map((host: ClusterListNode) => ({
+                  bk_cloud_id: host.bk_cloud_id,
+                  bk_host_id: host.bk_host_id,
+                  ip: host.ip,
+                })),
               },
-            },
-            strip_dns_before_install: true,
-          };
-        }),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+              resource_spec: {
+                [resourceSpecKey]: {
+                  count: Number(item.count),
+                  label_names: item.labels.map((label) => label.value),
+                  labels: item.labels.map((label) => String(label.id)),
+                  spec_id: item.specId,
+                },
+              },
+              strip_dns_before_install: true,
+            };
+          }),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

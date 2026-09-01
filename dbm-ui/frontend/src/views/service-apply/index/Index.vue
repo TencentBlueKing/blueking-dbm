@@ -109,15 +109,7 @@
 
   import { useFunController, useUserProfile } from '@stores';
 
-  import {
-    bigDataType,
-    mongoType,
-    mysqlType,
-    redisType,
-    sqlServerType,
-    TicketTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { TicketTypes, UserPersonalSettings } from '@common/const';
 
   import { makeMap } from '@utils';
 
@@ -133,7 +125,6 @@
       icon: string;
       id: TicketTypes;
       name: string;
-      routeName: string;
       tipImgProps?: {
         src: string;
         width: number;
@@ -159,9 +150,8 @@
         {
           controllerId: 'tendbsingle',
           icon: 'mysql',
-          id: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].id,
-          name: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].name,
-          routeName: TicketTypes.MYSQL_SINGLE_APPLY,
+          id: TicketTypes.MYSQL_SINGLE_APPLY,
+          name: t('单节点部署'),
           tipImgProps: {
             src: singleTipImg,
             width: 150,
@@ -170,9 +160,8 @@
         {
           controllerId: 'tendbha',
           icon: 'mysql',
-          id: mysqlType[TicketTypes.MYSQL_HA_APPLY].id,
-          name: mysqlType[TicketTypes.MYSQL_HA_APPLY].name,
-          routeName: TicketTypes.MYSQL_HA_APPLY,
+          id: TicketTypes.MYSQL_HA_APPLY,
+          name: t('主从部署'),
           tipImgProps: {
             src: haTipImg,
             width: 362,
@@ -181,9 +170,8 @@
         {
           controllerId: 'tendbcluster',
           icon: 'mysql',
-          id: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].id,
-          name: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].name,
-          routeName: TicketTypes.TENDBCLUSTER_APPLY,
+          id: TicketTypes.TENDBCLUSTER_APPLY,
+          name: t('TendbCluster分布式集群部署'),
         },
       ],
       groupName: 'MySQL',
@@ -195,16 +183,14 @@
         {
           controllerId: 'sqlserver_single',
           icon: 'sqlserver',
-          id: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].id,
-          name: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].name,
-          routeName: TicketTypes.SQLSERVER_SINGLE_APPLY,
+          id: TicketTypes.SQLSERVER_SINGLE_APPLY,
+          name: t('单节点部署'),
         },
         {
           controllerId: 'sqlserver_ha',
           icon: 'sqlserver',
-          id: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].id,
-          name: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].name,
-          routeName: TicketTypes.SQLSERVER_HA_APPLY,
+          id: TicketTypes.SQLSERVER_HA_APPLY,
+          name: t('主从部署'),
         },
       ],
       groupName: 'SQLServer',
@@ -215,15 +201,13 @@
       children: [
         {
           icon: 'redis',
-          id: redisType[TicketTypes.REDIS_CLUSTER_APPLY].id,
-          name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
-          routeName: TicketTypes.REDIS_CLUSTER_APPLY,
+          id: TicketTypes.REDIS_CLUSTER_APPLY,
+          name: t('Redis集群部署'),
         },
         {
           icon: 'redis',
-          id: redisType[TicketTypes.REDIS_INS_APPLY].id,
-          name: redisType[TicketTypes.REDIS_INS_APPLY].name,
-          routeName: TicketTypes.REDIS_INS_APPLY,
+          id: TicketTypes.REDIS_INS_APPLY,
+          name: t('主从部署'),
         },
       ],
       groupName: 'Redis',
@@ -234,15 +218,13 @@
       children: [
         {
           icon: 'mongo-db',
-          id: mongoType[TicketTypes.MONGODB_SHARD_APPLY].id,
-          name: mongoType[TicketTypes.MONGODB_SHARD_APPLY].name,
-          routeName: TicketTypes.MONGODB_SHARD_APPLY,
+          id: TicketTypes.MONGODB_SHARD_APPLY,
+          name: t('MongoDB分片集群部署'),
         },
         {
           icon: 'mongo-db',
-          id: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].id,
-          name: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].name,
-          routeName: TicketTypes.MONGODB_REPLICASET_APPLY,
+          id: TicketTypes.MONGODB_REPLICASET_APPLY,
+          name: t('MongoDB副本集部署'),
         },
       ],
       groupName: 'Mongodb',
@@ -254,9 +236,8 @@
         {
           controllerId: 'influxdb',
           icon: 'influxdb',
-          id: bigDataType[TicketTypes.INFLUXDB_APPLY].id,
-          name: bigDataType[TicketTypes.INFLUXDB_APPLY].name,
-          routeName: TicketTypes.INFLUXDB_APPLY,
+          id: TicketTypes.INFLUXDB_APPLY,
+          name: t('InfluxDB集群部署'),
         },
       ],
       id: 'bigdata',
@@ -267,23 +248,20 @@
         {
           controllerId: 'es',
           icon: 'es',
-          id: bigDataType[TicketTypes.ES_APPLY].id,
-          name: bigDataType[TicketTypes.ES_APPLY].name,
-          routeName: TicketTypes.ES_APPLY,
+          id: TicketTypes.ES_APPLY,
+          name: t('ES集群部署'),
         },
         {
           controllerId: 'hdfs',
           icon: 'hdfs',
-          id: bigDataType[TicketTypes.HDFS_APPLY].id,
-          name: bigDataType[TicketTypes.HDFS_APPLY].name,
-          routeName: TicketTypes.HDFS_APPLY,
+          id: TicketTypes.HDFS_APPLY,
+          name: t('HDFS集群部署'),
         },
         {
           controllerId: 'doris',
           icon: 'doris',
-          id: bigDataType[TicketTypes.DORIS_APPLY].id,
-          name: bigDataType[TicketTypes.DORIS_APPLY].name,
-          routeName: TicketTypes.DORIS_APPLY,
+          id: TicketTypes.DORIS_APPLY,
+          name: t('Doris集群部署'),
         },
       ],
       id: 'bigdata',
@@ -294,27 +272,48 @@
         {
           controllerId: 'pulsar',
           icon: 'pulsar',
-          id: bigDataType[TicketTypes.PULSAR_APPLY].id,
-          name: bigDataType[TicketTypes.PULSAR_APPLY].name,
-          routeName: TicketTypes.PULSAR_APPLY,
+          id: TicketTypes.PULSAR_APPLY,
+          name: t('Pulsar集群部署'),
         },
         {
           controllerId: 'kafka',
           icon: 'kafka',
-          id: bigDataType[TicketTypes.KAFKA_APPLY].id,
-          name: bigDataType[TicketTypes.KAFKA_APPLY].name,
-          routeName: TicketTypes.KAFKA_APPLY,
+          id: TicketTypes.KAFKA_APPLY,
+          name: t('Kafka集群部署'),
         },
         {
           controllerId: 'riak',
           icon: 'cluster',
-          id: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].id,
-          name: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].name,
-          routeName: TicketTypes.RIAK_CLUSTER_APPLY,
+          id: TicketTypes.RIAK_CLUSTER_APPLY,
+          name: t('Riak集群部署'),
         },
       ],
       id: 'bigdata',
       name: '消息队列',
+    },
+    {
+      children: [
+        {
+          controllerId: 'k8s_surrealdb',
+          icon: 'node',
+          id: TicketTypes.K8S_SURREALDB_HA_APPLY,
+          name: t('SurrealDB 集群部署'),
+        },
+        {
+          controllerId: 'k8s_surrealdb',
+          icon: 'cluster',
+          id: TicketTypes.K8S_SURREALDB_SINGLE_APPLY,
+          name: t('SurrealDB 单节点部署'),
+        },
+        {
+          controllerId: 'k8s_qdrant',
+          icon: 'cluster',
+          id: TicketTypes.K8S_QDRANT_HA_APPLY,
+          name: t('Qdrant 集群部署'),
+        },
+      ],
+      id: 'k8s',
+      name: 'K8S',
     },
   ];
 
@@ -367,7 +366,7 @@
     localStorage.setItem(localHistroyKey, JSON.stringify(_.uniq([item.id, ...historyCacheIdList.value]).slice(0, 6)));
 
     router.push({
-      name: item.routeName,
+      name: item.id,
       query: {
         bizId: route.name === 'BussinessServiceApplyIndex' ? window.PROJECT_CONFIG.BIZ_ID : undefined,
         from: route.name as string,

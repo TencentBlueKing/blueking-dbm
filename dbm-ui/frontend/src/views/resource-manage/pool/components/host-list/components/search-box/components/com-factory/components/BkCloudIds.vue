@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     collapse-tags
     filterable
     :input-search="false"
@@ -23,12 +23,12 @@
     :placeholder="t('请选择管控区域')"
     show-selected-icon
     @change="handleChange">
-    <BkOption
+    <DbOption
       v-for="item in data"
       :key="item.bk_cloud_id"
       :label="item.bk_cloud_name"
       :value="`${item.bk_cloud_id}`" />
-  </BkSelect>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

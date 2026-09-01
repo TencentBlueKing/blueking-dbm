@@ -20,27 +20,68 @@
             {{ t('订阅的库表') }}
           </div>
           <div class="rules-view-operations-right">
-            <DbSearchSelect
+            <DbQuickSearch
               v-model="search"
               :data="searchSelectData"
+              parse-url
               :placeholder="t('请输入DB/表名')"
               style="width: 500px"
               @change="handleLocalSearch" />
           </div>
         </div>
-        <BkTable
+        <PrimaryTable
           class="subscribe-table"
-          :columns="subscribeColumns"
-          :data="subscribeTableData" />
+          :data="subscribeTableData"
+          row-key="db_name">
+          <TableColumn
+            col-key="db_name"
+            :title="t('DB 名')"
+            width="300" />
+          <TableColumn
+            col-key="table_names"
+            min-width="100"
+            :title="t('表名')">
+            <template #default="{ row }">
+              <div class="table-names-box">
+                <div
+                  v-for="(item, index) in row.table_names"
+                  :key="index"
+                  class="name-item">
+                  {{ item }}
+                </div>
+              </div>
+            </template>
+          </TableColumn>
+        </PrimaryTable>
         <div
           class="row-title"
           style="margin-top: 35px; margin-bottom: 16px">
           {{ t('数据源与接收端') }}
         </div>
-        <BkTable
+        <PrimaryTable
           class="subscribe-table"
-          :columns="receiverColumns"
-          :data="receiverTableData" />
+          :data="receiverTableData"
+          row-key="dumper_id">
+          <TableColumn
+            col-key="source_cluster_domain"
+            :title="t('数据源集群')" />
+          <TableColumn
+            col-key="dumper_id"
+            :title="t('部署dumper实例ID')" />
+          <TableColumn
+            col-key="protocol_type"
+            :title="t('接收端类型')" />
+          <TableColumn
+            col-key="target_address"
+            :title="t('接收端集群与端口')" />
+          <TableColumn
+            col-key="add_type"
+            :title="t('同步方式')">
+            <template #default="{ row }">
+              {{ syncTypeMap[row.add_type] }}
+            </template>
+          </TableColumn>
+        </PrimaryTable>
         <div
           class="info-item"
           style="margin-top: 20px; margin-bottom: 15px">
@@ -59,8 +100,6 @@
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
-  import { getSearchSelectorParams } from '@utils';
-
   type DumperConfig = ServiceReturnType<typeof getDumperConfigDetail>;
 
   interface Props {
@@ -71,7 +110,7 @@
 
   const { t } = useI18n();
 
-  const search = ref([]);
+  const search = ref<Record<string, string>>({});
   const subscribeTableData = ref<DumperConfig['repl_tables']>([]);
   const receiverTableData = ref<DumperConfig['dumper_instances']>([]);
 
@@ -90,54 +129,6 @@
     {
       id: 'table_name',
       name: t('表名'),
-    },
-  ];
-
-  const subscribeColumns = [
-    {
-      field: 'db_name',
-      label: t('DB 名'),
-      width: 300,
-    },
-    {
-      field: 'table_names',
-      label: t('表名'),
-      minWidth: 100,
-      render: ({ data }: { data: { table_names: string[] } }) => (
-        <div class='table-names-box'>
-          {data.table_names.map((item, index) => (
-            <div
-              key={index}
-              class='name-item'>
-              {item}
-            </div>
-          ))}
-        </div>
-      ),
-    },
-  ];
-
-  const receiverColumns = [
-    {
-      field: 'source_cluster_domain',
-      label: t('数据源集群'),
-    },
-    {
-      field: 'dumper_id',
-      label: t('部署dumper实例ID'),
-    },
-    {
-      field: 'protocol_type',
-      label: t('接收端类型'),
-    },
-    {
-      field: 'target_address',
-      label: t('接收端集群与端口'),
-    },
-    {
-      field: 'add_type',
-      label: t('同步方式'),
-      render: ({ data }: { data: { add_type: string } }) => <span>{syncTypeMap[data.add_type]}</span>,
     },
   ];
 
@@ -170,8 +161,7 @@
   );
 
   const handleLocalSearch = () => {
-    const searchParams = getSearchSelectorParams(search.value);
-    const { db_name: dbName, table_name: tableName } = searchParams as { db_name?: string; table_name?: string };
+    const { db_name: dbName, table_name: tableName } = search.value;
     subscribeTableData.value = subscribeRawTableData.filter(
       (item) =>
         (!dbName || new RegExp(dbName).test(item.db_name)) &&
@@ -208,12 +198,6 @@
           color: #63656e;
           background: #f0f1f5;
           border-radius: 2px;
-        }
-      }
-
-      :deep(th) {
-        .head-text {
-          color: #313238;
         }
       }
     }
@@ -303,7 +287,7 @@
         color: @gray-color;
       }
 
-      .vxe-cell {
+      td {
         color: @disable-color;
       }
     }

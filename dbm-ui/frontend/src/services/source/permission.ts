@@ -40,18 +40,34 @@ interface AdminPasswordResultItem {
   }[];
 }
 
+/**
+ * 获取实例临时密码返回项
+ */
+interface InstancePasswordItem {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  component: string;
+  ip: string;
+  lock_until: string;
+  operator: string;
+  password: string;
+  port: number;
+  update_time: string;
+  username: string;
+}
+
 const path = '/apis/conf/password_policy';
 
 /**
  * 查询密码安全策略
  */
-export const getPasswordPolicy = (params: { name: string }) =>
-  http.get<PasswordPolicy>(`${path}/get_password_policy/`, params);
+export const getPasswordPolicy = (params: { name?: string }, payload = {} as IRequestPayload) =>
+  http.get<PasswordPolicy>(`${path}/get_password_policy/`, params, payload);
 
 /**
  * 更新密码安全策略
  */
-export const updatePasswordPolicy = (params: { reset: boolean } & PasswordPolicy) =>
+export const updatePasswordPolicy = (params: { db_type: DBTypes; reset: boolean } & PasswordPolicy) =>
   http.post(`${path}/update_password_policy/`, params);
 
 /**
@@ -63,7 +79,8 @@ export const queryRandomCycle = (params = {}, payload = {} as IRequestPayload) =
 /**
  * 更新随机化周期
  */
-export const modifyRandomCycle = (params: RamdomCycle) => http.post(`${path}/modify_random_cycle/`, params);
+export const modifyRandomCycle = (params: { db_type: DBTypes } & RamdomCycle) =>
+  http.post(`${path}/modify_random_cycle/`, params);
 
 /**
  * 获取符合密码强度的字符串
@@ -93,15 +110,19 @@ export const modifyAdminPassword = (params: {
 /**
  * 查询生效实例密码(admin)
  */
-export const queryAdminPassword = (params: {
-  begin_time?: string;
-  db_type?: DBTypes;
-  end_time?: string;
-  instances?: string;
-  limit?: number;
-  offset?: number;
-}) =>
-  http.post<ListBase<AdminPasswordModel[]>>(`${path}/query_admin_password/`, params).then((res) => ({
+export const queryAdminPassword = (
+  params: {
+    begin_time?: string;
+    bk_biz_id?: number;
+    db_type?: DBTypes;
+    end_time?: string;
+    instances?: string;
+    limit?: number;
+    offset?: number;
+  },
+  payload?: IRequestPayload,
+) =>
+  http.post<ListBase<AdminPasswordModel[]>>(`${path}/query_admin_password/`, params, payload).then((res) => ({
     ...res,
     results: res.results.map((item) => new AdminPasswordModel(item)),
   }));
@@ -117,6 +138,23 @@ export const queryAsyncModifyResult = (params: { root_id: string }) =>
     status: string;
     success?: AdminPasswordResultItem[];
   }>(`${path}/query_async_modify_result/`, params);
+
+/**
+ * 获取实例的当前临时密码
+ */
+export const getInstancePassword = (params: {
+  bk_biz_id?: number;
+  db_type?: DBTypes;
+  instances: {
+    cluster_id: number;
+    ip: string;
+    port: number;
+  }[];
+}) =>
+  http.post<{
+    count: number;
+    results: InstancePasswordItem[];
+  }>(`${path}/get_instance_password/`, params);
 
 /**
  * 获取公钥列表

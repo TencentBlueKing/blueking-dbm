@@ -184,6 +184,7 @@ INSTANCE_BKLOG_PLUGINS = {
                 "mysql_grants_report",
                 "mixed_report",
                 "backup_stm_log",
+                "dbm_retry_event",
             ],
         },
         MachineType.SINGLE: {
@@ -197,6 +198,7 @@ INSTANCE_BKLOG_PLUGINS = {
                 "mysql_grants_report",
                 "mixed_report",
                 "backup_stm_log",
+                "dbm_retry_event",
             ],
         },
         MachineType.PROXY: {"name": "proxy", "plugin_ids": ["mixed_report", "backup_stm_log"]},
@@ -211,6 +213,7 @@ INSTANCE_BKLOG_PLUGINS = {
                 "mysql_grants_report",
                 "mixed_report",
                 "backup_stm_log",
+                "dbm_retry_event",
             ],
         },
         MachineType.REMOTE: {
@@ -224,10 +227,25 @@ INSTANCE_BKLOG_PLUGINS = {
                 "mysql_grants_report",
                 "mixed_report",
                 "backup_stm_log",
+                "dbm_retry_event",
+            ],
+        },
+    },
+    DBType.Sqlserver: {
+        MachineType.SQLSERVER_SINGLE: {
+            "name": "sqlserver",
+            "plugin_ids": ["dbm_retry_event"],
+        },
+        MachineType.SQLSERVER_HA: {
+            "name": "sqlserver",
+            "plugin_ids": [
+                "dbm_retry_event",
             ],
         },
     },
 }
+
+HOST_BKLOG_PLUGINS = ["backup_stm_log", "dbm_retry_event"]
 SERVICE_INSTANCE_BKLOG_PLUGINS = ["redis_slowlog", "mysql_slowlog"]
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"

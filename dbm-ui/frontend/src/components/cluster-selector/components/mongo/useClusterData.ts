@@ -11,16 +11,16 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { type ComponentInternalInstance, getCurrentInstance, reactive, type Ref, ref, shallowRef } from 'vue';
 
-import { getSearchSelectorParams } from '@utils';
+import { transfromDataToQuery } from '@utils';
 
 /**
  * 处理集群列表数据
  */
-export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
+export function useClusterData<T>(searchSelectValue: Ref<Record<string, string>>) {
   let baseExtraParamsMemo: Record<string, any> = {};
+  let fetchSeq = 0;
   const currentInstance = getCurrentInstance() as {
     proxy: {
       activeTab: string;
@@ -62,26 +62,36 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     if (extraParams) {
       pagination.current = 1;
     }
+    // 并发场景下只接受最后一次请求的结果，避免旧响应覆盖分页与表格数据
+    const currentFetchSeq = ++fetchSeq;
     return currentInstance.proxy
       .getResourceList({
         cluster_type: currentInstance.proxy.activeTab,
         limit: pagination.limit,
         offset: pagination.limit * (pagination.current - 1),
-        ...getSearchSelectorParams(searchSelectValue.value),
+        ...transfromDataToQuery(searchSelectValue.value),
         ...baseExtraParamsMemo,
       })
       .then((res) => {
+        if (currentFetchSeq !== fetchSeq) {
+          return;
+        }
         pagination.count = res.count;
         tableData.value = res.results;
         isAnomalies.value = false;
       })
       .catch(() => {
+        if (currentFetchSeq !== fetchSeq) {
+          return;
+        }
         tableData.value = [];
         pagination.count = 0;
         isAnomalies.value = true;
       })
       .finally(() => {
-        isLoading.value = false;
+        if (currentFetchSeq === fetchSeq) {
+          isLoading.value = false;
+        }
       });
   };
 
@@ -103,6 +113,5 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     isAnomalies,
     isLoading,
     pagination,
-    searchSelectValue,
   };
 }

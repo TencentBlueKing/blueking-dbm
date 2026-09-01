@@ -36,7 +36,6 @@
     v-model="selectedInstances"
     v-model:is-show="isShowIpSelector"
     :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
-    repeatable
     @change="handleSelectorChange" />
   <EditableColumn
     field="cluster_domain"

@@ -108,6 +108,7 @@ class MongoDBViewSet(ResourceViewSet):
 
     list_perm_actions = [
         ActionEnum.MONGODB_VIEW,
+        ActionEnum.MONGODB_MANAGE,
         ActionEnum.MONGODB_ENABLE_DISABLE,
         ActionEnum.MONGODB_WEBCONSOLE,
         ActionEnum.MONGODB_EDIT,
@@ -116,8 +117,11 @@ class MongoDBViewSet(ResourceViewSet):
         ActionEnum.MONGODB_SUBSCRIBE_MONITOR,
         ActionEnum.MONGODB_ACCESS_ENTRY_VIEW,
         ActionEnum.MONGODB_DBCONFIG_EDIT,
+        ActionEnum.MONGODB_LOADBALANCE_MANAGE,
+        ActionEnum.MONGODB_AUTHORIZE,
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
+    list_external_manage_actions = [ActionEnum.MONGODB_PRIV_MANAGE]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取实例的角色类型"),

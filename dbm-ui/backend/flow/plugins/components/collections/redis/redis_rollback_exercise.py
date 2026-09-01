@@ -260,6 +260,10 @@ class RedisExerciseReportUpdateService(RedisLogCapturingService):
             task_message = embed_failed_node_logs(task_message, report, stage)
             report.mark(stage, task_message=task_message)
             self.log_info(_("Report {} marked as {}").format(report_id, stage))
+            if stage in self.TERMINAL_STAGES:
+                from backend.db_report.portrait.redis_ingest import ingest_rollback_exercise_portrait
+
+                ingest_rollback_exercise_portrait(report)
         except Exception as e:
             self.log_error(_("Failed to update report {}: {}").format(report_id, str(e)))
 
@@ -312,7 +316,16 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         output_var = data.get_one_of_outputs("output_var") or "rollback_code"
         setattr(data.outputs, output_var, code)
 
-    def _finish_by_child_state(self, data, child_root_id: str, child_state) -> bool:
+    def _finish_by_child_state(self, data, child_root_id: str, child_state):
+        """Handle child state and return whether the runner can complete:
+
+        - True: child reached a terminal state; schedule completed.
+        - None: child is still running; keep polling.
+
+        A child failure is a business outcome, not a runner failure. Preserve mode
+        records the scene and lets the following pause node hold this branch for
+        manual confirmation, keeping the parent ticket RUNNING.
+        """
         if child_state == StateType.FINISHED:
             self.log_info(_("Child pipeline {} finished successfully").format(child_root_id))
             self._set_result(data, 0)
@@ -320,6 +333,21 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
             return True
 
         if child_state in (StateType.FAILED, StateType.REVOKED):
+            if data.get_one_of_outputs("preserve_scene_on_failure"):
+                # Preserve the child and complete this runner normally. The failure
+                # output routes the branch to a manual-confirmation pause node.
+                self.log_error(
+                    _(
+                        "Child pipeline {} ended with status {}, scene preserved for manual inspection. "
+                        "Please investigate and complete the following confirmation node to mark the failure "
+                        "and clean up."
+                    ).format(child_root_id, child_state)
+                )
+                self._set_result(data, 1)
+                self._preserve_scene(data, child_root_id)
+                self.finish_schedule()
+                return True
+
             self.log_error(_("Child pipeline {} ended with status {}").format(child_root_id, child_state))
             # FAILED means the pipeline errored out but sibling/pending nodes may still be running.
             # Revoke to ensure the whole tree is terminated. REVOKED is already terminal, skip.
@@ -329,7 +357,40 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
             self.finish_schedule()
             return True
 
-        return False
+        return None
+
+    def _preserve_scene(self, data, child_root_id: str):
+        """Mark this runner's report as SCENE_PRESERVED.
+
+        Embed child failure-node logs before mark so task_message keeps evidence.
+        Mark failures are logged only; the runner still completes so the
+        following pause node can preserve the scene without failing the ticket.
+        """
+        kwargs = data.get_one_of_inputs("kwargs") or {}
+        report_id = kwargs.get("report_id")
+        if not report_id:
+            self.log_warning(
+                _("preserve scene skipped: no report_id in runner kwargs (child {})").format(child_root_id)
+            )
+            return
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            self.log_warning(_("Report {} not found when preserving scene").format(report_id))
+            return
+        if report.task_stage == TaskStage.SCENE_PRESERVED:
+            self.log_info(_("Report {} is already scene preserved, skip duplicate mark").format(report_id))
+            return
+        try:
+            from backend.db_services.redis.rollback.failure_analysis import embed_failed_node_logs
+
+            task_message = self.render_report_message(report.task_message)
+            task_message = embed_failed_node_logs(task_message, report, TaskStage.SCENE_PRESERVED)
+            report.mark(TaskStage.SCENE_PRESERVED, task_message=task_message)
+            self.log_info(_("Report {} marked {} (scene preserved)").format(report_id, TaskStage.SCENE_PRESERVED))
+        except Exception:
+            self.log_error(_("Failed to mark report {} as scene preserved").format(report_id))
+            logger.exception("failed to mark scene preserved report %s", report_id)
 
     def _terminate_child_pipeline(self, child_root_id: str):
         try:
@@ -343,6 +404,37 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         except Exception:
             logger.warning(_("Exception while revoking child pipeline {}").format(child_root_id), exc_info=True)
 
+    def _revoke_previous_child_pipeline(self, report_id, flow_id_field):
+        """Force-retry safety net: revoke a leftover non-terminal child before submitting a new one.
+
+        Preserve-mode nodes are not retryable, but is_force=True can still bypass that.
+        If the old child root_id is left behind, the report field is overwritten and the
+        old scene becomes an orphan pipeline. Revoke only when the FlowTree exists and is
+        not FINISHED/REVOKED; failures are warnings only.
+        """
+        try:
+            previous_root_id = Report.objects.filter(id=report_id).values_list(flow_id_field, flat=True).first()
+        except Exception as e:
+            self.log_warning(_("Failed to load previous child root for report {}: {}").format(report_id, e))
+            return
+        if not previous_root_id:
+            return
+
+        try:
+            previous_tree = FlowTree.objects.filter(root_id=previous_root_id).only("status").first()
+        except Exception as e:
+            self.log_warning(_("Failed to load previous child tree {}: {}").format(previous_root_id, e))
+            return
+        if not previous_tree or previous_tree.status in (StateType.FINISHED, StateType.REVOKED):
+            return
+
+        self.log_info(
+            _("Revoking previous leftover child pipeline {} before submitting a new child flow").format(
+                previous_root_id
+            )
+        )
+        self._terminate_child_pipeline(previous_root_id)
+
     def _execute_inner_captured(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         polling_interval = kwargs.get("polling_interval", 10)
@@ -355,6 +447,8 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         output_var = kwargs.get("output_var", "rollback_code")
 
         data.outputs.output_var = output_var
+        # Preserve mode (flow passes not error_ignorable); stash on outputs for schedule.
+        data.outputs.preserve_scene_on_failure = bool(kwargs.get("preserve_scene_on_failure", False))
 
         if kwargs.get("build_flow_data_from_global") or kwargs.get("build_delete_flow_data_from_global"):
             global_data = data.get_one_of_inputs("global_data") or {}
@@ -408,13 +502,23 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
             return True
 
         flow_class, method_name = registry_entry
+        if report_id and flow_id_field and data.get_one_of_outputs("preserve_scene_on_failure"):
+            self._revoke_previous_child_pipeline(report_id, flow_id_field)
         child_root_id = generate_root_id()
 
         try:
             flow_instance = flow_class(root_id=child_root_id, data=copy.deepcopy(flow_data))
-            getattr(flow_instance, method_name)()
+            launch_result = getattr(flow_instance, method_name)()
         except Exception as e:
             self.log_error(_("Failed to run {} (root_id={}): {}").format(flow_identifier, child_root_id, e))
+            self._set_result(data, 1)
+            self.finish_schedule()
+            return True
+
+        if launch_result is False:
+            self.log_error(
+                _("Child pipeline {} ({}) was rejected before submission").format(child_root_id, flow_identifier)
+            )
             self._set_result(data, 1)
             self.finish_schedule()
             return True
@@ -464,8 +568,9 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
                     )
                 )
             else:
-                if self._finish_by_child_state(data, child_root_id, callback_child_state):
-                    return True
+                outcome = self._finish_by_child_state(data, child_root_id, callback_child_state)
+                if outcome is not None:
+                    return outcome
 
         raw_start_time = data.get_one_of_outputs("start_time")
         if not raw_start_time:
@@ -479,6 +584,20 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         elapsed = (datetime.now() - start_time).total_seconds()
 
         if elapsed > polling_timeout:
+            if data.get_one_of_outputs("preserve_scene_on_failure"):
+                # Preserve: do not revoke — the hung child is the scene. Complete
+                # the runner and let the following pause node hold the branch.
+                self.log_error(
+                    _(
+                        "Child pipeline {} timed out after {:.0f}s, still running and scene preserved for manual "
+                        "inspection. Please investigate and complete the following confirmation node to mark "
+                        "the failure and clean up."
+                    ).format(child_root_id, elapsed)
+                )
+                self._set_result(data, 1)
+                self._preserve_scene(data, child_root_id)
+                self.finish_schedule()
+                return True
             self.log_error(_("Child pipeline {} timed out after {:.0f}s").format(child_root_id, elapsed))
             self._terminate_child_pipeline(child_root_id)
             self._set_result(data, 1)
@@ -490,8 +609,9 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         except FlowTree.DoesNotExist:
             return True
 
-        self._finish_by_child_state(data, child_root_id, flow_tree.status)
-        return True
+        outcome = self._finish_by_child_state(data, child_root_id, flow_tree.status)
+        # None (still running) -> keep polling; terminal states finish the runner.
+        return True if outcome is None else outcome
 
 
 class RedisExerciseFlowRunnerComponent(Component):
@@ -1296,8 +1416,60 @@ done
             case_body=case_body,
         )
 
+    def _revoke_leftover_child_flows(self, global_data: dict):
+        """Revoke leftover non-terminal child pipelines before cleanup so they do not race the cleanup script.
+
+        Non-terminal = FlowTree status not FINISHED/REVOKED. A FAILED tree may still have
+        RUNNING siblings (see the runner comments) and must be revoked as a whole.
+        RUNNING/CREATED/READY are revoked directly. In non-preserve mode the runner already
+        revoked on failure (tree is REVOKED), so this is a no-op.
+        """
+        child_root_ids = []
+        for info in get_effective_drill_infos(global_data, self.trans_data):
+            report_id = info.get("report_id")
+            if not report_id:
+                continue
+            try:
+                report = Report.objects.filter(id=report_id).only("rollback_flow_obj_id", "delete_flow_obj_id").first()
+            except Exception as e:
+                self.log_warning(_("Failed to load report {} for leftover child revoke: {}").format(report_id, e))
+                continue
+            if not report:
+                continue
+            for root_id in (report.rollback_flow_obj_id, report.delete_flow_obj_id):
+                if root_id:
+                    child_root_ids.append(root_id)
+
+        if not child_root_ids:
+            return
+
+        try:
+            leftover_root_ids = list(
+                FlowTree.objects.filter(root_id__in=child_root_ids)
+                .exclude(status__in=[StateType.FINISHED, StateType.REVOKED])
+                .values_list("root_id", flat=True)
+            )
+        except Exception as e:
+            self.log_error(_("Failed to query leftover child flows for revoke: {}").format(e))
+            return
+
+        for root_id in leftover_root_ids:
+            try:
+                revoke_result = BambooEngine(root_id=root_id).revoke_pipeline()
+                if not revoke_result.result:
+                    self.log_warning(
+                        _("Failed to revoke leftover child pipeline {}: {}").format(root_id, revoke_result.message)
+                    )
+                else:
+                    self.log_info(_("Revoked leftover child pipeline {}").format(root_id))
+            except Exception as e:
+                self.log_warning(_("Exception while revoking leftover child pipeline {}: {}").format(root_id, e))
+
     def _execute_inner_captured(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data") or {}
+
+        # Step 0: revoke leftover children (including FAILED trees with RUNNING siblings) so they do not race cleanup
+        self._revoke_leftover_child_flows(global_data)
 
         self.log_info(_("Step 1/4: Collecting cleanup targets from rollback task metadata"))
         cleanup_hosts = self._collect_cleanup_hosts(global_data)
@@ -1396,6 +1568,9 @@ done
         merged_msg = embed_failed_node_logs(merged_msg, report, TaskStage.CLEANUP_FAILED)
         report.mark(TaskStage.CLEANUP_FAILED, task_message=merged_msg)
         self.log_info(_("Report {} marked CLEANUP_FAILED by best-effort cleanup").format(report_id))
+        from backend.db_report.portrait.redis_ingest import ingest_rollback_exercise_portrait
+
+        ingest_rollback_exercise_portrait(report)
 
 
 class RedisExerciseBestEffortCleanupComponent(Component):

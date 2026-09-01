@@ -125,6 +125,12 @@ func (b *BaseClusterConfigBuilder) ParseEnvConfig(
 	result.Config = envMap
 	if request.Env != nil {
 		for _, envVar := range request.Env {
+			// 跳过使用 valueFrom（fieldRef/configMapKeyRef/secretKeyRef）的环境变量，
+			// 这类变量的值由 K8s/ComponentDefinition 动态注入，无法用静态 key-value 表示，
+			// 如果以静态 value 方式写回会覆盖原有的动态注入机制，导致运行时异常
+			if envVar.ValueFrom != nil {
+				continue
+			}
 			result.Config[envVar.Name] = envVar.Value
 		}
 	}

@@ -51,9 +51,9 @@
             <div v-db-console="'es.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="es_scale_up"
+                  action-id="es_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.es_scale_up"
+                  :permission="data.permission.es_manage"
                   :resource="data.id"
                   text
                   @click="handleShowExpandsion">
@@ -64,9 +64,9 @@
             <div v-db-console="'es.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="es_shrink"
+                  action-id="es_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.es_shrink"
+                  :permission="data.permission.es_manage"
                   :resource="data.id"
                   text
                   @click="handleShowShrink">
@@ -81,8 +81,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="es_create_clb"
-                  :permission="data.permission.es_create_clb"
+                  action-id="es_loadbalance_manage"
+                  :permission="data.permission.es_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
@@ -97,8 +97,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="es_create_polaris"
-                  :permission="data.permission.es_create_polaris"
+                  action-id="es_loadbalance_manage"
+                  :permission="data.permission.es_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="handleAddPolaris({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
@@ -113,8 +113,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="es_dns_bind_clb"
-                  :permission="data.permission.es_dns_bind_clb"
+                  action-id="es_loadbalance_manage"
+                  :permission="data.permission.es_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="
@@ -263,6 +263,7 @@
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
 
   import HostList from './components/HostList.vue';
 
@@ -297,6 +298,7 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     /* eslint-disable perfectionist/sort-objects */
@@ -313,6 +315,12 @@
     manual: true,
     onSuccess(result: EsDetailModel) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'es_access_entry_view',
+        data: result,
+        onOpen: () => handleShowPassword(),
+      });
     },
   });
 

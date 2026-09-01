@@ -62,16 +62,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <DbPopconfirm
+        <DbResetButton
+          class="ml-8"
           :confirm-handler="handleReset"
-          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton
-            class="ml-8 w-88"
-            :disabled="isSubmitting">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+          :disabled="isSubmitting" />
       </template>
     </SmartAction>
   </MigrateWrapper>
@@ -199,43 +193,41 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.SQLSERVER_CLUSTER_MIGRATE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => {
-          const clusters = Object.values(item.batchCluster.clusters);
-          return {
-            cluster_ids: clusters.map((cluster) => cluster.id),
-            resource_spec: clusters.reduce<
-              Record<
-                string,
-                {
-                  count: number;
-                  label_names: string[];
-                  labels: string[];
-                  spec_id: number;
-                }
-              >
-            >((acc, cluster) => {
-              Object.assign(acc, {
-                [cluster?.cluster_type === ClusterTypes.SQLSERVER_SINGLE ? 'new_hosts' : 'backend_group']: {
-                  count: 1,
-                  label_names: item.labels.map((item) => item.value),
-                  labels: item.labels.map((item) => String(item.id)),
-                  spec_id: item.specId,
-                },
-              });
-              return acc;
-            }, {}),
-          };
-        }),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => {
+            const clusters = Object.values(item.batchCluster.clusters);
+            return {
+              cluster_ids: clusters.map((cluster) => cluster.id),
+              resource_spec: clusters.reduce<
+                Record<
+                  string,
+                  {
+                    count: number;
+                    label_names: string[];
+                    labels: string[];
+                    spec_id: number;
+                  }
+                >
+              >((acc, cluster) => {
+                Object.assign(acc, {
+                  [cluster?.cluster_type === ClusterTypes.SQLSERVER_SINGLE ? 'new_hosts' : 'backend_group']: {
+                    count: 1,
+                    label_names: item.labels.map((item) => item.value),
+                    labels: item.labels.map((item) => String(item.id)),
+                    spec_id: item.specId,
+                  },
+                });
+                return acc;
+              }, {}),
+            };
+          }),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

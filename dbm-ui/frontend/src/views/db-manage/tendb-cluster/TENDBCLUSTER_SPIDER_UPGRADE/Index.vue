@@ -86,16 +86,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <DbPopconfirm
+        <DbResetButton
+          class="ml8"
           :confirm-handler="handleReset"
-          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton
-            class="ml8 w-88"
-            :disabled="isSubmitting">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+          :disabled="isSubmitting" />
       </template>
     </SmartAction>
   </UpgradeWrapper>
@@ -262,9 +256,8 @@
     upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE);
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       const resourceSpec = (rowData: RowData, role: 'spider_master' | 'spider_slave') => {
         const hostList = rowData.cluster[role];
         if (!hostList.length) {
@@ -310,7 +303,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

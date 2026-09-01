@@ -25,6 +25,7 @@
 package mysql
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -51,67 +52,66 @@ type MySQLVariableResult struct {
 
 // SlaveStatusInfo represents MySQL slave status information
 type SlaveStatusInfo struct {
-	SlaveIOState               string `gorm:"column:Slave_IO_State"                json:"Slave_IO_State"`
-	MasterHost                 string `gorm:"column:Master_Host"                   json:"Master_Host"`
-	MasterUser                 string `gorm:"column:Master_User"                   json:"Master_User"`
-	MasterPort                 int    `gorm:"column:Master_Port"                   json:"Master_Port"`
-	ConnectRetry               int    `gorm:"column:Connect_Retry"                 json:"Connect_Retry"`
-	MasterLogFile              string `gorm:"column:Master_Log_File"               json:"Master_Log_File"`
-	ReadMasterLogPos           uint64 `gorm:"column:Read_Master_Log_Pos"           json:"Read_Master_Log_Pos"`
-	RelayLogFile               string `gorm:"column:Relay_Log_File"                json:"Relay_Log_File"`
-	RelayLogPos                uint64 `gorm:"column:Relay_Log_Pos"                 json:"Relay_Log_Pos"`
-	RelayMasterLogFile         string `gorm:"column:Relay_Master_Log_File"         json:"Relay_Master_Log_File"`
-	SlaveIORunning             string `gorm:"column:Slave_IO_Running"              json:"Slave_IO_Running"`
-	SlaveSQLRunning            string `gorm:"column:Slave_SQL_Running"             json:"Slave_SQL_Running"`
-	ReplicateDoDB              string `gorm:"column:Replicate_Do_DB"               json:"Replicate_Do_DB"`
-	ReplicateIgnoreDB          string `gorm:"column:Replicate_Ignore_DB"           json:"Replicate_Ignore_DB"`
-	ReplicateDoTable           string `gorm:"column:Replicate_Do_Table"            json:"Replicate_Do_Table"`
-	ReplicateIgnoreTable       string `gorm:"column:Replicate_Ignore_Table"        json:"Replicate_Ignore_Table"`
-	ReplicateWildDoTable       string `gorm:"column:Replicate_Wild_Do_Table"       json:"Replicate_Wild_Do_Table"`
-	ReplicateWildIgnoreTable   string `gorm:"column:Replicate_Wild_Ignore_Table"   json:"Replicate_Wild_Ignore_Table"`
-	LastErrno                  int    `gorm:"column:Last_Errno"                    json:"Last_Errno"`
-	LastError                  string `gorm:"column:Last_Error"                    json:"Last_Error"`
-	SkipCounter                int    `gorm:"column:Skip_Counter"                  json:"Skip_Counter"`
-	ExecMasterLogPos           uint64 `gorm:"column:Exec_Master_Log_Pos"           json:"Exec_Master_Log_Pos"`
-	RelayLogSpace              uint64 `gorm:"column:Relay_Log_Space"               json:"Relay_Log_Space"`
-	UntilCondition             string `gorm:"column:Until_Condition"               json:"Until_Condition"`
-	UntilLogFile               string `gorm:"column:Until_Log_File"                json:"Until_Log_File"`
-	UntilLogPos                uint64 `gorm:"column:Until_Log_Pos"                 json:"Until_Log_Pos"`
-	MasterSSLAllowed           string `gorm:"column:Master_SSL_Allowed"            json:"Master_SSL_Allowed"`
-	MasterSSLCAFile            string `gorm:"column:Master_SSL_CA_File"            json:"Master_SSL_CA_File"`
-	MasterSSLCAPath            string `gorm:"column:Master_SSL_CA_Path"            json:"Master_SSL_CA_Path"`
-	MasterSSLCert              string `gorm:"column:Master_SSL_Cert"               json:"Master_SSL_Cert"`
-	MasterSSLCipher            string `gorm:"column:Master_SSL_Cipher"             json:"Master_SSL_Cipher"`
-	MasterSSLKey               string `gorm:"column:Master_SSL_Key"                json:"Master_SSL_Key"`
-	SecondsBehindMaster        int    `gorm:"column:Seconds_Behind_Master"         json:"Seconds_Behind_Master"`
-	MasterSSLVerifyServerCert  string `gorm:"column:Master_SSL_Verify_Server_Cert" json:"Master_SSL_Verify_Server_Cert"`
-	LastIOErrno                int    `gorm:"column:Last_IO_Errno"                 json:"Last_IO_Errno"`
-	LastIOError                string `gorm:"column:Last_IO_Error"                 json:"Last_IO_Error"`
-	LastSQLErrno               int    `gorm:"column:Last_SQL_Errno"                json:"Last_SQL_Errno"`
-	LastSQLError               string `gorm:"column:Last_SQL_Error"                json:"Last_SQL_Error"`
-	ReplicateIgnoreServerIDs   string `gorm:"column:Replicate_Ignore_Server_Ids"   json:"Replicate_Ignore_Server_Ids"`
-	MasterServerID             uint64 `gorm:"column:Master_Server_Id"              json:"Master_Server_Id"`
-	MasterUUID                 string `gorm:"column:Master_UUID"                   json:"Master_UUID"`
-	MasterInfoFile             string `gorm:"column:Master_Info_File"              json:"Master_Info_File"`
-	SqlDelay                   uint64 `gorm:"column:SQL_Delay"                     json:"SQL_Delay"`
-	SqlRemainingDelay          string `gorm:"column:SQL_Remaining_Delay"           json:"SQL_Remaining_Delay"`
-	SlaveSqlRunningState       string `gorm:"column:Slave_SQL_Running_State"       json:"Slave_SQL_Running_State"`
-	MasterRetryCount           int    `gorm:"column:Master_Retry_Count"            json:"Master_Retry_Count"`
-	MasterBind                 string `gorm:"column:Master_Bind"                   json:"Master_Bind"`
-	LastIoErrorTimestamp       string `gorm:"column:Last_IO_Error_Timestamp"       json:"Last_IO_Error_Timestamp"`
-	LastSqlErrorTimestamp      string `gorm:"column:Last_SQL_Error_Timestamp"      json:"Last_SQL_Error_Timestamp"`
-	MasterSSLCrl               string `gorm:"column:Master_SSL_Crl"                json:"Master_SSL_Crl"`
-	MasterSSLCrlpath           string `gorm:"column:Master_SSL_Crlpath"            json:"Master_SSL_Crlpath"`
-	RetrievedGtidSet           string `gorm:"column:Retrieved_Gtid_Set"            json:"Retrieved_Gtid_Set"`
-	ExecutedGtidSet            string `gorm:"column:Executed_Gtid_Set"             json:"Executed_Gtid_Set"`
-	AutoPosition               string `gorm:"column:Auto_Position"                 json:"Auto_Position"`
-	ReplicateWildParallelTable string `gorm:"column:Replicate_Wild_Parallel_Table" json:"Replicate_Wild_Parallel_Table"`
+	SlaveIOState               string        `gorm:"column:Slave_IO_State"                json:"Slave_IO_State"`
+	MasterHost                 string        `gorm:"column:Master_Host"                   json:"Master_Host"`
+	MasterUser                 string        `gorm:"column:Master_User"                   json:"Master_User"`
+	MasterPort                 int           `gorm:"column:Master_Port"                   json:"Master_Port"`
+	ConnectRetry               int           `gorm:"column:Connect_Retry"                 json:"Connect_Retry"`
+	MasterLogFile              string        `gorm:"column:Master_Log_File"               json:"Master_Log_File"`
+	ReadMasterLogPos           uint64        `gorm:"column:Read_Master_Log_Pos"           json:"Read_Master_Log_Pos"`
+	RelayLogFile               string        `gorm:"column:Relay_Log_File"                json:"Relay_Log_File"`
+	RelayLogPos                uint64        `gorm:"column:Relay_Log_Pos"                 json:"Relay_Log_Pos"`
+	RelayMasterLogFile         string        `gorm:"column:Relay_Master_Log_File"         json:"Relay_Master_Log_File"`
+	SlaveIORunning             string        `gorm:"column:Slave_IO_Running"              json:"Slave_IO_Running"`
+	SlaveSQLRunning            string        `gorm:"column:Slave_SQL_Running"             json:"Slave_SQL_Running"`
+	ReplicateDoDB              string        `gorm:"column:Replicate_Do_DB"               json:"Replicate_Do_DB"`
+	ReplicateIgnoreDB          string        `gorm:"column:Replicate_Ignore_DB"           json:"Replicate_Ignore_DB"`
+	ReplicateDoTable           string        `gorm:"column:Replicate_Do_Table"            json:"Replicate_Do_Table"`
+	ReplicateIgnoreTable       string        `gorm:"column:Replicate_Ignore_Table"        json:"Replicate_Ignore_Table"`
+	ReplicateWildDoTable       string        `gorm:"column:Replicate_Wild_Do_Table"       json:"Replicate_Wild_Do_Table"`
+	ReplicateWildIgnoreTable   string        `gorm:"column:Replicate_Wild_Ignore_Table"   json:"Replicate_Wild_Ignore_Table"`
+	LastErrno                  int           `gorm:"column:Last_Errno"                    json:"Last_Errno"`
+	LastError                  string        `gorm:"column:Last_Error"                    json:"Last_Error"`
+	SkipCounter                int           `gorm:"column:Skip_Counter"                  json:"Skip_Counter"`
+	ExecMasterLogPos           uint64        `gorm:"column:Exec_Master_Log_Pos"           json:"Exec_Master_Log_Pos"`
+	RelayLogSpace              uint64        `gorm:"column:Relay_Log_Space"               json:"Relay_Log_Space"`
+	UntilCondition             string        `gorm:"column:Until_Condition"               json:"Until_Condition"`
+	UntilLogFile               string        `gorm:"column:Until_Log_File"                json:"Until_Log_File"`
+	UntilLogPos                uint64        `gorm:"column:Until_Log_Pos"                 json:"Until_Log_Pos"`
+	MasterSSLAllowed           string        `gorm:"column:Master_SSL_Allowed"            json:"Master_SSL_Allowed"`
+	MasterSSLCAFile            string        `gorm:"column:Master_SSL_CA_File"            json:"Master_SSL_CA_File"`
+	MasterSSLCAPath            string        `gorm:"column:Master_SSL_CA_Path"            json:"Master_SSL_CA_Path"`
+	MasterSSLCert              string        `gorm:"column:Master_SSL_Cert"               json:"Master_SSL_Cert"`
+	MasterSSLCipher            string        `gorm:"column:Master_SSL_Cipher"             json:"Master_SSL_Cipher"`
+	MasterSSLKey               string        `gorm:"column:Master_SSL_Key"                json:"Master_SSL_Key"`
+	SecondsBehindMaster        sql.NullInt64 `gorm:"column:Seconds_Behind_Master"         json:"Seconds_Behind_Master"`
+	MasterSSLVerifyServerCert  string        `gorm:"column:Master_SSL_Verify_Server_Cert" json:"Master_SSL_Verify_Server_Cert"`
+	LastIOErrno                int           `gorm:"column:Last_IO_Errno"                 json:"Last_IO_Errno"`
+	LastIOError                string        `gorm:"column:Last_IO_Error"                 json:"Last_IO_Error"`
+	LastSQLErrno               int           `gorm:"column:Last_SQL_Errno"                json:"Last_SQL_Errno"`
+	LastSQLError               string        `gorm:"column:Last_SQL_Error"                json:"Last_SQL_Error"`
+	ReplicateIgnoreServerIDs   string        `gorm:"column:Replicate_Ignore_Server_Ids"   json:"Replicate_Ignore_Server_Ids"`
+	MasterServerID             uint64        `gorm:"column:Master_Server_Id"              json:"Master_Server_Id"`
+	MasterUUID                 string        `gorm:"column:Master_UUID"                   json:"Master_UUID"`
+	MasterInfoFile             string        `gorm:"column:Master_Info_File"              json:"Master_Info_File"`
+	SqlDelay                   uint64        `gorm:"column:SQL_Delay"                     json:"SQL_Delay"`
+	SqlRemainingDelay          string        `gorm:"column:SQL_Remaining_Delay"           json:"SQL_Remaining_Delay"`
+	SlaveSqlRunningState       string        `gorm:"column:Slave_SQL_Running_State"       json:"Slave_SQL_Running_State"`
+	MasterRetryCount           int           `gorm:"column:Master_Retry_Count"            json:"Master_Retry_Count"`
+	MasterBind                 string        `gorm:"column:Master_Bind"                   json:"Master_Bind"`
+	LastIoErrorTimestamp       string        `gorm:"column:Last_IO_Error_Timestamp"       json:"Last_IO_Error_Timestamp"`
+	LastSqlErrorTimestamp      string        `gorm:"column:Last_SQL_Error_Timestamp"      json:"Last_SQL_Error_Timestamp"`
+	MasterSSLCrl               string        `gorm:"column:Master_SSL_Crl"                json:"Master_SSL_Crl"`
+	MasterSSLCrlpath           string        `gorm:"column:Master_SSL_Crlpath"            json:"Master_SSL_Crlpath"`
+	RetrievedGtidSet           string        `gorm:"column:Retrieved_Gtid_Set"            json:"Retrieved_Gtid_Set"`
+	ExecutedGtidSet            string        `gorm:"column:Executed_Gtid_Set"             json:"Executed_Gtid_Set"`
+	AutoPosition               string        `gorm:"column:Auto_Position"                 json:"Auto_Position"`
+	ReplicateWildParallelTable string        `gorm:"column:Replicate_Wild_Parallel_Table" json:"Replicate_Wild_Parallel_Table"`
 }
 
 // SlaveTimeDelayInfo contains slave replication delay information
 type SlaveTimeDelayInfo struct {
 	SlaveHeartbeatDelay float64 `gorm:"column:heartbeat_delay"`
-	SlaveIODelay        float64 `gorm:"column:io_delay"`
 }
 
 // MasterStatusInfo represents MySQL master status information

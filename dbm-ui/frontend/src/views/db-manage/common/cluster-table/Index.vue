@@ -33,7 +33,9 @@
       <slot name="status">
         <StatusColumn :cluster-type="clusterType" />
       </slot>
-      <slot name="clusterState">
+      <slot
+        v-if="!clusterType.includes('k8s')"
+        name="clusterState">
         <ClusterStatsColumn :cluster-type="clusterType" />
       </slot>
       <slot name="role" />
@@ -187,21 +189,35 @@
     {
       content: t('注意！集群操作已移到此处，助您更快触达'),
       entry: () => {
-        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper');
-        if (fixZIndexEle) {
-          (fixZIndexEle as HTMLElement).style.zIndex = 'unset !important';
-        }
+        rootRef.value!.querySelectorAll('.t-table__cell--fixed-left').forEach((ele) => {
+          (ele as HTMLElement).style.setProperty('z-index', 'unset', 'important');
+        });
       },
       leave: () => {
-        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper');
-        if (fixZIndexEle) {
-          (fixZIndexEle as HTMLElement).style.zIndex = '';
-        }
+        rootRef.value!.querySelectorAll('.t-table__cell--fixed-left').forEach((ele) => {
+          (ele as HTMLElement).style.removeProperty('z-index');
+        });
       },
       target: '.cluster-list-column-operation-btn',
       title: t('温馨提示'),
     },
   ];
+
+  watch(
+    () => [props.clusterType, props.clusterId],
+    () => {
+      if (props.clusterType.includes('k8s')) {
+        if (props.clusterId) {
+          tableRef.value?.stopPolling();
+        } else {
+          tableRef.value?.startPolling();
+        }
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const fetchData = () => {
     tableRef.value?.fetchData(fetchDataParams);

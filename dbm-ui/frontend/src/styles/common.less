@@ -258,11 +258,6 @@
   min-width: 0;
 }
 
-/** BkSideslider 嵌套 BkTable，表格的 z-index 过低导致页面无效果，先暂时全局设置 */
-.vxe-table--tooltip-wrapper {
-  z-index: 999999 !important;
-}
-
 .bk-tab {
   .bk-tab-header {
     line-height: 42px !important;
@@ -282,42 +277,6 @@
 .bk-dialog-wrapper {
   .bk-dialog-title {
     font-size: 20px !important;
-  }
-}
-
-.bk-menu {
-  .bk-menu-item {
-    .item-icon {
-      font-size: @font-size-large !important;
-    }
-
-    .item-content {
-      overflow: hidden;
-    }
-  }
-
-  .bk-menu-submenu {
-    .submenu-header-icon {
-      font-size: @font-size-large !important;
-    }
-
-    .submenu-header-icon,
-    .submenu-header-content,
-    .submenu-header-collapse {
-      color: #96a2b9;
-    }
-
-    .submenu-header-content {
-      display: inline-block;
-      height: auto;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-  .group-name {
-    color: #666d8e;
   }
 }
 
@@ -547,18 +506,9 @@
   }
 }
 
-.vxe-table--append-wrapper {
-  margin-top: -1px;
-}
-
-#app {
-  .bk-vxe-table {
-    --vxe-ui-table-cell-padding-left: 8px;
-    --vxe-ui-table-cell-padding-right: 8px;
-  }
-}
-
 .bk-popover {
+  border: none !important;
+
   &.bk-pop2-content {
     display: initial !important;
   }
@@ -568,6 +518,6 @@
   }
 }
 
-.bk-popper {
+[data-tippy-root] .tippy-box {
   border: none !important;
 }

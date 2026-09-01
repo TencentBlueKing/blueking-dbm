@@ -90,19 +90,19 @@
       :title="t('新实例')">
       <template #default="{ row: data }: { row: RowData }">
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="info">
             {{ t('主') }}
-          </BkTag>
+          </DbTag>
           <span>{{ data.new_master.ip }}</span>
         </div>
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="success">
             {{ t('从') }}
-          </BkTag>
+          </DbTag>
           <span>{{ data.new_slave.ip }}</span>
         </div>
       </template>

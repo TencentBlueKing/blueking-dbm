@@ -9,6 +9,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="disaster_tolerance_level"
     :filter="columnFilter?.['disaster_tolerance_level']"
     :min-width="160"
@@ -18,6 +19,17 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="clusterType.includes('k8s')"
+    col-key="region"
+    :filter="columnFilter?.['region']"
+    :min-width="150"
+    :title="t('地域')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.region || '--' }}
+    </template>
+  </TableColumn>
+  <TableColumn
+    v-else
     col-key="region"
     :filter="columnFilter?.['region']"
     :min-width="150"
@@ -28,21 +40,18 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="cluster_spec"
-    :min-width="180"
+    :min-width="220"
     :title="t('规格')">
     <template #default="{ row }: { row: IRowData }">
-      <template v-if="row.cluster_spec.spec_name">
-        <TextOverflowLayout
-          v-for="spaceName in row.cluster_spec.spec_name.split(',')"
-          :key="spaceName">
-          {{ spaceName }}
-        </TextOverflowLayout>
-      </template>
-      <span v-else> -- </span>
+      <MachineSpecCell
+        mode="list"
+        :specs="row.machine_specs" />
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="bk_cloud_id"
     :filter="columnFilter?.['bk_cloud_id']"
     :title="t('管控区域')"
@@ -86,6 +95,8 @@
   import { useClusterColumnFilter } from '@hooks';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import MachineSpecCell from '@views/db-manage/common/cluster-details/components/machine-spec-cell/Index.vue';
 
   import type { ClusterModel, ISupportClusterType } from './types';
 

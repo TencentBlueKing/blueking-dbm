@@ -34,3 +34,9 @@ type UniqueKey interface {
 type BklogUnmarshalItem interface {
 	UnmarshalItem([]byte, MessageWrapper) error
 }
+
+// MessageHandler 消息处理器接口
+// 用于将原始消息体（[]byte 切片）路由到对应的消费入库逻辑，复用完整的 AnySinker 处理链路
+type MessageHandler interface {
+	HandleRawMessages(payloads [][]byte) error
+}

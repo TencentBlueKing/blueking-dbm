@@ -78,16 +78,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -237,42 +231,39 @@
     }, 200);
   };
 
-  const handleSubmit = async () => {
-    const result = await editableTableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-
-    formRef.value!.validate().then(() => {
-      const clusterMap = formData.tableData.reduce<Record<number, Redis.HotKeyAnalyse['infos'][number]>>(
-        (prev, item) => {
-          if (prev[item.instance.cluster_id]) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
+      formRef.value!.validate().then(() => {
+        const clusterMap = formData.tableData.reduce<Record<number, Redis.HotKeyAnalyse['infos'][number]>>(
+          (prev, item) => {
+            if (prev[item.instance.cluster_id]) {
+              return Object.assign(prev, {
+                [item.instance.cluster_id]: {
+                  ...prev[item.instance.cluster_id],
+                  ins: prev[item.instance.cluster_id].ins.concat(item.instance.instance_address),
+                },
+              });
+            }
             return Object.assign(prev, {
               [item.instance.cluster_id]: {
-                ...prev[item.instance.cluster_id],
-                ins: prev[item.instance.cluster_id].ins.concat(item.instance.instance_address),
+                cluster_id: item.instance.cluster_id,
+                cluster_type: item.instance.cluster_type,
+                immute_domain: item.instance.master_domain,
+                ins: [item.instance.instance_address],
               },
             });
-          }
-          return Object.assign(prev, {
-            [item.instance.cluster_id]: {
-              cluster_id: item.instance.cluster_id,
-              cluster_type: item.instance.cluster_type,
-              immute_domain: item.instance.master_domain,
-              ins: [item.instance.instance_address],
-            },
-          });
-        },
-        {},
-      );
+          },
+          {},
+        );
 
-      createTicketRun({
-        details: {
-          analysis_time: formData.analysis_time,
-          bk_cloud_id: formData.tableData[0].instance.bk_cloud_id,
-          infos: Object.values(clusterMap),
-        },
-        ...formData.payload,
+        createTicketRun({
+          details: {
+            analysis_time: formData.analysis_time,
+            bk_cloud_id: formData.tableData[0].instance.bk_cloud_id,
+            infos: Object.values(clusterMap),
+          },
+          ...formData.payload,
+        });
       });
     });
   };

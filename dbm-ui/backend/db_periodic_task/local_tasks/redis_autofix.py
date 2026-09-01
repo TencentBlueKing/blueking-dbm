@@ -61,11 +61,12 @@ def watch_dbha_switch():
     logger.info("query switch logs :: {}:{}".format(current_id, switch_hosts))
 
     next_id, wstart_autofix = check_and_process(current_id, switch_hosts)
+    # 先落自愈表，再推进游标：避免"Redis 自愈锁已 setnx 但自愈表未写入"的丢单场景
+    # 以集群维度聚合 # AutofixStatus.AF_REQRES.value
+    save_swithed_host_by_cluster(wstart_autofix)
     RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).update(
         ctl_value=next_id, update_at=datetime2str(datetime.datetime.now(datetime.utc))
     )
-    # 以集群维度聚合 # AutofixStatus.AF_REQRES.value
-    save_swithed_host_by_cluster(wstart_autofix)
 
 
 @register_periodic_task(run_every=crontab(minute="*/1"))

@@ -31,7 +31,7 @@
             v-model:module-alias-name="moduleAliasName"
             v-model:module-level-config="moduleLevelConfig"
             :biz-id="formData.bk_biz_id"
-            :cluster-type="typeInfo.type" />
+            :cluster-type="clusterType" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
@@ -44,7 +44,7 @@
             :label="t('Proxy起始端口')"
             property="details.start_proxy_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_proxy_port"
               class="inline-box"
               :max="65535"
@@ -56,7 +56,7 @@
             :label="t('MySQL起始端口')"
             property="details.start_mysql_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_mysql_port"
               class="inline-box"
               :max="65535"
@@ -79,7 +79,7 @@
             :label="formItemLabels.clusterCount"
             property="details.cluster_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.cluster_count"
               class="inline-box"
               :min="1"
@@ -92,7 +92,7 @@
             :label="formItemLabels.instNums"
             property="details.inst_num"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.inst_num"
               class="inline-box"
               :max="formData.details.cluster_count"
@@ -298,7 +298,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -322,12 +322,10 @@
           @click="handleShowPreview">
           {{ t('预览') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleResetFormdata">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleResetFormdata"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -360,7 +358,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -372,8 +369,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
-  import { OSTypes } from '@common/const';
+  import { Affinity, clusterTypeInfos, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -397,6 +393,7 @@
 
   const ticketType = route.name as string;
   const isSingleType = ticketType === TicketTypes.MYSQL_SINGLE_APPLY;
+  const clusterType = isSingleType ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA;
 
   const getFormData = () => ({
     bk_biz_id: '' as '' | number,
@@ -635,7 +632,6 @@
     return labels;
   });
   const hostSpecInfo = computed(() => hostSpecs.value.find((info) => info.spec === formData.details.spec));
-  const typeInfo = computed(() => mysqlType[ticketType as MysqlTypeString]);
   const tableData = computed(() => {
     if (moduleAliasName.value && formData.details.db_app_abbr) {
       return formData.details.domains;
@@ -723,7 +719,10 @@
    * 变更业务选择
    */
   const handleChangeBiz = (info: BizItem) => {
-    formData.details.db_module_id = null;
+    // 仅当业务真的变化时才清空模块选择，避免单据回显阶段 BusinessItems 自动 emit changeBiz 误清空
+    if (info.bk_biz_id !== formData.bk_biz_id) {
+      formData.details.db_module_id = null;
+    }
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
     serviceApply?.changeBizId(info.bk_biz_id);
@@ -867,7 +866,7 @@
       );
       return {
         charset,
-        deployStructure: typeInfo.value.name,
+        deployStructure: clusterTypeInfos[clusterType].name,
         disasterDefence: t('同城跨园区'),
         domain: `${domainInfo.masterDomain.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`,
         slaveDomain: `${domainInfo.slaveDomain?.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.slaveDomain?.suffix}`,
@@ -977,17 +976,9 @@
   };
 
   const handleResetFormdata = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        _.merge(formData, getFormData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    _.merge(formData, getFormData());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 </script>
@@ -1092,7 +1083,7 @@
         margin-left: 120px !important;
 
         .bk-select,
-        .bk-input {
+        .dbm-input {
           width: 314px !important;
         }
       }

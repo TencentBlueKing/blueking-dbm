@@ -12,7 +12,7 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListSpec, MachineSpec } from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
@@ -75,6 +75,7 @@ export default class Pulsar extends ClusterBase {
   disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: Array<{
@@ -86,15 +87,12 @@ export default class Pulsar extends ClusterBase {
     title: string;
   }>;
   permission: {
-    access_entry_edit: boolean;
     pulsar_access_entry_view: boolean;
     pulsar_destroy: boolean;
     pulsar_edit: boolean;
     pulsar_enable_disable: boolean;
-    pulsar_reboot: boolean;
-    pulsar_replace: boolean;
-    pulsar_scale_up: boolean;
-    pulsar_shrink: boolean;
+    pulsar_manage: boolean;
+    pulsar_subscribe_monitor: boolean;
     pulsar_view: boolean;
   };
   phase: string;
@@ -117,6 +115,7 @@ export default class Pulsar extends ClusterBase {
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;

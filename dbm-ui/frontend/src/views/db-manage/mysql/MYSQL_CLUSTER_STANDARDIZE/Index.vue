@@ -76,16 +76,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -180,21 +174,19 @@
     with_push_config: boolean; // 是否推送配置
   }>(TicketTypes.MYSQL_CLUSTER_STANDARDIZE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_ids: formData.tableData.map((item) => item.cluster.id),
-        with_cc_standardize: formData.with_cc_standardize,
-        with_deploy_binary: formData.with_deploy_binary,
-        with_instance_standardize: false,
-        with_push_config: formData.with_push_config,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: formData.tableData.map((item) => item.cluster.id),
+          with_cc_standardize: formData.with_cc_standardize,
+          with_deploy_binary: formData.with_deploy_binary,
+          with_instance_standardize: false,
+          with_push_config: formData.with_push_config,
+        },
+        ...formData.payload,
+      });
     });
   };
 

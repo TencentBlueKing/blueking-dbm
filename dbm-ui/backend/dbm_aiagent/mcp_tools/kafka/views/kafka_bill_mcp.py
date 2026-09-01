@@ -27,6 +27,7 @@ from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_bill import (
     submit_kafka_shrink_bill,
 )
 from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_bill import (
+    KafkaSubmitBillOutputSerializer,
     SubmitBillKafkaApplyInputSerializer,
     SubmitBillKafkaDestroyInputSerializer,
     SubmitBillKafkaDisableInputSerializer,
@@ -36,7 +37,6 @@ from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_bill import (
     SubmitBillKafkaReplaceInputSerializer,
     SubmitBillKafkaScaleUpInputSerializer,
     SubmitBillKafkaShrinkInputSerializer,
-    SubmitBillOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -58,7 +58,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(_("Kafka集群扩容单据(支持资源池和手工输入两种方式)")),
         request_slz=SubmitBillKafkaScaleUpInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -91,7 +91,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaShrinkInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -121,7 +121,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaReplaceInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -156,7 +156,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaRebalanceInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -194,7 +194,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaRebootInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -226,7 +226,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaEnableInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -248,7 +248,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             _("Kafka集群禁用单据。" "用途：将Kafka集群下线禁用，数据保留，可恢复。" "参数说明：" "1. bk_biz_id：必填，业务ID" "2. cluster_domain：必填，集群域名")
         ),
         request_slz=SubmitBillKafkaDisableInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -279,7 +279,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaDestroyInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",
@@ -308,7 +308,7 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillKafkaApplyInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=KafkaSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.KAFKA_BILL],
         name_prefix="kafka_bill",

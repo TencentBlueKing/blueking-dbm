@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div class="bk-editable-input">
     <div
@@ -5,11 +18,11 @@
       class="bk-editable-input-prepend-wrapper">
       <slot name="prepend" />
     </div>
-    <BkInput
-      v-bind="{ ...attrs, ...props }"
+    <DbmInput
       ref="inputRef"
       v-model="modelValue"
       clearable
+      v-bind="{ ...attrs, ...props }"
       @blur="handleBlur"
       @change="handleChange"
       @focus="handleFocus" />
@@ -22,6 +35,8 @@
 </template>
 <script setup lang="ts">
   import { useAttrs, type VNode, watch } from 'vue';
+
+  import DbmInput from '@components/bkui-vue/input/Index.vue';
 
   import useColumn from '../useColumn';
 
@@ -90,8 +105,8 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-input {
-        .bk-input {
-          .bk-input--clear-icon {
+        .dbm-input {
+          .dbm-textarea-clear-icon {
             display: none !important;
           }
 
@@ -109,16 +124,17 @@
     width: 100%;
     overflow: hidden;
 
-    .bk-input {
+    .dbm-input {
       height: 40px;
+      background: transparent;
       border: none;
       box-shadow: none !important;
 
-      .bk-input--text {
+      .dbm-input-text {
         background: transparent;
       }
 
-      .bk-input--suffix-icon {
+      .dbm-input-suffix-icon {
         background: transparent;
       }
     }

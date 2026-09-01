@@ -46,17 +46,17 @@
             :title="t('资源标签')">
             <template #default="{ row }: { row: RowData['hostList'][number] }">
               <template v-if="row.labelNames.length">
-                <BkTag
+                <DbTag
                   v-for="labelItem in row.labelNames"
                   :key="labelItem">
                   {{ labelItem }}
-                </BkTag>
+                </DbTag>
               </template>
-              <BkTag
+              <DbTag
                 v-else
                 theme="success">
                 {{ t('通用无标签') }}
-              </BkTag>
+              </DbTag>
             </template>
           </TicketInfoTableColumn>
         </TicketInfoTable>

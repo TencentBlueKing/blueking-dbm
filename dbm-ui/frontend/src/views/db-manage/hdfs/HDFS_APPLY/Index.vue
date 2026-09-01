@@ -153,7 +153,7 @@
                     <td>{{ t('http端口') }}</td>
                     <td>
                       <BkFormItem property="details.http_port">
-                        <BkInput
+                        <DbInput
                           v-model="formData.details.http_port"
                           clearable
                           :min="1"
@@ -168,7 +168,7 @@
                     <td>{{ t('rpc端口') }}</td>
                     <td>
                       <BkFormItem property="details.rpc_port">
-                        <BkInput
+                        <DbInput
                           v-model="formData.details.rpc_port"
                           clearable
                           :min="1"
@@ -221,7 +221,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.namenode.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.namenode.count"
                     disabled
                     type="number" />
@@ -266,7 +266,7 @@
                   required>
                   <div style="display: flex; align-items: center">
                     <span style="flex-shrink: 0">
-                      <BkInput
+                      <DbInput
                         v-model="formData.details.resource_spec.zookeeper.count"
                         :max="3"
                         :min="1"
@@ -316,7 +316,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.datanode.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.datanode.count"
                     :min="2"
                     type="number" />
@@ -329,7 +329,7 @@
             <BkFormItem
               :label="t('总容量')"
               required>
-              <BkInput
+              <DbInput
                 disabled
                 :model-value="totalCapacity"
                 style="width: 184px" />
@@ -345,7 +345,7 @@
         <BkFormItem
           :label="t('备注')"
           property="remark">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -363,12 +363,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleReset"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -380,7 +378,6 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { inject, reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -728,17 +725,10 @@
 
   // 重置表单
   const handleReset = () => {
-    InfoBox({
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, genDefaultFormData());
-        formRef.value.clearValidate();
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, genDefaultFormData());
+    formRef.value.clearValidate();
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -798,7 +788,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }
@@ -811,7 +801,7 @@
       background: #f5f7fa;
       border-radius: 2px;
 
-      .bk-input {
+      .dbm-input {
         width: 123px;
       }
 

@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import MachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, InstanceInfoSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -48,7 +49,7 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
         )
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_RESCUE)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_RESCUE, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlProxyRescueFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyRescueDetailSerializer
     inner_flow_builder = MysqlProxyRescueParamBuilder

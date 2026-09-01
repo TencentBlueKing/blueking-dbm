@@ -11,12 +11,16 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow import (
+    mysql_dts_cc_standardize_subflow,
+)
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_colocated_host_subflow import (
     mysql_dts_deploy_colocated_host_subflow,
 )
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_master_subflow import mysql_dts_deploy_master_subflow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_worker_subflow import mysql_dts_deploy_worker_subflow
 from backend.flow.engine.bamboo.scene.mysql.dts.subflow_common import (
+    add_dts_idle_check_subflow,
     build_master_addr,
     build_master_nodes,
     build_worker_nodes,
@@ -50,6 +54,12 @@ def mysql_dts_deploy_subflow(inp: MysqlDtsDeploySubflowInput) -> SubBuilder:
             "uid": inp.root_id,
             "creator": inp.creator,
         },
+    )
+    add_dts_idle_check_subflow(
+        sub,
+        root_id=inp.root_id,
+        bk_cloud_id=inp.bk_cloud_id,
+        hosts=[*inp.master_hosts, *inp.worker_hosts],
     )
 
     all_master_nodes = []
@@ -132,5 +142,16 @@ def mysql_dts_deploy_subflow(inp: MysqlDtsDeploySubflowInput) -> SubBuilder:
             "creator": inp.creator,
             "register_mode": DtsRegisterMode.CREATE.value,
         },
+    )
+    sub.add_sub_pipeline(
+        mysql_dts_cc_standardize_subflow(
+            root_id=inp.root_id,
+            bk_biz_id=inp.bk_biz_id,
+            bk_cloud_id=inp.bk_cloud_id,
+            cluster_name=inp.cluster_name,
+            master_nodes=all_master_nodes,
+            worker_nodes=all_worker_nodes,
+            creator=inp.creator,
+        ).build_sub_process(sub_name=_("DTS 标准化"))
     )
     return sub

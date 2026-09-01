@@ -28,6 +28,8 @@ from backend.components import DRSApi, JobApi
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.flow.consts import SUCCESS_LIST
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.base.payload_handler import DEFAULT_REDIS_PASSWORD_BATCH_SIZE, PayloadHandler
@@ -667,6 +669,11 @@ def _evaluate_and_report(
             )
     collapsed_rows = _collapse_conf_check_report_rows(report_rows)
     writer.write_redis_reports(collapsed_rows)
+    ingest_daily_cluster_rows(
+        collapsed_rows,
+        dimension=RedisPortraitDimensionCode.CONFIG_HEALTH,
+        prefix=_("[配置]"),
+    )
     ok_count = sum(1 for row in collapsed_rows if row["state"] == ReportStateType.NORMAL.value)
     abnormal_count = sum(1 for row in collapsed_rows if row["state"] != ReportStateType.NORMAL.value)
     return ok_count, abnormal_count

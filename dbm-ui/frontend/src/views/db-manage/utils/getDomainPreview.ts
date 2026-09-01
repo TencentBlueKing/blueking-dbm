@@ -202,6 +202,19 @@ const bigDataWithModuleStrategy: BaseDomainStrategy = (ctx, params) => {
 };
 
 /**
+ * k8s域名策略：{数据库类型}.{集群标识}.{业务代号}.db
+ */
+const k8sStrategy: BaseDomainStrategy = (ctx, params) => {
+  const DbTypeToPrefixMap: Partial<Record<ClusterTypes, string>> = {
+    [ClusterTypes.K8S_QDRANT_HA]: 'qdrant',
+    [ClusterTypes.K8S_SURREALDB_HA]: 'surrealdb',
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: 'surrealdb',
+  };
+  const prefix = DbTypeToPrefixMap[params.clusterType as BigDataType];
+  return { masterDomain: { prefix: `${prefix}.`, suffix: `.${ctx.dbAppAbbr}.db` } };
+};
+
+/**
  * 默认域名策略
  */
 const defaultStrategy: BaseDomainStrategy = () => ({
@@ -213,6 +226,9 @@ const strategyMap: Partial<Record<ClusterTypes, BaseDomainStrategy>> = {
   [ClusterTypes.DORIS]: bigDataNoModuleStrategy,
   [ClusterTypes.ES]: bigDataNoModuleStrategy,
   [ClusterTypes.HDFS]: bigDataNoModuleStrategy,
+  [ClusterTypes.K8S_QDRANT_HA]: k8sStrategy,
+  [ClusterTypes.K8S_SURREALDB_HA]: k8sStrategy,
+  [ClusterTypes.K8S_SURREALDB_SINGLE]: k8sStrategy,
   [ClusterTypes.KAFKA]: bigDataNoModuleStrategy,
   [ClusterTypes.MONGO_REPLICA_SET]: mongodbStrategy,
   [ClusterTypes.MONGO_SHARED_CLUSTER]: mongodbStrategy,

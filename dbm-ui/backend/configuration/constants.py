@@ -181,9 +181,6 @@ class SystemSettingsEnum(StrStructuredEnum):
     REDIS_CONF_CHECK = EnumField("REDIS_CONF_CHECK", _("Redis配置检查配置"))
     REDIS_ENTRY_CHECK = EnumField("REDIS_ENTRY_CHECK", _("Redis访问入口一致性校验配置"))
     REDIS_AFFINITY_CHECK = EnumField("REDIS_AFFINITY_CHECK", _("Redis亲和性校验配置"))
-    REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_CAPACITY_GROWTH_CHECK", _("Redis集群容量增长检查配置"))
-    REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("REDIS_BACKEND_LOAD_SKEW_CHECK", _("Redis后端负载倾斜检查配置"))
-    REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("REDIS_BACKEND_DATA_SKEW_CHECK", _("Redis后端数据倾斜检查配置"))
     REDIS_REPORT_ADDING_MODE = EnumField("REDIS_REPORT_ADDING_MODE", _("Redis报告写入模式配置"))
     REDIS_BACKUP_CHECK = EnumField("REDIS_BACKUP_CHECK", _("Redis备份巡检配置"))
     # 补货相关配置(内部独有)
@@ -212,6 +209,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     PACKAGE_SUPPORT_SYSTEMS = EnumField("PACKAGE_SUPPORT_SYSTEMS", _("介质支持的操作系统"))
     DB_PACKAGE_SETTINGS = EnumField("DB_PACKAGE_SETTINGS", _("DB介质配置表"))
     DISABLE_DBHA_AUTOFIX_APPS = EnumField("DISABLE_DBHA_AUTOFIX_APPS", _("DBHA业务自动修复开关"))
+    # 平台内置兜底告警组信息
+    PLATFORM_ALERT_GROUP_INFO = EnumField("PLATFORM_ALERT_GROUP_INFO", _("平台内置兜底告警组信息"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):

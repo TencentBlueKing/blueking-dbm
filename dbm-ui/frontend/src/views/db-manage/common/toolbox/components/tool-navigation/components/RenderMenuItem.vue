@@ -56,6 +56,8 @@
 
   import { useUserProfile } from '@stores';
 
+  import { DBTypes, toolboxProfileKeyMap } from '@common/const';
+
   import { makeMap, messageSuccess } from '@utils';
 
   interface Props {
@@ -81,7 +83,7 @@
   const { profile } = storeToRefs(profileStore);
   const eventBus = useEventBus();
 
-  const profileFavorKey = `${route.meta.dbType}_toolbox_favor`.toUpperCase();
+  const profileFavorKey = toolboxProfileKeyMap[route.meta.dbType as DBTypes]!.favor;
   const activeViewName = ref('');
 
   const favorMap = computed(() => {

@@ -53,7 +53,7 @@
             :label="t('访问端口')"
             property="details.start_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_port"
               clearable
               :max="28999"
@@ -69,7 +69,7 @@
             :label="t('部署副本集数量')"
             property="details.replica_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.replica_count"
               clearable
               :min="1"
@@ -81,7 +81,7 @@
             :label="t('每组主机部署副本集数量')"
             property="details.node_replica_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.node_replica_count"
               clearable
               :min="1"
@@ -93,7 +93,7 @@
             :label="t('Shard 节点数')"
             property="details.node_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.node_count"
               clearable
               :max="11"
@@ -163,14 +163,15 @@
             :label="t('每台主机 oplog 容量占比')"
             property="details.oplog_percent"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.oplog_percent"
               clearable
               :min="1"
               show-clear-only-hover
               style="width: 185px"
-              suffix="%"
-              type="number" />
+              type="number">
+              <template #suffix>%</template>
+            </DbInput>
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
           <EstimatedCost
@@ -179,7 +180,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -197,12 +198,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <BkButton
-        class="ml-8 w-88"
-        :disabled="baseState.isSubmitting"
-        @click="handleResetFormdata">
-        {{ t('重置') }}
-      </BkButton>
+      <DbResetButton
+        class="ml-8"
+        :confirm-handler="handleResetFormdata"
+        :disabled="baseState.isSubmitting" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -214,7 +213,6 @@
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -421,17 +419,9 @@
   };
 
   const handleResetFormdata = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, initData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, initData());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -509,7 +499,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px;
           }
         }

@@ -39,7 +39,9 @@ func queryMeta() error {
 		slog.Error("new request", err)
 		return err
 	}
-
+	if config.RuntimeConfig.BkUsername == "" {
+		config.RuntimeConfig.BkUsername = "admin"
+	}
 	content, err := json.Marshal(struct {
 		BkAppCode   string `json:"bk_app_code"`
 		BkAppSecret string `json:"bk_app_secret"`
@@ -47,7 +49,7 @@ func queryMeta() error {
 	}{
 		BkAppCode:   config.RuntimeConfig.BkAppCode,
 		BkAppSecret: config.RuntimeConfig.BkAppSecret,
-		BkUsername:  "fake",
+		BkUsername:  config.RuntimeConfig.BkUsername,
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())
@@ -150,7 +152,9 @@ func ListBkDataId(bkdata *config.BkmApiInfo) (map[string]*config.BkDataConfig, e
 		slog.Error("new request", err)
 		return nil, err
 	}
-
+	if bkdata.BkUsername == "" {
+		bkdata.BkUsername = "admin"
+	}
 	content, err := json.Marshal(struct {
 		BkAppCode   string `json:"bk_app_code"`
 		BkAppSecret string `json:"bk_app_secret"`
@@ -158,7 +162,7 @@ func ListBkDataId(bkdata *config.BkmApiInfo) (map[string]*config.BkDataConfig, e
 	}{
 		BkAppCode:   bkdata.BkAppCode,
 		BkAppSecret: bkdata.BkAppSecret,
-		BkUsername:  "admin",
+		BkUsername:  bkdata.BkUsername,
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())

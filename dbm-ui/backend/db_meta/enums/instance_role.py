@@ -95,6 +95,14 @@ class InstanceRole(StrStructuredEnum):
     PRIMARY = EnumField("primary", _("primary"))
     STANDBY = EnumField("standby", _("standby"))
 
+    # K8S Surrealdb
+    SURREAL = EnumField("surreal", _("surreal"))
+    PD = EnumField("pd", _("pd"))
+    TIKV = EnumField("tikv", _("tikv"))
+
+    # K8S Qdrant
+    QDRANT = EnumField("qdrant", _("qdrant"))
+
 
 class TenDBClusterSpiderRole(StrStructuredEnum):
     # 主集群的接入层
@@ -106,6 +114,12 @@ class TenDBClusterSpiderRole(StrStructuredEnum):
     SPIDER_SLAVE_MNT = EnumField("spider_slave_mnt", _("spider_slave_mnt"))
     # 管理节点
     SPIDER_CTL = EnumField("spider_ctl", _("spider_ctl"))
+
+
+class KubernetesInstanceRole(StrStructuredEnum):
+    SURREAL = EnumField("surreal", _("surreal"))
+    TIKV = EnumField("tikv", _("tikv"))
+    PD = EnumField("pd", _("pd"))
 
 
 # 集群类型与其对应的proxy管理端角色

@@ -19,7 +19,7 @@
     required
     :rules="rules">
     <div class="item-input-wrapper">
-      <BkInput
+      <DbInput
         v-model="modelValue"
         class="item-input"
         clearable

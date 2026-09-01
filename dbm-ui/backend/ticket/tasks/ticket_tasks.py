@@ -447,6 +447,18 @@ def create_recycle_ticket(revoke_ticket_id: int, recycle_hosts: list, recycle_ty
 
 
 @shared_task
+def create_dts_destroy_after_migrate(ticket_id: int):
+    """迁移单据 SUCCEEDED 后按需串联 MYSQL_DTS_CLUSTER_DESTROY。"""
+    from backend.ticket.builders.mysql.dts.mysql_dts_tickets import _maybe_create_destroy_after_migrate
+
+    try:
+        ticket = Ticket.objects.get(id=ticket_id)
+    except Ticket.DoesNotExist:
+        return
+    _maybe_create_destroy_after_migrate(ticket)
+
+
+@shared_task
 def create_cluster_todo(ticket_id, cluster_phase):
     from backend.ticket.todos import ClusterDisableTodoContext, TodoActionType
 

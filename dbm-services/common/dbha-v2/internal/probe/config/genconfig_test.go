@@ -59,11 +59,13 @@ type parsedHarvester struct {
 }
 
 type parsedMySQLHarvester struct {
-	User      string             `yaml:"user"`
-	Password  string             `yaml:"password"`
-	Interval  string             `yaml:"interval"`
-	Timeout   string             `yaml:"timeout"`
-	Endpoints []parsedDbEndpoint `yaml:"endpoints"`
+	User              string             `yaml:"user"`
+	Password          string             `yaml:"password"`
+	Interval          string             `yaml:"interval"`
+	HeartbeatInterval string             `yaml:"heartbeatInterval"`
+	ReplDelayInterval string             `yaml:"replDelayInterval"`
+	Timeout           string             `yaml:"timeout"`
+	Endpoints         []parsedDbEndpoint `yaml:"endpoints"`
 }
 
 type parsedRedisHarvester struct {
@@ -106,10 +108,12 @@ func newPayload(metadata []probeconfig.ProbeMetadataItem) probeconfig.ProbeConfi
 			ConnTimeout: "5s",
 		},
 		MySQL: &probeconfig.ProbeMySQLConfig{
-			User:     "mysql_user",
-			Password: "mysql_pwd",
-			Interval: "20s",
-			Timeout:  "5s",
+			User:              "mysql_user",
+			Password:          "mysql_pwd",
+			Interval:          "20s",
+			HeartbeatInterval: "3s",
+			ReplDelayInterval: "20s",
+			Timeout:           "5s",
 		},
 		Redis: &probeconfig.ProbeRedisConfig{
 			User:     "redis_user",
@@ -118,10 +122,12 @@ func newPayload(metadata []probeconfig.ProbeMetadataItem) probeconfig.ProbeConfi
 			Timeout:  "5s",
 		},
 		ProxyAdmin: &probeconfig.ProbeProxyAdminConfig{
-			User:     "proxy_admin_user",
-			Password: "proxy_admin_pwd",
-			Interval: "20s",
-			Timeout:  "5s",
+			User:              "proxy_admin_user",
+			Password:          "proxy_admin_pwd",
+			Interval:          "20s",
+			HeartbeatInterval: "3s",
+			ReplDelayInterval: "20s",
+			Timeout:           "5s",
 		},
 		Metadata: metadata,
 	}
@@ -154,6 +160,12 @@ func TestGenProbeYAML_RegularMysql(t *testing.T) {
 	}
 	if got.Harvester.MySQL.Timeout != "5s" {
 		t.Errorf("unexpected timeout, got: %s", got.Harvester.MySQL.Timeout)
+	}
+	if got.Harvester.MySQL.HeartbeatInterval != "3s" {
+		t.Errorf("unexpected heartbeatInterval, got: %s", got.Harvester.MySQL.HeartbeatInterval)
+	}
+	if got.Harvester.MySQL.ReplDelayInterval != "20s" {
+		t.Errorf("unexpected replDelayInterval, got: %s", got.Harvester.MySQL.ReplDelayInterval)
 	}
 	if len(got.Harvester.MySQL.Endpoints) != 1 {
 		t.Fatalf("expected 1 endpoint, got: %d", len(got.Harvester.MySQL.Endpoints))
@@ -221,6 +233,12 @@ func TestGenProbeYAML_MysqlProxyOnly(t *testing.T) {
 	}
 	if got.Harvester.MySQLProxyAdmin.Timeout != "5s" {
 		t.Errorf("unexpected timeout, got: %s", got.Harvester.MySQLProxyAdmin.Timeout)
+	}
+	if got.Harvester.MySQLProxyAdmin.HeartbeatInterval != "3s" {
+		t.Errorf("unexpected heartbeatInterval, got: %s", got.Harvester.MySQLProxyAdmin.HeartbeatInterval)
+	}
+	if got.Harvester.MySQLProxyAdmin.ReplDelayInterval != "20s" {
+		t.Errorf("unexpected replDelayInterval, got: %s", got.Harvester.MySQLProxyAdmin.ReplDelayInterval)
 	}
 	if len(got.Harvester.MySQLProxyAdmin.Endpoints) != 1 {
 		t.Fatalf("expected 1 endpoint, got: %d", len(got.Harvester.MySQLProxyAdmin.Endpoints))

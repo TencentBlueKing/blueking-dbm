@@ -426,6 +426,7 @@ export default defineConfigWithVueTs(
       'lib/*',
       '*.d.ts',
       'auto-copyright.js',
+      '.agents/*',
     ],
   },
 );

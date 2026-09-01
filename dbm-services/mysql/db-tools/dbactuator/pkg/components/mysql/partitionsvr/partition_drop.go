@@ -89,7 +89,7 @@ func (pc *PartitionConfig) GetDropStatement(pd *PartitionDetail, conn *native.Db
 		boundaryExpr = fmt.Sprintf(`DATE_FORMAT(date_sub(now(),interval %d day),'%%Y%%m%%d')`, reserve-DiffOneDay)
 	case 4:
 		boundaryExpr = fmt.Sprintf(`DATE_FORMAT(date_sub(now(),interval %d day),'\'%%Y-%%m-%%d\'')`, reserve-DiffOneDay)
-	case 5:
+	case 5, 6:
 		boundaryExpr = fmt.Sprintf(`UNIX_TIMESTAMP(date_sub(curdate(),INTERVAL %d DAY))`, reserve-DiffOneDay)
 	default:
 		return dropSql, errno.NotSupportedPartitionType

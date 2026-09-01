@@ -17,9 +17,9 @@
           </p>
         </div>
         <div v-if="row.ips.length > 10">
-          <BkTag size="small">
+          <DbTag size="small">
             {{ t('共n个', [row.ips.length]) }}
-          </BkTag>
+          </DbTag>
           <BkButton
             class="more-btn"
             text
@@ -58,15 +58,15 @@
             v-for="item in showAllDb ? row.accessDbs : row.accessDbs.slice(0, 10)"
             :key="item"
             class="mb-6">
-            <BkTag>
+            <DbTag>
               {{ item }}
-            </BkTag>
+            </DbTag>
           </p>
         </div>
         <div v-if="row.accessDbs.length > 10">
-          <BkTag size="small">
+          <DbTag size="small">
             {{ t('共n个', [row.accessDbs.length]) }}
-          </BkTag>
+          </DbTag>
           <BkButton
             class="more-btn"
             text
@@ -212,7 +212,7 @@
 
 <style lang="less" scoped>
   .preview-privilege-table {
-    :deep(.vxe-cell) {
+    :deep(td) {
       padding: 4px 16px !important;
       line-height: 20px !important;
 

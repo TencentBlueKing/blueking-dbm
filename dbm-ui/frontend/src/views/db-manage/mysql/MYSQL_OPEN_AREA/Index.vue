@@ -17,7 +17,7 @@
     :title="t('开区模板：通过开区模板，可以快速创建集群开区')" />
   <div class="header-action mt-16 mb-16">
     <AuthButton
-      action-id="mysql_openarea_config_create"
+      action-id="mysql_openarea_manage"
       class="w-88"
       theme="primary"
       @click="handleGoCreate">
@@ -31,37 +31,39 @@
   </div>
   <DbTable
     ref="tableRef"
+    :custom-sort-method="columnSortChange"
     :data-source="getList"
-    @column-sort="columnSortChange">
-    <BkTableColumn
-      field="config_name"
-      :label="t('模板名称')" />
-    <BkTableColumn
-      field="cluster_type"
-      :label="t('类型')">
-      <template #default="{ data }: { data: OpenareaTemplateModel }">
+    row-key="id">
+    <TableColumn
+      col-key="config_name"
+      :title="t('模板名称')" />
+    <TableColumn
+      col-key="cluster_type"
+      :title="t('类型')">
+      <template #default="{ row: data }: { row: OpenareaTemplateModel }">
         {{ data.cluster_type === 'tendbha' ? t('主从') : t('单节点') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="source_cluster.immute_domain"
-      :label="t('源集群')" />
-    <BkTableColumn
-      field="updater"
-      :label="t('更新人')" />
-    <BkTableColumn
-      field="update_at"
-      :label="t('更新时间')"
-      sort
+    </TableColumn>
+    <TableColumn
+      col-key="source_cluster.immute_domain"
+      :title="t('源集群')" />
+    <TableColumn
+      col-key="updater"
+      :title="t('更新人')" />
+    <TableColumn
+      col-key="update_at"
+      sorter
+      :title="t('更新时间')"
       :width="180">
-      <template #default="{ data }: { data: OpenareaTemplateModel }">
+      <template #default="{ row: data }: { row: OpenareaTemplateModel }">
         {{ data.updateAtDisplay || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('操作')"
+    </TableColumn>
+    <TableColumn
+      col-key="operation"
+      :title="t('操作')"
       :width="140">
-      <template #default="{ data }: { data: OpenareaTemplateModel }">
+      <template #default="{ row: data }: { row: OpenareaTemplateModel }">
         <RouterLink
           :to="{
             name: 'MySQLOpenareaCreate',
@@ -75,9 +77,9 @@
           {{ t('开区') }}
         </RouterLink>
         <AuthRouterLink
-          action-id="mysql_openarea_config_update"
+          action-id="mysql_openarea_manage"
           class="ml-16"
-          :permission="data.permission.mysql_openarea_config_update"
+          :permission="data.permission.mysql_openarea_manage"
           :resource="data.id"
           :to="{
             name: 'MySQLOpenareaTemplateEdit',
@@ -91,8 +93,8 @@
           {{ t('编辑') }}
         </AuthRouterLink>
         <AuthTemplate
-          action-id="mysql_openarea_config_destroy"
-          :permission="data.permission.mysql_openarea_config_destroy"
+          action-id="mysql_openarea_manage"
+          :permission="data.permission.mysql_openarea_manage"
           :resource="data.id">
           <DbPopconfirm
             :confirm-handler="() => handleRemove(data)"
@@ -107,11 +109,12 @@
           </DbPopconfirm>
         </AuthTemplate>
       </template>
-    </BkTableColumn>
+    </TableColumn>
   </DbTable>
 </template>
 
 <script setup lang="ts">
+  import type { TableSort } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
@@ -121,6 +124,8 @@
   import { useDebouncedRef, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
+
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -151,33 +156,24 @@
 
   watch(searchKey, () => {
     nextTick(() => {
-      tableRef.value.fetchData(
-        {
-          config_name: searchKey.value,
-        },
-        baseParams,
-      );
+      tableRef.value.fetchData({
+        ...baseParams,
+        config_name: searchKey.value,
+      });
     });
   });
 
   const fetchData = () => {
-    tableRef.value.fetchData({}, baseParams);
+    tableRef.value.fetchData({
+      ...baseParams,
+    });
   };
 
   // 表头排序
-  const columnSortChange = (data: {
-    column: {
-      field: string;
-      label: string;
-    };
-    index: number;
-    type: 'asc' | 'desc' | 'null';
-  }) => {
+  const columnSortChange = (sort: TableSort) => {
     let desc = '';
-    if (data.type === 'asc') {
-      desc = data.column.field;
-    } else if (data.type === 'desc') {
-      desc = `-${data.column.field}`;
+    if (!Array.isArray(sort) && sort) {
+      desc = sort.descending ? `-${sort.sortBy}` : sort.sortBy;
     }
     tableRef.value.fetchData({
       ...baseParams,

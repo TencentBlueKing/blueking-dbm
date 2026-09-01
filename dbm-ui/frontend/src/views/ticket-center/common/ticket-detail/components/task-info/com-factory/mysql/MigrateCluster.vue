@@ -36,19 +36,19 @@
       :title="t('新主从主机')">
       <template #default="{ row: data }: { row: RowData }">
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="success">
             M
-          </BkTag>
+          </DbTag>
           {{ data.new_master.ip }}
         </div>
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="info">
             S
-          </BkTag>
+          </DbTag>
           {{ data.new_slave.ip }}
         </div>
       </template>

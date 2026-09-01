@@ -51,9 +51,9 @@
             <div v-db-console="'doris.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="doris_scale_up"
+                  action-id="doris_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.doris_scale_up"
+                  :permission="data.permission.doris_manage"
                   :resource="data.id"
                   text
                   @click="handleShowExpandsion">
@@ -64,13 +64,26 @@
             <div v-db-console="'doris.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="doris_shrink"
+                  action-id="doris_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.doris_shrink"
+                  :permission="data.permission.doris_manage"
                   :resource="data.id"
                   text
                   @click="handleShowShrink">
                   {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'doris.clusterManage.upgradeVersion'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="doris_manage"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.doris_manage"
+                  :resource="data.id"
+                  text
+                  @click="handleShowUpgradeVersion">
+                  {{ t('版本升级') }}
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
@@ -160,6 +173,9 @@
       <ClusterShrink
         v-model:is-show="isShowShrink"
         :cluster-data="data" />
+      <ClusterUpgradeVersion
+        v-model:is-show="isShowUpgradeVersion"
+        :cluster-data="data" />
       <BkDialog
         v-model:is-show="isShowPassword"
         render-directive="if"
@@ -202,6 +218,8 @@
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
+  import ClusterUpgradeVersion from '@views/db-manage/doris/common/upgrade-version/Index.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
 
   import HostList from './components/HostList.vue';
 
@@ -220,7 +238,9 @@
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
+  const isShowUpgradeVersion = ref(false);
   const isShowPassword = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     /* eslint-disable perfectionist/sort-objects */
@@ -237,6 +257,12 @@
     manual: true,
     onSuccess(result) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'doris_access_entry_view',
+        data: result,
+        onOpen: () => handleShowPassword(),
+      });
     },
   });
 
@@ -277,6 +303,11 @@
   // 缩容
   const handleShowShrink = () => {
     isShowShrink.value = true;
+  };
+
+  // 版本升级
+  const handleShowUpgradeVersion = () => {
+    isShowUpgradeVersion.value = true;
   };
 
   const handleShowPassword = () => {

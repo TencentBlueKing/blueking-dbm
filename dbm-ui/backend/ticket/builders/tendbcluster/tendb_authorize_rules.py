@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext_lazy as _
 
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_authorize_rules import (
     MySQLAuthorizeRulesFlowBuilder,
@@ -22,7 +23,7 @@ from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_AUTHORIZE_RULES, iam=ActionEnum.TENDBCLUSTER_AUTHORIZE)
 class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAuthorizeRulesFlowBuilder):
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
@@ -38,7 +39,7 @@ class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAut
         return False
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.TENDBCLUSTER_AUTHORIZE)
 class TendbClusterAuthorizeRulesFlowBuilder(TendbClusterAuthorizeRulesFlowBuilder):
     serializer = MySQLExcelAuthorizeRulesSerializer
     inner_flow_name = _("TenDB Cluster Excel授权执行")

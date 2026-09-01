@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/samber/lo"
 	"golang.org/x/exp/slog"
 
@@ -53,6 +53,10 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 			Sinker:      s,
 			// 如果找到了 model 定义，则一定是按照定义的 StrictSchema 来决定是使用 struct 还是 map 来反序列化
 			strictSchema: modelTable.StrictSchema(),
+			metrics:      base.GetTopicMetrics(),
+			modelTable:   s.RuntimeConfig.ModelTable,
+			writer:       s.RuntimeConfig.Datasource,
+			groupID:      s.RuntimeConfig.Topic + s.RuntimeConfig.GroupIdSuffix,
 		}
 	} else {
 		// 如果没有找到 model 定义，且 strict_schema=false, 则使用 map 来反序列化，自动根据字段名来写 db（没有 schema migrate）
@@ -70,6 +74,10 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 				modelType:    modelType,  //for not panic
 				modelValue:   modelValue, // for not panic
 				strictSchema: false,      // true
+				metrics:      base.GetTopicMetrics(),
+				modelTable:   s.RuntimeConfig.ModelTable,
+				writer:       s.RuntimeConfig.Datasource,
+				groupID:      s.RuntimeConfig.Topic + s.RuntimeConfig.GroupIdSuffix,
 			}
 		} else {
 			return nil, fmt.Errorf("table [%s] is not registered to struct", s.RuntimeConfig.ModelTable)
@@ -84,15 +92,26 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 func (s *Sinker) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 	consumerConfig := sarama.NewConfig()
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.BalanceStrategyRoundRobin}
-	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	// FromBeginning=true 时，无 committed offset 则从最早消息开始；否则从最新消息开始
+	// Offsets.Initial 只在 broker 上找不到该 consumer group 的已提交 offset 时才生效
+	if s.RuntimeConfig.FromBeginning {
+		consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	} else {
+		consumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	}
 	consumerConfig.Version = sarama.V0_10_2_0
 	consumerConfig.Consumer.Return.Errors = true
-	consumerConfig.Consumer.MaxProcessingTime = 200 * time.Millisecond
+	consumerConfig.Consumer.MaxProcessingTime = 2 * time.Second
 	if s.RuntimeConfig.FetchMinBytes > 0 {
 		consumerConfig.Consumer.Fetch.Min = s.RuntimeConfig.FetchMinBytes
 	} else {
 		consumerConfig.Consumer.Fetch.Min = 1024
 	}
+	consumerConfig.Consumer.Fetch.Default = 256 * 1024   // 256KB，降低单次 fetch 分配以减少内存驻留
+	consumerConfig.Consumer.Fetch.Max = 10 * 1024 * 1024 // 2MB，大幅降低 responseReceiver buf 大小（每个 buf 最大 1MB）
+	consumerConfig.ChannelBufferSize = 10                // 最小化 channel 缓冲，减少 pin 住 FetchResponse buf 的消息数
+	consumerConfig.Net.MaxOpenRequests = 2               // 从默认 5 降到 2，减少 broker 级别并发 response 数量
+	// consumerConfig.Consumer.MaxWaitTime = 500 * time.Millisecond // 默认 250ms
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.BalanceStrategyRoundRobin,
 		sarama.BalanceStrategyRange,

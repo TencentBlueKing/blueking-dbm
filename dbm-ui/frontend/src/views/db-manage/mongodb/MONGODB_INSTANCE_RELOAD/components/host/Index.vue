@@ -44,10 +44,9 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import MongodbModel from '@services/model/mongodb/mongodb';
   import { type Mongodb } from '@services/model/ticket/ticket';
   import { checkInstance } from '@services/source/dbbase';
-  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
+  import { getMongodbMachineList } from '@services/source/mongodb';
 
   import { useTicketDetail } from '@hooks';
 
@@ -133,22 +132,8 @@
             field: 'ip',
             label: t('主机 IP'),
           },
-          getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
-            getMongoInstancesList(
-              Object.assign({}, params, {
-                cluster_type: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].join(','),
-              }),
-            ),
+          getTableList: (params: ServiceParameters<typeof getMongodbMachineList>) => getMongodbMachineList(params),
           multiple: true,
-        },
-        topoConfig: {
-          countFunc: (data: MongodbModel) => data.mongos.length,
-          getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
-            getMongoTopoList(
-              Object.assign({}, params, {
-                cluster_type: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].join(','),
-              }),
-            ),
         },
       },
     ],

@@ -65,6 +65,12 @@ DEFAULT_LAST_IO_SECOND_AGO = 30
 # 默认Riak端口
 DEFAULT_RIAK_PORT = 8087
 
+# 默认 Qdrant 端口
+DEFAULT_QDRANT_PORT = 6333
+
+# 默认 SurrealDB 端口
+DEFAULT_SURREALDB_PORT = 8000
+
 # 默认Sqlserver端口
 DEFAULT_SQLSERVER_PORT = 48322
 
@@ -1730,6 +1736,7 @@ class ExecuteShellScriptUser(StrStructuredEnum):
 class OracleDBActuatorActionEnum(StrStructuredEnum):
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
+    OracleCheckLongTransaction = EnumField("check_long_transaction", _("check_long_transaction"))
 
 
 class TendbSingleRestoreType(StrStructuredEnum):

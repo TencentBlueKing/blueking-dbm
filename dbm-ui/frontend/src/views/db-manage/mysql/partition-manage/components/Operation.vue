@@ -11,6 +11,7 @@
         theme="info">
         <div>{{ t('表中包含数据，建议在低峰期执行分区；') }}</div>
         <div>{{ t('表中行数大于1千万或者表数据量大于300GB，不允许执行分区；') }}</div>
+        <div>{{ t('int或bigint类型，格式要求为：20060102') }}</div>
       </BkAlert>
       <DbForm
         ref="formRef"
@@ -197,8 +198,6 @@
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
-
-  import DbTagInput from '@components/db-tag-input/Index.vue';
 
   interface Props {
     data?: PartitionModel;

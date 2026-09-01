@@ -86,8 +86,8 @@
   interface Exposes {
     getValue: () => Promise<
       {
-        dst_bk_biz_id: number;
-        dst_cluster: number;
+        dst_bk_biz_id: number | string;
+        dst_cluster: number | string;
         key_black_regex: string;
         key_white_regex: string;
         src_cluster: number;
@@ -105,8 +105,8 @@
       id: number;
       master_domain: string;
     };
-    dst_bk_biz_id: number;
-    dst_cluster: number;
+    dst_bk_biz_id: number | string;
+    dst_cluster: number | string;
     key_black_regex: string[];
     key_white_regex: string[];
   }
@@ -121,8 +121,8 @@
       },
       values.cluster,
     ),
-    dst_bk_biz_id: values?.dst_bk_biz_id || 0,
-    dst_cluster: values?.dst_cluster || 0,
+    dst_bk_biz_id: values?.dst_bk_biz_id || '',
+    dst_cluster: values?.dst_cluster || '',
     key_black_regex: values?.key_black_regex || [],
     key_white_regex: values?.key_white_regex || ['*'],
   });
@@ -228,17 +228,14 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          return tableData.value.map((tableItem) => ({
-            dst_bk_biz_id: tableItem.dst_bk_biz_id,
-            dst_cluster: tableItem.dst_cluster,
-            key_black_regex: tableItem.key_black_regex.join('\n'),
-            key_white_regex: tableItem.key_white_regex.join('\n'),
-            src_cluster: tableItem.cluster.id,
-          }));
-        }
-        return [];
+      editableTableRef.value!.validate().then(() => {
+        return tableData.value.map((tableItem) => ({
+          dst_bk_biz_id: tableItem.dst_bk_biz_id,
+          dst_cluster: tableItem.dst_cluster,
+          key_black_regex: tableItem.key_black_regex.join('\n'),
+          key_white_regex: tableItem.key_white_regex.join('\n'),
+          src_cluster: tableItem.cluster.id,
+        }));
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

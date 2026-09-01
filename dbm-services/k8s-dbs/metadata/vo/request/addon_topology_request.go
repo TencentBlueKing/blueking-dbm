@@ -25,17 +25,17 @@ import (
 
 // AddonTopologyRequest addon topology 请求结构体定义
 type AddonTopologyRequest struct {
-	ID                uint64 `json:"id"`
-	AddonName         string `json:"addonName"`
-	AddonCategory     string `json:"addonCategory"`
-	AddonType         string `json:"addonType"`
-	AddonVersion      string `json:"addonVersion"`
-	TopologyName      string `json:"topologyName"`
-	TopologyAlias     string `json:"topologyAlias"`
-	IsDefault         bool   `json:"isDefault"`
-	Components        string `json:"components"`
-	Relations         string `json:"relations"`
-	Active            bool   `json:"active"`
-	Description       string `json:"description"`
-	commentity.BKAuth `json:",inline"`
+	ID                      uint64 `json:"id"`
+	AddonName               string `json:"addonName"`
+	AddonCategory           string `json:"addonCategory"`
+	AddonType               string `json:"addonType"`
+	AddonVersion            string `json:"addonVersion"`
+	TopologyName            string `json:"topologyName"`
+	TopologyAlias           string `json:"topologyAlias"`
+	IsDefault               bool   `json:"isDefault"`
+	Components              string `json:"components"`
+	Relations               string `json:"relations"`
+	Active                  bool   `json:"active"`
+	Description             string `json:"description"`
+	commentity.BKAdditional `json:",inline"`
 }

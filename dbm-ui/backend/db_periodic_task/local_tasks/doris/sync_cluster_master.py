@@ -38,6 +38,7 @@ def sync_cluster_master(bk_biz_id: int):
         json.dumps(cluster_master_stats),
         timeout=2 * TimeUnit.HOUR,
     )
+    logger.info("doris sync cluster master finished, bk_biz_id=%s, size=%s", bk_biz_id, len(cluster_master_stats))
 
 
 def query_cluster_master_by_monitor(bk_biz_id, clusters=None):

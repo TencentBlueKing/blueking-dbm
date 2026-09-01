@@ -60,9 +60,9 @@
               <div v-db-console="'riak.clusterManage.addNodes'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="riak_cluster_scale_in"
+                    action-id="riak_manage"
                     class="mr-8"
-                    :permission="data.permission.riak_cluster_scale_in"
+                    :permission="data.permission.riak_manage"
                     :resource="data.id"
                     text
                     @click="handleAddNodes(data)">
@@ -73,9 +73,9 @@
               <div v-db-console="'riak.clusterManage.deleteNodes'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="riak_cluster_scale_out"
+                    action-id="riak_manage"
                     class="mr-8"
-                    :permission="data.permission.riak_cluster_scale_out"
+                    :permission="data.permission.riak_manage"
                     :resource="data.id"
                     text
                     @click="handleDeleteNodes(data)">

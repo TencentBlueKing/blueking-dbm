@@ -421,6 +421,33 @@ class CmsiHandler(BaseNotifyHandler):
         self.receivers = [DEFAULT_USERNAME]
         self._cmsi_send_msg(MsgType.WECOM_ROBOT.value, sender=env.WECOM_ROBOT, wecom_robot=wecom_robot)
 
+    def send_wecom_robot_markdown(
+        self,
+        at_short_name: bool = False,
+        attachments: list = None,
+    ):
+        """
+        企微机器人发送 markdown 类型消息
+        :param at_short_name: markdown 内容中 @人 是否使用短名字格式
+        :param attachments: attachments 内容，目前仅支持 button 类型，每个 attachment 最多 20 个 action
+                            格式: [{"callback_id": "xxx", "actions": [...]}]
+        """
+        markdown_body = {
+            "content": self.content,
+            "at_short_name": at_short_name,
+        }
+        if attachments:
+            markdown_body["attachments"] = attachments
+
+        wecom_robot = {
+            "type": "markdown",
+            "markdown": markdown_body,
+            "group_receiver": self.receivers,
+        }
+        # 机器人发送，则receiver__username要置为用户名/admin。TODO: 应该支持填会话ID or 填空的
+        self.receivers = [DEFAULT_USERNAME]
+        self._cmsi_send_msg(MsgType.WECOM_ROBOT.value, sender=env.WECOM_ROBOT, wecom_robot=wecom_robot)
+
     def send_msg(self, msg_type, context):
         getattr(self, f"send_{msg_type}")()
 
@@ -624,6 +651,7 @@ class NotifyAdapter:
         base_info: dict,
         title: str,
         ai_result: str,
+        share_url: str,
         receivers: list = None,
     ):
         """
@@ -632,6 +660,7 @@ class NotifyAdapter:
         @param base_info: 告警基本维度信息
         @param title: 分析时间窗口开始
         @param ai_result: AI 分析结果
+        @param share_url: 分析报告URL report_url
         @param receivers: 接收人列表，为空则使用业务协助人
         """
         # 获取业务名称
@@ -653,6 +682,7 @@ class NotifyAdapter:
                 alarm_strategy=base_info["strategy_name"],
                 alarm_level=base_info["level"],
                 alarm_time=base_info["alarm_time"],
+                share_url=share_url,
                 ai_result=ai_result,
             )
         )

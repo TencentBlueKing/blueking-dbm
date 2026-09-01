@@ -83,9 +83,9 @@
               <div v-db-console="'doris.clusterManage.scaleUp'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="doris_scale_up"
+                    action-id="doris_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.doris_scale_up"
+                    :permission="data.permission.doris_manage"
                     :resource="data.id"
                     text
                     @click="handleShowExpandsion(data)">
@@ -96,13 +96,26 @@
               <div v-db-console="'doris.clusterManage.scaleDown'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="doris_shrink"
+                    action-id="doris_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.doris_shrink"
+                    :permission="data.permission.doris_manage"
                     :resource="data.id"
                     text
                     @click="handleShowShrink(data)">
                     {{ t('缩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'doris.clusterManage.upgradeVersion'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="doris_manage"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.doris_manage"
+                    :resource="data.id"
+                    text
+                    @click="handleShowUpgradeVersion(data)">
+                    {{ t('版本升级') }}
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
@@ -179,7 +192,16 @@
           :is-filter="isSearching"
           :label="t('Follower节点')"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <BkTag
+              v-if="data.is_master"
+              class="is-primary"
+              size="small">
+              Master
+            </BkTag>
+          </template>
+        </RoleColumn>
         <RoleColumn
           :cluster-type="ClusterTypes.DORIS"
           field="doris_observer"
@@ -214,6 +236,11 @@
     <ClusterShrink
       v-if="operationData"
       v-model:is-show="isShowShrink"
+      :cluster-data="operationData"
+      @change="fetchData" />
+    <ClusterUpgradeVersion
+      v-if="operationData"
+      v-model:is-show="isShowUpgradeVersion"
       :cluster-data="operationData"
       @change="fetchData" />
     <BkDialog
@@ -268,6 +295,7 @@
   import ClusterDetail from '@views/db-manage/doris/common/cluster-detail/Index.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
+  import ClusterUpgradeVersion from '@views/db-manage/doris/common/upgrade-version/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
 
@@ -294,6 +322,7 @@
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
+  const isShowUpgradeVersion = ref(false);
   const isShowPassword = ref(false);
 
   const operationData = shallowRef<DorisModel>();
@@ -332,6 +361,12 @@
   // 缩容
   const handleShowShrink = (data: DorisModel) => {
     isShowShrink.value = true;
+    operationData.value = data;
+  };
+
+  // 版本升级
+  const handleShowUpgradeVersion = (data: DorisModel) => {
+    isShowUpgradeVersion.value = true;
     operationData.value = data;
   };
 

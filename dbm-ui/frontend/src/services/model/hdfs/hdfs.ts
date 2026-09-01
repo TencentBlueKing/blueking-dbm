@@ -12,7 +12,13 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
@@ -78,22 +84,21 @@ export default class Hdfs extends ClusterBase {
   domain: string;
   hdfs_datanode: Array<ClusterListNode>;
   hdfs_journalnode: Array<ClusterListNode>;
-  hdfs_namenode: Array<ClusterListNode>;
+  hdfs_namenode: Array<{ is_active: boolean } & ClusterListNode>;
   hdfs_zookeeper: Array<ClusterListNode>;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     hdfs_access_entry_view: boolean;
+    hdfs_dbconfig_edit: boolean;
     hdfs_destroy: boolean;
     hdfs_edit: boolean;
     hdfs_enable_disable: boolean;
-    hdfs_reboot: boolean;
-    hdfs_replace: boolean;
-    hdfs_scale_up: boolean;
-    hdfs_shrink: boolean;
+    hdfs_manage: boolean;
+    hdfs_subscribe_monitor: boolean;
     hdfs_view: boolean;
   };
   phase: string;
@@ -114,6 +119,7 @@ export default class Hdfs extends ClusterBase {
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;

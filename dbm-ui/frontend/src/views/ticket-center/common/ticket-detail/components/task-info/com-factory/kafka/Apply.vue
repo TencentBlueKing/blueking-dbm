@@ -37,7 +37,7 @@
       <InfoItem :label="t('Broker节点规格')">
         <SpecDetailPopover
           v-if="brokerSpec"
-          :data="brokerSpec"
+          :data="brokerSpecInfo"
           placement="top">
           <span
             class="pb-2"
@@ -49,22 +49,22 @@
       </InfoItem>
       <InfoItem :label="t('Broker 节点资源标签')">
         <template v-if="brokerSpec && brokerSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in brokerSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('Zookeeper节点规格')">
         <SpecDetailPopover
           v-if="zookeeperSpec"
-          :data="zookeeperSpec"
+          :data="zookeeperSpecInfo"
           placement="top">
           <span
             class="pb-2"
@@ -76,17 +76,17 @@
       </InfoItem>
       <InfoItem :label="t('Zookeeper 节点资源标签')">
         <template v-if="zookeeperSpec && zookeeperSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in zookeeperSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
     </template>
     <template v-else>
@@ -96,7 +96,7 @@
           text
           theme="primary"
           @click="handleShowPreview('broker')">
-          {{ t('台') }}
+          {{ getServiceNums('broker') }} {{ t('台') }}
         </BkButton>
         <span v-else>--</span>
       </InfoItem>
@@ -106,7 +106,7 @@
           text
           theme="primary"
           @click="handleShowPreview('zookeeper')">
-          {{ t('台') }}
+          {{ getServiceNums('zookeeper') }} {{ t('台') }}
         </BkButton>
         <span v-else>--</span>
       </InfoItem>
@@ -176,20 +176,27 @@
   const props = defineProps<Props>();
   const { t } = useI18n();
 
-  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
+  type ServiceRole = 'broker' | 'zookeeper';
 
-  const zookeeperSpec = props.ticketDetails?.details?.resource_spec?.zookeeper || {};
-  const brokerSpec = props.ticketDetails?.details?.resource_spec?.broker || {};
+  const { details } = props.ticketDetails;
+  const { ip_source: ipSource, nodes, resource_spec: resourceSpec, specs: specMap = {} } = details;
 
-  const { count, storage_spec: storageSpec = [] } = brokerSpec;
+  const isFromResourcePool = ipSource === 'resource_pool';
+
+  const zookeeperSpec = resourceSpec?.zookeeper;
+  const brokerSpec = resourceSpec?.broker;
+
+  const zookeeperSpecInfo = specMap[zookeeperSpec?.spec_id] || {};
+  const brokerSpecInfo = specMap[brokerSpec?.spec_id] || {};
+
+  const { count = 0, storage_spec: storageSpec = [] } = brokerSpec || {};
   const disk = storageSpec.reduce((total: number, item: { min: number }) => total + Number(item.min || 0), 0);
   const totalCapacity = disk * count;
 
   /**
    * 获取服务器数量
    */
-  function getServiceNums(key: 'broker' | 'zookeeper') {
-    const nodes = props.ticketDetails?.details?.nodes;
+  function getServiceNums(key: ServiceRole) {
     return nodes?.[key]?.length ?? 0;
   }
 
@@ -207,7 +214,7 @@
     role: previewState.role,
   }));
 
-  function handleShowPreview(role: 'broker' | 'zookeeper') {
+  function handleShowPreview(role: ServiceRole) {
     previewState.isShow = true;
     previewState.role = role;
     previewState.title = `【${firstLetterToUpper(role)}】${t('主机预览')}`;

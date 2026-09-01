@@ -13,7 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -33,6 +39,7 @@ export default class Doris extends ClusterBase {
   static DORIS_REPLACE = TicketTypes.DORIS_REPLACE;
   static DORIS_SCALE_UP = TicketTypes.DORIS_SCALE_UP;
   static DORIS_SHRINK = TicketTypes.DORIS_SHRINK;
+  static DORIS_UPGRADE = TicketTypes.DORIS_UPGRADE;
   static operationIconMap = {
     [Doris.DORIS_DESTROY]: t('删除中'),
     [Doris.DORIS_DISABLE]: t('禁用中'),
@@ -41,6 +48,7 @@ export default class Doris extends ClusterBase {
     [Doris.DORIS_REPLACE]: t('替换中'),
     [Doris.DORIS_SCALE_UP]: t('扩容中'),
     [Doris.DORIS_SHRINK]: t('缩容中'),
+    [Doris.DORIS_UPGRADE]: t('版本升级中'),
   };
   static operationTextMap = {
     [Doris.DORIS_DESTROY]: t('删除任务进行中'),
@@ -50,6 +58,7 @@ export default class Doris extends ClusterBase {
     [Doris.DORIS_REPLACE]: t('替换任务进行中'),
     [Doris.DORIS_SCALE_UP]: t('扩容任务进行中'),
     [Doris.DORIS_SHRINK]: t('缩容任务进行中'),
+    [Doris.DORIS_UPGRADE]: t('版本升级任务进行中'),
   };
 
   static STATUS_ABNORMAL = STATUS_ABNORMAL;
@@ -77,22 +86,21 @@ export default class Doris extends ClusterBase {
   domain: string;
   doris_backend_hot: Array<ClusterListNode>;
   doris_backend_warm: Array<ClusterListNode>;
-  doris_follower: Array<ClusterListNode>;
+  doris_follower: Array<{ is_master: boolean } & ClusterListNode>;
   doris_observer: Array<ClusterListNode>;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     doris_access_entry_view: boolean;
+    doris_dbconfig_edit: boolean;
     doris_destroy: boolean;
     doris_edit: boolean;
     doris_enable_disable: boolean;
-    doris_reboot: boolean;
-    doris_replace: boolean;
-    doris_scale_up: boolean;
-    doris_shrink: boolean;
+    doris_manage: boolean;
+    doris_subscribe_monitor: boolean;
     doris_view: boolean;
   };
   phase: 'online' | 'offline';
@@ -112,6 +120,7 @@ export default class Doris extends ClusterBase {
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;

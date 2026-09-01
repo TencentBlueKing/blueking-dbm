@@ -82,10 +82,12 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 
 func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload) {
 	payload.MySQL = &probeconfig.ProbeMySQLConfig{
-		User:     Cfg.ProbeMysql.User,
-		Password: Cfg.ProbeMysql.Password,
-		Interval: durationToYAMLString(Cfg.ProbeMysql.Interval),
-		Timeout:  durationToYAMLString(Cfg.ProbeMysql.Timeout),
+		User:              Cfg.ProbeMysql.User,
+		Password:          Cfg.ProbeMysql.Password,
+		Interval:          durationToYAMLString(Cfg.ProbeMysql.Interval),
+		HeartbeatInterval: durationToYAMLString(Cfg.ProbeMysql.HeartbeatInterval),
+		ReplDelayInterval: durationToYAMLString(Cfg.ProbeMysql.ReplDelayInterval),
+		Timeout:           durationToYAMLString(Cfg.ProbeMysql.Timeout),
 	}
 	payload.Redis = &probeconfig.ProbeRedisConfig{
 		User:     Cfg.ProbeRedis.User,
@@ -94,10 +96,12 @@ func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload) {
 		Timeout:  durationToYAMLString(Cfg.ProbeRedis.Timeout),
 	}
 	payload.ProxyAdmin = &probeconfig.ProbeProxyAdminConfig{
-		User:     Cfg.ProbeProxyAdmin.User,
-		Password: Cfg.ProbeProxyAdmin.Password,
-		Interval: durationToYAMLString(Cfg.ProbeProxyAdmin.Interval),
-		Timeout:  durationToYAMLString(Cfg.ProbeProxyAdmin.Timeout),
+		User:              Cfg.ProbeProxyAdmin.User,
+		Password:          Cfg.ProbeProxyAdmin.Password,
+		Interval:          durationToYAMLString(Cfg.ProbeProxyAdmin.Interval),
+		HeartbeatInterval: durationToYAMLString(Cfg.ProbeProxyAdmin.HeartbeatInterval),
+		ReplDelayInterval: durationToYAMLString(Cfg.ProbeProxyAdmin.ReplDelayInterval),
+		Timeout:           durationToYAMLString(Cfg.ProbeProxyAdmin.Timeout),
 	}
 }
 

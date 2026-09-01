@@ -92,16 +92,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -248,40 +242,38 @@
     });
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => {
-          const proxies = item.cluster.proxies || [];
-          return {
-            auto_cleanup_old_proxies: true,
-            cluster_id: item.cluster.id,
-            old_nodes: {
-              proxy: proxies.map((proxy) => ({
-                bk_biz_id: proxy.bk_biz_id,
-                bk_cloud_id: proxy.bk_cloud_id,
-                bk_host_id: proxy.bk_host_id,
-                ip: proxy.ip,
-              })),
-            },
-            proxy_version: proxies[0]?.version || '',
-            resource_spec: {
-              new_proxies: {
-                count: Number(item.count),
-                label_names: item.labels.map((label) => label.value),
-                labels: item.labels.map((label) => String(label.id)),
-                spec_id: item.specId,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => {
+            const proxies = item.cluster.proxies || [];
+            return {
+              auto_cleanup_old_proxies: true,
+              cluster_id: item.cluster.id,
+              old_nodes: {
+                proxy: proxies.map((proxy) => ({
+                  bk_biz_id: proxy.bk_biz_id,
+                  bk_cloud_id: proxy.bk_cloud_id,
+                  bk_host_id: proxy.bk_host_id,
+                  ip: proxy.ip,
+                })),
               },
-            },
-          };
-        }),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+              proxy_version: proxies[0]?.version || '',
+              resource_spec: {
+                new_proxies: {
+                  count: Number(item.count),
+                  label_names: item.labels.map((label) => label.value),
+                  labels: item.labels.map((label) => String(label.id)),
+                  spec_id: item.specId,
+                },
+              },
+            };
+          }),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

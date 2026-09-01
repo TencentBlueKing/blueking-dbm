@@ -10,15 +10,15 @@
         v-for="(item, index) in abstractList"
         :key="index"
         :title="item.table_name">
-        <BkTable
+        <PrimaryTable
           :columns="item.titles"
-          :data="item.values"
-          header-row-class-name="abstract-table-header-row" />
+          :data="item.values" />
       </TableCollapse>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import { h } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -26,10 +26,16 @@
 
   import TableCollapse from '@components/table-collapse/Index.vue';
 
+  import { isHttpUrl } from '@utils';
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
   export type AbstractItem = {
     titles: {
-      field: string;
-      label: string;
+      colKey: string;
+      title: string;
     }[];
   } & Omit<ServiceReturnType<typeof getTicketFlows>[number]['output_data'][number], 'titles'>;
 
@@ -39,9 +45,6 @@
   }
 
   type Emits = (e: 'requestFinish', value: AbstractItem[]) => void;
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -61,8 +64,26 @@
           .map((item) => ({
             ...item,
             titles: item.titles.map((item) => ({
-              field: item.id,
-              label: item.display_name,
+              cell:
+                item.type === 'url'
+                  ? (_, { row }) => {
+                      const value = row[item.id];
+                      if (isHttpUrl(value)) {
+                        return h(
+                          'a',
+                          {
+                            href: value,
+                            rel: 'noreferrer',
+                            target: '_blank',
+                          },
+                          item.display_name,
+                        );
+                      }
+                      return '--';
+                    }
+                  : '--',
+              colKey: item.id,
+              title: item.display_name,
             })),
           }));
       }
@@ -91,9 +112,5 @@
     .tip-display {
       margin-bottom: 16px;
     }
-  }
-
-  .abstract-table-header-row {
-    background-color: #fafbfd;
   }
 </style>

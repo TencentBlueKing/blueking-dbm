@@ -12,13 +12,6 @@
 -->
 
 <template>
-  <Teleport to="#dbContentTitleAppend">
-    <BkTag
-      class="ml-8"
-      theme="info">
-      {{ t('全局') }}
-    </BkTag>
-  </Teleport>
   <div class="ticket-flow-list-content">
     <BkAlert
       class="mb-16"
@@ -44,28 +37,115 @@
           {{ t('批量编辑') }}
         </AuthButton>
       </span>
-      <BkSearchSelect
+      <DbQuickSearch
         v-model="searchValue"
         class="input-box"
         :data="searchSelectList"
-        :placeholder="t('请选择条件搜索')"
-        unique-select
-        value-split-code="+"
-        @search="fetchData" />
+        :placeholder="t('请选择条件搜索')" />
     </div>
     <DbTable
       ref="tableRef"
       class="table-box"
-      :columns="columns"
       :data-source="queryTicketFlowDescribe"
-      primary-key="ticket_type"
-      :row-config="{
-        useKey: true,
-        keyField: 'id',
-      }"
+      row-key="id"
       selectable
       @clear-search="handleClearSearch"
-      @selection="handleSelection" />
+      @selection="handleSelection">
+      <TableColumn
+        col-key="ticket_type_display"
+        :title="t('单据类型')"
+        :width="220">
+      </TableColumn>
+      <TableColumn
+        col-key="bk_biz_id"
+        :title="t('目标')"
+        :width="180">
+        <template #default>
+          {{ t('业务下全部对象') }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="need_itsm"
+        :width="120">
+        <template #title>
+          <p
+            v-bk-tooltips="t('是否经由DBA审批后才可执行')"
+            class="configs-head">
+            {{ t('是否审批') }}
+          </p>
+        </template>
+        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+          <RenderFlowPreview
+            v-model="data.configs.need_itsm"
+            config-key="need_itsm"
+            :data="data"
+            @success="fetchData">
+            <AuthTemplate
+              action-id="ticket_config_set"
+              class="flow-node-action"
+              :permission="data.permission.ticket_config_set"
+              :resource="dbType">
+              <BkCheckbox
+                v-model="data.configs.need_itsm"
+                style="pointer-events: none" />
+            </AuthTemplate>
+          </RenderFlowPreview>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="need_manual_confirm"
+        :width="120">
+        <template #title>
+          <p
+            v-bk-tooltips="t('是否经由提单人确认后才可执行')"
+            class="configs-head">
+            {{ t('是否人工确认') }}
+          </p>
+        </template>
+        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+          <RenderFlowPreview
+            v-model="data.configs.need_manual_confirm"
+            config-key="need_manual_confirm"
+            :data="data"
+            @success="fetchData">
+            <AuthTemplate
+              action-id="ticket_config_set"
+              class="flow-node-action"
+              :permission="data.permission.ticket_config_set"
+              :resource="dbType">
+              <BkCheckbox
+                v-model="data.configs.need_manual_confirm"
+                style="pointer-events: none" />
+            </AuthTemplate>
+          </RenderFlowPreview>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="flow_desc"
+        ellipsis
+        :title="t('流程预览')"
+        :width="520">
+        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+          <span>{{ data.flow_desc.join(' -> ') }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        ellipsis
+        :title="t('更新人')"
+        :width="120">
+      </TableColumn>
+      <TableColumn
+        col-key="update_at"
+        ellipsis
+        sorter
+        :title="t('更新时间')"
+        :width="180">
+        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+          {{ data.updateAtDisplay }}
+        </template>
+      </TableColumn>
+    </DbTable>
   </div>
   <BatchConfigDialog
     v-model:is-show="isShowBatchConfigDialog"
@@ -81,16 +161,14 @@
 
   import type { DBTypes } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
   import BatchConfigDialog from './BatchConfigDialog.vue';
   import RenderFlowPreview from './RenderFlowPreview.vue';
 
   interface Props {
     dbType: DBTypes;
-  }
-
-  interface SearchSelectItem {
-    id: string;
-    name: string;
   }
 
   const props = defineProps<Props>();
@@ -99,134 +177,31 @@
 
   const tableRef = ref();
   const isShowBatchConfigDialog = ref(false);
-  const searchValue = ref<Array<{ values: SearchSelectItem[] } & SearchSelectItem>>([]);
-  const ticketTypeList = shallowRef<SearchSelectItem[]>([]);
+  const searchValue = ref<Record<string, string>>({});
+  const ticketTypeList = shallowRef<{ label: string; value: string }[]>([]);
   const selected = shallowRef<TicketFlowDescribeModel[]>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selecedTicketTypes = computed(() => selected.value.map((item) => item.ticket_type));
-  const reqParams = computed(() =>
-    searchValue.value.reduce<Record<string, string>>((obj, item) => {
-      Object.assign(obj, {
-        [item.id]: item.values.map((data) => data.id).join(','),
-      });
-      return obj;
-    }, {}),
-  );
-  const searchSelectList = computed(() => [
+  const searchSelectList = computed<QuickSearchProps['data']>(() => [
     {
-      children: ticketTypeList.value,
       id: 'ticket_types',
-      multiple: true,
+      list: ticketTypeList.value,
       name: t('单据类型'),
+      type: 'multiple',
     },
   ]);
-
-  const columns = [
-    {
-      field: 'ticket_type_display',
-      label: t('单据类型'),
-      width: 220,
-    },
-    {
-      field: 'bk_biz_id',
-      label: t('目标'),
-      render: () => t('业务下全部对象'),
-      width: 180,
-    },
-    {
-      field: 'need_itsm',
-      label: t('是否审批'),
-      render: ({ data }: { data: TicketFlowDescribeModel }) => (
-        <RenderFlowPreview
-          v-model={data.configs.need_itsm}
-          configKey='need_itsm'
-          data={data}
-          onSuccess={fetchData}>
-          <auth-template
-            action-id='ticket_config_set'
-            class='flow-node-action'
-            permission={data.permission.ticket_config_set}
-            resource={props.dbType}>
-            <bk-checkbox
-              v-model={data.configs.need_itsm}
-              style='pointer-events: none'
-            />
-          </auth-template>
-        </RenderFlowPreview>
-      ),
-      renderHead: () => (
-        <p
-          v-bk-tooltips={t('是否经由DBA审批后才可执行')}
-          class='configs-head'>
-          {t('是否审批')}
-        </p>
-      ),
-      width: 120,
-    },
-    {
-      field: 'need_manual_confirm',
-      label: t('是否人工确认'),
-      render: ({ data }: { data: TicketFlowDescribeModel }) => (
-        <RenderFlowPreview
-          v-model={data.configs.need_manual_confirm}
-          configKey='need_manual_confirm'
-          data={data}
-          onSuccess={fetchData}>
-          <auth-template
-            action-id='ticket_config_set'
-            class='flow-node-action'
-            permission={data.permission.ticket_config_set}
-            resource={props.dbType}>
-            <bk-checkbox
-              v-model={data.configs.need_manual_confirm}
-              style='pointer-events: none'
-            />
-          </auth-template>
-        </RenderFlowPreview>
-      ),
-      renderHead: () => (
-        <p
-          v-bk-tooltips={t('是否经由提单人确认后才可执行')}
-          class='configs-head'>
-          {t('是否人工确认')}
-        </p>
-      ),
-      width: 120,
-    },
-    {
-      field: 'flow_desc',
-      label: t('流程预览'),
-      render: ({ data }: { data: TicketFlowDescribeModel }) => <span>{data.flow_desc.join(' -> ')}</span>,
-      showOverflowTooltip: true,
-      width: 520,
-    },
-    {
-      field: 'updater',
-      label: t('更新人'),
-      showOverflowTooltip: true,
-      width: 120,
-    },
-    {
-      field: 'update_at',
-      label: t('更新时间'),
-      render: ({ data }: { data: TicketFlowDescribeModel }) => data.updateAtDisplay,
-      showOverflowTooltip: true,
-      sort: true,
-      width: 240,
-    },
-  ];
 
   useRequest(getTicketTypes, {
     onSuccess: (data) => {
       ticketTypeList.value = data.map((item) => ({
-        id: item.key,
-        name: item.value,
+        label: item.value,
+        value: item.key,
       }));
     },
   });
 
-  watch(reqParams, () => {
+  watch(searchValue, () => {
     fetchData();
   });
 
@@ -234,7 +209,7 @@
     () => props.dbType,
     (type) => {
       if (type) {
-        searchValue.value = [];
+        searchValue.value = {};
       }
     },
   );
@@ -244,17 +219,15 @@
   // });
 
   const fetchData = () => {
-    tableRef.value.fetchData(
-      { ...reqParams.value },
-      {
-        // 全局配置下单据流程列表不传bk_biz_id,覆盖db-table组件传入的bk_biz_id,请求时会过滤掉值为undefined的字段
-        bk_biz_id: undefined,
-        db_type: props.dbType,
-      },
-    );
+    tableRef.value.fetchData({
+      // 全局配置下单据流程列表不传bk_biz_id,覆盖db-table组件传入的bk_biz_id,请求时会过滤掉值为undefined的字段
+      bk_biz_id: undefined,
+      db_type: props.dbType,
+      ...searchValue.value,
+    });
   };
 
-  const handleSelection = (data: TicketFlowDescribeModel, list: TicketFlowDescribeModel[]) => {
+  const handleSelection = (idList: string[], list: TicketFlowDescribeModel[]) => {
     selected.value = list;
   };
 
@@ -263,7 +236,7 @@
   };
 
   const handleClearSearch = () => {
-    searchValue.value = [];
+    searchValue.value = {};
   };
 
   onMounted(() => {

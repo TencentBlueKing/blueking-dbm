@@ -623,3 +623,43 @@ def test_collect_instance_pairs_recently_switched(mock_config):
     assert len(slaves) == 1
     assert "3.3.3.2:30000" in switched
     assert switched["3.3.3.2:30000"] == 6
+
+
+def test_start_ingests_portrait_and_survives_ingest_failure():
+    from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+
+    task = _task()
+    cluster = _make_cluster()
+    row = SimpleNamespace(
+        state=_state().ABNORMAL.value,
+        cluster=cluster.immute_domain,
+        bk_biz_id=cluster.bk_biz_id,
+        msg="missing backup",
+    )
+    cfg = _config()
+    patches = [
+        patch(
+            "backend.db_periodic_task.local_tasks.redis_backup.check_full_backup.RedisBackupCheckConfig.from_settings",
+            return_value=cfg,
+        ),
+        patch("backend.db_periodic_task.local_tasks.redis_backup.check_full_backup.RedisBackupCheckBatchOps"),
+        patch.object(task, "_get_cluster_ids", return_value=[1]),
+        patch.object(task, "_get_cluster_queryset", return_value=[cluster]),
+        patch(_PATCH_FETCH, return_value={cluster.immute_domain: []}),
+        patch.object(task, "_check_cluster_with_retry", return_value=[row]),
+    ]
+
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patch(
+        "backend.db_periodic_task.local_tasks.redis_backup.check_full_backup.ingest_daily_cluster_rows"
+    ) as ingest:
+        task.start()
+
+    ingest.assert_called_once()
+    assert ingest.call_args.kwargs["prefix"] == "[全备]"
+    assert ingest.call_args.kwargs["dimension"] == RedisPortraitDimensionCode.RELIABILITY
+
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patch(
+        "backend.db_report.portrait.redis_ingest.ingest_summary",
+        side_effect=RuntimeError("portrait boom"),
+    ):
+        task.start()

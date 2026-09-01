@@ -125,6 +125,16 @@ class JsonConfigFormat:
         }
 
     @classmethod
+    def format_dbm_retry_event(cls):
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "target_nodes": (
+                cls.get_db_set_ctx(DBType.Sqlserver.value)["target_nodes"]
+                + cls.get_db_set_ctx(DBType.MySQL.value)["target_nodes"]
+            ),
+        }
+
+    @classmethod
     def format_mysql_proxy_connlog(cls):
         proxy_filter = {"machine_type": MachineType.PROXY}
         return {

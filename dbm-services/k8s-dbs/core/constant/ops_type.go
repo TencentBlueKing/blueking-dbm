@@ -36,6 +36,8 @@ const (
 	VExpansion           = "VolumeExpansion"
 	UpgradeComp          = "UpgradeComp"
 	ExposeService        = "ExposeService"
+	BindDomain           = "BindDomain"
+	UnbindDomain         = "UnbindDomain"
 	CreateK8sNs          = "CreateK8sNamespace"
 	DeleteK8sPod         = "DeleteK8sPod"
 )

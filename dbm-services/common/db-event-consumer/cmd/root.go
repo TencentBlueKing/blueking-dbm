@@ -20,64 +20,26 @@ import (
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/config"
 	"dbm-services/common/db-event-consumer/pkg/consumer"
-	"dbm-services/common/db-event-consumer/pkg/sinker"
+	sinkerPkg "dbm-services/common/db-event-consumer/pkg/sinker"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "kafka-consumer",
-	Short: "kafka-consumer",
-	Long:  "kafka-consumer",
+	Use:   "db-event-consumer",
+	Short: "db-event-consumer",
+	Long:  "db-event-consumer",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config.InitConfig()
+		config.InitConfig(configFile)
 		initLogger(config.MainConfig.Log)
-		if err := sinker.InitDatasource(); err != nil {
+		if err := sinkerPkg.InitDatasource(); err != nil {
 			return err
 		}
 
-		// 初始化指标收集器
 		base.GetTopicMetrics()
-
-		// 启动指标上报器（如果配置了）
-		if config.MainConfig.BkmReport != nil && config.MainConfig.BkmReport.ReportUrl != "" {
-			reporter := base.NewMetricsReporter(config.MainConfig.BkmReport)
-			// 每分钟上报一次
-			reporter.StartReporting(1 * time.Minute)
-			slog.Info("metrics reporter started",
-				slog.String("report_url", config.MainConfig.BkmReport.ReportUrl),
-				slog.Int("data_id", config.MainConfig.BkmReport.DataID))
-		} else {
-			slog.Warn("metrics reporter not configured, skipping")
-		}
-
-		r := gin.Default()
-		r.Handle("GET", "/ping", func(context *gin.Context) {
-			context.String(http.StatusOK, "pong")
-		})
-
-		// 注册 pprof 路由
-		pprofGroup := r.Group("/debug/pprof")
-		{
-			pprofGroup.GET("/", gin.WrapF(pprof.Index))
-			pprofGroup.GET("/cmdline", gin.WrapF(pprof.Cmdline))
-			pprofGroup.GET("/profile", gin.WrapF(pprof.Profile))
-			pprofGroup.GET("/symbol", gin.WrapF(pprof.Symbol))
-			pprofGroup.GET("/trace", gin.WrapF(pprof.Trace))
-			pprofGroup.GET("/allocs", gin.WrapH(pprof.Handler("allocs")))
-			pprofGroup.GET("/block", gin.WrapH(pprof.Handler("block")))
-			pprofGroup.GET("/goroutine", gin.WrapH(pprof.Handler("goroutine")))
-			pprofGroup.GET("/heap", gin.WrapH(pprof.Handler("heap")))
-			pprofGroup.GET("/mutex", gin.WrapH(pprof.Handler("mutex")))
-			pprofGroup.GET("/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
-		}
-		if config.MainConfig.OtelPort > 0 {
-			go func() {
-				_ = r.Run(fmt.Sprintf("127.0.0.1:%d", config.MainConfig.OtelPort))
-			}()
-		}
+		initMetricsReporter()
+		initHTTPServer()
 
 		// 全局获取一次 collectors 列表，供 BkCollectorName 匹配使用
 		var collectorsMap map[string]*config.BkDataConfig
@@ -90,106 +52,176 @@ var rootCmd = &cobra.Command{
 		}
 
 		wg := &sync.WaitGroup{}
-
 		for _, sink := range config.SinkerConfigs {
 			if sink.Enable != nil && *sink.Enable == false {
 				slog.Info("skip sink", slog.String("table", sink.ModelTable))
 				continue
 			}
-			// 每一个 sinker 都有自己的 writer 实体
-			dsWriter, err := sinker.GetDSWriter(sinker.DatasourceMap[sink.Datasource])
+			// 创建 DSWriter 是致命错误（配置问题），失败则退出程序
+			dsWriter, err := sinkerPkg.GetDSWriter(sinkerPkg.DatasourceMap[sink.Datasource])
 			if err != nil {
 				return err
 			}
-			sinker := consumer.Sinker{
-				RuntimeConfig: sink,
-				DSWriter:      dsWriter,
-			}
-			if sink.BkDataId > 0 {
-				sinker.RuntimeConfig.Topic = ""
-				// get kafka from bk api
-				if err = consumer.QueryKafkaMetaWithBkDataId(&sinker, config.MainConfig.BkmApiInfo); err != nil {
-					slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
-					continue
-				}
-				if sinker.RuntimeConfig.Topic == "" {
-					slog.Error("topic is empty", slog.String("table", sink.ModelTable))
-					continue
-				}
-				//sinker.MetaInfo is set// = sinker.RuntimeConfig.KafkaMeta
-			} else if sink.BkCollectorName != "" {
-				// 从 collectors 列表中按 collector_config_name_en 匹配提取 bk_data_id
-				if collectorsMap == nil {
-					slog.Error("collectors map is nil, cannot resolve bk_collector_name",
-						slog.String("bk_collector_name", sink.BkCollectorName))
-					continue
-				}
-				collectorCfg, ok := collectorsMap[sink.BkCollectorName]
-				if !ok {
-					slog.Error("collector not found in list",
-						slog.String("bk_collector_name", sink.BkCollectorName))
-					continue
-				}
-				sink.BkDataId = collectorCfg.BkDataId
-				slog.Info("resolved bk_data_id from collector",
-					slog.String("bk_collector_name", sink.BkCollectorName),
-					slog.Int("bk_data_id", sink.BkDataId))
-				sinker.RuntimeConfig.Topic = ""
-				// 复用 BkDataId > 0 的逻辑获取 kafka meta
-				if err = consumer.QueryKafkaMetaWithBkDataId(&sinker, config.MainConfig.BkmApiInfo); err != nil {
-					slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
-					continue
-				}
-				if sinker.RuntimeConfig.Topic == "" {
-					slog.Error("topic is empty", slog.String("table", sink.ModelTable))
-					continue
-				}
-			} else {
-				sinker.MetaInfo = config.MainConfig.KafkaInfo
-			}
-
-			cg, err := sinker.NewConsumerGroup()
-			if err != nil {
-				slog.Error("new consumer group", err,
-					slog.String("topic", sinker.RuntimeConfig.Topic),
-					slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix))
-				continue
-				//return err
-			}
-			consumerHandler, err := sinker.NewSinkHandler()
-			if err != nil {
-				slog.Error("new sink handler", slog.String("error", err.Error()),
-					slog.String("topic", sinker.RuntimeConfig.Topic),
-					slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix))
-				continue
-				//panic(err)
-			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for {
-					ctx := context.Background()
-					err := cg.Consume(
-						ctx,
-						[]string{sinker.RuntimeConfig.Topic},
-						consumerHandler,
-					)
-					if err != nil {
-						slog.Error("consume message", err)
-						break
-					}
-					if err := ctx.Err(); err != nil {
-						slog.Error("consume context", err)
-						break
-					}
-					//consumerHandler.Ready = make(chan bool)
-				}
-				_ = cg.Close()
-			}()
+			dsWriter.SetWriteMode(sink.WriteMode)
+			startSinkerConsumer(sink, dsWriter, collectorsMap, wg)
 		}
 		wg.Wait()
 		return nil
 	},
+}
+
+// initMetricsReporter 启动指标上报器
+func initMetricsReporter() {
+	if config.MainConfig.BkmReport != nil && config.MainConfig.BkmReport.ReportUrl != "" {
+		reporter := base.NewMetricsReporter(config.MainConfig.BkmReport)
+		reporter.StartReporting(1 * time.Minute)
+		slog.Info("metrics reporter started",
+			slog.String("report_url", config.MainConfig.BkmReport.ReportUrl),
+			slog.Int("data_id", config.MainConfig.BkmReport.DataID))
+	} else {
+		slog.Warn("metrics reporter not configured, skipping")
+	}
+}
+
+// initHTTPServer 启动 HTTP 服务（健康检查 + pprof）
+func initHTTPServer() {
+	if config.MainConfig.OtelPort <= 0 {
+		return
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("pong"))
+	})
+
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+	mux.Handle("/debug/pprof/block", pprof.Handler("block"))
+	mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	mux.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+
+	go func() {
+		addr := fmt.Sprintf("127.0.0.1:%d", config.MainConfig.OtelPort)
+		slog.Info("http server starting", slog.String("addr", addr))
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			slog.Error("http server failed", slog.String("error", err.Error()))
+		}
+	}()
+}
+
+// startSinkerConsumer 启动单个 sinker 的消费者，内部错误均为非致命（跳过该 sinker）
+func startSinkerConsumer(sink *config.SinkerConfig, dsWriter base.DSWriter, collectorsMap map[string]*config.BkDataConfig, wg *sync.WaitGroup) {
+	sinker := consumer.Sinker{
+		RuntimeConfig: sink,
+		DSWriter:      dsWriter,
+	}
+
+	// 解析 kafka 连接信息
+	if err := resolveKafkaMeta(&sinker, sink, collectorsMap); err != nil {
+		return // 非致命错误，跳过该 sinker
+	}
+
+	cg, err := sinker.NewConsumerGroup()
+	if err != nil {
+		slog.Error("new consumer group", err,
+			slog.String("topic", sinker.RuntimeConfig.Topic),
+			slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix))
+		return
+	}
+	go func() {
+		for err := range cg.Errors() {
+			slog.Error("consumer group error",
+				slog.Any("error", err),
+				slog.String("topic", sinker.RuntimeConfig.Topic),
+				slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix),
+				slog.String("model", sinker.RuntimeConfig.ModelTable))
+		}
+	}()
+	consumerHandler, err := sinker.NewSinkHandler()
+	if err != nil {
+		slog.Error("new sink handler", slog.String("error", err.Error()),
+			slog.String("topic", sinker.RuntimeConfig.Topic),
+			slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix))
+		return
+	}
+
+	// 注册 topic 对应的完整消费处理器，供 retry_event 路由时通过 event_type(=topic) 直接复用
+	if handler, ok := consumerHandler.(base.MessageHandler); ok {
+		sinkerPkg.ModelDSWriterMap[sink.Topic] = sinkerPkg.ModelSinkEntry{
+			Writer:  dsWriter,
+			Model:   sinkerPkg.ModelSinkerRegistered[sink.ModelTable], // FakeModel 时为 nil
+			Handler: handler,
+		}
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			ctx := context.Background()
+			err := cg.Consume(ctx, []string{sinker.RuntimeConfig.Topic}, consumerHandler)
+			if err != nil {
+				slog.Error("consume message", err)
+				break
+			} else {
+				slog.Info("re-consume message", slog.String("topic", sinker.RuntimeConfig.Topic))
+			}
+			if err := ctx.Err(); err != nil {
+				slog.Error("consume context", err)
+				break
+			}
+		}
+		_ = cg.Close()
+	}()
+}
+
+// resolveKafkaMeta 根据配置解析 kafka 连接信息
+func resolveKafkaMeta(sinker *consumer.Sinker, sink *config.SinkerConfig, collectorsMap map[string]*config.BkDataConfig) error {
+	if sink.BkDataId > 0 {
+		sinker.RuntimeConfig.Topic = ""
+		if err := consumer.QueryKafkaMetaWithBkDataId(sinker, config.MainConfig.BkmApiInfo); err != nil {
+			slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
+			return err
+		}
+		if sinker.RuntimeConfig.Topic == "" {
+			slog.Error("topic is empty", slog.String("table", sink.ModelTable))
+			return fmt.Errorf("topic is empty for table %s", sink.ModelTable)
+		}
+	} else if sink.BkCollectorName != "" {
+		if collectorsMap == nil {
+			slog.Error("collectors map is nil, cannot resolve bk_collector_name",
+				slog.String("bk_collector_name", sink.BkCollectorName))
+			return fmt.Errorf("collectors map is nil")
+		}
+		collectorCfg, ok := collectorsMap[sink.BkCollectorName]
+		if !ok {
+			slog.Error("collector not found in list",
+				slog.String("bk_collector_name", sink.BkCollectorName))
+			return fmt.Errorf("collector not found: %s", sink.BkCollectorName)
+		}
+		sink.BkDataId = collectorCfg.BkDataId
+		slog.Info("resolved bk_data_id from collector",
+			slog.String("bk_collector_name", sink.BkCollectorName),
+			slog.Int("bk_data_id", sink.BkDataId))
+		sinker.RuntimeConfig.Topic = ""
+		if err := consumer.QueryKafkaMetaWithBkDataId(sinker, config.MainConfig.BkmApiInfo); err != nil {
+			slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
+			return err
+		}
+		if sinker.RuntimeConfig.Topic == "" {
+			slog.Error("topic is empty", slog.String("table", sink.ModelTable))
+			return fmt.Errorf("topic is empty for table %s", sink.ModelTable)
+		}
+	} else {
+		sinker.MetaInfo = config.MainConfig.KafkaInfo
+	}
+	return nil
 }
 
 func Execute() {

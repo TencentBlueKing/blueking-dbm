@@ -63,6 +63,25 @@
                 </BkTag>
               </div>
             </template>
+              <BkTag
+                v-if="nodeItem.isStandBy"
+                class="cluster-specific-flag ml-4"
+                size="small">
+                Standby
+              </BkTag>
+              <BkTag
+                v-if="isMasterNode(nodeItem)"
+                class="cluster-specific-flag ml-4"
+                size="small">
+                {{ masterTagLabel }}
+              </BkTag>
+              <BkTag
+                v-if="nodeItem.status === 'unavailable'"
+                class="ml-4"
+                size="small">
+                {{ t('不可用') }}
+              </BkTag>
+            </div>
             <span v-if="clusterRoleNodeGroup[groupName].length < 1">--</span>
           </div>
         </ScrollFaker>
@@ -77,6 +96,8 @@
   import type { ClusterListNode } from '@services/types';
 
   import { useUrlSearch } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import PopoverCopy from '@components/popover-copy/Index.vue';
@@ -108,12 +129,15 @@
     clusterRoleNodeGroup: Record<string, NodeItem[]>;
   }
 
-  defineProps<Props>();
-
   const { t } = useI18n();
   const { getSearchParams } = useUrlSearch();
 
   const serachInstacnce = getSearchParams().instance || '';
+
+  const masterTag = clusterTypeWithMasterTagMap[props.clusterType];
+  const masterTagLabel = masterTag?.label ?? 'Primary';
+
+  const isMasterNode = (node: NodeItem) => Boolean(masterTag ? _.get(node, masterTag.field) : node.isPrimary);
 
   const scrollContentRef = useTemplateRef<InstanceType<typeof ScrollFaker>[]>('scrollContent');
 

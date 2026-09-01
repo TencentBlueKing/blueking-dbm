@@ -14,7 +14,7 @@ data:
     listenAddr: "0.0.0.0:80"
     rulePath: "rule.yaml"
     spiderRulePath: "spider_rule.yaml"
-    
+
     {{- if index .Values "db-simulation" "simulationNodeLables" }}
     simulationNodeLables:
       - key: "{{ index .Values "db-simulation" "simulationNodeLables" "key" }}"
@@ -48,6 +48,8 @@ data:
         image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.7.20:3.4.2_v1"
       - version: "8.0"
         image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-8.0.18:4.1_v2"
+      - version: "8.4"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/mysql:8.4.11"
       - version: "tdbctl"
         image:  "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tdbctl:2.4.7_v1"
       - version: "spider"

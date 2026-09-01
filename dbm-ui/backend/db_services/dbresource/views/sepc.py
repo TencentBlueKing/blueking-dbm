@@ -63,13 +63,13 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     def get_action_permission_map(self):
         return {
             ("delete", "batch_delete"): [
-                ResourceActionPermission([ActionEnum.SPEC_DESTROY], ResourceEnum.DBTYPE, self.instance_getter)
+                ResourceActionPermission([ActionEnum.SPEC_MANAGE], ResourceEnum.DBTYPE, self.instance_getter)
             ],
             ("create",): [
                 ResourceActionPermission([ActionEnum.SPEC_CREATE], ResourceEnum.DBTYPE, self.instance_getter)
             ],
             ("update", "modify_spec_enable_status"): [
-                ResourceActionPermission([ActionEnum.SPEC_UPDATE], ResourceEnum.DBTYPE, self.instance_getter)
+                ResourceActionPermission([ActionEnum.SPEC_MANAGE], ResourceEnum.DBTYPE, self.instance_getter)
             ],
             ("list", "recommend_spec", "query_qps_range", "filter_cluster_spec"): [],
         }
@@ -237,7 +237,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     )
     @Permission.decorator_external_permission_field(
         param_field=lambda d: d["spec_cluster_type"],
-        actions=[ActionEnum.SPEC_CREATE, ActionEnum.SPEC_DESTROY, ActionEnum.SPEC_UPDATE],
+        actions=[ActionEnum.SPEC_MANAGE, ActionEnum.SPEC_CREATE],
         resource_meta=ResourceEnum.DBTYPE,
     )
     def list(self, request, *args, **kwargs):

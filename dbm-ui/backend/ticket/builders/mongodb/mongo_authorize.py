@@ -16,6 +16,7 @@ from rest_framework import serializers
 from backend.db_services.dbpermission.db_authorize.serializers import PreCheckAuthorizeRulesSerializer
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -59,7 +60,7 @@ class MongoDBAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.create_user
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.MONGODB_AUTHORIZE_RULES, iam=ActionEnum.MONGODB_AUTHORIZE)
 class MongoDBAuthorizeRulesFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBAuthorizeRulesSerializer
     inner_flow_builder = MongoDBAuthorizeRulesFlowParamBuilder
@@ -74,7 +75,7 @@ class MongoDBAuthorizeRulesFlowBuilder(BaseMongoDBTicketFlowBuilder):
         self.ticket.update_details(infos=data)
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_EXCEL_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.MONGODB_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.MONGODB_AUTHORIZE)
 class MySQLExcelAuthorizeRulesFlowBuilder(MongoDBAuthorizeRulesFlowBuilder):
     serializer = MongodbExcelAuthorizeRulesSerializer
     inner_flow_name = _("MongoDB Excel授权执行")

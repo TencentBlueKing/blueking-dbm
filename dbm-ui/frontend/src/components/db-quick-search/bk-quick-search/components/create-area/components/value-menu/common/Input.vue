@@ -9,7 +9,7 @@
     <input
       ref="input"
       class="bk-quick-search-custom-input-inner"
-      placeholder="请输入关键字"
+      :placeholder="t('请输入关键字')"
       type="text"
       :value="modelValue"
       @blur="handleBlur"
@@ -27,10 +27,13 @@
 <script setup lang="ts">
   import { CloseCircleFilledIcon, SearchIcon } from 'tdesign-icons-vue-next';
   import { onMounted, ref, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   const modelValue = defineModel<string>({
     default: '',
   });
+
+  const { t } = useI18n();
 
   const inputRef = useTemplateRef('input');
   const isFocused = ref(false);

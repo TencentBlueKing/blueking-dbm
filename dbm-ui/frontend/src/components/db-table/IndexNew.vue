@@ -55,7 +55,7 @@
         </template>
       </PrimaryTable>
       <div class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           @change="handlePageValueChange"
@@ -71,7 +71,7 @@
               <span class="number">{{ selectedCount }}</span>
             </I18nT>
           </template>
-        </BkPagination>
+        </DbPagination>
       </div>
     </BkLoading>
   </div>
@@ -101,6 +101,8 @@
 
   import { getOffset } from '@utils';
 
+  import { useTimeoutFn } from '@vueuse/core';
+
   import { usePagination } from './hooks/use-pagination.ts';
   import { useSelect } from './hooks/use-select.tsx';
 
@@ -113,7 +115,7 @@
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     defaultLimit?: number;
     disableSelectMethod?: (data: any) => boolean | string;
-    filterValue?: Record<string, string>;
+    filterValue?: Record<string, string | string[]>;
     // 固定分页，不通过容器高度自动计算
     fixedPagination?: boolean;
     // 是否解析 URL query 参数
@@ -128,6 +130,9 @@
     // 是否单选
     // eslint-disable-next-line vue/no-unused-properties
     selectSingle?: boolean;
+    // 是否显示跨页全选（透传给 useSelect）
+    // eslint-disable-next-line vue/no-unused-properties
+    showSelectAllPage?: boolean;
   }
 
   export interface Emits {
@@ -156,6 +161,8 @@
     getData: <T>() => Array<T>;
     loading: Ref<boolean>;
     removeSelectByKey: (key: string) => void;
+    startPolling: () => void;
+    stopPolling: () => void;
     updateTableHeight: (containerHeight?: number) => void;
     updateTableKey: () => void;
   }
@@ -173,6 +180,7 @@
     selectable: false,
     selected: () => [],
     selectSingle: false,
+    showSelectAllPage: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -194,6 +202,8 @@
     delete baseProps['selectable'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['selectSingle'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['showSelectAllPage'];
     delete baseProps['onChange'];
     delete baseProps['onFilterChange'];
     // @ts-expect-error 删除不存在的 props
@@ -272,7 +282,7 @@
     emits('selection', Object.keys(selectedRowMap.value), Object.values(selectedRowMap.value));
   };
 
-  const fetchListData = (loading = true) => {
+  const fetchListData = (loading = true, isPolling = false) => {
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
@@ -305,11 +315,17 @@
             });
           }
 
-          if (!isPaginationChangeFetch && !isSortChangeFetch) {
+          if (!isPaginationChangeFetch && !isSortChangeFetch && !isPolling) {
             handleClearWholeSelect();
           }
           isSortChangeFetch = false;
           isPaginationChangeFetch = false;
+
+          if (data.results.length < 1) {
+            handleStopPolling();
+          } else {
+            handleStartPolling();
+          }
 
           emits('requestSuccess', data);
         })
@@ -324,6 +340,10 @@
         });
     });
   };
+
+  const { start: handleStartPolling, stop: handleStopPolling } = useTimeoutFn(() => {
+    fetchListData(false, true);
+  }, 10 * 1000);
 
   // 拉取全量数据
   const fetchAllData = async () => {
@@ -464,10 +484,12 @@
     fetchAllData: fetchAllData,
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, loading = true) {
+      // 未开启 URL 联动时不会走 parseURL，此时查询条件变化才回到第一页，条件不变视为原地刷新
+      const isParamsChanged = !_.isEqual(paramsMemo, params);
       paramsMemo = {
         ...params,
       };
-      if (isReady) {
+      if (isReady || isParamsChanged) {
         pagination.current = 1;
       }
       fetchListData(loading);
@@ -480,19 +502,25 @@
     removeSelectByKey(key: string) {
       delete selectedRowMap.value[key];
     },
+    startPolling() {
+      handleStartPolling();
+    },
+    stopPolling() {
+      handleStopPolling();
+    },
     updateTableHeight,
     updateTableKey() {
       tableKey.value = Date.now().toString();
     },
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .db-table {
-    :deep(.t-table__th-cell-inner) {
+    .t-table__th-cell-inner {
       display: flex !important;
     }
 
-    :deep(.t-checkbox) {
+    .t-checkbox {
       display: flex !important;
     }
 
@@ -507,12 +535,9 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      .bk-pagination {
+      // 占满一行，让总条数、每页条数靠左，页码靠右
+      .dbm-pagination {
         width: 100%;
-
-        & > .is-last {
-          margin-left: auto;
-        }
       }
     }
   }

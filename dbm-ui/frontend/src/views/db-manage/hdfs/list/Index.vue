@@ -81,10 +81,10 @@
                 @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
               <div v-db-console="'hdfs.clusterManage.scaleUp'">
                 <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="hdfs_scale_up"
+                <AuthButton
+                    action-id="hdfs_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.hdfs_scale_up"
+                    :permission="data.permission.hdfs_manage"
                     :resource="data.id"
                     text
                     @click="handleShowExpansion(data)">
@@ -94,10 +94,10 @@
               </div>
               <div v-db-console="'hdfs.clusterManage.scaleDown'">
                 <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="hdfs_shrink"
+                <AuthButton
+                    action-id="hdfs_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.hdfs_shrink"
+                    :permission="data.permission.hdfs_manage"
                     :resource="data.id"
                     text
                     @click="handleShowShrink(data)">
@@ -194,7 +194,16 @@
           :is-filter="isSearching"
           label="NameNode"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <BkTag
+              v-if="data.is_active"
+              class="is-primary"
+              size="small">
+              Active
+            </BkTag>
+          </template>
+        </RoleColumn>
         <RoleColumn
           :cluster-type="ClusterTypes.HDFS"
           field="hdfs_zookeeper"

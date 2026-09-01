@@ -27,6 +27,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
 )
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -538,9 +539,13 @@ class RedisChangeBizFlow(object):
 
             # Step6: 重装 dbmon（集群版：一台机器只属于一个集群，按集群维度重装即可）
             logger.info(_("集群 {} 开始构建 dbmon 重装任务").format(cluster.immute_domain))
+            passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
             dbmon_params = {
                 "cluster_domain": cluster.immute_domain,
+                "redis_password": passwd_ret.get("redis_password", "NO_REDIS_PAS_CONFIED"),
+                "proxy_password": passwd_ret.get("redis_proxy_password", "NO_PROXY_PAS_CONFIED"),
                 "is_stop": False,
+                "restart_exporter": True,
             }
             cluster_sub_pipeline.add_sub_pipeline(
                 ClusterDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, dbmon_params)

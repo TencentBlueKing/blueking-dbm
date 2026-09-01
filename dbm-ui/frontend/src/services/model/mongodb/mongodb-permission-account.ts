@@ -18,8 +18,7 @@ import { isRecentDays } from '@utils';
 export default class MongodbPermissonAccount implements PermissionRule {
   account: PermissionRuleAccount;
   permission: {
-    mongodb_account_delete: boolean;
-    mongodb_add_account_rule: boolean;
+    mongodb_priv_manage: boolean;
   };
   rules: PermissionRuleInfo[];
 

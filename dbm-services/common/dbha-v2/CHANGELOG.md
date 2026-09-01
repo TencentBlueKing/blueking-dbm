@@ -1,5 +1,25 @@
 # DBHA-v2 Change Log
 
+## v2.0.1-beta.1
+【新增】Probe 对 MySQL 按 default / heartbeat / repldelay 三类异步采集：default 按原间隔上报全量状态。
+【新增】heartbeat 按较短间隔写 infodba_schema.dbha_heartbeat（sql_log_bin=OFF，只验本机可写）。
+【新增】repldelay 按独立间隔写 infodba_schema.dbha_repl_heartbeat（sql_log_bin=ON，复制到从库并据此报延迟）。
+【新增】三类采集最终都落入同一张 t_dbha_status，主键增加必填字段 harvest_type 区分类别；Redis 上报补 default。
+【优化】Analysis 切换流程中从库延迟时长计算改为查探针表 dbha_repl_heartbeat，只校验 heartbeat_delay，去掉 io_delay 及配置 slaveAllowedMaxIODelay。
+【优化】写 dbha_heartbeat 失败会报事件dbha_heartbeat_write_failure，Analysis 据此做 SSH 二次探测；同实例多条事件按实例去重，避免重复探测。
+【修复】快照日志表将集群名称与集群ID字段与实例绑定，修复多个集群时名称展示错误问题。
+【修复】dbha-cluster show nodes 展示节点信息时排除同机不同集群的实例。
+
+## v2.0.0
+
+- 【新增】增加 proxy 节点非管理端口写心跳功能。
+- 【新增】新增兼容 v1 的 SwitchLog 查询 API（/api/admin/switchqueue/、/api/admin/switchlogs/）。
+- 【新增】Probe 支持跨平台运行 Linux/Windows。
+- 【优化】整机切换针对 remote 多分片场景优化，同集群 remote 实例共享集群锁解决锁等待超时。
+- 【优化】优化切换快照日志的写入流程与数据结构，完善 BkIdcID，Status，NewMasterIP，NewMasterPort 字段内容。
+- 【优化】完善快照日志信息的检查开始和检查结束时间，同时填充切换日志列表接口数据。
+- 【修复】排除策略匹配中不可用状态的实例。
+
 ## v2.0.0-beta.12
 
 - 【新增】增加 proxy 节点非管理端口写心跳功能。

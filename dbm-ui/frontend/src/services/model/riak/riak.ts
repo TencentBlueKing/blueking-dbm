@@ -13,7 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
@@ -68,19 +74,18 @@ export default class Riak extends ClusterBase {
   disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     riak_access_entry_view: boolean;
     riak_cluster_destroy: boolean;
-    riak_cluster_migrate: boolean;
-    riak_cluster_reboot: boolean;
-    riak_cluster_scale_in: boolean;
-    riak_cluster_scale_out: boolean;
+    riak_dbconfig_edit: boolean;
     riak_edit: boolean;
     riak_enable_disable: boolean;
+    riak_manage: boolean;
+    riak_subscribe_monitor: boolean;
     riak_view: boolean;
   };
   phase: 'online' | 'offline';
@@ -103,6 +108,7 @@ export default class Riak extends ClusterBase {
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';

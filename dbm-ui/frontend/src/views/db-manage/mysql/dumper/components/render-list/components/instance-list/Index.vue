@@ -80,13 +80,12 @@
         </BkDropdown>
       </span>
       <div class="instances-view-operations-right">
-        <DbSearchSelect
+        <DbQuickSearch
           v-model="search"
-          clearable
           :data="searchSelectData"
+          parse-url
           :placeholder="t('请选择条件搜索')"
           style="width: 500px"
-          :validate-values="validateValues"
           @change="fetchTableData" />
       </div>
     </div>
@@ -111,22 +110,177 @@
     </BkAlert>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       class="table-box mb-24"
-      :columns="columns"
       :data-source="listDumperInstance"
-      primary-key="dumper_id"
-      :row-class="setRowClass"
-      :row-config="{
-        useKey: true,
-        keyField: 'id',
-      }"
+      :row-class-name="setRowClass"
+      row-key="id"
       selectable
-      :settings="settings"
-      show-settings
       @clear-search="handleClearFilters"
-      @column-filter="handleColumnFilter"
-      @request-finished="handleTableRequestFinished"
-      @selection="handleSelect" />
+      @filter-change="handleTableFilterChange"
+      @request-success="handleTableRequestSuccess"
+      @selection="handleSelect">
+      <TableColumn
+        col-key="instance"
+        :ellipsis="false"
+        fixed="left"
+        :min-width="200"
+        :title="t('实例')"
+        :width="230">
+        <template #default="{ row }: { row: DumperInstanceModel }">
+          <TextOverflowLayout>
+            <span class="mr-4">{{ `${row.ip}:${row.listen_port}` }}</span>
+            <template #append>
+              <BkPopover
+                v-if="row.need_transfer"
+                placement="top"
+                :popover-delay="[100, 200]"
+                theme="light">
+                <DbIcon
+                  class="migrate-fail-tip"
+                  type="exclamation-fill" />
+                <template #content>
+                  <div>{{ t('Dumper实例迁移失败') }}</div>
+                </template>
+              </BkPopover>
+              <RenderOperationTagNew :data="row.operationTagTip" />
+              <MiniTag
+                v-if="!row.isOnline && !row.isStarting"
+                :content="t('已禁用')"
+                ext-cls="stoped-icon" />
+              <MiniTag
+                v-if="row.isNew"
+                content="NEW"
+                ext-cls="success-icon"
+                theme="success" />
+            </template>
+          </TextOverflowLayout>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="dumper_id"
+        :title="t('实例 ID')"
+        :width="80">
+      </TableColumn>
+      <TableColumn
+        col-key="source_cluster"
+        :min-width="200"
+        :title="t('数据源集群')"
+        :width="250">
+        <template #default="{ row }: { row: DumperInstanceModel }">
+          <AuthRouterLink
+            v-if="row.source_cluster"
+            action-id="mysql_view"
+            :permission="row.permission.mysql_view"
+            :resource="row.source_cluster.id"
+            target="_blank"
+            :to="{
+              name: 'DatabaseTendbha',
+              query: {
+                id: row.id,
+              },
+            }">
+            {{ row.source_cluster.immute_domain }}:{{ row.source_cluster.master_port }}
+          </AuthRouterLink>
+          <span v-else>--</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="protocol_type"
+        :filter="{
+          list: [
+            { label: 'KAFKA', value: 'KAFKA' },
+            { label: 'L5_AGENT', value: 'L5_AGENT' },
+            { label: 'TCP/IP', value: 'TCP/IP' },
+          ],
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :title="t('接收端类型')">
+      </TableColumn>
+      <TableColumn
+        col-key="receiver"
+        :title="t('接收端地址')">
+        <template #default="{ row }: { row: DumperInstanceModel }">
+          <span>{{ row.target_address }}:{{ row.target_port }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="add_type"
+        :filter="{
+          list: [
+            { label: t('全量同步'), value: 'full_sync' },
+            { label: t('增量同步'), value: 'incr_sync' },
+          ],
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :title="t('同步方式')">
+        <template #default="{ row }: { row: DumperInstanceModel }">
+          <span>{{ syncTypeMap[row.add_type] }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="row-operation"
+        fixed="right"
+        :title="t('操作')"
+        :width="isCN ? 160 : 220">
+        <template #default="{ row }: { row: DumperInstanceModel }">
+          <OperationBtnTip
+            :data="row"
+            :disabled="!row.isOperating">
+            <span>
+              <AuthButton
+                action-id="tbinlogdumper_enable_disable"
+                class="mr-8"
+                :disabled="row.isOperating"
+                :permission="row.permission.tbinlogdumper_enable_disable"
+                :resource="row.cluster_id"
+                text
+                theme="primary"
+                @click="() => handleOpenOrCloseInstance(row)">
+                {{ row.isOnline ? t('禁用') : t('启用') }}
+              </AuthButton>
+            </span>
+          </OperationBtnTip>
+          <OperationBtnTip
+            v-if="!row.isOnline"
+            :data="row"
+            :disabled="!row.isOperating">
+            <span>
+              <AuthButton
+                action-id="tbinlogdumper_reduce_nodes"
+                class="mr-8"
+                :disabled="row.isOperating"
+                :permission="row.permission.tbinlogdumper_reduce_nodes"
+                :resource="row.cluster_id"
+                text
+                theme="primary"
+                @click="() => handleDeleteInstance(row)">
+                {{ t('删除') }}
+              </AuthButton>
+            </span>
+          </OperationBtnTip>
+          <OperationBtnTip
+            v-if="row.need_transfer && row.source_cluster"
+            :data="row"
+            :disabled="!row.isOperating">
+            <span>
+              <AuthButton
+                action-id="tbinlogdumper_switch_nodes"
+                :disabled="row.isOperating"
+                :permission="row.permission.tbinlogdumper_switch_nodes"
+                :resource="row.cluster_id"
+                text
+                theme="primary"
+                @click="() => handleOpenManualMigration(row)">
+                {{ t('手动迁移') }}
+              </AuthButton>
+            </span>
+          </OperationBtnTip>
+        </template>
+      </TableColumn>
+    </DbTable>
   </div>
   <AppendSubscribeSlider
     v-model="showAppendSubscribeSlider"
@@ -140,7 +294,6 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -155,12 +308,14 @@
   import { TicketTypes } from '@common/const';
   import { ipPort, ipv4 } from '@common/regex';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import RenderOperationTagNew from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { execCopy } from '@utils';
 
   import AppendSubscribeSlider from '../append-subscribe/Index.vue';
 
@@ -184,10 +339,13 @@
     {
       id: 'address',
       name: t('实例'),
+      type: 'multiple-input',
+      validator: (value: string) => ipPort.test(value) || t('格式错误'),
     },
     {
       id: 'ip',
       name: 'IP',
+      validator: (value: string) => ipv4.test(value) || t('格式错误'),
     },
     {
       id: 'dumper_id',
@@ -198,47 +356,47 @@
       name: t('数据源集群'),
     },
     {
-      children: [
+      id: 'protocol_type',
+      list: [
         {
-          id: 'KAFKA',
-          name: 'KAFKA',
+          label: 'KAFKA',
+          value: 'KAFKA',
         },
         {
-          id: 'L5_AGENT',
-          name: 'L5_AGENT',
+          label: 'L5_AGENT',
+          value: 'L5_AGENT',
         },
         {
-          id: 'TCP/IP',
-          name: 'TCP/IP',
+          label: 'TCP/IP',
+          value: 'TCP/IP',
         },
       ],
-      id: 'protocol_type',
-      multiple: true,
       name: t('接收端类型'),
+      type: 'multiple',
     },
     {
       id: 'target_address',
       name: t('接收端地址'),
     },
     {
-      children: [
+      id: 'add_type',
+      list: [
         {
-          id: 'full_sync',
-          name: t('全量同步'),
+          label: t('全量同步'),
+          value: 'full_sync',
         },
         {
-          id: 'incr_sync',
-          name: t('增量同步'),
+          label: t('增量同步'),
+          value: 'incr_sync',
         },
       ],
-      id: 'add_type',
-      multiple: true,
       name: t('同步方式'),
+      type: 'multiple',
     },
-  ];
+  ] as QuickSearchProps['data'];
 
   const tableRef = ref();
-  const search = ref<ISearchValue[]>([]);
+  const search = ref<Record<string, string>>({});
   const tableDataCount = ref(0);
   const showAppendSubscribeSlider = ref(false);
   const showManualMigration = ref(false);
@@ -256,211 +414,9 @@
     incr_sync: t('增量同步'),
   } as Record<string, string>;
 
-  const columns = [
-    {
-      field: 'instance',
-      fixed: 'left',
-      label: t('实例'),
-      minWidth: 200,
-      render: ({ data }: { data: DumperInstanceModel }) => (
-        <TextOverflowLayout>
-          {{
-            append: () => (
-              <>
-                {data.need_transfer && (
-                  <bk-popover
-                    placement='top'
-                    popover-delay={[100, 200]}
-                    theme='light'>
-                    {{
-                      content: () => <div>{t('Dumper实例迁移失败')}</div>,
-                      default: () => (
-                        <db-icon
-                          class='migrate-fail-tip'
-                          type='exclamation-fill'
-                        />
-                      ),
-                    }}
-                  </bk-popover>
-                )}
-                <RenderOperationTagNew data={data.operationTagTip} />
-                {!data.isOnline && !data.isStarting && (
-                  <MiniTag
-                    content={t('已禁用')}
-                    extCls='stoped-icon'
-                  />
-                )}
-                {data.isNew && (
-                  <MiniTag
-                    content='NEW'
-                    extCls='success-icon'
-                    theme='success'
-                  />
-                )}
-              </>
-            ),
-            default: () => <span class='mr-4'>{`${data.ip}:${data.listen_port}`}</span>,
-          }}
-        </TextOverflowLayout>
-      ),
-      showOverflowTooltip: false,
-      width: 230,
-    },
-    {
-      field: 'dumper_id',
-      label: t('实例 ID'),
-      width: 80,
-    },
-    {
-      field: 'source_cluster',
-      label: t('数据源集群'),
-      minWidth: 200,
-      render: ({ data }: { data: DumperInstanceModel }) =>
-        data.source_cluster ? (
-          <auth-router-link
-            action-id='mysql_view'
-            permission={data.permission.mysql_view}
-            resource={data.source_cluster.id}
-            target='_blank'
-            to={{
-              name: 'DatabaseTendbha',
-              query: {
-                id: data.id,
-              },
-            }}>
-            {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
-          </auth-router-link>
-        ) : (
-          '--'
-        ),
-      width: 250,
-    },
-    {
-      field: 'protocol_type',
-      filter: {
-        list: [
-          { text: 'KAFKA', value: 'KAFKA' },
-          { text: 'L5_AGENT', value: 'L5_AGENT' },
-          { text: 'TCP/IP', value: 'TCP/IP' },
-        ],
-      },
-      label: t('接收端类型'),
-    },
-    {
-      field: 'receiver',
-      label: t('接收端地址'),
-      render: ({ data }: { data: DumperInstanceModel }) => (
-        <span>
-          {data.target_address}:{data.target_port}
-        </span>
-      ),
-    },
-    {
-      field: 'add_type',
-      filter: {
-        list: [
-          { text: t('全量同步'), value: 'full_sync' },
-          { text: t('增量同步'), value: 'incr_sync' },
-        ],
-      },
-      label: t('同步方式'),
-      render: ({ data }: { data: DumperInstanceModel }) => <span>{syncTypeMap[data.add_type]}</span>,
-    },
-    {
-      field: '',
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: { data: DumperInstanceModel }) => (
-        <>
-          <OperationBtnTip
-            data={data}
-            disabled={!data.isOperating}>
-            <span>
-              <auth-button
-                action-id='tbinlogdumper_enable_disable'
-                class='mr-8'
-                disabled={data.isOperating}
-                permission={data.permission.tbinlogdumper_enable_disable}
-                resource={data.cluster_id}
-                text
-                theme='primary'
-                onClick={() => handleOpenOrCloseInstance(data)}>
-                {data.isOnline ? t('禁用') : t('启用')}
-              </auth-button>
-            </span>
-          </OperationBtnTip>
-          {!data.isOnline && (
-            <OperationBtnTip
-              data={data}
-              disabled={!data.isOperating}>
-              <span>
-                <auth-button
-                  action-id='tbinlogdumper_reduce_nodes'
-                  class='mr-8'
-                  disabled={data.isOperating}
-                  permission={data.permission.tbinlogdumper_reduce_nodes}
-                  resource={data.cluster_id}
-                  text
-                  theme='primary'
-                  onClick={() => handleDeleteInstance(data)}>
-                  {t('删除')}
-                </auth-button>
-              </span>
-            </OperationBtnTip>
-          )}
-          {data.need_transfer && data.source_cluster && (
-            <OperationBtnTip
-              data={data}
-              disabled={!data.isOperating}>
-              <span>
-                <auth-button
-                  action-id='tbinlogdumper_switch_nodes'
-                  disabled={data.isOperating}
-                  permission={data.permission.tbinlogdumper_switch_nodes}
-                  resource={data.cluster_id}
-                  text
-                  theme='primary'
-                  onClick={() => handleOpenManualMigration(data)}>
-                  {t('手动迁移')}
-                </auth-button>
-              </span>
-            </OperationBtnTip>
-          )}
-        </>
-      ),
-      width: isCN.value ? 160 : 220,
-    },
-  ];
-
   const settings = {
     checked: ['instance', 'dumper_id', 'source_cluster', 'protocol_type', 'receiver', 'add_type'],
-    fields: [
-      {
-        disabled: true,
-        field: 'instance',
-        label: t('实例'),
-      },
-      {
-        field: 'dumper_id',
-        label: t('实例 ID'),
-      },
-      {
-        field: 'source_cluster',
-        label: t('数据源集群'),
-      },
-      {
-        field: 'protocol_type',
-        label: t('接收端类型'),
-      },
-      {
-        field: 'receiver',
-        label: t('接收端地址'),
-      },
-      {
-        field: 'add_type',
-        label: t('同步方式'),
-      },
-    ],
+    disabled: ['instance'],
   };
 
   const { run: fetchRunningTaskList } = useRequest(getRunningTaskList, {
@@ -481,8 +437,8 @@
   });
 
   const fetchTableData = () => {
-    const searchParams = getSearchSelectorParams(search.value);
-    tableRef.value?.fetchData(searchParams, {
+    tableRef.value?.fetchData({
+      ...search.value,
       config_name: props.data === null ? undefined : props.data.name,
     });
   };
@@ -502,24 +458,6 @@
       immediate: true,
     },
   );
-
-  // tip: async 去掉组件库会报错
-  const validateValues = async (item: { id: string }, values: ISearchValue['values']) => {
-    if (values) {
-      const targetValue = values[0].id.replace(/^\s+|\s+$/g, '');
-      if (item.id === 'address') {
-        const list = targetValue.split(',');
-        if (list.some((item) => !ipPort.test(item))) {
-          return t('格式错误');
-        }
-      }
-      if (item.id === 'ip' && !ipv4.test(targetValue)) {
-        return t('格式错误');
-      }
-      return true;
-    }
-    return false;
-  };
 
   const handleGoTicket = (ticketId?: number) => {
     if (!ticketId) {
@@ -668,12 +606,12 @@
     showManualMigration.value = true;
   };
 
-  const handleTableRequestFinished = (data: any[]) => {
-    tableDataCount.value = data.length;
+  const handleTableRequestSuccess = (data: ServiceReturnType<typeof listDumperInstance>) => {
+    tableDataCount.value = data.results.length;
   };
 
   // 设置行样式
-  const setRowClass = (row: DumperInstanceModel) => {
+  const setRowClass = ({ row }: { row: DumperInstanceModel }) => {
     const rowClasses: string[] = [];
     if (row.isNew) {
       rowClasses.push('is-new-row');
@@ -685,7 +623,7 @@
   };
 
   const handleClearFilters = () => {
-    search.value = [];
+    search.value = {};
     fetchTableData();
   };
 
@@ -717,29 +655,20 @@
     selectedList.value = list;
   };
 
-  const handleColumnFilter = (data: {
-    checked: string[];
-    column: {
-      field: string;
-      label: string;
-    };
-    index: number;
-  }) => {
-    if (data.checked.length === 0) {
-      search.value = search.value.filter((item) => item.id !== data.column.field);
-      return;
-    }
-    const isAddType = data.column.field === 'add_type';
-    search.value = [
-      {
-        id: data.column.field,
-        name: data.column.label,
-        values: data.checked.map((item) => ({
-          id: item,
-          name: isAddType ? syncTypeMap[item] : item,
-        })),
-      },
-    ];
+  const handleTableFilterChange = (filterValue: Record<string, string[]>) => {
+    const filterFields = ['add_type', 'protocol_type'];
+    const result: Record<string, string> = {};
+    Object.keys(search.value).forEach((key) => {
+      if (!filterFields.includes(key)) {
+        result[key] = search.value[key];
+      }
+    });
+    filterFields.forEach((field) => {
+      if (filterValue[field]?.length) {
+        result[field] = filterValue[field].join(',');
+      }
+    });
+    search.value = result;
   };
 </script>
 
@@ -756,9 +685,7 @@
     .table-box {
       .is-stoped {
         td {
-          .vxe-cell {
-            color: #c4c6cc !important;
-          }
+          color: #c4c6cc !important;
         }
       }
 
@@ -866,7 +793,7 @@
         color: @gray-color;
       }
 
-      .vxe-cell {
+      td {
         color: @disable-color !important;
       }
     }

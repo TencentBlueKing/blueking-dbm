@@ -111,16 +111,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -350,34 +344,32 @@
     }, {});
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const sameClusters = _.groupBy(formData.tableData, (item) => item.host.master_domain);
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const sameClusters = _.groupBy(formData.tableData, (item) => item.host.master_domain);
 
-    const infos = Object.values(sameClusters).map((sameRows) => {
-      const info = {
-        bk_biz_id: sameRows[0].host.bk_biz_id,
-        bk_cloud_id: sameRows[0].host.bk_cloud_id,
-        cluster_ids: sameRows[0].host.cluster_ids,
-        switch_role: sameRows[0].host.instance_role,
-        ...getNodeInfo(sameRows, sameRows[0].host.instance_role),
-        resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.instance_role),
-      };
+      const infos = Object.values(sameClusters).map((sameRows) => {
+        const info = {
+          bk_biz_id: sameRows[0].host.bk_biz_id,
+          bk_cloud_id: sameRows[0].host.bk_cloud_id,
+          cluster_ids: sameRows[0].host.cluster_ids,
+          switch_role: sameRows[0].host.instance_role,
+          ...getNodeInfo(sameRows, sameRows[0].host.instance_role),
+          resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.instance_role),
+        };
 
-      return info;
-    });
+        return info;
+      });
 
-    createTicketRun({
-      bizIdExtractor: (item) => item.bk_biz_id,
-      data: infos,
-      detailsExtractor: (item) => ({
-        infos: [item],
-        ip_source: 'resource_pool',
-      }),
-      ticketPayload: formData.ticketPayload,
+      createTicketRun({
+        bizIdExtractor: (item) => item.bk_biz_id,
+        data: infos,
+        detailsExtractor: (item) => ({
+          infos: [item],
+          ip_source: 'resource_pool',
+        }),
+        ticketPayload: formData.ticketPayload,
+      });
     });
   };
 

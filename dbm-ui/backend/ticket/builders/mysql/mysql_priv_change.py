@@ -69,7 +69,7 @@ class MySQLAccountRuleChangeItsmFlowParamBuilder(builders.ItsmParamBuilder):
         return params
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ACCOUNT_RULE_CHANGE, iam=ActionEnum.MYSQL_ADD_ACCOUNT_RULE)
+@builders.BuilderFactory.register(TicketType.MYSQL_ACCOUNT_RULE_CHANGE, iam=ActionEnum.MYSQL_PRIV_MANAGE)
 class MySQLAccountRuleChangeFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLAccountRuleChangeSerializer
     inner_flow_builder = MySQLAccountRuleChangeFlowParamBuilder

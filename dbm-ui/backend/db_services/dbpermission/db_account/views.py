@@ -17,7 +17,6 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_account.dataclass import (
     AccountMeta,
     AccountPrivMeta,
@@ -64,12 +63,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         if self.action in ["query_account_rules"]:
             return [DBManagePermission()]
         elif self.action in ["list_account_rules"]:
-            account_type = get_request_key_id(self.request, key="account_type")
-            account_view_action = (
-                getattr(ActionEnum, f"{account_type}_account_rules_view".upper())
-                if account_type != AccountType.SQLServer
-                else getattr(ActionEnum, "db_manage".upper())
-            )
+            account_view_action = getattr(ActionEnum, "db_manage".upper())
             return [ResourceActionPermission([account_view_action], ResourceEnum.BUSINESS, self.instance_getter)]
         else:
             account_type = get_request_key_id(self.request, key="account_type")
@@ -151,23 +145,9 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=PageAccountRulesSerializer)
     @Permission.decorator_permission_field(
-        id_field=lambda d: d["account"]["account_id"],
-        data_field=lambda d: d["results"],
-        action_filed=lambda k: (
-            []
-            if k["account_type"] == AccountType.SQLServer
-            else [
-                getattr(ActionEnum, f'{k["account_type"].upper()}_DELETE_ACCOUNT'),
-                getattr(ActionEnum, f'{k["account_type"].upper()}_ADD_ACCOUNT_RULE'),
-            ]
-        ),
-    )
-    @Permission.decorator_permission_field(
         id_field=lambda d: d["account"]["bk_biz_id"],
         data_field=lambda d: d["results"],
-        action_filed=lambda k: (
-            [ActionEnum.SQLSERVER_PRIV_MANAGE] if k["account_type"] == AccountType.SQLServer else []
-        ),
+        action_filed=lambda k: [getattr(ActionEnum, f'{k["account_type"]}_priv_manage'.upper())],
     )
     def list_account_rules(self, request, bk_biz_id):
         return self._view_common_handler(

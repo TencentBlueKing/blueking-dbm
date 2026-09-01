@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/samber/lo"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
 	"dbm-services/common/db-event-consumer/pkg/base"
@@ -36,6 +35,7 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.MysqlTableSize{})
 	_ = sinker.RegisterModelSinker(&model.MysqlSlowLogModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlProxyConnlog{})
+	_ = sinker.RegisterModelSinker(&model.DbmRetryEvent{})
 
 	_ = sinker.RegisterModelSinker(&model.RedisBackupResultModel{})
 	_ = sinker.RegisterModelSinker(&model.RedisBinlogFileModel{})
@@ -45,6 +45,7 @@ func init() {
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlRawWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.DorisWriter{})
+	_ = sinker.RegisterModelWriteType(&sinker.DorisHttpWriter{})
 }
 
 type mainConfig struct {
@@ -55,8 +56,8 @@ type mainConfig struct {
 	OtelPort   int                  `yaml:"otel_port"`
 }
 
-func InitConfig() {
-	mainConfigFile := InitMainConfig()
+func InitConfig(configPath string) {
+	mainConfigFile := InitMainConfig(configPath)
 	var err error
 	SinkerConfigs, err = InitSinkerConfig(mainConfigFile)
 	if err != nil {
@@ -64,16 +65,13 @@ func InitConfig() {
 	}
 }
 
-func InitMainConfig() (configFile string) {
-	configPath := viper.GetString("config")
+func InitMainConfig(configPath string) (configFile string) {
 	if !filepath.IsAbs(configPath) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			panic(err)
 		}
-
 		configPath = filepath.Join(cwd, configPath)
-		viper.Set("config", configPath)
 	}
 
 	content, err := os.ReadFile(configPath)
@@ -81,7 +79,7 @@ func InitMainConfig() (configFile string) {
 		panic(err)
 	}
 
-	err = yaml.UnmarshalStrict(content, MainConfig)
+	err = yaml.Unmarshal(content, MainConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +103,7 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 		if err != nil {
 			panic(err)
 		}
-		if err = yaml.UnmarshalStrict(content, &sinkers); err != nil {
+		if err = yaml.Unmarshal(content, &sinkers); err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("error parsing %s: %v", f, err))
 			continue
 		}
@@ -115,7 +113,8 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 			if s.StrictSchema == nil {
 				s.StrictSchema = &cst.PtrTrue
 			}
-			name := fmt.Sprintf("%s-%s-%d", s.Topic, s.GroupIdSuffix, s.BkDataId)
+			// 使用 topic/bk_collector_name/bk_data_id/group_id_suffix 组合生成唯一名称
+			name := fmt.Sprintf("%s-%s-%d-%s", s.Topic, s.BkCollectorName, s.BkDataId, s.GroupIdSuffix)
 			if _, ok := checkDup[name]; ok {
 				return nil, fmt.Errorf("duplicate sinker name %s", name)
 			}

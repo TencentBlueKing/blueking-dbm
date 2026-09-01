@@ -2,6 +2,7 @@
 from django.test import SimpleTestCase
 
 from backend.flow.utils.mysql.dts.migrate_credentials import (
+    DTS_MIGRATE_DML_DDL_PRIV,
     DTS_MIGRATE_GLOBAL_PRIV,
     DtsGrantTarget,
     build_dts_add_user_parallel_acts,
@@ -53,3 +54,6 @@ class ResolveDtsMigrateGlobalPrivTest(SimpleTestCase):
         self.assertNotIn("BACKUP_ADMIN", by_addr["127.0.0.2:3306"])
         self.assertIn("BACKUP_ADMIN", by_addr["127.0.0.3:3306"])
         self.assertNotIn("SUPER", by_addr["127.0.0.3:3306"])
+        for act in acts:
+            self.assertEqual(act["kwargs"]["dml_ddl_priv"], DTS_MIGRATE_DML_DDL_PRIV)
+            self.assertIn("REFERENCES", act["kwargs"]["dml_ddl_priv"])

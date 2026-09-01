@@ -11,24 +11,13 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Dict, Optional
 
-from django.utils.translation import gettext as _
-
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_subflow import mysql_dts_migrate_subflow
-from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_task_clean_subflow import mysql_dts_task_clean_subflow
-from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateType
-from backend.flow.utils.mysql.dts.context import (
-    MysqlDtsMigrateSubflowInput,
-    MysqlDtsTaskCleanSubflowInput,
-    MysqlDtsTransData,
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow import (
+    build_parallel_migrate_row_pipelines,
 )
-from backend.flow.utils.mysql.dts.cutover_helper import resolve_master_addr_from_plan
-from backend.flow.utils.mysql.dts.migrate_credentials import (
-    grant_targets_to_dicts,
-    resolve_migrate_temp_account_for_pipeline,
-)
-from backend.flow.utils.mysql.dts.migrate_helper import build_ticket_dts_clean_names
-from backend.flow.utils.mysql.dts.migrate_plan import resolve_migrate_plan_from_ticket_data
+from backend.flow.utils.mysql.dts.constants import MigrateType
+from backend.flow.utils.mysql.dts.context import MysqlDtsTransData
+from backend.flow.utils.mysql.dts.migrate_plan import resolve_migrate_plans_from_ticket_data
 
 logger = logging.getLogger("flow")
 
@@ -43,56 +32,13 @@ class MysqlHaToClusterMigrateFlow:
     def run_flow(self):
         # FlowParamBuilder.add_common_params 会注入 uid=ticket.id；无单据场景兜底 root_id
         self.data.setdefault("uid", self.data.get("ticket_id") or self.root_id)
-        migrate_plan = resolve_migrate_plan_from_ticket_data(self.data)
-        migrate_plan.migrate_type = MigrateType.HA_TO_CLUSTER.value
+        migrate_plans = resolve_migrate_plans_from_ticket_data(self.data)
         pipeline = Builder(root_id=self.root_id, data=self.data)
-
-        dts_user, dts_password, grant_hosts, grant_targets = resolve_migrate_temp_account_for_pipeline(migrate_plan)
-        grant_target_dicts = grant_targets_to_dicts(grant_targets)
-        creator = self.data.get("created_by", "")
-        bk_biz_id = int(self.data["bk_biz_id"])
-        ticket_id = int(self.data.get("ticket_id", 0) or 0)
-
-        migrate_inp = MysqlDtsMigrateSubflowInput(
+        build_parallel_migrate_row_pipelines(
+            pipeline=pipeline,
             root_id=self.root_id,
-            bk_biz_id=bk_biz_id,
-            ticket_id=ticket_id,
-            migrate_plan=migrate_plan,
-            creator=creator,
-            dts_user=dts_user,
-            dts_password=dts_password,
-            grant_hosts=grant_hosts,
-            grant_targets=grant_targets,
-        )
-        pipeline.add_sub_pipeline(
-            mysql_dts_migrate_subflow(migrate_inp).build_sub_process(sub_name=_("HA 到 Cluster 数据迁移"))
-        )
-
-        task_names, source_names = build_ticket_dts_clean_names(migrate_plan)
-        task_cfg = getattr(migrate_plan, "dts_task_config", None)
-        task_mode = (getattr(task_cfg, "task_mode", None) or "all") if task_cfg is not None else "all"
-        full_load_engine = (
-            (getattr(task_cfg, "full_load_engine", None) or FullLoadEngine.BUILTIN.value)
-            if task_cfg is not None
-            else FullLoadEngine.BUILTIN.value
-        )
-        clean_inp = MysqlDtsTaskCleanSubflowInput(
-            root_id=self.root_id,
-            bk_biz_id=bk_biz_id,
-            dts_user=dts_user,
-            grant_hosts=grant_hosts,
-            grant_targets=grant_target_dicts,
-            ignore_errors=True,
-            creator=creator,
-            master_addr=resolve_master_addr_from_plan(migrate_plan),
-            bk_cloud_id=int(migrate_plan.bk_cloud_id or 0),
-            task_names=task_names,
-            source_names=source_names,
-            dts_cluster_id=getattr(migrate_plan, "dts_cluster_id", None) or None,
-            task_mode=task_mode,
-            full_load_engine=full_load_engine,
-        )
-        pipeline.add_sub_pipeline(
-            mysql_dts_task_clean_subflow(clean_inp).build_sub_process(sub_name=_("dts-task-clean"))
+            data=self.data,
+            migrate_plans=migrate_plans,
+            migrate_type=MigrateType.HA_TO_CLUSTER.value,
         )
         pipeline.run_pipeline(init_trans_data_class=MysqlDtsTransData())

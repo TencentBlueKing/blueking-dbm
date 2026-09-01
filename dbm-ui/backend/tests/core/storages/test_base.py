@@ -31,10 +31,12 @@ class TestStorageFileOverwriteMixinFunctionality(BaseStorageTestCase):
         result = storage.get_available_name("new_file.txt")
         assert result == "new_file.txt"
 
-        # 测试已存在的文件名（会生成随机文件名）
+        # 测试已存在的文件名（会生成随机文件名，前缀长度为 3）
         result = storage.get_available_name("test.txt")
         assert result != "test.txt"
         assert "dbmrpt" in result  # 包含随机串标识
+        random_prefix = result.rsplit("/", 1)[-1].split("_dbmrpt_")[0]
+        assert len(random_prefix) == 3
 
     @patch("django.conf.settings.FILE_OVERWRITE", True)
     def test_get_available_name_with_overwrite_enabled(self):

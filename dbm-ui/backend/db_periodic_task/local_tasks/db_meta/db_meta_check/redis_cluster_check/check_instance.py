@@ -22,6 +22,8 @@ from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, Insta
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
+from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.flow.utils.redis.redis_report_utils import (
     META_CHECK_CLUSTER_PAGE_SIZE,
     RedisReportWriter,
@@ -41,6 +43,12 @@ IGNORE_TICKET_TYPES = [
     TicketType.REDIS_DESTROY.value,
     TicketType.REDIS_INSTANCE_DESTROY.value,
 ]
+
+# 本检查写入画像摘要的 subtype → 前缀。新增 subtype 必须同步补这里，否则会落到 [未映射]。
+INSTANCE_CHECK_PREFIX_BY_SUBTYPE = {
+    MetaCheckSubType.AloneInstance.value: "[孤立实例]",
+    MetaCheckSubType.StatusAbnormal.value: "[实例状态]",
+}
 
 
 def _storage_prefetch_qs():
@@ -133,6 +141,11 @@ def check_redis_instance():
 
         if page_rows:
             safe_write_meta_reports(writer, page_rows, context="instance_check page")
+            ingest_daily_cluster_rows(
+                page_rows,
+                dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
+                prefix_by_subtype=INSTANCE_CHECK_PREFIX_BY_SUBTYPE,
+            )
 
 
 def _check_single_cluster_instance(cluster: Cluster, creator: str) -> List[dict]:

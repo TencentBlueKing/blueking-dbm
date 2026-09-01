@@ -30,9 +30,9 @@ from backend.dbm_aiagent.mcp_tools.pulsar.serializers.cluster_meta import (
     PulsarClusterInputSerializer,
     PulsarClusterOutputSerializer,
     PulsarNoArgsInputSerializer,
+    PulsarSpecOutputSerializer,
+    PulsarSpecSearchInputSerializer,
     PulsarTopoOutputSerializer,
-    SpecOutputSerializer,
-    SpecSearchInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -96,8 +96,8 @@ class PulsarQueryMetaMcpToolsViewSet(McpToolsViewSet):
 
     @mcp_tools_api_decorator(
         description=str(_("根据规格名称模糊查询规格信息，支持如 '16核32G' 等规格名称搜索")),
-        request_slz=SpecSearchInputSerializer,
-        response_slz=SpecOutputSerializer(many=True),
+        request_slz=PulsarSpecSearchInputSerializer,
+        response_slz=PulsarSpecOutputSerializer(many=True),
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.PULSAR_QUERY_META],
         name_prefix="pulsar_query_meta",

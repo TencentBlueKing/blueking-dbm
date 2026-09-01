@@ -1,0 +1,86 @@
+---
+description:
+  DBM 数据库管理模块约定。覆盖集群列表、实例列表、集群详情、工具箱提单与路由注册。仓库分层与编码约定见
+  AGENTS.md，工具箱逐步实现见 toolbox-code.mdc，单据详情见 ticket-detail.mdc，服务层见 services.mdc。
+globs: ['**/db-manage/**', '**/common/const/ticketTypes.ts']
+alwaysApply: false
+---
+
+# 数据库管理 `src/views/db-manage/`
+
+仓库分层、命令与编码约定见 `AGENTS.md`。工具箱提单逐步实现见 `toolbox-code.mdc`。单据详情见
+`ticket-detail.mdc`。服务层见 `services.mdc`。排版交互见 `dbm-frontend-design` skill。
+
+13 个 DB 各一个目录，公共能力放 `common/`、`hooks/`、`const/`、`utils/`。
+
+**目录名等于 `DBTypes` 枚举值**（`src/common/const/dbTypes.ts`），只有两个例外，写路径和 glob 时容易踩：
+
+- `TENDBCLUSTER` 枚举值是 `tendbcluster`，目录是 `tendb-cluster`（`createToolboxRoute` 内做了映射）
+- `ES` 枚举值是 `es`，目录是 `elastic-search`
+
+单 DB 内目录名基本自解释（`*-cluster-list/`、`*-instance-list/`、`*-detail/`、`toolbox/`、`routes.ts`），两个要记的：工具箱提单目录名是全大写的
+`{TICKET_TYPE}/`，工具箱菜单在 `toolbox/toolboxMenuList.ts`。
+
+## 集群列表
+
+所有集群列表复用 `src/views/db-manage/common/cluster-table/Index.vue`。
+
+内置列（不要在业务页重复实现）：`IdColumn`、`ClusterAliasColumn`、`CommonColumn`（版本、容灾、地域、规格、管控区域、创建人、部署时间、时区等）。
+
+可覆盖 / 扩展的 slot：`operation`、`masterDomain`、`slaveDomain`、`clusterTag`、`status`、`clusterState`、`role`、`clusterTypeName`、`syncMode`、`moduleNames`。
+
+- 所有集群都要的列：改 `CommonColumn.vue`
+- 某个集群独有的列：
+  1. 若 slot 不存在，先在 `cluster-table/Index.vue` 按字段名加 slot
+  2. 在该 DB 的集群列表里实现 slot，优先用同目录导出的列组件（`RoleColumn`、`MasterDomainColumn` 等）
+
+参考：`src/views/db-manage/mysql/ha-cluster-list/Index.vue`
+
+## 实例列表
+
+所有实例列表复用 `src/views/db-manage/common/instance-table/Index.vue`。
+
+slot：`operation`、`instanceAddress`、`domain`、`shard`、`relatedCluster`、`ip`、`mongodbState`。
+
+公共列改 `instance-table/CommonColumn.vue`，独有列走 slot，规则与集群列表相同。
+
+## 集群详情
+
+复用
+`src/views/db-manage/common/cluster-details/`（基础信息、拓扑、实例/主机列表、监控、告警订阅、单据记录）。各 DB 详情页组合这些块，不要另起一套详情骨架。
+
+`src/views/db-manage/const/clusterTypeListPageMap.ts` 维护 `ClusterTypes` → 详情路由 name。
+
+## 工具箱提单
+
+路径：`src/views/db-manage/{db}/{TICKET_TYPE}/Index.vue`。四者必须完全一致：
+
+1. `TicketTypes` 枚举值（`src/common/const/ticketTypes.ts`，与后端 `ticket_type` 相同）
+2. 提单目录名
+3. 路由 `name`
+4. 单据详情组件 `defineOptions({ name })`（见 `ticket-detail.mdc`）
+
+这套一致性没有编译期保障，对不上时两种表现：目录名与枚举不一致，路由懒加载在运行时才失败；详情组件 `name`
+不一致，com-factory 静默退回 `Default.vue`，页面能开但内容不对。
+
+页面骨架、单据回填、菜单节点与端到端检查清单见 `toolbox-code.mdc`。
+
+## 路由
+
+- 总入口：`src/views/db-manage/routes.ts` 通过 `import.meta.glob('./*/routes.ts')` 收集各 DB 路由
+- 业务侧：`registerBusinessModule` → `/db-manage`
+- DBA 工具箱：`registerModule` 收集 `./*/dba-manage/routes.ts` → `/dba-manage`
+
+各 DB 的 `routes.ts` 导出 `getRoutes(funControllerData)`，按功能开关返回路由。工具箱路由用
+`createToolboxRoute(DBTypes.XXX)`：
+
+```ts
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
+createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('数据迁移'));
+createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB 重命名'), { dbConsole: 'mysql.toolbox.dbRename' });
+createRouteItem(TicketTypes.MYSQL_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' });
+```
+
+`createToolboxRoute` 会按 `TicketTypes` 懒加载 `{db}/{TICKET_TYPE}/Index.vue`，并自动把 `name`、`meta.ticketType`
+设为该枚举值（这两项不在第三个参数的类型里，写不进去），`meta.fullscreen` 默认 `true` 不用重复声明。第三个参数现存调用几乎只用来传
+`dbConsole` 功能开关，动态路径参数走第四个参数。

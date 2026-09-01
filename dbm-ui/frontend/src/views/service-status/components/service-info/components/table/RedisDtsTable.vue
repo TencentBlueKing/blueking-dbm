@@ -1,27 +1,30 @@
 <template>
-  <BkTable :data="list">
-    <BkTableColumn
-      field="ip"
+  <PrimaryTable
+    :data="tableData"
+    row-key="rowKey">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      label="IP"
+      title="IP"
       :width="200">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('状态')"
+    </TableColumn>
+    <TableColumn
+      col-key="status"
+      :title="t('状态')"
       :width="100">
-      <template #default="{ data }: { data: RedisDtsServiceStatusModel }">
-        <ClusterInstanceStatus :data="data.status" />
+      <template #default="{ row }: { row: RedisDtsServiceStatusModel }">
+        <ClusterInstanceStatus :data="row.status" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_city_name"
-      :label="t('城市名')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="updateAtDisplay"
-      :label="t('更新时间')">
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+    <TableColumn
+      col-key="bk_city_name"
+      :title="t('城市名')">
+    </TableColumn>
+    <TableColumn
+      col-key="updateAtDisplay"
+      :title="t('更新时间')">
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -35,7 +38,11 @@
     list: RedisDtsServiceStatusModel[];
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = computed(() =>
+    props.list.map((item, index) => Object.assign(item, { rowKey: `${index}#${Date.now()}` })),
+  );
 </script>

@@ -6,14 +6,13 @@
     <div class="openarea-permission-rule-selector">
       <div class="top-operate mb-16">
         <div class="search-main">
-          <DbSearchSelect
+          <DbQuickSearch
             v-model="searchSelectValue"
             class="mr-18"
             :data="searchSelectData"
+            parse-url
             :placeholder="t('请输入账号或DB名')"
             style="width: 520px"
-            tyle="width: 520px"
-            unique-select
             @change="handleSearchChange" />
           <BkCheckbox
             v-model="isOnlyShowSelected"
@@ -34,14 +33,15 @@
       <DbTable
         ref="tableRef"
         :data-source="getPermissionRules"
-        :max-height="700"
+        fixed-pagination
+        :height="700"
         :row-class-name="rowClass"
-        :show-overflow="false"
+        row-key="account.account_id"
         @clear-search="handleClearSearch"
         @request-success="initRowFlodMap">
-        <BkTableColumn
-          field="user"
-          :label="t('账号名称')"
+        <TableColumn
+          col-key="user"
+          :title="t('账号名称')"
           :width="220">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
             <DbIcon
@@ -54,17 +54,17 @@
               @click="() => handleToogleExpand(row.account.user)" />
             {{ row.account.user }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="access_db"
-          :label="t('访问DB')"
+        </TableColumn>
+        <TableColumn
+          col-key="access_db"
+          :title="t('访问DB')"
           :width="300">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
             <div v-if="row.rules.length === 0">
               <span>{{ t('暂无规则') }}，</span>
               <AuthButton
-                action-id="tendbcluster_add_account_rule"
-                :permission="row.permission.tendbcluster_add_account_rule"
+                action-id="tendbcluster_priv_manage"
+                :permission="row.permission.tendbcluster_priv_manage"
                 :resource="row.account.account_id"
                 size="small"
                 text
@@ -84,11 +84,11 @@
               <BkTag>{{ item.access_db }}</BkTag>
             </p>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="privilege"
-          :label="t('权限')"
-          :min-width="300">
+        </TableColumn>
+        <TableColumn
+          col-key="privilege"
+          :min-width="300"
+          :title="t('权限')">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
             <TextOverflowLayout
               v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
@@ -97,7 +97,7 @@
               {{ item.privilege }}
             </TextOverflowLayout>
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </DbTable>
     </div>
     <template #footer>
@@ -128,7 +128,6 @@
   </BkDialog>
 </template>
 <script setup lang="tsx">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
@@ -136,9 +135,9 @@
 
   import type { AccountTypes } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
@@ -164,7 +163,7 @@
   const tableRef = ref();
   const rowFlodMap = ref<Record<string, boolean>>({});
   const ruleCheckedMap = ref<Record<number, boolean>>({});
-  const searchSelectValue = ref<ISearchValue[]>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const isOnlyShowSelected = ref(false);
 
   const checkedCount = computed(() => Object.keys(ruleCheckedMap.value).length);
@@ -172,19 +171,19 @@
   const searchSelectData = [
     {
       id: 'user',
-      multiple: true,
       name: t('账号名称'),
+      type: 'multiple-input',
     },
     {
       id: 'access_db',
-      multiple: true,
       name: t('访问DB'),
+      type: 'multiple-input',
     },
-  ];
+  ] as QuickSearchProps['data'];
 
   watch(isShow, () => {
     if (!isShow.value) {
-      searchSelectValue.value = [];
+      searchSelectValue.value = {};
       return;
     }
 
@@ -209,32 +208,23 @@
   };
 
   const fetchTableData = () => {
-    tableRef.value.fetchData(
-      {
-        cluster_id: props.clusterId,
-      },
-      {
-        account_type: props.accountType,
-      },
-    );
+    tableRef.value.fetchData({
+      account_type: props.accountType,
+      cluster_id: props.clusterId,
+    });
   };
 
-  const handleSearchChange = (valueList: ISearchValue[]) => {
+  const handleSearchChange = (value: Record<string, string>) => {
     ruleCheckedMap.value = {};
-    const params = getSearchSelectorParams(valueList);
-    tableRef.value.fetchData(
-      {
-        cluster_id: props.clusterId,
-        ...params,
-      },
-      {
-        account_type: props.accountType,
-      },
-    );
+    tableRef.value.fetchData({
+      account_type: props.accountType,
+      cluster_id: props.clusterId,
+      ...value,
+    });
   };
 
   const handleClearSearch = () => {
-    searchSelectValue.value = [];
+    searchSelectValue.value = {};
     fetchTableData();
   };
 
@@ -266,15 +256,11 @@
   const handleChangeOnlyShowSelected = (isShow: boolean) => {
     if (isShow) {
       const ruleIds = Object.keys(ruleCheckedMap.value).map((item) => Number(item));
-      tableRef.value.fetchData(
-        {
-          cluster_id: props.clusterId,
-          rule_ids: ruleIds.join(','),
-        },
-        {
-          account_type: props.accountType,
-        },
-      );
+      tableRef.value.fetchData({
+        account_type: props.accountType,
+        cluster_id: props.clusterId,
+        rule_ids: ruleIds.join(','),
+      });
       return;
     }
     fetchTableData();

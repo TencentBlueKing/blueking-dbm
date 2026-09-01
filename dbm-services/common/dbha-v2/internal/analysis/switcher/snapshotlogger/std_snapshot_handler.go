@@ -69,8 +69,6 @@ func (hdl *StdSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error
 		StartTime:            record.DbSwitchingSnapshotLog.StartTime,
 		BkBizID:              record.DbSwitchingSnapshotLog.BkBizID,
 		BkCloudID:            record.DbSwitchingSnapshotLog.BkCloudID,
-		ClusterID:            record.DbSwitchingSnapshotLog.ClusterID,
-		ClusterName:          record.DbSwitchingSnapshotLog.ClusterName,
 		Reason:               record.DbSwitchingSnapshotLog.Reason,
 		DbType:               record.DbSwitchingSnapshotLog.DbType,
 		ActionScope:          record.DbSwitchingSnapshotLog.ActionScope,

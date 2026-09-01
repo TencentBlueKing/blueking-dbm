@@ -81,16 +81,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <DbPopconfirm
+        <DbResetButton
+          class="ml8"
           :confirm-handler="handleReset"
-          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton
-            class="ml8 w-88"
-            :disabled="isSubmitting">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+          :disabled="isSubmitting" />
       </template>
     </SmartAction>
   </SpiderWrapper>
@@ -302,50 +296,48 @@
     is_safe: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const generateHostInfo = (data: RowData['host']) => ({
-      bk_cloud_id: data.bk_cloud_id,
-      bk_host_id: data.bk_host_id,
-      ip: data.ip,
-    });
-    const generateSpecInfo = (data: RowData[]) => ({
-      count: data.length,
-      label_names: data[0].labels.map((item) => item.value),
-      labels: data[0].labels.map((item) => String(item.id)),
-      spec_id: data[0].host.spec.id,
-    });
-    createTicketRun({
-      details: {
-        infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
-          const masters = rows.filter((item) => item.host.role === 'spider_master');
-          const slaves = rows.filter((item) => item.host.role === 'spider_slave');
-          const hostList = slaves.length > 0 ? slaves : masters;
-          const currentRole = hostList[0].host.role;
-          return {
-            cluster_id: rows[0].host.cluster_id,
-            old_nodes: {
-              [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
-            },
-            resource_spec: {
-              [currentRole]: generateSpecInfo(hostList),
-            },
-            spider_old_ip_list: hostList.map((item) => ({
-              bk_cloud_id: item.host.bk_cloud_id,
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-              spec: item.host.spec,
-            })),
-            switch_spider_role: currentRole,
-          };
-        }),
-        ip_source: 'resource_pool',
-        is_safe: formData.is_safe,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const generateHostInfo = (data: RowData['host']) => ({
+        bk_cloud_id: data.bk_cloud_id,
+        bk_host_id: data.bk_host_id,
+        ip: data.ip,
+      });
+      const generateSpecInfo = (data: RowData[]) => ({
+        count: data.length,
+        label_names: data[0].labels.map((item) => item.value),
+        labels: data[0].labels.map((item) => String(item.id)),
+        spec_id: data[0].host.spec.id,
+      });
+      createTicketRun({
+        details: {
+          infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
+            const masters = rows.filter((item) => item.host.role === 'spider_master');
+            const slaves = rows.filter((item) => item.host.role === 'spider_slave');
+            const hostList = slaves.length > 0 ? slaves : masters;
+            const currentRole = hostList[0].host.role;
+            return {
+              cluster_id: rows[0].host.cluster_id,
+              old_nodes: {
+                [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
+              },
+              resource_spec: {
+                [currentRole]: generateSpecInfo(hostList),
+              },
+              spider_old_ip_list: hostList.map((item) => ({
+                bk_cloud_id: item.host.bk_cloud_id,
+                bk_host_id: item.host.bk_host_id,
+                ip: item.host.ip,
+                spec: item.host.spec,
+              })),
+              switch_spider_role: currentRole,
+            };
+          }),
+          ip_source: 'resource_pool',
+          is_safe: formData.is_safe,
+        },
+        ...formData.payload,
+      });
     });
   };
 

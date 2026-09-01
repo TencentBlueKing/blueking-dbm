@@ -47,9 +47,7 @@ from .sqlserver_check_report import (
     SqlserverCheckSysJobStatuReport,
     SqlserverCheckUserSyncReport,
     SqlserverFullBackupCheckReport,
-    SqlserverFullBackupInfoReport,
     SqlserverLogBackupCheckReport,
-    SqlserverLogBackupInfoReport,
 )
 from .sqlserver_full_backup_result import SQLServerBackupResult
 from .sqlserver_log_backup_result import SQLServerBinlogResult

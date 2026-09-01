@@ -20,7 +20,6 @@ from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResource
 from backend.db_services.mysql.resources import constants
 from backend.db_services.mysql.resources.tendbcluster import yasg_slz
 from backend.db_services.mysql.resources.tendbcluster.query import ListRetrieveResource
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 
@@ -95,29 +94,18 @@ class SpiderViewSet(viewsets.ResourceViewSet):
     list_perm_actions = [
         ActionEnum.TENDBCLUSTER_VIEW,
         ActionEnum.TENDBCLUSTER_EDIT,
-        ActionEnum.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
+        ActionEnum.TENDBCLUSTER_MANAGE,
         ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
-        ActionEnum.TENDBCLUSTER_ADD_CLB,
-        ActionEnum.TENDBCLUSTER_CLB_BIND_DOMAIN,
         ActionEnum.TENDBCLUSTER_WEBCONSOLE,
         ActionEnum.TENDBCLUSTER_DESTROY,
-        ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
-        ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-        ActionEnum.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-        ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
         ActionEnum.TENDBCLUSTER_DUMP_DATA,
         ActionEnum.TENDBCLUSTER_SUBSCRIBE_MONITOR,
         ActionEnum.TENDBCLUSTER_DBCONFIG_EDIT,
+        ActionEnum.TENDBCLUSTER_LOADBALANCE_MANAGE,
+        ActionEnum.TENDBCLUSTER_AUTHORIZE,
     ]
     list_instance_perm_actions = [ActionEnum.TENDBCLUSTER_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
+    list_external_manage_actions = [ActionEnum.TENDBCLUSTER_PRIV_MANAGE]
 
     @action(methods=["POST"], detail=False, url_path="get_cluster_primary")
     def get_cluster_primary(self, request, bk_biz_id: int):

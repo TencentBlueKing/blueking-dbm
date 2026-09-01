@@ -12,28 +12,28 @@
  */
 
 import type { App } from 'vue';
-import { VxeTooltip } from 'vxe-pc-ui';
-
-import { Table, TableColumn } from '@blueking/table';
 
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
 import AuthRouterLink from '@components/auth-component/router-link.vue';
-import AuthSwitch from '@components/auth-component/switch.vue';
+import AuthSwitcher from '@components/auth-component/switcher.vue';
+import DbInput from '@components/bkui-vue/input/Index.vue';
+import DbPagination from '@components/bkui-vue/pagination/Index.vue';
+import DbOption from '@components/bkui-vue/select/components/Option.vue';
+import DbOptionGroup from '@components/bkui-vue/select/components/OptionGroup.vue';
+import DbSelect from '@components/bkui-vue/select/Index.vue';
+import DbTag from '@components/bkui-vue/tag/Index.vue';
+import DbTagInput from '@components/bkui-vue/tag-input/Index.vue';
 import DbCard from '@components/db-card/index.vue';
-import DbDateTimePicker from '@components/db-date-time-picker/Index.vue';
 import DbForm from '@components/db-form/index.vue';
 import DbFormItem from '@components/db-form/item.vue';
 import DbIcon from '@components/db-icon';
 import DbPopconfirm from '@components/db-popconfirm/index.vue';
 import DbQuickSearch from '@components/db-quick-search/Index.vue';
-import DbSearchSelect from '@components/db-search-select/index.vue';
+import DbResetButton from '@components/db-reset-button/index.vue';
 import DbSideslider from '@components/db-sideslider/index.vue';
 import DbStatus from '@components/db-status/index.vue';
-import DbTable from '@components/db-table/index.vue';
-import DbOriginalTable from '@components/db-table/OriginalTable.vue';
-import DbTextarea from '@components/db-textarea/DbTextarea.vue';
 import EditableTable, {
   Block as EditableBlock,
   Column as EditableColumn,
@@ -49,7 +49,6 @@ import FunController from '@components/function-controller/FunController.vue';
 import MoreActionExtend from '@components/more-action-extend/Index.vue';
 import NewFeatureGuide from '@components/new-feature-guide/Index.vue';
 import ScrollFaker from '@components/scroll-faker/Index.vue';
-import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import TableDetailDialog from '@components/table-detail-dialog/Index.vue';
 import { PrimaryTable, TableColumn as PrimaryTableColumn } from '@components/tdesign-ui/table';
@@ -81,25 +80,27 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbForm', DbForm);
   app.component('DbFormItem', DbFormItem);
   app.component('DbIcon', DbIcon);
+  app.component('DbInput', DbInput);
+  app.component('DbOption', DbOption);
+  app.component('DbOptionGroup', DbOptionGroup);
+  app.component('DbPagination', DbPagination);
   app.component('DbPopconfirm', DbPopconfirm);
-  app.component('DbDateTimePicker', DbDateTimePicker);
-  app.component('DbSearchSelect', DbSearchSelect);
+  app.component('DbResetButton', DbResetButton);
+  app.component('DbSelect', DbSelect);
   app.component('DbSideslider', DbSideslider);
-  app.component('DbTextarea', DbTextarea);
-  app.component('DbTable', DbTable);
+  app.component('DbTag', DbTag);
+  app.component('DbTagInput', DbTagInput);
   app.component('DbStatus', DbStatus);
-  app.component('DbOriginalTable', DbOriginalTable);
   app.component('SmartAction', SmartAction);
   app.component('BkIpSelector', ipSelector);
   app.component('FunController', FunController);
   app.component('MoreActionExtend', MoreActionExtend);
   app.component('UserSelector', UserSelector);
   app.component('ScrollFaker', ScrollFaker);
-  app.component('SkeletonLoading', SkeletonLoading);
   app.component('AuthButton', AuthButton);
   app.component('AuthTemplate', AuthTemplate);
   app.component('AuthOption', AuthOption);
-  app.component('AuthSwitcher', AuthSwitch);
+  app.component('AuthSwitcher', AuthSwitcher);
   app.component('AuthRouterLink', AuthRouterLink);
   app.component('TableDetailDialog', TableDetailDialog);
   app.component('NewFeatureGuide', NewFeatureGuide);
@@ -108,14 +109,4 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbQuickSearch', DbQuickSearch);
   app.component('TicketInfoTable', InfoTable);
   app.component('TicketInfoTableColumn', InfoTableColumn);
-  setTimeout(() => {
-    // eslint-disable-next-line
-    delete app._context.components.BkTable;
-    // eslint-disable-next-line
-    delete app._context.components.BkTableColumn;
-
-    app.component('BkTable', Table);
-    app.component('BkTableColumn', TableColumn);
-    app.component('VxeTooltip', VxeTooltip);
-  });
 };

@@ -22,12 +22,53 @@ from backend.ticket.builders.common.constants import MySQLChecksumTicketMode
 from backend.ticket.constants import TicketType
 
 
-def _scope_to_checksum_patterns(scope: SyncScope) -> tuple[list[str], list[str], list[str], list[str]]:
-    """将迁移 sync_scope 粗映射为 checksum db/table patterns。"""
-    db_patterns = list(scope.do_dbs or []) or ["*"]
-    ignore_dbs = list(scope.ignore_dbs or [])
-    table_patterns: list[str] = []
+def _to_checksum_glob(name: str) -> str:
+    """DTS 通配 * 转为 checksum 方言：独立 * 保持 *，tb_* 转为 tb_%。"""
+    text = (name or "").strip()
+    if not text or set(text) == {"*"}:
+        return "*"
+    return text.replace("*", "%")
+
+
+def _unique_keep_order(names: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for name in names:
+        if name in seen:
+            continue
+        seen.add(name)
+        ordered.append(name)
+    return ordered
+
+
+def _ignore_table_names(scope: SyncScope) -> list[str]:
     ignore_tables: list[str] = []
+    for item in scope.ignore_tables or []:
+        if isinstance(item, dict):
+            ignore_tables.append(item.get("table") or item.get("tablename") or "")
+        elif isinstance(item, str):
+            ignore_tables.append(item.split(".")[-1])
+    return [t for t in ignore_tables if t]
+
+
+def _scope_to_checksum_patterns(scope: SyncScope) -> tuple[list[str], list[str], list[str], list[str]]:
+    """将迁移 sync_scope 粗映射为 checksum db/table patterns。
+
+    table_routes 优先取源端（source_db / source_db_pattern / source_table），不读 target。
+    """
+    ignore_dbs = list(scope.ignore_dbs or [])
+    ignore_tables = _ignore_table_names(scope)
+    if scope.table_routes:
+        db_patterns = _unique_keep_order(
+            [_to_checksum_glob(route.source_schema()) for route in scope.table_routes if route.source_schema()]
+        )
+        table_patterns = _unique_keep_order(
+            [_to_checksum_glob(route.source_table_name()) for route in scope.table_routes]
+        )
+        return db_patterns, ignore_dbs, table_patterns or ["*"], ignore_tables
+
+    db_patterns = list(scope.do_dbs or []) or ["*"]
+    table_patterns: list[str] = []
     for item in scope.do_tables or []:
         if isinstance(item, dict):
             table_patterns.append(item.get("table") or item.get("tablename") or "*")
@@ -35,12 +76,7 @@ def _scope_to_checksum_patterns(scope: SyncScope) -> tuple[list[str], list[str],
             table_patterns.append(item.split(".")[-1])
     if not table_patterns:
         table_patterns = ["*"]
-    for item in scope.ignore_tables or []:
-        if isinstance(item, dict):
-            ignore_tables.append(item.get("table") or item.get("tablename") or "")
-        elif isinstance(item, str):
-            ignore_tables.append(item.split(".")[-1])
-    return db_patterns, ignore_dbs, table_patterns, [t for t in ignore_tables if t]
+    return db_patterns, ignore_dbs, table_patterns, ignore_tables
 
 
 def _instance_payload(ins: StorageInstance | ProxyInstance, cluster: Cluster, inner_role: str) -> dict[str, Any]:

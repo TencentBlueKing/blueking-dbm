@@ -28,18 +28,18 @@
       col-key="from_database"
       :title="t('原 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
-        <BkTag v-if="data">
+        <DbTag v-if="data">
           {{ data.from_database }}
-        </BkTag>
+        </DbTag>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="to_database"
       :title="t('新 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
-        <BkTag v-if="data">
+        <DbTag v-if="data">
           {{ data.to_database }}
-        </BkTag>
+        </DbTag>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>

@@ -44,11 +44,15 @@ UNIFY_QUERY_PARAMS = {
 # Redis metrics: BKMonitor query guards and retry behavior
 METRICS_MAX_QUERY_RANGE_SECONDS = 6 * 30 * 24 * 60 * 60
 METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS = 300
+# Fixed PromQL range-vector lookback (max_over_time/rate/...[Xs]). Must stay aligned with
+# scrape cadence (~1m). Do NOT tie this to datapoint downsampling — enlarging it turns each
+# point into a long-window peak and inflates avg/min/p95 over the series.
+METRICS_PROMQL_LOOKBACK_SECONDS = 60
 # Caps per-query datapoints for series queries only; stats queries are exempt because
 # denser resolution improves statistical accuracy without inflating response size.
-# The query engine auto-adjusts time_window to fit.  At max range (6 months) this
-# yields ~1 point per 8.6 hours, sufficient for trend detection.  Callers needing
-# denser resolution should query shorter time ranges rather than raising this cap.
+# The query engine auto-adjusts step/interval (not PromQL lookback) to fit.
+# At max range (6 months) with this cap, step is ~1 point per 8.6 hours.
+# Callers needing denser resolution should query shorter time ranges rather than raising this cap.
 METRICS_MAX_DATAPOINTS_LIMIT = 500
 METRICS_QUERY_MAX_ATTEMPTS = 3
 METRICS_QUERY_RETRY_DELAY_SEC = 0.5
@@ -114,7 +118,8 @@ TREND_UNIT_BY_METRIC_KEY = {
 # Template placeholders:
 # - {group_by}: Comma-separated dimensions for INNER query (cluster_domain + required_dimensions)
 # - {filters}: Full label filters (e.g., 'cluster_domain=~"cluster1|cluster2",instance_role="redis_master",ip="1.2.3.4"')
-# - {time_window}: Time window in seconds (e.g., "60")
+# - {time_window}: Fixed PromQL lookback seconds (METRICS_PROMQL_LOOKBACK_SECONDS, e.g. "60").
+#   Not the query step/interval; step is set separately on unify_query interval.
 # - {overall_agg}: Aggregation function for overall mode (e.g., "max", "sum")
 #   Stats queries use min/max/avg/stddev from the aggregation.stats list; no template placeholder.
 #

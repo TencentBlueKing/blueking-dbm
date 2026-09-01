@@ -22654,6 +22654,10 @@ msgstr "启动vm集群进程-{}"
 msgid "下发 actuator"
 msgstr "下发 actuator"
 
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_disable_flow.py
+msgid "禁用Qdrant集群"
+msgstr "Disable Qdrant cluster"
+
 #: backend/flow/engine/bamboo/scene/vm/vm_replace_flow.py:155
 #: backend/flow/engine/bamboo/scene/vm/vm_scale_up_flow.py:135
 #: backend/flow/engine/bamboo/scene/vm/vm_shrink_flow.py:131
@@ -22858,6 +22862,66 @@ msgstr "无法找到Manager处理类型,请联系系统管理员:{}"
 #: backend/flow/plugins/components/collections/vm/vm_dns_manage.py:69
 msgid "该节点获取到执行ip信息为空，请联系系统管理员"
 msgstr "该节点获取到执行ip信息为空，请联系系统管理员"
+
+#: backend/flow/plugins/components/collections/qdrant/apply_k8s_qdrant_clb.py
+msgid "未找到与集群名称 {} 匹配的区域信息"
+msgstr "未找到与集群名称 {} 匹配的区域信息"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_restart.py
+msgid "集群 {} 不存在, 请检查集群是否存在"
+msgstr "集群 {} 不存在, 请检查集群是否存在"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_restart.py
+msgid "集群 {} 详情信息不完整, 缺失字段: {}"
+msgstr "集群 {} 详情信息不完整, 缺失字段: {}"
+
+#: backend/flow/engine/bamboo/scene/surrealdb/surrealdb_disable_flow.py
+msgid "禁用 surrealdb 集群"
+msgstr "禁用 surrealdb 集群"
+
+#: backend/flow/engine/bamboo/scene/surrealdb/surrealdb_enable_flow.py
+msgid "启用 surrealdb 集群"
+msgstr "启用 surrealdb 集群"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_disable.py
+msgid "禁用 surrealdb 集群[{}]失败: {}"
+msgstr "禁用 surrealdb 集群[{}]失败: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_enable.py
+msgid "启用 surrealdb 集群[{}]失败: {}"
+msgstr "启用 surrealdb 集群[{}]失败: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_restart.py
+msgid "重启 surrealdb 集群[{}]失败: {}"
+msgstr "重启 surrealdb 集群[{}]失败: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_destroy.py
+msgid "关闭集群[{}]删除保护失败: {}"
+msgstr "关闭集群[{}]删除保护失败: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_destroy.py
+msgid "删除 surrealdb 集群[{}]失败: {}"
+msgstr "删除 surrealdb 集群[{}]失败: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_single/surrealdb_deploy_single.py
+msgid "部署 surrealdb 单机[{}]失败: {}"
+msgstr "部署 surrealdb 单机[{}]失败: {}"
+
+#: backend/flow/views/surrealdb_disable.py
+msgid "开始禁用 K8s SurrealDB 场景"
+msgstr "开始禁用 K8s SurrealDB 场景"
+
+#: backend/flow/views/surrealdb_enable.py
+msgid "开始启用 K8s SurrealDB 场景"
+msgstr "开始启用 K8s SurrealDB 场景"
+
+#: backend/flow/plugins/components/collections/qdrant/get_k8s_qdrant_clb_detail.py
+msgid "获取CLB详情失败"
+msgstr "获取CLB详情失败"
+
+#: backend/flow/plugins/components/collections/qdrant/qdrant_dns_manage.py
+msgid "CLB详情缺少LoadBalancerVips"
+msgstr "CLB details missing LoadBalancerVips"
 
 #: backend/flow/plugins/components/collections/common/check_resolv_conf.py:100
 #: backend/flow/plugins/components/collections/common/check_resolv_conf.py:102
@@ -28192,6 +28256,22 @@ msgstr "域名绑定CLB"
 #: backend/ticket/builders/redis/plugin_dns_unbind_clb.py:42
 msgid "域名接绑CLB"
 msgstr "域名接绑CLB"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "查询CLB详情"
+msgstr "查询CLB详情"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "暴露服务"
+msgstr "暴露服务"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "回写集群ID"
+msgstr "Write back ClusterId"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "同步ticketId"
+msgstr "sync ticket_id"
 
 #: backend/ticket/builders/redis/redis_backup.py:67
 msgid "集群备份"

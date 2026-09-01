@@ -12,7 +12,13 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
@@ -78,20 +84,18 @@ export default class Kafka extends ClusterBase {
   disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     kafka_access_entry_view: boolean;
+    kafka_dbconfig_edit: boolean;
     kafka_destroy: boolean;
     kafka_edit: boolean;
     kafka_enable_disable: boolean;
-    kafka_rebalance: boolean;
-    kafka_reboot: boolean;
-    kafka_replace: boolean;
-    kafka_scale_up: boolean;
-    kafka_shrink: boolean;
+    kafka_manage: boolean;
+    kafka_subscribe_monitor: boolean;
     kafka_view: boolean;
   };
   phase: 'online' | 'offline';
@@ -115,6 +119,7 @@ export default class Kafka extends ClusterBase {
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;

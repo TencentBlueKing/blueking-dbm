@@ -88,9 +88,15 @@ class EsClusterViewSetBigdata(BigdataResourceViewSet):
     db_type = DBType.Es
 
     list_perm_actions = [
-        ActionEnum.ES_CREATE_CLB,
-        ActionEnum.ES_DNS_BIND_CLB,
-        ActionEnum.ES_CREATE_POLARIS,
+        ActionEnum.ES_MANAGE,
+        ActionEnum.ES_VIEW,
+        ActionEnum.ES_EDIT,
+        ActionEnum.ES_ACCESS_ENTRY_VIEW,
+        ActionEnum.ES_DESTROY,
+        ActionEnum.ES_ENABLE_DISABLE,
+        ActionEnum.ES_SUBSCRIBE_MONITOR,
+        ActionEnum.ES_DBCONFIG_EDIT,
+        ActionEnum.ES_LOADBALANCE_MANAGE,
     ]
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)

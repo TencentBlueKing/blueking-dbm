@@ -65,6 +65,7 @@ const (
 
 	// V2
 	DbEventNameDetectFailure                   DbEventName = "dbha_detect_db_failure"
+	DbEventNameHeartbeatWriteFailure           DbEventName = "dbha_heartbeat_write_failure"
 	DbEventNameProbeOffline                    DbEventName = "dbha_probe_offline"
 	DbEventNameTendbhaProxyBackendFailure      DbEventName = "dbha_tendbha_proxy_backend_failure"
 	DbEventNameTendbclusterSpiderRemoteFailure DbEventName = "dbha_tendbcluster_spider_remote_failure"
@@ -73,6 +74,7 @@ const (
 // DbEventNameMap db event name map
 var DbEventNameMap = map[DbEventName]DbEventName{
 	DbEventNameDetectFailure:                   DbEventNameDetectFailure,
+	DbEventNameHeartbeatWriteFailure:           DbEventNameHeartbeatWriteFailure,
 	DbEventNameDoubleCheckSshFailureV1:         DbEventNameDoubleCheckSshFailureV1,
 	DbEventNameTendbhaProxyBackendFailure:      DbEventNameTendbhaProxyBackendFailure,
 	DbEventNameTendbclusterSpiderRemoteFailure: DbEventNameTendbclusterSpiderRemoteFailure,
@@ -82,6 +84,7 @@ var DbEventNameMap = map[DbEventName]DbEventName{
 // DbEventNameList db event name list
 var DbEventNameList = []DbEventName{
 	DbEventNameDetectFailure,
+	DbEventNameHeartbeatWriteFailure,
 	DbEventNameDoubleCheckSshFailureV1,
 	DbEventNameTendbhaProxyBackendFailure,
 	DbEventNameTendbclusterSpiderRemoteFailure,
@@ -115,6 +118,9 @@ func (t DbEventNameReason) Str() DbEventNameReasonStr {
 	case DbEventNameReasonNoTarget:
 		return NoTarget
 
+	case DbEventNameReasonHeartbeatWriteFailure:
+		return HeartbeatWriteFailure
+
 	default:
 		unknown := fmt.Sprintf("unknown event name reason: %d", t)
 		return DbEventNameReasonStr(unknown)
@@ -127,14 +133,16 @@ const (
 	DbEventNameReasonSSHAuthException
 	DbEventNameReasonMissedProbe
 	DbEventNameReasonNoTarget
+	DbEventNameReasonHeartbeatWriteFailure
 )
 
 const (
-	ConnectionExecption DbEventNameReasonStr = "connection exception"
-	AuthFailure         DbEventNameReasonStr = "auth failure"
-	SshAuthFailure      DbEventNameReasonStr = "ssh auth failure"
-	MissedProbe         DbEventNameReasonStr = "missed probe"
-	NoTarget            DbEventNameReasonStr = "no target"
+	ConnectionExecption   DbEventNameReasonStr = "connection exception"
+	AuthFailure           DbEventNameReasonStr = "auth failure"
+	SshAuthFailure        DbEventNameReasonStr = "ssh auth failure"
+	MissedProbe           DbEventNameReasonStr = "missed probe"
+	NoTarget              DbEventNameReasonStr = "no target"
+	HeartbeatWriteFailure DbEventNameReasonStr = "heartbeat write failure"
 )
 
 // DbType  db type

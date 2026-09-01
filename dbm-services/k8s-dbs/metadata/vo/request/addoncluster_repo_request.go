@@ -25,11 +25,11 @@ import (
 
 // AddonClusterHelmRepoRequest addon cluster helm repo 定义
 type AddonClusterHelmRepoRequest struct {
-	RepoName          string `json:"repoName" binding:"required"`
-	RepoRepository    string `json:"repoRepository" binding:"required"`
-	RepoUsername      string `json:"repoUsername" binding:"required"`
-	RepoPassword      string `json:"repoPassword" binding:"required"`
-	ChartName         string `json:"chartName" binding:"required"`
-	ChartVersion      string `json:"chartVersion" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	RepoName                string `json:"repoName" binding:"required"`
+	RepoRepository          string `json:"repoRepository" binding:"required"`
+	RepoUsername            string `json:"repoUsername" binding:"required"`
+	RepoPassword            string `json:"repoPassword" binding:"required"`
+	ChartName               string `json:"chartName" binding:"required"`
+	ChartVersion            string `json:"chartVersion" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

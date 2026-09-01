@@ -1,29 +1,29 @@
 <template>
   <BkComposeFormItem class="search-box-select-spec">
-    <!-- <BkSelect
+    <!-- <DbSelect
       v-model="dbType"
       :disabled="isDbTypeDisabled"
       style="width: 150px"
       @change="handleChangeCluster">
-      <BkOption
+      <DbOption
         v-for="item in DBTypeInfos"
         :key="item.id"
         :label="item.name"
         :value="item.id" />
-    </BkSelect> -->
-    <BkSelect
+    </DbSelect> -->
+    <DbSelect
       :key="dbType"
       v-model="machineType"
       :disabled="!dbType"
       style="width: 150px"
       @change="handleChangeMachine">
-      <BkOption
+      <DbOption
         v-for="item in clusterMachineList"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
-    </BkSelect>
-    <BkSelect
+    </DbSelect>
+    <DbSelect
       :key="machineType"
       v-model="specIdList"
       collapse-tags
@@ -33,12 +33,12 @@
       multiple-mode="tag"
       show-select-all
       @change="handleChange">
-      <BkOption
+      <DbOption
         v-for="item in resourceSpecList?.results"
         :key="item.spec_id"
         :label="item.spec_name"
         :value="`${item.spec_id}`" />
-    </BkSelect>
+    </DbSelect>
   </BkComposeFormItem>
 </template>
 
@@ -151,7 +151,7 @@
       flex: 1;
     }
 
-    :deep(.bk-select-tag) {
+    :deep(.dbm-select-tag) {
       max-height: 500px;
     }
   }

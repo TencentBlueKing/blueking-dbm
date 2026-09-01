@@ -27,6 +27,7 @@ import (
 	commentity "k8s-dbs/common/entity"
 	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
+	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
 	dbserrors "k8s-dbs/errors"
@@ -43,12 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// MaxPodLogLines pod log 返回最大行数
-const MaxPodLogLines = 2000
-
-// MaxPodLogSize pod log 返回最大字节数
-const MaxPodLogSize = 5 * 1024 * 1024
 
 // K8sProvider K8sProvider 结构体
 type K8sProvider struct {
@@ -173,7 +168,10 @@ func (k *K8sProvider) GetPodRawLogs(entity *coreentity.K8sPodLogQueryParams) (st
 	}()
 
 	logs, err := io.ReadAll(stream)
-	return string(logs), err
+	if err != nil {
+		return "", err
+	}
+	return commutil.StripAnsiCodes(string(logs)), nil
 }
 
 // ListPodLogs 获取 pod 日志
@@ -226,8 +224,8 @@ func (k *K8sProvider) buildLogStream(entity *coreentity.K8sPodLogQueryParams) (i
 		Container:  entity.Container,
 		Follow:     false,
 		Timestamps: true,
-		LimitBytes: commutil.Int64Ptr(MaxPodLogSize),
-		TailLines:  commutil.Int64Ptr(MaxPodLogLines),
+		LimitBytes: commutil.Int64Ptr(coreconst.MaxPodLogSize),
+		TailLines:  commutil.Int64Ptr(coreconst.MaxPodLogLines),
 		Previous:   entity.Previous,
 	}
 
@@ -385,6 +383,7 @@ func (k *K8sProvider) buildNsFromEntity(entity *coreentity.K8sNamespaceEntity) c
 func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog, error) {
 	var k8sLogEntries []*coreentity.K8sLog
 	scanner := bufio.NewScanner(stream)
+	scanner.Buffer(make([]byte, 0, coreconst.PodLogBufferSize), coreconst.MaxPodLogLineBytes)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
@@ -401,7 +400,7 @@ func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog,
 		}
 		k8sLogEntries = append(k8sLogEntries, &coreentity.K8sLog{
 			Timestamp: commtypes.JSONDatetime(timestamp),
-			Message:   message,
+			Message:   commutil.StripAnsiCodes(message),
 		})
 	}
 	if err := scanner.Err(); err != nil {

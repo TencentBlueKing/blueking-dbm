@@ -46,7 +46,7 @@
             v-for="(item, index) in rowFlodMap[row.user] ? row.rules.slice(0, 1) : row.rules"
             :key="index"
             class="inner-row">
-            <BkTag>{{ item.access_db }}</BkTag>
+            <DbTag>{{ item.access_db }}</DbTag>
           </div>
         </template>
       </TicketInfoTableColumn>
@@ -187,13 +187,10 @@
     }
 
     .cell-privilege {
-      .vxe-cell {
-        padding: 0 !important;
-        margin-left: -16px;
+      padding: 0 !important;
 
-        .inner-row {
-          padding-left: 32px !important;
-        }
+      .inner-row {
+        padding-left: 32px !important;
       }
     }
 

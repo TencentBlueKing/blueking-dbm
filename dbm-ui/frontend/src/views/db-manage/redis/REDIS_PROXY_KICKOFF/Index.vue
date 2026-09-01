@@ -92,16 +92,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -203,35 +197,32 @@
     },
   );
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const sameClusters = _.groupBy(formData.tableData, (item) => item.proxy.master_domain);
 
-    const sameClusters = _.groupBy(formData.tableData, (item) => item.proxy.master_domain);
+      const infos = Object.values(sameClusters).map((sameRows) => {
+        const proxy = sameRows.map((row) => ({
+          bk_cloud_id: row.proxy.bk_cloud_id,
+          bk_host_id: row.proxy.bk_host_id,
+          bk_sub_zone: row.proxy.bk_sub_zone,
+          city: row.proxy.city_name,
+          ip: row.proxy.ip,
+        }));
+        return {
+          cluster_id: sameRows[0].proxy.cluster_id,
+          operate_type: 'PROXY_ENTRY_KICKOFF' as const,
+          proxy,
+          restart_proxy: false,
+        };
+      });
 
-    const infos = Object.values(sameClusters).map((sameRows) => {
-      const proxy = sameRows.map((row) => ({
-        bk_cloud_id: row.proxy.bk_cloud_id,
-        bk_host_id: row.proxy.bk_host_id,
-        bk_sub_zone: row.proxy.bk_sub_zone,
-        city: row.proxy.city_name,
-        ip: row.proxy.ip,
-      }));
-      return {
-        cluster_id: sameRows[0].proxy.cluster_id,
-        operate_type: 'PROXY_ENTRY_KICKOFF' as const,
-        proxy,
-        restart_proxy: false,
-      };
-    });
-
-    createTicketRun({
-      details: {
-        infos,
-      },
-      ...formData.payload,
+      createTicketRun({
+        details: {
+          infos,
+        },
+        ...formData.payload,
+      });
     });
   };
 

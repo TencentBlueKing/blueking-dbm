@@ -37,6 +37,10 @@ func RegisterRouter(engine *gin.Engine) {
 	manageRuleHandler := handler.ManageRuleHandler{}
 	manageRuleHandler.RegisterRouter(engine)
 
+	// sqlserver syntax
+	sqlserverSyntaxHandler := handler.SqlServerSyntaxHandler{}
+	sqlserverSyntaxHandler.RegisterRouter(engine)
+
 }
 
 // TurnOnDebug turn on debug,not del simulation pod

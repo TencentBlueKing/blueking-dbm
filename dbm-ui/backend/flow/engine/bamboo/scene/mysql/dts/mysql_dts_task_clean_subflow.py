@@ -29,10 +29,14 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
       - 仅挂在总流程 run_flow：mysql_dts_migrate_subflow 之后、run_pipeline 之前
       - 终止路径（REVOKED）禁止调用本子流程；终止仅同步 DROP 临时账号
 
-    本期范围（并行）：
-      1. 删除迁移临时账号（mysql_dts_drop_user_subflow，沿用 inp.ignore_errors 尽力清理）
-      2. 清理本单 dts-task：delete_task → 增量 purge_relay → builtin dump rm → delete_source
+    本期范围（**串行，顺序不可调换**）：
+      1. 清理本单 dts-task：增量先 purge_relay → delete_task → builtin dump rm → delete_source
          （仅显式名称列表；默认不吞错）
+      2. 删除迁移临时账号（mysql_dts_drop_user_subflow，沿用 inp.ignore_errors 尽力清理）
+
+    为什么必须先清 task/source 再 DROP 账号：DM 删 task/source 时仍会用 task 内保存的临时账号
+    连下游清 checkpoint/dm_meta。两者并行会让账号先被 DROP，delete_task 必然 1045
+    Access denied。反过来若 delete 失败导致账号残留，可重试本节点或走终止路径 DROP，代价更小。
     """
     sub = SubBuilder(
         root_id=inp.root_id,
@@ -64,6 +68,7 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
         ignore_errors=False,
         creator=inp.creator,
         dts_cluster_id=inp.dts_cluster_id,
+        cluster_name=inp.cluster_name,
         task_mode=inp.task_mode,
         full_load_engine=inp.full_load_engine,
     )
@@ -71,5 +76,6 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
         sub_name=_("删除 DTS 临时账号 {}").format(inp.dts_user)
     )
     delete_built = mysql_dts_delete_task_source_subflow(delete_inp).build_sub_process(sub_name=_("清理 dts-task"))
-    sub.add_parallel_sub_pipeline(sub_flow_list=[drop_built, delete_built])
+    sub.add_sub_pipeline(delete_built)
+    sub.add_sub_pipeline(drop_built)
     return sub

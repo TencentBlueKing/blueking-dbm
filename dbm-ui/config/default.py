@@ -164,9 +164,8 @@ if env.ENABLE_DBM_AI:
         "backend.dbm_aiagent.apps.SafeAidevBkpluginConfig",
         "backend.dbm_aiagent.apps.DbmAiagentConfig",
     )
-    # 这两张表由 SDK 侧负责创建，dbm 不接管其 schema，故置空跳过该 app 的迁移。
-    # 注：checkpoint 表的联合唯一索引在 utf8mb4 下，超过 InnoDB 单索引 3072 字节上限会导致迁移失败
-    MIGRATION_MODULES = {"aidev_bkplugin": None}
+    # checkpoint / write 两张表的 schema 由 SDK 侧的 migration 维护，dbm 不生成也不修改其迁移文件。
+    # MIGRATION_MODULES = {"aidev_bkplugin": None}
 
 # 中间件
 MIDDLEWARE = (
@@ -355,23 +354,49 @@ DATABASE_ROUTERS = [
     "backend.db_report.database_router.SkipMigrateRouter",
 ]
 
-# Cache - 缓存后端采用redis
-# https://docs.djangoproject.com/en/3.2/ref/settings/#cache
-CACHES = {
-    "default": {
+
+def _redis_cache(location: str) -> dict:
+    """Shared Django cache backend options for one Redis URL."""
+    return {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env.REDIS_URL,
+        "LOCATION": location,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
             "REDIS_CLIENT_KWARGS": {"decode_responses": True},
+            # redis连接超时/命令超时时间
+            "SOCKET_CONNECT_TIMEOUT": 1,
+            "SOCKET_TIMEOUT": 10,
+            # 复用连接前若空闲超过该秒数则先ping探活，避免拿到被网关RST掉的死连接
+            "CONNECTION_POOL_KWARGS": {"health_check_interval": 30},
+            # redis不可用时降级为缓存未命中，避免异常直接冒泡成请求失败
+            "IGNORE_EXCEPTIONS": True,
             "SERIALIZER": "backend.utils.redis.JSONSerializer",
             "MAX_ENTRIES": 100000,
             "CULL_FREQUENCY": 10,
         },
-    },
+    }
+
+
+# Cache - 缓存后端采用redis
+# https://docs.djangoproject.com/en/3.2/ref/settings/#cache
+CACHES = {
+    "default": _redis_cache(env.CACHE_URL),
     "login_db": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "account_cache"},
 }
+
+# Dispatch pool aliases are derived in the same loop that creates the cache
+# entries, so ``DISPATCH_REDIS_ALIASES`` can never drift from the aliases
+# ``get_redis_connection`` actually accepts. 0-based to match dispatch_0.
+# IMPORTANT: ``DISPATCH_REDIS_URL_LIST`` order is persistent routing identity:
+# never reorder or remove an existing entry in place, because route rows store
+# aliases such as ``dispatch_0``. Append new Redis URLs, and remap namespaces
+# before retiring the corresponding entry.
+DISPATCH_REDIS_ALIASES = []
+for _dispatch_index, _dispatch_url in enumerate(env.DISPATCH_REDIS_URL_LIST):
+    _dispatch_alias = f"dispatch_{_dispatch_index}"
+    CACHES[_dispatch_alias] = _redis_cache(_dispatch_url)
+    DISPATCH_REDIS_ALIASES.append(_dispatch_alias)
 
 # blueapps
 BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL
@@ -387,6 +412,8 @@ DBM_APP_ACCESS_TOKEN = env.DBM_APP_ACCESS_TOKEN
 INIT_SUPERUSER = ["admin"]
 
 DJANGO_REDIS_CONNECTION_FACTORY = "backend.utils.redis.ConnectionFactory"
+# IGNORE_EXCEPTIONS 会吞掉缓存异常，打日志避免redis故障被静默
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 RUN_VER = env.RUN_VER
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")

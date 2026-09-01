@@ -53,9 +53,9 @@
             <div v-db-console="'pulsar.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="pulsar_scale_up"
+                  action-id="pulsar_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.pulsar_scale_up"
+                  :permission="data.permission.pulsar_manage"
                   :resource="data.id"
                   text
                   theme="primary"
@@ -67,9 +67,9 @@
             <div v-db-console="'pulsar.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="pulsar_shrink"
+                  action-id="pulsar_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.pulsar_shrink"
+                  :permission="data.permission.pulsar_manage"
                   :resource="data.id"
                   text
                   theme="primary"
@@ -195,6 +195,7 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
   import ClusterExpansion from '@views/db-manage/pulsar/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
 
@@ -216,6 +217,7 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     /* eslint-disable perfectionist/sort-objects */
@@ -231,6 +233,12 @@
     manual: true,
     onSuccess(result: PulsarDetailModel) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'pulsar_access_entry_view',
+        data: result,
+        onOpen: () => handleShowPassword(),
+      });
     },
   });
 

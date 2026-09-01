@@ -31,16 +31,16 @@
         :label="t('所属业务')"
         property="for_biz"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.for_biz"
           :allow-empty-values="[0]"
           disabled>
-          <BkOption
+          <DbOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"
             :label="bizItem.display_name"
             :value="bizItem.bk_biz_id" />
-        </BkSelect>
+        </DbSelect>
       </BkFormItem>
       <BkFormItem
         :label="t('资源标签')"

@@ -56,7 +56,7 @@ class SQLServerAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
         flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_AUTHORIZE_RULES, iam=ActionEnum.SQLSERVER_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_AUTHORIZE_RULES, iam=ActionEnum.SQLSERVER_AUTHORIZE)
 class SQLServerRulesFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerAuthorizeRulesSerializer
     inner_flow_builder = SQLServerAuthorizeRulesFlowParamBuilder
@@ -74,7 +74,7 @@ class SQLServerRulesFlowBuilder(BaseSQLServerTicketFlowBuilder):
         self.ticket.update_details(rules_set=data)
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.SQLSERVER_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.SQLSERVER_AUTHORIZE)
 class SQLServerExcelAuthorizeRulesFlowBuilder(SQLServerRulesFlowBuilder):
     serializer = SQLServerExcelAuthorizeRulesSerializer
     inner_flow_name = _("SQLServer Excel授权执行")

@@ -29,11 +29,11 @@ import (
 
 // ClusterInstallRequest 集群安装完整配置
 type ClusterInstallRequest struct {
-	BasicInfo         BasicInfo        `json:"basicInfo"`
-	ResourceConfig    ResourceConfig   `json:"resourceConfig"`
-	DeploymentEnv     DeploymentEnv    `json:"deploymentEnv"`
-	AdvancedSettings  AdvancedSettings `json:"advancedSettings"`
-	coreentity.BKAuth `json:",inline"`
+	BasicInfo               BasicInfo        `json:"basicInfo"`
+	ResourceConfig          ResourceConfig   `json:"resourceConfig"`
+	DeploymentEnv           DeploymentEnv    `json:"deploymentEnv"`
+	AdvancedSettings        AdvancedSettings `json:"advancedSettings"`
+	coreentity.BKAdditional `json:",inline"`
 }
 
 // BasicInfo 集群基本信息

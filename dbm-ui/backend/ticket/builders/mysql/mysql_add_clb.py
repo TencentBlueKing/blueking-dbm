@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.mysql_clb_operation import MySQLClbController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MysqlSingleOpsBaseDetailSerializer
 from backend.ticket.constants import TicketType
@@ -37,7 +38,7 @@ class MysqlAddCLBFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ADD_CLB)
+@builders.BuilderFactory.register(TicketType.MYSQL_ADD_CLB, iam=ActionEnum.MYSQL_LOADBALANCE_MANAGE)
 class MysqlAddCLBFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlAddCLBDetailSerializer
     inner_flow_builder = MysqlAddCLBFlowParamBuilder

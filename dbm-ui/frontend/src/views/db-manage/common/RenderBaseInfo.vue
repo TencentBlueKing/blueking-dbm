@@ -54,7 +54,11 @@
           <td>{{ t('地域') }}：</td>
           <td>{{ data.region || '--' }}</td>
           <td>{{ t('规格') }}：</td>
-          <td>{{ data.cluster_spec.spec_name || '--' }}</td>
+          <td>
+            <MachineSpecCell
+              mode="detail"
+              :specs="data.machine_specs" />
+          </td>
         </tr>
         <tr>
           <td>{{ t('管控区域') }}：</td>
@@ -74,7 +78,9 @@
   import { useI18n } from 'vue-i18n';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
-  import ClusterTag from '@components/cluster-tag/index.vue';
+  import ClusterTag from '@components/cluster-tag/Index.vue';
+
+  import MachineSpecCell from '@views/db-manage/common/cluster-details/components/machine-spec-cell/Index.vue';
 
   interface Props {
     data: { id: number } & Record<any, any>;

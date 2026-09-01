@@ -34,6 +34,24 @@
         :userinfo="userinfo">
         <template #action>
           <ActionItem
+            v-if="systemEnvironStore.urls.BK_IAM_URL"
+            :href="systemEnvironStore.urls.BK_IAM_URL"
+            target="_blank">
+            <template #icon>
+              <DbIcon type="quanxianzhongxin" />
+            </template>
+            {{ t('权限中心') }}
+          </ActionItem>
+          <ActionItem
+            v-if="systemEnvironStore.urls.BK_USER_MANAGE_URL"
+            :href="systemEnvironStore.urls.BK_USER_MANAGE_URL"
+            target="_blank">
+            <template #icon>
+              <DbIcon type="yonghu" />
+            </template>
+            {{ t('个人中心') }}
+          </ActionItem>
+          <ActionItem
             theme="danger"
             @click="handleSignOut">
             <template #icon>
@@ -98,6 +116,7 @@
   const userinfo = computed(() => {
     return {
       name: userProfileStore.username,
+      organization: userProfileStore.tenantId,
     };
   });
 

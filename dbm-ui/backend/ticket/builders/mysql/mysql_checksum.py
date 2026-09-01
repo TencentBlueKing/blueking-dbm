@@ -20,6 +20,7 @@ from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.dataclass import DBInstance
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, MySQLDataRepairTriggerMode
@@ -61,7 +62,7 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         super().validate_database_table_selector(attrs)
 
         # 校验定时时间不能早于当前时间
-        if attrs["need_manual_confirm"] is False:
+        if attrs.get("need_manual_confirm") is False:
             if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
                 raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
@@ -152,7 +153,7 @@ class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["ticket_type"] = TicketType.MYSQL_DATA_REPAIR
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM)
+@builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM, iam=ActionEnum.MYSQL_MANAGE)
 class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLChecksumDetailSerializer
     # 流程构造类
@@ -201,11 +202,11 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
 
     @property
     def need_timer(self):
-        return not self.ticket.details["need_manual_confirm"]
+        return not self.ticket.details.get("need_manual_confirm")
 
     @property
     def need_manual_confirm(self):
-        return self.ticket.details["need_manual_confirm"]
+        return self.ticket.details.get("need_manual_confirm")
 
     @property
     def need_itsm(self):

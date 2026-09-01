@@ -24,6 +24,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,6 +38,18 @@ import (
 	infresp "k8s-dbs/infrastructure/response"
 	"k8s-dbs/infrastructure/thirdapi"
 	metaentity "k8s-dbs/metadata/entity"
+	metaprovider "k8s-dbs/metadata/provider"
+)
+
+// domainSanitizeRegexp 匹配域名组成部分中不合法的字符（仅保留英文字母、数字、连字符）
+var domainSanitizeRegexp = regexp.MustCompile("[^a-zA-Z0-9-]")
+
+// ClusterEntryType 枚举 DBM 侧 ClusterEntry 表的 entry_type 取值。
+type ClusterEntryType string
+
+// 已知的 ClusterEntry 类型。
+const (
+	ClusterEntryTypeCLB ClusterEntryType = "clb"
 )
 
 // GetDbmClusterType 根据 addon 类型和拓扑名称获取 DBM cluster type。
@@ -344,7 +359,7 @@ func syncClusterWithCtx(
 		coreconst.OperationVolumeExpand,
 		coreconst.OperationStatusNormal,
 		coreconst.OperationStatusAbnormal:
-		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
+		return syncClusterStatusUpdate(clusterEntity, dbmAPIService, operation)
 	default:
 		return fmt.Errorf("不支持的同步操作类型: %s", operation)
 	}
@@ -352,7 +367,7 @@ func syncClusterWithCtx(
 
 // getPhaseByOperation 根据操作类型获取对应的phase值
 func getPhaseByOperation(operation coreconst.ClusterOperationType) coreconst.ClusterPhase {
-	if operation == coreconst.OperationStatusAbnormal {
+	if operation == coreconst.OperationStop {
 		return coreconst.PhaseOffline
 	}
 	return coreconst.PhaseOnline
@@ -387,17 +402,16 @@ func syncClusterDelete(
 	return handleSyncResponse(err, response, "删除", clusterEntity.ClusterName)
 }
 
-// syncClusterUpdate 同步集群更新操作
-func syncClusterUpdate(
+// syncClusterStatusUpdate 同步集群状态更新操作
+func syncClusterStatusUpdate(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	dbmAPIService *thirdapi.DbmAPIService,
-	dbmClusterType string,
 	operation coreconst.ClusterOperationType,
 ) error {
 	phase := getPhaseByOperation(operation)
 	status := getStatusByOperation(operation)
-	syncRequest := buildUpdateRequest(clusterEntity, dbmClusterType, phase, status)
-	response, err := dbmAPIService.SyncClusterUpdated(syncRequest)
+	syncRequest := buildUpdateStatusRequest(clusterEntity, phase, status)
+	response, err := dbmAPIService.SyncClusterStatusUpdated(syncRequest)
 	return handleSyncResponse(err, response, "更新", clusterEntity.ClusterName)
 }
 
@@ -436,34 +450,317 @@ func BuildCreateRequest(
 	}
 }
 
-// buildUpdateRequest 构建更新请求
-func buildUpdateRequest(
+// buildUpdateStatusRequest 构建更新请求
+func buildUpdateStatusRequest(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmClusterType string,
 	phase coreconst.ClusterPhase,
 	status coreconst.ClusterStatus,
-) *infreq.UpdateClusterRequest {
-	domain := clusterEntity.VIP
-	if domain == "" {
-		domain = fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName)
+) *infreq.UpdateClusterStatusRequest {
+	return &infreq.UpdateClusterStatusRequest{
+		ClusterID: clusterEntity.DbmClusterID,
+		Phase:     string(phase),
+		Status:    string(status),
 	}
-	alias := clusterEntity.ClusterAlias
-	if alias == "" {
-		alias = clusterEntity.ClusterName
+}
+
+// SanitizeForDomain 清理字符串使其适用于域名组成部分。
+func SanitizeForDomain(s string) string {
+	s = strings.ReplaceAll(s, "_", "-")
+	s = domainSanitizeRegexp.ReplaceAllString(s, "")
+	s = strings.ToLower(s)
+	return s
+}
+
+// BuildDomainName 根据集群信息组装自定义域名。
+func BuildDomainName(clusterType, clusterName, bkAppAbbr string) string {
+	clusterType = SanitizeForDomain(clusterType)
+	clusterName = SanitizeForDomain(clusterName)
+	bkAppAbbr = SanitizeForDomain(bkAppAbbr)
+	return strings.Join([]string{clusterType, clusterName, bkAppAbbr, "db"}, ".")
+}
+
+// BuildDomainInstances 根据外部地址构建 instances 列表。
+// 同一个 K8s LoadBalancer Service 的多个端口共用同一 VIP（均来自
+// status.loadBalancer.ingress[0]），因此只需取第一个可解析地址的 IP
+// 生成一条 instance 记录即可。
+func BuildDomainInstances(externalAddrs string) []string {
+	for _, addr := range strings.Split(externalAddrs, ",") {
+		addr = strings.TrimSpace(addr)
+		if addr == "" {
+			continue
+		}
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			slog.Warn("BuildDomainInstances: skip invalid addr", "addr", addr, "error", err)
+			continue
+		}
+		if host == "" {
+			continue
+		}
+		return []string{fmt.Sprintf("%s#%s", host, "0")}
 	}
-	return &infreq.UpdateClusterRequest{
-		Name:             clusterEntity.ClusterName,
-		Alias:            alias,
-		BkBizID:          clusterEntity.BkBizID,
-		ClusterType:      dbmClusterType,
-		ImmuteDomain:     domain,
-		MajorVersion:     clusterEntity.ServiceVersion,
-		Phase:            string(phase),
-		Status:           string(status),
-		Region:           "default",
-		Operator:         clusterEntity.UpdatedBy,
-		ClusterEntryType: "clb",
+	slog.Warn("BuildDomainInstances: no valid addr found", "externalAddrs", externalAddrs)
+	return []string{}
+}
+
+// BuildCreateDomainRequest 组装完整的域名创建请求。
+func BuildCreateDomainRequest(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	serviceEntity *metaentity.K8sClusterServiceEntity,
+) (*infreq.CreateDomainRequest, error) {
+	clusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
+	if err != nil {
+		return nil, fmt.Errorf("GetDbmClusterType failed: %w", err)
 	}
+	domain := BuildDomainName(clusterType, clusterEntity.ClusterName, clusterEntity.BkAppAbbr)
+	instances := BuildDomainInstances(serviceEntity.ExternalAddrs)
+	if len(instances) == 0 {
+		return nil, fmt.Errorf("BuildDomainInstances failed: instances is empty")
+	}
+	return &infreq.CreateDomainRequest{
+		BkCloudID:   0,
+		BkBizID:     clusterEntity.BkBizID,
+		ClusterType: clusterType,
+		Name:        clusterEntity.ClusterName,
+		Domain:      domain,
+		Instances:   instances,
+		Role:        "master_entry",
+		Operator:    clusterEntity.CreatedBy,
+	}, nil
+}
+
+// BuildGetDomainRequest 组装域名查询请求。
+func BuildGetDomainRequest(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	domain string,
+) (*infreq.GetDomainRequest, error) {
+	clusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
+	if err != nil {
+		return nil, fmt.Errorf("GetDbmClusterType failed: %w", err)
+	}
+	return &infreq.GetDomainRequest{
+		BkCloudID:   0,
+		BkBizID:     clusterEntity.BkBizID,
+		ClusterType: clusterType,
+		Name:        clusterEntity.ClusterName,
+		Domain:      domain,
+	}, nil
+}
+
+// BuildDeleteDomainRequest 组装域名删除请求。
+func BuildDeleteDomainRequest(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	domain string,
+) (*infreq.DeleteDomainRequest, error) {
+	clusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
+	if err != nil {
+		return nil, fmt.Errorf("GetDbmClusterType failed: %w", err)
+	}
+	return &infreq.DeleteDomainRequest{
+		BkCloudID:   0,
+		BkBizID:     clusterEntity.BkBizID,
+		ClusterType: clusterType,
+		Name:        clusterEntity.ClusterName,
+		Domain:      domain,
+		Operator:    clusterEntity.CreatedBy,
+	}, nil
+}
+
+// BuildDomainNameFromCluster 根据集群信息构建域名字符串，供无 serviceEntity 的场景使用。
+func BuildDomainNameFromCluster(clusterEntity *metaentity.K8sCrdClusterEntity) (string, error) {
+	clusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
+	if err != nil {
+		return "", fmt.Errorf("GetDbmClusterType failed: %w", err)
+	}
+	return BuildDomainName(clusterType, clusterEntity.ClusterName, clusterEntity.BkAppAbbr), nil
+}
+
+// AsyncDomainCreate 异步创建域名（集群首次暴露时调用）。
+// DBM 侧域名创建成功后，会把生成的域名回写到本地 tb_k8s_cluster_service.domains 字段。
+func AsyncDomainCreate(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	serviceEntity *metaentity.K8sClusterServiceEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+	serviceProvider metaprovider.K8sClusterServiceProvider,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+	g := &errgroup.Group{}
+
+	var createReq *infreq.CreateDomainRequest
+
+	g.Go(func() error {
+		if err := checkContextCancelled(ctx); err != nil {
+			return err
+		}
+
+		req, err := BuildCreateDomainRequest(clusterEntity, serviceEntity)
+		if err != nil {
+			return fmt.Errorf("BuildCreateDomainRequest failed: %w", err)
+		}
+
+		if _, createErr := dbmAPIService.SyncDomainCreated(req); createErr != nil {
+			return fmt.Errorf("SyncDomainCreated failed: %w", createErr)
+		}
+		createReq = req
+		return nil
+	})
+
+	go func() {
+		defer cancel()
+		if err := g.Wait(); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				slog.Warn("DBM API 创建域名超时",
+					"cluster_name", clusterEntity.ClusterName)
+			} else {
+				slog.Error("DBM API 创建域名失败",
+					"cluster_name", clusterEntity.ClusterName,
+					"error", err)
+			}
+			return
+		}
+
+		// g.Wait() 返回后，createReq 的写入对此处可见（errgroup 保证 happens-before）
+		if createReq == nil || createReq.Domain == "" {
+			return
+		}
+
+		slog.Info("DBM API 创建域名成功",
+			"cluster_name", clusterEntity.ClusterName,
+			"domain", createReq.Domain)
+
+		// DBM 创建成功后，将域名回写到本地 service 记录
+		if serviceProvider == nil {
+			return
+		}
+		if _, upErr := serviceProvider.UpdateDomains(
+			serviceEntity.CrdClusterID,
+			serviceEntity.ServiceName,
+			createReq.Domain,
+		); upErr != nil {
+			slog.Error("回写 service.domains 字段失败",
+				"cluster_name", clusterEntity.ClusterName,
+				"service_name", serviceEntity.ServiceName,
+				"domain", createReq.Domain,
+				"error", upErr)
+		}
+	}()
+}
+
+// AsyncDomainDelete 异步删除域名（集群完全取消暴露或集群删除时调用）。
+func AsyncDomainDelete(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+	g := &errgroup.Group{}
+
+	g.Go(func() error {
+		if err := checkContextCancelled(ctx); err != nil {
+			return err
+		}
+
+		domain, err := BuildDomainNameFromCluster(clusterEntity)
+		if err != nil {
+			return fmt.Errorf("BuildDomainNameFromCluster failed: %w", err)
+		}
+
+		delReq, err := BuildDeleteDomainRequest(clusterEntity, domain)
+		if err != nil {
+			return fmt.Errorf("BuildDeleteDomainRequest failed: %w", err)
+		}
+
+		if _, delErr := dbmAPIService.SyncDomainDeleted(delReq); delErr != nil {
+			return fmt.Errorf("SyncDomainDeleted failed: %w", delErr)
+		}
+
+		return nil
+	})
+
+	go func() {
+		defer cancel()
+		if err := g.Wait(); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				slog.Warn("DBM API 删除域名超时",
+					"cluster_name", clusterEntity.ClusterName)
+			} else {
+				slog.Error("DBM API 删除域名失败",
+					"cluster_name", clusterEntity.ClusterName,
+					"error", err)
+			}
+		} else {
+			slog.Info("DBM API 删除域名成功",
+				"cluster_name", clusterEntity.ClusterName)
+		}
+	}()
+}
+
+// runDomainDelete 阻塞执行一次 DBM 删除域名请求。
+// 复用 AsyncDomainDelete 的参数构建与错误语义，便于上层做串行化组合。
+func runDomainDelete(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := checkContextCancelled(ctx); err != nil {
+		return err
+	}
+	domain, err := BuildDomainNameFromCluster(clusterEntity)
+	if err != nil {
+		return fmt.Errorf("BuildDomainNameFromCluster failed: %w", err)
+	}
+	delReq, err := BuildDeleteDomainRequest(clusterEntity, domain)
+	if err != nil {
+		return fmt.Errorf("BuildDeleteDomainRequest failed: %w", err)
+	}
+	if _, delErr := dbmAPIService.SyncDomainDeleted(delReq); delErr != nil {
+		return fmt.Errorf("SyncDomainDeleted failed: %w", delErr)
+	}
+	return nil
+}
+
+// runClusterDelete 阻塞执行一次 DBM 删除集群元数据请求。
+func runClusterDelete(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return syncClusterDeletedWithCtx(ctx, clusterEntity, dbmAPIService)
+}
+
+// AsyncClusterTeardown 下架集群时对 DBM 的组合同步：先删域名、再删 Cluster 元数据。
+//
+// 本函数自身立即返回，内部 goroutine 串行执行，避免并发下的竞态；
+func AsyncClusterTeardown(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	go func() {
+		// 1) 先删 DBM 域名（此时 Cluster 仍存在，DBM 校验能通过）
+		if err := runDomainDelete(clusterEntity, dbmAPIService); err != nil {
+			slog.Error("下架集群: DBM 删除域名失败",
+				"cluster_name", clusterEntity.ClusterName,
+				"namespace", clusterEntity.Namespace,
+				"error", err)
+		} else {
+			slog.Info("下架集群: DBM 删除域名成功",
+				"cluster_name", clusterEntity.ClusterName)
+		}
+
+		// 2) 再删 DBM Cluster 元数据（此接口会级联清掉剩余 ClusterEntry）
+		if err := runClusterDelete(clusterEntity, dbmAPIService); err != nil {
+			slog.Error("下架集群: DBM 删除集群元数据失败",
+				"cluster_name", clusterEntity.ClusterName,
+				"namespace", clusterEntity.Namespace,
+				"error", err)
+		} else {
+			slog.Info("下架集群: DBM 删除集群元数据成功",
+				"cluster_name", clusterEntity.ClusterName)
+		}
+	}()
 }
 
 // handleSyncResponse 统一处理同步响应

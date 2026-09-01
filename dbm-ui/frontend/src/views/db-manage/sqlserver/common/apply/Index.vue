@@ -31,7 +31,7 @@
             :label="t('SQLServer 起始端口')"
             property="details.start_mssql_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_mssql_port"
               class="item-input"
               :max="65535"
@@ -45,7 +45,7 @@
             :label="t('集群数量')"
             property="details.cluster_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.cluster_count"
               class="item-input"
               :min="1"
@@ -56,7 +56,7 @@
             :label="t('每组主机部署集群')"
             property="details.inst_num"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.inst_num"
               class="item-input"
               :max="Math.max(formData.details.cluster_count, 1)"
@@ -172,7 +172,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -197,12 +197,10 @@
           @click="() => (isShowPreview = true)">
           {{ t('预览') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleResetFormdata">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleResetFormdata"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -237,7 +235,6 @@
 </template>
 
 <script setup lang="tsx">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -656,17 +653,9 @@
    * 重置表单
    */
   const handleResetFormdata = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, initData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, initData());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -674,9 +663,12 @@
    * 变更业务选择
    */
   const handleChangeBiz = (info: BizItem) => {
+    // 仅当业务真的变化时才清空模块选择，避免单据回显阶段 BusinessItems 自动 emit changeBiz 误清空
+    if (info.bk_biz_id !== formData.bk_biz_id) {
+      formData.details.db_module_id = null;
+    }
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
-    formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
     serviceApply?.changeBizId(info.bk_biz_id);
   };
@@ -779,7 +771,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

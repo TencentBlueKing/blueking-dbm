@@ -170,9 +170,19 @@ class InnerFlow(BaseTicketFlow):
             SqlserverDtsInfo.dts_info_clusive(
                 ticket_id=self.ticket.id, ticket_type=ticket_type, details=self.ticket.details
             )
-        if ticket_type in [TicketType.MYSQL_TO_MYSQL_MIGRATE, TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE]:
+        if ticket_type in [
+            TicketType.MYSQL_TO_MYSQL_MIGRATE,
+            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
+            TicketType.MYSQL_RENAME_MIGRATE,
+        ]:
             # 预占 ToDo + 互斥（ToDo/FullOnline），缩小 check→update_meta 并发窗口
-            migrate_type = "mysql_to_mysql" if ticket_type == TicketType.MYSQL_TO_MYSQL_MIGRATE else "ha_to_cluster"
+            # rename 单按行推断 migrate_type，这里不整单写死
+            if ticket_type == TicketType.MYSQL_TO_MYSQL_MIGRATE:
+                migrate_type = "mysql_to_mysql"
+            elif ticket_type == TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE:
+                migrate_type = "ha_to_cluster"
+            else:
+                migrate_type = ""
             MysqlDtsInfo.check_exclusive_and_reserve(
                 ticket_id=self.ticket.id,
                 ticket_type=ticket_type,

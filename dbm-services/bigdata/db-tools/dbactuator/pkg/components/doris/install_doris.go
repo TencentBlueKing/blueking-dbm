@@ -327,7 +327,8 @@ func GenDorisDataDirConf(role Role, dirs []string) string {
 	subPath := "mini_download"
 	for _, dir := range dirs {
 		// 生成配置同时生成目录并赋权给启动用户
-		mkdirCmd := fmt.Sprintf("mkdir -p %s/dorisdata/%s; chown -R mysql:mysql %s/dorisdata", dir, subPath, dir)
+		// 部分主机无mysql组，授权mysql组非必要
+		mkdirCmd := fmt.Sprintf("mkdir -p %s/dorisdata/%s; chown -R mysql %s/dorisdata", dir, subPath, dir)
 		if _, err := osutil.ExecShellCommand(false, mkdirCmd); err != nil {
 			logger.Error("初始化Doris数据目录%s/dorisdata失败:%s", dir, err.Error())
 		}

@@ -187,3 +187,144 @@ class SqlFileSyntaxCheckInputSerializer(serializers.Serializer):
             "MySQL版本列表，支持的版本：5.5、5.6、5.7、8.0。不提供时默认检查所有版本。"
         ),
     )
+
+
+class ParseSqlExecuteObjectSerializer(serializers.Serializer):
+    """SQL 变更单据 execute_objects 子集，用于展开未指定库名的 DDL。"""
+
+    dbnames = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_("Target DB name patterns (supports %/?/*). 目标库名/通配。"),
+    )
+    ignore_dbnames = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+        help_text=_("DB name patterns to exclude. 忽略的库名/通配。"),
+    )
+    sql_files = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+        help_text=_("SQL files this object applies to. Empty means all files in file_list. 适用的 SQL 文件；空则对全部解析文件生效。"),
+    )
+    line_id = serializers.IntegerField(required=False, help_text=_("Optional line id from ticket. 单据行号，可选。"))
+    import_mode = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text=_("Optional import mode from ticket. 导入模式，可选。"),
+    )
+
+
+class ParseSqlFileStatementInputSerializer(serializers.Serializer):
+    """Input serializer for parsing SQL file statements from BKRepo."""
+
+    path = serializers.CharField(
+        help_text=_(
+            "BKRepo (蓝鲸制品库) directory path where SQL files are stored. "
+            "This is the BKRepo repository path, NOT a local filesystem path. "
+            "Format: '/{project}/{repo}/{dir}/', e.g. '/bkdbm/sqlfiles/20240101/'. "
+            "SQL文件所在的蓝鲸制品库（BKRepo）目录地址，格式为 '/{project}/{repo}/{dir}/'，"
+            "例如 '/bkdbm/sqlfiles/20240101/'。注意：这是BKRepo仓库路径，而非本地文件系统路径。"
+        )
+    )
+    file_list = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_(
+            "List of SQL file names to parse (filenames only, not full paths). "
+            "Example: ['change.sql', 'dml.sql']. Duplicate names are parsed once. "
+            "待解析的SQL文件名列表（仅文件名，非完整路径），如 ['change.sql', 'dml.sql']。同名文件只解析一次。"
+        ),
+    )
+    include_sql_text = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text=_(
+            "Whether to return ALTER TABLE sql_text. Optional; omit to default false. "
+            "是否返回 ALTER TABLE 原语句。可选，不传默认 false。"
+        ),
+    )
+    cluster_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=list,
+        help_text=_(
+            "Optional cluster IDs. When provided, ALTER/DROP/TRUNCATE tables >= 500MB are returned in large_tables. "
+            "可选集群 ID。传入后识别 SQL 中 >=500MB 的 ALTER/DROP/TRUNCATE 大表。"
+        ),
+    )
+    execute_objects = serializers.ListField(
+        child=ParseSqlExecuteObjectSerializer(),
+        required=False,
+        default=list,
+        help_text=_(
+            "Same structure as SQL change ticket execute_objects: dbnames, ignore_dbnames, sql_files "
+            "(line_id/import_mode optional). Used only when a DDL has empty db_name after USE/qualified-name fill. "
+            "与 SQL 变更单据 execute_objects 同结构。仅当语句未给出库名时，用 dbnames-ignore_dbnames 展开真实库。"
+        ),
+    )
+
+
+class LastChangeInfoSerializer(serializers.Serializer):
+    """最近一次较长 SQL 变更的耗时信息（查不到则整段省略）"""
+
+    ticket_id = serializers.IntegerField(required=False, help_text=_("Ticket ID. 单据 ID。"))
+    table_size = serializers.CharField(
+        required=False,
+        help_text=_("Table size at execution time, e.g. '227G' / '800M'. 执行当时的表大小。"),
+    )
+    duration = serializers.CharField(
+        required=False,
+        help_text=_("Execution duration with unit s, e.g. '32s' / '1.5s'. 执行耗时。"),
+    )
+
+
+class LargeTableItemSerializer(serializers.Serializer):
+    """单张大表"""
+
+    name = serializers.CharField(help_text=_("Table name. 表名。"))
+    size = serializers.CharField(help_text=_("Current table size, e.g. '227G' / '800M'. 当前表容量。"))
+    last_change_info = LastChangeInfoSerializer(
+        required=False,
+        help_text=_("Latest long-running change; omitted when not found. 最近一次较长变更，查不到则省略。"),
+    )
+
+
+class LargeTableDatabaseSerializer(serializers.Serializer):
+    """一个库下按 DDL 类型分组的大表（没有某类时不输出空数组）"""
+
+    alter_tables = serializers.ListField(child=LargeTableItemSerializer(), required=False)
+    drop_tables = serializers.ListField(child=LargeTableItemSerializer(), required=False)
+    truncate_tables = serializers.ListField(child=LargeTableItemSerializer(), required=False)
+
+
+class LargeTableClusterSerializer(serializers.Serializer):
+    """一个集群下的大表"""
+
+    cluster_id = serializers.IntegerField(help_text=_("Cluster ID. 集群 ID。"))
+    cluster_domain = serializers.CharField(help_text=_("Cluster immutable domain. 集群域名。"))
+    databases = serializers.DictField(
+        child=LargeTableDatabaseSerializer(),
+        help_text=_("Large tables keyed by real database name. 以真实库名为 key 的大表。"),
+    )
+
+
+class ParseSqlFileStatementOutputSerializer(serializers.Serializer):
+    """Output of parse_sql_file_statement: command counts plus optional large tables."""
+
+    command_counts = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text=_("Command counts across all files, keyed by command type. 全文件合计的语句类型计数。"),
+    )
+    file_command_counts = serializers.DictField(
+        child=serializers.DictField(child=serializers.IntegerField()),
+        help_text=_("Command counts keyed by SQL file name. 按文件名分组的语句类型计数。"),
+    )
+    large_tables = serializers.ListField(
+        child=LargeTableClusterSerializer(),
+        help_text=_(
+            "ALTER/DROP/TRUNCATE tables >= 500MB, nested by cluster and database. "
+            "Empty when cluster_ids is omitted or no large table is found. "
+            "按集群/库嵌套的 >=500MB 大表；未传 cluster_ids 或无大表时为空列表。"
+        ),
+    )

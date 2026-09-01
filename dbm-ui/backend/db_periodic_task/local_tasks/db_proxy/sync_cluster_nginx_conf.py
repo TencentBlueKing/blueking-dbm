@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 
 import copy
 import logging
+import shlex
+import time
 from collections import defaultdict
 from typing import Dict, List
 
@@ -23,13 +25,25 @@ from backend.configuration.constants import DBType
 from backend.core.consts import BK_PUSH_CONFIG_PAYLOAD
 from backend.db_meta.models import Machine
 from backend.db_proxy import nginxconf_tpl
-from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
+from backend.db_proxy.constants import (
+    CLEAN_DELETED_NGINX_CONF_BATCH_SIZE,
+    CLEAN_DELETED_NGINX_CONF_JOB_REQUEST_INTERVAL,
+    JOB_INSTANCE_EXPIRE_TIME,
+    NGINX_PUSH_TARGET_PATH,
+    ExtensionType,
+)
 from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 from backend.utils.redis import RedisConn
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("celery")
+
+
+def _get_nginx_conf_file_name(extension: ClusterExtension):
+    return f"{extension.bk_biz_id}_{extension.db_type}_{extension.cluster_name}_nginx.conf"
 
 
 def fill_cluster_service_nginx_conf():
@@ -121,3 +135,129 @@ def fill_cluster_service_nginx_conf():
             # 缓存inst_id和nginx id，用于回调job，默认缓存时间和定时周期一致
             RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, cloud_id)
             RedisConn.expire(resp["data"]["job_instance_id"], JOB_INSTANCE_EXPIRE_TIME)
+
+
+def clean_deleted_cluster_service_nginx_conf():
+    """清理已软删除的大数据管理端nginx子配置文件"""
+
+    if env.CLOUD_CONTAINER_ENABLE:
+        return
+
+    deleted_extensions = list(
+        ClusterExtension.objects.filter(is_deleted=True).order_by("id")[:CLEAN_DELETED_NGINX_CONF_BATCH_SIZE]
+    )
+    if not deleted_extensions:
+        return
+
+    cloud__extensions: Dict[int, List[ClusterExtension]] = defaultdict(list)
+    for extension in deleted_extensions:
+        cloud__extensions[extension.bk_cloud_id].append(extension)
+
+    handled_count = 0
+    for cloud_id, extensions in cloud__extensions.items():
+        nginx_extensions = DBExtension.get_extension_in_cloud(bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX)
+        if not nginx_extensions.exists():
+            logger.error(_("cloud_id: {} 没有可用的nginx机器，跳过nginx配置清理").format(cloud_id))
+            continue
+
+        delete_cmds = []
+        extension_ids = []
+        for extension in extensions:
+            conf_path = f"{NGINX_PUSH_TARGET_PATH.rstrip('/')}/{_get_nginx_conf_file_name(extension)}"
+            delete_cmds.append(f"rm -f -- {shlex.quote(conf_path)}")
+            extension_ids.append(extension.id)
+
+        job_payload = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": f"cloud_id({cloud_id})_delete_nginx_conf",
+            "script_content": base64_encode("\n".join(delete_cmds)),
+            "script_language": 1,
+            "target_server": {
+                "ip_list": [
+                    {"bk_cloud_id": nginx.details["bk_cloud_id"], "ip": nginx.details["ip"]}
+                    for nginx in nginx_extensions
+                ]
+            },
+            "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/delete_conf_callback/",
+        }
+        logger.info(_("nginx子配置清理job参数: {}").format(job_payload))
+
+        # 每次请求只处理同一云区域的数据，避免单个云区域失败影响其他云区域的清理
+        resp = JobApi.fast_execute_script(
+            {**fast_execute_script_common_kwargs, **job_payload}, use_admin=True, raw=True
+        )
+        time.sleep(CLEAN_DELETED_NGINX_CONF_JOB_REQUEST_INTERVAL)
+        if not resp["result"]:
+            logger.error(_("nginx子配置清理job启动失败: {}").format(resp["message"]))
+            continue
+
+        job_instance_id = resp["data"]["job_instance_id"]
+        RedisConn.lpush(job_instance_id, *extension_ids)
+        RedisConn.expire(job_instance_id, JOB_INSTANCE_EXPIRE_TIME)
+        logger.info(
+            "nginx子配置删除job启动成功，等待回调删除ClusterExtension记录， job_instance_id: %s, extension_ids: %s",
+            job_instance_id,
+            extension_ids,
+        )
+        handled_count += len(extension_ids)
+
+    if not handled_count:
+        logger.warning(_("本次没有成功启动nginx子配置清理job，结束本次清理任务"))
+
+
+def inspect_cluster_service_nginx_conf():
+    """巡检已下发的大数据管理端nginx子配置文件"""
+
+    if env.CLOUD_CONTAINER_ENABLE:
+        return
+
+    flush_extensions = list(ClusterExtension.objects.filter(is_flush=True, is_deleted=False).order_by("id"))
+    if not flush_extensions:
+        return
+
+    cloud__extensions: Dict[int, List[ClusterExtension]] = defaultdict(list)
+    for extension in flush_extensions:
+        cloud__extensions[extension.bk_cloud_id].append(extension)
+
+    for cloud_id, extensions in cloud__extensions.items():
+        nginx_extensions = DBExtension.get_extension_in_cloud(bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX)
+        if not nginx_extensions.exists():
+            logger.error(_("cloud_id: {} 没有可用的nginx机器，跳过nginx配置巡检").format(cloud_id))
+            continue
+
+        check_cmds = []
+        for extension in extensions:
+            conf_path = f"{NGINX_PUSH_TARGET_PATH.rstrip('/')}/{_get_nginx_conf_file_name(extension)}"
+            check_cmds.append(f"test -f {shlex.quote(conf_path)} || echo MISSING_CLUSTER_EXTENSION_ID={extension.id}")
+
+        for nginx_extension in nginx_extensions:
+            nginx_ip = nginx_extension.details["ip"]
+            nginx_bk_cloud_id = nginx_extension.details["bk_cloud_id"]
+            job_payload = {
+                "bk_scope_type": "biz_set",
+                "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+                "task_name": f"cloud_id({cloud_id})_{nginx_ip}_inspect_nginx_conf",
+                "script_content": base64_encode("\n".join(check_cmds)),
+                "script_language": 1,
+                "target_server": {"ip_list": [{"bk_cloud_id": nginx_bk_cloud_id, "ip": nginx_ip}]},
+                "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/inspect_conf_callback/",
+            }
+            logger.info(_("nginx子配置巡检job参数: {}").format(job_payload))
+            resp = JobApi.fast_execute_script(
+                {**fast_execute_script_common_kwargs, **job_payload}, use_admin=True, raw=True
+            )
+            time.sleep(CLEAN_DELETED_NGINX_CONF_JOB_REQUEST_INTERVAL)
+            if not resp["result"]:
+                logger.error(_("nginx子配置巡检job启动失败: {}").format(resp["message"]))
+                continue
+
+            job_instance_id = resp["data"]["job_instance_id"]
+            RedisConn.lpush(job_instance_id, nginx_ip, nginx_bk_cloud_id)
+            RedisConn.expire(job_instance_id, JOB_INSTANCE_EXPIRE_TIME)
+            logger.info(
+                "nginx子配置巡检job启动成功，等待回调处理巡检结果，job_instance_id: %s, bk_cloud_id: %s, ip: %s",
+                job_instance_id,
+                nginx_bk_cloud_id,
+                nginx_ip,
+            )

@@ -1,0 +1,67 @@
+---
+description: DBM 工具箱提单页的实现范式与端到端检查清单。目录/路由/详情等模块约定见 db-manage.mdc、ticket-detail.mdc。
+globs: ["**/db-manage/**/*.vue", "**/db-manage/**/routes.ts", "**/common/const/ticketTypes.ts"]
+alwaysApply: false
+---
+
+# DBM 工具箱提单实现
+
+提单页路径 `src/views/db-manage/{db}/{TICKET_TYPE}/Index.vue`。目录约定、四者命名一致、路由注册见
+`db-manage.mdc`；单据详情组件见 `ticket-detail.mdc`。
+
+**动手前先完整读一遍同 DB 的已有提单**，范本：`src/views/db-manage/mysql/MYSQL_DATA_MIGRATE/Index.vue`。下面只列范本里看不出「为什么」的约定。
+
+## 页面骨架
+
+- 根节点是 `SmartAction`，底部按钮放它的 `#action` 插槽内（不是根节点外的第二个顶层节点）
+- 表单容器用 `BkForm`（`form-type="vertical"` + `class="toolbox-form"`），不是 `DbForm`
+- 表格 `EditableTable` + `EditableRow`，行末必须有 `OperationColumn`（`v-model:table-data` + `:create-row-method`）
+- 表单末尾必须有 `TicketPayload`，配套 `createTicketPayload()` 造初始值
+- `formData` 用 `reactive`，并抽一个 `defaultData()` 供重置复用
+- 重置按钮用 `DbResetButton`，`confirm-handler` 里重置 `formData` 并换掉 `EditableTable` 的 `:key`（`random()`）强制重建
+- 提单页**不写** `defineOptions({ name })`，路由 `name` 已由 `createToolboxRoute` 设为 `TicketTypes` 值
+- 用 `defineExpose({ routerBack })` 指回该 DB 的工具箱首页，覆盖默认返回行为
+- 批量录入用 `common/batch-input/Index.vue`，传 `config`（每项 `case` / `key` / `label`）
+
+## 单据提交与回填
+
+```ts
+const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<Payload>(TicketTypes.XXX);
+useTicketDetail<Mysql.Xxx>(TicketTypes.XXX, { onSuccess(ticketDetail) {} });
+```
+
+- `useCreateTicket` 的入参形状是 `{ details: {...}, ...formData.payload }`，提交前先 `tableRef.value!.validate()`
+- **`useTicketDetail` 不能漏**：单据「克隆 / 重新提交」靠它把 details 反解回表格；`onSuccess` 里同时用
+  `createTicketPayload(ticketDetail)` 回填备注
+- 提交后跳转由 `useCreateTicket` 自动处理，依赖路由 `meta.ticketType`（`createToolboxRoute` 已自动设置，不要手写）
+
+## 列组件
+
+优先复用 `src/views/db-manage/common/toolbox-field/column/` 与该 DB 的
+`{db}/common/toolbox-field/`；确实没有再在提单目录下建 `components/`。批量编辑通过列组件的 `@batch-edit`
+事件，在回调里刷新所有行的同名字段。
+
+## 工具箱菜单
+
+改 `src/views/db-manage/{db}/toolbox/toolboxMenuList.ts`（具名导出 `toolboxMenuList`，类型
+`ToolboxTreeNode[]`），在对应分类的 `children` 里加节点：
+
+```ts
+{
+  dbConsoleValue: 'mysql.toolbox.yourFeature', // 功能开关 key
+  desc: t('一句话说明'),
+  id: TicketTypes.MYSQL_YOUR_NEW_TYPE, // 与路由 name 一致
+  name: t('你的功能名称'),
+}
+```
+
+## 实现检查清单
+
+- [ ] **TicketType 常量已注册**：在 `src/common/const/ticketTypes.ts` 中添加枚举值，与后端 `ticket_type` 完全一致
+- [ ] **details 类型已定义**：在 `src/services/model/ticket/details/{db}/` 补 details 类型，并在同目录 `index.ts` 导出
+- [ ] **路由已注册**：在 `src/views/db-manage/{db}/routes.ts` 用 `createRouteItem` 注册
+- [ ] **工具箱菜单入口已添加**
+- [ ] **单据回填已实现**：`useTicketDetail` 已接入，克隆/重新提交能还原表格
+- [ ] **单据详情页已实现**：`com-factory` 下详情组件 `name` 与 `TicketType` 一致（详见 `ticket-detail.mdc`）
+- [ ] **后端协议已确认**：接口字段与提单 details 对齐
+- [ ] **`yarn type-check` 通过**

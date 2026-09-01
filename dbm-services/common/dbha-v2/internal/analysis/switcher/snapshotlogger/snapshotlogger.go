@@ -60,8 +60,6 @@ type StdSwitchingSnapshotData struct {
 	FinishedTime         *time.Time      `json:"finished_time,omitempty"`
 	BkBizID              int             `json:"bk_biz_id,omitempty"`
 	BkCloudID            int             `json:"bk_cloud_id"`
-	ClusterID            int             `json:"cluster_id,omitempty"`
-	ClusterName          string          `json:"cluster_name,omitempty"`
 	Reason               string          `json:"reason,omitempty"`
 	Result               string          `json:"result,omitempty"`
 	Status               string          `json:"status,omitempty"`

@@ -139,24 +139,20 @@
 
   defineExpose<Expose>({
     getValue() {
-      return editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          const storageDevice = modelValue.value.reduce<StorageDevice>(
-            (result, item) => ({
-              ...result,
-              [item.mount_point]: {
-                disk_type: item.type,
-                size: item.size,
-              },
-            }),
-            {},
-          );
-          return {
-            storage_device: storageDevice,
-          };
-        }
-
-        return Promise.reject();
+      return editableTableRef.value!.validate().then(() => {
+        const storageDevice = modelValue.value.reduce<StorageDevice>(
+          (result, item) => ({
+            ...result,
+            [item.mount_point]: {
+              disk_type: item.type,
+              size: item.size,
+            },
+          }),
+          {},
+        );
+        return {
+          storage_device: storageDevice,
+        };
       });
     },
   });
@@ -164,8 +160,8 @@
 
 <style lang="less">
   .resource-spec-storage-box {
-    .bk-vxe-table {
-      .vxe-cell {
+    .bk-editable-table {
+      .bk-editable-table-body-column {
         padding: 0 !important;
 
         .large-size {

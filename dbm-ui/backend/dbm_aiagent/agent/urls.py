@@ -19,6 +19,7 @@ from .builtin import (
     AIChatSessionContentViewSet,
     AIChatSessionShareView,
     AIChatSessionViewSet,
+    AILLMViewSet,
 )
 from .services.log_analysis.views import AILogAnalysisViewSet
 
@@ -32,6 +33,8 @@ router.register("session_content", AIChatSessionContentViewSet, "chat_session_co
 router.register("session_feedback", AIChatSessionContentFeedbackViewSet, "chat_session_feedback")
 router.register("chat_group", AIChatGroupViewSet, "chat_group")
 router.register("share", AIChatSessionShareView, "share")
+router.register("llms", AILLMViewSet, "llms")
+
 
 # 日志分析
 router.register("log", AILogAnalysisViewSet, "log_analysis")

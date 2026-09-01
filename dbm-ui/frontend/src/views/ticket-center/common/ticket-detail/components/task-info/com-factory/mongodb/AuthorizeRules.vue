@@ -55,7 +55,7 @@
               v-for="(rule, ruleIndex) in getRenderList(row)"
               :key="ruleIndex"
               class="mongo-permission-cell">
-              <BkTag>{{ rule.db }}</BkTag>
+              <DbTag>{{ rule.db }}</DbTag>
             </div>
           </template>
         </TicketInfoTableColumn>

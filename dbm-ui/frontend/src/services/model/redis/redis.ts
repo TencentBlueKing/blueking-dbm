@@ -12,7 +12,13 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
@@ -76,22 +82,22 @@ export default class Redis extends ClusterBase {
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   module_names: string[];
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     redis_access_entry_view: boolean;
     redis_backup: boolean;
+    redis_dbconfig_edit: boolean;
     redis_destroy: boolean;
     redis_edit: boolean;
     redis_keys_delete: boolean;
     redis_keys_extract: boolean;
+    redis_loadbalance_manage: boolean;
+    redis_manage: boolean;
     redis_open_close: boolean;
-    redis_plugin_create_clb: boolean;
-    redis_plugin_create_polaris: boolean;
-    redis_plugin_dns_bind_clb: boolean;
     redis_purge: boolean;
     redis_source_access_view: boolean;
     redis_subscribe_monitor: boolean;
@@ -122,6 +128,7 @@ export default class Redis extends ClusterBase {
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;

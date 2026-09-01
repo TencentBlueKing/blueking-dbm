@@ -19,6 +19,8 @@ from pipeline.core.flow.activity import Service
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
+from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.db_services.redis.util import is_have_proxy
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils import dns_manage
@@ -524,7 +526,13 @@ class RedisEntryCheckService(BaseService):
                 report_rows,
                 context=f"entry_check batch={batch_num} key={candidates_key}",
             )
-            if not write_ok:
+            if write_ok:
+                ingest_daily_cluster_rows(
+                    report_rows,
+                    dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
+                    prefix=_("[入口]"),
+                )
+            else:
                 try:
                     self._requeue_batch_to_redis(candidates_key, batch_cluster_ids)
                     self.log_warning(

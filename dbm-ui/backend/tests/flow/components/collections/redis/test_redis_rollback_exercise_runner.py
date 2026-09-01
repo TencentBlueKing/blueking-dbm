@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -15,12 +16,23 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bamboo_engine.api import EngineAPIResult
 
+from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
+from backend.db_report.models import RedisRollbackExerciseReport
 from backend.flow.consts import StateType
+from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     CHILD2RUNNER_CACHE_PREFIX,
     RedisExerciseBestEffortCleanupService,
     RedisExerciseFlowRunnerService,
 )
+
+RUNNER_MOD = "backend.flow.plugins.components.collections.redis.redis_rollback_exercise"
+EMBED_PATCH = "backend.db_services.redis.rollback.failure_analysis.embed_failed_node_logs"
+CHILD_ROOT_ID = "child_root_id"
+PROD_INSTANCE_IP = "1.1.1.4"
+TEMP_INSTANCE_IP = "1.1.1.3"
+_OK_REVOKE = EngineAPIResult(result=True, data={}, message="")
+_EMBEDDED_LOGS = "prior logs\nchild failed logs"
 
 
 class FakeData:
@@ -35,15 +47,19 @@ class FakeData:
         return getattr(self.inputs, key, None)
 
 
-def _build_schedule_data(start_delta_seconds=10, polling_timeout=3600, child_root_id="child_root_id"):
-    return FakeData(
+def _build_schedule_data(start_delta_seconds=10, polling_timeout=3600, child_root_id=CHILD_ROOT_ID, preserve=False):
+    data = FakeData(
         outputs={
             "child_root_id": child_root_id,
             "start_time": (datetime.now() - timedelta(seconds=start_delta_seconds)).isoformat(),
             "polling_timeout": polling_timeout,
             "output_var": "rollback_code",
+            "preserve_scene_on_failure": preserve,
         }
     )
+    if preserve:
+        data.inputs = SimpleNamespace(kwargs={"report_id": 1, "flow_id_field": "rollback_flow_obj_id"})
+    return data
 
 
 def _build_execute_kwargs(**overrides):
@@ -60,265 +76,198 @@ def _build_execute_kwargs(**overrides):
     return defaults
 
 
-# ==================== Schedule: callback fast-path ====================
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get",
-    return_value=SimpleNamespace(status=StateType.FINISHED),
-)
-def test_callback_data_terminal_finishes_early_skipping_flowtree_poll(_mock_flowtree_get):
+def _make_runner():
     service = RedisExerciseFlowRunnerService()
     service.finish_schedule = MagicMock()
-    data = _build_schedule_data()
-
-    service._schedule_inner_captured(
-        data,
-        parent_data=None,
-        callback_data={"child_root_id": "child_root_id", "child_state": StateType.FINISHED},
-    )
-
-    assert data.outputs.rollback_code == 0
-    service.finish_schedule.assert_called_once()
-    _mock_flowtree_get.assert_not_called()
+    return service
 
 
-@pytest.mark.parametrize("child_state", [StateType.FAILED, StateType.REVOKED])
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get")
-def test_callback_failed_or_revoked_sets_code_1(mock_flowtree_get, child_state):
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data()
+def _schedule(service, data, child_state=None, callback_data=None):
+    if child_state is not None:
+        callback_data = {"child_root_id": CHILD_ROOT_ID, "child_state": child_state}
+    return service._schedule_inner_captured(data, parent_data=None, callback_data=callback_data)
 
-    service._schedule_inner_captured(
-        data,
-        parent_data=None,
-        callback_data={"child_root_id": "child_root_id", "child_state": child_state},
-    )
 
+def _execute(kwargs=None):
+    service = _make_runner()
+    service._runtime_attrs = {"id": "runner_node_id", "root_pipeline_id": "parent_root_id"}
+    data = FakeData()
+    data.outputs = SimpleNamespace()
+    data.get_one_of_inputs = MagicMock(return_value=_build_execute_kwargs(**(kwargs or {})))
+    return service, data
+
+
+@contextmanager
+def _patch_child_flow(child_root_id=CHILD_ROOT_ID):
+    with patch(f"{RUNNER_MOD}.generate_root_id", return_value=child_root_id), patch(
+        f"{RUNNER_MOD}.RedisDataStructureFlow.redis_data_structure_flow"
+    ), patch(f"{RUNNER_MOD}.Report.objects.filter") as mock_filter, patch(f"{RUNNER_MOD}.cache.set") as mock_cache_set:
+        mock_filter.return_value.update = MagicMock()
+        yield mock_filter, mock_cache_set
+
+
+def _mock_preserved_report():
+    report = MagicMock()
+    report.task_message = "prior logs"
+    return report
+
+
+def _assert_scene_preserved(result, data, service, mock_revoke, report):
+    assert result is True
     assert data.outputs.rollback_code == 1
     service.finish_schedule.assert_called_once()
-    mock_flowtree_get.assert_not_called()
+    mock_revoke.assert_not_called()
+    report.mark.assert_called_once()
+    assert report.mark.call_args.args[0] == TaskStage.SCENE_PRESERVED
 
 
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get")
-def test_callback_without_child_root_id_falls_through_to_poll(mock_flowtree_get):
-    """callback_data missing child_root_id should warn and fall through to FlowTree polling."""
-    mock_flowtree_get.return_value = SimpleNamespace(status=StateType.FINISHED)
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data()
-
-    service._schedule_inner_captured(data, parent_data=None, callback_data={"child_state": StateType.FINISHED})
-
-    assert data.outputs.rollback_code == 0
-    mock_flowtree_get.assert_called_once_with(root_id="child_root_id")
+# ==================== Schedule ====================
 
 
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get")
-def test_callback_mismatched_child_root_id_falls_through_to_poll(mock_flowtree_get):
-    """callback_data with wrong child_root_id should warn and fall through to FlowTree polling."""
-    mock_flowtree_get.return_value = SimpleNamespace(status=StateType.FINISHED)
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data()
-
-    service._schedule_inner_captured(
-        data, parent_data=None, callback_data={"child_root_id": "wrong_id", "child_state": StateType.FINISHED}
-    )
-
-    assert data.outputs.rollback_code == 0
-    mock_flowtree_get.assert_called_once_with(root_id="child_root_id")
-
-
-# ==================== Schedule: FlowTree polling ====================
-
-
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get")
-def test_flowtree_terminal_finishes_schedule(mock_flowtree_get):
-    mock_flowtree_get.return_value = SimpleNamespace(status=StateType.FINISHED)
-
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data()
-
-    service._schedule_inner_captured(data, parent_data=None)
-
-    assert data.outputs.rollback_code == 0
-    service.finish_schedule.assert_called_once()
-    mock_flowtree_get.assert_called_once_with(root_id="child_root_id")
-
-
-@pytest.mark.parametrize("status", [StateType.FAILED, StateType.REVOKED])
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get")
-def test_flowtree_failed_or_revoked_sets_code_1(mock_flowtree_get, status):
+@pytest.mark.parametrize("via", ["callback", "poll"])
+@pytest.mark.parametrize(
+    "status, expected_code",
+    [
+        (StateType.FINISHED, 0),
+        (StateType.FAILED, 1),
+        (StateType.REVOKED, 1),
+    ],
+)
+@patch(f"{RUNNER_MOD}.FlowTree.objects.get")
+def test_schedule_terminal_finishes(mock_flowtree_get, status, expected_code, via):
     mock_flowtree_get.return_value = SimpleNamespace(status=status)
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
+    service = _make_runner()
     data = _build_schedule_data()
 
-    service._schedule_inner_captured(data, parent_data=None)
+    _schedule(service, data, child_state=status if via == "callback" else None)
 
-    assert data.outputs.rollback_code == 1
+    assert data.outputs.rollback_code == expected_code
     service.finish_schedule.assert_called_once()
+    if via == "callback":
+        mock_flowtree_get.assert_not_called()
+    else:
+        mock_flowtree_get.assert_called_once_with(root_id=CHILD_ROOT_ID)
 
 
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get")
-def test_flowtree_running_keeps_polling(mock_flowtree_get):
-    """RUNNING child should not finish the schedule (keeps polling)."""
-    mock_flowtree_get.return_value = SimpleNamespace(status=StateType.RUNNING)
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data()
-
-    result = service._schedule_inner_captured(data, parent_data=None)
-
-    assert result is True
-    service.finish_schedule.assert_not_called()
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get",
-    side_effect=Exception("DoesNotExist"),
+@pytest.mark.parametrize(
+    "callback_data",
+    [
+        pytest.param({"child_state": StateType.FINISHED}, id="missing_child_root_id"),
+        pytest.param({"child_root_id": "wrong_id", "child_state": StateType.FINISHED}, id="mismatched_child_root_id"),
+    ],
 )
-def test_flowtree_does_not_exist_keeps_polling(_mock):
-    """When FlowTree is not yet created, the schedule should keep polling."""
-    from backend.flow.models import FlowTree
-
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
+@patch(f"{RUNNER_MOD}.FlowTree.objects.get")
+def test_callback_falls_through_to_poll(mock_flowtree_get, callback_data):
+    mock_flowtree_get.return_value = SimpleNamespace(status=StateType.FINISHED)
+    service = _make_runner()
     data = _build_schedule_data()
 
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowTree.objects.get",
-        side_effect=FlowTree.DoesNotExist,
-    ):
-        result = service._schedule_inner_captured(data, parent_data=None)
+    _schedule(service, data, callback_data=callback_data)
+
+    assert data.outputs.rollback_code == 0
+    mock_flowtree_get.assert_called_once_with(root_id=CHILD_ROOT_ID)
+
+
+@pytest.mark.parametrize("preserve", [False, True])
+@patch(f"{RUNNER_MOD}.FlowTree.objects.get")
+def test_flowtree_running_keeps_polling(mock_flowtree_get, preserve):
+    mock_flowtree_get.return_value = SimpleNamespace(status=StateType.RUNNING)
+    service = _make_runner()
+
+    result = _schedule(service, _build_schedule_data(preserve=preserve))
 
     assert result is True
     service.finish_schedule.assert_not_called()
 
 
-# ==================== Schedule: edge cases ====================
+@patch(f"{RUNNER_MOD}.FlowTree.objects.get", side_effect=FlowTree.DoesNotExist)
+def test_flowtree_does_not_exist_keeps_polling(_mock):
+    service = _make_runner()
+
+    result = _schedule(service, _build_schedule_data())
+
+    assert result is True
+    service.finish_schedule.assert_not_called()
 
 
 def test_schedule_no_child_root_id_finishes_immediately():
-    """When child_root_id is absent (execute failed early), schedule should finish."""
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
+    service = _make_runner()
     data = FakeData(outputs={"output_var": "rollback_code"})
 
-    result = service._schedule_inner_captured(data, parent_data=None)
+    result = _schedule(service, data)
 
     assert result is True
     service.finish_schedule.assert_called_once()
 
 
 def test_schedule_missing_start_time_sets_code_1():
-    """Missing start_time should produce an error with code=1."""
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = FakeData(outputs={"child_root_id": "child_root_id", "output_var": "rollback_code"})
+    service = _make_runner()
+    data = FakeData(outputs={"child_root_id": CHILD_ROOT_ID, "output_var": "rollback_code"})
 
-    service._schedule_inner_captured(data, parent_data=None)
+    _schedule(service, data)
 
     assert data.outputs.rollback_code == 1
     service.finish_schedule.assert_called_once()
 
 
-# ==================== Schedule: timeout ====================
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.BambooEngine.revoke_pipeline",
-    return_value=EngineAPIResult(result=True, data={}, message=""),
+@pytest.mark.parametrize(
+    "revoke",
+    [
+        pytest.param(_OK_REVOKE, id="ok"),
+        pytest.param(EngineAPIResult(result=False, data={}, message="revoke failed"), id="failed"),
+        pytest.param(Exception("network error"), id="exception"),
+    ],
 )
-def test_timeout_revoke_child_and_fail(_mock_revoke):
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
+def test_timeout_still_sets_code_1(revoke):
+    service = _make_runner()
     data = _build_schedule_data(start_delta_seconds=20, polling_timeout=10)
+    patch_kwargs = {"side_effect": revoke} if isinstance(revoke, Exception) else {"return_value": revoke}
 
-    service._schedule_inner_captured(data, parent_data=None)
-
-    assert data.outputs.rollback_code == 1
-    service.finish_schedule.assert_called_once()
-    _mock_revoke.assert_called_once()
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.BambooEngine.revoke_pipeline",
-    return_value=EngineAPIResult(result=False, data={}, message="revoke failed"),
-)
-def test_timeout_revoke_failure_still_sets_code_1(mock_revoke):
-    """Even if revoke fails, the runner should still set code=1 and finish."""
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data(start_delta_seconds=20, polling_timeout=10)
-
-    service._schedule_inner_captured(data, parent_data=None)
+    with patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline", **patch_kwargs) as mock_revoke:
+        _schedule(service, data)
 
     assert data.outputs.rollback_code == 1
     service.finish_schedule.assert_called_once()
     mock_revoke.assert_called_once()
 
 
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.BambooEngine.revoke_pipeline",
-    side_effect=Exception("network error"),
-)
-def test_timeout_revoke_exception_still_sets_code_1(mock_revoke):
-    """Even if revoke raises an exception, the runner should still set code=1 and finish."""
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = _build_schedule_data(start_delta_seconds=20, polling_timeout=10)
-
-    service._schedule_inner_captured(data, parent_data=None)
-
-    assert data.outputs.rollback_code == 1
-    service.finish_schedule.assert_called_once()
-
-
 # ==================== Execute ====================
 
 
-def test_execute_stores_child_flow_id_in_report():
-    service = RedisExerciseFlowRunnerService()
-    data = FakeData()
-    data.outputs = SimpleNamespace()
-    data.get_one_of_inputs = MagicMock(return_value=_build_execute_kwargs())
+@pytest.mark.parametrize(
+    "exec_kwargs, expect_update, expect_revoke_previous",
+    [
+        pytest.param({}, True, False, id="stores_report_and_cache"),
+        pytest.param({"report_id": None, "flow_id_field": None}, False, False, id="no_report_id"),
+        pytest.param({"preserve_scene_on_failure": True}, True, True, id="preserve_revokes_previous"),
+    ],
+)
+def test_execute_submits_child_flow(exec_kwargs, expect_update, expect_revoke_previous):
+    service, data = _execute(exec_kwargs)
+    revoke_previous = f"{RUNNER_MOD}.RedisExerciseFlowRunnerService._revoke_previous_child_pipeline"
 
-    service._runtime_attrs = {"id": "runner_node_id", "root_pipeline_id": "parent_root_id"}
-
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.generate_root_id",
-        return_value="child_root_id",
-    ), patch(
-        "backend.flow.plugins.components.collections.redis."
-        "redis_rollback_exercise.RedisDataStructureFlow.redis_data_structure_flow"
-    ), patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Report.objects.filter"
-    ) as mock_filter, patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.cache.set"
-    ) as mock_cache_set:
-        mock_filter.return_value.update = MagicMock()
+    with _patch_child_flow() as (mock_filter, mock_cache_set), patch(revoke_previous) as mock_revoke_previous:
         result = service._execute_inner_captured(data, parent_data=None)
 
     assert result is True
-    mock_filter.return_value.update.assert_called_once_with(rollback_flow_obj_id="child_root_id")
-    mock_cache_set.assert_called_once_with(
-        f"{CHILD2RUNNER_CACHE_PREFIX}:child_root_id",
-        {"runner_node_id": "runner_node_id", "parent_root_id": "parent_root_id"},
-        3600,
-    )
+    if expect_update:
+        mock_filter.return_value.update.assert_called_once_with(rollback_flow_obj_id=CHILD_ROOT_ID)
+        mock_cache_set.assert_called_once_with(
+            f"{CHILD2RUNNER_CACHE_PREFIX}:{CHILD_ROOT_ID}",
+            {"runner_node_id": "runner_node_id", "parent_root_id": "parent_root_id"},
+            3600,
+        )
+    else:
+        mock_filter.return_value.update.assert_not_called()
+    if expect_revoke_previous:
+        mock_revoke_previous.assert_called_once_with(1, "rollback_flow_obj_id")
+        assert data.outputs.preserve_scene_on_failure is True
+    else:
+        mock_revoke_previous.assert_not_called()
 
 
 def test_execute_unknown_flow_identifier_sets_code_1():
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = FakeData()
-    data.outputs = SimpleNamespace()
-    data.get_one_of_inputs = MagicMock(return_value=_build_execute_kwargs(flow_identifier="nonexistent_flow"))
-    service._runtime_attrs = {"id": "n", "root_pipeline_id": "p"}
+    service, data = _execute({"flow_identifier": "nonexistent_flow"})
 
     result = service._execute_inner_captured(data, parent_data=None)
 
@@ -328,19 +277,10 @@ def test_execute_unknown_flow_identifier_sets_code_1():
 
 
 def test_execute_flow_launch_exception_sets_code_1():
-    service = RedisExerciseFlowRunnerService()
-    service.finish_schedule = MagicMock()
-    data = FakeData()
-    data.outputs = SimpleNamespace()
-    data.get_one_of_inputs = MagicMock(return_value=_build_execute_kwargs())
-    service._runtime_attrs = {"id": "n", "root_pipeline_id": "p"}
+    service, data = _execute()
 
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.generate_root_id",
-        return_value="child_root_id",
-    ), patch(
-        "backend.flow.plugins.components.collections.redis." "redis_rollback_exercise.RedisDataStructureFlow",
-        side_effect=RuntimeError("flow init failed"),
+    with patch(f"{RUNNER_MOD}.generate_root_id", return_value=CHILD_ROOT_ID), patch(
+        f"{RUNNER_MOD}.RedisDataStructureFlow", side_effect=RuntimeError("flow init failed")
     ):
         result = service._execute_inner_captured(data, parent_data=None)
 
@@ -349,46 +289,30 @@ def test_execute_flow_launch_exception_sets_code_1():
     service.finish_schedule.assert_called_once()
 
 
-def test_execute_without_report_id_skips_report_update():
-    """When report_id is absent, the report update step should be skipped."""
-    service = RedisExerciseFlowRunnerService()
-    data = FakeData()
-    data.outputs = SimpleNamespace()
-    data.get_one_of_inputs = MagicMock(return_value=_build_execute_kwargs(report_id=None, flow_id_field=None))
-    service._runtime_attrs = {"id": "runner_node_id", "root_pipeline_id": "parent_root_id"}
+def test_execute_rejected_child_launch_sets_code_1_without_recording_fake_child():
+    service, data = _execute()
 
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.generate_root_id",
-        return_value="child_root_id",
-    ), patch(
-        "backend.flow.plugins.components.collections.redis."
-        "redis_rollback_exercise.RedisDataStructureFlow.redis_data_structure_flow"
-    ), patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Report.objects.filter"
-    ) as mock_filter, patch(
-        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.cache.set"
-    ):
+    with patch(f"{RUNNER_MOD}.generate_root_id", return_value=CHILD_ROOT_ID), patch(
+        f"{RUNNER_MOD}.RedisDataStructureFlow.redis_data_structure_flow", return_value=False
+    ), patch(f"{RUNNER_MOD}.Report.objects.filter") as mock_report_filter, patch(
+        f"{RUNNER_MOD}.cache.set"
+    ) as mock_cache_set:
         result = service._execute_inner_captured(data, parent_data=None)
 
     assert result is True
-    mock_filter.return_value.update.assert_not_called()
+    assert data.outputs.rollback_code == 1
+    service.finish_schedule.assert_called_once()
+    mock_report_filter.assert_not_called()
+    mock_cache_set.assert_not_called()
+    assert not hasattr(data.outputs, "child_root_id")
 
 
 # ==================== Best-effort cleanup guards ====================
-
-PROD_INSTANCE_IP = "1.1.1.4"
-TEMP_INSTANCE_IP = "1.1.1.3"
 
 
 def _assert_cleanup_never_touches_prod(cleanup_hosts):
     prod_hosts = [host for host in cleanup_hosts if host["ip"] == PROD_INSTANCE_IP]
     assert not prod_hosts, f"cleanup must not target prod host {PROD_INSTANCE_IP!r}, got {cleanup_hosts}"
-
-
-def _collect_cleanup_hosts_checked(service, global_data):
-    cleanup_hosts = service._collect_cleanup_hosts(global_data)
-    _assert_cleanup_never_touches_prod(cleanup_hosts)
-    return cleanup_hosts
 
 
 def _cleanup_service():
@@ -429,223 +353,139 @@ def _rollback_task(temp_range=None, prod_range=None, pairs=None):
     )
 
 
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_use_rollback_task_ports_not_all_storage_ports(
-    mock_cluster_get, mock_storage_filter, mock_task_filter
-):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = [_storage_instance(30000), _storage_instance(39999)]
-    mock_task_filter.return_value = [
-        _rollback_task(
-            temp_range=[f"{TEMP_INSTANCE_IP}:30001", "2.2.2.2:30000", f"{TEMP_INSTANCE_IP}:30000"],
-            prod_range=[f"{PROD_INSTANCE_IP}:30000", f"{PROD_INSTANCE_IP}:30001"],
-            pairs=[
-                [f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"],
-                [f"{PROD_INSTANCE_IP}:30001", f"{TEMP_INSTANCE_IP}:30001"],
-                [f"{PROD_INSTANCE_IP}:30002", "2.2.2.2:30000"],
-            ],
-        )
-    ]
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), _cleanup_global_data())
-
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000, 30001]}]
-    mock_task_filter.assert_called_once_with(related_rollback_bill_id=123, bk_biz_id=3, prod_cluster_id=101)
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_allow_expected_source_cluster_binding(
-    mock_cluster_get, mock_storage_filter, mock_task_filter
-):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = [_storage_instance(30000, cluster_ids=[101])]
-    mock_task_filter.return_value = [_rollback_task()]
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), _cleanup_global_data())
-
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_skip_unexpected_cluster_bound_storage(
-    mock_cluster_get, mock_storage_filter, mock_task_filter
-):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = [_storage_instance(30000, cluster_ids=[202])]
-    mock_task_filter.return_value = [_rollback_task()]
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), _cleanup_global_data())
-
-    assert cleanup_hosts == []
-    mock_task_filter.assert_not_called()
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_skip_when_no_matching_rollback_task(mock_cluster_get, mock_storage_filter, mock_task_filter):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = []
-    mock_task_filter.return_value = [
-        _rollback_task(
-            temp_range=["2.2.2.2:30000"],
-            pairs=[[f"{PROD_INSTANCE_IP}:30000", "2.2.2.2:30000"]],
-        )
-    ]
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), _cleanup_global_data())
-
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_exclude_source_prod_addresses(mock_cluster_get, mock_storage_filter, mock_task_filter):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = []
-    mock_task_filter.return_value = [
-        _rollback_task(
-            temp_range=[f"{TEMP_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30001"],
-            prod_range=[f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30001"],
-            pairs=[
-                [f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"],
-                [f"{TEMP_INSTANCE_IP}:30001", f"{TEMP_INSTANCE_IP}:30001"],
-            ],
-        )
-    ]
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), _cleanup_global_data())
-
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_require_prod_temp_pairs(mock_cluster_get, mock_storage_filter, mock_task_filter):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = []
-    mock_task_filter.return_value = [_rollback_task(pairs=[])]
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), _cleanup_global_data())
-
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_drill_fallback_when_no_rollback_task(mock_cluster_get, mock_storage_filter, mock_task_filter):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = [_storage_instance(30000, cluster_ids=[101])]
-    mock_task_filter.return_value = []
-
-    global_data = _cleanup_global_data()
-    global_data["infos"][0]["drill_prod_temp_instance_pairs"] = [
-        [f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"]
-    ]
-
+def _run_cleanup(*, storage=None, tasks=None, global_data=None):
     service = _cleanup_service()
-    cleanup_hosts = _collect_cleanup_hosts_checked(service, global_data)
+    gd = global_data if global_data is not None else _cleanup_global_data()
+    with patch(f"{RUNNER_MOD}.Cluster.objects.get", return_value=SimpleNamespace(id=101, bk_cloud_id=0)), patch(
+        f"{RUNNER_MOD}.StorageInstance.objects.filter", return_value=storage or []
+    ), patch(f"{RUNNER_MOD}.TbTendisRollbackTasks.objects.filter") as mock_task_filter:
+        mock_task_filter.return_value = tasks if tasks is not None else []
+        hosts = service._collect_cleanup_hosts(gd)
+        _assert_cleanup_never_touches_prod(hosts)
+    return hosts, service, mock_task_filter
 
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
+
+def test_cleanup_targets_use_rollback_task_ports_not_all_storage_ports():
+    hosts, _, mock_task = _run_cleanup(
+        storage=[_storage_instance(30000), _storage_instance(39999)],
+        tasks=[
+            _rollback_task(
+                temp_range=[f"{TEMP_INSTANCE_IP}:30001", "2.2.2.2:30000", f"{TEMP_INSTANCE_IP}:30000"],
+                prod_range=[f"{PROD_INSTANCE_IP}:30000", f"{PROD_INSTANCE_IP}:30001"],
+                pairs=[
+                    [f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"],
+                    [f"{PROD_INSTANCE_IP}:30001", f"{TEMP_INSTANCE_IP}:30001"],
+                    [f"{PROD_INSTANCE_IP}:30002", "2.2.2.2:30000"],
+                ],
+            )
+        ],
+    )
+
+    assert hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000, 30001]}]
+    mock_task.assert_called_once_with(related_rollback_bill_id=123, bk_biz_id=3, prod_cluster_id=101)
+
+
+@pytest.mark.parametrize(
+    "cluster_ids, expected_hosts, task_called",
+    [
+        pytest.param([101], [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}], True, id="expected"),
+        pytest.param([202], [], False, id="unexpected"),
+    ],
+)
+def test_cleanup_targets_cluster_binding(cluster_ids, expected_hosts, task_called):
+    hosts, _, mock_task = _run_cleanup(
+        storage=[_storage_instance(30000, cluster_ids=cluster_ids)],
+        tasks=[_rollback_task()],
+    )
+
+    assert hosts == expected_hosts
+    if task_called:
+        mock_task.assert_called_once()
+    else:
+        mock_task.assert_not_called()
+
+
+def test_cleanup_targets_exclude_source_prod_addresses():
+    hosts, _, _ = _run_cleanup(
+        tasks=[
+            _rollback_task(
+                temp_range=[f"{TEMP_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30001"],
+                prod_range=[f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30001"],
+                pairs=[
+                    [f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"],
+                    [f"{TEMP_INSTANCE_IP}:30001", f"{TEMP_INSTANCE_IP}:30001"],
+                ],
+            )
+        ],
+    )
+
+    assert hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
+
+
+@pytest.mark.parametrize(
+    "tasks, extra_info",
+    [
+        pytest.param(
+            [
+                _rollback_task(
+                    temp_range=["2.2.2.2:30000"],
+                    pairs=[[f"{PROD_INSTANCE_IP}:30000", "2.2.2.2:30000"]],
+                )
+            ],
+            {},
+            id="task_for_other_ip",
+        ),
+        pytest.param([_rollback_task(pairs=[])], {}, id="empty_task_pairs"),
+        pytest.param(
+            [],
+            {"drill_prod_temp_instance_pairs": [[f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"]]},
+            id="explicit_drill_pairs",
+        ),
+        pytest.param([], {}, id="ticket_instance_fields"),
+    ],
+)
+def test_cleanup_targets_drill_fallback(tasks, extra_info):
+    global_data = _cleanup_global_data()
+    global_data["infos"][0].update(extra_info)
+
+    hosts, service, _ = _run_cleanup(tasks=tasks, global_data=global_data)
+
+    assert hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
     service.log_info.assert_any_call(
         f"Using drill ticket pairs fallback for {TEMP_INSTANCE_IP} (no TbTendisRollbackTasks)"
     )
 
 
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_drill_fallback_from_ticket_instance_fields(
-    mock_cluster_get, mock_storage_filter, mock_task_filter
-):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = []
-    mock_task_filter.return_value = []
-
-    service = _cleanup_service()
-    cleanup_hosts = _collect_cleanup_hosts_checked(service, _cleanup_global_data())
-
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30000]}]
-    service.log_info.assert_any_call(
-        f"Using drill ticket pairs fallback for {TEMP_INSTANCE_IP} (no TbTendisRollbackTasks)"
-    )
-
-
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_task_record_wins_over_drill_fallback(mock_cluster_get, mock_storage_filter, mock_task_filter):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = []
-    mock_task_filter.return_value = [
-        _rollback_task(
-            temp_range=[f"{TEMP_INSTANCE_IP}:30001"],
-            prod_range=[f"{PROD_INSTANCE_IP}:30001"],
-            pairs=[[f"{PROD_INSTANCE_IP}:30001", f"{TEMP_INSTANCE_IP}:30001"]],
-        )
-    ]
-
+def test_cleanup_targets_task_record_wins_over_drill_fallback():
     global_data = _cleanup_global_data()
     global_data["infos"][0]["drill_prod_temp_instance_pairs"] = [
         [f"{PROD_INSTANCE_IP}:30000", f"{TEMP_INSTANCE_IP}:30000"]
     ]
 
-    service = _cleanup_service()
-    cleanup_hosts = _collect_cleanup_hosts_checked(service, global_data)
+    hosts, service, _ = _run_cleanup(
+        tasks=[
+            _rollback_task(
+                temp_range=[f"{TEMP_INSTANCE_IP}:30001"],
+                prod_range=[f"{PROD_INSTANCE_IP}:30001"],
+                pairs=[[f"{PROD_INSTANCE_IP}:30001", f"{TEMP_INSTANCE_IP}:30001"]],
+            )
+        ],
+        global_data=global_data,
+    )
 
-    assert cleanup_hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30001]}]
+    assert hosts == [{"ip": TEMP_INSTANCE_IP, "bk_cloud_id": 0, "ports": [30001]}]
     fallback_calls = [
         str(call) for call in service.log_info.call_args_list if "drill ticket pairs fallback" in str(call)
     ]
     assert fallback_calls == []
 
 
-@patch(
-    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
-)
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
-@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
-def test_cleanup_targets_skip_when_no_task_and_no_drill_pairs(mock_cluster_get, mock_storage_filter, mock_task_filter):
-    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
-    mock_storage_filter.return_value = []
-    mock_task_filter.return_value = []
+def test_cleanup_targets_skip_when_no_task_and_no_drill_pairs():
+    hosts, _, _ = _run_cleanup(
+        global_data={"uid": 123, "bk_biz_id": 3, "infos": [{"cluster_id": 101, "redis": [{"ip": TEMP_INSTANCE_IP}]}]},
+    )
 
-    global_data = {
-        "uid": 123,
-        "bk_biz_id": 3,
-        "infos": [{"cluster_id": 101, "redis": [{"ip": TEMP_INSTANCE_IP}]}],
-    }
-
-    cleanup_hosts = _collect_cleanup_hosts_checked(_cleanup_service(), global_data)
-
-    assert cleanup_hosts == []
+    assert hosts == []
 
 
 def test_cleanup_script_removes_only_allowlisted_work_dirs():
@@ -674,3 +514,128 @@ def test_cleanup_script_removes_only_allowlisted_work_dirs():
     assert "lsof" not in script
     assert "Allowlisted redis process still exists" in script
     assert 'case "$current_ip" in' in script
+
+
+# ==================== Preserve scene (error_ignorable=False) ====================
+
+
+@pytest.mark.parametrize("via", ["callback", "poll"])
+@pytest.mark.parametrize("child_state", [StateType.FAILED, StateType.REVOKED])
+@patch(EMBED_PATCH, return_value=_EMBEDDED_LOGS)
+@patch(f"{RUNNER_MOD}.Report.objects.get")
+@patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline")
+@patch(f"{RUNNER_MOD}.FlowTree.objects.get")
+def test_failed_preserve_marks_scene_and_finishes_runner(
+    mock_flowtree_get, mock_revoke, mock_report_get, _mock_embed, child_state, via
+):
+    mock_flowtree_get.return_value = SimpleNamespace(status=child_state)
+    report = _mock_preserved_report()
+    mock_report_get.return_value = report
+    service = _make_runner()
+    data = _build_schedule_data(preserve=True)
+
+    result = _schedule(service, data, child_state=child_state if via == "callback" else None)
+
+    _assert_scene_preserved(result, data, service, mock_revoke, report)
+    if via == "callback":
+        mock_flowtree_get.assert_not_called()
+        assert _EMBEDDED_LOGS in report.mark.call_args.kwargs["task_message"]
+
+
+@patch(EMBED_PATCH, return_value=_EMBEDDED_LOGS)
+@patch(f"{RUNNER_MOD}.Report.objects.get")
+@patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline", return_value=_OK_REVOKE)
+def test_timeout_preserve_does_not_revoke_and_finishes_runner(mock_revoke, mock_report_get, _mock_embed):
+    report = _mock_preserved_report()
+    mock_report_get.return_value = report
+    service = _make_runner()
+    data = _build_schedule_data(start_delta_seconds=20, polling_timeout=10, preserve=True)
+
+    result = _schedule(service, data)
+    _assert_scene_preserved(result, data, service, mock_revoke, report)
+
+
+@patch(f"{RUNNER_MOD}.Report.objects.get")
+@patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline")
+def test_callback_failed_preserve_report_missing_still_finishes_runner(mock_revoke, mock_report_get):
+    mock_report_get.side_effect = RedisRollbackExerciseReport.DoesNotExist
+    service = _make_runner()
+    data = _build_schedule_data(preserve=True)
+
+    result = _schedule(service, data, child_state=StateType.FAILED)
+
+    assert result is True
+    assert data.outputs.rollback_code == 1
+    service.finish_schedule.assert_called_once()
+
+
+@patch(EMBED_PATCH)
+@patch(f"{RUNNER_MOD}.Report.objects.get")
+def test_preserve_scene_is_idempotent_when_report_already_preserved(mock_report_get, mock_embed):
+    report = _mock_preserved_report()
+    report.task_stage = TaskStage.SCENE_PRESERVED
+    mock_report_get.return_value = report
+
+    RedisExerciseFlowRunnerService()._preserve_scene(_build_schedule_data(preserve=True), CHILD_ROOT_ID)
+
+    report.mark.assert_not_called()
+    mock_embed.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "status,should_revoke",
+    [
+        (StateType.FINISHED, False),
+        (StateType.REVOKED, False),
+        (StateType.CREATED, True),
+        (StateType.READY, True),
+        (StateType.RUNNING, True),
+        (StateType.FAILED, True),
+        (None, False),
+    ],
+)
+@patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline", return_value=_OK_REVOKE)
+@patch(f"{RUNNER_MOD}.FlowTree.objects.filter")
+@patch(f"{RUNNER_MOD}.Report.objects.filter")
+def test_revoke_previous_child_pipeline(mock_report_filter, mock_flowtree_filter, mock_revoke, status, should_revoke):
+    mock_report_filter.return_value.values_list.return_value.first.return_value = (
+        None if status is None else "old_child"
+    )
+    mock_flowtree_filter.return_value.only.return_value.first.return_value = (
+        None if status is None else SimpleNamespace(status=status)
+    )
+
+    RedisExerciseFlowRunnerService()._revoke_previous_child_pipeline(1, "rollback_flow_obj_id")
+
+    if should_revoke:
+        mock_revoke.assert_called_once()
+    else:
+        mock_revoke.assert_not_called()
+
+
+# ==================== Cleanup: leftover child revoke ====================
+
+
+@pytest.mark.parametrize(
+    "leftover_ids, expected_revoke_count",
+    [
+        pytest.param(["child_1", "child_2"], 2, id="revokes_leftovers"),
+        pytest.param([], 0, id="no_leftovers"),
+    ],
+)
+def test_cleanup_revokes_leftover_child_flows(leftover_ids, expected_revoke_count):
+    service = _cleanup_service()
+    report = MagicMock(rollback_flow_obj_id="child_1", delete_flow_obj_id="child_2")
+
+    with patch(f"{RUNNER_MOD}.FlowTree.objects.filter") as mock_flowtree_filter, patch(
+        f"{RUNNER_MOD}.BambooEngine.revoke_pipeline", return_value=_OK_REVOKE
+    ) as mock_revoke, patch(f"{RUNNER_MOD}.get_effective_drill_infos", return_value=[{"report_id": 1}]), patch(
+        f"{RUNNER_MOD}.Report.objects.filter"
+    ) as mock_report_filter:
+        mock_flowtree_filter.return_value.exclude.return_value.values_list.return_value = leftover_ids
+        mock_report_filter.return_value.only.return_value.first.return_value = report
+        service._revoke_leftover_child_flows({})
+
+    assert mock_revoke.call_count == expected_revoke_count
+    exclude_kwargs = mock_flowtree_filter.return_value.exclude.call_args.kwargs
+    assert set(exclude_kwargs["status__in"]) == {StateType.FINISHED, StateType.REVOKED}

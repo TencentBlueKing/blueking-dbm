@@ -90,9 +90,10 @@ AI_MYSQL_ALARM_ANALYSIS_TEMPLATE = _(
     """\
     业务: {{biz_name}}
     集群域名: {{cluster_domain}}
-    集群类型: {{cluster_type}}
     告警策略: {{alarm_strategy}} (级别: {{alarm_level}})
     告警时间: {{alarm_time}}
+    {% if share_url %}报告详情链接: {{share_url}}
+    {% endif %}
     AI分析结果: {{ai_result}}\
     """
 )

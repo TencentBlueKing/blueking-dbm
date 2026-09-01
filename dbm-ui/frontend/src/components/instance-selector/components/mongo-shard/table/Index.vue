@@ -16,24 +16,38 @@
     <BkLoading
       :loading="isLoading"
       :z-index="2">
-      <DbOriginalTable
+      <PrimaryTable
+        :bk-ui-settings="tableSetting"
         :columns="generatedColumns"
         :data="tableData"
         :max-height="520"
-        :pagination="pagination.count < 10 ? false : pagination"
-        :settings="tableSetting"
-        :show-overflow="false"
         style="margin-top: 12px"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @row-click.stop.prevent="handleRowClick" />
+        @row-click="handleRowClick">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="false"
+            @refresh="fetchResources" />
+        </template>
+      </PrimaryTable>
+      <div
+        v-if="pagination.count >= 10"
+        class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx">
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderInstance from '@components/instance-selector/components/common/render-instance/Index.vue';
   import type {
     InstanceSelectorValues,
@@ -101,6 +115,7 @@
     generateParams,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
   } = useTableData<DataRow>(selectClusterId);
@@ -114,16 +129,52 @@
 
   let isSelectedAllReal = false;
 
-  const columns = computed(() => [
+  const columns = computed<PrimaryTableCol[]>(() => [
     {
+      cell: (_, { row }) => {
+        if (props.disabledRowConfig && props.disabledRowConfig.handler(row, props.lastValues)) {
+          return (
+            <bk-popover
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
+              {{
+                content: () => <span>{props.disabledRowConfig?.tip}</span>,
+                default: () => (
+                  <Checkbox
+                    disabled
+                    style='vertical-align: middle;'
+                  />
+                ),
+              }}
+            </bk-popover>
+          );
+        }
+        return props.multiple ? (
+          <span onClick={(e: Event) => e.stopPropagation()}>
+            <Checkbox
+              checked={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
+              style='vertical-align: middle;'
+              onChange={(value: boolean) => handleTableSelectOne(value, row)}
+            />
+          </span>
+        ) : (
+          <bk-radio
+            label={true}
+            model-value={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
+            style='vertical-align: middle;'
+            onChange={(value: boolean) => handleTableSelectOne(value, row)}
+          />
+        );
+      },
+      colKey: 'row-select',
       fixed: 'left',
-      label: () =>
+      title: () =>
         props.multiple && (
           <div style='display:flex;align-items:center'>
-            <bk-checkbox
+            <Checkbox
+              checked={isSelectedAll.value}
               disabled={mainSelectDisable.value}
-              label={true}
-              model-value={isSelectedAll.value}
               onChange={handleSelectPageAll}
             />
             <bk-popover
@@ -150,55 +201,18 @@
               trigger='hover'></bk-popover>
           </div>
         ),
-      render: ({ data }: { data: DataRow }) => {
-        if (props.disabledRowConfig && props.disabledRowConfig.handler(data, props.lastValues)) {
-          return (
-            <bk-popover
-              placement='top'
-              popoverDelay={0}
-              theme='dark'>
-              {{
-                content: () => <span>{props.disabledRowConfig?.tip}</span>,
-                default: () => (
-                  <bk-checkbox
-                    style='vertical-align: middle;'
-                    disabled
-                  />
-                ),
-              }}
-            </bk-popover>
-          );
-        }
-        return props.multiple ? (
-          <bk-checkbox
-            label={true}
-            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
-            style='vertical-align: middle;'
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
-          />
-        ) : (
-          <bk-radio
-            label={true}
-            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
-            style='vertical-align: middle;'
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
-          />
-        );
-      },
       width: 70,
     },
     {
-      field: props.firsrColumn?.field ? props.firsrColumn.field : 'shard_name',
+      colKey: props.firsrColumn?.field ? props.firsrColumn.field : 'shard_name',
       fixed: 'left',
-      label: props.firsrColumn?.label ? props.firsrColumn.label : t('分片'),
       minWidth: 160,
+      title: props.firsrColumn?.label ? props.firsrColumn.label : t('分片'),
     },
     {
-      field: 'related_instance',
-      label: t('关联实例'),
-      render: ({ data }: { data: DataRow }) => <RenderInstance data={data.related_instance || []}></RenderInstance>,
-      // showOverflow: true,
-      // width: 200,
+      cell: (_, { row }) => <RenderInstance data={row.related_instance || []}></RenderInstance>,
+      colKey: 'related_instance',
+      title: t('关联实例'),
     },
   ]);
 
@@ -321,17 +335,23 @@
     triggerChange();
   };
 
-  const handleRowClick = (key: number, data: DataRow) => {
-    if (props.disabledRowConfig && props.disabledRowConfig.handler(data, props.lastValues)) {
+  const handleRowClick = ({ row }: { row: DataRow }) => {
+    if (props.disabledRowConfig && props.disabledRowConfig.handler(row, props.lastValues)) {
       return;
     }
-    const checked = checkedMap.value[data[firstColumnFieldId.value]];
-    handleTableSelectOne(!checked, data);
+    const checked = checkedMap.value[row[firstColumnFieldId.value]];
+    handleTableSelectOne(!checked, row);
   };
 </script>
 
 <style lang="less">
   .instance-selector-render-topo-host {
     padding: 0 24px;
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
   }
 </style>

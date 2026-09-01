@@ -18,7 +18,6 @@ from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResource
 from backend.db_services.mysql.resources import constants
 from backend.db_services.oracle.resources.oraclesingle import yasg_slz
 from backend.db_services.oracle.resources.oraclesingle.query import ListRetrieveResource
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 
@@ -97,12 +96,4 @@ class OracleSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.ORACLE_SUBSCRIBE_MONITOR,
         ActionEnum.ORACLE_DBCONFIG_EDIT,
     ]
-    list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
+    list_instance_perm_actions = [ActionEnum.ORACLE_VIEW]

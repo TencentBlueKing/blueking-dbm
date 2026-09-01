@@ -232,7 +232,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.follower.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.follower.count"
                     disabled
                     type="number" />
@@ -270,7 +270,7 @@
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.observer.count">
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.observer.count"
                     :min="0"
                     type="number" />
@@ -314,7 +314,7 @@
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.hot.count">
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.hot.count"
                     :min="0"
                     type="number" />
@@ -352,7 +352,7 @@
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.warm.count">
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.warm.count"
                     :min="0"
                     type="number" />
@@ -366,7 +366,7 @@
               <BkSwitcher v-model="formData.details.enable_cold_storage" />
             </BkFormItem>
             <BkFormItem :label="t('总容量')">
-              <BkInput
+              <DbInput
                 disabled
                 :model-value="totalCapacity"
                 style="width: 184px" />
@@ -378,7 +378,7 @@
           :label="t('查询端口')"
           property="details.query_port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.query_port"
             clearable
             :max="65535"
@@ -392,7 +392,7 @@
           :label="t('http端口')"
           property="details.http_port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.http_port"
             clearable
             :max="65535"
@@ -408,7 +408,7 @@
             resource_spec: formData.details.resource_spec,
           }" />
         <BkFormItem :label="t('备注')">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -426,12 +426,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleReset"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -444,7 +442,6 @@
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { inject } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -989,18 +986,11 @@
 
   // 重置表单
   const handleReset = () => {
-    InfoBox({
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        isClickSubmit.value = false;
-        Object.assign(formData, genDefaultFormData());
-        formRef.value!.clearValidate();
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    isClickSubmit.value = false;
+    Object.assign(formData, genDefaultFormData());
+    formRef.value!.clearValidate();
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
@@ -1060,7 +1050,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

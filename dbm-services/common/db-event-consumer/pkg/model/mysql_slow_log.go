@@ -9,33 +9,64 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 
-	"github.com/go-viper/mapstructure/v2"
+	"github.com/coocood/freecache"
+	json "github.com/goccy/go-json"
 	sb "github.com/huandu/go-sqlbuilder"
-	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
-	"dbm-services/common/go-pubpkg/cmutil"
 )
 
+// slowLogDbNameCache 用于缓存每个实例当前上下文的 db_name。
+// 10万实例，每个 key 约 30 字节（ip:port），value 约 64 字节（db_name），
+// 分配 64MB 足够存储所有实例的上下文信息。
+var slowLogDbNameCache *freecache.Cache
+var slowLogCacheOnce sync.Once
+
+// slowlog file 我们一天会 flush 一次
+const slowLogDbNameExpireSec = 86400 * 2 // 48小时
+
+// initSlowLogDbNameCache 初始化 slowLogDbNameCache 并启动定时状态打印
+func initSlowLogDbNameCache() {
+	slowLogCacheOnce.Do(func() {
+		slowLogDbNameCache = freecache.NewCache(64 * 1024 * 1024)
+		go func() {
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for range ticker.C {
+				slog.Info("slowLogDbNameCache stats",
+					slog.Int64("entry_count", slowLogDbNameCache.EntryCount()),
+					slog.Int64("evacuate_count", slowLogDbNameCache.EvacuateCount()),
+					slog.Int64("hit_count", slowLogDbNameCache.HitCount()),
+					slog.Int64("miss_count", slowLogDbNameCache.MissCount()),
+					slog.Float64("hit_rate", slowLogDbNameCache.HitRate()),
+					slog.Int64("overwrite_count", slowLogDbNameCache.OverwriteCount()),
+					slog.Int64("lookup_count", slowLogDbNameCache.LookupCount()),
+				)
+			}
+		}()
+	})
+}
+
 type MysqlSlowLogModel struct {
-	ID uint `gorm:"primaryKey;autoIncrement:true"`
+	//ID uint `gorm:"primaryKey;autoIncrement:true"`
 	// DtEventTimeStamp 2026-03-10 16:27:07
 	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:timestamp;not null" json:"dteventtimestamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
 	DtEventTimeHour string `gorm:"column:dteventtimehour;type:varchar(127);not null" json:"dteventtimehour" db:"dteventtimehour"`
 	// LogTime	2026-03-10 16:27:07
-	LogTime time.Time `gorm:"column:log_time;type:datetime;not null" json:"time" db:"log_time"`
+	LogTime time.Time `gorm:"column:log_time;type:datetime;not null" json:"log_time" db:"log_time"`
+	// SqlTimestamp	1773131220
+	SqlTimestamp uint `gorm:"column:sql_timestamp;type:bigint;not null" json:"sql_timestamp" db:"sql_timestamp"`
 	// TheDate 20250101
 	TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 
@@ -47,8 +78,8 @@ type MysqlSlowLogModel struct {
 
 	QueryTime    float32 `gorm:"column:query_time;type:float;not null" json:"query_time" db:"query_time"`
 	LockTime     float32 `gorm:"column:lock_time;type:float;not null" json:"lock_time" db:"lock_time"`
-	RowsExamined int     `gorm:"column:rows_examined;type:int;not null" json:"rows_examined" db:"rows_examined"`
-	RowsSent     int     `gorm:"column:rows_sent;type:int;not null" json:"rows_sent" db:"rows_sent"`
+	RowsExamined int64   `gorm:"column:rows_examined;type:int;not null" json:"rows_examined" db:"rows_examined"`
+	RowsSent     int64   `gorm:"column:rows_sent;type:int;not null" json:"rows_sent" db:"rows_sent"`
 
 	QueryDigestMd5  string `gorm:"column:query_digest_md5;type:varchar(60);not null" json:"query_digest_md5" db:"query_digest_md5"`
 	QueryDigestText string `gorm:"column:query_digest_text;type:text;not null" json:"query_digest_text" db:"query_digest_text"`
@@ -61,7 +92,7 @@ type MysqlSlowLogModel struct {
 	DbName    string `gorm:"column:db_name;type:varchar(255);not null" json:"db_name" db:"db_name"`
 	SessionId int64  `gorm:"column:session_id;type:bigint;not null" json:"session_id" db:"session_id"`
 	// QueryStartTs SqlTimestamp
-	QueryStartTs uint `gorm:"column:query_start_ts;type:bigint;not null" json:"query_start_ts" db:"query_start_ts"`
+	// QueryStartTs uint `gorm:"column:query_start_ts;type:bigint;not null" json:"query_start_ts" db:"query_start_ts"`
 
 	Username     string `gorm:"column:username;type:varchar(127);not null" json:"user" db:"username"`
 	ClientHost   string `gorm:"column:client_host;type:varchar(60);not null" json:"client_host" db:"client_host"`
@@ -69,8 +100,6 @@ type MysqlSlowLogModel struct {
 	BkBizId      int    `gorm:"column:bk_biz_id;type:int;not null" json:"app_id" db:"bk_biz_id"`
 	BkCloudId    int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
 	ParseFailure int    `gorm:"column:parse_failure;type:int;not null" json:"parse_failure" db:"parse_failure"`
-	// SqlTimestamp	1773131220
-	SqlTimestamp uint `gorm:"column:sql_timestamp;type:bigint;not null" json:"sql_timestamp" db:"sql_timestamp"`
 }
 
 type MysqlSlowLogMsg struct {
@@ -103,13 +132,14 @@ type DimExt struct {
 type SlowLog struct {
 	Username   string `json:"username"`
 	ClientHost string `json:"client_host"`
-	// DbName	Schema: or Use xxx
-	Schema       string  `json:"schema"`
+	// Schema Schema: or Use xxx
+	Schema string `json:"schema"`
+	// DbName 与 Schema 字段等价
 	DbName       string  `json:"db_name"`
 	QueryTime    float32 `json:"query_time"`
 	LockTime     float32 `json:"lock_time"`
-	RowsExamined int     `json:"rows_examined"`
-	RowsSent     int     `json:"rows_sent"`
+	RowsExamined int64   `json:"rows_examined"`
+	RowsSent     int64   `json:"rows_sent"`
 	// SqlTimestamp	set timestamp=xxxx
 	// # Time: 260309 12:57:05
 	SqlTimestamp    uint   `json:"sql_timestamp"`
@@ -118,7 +148,7 @@ type SlowLog struct {
 	QueryDigestMd5  string `json:"query_digest_md5"`
 	QueryCommand    string `json:"query_command"`
 	QueryLength     int    `json:"query_length"`
-	// QueryDbName parsed from query_string
+	// QueryDbName parsed from query_string, 只是为了补充 Schema/DbName
 	QueryDbName  string `json:"query_db_name"`
 	TableNames   string `json:"table_names"`
 	SessionId    int64  `json:"session_id"`
@@ -126,10 +156,11 @@ type SlowLog struct {
 }
 
 func (m *MysqlSlowLogModel) TableName() string {
-	return "tb_mysql_slow_log"
+	return "tb_mysql_slow_log2"
 }
 
 func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {
+	initSlowLogDbNameCache()
 	slog.Info("run migrate for MysqlSlowLogModel", slog.String("table", m.TableName()))
 	dbWriter, ok := w.(base.GormMigrator)
 	if !ok {
@@ -137,32 +168,13 @@ func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {
 	}
 	db := dbWriter.GormDB()
 	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
-		createTableSql := ""
-		timeNow := time.Now()
-
-		// 第一次 migrate 创建表的时候，同时创建未来 7 天的分区
-		partitionsPreCreated := []string{}
-		for i := -7; i < 7; i++ {
-			days := cmutil.TimeToDays(timeNow.AddDate(0, 0, i))
-			dateint := cast.ToInt(timeNow.AddDate(0, 0, i).Format("20060102"))
-			partitionsPreCreated = append(partitionsPreCreated,
-				fmt.Sprintf("PARTITION p%d VALUES LESS THAN (%d) ENGINE = InnoDB", dateint, days+1))
-		}
-		//partitionInfo = append(partitionInfo, "PARTITION pmax VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB")
-		partitionInfo := []string{
-			"/*!50100 PARTITION BY RANGE (to_days(`dteventtimehour`))",
-			"(",
-			strings.Join(partitionsPreCreated, ",\n"),
-			")",
-			"*/",
-		}
-		createTableSql = CREATE_TABLE_SLOWLOG_MYSQL + strings.Join(partitionInfo, "\n")
+		createTableSql := CREATE_TABLE_SLOWLOG_MYSQL + BuildMysqlPartitionClause("dteventtimehour")
 		if err := db.Exec(fmt.Sprintf(createTableSql, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", createTableSql))
 			return err
 		}
 		return nil
-	} else if w.Type() == "doris" {
+	} else if w.Type() == "doris" || w.Type() == "doris_http" {
 		if err := db.Exec(fmt.Sprintf(CREATE_TABLE_SLOWLOG_DORIS, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", CREATE_TABLE_SQL_DORIS))
 			return err
@@ -180,6 +192,8 @@ func (m *MysqlSlowLogModel) StrictSchema() bool {
 func (m *MysqlSlowLogModel) Create(objs interface{}, w base.DSWriter) error {
 	if writer, ok := w.(*sinker.DorisWriter); ok {
 		return m.dorisCreate(objs, writer.GormDB())
+	} else if writer, ok := w.(*sinker.DorisHttpWriter); ok {
+		return m.dorisHttpCreate(objs, writer)
 	} else if writer, ok := w.(*sinker.MysqlWriter); ok {
 		return m.dorisCreate(objs, writer.GormDB())
 	} else {
@@ -188,6 +202,14 @@ func (m *MysqlSlowLogModel) Create(objs interface{}, w base.DSWriter) error {
 		newObj := objs.([]MysqlSlowLogModel)
 		return w.WriteBatch(m, newObj)
 	}
+}
+
+func (m *MysqlSlowLogModel) dorisHttpCreate(i interface{}, w *sinker.DorisHttpWriter) error {
+	kafkaObjs, ok := i.([]MysqlSlowLogModel)
+	if !ok {
+		kafkaObjs = []MysqlSlowLogModel{i.(MysqlSlowLogModel)}
+	}
+	return w.WriteBatch(m, kafkaObjs)
 }
 
 func (m *MysqlSlowLogModel) dorisCreate(i interface{}, db *gorm.DB) error {
@@ -285,9 +307,10 @@ CREATE TABLE IF NOT EXISTS %s (
   cluster_domain varchar(200) NOT NULL,
   instance_role varchar(60) DEFAULT NULL,
   dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by,expire',
-  thedate int NOT NULL,
-  log_time datetime NOT NULL,
   dteventtimestamp datetime NOT NULL,
+  sql_timestamp int NULL,
+  thedate int NOT NULL,
+  log_time datetime NULL,
   query_digest_md5 varchar(60) DEFAULT NULL,
   instance_host varchar(60) DEFAULT NULL,
   instance_port int DEFAULT NULL,
@@ -296,10 +319,10 @@ CREATE TABLE IF NOT EXISTS %s (
 
   query_time float DEFAULT NULL,
   lock_time float DEFAULT NULL,
-  rows_examined int DEFAULT NULL,
-  rows_sent int DEFAULT NULL,
-  query_digest_text text DEFAULT NULL,
-  query_string text DEFAULT NULL,
+  rows_examined bigint DEFAULT NULL,
+  rows_sent bigint DEFAULT NULL,
+  query_digest_text longtext DEFAULT NULL,
+  query_string longtext DEFAULT NULL,
   query_length int DEFAULT NULL,
   query_command varchar(60) DEFAULT NULL,
   query_db_name varchar(127) DEFAULT NULL,
@@ -320,7 +343,7 @@ CREATE TABLE IF NOT EXISTS %s (
   KEY idx_2 (dteventtimehour,cluster_domain),
   KEY idx_3 (query_digest_md5),
   KEY idx_4 (instance_host,instance_port)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 
 `
 
 var CREATE_TABLE_SLOWLOG_DORIS = `
@@ -329,19 +352,20 @@ CREATE TABLE IF NOT EXISTS %s (
   instance_role varchar(60) NULL,
   query_digest_md5 varchar(100) NULL,
   dteventtimehour datetime NOT NULL COMMENT "datetime precision to hour, used as where,group-by,expire",
-
-  log_time datetime NOT NULL,
+  
   dteventtimestamp datetime NOT NULL,
-  thedate int NOT NULL,
+  sql_timestamp int NULL,
+  thedate int NULL,
+  log_time datetime NULL,
   instance_host varchar(60) NULL,
   instance_port int NULL,
 
   query_time float NULL,
   lock_time float NULL,
-  rows_examined int NULL,
-  rows_sent int NULL,
+  rows_examined bigint NULL,
+  rows_sent bigint NULL,
     
-  query_digest_text varchar(8192) NULL,
+  query_digest_text string NULL,
   query_string string NULL,
   query_length int NULL,
   query_command varchar(60) NULL,
@@ -349,7 +373,7 @@ CREATE TABLE IF NOT EXISTS %s (
   db_name varchar(100) NULL,
   table_names varchar(1024) NULL,
 
-  session_id int NULL,
+  session_id bigint NULL,
   client_host varchar(60) NULL,
   username varchar(60) NULL,
   cluster_type varchar(60) NULL,
@@ -391,37 +415,50 @@ PROPERTIES (
 `
 
 func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) error {
-	queryString, err := strconv.Unquote(string(data))
-	if err != nil || queryString == "" {
+	// 用 json.Unmarshal 直接解引号，比 strconv.Unquote(string(data)) 少一次 []byte→string 的内存分配
+	var queryString string
+	if err := json.Unmarshal(data, &queryString); err != nil || queryString == "" {
 		return fmt.Errorf("invalid data: %s", data)
 	}
 	logParsed, err := parseOneSlowLog(queryString, true)
 	if err != nil {
 		return errors.WithMessagef(err, "parse slow log failed: %s", queryString)
 	}
-	// sql解析结果字段
-	_ = copier.Copy(m, logParsed)
-	// 维度字段
-	dimExt := &DimExt{}
-	config := &mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   dimExt,
-		TagName:  "json", // Specify the custom tag name here
+
+	// 直接赋值替代 copier.Copy(m, logParsed)，消除反射开销和临时对象分配
+	m.Username = logParsed.Username
+	m.ClientHost = logParsed.ClientHost
+	m.QueryTime = logParsed.QueryTime
+	m.LockTime = logParsed.LockTime
+	m.RowsExamined = logParsed.RowsExamined
+	m.RowsSent = logParsed.RowsSent
+	m.SqlTimestamp = logParsed.SqlTimestamp
+	m.QueryString = logParsed.QueryString
+	m.QueryDigestText = logParsed.QueryDigestText
+	m.QueryDigestMd5 = logParsed.QueryDigestMd5
+	m.QueryCommand = logParsed.QueryCommand
+	m.QueryLength = logParsed.QueryLength
+	m.QueryDbName = logParsed.QueryDbName
+	m.DbName = logParsed.DbName
+	m.TableNames = logParsed.TableNames
+	m.SessionId = logParsed.SessionId
+	// m.QueryStartTs = logParsed.QueryStartTs
+
+	// 直接从 msg.Ext 提取维度字段，替代 mapstructure.Decode + copier.Copy，
+	// 避免每条消息创建 DimExt、DecoderConfig、Decoder 等临时对象
+	if msg.Ext != nil {
+		m.BkBizId = cast.ToInt(msg.Ext["app_id"])
+		m.BkCloudId = cast.ToInt(msg.Ext["bk_cloud_id"])
+		m.ClusterDomain = cast.ToString(msg.Ext["cluster_domain"])
+		m.InstanceHost = cast.ToString(msg.Ext["instance_host"])
+		m.InstancePort = cast.ToInt(msg.Ext["instance_port"])
+		m.InstanceRole = cast.ToString(msg.Ext["instance_role"])
+		m.ClusterType = cast.ToString(msg.Ext["cluster_type"])
+		m.AppName = cast.ToString(msg.Ext["app"])
 	}
 
-	decoder, _ := mapstructure.NewDecoder(config)
-	_ = decoder.Decode(msg.Ext)
-	_ = copier.Copy(m, dimExt)
-	m.BkBizId = cast.ToInt(dimExt.BkBizId)
-	m.BkCloudId = cast.ToInt(dimExt.BkCloudId)
-	m.InstancePort = cast.ToInt(dimExt.InstancePort)
+	m.GetSchemaFromContext()
 
-	// 公共的字段
-	if m.QueryStartTs > 0 {
-		m.SqlTimestamp = m.QueryStartTs
-	} else if m.SqlTimestamp == 0 {
-		m.SqlTimestamp = msg.Ts
-	}
 	m.DtEventTimeStamp = msg.LogTime.Time
 	m.LogTime = msg.UtcTime.Time
 
@@ -429,4 +466,22 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.DtEventTimeHour = m.LogTime.Format("2006-01-02 15")
 
 	return nil
+}
+
+// GetSchemaFromContext 当慢查询段中没有 USE db 或 Schema 为空时，从缓存中获取上一次的 db_name
+// 使用 freecache 维护每个实例的上下文 db_name
+func (m *MysqlSlowLogModel) GetSchemaFromContext() {
+	// 使用 freecache 维护每个实例的上下文 db_name
+	// 当慢查询段中没有 USE db 或 Schema 为空时，从缓存中获取上一次的 db_name
+	instanceKey := []byte(fmt.Sprintf("%s:%d", m.InstanceHost, m.InstancePort))
+	if m.DbName != "" {
+		// 当前慢查询解析出了 db_name（来自 Schema: 或 USE db），更新缓存
+		_ = slowLogDbNameCache.Set(instanceKey, []byte(m.DbName), slowLogDbNameExpireSec)
+		// TODO 需要测试下 freecache 读/写的性能。如果写性能差，建议改成先读，如果 DbName 不一样才 set
+	} else {
+		// 当前慢查询没有 db_name，尝试从缓存中获取该实例上下文的 db_name
+		if cachedDb, err := slowLogDbNameCache.Get(instanceKey); err == nil && len(cachedDb) > 0 {
+			m.DbName = string(cachedDb)
+		}
+	}
 }

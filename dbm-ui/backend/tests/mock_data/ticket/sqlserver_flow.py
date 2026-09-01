@@ -394,26 +394,123 @@ SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA = {
         ],
     },
 }
-# SQLSERVER 定点构造申请单据
+# SQLSERVER 定点构造申请单据（远程构造，目标集群不同于源集群）
 SQLSERVER_ROLLBACK_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "ticket_type": TicketType.SQLSERVER_ROLLBACK,
     "details": {
-        "is_local": False,  # 是否代表原地构造，true代表是，false代表远程构造
+        "is_time_fixed": False,  # False 代表使用最新备份，True 代表指定时间
         "infos": [
             {
                 "src_cluster": CLUSTER_ID,
-                "dst_cluster": CLUSTER_ID + 1,  # 如果是原地构造，target_cluster_id=cluster_id
-                "db_list": [],
-                "ignore_db_list": [],
+                "dst_cluster": CLUSTER_ID + 1,  # 目标集群 ID
+                "db_list": ["test%"],  # 库正则
+                "ignore_db_list": [],  # 忽略库正则
                 "rename_infos": [
                     {
-                        "db_name": "SampleDatabaseRollback2",
-                        "target_db_name": "SampleDatabase2",
-                        "rename_db_name": "SampleDatabaseBak001",
+                        "db_name": "test_database",
+                        "target_db_name": "test_database_restored",
+                        "rename_db_name": "test_database_bak",
                     }
                 ],
-                "restore_backup_file": {"backup_id": "XXX", "logs": [{}]},
+                "restore_backup_file": {
+                    "backup_id": "backup_20240101_120000",
+                    # backup_db_list 必须包含 rename_infos 中出现的所有 db_name，
+                    # 否则 SqlserverDBConstructValidator.pre_check_dbs_in_backup_list 会失败
+                    "backup_db_list": ["test_database", "test_db2", "master"],
+                    "start_time": "2024-01-01 11:00:00",
+                    "end_time": "2024-01-01 12:00:00",
+                    "complete": True,
+                    "expected_cnt": 3,
+                    "real_cnt": 3,
+                    "role": "master",
+                    "backup_db_size_kb": 10240,
+                    "backup_file_size_kb": 5120,
+                    "excluded_db_list": [],
+                    "bill_id": "",
+                    # 每条 log 补齐 pre_check_log_backup_continuity 所需字段
+                    # （backup_end_time / cluster_domain / last_lsn / file_name），
+                    # 便于将 is_time_fixed 切换为 True + restore_time 场景时直接复用
+                    "logs": [
+                        {
+                            "dbname": "test_database",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000000",
+                            "file_name": "test_database_full_20240101_120000.bak",
+                        },
+                        {
+                            "dbname": "test_db2",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000001",
+                            "file_name": "test_db2_full_20240101_120000.bak",
+                        },
+                        {
+                            "dbname": "master",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000002",
+                            "file_name": "master_full_20240101_120000.bak",
+                        },
+                    ],
+                },
+            }
+        ],
+    },
+}
+
+# SQLSERVER 原地构造申请单据（目标集群等于源集群，需对源集群重命名）
+SQLSERVER_ROLLBACK_LOCAL_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_ROLLBACK_LOCAL,
+    "details": {
+        "is_time_fixed": False,  # False 代表使用最新备份，True 代表指定时间
+        "infos": [
+            {
+                "src_cluster": CLUSTER_ID,
+                "dst_cluster": CLUSTER_ID,  # 原地构造时目标集群等于源集群
+                "db_list": ["test%"],
+                "ignore_db_list": ["test_temp%"],
+                "rename_infos": [],  # 原地构造可能不需要重命名
+                "restore_backup_file": {
+                    "backup_id": "backup_20240101_120000",
+                    # backup_db_list 必须包含 rename_infos 中出现的所有 db_name；
+                    # 当前 rename_infos 为空虽不会触发 pre_check_dbs_in_backup_list 的
+                    # 逐库校验，但补齐可保证未来任何 rename 追加均无需再改 mock
+                    "backup_db_list": ["test_database", "test_db2"],
+                    "start_time": "2024-01-01 11:00:00",
+                    "end_time": "2024-01-01 12:00:00",
+                    "complete": True,
+                    "expected_cnt": 2,
+                    "real_cnt": 2,
+                    "role": "master",
+                    "backup_db_size_kb": 8192,
+                    "backup_file_size_kb": 4096,
+                    "excluded_db_list": [],
+                    "bill_id": "",
+                    "logs": [
+                        {
+                            "dbname": "test_database",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000000",
+                            "file_name": "test_database_full_20240101_120000.bak",
+                        },
+                        {
+                            "dbname": "test_db2",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000001",
+                            "file_name": "test_db2_full_20240101_120000.bak",
+                        },
+                    ],
+                },
             }
         ],
     },

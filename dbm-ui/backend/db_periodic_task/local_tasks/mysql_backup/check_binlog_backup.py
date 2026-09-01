@@ -10,14 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from collections import defaultdict
+from datetime import datetime
 
 from blueapps.core.celery.celery import app
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.constants import BACKUP_TASK_SUCCESS
 from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
 from backend.db_report.models import MysqlBackupCheckReport
+from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
+from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 
 from .bklog_query import ClusterBackup
 from .check_full_backup import find_discontinuous_numbers, get_backup_failed_duration, get_query_date_time
@@ -114,14 +118,26 @@ def _check_binlog_backup(cluster_type, date_str):
             failed_days = get_backup_failed_duration(
                 c.immute_domain, MysqlBackupCheckSubType.BinlogSeq.value, start_time
             )
+            failed_msg = "binlog is not consecutive:{}".format(failed_stat)
             MysqlBackupCheckReport.objects.create(
                 bk_biz_id=c.bk_biz_id,
                 bk_cloud_id=c.bk_cloud_id,
                 cluster=c.immute_domain,
                 cluster_type=cluster_type,
                 status=False,
-                msg="binlog is not consecutive:{}".format(failed_stat),
+                msg=failed_msg,
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
                 state=ReportStateType.ABNORMAL.value,
                 failed_days=failed_days,
             )
+            try:
+                ingest_summary(
+                    db_type=DBType.MySQL,
+                    dimension=MysqlPortraitDimensionCode.MYSQL_BINLOG_CHECK,
+                    bk_biz_id=c.bk_biz_id,
+                    cluster_domain=c.immute_domain,
+                    report_time=datetime.now(),
+                    summary=failed_msg,
+                )
+            except PortraitSDKBaseException:
+                logger.exception(f"report {c.immute_domain} binlog to portrait failed")

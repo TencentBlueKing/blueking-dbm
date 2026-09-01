@@ -20,13 +20,16 @@
         cluster-detail-router-name="tendbHaDetail"
         :data="data">
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mysql.haClusterList.authorize'"
+            action-id="mysql_authorize"
             class="ml-4"
+            :permission="data.permission.mysql_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'mysql.haClusterList.webconsole'"
             action-id="mysql_webconsole"
@@ -78,8 +81,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="mysql_add_clb"
-                  :permission="data.permission.mysql_add_clb"
+                  action-id="mysql_loadbalance_manage"
+                  :permission="data.permission.mysql_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
@@ -94,8 +97,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="mysql_clb_bind_domain"
-                  :permission="data.permission.mysql_clb_bind_domain"
+                  action-id="mysql_loadbalance_manage"
+                  :permission="data.permission.mysql_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="
@@ -273,7 +276,7 @@
 
   const isShowDumperEntry = computed(() => {
     const currentKey = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as MySQLFunctions;
-    return funControllerStore.funControllerData.mysql.children[currentKey];
+    return funControllerStore.funControllerData.mysql.children[currentKey]?.is_enabled;
   });
 
   const { loading: isLoading, run: fetchClusterDetail } = useRequest(getTendbhaDetail, {

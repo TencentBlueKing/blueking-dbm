@@ -34,7 +34,6 @@ import (
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
 	"log/slog"
-	"os"
 	"sort"
 	"strings"
 
@@ -252,7 +251,7 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 	if err != nil {
 		return err
 	}
-	c.syncClusterToDBMAsync(clusterEntity)
+	c.syncClusterToDBMAsync(ctx, clusterEntity)
 	return nil
 }
 
@@ -347,8 +346,11 @@ func (c *ClusterProvider) persistAllClusterMeta(
 	return clusterEntity, nil
 }
 
-func (c *ClusterProvider) syncClusterToDBMAsync(clusterEntity *metaentity.K8sCrdClusterEntity) {
-	if os.Getenv(coreconst.AsyncToDBMEnv) != coreconst.AsyncToDBMEnabled {
+func (c *ClusterProvider) syncClusterToDBMAsync(
+	ctx *commentity.DbsContext,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) {
+	if !ctx.BkAdditional.ShouldAsyncToDBM() {
 		return
 	}
 	localClusterID := clusterEntity.ID
@@ -475,7 +477,7 @@ func (c *ClusterProvider) saveClusterTagsMeta(
 		tagEntities = append(tagEntities, tagEntity)
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth: &request.BKAuth,
+		BkAdditional: &request.BKAdditional,
 	}
 	_, err := c.ClusterTagProvider.BatchCreate(dbsCtx, tagEntities)
 	if err != nil {
@@ -553,9 +555,7 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 
-	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
-	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
-	if asyncToDBM == coreconst.AsyncToDBMEnabled {
+	if ctx.BkAdditional.ShouldAsyncToDBM() {
 		infrautil.AsyncClusterUpdated(updatedClusterEntity, c.dbmAPIService)
 	}
 
@@ -658,13 +658,27 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 			fmt.Errorf("删除集群 release 失败: %w", err))
 	}
 
-	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
-	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
-	if asyncToDBM == coreconst.AsyncToDBMEnabled {
-		infrautil.AsyncClusterDeleted(clusterEntity, c.dbmAPIService)
+	// 删除对应集群日志
+	c.deleteClusterRequestRecords(request.K8sClusterName, request.ClusterName, request.Namespace)
+
+	if ctx.BkAdditional.ShouldAsyncToDBM() {
+		infrautil.AsyncClusterTeardown(clusterEntity, c.dbmAPIService)
 	}
 
 	return nil
+}
+
+// deleteClusterRequestRecords 删除指定集群的所有请求记录日志
+func (c *ClusterProvider) deleteClusterRequestRecords(k8sClusterName, clusterName, namespace string) {
+	params := &metaentity.ClusterRequestQueryParams{
+		K8sClusterName: k8sClusterName,
+		ClusterNames:   []string{clusterName},
+		NameSpace:      namespace,
+	}
+	if _, err := c.reqRecordProvider.DeleteRequestRecords(params); err != nil {
+		slog.Warn("failed to delete cluster request records",
+			"cluster", clusterName, "error", err)
+	}
 }
 
 // clearClusterRelateMeta 清理 cluster 关联的元数据信息
@@ -1367,5 +1381,91 @@ func (c *ClusterProvider) validateAddonClusterVersion(
 			fmt.Errorf("addonClusterVersion 版本 %s 不在支持的版本列表中，支持的版本: %v",
 				requestedVersion, supportedAcVersions))
 	}
+	return nil
+}
+
+// BindDomain 手动绑定域名到 DBM DNS
+func (c *ClusterProvider) BindDomain(request *coreentity.Request) error {
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+
+	clusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		ClusterName:        request.ClusterName,
+		Namespace:          request.Namespace,
+		K8sClusterConfigID: k8sClusterConfig.ID,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	if clusterEntity == nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, fmt.Errorf("集群 %s 不存在", request.ClusterName))
+	}
+
+	services, err := c.clusterServiceProvider.FindByClusterID(clusterEntity.ID)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+
+	var exposedService *metaentity.K8sClusterServiceEntity
+	var existingDomain string
+	for _, svc := range services {
+		if svc.ExternalAddrs != "" {
+			if exposedService == nil {
+				exposedService = svc
+			}
+			if svc.Domains != "" {
+				existingDomain = svc.Domains
+			}
+		}
+	}
+
+	if exposedService == nil {
+		return dbserrors.NewK8sDbsError(dbserrors.BindDomainError,
+			fmt.Errorf("集群 %s 尚未完成 VIP 暴露，请等待后重试", request.ClusterName))
+	}
+
+	if existingDomain != "" {
+		for _, svc := range services {
+			if svc.ExternalAddrs != "" && svc.Domains == "" {
+				if _, err := c.clusterServiceProvider.UpdateDomains(
+					clusterEntity.ID, svc.ServiceName, existingDomain,
+				); err != nil {
+					slog.Error("回写复用域名失败",
+						"cluster_id", clusterEntity.ID,
+						"service_name", svc.ServiceName,
+						"domain", existingDomain,
+						"error", err)
+				}
+			}
+		}
+		return nil
+	}
+
+	infrautil.AsyncDomainCreate(clusterEntity, exposedService, c.dbmAPIService, c.clusterServiceProvider)
+	return nil
+}
+
+// UnbindDomain 手动解绑域名
+func (c *ClusterProvider) UnbindDomain(request *coreentity.Request) error {
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+
+	clusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		ClusterName:        request.ClusterName,
+		Namespace:          request.Namespace,
+		K8sClusterConfigID: k8sClusterConfig.ID,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	if clusterEntity == nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, fmt.Errorf("集群 %s 不存在", request.ClusterName))
+	}
+
+	infrautil.AsyncDomainDelete(clusterEntity, c.dbmAPIService)
 	return nil
 }

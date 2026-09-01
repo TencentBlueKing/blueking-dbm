@@ -106,7 +106,7 @@ class PulsarTopoOutputSerializer(serializers.Serializer):
     zookeeper_instances = PulsarRoleInstancesSerializer(help_text=_("Zookeeper节点汇总"))
 
 
-class SpecSearchInputSerializer(serializers.Serializer):
+class PulsarSpecSearchInputSerializer(serializers.Serializer):
     spec_name = serializers.CharField(help_text=_("规格名称，支持模糊匹配，如 '16核32G'"))
     spec_cluster_type = serializers.CharField(
         help_text=_("规格集群类型，默认为 pulsar"),
@@ -115,7 +115,7 @@ class SpecSearchInputSerializer(serializers.Serializer):
     )
 
 
-class SpecOutputSerializer(serializers.Serializer):
+class PulsarSpecOutputSerializer(serializers.Serializer):
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
     spec_name = serializers.CharField(help_text=_("规格名称"))
     spec_cluster_type = serializers.CharField(help_text=_("规格集群类型"))

@@ -47,21 +47,28 @@
       </span>
     </div>
     <BkLoading :loading="state.isLoading">
-      <DbOriginalTable
+      <PrimaryTable
         class="result-files-table"
         :columns="columns"
         :data="state.data"
         :height="460"
-        :is-anomalies="isAnomalies"
-        :row-height="56"
-        @refresh="fetchKeyFiles"
-        @selection-change="handleTableSelected" />
+        row-key="path"
+        :selected-row-keys="selectedRowKeys"
+        @select-change="handleSelectChange">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="false"
+            @refresh="fetchKeyFiles" />
+        </template>
+      </PrimaryTable>
     </BkLoading>
   </BkDialog>
 </template>
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { batchDownloadDirs, createBkrepoAccessToken } from '@services/source/storage';
@@ -73,6 +80,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { downloadUrl, execCopy, generateBkRepoDownloadUrl, messageWarn } from '@utils';
 
@@ -107,71 +116,76 @@
     selected: [] as KeyFileItem[],
   });
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      type: 'selection',
+      colKey: 'row-select',
+      type: 'multiple',
       width: 52,
     },
     {
-      field: 'name',
-      label: t('目录'),
-      showOverflowTooltip: true,
+      colKey: 'name',
+      ellipsis: true,
+      title: t('目录'),
     },
     {
-      field: 'size_display',
-      label: t('大小'),
+      colKey: 'size_display',
+      title: t('大小'),
       width: 100,
     },
     {
-      field: 'files',
-      label: t('集群'),
-      render: ({ data }: { data: KeyFileItem }) => (
-        <div
-          v-overflow-tips={{
-            allowHTML: true,
-            content: `
+      cell: (_, { row }) => {
+        const data = row as KeyFileItem;
+        return (
+          <div
+            v-overflow-tips={{
+              allowHTML: true,
+              content: `
               <p>${t('域名')}：${data.domain}</p>
               ${data.cluster_alias ? `<p>${'集群别名'}：${data.cluster_alias}</p>` : null}
             `,
-          }}
-          class='cluster-name text-overflow'>
-          <span>{data.domain}</span>
-          <br />
-          <span class='cluster-name-alias'>{data.cluster_alias}</span>
-        </div>
-      ),
-      showOverflowTooltip: false,
+            }}
+            class='cluster-name text-overflow'>
+            <span>{data.domain}</span>
+            <br />
+            <span class='cluster-name-alias'>{data.cluster_alias}</span>
+          </div>
+        );
+      },
+      colKey: 'files',
+      title: t('集群'),
     },
     {
-      field: 'created_time',
-      label: t('提取时间'),
+      colKey: 'created_time',
+      title: t('提取时间'),
       width: 150,
     },
     {
-      field: 'operations',
-      label: t('操作'),
-      render: ({ data, index }: { data: KeyFileItem; index: number }) => (
+      cell: (_, { row, rowIndex }) => (
         <div>
           <bk-button
             class='mr-8'
-            loading={state.downloadLoadings[index]}
+            loading={state.downloadLoadings[rowIndex]}
             text
             theme='primary'
-            onClick={() => handleDownloadFile(data, index)}>
+            onClick={() => handleDownloadFile(row as KeyFileItem, rowIndex)}>
             {t('下载')}
           </bk-button>
           <bk-button
-            loading={state.fileLoadings[index]}
+            loading={state.fileLoadings[rowIndex]}
             text
             theme='primary'
-            onClick={() => getDownloadUrl(data, index)}>
+            onClick={() => getDownloadUrl(row as KeyFileItem, rowIndex)}>
             {t('复制文件地址')}
           </bk-button>
         </div>
       ),
+      colKey: 'row-operation',
+      title: t('操作'),
       width: 200,
     },
   ];
+
+  const selectedRowKeys = ref<string[]>([]);
 
   const hasSelected = computed(() => state.selected.length > 0);
 
@@ -220,38 +234,9 @@
   /**
    * 表格选中
    */
-  function handleTableSelected({
-    checked,
-    data,
-    isAll,
-    row,
-  }: {
-    checked: boolean;
-    data: KeyFileItem[];
-    index: number;
-    isAll: boolean;
-    row: KeyFileItem;
-  }) {
-    // 全选 checkbox 切换
-    if (isAll) {
-      state.selected = checked ? [...data] : [];
-      return;
-    }
-
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = state.selected.findIndex((item) => item.domain === row.domain);
-      if (toggleIndex === -1) {
-        state.selected.push(row);
-      }
-      return;
-    }
-
-    // 单选 checkbox 取消选中
-    const toggleIndex = state.selected.findIndex((item) => item.domain === row.domain);
-    if (toggleIndex > -1) {
-      state.selected.splice(toggleIndex, 1);
-    }
+  function handleSelectChange(value: (number | string)[], { selectedRowData }: { selectedRowData: unknown[] }) {
+    selectedRowKeys.value = value as string[];
+    state.selected = selectedRowData as KeyFileItem[];
   }
 
   /**
@@ -365,6 +350,7 @@
 
   function handleClose() {
     isShow.value = false;
+    selectedRowKeys.value = [];
     state.selected = [];
     state.data = [];
     state.downloadLoadings = [];

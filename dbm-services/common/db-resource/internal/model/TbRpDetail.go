@@ -88,15 +88,19 @@ func NormalizeResourceTypes(rsTypes []string) []string {
 // TbRpDetail  机器资源明细表
 // nolint
 type TbRpDetail struct {
-	ID                  int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
-	BkCloudID           int                      `gorm:"uniqueIndex:ip;column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
-	BkBizId             int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:机器当前所属业务" json:"bk_biz_id"`
-	DedicatedBiz        int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
-	RsType              string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
-	Bizs                map[string]string        `gorm:"-" json:"-"`
-	BkHostID            int                      `gorm:"index:idx_host_id;column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
-	IP                  string                   `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"`
-	AssetID             string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
+	ID           int               `gorm:"primary_key;auto_increment;not_null" json:"-"`
+	BkCloudID    int               `gorm:"uniqueIndex:ip;column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
+	BkBizId      int               `gorm:"column:bk_biz_id;type:int(11);not null;comment:机器当前所属业务" json:"bk_biz_id"`
+	DedicatedBiz int               `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
+	RsType       string            `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
+	Bizs         map[string]string `gorm:"-" json:"-"`
+	BkHostID     int               `gorm:"index:idx_host_id;column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
+	IP           string            `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"`
+	AssetID      string            `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
+	// BkSvrOwnerAssetID 母机固资号（CMDB: bk_svr_owner_asset_id）
+	BkSvrOwnerAssetID string `gorm:"index:idx_status_svr_owner,priority:2;column:bk_svr_owner_asset_id;type:varchar(64);not null;default:'';comment:'母机固资号'" json:"bk_svr_owner_asset_id"`
+	// SameSvrOwnerCount 同母机台数（动态计算，不落库）
+	SameSvrOwnerCount   int                      `gorm:"-" json:"same_svr_owner_count"`
 	DeviceClass         string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"`
 	SvrTypeName         string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
 	CPUNum              int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
@@ -140,7 +144,7 @@ type TbRpDetail struct {
 	// 是否空闲检查过
 	IsIdle int `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"`
 	//  Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
-	Status    string `gorm:"column:status;type:varchar(20);not null" json:"status"`
+	Status    string `gorm:"index:idx_status_svr_owner,priority:1;column:status;type:varchar(20);not null" json:"status"`
 	BkAgentId string `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
 	// gse Agent当前运行状态码, -1:未知 0:初始安装 1:启动中 2:运行中 3:有损状态 4:繁忙状态 5:升级中 6:停止中 7:解除安装
 	AgentStatusCode int `gorm:"column:gse_agent_status_code;type:int(11);not null" json:"gse_agent_status_code"`

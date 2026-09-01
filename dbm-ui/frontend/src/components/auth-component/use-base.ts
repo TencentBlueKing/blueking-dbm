@@ -8,49 +8,60 @@ import { permissionDialog } from '@utils';
 export interface Props {
   actionId: string;
   bizId?: string | number;
+  /** 禁用鉴权：内容本身不可操作（如平台锁定）时直接原样渲染，不校验权限 */
+  disabled?: boolean;
   permission?: string | boolean;
   resource?: string | number;
 }
 
 const withBizActionList = [
   'mysql_apply',
-  'mysql_account_create',
-  'mysql_account_delete',
   'mysql_account_rule_create',
   'mysql_excel_authorize',
   'mysql_partition_create',
   'mysql_partition_delete',
   'mysql_partition_update',
-  'mysql_partition_create',
   'mysql_partition_enable_disable',
-  'mysql_openarea_config_create',
+  // 聚合权限
+  'mysql_manage',
+  'mysql_loadbalance_manage',
+  'mysql_partition_manage',
+  'mysql_openarea_manage',
+  'mysql_priv_manage',
+  'mysql_rename_database',
+  'mysql_truncate_data',
+  'mysql_rollback_cluster',
+  'tendbcluster_manage',
+  'tendbcluster_loadbalance_manage',
+  'tendbcluster_partition_manage',
+  'tendbcluster_openarea_manage',
+  'tendbcluster_priv_manage',
+  'tendbcluster_authorize',
+  'tendbcluster_rename_database',
+  'tendbcluster_truncate_data',
+  'tendbcluster_rollback_cluster',
   'tendbcluster_apply',
-  'tendbcluster_account_create',
-  'tendbcluster_account_delete',
-  'tendbcluster_add_account_rule',
-  'tendb_excel_authorize_rules',
-  'tendb_openarea_config_create',
   'tendbcluster_cluster_clone_rules',
   'tendbcluster_temporary_destroy',
-  'tendbcluster_partition_create',
-  'tendbcluster_partition_delete',
-  'tendbcluster_partition_update',
-  'tendbcluster_partition_create',
-  'tendb_partition_enable_disable',
-  'tendbcluster_partition',
   'redis_cluster_apply',
   'redis_data_structure_manage',
   'es_apply',
+  'es_manage',
+  'es_loadbalance_manage',
   'kafka_apply',
+  'kafka_manage',
   'hdfs_apply',
+  'hdfs_manage',
   'pulsar_apply',
+  'pulsar_manage',
   'influxdb_apply',
-  'monitor_policy_view',
-  'notify_group_create',
-  'notify_group_update',
-  'notify_group_list',
-  'notify_group_create',
-  'notify_group_delete',
+  'notify_group_manage',
+  'monitor_policy_manage',
+  // 'monitor_policy_view', // 旧权限
+  // 'notify_group_create', // 旧权限
+  // 'notify_group_update', // 旧权限
+  // 'notify_group_list', // 旧权限
+  // 'notify_group_delete', // 旧权限
   'dbconfig_view',
   'dbconfig_edit',
   'dba_admin_edit',
@@ -58,19 +69,25 @@ const withBizActionList = [
   'dbha_switch_event_view',
   'ip_whitelist_manage',
   'group_manage',
-  'access_entry_edit',
-  'admin_pwd_view',
+  // 查看临时密码权限按 DB 类型拆分（原 admin_pwd_view 已废弃）
+  'mysql_admin_pwd_view',
+  'sqlserver_admin_pwd_view',
   'riak_cluster_apply',
-  'monitor_policy_clone',
+  'riak_manage',
+  'riak_dbconfig_edit',
+  // 'monitor_policy_clone', // 旧权限
   'mongodb_apply',
-  'mongodb_account_create',
-  'mongodb_account_rules_view',
+  'mongodb_authorize',
+  'mongodb_priv_manage',
   'sqlserver_apply',
+  'sqlserver_authorize',
+  'sqlserver_manage',
   // 'sqlserver_account_create', // 旧权限
   // 'sqlserver_account_rules_view', // 旧权限
   'sqlserver_priv_manage',
   'biz_ticket_config_set',
   'doris_apply',
+  'doris_manage',
   'biz_assistance_vars_config',
   'biz_notify_config',
   'mysql_dbconfig_edit',
@@ -84,6 +101,8 @@ const withBizActionList = [
   'hdfs_dbconfig_edit',
   'pulsar_dbconfig_edit',
   'influxdb_dbconfig_edit',
+  'k8s_surrealdb_apply',
+  'k8s_qdrant_apply',
 ];
 
 export default function (props: Props) {
@@ -96,7 +115,7 @@ export default function (props: Props) {
   });
 
   const isShowRaw = computed(() => {
-    if (props.permission === true) {
+    if (props.disabled || props.permission === true) {
       return true;
     }
     return checkResult.value;
@@ -145,7 +164,8 @@ export default function (props: Props) {
 
   onMounted(() => {
     // 初始没有权限信息，需要主动鉴权一次
-    if (props.permission === 'normal') {
+    // 禁用态（如平台锁定）无需鉴权，直接跳过
+    if (!props.disabled && props.permission === 'normal') {
       checkPermission();
     }
   });

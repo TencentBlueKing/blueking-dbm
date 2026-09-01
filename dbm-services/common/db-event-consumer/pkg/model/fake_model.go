@@ -38,6 +38,9 @@ func (m *FakeModelForNoStrictSchema) OmitFields() []string {
 		"event_type",
 		"event_cluster_type",
 		"event_receive_timestamp",
+		"event_create_timestamp",
+		"event_report_timestamp",
+		"event_uuid",
 		"event_source_ip",
 		"event_bk_cloud_id",
 	}

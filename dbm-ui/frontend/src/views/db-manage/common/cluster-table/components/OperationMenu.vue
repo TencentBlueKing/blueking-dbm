@@ -8,7 +8,8 @@
     <DbIcon type="more" />
     <div
       ref="popMenu"
-      class="wrapper">
+      class="wrapper"
+      @click="handleHide">
       <slot
         v-if="isShowPopMenu"
         name="default" />
@@ -37,6 +38,10 @@
   const popMenuRef = useTemplateRef('popMenu');
   const isActive = ref(false);
   const isShowPopMenu = ref(false);
+
+  const handleHide = () => {
+    tippyIns.hide();
+  };
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
@@ -83,21 +88,10 @@
   });
 
   defineExpose<Exposes>({
-    hide() {
-      tippyIns.hide();
-    },
+    hide: handleHide,
   });
 </script>
 <style lang="less">
-  tr.vxe-body--row {
-    &.row--hover,
-    &.is-selected-row {
-      .cluster-list-column-operation-btn {
-        display: flex;
-      }
-    }
-  }
-
   .cluster-list-column-operation-btn {
     position: relative;
     display: flex;

@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -34,7 +35,7 @@ class MysqlProxyRebuildParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_rebuild_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_REBUILD)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_REBUILD, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlProxyRebuildFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyRebuildDetailSerializer
     inner_flow_builder = MysqlProxyRebuildParamBuilder

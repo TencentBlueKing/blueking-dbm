@@ -1,7 +1,7 @@
 package base
 
 import (
-	"encoding/json"
+	json "github.com/goccy/go-json"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 )

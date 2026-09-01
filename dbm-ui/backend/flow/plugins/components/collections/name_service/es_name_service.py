@@ -15,6 +15,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.name_service.name_service_dataclass as flow_context
+from backend.db_meta.models import Cluster
 from backend.db_services.plugin.nameservice import es_clb as clb
 from backend.db_services.plugin.nameservice import es_polaris as polaris
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -39,7 +40,11 @@ class EsExecNameServiceOperation(BaseService):
         name_service_operation_type = kwargs["name_service_operation_type"]
         trans_data = data.get_one_of_inputs("trans_data")
         creator = kwargs["creator"]
-        cluster_id = kwargs["cluster_id"]
+        cluster_id = kwargs.get("cluster_id")
+
+        # 集群刚创建时，单据构建阶段可能还没有cluster_id，此处通过bk_biz_id+domain_name实时解析
+        if not cluster_id and kwargs.get("domain_name"):
+            cluster_id = Cluster.objects.get(bk_biz_id=kwargs["bk_biz_id"], immute_domain=kwargs["domain_name"]).id
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
@@ -81,7 +86,7 @@ class EsExecNameServiceOperation(BaseService):
             res = polaris.create_service_alias_bind_targets(cluster_id=cluster_id)
         # polaris删除
         elif name_service_operation_type == "delete_polaris":
-            res = polaris.unbind_targets_delete_alias_service(cluster_id=kwargs["cluster_id"])
+            res = polaris.unbind_targets_delete_alias_service(cluster_id=cluster_id)
         # polaris信息写入meta
         elif name_service_operation_type == "add_polaris_info_to_meta":
             res = polaris.add_polaris_info_to_meta(output=trans_data, cluster_id=cluster_id, creator=creator)

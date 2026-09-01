@@ -80,7 +80,7 @@
         class="mt-20 mb-20"
         theme="danger">
         <template #title>
-          {{ submitErrorMessage }}
+          <div style="line-height: 20px; white-space: pre-line">{{ submitErrorMessage }}</div>
         </template>
       </BkAlert>
     </Teleport>
@@ -97,7 +97,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, toolboxProfileKeyMap } from '@common/const';
 
   import { random } from '@utils';
 
@@ -136,7 +136,7 @@
     };
   });
 
-  const profileUsedKey = `${route.meta.dbType}_toolbox_used`.toUpperCase();
+  const profileUsedKey = toolboxProfileKeyMap[route.meta.dbType as DBTypes]!.used;
 
   const contentWrapperRef = useTemplateRef('contentWrapper');
   const dbType = ref('');

@@ -81,7 +81,7 @@ func (pc *PartitionConfig) ExecuteInitStatement(pd *PartitionDetail, conn *nativ
 
 func (pc *PartitionConfig) ExecuteInitStatementByPTTool(initStatement string, forceInitInfo *ForceInitInfo, partitionStepInfo *PartitionStepInfo) {
 	// 有唯一键，使用pt工具
-	pt_tool := "percona-toolkit-3.5.0/bin/pt-online-schema-change"
+	pt_tool := "percona-toolkit-3.5.7/bin/pt-online-schema-change"
 	user := forceInitInfo.User
 	pwd := forceInitInfo.Pwd
 	host := forceInitInfo.Host
@@ -142,6 +142,11 @@ func (pc *PartitionConfig) GetInitStatement(pd *PartitionDetail, conn *native.Db
 		diff = DiffOneDay
 	case 5:
 		pkey = fmt.Sprintf("RANGE (UNIX_TIMESTAMP(%s))", pc.PartitionColumn)
+		descKey = "less than"
+		descFormat = "UNIX_TIMESTAMP('2006-01-02')"
+		diff = DiffOneDay
+	case 6:
+		pkey = fmt.Sprintf("RANGE (%s)", pc.PartitionColumn)
 		descKey = "less than"
 		descFormat = "UNIX_TIMESTAMP('2006-01-02')"
 		diff = DiffOneDay

@@ -4,7 +4,7 @@
     class="related-ticket-detail-slider"
     quick-close
     render-directive="if"
-    title="关联单据"
+    :title="t('关联单据')"
     :width="1230">
     <div
       class="related-ticket-dialog-close"
@@ -17,6 +17,8 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TicketDetail from '@components/ticket-detail/index.vue';
 
   interface Props {
@@ -28,6 +30,8 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
+  const { t } = useI18n();
 
   const handleClose = () => {
     isShow.value = false;

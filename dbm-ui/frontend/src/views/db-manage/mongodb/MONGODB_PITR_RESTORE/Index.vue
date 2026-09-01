@@ -70,16 +70,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -163,43 +157,41 @@
     rollback_time: Record<string, string>;
   }>(TicketTypes.MONGODB_PITR_RESTORE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const resourceSpec = {
-      mongodb: {
-        count: needHostNum.value,
-        spec_id: formData.specId as unknown as number,
-      },
-    };
-    if (isShardCluster.value) {
-      Object.assign(resourceSpec, {
-        mongo_config: {
-          count: 1, // 固定为1
-          spec_id: formData.tableData[0]?.cluster.mongo_config[0].spec_config.id, // 这个与回档集群的mongo_config规格一致
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const resourceSpec = {
+        mongodb: {
+          count: needHostNum.value,
+          spec_id: formData.specId as unknown as number,
         },
-        mongos: {
-          count: 1, // 固定为1
-          spec_id: formData.tableData[0]?.cluster.mongos[0].spec_config.id, // 这个与回档集群的mongos规格一致
+      };
+      if (isShardCluster.value) {
+        Object.assign(resourceSpec, {
+          mongo_config: {
+            count: 1, // 固定为1
+            spec_id: formData.tableData[0]?.cluster.mongo_config[0].spec_config.id, // 这个与回档集群的mongo_config规格一致
+          },
+          mongos: {
+            count: 1, // 固定为1
+            spec_id: formData.tableData[0]?.cluster.mongos[0].spec_config.id, // 这个与回档集群的mongos规格一致
+          },
+        });
+      }
+      createTicketRun({
+        details: {
+          city_code: formData.tableData[0].cluster.region,
+          cluster_ids: formData.tableData.map((item) => item.cluster.id),
+          instance_per_host: formData.shardNum,
+          resource_spec: resourceSpec,
+          rollback_time: formData.tableData.reduce<Record<string, string>>((acc, item) => {
+            Object.assign(acc, {
+              [item.cluster.id]: formatDateToUTC(item.rollback_time),
+            });
+            return acc;
+          }, {}),
         },
+        ...formData.payload,
       });
-    }
-    createTicketRun({
-      details: {
-        city_code: formData.tableData[0].cluster.region,
-        cluster_ids: formData.tableData.map((item) => item.cluster.id),
-        instance_per_host: formData.shardNum,
-        resource_spec: resourceSpec,
-        rollback_time: formData.tableData.reduce<Record<string, string>>((acc, item) => {
-          Object.assign(acc, {
-            [item.cluster.id]: formatDateToUTC(item.rollback_time),
-          });
-          return acc;
-        }, {}),
-      },
-      ...formData.payload,
     });
   };
 

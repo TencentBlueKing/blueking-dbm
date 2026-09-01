@@ -173,7 +173,7 @@
         color: @gray-color;
       }
 
-      .vxe-cell {
+      td {
         color: @disable-color;
       }
     }

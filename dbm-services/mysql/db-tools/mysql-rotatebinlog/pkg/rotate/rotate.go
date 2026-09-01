@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/samber/lo"
 
 	reapi "dbm-services/common/reverseapi/apis/common"
@@ -206,7 +207,12 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 // Backup binlog 提交到备份系统
 // 下一轮运行时判断上一次以及之前的提交任务状态
 func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
-	reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
+	retryOpts := []retry.Option{
+		retry.Attempts(2),
+		retry.Delay(1 * time.Second),
+		retry.DelayType(retry.FixedDelay),
+	}
+	reportCore, err := recore.NewCore(0, retryOpts...)
 	if err != nil {
 		return err
 	}
@@ -313,7 +319,7 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 					f.BackupStatus = taskStatus
 					log.Reporter().Result.Println(f)
 					ev := log.MysqlBinlogResultEvent(*f)
-					if resp, err := reapi.SyncReport(reportCore, &ev); err != nil {
+					if resp, err := reapi.SyncReportWithDelegateRetry(reportCore, &ev); err != nil {
 						logger.Warn("report binlog status failed:%s, resp=%s", err.Error(), string(resp))
 						//return reportErr
 					}

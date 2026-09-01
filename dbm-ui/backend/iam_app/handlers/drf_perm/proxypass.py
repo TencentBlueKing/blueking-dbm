@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import binascii
+import logging
 
+import redis
 from django.conf import settings
 from django.utils.translation import gettext as _
 from rest_framework import permissions
@@ -18,9 +20,19 @@ from rest_framework.exceptions import PermissionDenied
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.exceptions import RSADecryptException
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_proxy.constants import DB_CLOUD_TOKEN_EXPIRE_TIME
+from backend.db_proxy.constants import (
+    DB_CLOUD_TOKEN_EXPIRE_TIME,
+    DB_CLOUD_TOKEN_LOCAL_CACHE_MAXSIZE,
+    DB_CLOUD_TOKEN_LOCAL_CACHE_TTL,
+)
+from backend.utils.cache import LocalTTLCache
 from backend.utils.local import local
 from backend.utils.redis import RedisConn
+
+logger = logging.getLogger("root")
+
+# 只缓存校验通过的 token；失败不写入，避免把误拦截放大
+_token_local_cache = LocalTTLCache(ttl=DB_CLOUD_TOKEN_LOCAL_CACHE_TTL, maxsize=DB_CLOUD_TOKEN_LOCAL_CACHE_MAXSIZE)
 
 
 class ProxyPassPermission(permissions.BasePermission):
@@ -43,26 +55,44 @@ class ProxyPassPermission(permissions.BasePermission):
         if token_cloud_id != int(bk_cloud_id):
             raise PermissionDenied(_("解析云区域(ID:{})与参数云区域(ID:{})不同，请检查token是否合法").format(token_cloud_id, bk_cloud_id))
 
+    @classmethod
+    def _ensure_token_verified(cls, db_cloud_token, bk_cloud_id):
+        """L1 未命中时：查 Redis，再必要时解密校验并回写。仅成功路径返回 True 以写入本地缓存。"""
+        redis_cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
+
+        try:
+            token_cached = RedisConn.sismember(redis_cache_key, db_cloud_token)
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            logger.error("[ProxyPassPermission]read token cache failed: %s", e)
+            token_cached = False
+
+        if not token_cached:
+            cls.verify_token(db_cloud_token, bk_cloud_id)
+            try:
+                # 如果这个cache_key刚创建，则需要设置过期时间
+                if not RedisConn.exists(redis_cache_key):
+                    RedisConn.sadd(redis_cache_key, db_cloud_token)
+                    RedisConn.expire(redis_cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
+                else:
+                    RedisConn.sadd(redis_cache_key, db_cloud_token)
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+                logger.error("[ProxyPassPermission]write token cache failed: %s", e)
+
+        return True
+
     def has_permission(self, request, view):
 
         # 如果是直连区域的内部调用，不进行token校验
         if getattr(request, "internal_call", None):
             return True
 
+        # token鉴权认证 + 缓存(L1 内存，L2 redis缓存，L3 rsa解密)
         db_cloud_token = request.data.get("db_cloud_token", "")
         bk_cloud_id = request.data.get("bk_cloud_id")
-        cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
-        # 判断是否在缓存集合中，不在cache中则走解密流程并cache。
-        # 由于Redis的list不能直接判断元素是否存在，所以选择set存取
-        # check_set_member_in_redis(cache_key, db_cloud_token, self.verify_token, DB_CLOUD_TOKEN_EXPIRE_TIME)
-        if not RedisConn.sismember(cache_key, db_cloud_token):
-            self.verify_token(db_cloud_token, bk_cloud_id)
-            # 如果这个cache_key刚创建，则需要设置过期时间
-            if not RedisConn.exists(cache_key):
-                RedisConn.sadd(cache_key, db_cloud_token)
-                RedisConn.expire(cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
-            else:
-                RedisConn.sadd(cache_key, db_cloud_token)
+        _token_local_cache.get_or_load(
+            (bk_cloud_id, db_cloud_token),
+            lambda: self._ensure_token_verified(db_cloud_token, bk_cloud_id),
+        )
 
         request.data.pop("db_cloud_token")
 

@@ -72,10 +72,9 @@ class TestTicketFlowsConfig:
 
         resp = client.post("/apis/tickets/", data=clone_data)
         flows = list(Ticket.objects.get(id=resp.data["id"]).flows.all())
-        assert len(flows) == 3
+        assert len(flows) == 2
         assert flows[0].flow_type == FlowType.BK_ITSM
-        assert flows[1].flow_type == FlowType.PAUSE
-        assert flows[2].flow_type == FlowType.INNER_FLOW
+        assert flows[1].flow_type == FlowType.INNER_FLOW
 
         # 其他业务不受影响，仍然继承平台配置
         another_clone_data = copy.deepcopy(clone_data)

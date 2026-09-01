@@ -68,8 +68,8 @@ func (c *ComponentSpecPlanProviderImpl) CreateSpecPlan(
 	entity *metaentity.ComponentSpecPlanEntity,
 ) (*metaentity.ComponentSpecPlanEntity, error) {
 	specPlanModel := metamodel.ComponentSpecPlanModel{}
-	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.CreatedBy = dbsCtx.BkAdditional.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 
 	if err := copier.Copy(&specPlanModel, entity); err != nil {
 		return nil, errors.Wrapf(err, "failed to copy")
@@ -128,7 +128,7 @@ func (c *ComponentSpecPlanProviderImpl) UpdateSpecPlan(
 	entity *metaentity.ComponentSpecPlanEntity,
 ) (uint64, error) {
 	specPlanModel := metamodel.ComponentSpecPlanModel{}
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	if err := copier.Copy(&specPlanModel, entity); err != nil {
 		return 0, errors.Wrapf(err, "failed to copy")
 	}

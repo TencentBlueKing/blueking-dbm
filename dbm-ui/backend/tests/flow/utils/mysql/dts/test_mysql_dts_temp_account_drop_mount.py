@@ -70,9 +70,9 @@ class MysqlDtsTaskCleanSubflowTest(SimpleTestCase):
         drop_inp = mock_drop_user.call_args[0][0]
         self.assertEqual(drop_inp.dts_user, "dts_m_abc")
         self.assertTrue(drop_inp.ignore_errors)
-        # 二期：drop_user 与本单 delete_task/source 并行挂载
-        sub.add_parallel_sub_pipeline.assert_called_once_with(sub_flow_list=["drop-sub", "delete-sub"])
-        sub.add_sub_pipeline.assert_not_called()
+        # DROP 账号必须排在 delete_task/source 之后，否则 DM 删 task 连下游会 1045
+        self.assertEqual(sub.add_sub_pipeline.call_args_list, [call("delete-sub"), call("drop-sub")])
+        sub.add_parallel_sub_pipeline.assert_not_called()
 
 
 class MysqlDtsMigrateSubflowNoTailDropTest(SimpleTestCase):
@@ -213,22 +213,32 @@ class MysqlDtsCleanupNoDropTest(SimpleTestCase):
 
 
 class OuterRunFlowDtsTaskCleanMountTest(SimpleTestCase):
+    """总流程按行并行挂载：行内 migrate → dts-task-clean，凭证同源。"""
+
+    _ROW_MOD = "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow"
+
     def _assert_run_flow_mount_order(self, flow_cls, module_path):
         grant_targets = [DtsGrantTarget(bk_cloud_id=0, address="127.0.0.2:3306", cluster_id=1)]
         plan = _minimal_plan()
 
-        with patch(f"{module_path}.resolve_migrate_plan_from_ticket_data", return_value=plan), patch(
-            f"{module_path}.resolve_migrate_temp_account_for_pipeline",
+        with patch(f"{module_path}.resolve_migrate_plans_from_ticket_data", return_value=[plan]), patch(
+            f"{self._ROW_MOD}.resolve_migrate_temp_account_for_pipeline",
             return_value=("dts_m_shared", "pwd", ["127.0.0.3"], grant_targets),
-        ), patch(f"{module_path}.resolve_master_addr_from_plan", return_value="127.0.0.4:8261"), patch(
-            f"{module_path}.mysql_dts_migrate_subflow"
+        ), patch(f"{self._ROW_MOD}.resolve_master_addr_from_plan", return_value="127.0.0.4:8261"), patch(
+            f"{self._ROW_MOD}.mysql_dts_migrate_subflow"
         ) as mock_migrate, patch(
-            f"{module_path}.mysql_dts_task_clean_subflow"
+            f"{self._ROW_MOD}.mysql_dts_task_clean_subflow"
         ) as mock_clean, patch(
+            f"{self._ROW_MOD}.SubBuilder"
+        ) as mock_sub_builder, patch(
             f"{module_path}.Builder"
         ) as mock_builder:
             pipeline = MagicMock()
             mock_builder.return_value = pipeline
+            row_pipe = MagicMock()
+            mock_sub_builder.return_value = row_pipe
+            row_built = MagicMock(name="row-built")
+            row_pipe.build_sub_process.return_value = row_built
             migrate_built = MagicMock(name="migrate-built")
             clean_built = MagicMock(name="clean-built")
             mock_migrate.return_value.build_sub_process.return_value = migrate_built
@@ -237,11 +247,12 @@ class OuterRunFlowDtsTaskCleanMountTest(SimpleTestCase):
             flow = flow_cls(root_id="root-outer", data={"bk_biz_id": 1, "ticket_id": 18801, "created_by": "t"})
             flow.run_flow()
 
-            # migrate → dts-task-clean → run_pipeline
             self.assertEqual(
-                pipeline.add_sub_pipeline.call_args_list,
+                row_pipe.add_sub_pipeline.call_args_list,
                 [call(migrate_built), call(clean_built)],
             )
+            pipeline.add_parallel_sub_pipeline.assert_called_once_with(sub_flow_list=[row_built])
+            pipeline.add_sub_pipeline.assert_not_called()
             clean_sub_name = mock_clean.return_value.build_sub_process.call_args.kwargs.get("sub_name")
             self.assertEqual(str(clean_sub_name), str(_("dts-task-clean")))
 

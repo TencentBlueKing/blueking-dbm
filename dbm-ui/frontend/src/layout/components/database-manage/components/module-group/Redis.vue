@@ -3,68 +3,57 @@
     <MenuGroup
       :db-type="DBTypes.REDIS"
       :is-error="isError">
-      <BkSubmenu key="RedisManage">
-        <template #icon>
-          <DbIcon type="fenbushijiqun" />
-        </template>
-        <template #title>
-          <span>{{ t('集群') }}</span>
+      <DbSubmenu
+        id="RedisManage"
+        icon="fenbushijiqun"
+        :title="t('集群')">
+        <template #append>
           <!-- prettier-ignore -->
           <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="cluster" />
         </template>
-        <BkMenuItem key="redisCluster">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('集群管理') }}
-          </span>
-          <!-- prettier-ignore -->
-          <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="cluster" />
-        </BkMenuItem>
-        <BkMenuItem
-          key="DatabaseRedisInstanceList"
-          v-db-console="'redis.instanceManage'">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('实例视图') }}
-          </span>
-          <!-- prettier-ignore -->
-          <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="instance" />
-        </BkMenuItem>
-      </BkSubmenu>
-      <BkSubmenu
-        key="RedisHaManage"
-        v-db-console="'redis.haClusterManage'">
-        <template #icon>
-          <DbIcon type="cluster" />
-        </template>
-        <template #title>
-          <span>{{ t('主从') }}</span>
+        <DbMenuItem route-name="redisCluster">
+          {{ t('集群管理') }}
+          <template #append>
+            <!-- prettier-ignore -->
+            <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="cluster" />
+          </template>
+        </DbMenuItem>
+        <DbMenuItem
+          v-db-console="'redis.instanceManage'"
+          route-name="DatabaseRedisInstanceList">
+          {{ t('实例视图') }}
+          <template #append>
+            <!-- prettier-ignore -->
+            <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="instance" />
+          </template>
+        </DbMenuItem>
+      </DbSubmenu>
+      <DbSubmenu
+        id="RedisHaManage"
+        v-db-console="'redis.haClusterManage'"
+        icon="cluster"
+        :title="t('主从')">
+        <template #append>
           <!-- prettier-ignore -->
           <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="cluster" />
         </template>
-        <BkMenuItem key="DatabaseRedisHa">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('主从管理') }}
-          </span>
-          <!-- prettier-ignore -->
-          <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="cluster" />
-        </BkMenuItem>
-        <BkMenuItem
-          key="DatabaseRedisHaInstanceList"
-          v-db-console="'redis.haInstanceManage'">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('实例视图') }}
-          </span>
-          <!-- prettier-ignore -->
-          <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="instance" />
-        </BkMenuItem>
-      </BkSubmenu>
+        <DbMenuItem route-name="DatabaseRedisHa">
+          {{ t('主从管理') }}
+          <template #append>
+            <!-- prettier-ignore -->
+            <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="cluster" />
+          </template>
+        </DbMenuItem>
+        <DbMenuItem
+          v-db-console="'redis.haInstanceManage'"
+          route-name="DatabaseRedisHaInstanceList">
+          {{ t('实例视图') }}
+          <template #append>
+            <!-- prettier-ignore -->
+            <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="instance" />
+          </template>
+        </DbMenuItem>
+      </DbSubmenu>
       <div
         v-if="Object.keys(toolboxFavorMap).length > 0"
         class="split-line" />
@@ -78,18 +67,12 @@
       <FunController
         controller-id="toolbox"
         module-id="redis">
-        <BkMenuItem
-          key="RedisToolbox"
-          v-db-console="'redis.toolbox'">
-          <template #icon>
-            <DbIcon type="tools" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('工具箱') }}
-          </span>
-        </BkMenuItem>
+        <DbMenuItem
+          v-db-console="'redis.toolbox'"
+          icon="tools"
+          route-name="RedisToolbox">
+          {{ t('工具箱') }}
+        </DbMenuItem>
       </FunController>
     </MenuGroup>
   </FunController>
@@ -100,6 +83,9 @@
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import { menuGroupList, toolboxMenuList } from '@views/db-manage/redis/toolbox/toolboxMenuList';
+
+  import DbMenuItem from '../../../menu/Item.vue';
+  import DbSubmenu from '../../../menu/Submenu.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';

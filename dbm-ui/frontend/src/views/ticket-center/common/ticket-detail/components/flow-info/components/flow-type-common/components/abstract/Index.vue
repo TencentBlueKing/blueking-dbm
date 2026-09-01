@@ -16,7 +16,20 @@
             :key="titleItem.field"
             :col-key="titleItem.field"
             :get-copy-value="titleItem.field === 'ip' ? (row) => row.ip : undefined"
-            :title="titleItem.label" />
+            :title="titleItem.label">
+            <template #default="{ row }">
+              <a
+                v-if="titleItem.type === 'url' && isHttpUrl(row[titleItem.field])"
+                :href="row[titleItem.field]"
+                target="_blank">
+                {{ titleItem.label }}
+              </a>
+              <span v-else-if="titleItem.type === 'url'"> -- </span>
+              <span v-else>
+                {{ row[titleItem.field] || '--' }}
+              </span>
+            </template>
+          </TicketInfoTableColumn>
         </TicketInfoTable>
       </TableCollapse>
     </div>
@@ -28,6 +41,8 @@
   import FlowMode from '@services/model/ticket/flow';
 
   import TableCollapse from '@components/table-collapse/Index.vue';
+
+  import { isHttpUrl } from '@utils';
 
   import FlowCollapse from '../FlowCollapse.vue';
 
@@ -52,6 +67,7 @@
           titles: item.titles.map((item) => ({
             field: item.id,
             label: item.display_name,
+            type: item.type,
           })),
         };
       });

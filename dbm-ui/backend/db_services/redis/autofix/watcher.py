@@ -148,11 +148,17 @@ def check_and_process(batch_small: int, switch_hosts: Dict):
             logger.info("machine all instance swithed success -_- {} {} ".format(swiched_host.ip, swiched_host))
             succ_cnt += 1
             # check if aleardy autofixed .
-            if NeedStartAutofix(swiched_host):
-                will_autofix[swiched_host.ip] = swiched_host
-                logger.info("autofix_will_start ip:{}".format(swiched_host.ip))
-            else:
-                logger.info("autofix_aleardy_started, this time will ignore :{}".format(swiched_host.ip))
+            try:
+                if NeedStartAutofix(swiched_host):
+                    will_autofix[swiched_host.ip] = swiched_host
+                    logger.info("autofix_will_start ip:{}".format(swiched_host.ip))
+                else:
+                    logger.info("autofix_aleardy_started, this time will ignore :{}".format(swiched_host.ip))
+            except Exception as e:
+                # 单个IP处理异常不应影响其他IP，特别是不能影响其他成功IP进入自愈表
+                logger.error(
+                    "NeedStartAutofix failed for ip:{}, err:{}\n{}".format(swiched_host.ip, e, traceback.format_exc())
+                )
             # 推进下一批轮询ID
             if succ_max_uid < swiched_host.sw_max_id:
                 succ_max_uid = swiched_host.sw_max_id
@@ -168,7 +174,15 @@ def check_and_process(batch_small: int, switch_hosts: Dict):
                 ignore_cnt += 1
                 swiched_host.ignore_fix = True
                 # save ignore swithed host
-                save_ignore_host(swiched_host, "wait_timeout")
+                # 单个IP的忽略/建单异常不能中断整个循环，否则会导致同批次的成功IP无法落自愈表
+                try:
+                    save_ignore_host(swiched_host, "wait_timeout")
+                except Exception as e:
+                    logger.error(
+                        "save_ignore_host failed for ip:{}, err:{}\n{}".format(
+                            swiched_host.ip, e, traceback.format_exc()
+                        )
+                    )
                 if wait_small_uid < swiched_host.sw_max_id:  # 不等了，跳过去
                     wait_small_uid = swiched_host.sw_max_id
             else:
@@ -323,7 +337,21 @@ def save_swithed_host_by_cluster(switch_hosts: Dict):
 
 # 把需要忽略自愈的保存起来
 def save_ignore_host(switched_host: RedisSwitchHost, msg):
-    RedisIgnoreAutofix.objects.update_or_create(
+    logger.info(
+        "save_ignore_host start: biz=%s cluster_id=%s cluster_type=%s ip=%s "
+        "instance_type=%s msg=%s sw_min_id=%s sw_max_id=%s sw_result=%s",
+        switched_host.bk_biz_id,
+        switched_host.cluster_id,
+        switched_host.cluster_type,
+        switched_host.ip,
+        switched_host.instance_type,
+        msg,
+        switched_host.sw_min_id,
+        switched_host.sw_max_id,
+        switched_host.sw_result,
+    )
+
+    ignore_obj, created = RedisIgnoreAutofix.objects.update_or_create(
         bk_cloud_id=DEFAULT_BK_CLOUD_ID,
         bk_biz_id=switched_host.bk_biz_id,
         cluster_id=switched_host.cluster_id,
@@ -338,6 +366,13 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
         sw_max_id=switched_host.sw_max_id,
         sw_result=json.dumps(switched_host.sw_result),
         ignore_msg=msg,
+    )
+    logger.info(
+        "save_ignore_host db persisted: id=%s created=%s ip=%s cluster_id=%s",
+        ignore_obj.id,
+        created,
+        switched_host.ip,
+        switched_host.cluster_id,
     )
 
     if switched_host.cluster_type in [
@@ -356,19 +391,65 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
 
         # 部分切换（有成功也有失败/info）时，辅助 DBA 提主从切换单据
         if switched_host.instance_type == InstanceRole.REDIS_MASTER.value:
+            ticket_url = ""
             succ_ports = switched_host.sw_result.get(DBHASwitchResult.SUCC.value, [])
             has_partial_switch = succ_ports and len(switched_host.sw_result) > 1
+            logger.info(
+                "save_ignore_host master partial-check: ip=%s succ_ports=%s sw_result_keys=%s has_partial_switch=%s",
+                switched_host.ip,
+                succ_ports,
+                list(switched_host.sw_result.keys()),
+                has_partial_switch,
+            )
             if has_partial_switch:
                 ticket_url = _create_master_slave_switch_ticket(switched_host, succ_ports)
             if ticket_url:
                 msgs[_("主从切换单")] = ticket_url
+            else:
+                logger.info(
+                    "save_ignore_host no master-switch ticket generated: ip=%s cluster_id=%s",
+                    switched_host.ip,
+                    switched_host.cluster_id,
+                )
 
         # proxy 切换失败时，辅助 DBA 提 proxy 整机替换单据
         if switched_host.instance_type in (MachineType.TWEMPROXY.value, MachineType.PREDIXY.value):
+            logger.info(
+                "save_ignore_host proxy replace-check: ip=%s instance_type=%s",
+                switched_host.ip,
+                switched_host.instance_type,
+            )
             proxy_ticket_url = _create_proxy_replace_ticket(switched_host)
             if proxy_ticket_url:
                 msgs[_("Proxy替换单")] = proxy_ticket_url
-        send_msg_2_qywx(title, msgs)
+            else:
+                logger.info(
+                    "save_ignore_host no proxy-replace ticket generated: ip=%s cluster_id=%s",
+                    switched_host.ip,
+                    switched_host.cluster_id,
+                )
+
+        logger.info(
+            "save_ignore_host send_msg_2_qywx: title=%s msg_keys=%s ip=%s cluster_id=%s",
+            title,
+            list(msgs.keys()),
+            switched_host.ip,
+            switched_host.cluster_id,
+        )
+        send_ok = send_msg_2_qywx(title, msgs)
+        if send_ok:
+            logger.info(
+                "save_ignore_host send_msg_2_qywx done: status=success ip=%s cluster_id=%s",
+                switched_host.ip,
+                switched_host.cluster_id,
+            )
+        else:
+            logger.warning(
+                "save_ignore_host send_msg_2_qywx done: status=failed_or_skipped ip=%s cluster_id=%s title=%s",
+                switched_host.ip,
+                switched_host.cluster_id,
+                title,
+            )
 
 
 def _create_master_slave_switch_ticket(switched_host: RedisSwitchHost, succ_ports: list) -> str:
@@ -435,10 +516,23 @@ def _create_master_slave_switch_ticket(switched_host: RedisSwitchHost, succ_port
         redisDBA = DBAdministrator.get_biz_db_type_admins(
             bk_biz_id=switched_host.bk_biz_id, db_type=DBType.Redis.value
         )
+        if not redisDBA:
+            logger.warning(
+                _("_create_master_slave_switch_ticket: cluster %s 没有可用DBA，跳过提单"),
+                switched_host.immute_domain,
+            )
+            return _("没有可用DBA，跳过提单")
+        logger.info(
+            _("_create_master_slave_switch_ticket: cluster %s 准备提单, succ_ports=%s unique_pairs=%s creator=%s"),
+            switched_host.immute_domain,
+            succ_ports,
+            unique_pairs,
+            redisDBA[0],
+        )
         ticket = Ticket.create_ticket(
             bk_biz_id=switched_host.bk_biz_id,
             ticket_type=TicketType.REDIS_MASTER_SLAVE_SWITCH.value,
-            creator=redisDBA.users[0],
+            creator=redisDBA[0],
             remark=_("自动发起-部分切换辅助提单-{}".format(switched_host.ip)),
             details=details,
             helpers=get_ticket_heplers(),
@@ -453,8 +547,9 @@ def _create_master_slave_switch_ticket(switched_host: RedisSwitchHost, succ_port
         return ticket_url
     except Exception as e:
         logger.error(
-            _("_create_master_slave_switch_ticket: cluster %s 提单失败:\n%s"),
+            _("_create_master_slave_switch_ticket: cluster %s 提单失败: err=%s\n%s"),
             switched_host.immute_domain,
+            e,
             traceback.format_exc(),
         )
         return "{}".format(e)
@@ -500,10 +595,24 @@ def _create_proxy_replace_ticket(switched_host: RedisSwitchHost) -> str:
         redisDBA = DBAdministrator.get_biz_db_type_admins(
             bk_biz_id=switched_host.bk_biz_id, db_type=DBType.Redis.value
         )
+        if not redisDBA:
+            logger.warning(
+                _("_create_proxy_replace_ticket: cluster %s ip %s 没有可用DBA，跳过提单"),
+                switched_host.immute_domain,
+                switched_host.ip,
+            )
+            return _("没有可用DBA，跳过提单")
+        logger.info(
+            _("_create_proxy_replace_ticket: cluster %s ip %s 准备提单, bk_host_id=%s creator=%s"),
+            switched_host.immute_domain,
+            switched_host.ip,
+            bk_host_id,
+            redisDBA[0],
+        )
         ticket = Ticket.create_ticket(
             bk_biz_id=switched_host.bk_biz_id,
             ticket_type=TicketType.REDIS_PROXY_FAST_RECOVER.value,
-            creator=redisDBA.users[0],
+            creator=redisDBA[0],
             remark=_("自动发起-proxy切换失败辅助提单-{}".format(switched_host.ip)),
             details=details,
             helpers=get_ticket_heplers(),
@@ -519,9 +628,10 @@ def _create_proxy_replace_ticket(switched_host: RedisSwitchHost) -> str:
         return ticket_url
     except Exception as e:
         logger.error(
-            _("_create_proxy_replace_ticket: cluster %s ip %s 提单失败:\n%s"),
+            _("_create_proxy_replace_ticket: cluster %s ip %s 提单失败: err=%s\n%s"),
             switched_host.immute_domain,
             switched_host.ip,
+            e,
             traceback.format_exc(),
         )
         return "{}".format(e)

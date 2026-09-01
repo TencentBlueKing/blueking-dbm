@@ -19,7 +19,6 @@ from backend.db_meta.models.mysql_dts import MysqlDtsInfo, MysqlDtsStatus
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.signal.callback_map import create_ticket_handler
-from backend.flow.utils.mysql.dts.constants import DtsLifecycleMode
 from backend.flow.utils.mysql.dts.migrate_credentials import (
     best_effort_drop_dts_temp_accounts_from_snapshots,
     collect_unique_temp_account_snapshots,
@@ -51,7 +50,38 @@ def _as_mapping(value) -> dict:
     return {}
 
 
-def _sync_migrate_status(ticket_id: int, status: StateType):
+def _extract_dts_task_ids(node_inputs: dict) -> list[str]:
+    """从节点 inputs 取出本行 dts_task_id，供 RUNNING/FAILED 按行回写。"""
+    kwargs = _as_mapping((node_inputs or {}).get("kwargs"))
+    global_data = _as_mapping((node_inputs or {}).get("global_data"))
+    names: list[str] = []
+
+    def _extend_from(src: dict):
+        name = src.get("task_name") or src.get("dts_task_id")
+        if name:
+            names.append(str(name))
+        spec = src.get("task_spec")
+        if isinstance(spec, dict) and spec.get("task_name"):
+            names.append(str(spec["task_name"]))
+        listed = src.get("dts_task_ids") or src.get("task_names")
+        if isinstance(listed, list):
+            names.extend(str(n) for n in listed if n)
+        plan = src.get("migrate_plan")
+        if isinstance(plan, dict):
+            for item in plan.get("task_specs") or []:
+                if isinstance(item, dict) and item.get("task_name"):
+                    names.append(str(item["task_name"]))
+
+    _extend_from(kwargs)
+    _extend_from(global_data)
+    seen: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.append(name)
+    return seen
+
+
+def _sync_migrate_status(ticket_id: int, status: StateType, node_inputs: dict | None = None):
     # call_ticket_handler 透传的是节点级 to_state；每个节点 FINISHED 都会触发本回调。
     # 迁移 status 由 update_meta / cutover_meta 等组件写入；节点 FINISHED 不再改库。
     status_map = {
@@ -64,10 +94,15 @@ def _sync_migrate_status(ticket_id: int, status: StateType):
         return
     qs = MysqlDtsInfo.objects.filter(ticket_id=ticket_id)
     # 节点生命周期信号不能盖掉业务终态：
-    # - RUNNING/FAILED：排除 Disconnected/Terminated
+    # - RUNNING/FAILED：排除 Disconnected/Terminated，且必须按行过滤，避免一行失败释放兄弟行互斥
     # - REVOKED：可把进行中行标 Terminated，但不得盖掉已 cutover 成功的 Disconnected
-    #   （同单多 task 时部分已切换、部分未切换仍可终止未完成行）
     if status in (StateType.RUNNING, StateType.FAILED):
+        task_ids = _extract_dts_task_ids(node_inputs or {})
+        if task_ids:
+            qs = qs.filter(dts_task_id__in=task_ids)
+        elif qs.count() > 1:
+            logger.warning(_("DTS 迁移节点 {} 无法定位 dts_task_id，跳过整单状态回写 ticket_id={}").format(status, ticket_id))
+            return
         qs = qs.exclude(status__in=_TERMINAL_MIGRATE_STATUSES)
     elif status == StateType.REVOKED:
         qs = qs.exclude(status=MysqlDtsStatus.Disconnected.value)
@@ -114,9 +149,8 @@ def _finalize_ephemeral_dts(global_data: dict):
     """临时 DTS 终态回收元数据（与临时账号回收相互独立）。"""
     ticket_id = global_data.get("ticket_id")
     migrate_plan = _as_mapping(global_data.get("migrate_plan"))
-    lifecycle = migrate_plan.get("dts_lifecycle", "")
     cleanup_after = migrate_plan.get("cleanup_after_migrate", False)
-    if lifecycle != DtsLifecycleMode.DEPLOY_EPHEMERAL.value and not cleanup_after:
+    if not cleanup_after:
         return
     dts_info = MysqlDtsInfo.objects.filter(ticket_id=ticket_id).first()
     if not dts_info or not dts_info.dts_cluster_id:
@@ -147,7 +181,7 @@ def _handle_migrate_callback(root_id: str, node_id: str, status: StateType, tick
     if ticket_id and "ticket_id" not in global_data:
         global_data = {**global_data, "ticket_id": ticket_id}
     if ticket_id:
-        _sync_migrate_status(ticket_id, status)
+        _sync_migrate_status(ticket_id, status, node_inputs=node_inputs)
     if status not in _RECYCLE_TEMP_ACCOUNT_STATUSES:
         return
     # 临时账号在源/目标 MySQL 上，与 ephemeral DTS 生命周期无关；终止仅尽力 DROP 账号
@@ -166,4 +200,11 @@ def mysql_to_mysql_migrate_callback_handler(root_id: str, node_id: str, status: 
 def mysql_ha_to_cluster_migrate_callback_handler(root_id: str, node_id: str, status: StateType, **kwargs):
     """HA→Cluster 迁移状态回调与终态清理。"""
     logger.info(_("执行 mysql_ha_to_cluster_migrate_callback_handler root_id={}").format(root_id))
+    _handle_migrate_callback(root_id, node_id, status, ticket_id_from_signal=int(kwargs.get("ticket_id") or 0))
+
+
+@create_ticket_handler(TicketType.MYSQL_RENAME_MIGRATE)
+def mysql_rename_migrate_callback_handler(root_id: str, node_id: str, status: StateType, **kwargs):
+    """MySQL 重命名迁移状态回调与终态清理。"""
+    logger.info(_("执行 mysql_rename_migrate_callback_handler root_id={}").format(root_id))
     _handle_migrate_callback(root_id, node_id, status, ticket_id_from_signal=int(kwargs.get("ticket_id") or 0))

@@ -14,7 +14,7 @@
       role="table-cell-operation">
       <AuthTemplate
         :action-id="actionId"
-        :permission="checkEditPermission(data)"
+        :permission="permission"
         :resource="data.id"
         @click="handleShowEdit">
         <DbIcon
@@ -66,10 +66,15 @@
 
   import { updateClusterAlias } from '@services/source/dbbase';
 
+  import { DBTypes } from '@common/const';
+
+  import { getClusterMetaUpdater } from '../utils/updateK8sClusterMeta';
+
   interface Props {
     data: {
       cluster_alias: string;
       cluster_name: string;
+      cluster_type: string;
       db_type: string;
       id: number;
       permission: Record<string, boolean>;
@@ -85,25 +90,53 @@
 
   const isActive = ref(false);
 
-  const { loading: isUpdateing, run: runUpdateClusterAlias } = useRequest(updateClusterAlias, {
-    manual: true,
-    onSuccess() {
-      isShowUpdateAlias.value = false;
-      emits('success');
+  const { loading: isUpdateing, run: runUpdateClusterAlias } = useRequest(
+    (params: { cluster_id: number; new_alias: string }) => {
+      const updater = getClusterMetaUpdater(props.data.cluster_type);
+      if (updater) {
+        return updater({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_alias: params.new_alias,
+          cluster_id: params.cluster_id,
+        });
+      }
+      return updateClusterAlias(params);
     },
-  });
+    {
+      manual: true,
+      onSuccess() {
+        isShowUpdateAlias.value = false;
+        emits('success');
+      },
+    },
+  );
 
   const formData = reactive({
     new_alias: props.data.cluster_alias,
   });
   const isShowUpdateAlias = ref(false);
 
-  const actionId = computed(() => `${props.data.db_type}_edit`);
-
-  const checkEditPermission = (data: Props['data']) => {
-    const permissionKey = `${props.data.db_type}_edit` as keyof typeof data.permission;
-    return data.permission[permissionKey];
+  // 数据库类型对应的编辑权限 actionId
+  const editActionIdMap: Record<DBTypes, string> = {
+    [DBTypes.DORIS]: 'doris_edit',
+    [DBTypes.ES]: 'es_edit',
+    [DBTypes.HDFS]: 'hdfs_edit',
+    [DBTypes.INFLUXDB]: 'influxdb_edit',
+    [DBTypes.K8S_QRRANT]: 'k8s_qdrant_edit',
+    [DBTypes.K8S_SURREALDB]: 'k8s_surrealdb_edit',
+    [DBTypes.KAFKA]: 'kafka_edit',
+    [DBTypes.MONGODB]: 'mongodb_edit',
+    [DBTypes.MYSQL]: 'mysql_edit',
+    [DBTypes.ORACLE]: 'oracle_edit',
+    [DBTypes.PULSAR]: 'pulsar_edit',
+    [DBTypes.REDIS]: 'redis_edit',
+    [DBTypes.RIAK]: 'riak_edit',
+    [DBTypes.SQLSERVER]: 'sqlserver_edit',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_edit',
   };
+
+  const actionId = computed(() => editActionIdMap[props.data.db_type as DBTypes]);
+  const permission = computed(() => props.data.permission[actionId.value]);
 
   const handlePopoverShown = () => {
     formData.new_alias = props.data.cluster_alias;

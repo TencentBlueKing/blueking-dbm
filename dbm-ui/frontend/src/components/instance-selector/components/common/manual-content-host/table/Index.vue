@@ -20,23 +20,38 @@
     <BkLoading
       :loading="isLoading"
       :z-index="2">
-      <DbOriginalTable
+      <PrimaryTable
         :columns="columns"
         :data="isManul ? renderManualData : tableData"
         :max-height="530"
-        :pagination="pagination.count < 10 ? false : pagination"
-        style="margin-top: 12px"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources" />
+        style="margin-top: 12px">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="searchValue.length > 0"
+            @clear-search="handleClearSearch"
+            @refresh="fetchResources" />
+        </template>
+      </PrimaryTable>
+      <div
+        v-if="pagination.count >= 10"
+        class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx">
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import {
     activePanelInjectionKey,
@@ -103,6 +118,7 @@
     fetchResources,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
     searchValue,
@@ -128,21 +144,11 @@
 
   const firstColumnField = props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address';
 
-  const columns = computed(() => {
-    const baseColumns = [
+  const columns = computed<PrimaryTableCol[]>(() => {
+    const baseColumns: PrimaryTableCol[] = [
       {
-        fixed: 'left',
-        label: () => (
-          <bk-checkbox
-            disabled={mainSelectDisable.value}
-            label={true}
-            model-value={isSelectedAll.value}
-            onChange={handleSelectPageAll}
-            onClick={(e: Event) => e.stopPropagation()}
-          />
-        ),
-        render: ({ data }: DataRow) => {
-          if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
+        cell: (_, { row }) => {
+          if (props.disabledRowConfig && props.disabledRowConfig.handler(row)) {
             return (
               <bk-popover
                 placement='top'
@@ -151,9 +157,9 @@
                 {{
                   content: () => <span>{props.disabledRowConfig?.tip}</span>,
                   default: () => (
-                    <bk-checkbox
-                      style='vertical-align: middle;'
+                    <Checkbox
                       disabled
+                      style='vertical-align: middle;'
                     />
                   ),
                 }}
@@ -161,120 +167,118 @@
             );
           }
           return (
-            <bk-checkbox
-              label={true}
-              model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            <Checkbox
+              checked={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
               style='vertical-align: middle;'
-              onChange={(value: boolean) => handleTableSelectOne(value, data)}
-              onClick={(e: Event) => e.stopPropagation()}
+              onChange={(value: boolean) => handleTableSelectOne(value, row as IValue)}
             />
           );
         },
+        colKey: 'row-select',
+        fixed: 'left',
+        title: () => (
+          <Checkbox
+            checked={isSelectedAll.value}
+            disabled={mainSelectDisable.value}
+            onChange={handleSelectPageAll}
+          />
+        ),
         width: 60,
       },
       {
-        field: firstColumnField,
+        colKey: firstColumnField,
         fixed: 'left',
-        label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
         minWidth: 160,
+        title: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       },
       {
-        field: 'bk_sub_zone',
-        label: t('园区'),
+        cell: (_, { row }) => row.bk_sub_zone || '--',
+        colKey: 'bk_sub_zone',
+        ellipsis: true,
         minWidth: 120,
-        render: ({ data }: DataRow) => data.bk_sub_zone || '--',
-        showOverflow: true,
+        title: t('园区'),
       },
       {
-        field: 'bk_rack_id',
-        label: t('机架ID'),
+        cell: (_, { row }) => row.bk_rack_id || '--',
+        colKey: 'bk_rack_id',
+        ellipsis: true,
         minWidth: 80,
-        render: ({ data }: DataRow) => data.bk_rack_id || '--',
-        showOverflow: true,
+        title: t('机架ID'),
       },
       {
-        field: 'bk_svr_device_cls_name',
-        label: t('机型'),
+        cell: (_, { row }) => row.bk_svr_device_cls_name || '--',
+        colKey: 'bk_svr_device_cls_name',
+        ellipsis: true,
         minWidth: 120,
-        render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
-        showOverflow: true,
+        title: t('机型'),
       },
       {
-        field: 'cloud_area',
-        label: t('管控区域'),
+        cell: (_, { row }) => row.host_info?.cloud_area?.name || '--',
+        colKey: 'cloud_area',
+        ellipsis: true,
         minWidth: 100,
-        render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
-        showOverflow: true,
+        title: t('管控区域'),
       },
       {
-        field: 'alive',
-        label: t('Agent状态'),
-        minWidth: 100,
-        render: ({ data }: DataRow) => {
+        cell: (_, { row }) => {
           const info =
-            data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+            row.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
         },
+        colKey: 'alive',
+        minWidth: 100,
+        title: t('Agent状态'),
       },
       {
-        field: 'host_name',
-        label: t('主机名称'),
-        render: ({ data }: DataRow) => data.host_info?.host_name || '--',
-        showOverflow: true,
+        cell: (_, { row }) => row.host_info?.host_name || '--',
+        colKey: 'host_name',
+        ellipsis: true,
+        title: t('主机名称'),
       },
       {
-        field: 'os_name',
-        label: t('OS名称'),
-        render: ({ data }: DataRow) => data.host_info?.os_name || '--',
-        showOverflow: true,
+        cell: (_, { row }) => row.host_info?.os_name || '--',
+        colKey: 'os_name',
+        ellipsis: true,
+        title: t('OS名称'),
       },
       {
-        field: 'cloud_vendor',
-        label: t('所属云厂商'),
-        render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
-        showOverflow: true,
+        cell: (_, { row }) => row.host_info?.cloud_vendor || '--',
+        colKey: 'cloud_vendor',
+        ellipsis: true,
+        title: t('所属云厂商'),
       },
       {
-        field: 'os_type',
-        label: t('OS类型'),
-        render: ({ data }: DataRow) => data.host_info.os_type || '--',
-        showOverflow: true,
+        cell: (_, { row }) => row.host_info.os_type || '--',
+        colKey: 'os_type',
+        ellipsis: true,
+        title: t('OS类型'),
       },
       {
-        field: 'host_id',
-        label: t('主机ID'),
-        render: ({ data }: DataRow) => data.host_info?.host_id || '--',
-        showOverflow: true,
+        cell: (_, { row }) => row.host_info?.host_id || '--',
+        colKey: 'host_id',
+        ellipsis: true,
+        title: t('主机ID'),
       },
       {
-        field: 'agent_id',
-        label: 'Agent ID',
-        render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
-        showOverflow: true,
+        cell: (_, { row }) => row.host_info?.agent_id || '--',
+        colKey: 'agent_id',
+        ellipsis: true,
+        title: 'Agent ID',
       },
     ];
 
     if (props.activePanelId === 'TendbClusterHost') {
       baseColumns.splice(2, 0, {
-        field: 'related_instances',
-        label: t('关联的从库实例'),
+        cell: (_, { row }) => <RenderInstance data={row.related_instances}></RenderInstance>,
+        colKey: 'related_instances',
+        ellipsis: true,
         minWidth: 200,
-        render: ({ data }: DataRow) => <RenderInstance data={data.related_instances}></RenderInstance>,
-        showOverflow: true,
+        title: t('关联的从库实例'),
       });
     }
 
     return baseColumns;
   });
-
-  // const tableSettings = computed(() => ({
-  //   fields: columns.value.filter(item => item.field).map(item => ({
-  //     label: item.label,
-  //     field: item.field,
-  //     disabled: [firstColumnField, 'related_instances'].includes(item.field as string),
-  //   })),
-  //   checked: [firstColumnField, 'related_instances', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
-  // }))
 
   watch(
     () => props.lastValues,
@@ -319,6 +323,10 @@
     triggerChange();
   });
 
+  const handleClearSearch = () => {
+    searchValue.value = '';
+  };
+
   const triggerChange = () => {
     if (props.isManul) {
       const lastValues: InstanceSelectorValues<IValue> = {
@@ -356,13 +364,13 @@
         isSelectedAllReal = !isSelectedAllReal;
         for (const data of list) {
           if (!props.disabledRowConfig.handler(data)) {
-            handleTableSelectOne(isSelectedAllReal, data);
+            handleTableSelectOne(isSelectedAllReal, data as IValue);
           }
         }
         return;
       }
       for (const item of list) {
-        handleTableSelectOne(checked, item);
+        handleTableSelectOne(checked, item as IValue);
       }
     } else {
       checkedMap.value = {};
@@ -386,5 +394,11 @@
 <style lang="less">
   .instance-selector-render-topo-host {
     padding: 0 24px;
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
   }
 </style>

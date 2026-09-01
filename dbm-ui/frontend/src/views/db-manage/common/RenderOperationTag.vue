@@ -39,13 +39,14 @@
             ticketId: data.ticketId,
           },
         }">
-        {{ $t('单据') }}
+        {{ t('单据') }}
       </AuthRouterLink>
     </I18nT>
   </div>
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     data: {
@@ -56,6 +57,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const rootRef = ref();
   const popRef = ref();

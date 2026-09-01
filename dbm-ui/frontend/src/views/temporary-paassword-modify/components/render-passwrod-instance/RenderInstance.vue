@@ -12,30 +12,31 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :is-show="isShow"
     render-directive="if"
-    :title="t('临时密码生效的实例')"
+    :show-footer="false"
+    :title="t('查看临时密码')"
     :width="1200"
     @closed="isShow = false">
     <div class="temporary-password-modify-instance-box">
       <BkRadioGroup
         v-model="dbType"
-        @change="handleDbTypeChange">
+        @change="fetchData">
         <BkRadioButton
           class="w-88"
           :label="DBTypes.MYSQL">
-          Mysql
+          MySQL
         </BkRadioButton>
         <BkRadioButton
           class="w-88"
           :label="DBTypes.TENDBCLUSTER">
-          Tendb Cluster
+          TenDBCluster
         </BkRadioButton>
         <BkRadioButton
           class="w-88"
           :label="DBTypes.SQLSERVER">
-          Sql Server
+          SQLServer
         </BkRadioButton>
       </BkRadioGroup>
       <div class="operate-area">
@@ -51,200 +52,306 @@
           format="yyyy-MM-dd HH:mm:ss"
           :placeholder="t('请选择')"
           type="datetimerange"
-          @change="handleSearchValueChange" />
-        <DbSearchSelect
+          @change="fetchData" />
+        <DbQuickSearch
           v-model="searchParams.keys"
           class="ml-8 search-select"
           :data="searchSelectData"
+          parse-url
           :placeholder="t('请输入实例搜索')"
-          @change="handleSearchValueChange" />
+          @change="fetchData" />
       </div>
       <DbTable
         ref="tableRef"
-        :columns="columns"
-        :data-source="queryAdminPassword"
+        :data-source="dataSource"
         :max-height="tableMaxHeight"
         :pagination-extra="{
           small: true,
         }"
-        primary-key="uniqueKey"
         :releate-url-query="false"
-        row-class="temporary-password-modify-instance-box-table-row"
+        row-class-name="temporary-password-modify-instance-box-table-row"
+        row-key="uniqueKey"
         selectable
-        show-overflow-tooltip
-        @clear-search="getDataSource"
-        @selection="handleSelection" />
+        @clear-search="fetchData"
+        @selection="handleSelection">
+        <TableColumn
+          col-key="bk_cloud_name"
+          :title="t('云区域')"
+          :width="100">
+        </TableColumn>
+        <TableColumn
+          col-key="instance"
+          ellipsis
+          :title="t('实例')"
+          :width="150">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <TextOverflowLayout>
+              {{ `${data.ip}:${data.port}` }}
+              <template #append>
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleCopy(`${data.ip}:${data.port}`)">
+                  <DbIcon
+                    class="row-copy-icon ml-4"
+                    type="copy" />
+                </BkButton>
+              </template>
+            </TextOverflowLayout>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="password"
+          ellipsis
+          :width="180">
+          <template #title>
+            <span>{{ t('密码') }}</span>
+            <span
+              v-bk-tooltips="{
+                disabled: hasAnyPermission,
+                content: t('当前实例均无查看密码权限'),
+              }"
+              class="inline-block">
+              <BkButton
+                :disabled="!hasAnyPermission"
+                text
+                @click="handlePasswordShow">
+                <DbIcon
+                  class="header-view-icon ml-4"
+                  type="visible1" />
+              </BkButton>
+            </span>
+          </template>
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <TextOverflowLayout :key="Number(isRowPasswordShow(data))">
+              <span>{{ isRowPasswordShow(data) ? getRowPassword(data) : '******' }}</span>
+              <template #append>
+                <AuthTemplate
+                  :action-id="adminPwdViewActionMap[dbType]"
+                  :permission="data.permission[adminPwdViewActionMap[dbType]]"
+                  :resource="data.cluster_id">
+                  <DbIcon
+                    class="row-copy-icon ml-4"
+                    type="copy"
+                    @click="handleCopy(getRowPassword(data))" />
+                  <DbIcon
+                    class="row-view-icon ml-4"
+                    type="visible1"
+                    @click="handleToggleRowPassword(data)" />
+                </AuthTemplate>
+              </template>
+            </TextOverflowLayout>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="immute_domain"
+          ellipsis
+          :title="t('所属集群')"
+          :width="220">
+          <template #default="{ row }">
+            {{ row.immute_domain }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="lock_until"
+          ellipsis
+          :min-width="280"
+          sorter
+          :title="t('过期时间')">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <span
+              v-if="isExpiringSoon(data)"
+              class="expired-time">
+              {{ data.lockUntilDisplay }}（{{ t('n天后过期', [expireDays(data)]) }}）
+            </span>
+            <span v-else>{{ data.lockUntilDisplay }}</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="operator"
+          :title="t('修改人')"
+          :width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="update_time"
+          ellipsis
+          sorter
+          :title="t('修改时间')"
+          :width="160">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            {{ data.updateTimeDisplay }}
+          </template>
+        </TableColumn>
+      </DbTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
+  import type { IRequestPayload } from '@services/http';
   import AdminPasswordModel from '@services/model/admin-password/admin-password';
-  import { queryAdminPassword } from '@services/source/permission';
+  import { getInstancePassword, queryAdminPassword } from '@services/source/permission';
 
   import { useTableMaxHeight } from '@hooks';
 
   import { DBTypes, OccupiedInnerHeight } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
-  const isShow = defineModel<boolean>({
-    default: false,
-    required: true,
-  });
+  const isShow = defineModel<boolean>({ default: false, required: true });
+  const dbType = defineModel<DBTypes>('dbType', { default: DBTypes.MYSQL });
 
   const { t } = useI18n();
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
-
-  const searchSelectData = [
-    {
-      id: 'instances',
-      name: t('IP 或 IP:Port'),
-    },
-  ];
-
-  const columns = [
-    {
-      field: 'bk_cloud_name',
-      label: t('云区域'),
-      width: 100,
-    },
-    {
-      field: 'instance',
-      label: t('实例'),
-      render: ({ row }: { row: AdminPasswordModel }) => {
-        const instance = `${row.ip}:${row.port}`;
-        return (
-          <TextOverflowLayout>
-            {{
-              append: () => (
-                <bk-button
-                  text
-                  theme='primary'
-                  onClick={() => handleCopy(instance)}>
-                  <db-icon
-                    class='row-copy-icon ml-4'
-                    type='copy'
-                  />
-                </bk-button>
-              ),
-              default: () => instance,
-            }}
-          </TextOverflowLayout>
-        );
-      },
-      width: 150,
-    },
-    {
-      field: 'password',
-      label: () => (
-        <>
-          <span>{t('密码')}</span>
-          <bk-button
-            text
-            onClick={() => handlePasswordShow()}>
-            <db-icon type='visible1 ml-4' />
-          </bk-button>
-        </>
-      ),
-      render: ({ row }: { row: AdminPasswordModel }) => (
-        <TextOverflowLayout key={Number(passwordShow.value)}>
-          {{
-            append: () => (
-              <bk-button
-                text
-                theme='primary'
-                onClick={() => handleCopy(row.password)}>
-                <db-icon
-                  class='row-copy-icon ml-4'
-                  type='copy'
-                />
-              </bk-button>
-            ),
-            default: () => <span>{passwordShow.value ? row.password : '******'}</span>,
-          }}
-        </TextOverflowLayout>
-      ),
-      showOverflowTooltip: true,
-      width: 200,
-    },
-    {
-      field: 'component',
-      label: t('DB类型'),
-      render: ({ row }: { row: AdminPasswordModel }) => (
-        <>
-          <db-icon type='mysql row-type' />
-          <span class='ml-4'>{row.component}</span>
-        </>
-      ),
-      width: 100,
-    },
-    {
-      field: 'lock_until',
-      label: t('过期时间'),
-      minWidth: 240,
-      render: ({ row }: { row: AdminPasswordModel }) => {
-        const { lock_until: lockUntil, lockUntilDisplay } = row;
-        const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
-        const currentDate = dayjs().format('YYYY-MM-DD');
-        const diffDay = dayjs(lockUntilDate).diff(currentDate, 'day');
-
-        return diffDay <= 7 ? (
-          <span class='expired-time'>
-            {lockUntilDisplay}（{t('n天后过期', [Math.ceil(diffDay)])}）
-          </span>
-        ) : (
-          <span>{lockUntilDisplay}</span>
-        );
-      },
-      showOverflowTooltip: true,
-      sort: true,
-    },
-    {
-      field: 'operator',
-      label: t('修改人'),
-      width: 150,
-    },
-    {
-      field: 'updateTimeDisplay',
-      label: t('修改时间'),
-      sort: true,
-      width: 160,
-    },
-  ];
-
   const tableRef = ref();
-  const dbType = ref(DBTypes.MYSQL);
-  const passwordShow = ref(false);
+
+  // 全量列表缓存（打开侧滑时拉取，前端分页 / 排序；密码按需拉取）
+  const allData = ref<AdminPasswordModel[]>([]);
+  let currentCacheKey = '';
+
+  // 行级 / 表头共用：已展开密码的行 uniqueKey 集合 + 按需拉取的密码缓存
+  const passwordShowRows = shallowRef(new Set<string>());
+  const instancePasswordMap = shallowRef<Record<string, string>>({});
   const selected = shallowRef<AdminPasswordModel[]>([]);
 
   const searchParams = reactive({
-    keys: [],
+    keys: {} as Record<string, string>,
     time: ['', ''] as [string, string],
   });
 
   const hasSelected = computed(() => selected.value.length > 0);
 
-  const handleSearchValueChange = () => {
-    // tableRef.value!.clearSelected();
-    getDataSource();
+  // 是否至少有一行有查看密码权限，全无权限时表头眼睛禁用
+  const hasAnyPermission = computed(() => {
+    const actionId = adminPwdViewActionMap[dbType.value];
+    return allData.value.some((r) => r.permission[actionId]);
+  });
+
+  // 查看临时密码权限 action（按 DB 类型拆分，原 admin_pwd_view 已废弃）
+  const adminPwdViewActionMap: Record<string, keyof AdminPasswordModel['permission']> = {
+    [DBTypes.MYSQL]: 'mysql_admin_pwd_view',
+    [DBTypes.SQLSERVER]: 'sqlserver_admin_pwd_view',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_admin_pwd_view',
   };
 
-  const getDataSource = () => {
-    const keys = getSearchSelectorParams(searchParams.keys);
-    const params = {
-      ...keys,
-      db_type: dbType.value,
-    };
+  const searchSelectData = [
+    { id: 'instances', name: t('IP 或 IP:Port'), type: 'multiple-input' },
+  ] as QuickSearchProps['data'];
 
+  // 表格数据源：缓存命中时前端分页 / 排序，未命中时全量拉取列表
+  const dataSource = async (params: Record<string, any>, payload?: IRequestPayload) => {
+    const { limit: _limit, offset: _offset, ordering, ...rest } = params;
+    const cacheKey = JSON.stringify({ ...rest, db_type: dbType.value });
+
+    if (cacheKey !== currentCacheKey) {
+      currentCacheKey = cacheKey;
+      const res = await queryAdminPassword(
+        { ...rest, bk_biz_id: window.PROJECT_CONFIG.BIZ_ID, db_type: dbType.value, limit: -1 },
+        { ...payload, permission: 'catch' },
+      );
+      allData.value = res.results;
+    }
+
+    let data = allData.value;
+    if (ordering) {
+      const isDesc = ordering.startsWith('-');
+      const field = isDesc ? ordering.slice(1) : ordering;
+      data = [...data].sort((a, b) => {
+        const va = (a as any)[field] ?? '';
+        const vb = (b as any)[field] ?? '';
+        return isDesc ? (va < vb ? 1 : va > vb ? -1 : 0) : va < vb ? -1 : va > vb ? 1 : 0;
+      });
+    }
+
+    const offset = _offset ?? 0;
+    const limit = _limit === -1 ? data.length : (_limit ?? 10);
+    return {
+      count: data.length,
+      next: '',
+      permission: {},
+      previous: '',
+      results: data.slice(offset, offset + limit),
+    };
+  };
+
+  const getRowPassword = (row: AdminPasswordModel) => instancePasswordMap.value[row.uniqueKey];
+  const isRowPasswordShow = (row: AdminPasswordModel) => passwordShowRows.value.has(row.uniqueKey);
+
+  // 行级眼睛：切换单行密码显隐，首次展开时按需拉取
+  const handleToggleRowPassword = async (row: AdminPasswordModel) => {
+    const set = new Set(passwordShowRows.value);
+    if (set.has(row.uniqueKey)) {
+      set.delete(row.uniqueKey);
+      passwordShowRows.value = set;
+      return;
+    }
+    if (!instancePasswordMap.value[row.uniqueKey]) {
+      const { results } = await getInstancePassword({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        db_type: dbType.value,
+        instances: [{ cluster_id: row.cluster_id, ip: row.ip, port: row.port }],
+      });
+      if (results[0]?.password) {
+        instancePasswordMap.value = { ...instancePasswordMap.value, [row.uniqueKey]: results[0].password };
+      }
+    }
+    set.add(row.uniqueKey);
+    passwordShowRows.value = set;
+  };
+
+  // 表头眼睛：批量切换有权限行显隐，首次开启时批量拉取密码
+  const handlePasswordShow = async () => {
+    const actionId = adminPwdViewActionMap[dbType.value];
+    const hasPermissionRows = allData.value.filter((r) => r.permission[actionId]);
+    const noPermissionRows = allData.value.filter((r) => !r.permission[actionId]);
+
+    // 全部已展开 → 批量隐藏（保留无权限行中被行级单独展开的）
+    if (hasPermissionRows.every((r) => passwordShowRows.value.has(r.uniqueKey))) {
+      const set = new Set<string>();
+      noPermissionRows.forEach((r) => {
+        if (passwordShowRows.value.has(r.uniqueKey)) set.add(r.uniqueKey);
+      });
+      passwordShowRows.value = set;
+      return;
+    }
+
+    if (noPermissionRows.length > 0) {
+      messageWarn(
+        t('已显示n条_另有m条无查看权限_请在对应行申请', { m: noPermissionRows.length, n: hasPermissionRows.length }),
+      );
+    }
+
+    const set = new Set(passwordShowRows.value);
+    hasPermissionRows.forEach((r) => set.add(r.uniqueKey));
+    passwordShowRows.value = set;
+
+    // 首次开启时拉取尚未获取的密码
+    const rowsToFetch = hasPermissionRows.filter((r) => !instancePasswordMap.value[r.uniqueKey]);
+    if (rowsToFetch.length === 0) return;
+
+    const { results } = await getInstancePassword({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      db_type: dbType.value,
+      instances: rowsToFetch.map((r) => ({ cluster_id: r.cluster_id, ip: r.ip, port: r.port })),
+    });
+    const newMap = { ...instancePasswordMap.value };
+    results.forEach((item) => {
+      if (item.password) newMap[`${item.bk_cloud_id}:${item.ip}:${item.port}`] = item.password;
+    });
+    instancePasswordMap.value = newMap;
+  };
+
+  const fetchData = () => {
+    const params = { ...searchParams.keys };
     if (searchParams.time.length) {
       const [beginTime, endTime] = searchParams.time;
-
       if (beginTime && endTime) {
         Object.assign(params, {
           begin_time: dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss'),
@@ -252,30 +359,23 @@
         });
       }
     }
-
-    tableRef.value?.fetchData({}, params);
+    tableRef.value?.fetchData(params);
   };
 
-  const handlePasswordShow = () => {
-    passwordShow.value = !passwordShow.value;
-  };
+  const expireDays = (row: AdminPasswordModel) =>
+    dayjs(dayjs(row.lock_until).format('YYYY-MM-DD')).diff(dayjs().format('YYYY-MM-DD'), 'day');
+  const isExpiringSoon = (row: AdminPasswordModel) => expireDays(row) <= 7;
 
-  const handleSelection = (data: AdminPasswordModel, list: AdminPasswordModel[]) => {
+  const handleSelection = (_key: string[], list: AdminPasswordModel[]) => {
     selected.value = list;
   };
 
   const handleInstancesCopy = () => {
-    const instances = selected.value.map((row) => `${row.ip}:${row.port}`);
+    const instances = selected.value.map((r) => `${r.ip}:${r.port}`);
     execCopy(instances.join('\n'), t('复制成功，共n条', { n: instances.length }));
   };
 
-  const handleCopy = (val: string) => {
-    execCopy(val, t('复制成功，共n条', { n: 1 }));
-  };
-
-  const handleDbTypeChange = () => {
-    getDataSource();
-  };
+  const handleCopy = (val: string) => execCopy(val, t('复制成功，共n条', { n: 1 }));
 </script>
 
 <style lang="less" scoped>
@@ -292,20 +392,41 @@
       }
     }
 
-    :deep(.row-copy-icon) {
+    // 行级 icon 默认隐藏，hover 行时显示
+    :deep(.row-copy-icon),
+    :deep(.row-view-icon) {
       display: none;
+    }
+
+    // 所有密码 icon 共用 hover 变蓝样式（表头 + 行级）
+    :deep(.row-copy-icon),
+    :deep(.row-view-icon),
+    :deep(.header-view-icon) {
+      cursor: pointer;
+      color: #979ba5;
+
+      &:hover {
+        color: #3a84ff;
+      }
+    }
+
+    // 表头眼睛禁用态
+    :deep(.bk-button.is-disabled .header-view-icon) {
+      color: #c4c6cc;
+      cursor: not-allowed;
+
+      &:hover {
+        color: #c4c6cc;
+      }
     }
 
     :deep(.temporary-password-modify-instance-box-table-row) {
       &:hover {
-        .row-copy-icon {
+        .row-copy-icon,
+        .row-view-icon {
           display: inline;
         }
       }
-    }
-
-    :deep(.row-type) {
-      font-size: 16px;
     }
 
     :deep(.expired-time) {

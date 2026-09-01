@@ -203,13 +203,13 @@
       </BkButton>
       <AuthButton
         v-if="data.isCustom && isCustomEdit"
-        action-id="monitor_policy_edit"
+        action-id="monitor_policy_manage"
         class="ml-8"
         :disabled="isConfirmLoading"
         :loading="isdeleteLoading"
         outline
-        :permission="data.permission.monitor_policy_edit"
-        :resource="data.id"
+        :permission="data.permission.monitor_policy_manage"
+        :resource="dbType"
         theme="primary"
         @click="() => handleResetToDefault()">
         {{ t('恢复默认') }}
@@ -238,7 +238,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes, MonitorTargetLevel } from '@common/const';
+  import { DBTypes, MonitorTargetLevel } from '@common/const';
 
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
   import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
@@ -248,6 +248,7 @@
 
   import { messageSuccess } from '@utils';
 
+  import { getDbaLabel } from '../../../common/utils';
   import VoiceNotice from '../common/VoiceNotice.vue';
 
   import MonitorTarget from './monitor-target/Index.vue';
@@ -306,7 +307,7 @@
   const monitorTargetRef = ref();
   // const innerNotifyTarget = ref([props.dbType]);
   // const showSwitchEnableTip = ref(false);
-  const isNotifyGroupChanged = ref(false);
+  // const isNotifyGroupChanged = ref(false);
   const isOtherChanged = ref(false);
 
   const formModel = reactive({
@@ -350,7 +351,7 @@
 
   const popConfirmInfo = computed(() => {
     if (isInnerClone.value || isInnerEdit.value) {
-      if (isOtherChanged.value && !isNotifyGroupChanged.value) {
+      if (isOtherChanged.value) {
         if (isEnableChanged.value) {
           // 同时修改并启用策略（当前为继承状态）
           return {
@@ -397,7 +398,7 @@
   });
 
   const bizDefaultGroupId = computed(() => {
-    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`)!;
+    const groupItem = props.alarmGroupList.find((item) => item.label === getDbaLabel(props.dbType))!;
     return groupItem?.value;
   });
 
@@ -519,19 +520,19 @@
     setTimeout(() => {
       const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
 
-      isNotifyGroupChanged.value = !_.isEqual(
-        {
-          notify_groups: props.data.notify_groups,
-          voice_notice: props.data.notify_config.voice_notice,
-        },
-        {
-          notify_groups:
-            isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds())
-              ? []
-              : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
-          voice_notice: formModel.notifyTarget.length > 1 ? formModel.voiceNotice : 'parallel', // 告警组 ≥ 2 时才需要比较
-        },
-      );
+      // isNotifyGroupChanged.value = !_.isEqual(
+      //   {
+      //     notify_groups: props.data.notify_groups,
+      //     voice_notice: props.data.notify_config.voice_notice || 'parallel',
+      //   },
+      //   {
+      //     notify_groups:
+      //       isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds())
+      //         ? []
+      //         : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
+      //     voice_notice: formModel.notifyTarget.length > 1 ? formModel.voiceNotice : 'parallel', // 告警组 ≥ 2 时才需要比较
+      //   },
+      // );
       isOtherChanged.value = !_.isEqual(rawDeepCloneData, {
         agg_info: deepNumberToStringSafe(aggInfo),
         detects_config: deepNumberToStringSafe(detectsConfig),
@@ -627,7 +628,7 @@
   };
 
   const getBizDefaultGroupIds = () => {
-    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`);
+    const groupItem = props.alarmGroupList.find((item) => item.label === getDbaLabel(props.dbType));
     return groupItem ? [Number(groupItem.value)] : [];
   };
 
@@ -753,7 +754,7 @@
       if (isInnerClone.value || isInnerEdit.value) {
         // 转为自定义，判断同 popConfirmInfo
         if (
-          (isOtherChanged.value && !isNotifyGroupChanged.value) ||
+          isOtherChanged.value ||
           (((props.data.isInnerReal && !props.data.is_enabled) ||
             (props.data.isInnerFake && !props.appParentInfoMap[props.data.id].is_enabled)) &&
             formModel.isEnabled)

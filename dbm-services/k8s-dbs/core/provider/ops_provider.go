@@ -24,9 +24,7 @@ import (
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
-	coreconst "k8s-dbs/core/constant"
 	infrautil "k8s-dbs/infrastructure/util"
-	"os"
 	"runtime"
 	"strings"
 
@@ -216,16 +214,17 @@ func (o *OpsRequestProvider) withMetaDataSync(
 	}
 
 	// 异步同步逻辑
-	o.asyncSyncToDBM(clusterOpsFn, updatedClusterEntity)
+	o.asyncSyncToDBM(dbsCtx, clusterOpsFn, updatedClusterEntity)
 	return result, nil
 }
 
 // asyncSyncToDBM 异步同步到DBM系统
 func (o *OpsRequestProvider) asyncSyncToDBM(
+	dbsCtx *commentity.DbsContext,
 	clusterOpsFn ClusterOperationFn,
 	updatedClusterEntity *metaentity.K8sCrdClusterEntity,
 ) {
-	if os.Getenv(coreconst.AsyncToDBMEnv) != coreconst.AsyncToDBMEnabled {
+	if !dbsCtx.BkAdditional.ShouldAsyncToDBM() {
 		return
 	}
 

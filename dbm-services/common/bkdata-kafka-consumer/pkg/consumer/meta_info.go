@@ -56,7 +56,7 @@ func queryMeta(sinker *Sinker) error {
 	}{
 		BkAppCode:   config.MainConfig.BkAppCode,
 		BkAppSecret: config.MainConfig.BkAppSecret,
-		BkUsername:  "fake",
+		BkUsername:  "admin",
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())

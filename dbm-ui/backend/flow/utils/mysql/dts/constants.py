@@ -32,6 +32,14 @@ MYSQL_DTS_CATCHUP_MAX_FAIL_STREAK = 20
 # Flow 内嵌全量导入完成轮询：间隔 / API 失败 streak（无连续成功次数要求）
 MYSQL_DTS_FULL_LOAD_POLL_INTERVAL = 15
 MYSQL_DTS_FULL_LOAD_MAX_FAIL_STREAK = 20
+# 建任务平台强制：排序集补齐；增量 checkpoint 间隔（秒）。单据 engine_options 不得覆盖。
+DTS_COLLATION_COMPATIBLE_STRICT = "strict"
+DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT = 5
+# builtin Dump 全局锁超时（32004）合计尝试次数（含首次）
+DTS_DUMP_GLOBAL_LOCK_MAX_ATTEMPTS = 3
+
+# CC 标准化：Set 名 = get_monitor_set_name(MySQL, DTS_CC_MONITOR_PLUGIN_NAME) → db.mysql.dts
+DTS_CC_MONITOR_PLUGIN_NAME = "dts"
 
 # dbbackup 包解压后 myloader 默认相对路径（可通过 MyloaderSpec.myloader_path 覆盖）
 DEFAULT_MYLOADER_PATH = "/home/mysql/dbbackup/bin/myloader"
@@ -58,8 +66,7 @@ class DtsRegisterMode(StrStructuredEnum):
 
 class DtsLifecycleMode(StrStructuredEnum):
     USE_EXISTING = EnumField("use_existing", _("use_existing"))
-    DEPLOY_EPHEMERAL = EnumField("deploy_ephemeral", _("deploy_ephemeral"))
-    DEPLOY_PERSISTENT = EnumField("deploy_persistent", _("deploy_persistent"))
+    DEPLOY = EnumField("deploy", _("deploy"))
 
 
 class FullLoadEngine(StrStructuredEnum):

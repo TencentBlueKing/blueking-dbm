@@ -14,31 +14,19 @@
 <template>
   <div class="mongodb-replica-set-list-page">
     <div class="header-action">
-      <BkButton
+      <AuthButton
         v-db-console="'mongodb.replicaSetList.instanceApply'"
+        action-id="mongodb_apply"
         class="mb-8"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
-      </BkButton>
+      </AuthButton>
       <ClusterBatchOperation
         v-db-console="'mongodb.replicaSetList.batchOperation'"
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :selected="selectedList"
         @success="fetchData" />
-      <span
-        v-bk-tooltips="{
-          disabled: hasData,
-          content: t('请先申请集群'),
-        }"
-        v-db-console="'mongodb.replicaSetList.importAuthorize'"
-        class="inline-block">
-        <BkButton
-          :disabled="!hasData"
-          @click="handleShowExcelAuthorize">
-          {{ t('导入授权') }}
-        </BkButton>
-      </span>
       <DropdownExportExcel
         v-db-console="'mongodb.replicaSetList.export'"
         :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
@@ -73,11 +61,14 @@
           <template #default="{ data }: { data: MongodbModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mongodb.replicaSetList.getAccess'">
-                <BkButton
+                <AuthButton
+                  action-id="mongodb_access_entry_view"
+                  :permission="data.permission.mongodb_access_entry_view"
+                  :resource="data.id"
                   text
                   @click="handleShowAccessEntry(data)">
                   {{ t('获取访问方式') }}
-                </BkButton>
+                </AuthButton>
               </div>
               <div v-db-console="'mongodb.replicaSetList.queryAccessSource'">
                 <OperationBtnStatusTips
@@ -201,10 +192,6 @@
       :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
       :selected="selectedList"
       @success="handleClearSelected" />
-    <ExcelAuthorize
-      v-model:is-show="excelAuthorizeShow"
-      :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-      :ticket-type="TicketTypes.MONGODB_EXCEL_AUTHORIZE" />
     <AccessEntry
       v-if="accessEntryInfo"
       v-model:is-show="accessEntryInfoShow"
@@ -242,7 +229,6 @@
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
@@ -279,7 +265,6 @@
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const clusterAuthorizeShow = ref(false);
-  const excelAuthorizeShow = ref(false);
   const accessEntryInfoShow = ref(false);
   const accessEntryInfo = ref<MongodbModel | undefined>();
 
@@ -323,10 +308,6 @@
       },
     });
     window.open(routeInfo.href, '_blank');
-  };
-
-  const handleShowExcelAuthorize = () => {
-    excelAuthorizeShow.value = true;
   };
 
   const handleClearSelected = () => {

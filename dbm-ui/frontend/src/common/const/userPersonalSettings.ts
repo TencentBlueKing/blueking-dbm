@@ -1,3 +1,5 @@
+import { DBTypes } from './dbTypes';
+
 /**
  * 用户个人设置 keys
  */
@@ -54,7 +56,7 @@ export enum UserPersonalSettings {
   SQLSERVER_SINGLE_TABLE_SETTINGS = 'SQLSERVER_SINGLE_TABLE_SETTINGS',
   SQLSERVER_TOOLBOX_FAVOR = 'SQLSERVER_TOOLBOX_FAVOR',
   SQLSERVER_TOOLBOX_MENUS = 'SQLSERVER_TOOLBOX_MENUS',
-  SQLSERVER_TOOLBOX_USED = 'SQLSERVER_TOOLBOX_USE',
+  SQLSERVER_TOOLBOX_USED = 'SQLSERVER_TOOLBOX_USED',
 }
 
 // ORACLE
@@ -62,13 +64,23 @@ export enum UserPersonalSettings {
   ORACLE_HA_CLUSTER_SETTINGS = 'ORACLE_HA_CLUSTER_SETTINGS',
   ORACLE_HA_INSTANCE_SETTINGS = ' ORACLE_HA_INSTANCE_SETTINGS',
   ORACLE_SINGLE_CLUSTER_SETTINGS = 'ORACLE_SINGLE_CLUSTER_SETTINGS',
-  ORACLE_TOOLBOX_FAVOR = 'SORACLE_TOOLBOX_FAVOR',
+  ORACLE_TOOLBOX_FAVOR = 'ORACLE_TOOLBOX_FAVOR',
   ORACLE_TOOLBOX_MENUS = 'ORACLE_TOOLBOX_MENUS',
   ORACLE_TOOLBOX_USED = 'ORACLE_TOOLBOX_USED',
 }
 // riak
 export enum UserPersonalSettings {
   RIAK_TABLE_SETTINGS = 'RIAK_TABLE_SETTINGS',
+}
+// k8s surrealdb
+export enum UserPersonalSettings {
+  SURREALDB_HA_INSTANCE_SETTINGS = 'SURREALDB_HA_INSTANCE_SETTINGS',
+  SURREALDB_HA_TABLE_SETTINGS = 'SURREALDB_HA_TABLE_SETTINGS',
+  SURREALDB_SINGLE_TABLE_SETTINGS = 'SURREALDB_SINGLE_TABLE_SETTINGS',
+}
+// k8s Qdrant
+export enum UserPersonalSettings {
+  QDRANT_HA_TABLE_SETTINGS = 'QDRANT_HA_TABLE_SETTINGS',
 }
 // quicksearch
 export enum UserPersonalSettings {
@@ -91,3 +103,41 @@ export enum UserPersonalSettings {
   SPECIFICATION_TABLE_SETTINGS = 'SPECIFICATION_TABLE_SETTINGS',
   TOP_DB_TYPES = 'TOP_DB_TYPES',
 }
+
+/**
+ * 工具箱 profile key 聚合映射（仅覆盖有工具箱的 DB 类型）
+ * favor/used 直接取 UserPersonalSettings 枚举值（本为大写完整 key），无需再 toUpperCase()
+ * groupSort 保留字面量（后续可能废弃）
+ */
+export const toolboxProfileKeyMap: Partial<Record<DBTypes, { favor: string; groupSort: string; used: string }>> = {
+  [DBTypes.MONGODB]: {
+    favor: UserPersonalSettings.MONGO_TOOLBOX_FAVOR,
+    groupSort: 'mongodb_toolbox_group_sort', // TODO 字面量，后续可能废弃
+    used: UserPersonalSettings.MONGO_TOOLBOX_USED,
+  },
+  [DBTypes.MYSQL]: {
+    favor: UserPersonalSettings.MYSQL_TOOLBOX_FAVOR,
+    groupSort: 'mysql_toolbox_group_sort', // TODO 字面量，后续可能废弃
+    used: UserPersonalSettings.MYSQL_TOOLBOX_USED,
+  },
+  [DBTypes.ORACLE]: {
+    favor: UserPersonalSettings.ORACLE_TOOLBOX_FAVOR,
+    groupSort: 'oracle_toolbox_group_sort', // TODO 字面量，后续可能废弃
+    used: UserPersonalSettings.ORACLE_TOOLBOX_USED,
+  },
+  [DBTypes.REDIS]: {
+    favor: UserPersonalSettings.REDIS_TOOLBOX_FAVOR,
+    groupSort: 'redis_toolbox_group_sort', // TODO 字面量，后续可能废弃
+    used: UserPersonalSettings.REDIS_TOOLBOX_USED,
+  },
+  [DBTypes.SQLSERVER]: {
+    favor: UserPersonalSettings.SQLSERVER_TOOLBOX_FAVOR,
+    groupSort: 'sqlserver_toolbox_group_sort', // TODO 字面量，后续可能废弃
+    used: UserPersonalSettings.SQLSERVER_TOOLBOX_USED,
+  },
+  [DBTypes.TENDBCLUSTER]: {
+    favor: UserPersonalSettings.TENDBCLUSTER_TOOLBOX_FAVOR,
+    groupSort: 'tendbcluster_toolbox_group_sort', // TODO 字面量，后续可能废弃
+    used: UserPersonalSettings.TENDBCLUSTER_TOOLBOX_USED,
+  },
+};

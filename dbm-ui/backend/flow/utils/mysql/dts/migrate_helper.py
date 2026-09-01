@@ -37,8 +37,15 @@ from backend.components.mysqldtsapi.types import (
 )
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, MysqlDtsCluster, ProxyInstance, StorageInstance
+from backend.db_meta.models.mysql_dts import MysqlDtsClusterStatus
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
-from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateType, get_full_migrate_data_dir
+from backend.flow.utils.mysql.dts.constants import (
+    DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT,
+    DTS_COLLATION_COMPATIBLE_STRICT,
+    FullLoadEngine,
+    MigrateType,
+    get_full_migrate_data_dir,
+)
 from backend.flow.utils.mysql.dts.migrate_credentials import DtsGrantTarget
 from backend.flow.utils.mysql.dts.migrate_plan import (
     DtsMigratePlan,
@@ -68,12 +75,9 @@ def resolve_source_endpoint(source_spec: SourceSpec, cluster: Cluster) -> tuple[
 
     # TenDBCluster：Source 必须落在 Remote 存储节点，不能用 Spider 代理探测/拉 binlog
     if cluster.cluster_type == ClusterType.TenDBCluster.value:
-        slave_qs = cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_SLAVE)
-        ins = slave_qs.filter(is_stand_by=True).first() or slave_qs.first()
+        ins = cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_MASTER).first()
         if not ins:
-            ins = cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_MASTER).first()
-        if not ins:
-            raise ValueError(_("集群 {} 未找到可用的 Remote 源实例").format(cluster.id))
+            raise ValueError(_("集群 {} 未找到可用的 Remote Master 源实例").format(cluster.id))
         return ins.machine.ip, ins.port
 
     # TenDBSingle：仅 orphan 存储实例
@@ -85,26 +89,23 @@ def resolve_source_endpoint(source_spec: SourceSpec, cluster: Cluster) -> tuple[
             raise ValueError(_("集群 {} 未找到可用的源实例").format(cluster.id))
         return ins.machine.ip, ins.port
 
-    slave_qs = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
-    if slave_qs.filter(is_stand_by=True).exists():
-        ins = slave_qs.filter(is_stand_by=True).first()
-    else:
-        ins = slave_qs.first()
+    ins = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_MASTER).first()
     if not ins:
-        raise ValueError(_("集群 {} 未找到可用的源实例").format(cluster.id))
+        raise ValueError(_("集群 {} 未找到可用的 Master 源实例").format(cluster.id))
     return ins.machine.ip, ins.port
 
 
-def _pick_shard_remote_instance(shard) -> StorageInstance:
-    """分片连接端点：优先 Remote Slave（standby），否则 Remote Master（ejector）。"""
+def _pick_shard_remote_instance(shard, instance_role=None) -> StorageInstance:
+    """分片连接端点：默认 Remote Master（ejector）；指定 remote_slave 时用 receiver。"""
     receiver = shard.storage_instance_tuple.receiver
     ejector = shard.storage_instance_tuple.ejector
-    if receiver is not None:
-        if getattr(receiver, "is_stand_by", False):
-            return receiver
+    role = getattr(instance_role, "value", instance_role) or ""
+    if role == InstanceRole.REMOTE_SLAVE.value:
+        if receiver is None:
+            raise ValueError(_("分片 {} 未找到 Remote Slave").format(shard.shard_id))
         return receiver
     if ejector is None:
-        raise ValueError(_("分片 {} 未找到 Remote 实例").format(shard.shard_id))
+        raise ValueError(_("分片 {} 未找到 Remote Master").format(shard.shard_id))
     return ejector
 
 
@@ -139,7 +140,7 @@ def expand_tendbcluster_source_specs(
 
     expanded: list[SourceSpec] = []
     for shard in shards:
-        ins = _pick_shard_remote_instance(shard)
+        ins = _pick_shard_remote_instance(shard, source.source_instance_role)
         myloader = copy_myloader_spec(source.myloader)
         if myloader is None and task_cfg:
             myloader = copy_myloader_spec(task_cfg.myloader)
@@ -451,6 +452,43 @@ def task_mode_runs_incremental(task_mode: str | None) -> bool:
     return (task_mode or "").strip().lower() != "full"
 
 
+def _build_platform_incr_migrate_conf(cfg: DtsTaskConfig) -> IncrMigrateConfig | None:
+    """增量任务强制 checkpoint=5；纯全量且未传 incr 则不造 incr 段。单据同名字段丢弃。"""
+    payload = dict(cfg.incr_migrate or {})
+    payload.pop("checkpoint_flush_interval", None)
+    payload.pop("collation_compatible", None)
+    if not task_mode_runs_incremental(cfg.task_mode):
+        if not payload:
+            return None
+        return IncrMigrateConfig(**payload)
+    conf = IncrMigrateConfig(**payload) if payload else IncrMigrateConfig()
+    conf.checkpoint_flush_interval = DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT
+    return conf
+
+
+def resolve_source_relay_enabled(source_resp) -> bool:
+    """从 get_source 结果判断 Source 是否启用 relay。
+
+    ``get_source_status.relay_status.master_binlog`` 未启用 relay 时也会返回上游位点，不能当判据；
+    只有 ``relay_config.enable_relay`` 能区分。字段缺失按未启用处理。
+    """
+    relay_config = getattr(source_resp, "relay_config", None)
+    if relay_config is None and isinstance(source_resp, dict):
+        relay_config = source_resp.get("relay_config")
+    if relay_config is None:
+        return False
+    enabled = getattr(relay_config, "enable_relay", None)
+    if enabled is None and isinstance(relay_config, dict):
+        enabled = relay_config.get("enable_relay")
+    return bool(enabled)
+
+
+def is_relay_not_enabled_error(exc: Exception) -> bool:
+    """DTS 49001：source 无 relay worker，需先 enable-relay。relay 未启用不是清理失败。"""
+    text = str(exc)
+    return "49001" in text or "enable-relay" in text
+
+
 def resolve_purge_relay_binlog_name(status_resp) -> str | None:
     """从 get_source_status 结果解析 purge_relay 所需文件名。
 
@@ -692,11 +730,66 @@ def resolve_dts_cluster_id(plan, migrate_context) -> int | None:
     return None
 
 
+def resolve_destroy_cluster_ids(details: dict) -> list[int]:
+    """从销毁单 details 解析集群 ID 列表（dts_cluster_ids 或单个 dts_cluster_id）。"""
+    raw_ids = details.get("dts_cluster_ids") or []
+    ids: list[int] = []
+    seen: set[int] = set()
+    extra = details.get("dts_cluster_id")
+    for raw in list(raw_ids) + ([extra] if extra else []):
+        try:
+            cid = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if cid and cid not in seen:
+            seen.add(cid)
+            ids.append(cid)
+    return ids
+
+
+def resolve_dts_cluster_name(plan, migrate_context=None) -> str | None:
+    """dump / 建任务认名字：部署入参或上下文；use_existing 再按 ID 反查。"""
+    deploy_inp = getattr(plan, "deploy_subflow_inp", None) if plan is not None else None
+    for obj in (deploy_inp, plan, migrate_context):
+        if obj is None:
+            continue
+        name = getattr(obj, "cluster_name", None)
+        if name:
+            return str(name)
+    dts_cluster_id = resolve_dts_cluster_id(plan, migrate_context)
+    if dts_cluster_id:
+        return load_dts_cluster_name(dts_cluster_id)
+    return None
+
+
 def load_dts_cluster_name(dts_cluster_id: int) -> str | None:
     cluster = MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
     if not cluster or not cluster.name:
         return None
     return cluster.name
+
+
+def load_active_dts_cluster(
+    *, dts_cluster_id: int | None = None, bk_biz_id: int | None = None, cluster_name: str | None = None
+) -> MysqlDtsCluster | None:
+    """运行时取活跃行：有 ID 按 ID，否则按业务+名。给 prepare_user / 清 dump 用。"""
+    if dts_cluster_id:
+        return MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
+    if bk_biz_id and cluster_name:
+        return MysqlDtsCluster.objects.filter(
+            bk_biz_id=bk_biz_id,
+            name=cluster_name,
+            status__in=(
+                MysqlDtsClusterStatus.DEPLOYING.value,
+                MysqlDtsClusterStatus.RUNNING.value,
+            ),
+        ).first()
+    return None
+
+
+def plan_deploy_cluster_name(plan) -> str:
+    deploy_inp = getattr(plan, "deploy_subflow_inp", None) if plan is not None else None
+    return getattr(deploy_inp, "cluster_name", "") or ""
 
 
 def build_full_migrate_config(cluster_name: str, task_name: str, user_full_migrate: dict | None) -> FullMigrateConfig:
@@ -749,7 +842,7 @@ def build_dts_task_request(
         source_config = SourceConfig(
             source_conf=source_conf,
             full_migrate_conf=None,
-            incr_migrate_conf=IncrMigrateConfig(**cfg.incr_migrate) if cfg.incr_migrate else None,
+            incr_migrate_conf=_build_platform_incr_migrate_conf(cfg),
             myloaders=myloaders,
         )
     else:
@@ -760,7 +853,7 @@ def build_dts_task_request(
         source_config = SourceConfig(
             source_conf=source_conf,
             full_migrate_conf=build_full_migrate_config(cluster_name, task_spec.task_name, cfg.full_migrate),
-            incr_migrate_conf=IncrMigrateConfig(**cfg.incr_migrate) if cfg.incr_migrate else None,
+            incr_migrate_conf=_build_platform_incr_migrate_conf(cfg),
         )
 
     task = Task(
@@ -769,6 +862,7 @@ def build_dts_task_request(
         shard_mode=cfg.shard_mode or "",
         on_duplicate=cfg.on_duplicate,
         meta_schema=cfg.meta_schema,
+        collation_compatible=DTS_COLLATION_COMPATIBLE_STRICT,
         ignore_checking_items=cfg.ignore_checking_items,
         target_config=target_cfg,
         source_config=source_config,

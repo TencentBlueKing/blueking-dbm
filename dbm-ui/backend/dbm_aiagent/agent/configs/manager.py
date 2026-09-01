@@ -12,8 +12,8 @@ import json
 import logging
 
 from aidev_agent.enums import CredentialType
-from aidev_agent.packages.resource_manager import AgentResourceManager
 from aidev_agent.pydantic_models import AgentConfig
+from aidev_bkplugin.services.agent_builder import LLMOverrideResourceManager
 from aidev_bkplugin.services.agent_session import SessionManager
 from django.conf import settings
 from django.core.cache import cache
@@ -52,15 +52,18 @@ AGENT_CONFIG_TEMPLATE = {
 }
 
 
-class DBMAgentResourceManager(AgentResourceManager):
+class DBMAgentResourceManager(LLMOverrideResourceManager):
     """DBM Agent配置管理器"""
 
-    def __init__(self, username="", agent_code: str = None, agent_secret: str = None):
+    def __init__(self, username="", agent_code: str = None, agent_secret: str = None, model: str = ""):
+        """
+        :param model: 覆盖智能体发布时配置的 chat_model，为空时沿用平台配置
+        """
         agent_code = agent_code or settings.AGENT_APP_CODE
         agent_secret = agent_secret or settings.AGENT_APP_SECRET
         # TODO：这里不能传递真实的username，暂时为空
         username = "" if username == DEFAULT_USERNAME else username
-        super().__init__(app_code=agent_code, app_secret=agent_secret, username=username)
+        super().__init__(app_code=agent_code, app_secret=agent_secret, username=username, model=model)
 
     @classmethod
     def set_backend_mcp_config(cls, agent_config: AgentConfig):
@@ -159,18 +162,19 @@ class DBMAgentResourceManager(AgentResourceManager):
         return client
 
 
-def build_resource_manager(agent_code, username) -> DBMAgentResourceManager:
+def build_resource_manager(agent_code, username, model: str = "") -> DBMAgentResourceManager:
     """
     构建子智能体 resource-manager
     如果没配置，则默认走主智能体调用（快捷指令路由）
     :param agent_code: 子智能体 code，未配置 token 时回退到主智能体
     :param username: 用户名，用于用户态 access_token 注入（view 层透传）
+    :param model: 覆盖智能体发布时配置的 chat_model，为空时沿用平台配置
     """
     agent_token_config = SystemSettings.get_setting_value(key=SystemSettingsEnum.AGENT_TOKEN_CONFIG, default={})
     agent_token = agent_token_config.get(agent_code, "")
     if not agent_token:
-        return DBMAgentResourceManager(username)
-    return DBMAgentResourceManager(username, agent_code, agent_token)
+        return DBMAgentResourceManager(username, model=model)
+    return DBMAgentResourceManager(username, agent_code, agent_token, model=model)
 
 
 def build_session_manager(agent_code, username) -> SessionManager:

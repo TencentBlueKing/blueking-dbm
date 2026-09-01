@@ -17,6 +17,7 @@ import time
 from collections import defaultdict
 from datetime import timedelta
 
+from blueapps.core.celery.celery import app
 from celery import current_app, shared_task
 from django.core.cache import cache
 from django.utils import timezone
@@ -489,3 +490,19 @@ def update_dba_notice_group(dba_id: int):
             group.save(update_fields=["name", "receivers", "details", "monitor_group_id", "monitor_duty_rule_id"])
     except Exception as e:
         logger.exception("[local_notice_group] update_or_create notice group error: %s", e)
+
+
+@app.task
+def sync_biz_dispatch_policy(bk_biz_id):
+    from backend.db_monitor.models import DispatchGroup
+
+    latest_rules = DispatchGroup.get_rules(bk_biz_id)
+    try:
+        dispatch_group = DispatchGroup.objects.get(bk_biz_id=bk_biz_id)
+        logger.info("sync_plat_dispatch_policy: update biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
+        dispatch_group.rules = latest_rules
+        dispatch_group.save()
+    except DispatchGroup.DoesNotExist:
+        logger.info("sync_plat_dispatch_policy: create biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
+        dispatch_group = DispatchGroup(bk_biz_id=bk_biz_id, rules=latest_rules)
+        dispatch_group.save()

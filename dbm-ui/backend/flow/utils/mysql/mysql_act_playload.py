@@ -975,7 +975,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         db_patterns = []
         ignore_dbs = []
-        if self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_CHECKSUM:
+        ticket_type = getattr(self.ticket_data["ticket_type"], "value", self.ticket_data["ticket_type"])
+        if ticket_type == TicketType.TENDBCLUSTER_CHECKSUM.value:
             db_patterns = [
                 ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
                 for ele in self.ticket_data["db_patterns"]
@@ -984,7 +985,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
                 for ele in self.ticket_data["ignore_dbs"]
             ]
-        elif self.ticket_data["ticket_type"] == TicketType.MYSQL_CHECKSUM:
+        elif ticket_type in (TicketType.MYSQL_CHECKSUM.value, TicketType.MYSQL_DTS_CHECKSUM.value):
+            # MYSQL_DTS_CHECKSUM 与普通 checksum 共用 flow：infos[] 已摊到 ticket_data
             db_patterns = self.ticket_data["db_patterns"]
             ignore_dbs = self.ticket_data["ignore_dbs"]
 

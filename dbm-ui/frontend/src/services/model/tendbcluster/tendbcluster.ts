@@ -13,7 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
@@ -71,22 +77,31 @@ export default class TendbCluster extends ClusterBase {
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
-    tendb_spider_slave_destroy: boolean;
-    tendbcluster_add_clb: boolean;
-    tendbcluster_clb_bind_domain: boolean;
+    tendbcluster_admin_pwd_view: boolean;
+    tendbcluster_authorize: boolean;
+    tendbcluster_dbconfig_edit: boolean;
     tendbcluster_destroy: boolean;
     tendbcluster_dump_data: boolean;
     tendbcluster_edit: boolean;
     tendbcluster_enable_disable: boolean;
+    tendbcluster_loadbalance_manage: boolean;
+    tendbcluster_manage: boolean;
     tendbcluster_node_rebalance: boolean;
+    tendbcluster_openarea_manage: boolean;
+    tendbcluster_partition_manage: boolean;
+    tendbcluster_priv_manage: boolean;
+    tendbcluster_rename_database: boolean;
+    tendbcluster_rollback_cluster: boolean;
     tendbcluster_spider_add_nodes: boolean;
     tendbcluster_spider_mnt_destroy: boolean;
     tendbcluster_spider_reduce_nodes: boolean;
+    tendbcluster_subscribe_monitor: boolean;
+    tendbcluster_truncate_data: boolean;
     tendbcluster_view: boolean;
     tendbcluster_webconsole: boolean;
   };
@@ -122,6 +137,7 @@ export default class TendbCluster extends ClusterBase {
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.dns_to_clb = payload.dns_to_clb;

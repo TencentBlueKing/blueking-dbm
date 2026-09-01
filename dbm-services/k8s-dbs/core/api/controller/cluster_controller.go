@@ -72,8 +72,8 @@ func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.UpdateCluster,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.UpdateCluster,
 	}
 	if err := c.clusterProvider.UpdateClusterRelease(dbsCtx, request, false); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError, err))
@@ -92,8 +92,8 @@ func (c *ClusterController) PartialUpdateCluster(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.PartialUpdateCluster,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.PartialUpdateCluster,
 	}
 	err = c.clusterProvider.UpdateClusterRelease(dbsCtx, request, true)
 	if err != nil {
@@ -118,8 +118,8 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 	}
 
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.CreateCluster,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.CreateCluster,
 	}
 	if err := c.clusterProvider.CreateCluster(dbsCtx, request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err))
@@ -159,8 +159,8 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.DeleteCluster,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.DeleteCluster,
 	}
 	if err := c.clusterProvider.DeleteCluster(dbsCtx, request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err))
@@ -332,6 +332,36 @@ func (c *ClusterController) getClusterComponents(clusterMetaEntity *metaentity.K
 		}
 	}
 	return nil, fmt.Errorf("failed to find cluster topologies")
+}
+
+// BindDomain 绑定集群域名
+func (c *ClusterController) BindDomain(ctx *gin.Context) {
+	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterBindDomain)
+	if err := ctx.ShouldBindJSON(request); err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
+		return
+	}
+	if err := c.clusterProvider.BindDomain(request); err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.BindDomainError, err))
+		return
+	}
+	api.SuccessResponse(ctx, nil, commconst.Success)
+}
+
+// UnbindDomain 解绑集群域名
+func (c *ClusterController) UnbindDomain(ctx *gin.Context) {
+	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterUnbindDomain)
+	if err := ctx.ShouldBindJSON(request); err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
+		return
+	}
+	if err := c.clusterProvider.UnbindDomain(request); err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.UnbindDomainError, err))
+		return
+	}
+	api.SuccessResponse(ctx, nil, commconst.Success)
 }
 
 // setAPIRequestContext 设置 api 请求上下文

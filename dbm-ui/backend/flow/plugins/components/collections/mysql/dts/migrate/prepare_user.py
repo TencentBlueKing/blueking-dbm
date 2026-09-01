@@ -14,12 +14,13 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.dts.migrate_helper import load_active_dts_cluster
 
 logger = logging.getLogger("flow")
 
 
 class MysqlDtsPrepareMigrateUserService(BaseService):
-    """将编排期生成的临时账号与授权快照写入 migrate_context，供后续 AddUser / create_task 使用。"""
+    """写入临时账号，并在 migrate 层解析一次 DTS 集群主键（deploy 子流程 trans_data 不上行）。"""
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -40,13 +41,35 @@ class MysqlDtsPrepareMigrateUserService(BaseService):
             self.log_error(_("grant_targets 为空，未找到需要授权的迁移实例"))
             return False
 
-        trans_data.migrate_context.dts_user = dts_user
-        trans_data.migrate_context.dts_password = dts_password
-        trans_data.migrate_context.grant_hosts = grant_hosts
-        trans_data.migrate_context.grant_targets = grant_targets
+        migrate_context = trans_data.migrate_context
+        dts_cluster = load_active_dts_cluster(
+            dts_cluster_id=kwargs.get("dts_cluster_id"),
+            bk_biz_id=kwargs.get("bk_biz_id"),
+            cluster_name=kwargs.get("cluster_name"),
+        )
+        if dts_cluster is None:
+            self.log_error(
+                _("未找到可写入上下文的 DTS 集群: dts_cluster_id={}, bk_biz_id={}, cluster_name={}").format(
+                    kwargs.get("dts_cluster_id"),
+                    kwargs.get("bk_biz_id"),
+                    kwargs.get("cluster_name"),
+                )
+            )
+            return False
+
+        migrate_context.dts_user = dts_user
+        migrate_context.dts_password = dts_password
+        migrate_context.grant_hosts = grant_hosts
+        migrate_context.grant_targets = grant_targets
+        migrate_context.dts_cluster_id = dts_cluster.id
+        migrate_context.cluster_name = dts_cluster.name or ""
+        migrate_context.master_addr = dts_cluster.master_addr
+        migrate_context.bk_cloud_id = dts_cluster.bk_cloud_id
         data.outputs["trans_data"] = trans_data
         self.log_info(
-            _("准备 DTS 迁移临时账号: user={}, hosts={}, targets={}").format(dts_user, len(grant_hosts), len(grant_targets))
+            _("准备 DTS 迁移临时账号: user={}, hosts={}, targets={}, dts_cluster_id={}").format(
+                dts_user, len(grant_hosts), len(grant_targets), dts_cluster.id
+            )
         )
         return True
 

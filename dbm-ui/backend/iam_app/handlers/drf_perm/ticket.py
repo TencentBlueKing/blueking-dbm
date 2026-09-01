@@ -18,7 +18,9 @@ from django.utils.translation import gettext as _
 from rest_framework.permissions import BasePermission
 
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.models import ExtraProcessInstance
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
+from backend.exceptions import AppBaseException
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ClusterResourceMeta, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import (
@@ -50,7 +52,7 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
     def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
         self.ticket_type = ticket_type
         self.batch = batch
-        action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+        action = BuilderFactory.get_ticket_iam_action(ticket_type)
         actions = [action] if action else []
         # 只考虑关联一种资源
         resource_meta = action.related_resource_types[0] if action else None
@@ -66,10 +68,42 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         elif action in ActionEnum.get_match_actions("tbinlogdumper"):
             # 对应dumper相关操作，需要根据dumper的实例ID反查出相关的集群
             instance_ids_getter = self.instance_dumper_cluster_ids_getter
+        # DB实例权限克隆执行, 查询源客户端IP已在哪些集群
+        elif ticket_type in [TicketType.MYSQL_INSTANCE_CLONE_RULES, TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES]:
+            instance_ids_getter = self.clonepriv_instance_cluster_ids_getter
         else:
             instance_ids_getter = self.instance_cluster_ids_getter
 
         super().__init__(actions, resource_meta, instance_ids_getter=instance_ids_getter)
+
+    def clonepriv_instance_cluster_ids_getter(self, request, view):
+        details = request.data.get("details") or request.data
+        target_ips = [clone_data["target"] for clone_data in details.get("clone_data_list", [])]
+        ips = [ip_port.split(":")[0] for ip_port in target_ips if ":" in ip_port]
+        machines = Machine.objects.filter(ip__in=ips)
+        ip_port_cluster_map = {}
+        proxy_instances = (
+            ProxyInstance.objects.filter(machine__in=machines).select_related("machine").prefetch_related("cluster")
+        )
+        storage_instances = (
+            StorageInstance.objects.filter(machine__in=machines).select_related("machine").prefetch_related("cluster")
+        )
+        for pi in proxy_instances:
+            ip = pi.machine.ip
+            for cluster in pi.cluster.all():
+                ip_port_cluster_map[f"{ip}:{pi.port}"] = cluster.id
+                if pi.admin_port:
+                    ip_port_cluster_map[f"{ip}:{pi.admin_port}"] = cluster.id
+        for si in storage_instances:
+            ip = si.machine.ip
+            for cluster in si.cluster.all():
+                ip_port_cluster_map[f"{ip}:{si.port}"] = cluster.id
+        cluster_ids = []
+        for target_ip in target_ips:
+            if not ip_port_cluster_map.get(target_ip):
+                raise AppBaseException(_("目标ip{}没找到对应的集群id").format(target_ip))
+            cluster_ids.append(ip_port_cluster_map[target_ip])
+        return cluster_ids
 
     def instance_biz_ids_getter(self, request, view):
         if self.batch:
@@ -125,7 +159,7 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
     def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
         self.ticket_type = ticket_type
         self.batch = batch
-        action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+        action = BuilderFactory.get_ticket_iam_action(ticket_type)
         resource_metes = action.related_resource_types
         # 根据单据类型来决定资源获取方式
         instance_ids_getters = None
@@ -174,12 +208,60 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
         return [(details["details"]["config_id"], details["details"]["cluster_id"]) for details in openarea_details]
 
 
+class CreateTicketMysqlOrTendbclusterPermission(IAMPermission):
+    """同一动作同时关联 MYSQL 与 TENDBCLUSTER 时，按集群类型分别鉴权（不是 MoreResource 的 AND 元组）。"""
+
+    MYSQL_CLUSTER_TYPES = {ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value}
+    TENDBCLUSTER_TYPES = {ClusterType.TenDBCluster.value}
+
+    def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
+        self.ticket_type = ticket_type
+        self.batch = batch
+        action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+        super().__init__(actions=[action] if action else [])
+
+    def _cluster_ids(self, request) -> List[int]:
+        tickets = request.data.get("tickets", []) if self.batch else [request.data]
+        cluster_ids: List[int] = []
+        for ticket in tickets:
+            details = ticket.get("details") or ticket
+            cluster_ids.extend(fetch_cluster_ids(details))
+        return [int(cid) for cid in cluster_ids if isinstance(cid, int) or (isinstance(cid, str) and cid.isdigit())]
+
+    def has_permission(self, request, view):
+        if not self.actions:
+            return True
+        action = self.actions[0]
+        cluster_ids = self._cluster_ids(request)
+        if not cluster_ids:
+            return True
+        type_map = dict(Cluster.objects.filter(id__in=cluster_ids).values_list("id", "cluster_type"))
+        mysql_ids = [cid for cid in cluster_ids if type_map.get(cid) in self.MYSQL_CLUSTER_TYPES]
+        tendb_ids = [cid for cid in cluster_ids if type_map.get(cid) in self.TENDBCLUSTER_TYPES]
+        if mysql_ids:
+            perm = ResourceActionPermission([action], ResourceEnum.MYSQL, instance_ids_getter=lambda _r, _v: mysql_ids)
+            if not perm.has_permission(request, view):
+                return False
+        if tendb_ids:
+            perm = ResourceActionPermission(
+                [action], ResourceEnum.TENDBCLUSTER, instance_ids_getter=lambda _r, _v: tendb_ids
+            )
+            if not perm.has_permission(request, view):
+                return False
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+
 def create_ticket_permission(ticket_type: TicketType, batch: bool = False) -> List[IAMPermission]:
-    action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+    action = BuilderFactory.get_ticket_iam_action(ticket_type)
     if not action:
         # 对于未注册到iam的单据动作，默认只开放给superuser
         logger.warning(_("单据动作ID:{} 不存在").format(action))
         return [RejectPermission()]
+    if ticket_type == TicketType.MYSQL_RENAME_MIGRATE:
+        return [CreateTicketMysqlOrTendbclusterPermission(ticket_type=ticket_type, batch=batch)]
     if len(action.related_resource_types) <= 1:
         return [CreateTicketOneResourcePermission(ticket_type=ticket_type, batch=batch)]
     else:
@@ -213,7 +295,7 @@ def ticket_flows_config_permission(action, request):
     dbtype_cov = TicketType.get_db_type_by_ticket
     permission: IAMPermission = None
 
-    if action in ["update_ticket_flow_config", "create_ticket_flow_config"]:
+    if action in ["save_ticket_flow_config", "update_ticket_flow_config", "create_ticket_flow_config"]:
         if request.data.get("bk_biz_id"):
             permission = BizDBTypeResourceActionPermission(
                 [ActionEnum.BIZ_TICKET_CONFIG_SET],
@@ -260,7 +342,7 @@ def add_ticket_audit_event(ticket_id):
         return
 
     # 获取单据执行相关的iam资源
-    action = BuilderFactory.ticket_type__iam_action.get(ticket.ticket_type)
+    action = BuilderFactory.get_ticket_iam_action(ticket.ticket_type)
     if not action:
         return
 

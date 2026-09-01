@@ -23,10 +23,10 @@ import commentity "k8s-dbs/common/entity"
 
 // TerminalEntity terminal entity
 type TerminalEntity struct {
-	K8sClusterName    string `json:"k8sClusterName" binding:"required"`
-	ClusterName       string `json:"clusterName" binding:"required"`
-	Namespace         string `json:"namespace" binding:"required"`
-	PodName           string `json:"podName" binding:"required"`
-	ContainerName     string `json:"containerName,omitempty"`
-	commentity.BKAuth `json:",inline"`
+	K8sClusterName          string `json:"k8sClusterName" binding:"required"`
+	ClusterName             string `json:"clusterName" binding:"required"`
+	Namespace               string `json:"namespace" binding:"required"`
+	PodName                 string `json:"podName" binding:"required"`
+	ContainerName           string `json:"containerName,omitempty"`
+	commentity.BKAdditional `json:",inline"`
 }

@@ -41,6 +41,8 @@ type K8sClusterServiceDbAccess interface {
 	ListByPage(pagination entity.Pagination) ([]models.K8sClusterServiceModel, int64, error)
 	ReplaceAllByClusterID(crdClusterID uint64, serviceModels []*models.K8sClusterServiceModel) error
 	UpsertByClusterIDAndServiceName(model *models.K8sClusterServiceModel) error
+	UpdateDomainsByClusterIDAndServiceName(crdClusterID uint64, serviceName, domains string) (uint64, error)
+	CountExternalByClusterID(crdClusterID uint64) (int64, error)
 }
 
 // K8sClusterServiceDbAccessImpl K8sClusterServiceDbAccess 的具体实现
@@ -190,13 +192,37 @@ func (k *K8sClusterServiceDbAccessImpl) UpsertByClusterIDAndServiceName(
 		if model.Extra == "" && existing.Extra != "" {
 			model.Extra = existing.Extra
 		}
-		if updateErr := tx.Omit("CreatedAt", "CreatedBy").Save(model).Error; updateErr != nil {
+		// domains 的权威源来自 DBM API 创建成功后的回写，
+		// informer 重复触发时未携带 domains，需保留已有值避免被清空
+		if model.Domains == "" && existing.Domains != "" {
+			model.Domains = existing.Domains
+		}
+		if updateErr := tx.Model(&models.K8sClusterServiceModel{}).
+			Where("id = ?", existing.ID).
+			Select("*").
+			Omit("ID", "CreatedAt", "CreatedBy").
+			Updates(model).Error; updateErr != nil {
 			return errors.Wrapf(updateErr,
 				"failed to update service for upsert: cluster_id=%d, service=%s",
 				model.CrdClusterID, model.ServiceName)
 		}
 		return nil
 	})
+}
+
+// UpdateDomainsByClusterIDAndServiceName 仅更新指定 service 的 domains 字段
+// 用于 DBM API 创建域名成功后回写本地记录，避免读旧 entity 去 upsert 产生覆盖
+func (k *K8sClusterServiceDbAccessImpl) UpdateDomainsByClusterIDAndServiceName(
+	crdClusterID uint64, serviceName, domains string,
+) (uint64, error) {
+	result := k.db.Model(&models.K8sClusterServiceModel{}).
+		Where("crd_cluster_id = ? AND service_name = ?", crdClusterID, serviceName).
+		Update("domains", domains)
+	if result.Error != nil {
+		return 0, errors.Wrapf(result.Error,
+			"failed to update domains: cluster_id=%d, service=%s", crdClusterID, serviceName)
+	}
+	return uint64(result.RowsAffected), nil
 }
 
 // serviceDataEqual 比较两条 service 记录的业务字段是否一致
@@ -218,4 +244,17 @@ func (k *K8sClusterServiceDbAccessImpl) ListByPage(_ entity.Pagination) (
 	error,
 ) {
 	return nil, 0, errors.New("not implemented")
+}
+
+// CountExternalByClusterID 统计指定集群下拥有外部地址的 service 数量
+func (k *K8sClusterServiceDbAccessImpl) CountExternalByClusterID(crdClusterID uint64) (int64, error) {
+	var count int64
+	result := k.db.Model(&models.K8sClusterServiceModel{}).
+		Where("crd_cluster_id = ? AND external_addrs IS NOT NULL AND external_addrs != ''", crdClusterID).
+		Count(&count)
+	if result.Error != nil {
+		return 0, errors.Wrapf(result.Error,
+			"failed to count external services by cluster id %d", crdClusterID)
+	}
+	return count, nil
 }

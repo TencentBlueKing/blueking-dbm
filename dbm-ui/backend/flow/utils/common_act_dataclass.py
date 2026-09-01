@@ -124,6 +124,16 @@ class ResourceHcmReplenishKwargs:
 
 
 @dataclass
+class OperateHostBklogCollectorKwargs:
+    """按主机维度安装/卸载日志采集项"""
+
+    bk_biz_id: int
+    bk_host_ids: list
+    action: str
+    collector_names: list
+
+
+@dataclass
 class ResourceImportContext(IgnoreNotExistFieldDataclass):
     """
     资源导入相关上下文参数

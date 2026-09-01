@@ -54,17 +54,17 @@
       </InfoItem>
       <InfoItem :label="t('Proxy 存储资源标签')">
         <template v-if="ticketDetails.details.resource_spec.proxy.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in ticketDetails.details.resource_spec.proxy.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
     </template>
     <template v-if="ticketDetails.details.resource_spec?.backend_group">
@@ -83,17 +83,17 @@
       </InfoItem>
       <InfoItem :label="t('后端存储资源标签')">
         <template v-if="ticketDetails.details.resource_spec.backend_group.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in ticketDetails.details.resource_spec.backend_group.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
     </template>
     <InfoItem
@@ -117,7 +117,7 @@
           col-key="deployStructure"
           :min-width="120"
           :title="t('部署架构')">
-          {{ mysqlType[ticketDetails.ticket_type as MysqlTypeString].name }}
+          {{ clusterTypeInfos[ClusterTypes.TENDBHA].name }}
         </TicketInfoTableColumn>
         <TicketInfoTableColumn
           col-key="version"
@@ -141,7 +141,7 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, TicketTypes } from '@common/const';
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
