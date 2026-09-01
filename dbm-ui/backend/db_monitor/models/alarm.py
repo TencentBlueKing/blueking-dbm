@@ -40,6 +40,7 @@ from backend.db_monitor.constants import (
     TPLS_ALARM_DIR,
     AlertSourceEnum,
     DutyRuleCategory,
+    PolicyGlobalCode,
     PolicyStatus,
     PolicyTag,
     TargetLevel,
@@ -750,11 +751,17 @@ class MonitorPolicy(AuditedModel):
         max_length=LEN_NORMAL,
         default="",
     )
+    policy_code = models.CharField(
+        verbose_name=_("策略代号"),
+        choices=PolicyGlobalCode.get_choices(),
+        max_length=LEN_MIDDLE,
+        default="",
+    )
 
     class Meta:
         verbose_name = _("告警策略(MonitorPolicy)")
 
-    def calc_from_targets(self, parent_policy):
+    def calc_from_targets(self):
         """根据目标计算优先级"""
 
         # 根据监控目标获取策略优先级
@@ -783,12 +790,6 @@ class MonitorPolicy(AuditedModel):
                 for value in t["rule"]["value"]
             ]
         )
-
-        # 平台策略首次生成分组key，所有子策略继承同一个key
-        if not self.parent_id and not self.priority_group_key:
-            self.priority_group_key = f"{PRIORITY_KEY_PREFIX}_{count_md5(self.name)}"
-        elif self.parent_id != 0:
-            self.priority_group_key = parent_policy.priority_group_key
 
         # self.local_save()
 
@@ -851,11 +852,15 @@ class MonitorPolicy(AuditedModel):
         """将监控目标映射为所有查询的where条件"""
         parent_policy = MonitorPolicy.objects.filter(id=self.parent_id).first()
 
-        self.calc_from_targets(parent_policy)
+        self.calc_from_targets()
 
         # patch priority
         details["priority"] = self.target_priority
-        details["priority_group_key"] = self.priority_group_key
+        # 平台策略首次生成分组key，所有子策略继承同一个key
+        # 先有平台策略才有子策略， 平台策略的details存了priority_group_key，子策略克隆的时候一定带有priority_group_key
+        if not self.parent_id and not self.priority_group_key:
+            self.priority_group_key = f"{PRIORITY_KEY_PREFIX}_{count_md5(self.name)}"
+            details["priority_group_key"] = self.priority_group_key
 
         # patch agg conditions
         agg_conditions = []
@@ -1001,30 +1006,45 @@ class MonitorPolicy(AuditedModel):
             )
         return agg_info
 
+    def sync_inner_policy(self, sub_policy, agg_interval_map):
+        """同步全局策略和业务父策略脱钩字段， 即真内置和假内置脱钩字段要保持统一"""
+        sub_policy.test_rules = self.test_rules
+        sub_policy.no_data_config = self.no_data_config
+        sub_policy.detects_config = self.detects_config
+        sub_policy.notify_rules = self.notify_rules
+        sub_policy.notify_config = self.notify_config
+        sub_policy.is_enabled = self.is_enabled
+        sub_policy.details.update(is_enabled=self.is_enabled)
+        old_agg_info = sub_policy.agg_info
+        for info in old_agg_info:
+            info["agg_interval"] = agg_interval_map[info["metric_id"]]
+        sub_policy.agg_info = old_agg_info
+        return sub_policy
+
+    def sync_policy_common_field(self, sub_policy):
+        """同步全局策略和子策略的非脱钩字段，保持一致"""
+        if self.details.get("actions"):
+            callbacks = self.details["actions"]
+        else:
+            callback_actions = get_dbm_alarm_callback_actions()
+            labels = list(set(self.details["labels"]))
+            callbacks = self.get_callbacks(labels, callback_actions)
+        sub_policy.priority_group_key = self.priority_group_key
+        sub_policy.policy_code = self.policy_code
+        sub_policy.details.update(actions=callbacks, priority_group_key=self.priority_group_key)
+        return sub_policy
+
     def sync_platform_policy(self):
         """同步平台策略的属性"""
 
         agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in self.agg_info}
         for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
+            # 真内置和假内置需要同步的信息
             if sub_policy.policy_tag == PolicyTag.INNER and sub_policy.target_level == TargetLevel.APP:
-                sub_policy.test_rules = self.test_rules
-                sub_policy.no_data_config = self.no_data_config
-                sub_policy.detects_config = self.detects_config
-                sub_policy.notify_rules = self.notify_rules
-                sub_policy.notify_config = self.notify_config
-                if self.details.get("actions"):
-                    callbacks = self.details["actions"]
-                else:
-                    callback_actions = get_dbm_alarm_callback_actions()
-                    labels = list(set(self.details["labels"]))
-                    callbacks = self.get_callbacks(labels, callback_actions)
-
-                sub_policy.is_enabled = self.is_enabled
-                sub_policy.details.update(is_enabled=self.is_enabled, actions=callbacks)
-                old_agg_info = sub_policy.agg_info
-                for info in old_agg_info:
-                    info["agg_interval"] = agg_interval_map[info["metric_id"]]
-                sub_policy.agg_info = old_agg_info
+                # 同步全局脱钩字段
+                sub_policy = self.sync_inner_policy(sub_policy, agg_interval_map)
+            # 同步全局非脱钩字段
+            sub_policy = self.sync_policy_common_field(sub_policy)
             sub_policy.save()
 
     def local_save(self, *args, **kwargs):
@@ -1141,6 +1161,8 @@ class MonitorPolicy(AuditedModel):
 
         policy.parent_details = copy.deepcopy(parent.details)
         policy.db_type = parent.db_type
+        policy.priority_group_key = parent.priority_group_key
+        policy.policy_code = parent.policy_code
         policy.monitor_indicator = parent.monitor_indicator
 
         policy.details = copy.deepcopy(parent.details)
