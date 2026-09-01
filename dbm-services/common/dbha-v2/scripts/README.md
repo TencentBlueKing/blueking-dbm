@@ -33,6 +33,9 @@
 
 从 Admin 拉一份最新配置（内部调用 `dbha-probe gen-config` 写临时文件），再与本地比对。
 gen-config 树上的 key/value 必须与本地一致；本地多出的 `admin` / `client` 等字段忽略。
+Admin 模式把 gen-config 写到空的临时文件，走的是新建路径。新建路径会按本次传入的参数写出
+`admin` 块，但那是脚本自己的默认值而非本机实际配置，因此脚本在比对前把 `admin` 子树剔除。
+若本地启用了 `clearPorts`，临时输出未裁剪，报告里 harvester 端口可能显示为差异，属已知限制。
 
 ```bash
 cd ~/dbha-v2   # 或实际安装根

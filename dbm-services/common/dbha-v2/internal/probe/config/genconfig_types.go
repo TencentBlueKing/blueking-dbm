@@ -26,19 +26,22 @@ package config
 
 // probeYAML is used only for GenProbeYAML output. Reuses LogConfig from config.go.
 //
-// The blocks the probe owns locally (ServiceID, Client, Admin) are pointers with omitempty and
-// are only filled in by the options in genconfig.go, so a plain gen-config renders exactly what
-// it always did instead of gaining empty blocks.
+// Locally owned blocks (ServiceID, Client, Admin, ClearPorts) use omitempty so a render that
+// does not inject them stays free of empty blocks, while LocalFields fills them in when
+// rewriting an existing file. A brand-new file injects only Admin and ClearPorts, which have a
+// real source on that path (the resolved pull parameters and --clear-port); the rest would come
+// from defaultConfiguration() and stay omitted.
 type probeYAML struct {
-	Name      string             `yaml:"name"`
-	Version   string             `yaml:"version"`
-	ServiceID string             `yaml:"serviceID,omitempty"`
-	PidFile   string             `yaml:"pidFile"`
-	Reporter  probeReporterYAML  `yaml:"reporter"`
-	Client    *probeClientYAML   `yaml:"client,omitempty"`
-	Admin     *probeAdminYAML    `yaml:"admin,omitempty"`
-	Harvester probeHarvesterYAML `yaml:"harvester"`
-	Log       LogConfig          `yaml:"log"`
+	Name       string             `yaml:"name"`
+	Version    string             `yaml:"version"`
+	ServiceID  string             `yaml:"serviceID,omitempty"`
+	PidFile    string             `yaml:"pidFile"`
+	Reporter   probeReporterYAML  `yaml:"reporter"`
+	Client     *probeClientYAML   `yaml:"client,omitempty"`
+	Admin      *probeAdminYAML    `yaml:"admin,omitempty"`
+	Harvester  probeHarvesterYAML `yaml:"harvester"`
+	Log        LogConfig          `yaml:"log"`
+	ClearPorts []int              `yaml:"clearPorts,omitempty"`
 }
 
 // probeReporterYAML has ConnTimeout as string for YAML output (e.g. "5s"); ReporterConfig uses time.Duration.

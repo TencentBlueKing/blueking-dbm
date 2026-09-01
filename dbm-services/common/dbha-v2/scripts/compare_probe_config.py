@@ -1001,9 +1001,18 @@ def run_gen_config(bin_abs, install_root, args, timeout_sec):
             msg = err.strip() or "gen-config exited %s" % code
             return None, msg
         try:
-            return load_mapping(tmp_path), None
+            expected = load_mapping(tmp_path)
         except LoadError as load_err:
             return None, to_text(load_err)
+        # The temp file starts out empty, so gen-config treats it as a first deployment and
+        # writes an admin block built from the flags above rather than from the machine. Those
+        # flags are this script's own defaults, not what the operator provisioned, so comparing
+        # them against the live file would report bk_cloud_id or localIP as a difference on any
+        # host that was set up with other values. The block is local state anyway, which is the
+        # category the subset rule exists to ignore.
+        if isinstance(expected, dict):
+            expected.pop("admin", None)
+        return expected, None
     finally:
         unlink_quiet(tmp_path)
         unlink_quiet(lock_path)

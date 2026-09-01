@@ -87,7 +87,9 @@ admin:
 
 行为要点：
 
-- **只改两段**：每轮把 admin 返回的内容渲染后，只与文件里的 `reporter`、`harvester` 做**语义**比较，一致就不写盘。`serviceID`、`pidFile`、`client`、`log`、`admin` 块等本机字段一律以**磁盘上的文件**为准原样保留——运维刚改完还没 reload 的编辑不会被内存里的旧值覆盖。
+- **只改两段**：每轮把 admin 返回的内容渲染后，只与文件里的 `reporter`、`harvester` 做**语义**比较，一致就不写盘。`serviceID`、`pidFile`、`client`、`log`、`admin`、`clearPorts` 等本机字段一律以**磁盘上的文件**为准原样保留——运维刚改完还没 reload 的编辑不会被内存里的旧值覆盖。
+- **拉取参数必须与文件同源**：本轮 fetch 使用的 `endpoints` / `bkCloudID` / `localIP` 若与磁盘上的 admin 块不一致，本轮跳过写入并请求 reload，等内存追上后再写。否则会把旧参数拉到的 harvester 和磁盘上的新 admin 拼在一起，与下一次 `gen-config` 来回横跳。
+- **`clearPorts` 与 gen-config 共用**：文件里的排除端口在渲染 harvester 时生效，因此 `gen-config --clear-port` 写入的裁剪不会被下一轮同步还原。
 - **格式会被重排**：真正写盘时整个文件由生成器重新渲染，缩进与引号风格会变成生成器的样式，文件内注释会丢失。不变更时不写盘，所以注释只在配置真的发生变化时才会被覆盖。
 - **不会拿坏配置覆盖好配置**：渲染结果先自解析校验，解析不过就保留原文件并告警；反过来，磁盘文件已经损坏时会用 admin 的内容重写以自愈。
 - **`syncInterval` 下限 10s**，低于此值会被抬高并告警。每轮加最多 1/10 间隔的抖动，首轮再额外错峰（最多 30s），避免整片机器同时打 admin。
@@ -100,6 +102,6 @@ admin:
 
 - 元数据为空时返回 `PROBE_CONFIG_NO_DATA`，需先保证 analysis 同步或 DBM 侧有该 IP 的实例信息。
 - 部署侧常用 `dbha-probe gen-config` 后再 `start` / `daemon-start`；自动化见 scripts 与 `ensure` 子命令。首次部署不要在 start 之前带 `--reload`。
-- 运行中更新配置：`dbha-probe gen-config -o <probe.yaml 路径> --reload`（或改完文件后执行 `dbha-probe reload`）。打包布局下命令会切到安装根目录；`-o` 应与进程 `-c` 为同一文件。
+- 运行中更新配置：`dbha-probe gen-config -o <probe.yaml 路径> --reload`。写已有文件时会保留本机 `admin` / `client` / `log` / `clearPorts` 等字段；`--admin-endpoints` 覆盖文件里的地址列表，必须一次传全。未传 `--cloud-id` / `--local-ip` 时沿用文件值。打包布局下命令会切到安装根目录；`-o` 应与进程 `-c` 为同一文件。
 - Admin 下发默认 reporter 为 GSE；运行时 gRPC / GSE 二选一与改法见 [采集与上报](probe-harvest-and-report.md)。**若把 reporter 手工改成 gRPC，又同时开了周期同步**，那么每轮都会检出差异并把它改回 GSE。这两项要么只用其一，要么让 admin 侧的 `probeGse` 与本机期望一致。
 - **凭据暴露面**：payload 里带明文 DB 密码，gRPC 连接当前未启用 TLS，`probe.yaml` 默认权限 `0644`。这两点在一次性 `gen-config` 时就已存在，开启周期同步会让明文密码按周期反复经过网络，请在受控网络内使用，并按需收紧文件权限。

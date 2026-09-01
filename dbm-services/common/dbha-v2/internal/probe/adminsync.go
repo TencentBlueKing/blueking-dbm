@@ -113,7 +113,7 @@ func (p *Probe) syncOnce(admin config.AdminConfig) {
 		return
 	}
 
-	changed, err := p.reconcileConfigFile(payload)
+	changed, err := p.reconcileConfigFile(payload, admin)
 	if err != nil {
 		logger.Warn("reconcile config file failed, config_path: %s, errmsg: %s", p.configPath, err)
 		return
@@ -151,7 +151,9 @@ func (p *Probe) fetchRemoteConfig(admin config.AdminConfig) (probeconfig.ProbeCo
 //
 // The fetch deliberately happens outside the lock: holding it across a round-trip to admin
 // would block gen-config for as long as admin takes to answer.
-func (p *Probe) reconcileConfigFile(payload probeconfig.ProbeConfigPayload) (bool, error) {
+func (p *Probe) reconcileConfigFile(
+	payload probeconfig.ProbeConfigPayload, admin config.AdminConfig,
+) (bool, error) {
 	lockPath, err := process.LockPathFor(p.configPath)
 	if err != nil {
 		return false, fmt.Errorf("resolve config lock path: %w", err)
@@ -163,6 +165,19 @@ func (p *Probe) reconcileConfigFile(payload probeconfig.ProbeConfigPayload) (boo
 	defer func() { _ = fl.Unlock() }()
 
 	disk, diskErr := config.Parse(p.configPath)
+
+	if diskErr == nil && !adminPullParamsEqual(disk.Admin, admin) {
+		logger.Warn(
+			"admin pull params differ from the config file, skip write and request reload, "+
+				"file_endpoints: %v, mem_endpoints: %v, file_bk_cloud_id: %d, mem_bk_cloud_id: %d, "+
+				"file_local_ip: %s, mem_local_ip: %s",
+			disk.Admin.Endpoints, admin.Endpoints,
+			disk.Admin.BkCloudID, admin.BkCloudID,
+			disk.Admin.LocalIP, admin.LocalIP,
+		)
+		p.requestReload()
+		return false, nil
+	}
 
 	// Locally owned fields are taken from the file, not from memory. An operator may have
 	// edited the file and not reloaded yet; sourcing these from the applied config would
@@ -208,6 +223,12 @@ func (p *Probe) reconcileConfigFile(payload probeconfig.ProbeConfigPayload) (boo
 func configEquivalent(disk, rendered config.Configuration) bool {
 	return reflect.DeepEqual(disk.Reporter, rendered.Reporter) &&
 		reflect.DeepEqual(disk.Harvester, rendered.Harvester)
+}
+
+func adminPullParamsEqual(disk, used config.AdminConfig) bool {
+	return reflect.DeepEqual(disk.Endpoints, used.Endpoints) &&
+		disk.BkCloudID == used.BkCloudID &&
+		disk.LocalIP == used.LocalIP
 }
 
 // requestReload nudges the reload worker to pick up the new file.

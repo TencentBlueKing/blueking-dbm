@@ -130,7 +130,7 @@ func init() {
 	GenConfigCmd.Flags().String(
 		"clear-port",
 		"",
-		"Ports to exclude from collection, separated by comma or semicolon (e.g. 100,200;300;400)",
+		"Ports to exclude from collection, persisted as clearPorts; empty value clears the list",
 	)
 	GenConfigCmd.Flags().Bool(
 		"reload",
