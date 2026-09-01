@@ -189,11 +189,9 @@
       flex: 1;
       border: none;
 
-      .bk-resize-layout-aside {
-        border-color: transparent;
-
+      .bk-resize-trigger {
         &:hover {
-          border-color: #3a84ff;
+          background-color: #3a84ff;
         }
       }
     }
