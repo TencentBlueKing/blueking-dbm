@@ -20,11 +20,7 @@ from backend.components import KubernetesApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.k8s_db.consts import SCHEDULE_INTERVAL_SECONDS, SCHEDULE_MAX_RETRIES
-from backend.flow.utils.k8s_db.surrealdb.consts import (
-    COMPONENT_SURREAL,
-    SERVICE_NAME,
-    SURREALDB_PORT,
-)
+from backend.flow.utils.k8s_db.surrealdb.consts import COMPONENT_SURREAL, SERVICE_NAME, SURREALDB_PORT
 
 logger = logging.getLogger("flow")
 
