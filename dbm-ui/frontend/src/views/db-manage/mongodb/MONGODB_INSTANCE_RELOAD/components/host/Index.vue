@@ -30,7 +30,6 @@
           :columns="['cluster']"
           :label="t('主机 IP')"
           :selected="selected"
-          :tab-list-config="tabListConfig"
           @batch-edit="handleBatchEdit" />
         <OperationColumn
           v-model:table-data="tableData"
@@ -46,14 +45,11 @@
 
   import { type Mongodb } from '@services/model/ticket/ticket';
   import { checkInstance } from '@services/source/dbbase';
-  import { getMongodbMachineList } from '@services/source/mongodb';
 
   import { useTicketDetail } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
   import { TicketTypes } from '@common/const/ticketTypes.ts';
-
-  import { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
@@ -121,23 +117,6 @@
       data.host,
     ),
   });
-
-  const tabListConfig = {
-    mongoCluster: [
-      {
-        id: 'mongoCluster',
-        name: t('目标主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('主机 IP'),
-          },
-          getTableList: (params: ServiceParameters<typeof getMongodbMachineList>) => getMongodbMachineList(params),
-          multiple: true,
-        },
-      },
-    ],
-  } as Record<string, PanelListType>;
 
   const tableData = ref([createRow()]);
   const tableKey = ref(random());

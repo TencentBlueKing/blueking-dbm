@@ -41,9 +41,10 @@
             <HostColumn
               v-model="item.host"
               :cluster-types="[ClusterTypes.REDIS]"
+              :data-source-map="dataSourceMap"
               :label="t('待重建从库主机')"
               :selected="selected"
-              :tab-list-config="tabListConfig"
+              :tab-name-map="{ [ClusterTypes.REDIS]: t('待重建的主机') }"
               @batch-edit="handleBatchEdit" />
             <MasterHostColumn
               v-model="slaveMasterMap"
@@ -57,7 +58,7 @@
                 <div
                   v-for="(relatedClusterItem, relatedClusterIndex) in item.host.related_clusters"
                   :key="relatedClusterIndex">
-                  {{ relatedClusterItem.immute_domain }}
+                  {{ relatedClusterItem?.immute_domain }}
                 </div>
               </EditableBlock>
             </EditableColumn>
@@ -126,18 +127,16 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
-  import RedisMachineModel from '@services/model/redis/redis-machine';
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisMachineList } from '@services/source/redis';
-  import { listClustersCreateSlaveProxy, queryMasterSlavePairs } from '@services/source/redisToolbox';
+  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
   import type { MachineSpecConfig } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
+  import { type HostModel } from '@components/host-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -237,64 +236,16 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
-  const tabListConfig = {
-    [ClusterTypes.REDIS]: [
-      {
-        id: 'redis',
-        name: t('待重建的主机'),
-        tableConfig: {
-          columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
-          firsrColumn: {
-            field: 'ip',
-            label: 'IP',
-            role: 'redis_slave',
-          },
-          getTableList: (params: any) =>
-            getRedisMachineList({
-              ...params,
-              instance_status: 'unavailable',
-              limit: -1,
-            }),
-          isRemotePagination: false,
-          statusFilter: (data: RedisMachineModel) => !data.isSlaveFailover,
-          // disabledRowConfig: {
-          //   handler: (data: RedisMachineModel) => data.running_slave !== 0,
-          //   tip: t('已存在正常运行的从库'),
-          // },
-        },
-        topoConfig: {
-          countFunc: (item: RedisModel) => item.redisSlaveFaults,
-          getTopoList: listClustersCreateSlaveProxy,
-          topoAlertContent: (
-            <bk-alert
-              closable
-              style='margin-bottom: 12px;'
-              theme='info'
-              title={t('仅支持从库有故障的集群新建从库')}
-            />
-          ),
-          totalCountFunc: (list: RedisModel[]) =>
-            list.reduce((prevCount, listItem) => prevCount + listItem.redisSlaveFaults, 0),
-        },
-      },
-      {
-        manualConfig: {
-          activePanelId: 'redis',
-        },
-        tableConfig: {
-          columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
-          getTableList: (params: any) =>
-            getRedisMachineList({
-              ...params,
-              instance_status: 'unavailable',
-              limit: -1,
-            }),
-          isRemotePagination: false,
-          statusFilter: (data: RedisMachineModel) => !data.isSlaveFailover,
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 待重建从库主机：仅列出从库有故障的机器
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        ...params,
+        instance_role: 'redis_slave',
+        instance_status: 'unavailable',
+        limit: -1,
+      }),
+  };
 
   const rules = {
     'host.ip': [
@@ -330,7 +281,7 @@
   // );
 
   // 批量选择
-  const handleBatchEdit = async (list: IValue[]) => {
+  const handleBatchEdit = async (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
       const { ip } = item;
@@ -340,7 +291,7 @@
             host: {
               bk_host_id: item.bk_host_id,
               ip: item.ip,
-              region: item.region,
+              region: item.host_info.bk_idc_city_name,
               related_clusters: item.related_clusters,
               related_instances: item.related_instances,
               spec_config: item.spec_config,

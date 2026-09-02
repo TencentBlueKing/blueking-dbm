@@ -26,12 +26,11 @@
         <div>-- {{ modelValue.pair_machine.ip }}</div>
       </BkLoading>
     </div>
-    <InstanceSelector
+    <HostSelector
       v-model:is-show="isShowSelector"
-      :cluster-types="['RedisHost']"
-      hide-manual-input
-      :selected="selectedList"
-      :tab-list-config="tabListConfig"
+      :cluster-types="[ClusterTypes.REDIS]"
+      :data-source-map="dataSourceMap"
+      :model-value="selectedList"
       @change="handleInstanceSelectChange" />
   </EditableColumn>
 </template>
@@ -41,19 +40,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisModel from '@services/model/redis/redis';
   import { getGlobalMachine } from '@services/source/dbbase';
-  import { getRedisClusterList } from '@services/source/redis';
+  import { getRedisMachineList } from '@services/source/redis';
   import { queryMachineInstancePair } from '@services/source/redisToolbox';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
   interface Props {
     selected: {
@@ -61,7 +55,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', value: IValue[]) => void;
+  type Emits = (e: 'batch-edit', value: HostModel<ClusterTypes.REDIS>[]) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -89,38 +83,14 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    RedisHost: [
-      {
-        name: t('存储层主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: 'IP',
-            role: 'redis_master,redis_slave',
-          },
-        },
-        topoConfig: {
-          countFunc: (clusterItem: RedisModel) => {
-            const ipList = clusterItem.redis_master.concat(clusterItem.redis_slave).map((hostItem) => hostItem.ip);
-            return new Set(ipList).size;
-          },
-          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-            getRedisClusterList({
-              ...params,
-              cluster_type: '',
-            }),
-          totalCountFunc: (dataList: RedisModel[]) => {
-            const ipSet = new Set<string>();
-            dataList.forEach((dataItem) =>
-              dataItem.redis_master.concat(dataItem.redis_slave).forEach((masterItem) => ipSet.add(masterItem.ip)),
-            );
-            return ipSet.size;
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 存储层主机：主从角色均可见（与旧实现 firsrColumn.role 的接口过滤语义一致）
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        ...params,
+        instance_role: 'redis_master,redis_slave',
+      }),
+  };
 
   const rules = [
     {
@@ -143,11 +113,11 @@
   const isShowSelector = ref(false);
   const isLoading = ref(false);
 
-  const selectedList = computed(
+  const selectedList = computed<HostSelectorValues<ClusterTypes.REDIS>>(
     () =>
       ({
-        RedisHost: props.selected,
-      }) as unknown as InstanceSelectorValues<IValue>,
+        [ClusterTypes.REDIS]: props.selected,
+      }) as unknown as HostSelectorValues<ClusterTypes.REDIS>,
   );
 
   const { loading: pairLoading, run: runQueryMachineInstancePair } = useRequest(queryMachineInstancePair, {
@@ -208,7 +178,7 @@
     isShowSelector.value = true;
   };
 
-  const handleInstanceSelectChange = (data: InstanceSelectorValues<IValue>) => {
+  const handleInstanceSelectChange = (data: HostSelectorValues<ClusterTypes.REDIS>) => {
     const hostList = Object.values(data).flatMap((selectedList) => selectedList);
     emits('batch-edit', hostList);
   };

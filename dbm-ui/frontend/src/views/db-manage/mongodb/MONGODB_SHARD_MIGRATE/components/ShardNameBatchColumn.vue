@@ -43,19 +43,15 @@
       </template>
     </EditableTextarea>
   </EditableColumn>
-  <InstanceSelector
+  <ShardSelector
+    v-model="batchSelectedInstances"
     v-model:is-show="isBatchSelectorShow"
-    :cluster-types="['MongodbShard']"
-    hide-manual-input
-    :selected="batchSelectedInstances"
-    :tab-list-config="tabListConfig"
+    :disable-select-method="batchDisableSelectMethod"
     @change="handleBatchSelectChange" />
-  <InstanceSelector
+  <ShardSelector
+    v-model="cellSelectedInstances"
     v-model:is-show="isCellSelectorShow"
-    :cluster-types="['MongodbShard']"
-    hide-manual-input
-    :selected="cellSelectedInstances"
-    :tab-list-config="tabListConfig"
+    :disable-select-method="cellDisableSelectMethod"
     @change="handleCellClusterChange" />
 </template>
 <script lang="tsx" setup>
@@ -63,17 +59,11 @@
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getMongoTopoList } from '@services/source/mongodb';
   import { getMongoShard } from '@services/source/mongodbToolbox';
 
-  import { ClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import ShardSelector from '@components/shard-selector/Index.vue';
 
   type MongodbShardModel = ServiceReturnType<typeof getMongoShard>['results'][number];
 
@@ -100,45 +90,31 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    MongodbShard: [
-      {
-        tableConfig: {
-          disabledRowConfig: {
-            handler: (data: MongodbShardModel, selected?: Record<string, MongodbShardModel[]>) => {
-              if (!selected) {
-                return true;
-              }
-              const shardList = Object.values(selected['MongodbShard'] || {});
-              if (shardList.length === 0) {
-                return false;
-              }
-              return data.cluster_id !== shardList[0].cluster_id;
-            },
-            tip: t('不能跨集群选择分片，请先清空已有集群的分片'),
-          },
-        },
-        topoConfig: {
-          getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
-            getMongoTopoList({ ...params, cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER }),
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 跨集群禁选：与已有选中分片不在同一集群时分片禁选
+  const batchDisableSelectMethod = (data: MongodbShardModel) => {
+    const [firstSelected] = batchSelectedInstances.value;
+    if (!firstSelected) {
+      return false;
+    }
+    return data.cluster_id !== firstSelected.cluster_id ? t('不能跨集群选择分片，请先清空已有集群的分片') : false;
+  };
 
-  const getDefaultSelected = () => ({
-    MongodbShard: [],
-  });
+  const cellDisableSelectMethod = (data: MongodbShardModel) => {
+    const [firstSelected] = Object.values(modelValue.value.shards);
+    if (!firstSelected) {
+      return false;
+    }
+    return data.cluster_id !== firstSelected.cluster_id ? t('不能跨集群选择分片，请先清空已有集群的分片') : false;
+  };
 
   const isLoading = ref(false);
   const isBatchSelectorShow = ref(false);
   const isCellSelectorShow = ref(false);
 
-  const batchSelectedInstances = shallowRef(getDefaultSelected());
+  const batchSelectedInstances = shallowRef<MongodbShardModel[]>([]);
 
-  const cellSelectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    MongodbShard: Object.values(modelValue.value.shards) as unknown as IValue[],
-  }));
+  // cell 弹窗的选中态：打开时从已提交的 shards 重新种子，保证关闭再打开后已选分片保留
+  const cellSelectedInstances = shallowRef<MongodbShardModel[]>([]);
 
   const selectedCounter = computed(() => _.countBy(props.selected, 'shard_name'));
 
@@ -211,11 +187,12 @@
   );
 
   const handleBatchSelectorShow = () => {
-    batchSelectedInstances.value = getDefaultSelected();
+    batchSelectedInstances.value = [];
     isBatchSelectorShow.value = true;
   };
 
   const handleCellSelectorShow = () => {
+    cellSelectedInstances.value = Object.values(modelValue.value.shards);
     isCellSelectorShow.value = true;
   };
 
@@ -231,14 +208,12 @@
     };
   };
 
-  const handleBatchSelectChange = (selected: Record<string, MongodbShardModel[]>) => {
-    const list = Object.values(selected).flatMap((selectedList) => selectedList);
-    emits('batch-edit', list);
+  const handleBatchSelectChange = (selected: MongodbShardModel[]) => {
+    emits('batch-edit', selected);
   };
 
-  const handleCellClusterChange = (selected: Record<string, MongodbShardModel[]>) => {
-    const list = Object.values(selected).flatMap((selectedList) => selectedList);
-    handleInputChange(list.map((item) => item.shard_name).join('\n'));
+  const handleCellClusterChange = (selected: MongodbShardModel[]) => {
+    handleInputChange(selected.map((item) => item.shard_name).join('\n'));
   };
 </script>
 <style lang="less" scoped>

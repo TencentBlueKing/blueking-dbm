@@ -33,12 +33,12 @@
       :placeholder="t('请输入如: 192.168.10.2')"
       @change="handleChange" />
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['SqlserverHaHost']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.SQLSERVER_HA]: t('Master 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -46,23 +46,20 @@
   import { useRequest } from 'vue-request';
 
   import { checkInstance } from '@services/source/dbbase';
+  import { getMachineList } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = HostModel<ClusterTypes.SQLSERVER_HA>;
 
   interface Props {
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -84,40 +81,22 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    SqlserverHaHost: [
-      {
-        id: 'SqlserverHaHost',
-        name: t('故障主库主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Master 主机'),
-            role: 'backend_master',
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Master 主机'),
-            role: 'backend_master',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // Master 主机：角色过滤 backend_master
+  const dataSourceMap = {
+    [ClusterTypes.SQLSERVER_HA]: (params: ServiceParameters<typeof getMachineList>) =>
+      getMachineList({
+        ...params,
+        instance_role: 'backend_master',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    SqlserverHaHost: props.selected.map(
+  const selectedInstances = computed<HostSelectorValues<ClusterTypes.SQLSERVER_HA>>(() => ({
+    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as HostModel<ClusterTypes.SQLSERVER_HA>,
     ),
   }));
   let illegalInstances = '';
@@ -181,8 +160,8 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.SqlserverHaHost);
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.SQLSERVER_HA>) => {
+    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
   };
 
   watch(

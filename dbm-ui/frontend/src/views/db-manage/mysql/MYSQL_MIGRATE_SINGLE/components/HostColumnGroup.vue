@@ -50,12 +50,10 @@
       </div>
     </EditableBlock>
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBSINGLE]"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -68,13 +66,9 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = HostModel<ClusterTypes.TENDBSINGLE>;
 
   interface Props {
     selected: {
@@ -82,7 +76,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -102,26 +96,13 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBSINGLE]: [
-      {
-        id: [ClusterTypes.TENDBSINGLE],
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
-
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+  const selectedInstances = computed<HostSelectorValues<ClusterTypes.TENDBSINGLE>>(() => ({
     [ClusterTypes.TENDBSINGLE]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as HostModel<ClusterTypes.TENDBSINGLE>,
     ),
   }));
 
@@ -181,7 +162,7 @@
     });
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.TENDBSINGLE>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBSINGLE]);
   };
 
