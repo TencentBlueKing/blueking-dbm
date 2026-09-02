@@ -168,9 +168,6 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_FIXPOINT_NEW, t('构造'), {
       dbConsole: 'tendbCluster.toolbox.fixpointNew',
     }),
-    // createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
-    //   dbConsole: 'tendbCluster.toolbox.rollback',
-    // }),
     createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'), {
       dbConsole: 'tendbCluster.toolbox.dbClear',
     }),
