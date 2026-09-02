@@ -21,7 +21,7 @@ from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_sync_ticket_i
 from backend.flow.plugins.components.collections.qdrant.qdrant_db_meta import QdrantDBMetaComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_dns_manage import QdrantDnsManageComponent
 from backend.flow.utils.doris.doris_context_dataclass import DnsKwargs
-from backend.flow.utils.qdrant.qdrant_context_dataclass import K8sQdrantActKwargs, K8sQdrantApplyContext
+from backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass import K8sQdrantActKwargs, K8sQdrantApplyContext
 
 
 class K8sQdrantDeleteFlow(K8sQdrantBaseFlow):

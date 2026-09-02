@@ -15,7 +15,7 @@ from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster
-from backend.flow.utils.k8s_vm.consts import COMPONENT_VMINSERT, COMPONENT_VMSELECT, COMPONENT_VMSTORAGE
+from backend.flow.utils.k8s_db.vm.consts import COMPONENT_VMINSERT, COMPONENT_VMSELECT, COMPONENT_VMSTORAGE
 
 
 def scan_cluster(
