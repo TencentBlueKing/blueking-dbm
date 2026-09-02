@@ -501,13 +501,13 @@
     "@babel/helper-string-parser" "^8.0.0"
     "@babel/helper-validator-identifier" "^8.0.4"
 
-"@blueking/ai-blueking@2.2.2":
-  version "2.2.2"
-  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.2.2.tgz#d82de0698e8ba5519aafca112d842c0005c7b61b"
-  integrity sha512-dHP1HTEmt+LJf46EQX4INb+5a5Okik+yvpdmB/ZK4xK7aA/tsMfMnTFQAjhWGPVZX8/2DmBpe6JW+adbBmX3Ew==
+"@blueking/ai-blueking@2.2.3":
+  version "2.2.3"
+  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.2.3.tgz#e2eccc2ff7870cbcb6005c9056907f735fd9aedc"
+  integrity sha512-IXosor3KjD+um2ropL+Bp7z6P+o3AZI4Po75A/dz/MA9gNFrE+7AHFzEwTjaOVAv4fTcyT82YgBJJ+gBP6XFrQ==
   dependencies:
-    "@blueking/chat-helper" "0.0.12-beta.20"
-    "@blueking/chat-x" "0.0.49-beta.8"
+    "@blueking/chat-helper" "0.0.12-beta.24"
+    "@blueking/chat-x" "0.0.49-beta.12"
     bkui-vue "2.0.2-beta.81"
     tippy.js "^6.3.7"
     vue-draggable-resizable "^3.0.0"
@@ -570,17 +570,17 @@
   dependencies:
     "@vue/runtime-dom" "^3.4.27"
 
-"@blueking/chat-helper@0.0.12-beta.20":
-  version "0.0.12-beta.20"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.12-beta.20.tgz#8e6ad82b362c259e83e2f68fc5b77ef165a10bba"
-  integrity sha512-hFxCp8cRqjO1vPMHginR5ivXOHqILH4mfm6GZQR2obxMXjpEVvnfFbiqvKqijtrFFgvydlRYtkg8MOwiQMadDA==
+"@blueking/chat-helper@0.0.12-beta.24":
+  version "0.0.12-beta.24"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.12-beta.24.tgz#4eeb41d8f7b01340acc468b63a3a7f039cc9abd0"
+  integrity sha512-Zstz4u4SC3nKUuMdnvPA4HQ81i7i7xj8pr8lDkYP6vFKPjSG+Xm8qK6CpZfq90tzioxVHgkAroYhluAKpylpaQ==
   dependencies:
     "@types/json-schema" "^7.0.15"
 
-"@blueking/chat-x@0.0.49-beta.8":
-  version "0.0.49-beta.8"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.49-beta.8.tgz#a38734500ce077b135cf39d815f5b218f51131d4"
-  integrity sha512-by4Gvvrf76EIkM8Y9xHbaSv2F583qRY2oMscAfRK115WTfWiSTBfMxwFTIY9LXhKOvo6jkPLeL1HimeNMxt2gA==
+"@blueking/chat-x@0.0.49-beta.12":
+  version "0.0.49-beta.12"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.49-beta.12.tgz#2ad89660f94e48b4242ebb3121ec9f0c24b0a77c"
+  integrity sha512-RdodgJ6sGCS11wnl5FATzgkFhr1jYL0j04mOHHDTRKRt1arwk5TeSvElipqXHDaMIeGSjzCqMLcC6520stZcMw==
   dependencies:
     "@modelcontextprotocol/sdk" "^1.27.1"
     bkui-vue "2.0.2-beta.81"
@@ -650,15 +650,6 @@
   resolved "https://mirrors.tencent.com/npm/@blueking/sub-saas/-/sub-saas-0.0.0-beta.6.tgz#400fede5add692d9aaa351ed4ad6606f81ce797f"
   integrity sha512-aUqLgl/sxL606sRryNJ1ZO/3EIRgujWiMKjK2L/zQTclFt+8hFAj5DdjcAD7lOaavy2VnDIn2Zhni0KC2xO6sQ==
 
-"@blueking/table@0.0.1-beta.39":
-  version "0.0.1-beta.39"
-  resolved "https://registry.yarnpkg.com/@blueking/table/-/table-0.0.1-beta.39.tgz#6dd8082391331ade8a032b58377090417ab85cfc"
-  integrity sha512-d4adI/xfofFka2iD2GeIIg0yHJ7yfyD9NF7YY2gDmMoPy+hGjnKcuXF7r2w9KlklVBO3tVXxz37Xo6Ui0pRHrg==
-  dependencies:
-    "@blueking/vxe-table" "4.10.6-beta.6"
-    "@types/lodash" "^4.17.4"
-    lodash "^4.17.21"
-
 "@blueking/user-selector@^1.0.14":
   version "1.0.14"
   resolved "https://mirrors.tencent.com/npm/@blueking/user-selector/-/user-selector-1.0.14.tgz#9337ddc47726055108847c851c61eb597e77fae9"
@@ -667,13 +658,6 @@
     "@icon-cool/bk-icon-bk-biz-components" "^0.0.4"
     lodash.throttle "^4.1.1"
     tippy.js "^6.2.3"
-
-"@blueking/vxe-table@4.10.6-beta.6":
-  version "4.10.6-beta.6"
-  resolved "https://mirrors.tencent.com/npm/@blueking/vxe-table/-/vxe-table-4.10.6-beta.6.tgz#52b815ec3c345a0fe3e0756a271bd896f9eceae9"
-  integrity sha512-SLCxA94q/kBdsKNMTuKQc8pzd1nlSTlq/lxL2pGVZ+/ncBG6lm7pL5xzN+LKCy0b0T75QKKyrxAqyF+URyZDkw==
-  dependencies:
-    vxe-pc-ui "^4.3.71"
 
 "@blueking/xss-filter@0.0.10":
   version "0.0.10"
@@ -2222,7 +2206,7 @@
   dependencies:
     "@types/lodash" "*"
 
-"@types/lodash@*", "@types/lodash@^4.14.72", "@types/lodash@^4.17.24", "@types/lodash@^4.17.4":
+"@types/lodash@*", "@types/lodash@^4.14.72", "@types/lodash@^4.17.24":
   version "4.17.24"
   resolved "https://mirrors.tencent.com/npm/@types/lodash/-/lodash-4.17.24.tgz#4ae334fc62c0e915ca8ed8e35dcc6d4eeb29215f"
   integrity sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==
@@ -3049,14 +3033,6 @@
   version "14.4.0"
   resolved "https://mirrors.tencent.com/npm/@vueuse/shared/-/shared-14.4.0.tgz#4e89813c7859d153d48c03d74bff78739f96723b"
   integrity sha512-JRgY90Sz8DDtPMsaDflvPMp9xYk69JZAmbuDvAquUVXKr2gEjqtzGNTTthLfckH0BzBqvnu31gb4a8TGLRe79g==
-
-"@vxe-ui/core@^4.4.13":
-  version "4.4.13"
-  resolved "https://mirrors.tencent.com/npm/@vxe-ui/core/-/core-4.4.13.tgz#6c79457ae7c98253671c60515a1d210b799b18d0"
-  integrity sha512-ViWvzmsW7ZWrowzJrXxQzOJhJwEqOgcX9LNjddF1B5KD49tyNsG5UkeMMAtgV8qSpR8qvJ8TukdIqRN4wgmH4w==
-  dependencies:
-    dom-zindex "^1.0.7"
-    xe-utils "^4.0.8"
 
 "@wangeditor/basic-modules@^1.1.7":
   version "1.1.7"
@@ -4998,11 +4974,6 @@ dom-serializer@^2.0.0:
     domelementtype "^2.3.0"
     domhandler "^5.0.2"
     entities "^4.2.0"
-
-dom-zindex@^1.0.7:
-  version "1.0.7"
-  resolved "https://mirrors.tencent.com/npm/dom-zindex/-/dom-zindex-1.0.7.tgz#d666de9935b3b358fb01a4391fbb616403985e5b"
-  integrity sha512-cKU/h8v8IPBgdZOTPbPmq3Ib+Ac5C+kKoh9I4LbGR9BM3GwbmB16KYWKJcj5M2BavnA66EbgYzxYDLd1IytnlQ==
 
 dom7@^3.0.0:
   version "3.0.0"
@@ -11037,13 +11008,6 @@ vuedraggable@4.1.0:
   dependencies:
     sortablejs "1.14.0"
 
-vxe-pc-ui@^4.3.71:
-  version "4.14.29"
-  resolved "https://mirrors.tencent.com/npm/vxe-pc-ui/-/vxe-pc-ui-4.14.29.tgz#b2bc06565570f1ae1dbbb39126ae1777d2a73a92"
-  integrity sha512-ErwXUoww7rk2B6ctN+MbFacZFvh+kk+BjmrCjZNwvv+ui3xFQTGux0fXbt8wpT13UjJPM+VUC4qT/GmAkauWIQ==
-  dependencies:
-    "@vxe-ui/core" "^4.4.13"
-
 w3c-keyname@^2.2.4:
   version "2.2.8"
   resolved "https://mirrors.tencent.com/npm/w3c-keyname/-/w3c-keyname-2.2.8.tgz#7b17c8c6883d4e8b86ac8aba79d39e880f8869c5"
@@ -11252,11 +11216,6 @@ xdg-basedir@^4.0.0:
   version "4.0.0"
   resolved "https://mirrors.tencent.com/npm/xdg-basedir/-/xdg-basedir-4.0.0.tgz#4bc8d9984403696225ef83a1573cbbcb4e79db13"
   integrity sha512-PSNhEJDejZYV7h50BohL09Er9VaIefr2LMAf3OEmpCkjOi34eYyQYAXUTjEQtZJTKcF0E2UKTh+osDLsgNim9Q==
-
-xe-utils@^4.0.8:
-  version "4.0.8"
-  resolved "https://mirrors.tencent.com/npm/xe-utils/-/xe-utils-4.0.8.tgz#8255ef653068701596b7182769a696cf2419e6bc"
-  integrity sha512-l+p++9iPtSxpf/5ZCzkPXsyV0avE34KzieAC9oAhi+3e98PLJaBQHNiY2V8Lnbiux4JFAbU10p8AT6oujXkP9A==
 
 "xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz":
   version "0.20.3"
