@@ -12,6 +12,7 @@ from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_bill_mcp import KafkaBillMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_metrics_mcp import KafkaMetricsMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_rebalance_control_mcp import KafkaRebalanceControlMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_toolbox_mcp import KafkaToolboxMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.kafka.views.query_meta import KafkaQueryMetaMcpToolsViewSet
 
@@ -25,5 +26,7 @@ routers.register(r"", KafkaBillMcpToolsViewSet, basename="mcp-kafka-bill")
 routers.register(r"", KafkaMetricsMcpToolsViewSet, basename="mcp-kafka-metrics")
 # Kafka 工具箱：远程执行 Kafka CLI 命令
 routers.register(r"", KafkaToolboxMcpToolsViewSet, basename="mcp-kafka-toolbox")
+# Kafka rebalance 单据进度查询/限速控制
+routers.register(r"", KafkaRebalanceControlMcpToolsViewSet, basename="mcp-kafka-rebalance-control")
 
 urlpatterns = routers.urls

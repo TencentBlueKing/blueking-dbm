@@ -21,6 +21,9 @@ from backend.flow.consts import KafkaActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.kafka.rebalance_auto_throttle import (
+    KafkaRebalanceAutoThrottleComponent,
+)
 from backend.flow.plugins.components.collections.kafka.trans_flies import TransFileComponent
 from backend.flow.utils.kafka.kafka_act_playload import KafkaActPayload
 from backend.flow.utils.kafka.kafka_context_dataclass import ActKwargs, ApplyContext
@@ -97,4 +100,17 @@ class KafkaRebalanceFlow(object):
             kwargs=asdict(act_kwargs),
         )
 
+        # 注入rebalance限速自动调节旁路节点：根据带宽利用率动态调整throttle_rate.txt
+        kafka_pipeline.add_sidecar_acts(
+            [
+                {
+                    "act_name": _("Kafka Rebalance限速自动调节"),
+                    "act_component_code": KafkaRebalanceAutoThrottleComponent.code,
+                    "kwargs": {
+                        "cluster_id": self.data["cluster_id"],
+                        "exec_ip": exec_ip,
+                    },
+                }
+            ]
+        )
         kafka_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])

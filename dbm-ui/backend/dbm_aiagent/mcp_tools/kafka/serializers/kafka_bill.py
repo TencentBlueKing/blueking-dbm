@@ -8,10 +8,29 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+
+
+class LenientJSONField(serializers.JSONField):
+    """
+    兼容 MCP 工具调用侧（LLM）把嵌套对象/数组序列化成 JSON 字符串传入的情况。
+
+    原生 serializers.JSONField 遇到字符串输入不会反向 json.loads()，只会用 json.dumps()
+    校验其可序列化性后原样返回字符串本身，导致业务逻辑对它做 .get()/.items()/下标取值时报错。
+    """
+
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except (TypeError, ValueError):
+                self.fail("invalid")
+        return super().to_internal_value(data)
 
 
 class KafkaSubmitBillOutputSerializer(serializers.Serializer):
@@ -29,11 +48,11 @@ class SubmitBillKafkaScaleUpInputSerializer(SubmitBillKafkaBaseInputSerializer):
         choices=IpSource.get_choices(),
         help_text=_("主机来源: resource_pool(资源池) 或 manual_input(手工输入)"),
     )
-    nodes = serializers.JSONField(
+    nodes = LenientJSONField(
         help_text=_("节点列表信息，格式为 {'broker': [{'ip': 'xxx', 'bk_host_id': xxx, 'bk_cloud_id': xxx}]}"),
         required=False,
     )
-    resource_spec = serializers.JSONField(
+    resource_spec = LenientJSONField(
         help_text=_("资源池规格，格式为 {'broker': {'count': 3, 'spec_id': xxx}}，当ip_source为resource_pool时必填"),
         required=False,
     )
@@ -51,7 +70,7 @@ class SubmitBillKafkaScaleUpInputSerializer(SubmitBillKafkaBaseInputSerializer):
 
 # Kafka 缩容单据相关 Serializer
 class SubmitBillKafkaShrinkInputSerializer(SubmitBillKafkaBaseInputSerializer):
-    nodes = serializers.JSONField(
+    nodes = LenientJSONField(
         help_text=_("需要缩容的节点列表信息，格式为 {'broker': [{'ip': 'xxx', 'bk_host_id': xxx, 'bk_cloud_id': xxx}]}"),
     )
 
@@ -78,7 +97,7 @@ class SubmitBillKafkaShrinkInputSerializer(SubmitBillKafkaBaseInputSerializer):
 
 # Kafka 替换单据相关 Serializer
 class SubmitBillKafkaReplaceInputSerializer(SubmitBillKafkaBaseInputSerializer):
-    old_nodes = serializers.JSONField(
+    old_nodes = LenientJSONField(
         help_text=_("旧节点列表信息，格式为 {'broker': [{'ip': 'xxx', 'bk_host_id': xxx, 'bk_cloud_id': xxx}]}"),
     )
     ip_source = serializers.ChoiceField(
@@ -87,13 +106,13 @@ class SubmitBillKafkaReplaceInputSerializer(SubmitBillKafkaBaseInputSerializer):
         required=False,
         default=IpSource.RESOURCE_POOL.value,
     )
-    new_nodes = serializers.JSONField(
+    new_nodes = LenientJSONField(
         help_text=_(
             "新节点列表信息，格式为 {'broker': [{'ip': 'xxx', 'bk_host_id': xxx, 'bk_cloud_id': xxx}]}，当ip_source为manual_input时必填"
         ),
         required=False,
     )
-    resource_spec = serializers.JSONField(
+    resource_spec = LenientJSONField(
         help_text=_("资源池规格，格式为 {'broker': {'count': 3, 'spec_id': xxx}}，默认与被替换节点规格相同"),
         required=False,
     )
@@ -178,7 +197,7 @@ class SubmitBillKafkaRebalanceInputSerializer(SubmitBillKafkaBaseInputSerializer
 
 # Kafka 实例重启单据相关 Serializer
 class SubmitBillKafkaRebootInputSerializer(SubmitBillKafkaBaseInputSerializer):
-    instance_list = serializers.JSONField(
+    instance_list = LenientJSONField(
         help_text=_(
             "需要重启的实例列表，格式为 [{'ip': 'xxx', 'port': xxx, 'instance_id': xxx, 'bk_host_id': xxx, 'bk_cloud_id': xxx}]"
         ),
@@ -276,7 +295,7 @@ class SubmitBillKafkaApplyInputSerializer(serializers.Serializer):
         required=False,
         default=IpSource.RESOURCE_POOL.value,
     )
-    nodes = serializers.JSONField(
+    nodes = LenientJSONField(
         help_text=(
             _(
                 "节点列表信息，格式为 {'zookeeper': [{'ip': 'xxx', 'bk_host_id': xxx, 'bk_cloud_id': xxx}], "
@@ -286,7 +305,7 @@ class SubmitBillKafkaApplyInputSerializer(serializers.Serializer):
         ),
         required=False,
     )
-    resource_spec = serializers.JSONField(
+    resource_spec = LenientJSONField(
         help_text=(
             _(
                 "资源池规格，格式为 {'zookeeper': {'count': 3, 'spec_id': xxx}, "
