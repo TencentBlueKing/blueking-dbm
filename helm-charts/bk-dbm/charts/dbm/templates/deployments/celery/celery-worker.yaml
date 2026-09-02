@@ -1,11 +1,11 @@
 {{- if .Values.saas.celeryWorker.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.celery-worker.fullname" .) -}}
 {{- /*
-dbmEnableAI 为 true 时，会额外消费 aidev 插件的调度队列 bkai_agent_task。
+dbmEnableAI 为 true 时，会额外消费 aidev 插件的调度队列 bkai_agent_task/bkai_agent_metric。
 追加队列时必须把默认队列 celery 显式写回，否则周期任务将无人消费
 */ -}}
 {{- $aiEnabled := eq (.Values.envs.dbmEnableAI | default false | toString | lower) "true" -}}
-{{- $queueArg := ternary "-Q celery,bkai_agent_task " "" $aiEnabled -}}
+{{- $queueArg := ternary "-Q celery,bkai_agent_task,bkai_agent_metric " "" $aiEnabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
