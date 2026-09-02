@@ -1,3 +1,5 @@
+//go:build !linux
+
 /**
  * MIT License
  *
@@ -22,39 +24,11 @@
  * SOFTWARE.
  */
 
-package process
+package machine
 
-// Status is the type of process status.
-type Status string
-
-func (p Status) String() string {
-	return string(p)
-}
-
-const (
-	StatusRunning Status = "running"
-	StatusStopped Status = "stopped"
-)
-
-// Probe health exit codes. The analysis detector captures these from the SSH
-// session when it runs "dbha-probe health -j" on the remote host.
-const (
-	ExitCodeHealthDiskWriteFail = 40
-	ExitCodeHealthUptimeFail    = 41
-)
-
-// ProbeHealthMarkerFile is the fixed marker file name the probe health command
-// writes into each write verification dir to verify the local disk is writable.
-const ProbeHealthMarkerFile = "dbhav2_probe"
-
-// HealthInfo health information.
-type HealthInfo struct {
-	Pid      int32  `json:"pid"`
-	ProcName string `json:"procName"`
-	Status   Status `json:"status"`
-	ErrMsg   string `json:"errmsg"`
-}
-
-func (h HealthInfo) IsAlive() bool {
-	return h.Status == StatusRunning
+// UptimeSeconds is a no-op on platforms that don't collect uptime (windows/darwin).
+// It returns (0, nil) so the probe health command skips uptime verification and
+// never exits with ExitCodeHealthUptimeFail there. Only linux has a real implementation.
+func UptimeSeconds() (int64, error) {
+	return 0, nil
 }

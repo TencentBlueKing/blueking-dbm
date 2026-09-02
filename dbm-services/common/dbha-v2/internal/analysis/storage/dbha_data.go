@@ -302,6 +302,7 @@ func (ha *DbhaData) UpdateSwitchingSnapshotLog(ctx context.Context, record *hamo
 	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
 		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldID), record.ID).
 		Updates(map[string]any{
+			hamodel.DbSwitchingSnapshotLogFieldAction:       record.Action,
 			hamodel.DbSwitchingSnapshotLogFieldStatus:       record.Status,
 			hamodel.DbSwitchingSnapshotLogFieldInstances:    record.Instances,
 			hamodel.DbSwitchingSnapshotLogFieldResult:       record.Result,

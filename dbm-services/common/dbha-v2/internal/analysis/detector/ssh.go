@@ -27,6 +27,7 @@ package detector
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -35,9 +36,15 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// sshAuthFailureKeyword is the SSH authentication failure keyword, kept
+// consistent with v1's CheckSSHErrIsAuthFail.
+const sshAuthFailureKeyword = "unable to authenticate"
+
 var (
 	ErrDetectorCreateSshConnection = gerrors.Newf(gerrors.NetException, "failed to dial")
 	ErrDetectorCreateSshSession    = gerrors.Newf(gerrors.NetException, "failed to create SSH session")
+	ErrDetectorSshAuth             = gerrors.Newf(gerrors.SshFailure, "ssh auth failed")
+	ErrDetectorSshTimeout          = gerrors.Newf(gerrors.Timeout, "ssh command execution timed out")
 )
 
 // SshResponse contains the result of the shell that was running on the remote host.
@@ -82,6 +89,9 @@ func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 	sshClient, err := ssh.Dial("tcp", addr, conf)
 	if err != nil {
 		logger.Error("failed to connect the remote host with SSH, host: %s, errmsg: %s", addr, err)
+		if strings.Contains(err.Error(), sshAuthFailureKeyword) {
+			return nil, ErrDetectorSshAuth
+		}
 		return nil, ErrDetectorCreateSshConnection
 	}
 
@@ -146,7 +156,7 @@ func (s *Ssh) runCombinedOutputWithTimeout(resp *SshResponse, session *ssh.Sessi
 		_ = session.Close()
 
 		resp.ExitCode = gerrors.Timeout.Int()
-		resp.ErrMsg = fmt.Sprintf("SSH command execution timed out after %v, cmd: %s", s.timeout, cmd)
+		resp.ErrMsg = ErrDetectorSshTimeout.Error()
 		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s",
 			fmt.Sprintf("%s:%d", s.ip, s.port), s.timeout, cmd)
 		return resp

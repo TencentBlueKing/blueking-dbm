@@ -104,6 +104,9 @@ probeProxyAdmin:
   replDelayInterval: {{ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
+probeHealth:
+  diskWriteDirs: {{ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS}}
+
 log:
   path: "{{ADMIN_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}

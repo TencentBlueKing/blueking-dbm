@@ -208,6 +208,10 @@ ADMIN_PROBE_PROXY_ADMIN_HEARTBEAT_INTERVAL=3s
 ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL=20s
 ADMIN_PROBE_PROXY_ADMIN_TIMEOUT=5s
 
+# ## admin · probe health-check write verification (returned to probe via GetProbeConfig)
+# directories the probe health command writes a marker file into to verify the local disk is writable;
+ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS=["/data1/dbha","/data/dbha"]
+
 # --- analysis ---
 
 # ## analysis · process and identity

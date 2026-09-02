@@ -26,6 +26,9 @@ harvester:
 {{PROBE_MYSQL_SHARD_BLOCK}}
 {{PROBE_REDIS_SHARD_BLOCK}}
 
+health:
+  diskWriteDirs: {{PROBE_HEALTH_DISK_WRITE_DIRS}}
+
 log:
   path: "{{PROBE_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}

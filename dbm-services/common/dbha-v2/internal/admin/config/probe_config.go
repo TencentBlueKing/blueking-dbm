@@ -73,6 +73,9 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 			ConnTimeout:     Cfg.ProbeGse.ConnTimeout,
 			LocalSocketPort: Cfg.ProbeGse.LocalSocketPort,
 		},
+		Health: &probeconfig.ProbeHealthConfig{
+			DiskWriteDirs: Cfg.ProbeHealth.DiskWriteDirs,
+		},
 		Metadata: items,
 	}
 
