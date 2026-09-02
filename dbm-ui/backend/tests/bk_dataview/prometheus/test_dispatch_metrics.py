@@ -83,7 +83,7 @@ def _by_name(families):
 
 
 def _health_status(families):
-    health = _by_name(families).get("dbm_dispatch_collector_health")
+    health = _by_name(families).get("dispatch_collector_health")
     if health is None:
         return None
     for sample in health.samples:
@@ -96,12 +96,12 @@ class TestDispatchMetricsCollector:
     def test_describe_lists_metric_names_without_redis(self):
         collector = DispatchMetricsCollector(client=InMemoryRedis(raises=True))
         names = {family.name for family in collector.describe()}
-        assert "dbm_dispatch_collector_health" in names
-        assert "dbm_dispatch_pending" in names
-        assert "dbm_dispatch_events" in names
-        assert "dbm_dispatch_latency_seconds" in names
-        assert "dbm_dispatch_task_outcome" in names
-        assert "dbm_dispatch_metrics_started_at_timestamp_seconds" in names
+        assert "dispatch_collector_health" in names
+        assert "dispatch_pending" in names
+        assert "dispatch_events" in names
+        assert "dispatch_latency_seconds" in names
+        assert "dispatch_task_outcome" in names
+        assert "dispatch_metrics_started_at_timestamp_seconds" in names
         assert all(not family.samples for family in collector.describe())
 
     def test_generates_counters_histogram_and_live_samples(self):
@@ -110,20 +110,20 @@ class TestDispatchMetricsCollector:
 
         assert _health_status(families) == "ok"
         by_name = _by_name(families)
-        pending = list(by_name["dbm_dispatch_pending"].samples)
+        pending = list(by_name["dispatch_pending"].samples)
         assert pending[0].labels == {"namespace": "ai"}
         assert pending[0].value == 10.0
 
-        event_samples = list(by_name["dbm_dispatch_events"].samples)
+        event_samples = list(by_name["dispatch_events"].samples)
         assert any(
-            sample.name == "dbm_dispatch_events_total"
+            sample.name == "dispatch_events_total"
             and sample.labels == {"namespace": "ai", "event": "published"}
             and sample.value == 100.0
             for sample in event_samples
         )
         assert all(sample.labels["event"] != "bogus_event" for sample in event_samples)
 
-        histogram_samples = list(by_name["dbm_dispatch_latency_seconds"].samples)
+        histogram_samples = list(by_name["dispatch_latency_seconds"].samples)
         buckets = [sample for sample in histogram_samples if sample.name.endswith("_bucket")]
         assert [(sample.labels["le"], sample.value) for sample in buckets] == [
             ("0.1", 2.0),
@@ -133,13 +133,13 @@ class TestDispatchMetricsCollector:
         assert any(sample.name.endswith("_count") and sample.value == 10.0 for sample in histogram_samples)
         assert any(sample.name.endswith("_sum") and sample.value == 4.2 for sample in histogram_samples)
 
-        outcomes = list(by_name["dbm_dispatch_task_outcome"].samples)
-        assert any(sample.name == "dbm_dispatch_task_outcome_total" and sample.value == 30 for sample in outcomes)
+        outcomes = list(by_name["dispatch_task_outcome"].samples)
+        assert any(sample.name == "dispatch_task_outcome_total" and sample.value == 30 for sample in outcomes)
         assert all(sample.labels["outcome"] != "bogus_outcome" for sample in outcomes)
 
-        started = list(by_name["dbm_dispatch_metrics_started_at_timestamp_seconds"].samples)
+        started = list(by_name["dispatch_metrics_started_at_timestamp_seconds"].samples)
         assert started[0].value == 1000.0
-        partial = list(by_name["dbm_dispatch_report_partial"].samples)
+        partial = list(by_name["dispatch_report_partial"].samples)
         assert partial[0].labels == {"namespace": "ai"}
         assert partial[0].value == 0
 
@@ -155,15 +155,15 @@ class TestDispatchMetricsCollector:
         )
         records = reporter.generate_report_data()["data"]
         names = {next(iter(record["metrics"])) for record in records}
-        assert "dbm_dispatch_events_total" in names
-        assert "dbm_dispatch_task_outcome_total" in names
-        assert "dbm_dispatch_latency_seconds_bucket" in names
-        assert "dbm_dispatch_latency_seconds_count" in names
-        assert "dbm_dispatch_latency_seconds_sum" in names
+        assert "dispatch_events_total" in names
+        assert "dispatch_task_outcome_total" in names
+        assert "dispatch_latency_seconds_bucket" in names
+        assert "dispatch_latency_seconds_count" in names
+        assert "dispatch_latency_seconds_sum" in names
         bucket = next(
             record
             for record in records
-            if "dbm_dispatch_latency_seconds_bucket" in record["metrics"] and record["dimension"].get("le") == "+Inf"
+            if "dispatch_latency_seconds_bucket" in record["metrics"] and record["dimension"].get("le") == "+Inf"
         )
         assert bucket["dimension"] == {"le": "+Inf", "namespace": "ai", "stage": "execution"}
 
@@ -172,18 +172,18 @@ class TestDispatchMetricsCollector:
         reset = DispatchMetricsCollector(
             client=InMemoryRedis({KEY_LATEST: json.dumps(_payload(started_at=2000.0, published=3))})
         )
-        first_events = _by_name(first._build_families(_payload(published=100)))["dbm_dispatch_events"].samples
+        first_events = _by_name(first._build_families(_payload(published=100)))["dispatch_events"].samples
         reset_families = _by_name(reset._build_families(_payload(started_at=2000.0, published=3)))
-        reset_events = reset_families["dbm_dispatch_events"].samples
+        reset_events = reset_families["dispatch_events"].samples
         assert first_events[0].value == 100
         assert reset_events[0].value == 3
-        assert reset_families["dbm_dispatch_metrics_started_at_timestamp_seconds"].samples[0].value == 2000
+        assert reset_families["dispatch_metrics_started_at_timestamp_seconds"].samples[0].value == 2000
 
     def test_heartbeat_emits_stored_epoch(self):
         now = time.time()
         client = InMemoryRedis({KEY_LATEST: json.dumps(_payload()), KEY_HEARTBEAT: str(now)})
         families = _collect(DispatchMetricsCollector(client=client))
-        heartbeat = _by_name(families)["dbm_dispatch_publisher_heartbeat_timestamp_seconds"].samples
+        heartbeat = _by_name(families)["dispatch_publisher_heartbeat_timestamp_seconds"].samples
         assert heartbeat[0].value == now
 
     def test_lease_holder_only_emits_data(self):
