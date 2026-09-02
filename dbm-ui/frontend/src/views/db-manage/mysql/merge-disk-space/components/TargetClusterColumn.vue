@@ -45,7 +45,7 @@
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import { queryClusters } from '@services/source/mysqlCluster';
+  import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
   import { batchSplitRegex, domainRegex } from '@common/regex';
@@ -118,31 +118,42 @@
     },
   ];
 
-  const { loading, run: queryClustersRun } = useRequest(queryClusters, {
-    manual: true,
-    onSuccess: (data) => {
-      if (data.length) {
-        modelValue.value = data.map((cluster) => ({
-          cluster_type: cluster.cluster_type,
-          id: cluster.id,
-          master_domain: cluster.master_domain,
-        }));
-        localValue.value = data.map((item) => item.master_domain).join(',');
-        selectedClusters.value = data.reduce<typeof selectedClusters.value>(
-          (acc, item) => {
-            Object.assign(acc, {
-              [item.cluster_type]: [...acc[item.cluster_type], item],
-            });
-            return acc;
-          },
-          {
-            [ClusterTypes.TENDBHA]: [],
-            [ClusterTypes.TENDBSINGLE]: [],
-          },
-        );
-      }
+  const { loading, run: queryClustersRun } = useRequest(
+    (params: { bk_biz_id: number; domains: string[] }) =>
+      Promise.all(
+        params.domains.map((domain) =>
+          filterClusters<TendbhaModel>({
+            bk_biz_id: params.bk_biz_id,
+            exact_domain: domain,
+          }),
+        ),
+      ).then((results) => results.flat()),
+    {
+      manual: true,
+      onSuccess: (data) => {
+        if (data.length) {
+          modelValue.value = data.map((cluster) => ({
+            cluster_type: cluster.cluster_type,
+            id: cluster.id,
+            master_domain: cluster.master_domain,
+          }));
+          localValue.value = data.map((item) => item.master_domain).join(',');
+          selectedClusters.value = data.reduce<typeof selectedClusters.value>(
+            (acc, item) => {
+              Object.assign(acc, {
+                [item.cluster_type]: [...acc[item.cluster_type], item],
+              });
+              return acc;
+            },
+            {
+              [ClusterTypes.TENDBHA]: [],
+              [ClusterTypes.TENDBSINGLE]: [],
+            },
+          );
+        }
+      },
     },
-  });
+  );
 
   const disabledMethod = (rowData?: any) => {
     if (!rowData.source_cluster.id) {
@@ -162,9 +173,7 @@
     modelValue.value = [];
     queryClustersRun({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_filters: value.split(batchSplitRegex).map((item) => ({
-        immute_domain: item,
-      })),
+      domains: value.split(batchSplitRegex),
     });
   };
 
@@ -189,9 +198,7 @@
       if (!localValue.value && modelValue.value?.[0]?.master_domain) {
         queryClustersRun({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_filters: modelValue.value.map((item) => ({
-            immute_domain: item.master_domain,
-          })),
+          domains: modelValue.value.map((item) => item.master_domain),
         });
       }
     },

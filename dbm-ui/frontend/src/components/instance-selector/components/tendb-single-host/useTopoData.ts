@@ -10,11 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { type ComponentInternalInstance } from 'vue';
+import { type ComponentInternalInstance, type ComputedRef } from 'vue';
 
 import { useGlobalBizs } from '@stores';
-
-import { ClusterTypes } from '@common/const';
 
 interface TopoTreeData {
   children: Array<TopoTreeData>;
@@ -47,17 +45,16 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
    */
   const fetchResources = async () => {
     isLoading.value = true;
-    const params = {
-      bk_biz_id: currentBizId,
-      cluster_filters: [
-        {
-          bk_biz_id: currentBizId,
-          cluster_type: ClusterTypes.TENDBSINGLE,
-        },
-      ],
-    } as Record<string, any>;
+    const params: {
+      id?: number;
+      limit: number;
+      offset: number;
+    } = {
+      limit: -1,
+      offset: 0,
+    };
     if (filterClusterId.value) {
-      params.cluster_filters[0].id = filterClusterId.value;
+      params.id = filterClusterId.value;
     }
     return currentInstance.proxy
       .getTopoList(params)

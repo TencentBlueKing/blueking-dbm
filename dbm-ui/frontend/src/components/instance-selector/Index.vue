@@ -220,7 +220,6 @@
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { getMongoShard } from '@services/source/mongodbToolbox';
-  import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
   import { getRedisClusterList, getRedisInstances, getRedisMachineList } from '@services/source/redis';
   import {
     getHaClusterWholeList as getSqlServerHaCluster,
@@ -900,7 +899,7 @@
             const ipList = clusterItem.remote_db.map((hostItem) => hostItem.ip);
             return new Set(ipList).size;
           },
-          getTopoList: queryMysqlCluster,
+          getTopoList: getTendbClusterList,
         },
       },
       {
@@ -948,7 +947,7 @@
           countFunc: (cluster: TendbhaModel) => {
             return cluster.masters.length;
           },
-          getTopoList: queryMysqlCluster,
+          getTopoList: getTendbhaList,
         },
       },
       {
@@ -993,7 +992,7 @@
           getTableList: getTendbhaMachineList,
         },
         topoConfig: {
-          getTopoList: queryMysqlCluster,
+          getTopoList: getTendbhaList,
         },
       },
       {
@@ -1038,7 +1037,7 @@
           getTableList: getTendbSingleMachineList,
         },
         topoConfig: {
-          getTopoList: queryMysqlCluster,
+          getTopoList: getTendbsingleList,
         },
       },
       {
