@@ -18,7 +18,7 @@ from backend.flow.engine.bamboo.scene.qdrant.qdrant_base_flow import K8sQdrantBa
 from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_disable import DisableK8sQdrantComponent
 from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_sync_ticket_id import K8sQdrantSyncTicketIdComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_db_meta import QdrantDBMetaComponent
-from backend.flow.utils.qdrant.qdrant_context_dataclass import K8sQdrantActKwargs, K8sQdrantApplyContext
+from backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass import K8sQdrantActKwargs, K8sQdrantApplyContext
 
 
 class K8sQdrantDisableFlow(K8sQdrantBaseFlow):

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
@@ -29,7 +30,11 @@ from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_sync_ticket_i
 from backend.flow.plugins.components.collections.qdrant.qdrant_db_meta import QdrantDBMetaComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_dns_manage import QdrantDnsManageComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_sync_cluster import QdrantSyncClusterComponent
-from backend.flow.utils.qdrant.qdrant_context_dataclass import DnsKwargs, K8sQdrantActKwargs, K8sQdrantApplyContext
+from backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass import (
+    DnsKwargs,
+    K8sQdrantActKwargs,
+    K8sQdrantApplyContext,
+)
 
 logger = logging.getLogger("flow")
 
@@ -68,7 +73,9 @@ class K8sQdrantApplyFlow(K8sQdrantBaseFlow):
 
         # 调用dbs clb详情接口获取状态和vip
         qdrant_pipeline.add_act(
-            act_name=_("查询CLB详情"), act_component_code=GetK8sQdrantClbDetailComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("查询CLB详情"),
+            act_component_code=GetK8sQdrantClbDetailComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         # 添加域名
@@ -102,7 +109,9 @@ class K8sQdrantApplyFlow(K8sQdrantBaseFlow):
 
         # 同步ticket_id给dbs
         qdrant_pipeline.add_act(
-            act_name=_("同步ticketId"), act_component_code=K8sQdrantSyncTicketIdComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("同步ticketId"),
+            act_component_code=K8sQdrantSyncTicketIdComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         qdrant_pipeline.run_pipeline()
