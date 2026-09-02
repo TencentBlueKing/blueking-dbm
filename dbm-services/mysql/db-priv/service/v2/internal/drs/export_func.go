@@ -11,6 +11,7 @@ func RPCMySQL(
 			Force:        force,
 			QueryTimeout: timeout,
 			BkCloudId:    bkCloudId,
+			SkipSetNames: true,
 		},
 	)
 }
@@ -26,6 +27,7 @@ func RPCProxyAdmin(
 			Force:        force,
 			QueryTimeout: timeout,
 			BkCloudId:    bkCloudId,
+			SkipSetNames: true,
 		},
 	)
 }

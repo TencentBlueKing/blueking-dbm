@@ -183,7 +183,7 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 
 				// err 是调用函数出错, 直接报错返回
 				// reports 是实施授权的报告
-				reports, err := c.addOnMySQL(clientIps, workingMySQLInstances, dbScopePrivs, longPSW, shortPSW)
+				reports, err := c.AddOnMySQL(clientIps, workingMySQLInstances, dbScopePrivs, longPSW, shortPSW, false)
 				//reports, err := c.addOnMySQL(clientIps, workingMySQLInstances, accountAndRuleDetails, &accountPSW)
 				if err != nil {
 					slog.Error("add priv", slog.String("err", err.Error()))
