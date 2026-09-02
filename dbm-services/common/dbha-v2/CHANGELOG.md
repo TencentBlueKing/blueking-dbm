@@ -1,5 +1,18 @@
 # DBHA-v2 Change Log
 
+## v2.0.1-beta.2
+- 【新增】Probe 支持进程内热加载：gen-config --reload 与 dbha-probe reload 会重读配置并替换 harvester 世代；配置未变则跳过，解析失败不影响运行中配置。
+- 【新增】gen-config 增加 --clear-port，按逗号或分号剔除 ports / adminPorts，避免采集指定端口。
+- 【新增】gen-config 增加 --reload，写完配置后向运行中的 probe 发 reload 信号（当前热加载仍为 log-only stub）。
+- 【新增】Probe 支持按 admin.syncInterval 周期性从 admin 同步 reporter/harvester 配置并热重载；默认 0s（关闭），本地 admin 块与 serviceID/pidFile/log 不被覆盖。
+- 【新增】Admin 侧 probe 配置生成增加 metadata 缓存新鲜度控制（probeMetadata.cacheMaxAge / tombstoneAge），过期或缺失时回落 DBM API 并上报 fallback 指标。
+- 【新增】新增 compare_probe_config.py，用于比对本机 probe.yaml 与 admin gen-config 结果。
+- 【优化】gen-config 写配置改为旁路锁 + 临时文件 fsync + 原子 rename，并发写互斥，读者始终看到完整旧版或完整新版。
+- 【修复】probe / admin / analysis / receiver 启动或子命令失败时退出码改为 1，不再一律退 0。
+- 【修复】ReadPid 解析 pid 文件时去掉首尾空白，手工 echo 写入的 pid 不再让 stop / reload 报错。
+- 【修复】Probe 停止 repldelay 采集，不再向 infodba_schema.dbha_repl_heartbeat 写入，避免主从同步异常。
+- 【修复】切换时从库延迟改为看 SHOW SLAVE STATUS 的 Seconds_Behind_Master，新增配置 slaveAllowedMaxSecondsBehindMaster（默认 600 秒）。
+
 ## v2.0.1-beta.1
 - 【新增】Probe 对 MySQL 按 default / heartbeat / repldelay 三类异步采集：default 按原间隔上报全量状态。
 - 【新增】heartbeat 按较短间隔写 infodba_schema.dbha_heartbeat（sql_log_bin=OFF，只验本机可写）。
