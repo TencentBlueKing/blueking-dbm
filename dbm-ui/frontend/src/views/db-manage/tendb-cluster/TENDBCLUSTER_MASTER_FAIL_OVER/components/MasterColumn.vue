@@ -33,12 +33,12 @@
       :placeholder="t('请输入如: 192.168.10.2')"
       @change="handleChange" />
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedHosts"
     v-model:is-show="showSelector"
-    :cluster-types="['TendbClusterHost']"
-    hide-manual-input
-    :selected="selectedHosts"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.TENDBCLUSTER]: t('Master 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -46,23 +46,20 @@
   import { useRequest } from 'vue-request';
 
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = HostModel<ClusterTypes.TENDBCLUSTER>;
 
   interface Props {
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -82,40 +79,22 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    TendbClusterHost: [
-      {
-        id: 'TendbClusterHost',
-        name: t('故障主库主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Master 主机'),
-            role: 'remote_master',
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Master 主机'),
-            role: 'remote_master',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // Master 主机：角色过滤 remote_master
+  const dataSourceMap = {
+    [ClusterTypes.TENDBCLUSTER]: (params: ServiceParameters<typeof getTendbclusterMachineList>) =>
+      getTendbclusterMachineList({
+        ...params,
+        instance_role: 'remote_master',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+  const selectedHosts = computed<HostSelectorValues<ClusterTypes.TENDBCLUSTER>>(() => ({
+    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as HostModel<ClusterTypes.TENDBCLUSTER>,
     ),
   }));
   let illegalInstances = '';
@@ -178,8 +157,8 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbClusterHost);
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.TENDBCLUSTER>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
   watch(

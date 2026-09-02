@@ -41,6 +41,7 @@
             <HostColumn
               v-model="item.host"
               :cluster-types="[ClusterTypes.REDIS]"
+              :data-source-map="dataSourceMap"
               :label="t('主库主机')"
               :placeholder="t('请输入IP（单个）')"
               :selected="selected"
@@ -98,12 +99,13 @@
   import { useI18n } from 'vue-i18n';
 
   import { type Redis } from '@services/model/ticket/ticket';
+  import { getRedisMachineList } from '@services/source/redis.ts';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { type IValue } from '@components/instance-selector/Index.vue';
+  import { type HostModel } from '@components/host-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -207,6 +209,14 @@
     },
   ];
 
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        ...params,
+        instance_role: 'redis_master',
+      }),
+  };
+
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createRowData({
@@ -225,7 +235,7 @@
   };
 
   // 批量选择
-  const handleHostBatchEdit = (list: IValue[]) => {
+  const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((proxyData) => {
       const { ip } = proxyData;

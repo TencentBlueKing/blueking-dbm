@@ -50,9 +50,9 @@
 
   import { useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { type IValue } from '@components/instance-selector/Index.vue';
+  import { type HostModel } from '@components/host-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
 
@@ -181,7 +181,7 @@
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const handleHostBatchEdit = (list: IValue[]) => {
+  const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
       if (!selectedMap.value[item.ip]) {

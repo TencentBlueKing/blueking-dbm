@@ -12,11 +12,11 @@
       :key="index">
       <HostColumn
         v-model="item.host"
-        :cluster-types="['RedisHost']"
-        hide-manual-input
+        :cluster-types="[ClusterTypes.REDIS]"
+        :data-source-map="dataSourceMap"
         :label="t('目标主机')"
         :selected="selected"
-        :tab-list-config="tabListConfig"
+        :tab-name-map="{ [ClusterTypes.REDIS]: t('Proxy 主机') }"
         @batch-edit="handleHostBatchEdit" />
       <EditableColumn
         :label="t('所属集群')"
@@ -47,15 +47,14 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
   import { type Redis } from '@services/model/ticket/ticket';
-  import { getRedisClusterList } from '@services/source/redis';
+  import { getRedisMachineList } from '@services/source/redis';
 
   import { useTicketDetail } from '@hooks';
 
-  import { clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
+  import { type HostModel } from '@components/host-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
@@ -150,36 +149,14 @@
     },
   ];
 
-  const tabListConfig = {
-    RedisHost: [
-      {
-        name: t('接入层主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: 'IP',
-            role: 'proxy',
-          },
-        },
-        topoConfig: {
-          countFunc: (clusterItem: { proxy: { ip: string }[] }) => {
-            const ipList = clusterItem.proxy.map((hostItem) => hostItem.ip);
-            return new Set(ipList).size;
-          },
-          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-            getRedisClusterList({
-              ...params,
-              cluster_type: clusterRedisTypeList.join(','),
-            }),
-          totalCountFunc: (dataList: RedisModel[]) => {
-            const ipSet = new Set<string>();
-            dataList.forEach((dataItem) => dataItem.proxy.forEach((masterItem) => ipSet.add(masterItem.ip)));
-            return ipSet.size;
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 接入层主机：角色过滤 proxy
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        ...params,
+        instance_role: 'proxy',
+      }),
+  };
 
   const tableData = ref([createRowData()]);
   const tableKey = ref(random());
@@ -187,7 +164,7 @@
   const selected = computed(() => tableData.value.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const handleHostBatchEdit = (list: IValue[]) => {
+  const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
       if (!selectedMap.value[item.ip]) {

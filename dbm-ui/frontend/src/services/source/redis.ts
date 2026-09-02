@@ -194,6 +194,7 @@ export function getRedisMachineList(params: {
   creator?: string;
   extra?: number;
   instance_role?: string;
+  instance_status?: string;
   ip?: string;
   limit?: number;
   machine_type?: string;

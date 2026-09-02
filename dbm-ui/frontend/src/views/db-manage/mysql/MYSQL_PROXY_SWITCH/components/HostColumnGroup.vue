@@ -49,12 +49,12 @@
       </div>
     </EditableBlock>
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['TendbhaHost']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.TENDBHA]: t('Proxy 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -64,17 +64,14 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbhaMachineList } from '@services/source/tendbha';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorItem = IValue;
+  export type SelectorItem = HostModel<ClusterTypes.TENDBHA>;
 
   interface Props {
     handleRowMerge: () => void;
@@ -82,7 +79,7 @@
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorItem[]) => void;
 
   const props = defineProps<Props>();
 
@@ -107,35 +104,14 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    TendbhaHost: [
-      {
-        id: 'TendbhaHost',
-        name: t('目标Proxy主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Proxy 主机'),
-            role: 'proxy',
-          },
-        },
-        topoConfig: {
-          countFunc: (item: TendbhaModel) => item.proxies.length,
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Proxy 主机'),
-            role: 'proxy',
-          },
-        },
-      },
-    ],
-  } as Record<string, PanelListType>;
+  // Proxy 主机：默认角色过滤改为 proxy
+  const dataSourceMap = {
+    [ClusterTypes.TENDBHA]: (params: ServiceParameters<typeof getTendbhaMachineList>) =>
+      getTendbhaMachineList({
+        ...params,
+        instance_role: 'proxy',
+      }),
+  };
 
   const rules = [
     {
@@ -164,8 +140,8 @@
   const selectedInstances = computed(
     () =>
       ({
-        TendbhaHost: props.selected,
-      }) as unknown as InstanceSelectorValues<IValue>,
+        [ClusterTypes.TENDBHA]: props.selected,
+      }) as unknown as HostSelectorValues<ClusterTypes.TENDBHA>,
   );
 
   const { loading, run: queryInstance } = useRequest(checkInstance, {
@@ -219,8 +195,8 @@
     );
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbhaHost);
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.TENDBHA>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
 
   watch(
