@@ -84,12 +84,6 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.TENDBCLUSTER_ROLLBACK,
         name: t('回档'),
       },
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.rollback',
-      //   desc: t('回到指定时间点重建集群'),
-      //   id: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
-      //   name: t('定点构造（旧）'),
-      // },
     ],
     icon: 'data-recovery',
     id: 'fileback',
