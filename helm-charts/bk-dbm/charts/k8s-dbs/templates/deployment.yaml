@@ -101,3 +101,9 @@ spec:
             value: "{{ .Values.server.clbApiConfig.username }}"
           - name: BKBASE_CLB_BACKUP_USERNAME
             value: "{{ .Values.server.clbApiConfig.backupUsername }}"
+          - name: BKBASE_CLB_OPERATION_PRODUCT
+            value: "{{ .Values.server.clbApiConfig.operationProduct }}"
+          - name: BKBASE_CLB_FIRST_LEVEL_BIZ
+            value: "{{ .Values.server.clbApiConfig.firstLevelBiz }}"
+          - name: BKBASE_CLB_SECOND_LEVEL_BIZ
+            value: "{{ .Values.server.clbApiConfig.secondLevelBiz }}"

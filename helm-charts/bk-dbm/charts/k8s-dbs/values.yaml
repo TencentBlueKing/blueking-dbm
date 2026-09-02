@@ -45,6 +45,9 @@ server:
     clbApiURL: ""          # clb 服务调用地址
     username: ""           # 管理人员
     backupUsername: ""     # 备份管理人员
+    operationProduct: ""   # 操作产品
+    firstLevelBiz: ""      # 一级业务
+    secondLevelBiz: ""     # 二级业务
   dbmConfig:
     asyncToDbm: "true"
     syncDataApiUrl: ""          # 内部直连地址（同步用）

@@ -40,9 +40,12 @@ const getClbInfoPath = "/ops/get_clb"
 
 // ClbAPIService CLB API 服务，用于调用 bk-base 的 CLB 创建接口
 type ClbAPIService struct {
-	clbAPIURL      string // CLB 创建接口域名，来自环境变量 BKBASE_CLB_API_URL
-	username       string // 操作用户名，来自环境变量 BKBASE_CLB_USERNAME
-	backupUsername string // 备份操作用户名，来自环境变量 BKBASE_CLB_BACKUP_USERNAME
+	clbAPIURL        string // CLB 创建接口域名，来自环境变量 BKBASE_CLB_API_URL
+	username         string // 操作用户名，来自环境变量 BKBASE_CLB_USERNAME
+	backupUsername   string // 备份操作用户名，来自环境变量 BKBASE_CLB_BACKUP_USERNAME
+	operationProduct string // 操作产品，来自环境变量 BKBASE_CLB_OPERATION_PRODUCT
+	firstLevelBiz    string // 一级业务，来自环境变量 BKBASE_CLB_FIRST_LEVEL_BIZ
+	secondLevelBiz   string // 二级业务，来自环境变量 BKBASE_CLB_SECOND_LEVEL_BIZ
 }
 
 var (
@@ -53,20 +56,20 @@ var (
 // InitClbAPIService 初始化 CLB API 服务（仅从环境变量加载配置）
 func InitClbAPIService() {
 	clbOnce.Do(func() {
-		clbAPIURL := env.GetString("BKBASE_CLB_API_URL", "")
-		username := env.GetString("BKBASE_CLB_USERNAME", "")
-		backupUsername := env.GetString("BKBASE_CLB_BACKUP_USERNAME", "")
-
-		if clbAPIURL == "" {
-			slog.Warn("BKBASE_CLB_API_URL 未配置，CLB 创建功能将不可用")
-		}
-
 		clbInstance = &ClbAPIService{
-			clbAPIURL:      clbAPIURL,
-			username:       username,
-			backupUsername: backupUsername,
+			clbAPIURL:        env.GetString("BKBASE_CLB_API_URL", ""),
+			username:         env.GetString("BKBASE_CLB_USERNAME", ""),
+			backupUsername:   env.GetString("BKBASE_CLB_BACKUP_USERNAME", ""),
+			operationProduct: env.GetString("BKBASE_CLB_OPERATION_PRODUCT", ""),
+			firstLevelBiz:    env.GetString("BKBASE_CLB_FIRST_LEVEL_BIZ", ""),
+			secondLevelBiz:   env.GetString("BKBASE_CLB_SECOND_LEVEL_BIZ", ""),
 		}
-		slog.Info("CLB API 服务初始化完成", "clbAPIURL", clbAPIURL)
+
+		if err := clbInstance.validate(); err != nil {
+			slog.Warn("CLB 配置不完整，CLB 创建功能将不可用", "missing", err)
+		}
+
+		slog.Info("CLB API 服务初始化完成", "clbAPIURL", clbInstance.clbAPIURL)
 	})
 }
 
@@ -84,19 +87,22 @@ func NewClbAPIService() *ClbAPIService {
 // CreateClb 创建 CLB，调用 bk-base 的 /ops/create_clb 接口。
 // 请求参数通过 request 传入（包含 region、vpc_id 等），成功时返回第一个 CLB ID。
 func (c *ClbAPIService) CreateClb(request *infreq.CreateClbRequest) (string, error) {
-	if c.clbAPIURL == "" {
-		return "", fmt.Errorf("BKBASE_CLB_API_URL 未配置，无法创建 CLB")
+	if err := c.validate(); err != nil {
+		return "", err
 	}
 
 	url := c.buildURL(createClbPath)
 
 	reqData := map[string]interface{}{
-		"region":          request.Region,
-		"vpc_id":          request.VpcID,
-		"clb_name":        request.ClbName,
-		"clb_nums":        request.ClbNums,
-		"username":        c.username,
-		"backup_username": c.backupUsername,
+		"region":            request.Region,
+		"vpc_id":            request.VpcID,
+		"clb_name":          request.ClbName,
+		"clb_nums":          request.ClbNums,
+		"username":          c.username,
+		"backup_username":   c.backupUsername,
+		"operation_product": c.operationProduct,
+		"first_level_biz":   c.firstLevelBiz,
+		"second_level_biz":  c.secondLevelBiz,
 	}
 
 	resp, err := util.BaseHTTPClient.PostWithResponse(url, reqData, nil)
@@ -144,17 +150,20 @@ func (c *ClbAPIService) CreateClb(request *infreq.CreateClbRequest) (string, err
 
 // GetClb 获取 CLB
 func (c *ClbAPIService) GetClb(request *infreq.GetClbRequest) (*infresp.GetClbAPIResponse, error) {
-	if c.clbAPIURL == "" {
-		return nil, fmt.Errorf("BKBASE_CLB_API_URL 未配置，无法创建 CLB")
+	if err := c.validate(); err != nil {
+		return nil, err
 	}
 
 	url := c.buildURL(getClbInfoPath)
 
 	reqData := map[string]interface{}{
-		"region":          request.Region,
-		"clb_ids":         request.ClbIDs,
-		"username":        c.username,
-		"backup_username": c.backupUsername,
+		"region":            request.Region,
+		"clb_ids":           request.ClbIDs,
+		"username":          c.username,
+		"backup_username":   c.backupUsername,
+		"operation_product": c.operationProduct,
+		"first_level_biz":   c.firstLevelBiz,
+		"second_level_biz":  c.secondLevelBiz,
 	}
 
 	resp, err := util.BaseHTTPClient.PostWithResponse(url, reqData, nil)
@@ -191,6 +200,27 @@ func (c *ClbAPIService) GetClb(request *infreq.GetClbRequest) (*infresp.GetClbAP
 	}
 
 	return &clbResp, nil
+}
+
+// validate 校验 CLB 服务配置是否完整，一次性返回所有缺失的必填项。
+func (c *ClbAPIService) validate() error {
+	var missing []string
+	if c.clbAPIURL == "" {
+		missing = append(missing, "BKBASE_CLB_API_URL")
+	}
+	if c.operationProduct == "" {
+		missing = append(missing, "BKBASE_CLB_OPERATION_PRODUCT")
+	}
+	if c.firstLevelBiz == "" {
+		missing = append(missing, "BKBASE_CLB_FIRST_LEVEL_BIZ")
+	}
+	if c.secondLevelBiz == "" {
+		missing = append(missing, "BKBASE_CLB_SECOND_LEVEL_BIZ")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("CLB 配置缺失: %s", strings.Join(missing, ", "))
+	}
+	return nil
 }
 
 func (c *ClbAPIService) buildURL(path string) string {
