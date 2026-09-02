@@ -24,26 +24,26 @@
           </div>
         </div>
       </div>
-      <div class="right-operation">
-        <SearchOperation
-          :key="route.name"
-          ref="searchOperationRef"
-          :is-global-page="isGlobalPage"
-          :is-todo-page="isTodoPage"
-          :show-bizs="isTodoPage || isGlobalPage"
-          @search="handleSearchChange" />
-      </div>
+    </div>
+    <div class="mb-20">
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
+        :placeholder="t('搜索DB类型，告警产生时间，告警名称，告警内容，所属集群…')"
+        style="width: 560px"
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
       ref="tableRef"
       :bk-ui-settings="tableSetting"
       :data-source="getAlarmEventsList"
+      :filter-value="quickSearchValue"
       releate-url-query
       row-key="id"
       selectable
       :show-select-all-page="false"
       @clear-search="handleClearSearchValue"
-      @filter-change="handleFilterChange"
+      @filter-change="handleTableFilterChange"
       @request-success="handleRequestSuccess"
       @selection="handleSelection">
       <TableColumn
@@ -90,11 +90,7 @@
       </TableColumn>
       <TableColumn
         col-key="stage"
-        :filter="{
-          list: phaseFilterList,
-          showConfirmAndReset: true,
-          type: 'multiple',
-        }"
+        :filter="columnFilterConfig.stage"
         :title="t('处理阶段')"
         :width="100">
         <template #default="{ row }: { row: RowData }">
@@ -147,11 +143,7 @@
       </TableColumn>
       <TableColumn
         col-key="status"
-        :filter="{
-          list: statusFilterList,
-          showConfirmAndReset: true,
-          type: 'multiple',
-        }"
+        :filter="columnFilterConfig.status"
         :title="t('状态')"
         :width="100">
         <template #default="{ row }: { row: RowData }">
@@ -240,7 +232,6 @@
 </template>
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getAlarmEventsList } from '@services/source/monitor';
@@ -253,9 +244,9 @@
 
   import { exportExcelFile, getBusinessHref } from '@utils';
 
-  import SearchOperation from './components/SearchOperation.vue';
   import ShieldAlarms from './components/ShieldAlarms.vue';
   import ToAlarmPolicy from './components/ToAlarmPolicy.vue';
+  import { columnFilterConfig, dbTypeSearchId, timeRangeSearchId, useQuickSearch } from './useQuickSearch';
 
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
@@ -273,8 +264,8 @@
   const isEditable = ref(true);
   const showShieldAlarm = ref(false);
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const activeLevel = ref(0);
-  const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
+  // 告警级别只由这个筛选条负责，不放进快捷搜索
+  const activeLevel = ref(Number(route.query.severity) || 0);
   const createShieldAlarmsRef = ref<InstanceType<typeof ShieldAlarms>>();
   const severityList = ref([
     {
@@ -318,39 +309,10 @@
   const isTodoPage = computed(() => route.name === 'platformAlarmEventsTodo');
   const isGlobalPage = computed(() => route.name === 'platformAlarmEvents');
 
-  const statusFilterList = [
-    {
-      label: t('已恢复'),
-      value: 'RECOVERED',
-    },
-    {
-      label: t('未恢复'),
-      value: 'ABNORMAL',
-    },
-    {
-      label: t('已失效'),
-      value: 'CLOSED',
-    },
-  ];
-
-  const phaseFilterList = [
-    {
-      label: t('已通知'),
-      value: 'is_handled',
-    },
-    {
-      label: t('已屏蔽'),
-      value: 'is_shielded',
-    },
-    {
-      label: t('已流控'),
-      value: 'is_blocked',
-    },
-    {
-      label: t('已确认'),
-      value: 'is_ack',
-    },
-  ];
+  const { defaultEndTime, defaultStartTime, quickSearchData, quickSearchValue } = useQuickSearch({
+    isGlobalPage,
+    isTodoPage,
+  });
 
   const tableSetting = {
     checked: [
@@ -369,18 +331,6 @@
     ],
     disabled: ['alert_name'],
   };
-
-  const searchDataKeys = [
-    'alert_name',
-    'description',
-    'cluster_domain',
-    'bk_biz_id',
-    'stage',
-    'status',
-    'instance',
-    'ip',
-    'severity',
-  ];
 
   let searchValue: Record<string, string> = {};
 
@@ -416,6 +366,11 @@
     if (route.query.bk_biz_id) {
       Object.assign(searchValue, {
         bk_biz_id: Number(route.query.bk_biz_id),
+      });
+    }
+    if (activeLevel.value) {
+      Object.assign(searchValue, {
+        severity: activeLevel.value,
       });
     }
   };
@@ -469,46 +424,58 @@
   };
 
   const handleClearSearchValue = () => {
-    searchOperationRef.value!.reset();
+    quickSearchValue.value = {
+      status: 'ABNORMAL',
+      [timeRangeSearchId]: `${defaultStartTime},${defaultEndTime}`,
+    };
   };
 
   const handleSelection = (_: any, list: RowData[]) => {
     selectionList.value = list;
   };
 
-  const handleFilterChange = (filterValue: Record<string, string[]>) => {
-    ['stage', 'status'].forEach((key) => {
-      if (filterValue[key]?.length) {
-        searchValue[key] = filterValue[key].join(',');
+  // 表头筛选与快捷搜索共用 quickSearchValue，写回后由快捷搜索的 change 统一触发请求。
+  // 只取有表头筛选的列，避免整体替换时丢掉其他搜索条件
+  const handleTableFilterChange = (filterValue: Record<string, string>) => {
+    const nextValue = { ...quickSearchValue.value };
+    Object.keys(columnFilterConfig).forEach((key) => {
+      if (filterValue[key]) {
+        Object.assign(nextValue, {
+          [key]: filterValue[key],
+        });
       } else {
-        delete searchValue[key];
+        delete nextValue[key];
       }
     });
 
-    triggerSearch();
+    quickSearchValue.value = nextValue;
   };
 
-  const handleSearchChange = (data: Record<string, string>) => {
-    const searchData = _.cloneDeep(data);
-    Object.keys(searchValue).forEach((key) => {
-      if (!searchData[key] && searchDataKeys.includes(key)) {
-        // 业务下的告警事件特殊处理
-        if (key === 'bk_biz_id' && !isTodoPage.value && !isGlobalPage.value) {
-          return;
-        }
-
-        if (key === 'severity' && activeLevel.value) {
-          return;
-        }
-
-        // searchselect 删除的项
-        delete searchValue[key];
-      } else if (searchData[key]) {
-        searchValue[key] = searchData[key];
-        delete searchData[key];
-      }
+  const handleQuickSearchChange = (value: Record<string, string>) => {
+    // 先清掉上一次快捷搜索产生的条件，避免搜索项被删除后条件残留。
+    // 业务页的 bk_biz_id 不在快捷搜索里，会保留页面上下文的业务
+    ['start_time', 'end_time', ...quickSearchData.value.map((item) => item.id)].forEach((key) => {
+      delete searchValue[key];
     });
-    Object.assign(searchValue, searchData);
+
+    const [startTime, endTime] = (value[timeRangeSearchId] || '').split(',');
+    Object.assign(searchValue, {
+      // 接口的 db_types 只接受数组
+      db_types: value[dbTypeSearchId] ? value[dbTypeSearchId].split(',') : [],
+      // 接口的 start_time / end_time 必填，时间范围被删除时回退到默认区间
+      end_time: endTime || defaultEndTime,
+      start_time: startTime || defaultStartTime,
+    });
+
+    quickSearchData.value.forEach((item) => {
+      if (item.id === dbTypeSearchId || item.id === timeRangeSearchId || value[item.id] === undefined) {
+        return;
+      }
+      Object.assign(searchValue, {
+        [item.id]: item.id === 'bk_biz_id' ? Number(value[item.id]) : value[item.id],
+      });
+    });
+
     triggerSearch();
   };
 
@@ -627,6 +594,10 @@
 
       .right-operation {
         margin-bottom: 16px;
+
+        .search-select {
+          width: 560px;
+        }
       }
     }
   }
