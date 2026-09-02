@@ -30,6 +30,7 @@ from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_reinstall impo
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_ha_to_cluster_migrate import MysqlHaToClusterMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_rename_migrate import MysqlRenameMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate import MysqlToMysqlMigrateFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.precheck.mysql_dts_precheck import MysqlDtsPrecheckFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
@@ -876,10 +877,6 @@ class MySQLController(BaseController):
         flow = MySQLCloneClusterFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.clone_cluster_flow()
 
-    def mysql_dts_precheck_scene(self):
-        """DTS 迁移预检查占位"""
-        pass
-
     def mysql_dts_cluster_apply_scene(self):
         flow = MysqlDtsClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
@@ -908,4 +905,8 @@ class MySQLController(BaseController):
     @validates_with(MysqlDtsMigrateFlowValidator)
     def mysql_rename_migrate_scene(self):
         flow = MysqlRenameMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def mysql_dts_precheck_scene(self):
+        flow = MysqlDtsPrecheckFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
