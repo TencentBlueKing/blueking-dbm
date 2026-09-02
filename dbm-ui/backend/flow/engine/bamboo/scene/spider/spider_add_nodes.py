@@ -209,6 +209,7 @@ class TenDBClusterAddNodesFlow(object):
         is_check_disaster_tolerance_level: bool = True,
         is_rebuild: bool = False,
         is_print_summary: bool = False,
+        is_autofix: bool = False,
     ):
         """
         定义添加spider节点的通用子流程
@@ -219,12 +220,14 @@ class TenDBClusterAddNodesFlow(object):
         @param global_pkg_id: 全局包id
         @param is_check_disaster_tolerance_level: 是否检查容灾级别
         @param is_rebuild: 是否是重建场景, 默认False, 代表非重建场景
+        @param disable_manual_confirm: 是否禁用人工确认，默认是不禁用的。但特殊情况可以禁用，比如自愈所产生的替换单据
         @param is_print_summary: 是否在本子流程尾部写入"spider 变更摘要"节点，默认False；
             - True：仅供 "spider 扩容顶层入口"（:meth:`add_spider_nodes`）调用；开关会向下透传至
               :meth:`add_spider_master_notes` / :meth:`add_spider_slave_notes`，由分支方法就地
               调用 :meth:`_build_add_items_for_info` 装配 ADD 语义的 InstanceChangeSummary 行。
             - False：保持内部方法纯净；供衍生 flow（Rebuild / Switch / DisasterRecover）复用时
               避免误落"扩容"语义摘要。本方法自身不装配 items，只做开关的透传。
+        @param is_autofix: 是否自动修复场景，默认是False, 自愈复用需要True
         """
 
         # 获取对应集群相关对象
@@ -270,14 +273,26 @@ class TenDBClusterAddNodesFlow(object):
 
             # 加入spider-master 子流程
             return self.add_spider_master_notes(
-                sub_flow_context, cluster, new_db_module_id, global_pkg_id, is_rebuild, is_print_summary
+                sub_flow_context=sub_flow_context,
+                cluster=cluster,
+                new_db_module_id=new_db_module_id,
+                global_pkg_id=global_pkg_id,
+                is_rebuild=is_rebuild,
+                is_print_summary=is_print_summary,
+                is_autofix=is_autofix,
             )
 
         elif add_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
 
             # 加入spider-slave 子流程
             return self.add_spider_slave_notes(
-                sub_flow_context, cluster, new_db_module_id, global_pkg_id, is_rebuild, is_print_summary
+                sub_flow_context=sub_flow_context,
+                cluster=cluster,
+                new_db_module_id=new_db_module_id,
+                global_pkg_id=global_pkg_id,
+                is_rebuild=is_rebuild,
+                is_print_summary=is_print_summary,
+                is_autofix=is_autofix,
             )
 
         else:
@@ -294,6 +309,7 @@ class TenDBClusterAddNodesFlow(object):
         global_pkg_id: int = 0,
         is_rebuild: bool = False,
         is_print_summary: bool = False,
+        is_autofix: bool = False,
     ):
         """
         定义spider master集群部署子流程
@@ -308,6 +324,7 @@ class TenDBClusterAddNodesFlow(object):
               InstanceChangeSummary 行（角色固定 spider_master）并挂到 sub_pipeline 尾部；
             - False：不挂载摘要节点，供衍生 flow（Rebuild / Switch / DisasterRecover）
               复用时避免误落"扩容"语义摘要。
+        @param is_autofix: 是否自动修复场景，默认是False, 自愈复用需要True
         """
 
         # 启动子流程
@@ -325,6 +342,7 @@ class TenDBClusterAddNodesFlow(object):
                 new_db_module_id=new_db_module_id,
                 global_pkg_id=global_pkg_id,
                 is_rebuild=is_rebuild,
+                is_autofix=is_autofix,
             )
         )
 
@@ -379,6 +397,7 @@ class TenDBClusterAddNodesFlow(object):
         global_pkg_id: int = 0,
         is_rebuild: bool = False,
         is_print_summary: bool = False,
+        is_autofix: bool = False,
     ):
         """
         添加spider-slave节点的子流程流程逻辑
@@ -393,6 +412,7 @@ class TenDBClusterAddNodesFlow(object):
               InstanceChangeSummary 行（角色固定 spider_slave）并挂到 sub_pipeline 尾部；
             - False：不挂载摘要节点，供衍生 flow（Rebuild / Switch / DisasterRecover）
               复用时避免误落"扩容"语义摘要。
+        @param is_autofix: 是否自动修复场景，默认是False, 自愈复用需要True
         """
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -408,6 +428,7 @@ class TenDBClusterAddNodesFlow(object):
                 new_db_module_id=new_db_module_id,
                 global_pkg_id=global_pkg_id,
                 is_rebuild=is_rebuild,
+                is_autofix=is_autofix,
             )
         )
         # 阶段2 变更db_meta数据

@@ -102,6 +102,9 @@ def add_spider_routing_sub_flow(
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 1) 添加 spider 内置账号 (中央 DBPriv 授权, 必须在 dbm-ui 进程中执行)
+    # 传入 role_value(str) 而非 param.add_spider_role(可能为 str 或 枚举成员), 与
+    # AddSpiderRoutingKwargs 下游消费方（asdict 后落 kwargs）语义保持一致, 避免
+    # 出现"枚举 vs 字符串"混入 kwargs 造成序列化歧义。
     sub_pipeline.add_act(
         act_name=_("添加spider内置账号"),
         act_component_code=AddSpiderSystemUserComponent.code,
@@ -109,7 +112,7 @@ def add_spider_routing_sub_flow(
             AddSpiderRoutingKwargs(
                 cluster_id=cluster.id,
                 add_spiders=param.add_spiders,
-                add_spider_role=param.add_spider_role,
+                add_spider_role=role_value,
                 user=param.spider_user,
                 passwd=param.spider_pass,
             )
@@ -121,6 +124,9 @@ def add_spider_routing_sub_flow(
     ctl_primary_ip, ctl_primary_port = ctl_primary_addr.split(IP_PORT_DIVIDER)
 
     # 2) 下发 db-actuator 到所有的tdb-ctl节点
+    # 自愈场景下(param.is_autofix=True): error_ignorable=True, 仅对该 act 生效——
+    # 兜底"存量 spider_master 中存在故障机器"的场景, 允许对故障机器下发介质失败继续推进;
+    # 非自愈场景下: error_ignorable=False, 保持严格行为。
     sub_pipeline.add_act(
         act_name=_("下发db-actuator介质[云区域ID:{}]".format(cluster.bk_cloud_id)),
         act_component_code=TransFileComponent.code,
@@ -136,6 +142,7 @@ def add_spider_routing_sub_flow(
                 file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
             )
         ),
+        error_ignorable=bool(param.is_autofix),
     )
 
     # 3) 在中控 primary 本机执行 spiderctl add-spider-routing
@@ -200,6 +207,7 @@ def add_spider_slaves_sub_flow(
     new_db_module_id: int = 0,
     is_rebuild: bool = False,
     cold_disaster_recover: bool = False,
+    is_autofix: bool = False,
 ):
     """
     定义对原有的TenDB cluster集群添加spider slave节点的公共子流程
@@ -217,6 +225,7 @@ def add_spider_slaves_sub_flow(
     @param cold_disaster_recover: 接入层全毁冷启动；需 parent_global_data 含 spider_port；强制 is_clone_user=False；
                                   跳过 add_spider_slave_routing 节点（路由由上层统一登记）；
                                   跳过 BuildEntrysManageSubflow / slave_domain（DNS 由上层处理）
+    @param is_autofix: 是否自动修复场景，默认是False，代表非自动修复场景，如果是True，代表是自动修复场景
     """
     tdbctl_pass = get_random_string(length=10)
 
@@ -362,6 +371,7 @@ def add_spider_slaves_sub_flow(
                     add_spiders=add_spider_slaves,
                     add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
                     spider_pass=tdbctl_pass,
+                    is_autofix=is_autofix,
                 ),
             )
         )
@@ -438,6 +448,7 @@ def add_spider_masters_sub_flow(
     new_db_module_id: int = 0,
     is_rebuild: bool = False,
     cold_disaster_recover: bool = False,
+    is_autofix: bool = False,
 ):
     """
     定义对原有的TenDB cluster集群添加spider master节点的公共子流程
@@ -453,6 +464,7 @@ def add_spider_masters_sub_flow(
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     @param is_rebuild: 是否是重建场景，默认是False，代表非重建场景，如果是True，代表是重建场景
     @param cold_disaster_recover: 接入层全毁冷启动；需 parent_global_data 含 spider_port/ctl_port；跳过路由与权限克隆
+    @param is_autofix: 是否自动修复场景，默认是False，代表不自动修复，如果是True，代表自动修复
     """
     tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
@@ -625,6 +637,7 @@ def add_spider_masters_sub_flow(
                     add_spiders=add_spider_masters,
                     add_spider_role=role,
                     spider_pass=tdbctl_pass,
+                    is_autofix=is_autofix,
                 ),
             )
         )

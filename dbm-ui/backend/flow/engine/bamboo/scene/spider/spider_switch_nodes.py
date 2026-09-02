@@ -319,23 +319,25 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 add_spider_role=spider_role,
                 add_spider_hosts=new_spider_hosts,
                 is_check_disaster_tolerance_level=False,
+                is_autofix=disable_manual_confirm,
             )
         )
 
-        # 释放对单据的互斥锁
-        # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
-        sub_pipeline.add_act(
-            act_name=_("释放部分单据互斥锁"),
-            act_component_code=AddUnlockTicketTypeConfigComponent.code,
-            kwargs=asdict(
-                AddUnLockTicketTypeKwargs(
-                    cluster_ids=[cluster_id], unlock_ticket_type_list=self.temporary_unlock_ticket_type_list
-                )
-            ),
-        )
-
-        # 人工确认前，解除释放互斥锁，重新互斥
+        # 如果是故障自愈场景，不需要做
         if not disable_manual_confirm:
+            # 释放对单据的互斥锁
+            # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
+            sub_pipeline.add_act(
+                act_name=_("释放部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=[cluster_id], unlock_ticket_type_list=self.temporary_unlock_ticket_type_list
+                    )
+                ),
+            )
+
+            # 人工确认前，解除释放互斥锁，重新互斥
             sub_pipeline.add_act(
                 act_name=_("人工确认，解除释放，重新判断互斥条件"),
                 act_component_code=PauseWithTicketLockCheckComponent.code,
