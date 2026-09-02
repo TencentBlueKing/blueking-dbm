@@ -55,6 +55,7 @@ class DBMMcpTools(StrStructuredEnum):
     HOST_PERFORMANCE_QUERY = EnumField("host-performance-query", _("主机性能查询"))
     TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
     KAFKA_TOOLBOX = EnumField("kafka-toolbox", "kafka-toolbox")
+    KAFKA_REBALANCE_CONTROL = EnumField("kafka-rebalance-control", "kafka-rebalance-control")
     PROMQL_QUERY = EnumField("promql-query", _("通用PromQL指标查询"))
     AI_REPORT = EnumField("ai-report", _("AI分析报告"))
     CLUSTER_PORTRAIT = EnumField("cluster-portrait", _("集群画像基础mcp工具集合"))
