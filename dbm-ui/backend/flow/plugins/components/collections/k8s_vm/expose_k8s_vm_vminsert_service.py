@@ -15,14 +15,13 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
-import backend.flow.utils.k8s_vm.k8s_vm_context_dataclass as flow_context
+import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.k8s_vm.consts import (
+from backend.flow.utils.k8s_db.consts import SCHEDULE_INTERVAL_SECONDS, SCHEDULE_MAX_RETRIES
+from backend.flow.utils.k8s_db.vm.consts import (
     COMPONENT_VMINSERT,
-    SCHEDULE_INTERVAL_SECONDS,
-    SCHEDULE_MAX_RETRIES,
     VMINSERT_PORT,
     VMINSERT_SERVICE_NAME,
 )

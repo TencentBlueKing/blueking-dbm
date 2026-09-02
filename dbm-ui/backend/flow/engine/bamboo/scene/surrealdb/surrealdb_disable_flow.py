@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -22,7 +23,10 @@ from backend.flow.plugins.components.collections.surrealdb.surrealdb_single.surr
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_sync_ticket_id import (
     SurrealDBSyncTicketIdComponent,
 )
-from backend.flow.utils.surrealdb.surrealdb_context_dataclass import K8sSurrealDBActKwargs, K8sSurrealDBApplyContext
+from backend.flow.utils.k8s_db.surrealdb.surrealdb_context_dataclass import (
+    K8sSurrealDBActKwargs,
+    K8sSurrealDBApplyContext,
+)
 
 
 class K8sSurrealDBDisableFlow(K8sSurrealDBBaseFlow):
@@ -43,7 +47,9 @@ class K8sSurrealDBDisableFlow(K8sSurrealDBBaseFlow):
 
         # 调用 dbs 接口禁用集群
         surrealdb_pipeline.add_act(
-            act_name=_("禁用 surrealdb 集群"), act_component_code=DisableSurrealDBComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("禁用 surrealdb 集群"),
+            act_component_code=DisableSurrealDBComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         # 更新 cluster status 和 phase

@@ -16,10 +16,11 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
-import backend.flow.utils.qdrant.qdrant_context_dataclass as flow_context
+import backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.k8s_db.consts import SCHEDULE_INTERVAL_SECONDS, SCHEDULE_MAX_RETRIES
 
 logger = logging.getLogger("flow")
 
@@ -30,7 +31,7 @@ class GetK8sQdrantClbDetailService(BaseService):
     """
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(20)  # 每20秒轮询一次
+    interval = StaticIntervalGenerator(SCHEDULE_INTERVAL_SECONDS)  # 轮询间隔
 
     def _execute(self, data, parent_data) -> bool:
         """初始化，保存参数供_schedule使用"""
@@ -44,7 +45,7 @@ class GetK8sQdrantClbDetailService(BaseService):
         data.outputs["clb_id"] = trans_data.clb_id
         data.outputs["region_code"] = trans_data.region_code
         data.outputs["attempt"] = 0
-        data.outputs["max_retries"] = 5
+        data.outputs["max_retries"] = SCHEDULE_MAX_RETRIES
         return True
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
@@ -77,7 +78,10 @@ class GetK8sQdrantClbDetailService(BaseService):
             self.log_error(_("获取CLB详情失败"))
             return False
 
-        self.log_info(f"CLB {clb_id} detail not ready yet, attempt {attempt}/{max_retries}. Next check in 20s...")
+        self.log_info(
+            f"CLB {clb_id} detail not ready yet, attempt {attempt}/{max_retries}. "
+            f"Next check in {SCHEDULE_INTERVAL_SECONDS}s..."
+        )
         return True  # 继续等待下一轮调度
 
     def inputs_format(self) -> List:

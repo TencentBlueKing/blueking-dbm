@@ -14,7 +14,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
+import backend.flow.utils.k8s_db.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.surrealdb.utils import fetch_cluster_detail

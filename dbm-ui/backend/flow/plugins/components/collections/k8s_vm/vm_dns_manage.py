@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.k8s_vm.k8s_vm_context_dataclass as flow_context
+import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.flow.consts import DnsOpType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.dns_manage import DnsManage
