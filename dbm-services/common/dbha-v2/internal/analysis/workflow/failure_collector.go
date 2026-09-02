@@ -45,6 +45,8 @@ type FailureInstanceInfo struct {
 	ClusterType     haprobe.DbmMetadataClusterType  `json:"cluster_type"`
 	MachineType     haprobe.DbmMetadataMachineType  `json:"machine_type"`
 	InstanceRole    haprobe.DbmMetadataInstanceRole `json:"instance_role"`
+	// Count is the number of times this instance reported the same event within the window.
+	Count int `json:"count,omitempty"`
 
 	// CheckStartTime and CheckFinishedTime are the start and end times of the instance's
 	// SSH double-check detection.
