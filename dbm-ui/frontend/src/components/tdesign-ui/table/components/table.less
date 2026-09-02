@@ -1,4 +1,4 @@
-/* stylelint-disable declaration-no-important */
+/* stylelint-disable declaration-no-important, custom-property-pattern, selector-class-pattern */
 .t-table {
   &.t-font-size-l {
     font-size: 14px;
@@ -103,10 +103,10 @@
   &.t-table__content--scrollable-to-left .t-table__cell--fixed-left-last::before,
   &.t-table__content--scrollable-to-right .t-table__cell--fixed-right-first::before {
     position: absolute;
-    inset: 0;
     z-index: -1;
-    content: '';
     background: inherit;
+    content: '';
+    inset: 0;
   }
 
   &.t-table__content--scrollable-to-left .t-table__cell--fixed-left-last::after {
@@ -130,7 +130,7 @@
     &:hover {
       .t-table--scroll-vertical,
       .t-table--scroll-horizontal {
-        opacity: 1;
+        opacity: 100%;
       }
     }
 
@@ -138,7 +138,7 @@
     .t-table--scroll-horizontal {
       z-index: 999;
       cursor: pointer;
-      opacity: 0;
+      opacity: 0%;
       transition: 0.15s;
 
       &::-webkit-scrollbar-thumb {
@@ -147,7 +147,7 @@
       }
 
       &:hover {
-        opacity: 1;
+        opacity: 100%;
 
         &::-webkit-scrollbar-thumb {
           background-color: rgb(151 155 165 / 90%);
@@ -204,6 +204,25 @@
       }
     }
   }
+
+  .t-table__sort-icon {
+    &.t-table-sort-asc,
+    &.t-table-sort-desc {
+      &::after {
+        position: absolute;
+        inset: 0 -8px -8px -6px;
+        display: block;
+        content: '';
+      }
+    }
+
+    &.t-table-sort-asc {
+      &::after {
+        right: -6px;
+        left: -8px;
+      }
+    }
+  }
 }
 
 // 自定义 filter (type: single、 multple)
@@ -253,51 +272,3 @@
     }
   }
 }
-
-// .t-affix {
-//   .t-table__scrollbar--obvious {
-//     position: relative;
-//     min-height: 14px;
-//     font-size: 0;
-//     line-height: 0;
-//     scrollbar-gutter: stable;
-
-//     & > div {
-//       height: 1px !important;
-
-//       &:after {
-//         content: '&nbsp;';
-//       }
-//     }
-
-//     &::-webkit-scrollbar-thumb {
-//       background-color: rgb(151 155 165 / 80%);
-//       border-radius: 3px;
-//     }
-
-//     *::-webkit-scrollbar {
-//       background-color: transparent !important;
-//     }
-
-//     &:hover {
-//       &::-webkit-scrollbar {
-//         height: 14px !important;
-//       }
-
-//       &::-webkit-scrollbar-thumb {
-//         background-color: rgb(151 155 165 / 90%);
-//         border-radius: 7px;
-//       }
-
-//       &::after {
-//         position: absolute;
-//       }
-//     }
-
-//     &::after {
-//       float: left;
-//       height: 10px;
-//       content: '';
-//     }
-//   }
-// }
