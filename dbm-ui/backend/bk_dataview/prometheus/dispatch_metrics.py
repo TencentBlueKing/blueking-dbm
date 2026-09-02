@@ -70,17 +70,17 @@ OUTCOME_WHITELIST = frozenset(
 LATENCY_STAGE_WHITELIST = frozenset({"queue_wait_seconds", "execution_seconds", "pump_seconds"})
 
 _LIVE_GAUGES = (
-    ("dbm_dispatch_pending", "pending"),
-    ("dbm_dispatch_pending_ready", "pending_ready"),
-    ("dbm_dispatch_pending_delayed", "pending_delayed"),
-    ("dbm_dispatch_reserved", "reserved"),
-    ("dbm_dispatch_max_admitted_jobs", "max_admitted_jobs"),
-    ("dbm_dispatch_max_reserved", "max_reserved"),
-    ("dbm_dispatch_budget", "budget"),
-    ("dbm_dispatch_congestion_window", "congestion_window"),
-    ("dbm_dispatch_pump_paused", "pump_paused"),
-    ("dbm_dispatch_producer_paused", "producer_paused"),
-    ("dbm_dispatch_reserved_saturated", "reserved_saturated"),
+    ("dispatch_pending", "pending"),
+    ("dispatch_pending_ready", "pending_ready"),
+    ("dispatch_pending_delayed", "pending_delayed"),
+    ("dispatch_reserved", "reserved"),
+    ("dispatch_max_admitted_jobs", "max_admitted_jobs"),
+    ("dispatch_max_reserved", "max_reserved"),
+    ("dispatch_budget", "budget"),
+    ("dispatch_congestion_window", "congestion_window"),
+    ("dispatch_pump_paused", "pump_paused"),
+    ("dispatch_producer_paused", "producer_paused"),
+    ("dispatch_reserved_saturated", "reserved_saturated"),
 )
 
 
@@ -93,7 +93,7 @@ class DispatchMetricsCollector:
     def describe(self):
         families = [
             GaugeMetricFamily(
-                "dbm_dispatch_collector_health",
+                "dispatch_collector_health",
                 "Dispatch collector health (one-hot over a fixed status set).",
                 labels=["status"],
             )
@@ -103,47 +103,47 @@ class DispatchMetricsCollector:
         families.extend(
             [
                 CounterMetricFamily(
-                    "dbm_dispatch_events",
+                    "dispatch_events",
                     "Cumulative dispatch events per namespace.",
                     labels=["namespace", "event"],
                 ),
                 HistogramMetricFamily(
-                    "dbm_dispatch_latency_seconds",
+                    "dispatch_latency_seconds",
                     "Cumulative dispatch latency histogram per stage.",
                     labels=["namespace", "stage"],
                 ),
                 GaugeMetricFamily(
-                    "dbm_dispatch_task_pending",
+                    "dispatch_task_pending",
                     "Pending work items per dispatch task.",
                     labels=["namespace", "task_key"],
                 ),
                 GaugeMetricFamily(
-                    "dbm_dispatch_task_reserved",
+                    "dispatch_task_reserved",
                     "Reserved work items per dispatch task.",
                     labels=["namespace", "task_key"],
                 ),
                 CounterMetricFamily(
-                    "dbm_dispatch_task_outcome",
+                    "dispatch_task_outcome",
                     "Cumulative outcomes per dispatch task.",
                     labels=["namespace", "task_key", "outcome"],
                 ),
                 GaugeMetricFamily(
-                    "dbm_dispatch_report_partial",
+                    "dispatch_report_partial",
                     "Dispatch data completeness per namespace (1 = incomplete).",
                     labels=["namespace"],
                 ),
                 GaugeMetricFamily(
-                    "dbm_dispatch_refresh_timestamp_seconds",
+                    "dispatch_refresh_timestamp_seconds",
                     "Unix timestamp of the latest cumulative snapshot.",
                     labels=[],
                 ),
                 GaugeMetricFamily(
-                    "dbm_dispatch_publisher_heartbeat_timestamp_seconds",
+                    "dispatch_publisher_heartbeat_timestamp_seconds",
                     "Unix timestamp of the last publisher lock acquisition.",
                     labels=[],
                 ),
                 GaugeMetricFamily(
-                    "dbm_dispatch_metrics_started_at_timestamp_seconds",
+                    "dispatch_metrics_started_at_timestamp_seconds",
                     "Unix timestamp when the current namespace metric generation started.",
                     labels=["namespace"],
                 ),
@@ -178,7 +178,7 @@ class DispatchMetricsCollector:
 
     def collect(self):
         health = GaugeMetricFamily(
-            "dbm_dispatch_collector_health",
+            "dispatch_collector_health",
             "Dispatch collector health (one-hot over a fixed status set).",
             labels=["status"],
         )
@@ -232,7 +232,7 @@ class DispatchMetricsCollector:
 
     def _events_family(self, payload: dict) -> CounterMetricFamily:
         family = CounterMetricFamily(
-            "dbm_dispatch_events",
+            "dispatch_events",
             "Cumulative dispatch events per namespace.",
             labels=["namespace", "event"],
         )
@@ -245,7 +245,7 @@ class DispatchMetricsCollector:
 
     def _latency_family(self, payload: dict) -> HistogramMetricFamily:
         family = HistogramMetricFamily(
-            "dbm_dispatch_latency_seconds",
+            "dispatch_latency_seconds",
             "Cumulative dispatch latency histogram per stage.",
             labels=["namespace", "stage"],
         )
@@ -271,17 +271,17 @@ class DispatchMetricsCollector:
 
     def _task_families(self, payload: dict) -> list:
         pending_family = GaugeMetricFamily(
-            "dbm_dispatch_task_pending",
+            "dispatch_task_pending",
             "Pending work items per dispatch task.",
             labels=["namespace", "task_key"],
         )
         reserved_family = GaugeMetricFamily(
-            "dbm_dispatch_task_reserved",
+            "dispatch_task_reserved",
             "Reserved work items per dispatch task.",
             labels=["namespace", "task_key"],
         )
         outcome_family = CounterMetricFamily(
-            "dbm_dispatch_task_outcome",
+            "dispatch_task_outcome",
             "Cumulative outcomes per dispatch task.",
             labels=["namespace", "task_key", "outcome"],
         )
@@ -299,7 +299,7 @@ class DispatchMetricsCollector:
 
     def _partial_family(self, payload: dict) -> GaugeMetricFamily:
         family = GaugeMetricFamily(
-            "dbm_dispatch_report_partial",
+            "dispatch_report_partial",
             "Dispatch data completeness per namespace (1 = incomplete).",
             labels=["namespace"],
         )
@@ -312,7 +312,7 @@ class DispatchMetricsCollector:
 
     def _refresh_family(self, payload: dict) -> GaugeMetricFamily:
         family = GaugeMetricFamily(
-            "dbm_dispatch_refresh_timestamp_seconds",
+            "dispatch_refresh_timestamp_seconds",
             "Unix timestamp of the latest cumulative snapshot.",
             labels=[],
         )
@@ -323,7 +323,7 @@ class DispatchMetricsCollector:
 
     def _heartbeat_family(self) -> GaugeMetricFamily:
         family = GaugeMetricFamily(
-            "dbm_dispatch_publisher_heartbeat_timestamp_seconds",
+            "dispatch_publisher_heartbeat_timestamp_seconds",
             "Unix timestamp of the last publisher lock acquisition.",
             labels=[],
         )
@@ -337,7 +337,7 @@ class DispatchMetricsCollector:
 
     def _started_at_family(self, payload: dict) -> GaugeMetricFamily:
         family = GaugeMetricFamily(
-            "dbm_dispatch_metrics_started_at_timestamp_seconds",
+            "dispatch_metrics_started_at_timestamp_seconds",
             "Unix timestamp when the current namespace metric generation started.",
             labels=["namespace"],
         )
