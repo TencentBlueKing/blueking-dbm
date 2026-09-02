@@ -98,7 +98,6 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_PROXY_UPGRADE]: generateMysqlVersionProxyUpgradeCloneData, // MySQL Proxy 升级
   [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: generateMysqlRestoreLocalSlaveCloneData, // MySQL 重建从库-原地重建
   [TicketTypes.MYSQL_RESTORE_SLAVE]: generateMysqlRestoreSlaveCloneData, // MySQL 重建从库-原地重建
-  [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: generateMysqlRollbackCloneData, // MySQL 定点构造
   [TicketTypes.MYSQL_SINGLE_APPLY]: generateMysqlSingleApplyCloneData, // MySQL 单节点部署
   [TicketTypes.MYSQL_SINGLE_RENAME_DATABASE]: generateMysqlDbRenameCloneData, // MySQL 单节点DB重命名
   [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: generateMysqlDbClearCloneData, // MySQL 单节点清档
@@ -139,7 +138,6 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: generateSpiderDbRenameCloneData, // Spider Tendbcluster 重命名
   [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: generateSpiderSlaveRebuildLocalCloneData, // spider 重建从库-原地重建
   [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: generateSpiderSlaveRebuildNewCloneData, // spider 重建从库-新机重建
-  [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: generateSpiderRollbackCloneData, // Tendbcluster 定点构造
   [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: generateSpiderProxyScaleUpCloneData, // Spider扩容接入层
   [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: generateSpiderAddMntDataCloneData, // Spider 添加运维节点
   [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: generateSpiderProxyScaleDownCloneData, // Spider缩容接入层
