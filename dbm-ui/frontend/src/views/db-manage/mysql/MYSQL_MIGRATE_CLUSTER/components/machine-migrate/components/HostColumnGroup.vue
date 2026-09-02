@@ -59,12 +59,12 @@
       </p>
     </EditableBlock>
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['TendbhaHost']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.TENDBHA]: t('Master 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -72,17 +72,14 @@
   import { useRequest } from 'vue-request';
 
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbhaMachineList } from '@services/source/tendbha';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorItem = IValue;
+  export type SelectorItem = HostModel<ClusterTypes.TENDBHA>;
 
   interface Props {
     selected: {
@@ -90,7 +87,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorItem[]) => void;
 
   const props = defineProps<Props>();
 
@@ -115,32 +112,15 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    TendbhaHost: [
-      {
-        id: 'TendbhaHost',
-        name: t('目标主库主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Master 主机'),
-            role: 'backend_master',
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Master 主机'),
-            role: 'backend_master',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // Master 主机：角色过滤 backend_master
+  const dataSourceMap = {
+    [ClusterTypes.TENDBHA]: (params: ServiceParameters<typeof getTendbhaMachineList>) =>
+      getTendbhaMachineList({
+        ...params,
+        instance_role: 'backend_master',
+      }),
+  };
+
   let illegalInstances = '';
 
   const rules = [
@@ -163,12 +143,12 @@
   ];
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbhaHost: props.selected.map(
+  const selectedInstances = computed<HostSelectorValues<ClusterTypes.TENDBHA>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as HostModel<ClusterTypes.TENDBHA>,
     ),
   }));
 
@@ -230,8 +210,8 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbhaHost);
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.TENDBHA>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
 
   watch(

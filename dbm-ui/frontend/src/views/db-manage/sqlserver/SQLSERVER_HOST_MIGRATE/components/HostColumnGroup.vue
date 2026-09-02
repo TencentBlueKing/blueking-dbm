@@ -50,12 +50,15 @@
       </div>
     </EditableBlock>
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{
+      [ClusterTypes.SQLSERVER_HA]: t('SqlServer 主从'),
+      [ClusterTypes.SQLSERVER_SINGLE]: t('SqlServer 单节点'),
+    }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -64,17 +67,14 @@
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { checkInstance } from '@services/source/dbbase';
+  import { getMachineList } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = HostModel<ClusterTypes.SQLSERVER_HA> | HostModel<ClusterTypes.SQLSERVER_SINGLE>;
 
   interface Props {
     selected: {
@@ -83,7 +83,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -104,62 +104,41 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.SQLSERVER_HA]: [
-      {
-        id: ClusterTypes.SQLSERVER_HA,
-        name: t('SqlServer 主从'),
-        previewConfig: {
-          displayKey: 'ip',
-          showTitle: true,
-        },
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('目标主机'),
-            role: 'backend_master',
-          },
-        },
-      },
-    ],
-    [ClusterTypes.SQLSERVER_SINGLE]: [
-      {
-        id: ClusterTypes.SQLSERVER_SINGLE,
-        name: t('SqlServer 单节点'),
-        previewConfig: {
-          displayKey: 'ip',
-          showTitle: true,
-        },
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('目标主机'),
-            role: 'orphan',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 主从/单节点主机分别按角色过滤
+  const dataSourceMap = {
+    [ClusterTypes.SQLSERVER_HA]: (params: ServiceParameters<typeof getMachineList>) =>
+      getMachineList({
+        ...params,
+        instance_role: 'backend_master',
+      }),
+    [ClusterTypes.SQLSERVER_SINGLE]: (params: ServiceParameters<typeof getMachineList>) =>
+      getMachineList({
+        ...params,
+        instance_role: 'orphan',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.SQLSERVER_HA]: props.selected
-      .filter((item) => item.cluster_type === ClusterTypes.SQLSERVER_HA)
-      .map(
-        (item) =>
-          ({
-            ip: item.ip,
-          }) as IValue,
-      ),
-    [ClusterTypes.SQLSERVER_SINGLE]: props.selected
-      .filter((item) => item.cluster_type === ClusterTypes.SQLSERVER_SINGLE)
-      .map(
-        (item) =>
-          ({
-            ip: item.ip,
-          }) as IValue,
-      ),
-  }));
+  const selectedInstances = computed<HostSelectorValues<ClusterTypes.SQLSERVER_HA | ClusterTypes.SQLSERVER_SINGLE>>(
+    () => ({
+      [ClusterTypes.SQLSERVER_HA]: props.selected
+        .filter((item) => item.cluster_type === ClusterTypes.SQLSERVER_HA)
+        .map(
+          (item) =>
+            ({
+              ip: item.ip,
+            }) as SelectorHost,
+        ),
+      [ClusterTypes.SQLSERVER_SINGLE]: props.selected
+        .filter((item) => item.cluster_type === ClusterTypes.SQLSERVER_SINGLE)
+        .map(
+          (item) =>
+            ({
+              ip: item.ip,
+            }) as SelectorHost,
+        ),
+    }),
+  );
 
   const rules = [
     {
@@ -217,10 +196,12 @@
     });
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleSelectorChange = (
+    selected: HostSelectorValues<ClusterTypes.SQLSERVER_HA | ClusterTypes.SQLSERVER_SINGLE>,
+  ) => {
     emits('batch-edit', [
-      ...(selected && selected[ClusterTypes.SQLSERVER_HA] ? selected[ClusterTypes.SQLSERVER_HA] : []),
-      ...(selected && selected[ClusterTypes.SQLSERVER_SINGLE] ? selected[ClusterTypes.SQLSERVER_SINGLE] : []),
+      ...(selected[ClusterTypes.SQLSERVER_HA] || []),
+      ...(selected[ClusterTypes.SQLSERVER_SINGLE] || []),
     ]);
   };
 

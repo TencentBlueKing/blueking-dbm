@@ -55,11 +55,12 @@
       {{ modelValue.master_domain }}
     </EditableBlock>
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedHosts"
     v-model:is-show="showSelector"
-    :cluster-types="['SpiderHost']"
-    hide-manual-input
-    :selected="selectedHosts"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.TENDBCLUSTER]: t('Spider 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -68,13 +69,14 @@
 
   import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = HostModel<ClusterTypes.TENDBCLUSTER>;
 
   export type SpecConfig = TendbclusterModel['spider_master'][0]['spec_config'];
 
@@ -85,7 +87,7 @@
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -113,13 +115,23 @@
     spider_master: 'Spider Master',
     spider_slave: 'Spider Slave',
   } as Record<string, string>;
+
+  // 接入层主机：spider_master/spider_slave 两种角色
+  const dataSourceMap = {
+    [ClusterTypes.TENDBCLUSTER]: (params: ServiceParameters<typeof getTendbclusterMachineList>) =>
+      getTendbclusterMachineList({
+        ...params,
+        instance_role: 'spider_master,spider_slave',
+      }),
+  };
+
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    SpiderHost: props.selected.map(
+  const selectedHosts = computed<HostSelectorValues<ClusterTypes.TENDBCLUSTER>>(() => ({
+    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as HostModel<ClusterTypes.TENDBCLUSTER>,
     ),
   }));
 
@@ -169,8 +181,8 @@
     showSelector.value = true;
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.SpiderHost!);
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.TENDBCLUSTER>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
   const handleInputChange = (value: string) => {

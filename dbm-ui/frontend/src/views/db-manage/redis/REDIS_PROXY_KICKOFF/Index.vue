@@ -108,10 +108,10 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import { type IValue } from '@components/instance-selector/Index.vue';
+  import { type HostModel } from '@components/host-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -230,7 +230,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleHostBatchEdit = (list: IValue[]) => {
+  const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const dataList = list.reduce<IDataRow[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
         acc.push(

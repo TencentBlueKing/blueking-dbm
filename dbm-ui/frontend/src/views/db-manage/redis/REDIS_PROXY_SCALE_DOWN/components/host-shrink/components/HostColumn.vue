@@ -33,31 +33,27 @@
       :placeholder="t('请输入IP')"
       @change="handleChange" />
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedHosts"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.REDIS]"
-    :selected="selectedHosts"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.REDIS]: t('Proxy 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisModel from '@services/model/redis/redis';
   import { checkInstance } from '@services/source/dbbase';
-  import { getRedisClusterList } from '@services/source/redis';
+  import { getRedisMachineList } from '@services/source/redis';
 
   import { clusterRedisTypeList, ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = HostModel<ClusterTypes.REDIS>;
 
   interface Props {
     selected: {
@@ -68,7 +64,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -88,49 +84,23 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.REDIS]: [
-      {
-        id: 'redis',
-        name: t('目标从库主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Proxy 主机'),
-            role: 'proxy',
-          },
-        },
-        topoConfig: {
-          countFunc: (item: RedisModel) => item.proxyCount,
-          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-            getRedisClusterList({
-              ...params,
-              cluster_type: clusterRedisTypeList.join(','),
-            }),
-          totalCountFunc: (dataList: RedisModel[]) => {
-            const ipSet = new Set<string>();
-            dataList.forEach((dataItem) => dataItem.proxy.forEach((item) => ipSet.add(item.ip)));
-            return ipSet.size;
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Proxy 主机'),
-            role: 'proxy',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // Proxy 主机：角色过滤 proxy
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        ...params,
+        instance_role: 'proxy',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.REDIS]: props.selected as IValue[],
+  const selectedHosts = computed<HostSelectorValues<ClusterTypes.REDIS>>(() => ({
+    [ClusterTypes.REDIS]: props.selected.map(
+      (item) =>
+        ({
+          ip: item.ip,
+        }) as HostModel<ClusterTypes.REDIS>,
+    ),
   }));
 
   const rules = [
@@ -190,7 +160,7 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.REDIS>) => {
     emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
 
