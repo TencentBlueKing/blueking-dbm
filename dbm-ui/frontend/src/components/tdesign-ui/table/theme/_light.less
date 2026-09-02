@@ -1,5 +1,5 @@
-:host[theme-mode='light'],
-:root[theme-mode='light'] {
+:host,
+:root {
   --td-brand-color-1: #f0f3ff;
   --td-brand-color-2: #d7e2ff;
   --td-brand-color-3: #b1c9ff;
@@ -10,7 +10,6 @@
   --td-brand-color-8: #004299;
   --td-brand-color-9: #002e6f;
   --td-brand-color-10: #001d4c;
-
   --td-warning-color-1: #fff4eb;
   --td-warning-color-2: #ffe5cb;
   --td-warning-color-3: #ffd09e;
@@ -21,7 +20,6 @@
   --td-warning-color-8: #724200;
   --td-warning-color-9: #4d2b00;
   --td-warning-color-10: #321a00;
-
   --td-error-color-1: #fff0ed;
   --td-error-color-2: #ffd8d3;
   --td-error-color-3: #ffb8b0;
@@ -32,7 +30,6 @@
   --td-error-color-8: #920913;
   --td-error-color-9: #6b0007;
   --td-error-color-10: #490003;
-
   --td-success-color-1: #e0fbdb;
   --td-success-color-2: #c2f5bf;
   --td-success-color-3: #45e35f;
@@ -43,7 +40,6 @@
   --td-success-color-8: #005418;
   --td-success-color-9: #003c0f;
   --td-success-color-10: #002606;
-
   --td-gray-color-1: #fafbfd;
   --td-gray-color-2: #f5f7fa;
   --td-gray-color-3: #e8e8e8;
@@ -56,18 +52,18 @@
   --td-gray-color-10: #4b4b4b;
   --td-gray-color-11: #393939;
   --td-gray-color-12: #2c2c2c;
-  --td-gray-color-13: rgba(0, 0, 0, 0.8);
+  --td-gray-color-13: rgb(0 0 0 / 80%);
   --td-gray-color-14: #181818;
 
   // 文字 & 图标 颜色
-  --td-font-white-1: rgba(255, 255, 255, 100%);
-  --td-font-white-2: rgba(255, 255, 255, 55%);
-  --td-font-white-3: rgba(255, 255, 255, 35%);
-  --td-font-white-4: rgba(255, 255, 255, 22%);
-  --td-font-gray-1: rgba(0, 0, 0, 90%);
-  --td-font-gray-2: rgba(0, 0, 0, 60%);
-  --td-font-gray-3: rgba(0, 0, 0, 40%);
-  --td-font-gray-4: rgba(0, 0, 0, 26%);
+  --td-font-white-1: rgb(255 255 255 / 100%);
+  --td-font-white-2: rgb(255 255 255 / 55%);
+  --td-font-white-3: rgb(255 255 255 / 35%);
+  --td-font-white-4: rgb(255 255 255 / 22%);
+  --td-font-gray-1: rgb(0 0 0 / 90%);
+  --td-font-gray-2: rgb(0 0 0 / 60%);
+  --td-font-gray-3: rgb(0 0 0 / 40%);
+  --td-font-gray-4: rgb(0 0 0 / 26%);
 
   // 基础颜色
   --td-brand-color: var(--td-brand-color-5); // 色彩-品牌-可操作
@@ -108,8 +104,8 @@
   --td-success-color-light-hover: var(--td-success-color-2);
 
   // 遮罩
-  --td-mask-active: rgba(0, 0, 0, 60%); // 遮罩-弹出
-  --td-mask-disabled: rgba(255, 255, 255, 60%); // 遮罩-禁用
+  --td-mask-active: rgb(0 0 0 / 60%); // 遮罩-弹出
+  --td-mask-disabled: rgb(255 255 255 / 60%); // 遮罩-禁用
 
   // 背景色
   --td-bg-color-page: var(--td-gray-color-2); // 色彩 - page
@@ -117,11 +113,9 @@
   --td-bg-color-container-hover: var(--td-gray-color-1); // 色彩 - 容器 - hover
   --td-bg-color-container-active: var(--td-gray-color-3); // 色彩 - 容器 - active
   --td-bg-color-container-select: #fff; // 色彩 - 容器 - select
-
   --td-bg-color-secondarycontainer: var(--td-gray-color-1); // 色彩 - 次级容器
   --td-bg-color-secondarycontainer-hover: var(--td-gray-color-2); // 色彩 - 次级容器 - hover
   --td-bg-color-secondarycontainer-active: var(--td-gray-color-4); // 色彩 - 次级容器 - active
-
   --td-bg-color-component: var(--td-gray-color-3); // 色彩 - 组件
   --td-bg-color-component-hover: var(--td-gray-color-4); // 色彩 - 组件 - hover
   --td-bg-color-component-active: var(--td-gray-color-6); // 色彩 - 组件 - active
@@ -149,11 +143,11 @@
   --td-component-border: var(--td-gray-color-4);
 
   // 基础/下层 投影 hover 使用的组件包括：表格 /
-  --td-shadow-1: 0 1px 10px rgba(0, 0, 0, 5%), 0 4px 5px rgba(0, 0, 0, 8%), 0 2px 4px -1px rgba(0, 0, 0, 12%);
+  --td-shadow-1: 0 1px 10px rgb(0 0 0 / 5%), 0 4px 5px rgb(0 0 0 / 8%), 0 2px 4px -1px rgb(0 0 0 / 12%);
   // 中层投影 下拉 使用的组件包括：下拉菜单 / 气泡确认框 / 选择器 /
-  --td-shadow-2: 0 3px 14px 2px rgba(0, 0, 0, 5%), 0 8px 10px 1px rgba(0, 0, 0, 6%), 0 5px 5px -3px rgba(0, 0, 0, 10%);
+  --td-shadow-2: 0 3px 14px 2px rgb(0 0 0 / 5%), 0 8px 10px 1px rgb(0 0 0 / 6%), 0 5px 5px -3px rgb(0 0 0 / 10%);
   // 上层投影（警示/弹窗）使用的组件包括：全局提示 / 消息通知
-  --td-shadow-3: 0 6px 30px 5px rgba(0, 0, 0, 5%), 0 16px 24px 2px rgba(0, 0, 0, 4%), 0 8px 10px -5px rgba(0, 0, 0, 8%);
+  --td-shadow-3: 0 6px 30px 5px rgb(0 0 0 / 5%), 0 16px 24px 2px rgb(0 0 0 / 4%), 0 8px 10px -5px rgb(0 0 0 / 8%);
 
   // 内投影 用于弹窗类组件（气泡确认框 / 全局提示 / 消息通知）的内描边
   --td-shadow-inset-top: inset 0 0.5px 0 #dcdcdc;
@@ -162,12 +156,12 @@
   --td-shadow-inset-left: inset -0.5px 0 0 #dcdcdc;
 
   // table 特定阴影
-  --td-table-shadow-color: rgba(0, 0, 0, 8%);
+  --td-table-shadow-color: rgb(0 0 0 / 8%);
 
   // 滚动条颜色
-  --td-scrollbar-color: rgba(0, 0, 0, 10%);
+  --td-scrollbar-color: rgb(0 0 0 / 10%);
   // 滚动条悬浮颜色（ hover ）
-  --td-scrollbar-hover-color: rgba(0, 0, 0, 30%);
+  --td-scrollbar-hover-color: rgb(0 0 0 / 30%);
   // 滚动条轨道颜色，不能是带透明度，否则纵向滚动时，横向滚动条会穿透
   --td-scroll-track-color: #fff;
 }
