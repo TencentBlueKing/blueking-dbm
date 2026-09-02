@@ -236,6 +236,10 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 if not self.add_slave_only:
                     cluster["restore_privilege"] = True
                     cluster["privilege_ips"] = [self.data["old_slave_ip"]]
+                    check_slave = cluster_class.storageinstance_set.get(
+                        machine__ip=self.data["old_slave_ip"], port=master.port
+                    )
+                    cluster["is_stand_by"] = check_slave.is_stand_by
 
                 if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
                     filter_ips = [master.machine.ip]
@@ -704,6 +708,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "backup_source": self.ticket_data.get("backup_source"),
                 "restore_privilege": True,
                 "privilege_ips": [target_slave.machine.ip],
+                "is_stand_by": target_slave.is_stand_by,
             }
 
             if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:

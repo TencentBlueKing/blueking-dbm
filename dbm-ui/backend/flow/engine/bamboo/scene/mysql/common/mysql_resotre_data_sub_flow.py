@@ -237,7 +237,8 @@ def mysql_restore_data_sub_flow(
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-        if cluster.get("add_slave_only", False):
+        # 两种情况需要在is_stand_by节点上创建repl账号:1、添加从库 2、非is_stand_by节点的重建。
+        if cluster.get("add_slave_only", False) or not cluster.get("is_stand_by", True):
             is_standby_slave = cluster_model.storageinstance_set.get(
                 is_stand_by=True, instance_inner_role=InstanceInnerRole.SLAVE.value
             )
