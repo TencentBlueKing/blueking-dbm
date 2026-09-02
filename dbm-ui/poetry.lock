@@ -16,13 +16,13 @@ pydantic = ">=2.11.2"
 
 [[package]]
 name = "aidev-agent"
-version = "2.2.2rc51"
+version = "2.2.2rc52"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_agent-2.2.2rc51-py3-none-any.whl", hash = "sha256:26c9318435b0b2551d2c8fa3382a7c303197c8de885150066380d227cdcbce5e"},
-    {file = "aidev_agent-2.2.2rc51.tar.gz", hash = "sha256:35f6c1f687e4816c990502f7356d9fda7d3321b6370ac9030f2ce751474ff33d"},
+    {file = "aidev_agent-2.2.2rc52-py3-none-any.whl", hash = "sha256:ff911e24e1b8c992625b2c3627eeb7be18b2b28358da3fb5e7776a0e8a0e043c"},
+    {file = "aidev_agent-2.2.2rc52.tar.gz", hash = "sha256:374511582510812187ac7936643137a881740c8da7e0a479df62b8d70373a08c"},
 ]
 
 [package.dependencies]
@@ -61,17 +61,17 @@ opentelemetry = ["opentelemetry-api (==1.33.1)", "opentelemetry-exporter-otlp (=
 
 [[package]]
 name = "aidev-bkplugin"
-version = "2.2.2rc51"
+version = "2.2.2rc52"
 description = "AiDev Agent Bkplugin builtin functions"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_bkplugin-2.2.2rc51-py3-none-any.whl", hash = "sha256:1b2c26eb28ceb380c6046c2d3c2fa79967e3051c6835b1c8206ff88a0ef29c6a"},
-    {file = "aidev_bkplugin-2.2.2rc51.tar.gz", hash = "sha256:088a92f9b15698adb8afda04fb0dd1976720d2d46a04d52d46e6fe8636d80a5c"},
+    {file = "aidev_bkplugin-2.2.2rc52-py3-none-any.whl", hash = "sha256:ea812dadd53859aad7429cf7737aa4ced16d24e73c68fafa188f8bd80138af19"},
+    {file = "aidev_bkplugin-2.2.2rc52.tar.gz", hash = "sha256:11835c4e1dcf13e5608e7929cdc53d72bad5288f9d26756dee979a0f13b751a7"},
 ]
 
 [package.dependencies]
-aidev-agent = ">=2.2.2rc51"
+aidev-agent = ">=2.2.2rc52"
 blueapps = ">=4.15.1,<5.0"
 django = ">=4.2.28,<5.0"
 
@@ -7335,4 +7335,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "9391a5479d5dc9fee2818ae8e20e92cf7fe950ee8aba2d01f6a46d78024bcd93"
+content-hash = "ef679dd06b62a8deaaf7fc013883bbe112fd4e64f7cc2926379cf0fde5028878"
