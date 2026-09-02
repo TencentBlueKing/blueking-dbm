@@ -96,7 +96,6 @@ export default class TendbCluster extends ClusterBase {
     tendbcluster_partition_manage: boolean;
     tendbcluster_priv_manage: boolean;
     tendbcluster_rename_database: boolean;
-    tendbcluster_rollback_cluster: boolean;
     tendbcluster_spider_add_nodes: boolean;
     tendbcluster_spider_mnt_destroy: boolean;
     tendbcluster_spider_reduce_nodes: boolean;

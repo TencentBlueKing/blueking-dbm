@@ -84,12 +84,6 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.MYSQL_ROLLBACK,
         name: t('回档'),
       },
-      // {
-      //   dbConsoleValue: 'mysql.toolbox.rollback',
-      //   desc: t('回到指定时间点重建集群'),
-      //   id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-      //   name: t('定点构造（旧）'),
-      // },
     ],
     icon: 'data-recovery',
     id: 'fileback',
