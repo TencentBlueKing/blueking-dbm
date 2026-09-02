@@ -516,6 +516,28 @@
                         "output_type": "string",
                         "default_value": null
                     }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "report_bucket",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "report_bucket",
+                        "alias": "report_bucket",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "agg_level",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "agg_level",
+                        "alias": "agg_level",
+                        "output_type": "string",
+                        "default_value": null
+                    }
                 }
             ],
             "es_storage_config": {
@@ -1282,6 +1304,54 @@
                 "field_index": 22,
                 "es_type": "keyword",
                 "real_path": "bk_separator_object.set_sn"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "report_bucket",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 23,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.report_bucket"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "agg_level",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 24,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.agg_level"
             },
             "is_disabled": false,
             "is_case_sensitive": false,
