@@ -130,18 +130,21 @@ export const useColumnsSettings = (
     return undefined;
   });
 
-  const customProps = computed<
-    {
-      bkUiSettings?: BkUiSettings;
-    } & TableProps
-  >(() => {
-    const columns = reorderTableColumns(tableColumns.value, localColumnSettings.value.order);
+  const orderedColumns = computed(() => reorderTableColumns(tableColumns.value, localColumnSettings.value.order));
 
-    let lastDisplayColumnColKey = columns.at(-1)?.colKey;
-    if (displayColumns.value) {
-      const displayColumnsMap = makeMap(displayColumns.value as string[]);
-      lastDisplayColumnColKey = columns.filter((item) => item.colKey && displayColumnsMap[item.colKey]).at(-1)?.colKey;
+  const lastDisplayColumnColKey = computed(() => {
+    if (!displayColumns.value) {
+      return orderedColumns.value.at(-1)?.colKey;
     }
+    const displayColumnsMap = makeMap(displayColumns.value as string[]);
+    return orderedColumns.value.filter((item) => item.colKey && displayColumnsMap[item.colKey]).at(-1)?.colKey;
+  });
+
+  // 列配置单独成 computed，只依赖列相关状态。
+  // 若跟着 customProps 一起在 data 等无关 props 变化时重算，
+  // tdesign 会因为 columns 引用变化重置列宽，丢失用户拖拽的宽度
+  const finalColumns = computed(() => {
+    const columns = [...orderedColumns.value];
 
     if (isBkuiSettingsControl.value) {
       columns.push({
@@ -194,25 +197,35 @@ export const useColumnsSettings = (
       });
     }
 
-    return deleteUndefinedProps({
-      ...props,
-      columns: customFilterComponent(columns),
-      rowspanAndColspan: ({ col, colIndex, row, rowIndex }) => {
-        if (
-          isBkuiSettingsControl.value &&
-          lastDisplayColumnColKey &&
-          col.colKey === lastDisplayColumnColKey &&
-          col.fixed !== 'left'
-        ) {
-          return {
-            colspan: col.fixed === 'right' ? 1 : 2,
-            rowspan: 1,
-          };
-        }
-        return props.rowspanAndColspan ? props.rowspanAndColspan({ col, colIndex, row, rowIndex }) : {};
-      },
-    });
+    return customFilterComponent(columns);
   });
+
+  const rowspanAndColspan: NonNullable<TableProps['rowspanAndColspan']> = ({ col, colIndex, row, rowIndex }) => {
+    if (
+      isBkuiSettingsControl.value &&
+      lastDisplayColumnColKey.value &&
+      col.colKey === lastDisplayColumnColKey.value &&
+      col.fixed !== 'left'
+    ) {
+      return {
+        colspan: col.fixed === 'right' ? 1 : 2,
+        rowspan: 1,
+      };
+    }
+    return props.rowspanAndColspan ? props.rowspanAndColspan({ col, colIndex, row, rowIndex }) : {};
+  };
+
+  const customProps = computed<
+    {
+      bkUiSettings?: BkUiSettings;
+    } & TableProps
+  >(() =>
+    deleteUndefinedProps({
+      ...props,
+      columns: finalColumns.value,
+      rowspanAndColspan,
+    }),
+  );
 
   const columnController = computed<TableProps['columnController']>(() =>
     isBkuiSettingsControl.value ? undefined : props.columnController,
