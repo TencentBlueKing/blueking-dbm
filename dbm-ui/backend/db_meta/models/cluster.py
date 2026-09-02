@@ -342,7 +342,7 @@ class Cluster(AuditedModel):
             role = TenDBClusterSpiderRole.SPIDER_MASTER
             return self.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role).first().port
 
-    def tendbcluster_ctl_primary_address(self, v2=False) -> str:
+    def tendbcluster_ctl_primary_address(self, v2=True) -> str:
         """
         查询并返回 tendbcluster 的中控 primary
         集群类型不是 TenDBCluster 时会抛出异常
@@ -366,6 +366,7 @@ class Cluster(AuditedModel):
                             "cmds": ["tdbctl get primary"],
                             "force": False,
                             "bk_cloud_id": self.bk_cloud_id,
+                            "skip_set_names": True,
                         }
                     )
                 else:
@@ -444,7 +445,7 @@ class Cluster(AuditedModel):
         return machines
 
     @classmethod
-    def get_cluster_id__primary_address_map(cls, cluster_ids: List[int], v2=False) -> Dict[int, str]:
+    def get_cluster_id__primary_address_map(cls, cluster_ids: List[int], v2=True) -> Dict[int, str]:
         """
         通过集群id列表批量
         查询并返回 tendbcluster 的中控 primary
@@ -484,6 +485,7 @@ class Cluster(AuditedModel):
                             "cmds": ["tdbctl get primary"],
                             "force": False,
                             "bk_cloud_id": bk_cloud_id,
+                            "skip_set_names": True,
                         }
                     )
                 else:

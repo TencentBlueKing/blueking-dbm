@@ -23,6 +23,8 @@ var dailyStr = "_dba_fake_daily"
 // var demandStartStr = "_dba_fake_demand_start"
 var demandEndStr = "_dba_fake_demand_end"
 
+var enableFlagStr = "_dba_enable_flag"
+
 // EmptySummaryError 表示校验摘要为空的错误，用于 RetryIf 判断是否需要重试
 // 当 pt-table-checksum 执行完成但没有返回校验摘要时，返回此错误触发重试
 type EmptySummaryError struct {
@@ -106,6 +108,13 @@ func (r *Checker) preRunGeneral() error {
 		slog.Info("run checksum disabled")
 		return nil
 	}
+
+	err = r.writeFakeResult(enableFlagStr, enableFlagStr, false)
+	if err != nil {
+		slog.Error("run checksum write enable flag", slog.String("error", err.Error()))
+		return err
+	}
+
 	_, err = r.conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf("DELETE FROM `%s`.`%s` WHERE ts < NOW() - INTERVAL 10 DAY", r.resultDB, r.resultHistoryTable),
@@ -122,6 +131,7 @@ func (r *Checker) runGeneral() error {
 		return err
 	}
 	if !hasTables {
+		r.startTS = time.Now()
 		slog.Info("no checkable tables, skip pt-table-checksum")
 		return nil
 	}
