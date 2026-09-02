@@ -20,8 +20,8 @@ const DiffOneDay = 1
 const ExecTimeout = 300 * time.Second
 
 // 锁等待超时时间 单位：秒
-// 3分钟
-const LockWaitTimeout = 180
+// 1分钟
+const LockWaitTimeout = 60
 
 // PartitionExecuteResult 分区执行结果
 type PartitionExecuteResult struct {
