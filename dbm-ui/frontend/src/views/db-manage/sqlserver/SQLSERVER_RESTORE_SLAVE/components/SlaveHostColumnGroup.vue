@@ -49,19 +49,18 @@
       v-else
       :placeholder="t('自动生成')" />
   </EditableColumn>
-  <InstanceSelector
+  <HostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['SqlserverHaHost']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+    :data-source-map="dataSourceMap"
+    :tab-name-map="{ [ClusterTypes.SQLSERVER_HA]: t('Slave 主机') }"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import SqlserverMachineModel from '@services/model/sqlserver/sqlserver-machine';
   // import { getLevelConfig } from '@services/source/configs';
   import { getGlobalMachine } from '@services/source/dbbase';
   import { getMachineList } from '@services/source/sqlserveHaCluster';
@@ -69,10 +68,7 @@
   import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
   interface Props {
     selected: {
@@ -80,7 +76,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: SqlserverMachineModel[]) => void;
+  type Emits = (e: 'batch-edit', list: HostModel<ClusterTypes.SQLSERVER_HA>[]) => void;
 
   const props = defineProps<Props>();
 
@@ -113,28 +109,22 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    SqlserverHaHost: [
-      {
-        name: t('从库主机'),
-        tableConfig: {
-          getTableList: (params: ServiceParameters<typeof getMachineList>) =>
-            getMachineList({
-              ...params,
-              instance_role: 'backend_slave',
-            }),
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 从库主机：默认角色过滤改为 backend_slave
+  const dataSourceMap = {
+    [ClusterTypes.SQLSERVER_HA]: (params: ServiceParameters<typeof getMachineList>) =>
+      getMachineList({
+        ...params,
+        instance_role: 'backend_slave',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<SqlserverMachineModel>>(() => ({
-    SqlserverHaHost: props.selected.map(
+  const selectedInstances = computed<HostSelectorValues<ClusterTypes.SQLSERVER_HA>>(() => ({
+    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as SqlserverMachineModel,
+        }) as HostModel<ClusterTypes.SQLSERVER_HA>,
     ),
   }));
 
@@ -238,8 +228,8 @@
     // }
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<SqlserverMachineModel>) => {
-    emits('batch-edit', selected['SqlserverHaHost']);
+  const handleSelectorChange = (selected: HostSelectorValues<ClusterTypes.SQLSERVER_HA>) => {
+    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
   };
 </script>
 <style lang="less" scoped>

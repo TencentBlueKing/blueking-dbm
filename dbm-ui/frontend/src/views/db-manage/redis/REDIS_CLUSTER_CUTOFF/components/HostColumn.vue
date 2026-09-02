@@ -46,25 +46,27 @@
       </BkLoading>
     </div>
   </EditableColumn>
-  <ResourceSelector
+  <HostSelector
     v-model:is-show="showSelector"
-    :selected="dataList"
+    :cluster-types="[ClusterTypes.REDIS]"
+    :model-value="selectorValue"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type RedisMachineModel from '@services/model/redis/redis-machine';
   import { checkInstance } from '@services/source/dbbase';
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
   import type { InstanceInfos, MachineSpecConfig } from '@services/types';
 
-  import { DBTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import ResourceSelector, { type IValue } from './resource-selector/Index.vue';
+  import HostSelector from '@components/host-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  export type SelectorHost = RedisMachineModel;
 
   interface Props {
     selected: {
@@ -76,7 +78,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: RedisMachineModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -105,7 +107,11 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const dataList = shallowRef<IValue[]>([]);
+
+  // 选择器回显：row-key 为 ip，传入已选主机用于防重复选中
+  const selectorValue = computed<{ redis: RedisMachineModel[] }>(() => ({
+    redis: props.selected as unknown as RedisMachineModel[],
+  }));
 
   // 铺平获取关联的从库ip，用于校验
   const allIps = computed(() => props.selected.flatMap((item) => [item.ip, item.related_slave?.ip].filter(Boolean)));
@@ -189,8 +195,8 @@
     };
   };
 
-  const handleSelectorChange = (selected: IValue[]) => {
-    emits('batch-edit', selected);
+  const handleSelectorChange = (selected: { redis: RedisMachineModel[] }) => {
+    emits('batch-edit', selected.redis);
   };
 
   watch(
@@ -206,19 +212,6 @@
     },
     {
       immediate: true,
-    },
-  );
-
-  watch(
-    () => props.selected,
-    () => {
-      dataList.value = props.selected.map(
-        (item) =>
-          ({
-            instance_role: item.instance_role,
-            ip: item.ip,
-          }) as IValue,
-      );
     },
   );
 </script>

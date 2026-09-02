@@ -33,12 +33,10 @@
       :placeholder="t('请输入IP')"
       @change="handleInputChange" />
   </EditableColumn>
-  <InstanceSelector
+  <MongoHostSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['mongoCluster']"
-    hide-manual-input
-    :selected="selectedIps"
-    :tab-list-config="tabListConfig"
+    :fetch-params="fetchParams"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -46,19 +44,17 @@
   import { useRequest } from 'vue-request';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
-  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
+  import { getMongoInstancesList } from '@services/source/mongodb';
 
   import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import MongoHostSelector, { type MongoHostRow } from '@views/db-manage/mongodb/common/mongo-host-selector/Index.vue';
+
+  type MongoClusterType = ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
 
   interface Props {
-    clusterType: ClusterTypes;
+    clusterType: MongoClusterType;
     selected: {
       ip: string;
     }[];
@@ -105,36 +101,20 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const tabListConfig = computed(
-    () =>
-      ({
-        mongoCluster: [
-          {
-            name: t('待替换的主机'),
-            tableConfig: {
-              getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
-                getMongoInstancesList({
-                  ...params,
-                  cluster_type: props.clusterType,
-                }),
-              multiple: true,
-            },
-            topoConfig: {
-              getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
-                getMongoTopoList({
-                  ...params,
-                  cluster_type: props.clusterType,
-                }),
-            },
-          },
-        ],
-      }) as unknown as Record<ClusterTypes, PanelListType>,
-  );
-  const selectedIps = computed<InstanceSelectorValues<IValue>>(
-    () =>
-      ({
-        mongoCluster: props.selected,
-      }) as unknown as InstanceSelectorValues<IValue>,
+
+  // 按当前集群类型过滤实例列表
+  const fetchParams = computed(() => ({
+    cluster_type: props.clusterType,
+  }));
+
+  // 弹窗回显勾选以 ip 为键，占位行即可命中
+  const selectedInstances = computed<MongoHostRow[]>(() =>
+    props.selected.map((item) => {
+      const placeholderRow = {
+        ip: item.ip,
+      } as MongoHostRow;
+      return placeholderRow;
+    }),
   );
 
   const rules = [
@@ -207,8 +187,8 @@
     }
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.mongoCluster as unknown as MongodbInstanceModel[]);
+  const handleSelectorChange = (list: MongoHostRow[]) => {
+    emits('batch-edit', list);
   };
 
   watch(
