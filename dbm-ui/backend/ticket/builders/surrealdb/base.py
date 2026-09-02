@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from backend.components.kubernetes.client import KubernetesApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.flow.utils.surrealdb.consts import NAMESPACE_PREFIX
+from backend.flow.utils.k8s_db.surrealdb.consts import NAMESPACE_PREFIX
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import SurrealDBTicketFlowBuilderPatchMixin
 

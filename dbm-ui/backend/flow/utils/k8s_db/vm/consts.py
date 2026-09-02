@@ -37,7 +37,3 @@ VMSELECT_CLB_SUFFIX = "vmselect-clb"
 # 域名前缀，最终形如 "{DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
 VMINSERT_DOMAIN_PREFIX = "vminsert"
 VMSELECT_DOMAIN_PREFIX = "vmselect"
-
-# 异步 schedule 轮询相关；CLB 在跨 AZ 或资源紧张时分配 VIP 可能超过 100 秒
-SCHEDULE_INTERVAL_SECONDS = 20
-SCHEDULE_MAX_RETRIES = 15

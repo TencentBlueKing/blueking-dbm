@@ -25,7 +25,7 @@ from backend.flow.plugins.components.collections.surrealdb.surrealdb_single.surr
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_sync_ticket_id import (
     SurrealDBSyncTicketIdComponent,
 )
-from backend.flow.utils.surrealdb.surrealdb_context_dataclass import (
+from backend.flow.utils.k8s_db.surrealdb.surrealdb_context_dataclass import (
     DnsKwargs,
     K8sSurrealDBActKwargs,
     K8sSurrealDBApplyContext,

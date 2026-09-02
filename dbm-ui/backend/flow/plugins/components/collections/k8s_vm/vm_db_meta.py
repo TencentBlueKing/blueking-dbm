@@ -15,9 +15,9 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.k8s_vm.k8s_vm_context_dataclass as flow_context
+import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.k8s_vm.k8s_vm_db_meta import VmDBMeta
+from backend.flow.utils.k8s_db.vm.k8s_vm_db_meta import VmDBMeta
 
 logger = logging.getLogger("flow")
 

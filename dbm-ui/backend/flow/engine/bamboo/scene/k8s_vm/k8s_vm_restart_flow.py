@@ -18,7 +18,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.k8s_vm.k8s_vm_base_flow import K8sVmBaseFlow
 from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_restart import K8sVmRestartComponent
 from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_sync_ticket_id import K8sVmSyncTicketIdComponent
-from backend.flow.utils.k8s_vm.k8s_vm_context_dataclass import K8sVmActKwargs, K8sVmApplyContext
+from backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass import K8sVmActKwargs, K8sVmApplyContext
 
 logger = logging.getLogger("flow")
 

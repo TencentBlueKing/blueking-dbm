@@ -37,13 +37,13 @@ from backend.flow.plugins.components.collections.k8s_vm.vm_db_meta import VmDBMe
 from backend.flow.plugins.components.collections.k8s_vm.vm_sync_cluster import VmSyncClusterComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_vminsert_dns_manage import VmVminsertDnsManageComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_vmselect_dns_manage import VmVmselectDnsManageComponent
-from backend.flow.utils.k8s_vm.consts import (
+from backend.flow.utils.k8s_db.vm.consts import (
     VMINSERT_DOMAIN_PREFIX,
     VMINSERT_PORT,
     VMSELECT_DOMAIN_PREFIX,
     VMSELECT_PORT,
 )
-from backend.flow.utils.k8s_vm.k8s_vm_context_dataclass import DnsKwargs, K8sVmActKwargs, K8sVmApplyContext
+from backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass import DnsKwargs, K8sVmActKwargs, K8sVmApplyContext
 
 logger = logging.getLogger("flow")
 

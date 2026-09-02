@@ -15,10 +15,11 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
-import backend.flow.utils.qdrant.qdrant_context_dataclass as flow_context
+import backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.k8s_db.consts import SCHEDULE_INTERVAL_SECONDS, SCHEDULE_MAX_RETRIES
 
 logger = logging.getLogger("flow")
 
@@ -29,7 +30,7 @@ class ExposeK8sQdrantServiceService(BaseService):
     """
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(20)
+    interval = StaticIntervalGenerator(SCHEDULE_INTERVAL_SECONDS)
 
     def _execute(self, data, parent_data) -> bool:
         trans_data = data.get_one_of_inputs("trans_data")
@@ -38,7 +39,7 @@ class ExposeK8sQdrantServiceService(BaseService):
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
         data.outputs["attempt"] = 0
-        data.outputs["max_retries"] = 5
+        data.outputs["max_retries"] = SCHEDULE_MAX_RETRIES
         data.outputs["trans_data"] = trans_data
         return True
 
@@ -81,7 +82,10 @@ class ExposeK8sQdrantServiceService(BaseService):
             error_msg = data.outputs.get("last_error", "")
             raise Exception(f"qdrant expose {clb_id} failed after {max_retries} attempts. {error_msg}")
 
-        self.log_info(f" qdrant expose {clb_id} not ready yet, attempt {attempt}/{max_retries}. Next check in 20s...")
+        self.log_info(
+            f" qdrant expose {clb_id} not ready yet, attempt {attempt}/{max_retries}. "
+            f"Next check in {SCHEDULE_INTERVAL_SECONDS}s..."
+        )
         return True
 
     def inputs_format(self) -> List:

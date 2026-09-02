@@ -35,7 +35,3 @@ CLB_NAME_SUFFIX = "surrealdb-clb"
 
 # 域名前缀，最终形如 "{DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
 DOMAIN_PREFIX = "surrealdb"
-
-# 异步 schedule 轮询相关
-SCHEDULE_INTERVAL_SECONDS = 20
-SCHEDULE_MAX_RETRIES = 15
