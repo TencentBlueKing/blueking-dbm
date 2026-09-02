@@ -44,6 +44,11 @@
                 </template>
               </TicketInfoTableColumn>
             </TicketInfoTable>
+            <div
+              v-if="item.remark"
+              class="mt-4">
+              {{ item.remark }}
+            </div>
           </template>
         </BkCollapsePanel>
       </BkCollapse>
