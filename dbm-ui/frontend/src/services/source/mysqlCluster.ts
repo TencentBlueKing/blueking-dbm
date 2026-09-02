@@ -102,18 +102,3 @@ export function getRemoteParis(params: { cluster_ids: number[] }) {
       })),
     );
 }
-
-/**
- * 通过过滤条件批量查询集群
- */
-export function queryClusters(params: {
-  bk_biz_id: number;
-  cluster_filters: Array<{
-    bk_biz_id?: number;
-    cluster_type?: string;
-    id?: number;
-    immute_domain?: string;
-  }>;
-}) {
-  return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
-}
