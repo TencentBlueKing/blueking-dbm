@@ -28,32 +28,43 @@ type versionRelatedInfo struct {
 	AuthColName  string
 }
 
-//const (
-//	productSpider = "spider"
-//	productMySQL  = "mysql"
-//)
-
-func (c *PrivTaskPara) addOnMySQL(
+func (c *PrivTaskPara) AddOnMySQL(
 	clientIps []string, workingInstances map[int64][]string,
 	dbScopePrivs map[string][]string,
 	longPSW string,
 	shortPSW string,
+	withGrantOption bool,
 ) (reports map[string][]string, err error) {
 	reports = make(map[string][]string)
 
 	// 版本相关信息 (密码列、CREATE USER 语法界等) 顶层探一次, 下面 check / grant 都从这里读
 	versionInfosByCloud := make(map[int64]map[string]versionRelatedInfo, len(workingInstances))
 	for bkCloudId, addrs := range workingInstances {
-		infos, err := queryVersionInfo(bkCloudId, addrs)
+		infos, versionReports, err := queryVersionInfo(bkCloudId, addrs)
 		if err != nil {
 			return nil, err
 		}
+
+		if len(versionReports) > 0 {
+			for k, v := range versionReports {
+				if _, ok := reports[k]; !ok {
+					reports[k] = []string{}
+				}
+				reports[k] = append(reports[k], v...)
+			}
+			continue
+		}
 		versionInfosByCloud[bkCloudId] = infos
+	}
+	if len(reports) > 0 {
+		return reports, nil
 	}
 
 	// Go 侧预检. 有报告说明发现冲突, 直接返回, 不再走 dba_grant 里存储过程的检查
 	// existingUsers: addr -> clientIp set, 已存在的用户不再生成建用户语句
-	checkReports, existingUsers, err := c.check(clientIps, workingInstances, versionInfosByCloud, dbScopePrivs, longPSW, shortPSW)
+	checkReports, existingUsers, err := c.check(
+		clientIps, workingInstances, versionInfosByCloud, dbScopePrivs, longPSW, shortPSW,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +72,10 @@ func (c *PrivTaskPara) addOnMySQL(
 		return checkReports, nil
 	}
 
-	if err := c.grant(clientIps, workingInstances, versionInfosByCloud, dbScopePrivs, longPSW, existingUsers, reports); err != nil {
+	if err := c.grant(
+		clientIps, workingInstances, versionInfosByCloud, dbScopePrivs, longPSW, existingUsers, reports,
+		withGrantOption,
+	); err != nil {
 		return nil, err
 	}
 	slog.Info(
@@ -328,7 +342,7 @@ func (c *PrivTaskPara) check(
 //	MySQL >= 5.7          -> authentication_string
 //
 // 任一 addr 探测报错(网络/RPC/SQL 执行/结果为空/版本不支持)直接返回错误, 不吞
-func queryVersionInfo(bkCloudId int64, addrs []string) (map[string]versionRelatedInfo, error) {
+func queryVersionInfo(bkCloudId int64, addrs []string) (map[string]versionRelatedInfo, map[string][]string, error) {
 	query := `SELECT
 		@@version AS raw_version,
 		CASE WHEN @@version LIKE '%tspider%' THEN 'spider' ELSE 'mysql' END AS product,
@@ -346,20 +360,36 @@ func queryVersionInfo(bkCloudId int64, addrs []string) (map[string]versionRelate
 
 	res, err := drs.RPCMySQL(bkCloudId, addrs, []string{query}, false, 600)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ret := make(map[string]versionRelatedInfo, len(addrs))
+	reports := make(map[string][]string)
 	for _, r := range res {
 		if r.ErrorMsg != "" {
-			return nil, errors.Errorf("query version info on %s: %s", r.Address, r.ErrorMsg)
+			if _, ok := reports[r.Address]; !ok {
+				reports[r.Address] = make([]string, 0)
+			}
+			reports[r.Address] = append(reports[r.Address], r.ErrorMsg)
+			continue
+			//return nil, errors.Errorf("query version info on %s: %s", r.Address, r.ErrorMsg)
 		}
 		cr := r.CmdResults[0]
 		if cr.ErrorMsg != "" {
-			return nil, errors.Errorf("query version info on %s: %s", r.Address, cr.ErrorMsg)
+			if _, ok := reports[r.Address]; !ok {
+				reports[r.Address] = make([]string, 0)
+			}
+			reports[r.Address] = append(reports[r.Address], cr.ErrorMsg)
+			continue
+			//return nil, errors.Errorf("query version info on %s: %s", r.Address, cr.ErrorMsg)
 		}
 		if len(cr.TableData) == 0 {
-			return nil, errors.Errorf("query version info on %s: empty result", r.Address)
+			if _, ok := reports[r.Address]; !ok {
+				reports[r.Address] = make([]string, 0)
+			}
+			reports[r.Address] = append(reports[r.Address], "query version info empty result")
+			continue
+			//return nil, errors.Errorf("query version info on %s: empty result", r.Address)
 		}
 		row := cr.TableData[0]
 
@@ -367,7 +397,12 @@ func queryVersionInfo(bkCloudId int64, addrs []string) (map[string]versionRelate
 		product, _ := row["product"].(string)
 		col, _ := row["auth_col_name"].(string)
 		if col == "" {
-			return nil, errors.Errorf("not support spider version on %s: %s", r.Address, raw)
+			if _, ok := reports[r.Address]; !ok {
+				reports[r.Address] = make([]string, 0)
+			}
+			reports[r.Address] = append(reports[r.Address], fmt.Sprintf("not support version: %s", raw))
+			continue
+			//return nil, errors.Errorf("not support spider version on %s: %s", r.Address, raw)
 		}
 		vintStr, _ := row["version_as_int"].(string)
 		vint, _ := strconv.ParseInt(vintStr, 10, 64)
@@ -378,7 +413,7 @@ func queryVersionInfo(bkCloudId int64, addrs []string) (map[string]versionRelate
 			AuthColName:  col,
 		}
 	}
-	return ret, nil
+	return ret, reports, nil
 }
 
 // checkPsw 密码一致性检查 + 收集已存在的 user@host
@@ -554,6 +589,7 @@ func (c *PrivTaskPara) grant(
 	longPSW string,
 	existingUsers map[string]map[string]bool,
 	reports map[string][]string,
+	withGrantOption bool,
 ) error {
 	for bkCloudId := range workingInstances {
 		infos := versionInfosByCloud[bkCloudId]
@@ -569,7 +605,9 @@ func (c *PrivTaskPara) grant(
 
 		// >= 5.7: CREATE USER IF NOT EXISTS
 		if len(createUserAddrs) > 0 {
-			sqls := buildGrantSQLs(c.User, clientIps, dbScopePrivs, longPSW, true, existingUsers, createUserAddrs)
+			sqls := buildGrantSQLs(
+				c.User, clientIps, dbScopePrivs, longPSW, true, existingUsers, createUserAddrs, withGrantOption,
+			)
 			if err := runGrant(bkCloudId, createUserAddrs, sqls, reports); err != nil {
 				return err
 			}
@@ -577,7 +615,9 @@ func (c *PrivTaskPara) grant(
 
 		// < 5.7: GRANT USAGE ... IDENTIFIED BY PASSWORD
 		if len(grantUsageAddrs) > 0 {
-			sqls := buildGrantSQLs(c.User, clientIps, dbScopePrivs, longPSW, false, existingUsers, grantUsageAddrs)
+			sqls := buildGrantSQLs(
+				c.User, clientIps, dbScopePrivs, longPSW, false, existingUsers, grantUsageAddrs, withGrantOption,
+			)
 			if err := runGrant(bkCloudId, grantUsageAddrs, sqls, reports); err != nil {
 				return err
 			}
@@ -598,7 +638,7 @@ func (c *PrivTaskPara) grant(
 // dbScopePrivs 的 key "*" -> ON *.*, 其它 -> ON `dbname`.*
 func buildGrantSQLs(
 	user string, clientIps []string, dbScopePrivs map[string][]string, longPSW string, useCreateUser bool,
-	existingUsers map[string]map[string]bool, addrs []string,
+	existingUsers map[string]map[string]bool, addrs []string, withGrantOption bool,
 ) []string {
 	sqls := []string{"SET SESSION sql_log_bin = 0"}
 
@@ -634,12 +674,14 @@ func buildGrantSQLs(
 			onClause = fmt.Sprintf("`%s`.*", db)
 		}
 		for _, ip := range clientIps {
-			sqls = append(
-				sqls, fmt.Sprintf(
-					`GRANT %s ON %s TO '%s'@'%s'`,
-					privStr, onClause, user, ip,
-				),
+			sql := fmt.Sprintf(
+				`GRANT %s ON %s TO '%s'@'%s'`,
+				privStr, onClause, user, ip,
 			)
+			if withGrantOption {
+				sql += " WITH GRANT OPTION"
+			}
+			sqls = append(sqls, sql)
 		}
 	}
 
