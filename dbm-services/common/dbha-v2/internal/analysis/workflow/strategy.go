@@ -34,18 +34,10 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-// SpecialMatchResult is the result of a special strategy match.
-// ClusterKeys is the list of matched cluster keys (BkCloudID:ClusterID) used for trigger-count
-// comparison; Instances is the flattened list of failure instances of all matched clusters.
-type SpecialMatchResult struct {
-	ClusterKeys []switchcore.ClusterKey
-	Instances   []FailureInstanceInfo
-}
-
 // SpecialMatchFunc is the function signature for special strategy matching.
-// It takes the unbound instances and returns the matched cluster keys together with the
-// failure instances of those clusters.
-type SpecialMatchFunc func(instances []FailureInstanceInfo) SpecialMatchResult
+// It takes the unbound instances and the strategy trigger count, and returns the matched
+// failure instances, or nil if the matched unit count is below the threshold.
+type SpecialMatchFunc func(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo
 
 // specialStrategyRegistry is the registry of special strategies.
 // key: the event name bound to the strategy (TriggerEventName), value: the corresponding match function.
@@ -63,8 +55,9 @@ func GetSpecialMatchFunc(eventName haprobe.DbEventName) SpecialMatchFunc {
 // MatchProxyBackendSimultaneous matches cases where proxy and backend master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A backend master must satisfy both MachineType == backend and InstanceRole == MySQLStorageMaster.
-// Returns the matched cluster keys and the failure instances of all matched clusters.
-func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) SpecialMatchResult {
+// It returns the failure instances of all matched clusters, or nil if the number of matched
+// clusters is below the threshold.
+func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
 	for _, inst := range instances {
@@ -72,10 +65,9 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) SpecialMatch
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
-	result := SpecialMatchResult{
-		ClusterKeys: make([]switchcore.ClusterKey, 0, len(clusterGroups)),
-	}
-	for key, group := range clusterGroups {
+	var matched []FailureInstanceInfo
+	var clusterCount int
+	for _, group := range clusterGroups {
 		hasProxy := false
 		hasBackendMaster := false
 		for _, inst := range group {
@@ -94,19 +86,23 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) SpecialMatch
 			}
 		}
 		if hasProxy && hasBackendMaster {
-			result.ClusterKeys = append(result.ClusterKeys, key)
-			result.Instances = append(result.Instances, group...)
+			clusterCount++
+			matched = append(matched, group...)
 		}
 	}
 
-	return result
+	if clusterCount < threshold {
+		return nil
+	}
+	return matched
 }
 
 // MatchSpiderRemoteMasterSimultaneous matches cases where spider and remote master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A remote master must satisfy both MachineType == remote and InstanceRole == TenDBClusterStorageMaster.
-// Returns the matched cluster keys and the failure instances of all matched clusters.
-func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) SpecialMatchResult {
+// It returns the failure instances of all matched clusters, or nil if the number of matched
+// clusters is below the threshold.
+func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
 	for _, inst := range instances {
@@ -114,10 +110,9 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) Specia
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
-	result := SpecialMatchResult{
-		ClusterKeys: make([]switchcore.ClusterKey, 0, len(clusterGroups)),
-	}
-	for key, group := range clusterGroups {
+	var matched []FailureInstanceInfo
+	var clusterCount int
+	for _, group := range clusterGroups {
 		hasSpider := false
 		hasRemoteMaster := false
 		for _, inst := range group {
@@ -136,19 +131,23 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) Specia
 			}
 		}
 		if hasSpider && hasRemoteMaster {
-			result.ClusterKeys = append(result.ClusterKeys, key)
-			result.Instances = append(result.Instances, group...)
+			clusterCount++
+			matched = append(matched, group...)
 		}
 	}
 
-	return result
+	if clusterCount < threshold {
+		return nil
+	}
+	return matched
 }
 
-// FilterInstancesByEventName returns the instances whose event name matches the given event name.
-func FilterInstancesByEventName(instances []FailureInstanceInfo, eventName haprobe.DbEventName) []FailureInstanceInfo {
+// FilterInstancesByEventAndCount returns the instances whose event name matches the given event
+// name and whose trigger count reaches the threshold.
+func FilterInstancesByEventAndCount(instances []FailureInstanceInfo, eventName haprobe.DbEventName, threshold int) []FailureInstanceInfo {
 	out := make([]FailureInstanceInfo, 0, len(instances))
 	for _, inst := range instances {
-		if inst.EventName == eventName {
+		if inst.EventName == eventName && inst.Count >= threshold {
 			out = append(out, inst)
 		}
 	}
@@ -160,8 +159,11 @@ func FilterInstancesByEventName(instances []FailureInstanceInfo, eventName hapro
 //  1. Biz-level strategies (BkBizID != 0) take priority over global strategies (BkBizID == 0)
 //  2. Lower Priority value means higher priority
 //  3. When priority is equal, switch action takes priority over notify action
+//
+// The sort is stable: strategies that are equal on all tiers keep their original (query) order,
+// which makes the match order deterministic for strategies with identical priority.
 func SortCandidates(candidates []*hamodel.DbSwitchingStrategy) {
-	sort.Slice(candidates, func(i, j int) bool {
+	sort.SliceStable(candidates, func(i, j int) bool {
 		// tier 1: biz-level strategy > global strategy
 		iBiz := candidates[i].BkBizID != 0
 		jBiz := candidates[j].BkBizID != 0

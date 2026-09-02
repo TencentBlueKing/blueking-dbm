@@ -127,7 +127,13 @@ type DbSwitchingStrategy struct {
 
 	// The reason for the event name.
 	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"column:trigger_event_name_reason;primaryKey;index"`
-	// This strategy will be triggered after the number of events reaches this value.
+	// TriggerCount is the threshold that triggers this strategy. Its meaning depends on the
+	// strategy type:
+	//   - normal strategies: the number of times the same failed instance reports the same event
+	//     within the sliding window (counted per instance+event);
+	//   - the two current special strategies (proxy+backend / spider+remote master): the number of
+	//     failed clusters (cluster-scoped). Future special strategies may count on other dimensions,
+	//     not necessarily clusters.
 	TriggerCount int `gorm:"column:trigger_count"`
 
 	// level: 0 > 1> 2 > 3 > ...

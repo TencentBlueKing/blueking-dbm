@@ -120,8 +120,9 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 // MatchResult is the result of one strategy-matching pass over a failure group.
 type MatchResult struct {
 	// Groups contains the switch groups and notify groups that matched a strategy, plus the
-	// notify group of instances that matched no strategy (its Strategy is nil). The failure
-	// instances of different groups never overlap.
+	// notify group of instances that matched no strategy (its Strategy is nil). A single
+	// instance+event is bound to at most one group; the same instance may appear in multiple
+	// groups for different events.
 	Groups []*FailureGroup
 	// Strategies is the full list of strategies queried from DB in this pass (biz + global),
 	// kept for tracing the match decision afterwards.
@@ -130,9 +131,9 @@ type MatchResult struct {
 
 // MatchStrategies loads biz-level and global strategies, sorts them by
 // (biz > priority > action(switch>notify)), and iterates each strategy to greedily bind
-// unbound failure instances. Normal strategies bind instances by event name; special strategies
-// bind all failure instances of the matched clusters. Each matched strategy forms one FailureGroup.
-// Instances already bound to a higher-priority strategy are not matched again.
+// unbound failure instances. Normal strategies bind instances by event name and trigger count;
+// special strategies bind all failure instances of the matched clusters. Each matched strategy
+// forms one FailureGroup. Instances already bound to a higher-priority strategy are not matched again.
 func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGroup) *MatchResult {
 	if len(group.Instances) == 0 {
 		return nil
@@ -155,6 +156,7 @@ func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGrou
 
 	bound := make(map[string]struct{}, len(group.Instances))
 	for _, s := range strategies {
+		// skip instances already bound to a higher-priority strategy
 		unbound := filterUnboundInstances(group.Instances, bound)
 		if len(unbound) == 0 {
 			break
@@ -167,20 +169,16 @@ func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGrou
 
 		var matched []FailureInstanceInfo
 		if matchFunc := GetSpecialMatchFunc(s.TriggerEventName); matchFunc != nil {
-			specialResult := matchFunc(unbound)
-			if len(specialResult.ClusterKeys) < threshold {
-				continue
-			}
-			matched = specialResult.Instances
+			matched = matchFunc(unbound, threshold)
 		} else {
-			matched = FilterInstancesByEventName(unbound, s.TriggerEventName)
-			if len(matched) < threshold {
-				continue
-			}
+			matched = FilterInstancesByEventAndCount(unbound, s.TriggerEventName, threshold)
+		}
+		if len(matched) == 0 {
+			continue
 		}
 
 		for _, inst := range matched {
-			bound[instanceKey(inst.BkCloudID, inst.IP, inst.Port)] = struct{}{}
+			bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)] = struct{}{}
 		}
 
 		result.Groups = append(result.Groups, &FailureGroup{
@@ -196,7 +194,7 @@ func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGrou
 	// collect the instances not bound to any strategy into a notify group with a nil strategy
 	var unmatched []FailureInstanceInfo
 	for _, inst := range group.Instances {
-		if _, ok := bound[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; !ok {
+		if _, ok := bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)]; !ok {
 			unmatched = append(unmatched, inst)
 		}
 	}
@@ -217,7 +215,7 @@ func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGrou
 func filterUnboundInstances(instances []FailureInstanceInfo, bound map[string]struct{}) []FailureInstanceInfo {
 	out := make([]FailureInstanceInfo, 0, len(instances))
 	for _, inst := range instances {
-		if _, ok := bound[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; ok {
+		if _, ok := bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)]; ok {
 			continue
 		}
 		out = append(out, inst)

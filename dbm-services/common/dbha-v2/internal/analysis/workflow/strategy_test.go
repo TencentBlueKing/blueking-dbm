@@ -33,37 +33,37 @@ import (
 )
 
 // ============================================================
-// 1. FilterInstancesByEventName tests
+// 1. FilterInstancesByEventAndCount tests
 // ============================================================
 
-func TestFilterInstancesByEventName_EmptyInstances(t *testing.T) {
-	matched := FilterInstancesByEventName(nil, haprobe.DbEventNameDetectFailure)
+func TestFilterInstancesByEventAndCount_EmptyInstances(t *testing.T) {
+	matched := FilterInstancesByEventAndCount(nil, haprobe.DbEventNameDetectFailure, 1)
 	if len(matched) != 0 {
 		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
-func TestFilterInstancesByEventName_AllMatch(t *testing.T) {
+func TestFilterInstancesByEventAndCount_AllMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 2},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 3},
 	}
-	matched := FilterInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 1)
 	if len(matched) != 3 {
 		t.Errorf("expected 3, got %d", len(matched))
 	}
 }
 
-func TestFilterInstancesByEventName_PartialMatch(t *testing.T) {
+func TestFilterInstancesByEventAndCount_PartialMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameProbeOffline},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameProbeOffline},
-		{EventName: haprobe.DbEventNameProbeOffline},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
 	}
-	matched := FilterInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 1)
 	if len(matched) != 2 {
 		t.Errorf("expected 2, got %d", len(matched))
 	}
@@ -74,14 +74,27 @@ func TestFilterInstancesByEventName_PartialMatch(t *testing.T) {
 	}
 }
 
-func TestFilterInstancesByEventName_NoMatch(t *testing.T) {
+func TestFilterInstancesByEventAndCount_NoMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameProbeOffline},
-		{EventName: haprobe.DbEventNameProbeOffline},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
 	}
-	matched := FilterInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 1)
 	if len(matched) != 0 {
 		t.Errorf("expected 0, got %d", len(matched))
+	}
+}
+
+func TestFilterInstancesByEventAndCount_BelowThreshold(t *testing.T) {
+	// only instances with Count >= threshold are kept
+	instances := []FailureInstanceInfo{
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 3},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 5},
+	}
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 3)
+	if len(matched) != 2 {
+		t.Errorf("expected 2 (count 3 and 5), got %d", len(matched))
 	}
 }
 
@@ -90,9 +103,9 @@ func TestFilterInstancesByEventName_NoMatch(t *testing.T) {
 // ============================================================
 
 func TestMatchProxyBackendSimultaneous_EmptyInstances(t *testing.T) {
-	matched := MatchProxyBackendSimultaneous(nil)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchProxyBackendSimultaneous(nil, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -112,12 +125,9 @@ func TestMatchProxyBackendSimultaneous_SingleClusterBothTypes(t *testing.T) {
 			InstanceRole: haprobe.MySQLStorageMaster,
 		},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 1 {
-		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
-	}
-	if len(matched.Instances) != 2 {
-		t.Errorf("expected 2 instances, got %d", len(matched.Instances))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 2 {
+		t.Errorf("expected 2 instances, got %d", len(matched))
 	}
 }
 
@@ -126,9 +136,9 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyProxy(t *testing.T) {
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -136,9 +146,9 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyBackend(t *testing.T) {
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -148,9 +158,9 @@ func TestMatchProxyBackendSimultaneous_BackendButNotMaster(t *testing.T) {
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageSlave},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -167,12 +177,9 @@ func TestMatchProxyBackendSimultaneous_MultipleClustersPartialMatch(t *testing.T
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeBackend,
 			InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 2 {
-		t.Errorf("expected 2, got %d", len(matched.ClusterKeys))
-	}
-	if len(matched.Instances) != 4 {
-		t.Errorf("expected 4 instances (cluster 100 + 300), got %d", len(matched.Instances))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 4 {
+		t.Errorf("expected 4 instances (cluster 100 + 300), got %d", len(matched))
 	}
 }
 
@@ -182,9 +189,9 @@ func TestMatchProxyBackendSimultaneous_DifferentCloudsSameCluster(t *testing.T) 
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -202,12 +209,23 @@ func TestMatchProxyBackendSimultaneous_MultipleProxiesAndBackends(t *testing.T) 
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.5", ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
 			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	matched := MatchProxyBackendSimultaneous(instances)
-	if len(matched.ClusterKeys) != 1 {
-		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
+	matched := MatchProxyBackendSimultaneous(instances, 1)
+	if len(matched) != 5 {
+		t.Errorf("expected 5 instances, got %d", len(matched))
 	}
-	if len(matched.Instances) != 5 {
-		t.Errorf("expected 5 instances, got %d", len(matched.Instances))
+}
+
+func TestMatchProxyBackendSimultaneous_BelowClusterThreshold(t *testing.T) {
+	// one satisfied cluster but threshold=2 => clusterCount(1) < threshold => nil
+	instances := []FailureInstanceInfo{
+		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
+			MachineType: haprobe.DbmMetadataMachineTypeProxy},
+		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
+			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
+	}
+	matched := MatchProxyBackendSimultaneous(instances, 2)
+	if matched != nil {
+		t.Fatalf("expected nil when clusterCount(1) < threshold(2), got %d instances", len(matched))
 	}
 }
 
@@ -216,9 +234,9 @@ func TestMatchProxyBackendSimultaneous_MultipleProxiesAndBackends(t *testing.T) 
 // ============================================================
 
 func TestMatchSpiderRemoteMasterSimultaneous_EmptyInstances(t *testing.T) {
-	matched := MatchSpiderRemoteMasterSimultaneous(nil)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchSpiderRemoteMasterSimultaneous(nil, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -229,12 +247,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterBothTypes(t *testing.T
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 1 {
-		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
-	}
-	if len(matched.Instances) != 2 {
-		t.Errorf("expected 2 instances, got %d", len(matched.Instances))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 2 {
+		t.Errorf("expected 2 instances, got %d", len(matched))
 	}
 }
 
@@ -243,9 +258,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterOnlySpider(t *testing.
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -253,9 +268,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterOnlyRemoteMaster(t *te
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -265,9 +280,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_RemoteButNotMaster(t *testing.T) {
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageSlave},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -286,12 +301,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_MultipleClustersPartialMatch(t *tes
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 2 {
-		t.Errorf("expected 2, got %d", len(matched.ClusterKeys))
-	}
-	if len(matched.Instances) != 4 {
-		t.Errorf("expected 4 instances (cluster 100 + 300), got %d", len(matched.Instances))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 4 {
+		t.Errorf("expected 4 instances (cluster 100 + 300), got %d", len(matched))
 	}
 }
 
@@ -301,9 +313,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_DifferentCloudsSameCluster(t *testi
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 0 {
-		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -319,12 +331,23 @@ func TestMatchSpiderRemoteMasterSimultaneous_MultipleInstancesSameCluster(t *tes
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.4", ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	matched := MatchSpiderRemoteMasterSimultaneous(instances)
-	if len(matched.ClusterKeys) != 1 {
-		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 1)
+	if len(matched) != 4 {
+		t.Errorf("expected 4 instances, got %d", len(matched))
 	}
-	if len(matched.Instances) != 4 {
-		t.Errorf("expected 4 instances, got %d", len(matched.Instances))
+}
+
+func TestMatchSpiderRemoteMasterSimultaneous_BelowClusterThreshold(t *testing.T) {
+	// one satisfied cluster but threshold=2 => clusterCount(1) < threshold => nil
+	instances := []FailureInstanceInfo{
+		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
+			MachineType: haprobe.DbmMetadataMachineTypeSpider},
+		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
+			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
+	}
+	matched := MatchSpiderRemoteMasterSimultaneous(instances, 2)
+	if matched != nil {
+		t.Fatalf("expected nil when clusterCount(1) < threshold(2), got %d instances", len(matched))
 	}
 }
 

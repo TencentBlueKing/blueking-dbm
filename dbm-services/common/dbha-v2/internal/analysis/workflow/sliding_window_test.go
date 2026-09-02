@@ -43,6 +43,12 @@ func newFailureInstanceForWindow(ip string, port int, dbType haprobe.DbType) *Fa
 	}
 }
 
+func newFailureEventForWindow(ip string, port int, dbType haprobe.DbType, event haprobe.DbEventName) *FailureInstanceInfo {
+	inst := newFailureInstanceForWindow(ip, port, dbType)
+	inst.EventName = event
+	return inst
+}
+
 func TestBizWindowManager_PushMergeAndPop(t *testing.T) {
 	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.1", 3306, haprobe.DbTypeMySql)
@@ -210,5 +216,51 @@ func TestBizWindowManager_ConcurrentPushSameInstance(t *testing.T) {
 	}
 	if entries[0].Count != total {
 		t.Fatalf("expected merged count=%d, got %d", total, entries[0].Count)
+	}
+}
+
+func TestBizWindowManager_PushDedupByInstanceAndEvent(t *testing.T) {
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
+	base := time.Now()
+
+	// same instance reporting the same event is merged (count incremented)
+	same := newFailureEventForWindow("127.0.0.9", 3306, haprobe.DbTypeMySql, haprobe.DbEventNameDetectFailure)
+	if !mgr.Push(100, same, base) {
+		t.Fatal("first push should be accepted")
+	}
+	if !mgr.Push(100, same, base.Add(time.Second)) {
+		t.Fatal("second push with same event should be accepted and merged")
+	}
+
+	// same instance reporting a different event is kept as a separate entry
+	other := newFailureEventForWindow("127.0.0.9", 3306, haprobe.DbTypeMySql, haprobe.DbEventNameProbeOffline)
+	if !mgr.Push(100, other, base) {
+		t.Fatal("push with different event should be accepted")
+	}
+
+	entries := mgr.Pop(100, base.Add(11*time.Second))
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries (one per event), got %d", len(entries))
+	}
+
+	byEvent := make(map[haprobe.DbEventName]*FailureWindowEntry, len(entries))
+	for _, e := range entries {
+		byEvent[e.EventName] = e
+	}
+
+	detect, ok := byEvent[haprobe.DbEventNameDetectFailure]
+	if !ok {
+		t.Fatal("expected detect-failure entry")
+	}
+	if detect.Count != 2 {
+		t.Fatalf("expected detect-failure count=2, got %d", detect.Count)
+	}
+
+	offline, ok := byEvent[haprobe.DbEventNameProbeOffline]
+	if !ok {
+		t.Fatal("expected probe-offline entry")
+	}
+	if offline.Count != 1 {
+		t.Fatalf("expected probe-offline count=1, got %d", offline.Count)
 	}
 }
