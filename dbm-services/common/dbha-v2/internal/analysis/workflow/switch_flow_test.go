@@ -58,7 +58,8 @@ type matchStrategiesCase struct {
 	desc       string                         // what this scenario verifies
 	strategies []*hamodel.DbSwitchingStrategy // strategies to match against
 	instances  []FailureInstanceInfo          // failure instances to match
-	wantGroups []wantGroup                    // expected groups, in order
+	wantGroups []wantGroup                    // expected groups, matched by strategy name (order-insensitive)
+	wantOrder  []string                       // optional: strategy names in expected output order ("" = unmatched); nil skips the order check
 }
 
 // wantGroup describes one expected failure group in the match result.
@@ -109,7 +110,7 @@ func withGlobals(extras ...*hamodel.DbSwitchingStrategy) []*hamodel.DbSwitchingS
 	return append(base, extras...)
 }
 
-// inst builds a failure instance with default BkCloudID=1 and BkBizID=100.
+// inst builds a failure instance with default BkCloudID=1, BkBizID=100 and Count=1.
 func inst(ip string, port int, event haprobe.DbEventName, opts ...instOpt) FailureInstanceInfo {
 	i := FailureInstanceInfo{
 		BkBizID:   100,
@@ -117,6 +118,7 @@ func inst(ip string, port int, event haprobe.DbEventName, opts ...instOpt) Failu
 		IP:        ip,
 		Port:      port,
 		EventName: event,
+		Count:     1,
 	}
 	for _, o := range opts {
 		o(&i)
@@ -125,6 +127,10 @@ func inst(ip string, port int, event haprobe.DbEventName, opts ...instOpt) Failu
 }
 
 type instOpt func(*FailureInstanceInfo)
+
+func withCount(c int) instOpt {
+	return func(i *FailureInstanceInfo) { i.Count = c }
+}
 
 func withCluster(id int, typ haprobe.DbmMetadataClusterType) instOpt {
 	return func(i *FailureInstanceInfo) { i.ClusterID = id; i.ClusterType = typ }
@@ -166,7 +172,8 @@ func assertMatchResult(t *testing.T, tc matchStrategiesCase, result *MatchResult
 		return
 	}
 
-	// invariant: an instance must not appear in more than one group.
+	// invariant: an instance+event must not appear in more than one group. The same instance may
+	// legitimately appear in different groups for different events, so the key includes the event.
 	owner := make(map[string]string)
 	for _, g := range result.Groups {
 		name := "unmatched"
@@ -174,11 +181,27 @@ func assertMatchResult(t *testing.T, tc matchStrategiesCase, result *MatchResult
 			name = g.Strategy.Name
 		}
 		for _, in := range g.Instances {
-			k := instKey(in)
+			k := instanceEventKey(in.BkCloudID, in.IP, in.Port, in.EventName)
 			if prev, ok := owner[k]; ok {
-				t.Fatalf("invariant violated: instance %s appears in both group %q and %q", k, prev, name)
+				t.Fatalf("invariant violated: instance+event %s appears in both group %q and %q", k, prev, name)
 			}
 			owner[k] = name
+		}
+	}
+
+	// optional: verify the groups appear in the expected strategy order (unmatched group = "")
+	if tc.wantOrder != nil {
+		if len(result.Groups) != len(tc.wantOrder) {
+			t.Fatalf("expected %d groups in order, got %d", len(tc.wantOrder), len(result.Groups))
+		}
+		for i, want := range tc.wantOrder {
+			got := ""
+			if result.Groups[i].Strategy != nil {
+				got = result.Groups[i].Strategy.Name
+			}
+			if got != want {
+				t.Errorf("group order mismatch at index %d: expected %q, got %q", i, want, got)
+			}
 		}
 	}
 
@@ -252,6 +275,7 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{""},
 		},
 		{
 			name: "single_match",
@@ -260,15 +284,16 @@ func TestMatchStrategies_Normal(t *testing.T) {
 				strat("test-normal", haprobe.DbEventNameDetectFailure, 1, hamodel.ActionTypeSwitch, 100, 2),
 			},
 			instances: []FailureInstanceInfo{
-				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure),
-				inst("127.0.0.2", 3306, haprobe.DbEventNameDetectFailure),
-				inst("127.0.0.3", 3306, haprobe.DbEventNameDetectFailure),
+				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure, withCount(2)),
+				inst("127.0.0.2", 3306, haprobe.DbEventNameDetectFailure, withCount(2)),
+				inst("127.0.0.3", 3306, haprobe.DbEventNameDetectFailure, withCount(2)),
 			},
 			wantGroups: []wantGroup{
 				{strategyName: "test-normal", instances: []string{
 					"1:127.0.0.1:3306", "1:127.0.0.2:3306", "1:127.0.0.3:3306",
 				}},
 			},
+			wantOrder: []string{"test-normal"},
 		},
 		{
 			name: "below_threshold",
@@ -282,6 +307,7 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{""},
 		},
 		{
 			name: "trigger_zero_defaults_one",
@@ -295,6 +321,7 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "test-zero-count", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"test-zero-count"},
 		},
 		{
 			name: "trigger_negative_defaults_one",
@@ -308,6 +335,7 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "neg-count", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"neg-count"},
 		},
 		{
 			name: "event_mismatch",
@@ -321,6 +349,7 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{""},
 		},
 		{
 			name: "disabled_ignored",
@@ -335,6 +364,7 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{""},
 		},
 		{
 			name: "biz_prioritized",
@@ -349,6 +379,24 @@ func TestMatchStrategies_Normal(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "biz-p3", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"biz-p3"},
+		},
+		{
+			name: "count_partial_match",
+			desc: "only instances whose count reaches the threshold are matched, the rest go to unmatched",
+			strategies: []*hamodel.DbSwitchingStrategy{
+				strat("count-normal", haprobe.DbEventNameDetectFailure, 1, hamodel.ActionTypeSwitch, 100, 3),
+			},
+			instances: []FailureInstanceInfo{
+				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure, withCount(1)),
+				inst("127.0.0.2", 3306, haprobe.DbEventNameDetectFailure, withCount(3)),
+				inst("127.0.0.3", 3306, haprobe.DbEventNameDetectFailure, withCount(5)),
+			},
+			wantGroups: []wantGroup{
+				{strategyName: "count-normal", instances: []string{"1:127.0.0.2:3306", "1:127.0.0.3:3306"}},
+				{strategyName: "", instances: []string{"1:127.0.0.1:3306"}},
+			},
+			wantOrder: []string{"count-normal", ""},
 		},
 	}
 
@@ -382,6 +430,7 @@ func TestMatchStrategies_Special(t *testing.T) {
 					"1:127.0.0.1:10000", "1:127.0.0.2:20000",
 				}},
 			},
+			wantOrder: []string{"test-special"},
 		},
 		{
 			name: "special_below_threshold",
@@ -398,6 +447,7 @@ func TestMatchStrategies_Special(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "", instances: []string{"1:127.0.0.1:10000"}},
 			},
+			wantOrder: []string{""},
 		},
 		{
 			name: "normal_special_both",
@@ -423,6 +473,7 @@ func TestMatchStrategies_Special(t *testing.T) {
 				}},
 				{strategyName: "normal-p2", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"special-p1", "normal-p2"},
 		},
 		{
 			name: "proxy_backend_multi_cluster",
@@ -463,6 +514,7 @@ func TestMatchStrategies_Special(t *testing.T) {
 				}},
 				{strategyName: "", instances: []string{"1:127.0.0.6:10000"}},
 			},
+			wantOrder: []string{"special-proxy-backend", ""},
 		},
 		{
 			name: "spider_remote_multi_cluster",
@@ -494,6 +546,7 @@ func TestMatchStrategies_Special(t *testing.T) {
 				}},
 				{strategyName: "", instances: []string{"1:127.0.0.10:30000"}},
 			},
+			wantOrder: []string{"special-spider-remote", ""},
 		},
 	}
 
@@ -524,6 +577,13 @@ func TestMatchStrategies_Multi(t *testing.T) {
 				{strategyName: haprobe.DbEventNameDiskWriteFailure.String(), instances: []string{"1:127.0.0.4:3306"}},
 				{strategyName: haprobe.DbEventNameUptimeFailure.String(), instances: []string{"1:127.0.0.5:3306"}},
 			},
+			wantOrder: []string{
+				haprobe.DbEventNameDoubleCheckSshFailureV1.String(),
+				haprobe.DbEventNameSshAuthFailure.String(),
+				haprobe.DbEventNameSshTimeout.String(),
+				haprobe.DbEventNameDiskWriteFailure.String(),
+				haprobe.DbEventNameUptimeFailure.String(),
+			},
 		},
 		{
 			name: "custom_notify_over_global_switch",
@@ -536,6 +596,7 @@ func TestMatchStrategies_Multi(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "custom-notify-ssh", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"custom-notify-ssh"},
 		},
 		{
 			name: "custom_switch_over_global_switch",
@@ -548,6 +609,7 @@ func TestMatchStrategies_Multi(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "custom-switch-ssh", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"custom-switch-ssh"},
 		},
 		{
 			name: "same_event_same_priority_switch_wins",
@@ -562,6 +624,7 @@ func TestMatchStrategies_Multi(t *testing.T) {
 			wantGroups: []wantGroup{
 				{strategyName: "custom-switch-ssh", instances: []string{"1:127.0.0.1:3306"}},
 			},
+			wantOrder: []string{"custom-switch-ssh"},
 		},
 		{
 			name: "custom_notify_vs_custom_switch_diff_priority",
@@ -583,6 +646,7 @@ func TestMatchStrategies_Multi(t *testing.T) {
 				}},
 				{strategyName: "", instances: []string{"1:127.0.0.4:3306", "1:127.0.0.5:3306"}},
 			},
+			wantOrder: []string{"custom-notify-ssh", ""},
 		},
 		{
 			name: "global_switch_and_custom_notify_diff_event",
@@ -597,6 +661,24 @@ func TestMatchStrategies_Multi(t *testing.T) {
 				{strategyName: haprobe.DbEventNameSshAuthFailure.String(), instances: []string{"1:127.0.0.1:3306"}},
 				{strategyName: "custom-notify-detect", instances: []string{"1:127.0.0.2:3306"}},
 			},
+			wantOrder: []string{"custom-notify-detect", haprobe.DbEventNameSshAuthFailure.String()},
+		},
+		{
+			name: "same_instance_multi_event",
+			desc: "same instance reporting different events is matched independently by each event strategy",
+			strategies: []*hamodel.DbSwitchingStrategy{
+				strat("detect-switch", haprobe.DbEventNameDetectFailure, 1, hamodel.ActionTypeSwitch, 100, 3),
+				strat("ssh-switch", haprobe.DbEventNameSshTimeout, 2, hamodel.ActionTypeSwitch, 100, 1),
+			},
+			instances: []FailureInstanceInfo{
+				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure, withCount(5)),
+				inst("127.0.0.1", 3306, haprobe.DbEventNameSshTimeout, withCount(1)),
+			},
+			wantGroups: []wantGroup{
+				{strategyName: "detect-switch", instances: []string{"1:127.0.0.1:3306"}},
+				{strategyName: "ssh-switch", instances: []string{"1:127.0.0.1:3306"}},
+			},
+			wantOrder: []string{"detect-switch", "ssh-switch"},
 		},
 	}
 

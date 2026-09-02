@@ -516,6 +516,7 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
+	// match strategies against the available (non-stale) instances only
 	matchResult := w.switchExecutor.MatchStrategies(ctx, &FailureGroup{
 		BkBizID:         group.BkBizID,
 		BkCloudID:       group.BkCloudID,
@@ -527,8 +528,10 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
+	// split the matched groups into switch/notify tasks in priority order
 	tasks := w.buildGroupTasks(req, matchResult.Groups)
 
+	// create snapshot loggers once and share them across all tasks of this group
 	snapshotLoggers := NewSwitchSnapshotLoggers(w.swSnapshotLogger)
 
 	defer func() {
@@ -541,7 +544,7 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 	fns := make([]func(), 0, len(tasks))
 	for _, task := range tasks {
 		fns = append(fns, func() {
-			w.runTask(ctx, snapshotLoggers, task, matchResult.Strategies)
+			w.executeSwitchAndNotifyTask(ctx, snapshotLoggers, task, matchResult.Strategies)
 		})
 	}
 
@@ -554,6 +557,10 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 
 // groupTask is a unit of switch/notify work for one failure group. The action field explicitly
 // identifies whether the task is a switch or a notify.
+//
+// Deduplication is applied here in buildGroupTasks, not in strategy matching: switch tasks are
+// deduplicated by host (a host is switched at most once), while notify tasks are not deduplicated,
+// so the same instance may still appear in multiple notify tasks.
 type groupTask struct {
 	action hamodel.ActionType
 	group  *FailureGroup
@@ -573,6 +580,7 @@ func (w *Workflow) buildGroupTasks(req *switcher.Request, groups []*FailureGroup
 			continue
 		}
 
+		// drop instances whose host was already switched by a higher-priority group
 		remaining := filterHostsNotOccupied(g.Instances, occupiedHosts)
 		if len(remaining) == 0 {
 			logger.Info("skip switch group, all hosts already covered by previous switch, strategyId: %d",
@@ -609,8 +617,8 @@ func (w *Workflow) buildGroupTasks(req *switcher.Request, groups []*FailureGroup
 	return tasks
 }
 
-// runTask executes a single switch/notify task.
-func (w *Workflow) runTask(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger, task *groupTask,
+// executeSwitchAndNotifyTask executes a single switch/notify task.
+func (w *Workflow) executeSwitchAndNotifyTask(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger, task *groupTask,
 	strategies []*hamodel.DbSwitchingStrategy) {
 	switch task.action {
 	case hamodel.ActionTypeSwitch:
@@ -725,6 +733,7 @@ func (w *Workflow) handleStrategySwitch(ctx context.Context, snapshotLoggers []s
 	group *FailureGroup, req *switcher.Request, strategies []*hamodel.DbSwitchingStrategy) {
 	strategy := group.Strategy
 	if strategy == nil || strategy.Action != hamodel.ActionTypeSwitch {
+		logger.Warn("switching operation is disabled")
 		return
 	}
 
@@ -811,6 +820,11 @@ func groupEntriesByCloudAndDbType(bizID int, entries []*FailureWindowEntry) []*F
 // instanceKey builds a unique instance identifier from cloud id, IP and port.
 func instanceKey[T any](bkCloudId int, ip string, port T) string {
 	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
+}
+
+// instanceEventKey distinguishes the same instance matching different events in strategy binding.
+func instanceEventKey(bkCloudID int, ip string, port int, eventName haprobe.DbEventName) string {
+	return fmt.Sprintf("%d:%s:%d:%s", bkCloudID, ip, port, eventName)
 }
 
 // reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for

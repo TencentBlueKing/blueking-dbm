@@ -179,7 +179,7 @@ func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(ctx context.Context, bkBizI
 		hamodel.DbSwitchingStrategyFieldStatus)
 
 	query := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
-	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Find(&strategies).Error; e != nil {
+	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Order(hamodel.DbSwitchingStrategyFieldID).Find(&strategies).Error; e != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
 	}
 
