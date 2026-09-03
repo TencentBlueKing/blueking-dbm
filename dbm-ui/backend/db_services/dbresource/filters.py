@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbbase.resources.query_base import build_empty_and_in_q
 from backend.db_services.dbresource.models import ResourceReplenishRecord
@@ -82,6 +83,19 @@ class SpecListFilter(filters.FilterSet):
             "spec_ids",
             "biz_scope",
         ]
+
+
+class DeviceClassFilter(filters.FilterSet):
+    device_type = filters.CharFilter(
+        field_name="device_type", method="filter_device_type", lookup_expr="icontains", label=_("机型名称")
+    )
+
+    class Meta:
+        model = DeviceClass
+        fields = ["device_type"]
+
+    def filter_device_type(self, queryset, name, value):
+        return queryset.filter(build_empty_and_in_q("device_type", value, "icontains"))
 
 
 class ReplenishRecordFilter(filters.FilterSet):
