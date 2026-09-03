@@ -32,6 +32,8 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/allprobe"
 )
 
 func TestDefaultPayloadJSON_RoundTrip(t *testing.T) {
