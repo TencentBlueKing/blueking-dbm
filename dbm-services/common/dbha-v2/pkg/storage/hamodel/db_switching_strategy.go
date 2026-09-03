@@ -132,8 +132,8 @@ type DbSwitchingStrategy struct {
 	//   - normal strategies: the number of times the same failed instance reports the same event
 	//     within the sliding window (counted per instance+event);
 	//   - the two current special strategies (proxy+backend / spider+remote master): the number of
-	//     failed clusters (cluster-scoped). Future special strategies may count on other dimensions,
-	//     not necessarily clusters.
+	//     times a cluster satisfies the simultaneous-failure condition (counted per cluster).
+	//     Future special strategies may count on other dimensions, not necessarily clusters.
 	TriggerCount int `gorm:"column:trigger_count"`
 
 	// level: 0 > 1> 2 > 3 > ...
