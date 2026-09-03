@@ -26,6 +26,7 @@
     </template>
     <template #default="{ row }: { row: IRowData }">
       <RoleCell
+        :cluster-type="clusterType"
         :data="getRoleInstanceList(row)"
         @go-detail="(event: MouseEvent) => handleShowMore(row.id, event)">
         <template
@@ -61,7 +62,6 @@
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
-    // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
     field: F;
     getTableInstance: () => ClusterTableExpose | null;

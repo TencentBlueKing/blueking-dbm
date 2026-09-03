@@ -134,12 +134,19 @@
     props.clusterType,
   );
 
+  // 分片分组仅 mongodb 分片集群生效，其他集群（如 redis）即便返回 seg_range 也保持扁平列表
+  const isShardGroupCluster = props.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER;
+
   const isMasterNode = (node: NodeItem) => Boolean(masterTag ? _.get(node, masterTag.field) : node.isPrimary);
 
   const scrollContentRef = useTemplateRef<InstanceType<typeof ScrollFaker>[]>('scrollContent');
 
   /** 按分片名聚合：先插分组标题，再列节点（无 seg_range 时保持扁平列表） */
   const getGroupRows = (nodeList: NodeItem[]): GroupRow[] => {
+    if (!isShardGroupCluster) {
+      return nodeList.map((node) => ({ node, type: 'node' as const }));
+    }
+
     const rows: GroupRow[] = [];
     for (const [segRange, shardNodes] of Object.entries(_.groupBy(nodeList, (node) => node.seg_range || ''))) {
       if (segRange) {
@@ -155,7 +162,7 @@
       Object.entries(props.clusterRoleNodeGroup).map(([groupName, nodeList]) => [
         groupName,
         {
-          hasShardGroup: nodeList.some((item) => Boolean(item.seg_range)),
+          hasShardGroup: isShardGroupCluster && nodeList.some((item) => Boolean(item.seg_range)),
           rows: getGroupRows(nodeList),
         },
       ]),
