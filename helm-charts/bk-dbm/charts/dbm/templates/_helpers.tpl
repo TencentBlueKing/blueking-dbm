@@ -224,9 +224,39 @@ initContainers:
       name: medium-install
 {{- end }}
 
+{{/* 单一域名源 dbm.saasDomain：saas/后端API/ingress 地址全部由其派生，切换根/子路径只改此一处 */}}
+{{- define "dbm.saasHost" -}}
+{{- .Values.saasDomain -}}
+{{- end -}}
+
+{{/* 后端 API 入口域名：子路径模式与 saas 共用同一域名；根路径模式在首段子域名后插入 -backend-api */}}
+{{- define "dbm.apiHost" -}}
+{{- if eq (index .Values.envs "BK_SUBPATH_ENABLED" | default false) true }}
+{{- .Values.saasDomain -}}
+{{- else }}
+{{- regexReplaceAll "^([^.]+)\\." .Values.saasDomain "${1}-backend-api." -}}
+{{- end -}}
+{{- end -}}
+
+{{/* dbm 访问地址：域名 + 子路径前缀(仅子路径模式) */}}
+{{- define "dbm.saasUrl" -}}
+{{- $prefix := "" -}}
+{{- if eq (index .Values.envs "BK_SUBPATH_ENABLED" | default false) true }}{{- $prefix = "/bkdbm" -}}{{- end -}}
+{{- printf "http://%s%s" .Values.saasDomain $prefix -}}
+{{- end -}}
+
 {{- define "dbm.container_env" -}}
 env:
   {{- include "dbm.envs" . | trim | nindent 2 }}
+  {{- if eq (index .Values.envs "BK_SUBPATH_ENABLED" | default false) true }}
+  - name: BK_SUBPATH_PREFIX
+    value: "/bkdbm"
+  {{- else }}
+  - name: BK_SUBPATH_PREFIX
+    value: ""
+  {{- end }}
+  - name: bkSaasUrl
+    value: "{{ include "dbm.saasUrl" . }}"
 envFrom:
   {{- if .Values.extraEnvVarsCM }}
   - configMapRef:

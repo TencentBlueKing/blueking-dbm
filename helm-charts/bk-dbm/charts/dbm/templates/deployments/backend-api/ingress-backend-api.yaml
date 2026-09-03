@@ -18,10 +18,14 @@ metadata:
   name: {{ printf "%s-%s"  (include "bk-dbm.fullname" .) "backend-api" }}
   labels:
     {{- include "bk-dbm.labels" . | nindent 4 }}
-  {{- with .Values.ingressBackendApi.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- range $k, $v := .Values.ingressBackendApi.annotations }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- if eq (index .Values.envs "BK_SUBPATH_ENABLED" | default false) true }}
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    {{- end }}
 spec:
   {{- if and .Values.ingressBackendApi.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
   ingressClassName: {{ .Values.ingressBackendApi.className }}
@@ -38,14 +42,20 @@ spec:
   {{- end }}
   rules:
     {{- if .Values.ingressBackendApi.hostname }}
-    - host: {{ .Values.ingressBackendApi.hostname }}
+    - host: {{ include "dbm.apiHost" . }}
       http:
         paths:
-          {{- range .Values.ingressBackendApi.paths }}
-          - path: {{ .path }}
-            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
-            pathType: {{ .pathType }}
+          {{- if eq (index .Values.envs "BK_SUBPATH_ENABLED" | default false) true }}
+          - path: /bkdbm(/|$)(.*)
+            {{- if semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion }}
+            pathType: ImplementationSpecific
             {{- end }}
+          {{- else }}
+          - path: /
+            {{- if semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion }}
+            pathType: Prefix
+            {{- end }}
+          {{- end }}
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
@@ -56,6 +66,5 @@ spec:
               serviceName: {{ $fullName }}
               servicePort: {{ $svcPort }}
               {{- end }}
-          {{- end }}
     {{- end }}
 {{- end }}
