@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div
     class="version-files-table-container"
@@ -8,27 +21,23 @@
           <th style="width: 340px">{{ t('文件') }}</th>
           <th style="width: 152px">OS</th>
           <th style="width: 356px">{{ t('OS版本') }}</th>
-          <th style="width: 80px"></th>
+          <th style="width: 64px"></th>
         </tr>
       </thead>
       <tbody>
         <VersionRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
-          ref="versionRowRefs"
+          v-model:permit-os="item.permit_os"
+          v-model:permit-os-type="item.permit_os_type"
           :data="item"
-          :err-msg="item.errMsg"
           :is-applied="isApplied"
-          :is-only-one-file="isOnlyOneFile"
-          :percentage="item.percentage"
-          :selected-systems="selectedSystems"
-          :selected-versions="selectedVersions"
-          :status="item.status"
+          :occupied-os-versions="occupiedOsVersionList[index]"
+          :os-type-list="osTypeList"
+          :os-version-list="osVersionList[index]"
           @delete="() => handleDeleteRow(index)"
-          @replace="() => handleReplaceRow(index)"
-          @retry="() => handleRetryRow(index)"
-          @system-os-type-change="handleOsTypeChange"
-          @system-os-version-change="handleOsVersionChange" />
+          @os-type-change="() => handleOsTypeChange(index)"
+          @os-version-change="() => handleOsVersionChange(index)" />
       </tbody>
     </table>
     <UploadFile
@@ -36,37 +45,31 @@
       :db-type="dbType"
       :pkg-type="pkgType"
       :uploaded-file-names="uploadedFileNames"
-      :version="version" />
+      :version="version"
+      @success="handleAdd" />
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { listSupportSystems } from '@services/source/package';
 
   import { random } from '@utils';
 
   import UploadFile from './components/UploadFile.vue';
   import VersionRow from './components/VersionRow.vue';
 
-  type RowStatus = 'uploading' | 'staged' | 'failed';
-
-  interface TableRow {
-    errMsg?: string;
-    id?: number;
-    md5: string;
-    name: string;
-    path: string;
-    percentage: number;
-    permit_os?: string[];
-    permit_os_type?: string;
-    rowKey: string;
-    size: number;
-    status?: RowStatus;
-    tempId: string;
-    uid: number;
-  }
-
   interface Props {
-    data?: (Omit<TableRow, 'rowKey' | 'percentage' | 'uid' | 'status'>)[];
+    data?: {
+      id?: number;
+      md5: string;
+      name: string;
+      path: string;
+      permit_os?: string[];
+      permit_os_type?: string;
+      size: number;
+    }[];
     dbType: string;
     isApplied?: boolean;
     pkgType: string;
@@ -75,8 +78,25 @@
 
   type Emits = (e: 'valueChange') => void;
 
+  /** 提交给接口的版本文件信息 */
+  interface VersionFileInfo {
+    id?: number;
+    md5: string;
+    name: string;
+    path: string;
+    permit_os: string[];
+    permit_os_type: string;
+    size: number;
+  }
+
+  interface FileRow extends VersionFileInfo {
+    /** 已被应用、不可再移除的 OS 版本，只在编辑已应用版本时有值 */
+    lockedOsList: string[];
+    rowKey: string;
+  }
+
   interface Exposes {
-    getValue: () => ReturnType<InstanceType<typeof VersionRow>['getValue']>[] | string;
+    getValue: () => VersionFileInfo[] | string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -89,241 +109,142 @@
   const { t } = useI18n();
 
   const uploadFileRef = ref<InstanceType<typeof UploadFile>>();
-  const versionRowRefs = ref<InstanceType<typeof VersionRow>[]>([]);
-  const selectedSystems = ref<Set<string>>(new Set());
-  const selectedVersions = ref<Record<string, Set<string>>>({});
   const isValidError = ref(false);
-  const tableData = ref<TableRow[]>([]);
-  const uploadSyncedUids = new Set<number>();
+  const tableData = ref<FileRow[]>([]);
+  /** OS 类型 -> 该类型支持的 OS 版本 */
+  const supportSystems = ref<Record<string, string[]>>({});
 
-  const uploadedFileNames = computed(() =>
-    tableData.value.filter((item) => item.status === 'staged' || !item.status).map((item) => item.name),
-  );
-  const isOnlyOneFile = computed(
-    () => tableData.value.filter((item) => item.status === 'staged' || !item.status).length === 1,
+  const uploadedFileNames = computed(() => tableData.value.map((item) => item.name));
+  const osTypeList = computed(() =>
+    Object.keys(supportSystems.value).map((item) => ({
+      label: item,
+      value: item,
+    })),
   );
 
-  // Watch existing data from parent (edit mode)
+  /** 每一行可选的 OS 版本，锁定项已经单独展示，不再进候选 */
+  const osVersionList = computed(() =>
+    tableData.value.map((row) => {
+      const lockedSet = new Set(row.lockedOsList);
+      return (supportSystems.value[row.permit_os_type] || [])
+        .filter((item) => !lockedSet.has(item))
+        .map((item) => ({
+          label: item,
+          value: item,
+        }));
+    }),
+  );
+
+  /** 每一行被其它文件占用的 OS 版本，key 为 OS 类型。任意两个文件不能覆盖同一个 OS 版本 */
+  const occupiedOsVersionList = computed(() =>
+    tableData.value.map((currentRow) => {
+      const occupied: Record<string, Set<string>> = {};
+      tableData.value.forEach((row) => {
+        if (row === currentRow || !row.permit_os_type) {
+          return;
+        }
+        if (!occupied[row.permit_os_type]) {
+          occupied[row.permit_os_type] = new Set();
+        }
+        [...row.permit_os, ...row.lockedOsList].forEach((version) => {
+          occupied[row.permit_os_type].add(version);
+        });
+      });
+      return occupied;
+    }),
+  );
+
+  useRequest(listSupportSystems, {
+    onSuccess(data) {
+      supportSystems.value = data;
+    },
+  });
+
   watch(
-    () => props.data,
+    [() => props.data, () => props.isApplied],
     () => {
-      const existingRows = props.data
-        ? props.data.map((item) => ({
-            ...item,
-            percentage: 100,
-            rowKey: random(),
-            status: undefined as RowStatus | undefined,
-            uid: 0,
-          }))
-        : [];
-      tableData.value = existingRows;
+      tableData.value = (props.data || []).map((item) => {
+        // 接口用空数组表示覆盖该 OS 类型的全部版本，界面上用 all 这一项表达
+        const permitOs = item.permit_os?.length ? item.permit_os.slice() : ['all'];
+        // 已应用的版本文件，原有的 OS 版本锁定不可移除，只允许在此之外追加；
+        // 覆盖全部版本时没有具体版本可锁，维持可编辑
+        const isLocked = props.isApplied && permitOs[0] !== 'all';
+        return {
+          id: item.id,
+          lockedOsList: isLocked ? permitOs : [],
+          md5: item.md5,
+          name: item.name,
+          path: item.path,
+          permit_os: isLocked ? [] : permitOs,
+          permit_os_type: item.permit_os_type || '',
+          rowKey: random(),
+          size: item.size,
+        };
+      });
     },
     { immediate: true },
   );
 
-  // Watch DbUpload's internal fileList for upload progress
-  watch(
-    () => {
-      const list = uploadFileRef.value?.uploadRef?.fileList;
-      if (!list || list.length === 0) return [];
-      return list.map((f) => ({
-        errMsg: f.errMsg,
-        name: f.name,
-        percentage: f.percentage,
-        response: f.response,
-        size: f.size,
-        status: f.status,
-        uid: f.uid,
-      }));
-    },
-    (snapshots) => {
-      if (!snapshots) return;
-
-      let changed = false;
-
-      snapshots.forEach((snap) => {
-        // Skip uids we've already synced as success
-        if (uploadSyncedUids.has(snap.uid)) return;
-
-        const existingRowIndex = tableData.value.findIndex((row) => row.uid === snap.uid);
-
-        if (snap.status === 'uploading') {
-          changed = true;
-          if (existingRowIndex >= 0) {
-            // Update progress for existing upload row
-            tableData.value[existingRowIndex].percentage = snap.percentage || 0;
-          } else {
-            // New upload
-            tableData.value.push({
-              errMsg: undefined,
-              md5: '',
-              name: snap.name || '',
-              path: '',
-              percentage: snap.percentage || 0,
-              rowKey: random(),
-              size: snap.size || 0,
-              status: 'uploading',
-              tempId: '',
-              uid: snap.uid,
-            });
-          }
-        } else if (snap.status === 'success') {
-          changed = true;
-          if (existingRowIndex >= 0) {
-            const row = tableData.value[existingRowIndex];
-            const responseData = (snap.response as { data?: { fullPath?: string; md5?: string; name?: string; size?: number } })?.data;
-            row.md5 = responseData?.md5 ?? '';
-            row.name = responseData?.name ?? snap.name;
-            row.path = responseData?.fullPath ?? '';
-            row.size = responseData?.size ?? snap.size;
-            row.tempId = responseData?.fullPath ?? '';
-            row.status = 'staged';
-            row.percentage = 100;
-            row.errMsg = undefined;
-          }
-          uploadSyncedUids.add(snap.uid);
-          // Clean up from upload list
-          nextTick(() => {
-            const fileEntry = uploadFileRef.value?.uploadRef?.fileList?.find((f) => f.uid === snap.uid);
-            if (fileEntry) uploadFileRef.value?.uploadRef?.handleRemove(fileEntry);
-          });
-        } else if (snap.status === 'fail') {
-          changed = true;
-          if (existingRowIndex >= 0) {
-            const row = tableData.value[existingRowIndex];
-            row.status = 'failed';
-            row.errMsg = snap.errMsg || t('上传失败，请重试');
-            row.percentage = 0;
-          }
-          // Keep FAIL entries in fileList for retry, but mark as synced
-          uploadSyncedUids.add(snap.uid);
-        }
-      });
-
-      if (changed) {
-        emits('valueChange');
-      }
-    },
-    { deep: true, immediate: true },
-  );
-
-  const handleOsTypeChange = (isInit: boolean) => {
-    if (!isInit) {
-      emits('valueChange');
+  /** 某个文件占据了一个 OS 类型的全部版本后，同类型的其它文件要让位 */
+  const releaseConflictRows = (index: number) => {
+    const changedRow = tableData.value[index];
+    if (!changedRow.permit_os.includes('all')) {
+      return;
     }
-    selectedSystems.value.clear();
-    selectedVersions.value = {};
-    versionRowRefs.value.forEach((item) => {
-      const system = item.getSelectedSystem();
-      if (!system) {
+    tableData.value.forEach((row, rowIndex) => {
+      if (rowIndex === index || row.permit_os_type !== changedRow.permit_os_type) {
         return;
       }
-
-      if (!selectedVersions.value[system]) {
-        selectedVersions.value[system] = new Set();
-      }
-      selectedSystems.value.add(system);
-      const versions = item.getSelectedVersions();
-      versions.forEach((version) => {
-        selectedVersions.value[system].add(version);
-      });
+      tableData.value[rowIndex].permit_os_type = '';
+      tableData.value[rowIndex].permit_os = [];
     });
   };
 
-  const handleOsVersionChange = () => {
+  const handleOsTypeChange = (index: number) => {
+    // 换 OS 类型后原有的版本选择作废，只有一个文件时默认覆盖全部版本
+    tableData.value[index].permit_os = tableData.value.length === 1 ? ['all'] : [];
+    emits('valueChange');
+  };
+
+  const handleOsVersionChange = (index: number) => {
+    releaseConflictRows(index);
+    emits('valueChange');
+  };
+
+  const handleAdd = (fileInfo: { md5: string; name: string; path: string; size: number }) => {
+    tableData.value.push({
+      ...fileInfo,
+      lockedOsList: [],
+      permit_os: [],
+      permit_os_type: '',
+      rowKey: random(),
+    });
     emits('valueChange');
   };
 
   const handleDeleteRow = (index: number) => {
-    const row = tableData.value[index];
-    // If this was an uploading row, clean up from DbUpload's fileList
-    if (row.uid && row.status !== 'staged' && row.status !== undefined) {
-      const fileEntry = uploadFileRef.value?.uploadRef?.fileList?.find((f) => f.uid === row.uid);
-      if (fileEntry) {
-        uploadFileRef.value?.uploadRef?.handleRemove(fileEntry);
-      }
-      uploadSyncedUids.delete(row.uid);
-    }
+    uploadFileRef.value!.clearDuplicateTip();
     tableData.value.splice(index, 1);
-    if (tableData.value.length === 0) {
-      selectedSystems.value.clear();
-      selectedVersions.value = {};
-    }
-    emits('valueChange');
-  };
-
-  const handleReplaceRow = (index: number) => {
-    // Remove the old row first, then trigger file input
-    // The new upload will appear as a fresh row via the fileList watcher
-    const row = tableData.value[index];
-    // Clean up OS tracking for the old row
-    const oldOsType = row.permit_os_type || '';
-    if (oldOsType) {
-      selectedSystems.value.delete(oldOsType);
-    }
-    if (oldOsType && selectedVersions.value[oldOsType]) {
-      (row.permit_os || []).forEach((v: string) => {
-        selectedVersions.value[oldOsType]?.delete(v);
-      });
-    }
-    tableData.value.splice(index, 1);
-    // Trigger file input on DbUpload
-    uploadFileRef.value?.uploadRef?.inputRef?.click();
-  };
-
-  const handleRetryRow = (index: number) => {
-    const row = tableData.value[index];
-    if (!row.uid) return;
-
-    // Find the original upload entry in fileList
-    const fileEntry = uploadFileRef.value?.uploadRef?.fileList?.find((f) => f.uid === row.uid);
-    if (fileEntry) {
-      // Reset row state
-      tableData.value[index] = {
-        ...row,
-        errMsg: undefined,
-        percentage: 0,
-        rowKey: random(),
-        status: 'uploading',
-      };
-      // Allow the watch to process this uid again
-      uploadSyncedUids.delete(row.uid);
-      // Trigger retry in DbUpload
-      nextTick(() => {
-        uploadFileRef.value?.uploadRef?.handleRetry(fileEntry);
-      });
-    }
     emits('valueChange');
   };
 
   defineExpose<Exposes>({
     getValue() {
       isValidError.value = false;
-
-      // Only count staged rows (or rows with no status, i.e., pre-existing data)
-      const stagedRows = tableData.value.filter((item) => !item.status || item.status === 'staged');
-
       if (tableData.value.length === 0) {
         isValidError.value = true;
         return t('请至少添加 1 个版本文件');
       }
 
-      if (tableData.value.some((item) => item.status === 'uploading')) {
-        isValidError.value = true;
-        return t('请等待文件上传完成');
-      }
-
-      if (tableData.value.some((item) => item.status === 'failed')) {
-        isValidError.value = true;
-        return t('存在失败文件，请重试或删除');
-      }
-
-      if (stagedRows.length === 0) {
-        isValidError.value = true;
-        return t('请至少添加 1 个版本文件');
-      }
-
-      const filesInfo = versionRowRefs.value.map((item) => item.getValue());
+      const filesInfo = tableData.value.map((row) => ({
+        id: row.id,
+        md5: row.md5,
+        name: row.name,
+        path: row.path,
+        permit_os: [...row.permit_os, ...row.lockedOsList],
+        permit_os_type: row.permit_os_type,
+        size: row.size,
+      }));
       if (filesInfo.some((item) => !item.permit_os.length || !item.permit_os_type)) {
         isValidError.value = true;
         return t('请补全版本文件信息');

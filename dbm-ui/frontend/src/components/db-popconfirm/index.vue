@@ -37,7 +37,7 @@
         size="small"
         :theme="theme"
         @click="handleConfirm">
-        {{ $t('确认') }}
+        {{ confirmText || t('确认') }}
       </BkButton>
       <BkButton
         size="small"
@@ -54,7 +54,11 @@
   interface Props {
     cancelHandler?: () => Promise<any> | void;
     confirmHandler: () => Promise<any> | void;
+    /** 确认按钮文案，默认「确认」 */
+    confirmText?: string;
     content?: string;
+    /** 禁用后点击触发器不再弹出确认气泡 */
+    disabled?: boolean;
     hideOnClick?: boolean;
     placement?: Placement;
     theme?: 'primary' | 'danger';
@@ -70,7 +74,9 @@
 
   const props = withDefaults(defineProps<Props>(), {
     cancelHandler: () => Promise.resolve(),
+    confirmText: '',
     content: '',
+    disabled: false,
     hideOnClick: true,
     placement: 'top',
     theme: 'primary',
@@ -78,7 +84,10 @@
   });
   const emits = defineEmits<Emits>();
 
-  let tippyIns: Instance;
+  const { t } = useI18n();
+
+  let tippyIns: Instance | undefined;
+  let triggerObserver: MutationObserver | undefined;
 
   const rootRef = ref();
   const popRef = ref();
@@ -94,7 +103,7 @@
     Promise.resolve()
       .then(() => props.confirmHandler())
       .then(() => {
-        tippyIns.hide();
+        tippyIns?.hide();
       })
       .finally(() => {
         isConfirmLoading.value = false;
@@ -105,54 +114,93 @@
     Promise.resolve()
       .then(() => props.cancelHandler())
       .then(() => {
-        tippyIns.hide();
+        tippyIns?.hide();
       });
   };
 
-  onMounted(() => {
-    const tippyTarget = rootRef.value.children[0];
+  watch(
+    () => props.disabled,
+    () => {
+      if (!tippyIns) {
+        return;
+      }
+      if (props.disabled) {
+        tippyIns.hide();
+        tippyIns.disable();
+        return;
+      }
+      tippyIns.enable();
+    },
+  );
 
-    if (tippyTarget) {
-      tippyIns = tippy(tippyTarget as SingleTarget, {
-        appendTo: () => document.body,
-        arrow: true,
-        content: popRef.value,
-        hideOnClick: props.hideOnClick,
-        interactive: true,
-        maxWidth: 'none',
-        offset: [0, 12],
-        onHide: () => {
-          emits('toggleShow', false);
-        },
-        onShow: () => {
-          emits('toggleShow', true);
-        },
-        placement: props.placement,
-        popperOptions: {
-          modifiers: [
-            {
-              name: 'flip',
-              options: {
-                allowedAutoPlacements: ['top-start', 'top-end'],
-                fallbackPlacements: ['top', 'bottom'],
-              },
-            },
-          ],
-          strategy: 'fixed',
-        },
-        theme: 'light db-popconfirm-theme',
-        trigger: 'click',
-        zIndex: 999999,
-      });
+  const destroyTippy = () => {
+    if (!tippyIns) {
+      return;
     }
+    tippyIns.hide();
+    tippyIns.unmount();
+    tippyIns.destroy();
+    tippyIns = undefined;
+  };
+
+  const createTippy = () => {
+    const tippyTarget = rootRef.value?.children[0] as Element | undefined;
+
+    if (!tippyTarget || tippyTarget === tippyIns?.reference) {
+      return;
+    }
+
+    destroyTippy();
+    tippyIns = tippy(tippyTarget as SingleTarget, {
+      appendTo: () => document.body,
+      arrow: true,
+      content: popRef.value,
+      hideOnClick: props.hideOnClick,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 12],
+      onHide: () => {
+        emits('toggleShow', false);
+      },
+      onShow: () => {
+        emits('toggleShow', true);
+      },
+      placement: props.placement,
+      popperOptions: {
+        modifiers: [
+          {
+            name: 'flip',
+            options: {
+              allowedAutoPlacements: ['top-start', 'top-end'],
+              fallbackPlacements: ['top', 'bottom'],
+            },
+          },
+        ],
+        strategy: 'fixed',
+      },
+      theme: 'light db-popconfirm-theme',
+      trigger: 'click',
+      zIndex: 999999,
+    });
+
+    if (props.disabled) {
+      tippyIns.disable();
+    }
+  };
+
+  onMounted(() => {
+    createTippy();
+
+    // 插槽里的触发元素可能被整体替换（如 AuthButton 鉴权结果返回后切换 v-if 分支），
+    // 此时本组件不会重新渲染，只能靠观察子节点变化重新绑定，否则 tippy 还指向已卸载的元素
+    triggerObserver = new MutationObserver(createTippy);
+    triggerObserver.observe(rootRef.value, { childList: true });
   });
 
   onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-    }
+    triggerObserver?.disconnect();
+    triggerObserver = undefined;
+    destroyTippy();
   });
 </script>
 <style lang="less">
