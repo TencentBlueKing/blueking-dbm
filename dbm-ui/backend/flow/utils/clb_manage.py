@@ -124,6 +124,23 @@ class CLBManage(object):
         else:
             return res["data"]["ips"]
 
+    def describe_target_health(self) -> dict:
+        """
+        查询clb后端主机健康状态
+        返回 data 字典，包含 totalcount、abnormalcount、abnormalips 字段；查询失败时返回空字典。
+        """
+        res = NameServiceApi.clb_describe_target_health(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+            },
+            raw=True,
+        )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return {}
+        return res.get("data") or {}
+
     def del_clb_rs_with_response(self, instance_list: list) -> Tuple[bool, dict]:
         """
         删除clb后端的rs记录;适用场景：proxy下架的时候需要删除
