@@ -82,7 +82,14 @@ func applyGroupsInSameLocation(param RequestInputParam) (pickers []*PickerObject
 	}
 	logger.Info("sort subzone ids %v", subzoneIds)
 	if len(subzoneIds) == 0 {
-		return pickers, errno.ErrResourceinsufficient.Add("没有符合条件的资源")
+		msg := "没有符合条件的资源"
+		// 未进入 PickCheck,没有逐步筛选的漏斗数据
+		return pickers, NewResourceInsufficientError(ApplyFailureEvidence{
+			Stage:        FailStagePickCheck,
+			RequestCount: v.Count,
+			Affinity:     v.Affinity,
+			Note:         "多分组要求落在同一园区,合并各分组的园区优先级后候选园区为空,未执行按条件逐步筛选",
+		}, errno.ErrResourceinsufficient.Add(msg), msg)
 	}
 	for _, subzoneId := range subzoneIds {
 		pickers = []*PickerObject{}
@@ -109,6 +116,8 @@ func applyGroupsInSameLocation(param RequestInputParam) (pickers []*PickerObject
 			picker.DebugDistributeLog()
 			// 更新挑选到的资源的状态为Preselected
 			if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
+				err = newPreselectFailedError(&v, picker, updateErr)
+				logger.Error("挑选资源失败:%v", err)
 				goto RollBack
 			}
 			// 追加到挑选好的分组
@@ -233,6 +242,7 @@ func getLogicIdcCitys(v ObjectDetail) (idcCitys []string, err error) {
 
 // CycleApply 循环匹配
 func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
+	param.NormalizeAffinities()
 	// 多个请求参数分组在同一个地方
 	affinities := lo.Uniq(param.GetAllAffinities())
 	if param.GroupsInSameLocation && len(param.Details) > 1 && len(affinities) == 1 &&
@@ -256,10 +266,7 @@ func cycleApplySequential(param RequestInputParam) (pickers []*PickerObject, err
 	for _, v := range resourceReqList {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
-		// 如果没有配置亲和性，或者请求的数量小于1 重置亲和性为NONE
-		if v.Affinity == "" {
-			v.Affinity = NONE
-		}
+		v.Affinity = NormalizeAffinity(v.Affinity)
 		idcCites := []string{}
 		if lo.IsNotEmpty(&v.LocationSpec.City) {
 			idcCites, err = getLogicIdcCitys(v)
@@ -287,8 +294,7 @@ func cycleApplySequential(param RequestInputParam) (pickers []*PickerObject, err
 		picker.DebugDistributeLog()
 		// 更新挑选到的资源的状态为Preselected
 		if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
-			return pickers, fmt.Errorf("update %s Picker Out Satisfied Instance Status to Preselected Failed:%v", v.GroupMark,
-				updateErr.Error())
+			return pickers, newPreselectFailedError(&v, picker, updateErr)
 		}
 		// 追加到挑选好的分组
 		pickers = append(pickers, picker)
@@ -306,6 +312,52 @@ func RollBackAllInstanceUnused(ms []*PickerObject) {
 	}
 }
 
+// matchStep 一个匹配条件及其叠加顺序
+type matchStep struct {
+	name string
+	fn   func(db *gorm.DB)
+	desc string
+}
+
+// matchSteps 返回按顺序叠加的匹配条件。
+// pickBase 与 CollectMatchFunnel 共用这份定义，保证漏斗观测到的顺序就是真实申请的顺序。
+func (o *SearchContext) matchSteps() []matchStep {
+	steps := []matchStep{
+		{
+			name: "base",
+			fn: func(db *gorm.DB) {
+				db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ",
+					o.BkCloudId, model.Unused, bk.GseAlive)
+			},
+			desc: fmt.Sprintf("云区域%d,gse_agent 状态正常的未使用资源", o.BkCloudId),
+		},
+		{name: "biz", fn: o.MatchIntentionBkBiz, desc: "叠加专用业务/公共业务后"},
+		{name: "rsType", fn: o.MatchRsType, desc: "叠加资源类型后"},
+		{name: "osType", fn: o.MatchOsType, desc: "叠加操作系统类型后"},
+		{name: "osName", fn: o.MatchOsName, desc: "叠加操作系统名称后"},
+		{name: "labels", fn: o.MatchLabels, desc: "叠加标签后"},
+		{name: "location", fn: o.MatchLocationSpec, desc: "叠加地域信息后"},
+		{name: "storage", fn: o.MatchStorage, desc: "叠加磁盘条件(仅带挂载点)后"},
+		{name: "spec", fn: o.MatchSpec, desc: "叠加规格[cpu/mem或机型]后"},
+	}
+	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
+	switch o.Affinity {
+	case SAME_SUBZONE_CROSS_SWTICH:
+		steps = append(steps, matchStep{
+			name: "netDevice",
+			fn:   o.UseNetDeviceIsNotEmpty,
+			desc: "亲和性为同园区跨交换机,叠加网卡id非空后",
+		})
+	case CROSS_RACK, CROSS_SUBZONE_STRONG, CROSS_SUBZONE_WEAK:
+		steps = append(steps, matchStep{
+			name: "rackId",
+			fn:   o.RackIdIsNotEmpty,
+			desc: "亲和性为跨机架或跨园区(强/弱),叠加机架id非空后",
+		})
+	}
+	return steps
+}
+
 func (o *SearchContext) pickBase(db *gorm.DB) {
 	// 如果指定了特殊资源，就只查询这些资源
 	if len(o.SpecialHostIds) > 0 {
@@ -313,22 +365,8 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 			bk.GseAlive)
 		return
 	}
-	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GseAlive)
-
-	o.MatchIntentionBkBiz(db)
-	o.MatchRsType(db)
-	o.MatchOsType(db)
-	o.MatchOsName(db)
-	o.MatchLabels(db)
-	o.MatchLocationSpec(db)
-	o.MatchStorage(db)
-	o.MatchSpec(db)
-	switch o.Affinity {
-	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
-	case SAME_SUBZONE_CROSS_SWTICH:
-		o.UseNetDeviceIsNotEmpty(db)
-	case CROSS_RACK, CROSS_SUBZONE_STRONG, CROSS_SUBZONE_WEAK:
-		o.RackIdIsNotEmpty(db)
+	for _, step := range o.matchSteps() {
+		step.fn(db)
 	}
 }
 
@@ -347,105 +385,51 @@ func (o *SearchContext) PickCheck() (err error) {
 	}
 
 	if int(count) < o.Count {
-		reason := o.predictResourceNoMatchReason()
-		err = fmt.Errorf("申请需求:\n%s 资源池符合条件的资源总数%d 小于申请的数量\n\n 推测的原因可能是以下:\n %s", o.GetMessage(), count, reason)
-		logger.Error("%s", err.Error())
-		return err
+		funnel, ferr := o.CollectMatchFunnel()
+		if ferr != nil {
+			logger.Error("collect match funnel failed %s", ferr.Error())
+		}
+		msg := fmt.Sprintf("申请需求:\n%s 资源池符合条件的资源总数%d 小于申请的数量", o.GetMessage(), count)
+		if detail := FormatFunnel(funnel); detail != "" {
+			msg += "\n\n" + detail
+		}
+		logger.Error("%s", msg)
+		return NewResourceInsufficientError(ApplyFailureEvidence{
+			Stage:        FailStagePickCheck,
+			GroupMark:    o.GroupMark,
+			Affinity:     o.Affinity,
+			RequestCount: o.Count,
+			Funnel:       funnel,
+			Note:         funnelStorageNote,
+		}, nil, msg)
 	}
 	return nil
 }
 
-// predictResourceNoMatchReason TODO
-// nolint
-func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
-	type checkFunc struct {
-		name string
-		fn   func(db *gorm.DB)
-		desc string
-	}
+// funnelStorageNote 漏斗的观测边界：SQL 阶段只覆盖带挂载点的磁盘条件
+const funnelStorageNote = "漏斗的 storage 步骤只覆盖带 mount_point 的 SQL 磁盘条件;" +
+	"未指定 mount_point 的磁盘需求在后续内存阶段过滤,因此 SQL 剩余台数可能大于实际可进入分配的台数"
 
-	checks := []checkFunc{
-		{
-			name: "base",
-			fn: func(db *gorm.DB) {
-				db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ",
-					o.BkCloudId, model.Unused, bk.GseAlive)
-			},
-			desc: fmt.Sprintf("在匹配云区域%d,gse_agent 状态为ok的资源的时候没有匹配到资源", o.BkCloudId),
-		},
-		{
-			name: "spec",
-			fn:   o.MatchSpec,
-			desc: "在匹配规格信息[cpu/mem或机型]的时候没有匹配到资源",
-		},
-		{
-			name: "location",
-			fn:   o.MatchLocationSpec,
-			desc: "在匹配地域信息的时候没有匹配到资源",
-		},
-		{
-			name: "storage",
-			fn:   o.MatchStorage,
-			desc: "在匹配磁盘信息的时候没有匹配到资源",
-		},
-		{
-			name: "biz",
-			fn:   o.MatchIntentionBkBiz,
-			desc: "在匹配专用业务和公共业务的时候没有匹配到资源",
-		},
-		{
-			name: "rsType",
-			fn:   o.MatchRsType,
-			desc: "在匹配资源类型的时候没有匹配到资源",
-		},
-		{
-			name: "osType",
-			fn:   o.MatchOsType,
-			desc: "在匹配操作系统时候没有匹配到资源",
-		},
-		{
-			name: "osName",
-			fn:   o.MatchOsName,
-			desc: "在匹配OsName时候没有匹配到资源",
-		},
-		{
-			name: "labels",
-			fn:   o.MatchLabels,
-			desc: "在匹配标签的时候没有匹配到资源",
-		},
-	}
-
-	// 根据亲和性添加额外检查
-	switch o.Affinity {
-	case SAME_SUBZONE_CROSS_SWTICH:
-		checks = append(checks, checkFunc{
-			name: "netDevice",
-			fn:   o.UseNetDeviceIsNotEmpty,
-			desc: "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源",
-		})
-	case CROSS_RACK, CROSS_SUBZONE_STRONG, CROSS_SUBZONE_WEAK:
-		checks = append(checks, checkFunc{
-			name: "rackId",
-			fn:   o.RackIdIsNotEmpty,
-			desc: "亲和性是跨机架或跨园区(强/弱),在排除机架id为空的时候没有匹配到资源",
-		})
-	}
-
-	// 执行所有检查
+// CollectMatchFunnel 按 pickBase 的同一顺序逐步叠加匹配条件,记录每步剩余台数。
+// 这里只产出观测数字:count 的下降依赖叠加顺序,不据此推断根因。
+func (o *SearchContext) CollectMatchFunnel() (funnel []MatchStageCount, err error) {
 	db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
-	for _, check := range checks {
-		check.fn(db)
+	// 与 pickBase 共用同一份步骤定义，逐步叠加并记录每步剩余台数
+	for _, step := range o.matchSteps() {
+		step.fn(db)
 		var count int64
-		if err := db.Scan(&count).Error; err != nil {
-			return
+		if err = db.Scan(&count).Error; err != nil {
+			logger.Error("collect funnel stage %s failed %s", step.name, err.Error())
+			return funnel, err
 		}
-		if count < int64(o.Count) {
-			reason += check.desc + "\n\r"
-			return reason
-		}
+		funnel = append(funnel, MatchStageCount{
+			Name:        step.name,
+			Count:       count,
+			Requested:   o.Count,
+			Description: step.desc,
+		})
 	}
-
-	return
+	return funnel, nil
 }
 
 // PickCheckSpecialBkhostIds host Ids 根据bk host ids取资源
@@ -466,7 +450,16 @@ func (o *SearchContext) PickCheckSpecialBkhostIds() (err error) {
 				emptyIps = append(emptyIps, ip)
 			}
 		}
-		return fmt.Errorf("指定ip申请资源,部分资源不存在:%v", emptyIps)
+		msg := fmt.Sprintf("指定ip申请资源,部分资源不存在:%v", emptyIps)
+		// 指定主机不经过 pickBase 的逐步过滤,没有漏斗可采集
+		return NewResourceInsufficientError(ApplyFailureEvidence{
+			Stage:        FailStagePickCheck,
+			GroupMark:    o.GroupMark,
+			Affinity:     o.Affinity,
+			RequestCount: o.Count,
+			MissingIps:   emptyIps,
+			Note:         "指定 bk_host_id 申请,未经过按条件逐步筛选,无漏斗数据",
+		}, nil, msg)
 	}
 	return nil
 }
@@ -513,10 +506,19 @@ func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 
 	diskSpecs := meta.GetEmptyDiskSpec(o.StorageSpecs)
 	if len(diskSpecs) > 0 && len(o.SpecialHostIds) == 0 {
+		beforeFilter := len(items)
 		items, err = o.filterEmptyMountPointStorage(items, diskSpecs)
 		if err != nil {
 			logger.Error("filter empty mount point storage failed %s", err.Error())
-			return picker, err
+			return picker, NewResourceInsufficientError(ApplyFailureEvidence{
+				Stage:          FailStageEmptyMountDisk,
+				GroupMark:      o.GroupMark,
+				Affinity:       o.Affinity,
+				RequestCount:   o.Count,
+				CandidateCount: beforeFilter,
+				PickedCount:    len(items),
+				Note:           "SQL 阶段候选台数为 candidate_count,按未占用挂载点匹配磁盘后剩余 picked_count",
+			}, err, err.Error())
 		}
 	}
 
@@ -528,8 +530,18 @@ func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 		return picker, nil
 	}
 
-	return nil, errno.ErrResourceinsufficient.Add(fmt.Sprintf("Picker for %s, 所有资源无法满足 %s的参数需求", o.GroupMark,
-		o.GetMessage()))
+	msg := fmt.Sprintf("Picker for %s, 所有资源无法满足 %s的参数需求", o.GroupMark, o.GetMessage())
+	return nil, NewResourceInsufficientError(ApplyFailureEvidence{
+		Stage:          FailStageAffinity,
+		GroupMark:      o.GroupMark,
+		Affinity:       o.Affinity,
+		RequestCount:   o.Count,
+		CandidateCount: len(items),
+		PickedCount:    len(picker.SatisfiedHostIds),
+		ProcessLogs:    picker.ProcessLogs,
+		Distribution:   BuildAffinitySnapshot(o.Affinity, o.Count, items),
+		Note:           "process_logs 为分配过程日志,不是结论",
+	}, errno.ErrResourceinsufficient.Add(msg), msg)
 }
 
 // PickInstanceBase pick instance base

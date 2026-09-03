@@ -170,6 +170,13 @@ func (a *ResourceAnalyzer) IsEnabled() bool {
 
 // Analyze 分析资源匹配失败原因
 func (a *ResourceAnalyzer) Analyze(ctx context.Context, applyParams *apply.RequestInputParam) (*AnalysisResult, error) {
+	return a.AnalyzeWithScene(ctx, applyParams, nil)
+}
+
+// AnalyzeWithScene 分析资源匹配失败原因，可附带申请失败现场
+// evidence 是匹配流程留下的观测数据，不改变 system prompt 与工具集，根因仍由模型判断
+func (a *ResourceAnalyzer) AnalyzeWithScene(ctx context.Context, applyParams *apply.RequestInputParam,
+	evidence *apply.ApplyFailureEvidence) (*AnalysisResult, error) {
 	if !a.IsEnabled() {
 		return nil, fmt.Errorf("LLM analyzer is not enabled")
 	}
@@ -178,12 +185,15 @@ func (a *ResourceAnalyzer) Analyze(ctx context.Context, applyParams *apply.Reque
 
 	// 构建消息
 	systemPrompt := GetSystemPrompt()
-	userMessage := BuildUserMessage(applyParams)
+	userMessage := BuildUserMessageWithScene(applyParams, evidence)
 
 	// 执行 Agent
 	execResult, err := a.executor.Execute(ctx, systemPrompt, userMessage)
 	if err != nil {
 		logger.Error("[Analyzer] Agent execution failed: %v", err)
+		return nil, err
+	}
+	if err = checkExecutionProduced(execResult); err != nil {
 		return nil, err
 	}
 
@@ -212,6 +222,28 @@ func (a *ResourceAnalyzer) Analyze(ctx context.Context, applyParams *apply.Reque
 	}
 
 	return result, nil
+}
+
+// checkExecutionProduced Agent 没产出任何内容时必须报错。
+// 否则空结论会被兜底模板包装成一份「已完成」的空报告落库，失败原因彻底丢失。
+func checkExecutionProduced(execResult *ExecutionResult) error {
+	// 模型把工具调用标记吐成了文本，内容非空但不是结论，同样算没产出
+	if LooksLikeToolCallMarkup(execResult.FinalResponse) {
+		logger.Error("[Analyzer] Agent returned tool-call markup instead of a conclusion "+
+			"after %d iterations, %d tool calls, length: %d",
+			execResult.Iterations, len(execResult.ToolCalls), len(execResult.FinalResponse))
+		return fmt.Errorf("agent returned tool-call markup instead of a conclusion")
+	}
+	if execResult.FinalResponse != "" {
+		return nil
+	}
+	reason := execResult.Error
+	if reason == "" {
+		reason = "empty response from LLM"
+	}
+	logger.Error("[Analyzer] Agent produced no analysis content after %d iterations, %d tool calls: %s",
+		execResult.Iterations, len(execResult.ToolCalls), reason)
+	return fmt.Errorf("agent produced no analysis content: %s", reason)
 }
 
 // parseResponse 解析 LLM 响应
@@ -253,6 +285,14 @@ func (a *ResourceAnalyzer) parseResponse(response string, result *AnalysisResult
 	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
 		logger.Error("[Analyzer] JSON unmarshal failed: %v, JSON: %s", err, jsonStr[:min(500, len(jsonStr))])
 		return err
+	}
+
+	// 从响应里抠出来的 JSON 可能只是工具入参之类的无关片段，
+	// 三项全空说明这不是一份分析结果，不能当成解析成功
+	if parsed.Summary == "" && len(parsed.Reasons) == 0 && len(parsed.Suggestions) == 0 {
+		logger.Warn("[Analyzer] Extracted JSON carries no analysis content, JSON: %s",
+			jsonStr[:min(200, len(jsonStr))])
+		return fmt.Errorf("extracted JSON carries no analysis content")
 	}
 
 	result.Summary = parsed.Summary
@@ -404,6 +444,9 @@ func (a *ResourceAnalyzer) AnalyzeWithKnownReasons(ctx context.Context, analysis
 	execResult, err := a.executor.Execute(ctx, systemPrompt, userMessage)
 	if err != nil {
 		logger.Error("[Analyzer] Agent execution failed: %v", err)
+		return nil, err
+	}
+	if err = checkExecutionProduced(execResult); err != nil {
 		return nil, err
 	}
 

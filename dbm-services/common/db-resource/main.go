@@ -152,7 +152,7 @@ func initLLMAnalyzer() {
 	}
 
 	// 连接 task 包和 agent 包（避免循环导入）
-	task.SetAnalysisTaskProcessor(agent.ProcessAnalysisTaskFromJSON)
+	task.SetAnalysisTaskProcessor(agent.ProcessAnalysisTask)
 }
 
 // LocalCron define local crontab

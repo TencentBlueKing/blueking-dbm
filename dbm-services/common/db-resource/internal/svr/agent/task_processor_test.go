@@ -10,17 +10,21 @@
 
 package agent
 
-import "time"
+import (
+	"testing"
 
-// LLM 相关超时常量
-// 使用较长的超时时间以支持 LLM 思考型模型（dsv32-thinking 等），这些模型可能需要数分钟才能返回结果
-const (
-	// LLMAnalysisTimeout Agent 分析任务超时时间，与配置的 timeout_seconds 默认值一致
-	LLMAnalysisTimeout = 360 * time.Second
-	// LLMHTTPClientTimeout HTTP 客户端超时时间，需大于 LLMAnalysisTimeout 以便 context 先取消
-	LLMHTTPClientTimeout = 420 * time.Second
+	"dbm-services/common/db-resource/internal/model"
 )
 
-// DefaultAnalysisTemperature 未配置 temperature 时的默认采样温度。
-// 资源分析属于诊断类任务，取低值以保证多次分析结论稳定
-const DefaultAnalysisTemperature float32 = 0.3
+func TestMarkAnalysisFailedNilSafe(t *testing.T) {
+	orig := model.DB
+	t.Cleanup(func() { model.DB = orig })
+
+	model.DB = nil
+	markAnalysisFailed("bill-1", "analysis panic: boom", "1s")
+
+	model.DB = &model.Database{}
+	markAnalysisFailed("bill-1", "analysis panic: boom", "1s")
+
+	markAnalysisFailed("", "analysis panic: boom", "1s")
+}

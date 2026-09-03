@@ -40,6 +40,8 @@ type ApplyResponseLogItem struct {
 type AnalysisTaskItem struct {
 	BillID      string
 	ApplyParams json.RawMessage
+	// Evidence 申请失败现场(apply.ApplyFailureEvidence 的 JSON),可为空
+	Evidence json.RawMessage
 }
 
 // ApplyResponseLogChan apply response log channel
@@ -373,8 +375,6 @@ func FlushNetDeviceInfo() (err error) {
 var ProcessAnalysisTask func(task AnalysisTaskItem)
 
 // SetAnalysisTaskProcessor 设置分析任务处理器（在 main.go 中调用）
-func SetAnalysisTaskProcessor(processor func(billID string, applyParamsJSON json.RawMessage)) {
-	ProcessAnalysisTask = func(task AnalysisTaskItem) {
-		processor(task.BillID, task.ApplyParams)
-	}
+func SetAnalysisTaskProcessor(processor func(task AnalysisTaskItem)) {
+	ProcessAnalysisTask = processor
 }

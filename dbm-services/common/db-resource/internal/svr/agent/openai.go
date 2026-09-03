@@ -40,6 +40,14 @@ type OpenAIConfig struct {
 	Temperature float32 `yaml:"temperature" mapstructure:"temperature"`
 }
 
+// resolveTemperature 未配置时取默认值；显式配置为 0 时必须保留 0（完全确定性输出）
+func resolveTemperature(cfgTemperature *float32) float32 {
+	if cfgTemperature == nil {
+		return DefaultAnalysisTemperature
+	}
+	return *cfgTemperature
+}
+
 // NewBkAiDevProvider 创建蓝鲸 AI 开发平台提供商
 func NewBkAiDevProvider(appCode, appSecret string) *OpenAIProvider {
 	// 构建网关校验头
@@ -80,7 +88,9 @@ func NewBkAiDevProvider(appCode, appSecret string) *OpenAIProvider {
 	if maxTokens == 0 {
 		maxTokens = 4096
 	}
-	temperature := float32(0.7)
+	temperature := resolveTemperature(config.AppConfig.LLM.BkAi.Temperature)
+	logger.Info("[DEBUG-A] BkAiDevProvider params - model: %s, maxTokens: %d, temperature: %.2f",
+		model, maxTokens, temperature)
 
 	return &OpenAIProvider{
 		client:      client,
@@ -222,6 +232,9 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req *ChatRequest) (*ChatRespo
 
 	if len(tools) > 0 {
 		chatReq.Tools = tools
+	}
+	if req.ToolChoice != nil {
+		chatReq.ToolChoice = req.ToolChoice
 	}
 
 	// #region agent log - 假设 C/D: 记录请求发送时间点

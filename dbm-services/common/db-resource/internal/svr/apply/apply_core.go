@@ -387,6 +387,7 @@ func (pw Wrapper) Less(i, j int) bool { // 重写 Less() 方法
 func (c *PickerObject) InitToleranceConfig(tolerance float64, currentHosts []CurrentResource, requestCount int) {
 	c.Tolerance = tolerance
 	c.CurrentHostsBySubZone = make(map[subZone]int)
+	c.RackIdsBySubZone = make(map[subZone][]string)
 
 	// 统计当前主机在各个园区的分布，并记录每个园区已使用的机架ID
 	for _, host := range currentHosts {
