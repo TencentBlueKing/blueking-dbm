@@ -146,3 +146,23 @@ func TestNewDbhaDataProbeMapping(t *testing.T) {
 		t.Fatal("Host.Valid = false, want true")
 	}
 }
+
+func TestNewDbhaDataHarvestTypeFallback(t *testing.T) {
+	got := NewDbhaData(&haprobe.HarvestData{
+		HarvestBaseData: haprobe.HarvestBaseData{DbIp: "127.0.0.1", DbPort: 3306},
+	})
+	if got.HarvestType != haprobe.HarvestTypeDefault {
+		t.Errorf("empty harvest_type not filled, got: %s, want: %s", got.HarvestType, haprobe.HarvestTypeDefault)
+	}
+
+	got = NewDbhaData(&haprobe.HarvestData{
+		HarvestBaseData: haprobe.HarvestBaseData{
+			DbIp:        "127.0.0.1",
+			DbPort:      3306,
+			HarvestType: haprobe.HarvestTypeHeartbeat,
+		},
+	})
+	if got.HarvestType != haprobe.HarvestTypeHeartbeat {
+		t.Errorf("harvest_type altered, got: %s, want: %s", got.HarvestType, haprobe.HarvestTypeHeartbeat)
+	}
+}

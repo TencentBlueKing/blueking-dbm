@@ -38,6 +38,9 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/configsync"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/process"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/harvest"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/harvest"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"

@@ -22,15 +22,19 @@
  * SOFTWARE.
  */
 
-package config
+package config_test
 
 import (
 	"reflect"
 	"strings"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/harvest"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/harvest"
 )
 
 // zeroMetadataPorts is the former gen-config filtering step: matching Port / AdminPort values
@@ -151,19 +155,19 @@ func TestWithClearPorts_MatchesLegacyZeroing(t *testing.T) {
 			payload := build(append([]probeconfig.ProbeMetadataItem(nil), tc.metadata...))
 			legacyMeta := append([]probeconfig.ProbeMetadataItem(nil), tc.metadata...)
 			zeroMetadataPorts(legacyMeta, tc.ports)
-			legacy, err := GenProbeYAML(build(legacyMeta))
+			legacy, err := config.GenProbeYAML(build(legacyMeta))
 			if err != nil {
 				t.Fatalf("legacy render failed, errmsg: %s", err)
 			}
-			got, err := GenProbeYAML(payload, WithClearPorts(tc.ports))
+			got, err := config.GenProbeYAML(payload, config.WithClearPorts(tc.ports))
 			if err != nil {
 				t.Fatalf("WithClearPorts render failed, errmsg: %s", err)
 			}
-			legacyParsed, err := ParseBytes([]byte(legacy))
+			legacyParsed, err := config.ParseBytes([]byte(legacy))
 			if err != nil {
 				t.Fatalf("parse legacy failed, errmsg: %s", err)
 			}
-			gotParsed, err := ParseBytes([]byte(got))
+			gotParsed, err := config.ParseBytes([]byte(got))
 			if err != nil {
 				t.Fatalf("parse got failed, errmsg: %s", err)
 			}
@@ -177,11 +181,11 @@ func TestWithClearPorts_MatchesLegacyZeroing(t *testing.T) {
 
 func TestWithClearPorts_PersistsSortedUniqueList(t *testing.T) {
 	payload := newPayload([]probeconfig.ProbeMetadataItem{mysqlItem("127.0.0.1", 3306, 0)})
-	first, err := GenProbeYAML(payload, WithClearPorts([]int{13306, 10000, 13306}))
+	first, err := config.GenProbeYAML(payload, config.WithClearPorts([]int{13306, 10000, 13306}))
 	if err != nil {
 		t.Fatalf("first render failed, errmsg: %s", err)
 	}
-	second, err := GenProbeYAML(payload, WithClearPorts([]int{10000, 13306}))
+	second, err := config.GenProbeYAML(payload, config.WithClearPorts([]int{10000, 13306}))
 	if err != nil {
 		t.Fatalf("second render failed, errmsg: %s", err)
 	}
@@ -191,7 +195,7 @@ func TestWithClearPorts_PersistsSortedUniqueList(t *testing.T) {
 	if !strings.Contains(first, "clearPorts:") {
 		t.Fatal("expected clearPorts key in rendered yaml")
 	}
-	parsed, err := ParseBytes([]byte(first))
+	parsed, err := config.ParseBytes([]byte(first))
 	if err != nil {
 		t.Fatalf("parse failed, errmsg: %s", err)
 	}
@@ -202,14 +206,14 @@ func TestWithClearPorts_PersistsSortedUniqueList(t *testing.T) {
 
 func TestWithClearPorts_EmptyOmitsKey(t *testing.T) {
 	payload := newPayload([]probeconfig.ProbeMetadataItem{mysqlItem("127.0.0.1", 3306, 0)})
-	out, err := GenProbeYAML(payload, WithClearPorts(nil), WithClearPorts([]int{}))
+	out, err := config.GenProbeYAML(payload, config.WithClearPorts(nil), config.WithClearPorts([]int{}))
 	if err != nil {
 		t.Fatalf("render failed, errmsg: %s", err)
 	}
 	if strings.Contains(out, "clearPorts:") {
 		t.Fatal("empty clearPorts must be omitted")
 	}
-	parsed, err := ParseBytes([]byte(out))
+	parsed, err := config.ParseBytes([]byte(out))
 	if err != nil {
 		t.Fatalf("parse failed, errmsg: %s", err)
 	}
@@ -220,7 +224,7 @@ func TestWithClearPorts_EmptyOmitsKey(t *testing.T) {
 
 func TestWithClearPorts_DropsEmptyHarvesterBlock(t *testing.T) {
 	payload := newPayload([]probeconfig.ProbeMetadataItem{redisItem("127.0.0.1", 6379, 0)})
-	out, err := GenProbeYAML(payload, WithClearPorts([]int{6379}))
+	out, err := config.GenProbeYAML(payload, config.WithClearPorts([]int{6379}))
 	if err != nil {
 		t.Fatalf("render failed, errmsg: %s", err)
 	}

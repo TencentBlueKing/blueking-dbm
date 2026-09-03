@@ -59,6 +59,22 @@ const (
 // pid-file path.
 const defaultPidFile = "./pids/admin.pid"
 
+const (
+	// DefaultProbeMetadataCacheMaxAge is how fresh cached metadata must be to answer a probe.
+	// Ten minutes is comfortably longer than a metadata sync cycle, so the cache still absorbs
+	// nearly all requests, while a genuinely lagging sync is caught before probes act on it.
+	DefaultProbeMetadataCacheMaxAge = 10 * time.Minute
+
+	// DefaultProbeMetadataTombstoneAge is when a cached row stops counting at all. A day is far
+	// beyond any sync delay, so anything older describes an instance metadata sync no longer
+	// refreshes rather than one it is late on.
+	DefaultProbeMetadataTombstoneAge = 24 * time.Hour
+
+	// minProbeMetadataCacheMaxAge keeps the freshness window above a single sync cycle. Below
+	// it, ordinary sync jitter would look like staleness and send every request to DBM.
+	minProbeMetadataCacheMaxAge = 1 * time.Minute
+)
+
 var Cfg = Configuration{
 	Name:    "admin",
 	PidFile: defaultPidFile,
@@ -141,6 +157,23 @@ type LogConfig struct {
 	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
+// ProbeMetadataConfig bounds how admin's local metadata cache may be used when answering a
+// probe's config request.
+//
+// Both fields treat zero as "use the default", which is the opposite of the probe's
+// admin.syncInterval where zero disables the feature. The difference is deliberate: an existing
+// admin config has no probeMetadata block, and defaulting it to "no freshness check" would keep
+// serving the stale data this exists to avoid.
+type ProbeMetadataConfig struct {
+	// CacheMaxAge is how recently a cached row must have been refreshed to be trusted. When any
+	// row for an IP is older, the whole machine is re-read from DBM.
+	CacheMaxAge time.Duration `yaml:"cacheMaxAge"  mapstructure:"cacheMaxAge"`
+	// TombstoneAge is the age past which a cached row is ignored outright. Metadata sync has no
+	// delete path, so rows for decommissioned instances stay behind forever; without this, one
+	// such row would push every request for that IP to DBM for good.
+	TombstoneAge time.Duration `yaml:"tombstoneAge" mapstructure:"tombstoneAge"`
+}
+
 // ProbeGseConfig defaults for probe GSE reporter; admin loads from YAML and passes to probe.
 type ProbeGseConfig struct {
 	Endpoint    string `yaml:"endpoint"    mapstructure:"endpoint"`
@@ -216,6 +249,7 @@ type Configuration struct {
 	ProbeRedis      ProbeRedisConfig              `yaml:"probeRedis"      mapstructure:"probeRedis"`
 	ProbeProxyAdmin ProbeProxyAdminConfig         `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
 	ProbeHarvesters map[string]ProbeHarvesterCred `yaml:"probeHarvesters" mapstructure:"probeHarvesters"`
+	ProbeMetadata   ProbeMetadataConfig           `yaml:"probeMetadata"   mapstructure:"probeMetadata"`
 }
 
 // clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,
@@ -293,7 +327,40 @@ func Load(configFilePath string) error {
 
 	clampProbeHarvesterDurations()
 
+	Cfg.ProbeMetadata = normalizeProbeMetadata(Cfg.ProbeMetadata)
+
 	return nil
+}
+
+// normalizeProbeMetadata fills in the defaults and enforces the freshness floor. Unlike the
+// harvester clamps, zero here means "not configured" rather than "configured as zero", because
+// an admin config predating this block must keep behaving sensibly.
+func normalizeProbeMetadata(cfg ProbeMetadataConfig) ProbeMetadataConfig {
+	if cfg.CacheMaxAge <= 0 {
+		cfg.CacheMaxAge = DefaultProbeMetadataCacheMaxAge
+	} else if cfg.CacheMaxAge < minProbeMetadataCacheMaxAge {
+		logger.Warn(
+			"probe metadata cacheMaxAge below minimum, normalizing, given: %s, minimum: %s",
+			cfg.CacheMaxAge, minProbeMetadataCacheMaxAge,
+		)
+		cfg.CacheMaxAge = minProbeMetadataCacheMaxAge
+	}
+
+	if cfg.TombstoneAge <= 0 {
+		cfg.TombstoneAge = DefaultProbeMetadataTombstoneAge
+	}
+
+	// A tombstone window shorter than the freshness window would discard rows that are still
+	// considered fresh, leaving no configuration that can ever be served from cache.
+	if cfg.TombstoneAge < cfg.CacheMaxAge {
+		logger.Warn(
+			"probe metadata tombstoneAge below cacheMaxAge, raising it, tombstoneAge: %s, cacheMaxAge: %s",
+			cfg.TombstoneAge, cfg.CacheMaxAge,
+		)
+		cfg.TombstoneAge = cfg.CacheMaxAge
+	}
+
+	return cfg
 }
 
 // clampProbeHarvesterDurations normalizes every probe harvester interval / timeout in Cfg

@@ -26,6 +26,8 @@
 package config
 
 import (
+	"bytes"
+	"sync/atomic"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/dbtype"
@@ -40,15 +42,33 @@ import (
 // pid-file path.
 const defaultPidFile = "./pids/probe.pid"
 
-var Cfg = Configuration{
-	Name:    "probe",
-	PidFile: defaultPidFile,
-	Log: LogConfig{
-		Path:      "./logs/probe.log",
-		Level:     logger.InfoLevel.String(),
-		FileCount: 10,
-		FileSize:  100,
-	},
+// MinSyncInterval is the floor applied to admin.syncInterval.
+const MinSyncInterval = 10 * time.Second
+
+// Cfg holds the currently applied probe configuration. Concurrent readers must use Snapshot.
+var Cfg = defaultConfiguration()
+
+// snapshot mirrors Cfg for lock-free concurrent reads. Apply keeps the two in step.
+var snapshot atomic.Pointer[Configuration]
+
+func init() {
+	initial := Cfg
+	snapshot.Store(&initial)
+}
+
+// Apply installs next as the applied configuration.
+func Apply(next Configuration) {
+	Cfg = next
+	applied := next
+	snapshot.Store(&applied)
+}
+
+// Snapshot returns the configuration currently applied, without racing against hot reload.
+func Snapshot() Configuration {
+	if applied := snapshot.Load(); applied != nil {
+		return *applied
+	}
+	return Cfg
 }
 
 // ClientConfig holds gRPC client tuning (ping, message sizes) and receiver reconnect settings for the probe agent.
@@ -59,6 +79,24 @@ type ClientConfig struct {
 	MaxSendMessageSize           int           `yaml:"maxSendMessageSize"           mapstructure:"maxSendMessageSize"`
 	ReceiverReconnectInterval    time.Duration `yaml:"receiverReconnectInterval"    mapstructure:"receiverReconnectInterval"`
 	ReceiverMaxReconnectAttempts int           `yaml:"receiverMaxReconnectAttempts" mapstructure:"receiverMaxReconnectAttempts"`
+}
+
+// AdminConfig tells the probe where to refresh its own configuration from, and how often.
+type AdminConfig struct {
+	Endpoints    []string      `yaml:"endpoints"    mapstructure:"endpoints"`
+	BkCloudID    uint64        `yaml:"bkCloudID"    mapstructure:"bkCloudID"`
+	LocalIP      string        `yaml:"localIP"      mapstructure:"localIP"`
+	SyncInterval time.Duration `yaml:"syncInterval" mapstructure:"syncInterval"`
+}
+
+// IsZero reports whether the block carries nothing worth writing to disk.
+func (a AdminConfig) IsZero() bool {
+	return len(a.Endpoints) == 0 && a.BkCloudID == 0 && a.LocalIP == "" && a.SyncInterval == 0
+}
+
+// SyncEnabled reports whether periodic sync should run.
+func (a AdminConfig) SyncEnabled() bool {
+	return a.SyncInterval > 0 && len(a.Endpoints) > 0
 }
 
 // ReporterConfig reporter config
@@ -162,48 +200,118 @@ type LogConfig struct {
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string          `yaml:"name"      mapstructure:"name"`
-	Version   string          `yaml:"version"   mapstructure:"version"`
-	ServiceID string          `yaml:"serviceID" mapstructure:"serviceID"`
-	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
-	Reporter  *ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
-	Client    ClientConfig    `yaml:"client"    mapstructure:"client"`
-	Harvester HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
-	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+	Name       string          `yaml:"name"       mapstructure:"name"`
+	Version    string          `yaml:"version"    mapstructure:"version"`
+	ServiceID  string          `yaml:"serviceID"  mapstructure:"serviceID"`
+	PidFile    string          `yaml:"pidFile"    mapstructure:"pidFile"`
+	Reporter   *ReporterConfig `yaml:"reporter"   mapstructure:"reporter"`
+	Client     ClientConfig    `yaml:"client"     mapstructure:"client"`
+	Admin      AdminConfig     `yaml:"admin"      mapstructure:"admin"`
+	Harvester  HarvesterConfig `yaml:"harvester"  mapstructure:"harvester"`
+	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
+	ClearPorts []int           `yaml:"clearPorts" mapstructure:"clearPorts"`
 }
 
-// Load loads probe configuration from file
-func Load(configFilePath string) error {
-	viper.SetConfigName("probe")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
+// Parse reads probe configuration from path without mutating the package-level Cfg
+// or the global viper instance.
+func Parse(configFilePath string) (Configuration, error) {
+	v := newConfigViper()
 
 	if configFilePath != "" {
-		viper.SetConfigFile(configFilePath)
+		v.SetConfigFile(configFilePath)
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
+		return Configuration{}, err
+	}
+
+	return unmarshalConfig(v)
+}
+
+// ParseBytes parses an in-memory YAML document into a Configuration.
+func ParseBytes(data []byte) (Configuration, error) {
+	v := newConfigViper()
+
+	if err := v.ReadConfig(bytes.NewReader(data)); err != nil {
+		return Configuration{}, err
+	}
+
+	return unmarshalConfig(v)
+}
+
+func newConfigViper() *viper.Viper {
+	v := viper.New()
+	v.SetConfigName("probe")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./etc")
+	return v
+}
+
+func unmarshalConfig(v *viper.Viper) (Configuration, error) {
+	next := defaultConfiguration()
+	if err := v.Unmarshal(&next); err != nil {
+		return Configuration{}, err
+	}
+
+	postProcess(&next)
+	return next, nil
+}
+
+func postProcess(cfg *Configuration) {
+	if cfg.PidFile == "" {
+		cfg.PidFile = defaultPidFile
+	}
+	clampSyncInterval(cfg)
+	normalizeHarvesterExtraKeysOn(cfg)
+}
+
+func clampSyncInterval(cfg *Configuration) {
+	if cfg.Admin.SyncInterval <= 0 || cfg.Admin.SyncInterval >= MinSyncInterval {
+		return
+	}
+
+	logger.Warn("admin sync interval below the allowed floor, configured: %s, applied: %s",
+		cfg.Admin.SyncInterval, MinSyncInterval)
+	cfg.Admin.SyncInterval = MinSyncInterval
+}
+
+// Load loads probe configuration from file into the package-level Cfg.
+func Load(configFilePath string) error {
+	next, err := Parse(configFilePath)
+	if err != nil {
 		return err
 	}
-
-	if err := viper.Unmarshal(&Cfg); err != nil {
-		return err
-	}
-
-	normalizeHarvesterExtraKeys()
-
-	if Cfg.PidFile == "" {
-		Cfg.PidFile = defaultPidFile
-	}
-
+	Apply(next)
 	return nil
 }
 
+// RetainIdentity copies fields that must not change across a hot reload from old into next.
+func RetainIdentity(old, next Configuration) Configuration {
+	next.PidFile = old.PidFile
+	next.Log = old.Log
+	return next
+}
+
+func defaultConfiguration() Configuration {
+	return Configuration{
+		Name:    "probe",
+		PidFile: defaultPidFile,
+		Log: LogConfig{
+			Path:      "./logs/probe.log",
+			Level:     logger.InfoLevel.String(),
+			FileCount: 10,
+			FileSize:  100,
+		},
+	}
+}
+
 // normalizeHarvesterExtraKeys rebuilds Extra so every map key is normalized.
-// viper already lowercases bare map keys; this keeps the invariant explicit for
-// any future loader that might preserve camelCase.
 func normalizeHarvesterExtraKeys() {
-	extra := Cfg.Harvester.Extra
+	normalizeHarvesterExtraKeysOn(&Cfg)
+}
+
+func normalizeHarvesterExtraKeysOn(cfg *Configuration) {
+	extra := cfg.Harvester.Extra
 	if len(extra) == 0 {
 		return
 	}
@@ -211,5 +319,5 @@ func normalizeHarvesterExtraKeys() {
 	for k, v := range extra {
 		normalized[dbtype.NormalizeBlockName(k)] = v
 	}
-	Cfg.Harvester.Extra = normalized
+	cfg.Harvester.Extra = normalized
 }
