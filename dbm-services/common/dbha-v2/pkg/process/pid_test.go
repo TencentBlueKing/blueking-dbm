@@ -27,6 +27,7 @@ package process_test
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"dbm-services/common/dbha-v2/pkg/process"
@@ -84,6 +85,52 @@ func TestPid(t *testing.T) {
 	}
 
 	os.Remove(pidFile)
+}
+
+// TestReadPidTrimsSurroundingWhitespace covers pid files written by hand
+// (`echo $pid > file` leaves a trailing newline) rather than by SavePid, which
+// writes the number bare. Without trimming these fail to parse and callers such
+// as stop / reload surface an error instead of reporting "not running".
+func TestReadPidTrimsSurroundingWhitespace(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    int32
+		wantErr bool
+	}{
+		{name: "bare number as written by SavePid", content: "4321", want: 4321},
+		{name: "trailing newline", content: "4321\n", want: 4321},
+		{name: "trailing crlf", content: "4321\r\n", want: 4321},
+		{name: "leading and trailing spaces", content: "  4321  ", want: 4321},
+		{name: "surrounded by blank lines", content: "\n 4321 \n\n", want: 4321},
+		{name: "not a number", content: "not-a-pid\n", wantErr: true},
+		{name: "empty file", content: "", wantErr: true},
+		{name: "whitespace only", content: " \n\t ", wantErr: true},
+		{name: "embedded space", content: "43 21", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "test.pid")
+			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
+				t.Fatalf("write pid file failed, errmsg: %s", err)
+			}
+
+			got, err := process.ReadPid(path)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ReadPid(%q) expected error, got pid: %d", tt.content, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ReadPid(%q) failed, errmsg: %s", tt.content, err)
+			}
+			if got != tt.want {
+				t.Fatalf("ReadPid(%q), got: %d, want: %d", tt.content, got, tt.want)
+			}
+		})
+	}
 }
 
 func TestIsAliveWithProcessName(t *testing.T) {

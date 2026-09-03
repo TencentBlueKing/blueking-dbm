@@ -45,9 +45,43 @@ func TestExtractPingHTTPAddrFromArgs(t *testing.T) {
 			wantFound: false,
 		},
 		{
+			name: "config flag before ensure-keepalive is not keepalive mode",
+			args: []string{
+				"-c", "./etc/probe.yaml", "ensure-keepalive", "--ping-http-addr", "127.0.0.1:1",
+			},
+			wantFound: false,
+		},
+		{
+			name: "long config flag before ensure-keepalive is not keepalive mode",
+			args: []string{
+				"--config", "./etc/probe.yaml", "ensure-keepalive", "--ping-http-addr", "127.0.0.1:1",
+			},
+			wantFound: false,
+		},
+		{
+			name: "config flag before start is not keepalive mode",
+			args: []string{
+				"-c", "./etc/probe.yaml", "start", "--ping-http-addr", "127.0.0.1:1",
+			},
+			wantFound: false,
+		},
+		{
+			name: "config flag before daemon-start is not keepalive mode",
+			args: []string{
+				"-c", "./etc/probe.yaml", "daemon-start", "--ping-http-addr", "127.0.0.1:1",
+			},
+			wantFound: false,
+		},
+		{
 			name:      "flag not present",
 			args:      []string{"restart", "-c", "./etc/probe.yaml"},
 			wantFound: false,
+		},
+		{
+			name:      "root keepalive with split config flag",
+			args:      []string{"-c", "./etc/probe.yaml", "--ping-http-addr", "127.0.0.1:18080"},
+			wantAddr:  "127.0.0.1:18080",
+			wantFound: true,
 		},
 		{
 			name:      "root keepalive equals format",

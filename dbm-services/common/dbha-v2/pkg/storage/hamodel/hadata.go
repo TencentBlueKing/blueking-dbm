@@ -129,6 +129,11 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 		data.Value = JSON[json.RawMessage]{Data: msg.RawValue, Valid: true}
 	}
 
+	// Legacy probes omit harvest_type; treat their full snapshot as the default group.
+	if data.HarvestType == "" {
+		data.HarvestType = haprobe.HarvestTypeDefault
+	}
+
 	return data
 }
 

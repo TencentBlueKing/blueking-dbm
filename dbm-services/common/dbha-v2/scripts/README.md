@@ -6,6 +6,7 @@
 
 - `deploy.sh`: 部署与更新脚本（支持按模块安装）
 - `render_configs.py`: 按模块用 `etc/dbha-v2.{server,probe}.rc` 与 `etc/templates/*.yaml` 渲染 `etc/*.yaml`
+- `compare_probe_config.py`: 校验 probe YAML，并检查 health / guard / cron（仅 Linux probe 包）
 - `setup.sh`: 交互式配置生成脚本（仅 server 侧使用）
 - `start-server.sh`: 启动 server 侧服务（admin/receiver/analysis）
 - `stop-server.sh`: 停止 server 侧服务（admin/receiver/analysis）
@@ -17,6 +18,126 @@
 - `start-probe-keepalive.ps1` / `stop-probe-keepalive.ps1`: Windows 下启动/停止 probe keepalive 模式
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
+- `probe-sandbox-full.sh`: 本地 mock 全链路（gen-config → 采集 → 上报），见 [probe-sandbox-mock README](../tools/cmd/probe-sandbox-mock/README.md)
+
+## compare_probe_config.py
+
+校验本地 `probe.yaml` 是否与 Admin 下发一致，并检查 probe 的 health / guard / cron。
+仅 Linux probe 包。在 **probe 安装根**（与 `start-probe.sh` 同级）执行；需要 PATH 中有
+`python`、`python3` 或 `python2` 之一。
+
+`-l` 必填。`-r` 与 `--admin-endpoints` **必须二选一**，不能同时传。脚本只读本地文件，
+不覆盖 `probe.yaml`、不 `--reload`、不改 crontab。报告里密码一律显示为 `***`。
+
+### 对照 Admin 校验（现场）
+
+从 Admin 拉一份最新配置（内部调用 `dbha-probe gen-config` 写临时文件），再与本地比对。
+gen-config 树上的 key/value 必须与本地一致；本地多出的 `admin` / `client` 等字段忽略。
+Admin 模式把 gen-config 写到空的临时文件，走的是新建路径。新建路径会按本次传入的参数写出
+`admin` 块，但那是脚本自己的默认值而非本机实际配置，因此脚本在比对前把 `admin` 子树剔除。
+若本地启用了 `clearPorts`，临时输出未裁剪，报告里 harvester 端口可能显示为差异，属已知限制。
+
+```bash
+cd ~/dbha-v2   # 或实际安装根
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001
+```
+
+多个 Admin 用 `;` 分隔：`--admin-endpoints 127.0.0.1:19001;127.0.0.1:19002`。
+
+二进制不在默认 `bin/dbha-probe` 时加 `--bin`：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --bin /usr/local/dbha-v2/bin/dbha-probe
+```
+
+### 指定云区域和本机 IP
+
+`GetProbeConfig` 按云区域 + IP 取元数据。默认 `--cloud-id 0`；未传 `--local-ip` 时由
+`gen-config` 自动探测。多网卡或探测不准时显式传入：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --cloud-id 0 \
+  --local-ip 127.0.0.1
+```
+
+只指定探测网卡、不写死 IP：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --local-ip-interface eth0
+```
+
+Admin 较慢时加大超时（默认 `30s`）：`--timeout 60s`。
+
+### 离线比对两份 YAML
+
+不连 Admin，对两份文件做整树比对（`-l` 为 left，`-r` 为 right）。不能再带
+`--cloud-id` / `--local-ip` / `--timeout`。
+
+```bash
+./compare_probe_config.py -l etc/probe.yaml -r /tmp/probe-from-admin.yaml
+```
+
+### 把结果写入日志、关掉颜色
+
+交互终端默认着色。重定向或管道时自动变成纯文本。也可显式关闭：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --no-color \
+  > /tmp/probe-config-check.log
+```
+
+或：`NO_COLOR=1 ./compare_probe_config.py -l etc/probe.yaml --admin-endpoints 127.0.0.1:19001`
+
+### 如何读报告
+
+三段：`PROBE CONFIG CHECK` → `RUNTIME CHECKS` → `RESULT`。
+
+Admin 模式用 `Expected`（gen-config）和 `Local`（`-l` 文件）：
+
+- `MISSING LOCALLY`：Admin 有、本地没有（例如缺 `harvester.mysql`）
+- `VALUE MISMATCH`：同一路径两边值不同
+- 本地多出的 `admin` / `client` 等键不报差异
+
+离线模式用 `Left`（`-l`）和 `Right`（`-r`），差异为 `ONLY IN LEFT` / `ONLY IN RIGHT` / `VALUE MISMATCH`。
+
+运行态：`HEALTH` 须为 running；`GUARD` 须为 daemon-start 双进程；`CRON` 只读 `crontab -l`，
+合格形态为 `./start-probe.sh --from-cron` 或 `./bin/dbha-probe ensure ... --from-cron`。
+
+退出码：
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | YAML 一致，且 health / guard / cron 都过 |
+| `1` | YAML 有差异，或运行态有一项未过 |
+| `2` | 参数错误、文件解析失败、gen-config 拉不到 Admin、检查命令执行失败 |
+
+`RESULT: PASSED` 对应 `0`；`FAILED` 对应 `1`；`ERROR` 对应 `2`。
+
+参数错误、文件缺失、YAML 解析失败都写 stderr，除 `Error` 外附 `Hint`（怎么改）；参数类错误再附
+两种模式的 `Usage` 与一条可直接复制的 `Example`：
+
+```text
+=== PROBE CONFIG CHECK: ERROR ==================================
+    Error:    missing -l/--left, and no compare mode selected
+    Hint:     -l is the local file to check, then pick exactly one compare mode
+    Usage:    compare_probe_config.py -l etc/probe.yaml --admin-endpoints <host:port[;...]> [options]
+              compare_probe_config.py -l etc/probe.yaml -r <other.yaml> [options]
+    Example:  ./compare_probe_config.py -l etc/probe.yaml --admin-endpoints 127.0.0.1:19001
+```
 
 ## render_configs.py
 
@@ -71,7 +192,7 @@ python3 scripts/render_configs.py --module server \
 
 发布包：
 - server 包（`$(VERSION)-server.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.server.rc.example`、`toolkits/dbha-cluster`、`toolkits/dbha-bwmgr`、`etc/cluster.yaml`、`etc/bwmgr.yaml`
-- probe 包（`$(VERSION)-probe.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.probe.rc.example`
+- probe 包（`$(VERSION)-probe.tar.gz`）携带 `render_configs.py`、`compare_probe_config.py`、`etc/templates/`、`etc/dbha-v2.probe.rc.example`
 
 ## deploy.sh
 
@@ -103,7 +224,7 @@ python3 scripts/render_configs.py --module server \
 - `probe`:
   - 安装/更新 `dbha-probe`
   - 安装/更新 `probe.yaml`
-  - 安装 `start-probe.sh`、`stop-probe.sh`、`start-probe-keepalive.sh`、`stop-probe-keepalive.sh`、`deploy.sh`
+  - 安装 `start-probe.sh`、`stop-probe.sh`、`start-probe-keepalive.sh`、`stop-probe-keepalive.sh`、`deploy.sh`、`compare_probe_config.py`
   - 不安装 `setup.sh`，不处理 `toolkits/`
   - 依赖 `lib/guard-utils.sh`，发布包需包含 `scripts/lib/` 目录
 

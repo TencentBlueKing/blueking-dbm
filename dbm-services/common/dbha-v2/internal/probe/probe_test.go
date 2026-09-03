@@ -58,7 +58,7 @@ func (f *fakePlugin) Harvest(ctx context.Context, _, _ string) (<-chan *plugin.H
 func (f *fakePlugin) Close() error { return nil }
 
 // withPluginEntries swaps the package-level pluginEntries for the duration of t,
-// so each test can drive loadPlugins with controlled factories.
+// so each test can drive startRuntime with controlled factories.
 func withPluginEntries(t *testing.T, entries []pluginEntry) {
 	t.Helper()
 	saved := pluginEntriesOverride
@@ -69,17 +69,18 @@ func withPluginEntries(t *testing.T, entries []pluginEntry) {
 }
 
 func TestStartPlugin_SkipsNilPlugin(t *testing.T) {
-	p := &Probe{quit: make(chan struct{})}
+	p := newProbe(context.Background(), "test-machine")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	rt := &harvestRuntime{}
 
-	p.startPlugin(ctx, "mysql", func() (plugin.Plugin, error) {
+	p.startPlugin(ctx, rt, "mysql", func() (plugin.Plugin, error) {
 		return nil, nil
-	})
+	}, "svc")
 
 	done := make(chan struct{})
 	go func() {
-		p.wg.Wait()
+		rt.wg.Wait()
 		close(done)
 	}()
 	select {
@@ -90,17 +91,18 @@ func TestStartPlugin_SkipsNilPlugin(t *testing.T) {
 }
 
 func TestStartPlugin_SkipsErrorFactory(t *testing.T) {
-	p := &Probe{quit: make(chan struct{})}
+	p := newProbe(context.Background(), "test-machine")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	rt := &harvestRuntime{}
 
-	p.startPlugin(ctx, "mysql", func() (plugin.Plugin, error) {
+	p.startPlugin(ctx, rt, "mysql", func() (plugin.Plugin, error) {
 		return nil, errors.New("boom")
-	})
+	}, "svc")
 
 	done := make(chan struct{})
 	go func() {
-		p.wg.Wait()
+		rt.wg.Wait()
 		close(done)
 	}()
 	select {
@@ -110,7 +112,7 @@ func TestStartPlugin_SkipsErrorFactory(t *testing.T) {
 	}
 }
 
-func TestLoadPlugins_AllFactoriesReturnNil(t *testing.T) {
+func TestStartRuntime_AllFactoriesReturnNil(t *testing.T) {
 	var calls atomic.Int32
 	nilFactory := func() (plugin.Plugin, error) {
 		calls.Add(1)
@@ -122,30 +124,26 @@ func TestLoadPlugins_AllFactoriesReturnNil(t *testing.T) {
 		{name: "redis", factory: nilFactory},
 	})
 
-	p := &Probe{quit: make(chan struct{})}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	p := newProbe(context.Background(), "test-machine")
+	rt := p.startRuntime(p.parent, "svc")
 
-	if err := p.loadPlugins(ctx); err != nil {
-		t.Fatalf("loadPlugins returned error, errmsg: %s", err)
-	}
 	if got := calls.Load(); got != 3 {
 		t.Errorf("expected 3 factory calls, got: %d", got)
 	}
 
 	done := make(chan struct{})
 	go func() {
-		p.wg.Wait()
+		rt.wg.Wait()
 		close(done)
 	}()
 	select {
 	case <-done:
 	case <-time.After(time.Second):
-		t.Fatal("loadPlugins started goroutines for nil-returning factories")
+		t.Fatal("startRuntime started goroutines for nil-returning factories")
 	}
 }
 
-func TestLoadPlugins_OnlyRedisConfigured(t *testing.T) {
+func TestStartRuntime_OnlyRedisConfigured(t *testing.T) {
 	redisStarted := make(chan struct{})
 	redisPlug := &fakePlugin{name: "redis", started: redisStarted}
 
@@ -170,31 +168,26 @@ func TestLoadPlugins_OnlyRedisConfigured(t *testing.T) {
 		},
 	})
 
-	p := &Probe{quit: make(chan struct{})}
-	ctx, cancel := context.WithCancel(context.Background())
-
-	if err := p.loadPlugins(ctx); err != nil {
-		cancel()
-		t.Fatalf("loadPlugins returned error, errmsg: %s", err)
-	}
+	p := newProbe(context.Background(), "test-machine")
+	rt := p.startRuntime(p.parent, "svc")
 
 	select {
 	case <-redisStarted:
 	case <-time.After(time.Second):
-		cancel()
+		rt.stop()
 		t.Fatal("redis fakePlugin.Harvest was not called")
 	}
 
-	cancel()
+	rt.stop()
 
 	done := make(chan struct{})
 	go func() {
-		p.wg.Wait()
+		rt.wg.Wait()
 		close(done)
 	}()
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("loadPlugins goroutines did not exit after ctx cancel")
+		t.Fatal("startRuntime goroutines did not exit after stop")
 	}
 }

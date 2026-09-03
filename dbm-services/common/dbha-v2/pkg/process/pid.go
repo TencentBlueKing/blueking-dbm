@@ -185,7 +185,10 @@ func ReadPid(filename string) (int32, error) {
 		return InvalidPid, gerrors.NewE(gerrors.Failure, err)
 	}
 
-	pid, err := converter.ToInt(string(data))
+	// Trailing whitespace is common in hand-written pid files (`echo $pid > f`),
+	// while SavePid writes the number bare. Without trimming, such a file fails to
+	// parse and stop / reload report an error instead of "not running".
+	pid, err := converter.ToInt(strings.TrimSpace(string(data)))
 	if err != nil {
 		return InvalidPid, gerrors.NewE(gerrors.Failure, err)
 	}

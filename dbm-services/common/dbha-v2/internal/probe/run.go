@@ -50,13 +50,13 @@ func shouldRemovePidFileOnShutdown(pidFile string) bool {
 func setupGracefulShutdown(p *Probe) error {
 	// waiter delivers shutdown/reload notifications: POSIX signals on Unix
 	// (SIGINT/SIGTERM shutdown, SIGHUP reload), the named stop/reload events on
-	// Windows. Reload remains a log-only stub on both platforms.
-	waiter, err := process.NewStopWaiter(process.EventKeyFromPidFile(config.Cfg.PidFile))
+	// Windows. Reload is applied by the probe reload worker.
+	waiter, err := process.NewStopWaiter(process.EventKeyFromPidFile(p.pidFile))
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "setup stop waiter failed, errmsg: %s", err)
 	}
 
-	if err := process.SavePid(config.Cfg.PidFile); err != nil {
+	if err := process.SavePid(p.pidFile); err != nil {
 		waiter.Close()
 		return gerrors.Newf(gerrors.Failure, "save pid failed, errmsg: %s", err)
 	}
@@ -66,12 +66,16 @@ func setupGracefulShutdown(p *Probe) error {
 			select {
 			case <-waiter.Reload:
 				logger.Info("received reload request, reloading configuration...")
+				select {
+				case p.reloadC <- struct{}{}:
+				default:
+				}
 			case <-waiter.Shutdown:
 				logger.Info("shutdown probe")
 				p.Close()
 
-				if shouldRemovePidFileOnShutdown(config.Cfg.PidFile) {
-					_ = os.Remove(config.Cfg.PidFile)
+				if shouldRemovePidFileOnShutdown(p.pidFile) {
+					_ = os.Remove(p.pidFile)
 				}
 				os.Exit(0)
 			}
@@ -80,7 +84,11 @@ func setupGracefulShutdown(p *Probe) error {
 	return nil
 }
 
-// Run run probe
+// Run loads the probe config from ConfigFilePath, installs the logger, writes
+// the pid file, and blocks in Probe.Run until a shutdown signal.
+// It returns a non-nil error when config load, machine-id generation, or
+// graceful-shutdown setup fails. On a successful shutdown the process exits
+// from the signal goroutine rather than returning from Run.
 func Run(cmd *cobra.Command, args []string) error {
 	if err := config.Load(ConfigFilePath); err != nil {
 		return err
@@ -96,7 +104,8 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("probe startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
+	logger.Debug("probe startup config, log_path: %s, log_level: %s",
+		config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	if err := logProbeProviderSelfCheck(); err != nil {
 		return err
@@ -107,13 +116,8 @@ func Run(cmd *cobra.Command, args []string) error {
 		return gerrors.Newf(gerrors.Failure, "generate machine-id failed, %v", err)
 	}
 
-	p := &Probe{
-		clientID:  clientID,
-		machineID: clientID,
-		serviceID: config.Cfg.ServiceID,
-	}
-
 	ctx := context.Background()
+	p := newProbe(ctx, clientID)
 
 	if err := setupGracefulShutdown(p); err != nil {
 		return err

@@ -28,10 +28,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
@@ -42,6 +44,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 )
 
@@ -49,6 +52,27 @@ var (
 	ErrDbNil  = gerrors.New(gerrors.InvalidParameter, "db is nil")
 	ErrNoData = gerrors.New(gerrors.NotExist, "no data")
 )
+
+// Reasons a request could not be answered from the local cache. They are used as a metric
+// label, so the set stays small and fixed; anything derived from the request (ip, cloud id)
+// would blow up the metric's cardinality.
+const (
+	fallbackReasonMiss  = "miss"
+	fallbackReasonStale = "stale"
+)
+
+// dbmFallbackTimeout bounds a DBM lookup when the api entry carries no timeout of its own.
+// Some deadline is mandatory here: singleflight holds every caller waiting on the same key
+// behind the in-flight call, so one request that never returns would pin them all, and each new
+// probe round would add more.
+const dbmFallbackTimeout = 30 * time.Second
+
+// metadataGroup collapses concurrent DBM lookups for the same machine into one call.
+//
+// Probes now poll on a schedule, so a machine whose cache went stale produces one request per
+// probe interval, and a fleet-wide sync lag makes every probe fall back at once. Without this,
+// admin would forward that burst to DBM one request at a time.
+var metadataGroup singleflight.Group
 
 // GenProbeConfig returns ProbeConfigPayload (gse defaults + metadata) as JSON by cloudid + ip:
 // metadata is taken from DBHA DB first, then DBM API fallback; gse defaults come from admin config.
@@ -139,17 +163,31 @@ func durationToYAMLString(d time.Duration) string {
 	return d.String()
 }
 
-// loadProbeMetadata returns probe metadata items from DBHA DB; falls back to DBM API when empty.
+// loadProbeMetadata returns probe metadata for one machine, preferring admin's local cache and
+// falling back to the DBM API.
+//
+// The cache is only used when every row for the IP is fresh. Serving a mix of fresh and stale
+// rows would hand the probe a half-updated view of the machine — it would keep probing an
+// instance that moved away, or miss one that arrived — and that is worse than the added latency
+// of asking DBM. This is why the fallback re-reads the whole machine rather than the stale rows.
 func loadProbeMetadata(
 	ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip string,
 ) ([]probeconfig.ProbeMetadataItem, error) {
-	list, err := getMetadataFromDBHA(db, bkCloudID, ip)
+	metadataCfg := Cfg.ProbeMetadata
+
+	list, err := getMetadataFromDBHA(db, bkCloudID, ip, metadataCfg.TombstoneAge)
 	if err != nil {
 		return nil, err
 	}
-	if len(list) > 0 {
+
+	reason := cacheFallbackReason(list, metadataCfg.CacheMaxAge, time.Now())
+	if reason == "" {
 		return convertFromDBHA(list), nil
 	}
+
+	logger.Info("probe metadata cache not usable, falling back to dbm, bk_cloud_id: %d, ip: %s, reason: %s",
+		bkCloudID, ip, reason)
+	observeMetadataFallback(reason)
 
 	dmList, err := getMetadataFromDBM(ctx, bkCloudID, ip)
 	if err != nil {
@@ -159,6 +197,24 @@ func loadProbeMetadata(
 		return nil, nil
 	}
 	return convertFromDBM(dmList), nil
+}
+
+// cacheFallbackReason reports why the cached rows cannot answer the request, or an empty string
+// when they can. A single expired row disqualifies the whole set, per the all-or-nothing rule
+// described on loadProbeMetadata.
+func cacheFallbackReason(list []*hamodel.DbmMetadata, maxAge time.Duration, now time.Time) string {
+	if len(list) == 0 {
+		return fallbackReasonMiss
+	}
+
+	oldestAllowed := now.Add(-maxAge)
+	for _, m := range list {
+		if m.UpdatedAt.Before(oldestAllowed) {
+			return fallbackReasonStale
+		}
+	}
+
+	return ""
 }
 
 // convertFromDBHA converts DBHA metadata to probe metadata items.
@@ -204,13 +260,26 @@ func resolveAdminPort(adminPort int, instanceRole haprobe.DbmMetadataInstanceRol
 	return adminPort
 }
 
-// getMetadataFromDBHA queries t_dbm_metadata by bk_cloud_id and ip.
-func getMetadataFromDBHA(db *hamysql.GormDB, bkCloudID int, ip string) ([]*hamodel.DbmMetadata, error) {
+// getMetadataFromDBHA queries t_dbm_metadata by bk_cloud_id and ip, ignoring rows older than
+// tombstoneAge.
+//
+// The filter matters because metadata sync only upserts, it never deletes: rows for instances
+// that were decommissioned stay in the table forever. Without the cut-off, one such row would
+// be permanently stale and would push every request for that IP to the DBM API, turning the
+// cache off for that machine for good.
+func getMetadataFromDBHA(
+	db *hamysql.GormDB, bkCloudID int, ip string, tombstoneAge time.Duration,
+) ([]*hamodel.DbmMetadata, error) {
 	var list []*hamodel.DbmMetadata
-	err := db.DB().Model(&hamodel.DbmMetadata{}).
+	query := db.DB().Model(&hamodel.DbmMetadata{}).
 		Where(hamodel.DbmMetadataFieldBkCloudID+" = ?", bkCloudID).
-		Where(hamodel.DbmMetadataFieldListenIP+" = ?", ip).
-		Find(&list).Error
+		Where(hamodel.DbmMetadataFieldListenIP+" = ?", ip)
+
+	if tombstoneAge > 0 {
+		query = query.Where(hamodel.DbmMetadataFieldUpdatedAt+" >= ?", time.Now().Add(-tombstoneAge))
+	}
+
+	err := query.Find(&list).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -221,8 +290,38 @@ func getMetadataFromDBHA(db *hamysql.GormDB, bkCloudID int, ip string) ([]*hamod
 	return list, nil
 }
 
+// observeMetadataFallback records a cache fallback. Metric failures are logged rather than
+// propagated: an unusable counter must not turn a serviceable config request into an error.
+func observeMetadataFallback(reason string) {
+	if apm.ProbeMetadataFallbackTotal == nil {
+		return
+	}
+	if err := apm.ProbeMetadataFallbackTotal.IncWithLabels(
+		map[string]string{apm.MetricLabelReason: reason},
+	); err != nil {
+		logger.Warn("record probe metadata fallback metric failed, errmsg: %s", err)
+	}
+}
+
 // getMetadataFromDBM calls DBM metadata API (admin config DbmApis name=metadata).
+//
+// Concurrent calls for the same (bk_cloud_id, ip) share one round-trip. The returned slice is
+// therefore shared between callers and must be treated as read-only; convertFromDBM only reads
+// from it.
 func getMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.DbInstMetadata, error) {
+	key := fmt.Sprintf("%d/%s", bkCloudID, ip)
+	result, err, _ := metadataGroup.Do(key, func() (any, error) {
+		return fetchMetadataFromDBM(ctx, bkCloudID, ip)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	list, _ := result.([]*dbm.DbInstMetadata)
+	return list, nil
+}
+
+func fetchMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.DbInstMetadata, error) {
 	var api *DbmApi
 	for i := range Cfg.DbmApis {
 		if Cfg.DbmApis[i].Name == constant.DbmApiNameMetadata {
@@ -245,10 +344,22 @@ func getMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.D
 		return nil, gerrors.NewE(gerrors.InvalidParameter, err)
 	}
 
+	// A configured timeout of zero means "no timeout" to http.Client, which is exactly the case
+	// singleflight cannot survive, so fall back to a bounded deadline.
+	timeout := api.Timeout
+	if timeout <= 0 {
+		timeout = dbmFallbackTimeout
+	}
+	// Detach from the first caller's cancellation. singleflight runs this function once and
+	// every waiter shares the result: if the leader's context is already done, using it here
+	// would fail the whole group, including callers that still have time left.
+	reqCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
+	defer cancel()
+
 	// POST to admin-configured DBM metadata API
 	// Client.RequestMetadata uses config.Cfg.Workflow - we cannot use it from admin.
 	// So we do HTTP POST here with admin's api.Api and api.Token (already in req).
-	code, resp, err := postJSON(ctx, api.Api, data, api.Timeout)
+	code, resp, err := postJSON(reqCtx, api.Api, data, timeout)
 	if err != nil {
 		return nil, err
 	}

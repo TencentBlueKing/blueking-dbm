@@ -43,6 +43,17 @@ _DEFAULT_PROBE_INSTALL_DIR = "/usr/local/dbha-v2"
 _DEFAULT_PROBE_REPORTER_LOCAL_SOCKET_PORT = "0"
 _DEFAULT_ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT = "0"
 
+# Periodic config sync defaults. "0s" leaves sync off, which is what a deployment upgraded from
+# an rc predating these keys must keep doing: enabling it silently would start unattended
+# rewrites of probe.yaml on every existing machine.
+_DEFAULT_PROBE_ADMIN_SYNC_INTERVAL = "0s"
+_DEFAULT_PROBE_ADMIN_BK_CLOUD_ID = "0"
+
+# Admin metadata cache freshness defaults. Empty means the admin binary applies its own
+# defaults (10m / 24h), so the rendered file does not pin values the code may revise.
+_DEFAULT_ADMIN_PROBE_METADATA_CACHE_MAX_AGE = "10m"
+_DEFAULT_ADMIN_PROBE_METADATA_TOMBSTONE_AGE = "24h"
+
 # IP detection and fallback.
 _IP_DETECT_UDP_CONNECT_PORT = 80
 _DEFAULT_LOOPBACK_IPV4 = "127.0.0.1"
@@ -168,6 +179,43 @@ def apply_admin_probe_gse_local_socket_port_default(values: Dict[str, str]) -> N
     """
     if not values.get("ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT", "").strip():
         values["ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT"] = _DEFAULT_ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT
+
+
+def apply_admin_probe_metadata_defaults(values: Dict[str, str]) -> None:
+    """Fill the probeMetadata placeholders when the rc omits them.
+
+    admin.yaml now carries a probeMetadata block. Server rc files written before it exists
+    would leave the placeholders unrendered, which render_configs.py rejects, so an upgrade
+    would fail on every existing deployment.
+    """
+    if not values.get("ADMIN_PROBE_METADATA_CACHE_MAX_AGE", "").strip():
+        values["ADMIN_PROBE_METADATA_CACHE_MAX_AGE"] = _DEFAULT_ADMIN_PROBE_METADATA_CACHE_MAX_AGE
+    if not values.get("ADMIN_PROBE_METADATA_TOMBSTONE_AGE", "").strip():
+        values["ADMIN_PROBE_METADATA_TOMBSTONE_AGE"] = _DEFAULT_ADMIN_PROBE_METADATA_TOMBSTONE_AGE
+
+
+def apply_probe_admin_sync_defaults(values: Dict[str, str], ip_detect_host: str) -> None:
+    """Fill the probe admin block placeholders when the rc omits them.
+
+    The interval defaults to "0s", leaving periodic sync off: an existing deployment upgrading
+    to this template must not silently start rewriting its probe.yaml. Endpoints default to
+    empty for the same reason, since sync also requires at least one.
+    """
+    endpoints = values.get("PROBE_ADMIN_ENDPOINTS", "").strip()
+    values["PROBE_ADMIN_ENDPOINTS"] = _format_yaml_endpoint_list(endpoints)
+
+    if not values.get("PROBE_ADMIN_BK_CLOUD_ID", "").strip():
+        values["PROBE_ADMIN_BK_CLOUD_ID"] = _DEFAULT_PROBE_ADMIN_BK_CLOUD_ID
+    if not values.get("PROBE_ADMIN_SYNC_INTERVAL", "").strip():
+        values["PROBE_ADMIN_SYNC_INTERVAL"] = _DEFAULT_PROBE_ADMIN_SYNC_INTERVAL
+    if not values.get("PROBE_ADMIN_LOCAL_IP", "").strip():
+        values["PROBE_ADMIN_LOCAL_IP"] = _guess_primary_ipv4(ip_detect_host)
+
+
+def _format_yaml_endpoint_list(raw: str) -> str:
+    """Turn a comma/space separated endpoint list into quoted YAML flow-sequence items."""
+    items = [item for item in re.split(r"[,;\s]+", raw) if item]
+    return ", ".join('"{}"'.format(item) for item in items)
 
 
 def _apply_apm_listen_address_default(
@@ -417,8 +465,10 @@ def main() -> None:
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
         apply_admin_web_listen_address_default(values, ip_detect_host)
         apply_admin_probe_gse_local_socket_port_default(values)
+        apply_admin_probe_metadata_defaults(values)
     else:
         apply_probe_reporter_local_socket_port_default(values)
+        apply_probe_admin_sync_defaults(values, ip_detect_host)
 
     # Phase 1: expand _YAML_FILE keys into raw YAML text (no placeholder rendering).
     apply_yaml_snippet_files(values, rc_resolved)

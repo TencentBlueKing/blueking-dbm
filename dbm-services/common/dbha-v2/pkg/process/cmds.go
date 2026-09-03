@@ -176,10 +176,26 @@ func WaitForProcessExit(pidFile, procName string, timeout time.Duration) error {
 // ReloadCmdRunE handles the reload command.
 // Triggers a configuration reload of the target process: SIGHUP on Unix, the
 // named reload event on Windows (see reloadProcess).
+// When the process is not running it prints a notice and returns nil, matching
+// the standalone reload subcommand.
 func ReloadCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, _ int, _ bool) error {
+	return reloadCmdRunE(cmd, pidFile, procName, false)
+}
+
+// ReloadIfRunning is like ReloadCmdRunE but returns ErrProcessNotRunning when the
+// target is not alive, so callers that requested a reload explicitly cannot succeed
+// as a silent no-op.
+func ReloadIfRunning(cmd *cobra.Command, pidFile, procName string) error {
+	return reloadCmdRunE(cmd, pidFile, procName, true)
+}
+
+func reloadCmdRunE(cmd *cobra.Command, pidFile, procName string, requireRunning bool) error {
 	pid, err := ReadPid(pidFile)
 	if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
 		fmt.Fprintf(cmd.OutOrStdout(), "%s is not running (no valid pid file)\n", procName)
+		if requireRunning {
+			return ErrProcessNotRunning
+		}
 		return nil
 	}
 	if err != nil {
@@ -193,6 +209,9 @@ func ReloadCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, _ i
 
 	if !alive {
 		fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, stale pid=%d\n", procName, pid)
+		if requireRunning {
+			return ErrProcessNotRunning
+		}
 		return nil
 	}
 
