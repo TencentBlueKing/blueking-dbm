@@ -17,6 +17,7 @@ from backend.components.db_name_service.client import NameServiceApi
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.db_proxy.views.nameservice.serializers import (
     CLBDeregisterPartTargetSerializer,
+    CLBDescribeTargetHealthSerializer,
     CLBGetTargetPrivateIps,
     PolarisDescribeTargetsSerializer,
     PolarisUnbindPartTargetsSerializer,
@@ -73,6 +74,21 @@ class NameServiceProxyPassViewSet(BaseProxyPassViewSet):
     def clb_get_target_private_ips(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(NameServiceApi.clb_get_target_private_ips(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[name service]查询clb后端主机健康状态"),
+        request_body=CLBDescribeTargetHealthSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=CLBDescribeTargetHealthSerializer,
+        url_path="nameservice/clb_describe_target_health",
+    )
+    def clb_describe_target_health(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(NameServiceApi.clb_describe_target_health(validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("[name service]获取polaris后端主机信息"),

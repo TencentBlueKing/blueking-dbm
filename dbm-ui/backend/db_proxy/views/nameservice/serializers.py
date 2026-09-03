@@ -27,6 +27,11 @@ class CLBGetTargetPrivateIps(BaseProxyPassSerializer):
     listenerid = serializers.CharField(help_text=_("clb监听器的id"))
 
 
+class CLBDescribeTargetHealthSerializer(BaseProxyPassSerializer):
+    region = serializers.CharField(help_text=_("区域名称"))
+    loadbalancerid = serializers.CharField(help_text=_("clb的id"))
+
+
 class PolarisDescribeTargetsSerializer(BaseProxyPassSerializer):
     servicename = serializers.CharField(help_text=_("北极星服务名称"))
 
