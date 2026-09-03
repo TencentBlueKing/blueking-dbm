@@ -139,7 +139,7 @@
     {
       case: '1',
       key: 'reduce_shards_num',
-      label: t('缩容分片数'),
+      label: t('分片集群缩容分片'),
     },
   ];
 

@@ -17,7 +17,7 @@
       <BkAlert
         class="mb-16"
         theme="info"
-        :title="t('缩容分片数：减少分片集群的分片个数，仅支持分片集群；可指定分片或按数量自动选择分片。')" />
+        :title="t('分片集群缩容分片：减少分片集群的分片个数，仅支持分片集群；可指定分片或按数量自动选择分片。')" />
       <DbForm
         ref="form"
         class="toolbox-form"

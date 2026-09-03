@@ -40,7 +40,7 @@ export const toolboxMenuList = [
       {
         dbConsoleValue: 'mongodb.toolbox.reduceShard',
         id: TicketTypes.MONGODB_REDUCE_SHARD,
-        name: t('缩容分片数'),
+        name: t('分片集群缩容分片'),
         parentId: 'mongo_manage',
       },
       {

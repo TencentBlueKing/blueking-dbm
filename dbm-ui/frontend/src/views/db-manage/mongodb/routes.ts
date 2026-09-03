@@ -15,7 +15,7 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, t('变更脚本执行')),
   createRouteItem(TicketTypes.MONGODB_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MONGODB_ADD_SHARD, t('分片集群增加分片数')),
-  createRouteItem(TicketTypes.MONGODB_REDUCE_SHARD, t('缩容分片数')),
+  createRouteItem(TicketTypes.MONGODB_REDUCE_SHARD, t('分片集群缩容分片')),
   createRouteItem(TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES, t('扩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES, t('扩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_REDUCE_SHARD_NODES, t('缩容Shard节点数')),
