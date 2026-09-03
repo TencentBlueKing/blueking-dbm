@@ -106,7 +106,7 @@ type MySql struct {
 	name      string
 	wg        sync.WaitGroup
 	cfg       *config.RawHarvesterConfig
-	// harvestGroups declares every harvest group (default / heartbeat / repldelay)
+	// harvestGroups declares every harvest group (default / heartbeat; repldelay is disabled)
 	harvestGroups []*harvestGroup
 	// collectors keyed by harvest group
 	collectors map[haprobe.HarvestType][]*collector
@@ -184,6 +184,18 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 func (m *MySql) runGroupLoop(ctx context.Context, g *harvestGroup, dataC chan<- *plugin.HarvestData) {
 	defer m.wg.Done()
 
+	collectRound := func() {
+		wg := &sync.WaitGroup{}
+		m.beginCollecting(wg, dataC, g)
+		wg.Wait()
+	}
+
+	if ctx.Err() != nil {
+		logger.Info("exit harvester, name: %s, group: %s", m.name, g.htype)
+		return
+	}
+	collectRound()
+
 	timer := time.NewTimer(g.interval)
 	defer timer.Stop()
 
@@ -194,12 +206,7 @@ func (m *MySql) runGroupLoop(ctx context.Context, g *harvestGroup, dataC chan<- 
 			return
 
 		case <-timer.C:
-			wg := &sync.WaitGroup{}
-
-			m.beginCollecting(wg, dataC, g)
-
-			wg.Wait()
-
+			collectRound()
 			timer.Reset(g.interval)
 		}
 	}
@@ -475,14 +482,8 @@ func (m *MySql) buildHarvestGroups() []*harvestGroup {
 			accept:   func(c *collector) bool { return !c.isTendbhaProxyAdminPort() },
 			emit:     m.collectHeartbeat,
 		},
-		{
-			htype:    haprobe.HarvestTypeReplDelay,
-			interval: m.replDelayInterval(),
-			accept: func(c *collector) bool {
-				return c.isPlainMysqlStorage()
-			},
-			emit: m.collectReplDelay,
-		},
+		// repldelay is not started: ROW writes to dbha_repl_heartbeat can break
+		// replication on master-slave switchover. collectReplDelay is kept.
 	}
 }
 

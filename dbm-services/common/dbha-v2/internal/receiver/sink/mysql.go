@@ -282,20 +282,6 @@ func (s *mysql) countSaveVolume(msg *Message) {
 	}
 }
 
-// applyHarvestTypeFallback fills harvest_type when the probe did not report it.
-// Probes older than the multi-cadence collection change send no harvest_type, and
-// harvest_type is part of the t_dbha_status primary key, so an empty value would break
-// the upsert. Treat such reports as the default collection group instead of dropping them.
-func applyHarvestTypeFallback(data *hamodel.DbhaDataStatus, topic string) {
-	if data == nil || data.HarvestType != "" {
-		return
-	}
-
-	data.HarvestType = haprobe.HarvestTypeDefault
-	logger.Warn("harvest_type missing, fallback to default, topic: %s, db_ip: %s, db_port: %d",
-		topic, data.DbIp, data.DbPort)
-}
-
 func (s *mysql) Close() {
 	s.closed.Store(true)
 	for _, db := range s.dbs {

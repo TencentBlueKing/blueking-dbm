@@ -28,8 +28,6 @@ import (
 	"testing"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // TestMySQLSaveUnknownClusterTypeOK asserts Save does not reject probe payloads whose
@@ -71,19 +69,30 @@ func TestMySQLSaveMissingHarvestTypeOK(t *testing.T) {
 	}
 }
 
-// TestApplyHarvestTypeFallback asserts the empty harvest_type is normalized to the default
-// collection group while an explicit value is left untouched.
-func TestApplyHarvestTypeFallback(t *testing.T) {
-	data := &hamodel.DbhaDataStatus{DbIp: "127.0.0.1", DbPort: 3306}
-	applyHarvestTypeFallback(data, "probe")
-	if data.HarvestType != haprobe.HarvestTypeDefault {
-		t.Errorf("harvest_type not filled, got: %s, want: %s", data.HarvestType, haprobe.HarvestTypeDefault)
-	}
+// TestMySQLSaveUnknownHarvestTypeRejected asserts Save rejects a harvest_type that is
+// neither empty (legacy) nor one of the known collection groups.
+func TestMySQLSaveUnknownHarvestTypeRejected(t *testing.T) {
+	payload := []byte(`{
+		"harvest_type":"not-a-group",
+		"cluster_type":"tendbha",
+		"db_type_name":"mysql",
+		"machine_type":"backend",
+		"db_ip":"127.0.0.1",
+		"db_port":3306,
+		"data":{"x":1}
+	}`)
 
-	data = &hamodel.DbhaDataStatus{HarvestType: haprobe.HarvestTypeHeartbeat}
-	applyHarvestTypeFallback(data, "probe")
-	if data.HarvestType != haprobe.HarvestTypeHeartbeat {
-		t.Errorf("harvest_type altered, got: %s, want: %s", data.HarvestType, haprobe.HarvestTypeHeartbeat)
+	s := &mysql{}
+	err := s.Save(&Message{Topic: "probe", Data: payload})
+	if err == nil {
+		t.Fatal("Save returned nil error for unknown harvest_type, want InvalidParameter")
+	}
+	ge, ok := err.(*gerrors.Error)
+	if !ok {
+		t.Fatalf("error type = %T, want *gerrors.Error", err)
+	}
+	if !ge.HasCode(gerrors.InvalidParameter) {
+		t.Fatalf("error code = %d, want InvalidParameter", ge.Code())
 	}
 }
 
