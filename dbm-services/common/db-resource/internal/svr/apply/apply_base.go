@@ -26,7 +26,28 @@ import (
 )
 
 // ParamCheck TODO
+// NormalizeAffinity 申请入参亲和性转成大写再匹配，空值视为 NONE。
+// "None"/"none" 与常量 NONE 对齐，避免 switch 空转选不中机器。
+func NormalizeAffinity(affinity string) string {
+	affinity = strings.ToUpper(strings.TrimSpace(affinity))
+	if affinity == "" {
+		return NONE
+	}
+	return affinity
+}
+
+// NormalizeAffinities 就地规范化本批申请的亲和性字面量
+func (param *RequestInputParam) NormalizeAffinities() {
+	if param == nil {
+		return
+	}
+	for i := range param.Details {
+		param.Details[i].Affinity = NormalizeAffinity(param.Details[i].Affinity)
+	}
+}
+
 func (param *RequestInputParam) ParamCheck() (err error) {
+	param.NormalizeAffinities()
 	for _, a := range param.Details {
 		for _, d := range a.StorageSpecs {
 			if d.MaxSize > 0 && d.MinSize > d.MaxSize {
@@ -104,7 +125,8 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 					len(a.LocationSpec.SubZoneIds))
 			}
 		case NONE:
-			return nil
+			// NONE 只表示本条无额外亲和性约束，不能结束整单 ParamCheck。
+			continue
 		}
 	}
 	return nil

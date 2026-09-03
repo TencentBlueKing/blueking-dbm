@@ -458,49 +458,37 @@ func buildDiskConditions(query *gorm.DB, specs []DiskSpec) *gorm.DB {
 			continue
 		}
 
-		// Build JSON path for the mount point
-		// Use JSON_EXTRACT to check if the mount point exists and access its properties
-		mountPointPath := fmt.Sprintf("'$.%s'", strings.TrimPrefix(spec.MountPoint, "/"))
-
-		// Check if mount point exists
-		// JSON_EXTRACT(storage_device, '$."/data"') IS NOT NULL
 		query = query.Where(
-			fmt.Sprintf("JSON_EXTRACT(storage_device, '$.\"%s\"') IS NOT NULL", spec.MountPoint),
+			fmt.Sprintf("JSON_EXTRACT(storage_device, '%s') IS NOT NULL", storageDeviceJSONPath(spec.MountPoint)),
 		)
-		// Check disk type if specified
 		if spec.DiskType != "" && spec.DiskType != "ALL" {
-			// JSON_EXTRACT(storage_device, '$."/data".disk_type') = 'SSD'
 			query = query.Where(
-				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '$.\"%s\".disk_type')) = ?", spec.MountPoint),
+				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '%s')) = ?",
+					storageDeviceJSONPath(spec.MountPoint, "disk_type")),
 				spec.DiskType,
 			)
 		}
-		// Check disk size
 		if spec.MinSize > 0 {
-			// JSON_EXTRACT(storage_device, '$."/data".size') >= min_size
 			if spec.MaxSize > 0 {
-				// Range match: min_size <= size <= max_size
 				query = query.Where(
-					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '$.\"%s\".size') AS SIGNED) BETWEEN ? AND ?",
-						spec.MountPoint),
+					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) BETWEEN ? AND ?",
+						storageDeviceJSONPath(spec.MountPoint, "size")),
 					spec.MinSize, spec.MaxSize,
 				)
 			} else {
-				// Only min size: size >= min_size
 				query = query.Where(
-					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '$.\"%s\".size') AS SIGNED) >= ?", spec.MountPoint),
+					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) >= ?",
+						storageDeviceJSONPath(spec.MountPoint, "size")),
 					spec.MinSize,
 				)
 			}
 		} else if spec.MaxSize > 0 {
-			// Only max size: size <= max_size
 			query = query.Where(
-				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '$.\"%s\".size') AS SIGNED) <= ?", spec.MountPoint),
+				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) <= ?",
+					storageDeviceJSONPath(spec.MountPoint, "size")),
 				spec.MaxSize,
 			)
 		}
-		// Clean up the mount point path reference (unused variable)
-		_ = mountPointPath
 	}
 
 	return query
@@ -983,15 +971,20 @@ tb_rp_detail 表字段说明：
 - dram_cap: 内存大小MB (int)
 - storage_device: 磁盘设备JSON (json)
 - rs_type: 资源类型 (string)，如 PUBLIC/redis/mysql 等
-- status: 状态 (string)，如 Unused/Used
+- status: 状态 (string)，如 Unused/Used。选机只看 Unused
 - gse_agent_status_code: Agent状态码 (int)，1表示正常
-- labels: 标签JSON (json)`,
+- labels: 标签JSON (json)
+
+禁止分析、禁止写入 WHERE 的字段（看见也忽略）：
+- consume_time: 仅机器被选中落账后才更新；1970-01-01 08:00:01 表示从未被消费，不是锁定
+- is_idle: 导入侧空闲检查标记，不是“当前是否空闲”
+- is_init: 导入侧初始化标记，选机不读`,
 		map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"sql": map[string]interface{}{
 					"type":        "string",
-					"description": "要执行的 SQL SELECT 查询语句。只能查询 tb_rp_detail 表，只能使用 SELECT 语句。注意CPU字段名是 cpu_num 而不是 cpu。示例：SELECT COUNT(*) as count, sub_zone_id FROM tb_rp_detail WHERE bk_cloud_id = 0 AND status = 'Unused' GROUP BY sub_zone_id",
+					"description": `要执行的 SQL SELECT 查询语句。只能查询 tb_rp_detail 表，只能使用 SELECT 语句。注意：CPU 字段名是 cpu_num 而不是 cpu。查询磁盘必须用 MySQL JSON Path，挂载点含斜杠要加双引号：JSON_EXTRACT(storage_device, '$."/data".size')、JSON_UNQUOTE(JSON_EXTRACT(storage_device, '$."/data".disk_type'))。禁止写成 JSON_EXTRACT(storage_device, '/data/size')，那不是合法 JSON Path，永远返回 NULL。示例：SELECT COUNT(*) as count, sub_zone_id FROM tb_rp_detail WHERE bk_cloud_id = 0 AND status = 'Unused' GROUP BY sub_zone_id`,
 				},
 				"description": map[string]interface{}{
 					"type":        "string",
@@ -3215,12 +3208,14 @@ func (t *ResourceTools) VerifyPrediction(args map[string]interface{}) (*VerifyPr
 
 // CustomQueryResult 自定义查询结果
 type CustomQueryResult struct {
-	Description string        `json:"description"` // 查询目的说明
-	SQL         string        `json:"sql"`         // 执行的 SQL
-	RowCount    int           `json:"row_count"`   // 返回的行数
-	Columns     []string      `json:"columns"`     // 列名
-	Rows        []interface{} `json:"rows"`        // 查询结果（每行是一个 map）
-	Error       string        `json:"error,omitempty"`
+	Description  string        `json:"description"`             // 查询目的说明
+	SQL          string        `json:"sql"`                     // 实际执行的 SQL
+	SQLRewritten bool          `json:"sql_rewritten,omitempty"` // 是否纠正过 JSON Path
+	Warning      string        `json:"warning,omitempty"`
+	RowCount     int           `json:"row_count"` // 返回的行数
+	Columns      []string      `json:"columns"`   // 列名
+	Rows         []interface{} `json:"rows"`      // 查询结果（每行是一个 map）
+	Error        string        `json:"error,omitempty"`
 }
 
 // ExecuteCustomQuery 执行自定义 SQL 查询（仅允许 SELECT，用于验证推测）
@@ -3231,6 +3226,13 @@ func (t *ResourceTools) ExecuteCustomQuery(args map[string]interface{}) (*Custom
 	result := &CustomQueryResult{
 		Description: description,
 		SQL:         sql,
+	}
+
+	if rewritten, changed := rewriteStorageDeviceJSONExtract(sql); changed {
+		sql = rewritten
+		result.SQL = sql
+		result.SQLRewritten = true
+		result.Warning = `storage_device 的 JSON_EXTRACT 路径已纠正。挂载点含斜杠必须写成 $."/data".size，不能写成 /data/size 或 $./data.size`
 	}
 
 	// 安全检查：只允许 SELECT 查询
@@ -3305,7 +3307,17 @@ func (t *ResourceTools) ExecuteCustomQuery(args map[string]interface{}) (*Custom
 		allRows = append(allRows, rowMap)
 	}
 
-	result.Rows = allRows
+	filteredCols, filteredRows, stripped := stripIrrelevantColumns(columns, allRows)
+	if stripped {
+		result.Columns = filteredCols
+		result.Rows = filteredRows
+	} else {
+		result.Columns = columns
+		result.Rows = allRows
+	}
+	if stripped || sqlMentionsIrrelevantColumns(sql) {
+		result.Warning = appendAnalysisWarning(result.Warning, analysisIrrelevantWarning)
+	}
 	result.RowCount = len(allRows)
 
 	return result, nil
@@ -3957,38 +3969,38 @@ func (t *ResourceTools) applyDiskSpecConditions(query *gorm.DB, diskSpecs []inte
 			return nil, fmt.Errorf("disk_specs[%d].mount_point contains invalid characters", i)
 		}
 
-		// 构建磁盘条件 - 使用参数化查询
-		diskCondition := fmt.Sprintf("JSON_EXTRACT(storage_device, '$.%s') IS NOT NULL",
-			strings.ReplaceAll(mountPoint, "'", "\\'"))
-		query = query.Where(diskCondition)
+		// 构建磁盘条件。挂载点含 "/"，JSON Path 必须写成 $."/data".size
+		query = query.Where(
+			fmt.Sprintf("JSON_EXTRACT(storage_device, '%s') IS NOT NULL", storageDeviceJSONPath(mountPoint)))
 
-		// 磁盘类型条件
 		if diskType, ok := specMap["disk_type"].(string); ok && diskType != "" {
 			if !isValidDiskType(diskType) {
 				return nil, fmt.Errorf("disk_specs[%d].disk_type '%s' is not valid", i, diskType)
 			}
-			typeCondition := fmt.Sprintf("JSON_EXTRACT(storage_device, '$.%s.disk_type') = ?",
-				strings.ReplaceAll(mountPoint, "'", "\\'"))
-			query = query.Where(typeCondition, diskType)
+			query = query.Where(
+				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '%s')) = ?",
+					storageDeviceJSONPath(mountPoint, "disk_type")),
+				diskType)
 		}
 
-		// 磁盘大小条件
 		if minSize, ok := specMap["min_size"].(float64); ok && minSize > 0 {
 			if minSize < 0 || minSize > 100000000 { // 100TB limit
 				return nil, fmt.Errorf("disk_specs[%d].min_size %v is out of valid range", i, minSize)
 			}
-			sizeCondition := fmt.Sprintf("JSON_EXTRACT(storage_device, '$.%s.size') >= ?",
-				strings.ReplaceAll(mountPoint, "'", "\\'"))
-			query = query.Where(sizeCondition, int(minSize))
+			query = query.Where(
+				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) >= ?",
+					storageDeviceJSONPath(mountPoint, "size")),
+				int(minSize))
 		}
 
 		if maxSize, ok := specMap["max_size"].(float64); ok && maxSize > 0 {
 			if maxSize < 0 || maxSize > 100000000 { // 100TB limit
 				return nil, fmt.Errorf("disk_specs[%d].max_size %v is out of valid range", i, maxSize)
 			}
-			sizeCondition := fmt.Sprintf("JSON_EXTRACT(storage_device, '$.%s.size') <= ?",
-				strings.ReplaceAll(mountPoint, "'", "\\'"))
-			query = query.Where(sizeCondition, int(maxSize))
+			query = query.Where(
+				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) <= ?",
+					storageDeviceJSONPath(mountPoint, "size")),
+				int(maxSize))
 		}
 	}
 	return query, nil
