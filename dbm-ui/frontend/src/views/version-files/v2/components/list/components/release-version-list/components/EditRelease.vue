@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <BkSideslider
     v-model:is-show="isShow"
@@ -77,6 +90,8 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { createReleaseVersion, getMysqlEngineList, updateReleaseVersion } from '@services/source/version';
 
+  import { CHINESE_CHAR_REG, IDENTIFIER_NAME_REG } from '@views/version-files/v2/common';
+
   import { messageSuccess } from '@utils';
 
   interface Props {
@@ -116,22 +131,26 @@
   >([]);
   const hideNameTip = ref(false);
 
+  /** 编辑时名称没有改动：存量数据可能不符合当前命名规则，不做拦截，也不算重名 */
+  const isNameUnchanged = (value: string) => props.data?.name.toLocaleLowerCase() === value.toLocaleLowerCase();
+
   const formRules = computed(() => ({
     name: [
       {
         message: t('请勿使用中文'),
         trigger: 'blur',
-        validator: (value: string) => props.isEdit || !/[\u4e00-\u9fa5]/.test(value),
+        validator: (value: string) => isNameUnchanged(value) || !CHINESE_CHAR_REG.test(value),
       },
       {
         message: t('格式不正确，请勿使用空格或特殊符号'),
         trigger: 'blur',
-        validator: (value: string) => props.isEdit || /^[A-Za-z0-9_.-]+$/.test(value),
+        validator: (value: string) => isNameUnchanged(value) || IDENTIFIER_NAME_REG.test(value),
       },
       {
         message: t('该发行版名已存在'),
         trigger: 'blur',
-        validator: (value: string) => props.isEdit || !props.existedNameList.includes(value.toLocaleLowerCase()),
+        validator: (value: string) =>
+          isNameUnchanged(value) || !props.existedNameList.includes(value.toLocaleLowerCase()),
       },
     ],
   }));
