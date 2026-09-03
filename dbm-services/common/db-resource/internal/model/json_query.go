@@ -313,19 +313,14 @@ func jsonArryJoin(vals []string) string {
 const prefix = "$."
 
 func jsonQueryJoin(keys []string) string {
-	if len(keys) == 1 {
-		return prefix + keys[0]
-	}
-
-	n := len(prefix)
-	n += len(keys) - 1
-	for i := 0; i < len(keys); i++ {
-		n += len(keys[i])
+	if len(keys) == 0 {
+		return prefix
 	}
 
 	var b strings.Builder
-	b.Grow(n)
 	b.WriteString(prefix)
+	// 第一个 key 经常是 "/data" 这种带斜杠的挂载点，必须加双引号，
+	// 否则 MySQL 会把 $./data 解析失败，JSON_EXTRACT 永远返回 NULL。
 	b.WriteString("\"")
 	b.WriteString(keys[0])
 	b.WriteString("\"")

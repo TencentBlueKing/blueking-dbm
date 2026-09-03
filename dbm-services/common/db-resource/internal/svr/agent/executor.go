@@ -214,19 +214,78 @@ func (e *AgentExecutor) Execute(ctx context.Context, systemPrompt, userMessage s
 		}
 	}
 
-	// 达到最大迭代次数
+	// 达到最大迭代次数：工具预算用尽，但已经查到的信息通常足够下结论
 	result.Error = fmt.Sprintf("max iterations (%d) reached", e.maxIterations)
+	e.finalizeWithoutToolUse(ctx, messages, toolDefs, result)
 	result.Duration = time.Since(startTime)
 
-	// 尝试获取最后的内容
-	if len(messages) > 0 {
-		lastMsg := messages[len(messages)-1]
-		if lastMsg.Role == "assistant" && lastMsg.Content != "" {
-			result.FinalResponse = lastMsg.Content
-		}
+	return result, nil
+}
+
+// finalAnswerPrompt 迭代预算用尽后给模型的收口指令
+const finalAnswerPrompt = `工具调用次数已达上限，不能再调用任何工具。
+请基于以上已经查询到的信息，直接给出最终分析结论。
+如果某些信息没能查全，就在结论中说明这一点，但仍要给出你当前能得出的判断和建议。`
+
+// finalizeWithoutToolUse 迭代预算用尽后再请求一次，逼模型基于已有信息收口。
+// 否则最后一条消息通常是工具返回结果，整轮分析会没有任何产出。
+//
+// 这一次必须保留工具声明并配合 tool_choice=none，不能直接把 Tools 摘掉：
+// 摘掉之后 deepseek 会把 <｜DSML｜tool_calls> 这类内部标记原样吐成纯文本，
+// 既不是结论、又因为 Content 非空而被误当成有效产出。
+func (e *AgentExecutor) finalizeWithoutToolUse(ctx context.Context, messages []Message,
+	toolDefs []ToolDefinition, result *ExecutionResult) {
+	// 上下文已结束就别再浪费一次调用
+	if ctx.Err() != nil {
+		logger.Warn("[Agent] Context done, skip final answer attempt: %v", ctx.Err())
+		salvageLastAssistantMessage(messages, result)
+		return
 	}
 
-	return result, nil
+	logger.Info("[Agent] Max iterations reached, requesting final answer with tool_choice=none")
+	forced := make([]Message, 0, len(messages)+1)
+	forced = append(forced, messages...)
+	forced = append(forced, NewUserMessage(finalAnswerPrompt))
+
+	resp, err := e.provider.Chat(ctx, &ChatRequest{
+		Messages:   forced,
+		Tools:      toolDefs,
+		ToolChoice: ToolChoiceNone,
+	})
+	if err != nil {
+		logger.Error("[Agent] Final answer request failed: %v", err)
+		salvageLastAssistantMessage(messages, result)
+		return
+	}
+	if resp.Content == "" {
+		logger.Warn("[Agent] Final answer is empty, finishReason: %s", resp.FinishReason)
+		salvageLastAssistantMessage(messages, result)
+		return
+	}
+	if LooksLikeToolCallMarkup(resp.Content) {
+		logger.Warn("[Agent] Final answer is tool-call markup, not a conclusion, length: %d",
+			len(resp.Content))
+		salvageLastAssistantMessage(messages, result)
+		return
+	}
+
+	result.Success = true
+	result.FinalResponse = resp.Content
+	logger.Info("[Agent] Final answer obtained, length: %d", len(resp.Content))
+}
+
+// salvageLastAssistantMessage 兜底：往回找最后一条有内容的 assistant 消息。
+// 不能只看末尾一条，那通常是 role=tool 的工具返回结果。
+func salvageLastAssistantMessage(messages []Message, result *ExecutionResult) {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == "assistant" && messages[i].Content != "" {
+			result.FinalResponse = messages[i].Content
+			logger.Info("[Agent] Salvaged assistant message at index %d, length: %d",
+				i, len(messages[i].Content))
+			return
+		}
+	}
+	logger.Warn("[Agent] No assistant content to salvage, final response stays empty")
 }
 
 // tryHardConditionEarlyExit 检查硬性条件是否不满足，若不满足则生成提前结束的响应
@@ -452,6 +511,23 @@ storage_device 是一个 JSON 对象，支持多块磁盘存储：
 }
 
 当申请参数中包含多个磁盘规格（storage_spec 数组）时，需要检查所有磁盘条件是否同时满足。
+
+查询 storage_device 时必须使用 MySQL JSON Path，挂载点含 "/" 必须加双引号：
+- 正确：JSON_EXTRACT(storage_device, '$."/data".size')
+- 正确：JSON_UNQUOTE(JSON_EXTRACT(storage_device, '$."/data".disk_type')) = 'SSD'
+- 错误：JSON_EXTRACT(storage_device, '/data/size') —— 不是合法 JSON Path，永远返回 NULL
+- 错误：JSON_EXTRACT(storage_device, '$./data.size') —— 未给含斜杠的 key 加引号，永远返回 NULL
+优先用 check_match_conditions / analyze_disk_issues 做磁盘过滤，不要自己拼错误的 JSON_EXTRACT。
+
+## 禁止当成失败原因的字段（极易误判）
+
+选机 SQL **完全不读** 下面这些列。SELECT * 看到它们也禁止写进结论：
+
+- **consume_time**：只在机器被申请**选中并落账之后**才更新。默认值 1970-01-01 08:00:01（Unix 0）表示**从未被消费**，Unused 池里的机器几乎都是这个值。这是正常态，**不表示被锁定、不可用、从未空闲**。
+- **is_idle**：导入时是否做过空闲检查的标记，**不是**“机器当前是否空闲”。选机只看 status=Unused。is_idle=0 不能写成“机器不空闲”。
+- **is_init**：导入时是否做过初始化的标记，选机不读。is_init=0 不能写成“机器未就绪”。
+
+**禁止的错误故事（必须避免）**：看到 Unused + consume_time 为 1970 + is_idle=0，就说“分配阶段被锁定 / 并发事务锁住了这台机器 / 需要联系管理员查锁”。这是编造。只有失败现场层级明确是 **cas** 时，才允许谈并发抢占。层级是 affinity / pick_check 时，原因在匹配条件或打散约束，与 consume_time 无关。
 
 ## 亲和性类型说明
 
@@ -687,6 +763,119 @@ func BuildUserMessage(applyParams *apply.RequestInputParam) string {
 %s
 
 请找出资源不足的根本原因，并提供可行的解决建议。`, string(paramsJSON))
+}
+
+// BuildUserMessageWithScene 在申请参数之外附带申请失败现场
+// 现场是匹配流程留下的观测数据，不是已确定的根因；诊断仍由模型完成
+func BuildUserMessageWithScene(applyParams *apply.RequestInputParam, evidence *apply.ApplyFailureEvidence) string {
+	message := BuildUserMessage(applyParams)
+	if evidence == nil {
+		return message
+	}
+
+	var sb strings.Builder
+	sb.WriteString(message)
+	sb.WriteString("\n\n## 申请失败现场（观测数据，不是结论）\n\n")
+	sb.WriteString("以下数据来自本次申请的真实匹配过程，可直接引用，也可用工具交叉验证。\n")
+	sb.WriteString("**注意：这里没有给出根本原因，原因需要你自己分析判断。**\n\n")
+
+	sb.WriteString(fmt.Sprintf("- 失败发生的层级: %s（%s）\n", evidence.Stage, describeFailStage(evidence.Stage)))
+	if evidence.GroupMark != "" {
+		sb.WriteString(fmt.Sprintf("- 失败的申请分组: %s\n", evidence.GroupMark))
+	}
+	if evidence.Affinity != "" {
+		sb.WriteString(fmt.Sprintf("- 亲和性: %s\n", evidence.Affinity))
+	}
+	sb.WriteString(fmt.Sprintf("- 该分组申请数量: %d\n", evidence.RequestCount))
+
+	if len(evidence.Funnel) > 0 {
+		sb.WriteString("\n### 逐步叠加匹配条件后的剩余台数\n\n")
+		sb.WriteString("叠加顺序与真实申请 SQL 完全一致。**count 的下降依赖叠加顺序，")
+		sb.WriteString("某一步下降多不等于它就是根本原因**，请结合申请参数和资源池现状判断。\n\n")
+		for _, stage := range evidence.Funnel {
+			sb.WriteString(fmt.Sprintf("- %s: %d 台（%s）\n", stage.Name, stage.Count, stage.Description))
+		}
+	}
+
+	if len(evidence.MissingIps) > 0 {
+		sb.WriteString(fmt.Sprintf("\n- 指定但不可用的 IP: %v\n", evidence.MissingIps))
+	}
+
+	if evidence.CandidateCount > 0 || evidence.PickedCount > 0 {
+		sb.WriteString(fmt.Sprintf("\n- 进入分配阶段的候选台数: %d\n", evidence.CandidateCount))
+		sb.WriteString(fmt.Sprintf("- 实际分配到的台数: %d\n", evidence.PickedCount))
+	}
+
+	if evidence.Distribution != nil {
+		sb.WriteString(buildDistributionSection(evidence.Distribution))
+	}
+
+	if len(evidence.ProcessLogs) > 0 {
+		sb.WriteString("\n### 分配过程日志（过程记录，不是结论）\n\n")
+		for _, log := range evidence.ProcessLogs {
+			sb.WriteString(fmt.Sprintf("- %s\n", log))
+		}
+	}
+
+	if evidence.Note != "" {
+		sb.WriteString(fmt.Sprintf("\n> 数据边界说明: %s\n", evidence.Note))
+	}
+
+	sb.WriteString("\n请基于以上现场进行诊断。若计数无法解释失败（例如候选台数足够却没分配满），")
+	sb.WriteString("继续使用工具查询验证。不要把某一步 count 下降直接当成唯一根本原因。\n")
+
+	return sb.String()
+}
+
+// unknownFailStageDesc 未识别的失败层级
+const unknownFailStageDesc = "未知阶段"
+
+// describeFailStage 说明失败落在匹配链路的哪一层
+func describeFailStage(stage string) string {
+	switch stage {
+	case apply.FailStagePickCheck:
+		return "SQL 预筛阶段，按条件过滤后的候选总数不足"
+	case apply.FailStageEmptyMountDisk:
+		return "内存过滤阶段，未指定挂载点的磁盘需求匹配后候选不足"
+	case apply.FailStageAffinity:
+		return "亲和性打散阶段，候选按园区/机架/交换机约束摆放后未凑满；这不是锁定，也不是并发 CAS"
+	case apply.FailStageCAS:
+		return "预选 CAS 阶段，机器已经按亲和性选出，但把 status 从 Unused 改成预占用时被别的申请抢占。只有这一层才表示并发抢占，不要从 consume_time 反推"
+	default:
+		return unknownFailStageDesc
+	}
+}
+
+// buildDistributionSection 渲染候选机器的园区/机架/交换机分布
+func buildDistributionSection(dist *apply.AffinitySnapshot) string {
+	var sb strings.Builder
+	sb.WriteString("\n### 候选机器分布（进入分配阶段的机器）\n\n")
+	sb.WriteString(fmt.Sprintf("- 不同园区数: %d\n", dist.UniqueSubZones))
+	sb.WriteString(fmt.Sprintf("- 不同机架数: %d\n", dist.UniqueRacks))
+	sb.WriteString(fmt.Sprintf("- 不同交换机数: %d\n", dist.UniqueNetDevices))
+
+	if len(dist.BySubZone) > 0 {
+		sb.WriteString("\n**按园区分布:**\n")
+		for subzone, count := range dist.BySubZone {
+			sb.WriteString(fmt.Sprintf("- 园区%s: %d 台\n", subzone, count))
+		}
+	}
+	if len(dist.RacksBySubZone) > 0 {
+		sb.WriteString("\n**各园区内机架分布:**\n")
+		for subzone, racks := range dist.RacksBySubZone {
+			sb.WriteString(fmt.Sprintf("- 园区%s（共%d个机架）:\n", subzone, len(racks)))
+			for rack, count := range racks {
+				sb.WriteString(fmt.Sprintf("  - %s: %d 台\n", rack, count))
+			}
+		}
+	}
+	if len(dist.ByNetDevice) > 0 {
+		sb.WriteString("\n**按交换机分布:**\n")
+		for netDevice, count := range dist.ByNetDevice {
+			sb.WriteString(fmt.Sprintf("- %s: %d 台\n", netDevice, count))
+		}
+	}
+	return sb.String()
 }
 
 // FormatSubZoneIDsInText 在文本中将园区 ID 替换为友好的显示格式

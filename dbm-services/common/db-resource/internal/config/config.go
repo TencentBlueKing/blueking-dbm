@@ -65,6 +65,8 @@ type BkAiConfig struct {
 	BaseURL   string `yaml:"base_url" mapstructure:"base_url"`
 	Model     string `yaml:"model" mapstructure:"model"`
 	MaxTokens int    `yaml:"max_tokens" mapstructure:"max_tokens"`
+	// Temperature 采样温度，用指针区分「未配置」与「显式配置为 0」
+	Temperature *float32 `yaml:"temperature" mapstructure:"temperature"`
 }
 
 // OpenAIConfig OpenAI 配置

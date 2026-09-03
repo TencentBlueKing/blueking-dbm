@@ -13,6 +13,7 @@ package apply
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -185,10 +186,22 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	if err != nil {
 		// 发送异步分析任务（非阻塞）
 		if paramsJSON, marshalErr := json.Marshal(param); marshalErr == nil {
+			// 带上申请失败现场,让分析智能体不必重新侦查
+			var evidenceJSON json.RawMessage
+			var insufficient *apply.ResourceInsufficientError
+			if errors.As(err, &insufficient) {
+				if b, evErr := json.Marshal(insufficient.Evidence); evErr == nil {
+					evidenceJSON = b
+				} else {
+					logger.Warn("marshal apply failure evidence failed for bill %s: %v",
+						param.ActionInfo.BillId, evErr)
+				}
+			}
 			select {
 			case task.AnalysisTaskChan <- task.AnalysisTaskItem{
 				BillID:      param.ActionInfo.BillId,
 				ApplyParams: paramsJSON,
+				Evidence:    evidenceJSON,
 			}:
 				logger.Info("Async analysis task triggered for bill: %s", param.ActionInfo.BillId)
 			default:
