@@ -20,11 +20,8 @@
     multiple
     multiple-mode="tag"
     :placeholder="t('请选择机型')"
-    :remote-method="remoteMethod"
     :scroll-height="384"
-    :scroll-loading="scrollLoading"
-    @change="handleChange"
-    @scroll-end="handleScrollEnd">
+    @change="handleChange">
     <DbOptionGroup group-style="divider">
       <DbOption
         v-for="(item, index) in deviceList"
@@ -45,7 +42,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchDeviceClass } from '@services/source/dbresourceResource';
+  import { fetchResourceHostDeviceClass } from '@services/source/dbresourceResource';
 
   import { specialOptionLabelMap, SpecialOptions } from '@common/const';
 
@@ -66,29 +63,9 @@
   const { t } = useI18n();
 
   const modelValue = ref<string[]>([]);
-  const deviceList = ref<string[]>([]);
-  const scrollLoading = ref(false);
 
-  const searchParams = {
-    device_type: '',
-    limit: 12,
-    offset: 0,
-  };
-
-  let isAppend = false;
-
-  const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
-    defaultParams: [searchParams],
-    onSuccess(data) {
-      scrollLoading.value = false;
-      const deviceClassList = data.results?.map((item) => item.device_type);
-      if (isAppend) {
-        deviceList.value.push(...deviceClassList);
-        return;
-      }
-
-      deviceList.value = deviceClassList;
-    },
+  const { data: deviceList, loading: isLoading } = useRequest(fetchResourceHostDeviceClass, {
+    initialData: [],
   });
 
   watch(
@@ -100,20 +77,6 @@
       immediate: true,
     },
   );
-
-  const handleScrollEnd = () => {
-    scrollLoading.value = true;
-    isAppend = true;
-    searchParams.offset += searchParams.limit;
-    getDeviceClassList(searchParams);
-  };
-
-  const remoteMethod = (value: string) => {
-    isAppend = false;
-    searchParams.device_type = value;
-    searchParams.offset = 0;
-    getDeviceClassList(searchParams);
-  };
 
   const handleChange = (value: string[]) => {
     emits('change', value.filter((item) => item).join(','));

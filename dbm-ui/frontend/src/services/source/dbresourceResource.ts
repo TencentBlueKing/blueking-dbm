@@ -39,7 +39,7 @@ export function removeResource(params: {
 }
 
 /**
- * 获取机型列表
+ * 获取机型列表（带 CPU / 内存 / 磁盘规格）
  */
 export function fetchDeviceClass(params: { device_type?: string; limit?: number; offset?: number }) {
   return http.get<
@@ -53,6 +53,13 @@ export function fetchDeviceClass(params: { device_type?: string; limit?: number;
       }[]
     >
   >(`${path}/get_device_class/`, params);
+}
+
+/**
+ * 获取资源池主机机型列表
+ */
+export function fetchResourceHostDeviceClass() {
+  return http.get<string[]>(`${path}/get_resource_host_device_class/`);
 }
 
 /**

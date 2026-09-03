@@ -501,13 +501,13 @@
     "@babel/helper-string-parser" "^8.0.0"
     "@babel/helper-validator-identifier" "^8.0.4"
 
-"@blueking/ai-blueking@2.2.2":
-  version "2.2.2"
-  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.2.2.tgz#d82de0698e8ba5519aafca112d842c0005c7b61b"
-  integrity sha512-dHP1HTEmt+LJf46EQX4INb+5a5Okik+yvpdmB/ZK4xK7aA/tsMfMnTFQAjhWGPVZX8/2DmBpe6JW+adbBmX3Ew==
+"@blueking/ai-blueking@2.2.3":
+  version "2.2.3"
+  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.2.3.tgz#e2eccc2ff7870cbcb6005c9056907f735fd9aedc"
+  integrity sha512-IXosor3KjD+um2ropL+Bp7z6P+o3AZI4Po75A/dz/MA9gNFrE+7AHFzEwTjaOVAv4fTcyT82YgBJJ+gBP6XFrQ==
   dependencies:
-    "@blueking/chat-helper" "0.0.12-beta.20"
-    "@blueking/chat-x" "0.0.49-beta.8"
+    "@blueking/chat-helper" "0.0.12-beta.24"
+    "@blueking/chat-x" "0.0.49-beta.12"
     bkui-vue "2.0.2-beta.81"
     tippy.js "^6.3.7"
     vue-draggable-resizable "^3.0.0"
@@ -570,17 +570,17 @@
   dependencies:
     "@vue/runtime-dom" "^3.4.27"
 
-"@blueking/chat-helper@0.0.12-beta.20":
-  version "0.0.12-beta.20"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.12-beta.20.tgz#8e6ad82b362c259e83e2f68fc5b77ef165a10bba"
-  integrity sha512-hFxCp8cRqjO1vPMHginR5ivXOHqILH4mfm6GZQR2obxMXjpEVvnfFbiqvKqijtrFFgvydlRYtkg8MOwiQMadDA==
+"@blueking/chat-helper@0.0.12-beta.24":
+  version "0.0.12-beta.24"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.12-beta.24.tgz#4eeb41d8f7b01340acc468b63a3a7f039cc9abd0"
+  integrity sha512-Zstz4u4SC3nKUuMdnvPA4HQ81i7i7xj8pr8lDkYP6vFKPjSG+Xm8qK6CpZfq90tzioxVHgkAroYhluAKpylpaQ==
   dependencies:
     "@types/json-schema" "^7.0.15"
 
-"@blueking/chat-x@0.0.49-beta.8":
-  version "0.0.49-beta.8"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.49-beta.8.tgz#a38734500ce077b135cf39d815f5b218f51131d4"
-  integrity sha512-by4Gvvrf76EIkM8Y9xHbaSv2F583qRY2oMscAfRK115WTfWiSTBfMxwFTIY9LXhKOvo6jkPLeL1HimeNMxt2gA==
+"@blueking/chat-x@0.0.49-beta.12":
+  version "0.0.49-beta.12"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.49-beta.12.tgz#2ad89660f94e48b4242ebb3121ec9f0c24b0a77c"
+  integrity sha512-RdodgJ6sGCS11wnl5FATzgkFhr1jYL0j04mOHHDTRKRt1arwk5TeSvElipqXHDaMIeGSjzCqMLcC6520stZcMw==
   dependencies:
     "@modelcontextprotocol/sdk" "^1.27.1"
     bkui-vue "2.0.2-beta.81"
