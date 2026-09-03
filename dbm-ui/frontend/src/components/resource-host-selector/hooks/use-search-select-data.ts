@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
-import { fetchDeviceClass, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
+import { fetchMountPoints, fetchResourceHostDeviceClass, getOsTypeList } from '@services/source/dbresourceResource';
 import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
 
@@ -123,8 +123,8 @@ export default (props: any) => {
       {
         id: 'device_class',
         list: deviceClassList.value?.map((item) => ({
-          label: item.device_type,
-          value: `${item.device_type}`,
+          label: item,
+          value: item,
         })),
         name: t('机型'),
         type: 'multiple',
@@ -167,17 +167,8 @@ export default (props: any) => {
     initialData: [],
   });
 
-  const deviceClassList = shallowRef<ServiceReturnType<typeof fetchDeviceClass>['results']>([]);
-  useRequest(fetchDeviceClass, {
-    defaultParams: [
-      {
-        limit: -1,
-        offset: 0,
-      },
-    ],
-    onSuccess(data) {
-      deviceClassList.value = data.results;
-    },
+  const { data: deviceClassList } = useRequest(fetchResourceHostDeviceClass, {
+    initialData: [],
   });
 
   const filterOption = computed(() => ({
@@ -197,8 +188,8 @@ export default (props: any) => {
       name: t('机型'),
       props: {
         list: (deviceClassList.value || []).map((item) => ({
-          label: item.device_type,
-          value: item.id,
+          label: item,
+          value: item,
         })),
       },
       showConfirmAndReset: true,

@@ -1,6 +1,6 @@
 import { useI18n } from 'vue-i18n';
 
-import { fetchDeviceClass, getResourceOsName } from '@services/source/dbresourceResource';
+import { fetchResourceHostDeviceClass, getResourceOsName } from '@services/source/dbresourceResource';
 import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
 
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -29,13 +29,10 @@ export default () => {
       name: t('机型'),
       props: {
         remoteMethod: () => {
-          return fetchDeviceClass({
-            limit: -1,
-            offset: 0,
-          }).then((data) =>
-            data.results.map((item) => ({
-              label: item.device_type,
-              value: item.id,
+          return fetchResourceHostDeviceClass().then((data) =>
+            data.map((item) => ({
+              label: item,
+              value: item,
             })),
           );
         },
