@@ -17,13 +17,16 @@ from rest_framework.response import Response
 
 from backend import env
 from backend.bk_web import viewsets
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
+from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
     AppendHostLabelSerializer,
@@ -31,6 +34,7 @@ from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSeria
     CheckFaultHostsSerializer,
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
+    ListCvmDeviceClassSerializer,
     ListDBAHostsSerializer,
     ListSubzonesSerializer,
     QueryDBAHostsSerializer,
@@ -84,6 +88,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "get_disktypes",
             "get_subzones",
             "get_device_class",
+            "get_resource_host_device_class",
             "list_dba_hosts",
             "resource_list",
             "query_dba_hosts",
@@ -254,10 +259,26 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         operation_summary=_("获取机型列表"),
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["GET"])
+    @action(
+        detail=False,
+        methods=["GET"],
+        serializer_class=ListCvmDeviceClassSerializer,
+        filter_class=DeviceClassFilter,
+        pagination_class=AuditedLimitOffsetPagination,
+        queryset=DeviceClass.objects.all(),
+    )
     def get_device_class(self, request):
-        device_classes = sorted(DBResourceApi.get_device_class())
-        return Response(device_classes)
+        page_device_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
+        page_device_data = self.serializer_class(instance=page_device_qs, many=True).data
+        return self.paginator.get_paginated_response(data=page_device_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取资源池主机机型列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["GET"])
+    def get_resource_host_device_class(self, request):
+        return Response(sorted(DBResourceApi.get_device_class()))
 
     @common_swagger_auto_schema(
         operation_summary=_("资源预申请"),

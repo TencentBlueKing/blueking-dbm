@@ -49,7 +49,6 @@ from backend.db_meta.models import Cluster
 from backend.db_report.models.cluster_portrait_report import ClusterPortraitReport
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 from backend.dbm_aiagent.agent.constants import DEFAULT_AGENT_CHAT_TIMEOUT, DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.utils.time import datetime2str
 from blue_krill.data_types.enum import StrStructuredEnum
 
@@ -717,6 +716,8 @@ class ClusterPortraitGenerator:
         边界：
             - 网络 / 超时 / 服务端异常原样抛出；由 :meth:`run` 的 try/except 统一转 STATUS_AI_ERROR
         """
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         return AgentHandler.ask_agent_with_content(
             agent_code=self.agent_code,  # type: ignore[arg-type]
             content=content,
