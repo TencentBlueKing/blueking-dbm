@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,10 +19,53 @@ import (
 )
 
 const ClusterTypeReplicaSet = "MongoReplicaSet"
+const ClusterTypeShardedCluster = "MongoShardedCluster"
 const EndOfOutput = "_e70725970764b32aa7f8ba468944535f_"
 const ConnectToServerMsg = "connect to server, default db is test\n"
 
 var CheckInputError = errors.New("invalid input")
+
+// mongoshPromptPrefix matches only known interactive prompts, e.g.:
+//
+//	[direct: mongos] test>
+//	utRs44Prompt [direct: primary] test>
+//	utRs44Prompt [direct: secondary] test>
+//	utRs44Prompt [primary] test>
+//	PRIMARY> / SECONDARY>
+//
+// Intentionally narrow: lines like "score> 10" or "n> 5" must not be stripped.
+// After "direct:" there is exactly one space (mongosh format).
+var mongoshPromptPrefix = regexp.MustCompile(
+	`^(?:(?:[A-Za-z0-9_.$-]+\s+)?\[(?:direct: )?(?:primary|secondary|mongos)\]\s+[A-Za-z0-9_.$-]+|(?:PRIMARY|SECONDARY|ARBITER))>\s?`,
+)
+
+// stripMongoShellPrompt removes interactive shell prompts from command output.
+// Output is split by '\n'; each line is stripped at most once (line-start match only).
+// Empty prompt-only lines are dropped; trailing blank lines are trimmed.
+func stripMongoShellPrompt(out []byte) []byte {
+	if len(out) == 0 {
+		return out
+	}
+	lines := strings.Split(string(out), "\n")
+	cleaned := make([]string, 0, len(lines))
+	for _, line := range lines {
+		stripped := line
+		if loc := mongoshPromptPrefix.FindStringIndex(line); loc != nil {
+			stripped = line[loc[1]:]
+			if stripped == "" {
+				continue
+			}
+		}
+		cleaned = append(cleaned, stripped)
+	}
+	for len(cleaned) > 0 && cleaned[len(cleaned)-1] == "" {
+		cleaned = cleaned[:len(cleaned)-1]
+	}
+	if len(cleaned) == 0 {
+		return []byte{}
+	}
+	return []byte(strings.Join(cleaned, "\n") + "\n")
+}
 
 type MongoHost struct {
 	Host          string
@@ -63,6 +107,7 @@ type MongoShell struct {
 	Pid           int
 	StopChan      chan struct{}
 	MongoHost     MongoHost
+	ClusterType   string
 	MongoVersion  string
 	ShellBin      string // mongo or mongosh
 	ReadPref      string // primary,secondary,nearest,direct
@@ -78,6 +123,7 @@ func NewMongoShellFromParm(p *QueryParams) *MongoShell {
 	return &MongoShell{
 		BufChan:      make(chan []byte, 2),
 		StopChan:     make(chan struct{}, 1),
+		ClusterType:  p.ClusterType,
 		MongoVersion: p.Version,
 		MongoHost: MongoHost{
 			Host:          p.Addresses[0], // 只取第一个地址
@@ -119,17 +165,41 @@ func parseMongoVersion(version string) (major, minor int, err error) {
 	return
 }
 
+func mongoShellMissingHint(shellBin, mongoVersion string) string {
+	switch shellBin {
+	case "mongo":
+		return fmt.Sprintf(
+			"未找到 mongo 命令（集群版本 %s，MongoDB <4.4 需 legacy mongo shell）。请在 db-remote-service 节点安装 mongo 并加入 PATH",
+			mongoVersion,
+		)
+	case "mongosh":
+		return fmt.Sprintf(
+			"未找到 mongosh 命令（集群版本 %s，MongoDB >=4.4 需 mongosh）。请在 db-remote-service 节点安装 mongosh 并加入 PATH",
+			mongoVersion,
+		)
+	default:
+		return fmt.Sprintf("未找到 MongoDB shell 命令 %q", shellBin)
+	}
+}
+
+func resolveMongoShellBin(shellBin, mongoVersion string) (string, error) {
+	cmdPath, err := exec.LookPath(shellBin)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", mongoShellMissingHint(shellBin, mongoVersion), err)
+	}
+	return cmdPath, nil
+}
+
 // buildArgs builds the arguments for the MongoShell process.
 // 不同的版本，shell和参数都不同
 func buildArgs(r *MongoShell) (argv []string, err error) {
-	_, _, err = parseMongoVersion(r.MongoVersion)
+	major, minor, err := parseMongoVersion(r.MongoVersion)
 	if err != nil {
 		return nil, fmt.Errorf("invalid version string")
 	}
 
-	// 4.2 之前的版本，使用 mongo
-	// isLowerVersion := major < 4 || (minor < 2 && major == 4)
-	isLowerVersion := true // 高版本打算用mongosh的，但搭配mongosh跑不起来. 就先用mongo
+	// 4.4 之前的版本使用 legacy mongo shell；>=4.4 使用 mongosh
+	isLowerVersion := major < 4 || (major == 4 && minor < 4)
 
 	if isLowerVersion {
 		r.ShellBin = "mongo"
@@ -176,9 +246,9 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 		}
 	}
 
-	cmdPath, err := exec.LookPath(r.ShellBin)
+	cmdPath, err := resolveMongoShellBin(r.ShellBin, r.MongoVersion)
 	if err != nil {
-		return nil, fmt.Errorf("internal error, exec.LookPath failed")
+		return nil, err
 	}
 	argv = append(argv, []string{cmdPath, "--norc", "--quiet", "--eval", evalJs, "--shell", r.MongoHost.Uri()}...)
 	return argv, nil
@@ -212,16 +282,10 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	// try to create readonly user
 
 	err = createReadOnlyUser(r.MongoHost.Host, r.MongoHost.AdminUsername, r.MongoHost.AdminPassword,
-		r.MongoHost.UserName, r.MongoHost.Password)
+		r.MongoHost.UserName, r.MongoHost.Password, r.ClusterType, r.MongoVersion)
 	if err != nil {
-		if errors.Is(err, ErrConnectFail) {
-			r.logger.Error("ErrConnectFail", slog.Any("err", err))
-			return fmt.Errorf("internal error, ErrConnectFail")
-		} else {
-			r.logger.Error("ErrCreateReadOnlyUserFail", slog.Any("err", err))
-			return fmt.Errorf("internal error, ErrCreateReadOnlyUserFail")
-		}
-
+		r.logger.Error("createReadOnlyUser", slog.Any("err", err))
+		return err
 	}
 
 	// 启动进程，启动后，将进程的Pid出发送到 BufChan
@@ -233,7 +297,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	argv, err := buildArgs(r)
 	if err != nil {
 		r.logger.Error("buildArgs", slog.Any("err", err))
-		return fmt.Errorf("internal error, start process failed")
+		return err
 	}
 	r.logger.Info("StartProcess", slog.String("cmdPath", argv[0]),
 		slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")))
@@ -350,10 +414,11 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 			}
 
 			if endFlag {
-				// delete EndOfOutput
+				// delete EndOfOutput and strip interactive shell prompts
 				out = msg.Bytes()
 				out = bytes.ReplaceAll(out, []byte(EndOfOutput), []byte(""))
-				r.logger.Info("replace EndOfOutput", slog.String("data", shortMsg(string(v), 512)))
+				out = stripMongoShellPrompt(out)
+				r.logger.Info("replace EndOfOutput", slog.String("data", shortMsg(string(out), 512)))
 				return out, nil
 			}
 
@@ -376,12 +441,7 @@ func (r *MongoShell) Stop() {
 }
 
 func precheckInput(ShellBin string, msg []byte) ([]byte, error) {
-	// 如果是 mongosh，不需要加 print
-	if ShellBin == "mongosh" {
-		return msg, nil
-	}
-
-	// append "\n" to the end of msg
+	_ = ShellBin
 	if len(msg) == 0 || msg[len(msg)-1] != '\n' {
 		msg = append(msg, []byte("\n")...)
 	}
