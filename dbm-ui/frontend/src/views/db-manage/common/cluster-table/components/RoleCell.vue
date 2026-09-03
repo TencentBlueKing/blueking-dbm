@@ -86,6 +86,7 @@
 
   import { useUrlSearch } from '@hooks';
 
+  import { ClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import PopoverCopy from '@components/popover-copy/Index.vue';
@@ -94,7 +95,10 @@
 
   import { execCopy, makeMap, messageWarn } from '@utils';
 
+  import type { ISupportClusterType } from '../types';
+
   interface Props {
+    clusterType: ISupportClusterType;
     data: ClusterListNode[];
   }
 
@@ -134,7 +138,12 @@
 
   const visibleNodes = computed(() => props.data.slice(0, renderInstanceCount));
 
-  const hasSegRangeGroup = computed(() => visibleNodes.value.some((item) => Boolean(item.seg_range)));
+  // 分片分组仅 mongodb 分片集群生效，其他集群（如 redis）即便返回 seg_range 也保持扁平列表
+  const hasSegRangeGroup = computed(
+    () =>
+      props.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER &&
+      visibleNodes.value.some((item) => Boolean(item.seg_range)),
+  );
 
   const displayRows = computed((): DisplayRow[] => {
     const nodes = visibleNodes.value;
