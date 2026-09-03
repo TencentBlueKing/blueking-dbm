@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div class="sub-version-list-main">
     <div
@@ -36,10 +49,9 @@
           </I18nT>
         </div>
         <DbQuickSearch
-          :key="renderSearchKey"
           v-model="searchValue"
           :data="searchSelectData"
-          :placeholder="t('搜索版本名，版本阶段，版本号，是否启用，描述，更新人')"
+          :placeholder="t('搜索版本名，版本阶段，版本号，启停，描述，更新人')"
           style="width: 670px"
           unique-select
           value-split-code=","
@@ -52,12 +64,14 @@
         <TableList
           ref="subVersionRefs"
           :db-type="dbType"
+          :db-version-list="dbVersionList"
+          :loading="isDbVersionListLoading"
           :permission="commonPermission"
           :version-series-list="versionSeriesList"
           @add-new-version="handleAddNewDbVersion"
           @edit-db-version="(data) => handleEditDbVersion(data)"
           @filter-value-change="handleFilterValueChange"
-          @list-change="handleTableListChange"
+          @refresh-db-version-list="fetchDbVersionList"
           @refresh-release-list="() => emits('refreshReleaseList')"
           @refresh-version-list="fetchVersionSeriesList" />
       </div>
@@ -94,19 +108,18 @@
     @success="handleEditVersionSuccess" />
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import DbVersionModel from '@services/model/version-file/db-version';
   import ReleaseVersionModel from '@services/model/version-file/release-version';
-  import { getVersionSeriesList } from '@services/source/version';
+  import { getDbVersionList, getVersionSeriesList } from '@services/source/version';
 
-  // import ScrollFaker from '@components/scroll-faker/Index.vue';
+  import { isPureMysqlPkgType } from '@views/version-files/v2/common';
+
   import EditVersion from './components/edit-version/Index.vue';
   import TableList from './components/table-list/Index.vue';
-  // import SubVersion from './components/sub-version/Index.vue';
-  import useSearch from './hooks/useSearch';
+  import useVersionFilter from './hooks/useVersionFilter';
 
   interface Props {
     dbType: string;
@@ -131,82 +144,72 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const { searchSelectData, searchValue } = useSearch();
 
+  const searchValue = ref<Record<string, string>>({});
   const subVersionRefs = ref<InstanceType<typeof TableList>>();
-  const renderSearchKey = ref(0);
   const isShowEditVersion = ref(false);
   const isEditVersion = ref(false);
   const isReleaseEmpty = ref(false);
   const currentVersionSeriesId = ref(0);
-  const dbVersionListCount = ref(0);
   const currentDbVersion = ref<DbVersionModel>();
 
-  const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
+  const isPureMysql = computed(() => isPureMysqlPkgType(props.dbType, props.pkgType));
   const commonPermission = computed(
     () => props.releaseVersion?.permission.package_manage || props.hasPackageManagePermission,
   );
-
   const { data: versionSeriesList, run: runGetVersionSeriesList } = useRequest(getVersionSeriesList, {
     manual: true,
   });
 
+  // 版本列表放在这里请求，搜索栏的版本号候选项与表格共用同一份数据
+  const {
+    data: dbVersionList,
+    loading: isDbVersionListLoading,
+    run: runGetDbVersionList,
+  } = useRequest(getDbVersionList, {
+    manual: true,
+  });
+
+  const dbVersionListCount = computed(() => dbVersionList.value?.length || 0);
+
+  const { searchSelectData } = useVersionFilter(dbVersionList);
+
   const fetchVersionSeriesList = () => {
+    if (!props.releaseVersion) {
+      return;
+    }
     runGetVersionSeriesList({
-      distribution: props.releaseVersion!.id,
+      distribution: props.releaseVersion.id,
     });
   };
 
-  watch(
-    () => props.releaseVersion,
-    () => {
-      if (props.releaseVersion) {
-        fetchVersionSeriesList();
-        return;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  const fetchDbVersionList = () => {
+    if (!versionSeriesList.value?.length) {
+      return;
+    }
+    runGetDbVersionList({
+      version_series__in: versionSeriesList.value.map((item) => item.id).join(','),
+    });
+  };
+
+  watch(() => props.releaseVersion, fetchVersionSeriesList, {
+    immediate: true,
+  });
+
+  watch(versionSeriesList, fetchDbVersionList);
 
   const handleAddVersionSuccess = () => {
     fetchVersionSeriesList();
     emits('refreshReleaseList');
   };
 
-  const handleTableListChange = (count: number) => {
-    dbVersionListCount.value = count;
-  };
-
-  const handleSearchChange = (value: Record<string, any>) => {
-    const filterValue = _.cloneDeep(value);
-    Object.keys(value).forEach((key) => {
-      if (key === 'enable') {
-        if (value[key].includes(',')) {
-          filterValue[key] = filterValue[key].split(',').map((item: string) => item === 'true');
-        } else {
-          filterValue[key] = [filterValue[key] === 'true'];
-        }
-      } else {
-        filterValue[key] = filterValue[key].trim();
-      }
-    });
+  // 搜索栏与表头筛选的值形态一致（逗号分隔字符串），两边直接互传
+  const handleSearchChange = (value: Record<string, string>) => {
     subVersionRefs.value?.setFilterValue(value);
   };
 
-  const handleFilterValueChange = (value: Record<string, any>) => {
-    const filterValue = _.cloneDeep(value);
-
-    Object.keys(filterValue).forEach((key) => {
-      const itemValue = filterValue[key];
-      if (Array.isArray(itemValue)) {
-        filterValue[key] = itemValue.map(String).join(',');
-      } else {
-        filterValue[key] = itemValue.trim();
-      }
-    });
-    searchValue.value = filterValue;
+  const handleFilterValueChange = (value: Record<string, string>) => {
+    searchValue.value = value;
   };
 
   const handleEditDbVersion = (data: DbVersionModel) => {
@@ -232,14 +235,13 @@
   };
 
   const handleEditVersionSuccess = (versionSeriesId: number) => {
-    const index = versionSeriesList.value!.findIndex((item) => item.id === versionSeriesId);
-    if (index !== -1) {
-      subVersionRefs.value!.refresh();
-      emits('refreshReleaseList');
-    } else {
-      emits('refreshReleaseList');
-      fetchVersionSeriesList();
+    emits('refreshReleaseList');
+    // 版本仍在已加载的系列里就只刷新版本列表，落到新系列时要重新拉系列列表
+    if (versionSeriesList.value?.some((item) => item.id === versionSeriesId)) {
+      fetchDbVersionList();
+      return;
     }
+    fetchVersionSeriesList();
   };
 
   defineExpose<Exposes>({

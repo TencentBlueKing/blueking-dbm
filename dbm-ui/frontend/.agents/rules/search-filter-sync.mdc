@@ -1,0 +1,65 @@
+---
+description:
+  列表页搜索栏（DbQuickSearch）与表格列筛选的联动规范。覆盖字段声明收敛、值形态、候选项来源（区分本地分页与远程分页）、
+  下拉与自由输入的取舍。页面同时有搜索栏和表格列筛选时读。
+globs: []
+alwaysApply: false
+---
+
+# 搜索栏与表格列筛选联动
+
+页面同时有 `DbQuickSearch` 搜索栏和表格列筛选时，两者是同一套筛选条件的两个入口，必须双向同步，不能各筛各的。
+
+参考实现：`views/ticket-center/common/`，搜索项在 `hooks/use-search-select.ts`，列筛选在
+`ticket-table/use-table-filter.ts`，两边由 `ticket-table/Index.vue` 串起来。
+
+## 字段声明
+
+- 搜索项与列筛选的字段 id 必须是同一批。字段 id 同时是搜索栏的 `id`、表格列的 `col-key`，
+  前端过滤时还是读取行属性的 key，三者完全一致
+- 同一字段两边的名称保持一致（搜索项 `name` 与表格列标题）；交互类型也要一致，
+  不能一边是下拉多选、另一边是输入框
+- 字段集中声明，不在搜索栏和表格两处各写一份。字段少时可以像 ticket-center 那样拆成两个 hook，
+  但两个 hook 的 id 集合必须对齐；字段多且选项共用时合并成一个 hook 更稳妥
+
+## 值形态：统一为逗号分隔字符串
+
+搜索栏与列筛选共用同一份筛选值，全链路只允许一种形态——**逗号分隔字符串**。
+
+- `MultipleSelect`（`components/db-table/components/MultipleSelect.vue`）的 `value` 只接受字符串，
+  内部直接 `props.value.split(',')`，传数组会抛错；它 emit 出来的也是 `value.join(',')`
+- 选项的 `value` 必须是字符串。传布尔（如 `true` / `false`）时，面板内部 `split` 出来的是字符串数组，
+  与选项值匹配不上，勾选态回显不出来
+- 表格 `@change` 回来的值可能是数组（多选列重置时），在入口处统一归一：
+  `Array.isArray(value) ? value.join(',') : value`
+
+值形态一旦在某一环变成数组或布尔，前端过滤往往仍能跑通（比较时两边都会 `toString`），
+故障只在「把值回传给筛选面板」时才暴露，很难反查到源头。
+
+## 状态同步
+
+- 首选做法：搜索栏的 `v-model` 与表格的 `:filter-value` 绑定**同一个 ref**，只有一份状态，
+  天然不存在回环。ticket-center 把 `quickSearchValue` 提到模块作用域共享，
+  并在 `onBeforeUnmount` 里清空
+- 确实要拆成两份状态（如搜索栏在父组件、表格在子组件）时，双向回写必须带防回环标记，
+  一边回写另一边时跳过反向 emit，否则两个入口会互相触发
+- 清空搜索、空状态的「清空筛选」按钮要作用在这份共享状态上，两个入口一起清
+
+## 候选项来源
+
+按分页方式区分，不要一刀切：
+
+- **远程分页**（翻页请求接口，如 ticket-center）：当前页数据不代表全集，候选项**必须**来自接口或全局 store
+  （`remoteMethod` + `remoteSearch`，或 `useGlobalBizs` 这类已有数据源）。
+  从 `dataList` 去重会得到一份随翻页变化的残缺候选集
+- **本地分页 / 前端过滤**（一次拉全量、前端筛，如 version-files 的版本列表）：候选项优先从当前列表数据去重生成，
+  不额外拉远程接口。此时全量数据就在手上，从接口另取一份候选项反而会让用户选到必然筛不出结果的值
+
+## 下拉与自由输入二选一
+
+搜索项要出候选下拉必须设 `type`（`multiple` / `single` / 级联类）或 `component`，只给 `list` 不设 `type` 不会出菜单。
+反过来，设了这类 `type` 就变成只读下拉，不能再自由输入；`input` / `multiple-input` 则相反，只能输入、不出候选。
+判定逻辑见 `components/db-quick-search/bk-quick-search/utils/calcNeedShowValueMenu.ts`。
+
+所以「模糊输入」与「下拉候选」不可兼得，按字段取值方式选：枚举值（状态、业务、启停）用下拉；
+用户自由输入的文本（备注、集群名）用 `input` / `multiple-input`，并在 `description` 里写明「支持模糊搜索」。
