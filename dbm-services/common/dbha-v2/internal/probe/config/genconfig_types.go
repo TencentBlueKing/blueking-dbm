@@ -31,13 +31,21 @@ import (
 )
 
 // probeYAML is used only for GenProbeYAML output. Reuses LogConfig from config.go.
+//
+// Locally owned blocks (ServiceID, Client, Admin, ClearPorts) use omitempty so a render that
+// does not inject them stays free of empty blocks, while LocalFields fills them in when
+// rewriting an existing file.
 type probeYAML struct {
-	Name      string             `yaml:"name"`
-	Version   string             `yaml:"version"`
-	PidFile   string             `yaml:"pidFile"`
-	Reporter  probeReporterYAML  `yaml:"reporter"`
-	Harvester probeHarvesterYAML `yaml:"harvester"`
-	Log       LogConfig          `yaml:"log"`
+	Name       string             `yaml:"name"`
+	Version    string             `yaml:"version"`
+	ServiceID  string             `yaml:"serviceID,omitempty"`
+	PidFile    string             `yaml:"pidFile"`
+	Reporter   probeReporterYAML  `yaml:"reporter"`
+	Client     *probeClientYAML   `yaml:"client,omitempty"`
+	Admin      *probeAdminYAML    `yaml:"admin,omitempty"`
+	Harvester  probeHarvesterYAML `yaml:"harvester"`
+	Log        LogConfig          `yaml:"log"`
+	ClearPorts []int              `yaml:"clearPorts,omitempty"`
 }
 
 // probeReporterYAML has ConnTimeout as string for YAML output (e.g. "5s"); ReporterConfig uses time.Duration.
@@ -46,7 +54,24 @@ type probeReporterYAML struct {
 	Endpoint        string `yaml:"endpoint"`
 	DataID          uint64 `yaml:"dataID"`
 	ConnTimeout     string `yaml:"connTimeout"`
-	LocalSocketPort uint   `yaml:"localSocketPort,omitempty"` // omitempty: omit when 0 so Linux YAML stays byte-identical
+	BkCloudID       int    `yaml:"bkCloudID,omitempty"`
+	LocalSocketPort uint   `yaml:"localSocketPort,omitempty"`
+}
+
+type probeClientYAML struct {
+	PingTime                     string `yaml:"pingTime,omitempty"`
+	PingTimeout                  string `yaml:"pingTimeout,omitempty"`
+	MaxReceiveMessageSize        int    `yaml:"maxReceiveMessageSize,omitempty"`
+	MaxSendMessageSize           int    `yaml:"maxSendMessageSize,omitempty"`
+	ReceiverReconnectInterval    string `yaml:"receiverReconnectInterval,omitempty"`
+	ReceiverMaxReconnectAttempts int    `yaml:"receiverMaxReconnectAttempts,omitempty"`
+}
+
+type probeAdminYAML struct {
+	Endpoints    []string `yaml:"endpoints,omitempty"`
+	BkCloudID    uint64   `yaml:"bkCloudID,omitempty"`
+	LocalIP      string   `yaml:"localIP,omitempty"`
+	SyncInterval string   `yaml:"syncInterval,omitempty"`
 }
 
 // probeGenericHarvesterYAML is the on-wire shape shared by named and extra harvester blocks.

@@ -895,3 +895,83 @@ func TestGenProbeYAML_MatchRoutesByAccessLayer(t *testing.T) {
 		t.Fatalf("unexpected users: proxy=%v store=%v", proxyBlock["user"], storeBlock["user"])
 	}
 }
+
+func TestGenProbeYAML_PortsSortedNumerically(t *testing.T) {
+	parsed := renderAndParse(t, newPayload([]probeconfig.ProbeMetadataItem{
+		mysqlItem("127.0.0.1", 3306, 0),
+		mysqlItem("127.0.0.1", 800, 0),
+	}))
+
+	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
+	}
+	if got := parsed.Harvester.MySQL.Endpoints[0].Ports; !reflect.DeepEqual(got, []string{"800", "3306"}) {
+		t.Errorf("expected numeric port order, got: %v", got)
+	}
+}
+
+func TestGenProbeYAML_PortOrderIndependentOfInput(t *testing.T) {
+	ascending := []probeconfig.ProbeMetadataItem{
+		mysqlItem("127.0.0.1", 3306, 13306),
+		mysqlItem("127.0.0.1", 3307, 13307),
+		mysqlItem("127.0.0.1", 3308, 13308),
+	}
+	shuffled := []probeconfig.ProbeMetadataItem{
+		mysqlItem("127.0.0.1", 3308, 13308),
+		mysqlItem("127.0.0.1", 3306, 13306),
+		mysqlItem("127.0.0.1", 3307, 13307),
+	}
+
+	want, err := config.GenProbeYAML(newPayload(ascending))
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	got, err := config.GenProbeYAML(newPayload(shuffled))
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	if got != want {
+		t.Fatalf("rendered yaml depends on metadata input order")
+	}
+
+	parsed := renderAndParse(t, newPayload(shuffled))
+	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
+	}
+	ep := parsed.Harvester.MySQL.Endpoints[0]
+	if !reflect.DeepEqual(ep.Ports, []string{"3306", "3307", "3308"}) {
+		t.Errorf("ports not sorted, got: %v", ep.Ports)
+	}
+	if !reflect.DeepEqual(ep.AdminPorts, []string{"13306", "13307", "13308"}) {
+		t.Errorf("adminPorts not sorted, got: %v", ep.AdminPorts)
+	}
+}
+
+func TestGenProbeYAML_OptionsDoNotChangeDefaultRendering(t *testing.T) {
+	payload := newPayload([]probeconfig.ProbeMetadataItem{mysqlItem("127.0.0.1", 3306, 0)})
+
+	base, err := config.GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	// An empty version is the shape a config predating the version field parses to.
+	withEmpty, err := config.GenProbeYAML(payload, config.WithVersion(""), nil)
+	if err != nil {
+		t.Fatalf("GenProbeYAML with options failed, errmsg: %s", err)
+	}
+	if withEmpty != base {
+		t.Fatal("empty version option changed the rendered output")
+	}
+
+	withVersion, err := config.GenProbeYAML(payload, config.WithVersion("v9"))
+	if err != nil {
+		t.Fatalf("GenProbeYAML with version failed, errmsg: %s", err)
+	}
+	var parsed parsedYAML
+	if err := yaml.Unmarshal([]byte(withVersion), &parsed); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	if parsed.Version != "v9" {
+		t.Fatalf("version option not applied, got: %s", parsed.Version)
+	}
+}
