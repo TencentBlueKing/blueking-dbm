@@ -9,7 +9,7 @@ export interface ReduceShard extends DetailBase {
     current_shard_num?: number;
     // 缩容方式：指定分片 / 指定数量
     reduce_mode: 'by_shard_names' | 'by_count';
-    // 指定数量模式：缩容分片数
+    // 指定数量模式：分片集群缩容分片
     reduce_shards_num?: number;
     // 指定分片模式：待删分片名列表
     shard_names?: string[];
