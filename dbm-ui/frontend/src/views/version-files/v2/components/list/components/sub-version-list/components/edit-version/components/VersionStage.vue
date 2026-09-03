@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <BkSelect
     v-model="localValue"
@@ -28,20 +41,22 @@
       </div>
     </template>
     <BkOption
-      v-for="system in seriesList"
-      :key="system.value"
-      :label="system.label"
-      :value="system.value">
+      v-for="stage in versionStageList"
+      :key="stage.value"
+      :label="stage.label"
+      :value="stage.value">
       <BkTag
         :stop-propagation="false"
-        :theme="system.theme">
-        {{ system.label }}
+        :theme="stage.theme">
+        {{ stage.label }}
       </BkTag>
     </BkOption>
   </BkSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { versionStageList, versionStageMap } from '@views/version-files/v2/common';
 
   type Emits = (e: 'valueChange') => void;
 
@@ -54,32 +69,8 @@
   const { t } = useI18n();
 
   const isShowPanel = ref(false);
-  const seriesList = ref<{ label: string; theme: 'danger' | 'warning' | 'info' | 'success'; value: string }[]>([
-    {
-      label: 'Alpha',
-      theme: 'danger',
-      value: 'alpha',
-    },
-    {
-      label: 'Beta',
-      theme: 'warning',
-      value: 'beta',
-    },
-    {
-      label: 'RC',
-      theme: 'info',
-      value: 'rc',
-    },
-    {
-      label: 'Release',
-      theme: 'success',
-      value: 'release',
-    },
-  ]);
 
-  const displayValue = computed(() => {
-    return seriesList.value.find((item) => item.value === localValue.value);
-  });
+  const displayValue = computed(() => versionStageMap[localValue.value]);
 
   const handleValueChange = () => {
     emits('valueChange');
