@@ -73,6 +73,6 @@ dependencies:
   version: 0.1.0
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
-  version: 3.0.0
-digest: sha256:4af1107deea999f1f5725b0e16565cb2946a6b7aeee25eb42de2a9192a60dbbf
-generated: "2026-09-02T11:14:26.251179+08:00"
+  version: 3.0.1
+digest: sha256:8985d4ac2343ab1ff995045f57c30a382aa165e99f3a89d97b3bd486cf490143
+generated: "2026-09-03T19:57:00.540275+08:00"
