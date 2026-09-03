@@ -79,7 +79,7 @@ export function getMongoShard(params: {
 }
 
 /**
- * 查询集群分片列表（缩容分片数下拉数据源）
+ * 查询集群分片列表（分片集群缩容分片下拉数据源）
  */
 export function listClusterShards(params: { cluster_ids: number[] }) {
   return http.get<
