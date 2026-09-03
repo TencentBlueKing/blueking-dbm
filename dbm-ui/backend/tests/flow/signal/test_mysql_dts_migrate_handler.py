@@ -71,7 +71,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_TO_MYSQL_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE.lower())
         self.assertIsNotNone(handler)
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
 
@@ -85,7 +85,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_TO_MYSQL_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.REVOKED)
 
         mock_drop.assert_called_once()
