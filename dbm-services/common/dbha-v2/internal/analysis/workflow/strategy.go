@@ -55,8 +55,8 @@ func GetSpecialMatchFunc(eventName haprobe.DbEventName) SpecialMatchFunc {
 // MatchProxyBackendSimultaneous matches cases where proxy and backend master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A backend master must satisfy both MachineType == backend and InstanceRole == MySQLStorageMaster.
-// It returns the failure instances of all matched clusters, or nil if the number of matched
-// clusters is below the threshold.
+// It returns the failure instances of clusters whose simultaneous-failure count reaches the
+// threshold (counted per cluster).
 func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
@@ -65,9 +65,9 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold in
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
+	clusterCounts := make(map[switchcore.ClusterKey]int)
 	var matched []FailureInstanceInfo
-	var clusterCount int
-	for _, group := range clusterGroups {
+	for key, group := range clusterGroups {
 		hasProxy := false
 		hasBackendMaster := false
 		for _, inst := range group {
@@ -86,13 +86,14 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold in
 			}
 		}
 		if hasProxy && hasBackendMaster {
-			clusterCount++
-			matched = append(matched, group...)
+			clusterCounts[key]++
 		}
 	}
 
-	if clusterCount < threshold {
-		return nil
+	for key, count := range clusterCounts {
+		if count >= threshold {
+			matched = append(matched, clusterGroups[key]...)
+		}
 	}
 	return matched
 }
@@ -100,8 +101,8 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold in
 // MatchSpiderRemoteMasterSimultaneous matches cases where spider and remote master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A remote master must satisfy both MachineType == remote and InstanceRole == TenDBClusterStorageMaster.
-// It returns the failure instances of all matched clusters, or nil if the number of matched
-// clusters is below the threshold.
+// It returns the failure instances of clusters whose simultaneous-failure count reaches the
+// threshold (counted per cluster).
 func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
@@ -110,9 +111,9 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, thresh
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
+	clusterCounts := make(map[switchcore.ClusterKey]int)
 	var matched []FailureInstanceInfo
-	var clusterCount int
-	for _, group := range clusterGroups {
+	for key, group := range clusterGroups {
 		hasSpider := false
 		hasRemoteMaster := false
 		for _, inst := range group {
@@ -131,13 +132,14 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, thresh
 			}
 		}
 		if hasSpider && hasRemoteMaster {
-			clusterCount++
-			matched = append(matched, group...)
+			clusterCounts[key]++
 		}
 	}
 
-	if clusterCount < threshold {
-		return nil
+	for key, count := range clusterCounts {
+		if count >= threshold {
+			matched = append(matched, clusterGroups[key]...)
+		}
 	}
 	return matched
 }
