@@ -1,9 +1,22 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <PrimaryTable
     class="sub-version-table-main"
     :data="tableData"
     :filter-value="tableFilterValue"
-    :loading="tableLoading"
+    :loading="loading"
     :max-height="tableMaxHeight"
     resizable
     :row-class-name="rowClassNameFn"
@@ -12,16 +25,32 @@
     @change="handleFilterChange"
     @sort-change="handleSortChange">
     <TableColumn
-      class-name="version-name-table-cell"
       col-key="name"
       ellipsis
-      :min-width="180"
+      :filter="tableFilter?.name"
       resizable
-      :resize="{ minWidth: 180, maxWidth: 500 }"
-      :title="t('版本名')">
-      <template #default="{ row, rowIndex }">
+      :title="t('版本名')"
+      :width="280">
+      <template #default="{ row }: { row: TableRow }">
+        <div
+          v-if="row.rowType === 'series'"
+          class="version-series-header"
+          @click="() => handleVersionSeriesToggle(row.series.id)">
+          <DbIcon
+            class="collapse-icon"
+            :class="{ 'is-collapse': collapseIdSet.has(row.series.id) }"
+            type="down-shape" />
+          <OperationHeader
+            :data="row.series"
+            :db-type="dbType"
+            :db-version-list-count="row.versionCount"
+            :existed-version-name-list="totalVersionNames"
+            :permission="permission"
+            @add-new-version="() => emits('addNewVersion', row.series)"
+            @edit-version-series="handleEditVersionSeriesSuccess" />
+        </div>
         <TextOverflowLayout
-          v-if="!row.versionSeriesInfo"
+          v-else
           class="version-display-column"
           :class="{ 'is-recommend': row.recommend }">
           <template #prepend>
@@ -29,24 +58,23 @@
               :data="row"
               :db-type="dbType"
               :permission="permission"
-              @success="fetchTableData" />
+              @success="() => emits('refreshDbVersionList')" />
           </template>
-          <AuthTemplate
+          <AuthButton
             action-id="package_manage"
             :permission="permission"
-            :resource="dbType">
-            <div
-              class="version-display-name"
-              @click="() => handleEditDbVersion(row)">
-              {{ row.name }}
-            </div>
-          </AuthTemplate>
+            :resource="dbType"
+            text
+            theme="primary"
+            @click="() => emits('editDbVersion', row)">
+            {{ row.name || '--' }}
+          </AuthButton>
           <template #append>
             <span class="tags-main">
               <BkTag
                 size="small"
-                :theme="stagTagMap[row.phase]?.theme">
-                {{ stagTagMap[row.phase]?.label }}
+                :theme="versionStageMap[row.phase]?.theme">
+                {{ versionStageMap[row.phase]?.label }}
               </BkTag>
               <DbIcon
                 v-if="row.description"
@@ -60,68 +88,48 @@
             </span>
           </template>
         </TextOverflowLayout>
-        <DbCard
-          v-else
-          class="version-series-collapse-header"
-          :collapse="!collapseIdSet.has(row.versionSeriesInfo.info.id)"
-          mode="collapse"
-          @collapsed="(value: boolean) => handleVersionSeriesToggle(value, rowIndex)">
-          <template #title>
-            <OperationHeader
-              :data="row.versionSeriesInfo.info"
-              :db-type="dbType"
-              :db-version-list-count="row.versionSeriesInfo.children.length"
-              :existed-version-name-list="totalVersionNames"
-              :permission="permission"
-              @add-new-version="() => emits('addNewVersion', row.versionSeriesInfo.info)"
-              @edit-version-series="handleEditVersionSeriesSuccess" />
-          </template>
-        </DbCard>
       </template>
     </TableColumn>
     <TableColumn
       col-key="full_version"
       :filter="tableFilter?.full_version"
-      :min-width="180"
       resizable
-      :title="t('版本号')">
-      <template #default="{ row }"> {{ row.full_version }} </template>
+      :title="t('版本号')"
+      :width="180">
+      <template #default="{ row }: { row: VersionRow }"> {{ row.full_version }} </template>
     </TableColumn>
     <TableColumn
-      class-name="version-packages-table-cell"
       col-key="packages"
-      :min-width="380"
       resizable
-      :resize="{ minWidth: 380, maxWidth: 600 }">
+      :width="380">
       <template #title>
         <span class="version-file-column-title">
           {{ t('版本文件') }}
           <DbIcon
             v-bk-tooltips="{
               content: t('一个版本可能含多个介质文件（不同 OS 适配），列表默认展示首文件，点击 +N 可展开全部'),
-              // placement: 'bottom',
               theme: 'light',
             }"
             class="tip-icon"
             type="attention" />
         </span>
       </template>
-      <template #default="{ row }">
-        <VersionFiles :data="row" />
+      <template #default="{ row }: { row: VersionRow }">
+        <PackageFileCell :data="row" />
       </template>
     </TableColumn>
     <TableColumn
       col-key="distribution_snapshot"
-      :min-width="100"
       resizable
-      :title="t('关联实例')">
-      <template #default="{ row }"> {{ row.packages[0]?.instances }} </template>
+      :title="t('关联实例')"
+      :width="100">
+      <template #default="{ row }: { row: VersionRow }"> {{ row.totalInstance }} </template>
     </TableColumn>
     <TableColumn
       col-key="enable"
       :filter="tableFilter?.enable"
-      :min-width="100"
-      resizable>
+      resizable
+      :width="100">
       <template #title>
         <span
           v-bk-tooltips="enableTips"
@@ -129,36 +137,36 @@
           {{ t('启停') }}
         </span>
       </template>
-      <template #default="{ row }">
+      <template #default="{ row }: { row: VersionRow }">
         <EnableConfig
           :data="row"
           :db-type="dbType"
           :permission="permission"
-          @success="fetchTableData" />
+          @success="() => emits('refreshDbVersionList')" />
       </template>
     </TableColumn>
     <TableColumn
       col-key="updater"
-      :filter="tableFilter?.updator"
-      :min-width="120"
+      :filter="tableFilter?.updater"
       resizable
-      :title="t('更新人')">
-      <template #default="{ row }"> {{ row.updater }} </template>
+      :title="t('更新人')"
+      :width="120">
+      <template #default="{ row }: { row: VersionRow }"> {{ row.updater || '--' }} </template>
     </TableColumn>
     <TableColumn
       col-key="update_at"
-      :min-width="200"
       resizable
       sorter
-      :title="t('更新时间')">
-      <template #default="{ row }"> {{ utcDisplayTime(row.update_at) }} </template>
+      :title="t('更新时间')"
+      :width="200">
+      <template #default="{ row }: { row: VersionRow }"> {{ utcDisplayTime(row.update_at) }} </template>
     </TableColumn>
     <TableColumn
       col-key="id"
       fixed="right"
-      :min-width="150"
-      :title="t('操作')">
-      <template #default="{ row }">
+      :title="t('操作')"
+      :width="150">
+      <template #default="{ row }: { row: VersionRow }">
         <AuthButton
           action-id="package_manage"
           :permission="permission"
@@ -166,7 +174,7 @@
           size="small"
           text
           theme="primary"
-          @click="() => handleEditDbVersion(row)">
+          @click="() => emits('editDbVersion', row)">
           {{ t('编辑') }}
         </AuthButton>
         <DownloadPackage :data="row" />
@@ -183,184 +191,185 @@
     :is-anomalies="false"
     :is-searching="isSearching"
     @clear-search="handleClearSearch"
-    @refresh="fetchTableData" />
+    @refresh="() => emits('refreshDbVersionList')" />
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
   import _ from 'lodash';
-  import { type TableSort } from 'tdesign-vue-next';
+  import { type TableRowData, type TableSort } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import DbVersionModel from '@services/model/version-file/db-version';
   import { getDbVersionList, getVersionSeriesList } from '@services/source/version';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { random, utcDisplayTime } from '@utils';
+  import { versionStageMap } from '@views/version-files/v2/common';
+
+  import { utcDisplayTime } from '@utils';
+
+  import useVersionFilter from '../../hooks/useVersionFilter';
 
   import DeleteVersion from './components/DeleteVersion.vue';
   import DownloadPackage from './components/DownloadPackage.vue';
   import EnableConfig from './components/EnableConfig.vue';
   import OperationHeader from './components/OperationHeader.vue';
+  import PackageFileCell from './components/PackageFileCell.vue';
   import RecommendConfig from './components/RecommendConfig.vue';
-  import VersionFiles from './components/VersionFiles.vue';
-  import useTableFilter from './hooks/use-table-filter';
 
   interface Props {
     dbType: string;
+    dbVersionList?: DbVersion[];
+    loading?: boolean;
     permission: boolean;
     versionSeriesList?: VersionSeries;
   }
 
   interface Exposes {
     clearFilter: () => void;
-    filterSearch: (value: { filter: Record<string, any> }) => void;
-    refresh: () => void;
-    setFilterValue: (value: Record<string, any>) => void;
+    setFilterValue: (value: Record<string, string>) => void;
   }
 
   interface Emits {
     (e: 'editDbVersion', version: DbVersion): void;
-    (e: 'listChange', count: number): void;
     (e: 'addNewVersion', versionSeries: VersionSeries[number]): void;
-    (e: 'editDbVersion', version: DbVersionModel): void;
+    (e: 'refreshDbVersionList'): void;
     (e: 'refreshReleaseList'): void;
     (e: 'refreshVersionList'): void;
-    (e: 'filterValueChange', value: Record<string, any>): void;
+    (e: 'filterValueChange', value: Record<string, string>): void;
   }
 
   type VersionSeries = ServiceReturnType<typeof getVersionSeriesList>;
-  type DbVersion = {
-    createAtTimestamp: number;
-    totalInstance?: number;
-    versionSeriesInfo?: {
-      children: DbVersion[];
-      info: VersionSeries[number];
-    };
-  } & ServiceReturnType<typeof getDbVersionList>[number];
+  type DbVersion = ServiceReturnType<typeof getDbVersionList>[number];
+  // 版本行：接口返回的版本对象 + 表格需要的派生字段
+  type VersionRow = {
+    rowType: 'version';
+    totalInstance: number;
+    uuid: string;
+  } & DbVersion;
+  // 系列行：展开时在它下面 append 所属的版本行
+  type SeriesRow = {
+    rowType: 'series';
+    series: VersionSeries[number];
+    uuid: string;
+    versionCount: number;
+  };
+  type TableRow = SeriesRow | VersionRow;
+  // 表格只支持单列排序
+  type SingleSort = Exclude<TableSort, unknown[]>;
+  // 可筛选的列都是标量字段
+  type FilterFieldValue = boolean | number | string;
 
   const props = withDefaults(defineProps<Props>(), {
+    dbVersionList: () => [],
+    loading: false,
     versionSeriesList: () => [],
   });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const tableData = ref<DbVersion[]>([]);
   const tableMaxHeight = ref(0);
   const collapseIdSet = ref<Set<number>>(new Set());
-  const tableFilterValue = ref<Record<string, any>>({});
-  const isSearching = ref(true);
+  const tableFilterValue = ref<Record<string, string>>({});
+  const tableSortValue = ref<SingleSort>();
 
   const totalVersionNames = computed(() => props.versionSeriesList.map((item) => item.name.toLocaleLowerCase()));
+  const isSearching = computed(() => hasActiveFilter(tableFilterValue.value));
+  // 在接口返回的版本对象之上补出表格行需要的派生字段，不回写 props 数据
+  const versionRowList = computed<VersionRow[]>(() =>
+    props.dbVersionList.map((item) => ({
+      ...item,
+      rowType: 'version' as const,
+      totalInstance: (item.packages || []).reduce((sum, pkg) => sum + pkg.instances, 0),
+      uuid: `version-${item.id}`,
+    })),
+  );
+  // 系列下的版本总数，不受筛选影响：系列名后的计数与「删除系列」的前置校验都用它
+  const versionCountMap = computed(() => _.countBy(versionRowList.value, 'version_series'));
 
-  const { loading: tableLoading, run: runGetDbVersionList } = useRequest(getDbVersionList, {
-    manual: true,
-    onSuccess(data) {
-      const versionSeriesMap = props.versionSeriesList.reduce<
-        Record<number, { children: DbVersion[] } & VersionSeries[number]>
-      >((acc, item) => Object.assign(acc, { [item.id]: { children: [], info: item } }), {});
-      data.forEach((item) => {
-        const newItem = Object.assign(item, {
-          createAtTimestamp: new Date(item.create_at).getTime(),
-        });
-        versionSeriesMap[item.version_series].children.push(newItem);
-      });
-      const nameIdList = props.versionSeriesList
-        .map((item) => ({ id: item.id, name: item.name }))
-        .sort((a, b) => compareName(a.name, b.name));
-      const handleList: DbVersion[] = [];
-      nameIdList.forEach((nameIdObj) => {
-        const childrenList = versionSeriesMap[nameIdObj.id].children.sort((a, b) =>
-          compareVersion(a.full_version, b.full_version),
-        );
-        if (childrenList.length > 0) {
-          childrenList.forEach((item, index) => {
-            if (index === 0) {
-              handleList.push(
-                Object.assign({ uuid: random() }, item, { versionSeriesInfo: versionSeriesMap[nameIdObj.id] }),
-              );
-            }
-            if (item.packages.length > 0) {
-              const totalInstance = item.packages.reduce((sum, item) => sum + item.instances, 0);
-              Object.assign(item, { totalInstance });
-            }
-            handleList.push(Object.assign({ uuid: random() }, item));
-          });
-        } else {
-          handleList.push(
-            Object.assign(
-              { uuid: random() },
-              { versionSeriesInfo: versionSeriesMap[nameIdObj.id] },
-            ) as unknown as DbVersion,
-          );
-        }
-      });
-      localTableData = _.cloneDeep(handleList);
-      localBeforeSortTableData = localTableData;
-      if (collapseIdSet.value.size > 0) {
-        tableData.value = handleList.filter(
-          (item) =>
-            item.versionSeriesInfo || (!item.versionSeriesInfo && !collapseIdSet.value.has(item.version_series)),
-        );
-      } else {
-        tableData.value = handleList;
-      }
-      emits('listChange', handleList.filter((item) => !item.versionSeriesInfo).length);
-      // 针对过滤场景下操作后重新获取数据，需要等待数据更新后重新触发过滤
-      setTimeout(() => {
-        if (Object.keys(tableFilterValue.value).length > 0) {
-          handleFilterChange({ filter: tableFilterValue.value });
-        }
-      });
-    },
+  // 表格的唯一数据源：系列 → 版本的树，表格行由它按「筛选 → 排序 → 拍平」派生
+  const versionSeriesTree = computed(() => {
+    const versionGroup = _.groupBy(versionRowList.value, 'version_series');
+    return props.versionSeriesList.map((series) => ({
+      children: versionGroup[series.id] || [],
+      series,
+    }));
   });
 
-  const tableFilter = useTableFilter(tableData);
+  const filteredSeriesTree = computed(() => {
+    if (!isSearching.value) {
+      return versionSeriesTree.value;
+    }
+    const filterKeys = Object.keys(tableFilterValue.value);
+    return (
+      versionSeriesTree.value
+        .map((item) => ({
+          children: item.children.filter((version) =>
+            filterKeys.every((key) =>
+              checkFilterValue(tableFilterValue.value[key], version[key as keyof VersionRow] as FilterFieldValue),
+            ),
+          ),
+          series: item.series,
+        }))
+        // 筛选态下不展示没有命中版本的系列
+        .filter((item) => item.children.length > 0)
+    );
+  });
 
-  const stagTagMap: Record<string, { label: string; theme: 'danger' | 'warning' | 'info' | 'success' }> = {
-    alpha: {
-      label: 'Alpha',
-      theme: 'danger',
-    },
-    beta: {
-      label: 'Beta',
-      theme: 'warning',
-    },
-    rc: {
-      label: 'RC',
-      theme: 'info',
-    },
-    release: {
-      label: 'Release',
-      theme: 'success',
-    },
-  };
+  const sortedSeriesTree = computed(() => {
+    const sortValue = tableSortValue.value;
+    const sortDirection = sortValue?.descending ? -1 : 1;
+    // 目前只有更新时间列可排序，值都是时间字符串
+    const getSortTime = (item: VersionRow) =>
+      sortValue ? dayjs(item[sortValue.sortBy as keyof VersionRow] as string).unix() : 0;
+    const sortVersionList = (versionList: VersionRow[]) =>
+      sortValue
+        ? [...versionList].sort((a, b) => sortDirection * (getSortTime(a) - getSortTime(b)))
+        : // 未排序时回到接口数据的默认顺序：同系列内版本号从高到低
+          [...versionList].sort((a, b) => compareVersion(a.full_version, b.full_version));
+
+    return filteredSeriesTree.value
+      .map((item) => ({
+        children: sortVersionList(item.children),
+        series: item.series,
+      }))
+      .sort((itemA, itemB) => {
+        // 没有版本的系列永远垫底，与是否排序无关
+        const emptyDiff = Number(!itemA.children.length) - Number(!itemB.children.length);
+        if (emptyDiff !== 0) {
+          return emptyDiff;
+        }
+        // 未排序、或两个系列都没有版本时，系列间按版本名排
+        if (!sortValue || !itemA.children.length) {
+          return compareName(itemA.series.name, itemB.series.name);
+        }
+        // 系列间按各自最新的一条排
+        return (
+          sortDirection * (Math.max(...itemA.children.map(getSortTime)) - Math.max(...itemB.children.map(getSortTime)))
+        );
+      });
+  });
+
+  // 系列行与版本行共存于同一份表格数据，uuid 用不同前缀保证 row-key 稳定且不冲突
+  const tableData = computed<TableRow[]>(() =>
+    sortedSeriesTree.value.flatMap((item) => {
+      const seriesRow: SeriesRow = {
+        rowType: 'series',
+        series: item.series,
+        uuid: `series-${item.series.id}`,
+        versionCount: versionCountMap.value[item.series.id] || 0,
+      };
+      return collapseIdSet.value.has(item.series.id) ? [seriesRow] : [seriesRow, ...item.children];
+    }),
+  );
+
+  const { tableColumnFilter: tableFilter } = useVersionFilter(computed(() => props.dbVersionList));
+
   const enableTips = `${t('启用：所有场景均可使用，如：部署、升级')}\n${t('停用：存量集群替换不受影响，其它场景不可使用。注意：停用将自动清除推荐')}`;
 
-  let localTableData: DbVersion[] = [];
-  let localBeforeSortTableData: DbVersion[] = [];
-  let filterPaylod: { filter?: Record<string, any> } = { filter: {} };
-
-  const fetchTableData = () => {
-    runGetDbVersionList({
-      version_series__in: props.versionSeriesList.map((item) => item.id).join(','),
-    });
-  };
-
-  watch(
-    () => props.versionSeriesList,
-    () => {
-      if (props.versionSeriesList.length > 0) {
-        fetchTableData();
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  // 筛选值本来就是搜索栏给过来的时候不再回写搜索栏，否则两边会互相触发
+  let skipSearchSync = false;
 
   const parseVersionSegments = (versionStr: string): number[] =>
     versionStr.split('.').map((part) => Number.parseInt(part, 10));
@@ -438,8 +447,23 @@
     return pa.raw.localeCompare(pb.raw, undefined, { sensitivity: 'base' });
   };
 
-  const rowClassNameFn = (data: { row: DbVersion }) =>
-    data.row.enable ? 'sub-version-table-row' : 'sub-version-table-row-disabled';
+  const rowClassNameFn = ({ row }: { row: TableRow }) =>
+    row.rowType === 'series' || row.enable ? 'sub-version-table-row' : 'sub-version-table-row-disabled';
+
+  const hasActiveFilter = (filter: Record<string, string>) => Object.values(filter).some(Boolean);
+
+  // 多值（筛选面板勾选多项）按枚举精确命中，单值（搜索栏输入）按包含匹配
+  const checkFilterValue = (keyValue: string, value: FilterFieldValue) => {
+    if (!keyValue) {
+      return true;
+    }
+    const itemValue = value.toString();
+    if (keyValue.includes(',')) {
+      return keyValue.split(',').some((word: string) => word.includes(itemValue));
+    }
+
+    return itemValue.includes(keyValue);
+  };
 
   const handleEditVersionSeriesSuccess = () => {
     emits('refreshVersionList');
@@ -447,12 +471,11 @@
   };
 
   const handleDeleteVersionSuccess = () => {
-    fetchTableData();
+    emits('refreshDbVersionList');
     emits('refreshReleaseList');
   };
 
   const handleClearSearch = () => {
-    tableFilterValue.value = {};
     handleFilterChange({ filter: {} });
   };
 
@@ -465,126 +488,49 @@
     return versionA.localeCompare(versionB, undefined, { numeric: true, sensitivity: 'base' });
   };
 
-  const handleVersionSeriesToggle = (toggle: boolean, rowIndex: number) => {
-    const childrenList = tableData.value[rowIndex].versionSeriesInfo?.children ?? [];
-    const versionSeriesId = tableData.value[rowIndex].versionSeriesInfo!.info.id;
-    childrenList.forEach((item) => Object.assign(item, { uuid: random() }));
-    if (toggle) {
-      // 展开
+  const handleVersionSeriesToggle = (versionSeriesId: number) => {
+    if (collapseIdSet.value.has(versionSeriesId)) {
       collapseIdSet.value.delete(versionSeriesId);
-      if (childrenList.length > 0) {
-        tableData.value.splice(rowIndex + 1, 0, ...childrenList);
-      }
       return;
     }
-    // 收起
     collapseIdSet.value.add(versionSeriesId);
-    tableData.value.splice(rowIndex + 1, childrenList.length);
   };
 
-  const rowspanAndColspan = ({ colIndex, rowIndex }: { col: any; colIndex: number; rowIndex: number }) => {
-    if (tableData.value[rowIndex].versionSeriesInfo && colIndex === 0) {
+  // 系列行占满整行
+  const rowspanAndColspan = ({ colIndex, row }: { colIndex: number; row: TableRowData }) => {
+    if (row.rowType === 'series' && colIndex === 0) {
       return {
-        colspan: 9,
+        colspan: 8,
       };
     }
     return {};
   };
 
-  const handleEditDbVersion = (data: DbVersion) => {
-    const activeRawRowData = tableData.value.find((item) => item.id === data.id)!;
-    emits('editDbVersion', activeRawRowData);
-  };
-
-  // 前端实现排序
   const handleSortChange = (payload: TableSort) => {
     if (Array.isArray(payload)) {
       return;
     }
-
-    const sortChildList = (childrenList: DbVersion[]) => {
-      if (payload) {
-        childrenList.sort((a: any, b: any) => {
-          if (payload.descending) {
-            return dayjs(a[payload.sortBy]).unix() - dayjs(b[payload.sortBy]).unix();
-          }
-          return dayjs(b[payload.sortBy]).unix() - dayjs(a[payload.sortBy]).unix();
-        });
-      } else {
-        childrenList.sort((a: any, b: any) => compareName(a.name, b.name));
-      }
-    };
-
-    const latestTableData = Object.keys(filterPaylod.filter!).length > 0 ? localBeforeSortTableData : tableData.value;
-    const newTableData = _.cloneDeep(latestTableData);
-    for (let i = 0; i < newTableData.length; i++) {
-      const item = newTableData[i];
-      if (item.versionSeriesInfo) {
-        if (collapseIdSet.value.has(item.versionSeriesInfo.info.id)) {
-          sortChildList(item.versionSeriesInfo.children);
-          continue;
-        }
-
-        if (item.versionSeriesInfo.children.length > 1) {
-          const childrenList = newTableData.slice(i + 1, i + item.versionSeriesInfo.children.length + 1);
-          sortChildList(childrenList);
-          newTableData.splice(i + 1, childrenList.length, ...childrenList);
-          i += childrenList.length;
-        }
-      }
-    }
-    tableData.value = newTableData;
+    tableSortValue.value = payload;
   };
 
-  // 前端实现过滤筛选
-  const handleFilterChange = (payload: typeof filterPaylod) => {
-    const newPayload = _.cloneDeep(payload);
-    if (newPayload.filter) {
-      const checkFilterValue = (keyValue: string | string[], value: any) => {
-        const itemValue = value.toString();
-        if (Array.isArray(keyValue)) {
-          if (keyValue.length === 0) {
-            return true;
-          }
-
-          const keyValueStrList = keyValue.map((item) => item.toString());
-          return keyValueStrList.includes(itemValue);
-        }
-
-        if (keyValue.includes(',')) {
-          return keyValue.split(',').some((word: string) => word.includes(itemValue));
-        }
-
-        return keyValue ? itemValue.includes(keyValue) : true;
-      };
-      emits('filterValueChange', newPayload.filter);
-      if (newPayload.filter.enable === '') {
-        newPayload.filter.enable = [];
-      }
-      tableFilterValue.value = newPayload.filter;
-      filterPaylod = newPayload;
-      const newTableData = _.cloneDeep(localTableData);
-      tableData.value = newTableData.filter((item) => {
-        const filterKeys = Object.keys(newPayload.filter!);
-        if (filterKeys.length > 0) {
-          return filterKeys.every((key) => {
-            const keyValue = newPayload.filter![key];
-            const itemValue = item[key as keyof typeof item] as any;
-            if (item.versionSeriesInfo) {
-              // eslint-disable-next-line no-param-reassign
-              item.versionSeriesInfo.children = item.versionSeriesInfo.children.filter((child) => {
-                const childItemValue = child[key as keyof typeof child] as any;
-                return checkFilterValue(keyValue, childItemValue);
-              });
-              return item.versionSeriesInfo.children.length > 0;
-            }
-            return !collapseIdSet.value.has(item.version_series) && checkFilterValue(keyValue, itemValue);
-          });
-        } else {
-          return item.versionSeriesInfo || (!item.versionSeriesInfo && !collapseIdSet.value.has(item.version_series));
-        }
-      });
-      localBeforeSortTableData = _.cloneDeep(tableData.value);
+  const handleFilterChange = (payload: { filter?: Record<string, unknown> }) => {
+    if (!payload.filter) {
+      return;
+    }
+    // 筛选面板与搜索栏都按逗号分隔字符串取值，表格重置多选列时会给回数组，统一归一
+    const newFilter = _.mapValues(payload.filter, (value) =>
+      Array.isArray(value) ? value.join(',') : String(value ?? ''),
+    );
+    if (skipSearchSync) {
+      skipSearchSync = false;
+    } else {
+      emits('filterValueChange', newFilter);
+    }
+    const isFilterChanged = !_.isEqual(tableFilterValue.value, newFilter);
+    tableFilterValue.value = newFilter;
+    // 命中的版本可能落在已收起的系列里，筛选条件变化时把命中的系列展开
+    if (isFilterChanged && isSearching.value) {
+      filteredSeriesTree.value.forEach((item) => collapseIdSet.value.delete(item.series.id));
     }
   };
 
@@ -603,40 +549,14 @@
 
   defineExpose<Exposes>({
     clearFilter: handleClearSearch,
-    filterSearch: handleFilterChange,
-    refresh: () => {
-      fetchTableData();
-    },
-    setFilterValue: (value: Record<string, any>) => {
-      tableFilterValue.value = value;
+    setFilterValue: (value: Record<string, string>) => {
+      skipSearchSync = true;
       handleFilterChange({ filter: value });
     },
   });
 </script>
 <style lang="less">
   .sub-version-table-main {
-    width: 100%;
-
-    .version-name-table-cell {
-      max-width: 500px;
-      overflow: hidden;
-      box-sizing: border-box;
-
-      &[colspan] {
-        max-width: none;
-      }
-    }
-
-    .version-packages-table-cell {
-      max-width: 600px;
-      overflow: hidden;
-      box-sizing: border-box;
-
-      &[colspan] {
-        max-width: none;
-      }
-    }
-
     .t-table__header {
       th {
         background-color: #f0f1f5 !important;
@@ -645,10 +565,6 @@
           background-color: #dcdee5 !important;
         }
       }
-
-      // .t-table__th-full_version {
-      //   padding-left: 32px !important;
-      // }
 
       .version-file-column-title {
         .tip-icon {
@@ -670,17 +586,22 @@
     .t-table__td-first-col {
       padding: 0 !important;
 
-      .version-series-collapse-header {
+      .version-series-header {
+        display: flex;
+        align-items: center;
         padding: 7px 12px;
+        cursor: pointer;
         background: #fafbfd;
         border-radius: 2px;
 
-        .db-card-content {
-          display: none;
-        }
-
-        .db-card-icon {
+        .collapse-icon {
+          margin-right: 8px;
           font-size: 12px;
+          transition: transform 0.3s;
+
+          &.is-collapse {
+            transform: rotate(-90deg);
+          }
         }
 
         .title-main {
@@ -701,33 +622,10 @@
         }
       }
 
-      // 让 .tags-main 与 .set-recommended 在同一格子中堆叠，
-      // 列宽始终按更宽的按钮预留，避免 hover 切换时列宽抖动
-      &.text-overflow-layout {
-        .layout-append {
-          display: grid;
-          align-items: center;
-
-          > * {
-            grid-column: 1;
-            grid-row: 1;
-          }
-        }
-      }
-
-      .version-display-name {
-        margin-right: 6px;
-        overflow: hidden;
-        color: #3a84ff;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        flex: 1;
-        cursor: pointer;
-      }
-
       .tags-main {
         display: flex;
         align-items: center;
+        margin-left: 8px;
 
         .column-describe-tip {
           margin-left: 6px;
@@ -752,28 +650,6 @@
 
         &.is-disabled {
           visibility: hidden !important;
-        }
-      }
-    }
-
-    .os-limit-column {
-      display: flex;
-
-      & ~ .os-limit-column {
-        margin-top: 4px;
-      }
-
-      .version-file-name {
-        margin-right: 6px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        flex: 1;
-      }
-
-      .version-tags {
-        .bk-tag {
-          cursor: pointer;
         }
       }
     }

@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <BkSideslider
     v-model:is-show="isShow"
@@ -104,12 +117,6 @@
           :label="t('版本文件')"
           property="files"
           :required="!isEdit">
-          <!-- <BkAlert
-            v-if="isApplied"
-            class="mb-8"
-            closable
-            theme="warning"
-            :title="t('该版本已被应用，已上传的版本文件不可删除，仅支持追加')" /> -->
           <BkAlert
             class="mb-8"
             closable
@@ -187,6 +194,8 @@
 
   import { useBeforeClose } from '@hooks';
 
+  import { CHINESE_CHAR_REG, IDENTIFIER_NAME_REG, isPureMysqlPkgType } from '@views/version-files/v2/common';
+
   import { messageSuccess } from '@utils';
 
   import VersionFiles from './components/version-files/Index.vue';
@@ -257,7 +266,7 @@
     name: false,
   });
 
-  const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
+  const isPureMysql = computed(() => isPureMysqlPkgType(props.dbType, props.pkgType));
 
   const fullVersionPlaceholder = computed(() =>
     props.versionNum === 6 ? t('6 段点分数字，如 8.0.3.1.0.0') : t('3 段点分数字，如 5.0.14'),
@@ -324,12 +333,12 @@
       {
         message: t('请勿使用中文'),
         trigger: 'blur',
-        validator: (value: string) => !/[\u4e00-\u9fa5]/.test(value),
+        validator: (value: string) => !CHINESE_CHAR_REG.test(value),
       },
       {
         message: t('格式不正确，请勿使用空格或特殊符号'),
         trigger: 'blur',
-        validator: (value: string) => /^[A-Za-z0-9_.-]+$/.test(value),
+        validator: (value: string) => IDENTIFIER_NAME_REG.test(value),
       },
       {
         message: t('该版本名已存在'),
@@ -392,7 +401,7 @@
     },
   });
 
-  const { loading: batchDeletePackagesLoading, run: runBatchDeletePackages } = useRequest(batchDeletePackages, {
+  const { loading: batchDeletePackagesLoading, runAsync: runBatchDeletePackages } = useRequest(batchDeletePackages, {
     manual: true,
   });
 
@@ -414,7 +423,7 @@
   watch(
     confirmDisabled,
     () => {
-      window.changeConfirm = confirmDisabled.value;
+      window.changeConfirm = !confirmDisabled.value;
     },
     {
       immediate: true,
@@ -442,48 +451,49 @@
       !result && !!formModel.value[property as keyof typeof formModel.value];
   };
 
-  const handleSubmit = () => {
-    formRef.value.validate().then(() => {
-      const commonParams = {
-        description: formModel.value.description,
-        distribution_snapshot: {
-          db_type: props.dbType,
-          engine: props.releaseVersion!.engine,
-          id: props.releaseVersion!.id,
-          name: props.releaseVersion!.name,
-          pkg_type: props.pkgType,
-        },
-        enable: formModel.value.enable,
-        full_version: formModel.value.full_version,
-        name: formModel.value.name,
-        phase: formModel.value.phase,
-        version_series: formModel.value.version_series,
-      };
-      if (props.isEdit) {
-        const value = versionFilesRef.value!.getValue()!;
-        const versionFilesInfo = typeof value === 'string' ? [] : value;
-        const newPackageIds = versionFilesInfo.reduce<number[]>((results, item) => {
-          if (item.id) {
-            results.push(item.id);
-          }
-          return results;
-        }, []);
-        const oldPackageIds = props.dbVersion!.packages.map((item) => item.id);
-        const packageIdsToDelete = _.difference(oldPackageIds, newPackageIds);
-        if (packageIdsToDelete.length > 0) {
-          runBatchDeletePackages({ package_ids: packageIdsToDelete });
-        }
-        runUpdateDbVersion({
-          ...commonParams,
-          id: props.dbVersion!.id,
-          recommend: props.dbVersion!.recommend,
-        });
-      } else {
-        runCreateDbVersion({
-          ...commonParams,
-          recommend: false,
-        });
+  const handleSubmit = async () => {
+    await formRef.value.validate();
+    const commonParams = {
+      description: formModel.value.description,
+      distribution_snapshot: {
+        db_type: props.dbType,
+        engine: props.releaseVersion!.engine,
+        id: props.releaseVersion!.id,
+        name: props.releaseVersion!.name,
+        pkg_type: props.pkgType,
+      },
+      enable: formModel.value.enable,
+      full_version: formModel.value.full_version,
+      name: formModel.value.name,
+      phase: formModel.value.phase,
+      version_series: formModel.value.version_series,
+    };
+    if (!props.isEdit) {
+      runCreateDbVersion({
+        ...commonParams,
+        recommend: false,
+      });
+      return;
+    }
+
+    const value = versionFilesRef.value!.getValue()!;
+    const versionFilesInfo = typeof value === 'string' ? [] : value;
+    const newPackageIds = versionFilesInfo.reduce<number[]>((results, item) => {
+      if (item.id) {
+        results.push(item.id);
       }
+      return results;
+    }, []);
+    const oldPackageIds = props.dbVersion!.packages.map((item) => item.id);
+    const packageIdsToDelete = _.difference(oldPackageIds, newPackageIds);
+    // 先等文件删除完成再更新版本，避免删除失败时版本已经改掉、文件却还挂在上面
+    if (packageIdsToDelete.length > 0) {
+      await runBatchDeletePackages({ package_ids: packageIdsToDelete });
+    }
+    runUpdateDbVersion({
+      ...commonParams,
+      id: props.dbVersion!.id,
+      recommend: props.dbVersion!.recommend,
     });
   };
 
