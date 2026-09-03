@@ -1,17 +1,25 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
-  <BkPopConfirm
-    :confirm-config="{
-      theme: 'danger',
-      loading: deleteReleaseVersionLoading,
-    }"
+  <DbPopconfirm
+    :confirm-handler="handleDeleteRelease"
     :confirm-text="t('删除')"
     :content="t('删除操作无法撤回，请谨慎操作！')"
     :disabled="data?.isDeleteDisabled"
     placement="bottom"
-    :title="t('确认删除该发型版？')"
-    trigger="click"
-    width="280"
-    @confirm="handleDeleteRelease">
+    theme="danger"
+    :title="t('确认删除该发行版？')">
     <AuthTemplate
       action-id="package_manage"
       :permission="data?.permission.package_manage"
@@ -28,7 +36,7 @@
         type="delete"
         @click.stop />
     </AuthTemplate>
-  </BkPopConfirm>
+  </DbPopconfirm>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -54,7 +62,7 @@
 
   const { t } = useI18n();
 
-  const { loading: deleteReleaseVersionLoading, run: runDeleteReleaseVersion } = useRequest(deleteReleaseVersion, {
+  const { runAsync: runDeleteReleaseVersion } = useRequest(deleteReleaseVersion, {
     manual: true,
     onSuccess() {
       messageSuccess(t('操作成功'));
@@ -62,11 +70,11 @@
     },
   });
 
-  const handleDeleteRelease = () => {
+  // 返回 Promise 交给 DbPopconfirm，由它接管确认按钮 loading 与请求成功后的关闭
+  const handleDeleteRelease = () =>
     runDeleteReleaseVersion({
       db_type: props.dbType,
       id: props.data!.id,
       pkg_type: props.pkgType,
     });
-  };
 </script>
