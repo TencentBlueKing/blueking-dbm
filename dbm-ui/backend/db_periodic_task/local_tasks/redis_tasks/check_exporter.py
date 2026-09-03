@@ -34,9 +34,10 @@ from backend.db_report.repo.task_record_repo import get_report_day_from_time
 
 logger = logging.getLogger("root")
 
-# redis_up 指标名与 PromQL 片段（按 cluster_domain / ip 列表查询共用）
+# *_up 指标名与 PromQL 片段（按 cluster_domain / ip 列表查询共用）
+# 必须用 sum 保留 0/1 原值；count 只统计 series 条数，会把 up=0 也当成 1
 _REDIS_UP_METRICS_NAME = "bkmonitor:exporter_dbm_redis_exporter:redis_up"
-_REDIS_UP_COUNT_BY = "count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)"
+_UP_METRIC_SUM_BY = "sum by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)"
 
 
 def _metric_series_for_addr(metric_val: dict | None, addr: str) -> list:
@@ -78,17 +79,52 @@ def _first_instance_role_for_addr(metric_val: dict | None, addr: str) -> str:
     return items[0].get("instance_role", "redis")
 
 
+def _storage_role_kind(instance_role: str) -> str:
+    """把 instance_role 归成 master / slave；其它角色忽略。"""
+    role = (instance_role or "").lower()
+    if "slave" in role:
+        return "slave"
+    if "master" in role:
+        return "master"
+    return ""
+
+
+def _mixed_role_ips(metric_val: dict | None) -> set[str]:
+    """同一 IP 的 redis_up 同时出现 master 与 slave 标签时，该主机视为 mixed_role。"""
+    if not metric_val:
+        return set()
+    kinds_by_ip: dict[str, set[str]] = defaultdict(set)
+    for addr in metric_val:
+        ip = addr.split(":")[0]
+        for series in _metric_series_for_addr(metric_val, addr):
+            kind = _storage_role_kind(series.get("instance_role", ""))
+            if kind:
+                kinds_by_ip[ip].add(kind)
+    return {ip for ip, kinds in kinds_by_ip.items() if "master" in kinds and "slave" in kinds}
+
+
 def _promql_redis_up_by_cluster(cluster_domain: str) -> str:
-    return f"""{_REDIS_UP_COUNT_BY}
+    return f"""{_UP_METRIC_SUM_BY}
         ({_REDIS_UP_METRICS_NAME}{{cluster_domain="{cluster_domain}"}}
         ) """
 
 
 def _promql_redis_up_by_iplist(iplist: list) -> str:
     pattern = build_promql_regex_pattern(iplist)
-    return f"""{_REDIS_UP_COUNT_BY}
+    return f"""{_UP_METRIC_SUM_BY}
         ({_REDIS_UP_METRICS_NAME}{{bk_target_ip=~"{pattern}"}}
         ) """
+
+
+def _promql_proxy_up_by_cluster(metrics_name: str, cluster_domain: str) -> str:
+    return f"""{_UP_METRIC_SUM_BY}
+        ({metrics_name}{{cluster_domain="{cluster_domain}"}})"""
+
+
+def _promql_proxy_up_by_iplist(metrics_name: str, iplist: list) -> str:
+    pattern = build_promql_regex_pattern(iplist)
+    return f"""{_UP_METRIC_SUM_BY}
+        ({metrics_name}{{bk_target_ip=~"{pattern}"}}) """
 
 
 def _metric_query_window() -> tuple[datetime.datetime, datetime.datetime]:
@@ -243,7 +279,7 @@ class CheckRedisUpMetricTask:
         """
         集群巡检主流程：
         1. 前置跳过（temporary / 无 storage / 无 running）
-        2. 检查 storage（down / duplicate / redundant / redundant2）
+        2. 检查 storage（down / mixed_role / duplicate / redundant / redundant2）
         3. 有 proxy 时再检查 proxy；proxy 跳过仅记 WARNING，不影响 storage 结果
         """
         skipped, reason = self.is_skip_check(cluster)
@@ -298,9 +334,10 @@ class CheckRedisUpMetricTask:
         self.check_proxy(cluster, proxy_nodes, proxy_type, cluster_report)
 
     def check_storage(self, cluster: Cluster, all_node: list, cluster_report: RedisClusterReport):
-        """storage：比对 meta 节点与 redis_up，再补 redundant / redundant2。"""
+        """storage：比对 meta 节点与 redis_up，再补 mixed_role / redundant / redundant2。"""
         metric_val = fetch_metric_by_cluster(cluster.immute_domain)
         msg_list = self._check_nodes_metric(all_node, metric_val, "")
+        self._append_storage_mixed_role_msgs(msg_list, metric_val)
         self._append_storage_redundant_msgs(msg_list, cluster, all_node, metric_val)
         self._generate_report_records(msg_list, cluster_report, "storage")
 
@@ -316,7 +353,8 @@ class CheckRedisUpMetricTask:
     def _check_nodes_metric(self, node_list: list, metric_val: dict | None, exporter_prefix: str) -> defaultdict:
         """
         按 meta 节点逐个比对 metric：
-        - 无数据或 value=0 且 running → *_exporter_down
+        - 无数据、任一 series 的 *_up 为 0、或合计为 0，且 running → *_exporter_down
+        - storage：同一主机同时出现 master/slave 标签 → redis_exporter_mixed_role
         - value>1 → *_exporter_duplicate
         - 其余 → ok
         exporter_prefix 为空时，按节点 instance_role 决定前缀。
@@ -324,16 +362,21 @@ class CheckRedisUpMetricTask:
         msg_list = defaultdict(list)
         metric_val = metric_val or {}
         fixed_prefix = exporter_prefix or None
+        mixed_ips = set() if exporter_prefix else _mixed_role_ips(metric_val)
         for node in node_list:
             addr = _node_to_addr(node)
+            items = _metric_series_for_addr(metric_val, addr)
             item = _aggregate_metric_for_addr(metric_val, addr)
             prefix = fixed_prefix or self._instance_role_to_exporter_prefix(node.get("instance_role", ""))
-            if item is None or item["value"] == 0:
+            has_up_zero = any(float(x.get("value", 0) or 0) == 0 for x in items)
+            if item is None or has_up_zero or item["value"] == 0:
                 if node.get("status") == InstanceStatus.RUNNING.value:
                     msg = f"{prefix}_exporter_down"
                 else:
                     # 非 running 无上报视为正常
                     msg = "ok"
+            elif node.get("ip") in mixed_ips:
+                msg = "redis_exporter_mixed_role"
             elif item["value"] > 1:
                 msg = f"{prefix}_exporter_duplicate"
             else:
@@ -379,6 +422,17 @@ class CheckRedisUpMetricTask:
                 continue
             prefix = prefix_for_addr(addr)
             msg_list[f"{prefix}_exporter_redundant"].append(_addr_to_node(addr))
+
+    def _append_storage_mixed_role_msgs(self, msg_list: defaultdict, metric_val: dict | None) -> None:
+        """metric 中同一 IP 同时带 master/slave 标签的地址 → redis_exporter_mixed_role（含 meta 外地址）。"""
+        mixed_ips = _mixed_role_ips(metric_val)
+        if not mixed_ips or not metric_val:
+            return
+        known = {_node_to_addr(node) for node in msg_list.get("redis_exporter_mixed_role", [])}
+        for addr in metric_val:
+            if addr.split(":")[0] not in mixed_ips or addr in known:
+                continue
+            msg_list["redis_exporter_mixed_role"].append(_addr_to_node(addr))
 
     def _append_storage_redundant_msgs(
         self,
@@ -589,10 +643,7 @@ def fetch_proxy_metric_by_cluster(cluster: Cluster) -> dict | None:
         return {}
     logger.info("fetch_proxy_metric_by_cluster cluster : {} ".format(cluster.immute_domain))
     start_time, end_time = _metric_query_window()
-    promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
-        ({metrics_name}{{cluster_domain="{cluster_domain}"}})""".format(
-        metrics_name=metrics_name, cluster_domain=cluster.immute_domain
-    )
+    promql = _promql_proxy_up_by_cluster(metrics_name, cluster.immute_domain)
     return _instant_query_metric(start_time, end_time, promql)
 
 
@@ -605,10 +656,7 @@ def fetch_proxy_metric_by_iplist(cluster_type: str, iplist: list) -> dict | None
     if not metrics_name:
         return {}
     start_time, end_time = _metric_query_window()
-    promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
-        ({metrics_name}{{bk_target_ip=~"{iplist_str}"}}) """.format(
-        metrics_name=metrics_name, iplist_str=build_promql_regex_pattern(iplist)
-    )
+    promql = _promql_proxy_up_by_iplist(metrics_name, iplist)
     return _instant_query_metric(start_time, end_time, promql)
 
 
