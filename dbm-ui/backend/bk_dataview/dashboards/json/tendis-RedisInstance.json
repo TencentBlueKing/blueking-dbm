@@ -109,7 +109,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -132,53 +131,17 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
               "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "usage",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.cpu_summary",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -255,7 +218,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -278,53 +240,17 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
               "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "pct_used",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.mem",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -401,7 +327,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -424,53 +349,17 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip out",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_sent",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip out",
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             },
             {
@@ -479,54 +368,18 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip in",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_recv",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip in",
+              "query_configs": [],
               "refId": "B",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -603,7 +456,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -627,255 +479,14 @@
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": false,
-              "expressionList": [
-                {
-                  "active": true,
-                  "alias": "",
-                  "expression": "100 * (a + b) / c / (96 * 1024 * 1024) and d <= 2 or (100 * (e + f) / g / (48 * 1024 * 1024) and h > 2)",
-                  "functions": []
-                }
-              ],
+              "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
               "mode": "code",
               "module": [],
               "promqlAlias": "$tag_ip 流量",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": false,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_recv",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "proxy"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_sent",
-                  "refId": "b",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "c",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": []
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "d",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": []
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_recv",
-                  "refId": "e",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_sent",
-                  "refId": "f",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "g",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": []
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "h",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": []
-                }
-              ],
+              "query_configs": [],
               "refId": "A",
               "source": " (\n    (\n      max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=\"redis_master\"}[1m]))\n      +\n      max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=\"redis_master\"}[1m]))\n    ) * 100\n  )\n  /\n  # 2. 计算分母：(去重后的核心数 * 对应基准带宽)\n  (\n    # 逻辑 A：核心数 <= 2，用 96M 基准\n    (\n      count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=\"redis_master\"})) <= 2\n    ) * (96 * 1024 * 1024)\n    or\n    # 逻辑 B：核心数 > 2，用 48M 基准\n    (\n      count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=\"redis_master\"})) > 2\n    ) * (48 * 1024 * 1024)\n  )\n",
               "step": "2m",
@@ -887,255 +498,15 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "expressionList": [
-                {
-                  "active": true,
-                  "alias": "",
-                  "expression": "100 * (a + b) / c / (96 * 1024 * 1024) and d <= 2 or (100 * (e + f) / g / (48 * 1024 * 1024) and h > 2)",
-                  "functions": []
-                }
-              ],
+              "enableDownSampling": true,
+              "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
               "mode": "code",
               "module": [],
               "promqlAlias": "$tag_ip 包量",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": false,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_recv",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "proxy"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_sent",
-                  "refId": "b",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "c",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": []
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "d",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": []
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_recv",
-                  "refId": "e",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_sent",
-                  "refId": "f",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "device_name",
-                      "method": "eq",
-                      "value": [
-                        "eth1"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "g",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": []
-                },
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip",
-                    "bk_target_cloud_id"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "COUNT",
-                  "metric_field": "usage",
-                  "refId": "h",
-                  "result_table_id": "dbm_system.cpu_detail",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": []
-                }
-              ],
+              "query_configs": [],
               "refId": "B",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 150000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 90000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) > 2)",
               "step": "2m",
@@ -1215,7 +586,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -1243,127 +613,13 @@
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip 物理层丢弃",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [
-                    {
-                      "id": "irate",
-                      "params": [
-                        {
-                          "id": "window",
-                          "value": "2m"
-                        }
-                      ]
-                    }
-                  ],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "overruns",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "B",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
-              "type": "range"
-            },
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
-              },
-              "enableDownSampling": true,
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip 网卡冲突包",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [
-                    {
-                      "id": "irate",
-                      "params": [
-                        {
-                          "id": "window",
-                          "value": "2m"
-                        }
-                      ]
-                    }
-                  ],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "collisions",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip 物理层丢弃",
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) > 0",
+              "step": "2m",
               "type": "range"
             },
             {
@@ -1377,60 +633,33 @@
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip 网卡丢弃包",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [
-                    {
-                      "id": "irate",
-                      "params": [
-                        {
-                          "id": "window",
-                          "value": "2m"
-                        }
-                      ]
-                    }
-                  ],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "dropped",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip 网卡冲突包",
+              "query_configs": [],
+              "refId": "B",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+              "step": "2m",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_ip 网卡丢弃包",
+              "query_configs": [],
               "refId": "C",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) > 0",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -1507,7 +736,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -1530,53 +758,17 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip out",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_packets_sent",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip out",
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             },
             {
@@ -1585,54 +777,18 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip in",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "speed_packets_recv",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.net",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip in",
+              "query_configs": [],
               "refId": "B",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -1708,7 +864,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -1731,54 +886,18 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip 写",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "wkb_s",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.io",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip 写",
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:wkb_s{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             },
             {
@@ -1787,54 +906,18 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip 读",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "rkb_s",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.io",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "promqlAlias": "$tag_ip 读",
+              "query_configs": [],
               "refId": "B",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:rkb_s{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -1910,7 +993,6 @@
             "legend": {
               "calcs": [
                 "lastNotNull",
-                "mean",
                 "max"
               ],
               "displayMode": "table",
@@ -1933,54 +1015,18 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
               "promqlAlias": "$tag_ip",
-              "query_configs": [
-                {
-                  "alias": "$tag_ip",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "ip"
-                  ],
-                  "interval": 60,
-                  "interval_unit": "s",
-                  "method": "MAX",
-                  "metric_field": "util",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.io",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    },
-                    {
-                      "condition": "and",
-                      "key": "instance_role",
-                      "method": "eq",
-                      "value": [
-                        "redis_master"
-                      ]
-                    }
-                  ]
-                }
-              ],
+              "query_configs": [],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:util{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -2070,63 +1116,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "MAX",
-              "metric_field": "redis_cpu_user_seconds_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])))",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2196,51 +1196,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "MAX",
-              "metric_field": "redis_connected_clients",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "source": "max (max_over_time(bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2313,56 +1279,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_commands_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2437,38 +1357,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "count_without_time",
-              "metric_field": "redis_up",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_redis_exporter:redis_up{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2539,53 +1431,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "$tag_redis_version",
-          "query_configs": [
-            {
-              "alias": "$tag_bk_target_cloud_id",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "bk_target_cloud_id"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "redis_instance_info",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "promqlAlias": "$tag_bk_target_cloud_id",
+          "query_configs": [],
           "refId": "A",
-          "source": "max by(redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "1m",
+          "source": "max by (bk_target_cloud_id) (bkmonitor:exporter_dbm_redis_exporter:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2656,51 +1512,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_rss_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "1m",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2771,51 +1593,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "total",
-              "refId": "a",
-              "result_table_id": "dbm_system.mem",
-              "result_table_label": "os",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -2886,54 +1674,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "$tag_redis_version",
-          "query_configs": [
-            {
-              "alias": "$tag_redis_version",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "redis_version",
-                "maxmemory_policy"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "redis_instance_info",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "max by(redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "1m",
+          "source": "max by (redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3004,53 +1755,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "bk_target_ip"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "redis_uptime_in_seconds",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "avg by (target) (avg_over_time(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-          "step": "1m",
+          "source": "avg by (bk_target_ip) (bkmonitor:exporter_dbm_redis_exporter:redis_uptime_in_seconds{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3120,51 +1835,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "MAX",
-              "metric_field": "redis_config_maxclients",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "source": "max (max_over_time(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxclients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3235,51 +1916,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_db_keys",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "1m",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3361,43 +2008,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "MAX",
-              "metric_field": "redis_master_link_up",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_up{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "1m",
+          "source": "max (max_over_time(bkmonitor:exporter_dbm_redis_exporter:redis_master_link_up{cluster_domain=\"$cluster_domain\"}[1m]))",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3472,97 +2093,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "",
-              "expression": "max(a/b)",
-              "functions": []
-            }
-          ],
+          "enableDownSampling": true,
+          "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_config_maxmemory",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "max(sum by (instance) (sum_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / sum by (instance) (sum_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3633,51 +2175,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "1m",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3748,52 +2256,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "redis_config_maxmemory",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
-          "source": "min(min_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-          "step": "1m",
+          "source": "avg(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -3903,55 +2377,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "$tag_cmd",
-          "query_configs": [
-            {
-              "alias": "$tag_cmd",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "cmd"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_commands_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
@@ -3963,6 +2389,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -3970,54 +2397,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "total",
-          "query_configs": [
-            {
-              "alias": "$tag_cmd",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "cmd"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_commands_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "B",
           "source": "sum (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
@@ -4114,7 +2494,7 @@
         ],
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "pluginVersion": "9.1.0",
@@ -4125,50 +2505,14 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "memory_rss_used",
-          "query_configs": [
-            {
-              "alias": "memory_rss_used",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance_host"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_rss_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "sum by (cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
@@ -4180,6 +2524,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -4187,44 +2532,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "memory_used",
-          "query_configs": [
-            {
-              "alias": "memory_used_rss",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "cluster_domain"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "B",
           "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
@@ -4327,116 +2635,14 @@
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "cpu",
-              "expression": "a+b",
-              "functions": []
-            }
-          ],
+          "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "user+sys",
-          "query_configs": [
-            {
-              "alias": "$tag_instance user",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_cpu_user_seconds_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "$tag_instance sys",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_cpu_sys_seconds_total",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) + sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
           "step": "2m",
@@ -4531,7 +2737,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "pluginVersion": "9.1.0",
@@ -4542,92 +2748,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "not-expiring",
-              "expression": "a-b",
-              "functions": []
-            }
-          ],
+          "enableDownSampling": true,
+          "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "$tag_ip",
-          "query_configs": [
-            {
-              "alias": "Total",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_db_keys",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "expiring",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_db_keys_expiring",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "promqlAlias": "not-expiring",
+          "query_configs": [],
           "refId": "A",
-          "source": "sum by(ip) (sum_over_time(bkmonitor:exporter_redis_exporter_v1450:group1:redis_memory_used_bytes{cluster_domain=\"$cluster_name\"}[1m]))",
-          "step": "1m",
+          "source": "(sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))-(sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -4636,62 +2767,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "redis_expired_keys_total",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_expired_keys_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "promqlAlias": "redis_expired_keys_total",
+          "query_configs": [],
           "refId": "B",
-          "source": "",
-          "step": "1m",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_expired_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -4700,62 +2787,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "redis_evicted_keys_total",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": 300,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_evicted_keys_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "promqlAlias": "redis_evicted_keys_total",
+          "query_configs": [],
           "refId": "C",
-          "source": "",
-          "step": "1m",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_evicted_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -4861,102 +2904,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "$tag_instance curr_conn",
-          "query_configs": [
-            {
-              "alias": "$tag_instance clients",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_connected_clients",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "$tag_instance maxclients",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_config_maxclients",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
           "step": "2m",
@@ -4976,102 +2924,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "$tag_instance maxclient",
-          "query_configs": [
-            {
-              "alias": "$tag_instance clients",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_connected_clients",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "$tag_instance maxclients",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_config_maxclients",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "B",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxclients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
           "step": "2m",
@@ -5091,102 +2944,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "$tag_instance new_conn",
-          "query_configs": [
-            {
-              "alias": "$tag_instance clients",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_connected_clients",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "$tag_instance maxclients",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_config_maxclients",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "C",
           "source": "avg(irate(bkmonitor:exporter_dbm_redis_exporter:redis_connections_received_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) by (instance)",
           "step": "2m",
@@ -5287,62 +3045,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "Hit",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_keyspace_hits_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "1m",
+          "promqlAlias": "Hit",
+          "query_configs": [],
+          "refId": "A",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_hits_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -5351,62 +3065,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "Miss",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_keyspace_misses_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": "1m",
+          "promqlAlias": "Miss",
+          "query_configs": [],
+          "refId": "B",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_misses_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -5505,109 +3175,15 @@
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "$tag_cmd",
-              "expression": "max(1000000*(a/b ) > 10 ) by (cmd)",
-              "functions": []
-            }
-          ],
+          "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "$tag_cmd",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "cmd"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "redis_commands_duration_seconds_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "cmd"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "redis_commands_total",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
+          "query_configs": [],
+          "refId": "A",
           "source": "max by (cmd) (1e+06 * (max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) / max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))) )",
           "step": "2m",
           "type": "range"
@@ -5707,64 +3283,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "$tag_instance",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_master_repl_offset",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "1m",
+          "promqlAlias": "$tag_instance",
+          "query_configs": [],
+          "refId": "A",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_master_repl_offset{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -5862,64 +3392,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "$tag_instance in",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_net_input_bytes_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "1m",
+          "promqlAlias": "$tag_instance in",
+          "query_configs": [],
+          "refId": "A",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_input_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -5928,64 +3412,18 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "$tag_instance out",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_net_output_bytes_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": "1m",
+          "promqlAlias": "$tag_instance out",
+          "query_configs": [],
+          "refId": "B",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_output_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -6088,43 +3526,13 @@
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "$tag_instance",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "MAX",
-              "metric_field": "redis_master_link_up",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "1m",
+          "promqlAlias": "$tag_instance",
+          "query_configs": [],
+          "refId": "A",
+          "source": "max by (instance) (max_over_time(bkmonitor:exporter_dbm_redis_exporter:redis_master_link_up{cluster_domain=\"$cluster_domain\"}[1m]))",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -6224,6 +3632,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6231,37 +3640,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "total",
-              "refId": "a",
-              "result_table_id": "dbm_system.mem",
-              "result_table_label": "os",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "avg(avg_over_time(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]) ) by (ip,instance_role)",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         },
         {
@@ -6270,6 +3652,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6277,37 +3660,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "total",
-              "refId": "a",
-              "result_table_id": "dbm_system.mem",
-              "result_table_label": "os",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "B",
           "source": "avg(avg_over_time(bkmonitor:dbm_system:mem:used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]) ) by (ip,instance_role)",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         },
         {
@@ -6316,6 +3672,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6323,47 +3680,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "ip",
-                "instance_role"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "pct",
-              "refId": "a",
-              "result_table_id": "dbm_system.mem",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "C",
           "source": "avg by (ip, instance_role) (avg_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         },
         {
@@ -6372,6 +3692,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6379,47 +3700,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "ip",
-                "instance_role"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "pct",
-              "refId": "a",
-              "result_table_id": "dbm_system.mem",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "D",
           "source": "count by (ip, instance_role) (avg_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -6625,51 +3909,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "host": [],
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_name"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         },
         {
@@ -6678,6 +3928,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6685,45 +3936,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_name"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "B",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         },
         {
@@ -6732,6 +3948,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6739,45 +3956,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_name"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "C",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         },
         {
@@ -6786,6 +3968,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "table",
           "hide": false,
@@ -6793,45 +3976,10 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_name"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "D",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory_policy{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})by (instance)",
-          "step": "1m",
+          "step": "2m",
           "type": "instant"
         }
       ],
@@ -6994,55 +4142,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "$tag_cmd",
-          "query_configs": [
-            {
-              "alias": "$tag_cmd",
-              "data_label": "exporter_dbm_redis_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "cmd"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_commands_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "A",
           "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_slave\"}[$__interval]))",
           "step": "2m",
@@ -7054,6 +4154,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -7061,54 +4162,7 @@
           "mode": "code",
           "module": [],
           "promqlAlias": "total",
-          "query_configs": [
-            {
-              "alias": "$tag_cmd",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "cmd"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_commands_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
+          "query_configs": [],
           "refId": "B",
           "source": "sum (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
@@ -7236,7 +4290,7 @@
   "timezone": "",
   "title": "tendis-RedisInstance",
   "uid": "RedisInstance",
-  "version": 63,
+  "version": 67,
   "weekStart": "",
   "__inputs": [
     {
