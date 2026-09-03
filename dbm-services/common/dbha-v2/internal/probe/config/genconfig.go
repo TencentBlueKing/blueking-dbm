@@ -28,6 +28,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -53,7 +54,7 @@ const defaultProbeConfigVersion = "v2.0.0"
 //
 // When admin omits payload.ProxyAdmin (e.g. older admin), mysql-proxy admin-port endpoints fall
 // back to harvester.mysql with payload.MySQL credentials so the probe degrades to legacy behavior.
-func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
+func GenProbeYAML(payload probeconfig.ProbeConfigPayload, opts ...GenOption) (string, error) {
 	byBlock := buildEndpointsFromMetadata(payload.Metadata)
 
 	mysqlEndpoints := byBlock[HarvesterBlockMySQL]
@@ -87,6 +88,13 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		logger.Warn(
 			"probe yaml has metadata but no harvester blocks; check provider harvest registration",
 		)
+	}
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		opt(&cfg)
 	}
 
 	return marshalProbeYAML(cfg)
@@ -304,24 +312,42 @@ func sortEndpointKeys(keys []endpointKey) {
 	})
 }
 
+// sortedPortStrings sorts every port slice numerically and renders it to strings. Sorting by
+// value rather than lexically keeps "80" before "3306". Duplicates are preserved: dropping them
+// would change which endpoints probe collects, which is out of scope here.
+func sortedPortStrings(byKey map[endpointKey][]int) map[endpointKey][]string {
+	out := make(map[endpointKey][]string, len(byKey))
+	for k, ports := range byKey {
+		sort.Ints(ports)
+		rendered := make([]string, 0, len(ports))
+		for _, p := range ports {
+			rendered = append(rendered, strconv.Itoa(p))
+		}
+		out[k] = rendered
+	}
+	return out
+}
+
 // groupMetadataByEndpointKey folds raw metadata items into ports / adminPorts grouped by
 // endpointKey and returns the keys sorted for deterministic yaml output. Port 0 / AdminPort 0
 // entries are dropped here so callers don't have to special-case them again.
+// Both the key order and the ports within each key are sorted, so the rendered yaml depends
+// only on the metadata contents and not on the order the items arrived in.
 func groupMetadataByEndpointKey(
 	list []probeconfig.ProbeMetadataItem,
 ) ([]endpointKey, map[endpointKey][]string, map[endpointKey][]string) {
 	keys := make(map[endpointKey]struct{})
-	portsByKey := make(map[endpointKey][]string)
-	adminPortsByKey := make(map[endpointKey][]string)
+	portsByKey := make(map[endpointKey][]int)
+	adminPortsByKey := make(map[endpointKey][]int)
 
 	for _, m := range list {
 		k := newEndpointKey(m)
 		keys[k] = struct{}{}
 		if m.Port > 0 {
-			portsByKey[k] = append(portsByKey[k], strconv.Itoa(m.Port))
+			portsByKey[k] = append(portsByKey[k], m.Port)
 		}
 		if m.AdminPort > 0 {
-			adminPortsByKey[k] = append(adminPortsByKey[k], strconv.Itoa(m.AdminPort))
+			adminPortsByKey[k] = append(adminPortsByKey[k], m.AdminPort)
 		}
 	}
 
@@ -330,7 +356,7 @@ func groupMetadataByEndpointKey(
 		ordered = append(ordered, k)
 	}
 	sortEndpointKeys(ordered)
-	return ordered, portsByKey, adminPortsByKey
+	return ordered, sortedPortStrings(portsByKey), sortedPortStrings(adminPortsByKey)
 }
 
 // buildEndpointsFromMetadata groups metadata into harvester blocks via provider
@@ -450,4 +476,291 @@ func sortEndpoints(endpoints []DbEndpointConfig) {
 		}
 		return strings.Join(endpoints[i].AdminPorts, ",") < strings.Join(endpoints[j].AdminPorts, ",")
 	})
+}
+
+// GenOption sets a field of the rendered config that does not come from the admin payload.
+type GenOption func(*probeYAML)
+
+// LocalFields returns the options that carry over every part of cfg that a rendered config
+// cannot derive from the admin payload.
+func LocalFields(cfg Configuration) []GenOption {
+	opts := []GenOption{
+		WithVersion(cfg.Version),
+		WithServiceID(cfg.ServiceID),
+		WithPidFile(cfg.PidFile),
+		WithLog(cfg.Log),
+		WithClient(cfg.Client),
+		WithAdmin(cfg.Admin),
+		WithClearPorts(cfg.ClearPorts),
+	}
+	if cfg.Reporter != nil {
+		opts = append(opts, WithBkCloudID(cfg.Reporter.BkCloudID))
+	}
+	return opts
+}
+
+// WithVersion overrides the rendered config version.
+//
+// An empty version is ignored rather than rendered: a config written before the version field
+// existed parses as empty, and echoing that back would replace the current default with
+// version: "" on the first sync.
+func WithVersion(version string) GenOption {
+	return func(cfg *probeYAML) {
+		if version == "" {
+			return
+		}
+		cfg.Version = version
+	}
+}
+
+// WithServiceID carries the probe's service identity over. Admin does not send it, so dropping
+// it would restart the runtime under an empty identity and strip it from reported data.
+func WithServiceID(serviceID string) GenOption {
+	return func(cfg *probeYAML) {
+		cfg.ServiceID = serviceID
+	}
+}
+
+// WithPidFile keeps the local pid file path. An empty value falls through to the rendered
+// default rather than blanking the key, mirroring how Parse normalizes it.
+func WithPidFile(pidFile string) GenOption {
+	return func(cfg *probeYAML) {
+		if pidFile == "" {
+			return
+		}
+		cfg.PidFile = pidFile
+	}
+}
+
+// WithLog keeps the local logging settings. A zero-valued block would render a log destination
+// of "" with level "", so it is ignored in favour of the rendered default.
+func WithLog(log LogConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if log == (LogConfig{}) {
+			return
+		}
+		cfg.Log = log
+	}
+}
+
+// WithBkCloudID keeps the cloud id the reporter tags data with. It is not part of the admin
+// payload's reporter block, so without this a rewrite would silently reset it to 0.
+func WithBkCloudID(bkCloudID int) GenOption {
+	return func(cfg *probeYAML) {
+		cfg.Reporter.BkCloudID = bkCloudID
+	}
+}
+
+// WithClient keeps the local gRPC client tuning. A zero-valued block is left out entirely
+// instead of being rendered: the pointer would not be nil, so omitempty alone would still emit
+// an empty client: {} and make every sync look like a change.
+func WithClient(client ClientConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if client == (ClientConfig{}) {
+			return
+		}
+		cfg.Client = &probeClientYAML{
+			PingTime:                     durationToYAML(client.PingTime),
+			PingTimeout:                  durationToYAML(client.PingTimeout),
+			MaxReceiveMessageSize:        client.MaxReceiveMessageSize,
+			MaxSendMessageSize:           client.MaxSendMessageSize,
+			ReceiverReconnectInterval:    durationToYAML(client.ReceiverReconnectInterval),
+			ReceiverMaxReconnectAttempts: client.ReceiverMaxReconnectAttempts,
+		}
+	}
+}
+
+// WithAdmin keeps the block describing how to reach admin. Same zero-value handling as
+// WithClient, for the same reason.
+func WithAdmin(admin AdminConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if admin.IsZero() {
+			return
+		}
+		endpoints := make([]string, len(admin.Endpoints))
+		copy(endpoints, admin.Endpoints)
+		cfg.Admin = &probeAdminYAML{
+			Endpoints:    endpoints,
+			BkCloudID:    admin.BkCloudID,
+			LocalIP:      admin.LocalIP,
+			SyncInterval: durationToYAML(admin.SyncInterval),
+		}
+	}
+}
+
+// WithClearPorts persists the operator's port exclusions and applies them to the rendered
+// harvester. An empty list is a no-op so configs that predate the field round-trip unchanged.
+//
+// Ports are sorted and deduplicated before writing so two writers that carry the same set
+// produce the same YAML bytes. Filtering happens after the payload has been rendered: that
+// keeps GenProbeYAML's signature stable and lets periodic sync reuse this option through
+// LocalFields instead of re-implementing the cut.
+func WithClearPorts(ports []int) GenOption {
+	return func(cfg *probeYAML) {
+		if len(ports) == 0 {
+			return
+		}
+		cfg.ClearPorts = normalizeClearPorts(ports)
+		dropClearedPorts(&cfg.Harvester, cfg.ClearPorts)
+	}
+}
+
+func normalizeClearPorts(ports []int) []int {
+	seen := make(map[int]struct{}, len(ports))
+	out := make([]int, 0, len(ports))
+	for _, port := range ports {
+		if port < 1 || port > 65535 {
+			continue
+		}
+		if _, ok := seen[port]; ok {
+			continue
+		}
+		seen[port] = struct{}{}
+		out = append(out, port)
+	}
+	sort.Ints(out)
+	return out
+}
+
+func dropClearedPorts(h *probeHarvesterYAML, ports []int) {
+	drop := make(map[string]struct{}, len(ports))
+	for _, port := range ports {
+		drop[strconv.Itoa(port)] = struct{}{}
+	}
+
+	proxyAdminBefore := mysqlProxyAdminOwners(h)
+	h.MySQL = filterMySQLHarvester(h.MySQL, drop)
+	h.MySQLProxyAdmin = filterMySQLHarvester(h.MySQLProxyAdmin, drop)
+	h.Redis = filterRedisHarvester(h.Redis, drop)
+	if h.Extra != nil {
+		for name, block := range h.Extra {
+			filtered := filterMySQLHarvester(block, drop)
+			if filtered == nil {
+				delete(h.Extra, name)
+			} else {
+				h.Extra[name] = filtered
+			}
+		}
+		if len(h.Extra) == 0 {
+			h.Extra = nil
+		}
+	}
+	dropOrphanMysqlProxyData(h, proxyAdminBefore)
+}
+
+func mysqlProxyAdminOwners(h *probeHarvesterYAML) map[endpointKey]struct{} {
+	keys := make(map[endpointKey]struct{})
+	for _, block := range []*probeMySQLHarvesterYAML{h.MySQLProxyAdmin, h.MySQL} {
+		if block == nil {
+			continue
+		}
+		for _, ep := range block.Endpoints {
+			if len(ep.AdminPorts) == 0 {
+				continue
+			}
+			if !isMysqlProxyEndpoint(string(ep.ClusterType), string(ep.MachineType), string(ep.AccessLayer)) {
+				continue
+			}
+			keys[endpointIdentity(ep)] = struct{}{}
+		}
+	}
+	return keys
+}
+
+func endpointIdentity(ep DbEndpointConfig) endpointKey {
+	return endpointKey{
+		ip:           ep.Ip,
+		clusterType:  string(ep.ClusterType),
+		machineType:  string(ep.MachineType),
+		instanceRole: string(ep.InstanceRole),
+		accessLayer:  string(ep.AccessLayer),
+	}
+}
+
+func dropOrphanMysqlProxyData(h *probeHarvesterYAML, proxyAdminBefore map[endpointKey]struct{}) {
+	if h.MySQL == nil || len(proxyAdminBefore) == 0 {
+		return
+	}
+	remaining := mysqlProxyAdminOwners(h)
+	kept := h.MySQL.Endpoints[:0]
+	for _, ep := range h.MySQL.Endpoints {
+		if isMysqlProxyEndpoint(string(ep.ClusterType), string(ep.MachineType), string(ep.AccessLayer)) {
+			key := endpointIdentity(ep)
+			if _, had := proxyAdminBefore[key]; had {
+				if _, still := remaining[key]; !still {
+					continue
+				}
+			}
+		}
+		kept = append(kept, ep)
+	}
+	h.MySQL.Endpoints = kept
+	if len(h.MySQL.Endpoints) == 0 {
+		h.MySQL = nil
+	}
+}
+
+func filterMySQLHarvester(block *probeMySQLHarvesterYAML, drop map[string]struct{}) *probeMySQLHarvesterYAML {
+	if block == nil {
+		return nil
+	}
+	block.Endpoints = filterEndpoints(block.Endpoints, drop)
+	if len(block.Endpoints) == 0 {
+		return nil
+	}
+	return block
+}
+
+func filterRedisHarvester(block *probeRedisHarvesterYAML, drop map[string]struct{}) *probeRedisHarvesterYAML {
+	if block == nil {
+		return nil
+	}
+	block.Endpoints = filterEndpoints(block.Endpoints, drop)
+	if len(block.Endpoints) == 0 {
+		return nil
+	}
+	return block
+}
+
+func filterEndpoints(endpoints []DbEndpointConfig, drop map[string]struct{}) []DbEndpointConfig {
+	out := make([]DbEndpointConfig, 0, len(endpoints))
+	for _, ep := range endpoints {
+		ep.Ports = filterPortStrings(ep.Ports, drop)
+		ep.AdminPorts = filterPortStrings(ep.AdminPorts, drop)
+		if len(ep.Ports) == 0 && len(ep.AdminPorts) == 0 {
+			continue
+		}
+		out = append(out, ep)
+	}
+	return out
+}
+
+func filterPortStrings(ports []string, drop map[string]struct{}) []string {
+	if len(ports) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(ports))
+	for _, port := range ports {
+		if _, ok := drop[port]; ok {
+			continue
+		}
+		out = append(out, port)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func durationToYAML(d time.Duration) string {
+	if d == 0 {
+		return ""
+	}
+	return d.String()
+}
+
+func isMysqlProxyEndpoint(clusterType, machineType, accessLayer string) bool {
+	return clusterType == string(haprobe.DbmMetadataClusterTypeTendbha) &&
+		accessLayer == string(haprobe.DbmMetadataAccessLayerTypeProxy) &&
+		machineType == string(haprobe.DbmMetadataMachineTypeProxy)
 }
