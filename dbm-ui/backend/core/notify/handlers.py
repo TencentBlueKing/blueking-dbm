@@ -585,6 +585,9 @@ class NotifyAdapter:
         return title, content
 
     def send_msg(self):
+        # 如果单据开了交付通知， 则不需要单据通知
+        if self.ticket.config.get("send_msg_config", {}).get("is_send"):
+            return
         # 获取单据通知设置，优先: 单据配置 > 业务配置 > 默认业务配置
         if self.phase in self.ticket.msg_config:
             send_msg_config = self.ticket.msg_config[self.phase]
