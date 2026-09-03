@@ -65,6 +65,26 @@ class TestGetProxyMetricsName:
         assert check_exporter.get_proxy_metrics_name(ClusterType.TendisRedisInstance.value) == ""
 
 
+class TestUpMetricPromql:
+    def test_redis_up_uses_sum_not_count(self, check_exporter):
+        q = check_exporter._promql_redis_up_by_cluster("r.test.db")
+        assert "sum by" in q
+        assert "count by" not in q
+        q_ip = check_exporter._promql_redis_up_by_iplist(["127.0.0.1"])
+        assert "sum by" in q_ip
+        assert "count by" not in q_ip
+
+    def test_proxy_up_uses_sum_not_count(self, check_exporter):
+        metric = check_exporter.get_proxy_metrics_name("TwemproxyRedisInstance")
+        q = check_exporter._promql_proxy_up_by_cluster(metric, "r.test.db")
+        assert "sum by" in q
+        assert "count by" not in q
+        assert "twemproxy_up" in q
+        q_ip = check_exporter._promql_proxy_up_by_iplist(metric, ["127.0.0.2"])
+        assert "sum by" in q_ip
+        assert "count by" not in q_ip
+
+
 class TestShortAddrList:
     def test_single_port(self, check_exporter):
         nodes = [{"ip": "1.1.1.1", "port": 6379}]
@@ -154,6 +174,21 @@ class TestCheckNodesMetric:
         keys = [k for k in msg_list if k != "ok"]
         assert any("exporter_down" in k for k in keys)
 
+    def test_mixed_up_zero_and_one_is_down(self, check_exporter):
+        """同一 addr 同时有 up=0 与 up=1 时按 down，不能被合计为 1 后判 ok。"""
+        task = check_exporter.CheckRedisUpMetricTask()
+        nodes = [
+            {"ip": "127.0.0.1", "port": 6379, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_master"},
+        ]
+        metric_val = {
+            "127.0.0.1:6379": [
+                {"value": 0, "instance_role": "redis_master"},
+                {"value": 1, "instance_role": "redis_master"},
+            ],
+        }
+        msg_list = task._check_nodes_metric(nodes, metric_val, "")
+        assert any("exporter_down" in k for k in msg_list)
+
     def test_duplicate_metric(self, check_exporter):
         task = check_exporter.CheckRedisUpMetricTask()
         nodes = [
@@ -178,6 +213,48 @@ class TestCheckNodesMetric:
         msg_list = task._check_nodes_metric(nodes, metric_val, "")
         assert any("duplicate" in k for k in msg_list)
 
+    def test_same_addr_master_and_slave_is_mixed_role(self, check_exporter):
+        task = check_exporter.CheckRedisUpMetricTask()
+        nodes = [
+            {"ip": "127.0.0.1", "port": 6379, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_master"},
+        ]
+        metric_val = {
+            "127.0.0.1:6379": [
+                {"value": 1, "instance_role": "redis_master"},
+                {"value": 1, "instance_role": "redis_slave"},
+            ],
+        }
+        msg_list = task._check_nodes_metric(nodes, metric_val, "")
+        assert "redis_exporter_mixed_role" in msg_list
+        assert not any("duplicate" in k for k in msg_list)
+
+    def test_same_host_different_ports_master_and_slave_is_mixed_role(self, check_exporter):
+        task = check_exporter.CheckRedisUpMetricTask()
+        nodes = [
+            {"ip": "127.0.0.1", "port": 6379, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_master"},
+            {"ip": "127.0.0.1", "port": 6380, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_slave"},
+        ]
+        metric_val = {
+            "127.0.0.1:6379": [{"value": 1, "instance_role": "redis_master"}],
+            "127.0.0.1:6380": [{"value": 1, "instance_role": "redis_slave"}],
+        }
+        msg_list = task._check_nodes_metric(nodes, metric_val, "")
+        assert set(msg_list.keys()) == {"redis_exporter_mixed_role"}
+        assert len(msg_list["redis_exporter_mixed_role"]) == 2
+
+    def test_master_and_slave_on_different_hosts_ok(self, check_exporter):
+        task = check_exporter.CheckRedisUpMetricTask()
+        nodes = [
+            {"ip": "127.0.0.1", "port": 6379, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_master"},
+            {"ip": "127.0.0.2", "port": 6379, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_slave"},
+        ]
+        metric_val = {
+            "127.0.0.1:6379": [{"value": 1, "instance_role": "redis_master"}],
+            "127.0.0.2:6379": [{"value": 1, "instance_role": "redis_slave"}],
+        }
+        msg_list = task._check_nodes_metric(nodes, metric_val, "")
+        assert set(msg_list.keys()) == {"ok"}
+
 
 class TestMetricSeriesHelpers:
     def test_aggregate_metric_for_addr_list(self, check_exporter):
@@ -188,6 +265,19 @@ class TestMetricSeriesHelpers:
     def test_first_instance_role(self, check_exporter):
         m = {"a:1": [{"instance_role": "redis_slave", "value": 1}]}
         assert check_exporter._first_instance_role_for_addr(m, "a:1") == "redis_slave"
+
+    def test_storage_role_kind(self, check_exporter):
+        assert check_exporter._storage_role_kind("redis_master") == "master"
+        assert check_exporter._storage_role_kind("redis_slave") == "slave"
+        assert check_exporter._storage_role_kind("twemproxy") == ""
+
+    def test_mixed_role_ips(self, check_exporter):
+        metric_val = {
+            "127.0.0.1:6379": [{"instance_role": "redis_master", "value": 1}],
+            "127.0.0.1:6380": [{"instance_role": "redis_slave", "value": 1}],
+            "127.0.0.2:6379": [{"instance_role": "redis_master", "value": 1}],
+        }
+        assert check_exporter._mixed_role_ips(metric_val) == {"127.0.0.1"}
 
 
 class TestCheckClusterInner:
@@ -439,6 +529,30 @@ class TestStorageErrorTypes:
             task.check_storage(cluster, storage_nodes, cr)
             rows = cr.make_records()
             assert any("redis_master_exporter_redundant2" in row.msg for row in rows)
+
+    def test_storage_mixed_role(self, check_exporter):
+        task = check_exporter.CheckRedisUpMetricTask()
+        cluster = self._base_cluster()
+        storage_nodes = [
+            {"ip": "127.0.0.1", "port": 6379, "status": InstanceStatus.RUNNING.value, "instance_role": "redis_master"},
+        ]
+        from backend.db_periodic_task.local_tasks.redis_tasks.report_op import RedisClusterReport
+
+        cr = RedisClusterReport(cluster, self.report_day, task.check_type)
+        with patch.object(
+            check_exporter,
+            "fetch_metric_by_cluster",
+            return_value={
+                "127.0.0.1:6379": [{"value": 1, "instance_role": "redis_master"}],
+                "127.0.0.1:6380": [{"value": 1, "instance_role": "redis_slave"}],
+            },
+        ), patch.object(check_exporter, "fetch_metric_by_iplist", return_value={}):
+            task.check_storage(cluster, storage_nodes, cr)
+            rows = cr.make_records()
+            assert any("redis_exporter_mixed_role" in row.msg for row in rows)
+            mixed = next(row for row in rows if "redis_exporter_mixed_role" in row.msg)
+            assert "127.0.0.1:6379" in mixed.msg
+            assert "127.0.0.1:6380" in mixed.msg
 
 
 class TestProxyErrorTypes:
