@@ -279,24 +279,30 @@ def get_dba_infos():
 
 
 def send_msg(title, context, receivers, msg_type):
-    if msg_type in BkChatHandler.get_msg_type():
-        msg_info = {
-            "title": title,
-            # 处理人
-            "approvers": [],
-            # 微信消息时 receiver生效，不发群消息，群消息时，receive_group，不发送个人消息
-            "receiver": receivers if msg_type == MsgType.RTX else [],
-            "receive_group": receivers if msg_type == MsgType.WECOM_ROBOT else [],
-            "summary": context,
-            # 操作和详情按钮
-            "actions": [],
-            "click": {"click_url": TODO_DIR, "name": _("前往处理")},
-        }
-        BkChatApi.send_ticket_msg(msg_info, use_admin=True)
+    logger.info(_("start send todo remind, receiver: {}").format(receivers))
+    try:
+        if msg_type in BkChatHandler.get_msg_type():
+            msg_info = {
+                "title": title,
+                # 处理人
+                "approvers": [],
+                # 微信消息时 receiver生效，不发群消息，群消息时，receive_group，不发送个人消息
+                "receiver": receivers if msg_type == MsgType.RTX else [],
+                "receive_group": receivers if msg_type == MsgType.WECOM_ROBOT else [],
+                "summary": context,
+                # 操作和详情按钮
+                "actions": [],
+                "click": {"click_url": TODO_DIR, "name": _("前往处理")},
+            }
+            BkChatApi.send_ticket_msg(msg_info, use_admin=True)
 
-    elif msg_type == MsgType.MAIL.value:
-        context += '\n<p><a href="{}">{}</a></p>'.format(TODO_DIR, _("前往处理"))
-        CmsiHandler(title, context, receivers).send_msg(MsgType.MAIL.value, context=None)
+        elif msg_type == MsgType.MAIL.value:
+            context += '\n<p><a href="{}">{}</a></p>'.format(TODO_DIR, _("前往处理"))
+            CmsiHandler(title, context, receivers).send_msg(MsgType.MAIL.value, context=None)
+
+        logger.info(_("send todo remind succeed, receiver: {}".format(receivers)))
+    except Exception as e:
+        logger.error(_("send todo remind error, receivers: {}, error: {}").format(receivers, e))
 
 
 def _process_user_chunk(
