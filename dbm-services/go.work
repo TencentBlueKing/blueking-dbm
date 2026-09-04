@@ -1,4 +1,4 @@
-go 1.25.11
+go 1.26.0
 
 use (
 	bigdata/db-tools/dbactuator
@@ -13,10 +13,10 @@ use (
 	common/dbha-v2
 	common/dbha/ha-module
 	common/dbha/hadb-api
+	common/dbm-backup-server/backup-consumer
 	common/go-pubpkg
 	common/offsetlinescanner
 	common/reverseapi
-	common/dbm-backup-server/backup-consumer
 	k8s-dbs
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon
