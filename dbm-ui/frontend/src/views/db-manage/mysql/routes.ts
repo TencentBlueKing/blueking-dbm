@@ -155,7 +155,6 @@ const mysqlToolboxRouter = {
     createRouteItem(TicketTypes.MYSQL_HA_FULL_BACKUP, t('全库备份'), { dbConsole: 'mysql.toolbox.dbBackup' }),
     createRouteItem(TicketTypes.MYSQL_HA_TRUNCATE_DATA, t('清档'), { dbConsole: 'mysql.toolbox.dbClear' }),
     createRouteItem(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, t('清档'), { dbConsole: 'mysql.toolbox.dbClear' }),
-    // createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造'), { dbConsole: 'mysql.toolbox.rollback' }),
     createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复'), { dbConsole: 'mysql.toolbox.checksum' }),
     createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆'), {
       dbConsole: 'mysql.toolbox.clientPermissionClone',

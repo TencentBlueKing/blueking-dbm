@@ -143,9 +143,7 @@
     queryLatesBackupLog,
   } from '@services/source/fixpointRollback';
 
-  import { useDebouncedRef, useTimeZoneFormat } from '@hooks';
-
-  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
+  import { type Rules, useDebouncedRef, useTimeZoneFormat, useValidtor } from '@hooks';
 
   import { encodeRegexp } from '@utils';
 

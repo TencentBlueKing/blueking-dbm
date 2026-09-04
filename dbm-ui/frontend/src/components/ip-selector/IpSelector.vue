@@ -49,11 +49,94 @@
         <BkLoading
           v-if="renderData.length > 0"
           :loading="selectorState.isLoading">
-          <DBCollapseTable
+          <CollapseTable
+            :bk-ui-settings="tableSettings"
             class="mt-16"
+            :data="renderData"
             :operations="operations"
-            :table-props="dbCollapseTableTableData"
-            :title="title" />
+            :title="title">
+            <TableColumn
+              col-key="ip"
+              title="IP" />
+            <TableColumn
+              col-key="cloud_area"
+              :title="t('管控区域')">
+              <template #default="{ row }">
+                {{ row.cloud_area.name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="alive"
+              :title="t('Agent状态')">
+              <template #default="{ row }">
+                <DbStatus :theme="row.alive === 1 ? 'success' : 'danger'">
+                  {{ row.alive === 1 ? t('正常') : t('异常') }}
+                </DbStatus>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="host_name"
+              :title="t('主机名称')">
+              <template #default="{ row }">
+                {{ row.host_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="os_name"
+              :title="t('OS名称')">
+              <template #default="{ row }">
+                {{ row.os_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="cloud_vendor"
+              :title="t('所属云厂商')">
+              <template #default="{ row }">
+                {{ row.cloud_vendor || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="os_type"
+              :title="t('OS类型')">
+              <template #default="{ row }">
+                {{ row.os_type || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="host_id"
+              :title="t('主机ID')">
+              <template #default="{ row }">
+                {{ row.host_id || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="agent_id"
+              title="Agent ID">
+              <template #default="{ row }">
+                {{ row.agent_id || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="ipv6"
+              title="IPv6">
+              <template #default="{ row }">
+                {{ row.ipv6 || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="operation"
+              :title="t('操作')"
+              :width="100">
+              <template #default="{ rowIndex }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleRemoveSelected(rowIndex)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </TableColumn>
+          </CollapseTable>
         </BkLoading>
         <PreviewWhitelist
           v-if="selectorState.selected?.dbm_whitelist?.length > 0"
@@ -110,7 +193,7 @@
     </template>
   </BkDialog>
 </template>
-<script lang="tsx">
+<script lang="ts">
   import _ from 'lodash';
 
   import { checkHost, getHostDetails, getHosts, getHostTopo } from '@services/source/ipchooser';
@@ -121,14 +204,13 @@
 
   import { OSTypes } from '@common/const';
 
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import DbStatus from '@components/db-status/index.vue';
-  import type { PrimaryTableCol, PrimaryTableProps } from '@components/tdesign-ui/table';
 
   import { execCopy } from '@utils';
 
   import { t } from '@locales/index';
 
+  import CollapseTable from './components/CollapseTable.vue';
   import PreviewWhitelist from './components/PreviewWhitelist.vue';
 
   /** IP 选择器返回结果 */
@@ -158,7 +240,6 @@
     serviceMode?: 'all' | 'idle_only';
     showView?: boolean;
     singleHostSelect?: boolean;
-    tableProps?: Partial<PrimaryTableProps>;
     title?: string;
   }
 
@@ -168,7 +249,7 @@
   }
 </script>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     buttonText: t('添加服务器'),
     cloudInfo: () => ({}),
@@ -185,7 +266,6 @@
     serviceMode: 'idle_only',
     showView: true,
     singleHostSelect: false,
-    tableProps: () => ({}),
     title: t('静态拓扑'),
   });
   const emits = defineEmits<Emits>();
@@ -218,19 +298,11 @@
     } as IPSelectorResult,
     tableData: [] as any[],
   });
-  // ip 选择器预览表格 props
-  const previewTableProps = computed(() => {
-    const tableProps = props.tableProps || {};
-    if (Object.keys(tableProps).length === 0) {
-      return initTableProps();
-    }
-    return tableProps;
-  });
-
-  const dbCollapseTableTableData = computed(() => ({
-    ...previewTableProps.value,
-    data: renderData.value,
-  }));
+  // ip 选择器预览表格默认展示的列
+  const tableSettings = {
+    checked: ['ip', 'host_name', 'alive', 'operation'],
+    disabled: ['ip', 'operation'],
+  };
 
   const buttonTips = computed(() => {
     const tips = {
@@ -407,89 +479,6 @@
   };
 
   /**
-   * ip 选择器预览表默认配置
-   */
-  function initTableProps() {
-    const columns: PrimaryTableCol[] = [
-      {
-        colKey: 'ip',
-        title: 'IP',
-      },
-      {
-        cell: (_, { row }) => row.cloud_area.name || '--',
-        colKey: 'cloud_area',
-        title: t('管控区域'),
-      },
-      {
-        cell: (_, { row }) => {
-          const info = row.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
-          return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-        },
-        colKey: 'alive',
-        title: t('Agent状态'),
-      },
-      {
-        cell: (_, { row }) => row.host_name || '--',
-        colKey: 'host_name',
-        title: t('主机名称'),
-      },
-      {
-        cell: (_, { row }) => row.os_name || '--',
-        colKey: 'os_name',
-        title: t('OS名称'),
-      },
-      {
-        cell: (_, { row }) => row.cloud_vendor || '--',
-        colKey: 'cloud_vendor',
-        title: t('所属云厂商'),
-      },
-      {
-        cell: (_, { row }) => row.os_type || '--',
-        colKey: 'os_type',
-        title: t('OS类型'),
-      },
-      {
-        cell: (_, { row }) => row.host_id || '--',
-        colKey: 'host_id',
-        title: t('主机ID'),
-      },
-      {
-        cell: (_, { row }) => row.agent_id || '--',
-        colKey: 'agent_id',
-        title: 'Agent ID',
-      },
-      {
-        cell: (_, { row }) => row.ipv6 || '--',
-        colKey: 'ipv6',
-        title: 'IPv6',
-      },
-      {
-        cell: (_, { rowIndex }) => (
-          <bk-button
-            text
-            theme='primary'
-            onClick={() => handleRemoveSelected(rowIndex)}>
-            {t('删除')}
-          </bk-button>
-        ),
-        colKey: 'operation',
-        title: t('操作'),
-        width: 100,
-      },
-    ];
-    const checked = ['ip', 'host_name', 'alive', 'operation'];
-    const disabledKeys = ['ip', 'operation'];
-    return {
-      bkUiSettings: {
-        checked,
-        disabled: disabledKeys,
-      },
-      columns,
-      maxHeight: 474,
-    };
-  }
-
-  /**
    * 清空已经选中列表
    */
   function handleClearSelected(key: IPSelectorResultKey = 'host_list') {
@@ -589,12 +578,11 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .db-ip-selector {
     .db-ip-selector-operations {
       justify-content: space-between;
-      .flex-center();
+      display: flex;
+      align-items: center;
     }
 
     .db-ip-selector-desc {

@@ -629,8 +629,6 @@
   };
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .version-files-file-content {
     padding: 24px;
 
@@ -640,9 +638,10 @@
     }
 
     .version-files-operations {
+      display: flex;
+      align-items: center;
       margin-bottom: 16px;
       justify-content: space-between;
-      .flex-center();
 
       .bk-button {
         width: 88px;

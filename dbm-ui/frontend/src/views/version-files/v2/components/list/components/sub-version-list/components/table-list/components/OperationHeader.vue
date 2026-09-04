@@ -1,81 +1,91 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div
     v-if="!isEditName"
-    class="title-operate">
+    class="version-file-operation-header">
     <div class="title-main">
-      <span>{{ versionName }}</span>
+      <span>{{ versionName || '--' }}</span>
       <BkTag
         class="ml-12"
         radius="12px">
         {{ dbVersionListCount }}
       </BkTag>
     </div>
-    <div class="more-operate">
-      <div
-        class="icon-wrapper"
-        @click.stop="handleShowOperatePanel">
-        <DbIcon type="more" />
-      </div>
-      <div
-        v-show="isShowOperatePanel"
-        v-clickoutside="handleClickOutside"
-        class="operate-panel-list"
-        :style="{
-          top: `${operatePanelPosition.top}px`,
-          left: `${operatePanelPosition.left}px`,
-        }">
-        <AuthTemplate
-          action-id="package_manage"
-          class="operate-item add-veriosn"
-          :class="{ 'is-disabled': !permission }"
-          :permission="permission"
-          :resource="dbType"
-          @click.stop="handleAddVersion">
-          {{ t('添加版本') }}
-        </AuthTemplate>
-        <AuthTemplate
-          v-bk-tooltips="{
-            content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
-            placement: 'right',
-            disabled: dbVersionListCount === 0,
-          }"
-          action-id="package_manage"
-          class="operate-item"
-          :class="{ 'is-disabled': !permission || dbVersionListCount > 0 }"
-          :permission="permission"
-          :resource="dbType"
-          @click.stop="handleEditName">
-          {{ t('编辑系列') }}
-        </AuthTemplate>
-        <BkPopConfirm
-          :confirm-config="{
-            theme: 'danger',
-            loading: deleteVersionSeriesLoading,
-          }"
-          :confirm-text="t('删除')"
-          :content="t('删除操作无法撤回，请谨慎操作！')"
-          :disabled="dbVersionListCount > 0"
-          placement="bottom"
-          :title="t('确认删除该版本系列？')"
-          trigger="click"
-          width="280"
-          @confirm="handleDeleteVersionSeries">
-          <AuthTemplate
-            v-bk-tooltips="{
-              content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
-              placement: 'right',
-              disabled: dbVersionListCount === 0,
-            }"
-            action-id="package_manage"
-            class="operate-item"
-            :class="{ 'is-disabled': dbVersionListCount > 0 || !permission }"
-            :permission="permission"
-            :resource="dbType"
-            @click.stop>
-            {{ t('删除系列') }}
-          </AuthTemplate>
-        </BkPopConfirm>
-      </div>
+    <!-- 外层拦掉冒泡，避免点击操作项时把所在的系列折叠面板一起收起 -->
+    <div
+      class="more-operate"
+      @click.stop>
+      <BkDropdown trigger="click">
+        <div class="icon-wrapper">
+          <DbIcon type="more" />
+        </div>
+        <template #content>
+          <BkDropdownMenu>
+            <BkDropdownItem>
+              <AuthButton
+                action-id="package_manage"
+                :permission="permission"
+                :resource="dbType"
+                text
+                @click="handleAddVersion">
+                {{ t('添加版本') }}
+              </AuthButton>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-bk-tooltips="{
+                content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
+                placement: 'right',
+                disabled: dbVersionListCount === 0,
+              }">
+              <AuthButton
+                action-id="package_manage"
+                :disabled="dbVersionListCount > 0"
+                :permission="permission"
+                :resource="dbType"
+                text
+                @click="handleEditName">
+                {{ t('编辑系列') }}
+              </AuthButton>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-bk-tooltips="{
+                content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
+                placement: 'right',
+                disabled: dbVersionListCount === 0,
+              }">
+              <DbPopconfirm
+                :confirm-handler="handleDeleteVersionSeries"
+                :confirm-text="t('删除')"
+                :content="t('删除操作无法撤回，请谨慎操作！')"
+                :disabled="dbVersionListCount > 0"
+                placement="bottom"
+                theme="danger"
+                :title="t('确认删除该版本系列？')">
+                <AuthButton
+                  action-id="package_manage"
+                  :disabled="dbVersionListCount > 0"
+                  :permission="permission"
+                  :resource="dbType"
+                  text>
+                  {{ t('删除系列') }}
+                </AuthButton>
+              </DbPopconfirm>
+            </BkDropdownItem>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
     </div>
   </div>
   <EditSeries
@@ -127,14 +137,9 @@
   const { t } = useI18n();
 
   const isEditName = ref(false);
-  const isShowOperatePanel = ref(false);
   const versionName = ref('');
-  const operatePanelPosition = ref({
-    left: 0,
-    top: 0,
-  });
 
-  const { loading: deleteVersionSeriesLoading, run: runDeleteVersionSeries } = useRequest(deleteVersionSeries, {
+  const { runAsync: runDeleteVersionSeries } = useRequest(deleteVersionSeries, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('操作成功'));
@@ -152,12 +157,12 @@
     },
   );
 
-  const handleDeleteVersionSeries = () => {
+  // 返回 Promise 交给 DbPopconfirm，由它接管确认按钮 loading 与请求成功后的关闭
+  const handleDeleteVersionSeries = () =>
     runDeleteVersionSeries({
       distribution: props.data!.distribution,
       id: props.data!.id,
     });
-  };
 
   const handleConfirmChangeVersionName = (id: number, name: string) => {
     versionName.value = name;
@@ -165,34 +170,15 @@
   };
 
   const handleEditName = () => {
-    if (!props.permission || props.dbVersionListCount > 0) {
-      return;
-    }
-
-    isShowOperatePanel.value = false;
     isEditName.value = true;
-  };
-
-  const handleShowOperatePanel = (e: MouseEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    operatePanelPosition.value = {
-      left: rect.left + rect.width,
-      top: rect.bottom,
-    };
-    isShowOperatePanel.value = true;
   };
 
   const handleAddVersion = () => {
     emits('addNewVersion');
   };
-
-  const handleClickOutside = () => {
-    isShowOperatePanel.value = false;
-  };
 </script>
 <style lang="less">
-  .title-operate {
+  .version-file-operation-header {
     display: flex;
     align-items: center;
 
@@ -203,10 +189,7 @@
     }
 
     .more-operate {
-      position: relative;
       display: flex;
-      width: 26px;
-      height: 26px;
       margin-left: 4px;
 
       .icon-wrapper {
@@ -219,43 +202,6 @@
 
         &:hover {
           background: #dcdee5;
-        }
-      }
-
-      .operate-panel-list {
-        position: fixed;
-        // top: 30px;
-        // left: 10px;
-        z-index: 999999;
-        width: 120px;
-        background: #fff;
-        border: 1px solid #dcdee5;
-        border-radius: 2px;
-        box-shadow: 0 2px 6px 0 #0000001a;
-
-        .operate-item {
-          display: flex;
-          width: 100%;
-          height: 32px;
-          padding: 0 12px;
-          font-size: 12px;
-          color: #4d4f56;
-          cursor: pointer;
-          align-items: center;
-
-          &:hover {
-            background: #f5f7fa;
-          }
-
-          &.is-disabled {
-            color: #c4c6cc;
-            cursor: not-allowed;
-          }
-
-          &.add-veriosn {
-            height: 32px;
-            border-bottom: solid 1px #f0f1f5;
-          }
         }
       }
     }

@@ -420,8 +420,6 @@
 </script>
 
 <style lang="less">
-  @import '@styles/applyInstance.less';
-
   .spider-apply-instance-page {
     .item-input {
       width: 435px;

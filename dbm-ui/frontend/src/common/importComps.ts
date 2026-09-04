@@ -61,9 +61,6 @@ import InfoTable, {
 
 import UserSelector from '@patch/user-selector/selector.vue';
 
-import('@blueking/table/vue3/vue3.css');
-document.documentElement.setAttribute('theme-mode', 'light');
-
 export const setGlobalComps = (app: App<Element>) => {
   app.component('EditableTable', EditableTable);
   app.component('EditableBlock', EditableBlock);
