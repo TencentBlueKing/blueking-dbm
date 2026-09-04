@@ -84,6 +84,14 @@
                   {{ t('水平扩容') }}
                 </BkButton>
               </BkDropdownItem>
+              <BkDropdownItem v-if="isVmstorageClbTab">
+                <BkButton
+                  style="width: 105px"
+                  text
+                  @click="handleToggleClb(!vmstorageClbEnabled)">
+                  {{ vmstorageClbEnabled ? t('停用 CLB') : t('启用 CLB') }}
+                </BkButton>
+              </BkDropdownItem>
             </AuthTemplate>
           </BkDropdownMenu>
         </template>
@@ -215,6 +223,7 @@
   </div>
 </template>
 <script lang="tsx">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -224,6 +233,9 @@
   import QdrantHaDetailModel from '@services/model/qdrant/qdrant-ha-detail';
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
   import SurrealdbSingleDetailModel from '@services/model/surrealdb/surrealdb-single-detail';
+  import VictoriametricsQueryDetailModel from '@services/model/victoriametrics/victoriametrics-query-detail';
+  import VictoriametricsStandardDetailModel from '@services/model/victoriametrics/victoriametrics-standard-detail';
+  import { toggleVictoriametricsStorageClb } from '@services/source/victoriametricsStandard';
 
   // import { restartComponent } from '@services/source/kubernetesToolbox.ts';
   import { useUrlSearch } from '@hooks';
@@ -254,6 +266,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: QdrantHaDetailModel;
     [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaDetailModel;
     [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleDetailModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsStandardDetailModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsQueryDetailModel;
   }
 
   type IColumnData = ServiceReturnType<
@@ -292,6 +306,39 @@
   });
 
   const dbType = clusterTypeInfos[props.clusterType].dbType;
+
+  // VictoriaMetrics 标准集群 vmstorage 支持存储入口 CLB 启停（更多配置）
+  const isVmstorageClbTab = computed(
+    () => props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER && props.role === 'vmstorage',
+  );
+  const vmstorageClbEnabled = computed(() =>
+    isVmstorageClbTab.value ? (props.clusterData as VictoriametricsStandardDetailModel).isStorageClbEnabled : false,
+  );
+
+  const handleToggleClb = (enable: boolean) => {
+    const doToggle = () => {
+      toggleVictoriametricsStorageClb({
+        cluster_id: props.clusterData.id,
+        enable,
+      }).then(() => {
+        messageSuccess(enable ? t('已启用存储 CLB') : t('已停用存储 CLB'));
+        handleOperateSuccess();
+      });
+    };
+    if (enable) {
+      doToggle();
+      return;
+    }
+    const storageEntry = (props.clusterData as VictoriametricsStandardDetailModel).storageEntryDisplay || 'CLB';
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('停用'),
+      content: `${t('停用后存储入口')} ${storageEntry} ${t('将不可访问。该操作调用 API，成功后写入操作记录。')}`,
+      onConfirm: doToggle,
+      theme: 'danger',
+      title: t('确定停用存储 CLB？'),
+    });
+  };
 
   const rootRef = useTemplateRef('rootRef');
 

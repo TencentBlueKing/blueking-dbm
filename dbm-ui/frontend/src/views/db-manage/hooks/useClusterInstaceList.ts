@@ -16,6 +16,8 @@ import { getSurrealdbSingleInstanceList } from '@services/source/surrealdbSingle
 import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 import { getTendbhaInstanceList } from '@services/source/tendbha';
 import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
+import { getVictoriametricsQueryInstanceList } from '@services/source/victoriametricsQuery';
+import { getVictoriametricsStandardInstanceList } from '@services/source/victoriametricsStandard';
 
 import { ClusterTypes } from '@common/const';
 
@@ -26,6 +28,8 @@ const dataSourceMap = {
   [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaInstanceList,
   [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaInstanceList,
   [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleInstanceList,
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsStandardInstanceList,
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsQueryInstanceList,
   [ClusterTypes.KAFKA]: getKafkaInstanceList,
   [ClusterTypes.MONGO_REPLICA_SET]: getMongoInstancesList,
   [ClusterTypes.MONGO_SHARED_CLUSTER]: getMongoInstancesList,

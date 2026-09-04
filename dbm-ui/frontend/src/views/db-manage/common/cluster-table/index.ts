@@ -6,6 +6,7 @@ import IdColumn from './IdColumn.vue';
 import MasterDomainColumn from './MasterDomainColumn.vue';
 import ModuleNameColumn from './ModuleNameColumn.vue';
 import OperationColumn from './OperationColumn.vue';
+import QueryDomainColumn from './QueryDomainColumn.vue';
 import RoleColumn from './RoleColumn.vue';
 import SlaveDomainColumn from './SlaveDomainColumn.vue';
 import StatusColumn from './StatusColumn.vue';
@@ -19,6 +20,7 @@ export {
   MasterDomainColumn,
   ModuleNameColumn,
   OperationColumn,
+  QueryDomainColumn,
   RoleColumn,
   SlaveDomainColumn,
   StatusColumn,
