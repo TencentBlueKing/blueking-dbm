@@ -143,8 +143,9 @@ func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 // RepairNonSysMyIsamTables 修复业务的 myisam 表
 func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
+	// 显式 as 小写别名，避免 information_schema 在部分版本返回大写列名导致 sqlx 按 db tag 映射失败
 	sqlStr := fmt.Sprintf(
-		`SELECT table_schema, table_name FROM information_schema.tables `+
+		`SELECT table_schema as table_schema, table_name as table_name FROM information_schema.tables `+
 			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
 		mysqlcomm.UnsafeIn(systemDbs, "'"),
 	)
@@ -165,7 +166,7 @@ func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 	eg.SetLimit(repairConcurrency) // 单个进程也设置一下最大并发
 	for _, row := range rows {
 		if row.TableSchema == native.TEST_DB || row.TableSchema == native.INFODBA_SCHEMA {
-			return nil
+			continue
 		}
 
 		var ctxDone bool

@@ -706,9 +706,9 @@
   {
     "conf_name": "Public.OldFileLeftDay",
     "value_default": "2",
-    "value_allowed": "",
+    "value_allowed": "[0,365]",
     "value_type": "INT",
-    "value_type_sub": "",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 0,
