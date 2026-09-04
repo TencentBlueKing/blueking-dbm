@@ -27,6 +27,7 @@ from backend.flow.plugins.components.collections.pulsar.exec_actuator_script imp
 )
 from backend.flow.plugins.components.collections.pulsar.get_pulsar_payload import GetPulsarActPayloadComponent
 from backend.flow.plugins.components.collections.pulsar.get_pulsar_resource import GetPulsarResourceComponent
+from backend.flow.plugins.components.collections.pulsar.pulsar_apply_summary import add_pulsar_apply_summary_output_act
 from backend.flow.plugins.components.collections.pulsar.pulsar_db_meta import PulsarDBMetaComponent
 from backend.flow.plugins.components.collections.pulsar.pulsar_dns_manage import PulsarDnsManageComponent
 from backend.flow.plugins.components.collections.pulsar.pulsar_zk_dns_manage import PulsarZkDnsManageComponent
@@ -230,6 +231,16 @@ class PulsarApplyFlow(PulsarBaseFlow):
             act_name=_("初始化pulsar manager"),
             act_component_code=ExecutePulsarActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
+        )
+
+        # 写入集群信息摘要，供前端"执行摘要"展示
+        add_pulsar_apply_summary_output_act(
+            pulsar_pipeline=pulsar_pipeline,
+            bk_biz_id=self.bk_biz_id,
+            domain_name=self.domain,
+            region=self.city_code,
+            version=self.db_version,
+            port=self.port,
         )
 
         pulsar_pipeline.run_pipeline()

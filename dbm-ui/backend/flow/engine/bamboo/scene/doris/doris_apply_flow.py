@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.doris.exceptions import (
     RoleMachineCountMustException,
 )
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
+from backend.flow.plugins.components.collections.doris.doris_apply_summary import add_doris_apply_summary_output_act
 from backend.flow.plugins.components.collections.doris.doris_db_meta import DorisMetaComponent
 from backend.flow.plugins.components.collections.doris.doris_dns_manage import DorisDnsManageComponent
 from backend.flow.plugins.components.collections.doris.exec_doris_actuator_script import (
@@ -232,6 +233,16 @@ class DorisApplyFlow(DorisBaseFlow):
                     raise ResourceUnsupportException()
                 create_res_pipeline = resource_flow.create_resource_sub_flow(data=doris_deploy_data)
                 doris_pipeline.add_sub_pipeline(create_res_pipeline.build_sub_process(sub_name=_("创建Doris冷存储资源")))
+
+        # 写入集群信息摘要，供前端"执行摘要"展示
+        add_doris_apply_summary_output_act(
+            doris_pipeline=doris_pipeline,
+            bk_biz_id=self.bk_biz_id,
+            domain_name=self.domain,
+            region=self.city_code,
+            version=self.db_version,
+            query_port=self.query_port,
+        )
 
         doris_pipeline.run_pipeline()
 

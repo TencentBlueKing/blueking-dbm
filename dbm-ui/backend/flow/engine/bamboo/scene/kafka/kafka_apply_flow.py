@@ -39,6 +39,7 @@ from backend.flow.plugins.components.collections.common.update_hosts_file import
 from backend.flow.plugins.components.collections.kafka.dns_manage import KafkaDnsManageComponent
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.kafka.get_kafka_resource import GetKafkaResourceComponent
+from backend.flow.plugins.components.collections.kafka.kafka_apply_summary import add_kafka_apply_summary_output_act
 from backend.flow.plugins.components.collections.kafka.kafka_config import KafkaConfigComponent
 from backend.flow.plugins.components.collections.kafka.kafka_db_meta import KafkaDBMetaComponent
 from backend.flow.plugins.components.collections.kafka.trans_flies import TransFileComponent
@@ -342,6 +343,16 @@ class KafkaApplyFlow(object):
 
         kafka_pipeline.add_act(
             act_name=_("回写kafka集群配置"), act_component_code=KafkaConfigComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 写入集群信息摘要，供前端"执行摘要"展示
+        add_kafka_apply_summary_output_act(
+            kafka_pipeline=kafka_pipeline,
+            bk_biz_id=self.data["bk_biz_id"],
+            domain_name=self.data["domain"],
+            region=self.data.get("city_code", ""),
+            version=self.data["db_version"],
+            port=self.data["port"],
         )
 
         kafka_pipeline.run_pipeline()
