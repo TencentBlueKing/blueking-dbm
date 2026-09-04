@@ -1,0 +1,61 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <h2>{{ title }}</h2>
+
+    <p>{% trans "请选择要修改的目标状态：" %}</p>
+
+    {% if form.errors %}
+        <p class="errornote">{% trans "请修正下面的错误。" %}</p>
+        {{ form.non_field_errors }}
+    {% endif %}
+
+    <fieldset class="module aligned">
+        <div class="form-row{% if form.status.errors %} errors{% endif %}">
+            {{ form.status.errors }}
+            <label for="id_status">{{ form.status.label }}：</label>
+            {{ form.status }}
+        </div>
+    </fieldset>
+
+    <h3>{% trans "选中的实例" %}（{{ instances|length }} {% trans "个" %}）：</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "机器" %}</th>
+                <th>{% trans "端口" %}</th>
+                <th>{% trans "当前状态" %}</th>
+                <th>{% trans "实例角色" %}</th>
+                <th>{% trans "集群类型" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for instance in instances %}
+            <tr>
+                <td>{{ instance.machine }}</td>
+                <td>{{ instance.port }}</td>
+                <td>{{ instance.status }}</td>
+                <td>{{ instance.instance_role }}</td>
+                <td>{{ instance.cluster_type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% for instance in instances %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ instance.pk }}" />
+    {% endfor %}
+
+    <input type="hidden" name="action" value="change_status" />
+    <input type="hidden" name="apply" value="1" />
+
+    <div class="submit-row">
+        <input type="submit" value="{% trans '确认修改' %}" class="default" />
+        <a href="." class="button cancel-link">{% trans "取消" %}</a>
+    </div>
+</form>
+{% endblock %}
