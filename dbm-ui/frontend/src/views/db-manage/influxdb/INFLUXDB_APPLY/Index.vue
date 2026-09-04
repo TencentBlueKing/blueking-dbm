@@ -241,7 +241,7 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Influxdb.Apply>(TicketTypes.INFLUXDB_APPLY, {
@@ -315,12 +315,13 @@
    * 切换业务，需要重置 IP 相关的选择
    */
   function handleChangeBiz(info: BizItem) {
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
-
+    const bizChanged = applyBizInfo(info);
+    serviceApply?.changeBizId(info.bk_biz_id);
+    if (!bizChanged) {
+      return;
+    }
     formData.details.group_id = '';
     formData.details.nodes.influxdb = [];
-    serviceApply?.changeBizId(info.bk_biz_id);
   }
   /**
    * 变更所属管控区域
