@@ -75,11 +75,18 @@ const surrealdbClusterTypePageMap = {
   [ClusterTypes.K8S_SURREALDB_SINGLE]: 'SurrealdbSingleDetail',
 };
 
+// victoriametrics
+const victoriametricsClusterTypePageMap = {
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'VictoriametricsStandardDetail',
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: 'VictoriametricsQueryDetail',
+};
+
 export const clusterTypeListPageMap: Record<string, string> = {
   ...redisClusterTypePageMap,
   ...mysqlClusterTypePageMap,
   ...oracleClusterTypePageMap,
   ...surrealdbClusterTypePageMap,
+  ...victoriametricsClusterTypePageMap,
   ...pulsarClusterTypePageMap,
   ...riakClusterTypePageMap,
   ...sqlserverClusterTypePageMap,

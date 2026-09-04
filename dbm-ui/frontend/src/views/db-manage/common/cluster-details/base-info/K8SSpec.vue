@@ -32,13 +32,22 @@
 <script
   setup
   lang="ts"
-  generic="T extends ClusterTypes.K8S_SURREALDB_HA | ClusterTypes.K8S_SURREALDB_SINGLE | ClusterTypes.K8S_QDRANT_HA">
+  generic="
+    T extends
+      | ClusterTypes.K8S_SURREALDB_HA
+      | ClusterTypes.K8S_SURREALDB_SINGLE
+      | ClusterTypes.K8S_QDRANT_HA
+      | ClusterTypes.K8S_VICTORIAMETRICS_SELECT
+      | ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER
+  ">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getQdrantHaComponentSpec } from '@services/source/qdrantHa';
   import { getSurrealdbHaComponentSpec } from '@services/source/surrealdbHa';
   import { getSurrealdbSingleComponentSpec } from '@services/source/surrealdbSingle';
+  import { getVictoriametricsQueryComponentSpec } from '@services/source/victoriametricsQuery';
+  import { getVictoriametricsStandardComponentSpec } from '@services/source/victoriametricsStandard';
 
   import { ClusterTypes } from '@common/const';
 
@@ -58,6 +67,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaComponentSpec,
     [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaComponentSpec,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleComponentSpec,
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsStandardComponentSpec,
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsQueryComponentSpec,
   };
 
   const { data: specData, loading: isLoading } = useRequest(

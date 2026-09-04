@@ -11,6 +11,7 @@ export const queryClusterTypes = {
   [DBTypes.INFLUXDB]: [ClusterTypes.INFLUXDB],
   [DBTypes.K8S_QDRANT]: [ClusterTypes.K8S_QDRANT_HA],
   [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
+  [DBTypes.K8S_VICTORIAMETRICS]: [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER, ClusterTypes.K8S_VICTORIAMETRICS_SELECT],
   [DBTypes.KAFKA]: [ClusterTypes.KAFKA],
   [DBTypes.MONGODB]: [ClusterTypes.MONGODB, ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
   [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],

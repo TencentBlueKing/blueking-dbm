@@ -13,6 +13,8 @@
 import { updateQdrantHaClusterMeta } from '@services/source/qdrantHa';
 import { updateSurrealdbHaClusterMeta } from '@services/source/surrealdbHa';
 import { updateSurrealdbSingleClusterMeta } from '@services/source/surrealdbSingle';
+import { updateVictoriametricsQueryClusterMeta } from '@services/source/victoriametricsQuery';
+import { updateVictoriametricsStandardClusterMeta } from '@services/source/victoriametricsStandard';
 
 import { ClusterTypes } from '@common/const';
 
@@ -25,6 +27,8 @@ const CLUSTER_META_UPDATER_MAP: Partial<Record<ClusterTypes, UpdateClusterMetaFn
   [ClusterTypes.K8S_QDRANT_HA]: updateQdrantHaClusterMeta,
   [ClusterTypes.K8S_SURREALDB_HA]: updateSurrealdbHaClusterMeta,
   [ClusterTypes.K8S_SURREALDB_SINGLE]: updateSurrealdbSingleClusterMeta,
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: updateVictoriametricsStandardClusterMeta,
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: updateVictoriametricsQueryClusterMeta,
 };
 
 /**

@@ -67,6 +67,14 @@
   import { exportTendbclusterInstanceToExcel, exportTendbclusterToExcel } from '@services/source/tendbcluster';
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
+  import {
+    exportVictoriametricsQueryClusterToExcel,
+    exportVictoriametricsQueryInstanceToExcel,
+  } from '@services/source/victoriametricsQuery';
+  import {
+    exportVictoriametricsStandardClusterToExcel,
+    exportVictoriametricsStandardInstanceToExcel,
+  } from '@services/source/victoriametricsStandard';
 
   import { ClusterTypes } from '@common/const';
 
@@ -92,7 +100,9 @@
       | 'oracle_primary_standby'
       | ClusterTypes.K8S_SURREALDB_HA
       | ClusterTypes.K8S_SURREALDB_SINGLE
-      | ClusterTypes.K8S_QDRANT_HA;
+      | ClusterTypes.K8S_QDRANT_HA
+      | ClusterTypes.K8S_VICTORIAMETRICS_SELECT
+      | ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -118,6 +128,14 @@
     [ClusterTypes.K8S_SURREALDB_SINGLE]: {
       cluster: exportSurrealdbSingleClusterToExcel,
       instance: exportSurrealdbSingleInstanceToExcel,
+    },
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: {
+      cluster: exportVictoriametricsStandardClusterToExcel,
+      instance: exportVictoriametricsStandardInstanceToExcel,
+    },
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: {
+      cluster: exportVictoriametricsQueryClusterToExcel,
+      instance: exportVictoriametricsQueryInstanceToExcel,
     },
     doris: {
       cluster: exportDorisClusterToExcel,

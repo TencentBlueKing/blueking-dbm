@@ -20,6 +20,7 @@
         :key="tableRef?.loading"
         name="operation" />
       <slot name="masterDomain" />
+      <slot name="queryDomain" />
       <IdColumn :cluster-type="clusterType" />
       <ClusterAliasColumn
         :cluster-type="clusterType"
@@ -86,6 +87,7 @@
   import MasterDomainColumn from './MasterDomainColumn.vue';
   import ModuleNameColumn from './ModuleNameColumn.vue';
   import OperationColumn from './OperationColumn.vue';
+  import QueryDomainColumn from './QueryDomainColumn.vue';
   import RoleColumn from './RoleColumn.vue';
   import SlaveDomainColumn from './SlaveDomainColumn.vue';
   import StatusColumn from './StatusColumn.vue';
@@ -99,6 +101,7 @@
     MasterDomainColumn,
     ModuleNameColumn,
     OperationColumn,
+    QueryDomainColumn,
     RoleColumn,
     SlaveDomainColumn,
     StatusColumn,
@@ -142,6 +145,7 @@
     masterDomain: () => VNode;
     moduleNames: () => VNode;
     operation: () => VNode;
+    queryDomain: () => VNode;
     role: () => VNode;
     slaveDomain: () => VNode;
     status: () => VNode;
