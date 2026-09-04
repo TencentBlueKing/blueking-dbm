@@ -10,7 +10,6 @@ export default defineComponent({
   directives: {
     tooltips,
   },
-  // props: ['selector', 'user', 'keyword', 'index'],
   props: {
     selector: {
       type: Object,
@@ -28,25 +27,30 @@ export default defineComponent({
   setup(props) {
     const { selector, user, keyword } = toRefs(props);
     const disabled = computed(() => selector.value.disabledUsers.includes(user.value.username));
+    // 按子串切分做高亮，不走正则也不拼 HTML：既避免关键字里的正则元字符报错，也避免用户名被当成 HTML 执行
+    const highlightKeyword = (text: string) => {
+      if (!keyword.value) {
+        return [text];
+      }
+      const nodes: unknown[] = [];
+      text.split(keyword.value).forEach((segment, index) => {
+        if (index > 0) {
+          nodes.push(<span>{keyword.value}</span>);
+        }
+        nodes.push(segment);
+      });
+      return nodes;
+    };
     const getItemContent = () => {
       const [nameWithoutDomain, domain] = user.value.username.split('@');
-      let displayText = nameWithoutDomain;
-      if (keyword.value) {
-        displayText = displayText.replace(
-          new RegExp(keyword.value, 'g'),
-          `<span>${keyword.value}</span>`,
-        );
+      const nodes = highlightKeyword(nameWithoutDomain);
+      if (selector.value.displayDomain && domain) {
+        nodes.push(`@${domain}`);
       }
-      const displayUsername = selector.value.displayDomain && domain
-        ? `${displayText}@${domain}`
-        : displayText;
-
-      const displayName = user.value.display_name;
-      if (displayName) {
-        return `${displayUsername}(${displayName})`;
+      if (user.value.display_name) {
+        nodes.push(`(${user.value.display_name})`);
       }
-
-      return displayUsername;
+      return nodes;
     };
     const getTitle = () => selector.value.getDisplayText(user.value);
 
@@ -109,9 +113,9 @@ export default defineComponent({
               }
               <span
                 class="item-name"
-                title={this.getTitle()}
-                v-html={this.getItemContent()}
-              ></span>
+                title={this.getTitle()}>
+                { this.getItemContent() }
+              </span>
             </>
         }
       </li>
