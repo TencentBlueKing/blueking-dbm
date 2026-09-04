@@ -1,0 +1,4252 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "MongoDB ReplicaSet db/table size：概览/明细按 report_bucket 快照；趋势按时间范围。无分片均衡。",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 14,
+      "panels": [],
+      "title": "集群概览",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "dbtablesize.enable：1=开启，0=关闭（mongo_dbtablesize_collect_success）。如需开启或关闭采集，请联系 DBA。",
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "text": "关闭"
+                },
+                "1": {
+                  "color": "green",
+                  "text": "开启"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 20,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "expressionList": [],
+          "mode": "code",
+          "promqlAlias": "enabled",
+          "query_configs": [],
+          "refId": "A",
+          "source": "(count(mongo_dbtablesize_collect_success{cluster_domain=\"$cluster_domain\", enabled=\"true\"}) > bool 0) or ((count(mongo_dbtablesize_collect_success{cluster_domain=\"$cluster_domain\", enabled=\"false\"}) > bool 0) * 0)",
+          "step": "60s",
+          "type": "range"
+        }
+      ],
+      "title": "enabled",
+      "transformations": [],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "选定 report_bucket 内各 collection max(storage_size) 后再求和；只展示 total，避免桶后 0 点。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 3,
+        "y": 1
+      },
+      "id": 40,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^total$/",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "s",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db",
+              "collection"
+            ],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "storage_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "storageSize 总量",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^Max$"
+            }
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "sum"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Field": true,
+              "Time": true,
+              "d": true,
+              "s": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Max": "total",
+              "Sum": "total",
+              "Total": "total",
+              "总和": "total",
+              "总计": "total"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^total$"
+            }
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "选定 report_bucket 内各 collection max(data_size) 后再求和；只展示 total，避免桶后 0 点。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 7,
+        "y": 1
+      },
+      "id": 41,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^total$/",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "d",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db",
+              "collection"
+            ],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "data_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "dataSize 总量",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^Max$"
+            }
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "sum"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Field": true,
+              "Time": true,
+              "d": true,
+              "s": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Max": "total",
+              "Sum": "total",
+              "Total": "total",
+              "总和": "total",
+              "总计": "total"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^total$"
+            }
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "压缩比 data/storage：选定 report_bucket 内 data/storage（ungrouped sum 后取 max，避免桶后 0 点）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 11,
+        "y": 1
+      },
+      "id": 42,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^ratio$/",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "data",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "sum",
+            "metric": "data_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        },
+        {
+          "data": {
+            "alias": "storage",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "sum",
+            "metric": "storage_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "B"
+        }
+      ],
+      "title": "压缩比 data/storage",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "Field",
+                "handlerKey": "field.name"
+              },
+              {
+                "fieldName": "Max",
+                "handlerKey": "field.value"
+              }
+            ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "ratio",
+            "binary": {
+              "left": "data",
+              "operator": "/",
+              "reducer": "sum",
+              "right": "storage"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "索引占比：选定 report_bucket 内 index/storage（ungrouped sum 后取 max，避免桶后 0 点）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 43,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^ratio$/",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "index",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "sum",
+            "metric": "index_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        },
+        {
+          "data": {
+            "alias": "storage",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "sum",
+            "metric": "storage_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "B"
+        }
+      ],
+      "title": "索引占比",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "Field",
+                "handlerKey": "field.name"
+              },
+              {
+                "fieldName": "Max",
+                "handlerKey": "field.value"
+              }
+            ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "ratio",
+            "binary": {
+              "left": "index",
+              "operator": "/",
+              "reducer": "sum",
+              "right": "storage"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "去重 DB 数（collection 非空）（按 report_bucket 过滤）",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "c",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db"
+            ],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "storage_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "DB 数",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^Field$"
+            }
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "count"
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "去重 Collection 数（按 report_bucket 过滤）",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 17,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "c",
+            "conditions": [
+              [
+                {
+                  "key": "81h6pbwkic",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "22332sjqz5",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "333l87jdyt",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db",
+              "collection"
+            ],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "storage_size",
+            "period": 10,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 10
+            },
+            "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Coll 数",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^Field$"
+            }
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "count"
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 30,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "选定 report_bucket 内 Top20 by storageSize（max）；点击库名可写入变量 dbname。",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "links": [
+                {
+                  "targetBlank": false,
+                  "title": "Drill to collections",
+                  "url": "?orgId=1&var-dbname=${__field.name}"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 0,
+            "y": 6
+          },
+          "id": 60,
+          "options": {
+            "displayMode": "gradient",
+            "legend": {
+              "displayMode": "hidden",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": true
+            },
+            "showUnfilled": true,
+            "sizing": "manual",
+            "text": {},
+            "valueMode": "color"
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "storage_size",
+                "period": 10,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 10
+                },
+                "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "DB 维度 Top20 (storageSize)",
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": {
+                "includeTimeField": false,
+                "mode": "seriesToRows",
+                "reducers": [
+                  "max"
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "Max"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "limit",
+              "options": {
+                "limitField": 20
+              }
+            }
+          ],
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "选定 report_bucket 内按 collection max(storage_size) 降序。受 dbname/collname 过滤。",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "filterable": true
+              },
+              "decimals": 2,
+              "unit": "bytes"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "db:collection"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 8,
+            "y": 6
+          },
+          "id": 18,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": [
+                "storage_size"
+              ],
+              "reducer": [
+                "sum"
+              ],
+              "show": true
+            },
+            "showHeader": true
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "storage_size",
+                "period": 10,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 10
+                },
+                "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Collection 明细 (storage)",
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": {
+                "includeTimeField": false,
+                "mode": "seriesToRows",
+                "reducers": [
+                  "max"
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "Field": 0,
+                  "Max": 1
+                },
+                "renameByName": {
+                  "Field": "db:collection",
+                  "Max": "storage_size"
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "storage_size"
+                  }
+                ]
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "选定 report_bucket 内按 collection max(avg_obj_size) 降序。受 dbname/collname 过滤。",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "filterable": true
+              },
+              "decimals": 2,
+              "unit": "bytes"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "db:collection"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 16,
+            "y": 6
+          },
+          "id": 19,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": [
+                "avg_obj_size"
+              ],
+              "reducer": [
+                "mean"
+              ],
+              "show": true
+            },
+            "showHeader": true
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "avg_obj_size",
+                "period": 10,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 10
+                },
+                "queryString": "NOT collection:\"\" AND log:\"\\\"report_bucket\\\":\\\"$report_bucket\\\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Collection avg_obj_size",
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": {
+                "includeTimeField": false,
+                "mode": "seriesToRows",
+                "reducers": [
+                  "max"
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "Field": 0,
+                  "Max": 1
+                },
+                "renameByName": {
+                  "Field": "db:collection",
+                  "Max": "avg_obj_size"
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "avg_obj_size"
+                  }
+                ]
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "title": "明细下钻",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 31,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "storage_size 趋势（max by db,collection）。受 dbname/collname 与时间范围过滤。趋势不按 report_bucket 过滤，跟看板时间范围走。",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 7
+          },
+          "id": 70,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "storage_size",
+                "period": 300,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 300
+                },
+                "queryString": "NOT collection:\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Storage Size",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "data_size 趋势（max）。受 dbname/collname 与时间范围过滤。趋势不按 report_bucket 过滤，跟看板时间范围走。",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 15
+          },
+          "id": 71,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "data_size",
+                "period": 300,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 300
+                },
+                "queryString": "NOT collection:\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Data Size",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "index_size 趋势（max）。受 dbname/collname 与时间范围过滤。趋势不按 report_bucket 过滤，跟看板时间范围走。",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 15
+          },
+          "id": 72,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "index_size",
+                "period": 300,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 300
+                },
+                "queryString": "NOT collection:\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Index Size",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "count 趋势（max）。受 dbname/collname 与时间范围过滤。趋势不按 report_bucket 过滤，跟看板时间范围走。",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 0,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 23
+          },
+          "id": 73,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "count",
+                "period": 300,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 300
+                },
+                "queryString": "NOT collection:\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Document Count",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "description": "avg_obj_size 趋势（max）。受 dbname/collname 与时间范围过滤。趋势不按 report_bucket 过滤，跟看板时间范围走。",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 23
+          },
+          "id": 74,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "data": {
+                "alias": "$tag_db:$tag_collection",
+                "conditions": [
+                  [
+                    {
+                      "key": "81h6pbwkic",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "22332sjqz5",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "333l87jdyt",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-db",
+                      "list": [
+                        {
+                          "id": "db",
+                          "name": "db"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "db"
+                    },
+                    {
+                      "key": "m-db",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-db",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$dbname"
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "key": "k-coll",
+                      "list": [
+                        {
+                          "id": "collection",
+                          "name": "collection"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "collection"
+                    },
+                    {
+                      "key": "m-coll",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is one of"
+                    },
+                    {
+                      "key": "v-coll",
+                      "list": [],
+                      "type": "value",
+                      "value": [
+                        "$collname"
+                      ]
+                    }
+                  ]
+                ],
+                "dimensions": [
+                  "db",
+                  "collection"
+                ],
+                "index": {
+                  "id": [
+                    "application_check",
+                    38137
+                  ],
+                  "labels": [
+                    "业务应用",
+                    "[采集项]mongodb_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "avg_obj_size",
+                "period": 300,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 300
+                },
+                "queryString": "NOT collection:\"\"",
+                "size": 5000,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
+                }
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "${DS_日志平台}"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "avg_obj_size",
+          "transformations": [],
+          "type": "timeseries"
+        }
+      ],
+      "title": "明细下钻（趋势）",
+      "type": "row"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": [
+    "MongoReplicaSet",
+    "表容量视图"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "description": "app",
+        "hide": 2,
+        "includeAll": false,
+        "label": "app",
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mongodb_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "mongodb_up",
+            "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "cluster_type",
+                "method": "eq",
+                "value": [
+                  "MongoReplicaSet"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "description": "cluster_domain",
+        "hide": 0,
+        "includeAll": false,
+        "label": "cluster_domain",
+        "multi": false,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mongodb_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "mongodb_up",
+            "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
+              {
+                "key": "cluster_type",
+                "method": "eq",
+                "value": [
+                  "MongoReplicaSet"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
+        },
+        "definition": "- Blueking Monitor - prometheus",
+        "description": "近 24h 采集桶；默认最新。容量面板按 log JSON 内 report_bucket 过滤（顶层字段未建索引）。",
+        "hide": 0,
+        "includeAll": false,
+        "label": "report_bucket",
+        "multi": false,
+        "name": "report_bucket",
+        "options": [],
+        "query": {
+          "promql": "query_result(count by (report_bucket) (last_over_time(mongo_dbtablesize_collect_success{cluster_domain=\"$cluster_domain\", enabled=\"true\"}[24h])))",
+          "queryType": "prometheus"
+        },
+        "refresh": 2,
+        "regex": "/.*report_bucket=\\\"?([0-9]{12})\\\"?.*/",
+        "skipUrlSync": false,
+        "sort": 2,
+        "type": "query"
+      },
+      {
+        "allFormat": "regex",
+        "allValue": "*",
+        "allowCustomValue": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "bk_log_datasource",
+          "uid": "${DS_日志平台}"
+        },
+        "definition": "bk_log dimension:db",
+        "description": "多选/全选(*)；可手写输入（含通配如 log_*）",
+        "hide": 0,
+        "includeAll": true,
+        "label": "dbname",
+        "multi": true,
+        "multiFormat": "regex",
+        "name": "dbname",
+        "options": [],
+        "query": {
+          "dimensionData": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "8izk4zmpyy",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "4fzn8pxmgb",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "pjgs342sty",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db"
+            ],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "storage_size",
+            "period": 3600,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 60
+            },
+            "queryString": "*",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "queryType": "dimension",
+          "variables": "$cluster_domain"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allFormat": "regex",
+        "allValue": "*",
+        "allowCustomValue": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "bk_log_datasource",
+          "uid": "${DS_日志平台}"
+        },
+        "definition": "bk_log dimension:collection",
+        "description": "多选/全选(*)；可手写输入（含通配如 *_logs）",
+        "hide": 0,
+        "includeAll": true,
+        "label": "collname",
+        "multi": true,
+        "multiFormat": "regex",
+        "name": "collname",
+        "options": [],
+        "query": {
+          "dimensionData": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "q4c3nqbok5",
+                  "list": [
+                    {
+                      "id": "cluster_domain",
+                      "name": "cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "cluster_domain"
+                },
+                {
+                  "key": "cwpokfkr4y",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "z01k3hxw0u",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "collection"
+            ],
+            "index": {
+              "id": [
+                "application_check",
+                38137
+              ],
+              "labels": [
+                "业务应用",
+                "[采集项]mongodb_db_table_size"
+              ]
+            },
+            "indexSetString": "",
+            "method": "max",
+            "metric": "storage_size",
+            "period": 3600,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 60
+            },
+            "queryString": "NOT collection:\"\"",
+            "size": 5000,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "queryType": "dimension",
+          "variables": "$cluster_domain,$dbname"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "mongodb_db_table_size",
+  "uid": "mongodb_db_table_size",
+  "version": 29,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "Blueing Monitor TimeSeries"
+    },
+    {
+      "name": "DS_日志平台",
+      "label": "日志平台",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bk_log_datasource",
+      "pluginName": "BlueKing Log TimeSeries"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bk_log_datasource",
+      "name": "BlueKing Log TimeSeries",
+      "version": "1.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "Blueing Monitor TimeSeries",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.1.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ]
+}
