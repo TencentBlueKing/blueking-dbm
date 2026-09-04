@@ -35,26 +35,47 @@ import (
 
 func TestClampProbeHarvesterInterval(t *testing.T) {
 	cases := []struct {
-		name string
-		in   time.Duration
-		min  time.Duration
-		want time.Duration
+		name  string
+		in    time.Duration
+		floor time.Duration
+		want  time.Duration
 	}{
-		{name: "zero is clamped", in: 0, min: minProbeHarvesterInterval, want: minProbeHarvesterInterval},
-		{name: "below minimum is clamped", in: time.Second, min: minProbeHarvesterInterval, want: minProbeHarvesterInterval},
-		{name: "at minimum is preserved", in: minProbeHarvesterInterval, min: minProbeHarvesterInterval, want: minProbeHarvesterInterval},
-		{name: "above minimum is preserved", in: 30 * time.Second, min: minProbeHarvesterInterval, want: 30 * time.Second},
-		{name: "heartbeat below floor is clamped", in: 100 * time.Millisecond, min: minProbeHarvesterHeartbeatInterval, want: minProbeHarvesterHeartbeatInterval},
-		{name: "heartbeat at floor is preserved", in: minProbeHarvesterHeartbeatInterval, min: minProbeHarvesterHeartbeatInterval, want: minProbeHarvesterHeartbeatInterval},
-		{name: "repl heartbeat below floor is clamped", in: time.Second, min: minProbeHarvesterReplHeartbeatInterval, want: minProbeHarvesterReplHeartbeatInterval},
-		{name: "repl heartbeat at floor is preserved", in: minProbeHarvesterReplHeartbeatInterval, min: minProbeHarvesterReplHeartbeatInterval, want: minProbeHarvesterReplHeartbeatInterval},
+		{name: "zero is clamped", in: 0, floor: minProbeHarvesterInterval, want: minProbeHarvesterInterval},
+		{
+			name: "below minimum is clamped", in: time.Second,
+			floor: minProbeHarvesterInterval, want: minProbeHarvesterInterval,
+		},
+		{
+			name: "at minimum is preserved", in: minProbeHarvesterInterval,
+			floor: minProbeHarvesterInterval, want: minProbeHarvesterInterval,
+		},
+		{
+			name: "above minimum is preserved", in: 30 * time.Second,
+			floor: minProbeHarvesterInterval, want: 30 * time.Second,
+		},
+		{
+			name: "heartbeat below floor is clamped", in: 100 * time.Millisecond,
+			floor: minProbeHarvesterHeartbeatInterval, want: minProbeHarvesterHeartbeatInterval,
+		},
+		{
+			name: "heartbeat at floor is preserved", in: minProbeHarvesterHeartbeatInterval,
+			floor: minProbeHarvesterHeartbeatInterval, want: minProbeHarvesterHeartbeatInterval,
+		},
+		{
+			name: "repl heartbeat below floor is clamped", in: time.Second,
+			floor: minProbeHarvesterReplHeartbeatInterval, want: minProbeHarvesterReplHeartbeatInterval,
+		},
+		{
+			name: "repl heartbeat at floor is preserved", in: minProbeHarvesterReplHeartbeatInterval,
+			floor: minProbeHarvesterReplHeartbeatInterval, want: minProbeHarvesterReplHeartbeatInterval,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := clampProbeHarvesterInterval("test", tc.in, tc.min)
+			got := clampProbeHarvesterInterval("test", tc.in, tc.floor)
 			if got != tc.want {
-				t.Errorf("clampProbeHarvesterInterval(%s, min=%s) = %s, want: %s", tc.in, tc.min, got, tc.want)
+				t.Errorf("clampProbeHarvesterInterval(%s, floor: %s) = %s, want: %s", tc.in, tc.floor, got, tc.want)
 			}
 		})
 	}

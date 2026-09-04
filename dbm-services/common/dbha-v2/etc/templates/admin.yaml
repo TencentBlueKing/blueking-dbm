@@ -104,6 +104,16 @@ probeProxyAdmin:
   replDelayInterval: {{ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
+# Optional generic harvester credentials for newly added DB types.
+# Keys become ProbeConfigPayload.harvesters and must match HarvestBlock.PayloadKey / BlockName.
+# Example:
+# probeHarvesters:
+#   kafka:
+#     user: ""
+#     password: ""
+#     interval: 20s
+#     timeout: 5s
+
 # Freshness bounds for admin's local metadata cache (t_dbm_metadata) when answering
 # GetProbeConfig. If any cached row for the requesting IP is older than cacheMaxAge, the whole
 # machine is re-read from the DBM API, so a probe never builds its config from a partially

@@ -25,8 +25,6 @@
 // Package probeconfig defines shared types for probe config generation (e.g. metadata from admin to probe).
 package probeconfig
 
-import "dbm-services/common/dbha-v2/pkg/storage/haprobe"
-
 // ProbeMetadataItem is a single instance metadata entry for probe config generation (ip, port, cluster type, etc.).
 type ProbeMetadataItem struct {
 	IP           string `json:"ip"`
@@ -83,37 +81,27 @@ type ProbeProxyAdminConfig struct {
 	Timeout           string `json:"timeout"`
 }
 
+// ProbeHarvesterConfig carries credentials/timing for a generic (non-named) harvester block.
+// Used by ProbeConfigPayload.Harvesters for newly added DB types.
+type ProbeHarvesterConfig struct {
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Interval string `json:"interval"`
+	Timeout  string `json:"timeout"`
+}
+
 // ProbeConfigPayload is the JSON payload returned by admin GetProbeConfig.
 // Probe parses it to render the final probe YAML (gse reporter + harvester credentials + db endpoints).
 // Admin always populates MySQL / Redis / ProxyAdmin defaults; probe routes per endpoint based on
 // (access_layer, machine_type) when generating the final YAML, and merges ports by endpoint key
 // (ip, cluster_type, machine_type, instance_role, access_layer). The credential blocks remain pointers
 // so older admin builds that omit a block still degrade gracefully on newer probes.
+// Harvesters carries credentials for newly added DB types (pass-through from admin probeHarvesters).
 type ProbeConfigPayload struct {
-	Gse        GseConfig              `json:"gse"`
-	MySQL      *ProbeMySQLConfig      `json:"mysql,omitempty"`
-	Redis      *ProbeRedisConfig      `json:"redis,omitempty"`
-	ProxyAdmin *ProbeProxyAdminConfig `json:"proxy_admin,omitempty"`
-	Metadata   []ProbeMetadataItem    `json:"metadata"`
-}
-
-// IsMySQLClusterType reports whether the cluster type belongs to the MySQL family
-// (tendbha / tendbcluster).
-func IsMySQLClusterType(ct string) bool {
-	return ct == string(haprobe.DbmMetadataClusterTypeTendbha) ||
-		ct == string(haprobe.DbmMetadataClusterTypeTendbCluster)
-}
-
-// IsRedisClusterType reports whether the cluster type belongs to the Redis family
-// (redis / twemproxy / predixy variants).
-func IsRedisClusterType(ct string) bool {
-	switch haprobe.DbmMetadataClusterType(ct) {
-	case haprobe.DbmMetadataClusterTypeRedis,
-		haprobe.DbmMetadataClusterTypeTwemproxyRedis,
-		haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
-		haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
-		haprobe.DbmMetadataClusterTypePredixyRedisCluster:
-		return true
-	}
-	return false
+	Gse        GseConfig                       `json:"gse"`
+	MySQL      *ProbeMySQLConfig               `json:"mysql,omitempty"`
+	Redis      *ProbeRedisConfig               `json:"redis,omitempty"`
+	ProxyAdmin *ProbeProxyAdminConfig          `json:"proxy_admin,omitempty"`
+	Harvesters map[string]ProbeHarvesterConfig `json:"harvesters,omitempty"`
+	Metadata   []ProbeMetadataItem             `json:"metadata"`
 }

@@ -34,6 +34,7 @@ import (
 	"unicode"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/process"
@@ -71,22 +72,18 @@ func procName() string {
 	return process.NameProbe
 }
 
-func mysqlHarvesterHasEndpoints(c *config.MySqlHarvesterConfig) bool {
-	return c != nil && len(c.Endpoints) > 0
-}
-
-func redisHarvesterHasEndpoints(c *config.RedisHarvesterConfig) bool {
-	return c != nil && len(c.Endpoints) > 0
-}
-
 func getConfiguredDbTypes() []haprobe.DbType {
+	seen := map[haprobe.DbType]struct{}{}
 	var dbTypes []haprobe.DbType
-	if mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySql) ||
-		mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySqlProxyAdmin) {
-		dbTypes = append(dbTypes, haprobe.DbTypeMySql)
-	}
-	if redisHarvesterHasEndpoints(config.Cfg.Harvester.Redis) {
-		dbTypes = append(dbTypes, haprobe.DbTypeRedis)
+	for _, e := range harvester.Entries() {
+		if !config.Cfg.Harvester.HasEndpoints(e.BlockName) {
+			continue
+		}
+		if _, ok := seen[e.DbType]; ok {
+			continue
+		}
+		seen[e.DbType] = struct{}{}
+		dbTypes = append(dbTypes, e.DbType)
 	}
 	return dbTypes
 }

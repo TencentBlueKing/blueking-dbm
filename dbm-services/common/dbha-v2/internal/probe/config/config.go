@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
@@ -42,18 +43,9 @@ import (
 const defaultPidFile = "./pids/probe.pid"
 
 // MinSyncInterval is the floor applied to admin.syncInterval.
-//
-// Each tick costs admin one metadata lookup per probe, so the whole fleet's load scales with
-// 1/interval. A typo such as "1s" on a large fleet would be enough to overwhelm admin, and the
-// probes causing it are exactly the ones that cannot be reconfigured quickly. Clamping keeps a
-// misconfigured probe running at a sane rate instead of refusing to start.
 const MinSyncInterval = 10 * time.Second
 
-// Cfg holds the currently applied probe configuration. It is only replaced after
-// a successful Parse (via Load or a hot-reload apply path).
-//
-// Reads on the startup and hot-reload paths are serialized and may use Cfg directly.
-// Concurrent readers, in particular background goroutines, must use Snapshot instead.
+// Cfg holds the currently applied probe configuration. Concurrent readers must use Snapshot.
 var Cfg = defaultConfiguration()
 
 // snapshot mirrors Cfg for lock-free concurrent reads. Apply keeps the two in step.
@@ -64,10 +56,7 @@ func init() {
 	snapshot.Store(&initial)
 }
 
-// Apply installs next as the applied configuration. It is the single write path: keeping Cfg
-// and the snapshot updated together is what lets background readers observe a consistent view.
-// Tests that restore a saved configuration must call it too rather than assigning Cfg directly,
-// otherwise the snapshot keeps serving the value from the previous test.
+// Apply installs next as the applied configuration.
 func Apply(next Configuration) {
 	Cfg = next
 	applied := next
@@ -75,11 +64,6 @@ func Apply(next Configuration) {
 }
 
 // Snapshot returns the configuration currently applied, without racing against hot reload.
-//
-// The result is a shallow copy: pointer fields such as Harvester.MySql are shared with the
-// applied configuration. That is safe because reload swaps the whole Configuration instead of
-// mutating sub-structs in place. Code that starts mutating those sub-structs in place would
-// invalidate this guarantee.
 func Snapshot() Configuration {
 	if applied := snapshot.Load(); applied != nil {
 		return *applied
@@ -98,14 +82,6 @@ type ClientConfig struct {
 }
 
 // AdminConfig tells the probe where to refresh its own configuration from, and how often.
-//
-// The block is owned locally: admin has no idea which endpoints this probe was pointed at, so
-// a config rewritten from an admin payload has to carry it over from the file on disk. Losing
-// it would stop the probe from ever syncing again.
-//
-// A zero SyncInterval disables periodic sync, which is what every config written before this
-// feature existed parses to. Note this differs from admin's own cacheMaxAge, where zero means
-// "use the default".
 type AdminConfig struct {
 	Endpoints    []string      `yaml:"endpoints"    mapstructure:"endpoints"`
 	BkCloudID    uint64        `yaml:"bkCloudID"    mapstructure:"bkCloudID"`
@@ -118,8 +94,7 @@ func (a AdminConfig) IsZero() bool {
 	return len(a.Endpoints) == 0 && a.BkCloudID == 0 && a.LocalIP == "" && a.SyncInterval == 0
 }
 
-// SyncEnabled reports whether periodic sync should run. Endpoints are required: an interval
-// with nowhere to send the request would just log a failure on every tick.
+// SyncEnabled reports whether periodic sync should run.
 func (a AdminConfig) SyncEnabled() bool {
 	return a.SyncInterval > 0 && len(a.Endpoints) > 0
 }
@@ -151,11 +126,12 @@ type DbEndpointConfig struct {
 	AdminPorts   []string                           `yaml:"adminPorts"   mapstructure:"adminPorts"`
 }
 
-// MySqlHarvesterConfig MySQL harvester config.
-// Timeout bounds both DSN dial timeout (go-sql-driver "timeout=..." DSN parameter) and per-query
-// context timeout (gorm WithContext) for every collector built from this block. Admin clamps the
-// upstream value at minProbeHarvesterTimeout before sending.
-type MySqlHarvesterConfig struct {
+// RawHarvesterConfig is the common shape of a probe harvester YAML block.
+// Known blocks (mysql / mysqlProxyAdmin / redis) and future DB types share this layout.
+// Timeout bounds both DSN dial timeout and per-query context timeout for MySQL collectors.
+// HeartbeatInterval / ReplDelayInterval only apply to the MySQL family blocks; other
+// DB types leave them zero and their collectors fall back to Interval.
+type RawHarvesterConfig struct {
 	User              string             `yaml:"user"              mapstructure:"user"`
 	Password          string             `yaml:"password"          mapstructure:"password"`
 	Interval          time.Duration      `yaml:"interval"          mapstructure:"interval"`
@@ -165,23 +141,53 @@ type MySqlHarvesterConfig struct {
 	Endpoints         []DbEndpointConfig `yaml:"endpoints"         mapstructure:"endpoints"`
 }
 
-// RedisHarvesterConfig Redis harvester config
-type RedisHarvesterConfig struct {
-	User      string             `yaml:"user"      mapstructure:"user"`
-	Password  string             `yaml:"password"  mapstructure:"password"`
-	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
-	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
-	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
+// Well-known harvester block names (YAML keys under harvester:).
+const (
+	HarvesterBlockMySQL           = "mysql"
+	HarvesterBlockMySQLProxyAdmin = "mysqlProxyAdmin"
+	HarvesterBlockRedis           = "redis"
+)
+
+// Precomputed normalized forms of the well-known block names for Block() lookups.
+var (
+	normBlockMySQL           = dbtype.NormalizeBlockName(HarvesterBlockMySQL)
+	normBlockMySQLProxyAdmin = dbtype.NormalizeBlockName(HarvesterBlockMySQLProxyAdmin)
+	normBlockRedis           = dbtype.NormalizeBlockName(HarvesterBlockRedis)
+)
+
+// HarvesterConfig keeps named mysql/redis/proxyAdmin fields for viper/mapstructure
+// zero regression (viper lowercases bare map keys), and Extra collects new DB blocks
+// via mapstructure ",remain".
+type HarvesterConfig struct {
+	MySql           *RawHarvesterConfig            `yaml:"mysql"           mapstructure:"mysql"`
+	MySqlProxyAdmin *RawHarvesterConfig            `yaml:"mysqlProxyAdmin" mapstructure:"mysqlProxyAdmin"`
+	Redis           *RawHarvesterConfig            `yaml:"redis"           mapstructure:"redis"`
+	Extra           map[string]*RawHarvesterConfig `yaml:",inline"        mapstructure:",remain"`
 }
 
-// HarvesterConfig harvester config.
-// MySqlProxyAdmin reuses MySqlHarvesterConfig but carries proxy-admin credentials and admin-port-only
-// endpoints; probe loads it as a separate MySQL plugin instance so proxy admin ports are probed with
-// distinct creds from regular mysql storage/spider endpoints.
-type HarvesterConfig struct {
-	MySql           *MySqlHarvesterConfig `yaml:"mysql"           mapstructure:"mysql"`
-	MySqlProxyAdmin *MySqlHarvesterConfig `yaml:"mysqlProxyAdmin" mapstructure:"mysqlProxyAdmin"`
-	Redis           *RedisHarvesterConfig `yaml:"redis"           mapstructure:"redis"`
+// Block returns the config for a harvester block name, or nil if absent.
+// The name is normalized so camelCase and lowercase lookups are equivalent.
+func (h HarvesterConfig) Block(name string) *RawHarvesterConfig {
+	n := dbtype.NormalizeBlockName(name)
+	switch n {
+	case normBlockMySQL:
+		return h.MySql
+	case normBlockMySQLProxyAdmin:
+		return h.MySqlProxyAdmin
+	case normBlockRedis:
+		return h.Redis
+	default:
+		if h.Extra == nil {
+			return nil
+		}
+		return h.Extra[n]
+	}
+}
+
+// HasEndpoints reports whether the named block exists and lists at least one endpoint.
+func (h HarvesterConfig) HasEndpoints(name string) bool {
+	b := h.Block(name)
+	return b != nil && len(b.Endpoints) > 0
 }
 
 // LogConfig log configuration
@@ -208,14 +214,6 @@ type Configuration struct {
 
 // Parse reads probe configuration from path without mutating the package-level Cfg
 // or the global viper instance.
-//
-// When path is empty, Parse looks for a file named "probe" (YAML) under ./etc,
-// matching the historical Load behavior. When path is non-empty, that file is used.
-// An empty pidFile in the file is normalized to defaultPidFile.
-//
-// On success it returns a fully populated Configuration starting from
-// defaultConfiguration so omitted keys do not retain values from a previous load.
-// On failure it returns a zero Configuration and the error; Cfg is untouched.
 func Parse(configFilePath string) (Configuration, error) {
 	v := newConfigViper()
 
@@ -230,10 +228,7 @@ func Parse(configFilePath string) (Configuration, error) {
 	return unmarshalConfig(v)
 }
 
-// ParseBytes parses an in-memory YAML document into a Configuration. It shares the defaults
-// and post-processing of Parse, so a document accepted here yields exactly the same
-// Configuration once it has been written to disk and read back by Parse. Callers rely on that
-// equivalence to validate rendered output before overwriting a working config file.
+// ParseBytes parses an in-memory YAML document into a Configuration.
 func ParseBytes(data []byte) (Configuration, error) {
 	v := newConfigViper()
 
@@ -262,21 +257,14 @@ func unmarshalConfig(v *viper.Viper) (Configuration, error) {
 	return next, nil
 }
 
-// postProcess normalizes a freshly unmarshalled configuration. Parse and ParseBytes must both
-// go through it: were the two paths to diverge, a document that validates in memory could parse
-// into something different after a round-trip through disk.
 func postProcess(cfg *Configuration) {
 	if cfg.PidFile == "" {
 		cfg.PidFile = defaultPidFile
 	}
 	clampSyncInterval(cfg)
+	normalizeHarvesterExtraKeysOn(cfg)
 }
 
-// clampSyncInterval raises a too-small sync interval to MinSyncInterval.
-//
-// Zero and negative values are left alone: they mean periodic sync is off, which is how every
-// config written before this feature existed parses. Only a positive value below the floor is
-// a genuine misconfiguration worth correcting.
 func clampSyncInterval(cfg *Configuration) {
 	if cfg.Admin.SyncInterval <= 0 || cfg.Admin.SyncInterval >= MinSyncInterval {
 		return
@@ -288,8 +276,6 @@ func clampSyncInterval(cfg *Configuration) {
 }
 
 // Load loads probe configuration from file into the package-level Cfg.
-// It delegates to Parse and only replaces Cfg after a successful parse, so a
-// failed load leaves the previously applied configuration intact.
 func Load(configFilePath string) error {
 	next, err := Parse(configFilePath)
 	if err != nil {
@@ -299,19 +285,13 @@ func Load(configFilePath string) error {
 	return nil
 }
 
-// RetainIdentity copies fields that must not change across a hot reload from old
-// into next. PidFile and Log are process-identity settings applied only at
-// startup; changing them requires a restart.
-// It returns next with those identity fields overwritten from old.
+// RetainIdentity copies fields that must not change across a hot reload from old into next.
 func RetainIdentity(old, next Configuration) Configuration {
 	next.PidFile = old.PidFile
 	next.Log = old.Log
 	return next
 }
 
-// defaultConfiguration returns the baseline probe configuration used both as the
-// package-level Cfg initial value and as the starting point for Parse, so that
-// omitted YAML keys do not retain stale values from a previous load.
 func defaultConfiguration() Configuration {
 	return Configuration{
 		Name:    "probe",
@@ -323,4 +303,21 @@ func defaultConfiguration() Configuration {
 			FileSize:  100,
 		},
 	}
+}
+
+// normalizeHarvesterExtraKeys rebuilds Extra so every map key is normalized.
+func normalizeHarvesterExtraKeys() {
+	normalizeHarvesterExtraKeysOn(&Cfg)
+}
+
+func normalizeHarvesterExtraKeysOn(cfg *Configuration) {
+	extra := cfg.Harvester.Extra
+	if len(extra) == 0 {
+		return
+	}
+	normalized := make(map[string]*RawHarvesterConfig, len(extra))
+	for k, v := range extra {
+		normalized[dbtype.NormalizeBlockName(k)] = v
+	}
+	cfg.Harvester.Extra = normalized
 }
