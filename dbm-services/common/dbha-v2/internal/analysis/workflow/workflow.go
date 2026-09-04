@@ -112,9 +112,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 			myServiceID:  myServiceID,
 		},
 
-		switchers: map[haprobe.DbType]switcher.Switcher{
-			haprobe.DbTypeMySql: &switcher.Mysql{},
-		},
+		switchers: switcher.Build(),
 
 		discoveryCli:     cli,
 		discovery:        disc,
@@ -586,7 +584,7 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	if err := apm.TriggerSwitchingInstanceTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   w.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(len(req.MySqlInstData))); err != nil {
+	}, float64(len(req.InstData))); err != nil {
 		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
 	}
 

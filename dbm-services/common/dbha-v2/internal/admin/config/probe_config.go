@@ -36,6 +36,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/constant"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
@@ -126,6 +127,22 @@ func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload) {
 		HeartbeatInterval: durationToYAMLString(Cfg.ProbeProxyAdmin.HeartbeatInterval),
 		ReplDelayInterval: durationToYAMLString(Cfg.ProbeProxyAdmin.ReplDelayInterval),
 		Timeout:           durationToYAMLString(Cfg.ProbeProxyAdmin.Timeout),
+	}
+
+	// Pure pass-through for newly added DB types: no provider / HarvestBlock dependency.
+	if len(Cfg.ProbeHarvesters) == 0 {
+		return
+	}
+	payload.Harvesters = make(map[string]probeconfig.ProbeHarvesterConfig, len(Cfg.ProbeHarvesters))
+	for name, cred := range Cfg.ProbeHarvesters {
+		// Defensive: viper already lowercases map keys; keep the invariant if a
+		// future loader preserves camelCase.
+		payload.Harvesters[dbtype.NormalizeBlockName(name)] = probeconfig.ProbeHarvesterConfig{
+			User:     cred.User,
+			Password: cred.Password,
+			Interval: durationToYAMLString(cred.Interval),
+			Timeout:  durationToYAMLString(cred.Timeout),
+		}
 	}
 }
 

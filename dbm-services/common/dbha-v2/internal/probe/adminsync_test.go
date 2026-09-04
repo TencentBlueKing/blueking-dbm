@@ -38,6 +38,8 @@ import (
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/process"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/allprobe"
 )
 
 // syncProbe builds a Probe with just the fields the sync path touches, and seeds the config

@@ -32,7 +32,6 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // errIfCtxDoneInHostSwitch returns the error if ctx is non-nil
@@ -225,15 +224,15 @@ func checkOnSameHostSameCluster(ctx context.Context, clusterKey ClusterKey,
 
 // hostSwitchGroupKey returns the group key that decides which same-host instances switch together
 // under one shared cluster lock. Instances in different clusters always get different keys. Within
-// the same cluster, only the remote (machine_type=remote) nodes of a TendbCluster share a key so they
+// the same cluster, providers that implement HostSwitchGroupScopeProvider may share a scope so they
 // switch in parallel; every other instance gets a key of its own (kept serial via the cluster lock).
-// Other cluster types currently keep one instance per group, which may be extended later.
 func hostSwitchGroupKey(instKey MetadataKey, ins SwitchableInstance) string {
 	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
 
-	if ins.GetClusterType() == haprobe.DbmMetadataClusterTypeTendbCluster &&
-		ins.GetMachineType() == haprobe.DbmMetadataMachineTypeRemote {
-		return fmt.Sprintf("%s|remote", clusterKey)
+	if p, ok := ins.(HostSwitchGroupScopeProvider); ok {
+		if scope, shared := p.HostSwitchGroupScope(); shared && scope != "" {
+			return fmt.Sprintf("%s|%s", clusterKey, scope)
+		}
 	}
 
 	return fmt.Sprintf("%s|%s", clusterKey, instKey)

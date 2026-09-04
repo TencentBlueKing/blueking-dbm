@@ -29,11 +29,19 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -115,10 +123,74 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	logger.Debug("analysis startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
+	if err := logAnalysisProviderSelfCheck(); err != nil {
+		return err
+	}
+
 	ctx := context.Background()
 	svr := &Service{etcdLogger: etcdLogger.OriginLogger(), gormLogger: gormLogger, swSnapshotLogger: snapshotLogger}
 
 	setupGracefulShutdown(svr)
 
 	return svr.Run(ctx)
+}
+
+func logAnalysisProviderSelfCheck() error {
+	switcherTypes := switcher.RegisteredDbTypes()
+	parserTypes := parser.RegisteredDbTypes()
+	logger.Info(
+		"analysis provider self-check, registered_db_types: %s, provider_owned_db_types: %s, "+
+			"switcher_db_types: %s, parser_db_types: %s, special_match_events: %s, "+
+			"dns_guard_machine_types: %s, metric_db_types: %s",
+		joinDbTypes(dbtype.RegisteredDbTypes()),
+		joinDbTypes(dbtype.ProviderOwnedDbTypes()),
+		joinDbTypes(switcherTypes),
+		joinDbTypes(parserTypes),
+		joinDbEventNames(failure.RegisteredSpecialMatchEvents()),
+		joinMachineTypes(dbtype.DnsSingleAddressGuardMachineTypes()),
+		joinDbTypes(apm.MetricRegisteredDbTypes()),
+	)
+	if len(switcherTypes) == 0 {
+		return gerrors.Newf(gerrors.Failure, "no switchers registered; blank-import provider/allanalysis")
+	}
+	if len(parserTypes) == 0 {
+		return gerrors.Newf(gerrors.Failure, "no parsers registered; blank-import provider/allanalysis")
+	}
+	if err := switcher.Validate(); err != nil {
+		return gerrors.Newf(gerrors.Failure, "switcher validation failed, errmsg: %s", err)
+	}
+	return nil
+}
+
+func joinDbTypes(types []haprobe.DbType) string {
+	if len(types) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(types))
+	for _, dt := range types {
+		parts = append(parts, string(dt))
+	}
+	return strings.Join(parts, ",")
+}
+
+func joinDbEventNames(names []haprobe.DbEventName) string {
+	if len(names) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(names))
+	for _, name := range names {
+		parts = append(parts, string(name))
+	}
+	return strings.Join(parts, ",")
+}
+
+func joinMachineTypes(types []haprobe.DbmMetadataMachineType) string {
+	if len(types) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(types))
+	for _, mt := range types {
+		parts = append(parts, string(mt))
+	}
+	return strings.Join(parts, ",")
 }

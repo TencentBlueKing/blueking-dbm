@@ -222,24 +222,34 @@ type ProbeProxyAdminConfig struct {
 	Timeout           time.Duration `yaml:"timeout"           mapstructure:"timeout"`
 }
 
+// ProbeHarvesterCred is a generic harvester credential block for newly added DB types.
+// Keys under ProbeHarvesters map to ProbeConfigPayload.Harvesters (pass-through).
+type ProbeHarvesterCred struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
+}
+
 // Configuration admin's configuration
 type Configuration struct {
-	Name            string                `yaml:"name"            mapstructure:"name"`
-	Version         string                `yaml:"version"         mapstructure:"version"`
-	PidFile         string                `yaml:"pidFile"         mapstructure:"pidFile"`
-	DocFileDir      string                `yaml:"docFileDir"      mapstructure:"docFileDir"`
-	Discovery       DiscoveryConfig       `yaml:"discovery"       mapstructure:"discovery"`
-	Apm             ApmConfig             `yaml:"apm"             mapstructure:"apm"`
-	Grpc            GrpcConfig            `yaml:"grpc"            mapstructure:"grpc"`
-	Web             WebConfig             `yaml:"web"             mapstructure:"web"`
-	DbmApis         []DbmApi              `yaml:"dbmApi"          mapstructure:"dbmApi"`
-	Storage         StorageConfig         `yaml:"storage"         mapstructure:"storage"`
-	Log             LogConfig             `yaml:"log"             mapstructure:"log"`
-	ProbeGse        ProbeGseConfig        `yaml:"probeGse"        mapstructure:"probeGse"`
-	ProbeMysql      ProbeMysqlConfig      `yaml:"probeMysql"      mapstructure:"probeMysql"`
-	ProbeRedis      ProbeRedisConfig      `yaml:"probeRedis"      mapstructure:"probeRedis"`
-	ProbeProxyAdmin ProbeProxyAdminConfig `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
-	ProbeMetadata   ProbeMetadataConfig   `yaml:"probeMetadata"   mapstructure:"probeMetadata"`
+	Name            string                        `yaml:"name"            mapstructure:"name"`
+	Version         string                        `yaml:"version"         mapstructure:"version"`
+	PidFile         string                        `yaml:"pidFile"         mapstructure:"pidFile"`
+	DocFileDir      string                        `yaml:"docFileDir"      mapstructure:"docFileDir"`
+	Discovery       DiscoveryConfig               `yaml:"discovery"       mapstructure:"discovery"`
+	Apm             ApmConfig                     `yaml:"apm"             mapstructure:"apm"`
+	Grpc            GrpcConfig                    `yaml:"grpc"            mapstructure:"grpc"`
+	Web             WebConfig                     `yaml:"web"             mapstructure:"web"`
+	DbmApis         []DbmApi                      `yaml:"dbmApi"          mapstructure:"dbmApi"`
+	Storage         StorageConfig                 `yaml:"storage"         mapstructure:"storage"`
+	Log             LogConfig                     `yaml:"log"             mapstructure:"log"`
+	ProbeGse        ProbeGseConfig                `yaml:"probeGse"        mapstructure:"probeGse"`
+	ProbeMysql      ProbeMysqlConfig              `yaml:"probeMysql"      mapstructure:"probeMysql"`
+	ProbeRedis      ProbeRedisConfig              `yaml:"probeRedis"      mapstructure:"probeRedis"`
+	ProbeProxyAdmin ProbeProxyAdminConfig         `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
+	ProbeHarvesters map[string]ProbeHarvesterCred `yaml:"probeHarvesters" mapstructure:"probeHarvesters"`
+	ProbeMetadata   ProbeMetadataConfig           `yaml:"probeMetadata"   mapstructure:"probeMetadata"`
 }
 
 // clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,
@@ -263,16 +273,16 @@ func clampProbeGseConnTimeout(raw string) string {
 	return s
 }
 
-// clampProbeHarvesterInterval returns at least min; values that are zero or below min
-// are normalized to min. name is the harvester field label (e.g. "probeMysql") used
-// only for the warn log.
-func clampProbeHarvesterInterval(name string, d, min time.Duration) time.Duration {
-	if d < min {
+// clampProbeHarvesterInterval returns at least floor; values that are zero or below floor
+// are normalized to floor. name is the harvester field label (e.g. "probeMysql.interval")
+// used only for the warn log.
+func clampProbeHarvesterInterval(name string, d, floor time.Duration) time.Duration {
+	if d < floor {
 		logger.Warn(
 			"probe harvester interval below minimum, normalizing, name: %s, given: %s, minimum: %s",
-			name, d, min,
+			name, d, floor,
 		)
-		return min
+		return floor
 	}
 	return d
 }
@@ -315,23 +325,8 @@ func Load(configFilePath string) error {
 
 	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
 
-	Cfg.ProbeMysql.Interval = clampProbeHarvesterInterval(
-		"probeMysql.interval", Cfg.ProbeMysql.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeMysql.HeartbeatInterval = clampProbeHarvesterInterval(
-		"probeMysql.heartbeatInterval", Cfg.ProbeMysql.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
-	Cfg.ProbeMysql.ReplDelayInterval = clampProbeHarvesterInterval(
-		"probeMysql.replDelayInterval", Cfg.ProbeMysql.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
-	Cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql.timeout", Cfg.ProbeMysql.Timeout)
-	Cfg.ProbeRedis.Interval = clampProbeHarvesterInterval(
-		"probeRedis.interval", Cfg.ProbeRedis.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis.timeout", Cfg.ProbeRedis.Timeout)
-	Cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.interval", Cfg.ProbeProxyAdmin.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeProxyAdmin.HeartbeatInterval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.heartbeatInterval", Cfg.ProbeProxyAdmin.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
-	Cfg.ProbeProxyAdmin.ReplDelayInterval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.replDelayInterval", Cfg.ProbeProxyAdmin.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
-	Cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin.timeout", Cfg.ProbeProxyAdmin.Timeout)
+	clampProbeHarvesterDurations()
+
 	Cfg.ProbeMetadata = normalizeProbeMetadata(Cfg.ProbeMetadata)
 
 	return nil
@@ -366,4 +361,37 @@ func normalizeProbeMetadata(cfg ProbeMetadataConfig) ProbeMetadataConfig {
 	}
 
 	return cfg
+}
+
+// clampProbeHarvesterDurations normalizes every probe harvester interval / timeout in Cfg
+// against its floor, so probe never receives a zero or too-aggressive cadence.
+func clampProbeHarvesterDurations() {
+	Cfg.ProbeMysql.Interval = clampProbeHarvesterInterval(
+		"probeMysql.interval", Cfg.ProbeMysql.Interval, minProbeHarvesterInterval)
+	Cfg.ProbeMysql.HeartbeatInterval = clampProbeHarvesterInterval(
+		"probeMysql.heartbeatInterval", Cfg.ProbeMysql.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
+	Cfg.ProbeMysql.ReplDelayInterval = clampProbeHarvesterInterval(
+		"probeMysql.replDelayInterval", Cfg.ProbeMysql.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
+	Cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql.timeout", Cfg.ProbeMysql.Timeout)
+
+	Cfg.ProbeRedis.Interval = clampProbeHarvesterInterval(
+		"probeRedis.interval", Cfg.ProbeRedis.Interval, minProbeHarvesterInterval)
+	Cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis.timeout", Cfg.ProbeRedis.Timeout)
+
+	Cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.interval", Cfg.ProbeProxyAdmin.Interval, minProbeHarvesterInterval)
+	Cfg.ProbeProxyAdmin.HeartbeatInterval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.heartbeatInterval", Cfg.ProbeProxyAdmin.HeartbeatInterval,
+		minProbeHarvesterHeartbeatInterval)
+	Cfg.ProbeProxyAdmin.ReplDelayInterval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.replDelayInterval", Cfg.ProbeProxyAdmin.ReplDelayInterval,
+		minProbeHarvesterReplHeartbeatInterval)
+	Cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin.timeout", Cfg.ProbeProxyAdmin.Timeout)
+
+	for name, cred := range Cfg.ProbeHarvesters {
+		cred.Interval = clampProbeHarvesterInterval(
+			"probeHarvesters."+name+".interval", cred.Interval, minProbeHarvesterInterval)
+		cred.Timeout = clampProbeHarvesterTimeout("probeHarvesters."+name+".timeout", cred.Timeout)
+		Cfg.ProbeHarvesters[name] = cred
+	}
 }

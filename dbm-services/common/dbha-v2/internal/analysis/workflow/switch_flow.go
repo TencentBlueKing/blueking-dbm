@@ -38,6 +38,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
@@ -169,7 +170,7 @@ func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *Failu
 }
 
 // excludeUnavailableInstances keeps only the group instances that appear in DBM's query result
-// (req.MySqlInstData); exclude unavailable instances.
+// (req.InstData); exclude unavailable instances.
 //
 // Problem it solves: after a successful switch the failed instance may not recover immediately,
 // so its stale failure event can be pushed into the sliding window again. Counting those already-switched
@@ -178,12 +179,12 @@ func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *Failu
 // The original group is left untouched so downstream logging and inflight cleanup still see the
 // full failure set.
 func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher.Request) []FailureInstanceInfo {
-	if req == nil || len(req.MySqlInstData) == 0 {
+	if req == nil || len(req.InstData) == 0 {
 		return nil
 	}
 
-	reqKeys := make(map[string]struct{}, len(req.MySqlInstData))
-	for _, meta := range req.MySqlInstData {
+	reqKeys := make(map[string]struct{}, len(req.InstData))
+	for _, meta := range req.InstData {
 		reqKeys[instanceKey(meta.BkCloudID, meta.IP, meta.Port)] = struct{}{}
 	}
 
@@ -273,7 +274,7 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	}
 
 	// Report the switching instance success total and error total
-	successCount := float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))
+	successCount := float64(len(req.InstData) - rsp.FailureInstCount())
 	if err := apm.SwitchingInstanceSuccessTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
@@ -285,21 +286,23 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	if err := apm.SwitchingInstanceErrorTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(rsp.FailureInstCount())); err != nil {
 		logger.Error("failed to update switching instance error total metric, errmsg: %s", err)
 	}
 }
 
 func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.Response,
 	dbType haprobe.DbType) {
+	failureInsts := rsp.GetFailureInsts()
+	successEvent := dbtype.SwitchSuccessEventName(dbType)
 	for _, inst := range req.GetDbInstMetadata() {
 		instKey := switchcore.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
+		if _, exists := failureInsts[instKey]; exists {
 			continue
 		}
 
 		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+			Name:      string(successEvent),
 			Target:    string(instKey),
 			Timestamp: uint64(time.Now().UnixMilli()),
 		}
@@ -311,7 +314,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+		monitorEvent.Dimension.DbEventName = successEvent
 
 		// Populate the v1 dimensions to support self-healing tickets.
 		monitorEvent.Dimension.SwitchInfoServerIpV1 = inst.IP
@@ -324,7 +327,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.SwitchInfoStatusV1 = string(inst.Status)
 		monitorEvent.Dimension.SwitchInfoCheckIdV1 = generateDoubleCheckID(req.SwitchID, inst.BkCloudID, inst.IP)
 
-		if newMaster, ok := rsp.GetMySqlNewMasterInfo(instKey); ok {
+		if newMaster, ok := rsp.GetNewMasterInfo(instKey); ok {
 			monitorEvent.Dimension.SwitchInfoNewMasterHost = newMaster.Host
 			monitorEvent.Dimension.SwitchInfoNewMasterPort = newMaster.Port
 			monitorEvent.Dimension.SwitchInfoNewMasterBinlogFile = newMaster.BinlogFile
@@ -342,9 +345,10 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 }
 
 func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.Response, dbType haprobe.DbType) {
+	failureEvent := dbtype.SwitchFailureEventName(dbType)
 	for instKey, inst := range rsp.GetFailureInsts() {
 		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+			Name:      string(failureEvent),
 			Target:    string(instKey),
 			Timestamp: uint64(time.Now().UnixMilli()),
 		}
@@ -356,7 +360,7 @@ func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+		monitorEvent.Dimension.DbEventName = failureEvent
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
