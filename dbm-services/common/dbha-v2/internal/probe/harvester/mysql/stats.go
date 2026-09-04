@@ -110,13 +110,3 @@ func convertToMySqlStatus(status []globalStatus) *haprobe.MySqlGlobalStatus {
 
 	return &dbStatus
 }
-
-// slaveStatus represents MySQL slave status information
-type slaveStatus struct {
-	MasterHost          string `gorm:"column:Master_Host"           json:"Master_Host"`
-	MasterPort          int    `gorm:"column:Master_Port"           json:"Master_Port"`
-	SlaveIORunning      string `gorm:"column:Slave_IO_Running"      json:"Slave_IO_Running"`
-	SlaveSQLRunning     string `gorm:"column:Slave_SQL_Running"     json:"Slave_SQL_Running"`
-	SecondsBehindMaster uint64 `gorm:"column:Seconds_Behind_Master" json:"Seconds_Behind_Master"`
-	MasterServerId      uint64 `gorm:"column:Master_Server_Id"      json:"Master_Server_Id"`
-}
