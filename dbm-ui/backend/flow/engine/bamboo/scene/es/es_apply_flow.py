@@ -34,6 +34,7 @@ from backend.flow.engine.bamboo.scene.es.es_flow import (
     get_node_in_ticket_preferred_hot,
 )
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
+from backend.flow.plugins.components.collections.es.es_apply_summary import add_es_apply_summary_output_act
 from backend.flow.plugins.components.collections.es.es_db_meta import EsMetaComponent
 from backend.flow.plugins.components.collections.es.exec_es_actuator_script import ExecuteEsActuatorScriptComponent
 from backend.flow.plugins.components.collections.es.get_es_payload import GetEsActPayloadComponent
@@ -312,5 +313,17 @@ class EsApplyFlow(EsFlow):
 
         if clb_polaris_sub_pipelines:
             es_pipeline.add_parallel_sub_pipeline(sub_flow_list=clb_polaris_sub_pipelines)
+
+        # 写入集群信息摘要，供前端"执行摘要"展示
+        add_es_apply_summary_output_act(
+            es_pipeline=es_pipeline,
+            bk_biz_id=self.bk_biz_id,
+            domain_name=self.domain,
+            region=self.city_code,
+            version=self.db_version,
+            http_port=self.http_port,
+            apply_clb=self.apply_clb,
+            apply_polaris=self.apply_polaris,
+        )
 
         es_pipeline.run_pipeline()

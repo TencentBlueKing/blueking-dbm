@@ -26,6 +26,7 @@ from backend.flow.plugins.components.collections.common.bigdata_manager_service 
 from backend.flow.plugins.components.collections.hdfs.exec_actuator_script import ExecuteHdfsActuatorScriptComponent
 from backend.flow.plugins.components.collections.hdfs.get_hdfs_payload import GetHdfsActPayloadComponent
 from backend.flow.plugins.components.collections.hdfs.get_hdfs_resource import GetHdfsResourceComponent
+from backend.flow.plugins.components.collections.hdfs.hdfs_apply_summary import add_hdfs_apply_summary_output_act
 from backend.flow.plugins.components.collections.hdfs.hdfs_db_meta import HdfsDBMetaComponent
 from backend.flow.plugins.components.collections.hdfs.hdfs_dns_manage import HdfsDnsManageComponent
 from backend.flow.plugins.components.collections.hdfs.rewrite_hdfs_config import WriteBackHdfsConfigComponent
@@ -208,6 +209,16 @@ class HdfsApplyFlowV1(object):
         # 部署完回写dbconfig, 扩容等需要的信息
         hdfs_pipeline.add_act(
             act_name=_("回写集群部署配置"), act_component_code=WriteBackHdfsConfigComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 写入集群信息摘要，供前端"执行摘要"展示
+        add_hdfs_apply_summary_output_act(
+            hdfs_pipeline=hdfs_pipeline,
+            bk_biz_id=self.data["bk_biz_id"],
+            domain_name=self.data["domain"],
+            region=self.data.get("city_code", ""),
+            version=self.data["db_version"],
+            rpc_port=self.data["rpc_port"],
         )
 
         hdfs_pipeline.run_pipeline()
