@@ -33,4 +33,22 @@ export const k8s: ClusterTypeInfo = {
     name: t('SurrealDB 单节点'),
     specClusterName: 'SerrealDB',
   },
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: {
+    dbType: DBTypes.K8S_VICTORIAMETRICS,
+    id: ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER,
+    listRouteName: 'VictoriametricsStandardList',
+    machineList: [],
+    moduleId: 'k8s',
+    name: t('VictoriaMetrics 标准集群'),
+    specClusterName: 'Victoriametrics',
+  },
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: {
+    dbType: DBTypes.K8S_VICTORIAMETRICS,
+    id: ClusterTypes.K8S_VICTORIAMETRICS_SELECT,
+    listRouteName: 'VictoriametricsQueryList',
+    machineList: [],
+    moduleId: 'k8s',
+    name: t('VictoriaMetrics 查询集群'),
+    specClusterName: 'Victoriametrics',
+  },
 };

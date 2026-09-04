@@ -6,7 +6,14 @@
 <script
   setup
   lang="ts"
-  generic="T extends ClusterTypes.K8S_SURREALDB_HA | ClusterTypes.K8S_SURREALDB_SINGLE | ClusterTypes.K8S_QDRANT_HA">
+  generic="
+    T extends
+      | ClusterTypes.K8S_SURREALDB_HA
+      | ClusterTypes.K8S_SURREALDB_SINGLE
+      | ClusterTypes.K8S_QDRANT_HA
+      | ClusterTypes.K8S_VICTORIAMETRICS_SELECT
+      | ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER
+  ">
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes } from '@common/const';

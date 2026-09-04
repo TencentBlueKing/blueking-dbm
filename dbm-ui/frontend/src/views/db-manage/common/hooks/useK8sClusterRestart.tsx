@@ -23,6 +23,7 @@ import { ClusterTypes, TicketTypes } from '@common/const';
 const ticketTypeMap = {
   [ClusterTypes.K8S_QDRANT_HA]: TicketTypes.K8S_QDRANT_RESTART,
   [ClusterTypes.K8S_SURREALDB]: TicketTypes.K8S_SURREALDB_RESTART,
+  [ClusterTypes.K8S_VICTORIAMETRICS]: TicketTypes.K8S_VICTORIAMETRICS_RESTART,
 } as const;
 
 export function useK8sClusterRestart(clusterType: keyof typeof ticketTypeMap, options: { onSuccess: () => void }) {

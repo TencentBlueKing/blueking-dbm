@@ -99,6 +99,11 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
       disable: TicketTypes.K8S_SURREALDB_DISABLE,
       enable: TicketTypes.K8S_SURREALDB_ENABLE,
     },
+    [ClusterTypes.K8S_VICTORIAMETRICS]: {
+      delete: TicketTypes.K8S_VICTORIAMETRICS_DESTROY,
+      disable: TicketTypes.K8S_VICTORIAMETRICS_DISABLE,
+      enable: TicketTypes.K8S_VICTORIAMETRICS_ENABLE,
+    },
     [ClusterTypes.KAFKA]: {
       delete: TicketTypes.KAFKA_DESTROY,
       disable: TicketTypes.KAFKA_DISABLE,

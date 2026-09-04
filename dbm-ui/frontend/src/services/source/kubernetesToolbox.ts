@@ -18,7 +18,7 @@ import http from '../http';
 /**
  * 获取存储版本信息
  */
-export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant' }) {
+export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant' | 'victoriametrics' }) {
   return http.get<
     {
       addonVersion: string;
@@ -66,7 +66,10 @@ export function getBcsClusters(params: { isPublic: boolean }) {
 /**
  * 查询集群部署套餐
  */
-export function getAddonSpecPlan(params: { addonType: 'surrealdb' | 'qdrant'; addonVersion: string }) {
+export function getAddonSpecPlan(params: {
+  addonType: 'surrealdb' | 'qdrant' | 'victoriametrics';
+  addonVersion: string;
+}) {
   return http.get<
     {
       addonName: string;

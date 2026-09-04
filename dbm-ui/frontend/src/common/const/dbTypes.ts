@@ -29,4 +29,5 @@ export enum DBTypes {
 export enum DBTypes {
   K8S_QRRANT = 'k8s_qdrant',
   K8S_SURREALDB = 'k8s_surrealdb',
+  K8S_VICTORIAMETRICS = 'k8s_victoriametrics',
 }
