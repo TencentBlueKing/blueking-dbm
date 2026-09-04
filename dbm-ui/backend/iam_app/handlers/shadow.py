@@ -27,9 +27,29 @@ logger = logging.getLogger("iam_v4_shadow")
 SHADOWABLE_METHODS = {"is_allowed", "multi_actions_is_allowed", "batch_is_allowed"}
 # 采样率 0~1，如 0.5 表示约一半鉴权请求触发一次影子比对
 IAM_V4_SHADOW_RATIO = 0.5
+# 类型标签 -> (判定函数, dump, load)
+_CODECS = {
+    "action": (
+        lambda o: isinstance(o, ActionMeta),
+        lambda o: {"id": o.id},
+        lambda d: ActionEnum.get_action_by_id(d["id"]),
+    ),
+    "resource": (
+        lambda o: isinstance(o, Resource),
+        lambda o: o.to_dict(),
+        lambda d: Resource(**d),
+    ),
+}
 
 # 影子后端无状态，复用单例即可；IAMV4Api 内部也是模块级单例
-shadow_backend = IAMV4Backend()
+_shadow_backend = None
+
+
+def get_shadow_backend():
+    global _shadow_backend
+    if _shadow_backend is None:
+        _shadow_backend = IAMV4Backend()
+    return _shadow_backend
 
 
 def _enabled() -> bool:
@@ -42,19 +62,13 @@ def _sampled() -> bool:
     return ratio >= 1 or random.random() < ratio
 
 
-def try_shadow(method: str, v3_result: Any, args: Tuple, kwargs: dict) -> None:
-    """主鉴权返回后调用。命中采样才投递到 celery 异步跑 V4，绝不抛异常、绝不阻塞主链路。"""
+def try_shadow(method: str, v3_result: Any, args: Tuple, kwargs: dict):
+    """主鉴权返回后调用。命中采样才序列化并返回待投递的负载，否则返回 None。"""
     if method not in SHADOWABLE_METHODS or not _enabled() or not _sampled():
-        return
+        return None
 
     # args/kwargs 中含 ActionMeta/Resource 等非 JSON 对象，需先序列化成可入队的纯数据
-    # 延迟导入避免与 tasks -> shadow 的循环依赖
-    from backend.iam_app import tasks
-
-    try:
-        tasks.try_shadow.delay(method, v3_result, serialize_args(args), serialize_kwargs(kwargs))
-    except Exception as e:  # pylint: disable=broad-except
-        logger.warning("[iam_v4_shadow] dispatch failed: %s", e)
+    return method, v3_result, serialize_args(args), serialize_kwargs(kwargs)
 
 
 def serialize_args(args: Tuple) -> list:
@@ -73,45 +87,71 @@ def deserialize_kwargs(kwargs: dict) -> dict:
     return {key: _deserialize(value) for key, value in kwargs.items()}
 
 
-def _serialize(obj: Any) -> Any:
-    """把鉴权参数转成可 JSON 序列化的纯数据。ActionMeta 按 id 重建，Resource 用 to_dict 还原。"""
-    if isinstance(obj, ActionMeta):
-        return {"__action__": obj.id}
-    if isinstance(obj, Resource):
-        return {"__resource__": obj.to_dict()}
+def _serialize(obj):
+    for tag, (match, dump, _load) in _CODECS.items():
+        if match(obj):
+            return {"__type__": tag, "value": dump(obj)}
     if isinstance(obj, dict):
-        return {key: _serialize(value) for key, value in obj.items()}
+        return {k: _serialize(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
-        return [_serialize(value) for value in obj]
+        return [_serialize(v) for v in obj]
     return obj
 
 
-def _deserialize(obj: Any) -> Any:
-    """把 celery 入队后的纯数据还原成鉴权后端所需的 ActionMeta/Resource 对象。"""
+def _deserialize(obj):
     if isinstance(obj, dict):
-        if "__action__" in obj:
-            return ActionEnum.get_action_by_id(obj["__action__"])
-        if "__resource__" in obj:
-            resource = obj["__resource__"]
-            return Resource(resource["system"], resource["type"], resource["id"], resource["attribute"])
-        return {key: _deserialize(value) for key, value in obj.items()}
+        tag = obj.get("__type__")
+        if tag in _CODECS:
+            return _CODECS[tag][2](obj["value"])
+        return {k: _deserialize(v) for k, v in obj.items()}
     if isinstance(obj, list):
-        return [_deserialize(value) for value in obj]
+        return [_deserialize(v) for v in obj]
     return obj
+
+
+# def _serialize(obj: Any) -> Any:
+#     """把鉴权参数转成可 JSON 序列化的纯数据。ActionMeta 按 id 重建，Resource 用 to_dict 还原。"""
+#     if isinstance(obj, ActionMeta):
+#         return {"__action__": obj.id}
+#     if isinstance(obj, Resource):
+#         return {"__resource__": obj.to_dict()}
+#     if isinstance(obj, dict):
+#         return {key: _serialize(value) for key, value in obj.items()}
+#     if isinstance(obj, (list, tuple)):
+#         return [_serialize(value) for value in obj]
+#     return obj
+#
+#
+# def _deserialize(obj: Any) -> Any:
+#     """把 celery 入队后的纯数据还原成鉴权后端所需的 ActionMeta/Resource 对象。"""
+#     if isinstance(obj, dict):
+#         if "__action__" in obj:
+#             return ActionEnum.get_action_by_id(obj["__action__"])
+#         if "__resource__" in obj:
+#             resource = obj["__resource__"]
+#             return Resource(resource["system"], resource["type"], resource["id"], resource["attribute"])
+#         return {key: _deserialize(value) for key, value in obj.items()}
+#     if isinstance(obj, list):
+#         return [_deserialize(value) for value in obj]
+#     return obj
 
 
 def normalize(method: str, result: Any) -> Any:
-    """把两版返回归一化成可比较的稳定结构。两版资源维度的 key 约定不同，按动作维度聚合比对。"""
+    """把两版返回归一化成可比较的稳定结构。
+
+    batch 保留资源维度、只把两版 resource/action 的 key 规整成 str 后逐格比对，
+    避免按 action 聚合计数丢失"哪个资源判定相反"的差异（如 V3 允许 A 拒绝 B、V4 允许 B 拒绝 A）。
+    """
     if method == "is_allowed":
         return bool(result)
     if method == "multi_actions_is_allowed":
         return {str(k): bool(v) for k, v in (result or {}).items()}
     if method == "batch_is_allowed":
-        agg = {}
-        for per_resource in (result or {}).values():
-            for action_id, allowed in (per_resource or {}).items():
-                key = str(action_id)
-                allow, deny = agg.get(key, (0, 0))
-                agg[key] = (allow + 1, deny) if allowed else (allow, deny + 1)
-        return dict(sorted(agg.items()))
+        return {
+            str(resource_key): {
+                str(action_id): bool(allowed)
+                for action_id, allowed in sorted((per_resource or {}).items(), key=lambda kv: str(kv[0]))
+            }
+            for resource_key, per_resource in sorted((result or {}).items(), key=lambda kv: str(kv[0]))
+        }
     return result
