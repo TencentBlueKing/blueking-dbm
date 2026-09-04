@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from celery import shared_task
 
@@ -159,7 +159,8 @@ def try_shadow(method: str, v3_result: Any, args: List, kwargs: Dict) -> None:
     """
     try:
         try:
-            v4_result = getattr(shadow.shadow_backend, method)(
+            shadow_backend = shadow.get_shadow_backend()
+            v4_result = getattr(shadow_backend, method)(
                 *shadow.deserialize_args(args), **shadow.deserialize_kwargs(kwargs)
             )
         except Exception as e:  # pylint: disable=broad-except
@@ -169,8 +170,27 @@ def try_shadow(method: str, v3_result: Any, args: List, kwargs: Dict) -> None:
         v3_norm = shadow.normalize(method, v3_result)
         v4_norm = shadow.normalize(method, v4_result)
         if v3_norm == v4_norm:
-            shadow.logger.info("[iam_v4_shadow] consistent method=%s result=%s", method, v3_norm)
+            shadow.logger.debug("[iam_v4_shadow] consistent method=%s result=%s", method, v3_norm)
         else:
-            shadow.logger.warning("[iam_v4_shadow] MISMATCH method=%s v3=%s v4=%s", method, v3_norm, v4_norm)
+            # 附带原始(未归一化)结果：即便两版 resource key 无法一一对应，也能据此定位到具体资源
+            shadow.logger.warning(
+                "[iam_v4_shadow] MISMATCH method=%s v3=%s v4=%s raw_v3=%s raw_v4=%s",
+                method,
+                v3_norm,
+                v4_norm,
+                v3_result,
+                v4_result,
+            )
     except Exception as e:  # pylint: disable=broad-except
         shadow.logger.warning("[iam_v4_shadow] compare error method=%s err=%s", method, e)
+
+
+def dispatch_shadow(method: str, v3_result: Any, args: Tuple, kwargs: Dict) -> None:
+    """把影子比对投递到 celery 异步跑 V4，绝不抛异常、绝不阻塞主链路。"""
+    try:
+        payload = shadow.try_shadow(method, v3_result, args, kwargs)
+        if payload is None:
+            return
+        try_shadow.delay(*payload)
+    except Exception as e:  # pylint: disable=broad-except
+        shadow.logger.warning("[iam_v4_shadow] dispatch failed: %s", e)
