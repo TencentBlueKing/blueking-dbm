@@ -93,6 +93,7 @@ def mysql_restore_download_sub_flow(
                 )
                 download_sub_pipeline_list.append(
                     {
+                        "retryable": False,
                         "act_name": _("第 {} 批远程备份文件下载到 {} 总数: {}".format(batch_num, dest_ip, len(task_ids_bat))),
                         "act_component_code": MySQLDownloadBackupfileComponent.code,
                         "kwargs": asdict(download_kwargs),
@@ -115,6 +116,7 @@ def mysql_restore_download_sub_flow(
         for task_ids_bat in task_ids_split:
             batch_num = batch_num + 1
             sub_pipeline.add_act(
+                retryable=False,
                 act_name=_("第 {} 批 从本地 {} 点对点传输文件到 {} 总数: {}").format(
                     batch_num, source_ip, dest_ips, len(task_ids_bat)
                 ),
