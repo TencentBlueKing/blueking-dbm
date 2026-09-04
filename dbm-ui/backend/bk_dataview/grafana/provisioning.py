@@ -128,6 +128,17 @@ class SimpleProvisioning(BaseProvisioning):
             uid = "unknown"
         return datasource_type, uid
 
+    @staticmethod
+    def replace_bklog_index(index: Optional[Dict], used_index_name: list, index_name_id_map: dict):
+        """按采集项名称替换 bklog 索引集 ID"""
+        if not index or not isinstance(index.get("id"), list) or len(index["id"]) < 2:
+            return
+        for label in index.get("labels", []):
+            for index_name in used_index_name:
+                if index_name in str(label):
+                    index["id"][1] = index_name_id_map.get(index_name, 0)
+                    return
+
     @classmethod
     def replace_dashboard(cls, dashboard: dict, used_index_name: list, index_name_id_map: dict):
         """
@@ -144,14 +155,8 @@ class SimpleProvisioning(BaseProvisioning):
                 dashboard["panels"][panel_index]["datasource"]["uid"] = panel_uid
             if datasource_type == "bk_log_datasource":
                 dashboard["panels"][panel_index]["datasource"]["uid"] = panel_uid
-                for target_index, target in enumerate(panel["targets"]):
-                    for label in target["data"]["index"].get("labels", []):
-                        for index_name in used_index_name:
-                            if index_name in label:
-                                index_set_id = index_name_id_map.get(index_name, 0)
-                                dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"]["id"][
-                                    1
-                                ] = index_set_id
+                for target in panel.get("targets", []):
+                    cls.replace_bklog_index(target.get("data", {}).get("index"), used_index_name, index_name_id_map)
             # 处理 targets 的 datasource uid
             for target_index, target in enumerate(panel.get("targets", [])):
                 datasource_type, target_uid = cls.get_obj_datasource_type_uid(target)
@@ -162,6 +167,12 @@ class SimpleProvisioning(BaseProvisioning):
             datasource_type, tpl_uid = cls.get_obj_datasource_type_uid(tpl)
             if datasource_type:
                 dashboard["templating"]["list"][tpl_index]["datasource"]["uid"] = tpl_uid
+            # 与 panel 侧对称：仅 bklog 模板变量需要替换索引集 ID
+            if datasource_type == "bk_log_datasource":
+                query = tpl.get("query")
+                if isinstance(query, dict):
+                    dim = query.get("dimensionData") or {}
+                    cls.replace_bklog_index(dim.get("index"), used_index_name, index_name_id_map)
             # 集群监控视图，隐藏掉 app（业务）选择器
             if tpl["name"] == "app":
                 dashboard["templating"]["list"][tpl_index]["hide"] = 2
@@ -178,6 +189,7 @@ class SimpleProvisioning(BaseProvisioning):
         used_index_name = [
             "mysql_slowlog",
             "mysql_db_table_size",
+            "mongodb_db_table_size",
             "redis_slowlog",
             "redis_hotkey",
             "redis_bigkey",
@@ -185,7 +197,7 @@ class SimpleProvisioning(BaseProvisioning):
         ]
         for index in index_set:
             for name in used_index_name:
-                if name in index["index_set_name"]:
+                if index["index_set_name"] == f"[采集项]{name}":
                     index_name_id_map[name] = index["index_set_id"]
 
         with os_env(ORG_NAME=org_name, ORG_ID=org_id):
