@@ -92,6 +92,8 @@
   const bizList = shallowRef<IAppItem[]>([]);
   const hasEnglishName = ref(false);
   const appAbbrRef = ref();
+  // 已同步给提单页的业务，避免手动选择后 watch 重复触发
+  let syncedBizId: number | undefined;
 
   const dbAppAbbrPlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
 
@@ -144,8 +146,8 @@
       const englishName = currentBiz.value?.english_name;
       hasEnglishName.value = !!englishName;
       appAbbr.value = englishName ?? '';
-      // 从申请实例 跳转过来，或单据克隆，需要同步数据出去
-      if ((route.query.bizId || route.query.ticketType) && currentBiz.value) {
+      // 业务由页面自动带出时，也要把业务信息同步给提单页
+      if (currentBiz.value && syncedBizId !== currentBiz.value.bk_biz_id) {
         handleAppChange(currentBiz.value);
       }
     },
@@ -160,6 +162,7 @@
   };
 
   const handleAppChange = (appInfo: IAppItem) => {
+    syncedBizId = appInfo.bk_biz_id;
     handleChangeAppAbbr(appInfo.english_name);
     hasEnglishName.value = !!appInfo?.english_name;
     if (appInfo.english_name) {
