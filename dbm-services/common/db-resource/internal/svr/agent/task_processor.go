@@ -19,24 +19,64 @@ import (
 
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/apply"
+	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"gorm.io/gorm"
 )
 
-// ProcessAnalysisTaskFromJSON 处理智能体分析任务（从JSON参数）
-func ProcessAnalysisTaskFromJSON(billID string, applyParamsJSON json.RawMessage) {
+// parseFailureEvidence 解析申请失败现场，解析失败不阻断分析
+func parseFailureEvidence(billID string, raw json.RawMessage) *apply.ApplyFailureEvidence {
+	if len(raw) == 0 {
+		return nil
+	}
+	var evidence apply.ApplyFailureEvidence
+	if err := json.Unmarshal(raw, &evidence); err != nil {
+		logger.Warn("Failed to unmarshal failure evidence for bill %s: %v", billID, err)
+		return nil
+	}
+	return &evidence
+}
+
+// markAnalysisFailed 将分析记录标为失败。billID 为空或 DB 未就绪时直接返回。
+func markAnalysisFailed(billID, errorMsg, duration string) {
+	if billID == "" || model.DB == nil || model.DB.Self == nil {
+		return
+	}
+	update := map[string]interface{}{
+		"status":      model.AnalysisStatusFailed,
+		"error_msg":   errorMsg,
+		"update_time": time.Now(),
+	}
+	if duration != "" {
+		update["duration"] = duration
+	}
+	if err := model.DB.Self.Model(&model.TbRpAnalysisResult{}).
+		Where("bill_id = ?", billID).
+		Updates(update).Error; err != nil {
+		logger.Error("Failed to mark analysis failed for bill %s: %v", billID, err)
+	}
+}
+
+// ProcessAnalysisTask 处理智能体分析任务
+func ProcessAnalysisTask(item task.AnalysisTaskItem) {
+	billID := item.BillID
+	startTime := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("Analysis task panic: %v, stack: %s", r, string(debug.Stack()))
+			markAnalysisFailed(billID, fmt.Sprintf("analysis panic: %v", r), time.Since(startTime).String())
 		}
 	}()
 
-	startTime := time.Now()
+	applyParamsJSON := item.ApplyParams
 	if billID == "" || applyParamsJSON == nil {
 		logger.Error("Invalid billID or applyParamsJSON, skip analysis")
 		return
 	}
+
+	// 申请失败现场，可为空（同步分析入口不带现场）
+	evidence := parseFailureEvidence(billID, item.Evidence)
 	// 1. 检查单据ID是否存在，存在则覆盖，不存在则创建
 	var existingRecord model.TbRpAnalysisResult
 	err := model.DB.Self.Where("bill_id = ?", billID).First(&existingRecord).Error
@@ -97,12 +137,7 @@ func ProcessAnalysisTaskFromJSON(billID string, applyParamsJSON json.RawMessage)
 	analyzer := GetAnalyzer()
 	if analyzer == nil || !analyzer.IsEnabled() {
 		logger.Warn("LLM analyzer is not enabled, skip analysis for bill %s", billID)
-		model.DB.Self.Model(&model.TbRpAnalysisResult{}).
-			Where("bill_id = ?", billID).
-			Updates(map[string]interface{}{
-				"status":    model.AnalysisStatusFailed,
-				"error_msg": "LLM analyzer is not enabled",
-			})
+		markAnalysisFailed(billID, "LLM analyzer is not enabled", "")
 		return
 	}
 
@@ -110,41 +145,24 @@ func ProcessAnalysisTaskFromJSON(billID string, applyParamsJSON json.RawMessage)
 	var applyParams apply.RequestInputParam
 	if err := json.Unmarshal(applyParamsJSON, &applyParams); err != nil {
 		logger.Error("Failed to unmarshal apply params for bill %s: %v", billID, err)
-		model.DB.Self.Model(&model.TbRpAnalysisResult{}).
-			Where("bill_id = ?", billID).
-			Updates(map[string]interface{}{
-				"status":    model.AnalysisStatusFailed,
-				"error_msg": fmt.Sprintf("Failed to unmarshal params: %v", err),
-			})
+		markAnalysisFailed(billID, fmt.Sprintf("Failed to unmarshal params: %v", err), "")
 		return
 	}
 
-	result, err := analyzer.Analyze(ctx, &applyParams)
+	result, err := analyzer.AnalyzeWithScene(ctx, &applyParams, evidence)
 	duration := time.Since(startTime).String()
 
 	// 4. 更新分析结果
 	if err != nil {
 		logger.Error("Analysis failed for bill %s: %v", billID, err)
-		model.DB.Self.Model(&model.TbRpAnalysisResult{}).
-			Where("bill_id = ?", billID).
-			Updates(map[string]interface{}{
-				"status":    model.AnalysisStatusFailed,
-				"error_msg": err.Error(),
-				"duration":  duration,
-			})
+		markAnalysisFailed(billID, err.Error(), duration)
 		return
 	}
 
 	resultJSON, err := json.Marshal(result)
 	if err != nil {
 		logger.Error("Failed to marshal analysis result for bill %s: %v", billID, err)
-		model.DB.Self.Model(&model.TbRpAnalysisResult{}).
-			Where("bill_id = ?", billID).
-			Updates(map[string]interface{}{
-				"status":    model.AnalysisStatusFailed,
-				"error_msg": fmt.Sprintf("Failed to marshal result: %v", err),
-				"duration":  duration,
-			})
+		markAnalysisFailed(billID, fmt.Sprintf("Failed to marshal result: %v", err), duration)
 		return
 	}
 

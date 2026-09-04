@@ -15,6 +15,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // LLMProvider LLM 提供商抽象接口
@@ -29,6 +30,10 @@ type LLMProvider interface {
 type ChatRequest struct {
 	Messages []Message        `json:"messages"`
 	Tools    []ToolDefinition `json:"tools,omitempty"`
+	// ToolChoice 控制本轮能否发起工具调用，"none" 表示必须用文本作答。
+	// 注意要保留 Tools 声明再配合 "none"：直接摘掉 Tools 会让部分模型
+	// （如 deepseek）把内部工具调用标记原样吐成纯文本，而不是给出结论
+	ToolChoice any `json:"tool_choice,omitempty"`
 }
 
 // Message 消息结构
@@ -64,6 +69,23 @@ type FunctionDefinition struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"`
+}
+
+// ToolChoiceNone 禁止本轮发起工具调用，要求以文本作答
+const ToolChoiceNone = "none"
+
+// toolCallMarkupMarkers 模型未能发起结构化工具调用时，会把内部特殊标记原样吐成文本，
+// 例如 deepseek 的 <｜DSML｜tool_calls>。这类内容不是分析结论，必须识别出来丢弃
+var toolCallMarkupMarkers = []string{"DSML", "<｜", "<|tool_calls", "tool▁calls"}
+
+// LooksLikeToolCallMarkup 判断内容是否是泄漏出来的工具调用标记而非正常回答
+func LooksLikeToolCallMarkup(content string) bool {
+	for _, marker := range toolCallMarkupMarkers {
+		if strings.Contains(content, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 // ChatResponse 聊天响应
