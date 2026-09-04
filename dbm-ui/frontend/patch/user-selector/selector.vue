@@ -26,7 +26,6 @@
         :style="containerStyle"
         @mousewheel="handleContainerScroll">
         <template v-if="multiple || !isFocus">
-          <!-- :ref="getRefSetter('selected')" -->
           <span
             v-for="(user, index) in localValueUsers"
             :key="user.username"
@@ -97,6 +96,7 @@
     defineComponent,
     getCurrentInstance,
     nextTick,
+    onBeforeUnmount,
     onMounted,
     provide,
     ref,
@@ -105,10 +105,8 @@
   } from 'vue';
 
   import AlternateList from './alternate-list';
-  import instanceStore from './instance-store';
   import RenderAvatar from './render-avatar';
   import RenderTag from './render-tag';
-  import request from './request';
 
   import 'tippy.js/dist/tippy.css';
   import 'tippy.js/themes/light.css';
@@ -203,11 +201,6 @@
         default: () => [],
       },
       listScrollHeight: [Number, String],
-      api: String,
-      searchLimit: {
-        type: Number,
-        default: 20,
-      },
       pasteFormatter: {
         type: Function,
         default(value) {
@@ -254,8 +247,6 @@
         tagTipsDelay,
         fixedHeight,
         disabledUsers,
-        api,
-        searchLimit,
         pasteFormatter,
         pasteValidator,
         displayDomain,
@@ -263,6 +254,9 @@
       } = toRefs(props);
 
       const search = async (value, next) => {
+        if (isUnmounted) {
+          return;
+        }
         try {
           const popoverInstance = getPopoverInstance();
           getAlternateContent();
@@ -271,7 +265,7 @@
           alternateContent.value.loading = !!value;
           const { results: users, next: nextPage } = await new Promise((resolve, _reject) => {
             if (value) {
-              const promise = [(fuzzySearchMethod.value || defaultFuzzySearchMethod)(value, next)];
+              const promise = [runFuzzySearch(value, next)];
               if (searchFromDefaultAlternate.value) {
                 promise.push(getDefaultAlternateData(value));
               }
@@ -287,7 +281,7 @@
             }
           });
 
-          if (!isFocus.value) {
+          if (isUnmounted || !isFocus.value) {
             return;
           }
           const { matched, flattened } = filterUsers(users);
@@ -303,7 +297,6 @@
           alternateContent.value.next = nextPage;
           alternateContent.value.keyword = value;
           alternateContent.value.matchedUsers = matchedUsers.value;
-          alternateContent.value.loading = false;
         } catch (e) {
           if (e.type === 'reset') {
             return;
@@ -311,6 +304,11 @@
           matchedUsers.value = [];
           flattenedUsers.value = [];
           console.error(e);
+        } finally {
+          // 无论成功、失败还是提前 return，都要收掉备选面板的 loading 遮罩
+          if (alternateContent.value) {
+            alternateContent.value.loading = false;
+          }
         }
       };
 
@@ -348,18 +346,13 @@
         return style;
       });
 
-      // const localValue = computed({
-      //   get() {
-      //     return [...modelValue.value];
-      //   },
-      //   set(value) {
-      //     ctx.emit('update:modelValue', value);
-      //     ctx.emit('change', value);
-      //   },
-      // });
-      const localValue = ref([]);
-      // localValue.value = [...modelValue.value];
+      const localValue = ref([...modelValue.value]);
       let isIgnoreUpdateModelValue = false;
+      let isUnmounted = false;
+      // AlternateList 的独立 app 实例，卸载时需要手动 unmount
+      let alternateContentApp = null;
+      // 已选人员 tag 上创建的 Tippy 实例，卸载时需要逐个销毁
+      const tagTipsInstances = [];
 
       const localValueUsers = computed(() =>
         localValue.value.map((username) => {
@@ -371,14 +364,17 @@
       const userInfo = computed(() => localValueUsers.value.map((user) => getDisplayText(user)).join(';'));
 
       const getCurrentUsers = async () => {
+        // 没有选中任何人时无需查询，否则每个实例挂载和清空都会发一次空条件请求
+        if (!localValue.value.length) {
+          currentUsers.value = [];
+          return;
+        }
+        if (!exactSearchMethod.value) {
+          console.warn('No exact search method has been set');
+          return;
+        }
         try {
-          if (api.value) {
-            currentUsers.value = await request.scheduleExactSearch(api.value, localValue.value);
-          } else if (exactSearchMethod.value) {
-            currentUsers.value = await exactSearchMethod.value(localValue.value);
-          } else {
-            console.warn('No exact search method has been set');
-          }
+          currentUsers.value = await exactSearchMethod.value(localValue.value);
         } catch (error) {
           console.error(error);
         }
@@ -420,15 +416,15 @@
             const children = user.children.filter(
               (child) => !flattened.some((flattenedUser) => flattenedUser.username === child.username),
             );
+            // 用副本而不是改写入参，defaultAlternate 传进来的数组不应被组件修改
             if (multiple.value) {
               const unexistUser = children.filter((child) => !localValue.value.includes(child.username));
               if (unexistUser.length) {
-                user.children = unexistUser;
-                matched.push(user);
+                matched.push({ ...user, children: unexistUser });
                 flattened.push(...unexistUser);
               }
-            } else {
-              matched.push(user);
+            } else if (children.length) {
+              matched.push({ ...user, children });
               flattened.push(...children);
             }
             return;
@@ -445,23 +441,7 @@
           flattened,
         };
       };
-      const defaultFuzzySearchMethod = async (value, next) => {
-        if (api.value) {
-          const params = {
-            app_code: 'bk-magicbox',
-            page: next || 1,
-            page_size: searchLimit.value,
-            fuzzy_lookups: value,
-          };
-          const { count, results } = await request.fuzzySearch(api.value, params);
-          const nextPage = count > params.page * params.page_size ? params.page + 1 : false;
-
-          return {
-            next: nextPage,
-            results,
-          };
-        }
-
+      const runFuzzySearch = (value, next) => {
         if (!fuzzySearchMethod.value) {
           console.warn('No fuzzy search method has been set');
           return Promise.resolve({ next: false, results: [] });
@@ -470,29 +450,19 @@
       };
       const getUserTips = async (instance, username) => {
         try {
+          // 用 textContent 而非 innerHTML，避免用户名/组织名里的标签被当成 HTML 执行
           const contentElement = document.createElement('span');
           if (typeof tagTipsContent.value === 'function') {
-            const content = await tagTipsContent.value(username);
-            contentElement.innerHTML = content;
+            contentElement.textContent = await tagTipsContent.value(username);
           } else {
-            const user = await (exactSearchMethod.value || defaultExactSearchMethod)(username);
-            contentElement.innerHTML = user ? user.category_name : 'Non existing user';
+            const user = exactSearchMethod.value ? await exactSearchMethod.value(username) : null;
+            contentElement.textContent = user ? user.category_name : 'Non existing user';
           }
           instance.setContent(contentElement);
         } catch (e) {
           console.error(e);
           instance.setContent(e.message);
         }
-      };
-      const defaultExactSearchMethod = (value) => {
-        if (api.value) {
-          return request.exactSearch(api.value, value);
-        }
-        if (!exactSearchMethod.value) {
-          console.warn('No exact search method has been set');
-          return Promise.resolve({});
-        }
-        return exactSearchMethod.value(value);
       };
       const getPopoverInstance = () => {
         if (!popoverInstance.value) {
@@ -515,16 +485,12 @@
         return popoverInstance.value;
       };
       const getAlternateContent = () => {
-        if (!alternateContent.value) {
-          const alternateContentApp = createApp(AlternateList);
-          const alternateContentContainer = document.createElement('div');
-          alternateContentApp.mount(alternateContentContainer);
-          alternateContent.value = instanceStore.getInstance('alternateContent', 'alternateList');
-          // alternateContent.value.selector = proxy;
-          alternateContent.value.selector = proxy;
-          // document.body.appendChild(alternateContentContainer);
+        if (alternateContent.value) {
+          return;
         }
-        // return alternateContent;
+        alternateContentApp = createApp(AlternateList);
+        alternateContent.value = alternateContentApp.mount(document.createElement('div'));
+        alternateContent.value.selector = proxy;
       };
       const getHistoryUsers = () => {
         try {
@@ -570,7 +536,9 @@
         nextTick(() => {
           matchedUsers.value = [];
           flattenedUsers.value = [];
-          alternateContent.value.matchedUsers = [];
+          if (alternateContent.value) {
+            alternateContent.value.matchedUsers = [];
+          }
         });
       };
       const getDisplayText = (user) => {
@@ -588,8 +556,8 @@
         }
         clearOverflowTimer();
         inputIndex.value = localValue.value.length;
-        if (!multiple.value && modelValue.value.length) {
-          inputValue.value = getDisplayText(modelValue.value[0]);
+        if (!multiple.value && localValue.value.length) {
+          inputValue.value = getDisplayText(localValue.value[0]);
           inputRef.value.innerHTML = inputValue.value;
           moveInput(0, { selectRange: true });
         } else {
@@ -616,7 +584,7 @@
           inputIndex.value = eventX > offsetWidth / 2 ? index + 1 : index;
           moveInput(0);
         } else {
-          inputValue.value = getDisplayText(modelValue.value[0]);
+          inputValue.value = getDisplayText(localValue.value[0]);
           inputRef.value.innerHTML = inputValue.value;
           moveInput(0, { selectRange: true });
         }
@@ -630,7 +598,7 @@
           return false;
         }
         selectedTipsTimer.value[username] = setTimeout(() => {
-          target._user_tips_ = Tippy(target, {
+          const instance = Tippy(target, {
             theme: 'light small-arrow user-selected-tips',
             offset: [0, 5],
             appendTo: document.body,
@@ -638,11 +606,13 @@
             content: 'loading...',
             placement: 'top',
             interactive: true,
-            onShow: (instance) => {
-              getUserTips(instance, username);
+            onShow: (tippyInstance) => {
+              getUserTips(tippyInstance, username);
             },
           });
-          target._user_tips_.show();
+          target._user_tips_ = instance;
+          tagTipsInstances.push(instance);
+          instance.show();
           delete selectedTipsTimer.value[username];
         }, tagTipsDelay.value);
       };
@@ -672,9 +642,8 @@
       const handleUserMousedown = (_user, _disabled) => {
         shouldUpdate.value = false;
       };
-      const handleUserMouseup = (user, disabled) => {
-        // debugger;
-        if (disabled || disabled.value) {
+      const handleUserMouseup = (user, isUserDisabled) => {
+        if (isUserDisabled || disabled.value) {
           moveInput(0);
           return false;
         }
@@ -742,14 +711,12 @@
         ctx.emit('keydown', event);
       };
       const handleEnter = (e) => {
-        // debugger;
         e.preventDefault();
         e.stopPropagation();
         shouldUpdate.value = false;
         if (highlightIndex.value !== -1) {
           const { username } = flattenedUsers.value[highlightIndex.value];
-          const disabled = disabledUsers.value.includes(username);
-          if (disabled) {
+          if (disabledUsers.value.includes(username)) {
             return false;
           }
           if (multiple.value) {
@@ -846,26 +813,16 @@
         });
         return user;
       };
-      const defaultPasteValidator = async (originalValues) => {
-        if (api.value) {
-          const users = await request.pasteValidate(api.value, originalValues);
-          const validValues = users.map((user) => user.username);
-          if (!exclude.value) {
-            return [...new Set(validValues.concat(originalValues))];
-          }
-          return validValues;
-        }
-        if (!pasteValidator.value) {
-          console.warn('No paste validator has been set');
-          return Promise.resolve([]);
-        }
-        return pasteValidator.value(values);
-      };
       const handlePaste = async (event) => {
         hidePopover();
         if (loading.value) {
           event.preventDefault();
           event.stopPropagation();
+          return;
+        }
+        if (!pasteValidator.value) {
+          console.warn('No paste validator has been set');
+          return;
         }
         try {
           loading.value = true;
@@ -878,7 +835,7 @@
           if (!uniqueValues.length) {
             return;
           }
-          const validValues = await (pasteValidator.value || defaultPasteValidator)(uniqueValues);
+          const validValues = await pasteValidator.value(uniqueValues);
 
           const newValues = validValues.filter((value) => !localValue.value.includes(value));
           if (!validValues.length) {
@@ -925,12 +882,15 @@
         }
         nextTick(() => {
           const { highlightIndex } = proxy;
-          const $alternateList = alternateContent.value.$refs.alternateList;
+          const $alternateList = alternateContent.value?.$refs.alternateList;
           if (!$alternateList) {
             return false;
           }
           if (highlightIndex !== -1) {
-            const $alternateItem = alternateContent.value.alternateItem[highlightIndex].$el;
+            const $alternateItem = alternateContent.value.alternateItem[highlightIndex]?.$el;
+            if (!$alternateItem) {
+              return false;
+            }
             const listClientHeight = $alternateList.clientHeight;
             const listScrollTop = $alternateList.scrollTop;
             const itemOffsetTop = $alternateItem.offsetTop;
@@ -1031,11 +991,9 @@
         inputValue.value = '';
         inputRef.value.innerHTML = '';
       };
-      // const getRefSetter = refKey => (ref) => {
-      //   !ctx.root.$arrRefs && (ctx.root.$arrRefs = {});
-      //   !ctx.root.$arrRefs[refKey] && (ctx.root.$arrRefs[refKey] = []);
-      //   ref && ctx.root.$arrRefs[refKey].push(ref);
-      // };
+      const isSameValue = (source, target) =>
+        source.length === target.length && source.every((username, index) => username === target[index]);
+
       watch(inputValue, (value) => {
         if (value.length) {
           highlightIndex.value = -1;
@@ -1059,41 +1017,46 @@
         updateScroller();
       });
 
-      watch(
-        modelValue,
-        () => {
-          isIgnoreUpdateModelValue = true;
-          localValue.value = [...modelValue.value];
-        },
-        {
-          immediate: true,
-        },
-      );
+      // 外部回写与本地选择内容一致时不再同步，否则会二次触发 localValue，导致 change 与用户信息请求各发两次
+      watch(modelValue, () => {
+        if (isSameValue(modelValue.value, localValue.value)) {
+          return;
+        }
+        isIgnoreUpdateModelValue = true;
+        localValue.value = [...modelValue.value];
+      });
 
-      watch(
-        localValue,
-        (_localValue) => {
-          if (!isIgnoreUpdateModelValue) {
-            ctx.emit('update:modelValue', _localValue);
-          }
+      watch(localValue, (_localValue) => {
+        if (isIgnoreUpdateModelValue) {
           isIgnoreUpdateModelValue = false;
-          ctx.emit('change', _localValue);
-          calcOverflow();
-          getCurrentUsers();
-        },
-        {
-          immediate: true,
-        },
-      );
+        } else {
+          ctx.emit('update:modelValue', _localValue);
+        }
+        ctx.emit('change', _localValue);
+        calcOverflow();
+        getCurrentUsers();
+      });
 
       onMounted(() => {
         calcOverflow();
         getCurrentUsers();
       });
 
-      // onBeforeUpdate(() => {
-      //   ctx.root.$arrRefs && (ctx.root.$arrRefs = {});
-      // });
+      onBeforeUnmount(() => {
+        isUnmounted = true;
+        scheduleSearch.cancel();
+        clearOverflowTimer();
+        Object.values(selectedTipsTimer.value).forEach((timer) => clearTimeout(timer));
+        selectedTipsTimer.value = {};
+        tagTipsInstances.forEach((instance) => instance.destroy());
+        tagTipsInstances.length = 0;
+        alternateContentApp?.unmount();
+        alternateContentApp = null;
+        alternateContent.value = null;
+        popoverInstance.value?.destroy();
+        popoverInstance.value = null;
+      });
+
       return {
         selectorHeight,
         singleRowHeight,
@@ -1121,9 +1084,8 @@
         search,
         getDefaultAlternateData,
         filterUsers,
-        defaultFuzzySearchMethod,
+        runFuzzySearch,
         getUserTips,
-        defaultExactSearchMethod,
         getPopoverInstance,
         getAlternateContent,
         getHistoryUsers,
@@ -1153,7 +1115,6 @@
         handleInput,
         handleBlur,
         getMatchedUser,
-        defaultPasteValidator,
         handlePaste,
         getSelectedDOM,
         moveInput,
@@ -1165,7 +1126,6 @@
         removeOverflowTagNode,
         handleFastClear,
         reset,
-        // getRefSetter,
         containerRef,
         inputRef,
       };
