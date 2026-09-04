@@ -29,6 +29,7 @@ from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
+    DEFAULT_INSTANCE,
     ConfigFileEnum,
     ConfigTypeEnum,
     ExecuteShellScriptUser,
@@ -526,10 +527,13 @@ class ActKwargs:
 
         # 获取os配置
         self.get_mongodb_os_conf()
-        # 获取os密码
+        # OS 用户配置与 Redis/MySQL 一致：各云区域统一读取 cloudid 0
         user = self.os_conf["user"]
         password = self.get_password(
-            ip="0.0.0.0", port=0, bk_cloud_id=self.payload["hosts"][0]["bk_cloud_id"], username=user
+            ip=DEFAULT_INSTANCE["ip"],
+            port=DEFAULT_INSTANCE["port"],
+            bk_cloud_id=DEFAULT_INSTANCE["bk_cloud_id"],
+            username=user,
         )
 
         return {
