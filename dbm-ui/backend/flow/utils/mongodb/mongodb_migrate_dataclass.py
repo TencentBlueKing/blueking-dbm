@@ -19,6 +19,7 @@ from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models.spec import Spec
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
+    DEFAULT_INSTANCE,
     ConfigFileEnum,
     ConfigTypeEnum,
     MongoDBActuatorActionEnum,
@@ -503,9 +504,12 @@ class MigrateActKwargs:
 
         user = self.os_conf["user"]
         file_path = self.os_conf["file_path"]
-        # 获取os user密码
+        # OS 用户配置与 Redis/MySQL 一致：各云区域统一读取 cloudid 0
         password = MongoDBPassword().get_password_from_db(
-            ip="0.0.0.0", port=0, bk_cloud_id=self.bk_cloud_id, username=user
+            ip=DEFAULT_INSTANCE["ip"],
+            port=DEFAULT_INSTANCE["port"],
+            bk_cloud_id=DEFAULT_INSTANCE["bk_cloud_id"],
+            username=user,
         )["password"]
         return {
             "init_flag": True,
