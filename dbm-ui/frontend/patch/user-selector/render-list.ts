@@ -1,18 +1,5 @@
 import { h } from 'vue';
 
-// export default {
-//   name: 'render-list',
-//   props: ['selector', 'user', 'index', 'keyword', 'disabled'],
-//   render() {
-//     return this.selector.renderList(h, {
-//       user: this.user,
-//       index: this.index,
-//       keyword: this.keyword,
-//       disabled: this.disabled,
-//     });
-//   },
-// };
-
 export default {
   name: 'render-list',
   props: {
