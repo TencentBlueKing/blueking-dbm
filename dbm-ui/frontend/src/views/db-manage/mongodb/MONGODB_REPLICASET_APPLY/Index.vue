@@ -278,7 +278,7 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Mongodb.ReplicasetApply>(TicketTypes.MONGODB_REPLICASET_APPLY, {
@@ -409,8 +409,7 @@
   );
 
   const handleChangeBiz = (info: BizItem) => {
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
+    applyBizInfo(info);
     serviceApply?.changeBizId(info.bk_biz_id);
   };
 
