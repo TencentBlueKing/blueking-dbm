@@ -19,6 +19,7 @@ from backend.db_periodic_task.dispatch.outcomes import DispatchOutcomeType
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.dbm_aiagent.tasks.config import AGENT_RESPONSE_LOG_MAX_CHARS
 from backend.dbm_aiagent.tasks.outcomes import AgentOutcome
+from backend.env import DEFAULT_USERNAME
 
 logger = logging.getLogger("root")
 
@@ -104,19 +105,22 @@ class AgentInvoker:
         try:
             from backend.dbm_aiagent.agent.handlers import AgentHandler
 
+            # Handler defaults to DEFAULT_USERNAME. Passing None/"" overrides that
+            # and skips the PaaS sandbox virtual-user rewrite (executor whitelist).
+            username = request.username or DEFAULT_USERNAME
             if request.session_code:
                 ai_response, _ = AgentHandler.ask_agent_with_content_in_session(
                     agent_code=agent_code,
                     content=request.content,
                     session_code=request.session_code,
-                    username=request.username,
+                    username=username,
                     timeout=execution_timeout,
                 )
             else:
                 ai_response = AgentHandler.ask_agent_with_content(
                     agent_code=agent_code,
                     content=request.content,
-                    username=request.username,
+                    username=username,
                     timeout=execution_timeout,
                 )
             elapsed = time.monotonic() - invoke_started_at
