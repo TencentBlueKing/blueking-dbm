@@ -196,6 +196,9 @@ class SimpleProvisioning(BaseProvisioning):
             "redis_keymod",
         ]
         for index in index_set:
+            # 跳过索引集分组（is_group=true），只匹配采集项
+            if index.get("is_group", False):
+                continue
             for name in used_index_name:
                 if name in index["index_set_name"]:
                     index_name_id_map[name] = index["index_set_id"]
