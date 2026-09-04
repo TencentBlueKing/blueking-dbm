@@ -144,7 +144,7 @@ func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
 	sqlStr := fmt.Sprintf(
-		`SELECT table_schema, table_name FROM information_schema.tables `+
+		`SELECT table_schema as table_schema, table_name as table_name FROM information_schema.tables `+
 			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
 		mysqlcomm.UnsafeIn(systemDbs, "'"),
 	)
