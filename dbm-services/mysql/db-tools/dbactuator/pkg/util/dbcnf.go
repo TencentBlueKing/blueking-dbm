@@ -12,7 +12,6 @@ package util
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -643,65 +642,52 @@ func CreateExporterConf(fileName string, host string, port int, user string, pas
 	}
 
 	// 渲染 argument
+	spiderArgs := map[string]string{
+		"collect.global_variables":                     "true",
+		"collect.info_schema.query_response_time":      "true",
+		"collect.info_schema.processlist":              "true",
+		"collect.datadir_size":                         "true",
+		"enable-scrape-interval":                       "true",
+		"lr-min-interval":                              "24h",
+		"mr-min-interval":                              "2h",
+		"hr-min-interval":                              "5m",
+		"collect.info_schema.processlist.by_user":      "true",
+		"collect.info_schema.tables.max_tables_per_db": "100",
+		"collect.global_status":                        "true",
+	}
+	backendArgs := map[string]string{
+		"collect.global_variables":                     "true",
+		"collect.slave_status":                         "true",
+		"collect.info_schema.innodb_metrics":           "true",
+		"collect.info_schema.query_response_time":      "true",
+		"collect.info_schema.tables":                   "true",
+		"collect.info_schema.processlist":              "true",
+		"collect.info_schema.innodb_trx":               "true",
+		"collect.engine_innodb_status":                 "true",
+		"collect.auto_increment.columns":               "true",
+		"collect.datadir_size":                         "true",
+		"collect.infodba_schema.heartbeat":             "true",
+		"enable-scrape-interval":                       "true",
+		"lr-min-interval":                              "24h",
+		"mr-min-interval":                              "2h",
+		"hr-min-interval":                              "5m",
+		"collect.info_schema.processlist.by_user":      "true",
+		"collect.info_schema.tables.max_tables_per_db": "100",
+		"collect.global_status":                        "true",
+	}
 
-	// cfg.NewSection("label")
+	args := backendArgs
+	if strings.HasPrefix(instanceRole, "spider_") {
+		args = spiderArgs
+	}
+
+	argSection, _ := cfg.NewSection("argument")
+	for k, v := range args {
+		argSection.NewKey(k, v)
+	}
 	err = cfg.SaveTo(cnfPath)
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-// CreateMysqlExporterArgs TODO
-func CreateMysqlExporterArgs(fileName, pkgType string, port int) error {
-	spiderArgs := []string{
-		"--enable-scrape-interval",
-		"--lr-min-interval=24h",
-		"--mr-min-interval=2h",
-		"--hr-min-interval=5m",
-		"--collect.global_status",
-		"--collect.global_variables",
-		"--collect.datadir_size",
-		"--collect.info_schema.processlist",
-		"--collect.info_schema.processlist.by_user",
-		"--collect.info_schema.query_response_time",
-	}
-	backendArgs := []string{
-		"--enable-scrape-interval",
-		"--lr-min-interval=24h",
-		"--mr-min-interval=2h",
-		"--hr-min-interval=5m",
-		"--collect.global_status",
-		"--collect.global_variables",
-		"--collect.datadir_size",
-		"--collect.info_schema.processlist",
-		"--collect.info_schema.processlist.by_user",
-		"--collect.info_schema.query_response_time",
-		"--collect.auto_increment.columns",
-		"--collect.slave_status",
-		"--collect.infodba_schema.heartbeat",
-		"--collect.info_schema.tables",
-		"--collect.info_schema.tables.databases=*",
-		"--collect.info_schema.tables.max_tables_per_db=100",
-		"--collect.info_schema.innodb_metrics",
-		"--collect.info_schema.innodb_trx",
-		"--collect.engine_innodb_status",
-	}
-	// fileName := fmt.Sprintf("/etc/exporter_%d.args", port)
-	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if pkgType == cst.PkgTypeSpider {
-		_, err = f.WriteString(strings.Join(spiderArgs, "\n"))
-	} else if pkgType == cst.PkgTypeMysql {
-		_, err = f.WriteString(strings.Join(backendArgs, "\n"))
-	} else {
-		return errors.Errorf("port %d unknown dbrole %s for generating mysql exporter args file", port, pkgType)
-	}
-	if err != nil {
-		return err
-	}
-	return f.Sync()
 }

@@ -15,6 +15,7 @@ import time
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.dbm_aiagent.mcp_tools.common.impl.promql_query import parse_step_to_seconds
 from backend.dbm_aiagent.mcp_tools.mysql.constants import METRIC_TYPES
 from backend.utils.time import timezone2timestamp
 
@@ -44,7 +45,7 @@ UNIFY_QUERY_PARAMS = {
 }
 
 
-def query_mysql_metrics(cluster_type, cluster_domain, start_time, end_time, metric_type):
+def query_mysql_metrics(cluster_type, cluster_domain, start_time, end_time, metric_type, step="1m"):
     # 获取查询模板
     query_template = METRIC_TYPES.get(metric_type)
     query_template_db = query_template.get(cluster_type)
@@ -60,8 +61,7 @@ def query_mysql_metrics(cluster_type, cluster_domain, start_time, end_time, metr
         start_time = timezone2timestamp(start_time)
     else:
         start_time = end_time - int(5) * 60
-    if end_time - start_time > 30 * 60:
-        raise ValueError("Query time range too large. limit 30 minutes")
+    step_seconds = parse_step_to_seconds(step)
 
     tmpl = query_template_db.get("max", "sum")
     query_string = tmpl % cluster_domain
@@ -71,6 +71,8 @@ def query_mysql_metrics(cluster_type, cluster_domain, start_time, end_time, metr
     params["end_time"] = end_time
     params["start_time"] = start_time
     params["query_configs"][0]["promql"] = query_string
+    params["query_configs"][0]["interval"] = step_seconds
+    params["down_sample_range"] = step
     params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
 
     logger.info("query_mysql_metrics params: %s", json.dumps(params))

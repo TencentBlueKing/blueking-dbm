@@ -403,7 +403,7 @@ func buildBackupCmdForRemote(backupId string, cnfFilename string, shardValue int
 
 // archiveAbnormalTasks TODO
 // archiveTasks 以 实例 的维度归档异常任务，正常不返回error，避免影响正常备份任务
-// 超过 12小时的备份未执行的，会丢弃（例如从库延迟超过 6 小时）
+// 超过 2 小时的备份未执行的，会丢弃（例如从库延迟超过 2 小时，也就是允许延迟小于 2h）
 func (b GlobalBackupModel) archiveAbnormalTasks(db *sqlx.DB) error {
 	backupTasks, err := b.queryBackupTasks(0, db)
 	if err != nil {
@@ -420,7 +420,7 @@ func (b GlobalBackupModel) archiveAbnormalTasks(db *sqlx.DB) error {
 			// 归档 quit-task
 			// toQuitTask = append(toQuitTask, t)
 			bTmp.handleQuitTasks(db)
-		} else if t.CreatedAt < time.Now().Add(-12*time.Hour).Format(time.DateTime) &&
+		} else if t.CreatedAt < time.Now().Add(-2*time.Hour).Format(time.DateTime) &&
 			t.CreatedAt > time.Now().Add(-24*(cst.SpiderRemoveOldTaskBeforeDays-1)*time.Hour).Format(time.DateTime) &&
 			(t.BackupStatus == StatusInit || t.BackupStatus == StatusReplicated) {
 			bTmp.updateBackupTask(StatusQuit, 0, db)

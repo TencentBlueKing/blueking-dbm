@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.impl.promql_query import parse_step_to_seconds
 from backend.dbm_aiagent.mcp_tools.common.views.promql_query import query_promql_metrics_with_roles
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
@@ -67,6 +68,10 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
 
         query_builder.start_time = self.get_param("start_time")
         query_builder.end_time = self.get_param("end_time")
+        # 仅当用户显式传入 step 时才覆盖预定义指标中的 step
+        step = self.get_param("step")
+        if step and parse_step_to_seconds(step) > parse_step_to_seconds(query_builder.step):
+            query_builder.step = step
 
         # instance_role 条件在 promql_tmpl filter 中已定义
         result = query_promql_metrics_with_roles(cluster_domain, "", query_builder)
@@ -84,12 +89,16 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         end_time = self.get_param("end_time")
         metric_name = metric_name
 
+        # 该路径无预定义 step，用户未传时默认 1m
+        step = self.get_param("step") or "1m"
+
         datapoints_result = query_mysql_metrics(
             cluster_type=cluster_type,
             cluster_domain=cluster_domain,
             start_time=start_time,
             end_time=end_time,
             metric_type=metric_name,
+            step=step,
         )
 
         return Response(

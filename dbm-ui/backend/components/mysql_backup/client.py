@@ -58,6 +58,7 @@ class _BackupApi(BaseApi):
             method="POST",
             url="backupapi/bucket/add",
             description=_("添加备份桶"),
+            max_retry_times=1,
         )
 
 

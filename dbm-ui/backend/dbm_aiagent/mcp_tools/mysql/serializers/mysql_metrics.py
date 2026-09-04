@@ -25,6 +25,12 @@ class MysqlMetricsInputSerializer(serializers.Serializer):
     metric_name = serializers.ChoiceField(
         choices=mysql_metric_name_choices, help_text=_("mysql 指标名称，" "性能指标有 cpu负载, qps请求量, 慢日志数量，线程数，连接数")
     )
+    step = serializers.CharField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text=_("查询步长/采样间隔，如 '1m'、'5m'、'1h'。可以为空，表示使用默认步长。查询较长时间范围时建议增大步长"),
+    )
 
 
 class MysqlMetricsOutputSerializer(serializers.Serializer):

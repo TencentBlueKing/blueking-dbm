@@ -85,11 +85,16 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 	if ok, _ := MydumperHasOption(binPath, "--source-data"); ok {
 		args = append(args, "--source-data", "--replica-data")
 	}
-	if l.cnf.LogicalBackup.TrxConsistencyOnly != nil && *l.cnf.LogicalBackup.TrxConsistencyOnly {
+	if *l.cnf.LogicalBackup.TrxConsistencyOnly { // nil is true
 		if ok, _ := MydumperHasOption(binPath, "--trx-tables"); ok {
-			args = append(args, "--trx-tables")
+			// --trx-tables 与 --trx-consistency-only 不是等价替换的
+			args = append(args, "--trx-tables=0 --sync-thread-lock-mode=FTWRL")
 		} else {
 			args = append(args, "--trx-consistency-only")
+		}
+	} else {
+		if ok, _ := MydumperHasOption(binPath, "--trx-tables"); ok {
+			args = append(args, "--trx-tables=0 --sync-thread-lock-mode=NO_LOCK") //--trx-tables=0
 		}
 	}
 	if l.cnf.Public.KillLongQueryTime > 0 {

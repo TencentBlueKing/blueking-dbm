@@ -27,7 +27,7 @@ func AddRouter(r *gin.Engine) {
 		sqlText := SqlTextReplace.ReplaceAllString(body.Content, "")
 		res, err := mysql.AnalyzeSql(body.Db, sqlText)
 		if err != nil {
-			slog.Error("mysql", err)
+			slog.Error("mysql", err, "content", body.Content)
 			ctx.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}

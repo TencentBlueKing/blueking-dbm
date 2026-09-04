@@ -10,9 +10,6 @@
 package mainloop
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/update_monitor_config"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -21,6 +18,10 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/update_monitor_config"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect"
