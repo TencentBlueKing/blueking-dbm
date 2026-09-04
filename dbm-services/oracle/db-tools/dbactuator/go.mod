@@ -1,8 +1,6 @@
 module dbm-services/oracle/db-tools/dbactuator
 
-go 1.24.0
-
-toolchain go1.24.2
+go 1.26.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1
@@ -10,13 +8,13 @@ require (
 	github.com/godror/godror v0.40.4
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.1
-	golang.org/x/sys v0.36.0
+	golang.org/x/sys v0.47.0
 )
 
 require (
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/godror/knownpb v0.1.2 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 )
 
 // 1.10.6是最后一个支持<v3.6的版本
@@ -28,13 +26,12 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
