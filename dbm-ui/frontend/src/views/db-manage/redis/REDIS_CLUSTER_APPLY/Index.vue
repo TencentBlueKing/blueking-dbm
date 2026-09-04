@@ -458,7 +458,7 @@
   };
 
   // 基础设置
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
   const { t } = useI18n();
   const funControllerStore = useFunController();
@@ -812,14 +812,14 @@
    * 变更业务
    */
   const handleChangeBiz = (info: BizItem) => {
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
-
-    // 清空 ip 选择器
+    const bizChanged = applyBizInfo(info);
+    serviceApply?.changeBizId(info.bk_biz_id);
+    if (!bizChanged) {
+      return;
+    }
     formData.details.nodes.proxy = [];
     formData.details.nodes.master = [];
     formData.details.nodes.slave = [];
-    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
   /**

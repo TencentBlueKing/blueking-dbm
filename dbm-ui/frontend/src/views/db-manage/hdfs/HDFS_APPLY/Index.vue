@@ -581,19 +581,20 @@
     { deep: true, flush: 'post' },
   );
 
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
-
+    const bizChanged = applyBizInfo(info);
+    serviceApply?.changeBizId(info.bk_biz_id);
+    if (!bizChanged) {
+      return;
+    }
     nodeAndZookerperMergeList.value = [];
     formData.details.nodes.namenode = [];
     formData.details.nodes.zookeeper = [];
     formData.details.nodes.datanode = [];
-    serviceApply?.changeBizId(info.bk_biz_id);
   }
   /**
    * 变更所属管控区域
