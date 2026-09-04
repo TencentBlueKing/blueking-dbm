@@ -32,6 +32,7 @@ from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
 from backend.db_monitor import constants, serializers
+from backend.db_monitor.handlers import get_policy_threshold
 from backend.db_monitor.models import MonitorPolicy
 from backend.db_monitor.views.callbacks import mysql  # noqa: F401 - 注册 MySQL 告警回调
 from backend.db_monitor.views.callbacks import redis  # noqa: F401 - 注册 Redis 告警回调
@@ -314,6 +315,23 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         name = policy.name
         MonitorPolicy.sync_plat_monitor_policy(db_type=db_type, specified_name=name, force=True)
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询策略阈值"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=serializers.GetPolicyThreshold,
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.GetPolicyThreshold,
+        pagination_class=None,
+        filter_class=None,
+    )
+    def get_policy_threshold(self, request, *args, **kwargs):
+        data = self.validated_data
+        result = get_policy_threshold(**data)
+        return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询集群列表"),
