@@ -52,7 +52,33 @@ _PORTRAIT_CLUSTER_TYPES = [
 # ------------------------------ Celery 薄壳 worker ------------------------------
 
 
-@app.task
+# rate_limit：Celery 内建令牌桶，硬限当前 task 类型的消费速率（不影响其他 task）。
+# 目标：把每 5 分钟画像 AI 请求量控制在 30-50 区间（对齐灰度期下游 AI SDK 的请求上限）。
+#
+# 作用域说明（重要）：
+#   - rate_limit 是 per-worker-process 语义（每个 celery worker 进程一个独立令牌桶），
+#     与 -P 并发模型（prefork / threads / gevent）以及 -c 并发数无关；
+#   - 当前部署：K=8 个 worker 进程（每进程 -P threads -c 100），共 8 个令牌桶；
+#   - 总速率 = 单 worker 速率 × K = 单 worker 速率 × 8。
+#
+# 取值推导（当前 K=8）：
+#   - 单 worker "1/m" → 总 8/min = 40/5min，落在目标 [30, 50]/5min 区间中间偏低（保守灰度）；
+#   - 1000 个 task 稳态跑完约需 1000 / 8 = 125 分钟 ≈ 2h05min，符合每日 1 桶的节奏；
+#   - 若灰度稳定后想更贴近上界（50/5min），可改为 "75/h" 提升到 8×75/h = 600/h = 50/5min。
+#
+# 部署侧变化时的对齐规则：
+#   - K 值变化 → 单 worker 速率按 f"{总目标每分钟 // K}/m" 反推，当前总目标 8/min；
+#   - 例如：K=4 → "2/m"；K=1 → "8/m"；K=16 → "0.5/m" 无法整数表达，
+#     此时改用小时粒度 "30/h"（16 × 30 = 480/h ≈ 40/5min）。
+#
+# 其他注意事项：
+#   - 令牌桶按 task name 隔离，仅影响 generate_cluster_portrait_report_batch 自身；
+#   - 等待令牌期间不计入软/硬超时（超时从执行开始才计时）；
+#   - -P threads 模式下 rate_limit 仍在 worker 主循环判定，100 线程不会突破令牌桶速率；
+#   - 等待令牌的 task 仅占用 worker 内存（不重回 broker 队列），
+#     故不会触发 broker visibility_timeout 的重复投递问题；
+#   - 回滚方式：删除 rate_limit 参数即可恢复无限速。
+@app.task(rate_limit="1/m")
 def generate_cluster_portrait_report_batch(cluster_id: int, lock_key: str, schedule_date_str: str) -> None:
     """集群画像报告 —— 单集群 Celery worker 任务（薄壳）。
 
