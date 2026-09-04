@@ -130,6 +130,9 @@ dbm:
     port: 80
     type: ClusterIP
 
+  # 单一域名源：saas/后端API/ingress 地址全部由其派生
+  saasDomain: "bkdbm.example.com"
+
   envs:
     djangoSettingsModule: "config.prod"
     runVer: "open"

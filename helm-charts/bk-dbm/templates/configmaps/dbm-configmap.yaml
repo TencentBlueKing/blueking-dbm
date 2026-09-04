@@ -30,7 +30,7 @@ data:
   APP_ID: "{{ .Values.dbm.envs.bkAppCode }}"
   APP_TOKEN: "{{ .Values.dbm.envs.bkAppToken }}"
   BK_DOMAIN: "{{ .Values.global.bkDomain }}"
-  BK_SAAS_HOST: "{{ .Values.dbm.envs.bkSaasUrl }}"
+  BK_SAAS_HOST: "{{ include "dbm.saasUrl" (dict "Values" .Values.dbm) }}"
   BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
   CORS_ALLOWED_ORIGINS: "{{ .Values.dbm.envs.corsAllowedOrigins | default "" }}"
@@ -112,6 +112,3 @@ data:
   STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
   # 反向上报
   REVERSE_REPORT_KAFKA_OPTIONS: "{{ .Values.dbm.envs.reverseReportKafkaOptions }}"
-  # AIDEV 配置
-  ENABLE_DBM_AI: "{{ .Values.dbm.envs.dbmEnableAI | default false }}"
-  BKAI_AGENT_METRICS_PUSH_MODE: "{{ .Values.dbm.envs.bkaiAgentMetricsPushMode | default "direct" }}"
