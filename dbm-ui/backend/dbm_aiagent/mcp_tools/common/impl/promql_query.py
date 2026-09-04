@@ -282,7 +282,7 @@ def execute_promql(prom_queries: Dict, expr: str, start_time, end_time, step) ->
         "start_time": timezone2timestamp(start_time),
         "end_time": timezone2timestamp(end_time),
         "down_sample_range": step,
-        "slimit": 1000,
+        "slimit": 5000,
         "type": "range",
         "expression": "",
         "alias": "AA",

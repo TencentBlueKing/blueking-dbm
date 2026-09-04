@@ -16,7 +16,7 @@ import (
 // Start TODO
 func Start(address string) error {
 	r := gin.New()
-	r.Use(gin.Logger())
+	// r.Use(gin.Logger())
 
 	// setup trace
 	trace.Setup()
