@@ -540,18 +540,14 @@ class DataAPI(object):
 
     def _fetch_client_crt(self):
         client_crt, client_key = f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_CRT}", f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_KEY}"
-        # 如果证书已存在，则直接返回即可
-        ssl = SystemSettings.get_setting_value(key=SSL_KEY, default={})
-        # 这里需要判断是否本地化以及文件夹是否存在，有可能pod重启导致秘钥文件丢失
-        if ssl and ssl.get("local") and os.path.isfile(client_crt) and os.path.isfile(client_key):
-            return client_crt, client_key
-
-        # 本地写入crt和key文件，防止每次都需要write IO
-        os.makedirs(CLIENT_CRT_PATH, exist_ok=True)
-        # 并发场景下其他请求可能已写完，直接复用磁盘文件，无需再次读库
+        # 证书是原子写入的，存在即完整可用，直接复用磁盘文件。
+        # 此时库里的配置不会改变返回结果，故不再读 SystemSettings，避免高并发调用占满 DB 连接池
         if os.path.isfile(client_crt) and os.path.isfile(client_key):
             return client_crt, client_key
 
+        # 证书缺失（如 pod 重建导致秘钥文件丢失），才需要读库取内容并本地化，防止每次都需要write IO
+        ssl = SystemSettings.get_setting_value(key=SSL_KEY, default={})
+        os.makedirs(CLIENT_CRT_PATH, exist_ok=True)
         self._write_file_atomically(client_crt, ssl[SSLEnum.CLIENT_CRT.value])
         self._write_file_atomically(client_key, ssl[SSLEnum.CLIENT_KEY.value])
 

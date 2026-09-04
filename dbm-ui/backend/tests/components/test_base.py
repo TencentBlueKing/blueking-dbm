@@ -14,6 +14,7 @@ import pytest
 import requests
 
 from backend.components.base import BaseApi, DataAPI, DataResponse
+from backend.components.constants import SSLEnum
 from backend.exceptions import ApiResultError
 
 
@@ -170,6 +171,40 @@ class TestDataAPI:
         key3 = api._build_cache_key({"param1": "value2"})
         assert key1 == key2
         assert key1 != key3
+
+
+class TestFetchClientCrt:
+    """测试客户端证书的获取"""
+
+    @staticmethod
+    def _make_api():
+        return DataAPI(method="POST", base="http://test.com", url="/api/test", module="test", ssl=True)
+
+    @patch("backend.components.base.os.path.isfile", return_value=True)
+    @patch("backend.components.base.SystemSettings.get_setting_value")
+    def test_reuse_local_crt_without_db_query(self, mock_get_setting, mock_isfile):
+        """证书已落盘时直接复用，不读库，避免高并发调用占满 DB 连接池"""
+        client_crt, client_key = self._make_api()._fetch_client_crt()
+        assert client_crt.endswith(SSLEnum.CLIENT_CRT.value)
+        assert client_key.endswith(SSLEnum.CLIENT_KEY.value)
+        mock_get_setting.assert_not_called()
+
+    @patch("backend.components.base.SystemSettings.insert_setting_value")
+    @patch("backend.components.base.os.makedirs")
+    @patch("backend.components.base.os.path.isfile", return_value=False)
+    @patch("backend.components.base.SystemSettings.get_setting_value")
+    def test_localize_crt_when_file_missing(self, mock_get_setting, mock_isfile, mock_makedirs, mock_insert_setting):
+        """证书缺失时才读库取内容并落盘"""
+        mock_get_setting.return_value = {
+            SSLEnum.CLIENT_CRT.value: "crt-content",
+            SSLEnum.CLIENT_KEY.value: "key-content",
+        }
+        with patch.object(DataAPI, "_write_file_atomically") as mock_write:
+            self._make_api()._fetch_client_crt()
+
+        mock_get_setting.assert_called_once()
+        assert mock_write.call_count == 2
+        mock_insert_setting.assert_called_once()
 
 
 class TestBaseApi:

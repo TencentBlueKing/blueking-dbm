@@ -7,7 +7,7 @@
     "etl_config": "bk_log_regexp",
     "data_encoding": "UTF-8",
     "retention": 7,
-    "es_shards": 1,
+    "es_shards": 4,
     "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
     "target_nodes": [],
