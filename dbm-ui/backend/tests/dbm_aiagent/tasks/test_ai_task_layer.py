@@ -119,6 +119,50 @@ class TestAgentInvoker:
             )
         invoke.assert_called_once()
 
+    def test_missing_username_falls_back_to_default(self):
+        from backend.env import DEFAULT_USERNAME
+
+        for username in (None, ""):
+            with patch(
+                "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content",
+                return_value="ok",
+            ) as invoke:
+                AgentInvoker.invoke(
+                    task_key="test.task",
+                    agent_code="ai-x",
+                    request=AgentRequest(content="hello", username=username),
+                    execution_timeout_seconds=30,
+                )
+            assert invoke.call_args.kwargs["username"] == DEFAULT_USERNAME
+
+    def test_explicit_username_is_preserved(self):
+        with patch(
+            "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content",
+            return_value="ok",
+        ) as invoke:
+            AgentInvoker.invoke(
+                task_key="test.task",
+                agent_code="ai-x",
+                request=AgentRequest(content="hello", username="alice"),
+                execution_timeout_seconds=30,
+            )
+        assert invoke.call_args.kwargs["username"] == "alice"
+
+    def test_session_missing_username_falls_back_to_default(self):
+        from backend.env import DEFAULT_USERNAME
+
+        with patch(
+            "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content_in_session",
+            return_value=("ok", "session-1"),
+        ) as invoke:
+            AgentInvoker.invoke(
+                task_key="test.task",
+                agent_code="ai-x",
+                request=AgentRequest(content="hello", session_code="session-1"),
+                execution_timeout_seconds=30,
+            )
+        assert invoke.call_args.kwargs["username"] == DEFAULT_USERNAME
+
 
 class TestAITaskQueue:
     def test_build_job_id_stable(self):
