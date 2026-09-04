@@ -203,9 +203,10 @@ class MySQLRollbackDataFlow(object):
         定义重建slave节点的流程
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
-        cluster_ids_desc = [i["rollback_cluster_id"] for i in self.ticket_data["infos"]]
-        cluster_ids.extend(cluster_ids_desc)
+        # cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
+        # cluster_ids.extend(cluster_ids_desc)
+        # 只有回档的集群需要创建随机密码
+        cluster_ids = [i["rollback_cluster_id"] for i in self.ticket_data["infos"]]
         mysql_restore_slave_pipeline = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
@@ -380,6 +381,7 @@ class MySQLRollbackDataFlow(object):
                     uid=self.ticket_data["uid"],
                     cluster_model=cluster_class,
                     cluster_info=copy.deepcopy(cluster_info),
+                    all_db_rollback=all_db_rollback,
                 )
                 cluster_info["backupinfo"] = copy.deepcopy(backup_info)
                 rollback_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)

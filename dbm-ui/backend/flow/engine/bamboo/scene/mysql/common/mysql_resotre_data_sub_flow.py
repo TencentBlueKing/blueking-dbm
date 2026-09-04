@@ -42,10 +42,12 @@ from backend.flow.plugins.components.collections.common.add_alarm_shield import 
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
+from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.trans_files_for_context import TransFileFromBackupComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckSlaveStatusKwargs,
+    CrondMonitorKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     P2PFileFromBackupKwargs,
@@ -616,7 +618,12 @@ def priv_recover_sub_flow(
 
 
 def tendbha_rollback_data_sub_flow(
-    root_id: str, uid: str, cluster_model: Cluster, cluster_info: dict, backup_info: dict = None
+    root_id: str,
+    uid: str,
+    cluster_model: Cluster,
+    cluster_info: dict,
+    backup_info: dict = None,
+    all_db_rollback: bool = False,
 ):
     """
     tendbHa 回档流程
@@ -779,6 +786,47 @@ def tendbha_rollback_data_sub_flow(
         exec_ip=cluster_info["rollback_ip"],
         get_mysql_payload_func=MysqlActPayload.get_rollback_data_restore_payload.__name__,
     )
+    # 如果是物理备份或者全库回档则 屏蔽监控、屏蔽备份
+    if all_db_rollback:
+        if cluster_model.cluster_type == ClusterType.TenDBCluster:
+            sub_pipeline.add_act(
+                act_name=_("回档前屏蔽实例备份 {}:{}").format(cluster_info["rollback_ip"], cluster_info["rollback_port"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ips=[cluster_info["rollback_ip"]],
+                        name=".*backup",
+                    )
+                ),
+            )
+
+        sub_pipeline.add_act(
+            act_name=_("回档前屏蔽实例监控 {}:{}").format(cluster_info["rollback_ip"], cluster_info["rollback_port"]),
+            act_component_code=MysqlCrondMonitorControlComponent.code,
+            kwargs=asdict(
+                CrondMonitorKwargs(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    exec_ips=[cluster_info["rollback_ip"]],
+                    name="mysql-monitor",
+                    port=cluster_info["rollback_port"],
+                )
+            ),
+        )
+        # 如果是逻辑备份，开会端口存活监控
+        if backup_info.get("backup_type", "") == MySQLBackupTypeEnum.LOGICAL.value:
+            sub_pipeline.add_act(
+                act_name=_("仅监控端口存活 {}:{}").format(cluster_info["rollback_ip"], cluster_info["rollback_port"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ips=[cluster_info["rollback_ip"]],
+                        name="mysql-monitor-{}-hardcode-db-up".format(cluster_info["rollback_port"]),
+                    )
+                ),
+            )
+
     sub_pipeline.add_act(
         act_name=_("恢复数据 {} {}").format(exec_act_kwargs.exec_ip, backup_id),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -855,6 +903,36 @@ def tendbha_rollback_data_sub_flow(
             act_name=_("前滚binlog{}".format(exec_act_kwargs.exec_ip)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
+        )
+
+    # 全库回档解除屏蔽监控屏蔽备份
+    if all_db_rollback:
+        if cluster_model.cluster_type == ClusterType.TenDBCluster:
+            sub_pipeline.add_act(
+                act_name=_("解除屏蔽实例备份 {}:{}").format(cluster_info["rollback_ip"], cluster_info["rollback_port"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ips=[cluster_info["rollback_ip"]],
+                        name=".*backup",
+                        enable=True,
+                    )
+                ),
+            )
+
+        sub_pipeline.add_act(
+            act_name=_("解除屏蔽实例监控 {}:{}").format(cluster_info["rollback_ip"], cluster_info["rollback_port"]),
+            act_component_code=MysqlCrondMonitorControlComponent.code,
+            kwargs=asdict(
+                CrondMonitorKwargs(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    exec_ips=[cluster_info["rollback_ip"]],
+                    name="mysql-monitor",
+                    port=cluster_info["rollback_port"],
+                    enable=True,
+                )
+            ),
         )
 
     return backup_info, sub_pipeline.build_sub_process(

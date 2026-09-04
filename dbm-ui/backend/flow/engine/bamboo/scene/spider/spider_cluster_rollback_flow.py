@@ -80,9 +80,10 @@ class TenDBRollBackDataFlow(object):
         tendbCluster 回档到指定集群。要求源集群和目标集群必须相同的shard数
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = [i["source_cluster_id"] for i in self.ticket_data["infos"]]
-        cluster_desc = [i["target_cluster_id"] for i in self.ticket_data["infos"]]
-        cluster_ids.extend(cluster_desc)
+        # cluster_ids = [i["source_cluster_id"] for i in self.ticket_data["infos"]]
+        # cluster_ids.extend(cluster_desc)
+        # 只有回档的集群需要创建随机密码
+        cluster_ids = [i["target_cluster_id"] for i in self.ticket_data["infos"]]
         tendb_rollback_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
@@ -236,6 +237,7 @@ class TenDBRollBackDataFlow(object):
                     cluster_model=source_cluster,
                     cluster_info=spd_cluster,
                     backup_info=copy.deepcopy(backup_info["spider_node"]),
+                    all_db_rollback=all_db_rollback,
                 )
                 spd_sub_pipeline.add_sub_pipeline(sub_flow=spider_restore_sub_flow)
 
@@ -276,6 +278,7 @@ class TenDBRollBackDataFlow(object):
                         cluster_model=source_cluster,
                         cluster_info=ctl_cluster,
                         backup_info=copy.deepcopy(backup_info["tdbctl_node"]),
+                        all_db_rollback=all_db_rollback,
                     )
                     ctl_sub_pipeline.add_sub_pipeline(sub_flow=dbctl_restore_sub_flow)
                     ins_sub_pipeline_list.insert(
@@ -406,6 +409,7 @@ class TenDBRollBackDataFlow(object):
                     cluster_model=source_cluster,
                     cluster_info=master_cluster_info,
                     backup_info=shard_backup_info,
+                    all_db_rollback=all_db_rollback,
                 )
                 data_restore_sub_list.append(master_restore_sub_flow)
 
@@ -430,6 +434,7 @@ class TenDBRollBackDataFlow(object):
                         cluster_model=source_cluster,
                         cluster_info=slave_cluster_info,
                         backup_info=shard_backup_info,
+                        all_db_rollback=all_db_rollback,
                     )
                     data_restore_sub_list.append(slave_restore_sub_flow)
 
