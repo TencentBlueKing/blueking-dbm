@@ -1,0 +1,9 @@
+go 1.25.11
+
+// 本 go.work 用于把 k8s-dbs 及其本地兄弟依赖挂载在一起，
+// 使 golangci-lint / go vet / goimports 等工具不再向上使用 dbm-services/go.work，
+// 从而避免受外层 workspace 的 Go 版本 (1.26) 与全局 replace 影响。
+use (
+	.
+	../common/go-pubpkg
+)
