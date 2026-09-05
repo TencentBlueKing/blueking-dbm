@@ -8,10 +8,27 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
+from django.db import transaction
+from django.shortcuts import render
+from django.utils.translation import gettext_lazy as _
 from dynamic_raw_id.admin import DynamicRawIDMixin
 
+from backend.db_meta.enums import InstanceStatus
+
 from . import models
+
+
+class ChangeStatusForm(forms.Form):
+    """批量修改实例状态的表单"""
+
+    STATUS_CHOICES = [
+        (InstanceStatus.RUNNING.value, "running"),
+        (InstanceStatus.UNAVAILABLE.value, "unavailable"),
+        (InstanceStatus.RESTORING.value, "restoring"),
+    ]
+    status = forms.ChoiceField(choices=STATUS_CHOICES, label=_("目标状态"))
 
 
 @admin.register(models.app.AppCache)
@@ -93,6 +110,44 @@ class StorageInstanceAdmin(DynamicRawIDMixin, admin.ModelAdmin):
     search_fields = ("machine__ip",)
 
     dynamic_raw_id_fields = ("machine", "cluster", "bind_entry")
+    actions = ["change_status"]
+
+    @admin.action(description=_("批量修改实例状态"))
+    def change_status(self, request, queryset):
+        """批量修改选中实例的状态（running / unavailable）"""
+        form = None
+
+        if "apply" in request.POST:
+            form = ChangeStatusForm(request.POST)
+            if form.is_valid():
+                new_status = form.cleaned_data["status"]
+                count = 0
+                with transaction.atomic():
+                    for instance in queryset:
+                        instance.status = new_status
+                        instance.updater = request.user.username
+                        instance.save(update_fields=["status", "updater", "update_at"])
+                        count += 1
+                self.message_user(
+                    request,
+                    _("成功将 %(count)d 个实例的状态修改为 %(status)s") % {"count": count, "status": new_status},
+                    messages.SUCCESS,
+                )
+                return None
+
+        if form is None:
+            form = ChangeStatusForm()
+
+        return render(
+            request,
+            "admin/db_meta/change_storage_instance_status.html",
+            context={
+                "instances": queryset,
+                "form": form,
+                "title": _("批量修改实例状态"),
+                "action_checkbox_name": admin.helpers.ACTION_CHECKBOX_NAME,
+            },
+        )
 
 
 @admin.register(models.instance.ProxyInstance)
