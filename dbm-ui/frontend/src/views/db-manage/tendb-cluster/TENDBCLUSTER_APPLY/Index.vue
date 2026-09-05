@@ -236,7 +236,7 @@
   });
 
   // 基础设置
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<TendbCluster.Apply>(TicketTypes.TENDBCLUSTER_APPLY, {
@@ -340,10 +340,12 @@
    * 变更业务
    */
   const handleChangeBiz = (info: BizItem) => {
-    formData.details.db_module_id = null;
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
+    const bizChanged = applyBizInfo(info);
     serviceApply?.changeBizId(info.bk_biz_id);
+    if (!bizChanged) {
+      return;
+    }
+    formData.details.db_module_id = null;
   };
 
   /** 重置表单 */

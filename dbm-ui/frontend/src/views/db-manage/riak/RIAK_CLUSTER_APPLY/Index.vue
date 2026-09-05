@@ -269,7 +269,7 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Riak.Apply>(TicketTypes.RIAK_CLUSTER_APPLY, {
@@ -361,8 +361,7 @@
 
   // 切换业务，需要重置 IP 相关的选择
   const handleChangeBiz = (info: BizItem) => {
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
+    applyBizInfo(info);
     serviceApply?.changeBizId(info.bk_biz_id);
   };
 

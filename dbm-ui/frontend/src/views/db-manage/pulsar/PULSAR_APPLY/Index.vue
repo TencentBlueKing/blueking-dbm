@@ -492,7 +492,7 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Pulsar.Apply>(TicketTypes.PULSAR_APPLY, {
@@ -622,13 +622,14 @@
    * 切换业务，需要重置 IP 相关的选择
    */
   const handleChangeBiz = (info: BizItem) => {
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
-
+    const bizChanged = applyBizInfo(info);
+    serviceApply?.changeBizId(info.bk_biz_id);
+    if (!bizChanged) {
+      return;
+    }
     formData.details.nodes.bookkeeper = [];
     formData.details.nodes.broker = [];
     formData.details.nodes.zookeeper = [];
-    serviceApply?.changeBizId(info.bk_biz_id);
   };
   /**
    * 变更所属管控区域
