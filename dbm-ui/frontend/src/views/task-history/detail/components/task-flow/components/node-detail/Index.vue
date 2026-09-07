@@ -64,7 +64,7 @@
         <template v-if="STATUS_FAILED">
           <BkPopConfirm
             v-if="nodeData.retryable"
-            :confirm-text="t('确认继续')"
+            :confirm-text="t('确认重试')"
             :content="t('重试将重新执行当前节点')"
             :title="t('确认重试当前失败节点？')"
             trigger="click"
@@ -139,22 +139,6 @@
             </BkButton>
           </BkPopConfirm>
         </template>
-        <!-- <template v-if="failedNodes.length > 0">
-          <BkButton
-            v-bk-tooltips="t('上一个失败节点')"
-            class="quick-btn"
-            :disabled="currentFailNodeLogIndex === 0"
-            @click="() => handleClickQuickGoto(false)">
-            <DbIcon type="up-big" />
-          </BkButton>
-          <BkButton
-            v-bk-tooltips="t('下一个失败节点')"
-            class="quick-btn ml-8 mr-16"
-            :disabled="currentFailNodeLogIndex === failedNodes.length - 1"
-            @click="() => handleClickQuickGoto(true)">
-            <DbIcon type="down-big" />
-          </BkButton>
-        </template> -->
       </div>
     </template>
     <template #default>
@@ -184,7 +168,7 @@
           :label="t('操作记录')"
           name="record">
           <OperationRecord
-            :node-id="nodeData.id"
+            :node-id="nodeData.id || ''"
             :root-id="rootId" />
         </BkTabPanel>
       </BkTab>
@@ -203,23 +187,28 @@
 
   import { useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
-  import DbLog from '@components/db-log/index.vue';
   import { formatLogData } from '@components/db-log/utils';
+
+  import {
+    type FlowDetail,
+    type FlowNode,
+    getNodeDisplayStatus,
+    NODE_STATUS_META,
+  } from '@views/task-history/detail/utils';
 
   import { messageSuccess } from '@utils';
 
   import AiBluekingImage from '@images/ai-blueking.svg';
 
-  import type { FlowDetail, Node } from '../flow-canvas/utils';
+  import OperationRecord from '../../../OperationRecord.vue';
 
   import ExecuteLog from './components/execute-log/Index.vue';
   import InputOutput from './components/input-output/Index.vue';
-  import OperationRecord from './components/OperationRecord.vue';
 
   interface Props {
     autoOpenAiLog: boolean;
     flowData?: FlowDetail;
-    node?: Node;
+    node?: FlowNode;
     rootId: string;
   }
 
@@ -230,7 +219,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     flowData: undefined,
-    node: () => ({}) as Node,
+    node: () => ({}) as FlowNode,
   });
   const emits = defineEmits<Emits>();
 
@@ -248,45 +237,39 @@
 
   const { sendMessage, show } = useAiBluekingState();
 
-  const NODE_STATUS_TEXT: Record<string, string> = {
-    CREATED: t('待执行'),
-    FAILED: t('执行失败'),
-    FINISHED: t('执行成功'),
-    READY: t('待执行'),
-    REVOKED: t('已终止'),
-    RUNNING: t('执行中'),
-    SKIPPED: t('跳过'),
-  };
+  // 准备中与执行中同色，与画布、搜索树保持一致
+  const STATUS_THEME_MAP = {
+    CREATED: undefined,
+    FAILED: 'danger',
+    FINISHED: 'success',
+    READY: 'info',
+    RUNNING: 'info',
+    SKIPPED: 'success',
+    TODO: 'warning',
+  } as const;
 
-  const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const activePanelId = ref('log');
   const todoLoading = ref(false);
   const aiLogAnalysisLoading = ref(false);
   const logVersion = ref('');
 
-  const nodeData = computed(() => props.node || {});
+  const nodeData = computed(() => props.node);
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
   const STATUS_FAILED = computed(() => nodeData.value.status === 'FAILED');
   const STATUS_TODO = computed(() => !!nodeData.value.todoId);
   const statusInfo = computed(() => {
-    const status = nodeData.value.status;
-    if (STATUS_TODO.value && status !== 'FAILED') {
+    // 已终止是整条流程被撤销，和节点自己执行失败不是一回事，文案单独保留
+    if (nodeData.value.status === 'REVOKED') {
       return {
-        text: t('待继续'),
-        theme: 'warning' as const,
+        text: t('已终止'),
+        theme: 'danger' as const,
       };
     }
 
-    const themesMap = {
-      CREATED: undefined,
-      FAILED: 'danger',
-      FINISHED: 'success',
-      RUNNING: 'info',
-    } as const;
-
+    const status = getNodeDisplayStatus(nodeData.value);
     return {
-      text: NODE_STATUS_TEXT[status],
-      theme: themesMap[status as keyof typeof themesMap] || undefined,
+      text: NODE_STATUS_META[status].text,
+      theme: STATUS_THEME_MAP[status],
     };
   });
   const costTime = computed(() => {
@@ -318,20 +301,6 @@
       handleOperateSuccess();
     },
   });
-
-  watch(
-    () => [props.autoOpenAiLog, logVersion.value],
-    () => {
-      if (props.autoOpenAiLog && logVersion.value) {
-        setTimeout(() => {
-          handleAiLogAnalysis();
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const handleVersionChange = (version: string) => {
     logVersion.value = version;
@@ -382,7 +351,6 @@
   };
 
   const handleClose = () => {
-    dbLogRef.value?.destroy();
     emits('close');
     activePanelId.value = 'log';
   };
@@ -403,6 +371,20 @@
       aiLogAnalysisLoading.value = false;
     }
   };
+
+  // 从画布的日志解析入口进来时自动拉起分析，要等执行日志把版本号报上来。
+  // 放在这里是因为它依赖 handleAiLogAnalysis，此前靠 setTimeout 绕开声明顺序
+  watch(
+    () => [props.autoOpenAiLog, logVersion.value],
+    () => {
+      if (props.autoOpenAiLog && logVersion.value) {
+        handleAiLogAnalysis();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

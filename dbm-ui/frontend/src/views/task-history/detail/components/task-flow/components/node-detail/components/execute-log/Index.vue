@@ -58,11 +58,16 @@
 
   import DbLog from '@components/db-log/index.vue';
 
+  import {
+    type FlowNode,
+    getNodeDisplayStatus,
+    NODE_STATUS_META,
+    type NodeDisplayStatus,
+  } from '@views/task-history/detail/utils';
+
   import { downloadText, execCopy } from '@utils';
 
-  import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
-
-  import { type Node } from '../../../flow-canvas/utils';
+  import { useFullscreen, useTimeoutFn, useTimeoutPoll } from '@vueuse/core';
 
   import ExecuteHistory from './components/ExecuteHistory.vue';
 
@@ -70,21 +75,19 @@
 
   interface Props {
     autoOpenAiLog: boolean;
-    node?: Node;
+    isShow?: boolean;
+    node?: FlowNode;
     rootId?: string;
   }
 
   type Emits = (e: 'versionChange', version: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    isShow: false,
     node: () => ({}) as NonNullable<Props['node']>,
     rootId: '',
   });
   const emits = defineEmits<Emits>();
-
-  const isShow = defineModel<boolean>('isShow', {
-    default: false,
-  });
 
   const getNodeLogRequest = (isInit?: boolean) => {
     if (!currentData.value.version) {
@@ -101,7 +104,8 @@
     return getNodeLog(params)
       .then((data) => {
         logState.data = data;
-        dbLogRef.value!.setLog(data);
+        // 请求可能在组件卸载后才返回
+        dbLogRef.value?.setLog(data);
       })
       .finally(() => {
         logState.loading = false;
@@ -112,6 +116,17 @@
   };
 
   const { t } = useI18n();
+
+  // 图标与配色。文案统一取公共状态表，配色单独定：这条工具栏是深底，执行中、准备中和待执行用灰色更清楚
+  const STATUS_ICON_MAP: Record<NodeDisplayStatus, { color: string; icon: string }> = {
+    CREATED: { color: '#979BA5', icon: 'waiting-shalou' },
+    FAILED: { color: NODE_STATUS_META.FAILED.color, icon: 'delete-fill' },
+    FINISHED: { color: NODE_STATUS_META.FINISHED.color, icon: 'check' },
+    READY: { color: '#979BA5', icon: 'loading' },
+    RUNNING: { color: '#979BA5', icon: 'loading' },
+    SKIPPED: { color: NODE_STATUS_META.SKIPPED.color, icon: 'check' },
+    TODO: { color: NODE_STATUS_META.TODO.color, icon: 'dengdaiqueren' },
+  };
 
   const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const logContentRef = ref<HTMLDivElement>();
@@ -126,52 +141,22 @@
     icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
-  const nodeData = computed(() => props.node || {});
+  const nodeData = computed(() => props.node);
 
   const isRunning = computed(() => nodeData.value.status === 'RUNNING');
 
   const statusInfo = computed(() => {
-    const info = {
-      color: '',
-      icon: '',
-      text: '',
+    const status = getNodeDisplayStatus(nodeData.value);
+    return {
+      ...STATUS_ICON_MAP[status],
+      text: NODE_STATUS_META[status].text,
     };
-
-    if (nodeData.value.todoId && nodeData.value.status !== 'FAILED') {
-      info.text = t('待继续');
-      info.color = '#F59500';
-      info.icon = 'dengdaiqueren';
-      return info;
-    }
-
-    switch (nodeData.value.status) {
-      case 'RUNNING':
-        info.text = t('执行中');
-        info.color = '#979BA5';
-        info.icon = 'loading';
-        break;
-      case 'FINISHED':
-        info.text = t('执行成功');
-        info.color = '#2CAF5E';
-        info.icon = 'check';
-        break;
-      case 'FAILED':
-        info.text = t('执行失败');
-        info.color = '#EA3636';
-        info.icon = 'delete-fill';
-        break;
-      default:
-        info.text = t('待执行');
-        info.color = '#979BA5';
-        info.icon = 'waiting-shalou';
-        break;
-    }
-
-    return info;
   });
 
   const { isActive, pause, resume } = useTimeoutPoll(getNodeLogRequest, 5000);
   const { isFullscreen, toggle } = useFullscreen(logContentRef);
+  // 处理节点状态已完成，但剩余日志还没来的及刷新到日志接口的情况，请求多一次，确保拿到完整日志
+  const { start: startFinalLogRequest } = useTimeoutFn(getNodeLogRequest, 5000, { immediate: false });
 
   watch(
     () => isRunning.value,
@@ -181,22 +166,18 @@
       }
       if (!isRunning && isActive.value) {
         pause();
-
-        // 处理节点状态已完成，但剩余日志还没来的及刷新到日志接口的情况，请求多一次，确保拿到完整日志
-        setTimeout(() => {
-          getNodeLogRequest();
-        }, 5000);
+        startFinalLogRequest();
       }
     },
   );
 
   watch(
-    isShow,
-    () => {
-      if (isShow.value) {
-        setTimeout(() => {
-          dbLogRef.value?.init();
-        });
+    () => props.isShow,
+    async () => {
+      if (props.isShow) {
+        // 侧滑打开时内容才挂载，等这一轮渲染结束日志容器才存在
+        await nextTick();
+        dbLogRef.value?.init();
       }
     },
     {
@@ -204,12 +185,11 @@
     },
   );
 
-  watch(isFullscreen, () => {
+  watch(isFullscreen, async () => {
     dbLogRef.value?.destroy();
-    setTimeout(() => {
-      dbLogRef.value?.init();
-      dbLogRef.value!.setLog(logState.data);
-    });
+    await nextTick();
+    dbLogRef.value?.init();
+    dbLogRef.value?.setLog(logState.data);
   });
 
   const getLogContent = () => {
@@ -226,9 +206,7 @@
     currentData.value = data;
     emits('versionChange', data.version);
     pause();
-    setTimeout(() => {
-      getNodeLogRequest(true);
-    });
+    getNodeLogRequest(true);
   };
 
   const handleCopyLog = () => {

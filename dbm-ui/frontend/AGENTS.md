@@ -145,3 +145,14 @@ skill 记录，**只记录不修改**。
 - `dist/`、`node_modules/`、`src/types/auto-imports.d.ts`（自动生成）
 - `.env.local`、`.env.production`
 - `auto-copyright.js`：会重写全仓库文件，且在 `"type": "module"` 下用 `require` 会直接报错，不要执行
+
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+<!-- CODEGRAPH_END -->

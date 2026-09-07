@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": [
+        "serve",
+        "--mcp",
+        "--path",
+        "/Users/m/Documents/code/blueking-dbm/dbm-ui/frontend"
+      ]
+    }
+  }
+}
