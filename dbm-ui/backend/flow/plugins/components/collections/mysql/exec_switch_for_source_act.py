@@ -81,7 +81,7 @@ class ExecRollbackActForSourceService(ExecuteDBActuatorScriptService):
 
                     for attempt in range(max_retries):
                         error_lines = []
-                        for rec in handler.get_version_error_logs_for_dbactuator(node_id, version_id):
+                        for rec in handler.get_version_error_logs(node_id, version_id):
                             # 仅收录真正的错误日志，跳过 INFO 级别的占位消息（如"暂无错误日志"）
                             # 避免占位记录被误判为"成功获取"而导致重试提前退出
                             if str(rec.get("levelname", "INFO")).upper() not in ("INFO", "DEBUG"):
