@@ -367,6 +367,7 @@ func diskSpecParamDefs() map[string]interface{} {
 // parseDiskSpecs parses disk specifications from tool arguments.
 // It supports both new format (disk_specs array) and old format (single disk parameters).
 // If both formats are provided, the new format (disk_specs) takes precedence.
+// Empty or unsafe mount points (see isValidMountPoint) are dropped.
 func parseDiskSpecs(args map[string]interface{}) []DiskSpec {
 	var specs []DiskSpec
 
@@ -389,13 +390,13 @@ func parseDiskSpecs(args map[string]interface{}) []DiskSpec {
 					if maxSize, ok := itemMap["max_size"].(float64); ok {
 						spec.MaxSize = int(maxSize)
 					}
-					if spec.MountPoint != "" {
-						specs = append(specs, spec)
-					}
+					specs = appendValidDiskSpec(specs, spec)
 				}
 			}
 		case []DiskSpec:
-			specs = v
+			for _, spec := range v {
+				specs = appendValidDiskSpec(specs, spec)
+			}
 		}
 		if len(specs) > 0 {
 			return specs
@@ -424,8 +425,12 @@ func parseDiskSpecs(args map[string]interface{}) []DiskSpec {
 		spec.MaxSize = int(maxSize)
 	}
 
-	if spec.MountPoint != "" {
-		specs = append(specs, spec)
+	return appendValidDiskSpec(specs, spec)
+}
+
+func appendValidDiskSpec(specs []DiskSpec, spec DiskSpec) []DiskSpec {
+	if isValidMountPoint(spec.MountPoint) {
+		return append(specs, spec)
 	}
 	return specs
 }
@@ -454,40 +459,22 @@ type DiskMatchResult struct {
 //	}
 func buildDiskConditions(query *gorm.DB, specs []DiskSpec) *gorm.DB {
 	for _, spec := range specs {
-		if spec.MountPoint == "" {
+		if !isValidMountPoint(spec.MountPoint) {
 			continue
 		}
 
-		query = query.Where(
-			fmt.Sprintf("JSON_EXTRACT(storage_device, '%s') IS NOT NULL", storageDeviceJSONPath(spec.MountPoint)),
-		)
+		query = query.Where(model.JSONQuery("storage_device").HasKey(spec.MountPoint))
 		if spec.DiskType != "" && spec.DiskType != "ALL" {
-			query = query.Where(
-				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '%s')) = ?",
-					storageDeviceJSONPath(spec.MountPoint, "disk_type")),
-				spec.DiskType,
-			)
+			query = query.Where(model.JSONQuery("storage_device").Equals(spec.DiskType, spec.MountPoint, "disk_type"))
 		}
 		if spec.MinSize > 0 {
 			if spec.MaxSize > 0 {
-				query = query.Where(
-					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) BETWEEN ? AND ?",
-						storageDeviceJSONPath(spec.MountPoint, "size")),
-					spec.MinSize, spec.MaxSize,
-				)
+				query = query.Where(model.JSONQuery("storage_device").NumRange(spec.MinSize, spec.MaxSize, spec.MountPoint, "size"))
 			} else {
-				query = query.Where(
-					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) >= ?",
-						storageDeviceJSONPath(spec.MountPoint, "size")),
-					spec.MinSize,
-				)
+				query = query.Where(model.JSONQuery("storage_device").Gte(spec.MinSize, spec.MountPoint, "size"))
 			}
 		} else if spec.MaxSize > 0 {
-			query = query.Where(
-				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) <= ?",
-					storageDeviceJSONPath(spec.MountPoint, "size")),
-				spec.MaxSize,
-			)
+			query = query.Where(model.JSONQuery("storage_device").Lte(spec.MaxSize, spec.MountPoint, "size"))
 		}
 	}
 
@@ -498,39 +485,28 @@ func buildDiskConditions(query *gorm.DB, specs []DiskSpec) *gorm.DB {
 // This is useful when you need to get the SQL string for debugging or direct execution.
 func buildDiskConditionsSQL(specs []DiskSpec) (conditions []string, args []interface{}) {
 	for _, spec := range specs {
-		if spec.MountPoint == "" {
+		if !isValidMountPoint(spec.MountPoint) {
 			continue
 		}
 
-		// Check if mount point exists
-		conditions = append(conditions,
-			fmt.Sprintf("JSON_EXTRACT(storage_device, '$.\"%s\"') IS NOT NULL", spec.MountPoint))
-		// Check disk type if specified
+		conditions = append(conditions, "JSON_EXTRACT(storage_device, ?) IS NOT NULL")
+		args = append(args, storageDeviceJSONPath(spec.MountPoint))
 		if spec.DiskType != "" && spec.DiskType != "ALL" {
-			conditions = append(conditions,
-				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '$.\"%s\".disk_type')) = ?", spec.MountPoint))
-			args = append(args, spec.DiskType)
+			conditions = append(conditions, "JSON_UNQUOTE(JSON_EXTRACT(storage_device, ?)) = ?")
+			args = append(args, storageDeviceJSONPath(spec.MountPoint, "disk_type"), spec.DiskType)
 		}
 
-		// Check disk size
 		if spec.MinSize > 0 {
 			if spec.MaxSize > 0 {
-				// Range match
-				conditions = append(conditions,
-					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '$.\"%s\".size') AS SIGNED) BETWEEN ? AND ?",
-						spec.MountPoint))
-				args = append(args, spec.MinSize, spec.MaxSize)
+				conditions = append(conditions, "CAST(JSON_EXTRACT(storage_device, ?) AS SIGNED) BETWEEN ? AND ?")
+				args = append(args, storageDeviceJSONPath(spec.MountPoint, "size"), spec.MinSize, spec.MaxSize)
 			} else {
-				// Only min size
-				conditions = append(conditions,
-					fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '$.\"%s\".size') AS SIGNED) >= ?", spec.MountPoint))
-				args = append(args, spec.MinSize)
+				conditions = append(conditions, "CAST(JSON_EXTRACT(storage_device, ?) AS SIGNED) >= ?")
+				args = append(args, storageDeviceJSONPath(spec.MountPoint, "size"), spec.MinSize)
 			}
 		} else if spec.MaxSize > 0 {
-			// Only max size
-			conditions = append(conditions,
-				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '$.\"%s\".size') AS SIGNED) <= ?", spec.MountPoint))
-			args = append(args, spec.MaxSize)
+			conditions = append(conditions, "CAST(JSON_EXTRACT(storage_device, ?) AS SIGNED) <= ?")
+			args = append(args, storageDeviceJSONPath(spec.MountPoint, "size"), spec.MaxSize)
 		}
 	}
 
@@ -554,13 +530,16 @@ func (t *ResourceTools) analyzeDiskSpecMatches(baseQuery *gorm.DB, specs []DiskS
 			results = append(results, result)
 			continue
 		}
+		if !isValidMountPoint(spec.MountPoint) {
+			result.FailureReason = "mount_point contains invalid characters"
+			results = append(results, result)
+			continue
+		}
 
 		// Check if mount point exists
 		var existsCount int64
 		existsQuery := baseQuery.Session(&gorm.Session{})
-		existsQuery = existsQuery.Where(
-			fmt.Sprintf("JSON_EXTRACT(storage_device, '$.\"%s\"') IS NOT NULL", spec.MountPoint),
-		)
+		existsQuery = existsQuery.Where(model.JSONQuery("storage_device").HasKey(spec.MountPoint))
 		existsQuery.Count(&existsCount)
 		result.Exists = existsCount > 0
 
@@ -572,14 +551,9 @@ func (t *ResourceTools) analyzeDiskSpecMatches(baseQuery *gorm.DB, specs []DiskS
 
 		// Check disk type match
 		typeQuery := baseQuery.Session(&gorm.Session{})
-		typeQuery = typeQuery.Where(
-			fmt.Sprintf("JSON_EXTRACT(storage_device, '$.\"%s\"') IS NOT NULL", spec.MountPoint),
-		)
+		typeQuery = typeQuery.Where(model.JSONQuery("storage_device").HasKey(spec.MountPoint))
 		if spec.DiskType != "" && spec.DiskType != "ALL" {
-			typeQuery = typeQuery.Where(
-				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '$.\"%s\".disk_type')) = ?", spec.MountPoint),
-				spec.DiskType,
-			)
+			typeQuery = typeQuery.Where(model.JSONQuery("storage_device").Equals(spec.DiskType, spec.MountPoint, "disk_type"))
 		}
 		var typeCount int64
 		typeQuery.Count(&typeCount)
@@ -3969,38 +3943,27 @@ func (t *ResourceTools) applyDiskSpecConditions(query *gorm.DB, diskSpecs []inte
 			return nil, fmt.Errorf("disk_specs[%d].mount_point contains invalid characters", i)
 		}
 
-		// 构建磁盘条件。挂载点含 "/"，JSON Path 必须写成 $."/data".size
-		query = query.Where(
-			fmt.Sprintf("JSON_EXTRACT(storage_device, '%s') IS NOT NULL", storageDeviceJSONPath(mountPoint)))
+		query = query.Where(model.JSONQuery("storage_device").HasKey(mountPoint))
 
 		if diskType, ok := specMap["disk_type"].(string); ok && diskType != "" {
 			if !isValidDiskType(diskType) {
 				return nil, fmt.Errorf("disk_specs[%d].disk_type '%s' is not valid", i, diskType)
 			}
-			query = query.Where(
-				fmt.Sprintf("JSON_UNQUOTE(JSON_EXTRACT(storage_device, '%s')) = ?",
-					storageDeviceJSONPath(mountPoint, "disk_type")),
-				diskType)
+			query = query.Where(model.JSONQuery("storage_device").Equals(diskType, mountPoint, "disk_type"))
 		}
 
 		if minSize, ok := specMap["min_size"].(float64); ok && minSize > 0 {
 			if minSize < 0 || minSize > 100000000 { // 100TB limit
 				return nil, fmt.Errorf("disk_specs[%d].min_size %v is out of valid range", i, minSize)
 			}
-			query = query.Where(
-				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) >= ?",
-					storageDeviceJSONPath(mountPoint, "size")),
-				int(minSize))
+			query = query.Where(model.JSONQuery("storage_device").Gte(int(minSize), mountPoint, "size"))
 		}
 
 		if maxSize, ok := specMap["max_size"].(float64); ok && maxSize > 0 {
 			if maxSize < 0 || maxSize > 100000000 { // 100TB limit
 				return nil, fmt.Errorf("disk_specs[%d].max_size %v is out of valid range", i, maxSize)
 			}
-			query = query.Where(
-				fmt.Sprintf("CAST(JSON_EXTRACT(storage_device, '%s') AS SIGNED) <= ?",
-					storageDeviceJSONPath(mountPoint, "size")),
-				int(maxSize))
+			query = query.Where(model.JSONQuery("storage_device").Lte(int(maxSize), mountPoint, "size"))
 		}
 	}
 	return query, nil
