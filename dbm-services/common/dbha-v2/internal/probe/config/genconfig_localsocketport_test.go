@@ -22,13 +22,17 @@
  * SOFTWARE.
  */
 
-package config
+package config_test
 
 import (
 	"strings"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/harvest"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/harvest"
 )
 
 // TestGenProbeYAML_OmitsLocalSocketPortWhenUnset is the R2 zero-regression guard:
@@ -37,7 +41,7 @@ import (
 func TestGenProbeYAML_OmitsLocalSocketPortWhenUnset(t *testing.T) {
 	payload := newPayload(nil)
 
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
@@ -57,7 +61,7 @@ func TestGenProbeYAML_EmitsLocalSocketPortWhenSet(t *testing.T) {
 		LocalSocketPort: 18100,
 	}
 
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}

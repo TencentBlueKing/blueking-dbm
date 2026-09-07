@@ -20,6 +20,7 @@
 - 【新增】三类采集最终都落入同一张 t_dbha_status，主键增加必填字段 harvest_type 区分类别；Redis 上报补 default。
 - 【优化】Analysis 切换流程中从库延迟时长计算改为查探针表 dbha_repl_heartbeat，只校验 heartbeat_delay，去掉 io_delay 及配置 slaveAllowedMaxIODelay。
 - 【优化】写 dbha_heartbeat 失败会报事件dbha_heartbeat_write_failure，Analysis 据此做 SSH 二次探测；同实例多条事件按实例去重，避免重复探测。
+- 【优化】Receiver 对未上报 harvest_type 的旧版 Probe 数据兜底为 default 并告警，保证滚动升级期间数据不丢。
 - 【修复】快照日志表将集群名称与集群ID字段与实例绑定，修复多个集群时名称展示错误问题。
 - 【修复】dbha-cluster show nodes 展示节点信息时排除同机不同集群的实例。
 

@@ -22,15 +22,20 @@
  * SOFTWARE.
  */
 
-package config
+package config_test
 
 import (
 	"reflect"
 	"sort"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/harvest"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/harvest"
 
 	"gopkg.in/yaml.v3"
 )
@@ -89,7 +94,7 @@ type parsedDbEndpoint struct {
 
 func renderAndParse(t *testing.T, payload probeconfig.ProbeConfigPayload) parsedYAML {
 	t.Helper()
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
@@ -344,12 +349,12 @@ func TestGenProbeYAML_MysqlProxyDualPortFallback(t *testing.T) {
 	}
 
 	// Determinism: identical 5-tuple keys must render in a stable order across runs.
-	first, err := GenProbeYAML(payload)
+	first, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
 	for i := 0; i < 10; i++ {
-		out, err := GenProbeYAML(payload)
+		out, err := config.GenProbeYAML(payload)
 		if err != nil {
 			t.Fatalf("GenProbeYAML failed on iter %d, errmsg: %s", i, err)
 		}
@@ -519,7 +524,7 @@ func TestGenProbeYAML_DropsZeroPort(t *testing.T) {
 // TestGenProbeYAML_ProxyAccessButNonMysqlClusterIsNotProxyAdmin asserts that a malformed
 // metadata entry with (machine_type=proxy, access_layer=proxy) but a non-mysql cluster_type
 // is NOT routed to harvester.mysqlProxyAdmin. The redis-cluster-typed entry falls through
-// to the redis block via IsRedisClusterType (its only known route).
+// to the redis block via the Redis HarvestBlock fallback (its only known route).
 func TestGenProbeYAML_ProxyAccessButNonMysqlClusterIsNotProxyAdmin(t *testing.T) {
 	payload := newPayload([]probeconfig.ProbeMetadataItem{
 		{
@@ -551,108 +556,6 @@ func TestGenProbeYAML_ProxyAccessButNonMysqlClusterIsNotProxyAdmin(t *testing.T)
 	}
 }
 
-// TestGenProbeYAML_OptionsDoNotChangeDefaultRendering keeps the options mechanism from shifting
-// what existing callers get: no options, and a no-op option, must render exactly as before.
-func TestGenProbeYAML_OptionsDoNotChangeDefaultRendering(t *testing.T) {
-	payload := newPayload([]probeconfig.ProbeMetadataItem{storageItem(3306, 0)})
-
-	base, err := GenProbeYAML(payload)
-	if err != nil {
-		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
-	}
-	// An empty version is the shape a config predating the version field parses to.
-	withEmpty, err := GenProbeYAML(payload, WithVersion(""), nil)
-	if err != nil {
-		t.Fatalf("GenProbeYAML with options failed, errmsg: %s", err)
-	}
-	if withEmpty != base {
-		t.Fatal("empty version option changed the rendered output")
-	}
-
-	withVersion, err := GenProbeYAML(payload, WithVersion("v9"))
-	if err != nil {
-		t.Fatalf("GenProbeYAML with version failed, errmsg: %s", err)
-	}
-	var parsed parsedYAML
-	if err := yaml.Unmarshal([]byte(withVersion), &parsed); err != nil {
-		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
-	}
-	if parsed.Version != "v9" {
-		t.Fatalf("version option not applied, got: %s", parsed.Version)
-	}
-}
-
-// storageItem builds a TendbHA storage metadata item on the loopback address, used by the
-// port-ordering tests where only the ports differ between items.
-func storageItem(port, adminPort int) probeconfig.ProbeMetadataItem {
-	return probeconfig.ProbeMetadataItem{
-		IP:          "127.0.0.1",
-		Port:        port,
-		AdminPort:   adminPort,
-		ClusterType: string(haprobe.DbmMetadataClusterTypeTendbha),
-		MachineType: string(haprobe.DbmMetadataMachineTypeBackend),
-		AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
-	}
-}
-
-// TestGenProbeYAML_PortOrderIndependentOfInput covers a machine hosting several instances.
-// The rendered ports must not depend on the order the metadata arrived in: admin returns rows
-// without ORDER BY and may serve them either from its local cache or from the DBM API, so an
-// input-dependent rendering would make periodic sync rewrite the file whenever the source
-// switches, rebuilding every harvester on that machine each time.
-func TestGenProbeYAML_PortOrderIndependentOfInput(t *testing.T) {
-	ascending := []probeconfig.ProbeMetadataItem{
-		storageItem(3306, 13306),
-		storageItem(3307, 13307),
-		storageItem(3308, 13308),
-	}
-	shuffled := []probeconfig.ProbeMetadataItem{
-		storageItem(3308, 13308),
-		storageItem(3306, 13306),
-		storageItem(3307, 13307),
-	}
-
-	want, err := GenProbeYAML(newPayload(ascending))
-	if err != nil {
-		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
-	}
-	got, err := GenProbeYAML(newPayload(shuffled))
-	if err != nil {
-		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
-	}
-	if got != want {
-		t.Fatalf("rendered yaml depends on metadata input order")
-	}
-
-	parsed := renderAndParse(t, newPayload(shuffled))
-	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
-		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
-	}
-	ep := parsed.Harvester.MySQL.Endpoints[0]
-	if !reflect.DeepEqual(ep.Ports, []string{"3306", "3307", "3308"}) {
-		t.Errorf("ports not sorted, got: %v", ep.Ports)
-	}
-	if !reflect.DeepEqual(ep.AdminPorts, []string{"13306", "13307", "13308"}) {
-		t.Errorf("adminPorts not sorted, got: %v", ep.AdminPorts)
-	}
-}
-
-// TestGenProbeYAML_PortsSortedNumerically pins the ordering to port value rather than string
-// order: lexically "3306" sorts before "800", numerically it does not.
-func TestGenProbeYAML_PortsSortedNumerically(t *testing.T) {
-	parsed := renderAndParse(t, newPayload([]probeconfig.ProbeMetadataItem{
-		storageItem(3306, 0),
-		storageItem(800, 0),
-	}))
-
-	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
-		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
-	}
-	if got := parsed.Harvester.MySQL.Endpoints[0].Ports; !reflect.DeepEqual(got, []string{"800", "3306"}) {
-		t.Errorf("expected numeric port order, got: %v", got)
-	}
-}
-
 func TestGenProbeYAML_DeterministicOrder(t *testing.T) {
 	metadata := []probeconfig.ProbeMetadataItem{
 		{
@@ -679,12 +582,12 @@ func TestGenProbeYAML_DeterministicOrder(t *testing.T) {
 	}
 	payload := newPayload(metadata)
 
-	first, err := GenProbeYAML(payload)
+	first, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
 	for i := 0; i < 10; i++ {
-		out, err := GenProbeYAML(payload)
+		out, err := config.GenProbeYAML(payload)
 		if err != nil {
 			t.Fatalf("GenProbeYAML failed on iter %d, errmsg: %s", i, err)
 		}
@@ -710,5 +613,263 @@ func TestGenProbeYAML_DeterministicOrder(t *testing.T) {
 	sort.Strings(sorted)
 	if !reflect.DeepEqual(ips, sorted) {
 		t.Errorf("endpoint order not sorted, got: %v", ips)
+	}
+}
+
+func ensureKafkaHarvestBlockForTest(t *testing.T) {
+	t.Helper()
+	if _, ok := dbtype.HarvestBlockByName("kafka"); ok {
+		return
+	}
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "kafka",
+		DbType:     haprobe.DbTypeKafka,
+		PayloadKey: "kafka",
+	})
+}
+
+func TestGenProbeYAML_ExtraHarvesterBlock(t *testing.T) {
+	ensureKafkaHarvestBlockForTest(t)
+
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.31",
+			Port:        9092,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeKafka),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+		},
+	})
+	payload.Harvesters = map[string]probeconfig.ProbeHarvesterConfig{
+		"kafka": {
+			User:     "kafka_user",
+			Password: "kafka_pwd",
+			Interval: "20s",
+			Timeout:  "5s",
+		},
+	}
+
+	out, err := config.GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+
+	var raw map[string]any
+	if err := yaml.Unmarshal([]byte(out), &raw); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	harvester, ok := raw["harvester"].(map[string]any)
+	if !ok {
+		t.Fatalf("harvester missing or wrong type: %#v", raw["harvester"])
+	}
+	kafka, ok := harvester["kafka"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected kafka block, got keys: %v", harvester)
+	}
+	if kafka["user"] != "kafka_user" {
+		t.Errorf("unexpected kafka user: %v", kafka["user"])
+	}
+	if harvester["mysql"] != nil || harvester["redis"] != nil {
+		t.Errorf("named blocks should be absent for kafka-only metadata, got: %v", harvester)
+	}
+}
+
+func ensureCamelEsHarvestBlockForTest(t *testing.T) {
+	t.Helper()
+	if _, ok := dbtype.HarvestBlockByName("camelEsTest"); ok {
+		return
+	}
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "camelEsTest",
+		DbType:     haprobe.DbTypeEs,
+		PayloadKey: "camelEsTest",
+	})
+}
+
+func TestGenProbeYAML_ExtraHarvesterCamelCasePayloadKey(t *testing.T) {
+	ensureCamelEsHarvestBlockForTest(t)
+
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.32",
+			Port:        9200,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeEs),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+		},
+	})
+	// Simulate admin viper lowercasing of probeHarvesters keys.
+	payload.Harvesters = map[string]probeconfig.ProbeHarvesterConfig{
+		"camelestest": {
+			User: "camel_user", Password: "pwd", Interval: "20s", Timeout: "5s",
+		},
+	}
+
+	out, err := config.GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	var raw map[string]any
+	if err := yaml.Unmarshal([]byte(out), &raw); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	harvester := raw["harvester"].(map[string]any)
+	block, ok := harvester["camelEsTest"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected camelEsTest block from normalized payload key, keys: %v", harvester)
+	}
+	if block["user"] != "camel_user" {
+		t.Errorf("unexpected user: %v", block["user"])
+	}
+}
+
+func ensureDorisMatchBlocksForTest(t *testing.T) {
+	t.Helper()
+	if _, ok := dbtype.HarvestBlockByName("dorisProxyMatchTest"); ok {
+		return
+	}
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "dorisProxyMatchTest",
+		DbType:     haprobe.DbTypeDoris,
+		PayloadKey: "dorisproxymatchtest",
+		Match: func(a dbtype.EndpointAttrs) bool {
+			return a.AccessLayer == haprobe.DbmMetadataAccessLayerTypeProxy
+		},
+	})
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "dorisStorageMatchTest",
+		DbType:     haprobe.DbTypeDoris,
+		PayloadKey: "dorisstoragematchtest",
+		Match:      nil, // fallback
+	})
+}
+
+func TestGenProbeYAML_MatchRoutesByAccessLayer(t *testing.T) {
+	ensureDorisMatchBlocksForTest(t)
+
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.33",
+			Port:        8030,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeDoris),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeProxy),
+		},
+		{
+			IP:          "127.0.0.34",
+			Port:        9050,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeDoris),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+		},
+	})
+	payload.Harvesters = map[string]probeconfig.ProbeHarvesterConfig{
+		"dorisproxymatchtest": {
+			User: "proxy_u", Password: "p", Interval: "20s", Timeout: "5s",
+		},
+		"dorisstoragematchtest": {
+			User: "store_u", Password: "p", Interval: "20s", Timeout: "5s",
+		},
+	}
+
+	out, err := config.GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	var raw map[string]any
+	if err := yaml.Unmarshal([]byte(out), &raw); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	harvester := raw["harvester"].(map[string]any)
+	proxyBlock, ok := harvester["dorisProxyMatchTest"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected dorisProxyMatchTest block, keys: %v", harvester)
+	}
+	storeBlock, ok := harvester["dorisStorageMatchTest"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected dorisStorageMatchTest block, keys: %v", harvester)
+	}
+	if proxyBlock["user"] != "proxy_u" || storeBlock["user"] != "store_u" {
+		t.Fatalf("unexpected users: proxy=%v store=%v", proxyBlock["user"], storeBlock["user"])
+	}
+}
+
+func TestGenProbeYAML_PortsSortedNumerically(t *testing.T) {
+	parsed := renderAndParse(t, newPayload([]probeconfig.ProbeMetadataItem{
+		mysqlItem("127.0.0.1", 3306, 0),
+		mysqlItem("127.0.0.1", 800, 0),
+	}))
+
+	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
+	}
+	if got := parsed.Harvester.MySQL.Endpoints[0].Ports; !reflect.DeepEqual(got, []string{"800", "3306"}) {
+		t.Errorf("expected numeric port order, got: %v", got)
+	}
+}
+
+func TestGenProbeYAML_PortOrderIndependentOfInput(t *testing.T) {
+	ascending := []probeconfig.ProbeMetadataItem{
+		mysqlItem("127.0.0.1", 3306, 13306),
+		mysqlItem("127.0.0.1", 3307, 13307),
+		mysqlItem("127.0.0.1", 3308, 13308),
+	}
+	shuffled := []probeconfig.ProbeMetadataItem{
+		mysqlItem("127.0.0.1", 3308, 13308),
+		mysqlItem("127.0.0.1", 3306, 13306),
+		mysqlItem("127.0.0.1", 3307, 13307),
+	}
+
+	want, err := config.GenProbeYAML(newPayload(ascending))
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	got, err := config.GenProbeYAML(newPayload(shuffled))
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	if got != want {
+		t.Fatalf("rendered yaml depends on metadata input order")
+	}
+
+	parsed := renderAndParse(t, newPayload(shuffled))
+	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
+	}
+	ep := parsed.Harvester.MySQL.Endpoints[0]
+	if !reflect.DeepEqual(ep.Ports, []string{"3306", "3307", "3308"}) {
+		t.Errorf("ports not sorted, got: %v", ep.Ports)
+	}
+	if !reflect.DeepEqual(ep.AdminPorts, []string{"13306", "13307", "13308"}) {
+		t.Errorf("adminPorts not sorted, got: %v", ep.AdminPorts)
+	}
+}
+
+func TestGenProbeYAML_OptionsDoNotChangeDefaultRendering(t *testing.T) {
+	payload := newPayload([]probeconfig.ProbeMetadataItem{mysqlItem("127.0.0.1", 3306, 0)})
+
+	base, err := config.GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	// An empty version is the shape a config predating the version field parses to.
+	withEmpty, err := config.GenProbeYAML(payload, config.WithVersion(""), nil)
+	if err != nil {
+		t.Fatalf("GenProbeYAML with options failed, errmsg: %s", err)
+	}
+	if withEmpty != base {
+		t.Fatal("empty version option changed the rendered output")
+	}
+
+	withVersion, err := config.GenProbeYAML(payload, config.WithVersion("v9"))
+	if err != nil {
+		t.Fatalf("GenProbeYAML with version failed, errmsg: %s", err)
+	}
+	var parsed parsedYAML
+	if err := yaml.Unmarshal([]byte(withVersion), &parsed); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	if parsed.Version != "v9" {
+		t.Fatalf("version option not applied, got: %s", parsed.Version)
 	}
 }

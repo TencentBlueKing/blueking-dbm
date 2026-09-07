@@ -297,7 +297,7 @@ func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
@@ -305,8 +305,8 @@ func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist is empty: no instance is authorised to switch, all are notified
-	if len(req.MySqlInstData) != 0 {
-		t.Fatalf("expected 0 instances remaining (no whitelist, all notified), got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (no whitelist, all notified), got %d", len(req.InstData))
 	}
 }
 
@@ -330,7 +330,7 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
@@ -338,8 +338,8 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelisted instance is kept for switching
-	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining (whitelisted, kept for switching), got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (whitelisted, kept for switching), got %d", len(req.InstData))
 	}
 }
 
@@ -363,7 +363,7 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "whitelisted-cluster", Status: dbm.Available},
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.11", Port: 3306, ClusterID: 300, Cluster: "normal-cluster", Status: dbm.Available},
 		},
@@ -373,11 +373,11 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 
 	// only the whitelisted instance (ClusterID=200) is kept for switching;
 	// the non-whitelisted instance (ClusterID=300) is filtered out and notified
-	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining, got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 1 {
+		t.Fatalf("expected 1 instance remaining, got %d", len(req.InstData))
 	}
-	if req.MySqlInstData[0].ClusterID != 200 {
-		t.Fatalf("expected remaining instance clusterId=200, got %d", req.MySqlInstData[0].ClusterID)
+	if req.InstData[0].ClusterID != 200 {
+		t.Fatalf("expected remaining instance clusterId=200, got %d", req.InstData[0].ClusterID)
 	}
 }
 
@@ -393,7 +393,7 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) 
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "v1-cluster", Status: dbm.Available},
 		},
 	}
@@ -401,8 +401,8 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) 
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist is empty (v1 excluded): instance is treated as non-whitelisted, notify only
-	if len(req.MySqlInstData) != 0 {
-		t.Fatalf("expected 0 instances remaining (v1 excluded, whitelist empty, notify only), got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (v1 excluded, whitelist empty, notify only), got %d", len(req.InstData))
 	}
 }
 
@@ -418,7 +418,7 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "disabled-cluster", Status: dbm.Available},
 		},
 	}
@@ -426,8 +426,8 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist is empty (disabled excluded): instance is treated as non-whitelisted, notify only
-	if len(req.MySqlInstData) != 0 {
-		t.Fatalf("expected 0 instances remaining (disabled excluded, whitelist empty, notify only), got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (disabled excluded, whitelist empty, notify only), got %d", len(req.InstData))
 	}
 }
 
@@ -441,16 +441,16 @@ func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
 
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
-	// whitelist disabled: req.MySqlInstData is unchanged, all instances proceed to switching
-	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining (whitelist disabled, filtering skipped), got %d", len(req.MySqlInstData))
+	// whitelist disabled: req.InstData is unchanged, all instances proceed to switching
+	if len(req.InstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (whitelist disabled, filtering skipped), got %d", len(req.InstData))
 	}
 }
 
@@ -459,21 +459,21 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 
-	// switching is disabled: filtering is skipped, req.MySqlInstData is unchanged
+	// switching is disabled: filtering is skipped, req.InstData is unchanged
 	config.Cfg.Workflow.EnableSwitching = false
 
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
 
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
-	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining (switching disabled), got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (switching disabled), got %d", len(req.InstData))
 	}
 }
 
@@ -497,16 +497,16 @@ func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "unmatched-cluster", Status: dbm.Available},
 		},
 	}
 
 	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
-	// no instance matches the whitelist: req.MySqlInstData is cleared,
+	// no instance matches the whitelist: req.InstData is cleared,
 	// and a notification alarm is sent for the non-whitelisted instance
-	if len(req.MySqlInstData) != 0 {
-		t.Fatalf("expected 0 instances remaining (none whitelisted), got %d", len(req.MySqlInstData))
+	if len(req.InstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (none whitelisted), got %d", len(req.InstData))
 	}
 }
