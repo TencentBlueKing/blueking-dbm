@@ -16,6 +16,7 @@ from celery import shared_task
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.core.notify.handlers import NotifyAdapter
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
@@ -178,6 +179,16 @@ class MySQLAlarm(AlarmCallback):
                 "level": [0, 1, 2],
                 "cluster_type": [],
             },
+            {
+                "keyword": "从库延迟",
+                "level": [0, 1, 2],
+                "cluster_type": [],
+            },
+            {
+                "keyword": "长空闲事务未关闭",
+                "level": [0, 1, 2],
+                "cluster_type": [],
+            },
         ],
     }
 
@@ -243,9 +254,11 @@ class MySQLAlarm(AlarmCallback):
 @shared_task
 def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
     """
-    异步任务：告警触发 AI 慢查询分析，并将结果通过消息推送
+    异步任务：告警触发 AI 告警分析，并将结果通过消息推送
     """
-
+    if not env.ENABLE_DBM_AI:
+        logger.info(_("[mysql_alarm_analyzer] ENABLE_DBM_AI 未开启，跳过 AI 分析"))
+        return
     try:
         dimensions = callback_data["callback_message"]["event"]["dimensions"]
         cluster_domain = dimensions.get("cluster_domain", "")
@@ -376,6 +389,9 @@ def call_slowlog_ai_analysis(callback_data: dict, alarm_base_info: dict):
     """
     异步任务：告警触发 AI 慢查询分析，并将结果通过消息推送
     """
+    if not env.ENABLE_DBM_AI:
+        logger.info(_("[slowlog_ai_analysis] ENABLE_DBM_AI 未开启，跳过 AI 分析"))
+        return
     cluster_domain, instance_role = _resolve_cluster_and_role(callback_data, alarm_base_info, "slowlog_ai_analysis")
     if not cluster_domain:
         return
@@ -422,6 +438,9 @@ def call_mysql_conf_analyzer(callback_data: dict, alarm_base_info: dict):
     """
     异步任务：告警触发 AI MySQL 配置优化分析，并将结果通过消息推送
     """
+    if not env.ENABLE_DBM_AI:
+        logger.info(_("[mysql_conf_analyzer] ENABLE_DBM_AI 未开启，跳过 AI 分析"))
+        return
     cluster_domain, instance_role = _resolve_cluster_and_role(callback_data, alarm_base_info, "mysql_conf_analyzer")
     if not cluster_domain:
         return

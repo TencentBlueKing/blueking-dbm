@@ -454,6 +454,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         permission_classes=[AllowAny],
     )
     def alarm_callback(self, request, *args, **kwargs):
+        # 处理套餐: dbm_alarm_http_callback. 定义在 ALARM_CALLBACK_ACTIONS
         logger.info("[alarm_callback] request data: %s", json.dumps(request.data))
         # 监控回调需要使用 Bearer Token 进行验证
         # 从请求头中获取 Authorization 头
@@ -495,6 +496,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         permission_classes=[AllowAny],
     )
     def callback(self, request, *args, **kwargs):
+        # 处理套餐: dbm_autofix_http_callback. 定义在 ALARM_CALLBACK_ACTIONS
         # 监控回调需要使用 Bearer Token 进行验证
         # 从请求头中获取 Authorization 头
         auth_header = request.headers.get("Authorization")
