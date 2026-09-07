@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="info-title">{{ t('基本信息') }}</div>
+  <div class="ticket-details-info-title">{{ t('基本信息') }}</div>
   <InfoList>
     <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name || '--' }}
@@ -28,7 +28,7 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('部署需求') }}</div>
+  <div class="ticket-details-info-title mt-20">{{ t('部署需求') }}</div>
   <InfoList>
     <InfoItem :label="t('版本')">
       {{ ticketDetails.details.db_version || '--' }}
@@ -87,6 +87,15 @@
           theme="success">
           {{ t('通用无标签') }}
         </DbTag>
+      </InfoItem>
+      <InfoItem
+        v-if="isLoadBalanceShow"
+        :label="t('负载均衡')">
+        {{
+          [details.apply_clb ? 'CLB' : '', details.apply_polaris ? t('北极星') : '']
+            .filter((item) => item)
+            .join('，') || '--'
+        }}
       </InfoItem>
       <InfoItem :label="t('热节点规格')">
         <SpecDetailPopover
@@ -189,6 +198,10 @@
       {{ ticketDetails.details.http_port || '--' }}
     </InfoItem>
   </InfoList>
+  <div class="ticket-details-ticket-details-info-title">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
     :fetch-nodes="getTicketHostNodes"
@@ -207,9 +220,10 @@
   import HostPreview from '@components/host-preview/HostPreview.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
-  import { firstLetterToUpper } from '@utils';
+  import { checkDbConsole, firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {
@@ -229,6 +243,8 @@
   const { ip_source: ipSource, nodes, resource_spec: resourceSpec } = details;
 
   const isFromResourcePool = ipSource === 'resource_pool';
+
+  const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
 
   const { client: clientSpec, cold: coldSpec, hot: hotSpec, master: masterSpec } = resourceSpec || {};
 
@@ -261,7 +277,7 @@
 </script>
 
 <style lang="less" scoped>
-  .info-title {
+  .ticket-details-info-title {
     font-weight: bold;
     color: #313238;
   }
