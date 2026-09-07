@@ -143,24 +143,19 @@ class MySQLAlarm(AlarmCallback):
         "call_mysql_conf_analyzer": [
             {
                 "keyword": "慢查询数量",
-                "level": [0, 1, 2],
-                "cluster_type": ["tendbha", "tendbcluster", "tendbsingle"],
-            },
-            {
-                "keyword": "主机内存使用率",
-                "level": [0, 1, 2],
-                "cluster_type": ["tendbha", "tendbcluster", "tendbsingle"],
+                "level": [0, 1],
+                "cluster_type": [],
             },
             {
                 "keyword": "主机 CPU 负载",
                 "level": [0, 1, 2],
-                "cluster_type": ["tendbha", "tendbcluster", "tendbsingle"],
+                "cluster_type": ["tendbha", "tendbsingle"],
             },
         ],
         "call_mysql_alarm_analyzer": [
             {
                 "keyword": "Threads_running",
-                "level": [0, 1],
+                "level": [0, 1, 2],
                 "cluster_type": [],
             },
             {
@@ -171,12 +166,17 @@ class MySQLAlarm(AlarmCallback):
             {
                 "keyword": "主机 CPU 负载",
                 "level": [0, 1],
-                "cluster_type": [],
+                "cluster_type": ["tendbha", "tendbsingle"],
             },
             {
                 "keyword": "dbha二次探测失败",
                 "level": [0, 1, 2],
                 "cluster_type": ["tendbcluster", "tendbha", "tendbsingle"],
+            },
+            {
+                "keyword": "may be hang",
+                "level": [0, 1, 2],
+                "cluster_type": [],
             },
         ],
     }
