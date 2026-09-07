@@ -234,10 +234,7 @@
     const result = formatResult(value);
 
     lastOutputValue = result;
-    // 值未变时不回写，避免触发外部 deep watch 造成重复请求
-    if (!_.isEqual(result, modelValue.value)) {
-      modelValue.value = result;
-    }
+    modelValue.value = result;
     emits('change', result, value);
   };
 </script>
