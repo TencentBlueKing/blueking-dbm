@@ -31,6 +31,8 @@ logger = logging.getLogger("root")
 
 class EsApplyDetailSerializer(BigDataApplyDetailsSerializer):
     http_port = serializers.IntegerField(help_text=_("端口"), default=ES_DEFAULT_PORT)
+    apply_clb = serializers.BooleanField(help_text=_("集群部署成功后是否创建CLB"), required=False, default=False)
+    apply_polaris = serializers.BooleanField(help_text=_("集群部署成功后是否创建北极星"), required=False, default=False)
 
     def validate(self, attrs):
         """
