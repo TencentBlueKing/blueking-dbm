@@ -67,7 +67,7 @@ bk:
   grafanaUrl: "http://bk-dbm-grafana:3000"
   bkMonitorUrl: "https://bk_monitor.example.com"
   bkMonitorApiUrl: ""
-  bkmDbmToken: "bk-monitor-token"
+  bkmDbmToken: ""
   mysqlCrondBeatPath: "/usr/local/gse/plugins/bin/bkmonitorbeat"
   mysqlCrondAgentAddress: "/var/run/ipc.state.report"
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
