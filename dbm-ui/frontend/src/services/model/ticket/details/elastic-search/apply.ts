@@ -3,6 +3,8 @@ import type { HostInfo } from '@services/types';
 import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface Apply extends DetailBase {
+  apply_clb?: boolean;
+  apply_polaris?: boolean;
   bk_cloud_id: number;
   bk_cloud_name: string;
   city_code: string;
