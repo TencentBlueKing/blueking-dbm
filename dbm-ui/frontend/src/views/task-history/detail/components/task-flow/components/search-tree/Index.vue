@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div class="search-tree-main">
     <div class="status-select-main">
@@ -44,9 +57,7 @@
       class="search-input"
       clearable
       :placeholder="t('请输入节点名称')"
-      type="search"
-      @clear="() => handleSearchChange('')"
-      @enter="handleSearchChange" />
+      type="search" />
     <BkTree
       ref="treeRef"
       class="flow-tree-main"
@@ -65,7 +76,7 @@
           class="task-detail-tree-node"
           :class="{ 'is-sub-process': !!item.children }">
           <FlowSign
-            :status="item.todoId ? 'TODO' : item.status"
+            :status="getNodeDisplayStatus(item)"
             :type="item.type" />
           <span
             v-overflow-tips="{ content: item.name, placement: 'right' }"
@@ -89,7 +100,6 @@
     <BatchOperation
       v-if="showBatchOperation"
       ref="batchOperationRef"
-      v-model:is-super-user-mode="isSuperUserMode"
       :data="selectedNodes"
       :root-id="rootId"
       :status="statusValue"
@@ -104,7 +114,13 @@
 
   import { FlowTypes } from '@services/source/taskflow';
 
-  import { generateDifferentStatusTreeData, searchObj, type TreeNode } from '../flow-canvas/utils';
+  import {
+    generateDifferentStatusTreeData,
+    getNodeDisplayStatus,
+    NODE_STATUS_META,
+    type NodeStatusCount,
+    type TreeNode,
+  } from '@views/task-history/detail/utils';
 
   import BatchOperation from './components/BatchOperation.vue';
   import FlowSign from './components/FlowSign.vue';
@@ -112,7 +128,10 @@
 
   interface Props {
     data: TreeNode[];
+    /** 画布上已展开的子流程 id，树要跟着展开到同一份状态 */
+    expandedIds: string[];
     rootId: string;
+    statusCount?: NodeStatusCount;
   }
 
   interface Emits {
@@ -125,12 +144,15 @@
   }
 
   interface Exposes {
+    setSelect(id: string): void;
     setStatus(value: string): void;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const isSuperUserMode = defineModel<boolean>('isSuperUserMode', { required: true });
+
+  // 筛选下拉的选项按执行先后排。准备中与执行中同色，画布图例里没有单列这一项
+  const FILTER_STATUS_LIST = ['CREATED', 'READY', 'RUNNING', 'FINISHED', 'FAILED', 'TODO'] as const;
 
   const { t } = useI18n();
 
@@ -150,75 +172,17 @@
     return generateDifferentStatusTreeData(props.data, statusValue.value);
   });
 
-  const statusList = computed(() => {
-    const allStatus = {
-      count: 0,
-      label: t('全部'),
+  // 计数由上层统一从 model 算好传进来，和顶部状态角标同一口径
+  const statusList = computed(() => [
+    {
+      label: `${t('全部')} ( ${props.statusCount?.ALL ?? 0} )`,
       value: 'ALL',
-    };
-    const waitStatus = {
-      count: 0,
-      label: t('待执行'),
-      value: 'CREATED',
-    };
-    const runningStatus = {
-      count: 0,
-      label: t('执行中'),
-      value: 'RUNNING',
-    };
-    const successStatus = {
-      count: 0,
-      label: t('执行成功'),
-      value: 'FINISHED',
-    };
-    const failedStatus = {
-      count: 0,
-      label: t('执行失败'),
-      value: 'FAILED',
-    };
-    const todoStatus = {
-      count: 0,
-      label: t('待继续'),
-      value: 'TODO',
-    };
-
-    const calcTreeData = (data: TreeNode[]) => {
-      data.forEach((item) => {
-        if (item.children) {
-          calcTreeData(item.children);
-        } else {
-          if (item.status) {
-            allStatus.count++;
-          }
-          if (item.status === 'FAILED') {
-            failedStatus.count++;
-          } else {
-            if (item.todoId) {
-              todoStatus.count++;
-            } else {
-              switch (item.status) {
-                case 'CREATED':
-                  waitStatus.count++;
-                  break;
-                case 'RUNNING':
-                  runningStatus.count++;
-                  break;
-                case 'FINISHED':
-                  successStatus.count++;
-                  break;
-              }
-            }
-          }
-        }
-      });
-    };
-
-    calcTreeData(props.data);
-
-    const list = [allStatus, waitStatus, runningStatus, successStatus, failedStatus, todoStatus];
-    list.forEach((item) => Object.assign(item, { label: `${item.label} ( ${item.count} )` }));
-    return list;
-  });
+    },
+    ...FILTER_STATUS_LIST.map((status) => ({
+      label: `${NODE_STATUS_META[status].text} ( ${props.statusCount?.[status] ?? 0} )`,
+      value: status as string,
+    })),
+  ]);
 
   const statusDisplay = computed(() => statusList.value.find((item) => item.value === statusValue.value)!.label);
   const showBatchOperation = computed(
@@ -227,49 +191,11 @@
 
   const openedTreeNodesSet = new Set<string>();
   const checkedTreeNodesSet = new Set<string>();
-  // 可展开父节点对应的全部子孙可展开id
-  const treeIdChildrenMap: Record<string, Set<string>> = {};
   let currentClickNode = '';
   let isCheckedClick = false;
-  // const isAutoFocus = false;
-
-  const initTreeIdChildrenMap = (dataList: TreeNode[]) => {
-    const deepInit = (list: TreeNode[]) => {
-      list.forEach((item) => {
-        if (item.children) {
-          treeIdChildrenMap[item.id] = new Set<string>();
-          item.children.forEach((child) => {
-            if (child.children) {
-              treeIdChildrenMap[item.id].add(child.id);
-              deepInit(child.children);
-            }
-          });
-          deepInit(item.children);
-        }
-      });
-    };
-    deepInit(dataList);
-
-    const deepSetId = (parentId: string, idSet: Set<string>) => {
-      idSet.forEach((item) => {
-        if (treeIdChildrenMap[item]) {
-          treeIdChildrenMap[parentId].add(item);
-          if (treeIdChildrenMap[item].size) {
-            deepSetId(parentId, treeIdChildrenMap[item]);
-          }
-        }
-      });
-    };
-
-    Object.keys(treeIdChildrenMap).forEach((key) => {
-      const children = treeIdChildrenMap[key];
-      if (children.size) {
-        deepSetId(key, children);
-      }
-    });
-  };
 
   watch(treeSearch, () => {
+    emitSearch(treeSearch.value);
     if (!treeSearch.value) {
       return;
     }
@@ -277,55 +203,80 @@
     batchSetTreeNodeOpen();
   });
 
-  watch(statusValue, () => {
-    if (statusValue.value !== 'ALL') {
-      setTimeout(() => {
-        // if (isAutoFocus) {
-        //   return;
-        // }
-
-        // isAutoFocus = true;
-        batchSetTreeNodeOpen();
-        const firstLeafNode = findFirstLeafNode(renderTreeData.value)!;
-        if (!firstLeafNode) {
-          return;
-        }
-
-        treeRef.value!.setSelect(firstLeafNode);
-        handleNodeClick(firstLeafNode);
-      }, 500);
+  watch(statusValue, async () => {
+    if (statusValue.value === 'ALL') {
+      return;
     }
+    // 等 renderTreeData 重新渲染完，树里才有筛选后的节点
+    await nextTick();
+    batchSetTreeNodeOpen();
+    const firstLeafNode = findFirstLeafNode(renderTreeData.value);
+    if (!firstLeafNode) {
+      return;
+    }
+
+    // 只把树的高亮挪过去，不联动画布：用户可能只是想看看失败节点有哪些，画布不该跟着跳走
+    selectTreeNode(firstLeafNode);
   });
 
-  // 恢复展开和点击状态
+  // 画布上展开、收起子流程后同步过来。树自己的展开走 handleNodeExpand / handleNodeCollapse，
+  // 两边共用 openedTreeNodesSet，轮询刷新时才能一起贴回去
+  watch(
+    () => props.expandedIds,
+    () => {
+      if (!treeRef.value) {
+        return;
+      }
+
+      const expandedIdSet = new Set(props.expandedIds);
+      flattenTreeData(renderTreeData.value).forEach((node) => {
+        // 扇出网关的分支只在树里展得开，不由 expandedIds 驱动
+        if (!node.pipeline) {
+          return;
+        }
+        const isExpanded = expandedIdSet.has(node.id);
+        if (isExpanded === openedTreeNodesSet.has(node.id)) {
+          return;
+        }
+        // setOpen 不会再抛 node-expand / node-collapse，不必担心绕回画布
+        treeRef.value!.setOpen(node, isExpanded);
+        if (isExpanded) {
+          openedTreeNodesSet.add(node.id);
+        } else {
+          forgetOpened(node);
+        }
+      });
+    },
+  );
+
+  // 轮询刷新后树数据整份替换，展开、勾选、选中状态要按 id 重新贴回去
   watch(
     () => props.data,
-    () => {
-      setTimeout(() => {
-        if (!Object.keys(treeIdChildrenMap).length) {
-          initTreeIdChildrenMap(props.data);
-        }
+    async () => {
+      await nextTick();
+      if (!treeRef.value) {
+        return;
+      }
 
-        if (treeSearch.value) {
-          batchSetTreeNodeOpen();
-        } else {
-          const newTreeDataList = treeRef.value!.getData().data as TreeNode[];
-          newTreeDataList.forEach((item) => {
-            if (openedTreeNodesSet.has(item.id)) {
-              treeRef.value!.setOpen(item);
-            }
-            if (checkedTreeNodesSet.has(item.id)) {
-              treeRef.value!.setChecked(item, true);
-            }
-            if (item.id === currentClickNode) {
-              treeRef.value!.setSelect(item);
-            }
-          });
+      if (treeSearch.value) {
+        batchSetTreeNodeOpen();
+        return;
+      }
+
+      const newTreeDataList = treeRef.value.getData().data as TreeNode[];
+      newTreeDataList.forEach((item) => {
+        if (openedTreeNodesSet.has(item.id)) {
+          treeRef.value!.setOpen(item);
+        }
+        if (checkedTreeNodesSet.has(item.id)) {
+          treeRef.value!.setChecked(item, true);
+        }
+        if (item.id === currentClickNode) {
+          treeRef.value!.setSelect(item);
         }
       });
     },
     {
-      deep: true,
       immediate: true,
     },
   );
@@ -339,6 +290,11 @@
       }
     });
   }, 500);
+
+  // 树按 treeSearch 即时过滤，画布的高亮要跟着走。防抖是为了不让每个按键都触发一次画布重绘
+  const emitSearch = _.debounce((value: string) => {
+    emits('search', value);
+  }, 300);
 
   const findFirstLeafNode = (data: TreeNode[]) => {
     const list = flattenTreeData(data);
@@ -381,47 +337,60 @@
     }
   };
 
-  const handleNodeCollapse = (node: TreeNode) => {
-    // 收起时，已展开所有子孙都要跟着收起
+  // 收起时子孙也跟着收起。子孙就在 node.children 上，沿着它走一遍即可，
+  // 不必再另建一张 id 到子孙 id 的映射
+  const forgetOpened = (node: TreeNode) => {
     openedTreeNodesSet.delete(node.id);
-    const childIds = treeIdChildrenMap[node.id];
-    childIds.forEach((item) => {
-      openedTreeNodesSet.delete(item);
-    });
+    node.children?.forEach(forgetOpened);
+  };
+
+  const handleNodeCollapse = (node: TreeNode) => {
+    forgetOpened(node);
     if (node.pipeline) {
       emits('node-collapse', node);
     }
   };
 
-  const handleSelectToggle = (isOpen: boolean) => {
-    isSelectPanelOpen.value = isOpen;
-  };
-
-  const handleSearchChange = (value: string) => {
-    if (!searchObj.key && !value) {
-      return;
-    }
-
-    emits('search', value);
-  };
-
-  const handleNodeClick = (node: TreeNode) => {
-    if (isCheckedClick) {
-      isCheckedClick = false;
-      return;
-    }
-    currentClickNode = node.id;
+  const getParentNodes = (node: TreeNode) => {
     const parentNodes: TreeNode[] = [];
     let parentNode = treeRef.value!.getParentNode(node);
     while (parentNode) {
       parentNodes.unshift(parentNode);
       parentNode = treeRef.value!.getParentNode(parentNode);
     }
-    emits('node-click', node, parentNodes);
+    return parentNodes;
+  };
+
+  // 只挪树的高亮，要不要联动画布由各个调用点自己决定
+  const selectTreeNode = (node: TreeNode) => {
+    currentClickNode = node.id;
+    // setSelect 会连带展开目标节点的父级，展开态一并记下来，轮询刷新后才贴得回去
+    getParentNodes(node).forEach((item) => {
+      openedTreeNodesSet.add(item.id);
+    });
+    treeRef.value!.setSelect(node);
+  };
+
+  const handleSelectToggle = (isOpen: boolean) => {
+    isSelectPanelOpen.value = isOpen;
+  };
+
+  const handleNodeClick = (node: TreeNode) => {
+    if (isCheckedClick) {
+      return;
+    }
+    currentClickNode = node.id;
+    emits('node-click', node, getParentNodes(node));
   };
 
   const handleNodeChecked = (list: TreeNode[]) => {
+    // 点复选框时 BkTree 会连带抛一次 node-click，这里标记一下让紧随其后的那次点击不生效。
+    // 两个事件是同一个任务里同步抛出来的，用微任务复位，万一没有后续的 node-click，
+    // 标记也不会残留到下一次真实点击
     isCheckedClick = true;
+    Promise.resolve().then(() => {
+      isCheckedClick = false;
+    });
     checkedTreeNodesSet.clear();
     // 只需要选中最终的叶子节点即可
     list.forEach((item) => {
@@ -458,7 +427,22 @@
     }
   };
 
+  onBeforeUnmount(() => {
+    batchSetTreeNodeOpen.cancel();
+    emitSearch.cancel();
+  });
+
   defineExpose<Exposes>({
+    setSelect(id: string) {
+      if (currentClickNode === id) {
+        return;
+      }
+      const node = flattenTreeData(renderTreeData.value).find((item) => item.id === id);
+      // 当前筛选下没有这个节点就不动高亮
+      if (node) {
+        selectTreeNode(node);
+      }
+    },
     setStatus(value: string) {
       statusValue.value = value;
     },

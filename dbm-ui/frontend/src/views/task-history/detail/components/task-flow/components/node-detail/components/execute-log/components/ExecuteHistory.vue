@@ -182,7 +182,7 @@
   /**
    * 设置行选中样式
    */
-  const getRowClass = ({ row }: { row: RetryNodeItem }) => (row.version === state.latestVersion ? 'active-row' : '');
+  const getRowClass = ({ row }: { row: RetryNodeItem }) => (row.version === state.active.version ? 'active-row' : '');
 
   /**
    * 选中当前行
