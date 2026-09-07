@@ -517,7 +517,7 @@ FORCE_SCRIPT_NAME = os.getenv("FORCE_SCRIPT_NAME", "") or None
 SECURE_CONTENT_TYPE_NOSNIFF = False
 
 # STATIC_URL 包含子路径前缀，确保 {% static %} 标签生成 /bkdbm/static/... 的完整 URL
-STATIC_URL = f"{BK_SUBPATH_PREFIX}/static/" if BK_SUBPATH_PREFIX else "/static/"
+STATIC_URL = f"{BK_SUBPATH_PREFIX.rstrip('/')}/static/" if BK_SUBPATH_PREFIX else "/static/"
 
 # Static storages (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
