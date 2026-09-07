@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 /*
 TencentBlueKing is pleased to support the open source community by making
 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.

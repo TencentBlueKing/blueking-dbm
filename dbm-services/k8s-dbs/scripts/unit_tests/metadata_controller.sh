@@ -47,7 +47,7 @@ FAILED_TESTS=()
 for TEST in "${TESTS_TO_RUN[@]}"; do
     echo ""
     echo "▶ Running ${TEST} ..."
-    if go test -v -run "^${TEST}$" ./metadata/api/controller/testsuite/; then
+    if go test -tags=integration -v -run "^${TEST}$" ./metadata/api/controller/testsuite/; then
         echo "✅ ${TEST} passed."
     else
         echo "❌ ${TEST} failed."
