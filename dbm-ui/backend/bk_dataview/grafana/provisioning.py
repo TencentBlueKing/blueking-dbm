@@ -12,6 +12,7 @@ import glob
 import json
 import logging
 import os.path
+import re
 from dataclasses import dataclass
 from json import JSONDecodeError
 from typing import Dict, List, Optional
@@ -129,13 +130,32 @@ class SimpleProvisioning(BaseProvisioning):
         return datasource_type, uid
 
     @staticmethod
-    def replace_bklog_index(index: Optional[Dict], used_index_name: list, index_name_id_map: dict):
-        """按采集项名称替换 bklog 索引集 ID"""
+    def strip_bklog_index_name(name) -> str:
+        """去掉索引集/采集项名称开头的分类前缀，如 [采集项]mongodb_log -> mongodb_log"""
+        return re.sub(r"^\[.*\]", "", str(name or ""))
+
+    @classmethod
+    def replace_bklog_index(cls, index: Optional[Dict], used_index_name: list, index_name_id_map: dict):
+        """
+        用当前环境的 bklog 索引集 ID 替换看板 JSON 里写死的 id。
+
+        原始数据形如::
+
+            "index": {
+              "id": ["application_check", 38137],
+              "labels": ["业务应用", "[采集项]mongodb_db_table_size"]
+            }
+
+        - labels 第二项是采集项展示名（可能带 [采集项] 前缀），去掉前缀后得到 mongodb_db_table_size
+        - 用该名称在 index_name_id_map 中查出本环境的 index_set_id
+        - 写回 index["id"][1]，id[0] 分类标识保持不变
+        """
         if not index or not isinstance(index.get("id"), list) or len(index["id"]) < 2:
             return
         for label in index.get("labels", []):
+            label_name = cls.strip_bklog_index_name(label)
             for index_name in used_index_name:
-                if index_name in str(label):
+                if label_name == index_name:
                     index["id"][1] = index_name_id_map.get(index_name, 0)
                     return
 
@@ -190,6 +210,7 @@ class SimpleProvisioning(BaseProvisioning):
             "mysql_slowlog",
             "mysql_db_table_size",
             "mongodb_db_table_size",
+            "mongodb_log",
             "redis_slowlog",
             "redis_hotkey",
             "redis_bigkey",
@@ -199,8 +220,9 @@ class SimpleProvisioning(BaseProvisioning):
             # 跳过索引集分组（is_group=true），只匹配采集项
             if index.get("is_group", False):
                 continue
+            index_set_name = self.strip_bklog_index_name(index.get("index_set_name"))
             for name in used_index_name:
-                if name in index["index_set_name"]:
+                if index_set_name == name:
                     index_name_id_map[name] = index["index_set_id"]
 
         with os_env(ORG_NAME=org_name, ORG_ID=org_id):
