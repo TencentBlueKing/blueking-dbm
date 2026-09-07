@@ -44,6 +44,21 @@ func setupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 	return gormDB, mock
 }
 
+func assertJSONPathBound(t *testing.T, conditions []string, args []interface{}) {
+	t.Helper()
+	for _, c := range conditions {
+		if strings.Contains(c, `'$."`) || strings.Contains(c, `$.\"`) {
+			t.Errorf("condition interpolates JSON path: %s", c)
+		}
+		if !strings.Contains(c, "?") {
+			t.Errorf("condition missing bound placeholder: %s", c)
+		}
+	}
+	if len(args) == 0 && len(conditions) > 0 {
+		t.Errorf("conditions present but no bound args")
+	}
+}
+
 // TestResourceTools_InferResourceType tests the core inference logic
 func TestResourceTools_InferResourceType(t *testing.T) {
 	tests := []struct {
@@ -809,6 +824,81 @@ func TestParseDiskSpecs_EmptyMountPoint(t *testing.T) {
 	}
 }
 
+// TestParseDiskSpecs_RejectsUnsafeMountPoint 非法挂载点不得进入查询。
+func TestParseDiskSpecs_RejectsUnsafeMountPoint(t *testing.T) {
+	safe := "/data"
+	if !isValidMountPoint(safe) {
+		t.Fatalf("合法挂载点 %q 应通过 isValidMountPoint", safe)
+	}
+
+	unsafe := []string{"/data x", "/data;drop", `/data'`}
+	for _, mp := range unsafe {
+		if isValidMountPoint(mp) {
+			t.Fatalf("isValidMountPoint(%q) 应拒绝", mp)
+		}
+		specs := parseDiskSpecs(map[string]interface{}{
+			"disk_specs": []interface{}{
+				map[string]interface{}{"mount_point": mp, "min_size": float64(100)},
+			},
+		})
+		if len(specs) != 0 {
+			t.Fatalf("parseDiskSpecs 应过滤非法挂载点 %q: %+v", mp, specs)
+		}
+		conds, args := buildDiskConditionsSQL([]DiskSpec{{MountPoint: mp, MinSize: 100}})
+		if len(conds) != 0 || len(args) != 0 {
+			t.Fatalf("buildDiskConditionsSQL 不应接受非法挂载点 %q: conds=%v args=%v", mp, conds, args)
+		}
+	}
+}
+
+func TestAnalyzeDiskSpecMatches_RejectsUnsafeMountPoint(t *testing.T) {
+	tools := &ResourceTools{}
+	results := tools.analyzeDiskSpecMatches(nil, []DiskSpec{{MountPoint: `/data'`}})
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].FailureReason != "mount_point contains invalid characters" {
+		t.Fatalf("unexpected failure reason: %q", results[0].FailureReason)
+	}
+}
+
+func TestBuildDiskConditions_BindsJSONPath(t *testing.T) {
+	db, _ := setupTestDB(t)
+	q := buildDiskConditions(db.Table("tb_rp_detail"), []DiskSpec{{
+		MountPoint: "/data",
+		DiskType:   "SSD",
+		MinSize:    100,
+		MaxSize:    500,
+	}})
+	stmt := q.Session(&gorm.Session{DryRun: true}).Find(&[]model.TbRpDetail{}).Statement
+	sql := stmt.SQL.String()
+	if strings.Contains(sql, "/data") {
+		t.Fatalf("SQL interpolated mount point: %s", sql)
+	}
+	if !strings.Contains(sql, "JSON_EXTRACT") {
+		t.Fatalf("expected JSON_EXTRACT in SQL: %s", sql)
+	}
+	wantPaths := map[string]bool{
+		storageDeviceJSONPath("/data"):              false,
+		storageDeviceJSONPath("/data", "disk_type"): false,
+		storageDeviceJSONPath("/data", "size"):      false,
+	}
+	for _, v := range stmt.Vars {
+		s, ok := v.(string)
+		if !ok {
+			continue
+		}
+		if _, known := wantPaths[s]; known {
+			wantPaths[s] = true
+		}
+	}
+	for path, found := range wantPaths {
+		if !found {
+			t.Fatalf("bound vars missing JSON path %q: %#v sql=%s", path, stmt.Vars, sql)
+		}
+	}
+}
+
 // TestBuildDiskConditionsSQL_SingleDisk tests buildDiskConditionsSQL with a single disk spec
 func TestBuildDiskConditionsSQL_SingleDisk(t *testing.T) {
 	specs := []DiskSpec{
@@ -822,24 +912,24 @@ func TestBuildDiskConditionsSQL_SingleDisk(t *testing.T) {
 
 	conditions, args := buildDiskConditionsSQL(specs)
 
+	assertJSONPathBound(t, conditions, args)
+
 	// Expect 3 conditions: mount point exists, disk type, size range
 	if len(conditions) != 3 {
 		t.Errorf("Expected 3 conditions, got %d", len(conditions))
 	}
 
-	// Expect 3 args: disk_type, min_size, max_size
-	if len(args) != 3 {
-		t.Errorf("Expected 3 args, got %d", len(args))
+	// path, path+type, type, path+size, min, max
+	wantArgs := []interface{}{
+		storageDeviceJSONPath("/data"),
+		storageDeviceJSONPath("/data", "disk_type"),
+		"SSD",
+		storageDeviceJSONPath("/data", "size"),
+		100,
+		500,
 	}
-
-	if args[0] != "SSD" {
-		t.Errorf("Expected first arg to be SSD, got %v", args[0])
-	}
-	if args[1] != 100 {
-		t.Errorf("Expected second arg to be 100, got %v", args[1])
-	}
-	if args[2] != 500 {
-		t.Errorf("Expected third arg to be 500, got %v", args[2])
+	if !reflect.DeepEqual(args, wantArgs) {
+		t.Errorf("args = %#v, want %#v", args, wantArgs)
 	}
 }
 
@@ -860,16 +950,16 @@ func TestBuildDiskConditionsSQL_MultipleDisk(t *testing.T) {
 
 	conditions, args := buildDiskConditionsSQL(specs)
 
-	// Each spec generates: mount point exists + type + min_size
-	// First spec: 3 conditions (exists, type, min_size), 2 args (type, min_size)
-	// Second spec: 3 conditions (exists, type, min_size), 2 args (type, min_size)
-	// Total: 6 conditions, 4 args
+	assertJSONPathBound(t, conditions, args)
+
+	// Each spec: exists + type + min_size → 6 conditions
+	// Each spec: path, path+type, type, path+size, min → 10 args
 	if len(conditions) != 6 {
 		t.Errorf("Expected 6 conditions, got %d", len(conditions))
 	}
 
-	if len(args) != 4 {
-		t.Errorf("Expected 4 args, got %d", len(args))
+	if len(args) != 10 {
+		t.Errorf("Expected 10 args, got %d", len(args))
 	}
 }
 
@@ -884,18 +974,20 @@ func TestBuildDiskConditionsSQL_OnlyMinSize(t *testing.T) {
 
 	conditions, args := buildDiskConditionsSQL(specs)
 
+	assertJSONPathBound(t, conditions, args)
+
 	// Expect 2 conditions: mount point exists, size >= min_size
 	if len(conditions) != 2 {
 		t.Errorf("Expected 2 conditions, got %d", len(conditions))
 	}
 
-	// Expect 1 arg: min_size
-	if len(args) != 1 {
-		t.Errorf("Expected 1 arg, got %d", len(args))
+	wantArgs := []interface{}{
+		storageDeviceJSONPath("/data"),
+		storageDeviceJSONPath("/data", "size"),
+		100,
 	}
-
-	if args[0] != 100 {
-		t.Errorf("Expected first arg to be 100, got %v", args[0])
+	if !reflect.DeepEqual(args, wantArgs) {
+		t.Errorf("args = %#v, want %#v", args, wantArgs)
 	}
 }
 
@@ -910,18 +1002,20 @@ func TestBuildDiskConditionsSQL_OnlyMaxSize(t *testing.T) {
 
 	conditions, args := buildDiskConditionsSQL(specs)
 
+	assertJSONPathBound(t, conditions, args)
+
 	// Expect 2 conditions: mount point exists, size <= max_size
 	if len(conditions) != 2 {
 		t.Errorf("Expected 2 conditions, got %d", len(conditions))
 	}
 
-	// Expect 1 arg: max_size
-	if len(args) != 1 {
-		t.Errorf("Expected 1 arg, got %d", len(args))
+	wantArgs := []interface{}{
+		storageDeviceJSONPath("/data"),
+		storageDeviceJSONPath("/data", "size"),
+		500,
 	}
-
-	if args[0] != 500 {
-		t.Errorf("Expected first arg to be 500, got %v", args[0])
+	if !reflect.DeepEqual(args, wantArgs) {
+		t.Errorf("args = %#v, want %#v", args, wantArgs)
 	}
 }
 
@@ -937,14 +1031,20 @@ func TestBuildDiskConditionsSQL_AllDiskType(t *testing.T) {
 
 	conditions, args := buildDiskConditionsSQL(specs)
 
+	assertJSONPathBound(t, conditions, args)
+
 	// Expect 2 conditions: mount point exists, min_size (no disk_type)
 	if len(conditions) != 2 {
 		t.Errorf("Expected 2 conditions (disk_type ALL should be ignored), got %d", len(conditions))
 	}
 
-	// Expect 1 arg: min_size (no disk_type)
-	if len(args) != 1 {
-		t.Errorf("Expected 1 arg, got %d", len(args))
+	wantArgs := []interface{}{
+		storageDeviceJSONPath("/data"),
+		storageDeviceJSONPath("/data", "size"),
+		100,
+	}
+	if !reflect.DeepEqual(args, wantArgs) {
+		t.Errorf("args = %#v, want %#v", args, wantArgs)
 	}
 }
 
