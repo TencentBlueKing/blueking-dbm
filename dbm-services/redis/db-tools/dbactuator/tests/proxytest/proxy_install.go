@@ -102,7 +102,7 @@ func (test *PredixyInstallTest) SetOtherParamsDefault() *PredixyInstallTest {
 		return test
 	}
 	test.DbConfig.WorkerThreads = "4"
-	test.DbConfig.ClientTimeout = "0"
+	test.DbConfig.ClientTimeout = "7200"
 	test.DbConfig.RefreshInterval = "1"
 	test.DbConfig.ServerFailureLimit = "10"
 	test.DbConfig.ServerRetryTimeout = "1"

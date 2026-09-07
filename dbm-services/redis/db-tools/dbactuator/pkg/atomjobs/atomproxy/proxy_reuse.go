@@ -305,9 +305,13 @@ func (job *ProxyReUse) reGeneratePredixyConfig(port int) error {
 	conf = strings.Replace(conf, "{{server:port}}", servers, -1)
 	// 指定 worker_threads 为cpu核数
 	conf = strings.Replace(conf, "{{worker_threads}}", strconv.Itoa(runtime.NumCPU()), -1)
+	reuseClientTimeout := "7200"
+	if job.params.PredixyParams.DbConfig.ClientTimeout != "" {
+		reuseClientTimeout = job.params.PredixyParams.DbConfig.ClientTimeout
+	}
 	conf = strings.Replace(conf, "{{server_timeout}}", job.params.PredixyParams.DbConfig.ServerTimeout, -1)
 	conf = strings.Replace(conf, "{{keep_alive}}", job.params.PredixyParams.DbConfig.KeepAlive, -1)
-	conf = strings.Replace(conf, "{{client_timeout}}", job.params.PredixyParams.DbConfig.ClientTimeout, -1)
+	conf = strings.Replace(conf, "{{client_timeout}}", reuseClientTimeout, -1)
 	conf = strings.Replace(conf, "{{slowlog_Log_slower_than}}", slowloglogslowerthan, -1)
 	conf = strings.Replace(conf, "{{slowlog_max_len}}", slowlogmaxlen, -1)
 	conf = strings.Replace(conf, "{{predixy_admin_password}}", job.params.PredixyParams.PredixyAdminPasswd, -1)

@@ -297,6 +297,7 @@ class PredixyTendisPlusInsApplyFlow(object):
             "conf": {
                 "databases": str(self.data["databases"]),
                 "port": str(self.data["proxy_port"]),
+                "clienttimeout": str(self.data.get("clienttimeout", "7200")),
             },
             "pwd_conf": {
                 "proxy_pwd": self.data["proxy_pwd"],
