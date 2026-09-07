@@ -1,9 +1,22 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <TextAll
     v-if="data === 'ALL'"
     style="font-size: 12px; color: #3a84ff" />
   <DbIcon
-    v-else-if="isRunning"
+    v-else-if="isSpinning"
     style="color: #3a84ff"
     svg
     type="sync-pending" />
@@ -16,6 +29,8 @@
 <script setup lang="ts">
   import { TextAll } from 'bkui-vue/lib/icon';
 
+  import { NODE_STATUS_META, type NodeDisplayStatus } from '@views/task-history/detail/utils';
+
   interface Props {
     data?: string;
   }
@@ -24,37 +39,19 @@
     data: '',
   });
 
-  const statusStyleMap = {
-    // 待执行
-    CREATED: {
-      background: '#F0F1F5',
-      borderColor: '#C4C6CC',
-    },
-    // 执行失败
-    FAILED: {
-      background: '#FFDDDD',
-      borderColor: '#EA3636',
-    },
-    // 执行成功
-    FINISHED: {
-      background: '#CBF0DA',
-      borderColor: '#2CAF5E',
-    },
-    // 执行中
-    // RUNNING: {
-    //   background: '#E1ECFF',
-    //   borderColor: '#3A84FF',
-    // },
-    // 待继续
-    TODO: {
-      background: '#FCE5C0',
-      borderColor: '#F59500',
-    },
-  };
+  // 执行中、准备中画的是旋转图标，没有圆点配色，dotFill 缺省即表示不画圆点
+  const currentStatus = computed(() => {
+    const meta = NODE_STATUS_META[props.data as NodeDisplayStatus];
+    if (!meta?.dotFill) {
+      return undefined;
+    }
+    return {
+      background: meta.dotFill,
+      borderColor: meta.color,
+    };
+  });
 
-  const currentStatus = computed(() => statusStyleMap[props.data as keyof typeof statusStyleMap]);
-
-  const isRunning = computed(() => props.data === 'RUNNING');
+  const isSpinning = computed(() => ['READY', 'RUNNING'].includes(props.data));
 </script>
 <style lang="less">
   .status-round-main {
