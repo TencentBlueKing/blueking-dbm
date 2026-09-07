@@ -1,6 +1,23 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
+
 import _ from 'lodash';
 
+import { getNodeDisplayStatus, NODE_STATUS_META } from '@views/task-history/detail/utils';
+
 import { encodeRegexp, getCostTimeDisplay } from '@utils';
+
+import { t } from '@locales/index';
 
 import AiBluekingImage from '@images/ai-blueking.svg';
 import SuccessImage from '@images/check-line.png';
@@ -9,10 +26,8 @@ import FileImage from '@images/file.png';
 import forceFailImage from '@images/force-fail.png';
 import ForceRetryImage from '@images/force-retry.png';
 import ForceSkipWarningImage from '@images/force-skip-warning.png';
-// import MinusImage from '@images/minus.png';
 import MinusImage from '@images/minus-fill.png';
 import PlusImage from '@images/plus-fill.png';
-// import PlusImage from '@images/plus.png';
 import manualConfirmImage from '@images/querenjixu.png';
 import RetryImage from '@images/refresh-2.png';
 import SkipImage from '@images/skip.png';
@@ -20,17 +35,22 @@ import SkipSignImage from '@images/skip-2.png';
 import PendingImage from '@images/sync-pending.png';
 import WaitTodoImage from '@images/wait-todo.png';
 
-import { Circle as GCircle, type Group, Image as GImage, Rect as GRect, Text as GText } from '@antv/g';
-import { Rect } from '@antv/g6';
+import {
+  Circle as GCircle,
+  type DisplayObject,
+  type Group,
+  Image as GImage,
+  Rect as GRect,
+  Text as GText,
+} from '@antv/g';
+import { Rect, type UpsertHooks } from '@antv/g6';
 
-import { type Node } from './calculate';
+import { type Node } from './layout';
 
-// 搜索关键字
-export const searchObj = {
-  key: '',
-};
+const LINE_WIDTH = 168;
 
-const LINE_WIDTH = 185;
+// 节点标题换行、耗时背景宽度都要测量文本，节点多时反复新建 canvas 开销明显，这里复用同一个上下文
+const textMeasureContext = document.createElement('canvas').getContext('2d')!;
 
 // 2行的情况下，对文本进行填充调整
 function adjustLinesText(linesText: string[], keyword: string) {
@@ -68,29 +88,43 @@ function adjustLinesText(linesText: string[], keyword: string) {
 }
 
 function getTextWidth(text: string, fontStyle = '12px MicrosoftYaHei') {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
-  ctx.font = fontStyle; // 如 '16px MicrosoftYaHei'
-  return ctx.measureText(text).width;
+  textMeasureContext.font = fontStyle; // 如 '16px MicrosoftYaHei'
+  return textMeasureContext.measureText(text).width;
 }
 
 export class NormalNode extends Rect {
+  /**
+   * 本轮 renderNode 画过的图形 key。
+   *
+   * 用 declare 声明、在 renderNode 里建：基类构造函数里就会 render 一次，
+   * 那时类字段的初始化还没执行，写成带初值的字段的话首轮直接读到 undefined，
+   * 而且初始化轮到时又会把首轮记下的 key 冲掉
+   */
+  declare drawnKeys: Set<string>;
+  /** renderNode 自己画过的全部图形 key，基类画的不在其中 */
+  declare ownedKeys: Set<string>;
+
+  private get statusMeta() {
+    return NODE_STATUS_META[this.displayStatus];
+  }
+
   get data() {
     return this.context.model.getNodeLikeDatum(this.id) as Node;
   }
 
-  get isFailed() {
-    return ['FAILED', 'REVOKED'].includes(this.data.status);
+  get displayStatus() {
+    return getNodeDisplayStatus(this.data);
   }
 
-  get isFinished() {
-    return this.data.status === 'FINISHED';
+  get isFailed() {
+    return this.displayStatus === 'FAILED';
   }
 
   get isRunning() {
-    return this.data.status === 'RUNNING';
+    return this.displayStatus === 'RUNNING';
   }
 
+  /** 时间标签按原始跳过标记判断：跳过的节点没有真实耗时可显示 */
   get isSkiped() {
     return this.data.skip || this.data.error_ignorable;
   }
@@ -100,45 +134,50 @@ export class NormalNode extends Rect {
   }
 
   get isSuperUserMode() {
-    return (this.context.options as any).flowGraphInstance?.isSuperUserMode || false;
+    return this.data.isSuperUserMode;
   }
 
-  get isWaitToRun() {
-    return this.data.status === 'CREATED';
+  /**
+   * 回收上一轮画过、这一轮没再画的图形。
+   * 各 draw 方法都是「按状态命中一个分支就 return」，分支切换后旧分支的图形不会有人删，
+   * 而节点元素跨轮询是复用的（见 flowGraph.initGraph 的 setData 路径），
+   * 不清就会留下已完成节点上仍可点击的操作按钮、盖不住的旧状态图标、叠字的标题。
+   * 只删差集，本轮还在画的图形仍是同一个实例，运行中节点的旋转动画不会断
+   */
+  clearStaleShapes(container: Group) {
+    this.ownedKeys.forEach((key) => {
+      if (this.drawnKeys.has(key)) {
+        return;
+      }
+      // style 传 false 即删除图形，此时 Ctor 不参与逻辑
+      this.upsert(key, GRect, false, container);
+      this.ownedKeys.delete(key);
+    });
   }
 
   drawBackgroundShape(attributes: any, container: Group) {
-    let strokeColor = '#A1E3BA';
-    if (this.isFailed) {
-      strokeColor = '#FF4D4D';
-    } else {
-      if (this.isSkiped) {
-        strokeColor = '#7FBB44';
-      }
-      if (this.isRunning) {
-        strokeColor = '#3A84FF';
-      }
-      if (this.data.todoId) {
-        strokeColor = '#F59500';
-      }
-      if (this.isWaitToRun || !this.data.status) {
-        strokeColor = '#F0F1F5';
-      }
+    const strokeColor = this.statusMeta.canvasStroke;
+
+    const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
     }
+
     const backgroundShapeStyle = {
       fill: '#fff',
-      height: 52,
+      height,
       radius: 8,
       shadowBlur: 4,
       shadowColor: attributes.nodeBackgroundshadowColor,
       shadowOffsetX: 2,
       shadowOffsetY: 2,
       stroke: strokeColor,
-      width: 240,
-      x: this.isSubProcess ? -113 : -120,
-      y: -24,
+      // 子流程节点的包围盒左侧留了 14px 空档给展开收起图标，卡片本身不占这一段
+      width: this.isSubProcess ? width - 14 : width,
+      x: this.isSubProcess ? -width / 2 + 14 : -width / 2,
+      y: -height / 2,
     };
-    this.upsert('backgroundShape', GRect, backgroundShapeStyle, container);
+    this.upsertShape('backgroundShape', GRect, backgroundShapeStyle, container);
   }
 
   drawCollapseShape(attributes: any, container: Group) {
@@ -151,16 +190,26 @@ export class NormalNode extends Rect {
       return;
     }
 
+    // 图标四角是透明的，卡片左边框的描边会从这里穿过去，先垫一层白底把图标处的边框遮断。
+    // 必须在图标之前 upsert，同级图形按插入顺序叠放
+    const collapseBackgroundStyle = {
+      cx: -width / 2 + 14,
+      cy: 0,
+      fill: '#fff',
+      r: 7,
+    };
+    this.upsertShape('collapseIconBackground', GCircle, collapseBackgroundStyle, container);
+
     const collapseIconStyle = {
       height: 14,
       src: this.data.isExpand ? MinusImage : PlusImage,
       width: 14,
-      x: -width / 2,
-      y: -height / 2 + 20,
-      // zIndex: 102,
+      // 横跨在卡片左边框上：包围盒左侧的 14px 空档减去半个图标宽，纵向对齐节点中心
+      x: -width / 2 + 7,
+      y: -7,
     };
 
-    this.upsert('collapseIcon', GImage, collapseIconStyle, container);
+    this.upsertShape('collapseIcon', GImage, collapseIconStyle, container);
   }
 
   drawFocusBackgroundShape(attributes: any, container: Group) {
@@ -177,9 +226,9 @@ export class NormalNode extends Rect {
       visibility: attributes.focusNodeVisibility,
       width: width + (this.isSubProcess ? 9 : 16),
       x: -width / 2 - (this.isSubProcess ? 1 : 8),
-      y: -height / 2 - 6,
+      y: -height / 2 - 8,
     };
-    this.upsert('focusBackground', GRect, focusBackgroundStyle, container);
+    this.upsertShape('focusBackground', GRect, focusBackgroundStyle, container);
   }
 
   drawNodeTitleShape(attributes: any, container: Group) {
@@ -188,17 +237,16 @@ export class NormalNode extends Rect {
       return;
     }
 
-    const { name } = this.data;
+    const { name, searchKey } = this.data;
 
-    let y = 10;
+    let y = 8;
 
-    let lines = searchObj.key ? name!.split(new RegExp(encodeRegexp(searchObj.key))) : [name!];
+    let lines = searchKey ? name!.split(new RegExp(encodeRegexp(searchKey))) : [name!];
     if (lines.length === 2) {
-      y = 10;
-      lines = adjustLinesText(lines, searchObj.key);
+      lines = adjustLinesText(lines, searchKey);
     } else {
       if (getTextWidth(name!) > LINE_WIDTH) {
-        y = 18;
+        y = 16;
       }
     }
 
@@ -212,17 +260,17 @@ export class NormalNode extends Rect {
         textOverflow: 'ellipsis',
         wordWrap: true,
         wordWrapWidth: LINE_WIDTH,
-        x: this.isSubProcess ? -width / 2 + 66 : -width / 2 + 52,
-        y: lines.length > 1 ? index * 18 : y,
+        x: this.isSubProcess ? -width / 2 + 62 : -width / 2 + 48,
+        y: lines.length > 1 ? index * 18 - 2 : y,
         zIndex: 1,
       };
     });
 
     nodeTitleStyleList.forEach((nodeTitleStyle, index) => {
       const lineText = nodeTitleStyle.text;
-      if (searchObj.key && lineText.includes(searchObj.key)) {
-        const textList = lineText.split(searchObj.key);
-        textList.splice(1, 0, searchObj.key);
+      if (searchKey && lineText.includes(searchKey)) {
+        const textList = lineText.split(searchKey);
+        textList.splice(1, 0, searchKey);
         textList.forEach((text, textIndex) => {
           if (!text) {
             return;
@@ -232,16 +280,16 @@ export class NormalNode extends Rect {
           if (textIndex > 0) {
             const formalTextWidth = getTextWidth(textList.slice(0, textIndex).join(''));
             style.x = style.x + formalTextWidth;
-            style.wordWrapWidth = LINE_WIDTH - formalTextWidth - getTextWidth(searchObj.key);
+            style.wordWrapWidth = LINE_WIDTH - formalTextWidth - getTextWidth(searchKey);
             style.maxLines = 1;
           }
-          if (text === searchObj.key) {
+          if (text === searchKey) {
             style.fill = 'orange';
           }
-          this.upsert(`nodeTitle_${index}_${textIndex}`, GText, style, container);
+          this.upsertShape(`nodeTitle_${index}_${textIndex}`, GText, style, container);
         });
       } else {
-        this.upsert(`nodeTitle_${index}`, GText, nodeTitleStyle, container);
+        this.upsertShape(`nodeTitle_${index}`, GText, nodeTitleStyle, container);
       }
     });
   }
@@ -265,9 +313,9 @@ export class NormalNode extends Rect {
           radius: 2,
           width: 80,
           x: -width / 2 + 4,
-          y: 34,
+          y: 30,
         };
-        this.upsert('forceRetryWraper', GRect, forceRetryWraperStyle, container);
+        this.upsertShape('forceRetryWraper', GRect, forceRetryWraperStyle, container);
         const {
           attributes: { x: rwX, y: rwY },
         } = this.getShape('forceRetryWraper');
@@ -278,18 +326,18 @@ export class NormalNode extends Rect {
           x: rwX + 5,
           y: rwY + 6,
         };
-        this.upsert('retryIcon', GImage, retryIconStyle, container);
+        this.upsertShape('retryIcon', GImage, retryIconStyle, container);
         const {
           attributes: { x: riX, y: riY },
         } = this.getShape('retryIcon');
         const forceRetryTextStyle = {
           fill: '#FFFFFF',
           fontSize: 12,
-          text: '强制重试',
+          text: t('强制重试'),
           x: riX + 16,
           y: riY + 14,
         };
-        this.upsert('forceRetryText', GText, forceRetryTextStyle, container);
+        this.upsertShape('forceRetryText', GText, forceRetryTextStyle, container);
 
         // 强制跳过
         const forceSkipWraperStyle = {
@@ -298,9 +346,9 @@ export class NormalNode extends Rect {
           radius: 2,
           width: 80,
           x: -width / 2 + 92,
-          y: 34,
+          y: 30,
         };
-        this.upsert('forceSkipWraper', GRect, forceSkipWraperStyle, container);
+        this.upsertShape('forceSkipWraper', GRect, forceSkipWraperStyle, container);
         const {
           attributes: { x: swX, y: swY },
         } = this.getShape('forceSkipWraper');
@@ -311,18 +359,18 @@ export class NormalNode extends Rect {
           x: swX + 4,
           y: swY + 5,
         };
-        this.upsert('skipIcon', GImage, skipIconStyle, container);
+        this.upsertShape('skipIcon', GImage, skipIconStyle, container);
         const {
           attributes: { x: siX, y: siY },
         } = this.getShape('skipIcon');
         const forceSkipTextStyle = {
           fill: '#E38B02',
           fontSize: 12,
-          text: '强制跳过',
+          text: t('强制跳过'),
           x: siX + 16,
           y: siY + 15,
         };
-        this.upsert('forceSkipText', GText, forceSkipTextStyle, container);
+        this.upsertShape('forceSkipText', GText, forceSkipTextStyle, container);
       } else {
         if (retryable) {
           // 失败重试
@@ -332,9 +380,9 @@ export class NormalNode extends Rect {
             radius: 2,
             width: 56,
             x: -width / 2 + 4,
-            y: 34,
+            y: 30,
           };
-          this.upsert('retryWraper', GRect, retryWraperStyle, container);
+          this.upsertShape('retryWraper', GRect, retryWraperStyle, container);
           const {
             attributes: { x: rwX, y: rwY },
           } = this.getShape('retryWraper');
@@ -345,18 +393,18 @@ export class NormalNode extends Rect {
             x: rwX + 5,
             y: rwY + 6,
           };
-          this.upsert('retryIcon', GImage, retryIconStyle, container);
+          this.upsertShape('retryIcon', GImage, retryIconStyle, container);
           const {
             attributes: { x: riX, y: riY },
           } = this.getShape('retryIcon');
           const retryTextStyle = {
             fill: '#4D4F56',
             fontSize: 12,
-            text: '重试',
+            text: t('重试'),
             x: riX + 17,
             y: riY + 14,
           };
-          this.upsert('retryText', GText, retryTextStyle, container);
+          this.upsertShape('retryText', GText, retryTextStyle, container);
         }
         if (skippable) {
           // 跳过
@@ -366,9 +414,9 @@ export class NormalNode extends Rect {
             radius: 2,
             width: 56,
             x: retryable ? -width / 2 + 68 : -width / 2 + 4,
-            y: 34,
+            y: 30,
           };
-          this.upsert('skipWraper', GRect, skipWraperStyle, container);
+          this.upsertShape('skipWraper', GRect, skipWraperStyle, container);
           const {
             attributes: { x: swX, y: swY },
           } = this.getShape('skipWraper');
@@ -379,18 +427,18 @@ export class NormalNode extends Rect {
             x: swX + 4,
             y: swY + 5,
           };
-          this.upsert('skipIcon', GImage, skipIconStyle, container);
+          this.upsertShape('skipIcon', GImage, skipIconStyle, container);
           const {
             attributes: { x: siX, y: siY },
           } = this.getShape('skipIcon');
           const skipTextStyle = {
             fill: '#4D4F56',
             fontSize: 12,
-            text: '跳过',
+            text: t('跳过'),
             x: siX + 18,
             y: siY + 15,
           };
-          this.upsert('skipText', GText, skipTextStyle, container);
+          this.upsertShape('skipText', GText, skipTextStyle, container);
         }
       }
       // ai日志分析
@@ -405,9 +453,9 @@ export class NormalNode extends Rect {
           radius: 2,
           width: 76,
           x: this.isSuperUserMode ? -width / 2 + 180 : aiLogAnalysisWraperStyleX(),
-          y: 34,
+          y: 30,
         };
-        this.upsert('aiLogAnalysisWraper', GRect, aiLogAnalysisWraperStyle, container);
+        this.upsertShape('aiLogAnalysisWraper', GRect, aiLogAnalysisWraperStyle, container);
         const {
           attributes: { x: aX, y: aY },
         } = this.getShape('aiLogAnalysisWraper');
@@ -418,20 +466,20 @@ export class NormalNode extends Rect {
           x: aX + 5,
           y: aY + 6,
         };
-        this.upsert('aiLogAnalysisIcon', GImage, aiLogAnalysisIconStyle, container);
+        this.upsertShape('aiLogAnalysisIcon', GImage, aiLogAnalysisIconStyle, container);
         const {
           attributes: { x: aiiX, y: aiiY },
         } = this.getShape('aiLogAnalysisIcon');
         const aiLogAnalysisTextStyle = {
           fill: '#4D4F56',
           fontSize: 12,
-          text: '日志解析',
+          text: t('日志解析'),
           x: aiiX + 15,
           y: aiiY + 14,
         };
-        this.upsert('aiLogAnalysisText', GText, aiLogAnalysisTextStyle, container);
-        return;
+        this.upsertShape('aiLogAnalysisText', GText, aiLogAnalysisTextStyle, container);
       }
+      return;
     }
     if (todoId) {
       // 人工确认
@@ -441,9 +489,9 @@ export class NormalNode extends Rect {
         radius: 2,
         width: 80,
         x: -width / 2 + 4,
-        y: 34,
+        y: 30,
       };
-      this.upsert('manualConfirmWraper', GRect, manualConfirmWraperStyle, container);
+      this.upsertShape('manualConfirmWraper', GRect, manualConfirmWraperStyle, container);
       const {
         attributes: { x: mcwX, y: mcwY },
       } = this.getShape('manualConfirmWraper');
@@ -454,18 +502,18 @@ export class NormalNode extends Rect {
         x: mcwX + 5,
         y: mcwY + 5,
       };
-      this.upsert('manualConfirmIcon', GImage, manualConfirmIconStyle, container);
+      this.upsertShape('manualConfirmIcon', GImage, manualConfirmIconStyle, container);
       const {
         attributes: { x: mciX, y: mciY },
       } = this.getShape('manualConfirmIcon');
       const manualConfirmTextStyle = {
         fill: '#4D4F56',
         fontSize: 12,
-        text: '确认继续',
+        text: t('确认继续'),
         x: mciX + 18,
         y: mciY + 15,
       };
-      this.upsert('manualConfirmText', GText, manualConfirmTextStyle, container);
+      this.upsertShape('manualConfirmText', GText, manualConfirmTextStyle, container);
       // 强制失败
       const forceFailWraperStyle = {
         fill: attributes.forceFailOptFill,
@@ -473,9 +521,9 @@ export class NormalNode extends Rect {
         radius: 2,
         width: 80,
         x: -width / 2 + 92,
-        y: 34,
+        y: 30,
       };
-      this.upsert('forceFailWraper', GRect, forceFailWraperStyle, container);
+      this.upsertShape('forceFailWraper', GRect, forceFailWraperStyle, container);
       const {
         attributes: { x: ffwX, y: ffwY },
       } = this.getShape('forceFailWraper');
@@ -486,18 +534,18 @@ export class NormalNode extends Rect {
         x: ffwX + 5,
         y: ffwY + 5,
       };
-      this.upsert('forceFailIcon', GImage, forceFailIconStyle, container);
+      this.upsertShape('forceFailIcon', GImage, forceFailIconStyle, container);
       const {
         attributes: { x: ffiX, y: ffiY },
       } = this.getShape('forceFailIcon');
       const forceFailTextStyle = {
         fill: '#4D4F56',
         fontSize: 12,
-        text: '强制失败',
+        text: t('强制失败'),
         x: ffiX + 18,
         y: ffiY + 15,
       };
-      this.upsert('forceFailText', GText, forceFailTextStyle, container);
+      this.upsertShape('forceFailText', GText, forceFailTextStyle, container);
       return;
     }
     if (status === 'RUNNING') {
@@ -508,9 +556,9 @@ export class NormalNode extends Rect {
         radius: 2,
         width: 80,
         x: -width / 2 + 4,
-        y: 34,
+        y: 30,
       };
-      this.upsert('forceFailWraper', GRect, forceFailWraperStyle, container);
+      this.upsertShape('forceFailWraper', GRect, forceFailWraperStyle, container);
       const {
         attributes: { x: ffwX, y: ffwY },
       } = this.getShape('forceFailWraper');
@@ -521,18 +569,18 @@ export class NormalNode extends Rect {
         x: ffwX + 5,
         y: ffwY + 5,
       };
-      this.upsert('forceFailIcon', GImage, forceFailIconStyle, container);
+      this.upsertShape('forceFailIcon', GImage, forceFailIconStyle, container);
       const {
         attributes: { x: ffiX, y: ffiY },
       } = this.getShape('forceFailIcon');
       const forceFailTextStyle = {
         fill: '#4D4F56',
         fontSize: 12,
-        text: '强制失败',
+        text: t('强制失败'),
         x: ffiX + 18,
         y: ffiY + 15,
       };
-      this.upsert('forceFailText', GText, forceFailTextStyle, container);
+      this.upsertShape('forceFailText', GText, forceFailTextStyle, container);
       return;
     }
   }
@@ -542,9 +590,15 @@ export class NormalNode extends Rect {
       return;
     }
 
+    // 重试次数是贴着耗时背景右侧画的，耗时背景没画出来（如失败自动跳过的节点）就没有落脚点
+    const timeDisplayBackground = this.getShape('timeDisplayBackground');
+    if (!timeDisplayBackground) {
+      return;
+    }
+
     const {
       attributes: { width, x: timeX, y: timeY },
-    } = this.getShape('timeDisplayBackground');
+    } = timeDisplayBackground;
     const retryTextBackgroundStyle = {
       fill: '#979BA5',
       height: 14,
@@ -553,15 +607,15 @@ export class NormalNode extends Rect {
       x: timeX + width + 2,
       y: timeY,
     };
-    this.upsert('retryDisplayTextBackground', GRect, retryTextBackgroundStyle, container);
+    this.upsertShape('retryDisplayTextBackground', GRect, retryTextBackgroundStyle, container);
     const retryTextStyle = {
       fill: '#fff',
       fontSize: 9,
-      text: '重试',
+      text: t('重试'),
       x: timeX + width + 6,
       y: timeY + 14,
     };
-    this.upsert('retryDisplayText', GText, retryTextStyle, container);
+    this.upsertShape('retryDisplayText', GText, retryTextStyle, container);
     const retryCountBackgroundStyle = {
       fill: '#DCDEE5',
       height: 14,
@@ -570,7 +624,7 @@ export class NormalNode extends Rect {
       x: timeX + width + 28,
       y: timeY,
     };
-    this.upsert('retryCountBackground', GRect, retryCountBackgroundStyle, container);
+    this.upsertShape('retryCountBackground', GRect, retryCountBackgroundStyle, container);
     const retryCountNumberStyle = {
       fill: '#4D4F56',
       fontSize: 9,
@@ -578,28 +632,10 @@ export class NormalNode extends Rect {
       x: timeX + width + 32,
       y: timeY + 14,
     };
-    this.upsert('retryCountNumber', GText, retryCountNumberStyle, container);
+    this.upsertShape('retryCountNumber', GText, retryCountNumberStyle, container);
   }
 
   drawStatusShape(attributes: any, container: Group) {
-    let strokeColor = '#3DC2A6';
-    if (this.isFailed) {
-      strokeColor = '#FF4D4D';
-    } else {
-      if (this.isSkiped) {
-        strokeColor = '#7FBB44';
-      }
-      if (this.isRunning) {
-        strokeColor = '#3A84FF';
-      }
-      if (this.data.todoId) {
-        strokeColor = '#F59500';
-      }
-      if (this.isWaitToRun || !this.data.status) {
-        strokeColor = '#C4C6CC';
-      }
-    }
-
     const [width, height] = this.getSize(attributes);
     if (!width || !height) {
       return;
@@ -607,153 +643,166 @@ export class NormalNode extends Rect {
 
     // 矩形背景
     const mainStatusBackgroundStyle = {
-      fill: strokeColor,
-      height: 40,
+      fill: this.statusMeta.canvasFill,
+      height: 32,
       radius: 4,
-      width: 40,
-      x: -width / 2 + (this.isSubProcess ? 20 : 6),
+      width: 32,
+      x: -width / 2 + (this.isSubProcess ? 22 : 8),
       y: -height / 2 + 8,
     };
-    this.upsert('mainStatusBackground', GRect, mainStatusBackgroundStyle, container);
+    this.upsertShape('mainStatusBackground', GRect, mainStatusBackgroundStyle, container);
     // 节点左侧图标
     const mainStatusImageStyle = {
       height: 17.5,
       src: FileImage,
       width: 15,
-      x: -width / 2 + (this.isSubProcess ? 33 : 19),
-      y: -height / 2 + 19,
+      x: -width / 2 + (this.isSubProcess ? 31 : 17),
+      y: -height / 2 + 15,
     };
-    this.upsert('mainStatusImage', GImage, mainStatusImageStyle, container);
-    if (this.data.status && !this.isWaitToRun) {
+    this.upsertShape('mainStatusImage', GImage, mainStatusImageStyle, container);
+    if (this.displayStatus !== 'CREATED') {
       // 右上角图标公共白色背景
       const rightTopBackgroundStyle = {
-        cx: this.isSubProcess ? 127 : 120,
-        cy: -24,
+        cx: width / 2,
+        cy: -height / 2,
         fill: '#FFF',
         r: 11,
       };
-      this.upsert('rightTopBackground', GCircle, rightTopBackgroundStyle, container);
+      this.upsertShape('rightTopBackground', GCircle, rightTopBackgroundStyle, container);
     }
 
     if (this.isFailed) {
       // 失败图标
       const failedBackgroundStyle = {
-        cx: this.isSubProcess ? 127 : 120,
-        cy: -24,
+        cx: width / 2,
+        cy: -height / 2,
         fill: attributes.failedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('rightTopFailedImageBackground', GCircle, failedBackgroundStyle, container);
+      this.upsertShape('rightTopFailedImageBackground', GCircle, failedBackgroundStyle, container);
       const failedImageStyle = {
         height: 16,
         src: FailImage,
         width: 16,
-        x: this.isSubProcess ? 119 : 112,
-        y: -32,
+        x: width / 2 - 8,
+        y: -height / 2 - 8,
       };
-      this.upsert('rightTopFailedImage', GImage, failedImageStyle, container);
+      this.upsertShape('rightTopFailedImage', GImage, failedImageStyle, container);
       return;
     }
 
-    if (this.data.todoId) {
+    if (this.displayStatus === 'TODO') {
       // 待继续图标
       const todoBackgroundStyle = {
-        cx: this.isSubProcess ? 127 : 120,
-        cy: -24,
+        cx: width / 2,
+        cy: -height / 2,
         fill: attributes.todoImageBackgroundColor,
         r: 9,
       };
-      this.upsert('rightTopTodoImageBackground', GCircle, todoBackgroundStyle, container);
+      this.upsertShape('rightTopTodoImageBackground', GCircle, todoBackgroundStyle, container);
       const todoImageStyle = {
         height: 14,
         src: WaitTodoImage,
         width: 14,
-        x: this.isSubProcess ? 120 : 113,
-        y: -31,
+        x: width / 2 - 7,
+        y: -height / 2 - 7,
       };
-      this.upsert('rightTopTodoImage', GImage, todoImageStyle, container);
+      this.upsertShape('rightTopTodoImage', GImage, todoImageStyle, container);
       return;
     }
 
-    if (this.isRunning) {
+    // 准备中与执行中共用这个分支
+    if (this.isRunning || this.displayStatus === 'READY') {
       // 绘制执行中loading
       const loadingBackgroundStyle = {
-        cx: this.isSubProcess ? 127 : 120,
-        cy: -24,
+        cx: width / 2,
+        cy: -height / 2,
         fill: attributes.loadingImageBackgroundColor,
         r: 9,
       };
-      this.upsert('rightTopLoadingImageBackground', GCircle, loadingBackgroundStyle, container);
+      this.upsertShape('rightTopLoadingImageBackground', GCircle, loadingBackgroundStyle, container);
       const loadingImageStyle = {
         height: 14,
         src: PendingImage,
         transformOrigin: 'center center',
         width: 14,
-        x: this.isSubProcess ? 120 : 113,
-        y: -31,
+        x: width / 2 - 7,
+        y: -height / 2 - 7,
       };
-      this.upsert('rightTopLoadingImage', GImage, loadingImageStyle, container);
+      // 挂在 afterCreate 上：只在图形新建时启动旋转，复用旧图形时动画还在，重挂会把角度归零。
+      // 不能改用节点的 onCreate，它只在节点元素创建时触发一次，
+      // 而失败重试回到执行中时这个图形是被 clearStaleShapes 收掉后重建的
+      this.upsertShape('rightTopLoadingImage', GImage, loadingImageStyle, container, {
+        afterCreate: (loadingImage) => {
+          loadingImage.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-360deg)' }], {
+            direction: 'normal',
+            duration: 3000,
+            easing: 'linear',
+            iterations: Infinity,
+          });
+        },
+      });
       return;
     }
-    if (this.isSkiped) {
+    if (this.displayStatus === 'SKIPPED') {
       // 绘制已跳过
       const skipedTipWraperStyle = {
         fill: '#8EBF76',
         height: 14,
         radius: 2,
         width: 60,
-        x: -height * 2 - 12,
-        y: -40,
+        x: -width / 2 + (this.isSubProcess ? 18 : 4),
+        y: -height / 2 - 16,
       };
-      this.upsert('rightTopSkipedTipWraper', GRect, skipedTipWraperStyle, container);
+      this.upsertShape('rightTopSkipedTipWraper', GRect, skipedTipWraperStyle, container);
       const {
         attributes: { x: stwX, y: stwY },
       } = this.getShape('rightTopSkipedTipWraper');
       const skipTextStyle = {
         fill: '#fff',
         fontSize: 9,
-        text: this.data.error_ignorable ? '失败自动跳过' : '失败手动跳过',
+        text: this.data.error_ignorable ? t('失败自动跳过') : t('失败手动跳过'),
         x: stwX + 3,
         y: stwY + 13,
       };
-      this.upsert('rightTopSkipText', GText, skipTextStyle, container);
+      this.upsertShape('rightTopSkipText', GText, skipTextStyle, container);
 
       // 已跳过图标
       const skipeBackgroundStyle = {
-        cx: this.isSubProcess ? 127 : 120,
-        cy: -24,
+        cx: width / 2,
+        cy: -height / 2,
         fill: attributes.skipImageBackgroundColor,
         r: 9,
       };
-      this.upsert('rightTopSkipImageBackground', GCircle, skipeBackgroundStyle, container);
+      this.upsertShape('rightTopSkipImageBackground', GCircle, skipeBackgroundStyle, container);
       const skipeImageStyle = {
         height: 12,
         src: SkipSignImage,
         width: 12,
-        x: this.isSubProcess ? 121 : 114,
-        y: -31,
+        x: width / 2 - 6,
+        y: -height / 2 - 7,
       };
-      this.upsert('rightTopSkipImage', GImage, skipeImageStyle, container);
+      this.upsertShape('rightTopSkipImage', GImage, skipeImageStyle, container);
       return;
     }
 
-    if (this.isFinished) {
+    if (this.displayStatus === 'FINISHED') {
       // 完成图标
       const finishedBackgroundStyle = {
-        cx: this.isSubProcess ? 127 : 120,
-        cy: -24,
+        cx: width / 2,
+        cy: -height / 2,
         fill: attributes.finishedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('rightTopFinishedImageBackground', GCircle, finishedBackgroundStyle, container);
+      this.upsertShape('rightTopFinishedImageBackground', GCircle, finishedBackgroundStyle, container);
       const finishedImageStyle = {
         height: 12,
         src: SuccessImage,
         width: 12,
-        x: this.isSubProcess ? 121 : 114,
-        y: -30,
+        x: width / 2 - 6,
+        y: -height / 2 - 6,
       };
-      this.upsert('rightTopFinishedImage', GImage, finishedImageStyle, container);
+      this.upsertShape('rightTopFinishedImage', GImage, finishedImageStyle, container);
     }
   }
 
@@ -775,11 +824,11 @@ export class NormalNode extends Rect {
       fill: '#fff',
       fontSize: 9,
       text: timeDisplayText,
-      x: -height * 2 - 8,
-      y: -width / 4 + 33,
+      x: -width / 2 + (this.isSubProcess ? 22 : 8),
+      y: -height / 2 - 3,
       zIndex: 2,
     };
-    this.upsert('timeDisplayText', GText, timeDisplayTextStyle, container);
+    this.upsertShape('timeDisplayText', GText, timeDisplayTextStyle, container);
 
     const {
       attributes: { x: textX, y: textY },
@@ -795,19 +844,7 @@ export class NormalNode extends Rect {
       zindex: 1,
     };
 
-    this.upsert('timeDisplayBackground', GRect, timeDisplayBackgroundStyle, container);
-  }
-
-  onCreate() {
-    const loadingImage = this.shapeMap.rightTopLoadingImage;
-    if (loadingImage) {
-      loadingImage.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-360deg)' }], {
-        direction: 'normal',
-        duration: 3000,
-        easing: 'linear',
-        iterations: Infinity,
-      });
-    }
+    this.upsertShape('timeDisplayBackground', GRect, timeDisplayBackgroundStyle, container);
   }
 
   render(attributes = this.parsedAttributes as any, container: Group) {
@@ -816,6 +853,8 @@ export class NormalNode extends Rect {
   }
 
   renderNode(attributes: any, container: Group) {
+    this.drawnKeys = new Set();
+    this.ownedKeys ??= new Set();
     this.drawFocusBackgroundShape(attributes, container);
     this.drawBackgroundShape(attributes, container);
     this.drawTimeDisplayShape(attributes, container);
@@ -824,5 +863,19 @@ export class NormalNode extends Rect {
     this.drawCollapseShape(attributes, container);
     this.drawOperationShape(attributes, container);
     this.drawRetryDisplayShape(attributes, container);
+    this.clearStaleShapes(container);
+  }
+
+  /** 与基类 upsert 的唯一区别是记下 key，好让 clearStaleShapes 知道哪些图形归自己管 */
+  upsertShape<T extends DisplayObject>(
+    key: string,
+    Ctor: new (...args: any[]) => T,
+    style: T['attributes'],
+    container: Group,
+    hooks?: UpsertHooks,
+  ) {
+    this.drawnKeys.add(key);
+    this.ownedKeys.add(key);
+    this.upsert(key, Ctor, style, container, hooks);
   }
 }
