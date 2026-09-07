@@ -51,6 +51,18 @@
             :db-type="DBTypes.ES"
             query-key="es" />
         </BkFormItem>
+        <BkFormItem
+          :label="t('访问端口')"
+          property="details.http_port"
+          required>
+          <DbInput
+            v-model="formData.details.http_port"
+            clearable
+            :min="1"
+            show-clear-only-hover
+            style="width: 185px"
+            type="number" />
+        </BkFormItem>
         <!-- <BkFormItem
           :label="t('服务器选择')"
           property="details.ip_source"
@@ -242,6 +254,21 @@
                     </span>
                   </div>
                 </BkFormItem>
+                <BkFormItem
+                  v-if="isLoadBalanceShow && Number(formData.details.resource_spec.client.count) > 0"
+                  :label="t('负载均衡')"
+                  :required="false">
+                  <BkCheckbox
+                    v-model="formData.details.apply_clb"
+                    v-db-console="'common.clb'">
+                    CLB
+                  </BkCheckbox>
+                  <BkCheckbox
+                    v-model="formData.details.apply_polaris"
+                    v-db-console="'common.polaris'">
+                    {{ t('北极星') }}
+                  </BkCheckbox>
+                </BkFormItem>
               </div>
             </BkFormItem>
             <BkFormItem label=" ">
@@ -337,23 +364,18 @@
             </BkFormItem>
           </div>
         </Transition>
-        <BkFormItem
-          :label="t('访问端口')"
-          property="details.http_port"
-          required>
-          <DbInput
-            v-model="formData.details.http_port"
-            clearable
-            :min="1"
-            show-clear-only-hover
-            style="width: 185px"
-            type="number" />
-        </BkFormItem>
+      </DbCard>
+      <DbCard :title="t('补充信息')">
         <EstimatedCost
           :params="{
             db_type: DBTypes.ES,
             resource_spec: formData.details.resource_spec,
           }" />
+        <NotifyRelatedPersons
+          ref="notifyRelatedPersonsRef"
+          v-model="formData.config.send_msg_config"
+          :biz-id="formData.bk_biz_id"
+          :db-type="DBTypes.ES" />
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
@@ -398,7 +420,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MessageTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -407,6 +429,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -416,19 +439,31 @@
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
+  import { checkDbConsole } from '@utils';
+
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
 
   useTicketDetail<Es.Apply>(TicketTypes.ES_APPLY, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
+      const { config, details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
+        apply_clb: details.apply_clb,
+        apply_polaris: details.apply_polaris,
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
@@ -476,7 +511,16 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
+      apply_clb: false,
+      apply_polaris: false,
       bk_cloud_id: 0,
       city_code: '',
       city_name: '',
@@ -541,6 +585,7 @@
     }));
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
 
   const formRef = ref();
   const specMasterRef = ref();
@@ -629,10 +674,23 @@
     { deep: true, flush: 'post' },
   );
 
+  // Client 数量归零时重置负载均衡选项，避免隐藏行携带残留 true 值提交
+  watch(
+    () => formData.details.resource_spec.client.count,
+    (count) => {
+      if (Number(count) === 0) {
+        formData.details.apply_clb = false;
+        formData.details.apply_polaris = false;
+      }
+    },
+  );
+
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
+
+  const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
@@ -848,6 +906,9 @@
 
       const params = {
         ...formData,
+        config: {
+          send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+        },
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
