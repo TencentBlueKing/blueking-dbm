@@ -33,6 +33,7 @@ from backend.ticket.constants import TicketType
 
 
 class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
+    apply_clb = serializers.BooleanField(help_text=_("集群部署成功后是否创建CLB"), required=False, default=False)
     start_proxy_port = serializers.IntegerField(
         help_text=_("Proxy起始端口"),
         required=False,
