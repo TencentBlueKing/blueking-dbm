@@ -13,9 +13,9 @@
 
 <template>
   <RouteHeader
-    v-model:is-super-user-mode="isSuperUserMode"
     :data="currentTaskflowDetail"
     :root-id="rootId"
+    :status-count="statusCount"
     @refresh="fetchTaskflowDetails" />
   <BkLoading :loading="!currentTaskflowDetail">
     <div
@@ -94,16 +94,17 @@
           name="task_flow">
           <TaskFlow
             ref="taskFlowRef"
-            v-model:is-super-user-mode="isSuperUserMode"
             :data="currentTaskflowDetail"
+            :model="flowModel"
+            :status-count="statusCount"
             @canvas-ready="handleCanvasReady"
             @refresh="handleRefresh" />
         </BkTabPanel>
         <BkTabPanel
           :label="t('操作历史')"
           name="operate_history">
-          <OperationHistory
-            ref="operationHistoryRef"
+          <OperationRecord
+            ref="operationRecordRef"
             :root-id="rootId" />
         </BkTabPanel>
       </BkTab>
@@ -111,15 +112,15 @@
   </BkLoading>
   <HostPreview
     v-model:is-show="showHostPreview"
-    :biz-id="baseInfo.bk_biz_id"
     :host-ids="baseInfo.bk_host_ids || []" />
   <TableDetailDialog
     v-model="showRelatedTicketDetail"
     :default-offset-left="300"
     :min-width="900">
+    <!-- 弹窗用的是 v-show，不跟着 showRelatedTicketDetail 一起判断，单据详情会常驻挂载，一直轮询单据状态 -->
     <TicketDetail
-      v-if="Number(currentTaskflowDetail?.flow_info.uid)"
-      :ticket-id="Number(currentTaskflowDetail?.flow_info.uid)" />
+      v-if="showRelatedTicketDetail && ticketId"
+      :ticket-id="ticketId" />
   </TableDetailDialog>
 </template>
 <script setup lang="tsx">
@@ -137,11 +138,10 @@
 
   import DeliverResult, { type AbstractItem } from './components/DeliverResult.vue';
   import HostPreview from './components/HostPreview.vue';
-  import OperationHistory from './components/OperationHistory.vue';
+  import OperationRecord from './components/OperationRecord.vue';
   import RouteHeader from './components/RouteHeader.vue';
   import TaskFlow from './components/task-flow/Index.vue';
-
-  export type FlowDetail = ServiceReturnType<typeof getTaskflowDetails>;
+  import { countNodeStatus, type FlowDetail, parseFlow, superUserModeInjectionKey } from './utils';
 
   const route = useRoute();
   const router = useRouter();
@@ -160,77 +160,72 @@
   const missionDetailPageRef = ref<HTMLElement>();
   const currentTaskflowDetail = ref<FlowDetail>();
   const taskFlowRef = ref<InstanceType<typeof TaskFlow>>();
-  const operationHistoryRef = ref<InstanceType<typeof OperationHistory>>();
+  const operationRecordRef = ref<InstanceType<typeof OperationRecord>>();
   const isSuperUserMode = ref(false);
 
   const baseInfo = computed(() => currentTaskflowDetail.value?.flow_info || ({} as FlowDetail['flow_info']));
   const rootId = computed(() => route.params.root_id as string);
 
-  const todoNodesCount = computed(() => {
-    if (currentTaskflowDetail.value?.flow_info) {
-      const { status } = currentTaskflowDetail.value.flow_info;
-      return (currentTaskflowDetail.value.todos || []).filter(
-        (todoItem) => (status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO',
-      ).length;
-    }
-    return 0;
-  });
-
-  watch(activePanelId, () => {
-    if (activePanelId.value === 'task_flow') {
-      if (isInitCanvas) {
-        return;
-      }
-
-      setTimeout(() => {
-        isInitCanvas = true;
-        taskFlowRef.value!.checkAndInitCanvas();
-      }, 100);
-    }
-  });
-
-  watch(
-    () => baseInfo.value.status,
-    () => {
-      setTimeout(() => {
-        if (baseInfo.value.status === 'FAILED') {
-          taskFlowRef.value!.setTreeStatus('FAILED');
-          return;
-        }
-
-        if (baseInfo.value.status === 'RUNNING') {
-          taskFlowRef.value!.setTreeStatus('RUNNING');
-          return;
-        }
-      });
-    },
-    {
-      immediate: true,
-    },
+  // 流程只在这里解析一次，顶部状态角标、画布、搜索树、节点详情都用这一份
+  const flowModel = computed(() =>
+    currentTaskflowDetail.value?.activities ? parseFlow(currentTaskflowDetail.value) : undefined,
   );
+  const statusCount = computed(() => (flowModel.value ? countNodeStatus(flowModel.value) : undefined));
 
-  watch(
-    todoNodesCount,
-    () => {
-      if (baseInfo.value.status === 'FAILED') {
+  // 专家模式跨了 4 层组件，逐层透传等于每层都要声明一遍自己不关心的 model
+  provide(superUserModeInjectionKey, isSuperUserMode);
+
+  watch(activePanelId, async () => {
+    if (activePanelId.value !== 'task_flow' || isInitCanvas) {
+      return;
+    }
+    // 建图时这个页签还没显示，画布尺寸取的是 0，切过来后要等它渲染出来再同步
+    await nextTick();
+    isInitCanvas = true;
+    taskFlowRef.value?.checkAndInitCanvas();
+  });
+
+  // 交付结果页签消失时如果正停在它上面，页签栏会剩一片空白，要主动切走
+  watch(showDeliverResult, () => {
+    if (!showDeliverResult.value && activePanelId.value === 'deliver_result') {
+      activePanelId.value = 'task_flow';
+    }
+  });
+
+  // 进来先把搜索树切到最值得关注的状态。两个条件此前分成两个 watch，
+  // 谁后跑谁生效，实际结果依赖注册顺序，这里合成一个把优先级写明。
+  // 只在首次拿到流程数据时定一次：之后轮询带来的状态或待办变化再改筛选，
+  // 会把用户自己选的那一档冲掉，画布也跟着跳走
+  const stopInitTreeStatus = watch(
+    [() => baseInfo.value.status, () => statusCount.value?.TODO],
+    async ([status, todoCount]) => {
+      if (!status) {
         return;
       }
+      stopInitTreeStatus();
 
-      setTimeout(() => {
-        if (todoNodesCount.value) {
-          taskFlowRef.value!.setTreeStatus('TODO');
-          return;
+      const getTreeStatus = () => {
+        if (status === 'FAILED') {
+          return 'FAILED';
         }
-      });
-    },
-    {
-      immediate: true,
+        if (todoCount) {
+          return 'TODO';
+        }
+        return status === 'RUNNING' ? 'RUNNING' : '';
+      };
+
+      const treeStatus = getTreeStatus();
+      if (!treeStatus) {
+        return;
+      }
+      await nextTick();
+      taskFlowRef.value?.setTreeStatus(treeStatus);
     },
   );
 
   const handleRefresh = () => {
     fetchTaskflowDetails();
-    operationHistoryRef.value!.updateTableData();
+    operationRecordRef.value?.updateTableData();
   };
 
   const handleShowHostPreview = () => {
@@ -239,9 +234,6 @@
 
   const handleDeliverList = (list: AbstractItem[]) => {
     showDeliverResult.value = list.length > 0;
-    if (!list.length) {
-      activePanelId.value = 'task_flow';
-    }
   };
 
   const handleShowRelatedTicketDetail = (event: Event) => {

@@ -136,7 +136,7 @@
     },
   ];
   const settings = {
-    checked: ['ip', 'bk_host_name', 'alive'],
+    checked: ['ip', 'host_name', 'alive'],
     fields: columns.map((item) => ({
       disabled: ['ip'].includes(item.colKey as string),
       field: item.colKey as string,
