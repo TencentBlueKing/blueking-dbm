@@ -66,6 +66,31 @@ class Local(Singleton):
 
         return new_request_id()
 
+    @property
+    def tenant_id(self):
+        """获取租户ID"""
+        return getattr(_local, "tenant_id", None)
+
+    @tenant_id.setter
+    def tenant_id(self, value):
+        """设置租户ID"""
+        _local.tenant_id = value
+
+    def inject_tenant_id(self, tenant_id=None):
+        """
+        为当前执行上下文注入租户ID：
+        - 显式传入 tenant_id 时直接使用；
+        - 多租户环境：委托 resolve_tenant_id 统一解析（user > header > app > jwt > env）。
+        """
+        from backend.bk_web.tenant import resolve_tenant_id
+
+        if tenant_id:
+            self.tenant_id = tenant_id
+            return self.tenant_id
+
+        self.tenant_id = resolve_tenant_id(self.request)
+        return self.tenant_id
+
     def release(self):
         release_local(_local)
 

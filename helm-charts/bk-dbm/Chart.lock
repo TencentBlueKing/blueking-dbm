@@ -74,5 +74,8 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 3.0.1
-digest: sha256:8985d4ac2343ab1ff995045f57c30a382aa165e99f3a89d97b3bd486cf490143
-generated: "2026-09-03T19:57:00.540275+08:00"
+- name: tenant-router
+  repository: file://charts/tenant-router
+  version: 0.1.0
+digest: sha256:ff8107e8f62f5f16e2f9bf7eaa48534a5a33583b308af69c8a416d30edc3646f
+generated: "2026-09-07T20:08:13.035121+08:00"

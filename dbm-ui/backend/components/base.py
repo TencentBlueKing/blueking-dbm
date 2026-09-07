@@ -30,7 +30,6 @@ from backend import env
 from backend.components.constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
 from backend.components.domains import ESB_PREFIX
 from backend.components.exception import DataAPIException
-from backend.components.utils.handlers import get_virtual_username
 from backend.configuration.models.system import SystemSettings
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError, AppBaseException
 from backend.utils.local import local
@@ -444,10 +443,10 @@ class DataAPI(object):
             }
         if use_admin:
             # 使用管理员/平台身份调用接口
-            bkapi_auth_headers["bk_username"] = get_virtual_username()
+            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
         elif self.is_backend_request(local_request) and not self.use_param_user:
             # 后台调用(且不明确用户)，使用管理员/平台身份调用接口
-            bkapi_auth_headers["bk_username"] = get_virtual_username()
+            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
         elif local_request and local_request.COOKIES:
             # 根据不同环境，传递认证信息
             bkapi_auth_headers["bk_username"] = local_request.user.username
