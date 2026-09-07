@@ -8,10 +8,12 @@ redis_fullbackup:
     old_file_left_day: '2' # 旧文件本地保存天数
     tar_split: 'true'
     tar_split_part_size: '8G'
+    full_backup_tag: 'REDIS_FULL' # 上传备份系统时backup_client --tag参数,老dbmon无此配置时默认REDIS_FULL
 redis_binlogbackup:
     to_backup_system: 'no' #是否上传备份系统
     old_file_left_day: '2' # 旧文件本地保存天数
     cron: '42 * * * *' #从分开始
+    binlog_backup_tag: 'REDIS_BINLOG' # 上传备份系统时backup_client --tag参数,老dbmon无此配置时默认REDIS_BINLOG
 redis_heartbeat:
     cron: '@every 1h'  # refer https://pkg.go.dev/github.com/robfig/cron
 redis_monitor:

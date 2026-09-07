@@ -174,7 +174,8 @@ class RedisClusterDataCopyFlow(object):
                     },
                 )
                 dns_subs.append(sub_build)
-            sub_pipeline.add_parallel_sub_pipeline(dns_subs)
+            if dns_subs:
+                sub_pipeline.add_parallel_sub_pipeline(dns_subs)
 
             # 数据复制
             sub_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))

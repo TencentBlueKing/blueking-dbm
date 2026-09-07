@@ -66,13 +66,13 @@ func (job *CheckJob) Run() {
 	}
 	defer job.closeDB()
 
-	if job.Conf.RedisFullBackup.BackupFileTag == "" {
-		job.Conf.RedisFullBackup.BackupFileTag = consts.RedisFullBackupTAG
+	if job.Conf.RedisFullBackup.FullBackupTag == "" {
+		job.Conf.RedisFullBackup.FullBackupTag = consts.RedisFullBackupTAG
 	}
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, job.Conf.RedisFullBackup.BackupFileTag, job.Conf.BackupClientStrorageType)
+		consts.COSInfoFile, job.Conf.RedisFullBackup.FullBackupTag, job.Conf.BackupClientStrorageType)
 	if job.Err != nil && !strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 		return
 	}
