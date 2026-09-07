@@ -27,12 +27,6 @@ const MysqlManageLogsTable = "mysql_manage_logs"
 // SpiderManageLogsTable TODO
 const SpiderManageLogsTable = "spider_manage_logs"
 
-// MysqlPartitionConfigScr TODO
-const MysqlPartitionConfigScr = "mysql_partition_conf"
-
-// SpiderPartitionConfigScr TODO
-const SpiderPartitionConfigScr = "spider_partition_conf"
-
 // ExistRule TODO
 type ExistRule struct {
 	DbLike string `gorm:"column:dblike"`
