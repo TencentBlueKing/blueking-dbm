@@ -69,6 +69,24 @@ environment variables
 - name: {{ $key }}
   value: {{ $val | quote }}
 {{- end }}
+{{- /* 子路径模式：开启 dbm.subpath.enabled 时注入子路径相关变量，供后端按前缀拼接路由（prefix 默认 /bkdbm，需与 ingress path 前缀一致）。
+       注：该 helper 也被其它子 chart 以各自 .Values 调用，subpath 可能不存在，需用 default dict 兜底避免 nil pointer */ -}}
+{{- $sp := .Values.subpath | default dict -}}
+{{- if $sp.enabled }}
+- name: BK_SUBPATH_ENABLED
+  value: "true"
+- name: BK_SUBPATH_PREFIX
+  value: {{ $sp.prefix | default "/bkdbm" | quote }}
+- name: FORCE_SCRIPT_NAME
+  value: {{ $sp.prefix | default "/bkdbm" | quote }}
+{{- else }}
+- name: BK_SUBPATH_ENABLED
+  value: "false"
+- name: BK_SUBPATH_PREFIX
+  value: "/"
+- name: FORCE_SCRIPT_NAME
+  value: "/"
+{{- end }}
 {{- end }}
 
 {{- define "dbm.migrateJobName" -}}
