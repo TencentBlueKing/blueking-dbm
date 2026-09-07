@@ -302,8 +302,7 @@ export const getAlarmShieldList = (params: {
   is_active?: boolean;
   limit?: number;
   offset?: number;
-  time_range__gte?: string;
-  time_range__lte?: string;
+  time_range?: string;
 }) =>
   http
     .get<{
