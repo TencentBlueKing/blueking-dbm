@@ -11,8 +11,10 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-export * from './flowGraph';
-export * from './gatewayNode';
-export * from './layout';
-export * from './normalNode';
-export * from './startEndNode';
+/**
+ * 专家模式开关。
+ *
+ * 顶部导航负责开关，画布、搜索树、批量操作按它决定要不要给出强制操作，中间隔了 4 层组件，
+ * 逐层透传等于每一层都要声明一遍自己并不关心的 model，这里改用注入
+ */
+export const superUserModeInjectionKey: InjectionKey<Ref<boolean>> = Symbol('superUserMode');
