@@ -167,9 +167,13 @@ func (p *PredixyInstall) getClusterConfFileContent() {
 	conf = strings.Replace(conf, "{{redis_password}}", p.ConfParams.RedisPasswd, -1)
 	conf = strings.Replace(conf, "{{server:port}}", servers, -1)
 	conf = strings.Replace(conf, "{{worker_threads}}", strconv.Itoa(runtime.NumCPU()), -1)
+	clusterClientTimeout := "7200"
+	if p.ConfParams.DbConfig.ClientTimeout != "" {
+		clusterClientTimeout = p.ConfParams.DbConfig.ClientTimeout
+	}
 	conf = strings.Replace(conf, "{{server_timeout}}", p.ConfParams.DbConfig.ServerTimeout, -1)
 	conf = strings.Replace(conf, "{{keep_alive}}", p.ConfParams.DbConfig.KeepAlive, -1)
-	conf = strings.Replace(conf, "{{client_timeout}}", p.ConfParams.DbConfig.ClientTimeout, -1)
+	conf = strings.Replace(conf, "{{client_timeout}}", clusterClientTimeout, -1)
 	conf = strings.Replace(conf, "{{slowlog_Log_slower_than}}", slowloglogslowerthan, -1)
 	conf = strings.Replace(conf, "{{slowlog_max_len}}", slowlogmaxlen, -1)
 	conf = strings.Replace(conf, "{{predixy_admin_password}}", p.ConfParams.PredixyAdminPasswd, -1)
@@ -216,7 +220,7 @@ func (p *PredixyInstall) getStandaloneConfFileContent() {
 	if p.ConfParams.DbConfig.SlowlogMaxLen != "" {
 		slowlogmaxlen = p.ConfParams.DbConfig.SlowlogMaxLen
 	}
-	clientTimeout := "0"
+	clientTimeout := "7200"
 	if p.ConfParams.DbConfig.ClientTimeout != "" {
 		clientTimeout = p.ConfParams.DbConfig.ClientTimeout
 	}

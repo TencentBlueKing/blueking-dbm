@@ -1,13 +1,13 @@
 [
   {
     "conf_name": "clienttimeout",
-    "value_default": "0",
-    "value_allowed": "[0,300]",
+    "value_default": "7200",
+    "value_allowed": "[0,86400]",
     "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
-    "need_restart": 1,
+    "need_restart": 0,
     "flag_readonly": 0,
     "flag_visible": 1,
     "flag_status": 1,
