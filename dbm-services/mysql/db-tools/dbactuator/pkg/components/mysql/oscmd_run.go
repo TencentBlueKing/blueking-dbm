@@ -3,6 +3,7 @@ package mysql
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -12,6 +13,8 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 )
+
+const maxCatFileSize int64 = 10 * 1024 * 1024 // 10MB
 
 // OSCmdRunComp TODO
 type OSCmdRunComp struct {
@@ -62,8 +65,28 @@ func (s *SimpleCmd) Run(workDir string) *SimpleCmdResult {
 	}
 	fmt.Println(cmdLine)
 	switch s.CmdName {
-	case "mkdir", "ls", "cd", "chown", "chmod", "du", "df", "head", "tail", "grep":
+	case "mkdir", "ls", "cd", "chown", "chmod", "du", "df", "head", "tail", "grep", "cat", "jq":
+		// cat 命令需要先检查文件大小，超过 10MB 不允许执行
+		if s.CmdName == "cat" {
+			for _, arg := range s.CmdArgs {
+				if strings.HasPrefix(arg, "-") {
+					continue
+				}
+				fi, err := os.Stat(arg)
+				if err != nil {
+					cmdResult.err = errors.Wrapf(err, "stat file %s failed", arg)
+					cmdResult.ErrMsg = cmdResult.err.Error()
+					return cmdResult
+				}
+				if fi.Size() > maxCatFileSize {
+					cmdResult.err = fmt.Errorf("file %s size %dMB exceeds 10MB limit, not allowed to cat", arg, fi.Size()/1024/1024)
+					cmdResult.ErrMsg = cmdResult.err.Error()
+					return cmdResult
+				}
+			}
+		}
 		logger.Info("oscmd_run command:", cmdLine)
+		// 一定不能经过 shell
 		stdout, stderr, err := cmutil.ExecCommand(false, workDir, s.CmdName, s.CmdArgs...)
 		cmdResult.CmdStdout = stdout
 		cmdResult.CmdStderr = stderr

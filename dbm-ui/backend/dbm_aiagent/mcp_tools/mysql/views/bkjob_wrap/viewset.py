@@ -19,10 +19,12 @@ from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.concurrency import acquire_host_locks, release_host_locks
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.mysql_current_date_and_ip import CURRENT_DATE_AND_IP_SCRIPT
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.mysql_osinfo_get import OSINFO_GET_SCRIPT
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bkjob_wrap.mysql_query_disk_dir_size import DISK_DIR_SIZE_SCRIPT
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bkjob_wrap.mysql_current_date_and_ip import (
     MysqlCurrentDateAndIpInputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.bkjob_wrap.mysql_osinfo_get import MysqlOsinfoGetInputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bkjob_wrap.mysql_query_disk_dir_size import (
     MysqlQueryDiskDirSizeInputSerializer,
 )
@@ -123,6 +125,51 @@ class BKJobWrapMcpToolsViewSet(McpToolsViewSet):
             # 下发失败时立即释放锁，避免锁泄漏导致后续任务被误拒
             release_host_locks(name=name, bk_cloud_id=bk_cloud_id, ips=ips)
             raise
+        return Response(
+            {
+                "job_instance_id": job_instance_id,
+                "bk_scope_type": bk_scope_type,
+                "bk_scope_id": bk_scope_id,
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=_("获取目标机器的规格信息（内存、CPU、磁盘等），注意是总内存大小，cpu 核数等，不是监控指标"),
+        request_slz=MysqlOsinfoGetInputSerializer,
+        response_slz=ExecuteScriptOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.BKJOB_WRAP],
+        name_prefix="bkjob_wrap",
+        enable=True,
+        enable_callee_plan=False,
+    )
+    def mysql_osinfo_get(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        ips = sorted(set(self.get_param("ips")))
+        bk_scope_id = self.get_param("bk_scope_id")
+
+        username = request.user.username
+
+        # 机器存在 + 执行者校验（复用公共 helper）
+        hosts = check_machines_operator(bk_cloud_id=bk_cloud_id, ips=ips, username=username)
+        # 业务归属校验：IP 必须属于用户提供的 CMDB 业务ID，禁止猜测
+        bk_scope_type = "biz"  # 仅支持单业务，禁止 biz_set
+        check_ips_biz_scope(bk_scope_type=bk_scope_type, bk_scope_id=bk_scope_id, hosts=hosts)
+
+        script = OSINFO_GET_SCRIPT
+        name = "mysql_osinfo_get"
+        run_as = "mysql"
+
+        job_instance_id = execute_script(
+            name=name,
+            username=username,
+            bk_cloud_id=bk_cloud_id,
+            ips=ips,
+            script=script,
+            run_as=run_as,
+            bk_scope_type=bk_scope_type,
+            bk_scope_id=bk_scope_id,
+        )
         return Response(
             {
                 "job_instance_id": job_instance_id,

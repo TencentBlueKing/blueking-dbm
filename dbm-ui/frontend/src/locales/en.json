@@ -2362,7 +2362,7 @@
   "构造集群": "Construct Cluster",
   "构造源集群": "Construction Source Cluster",
   "访问 DB 的用户名，包括它的密码": "Username for accessing DB, including its password",
-  "权限模板，预定义账号拥有哪些权限": "Permission template, predefining what permissions an account has",
+  "权限模板，预定义账号拥有哪些权限": "Permission template, predefining what permissions an account has. Just template, not privilege items from db cluster, need to run grant ticket",
   "根据 grant 语法授予 DB 实例的访问权限": "Grant DB instance access permissions based on GRANT syntax",
   "你已选择所有权限": "You have selected all permissions",
   "非常规权限": "Non-standard Permission",
