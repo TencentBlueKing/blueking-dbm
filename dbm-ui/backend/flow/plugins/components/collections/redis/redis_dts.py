@@ -23,7 +23,7 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components import DRSApi
-from backend.db_meta.enums import ClusterType, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.constants import DtsOperateType, DtsTaskType
 from backend.db_services.redis.redis_dts.enums import (
@@ -365,8 +365,21 @@ class RedisDtsPrecheckService(BaseService):
                 cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=dst_domain)
             else:
                 cluster = Cluster.objects.get(id=dst_data["cluster_id"])
-            for proxy in cluster.proxyinstance_set.all():
-                dst_proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port))
+            if is_twemproxy_proxy_type(cluster.cluster_type) or is_predixy_proxy_type(cluster.cluster_type):
+                for proxy in cluster.proxyinstance_set.all():
+                    dst_proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port))
+            else:
+                # 目的集群无proxy层(如主从架构),直接使用运行中的master实例做连通性检查
+                for master in cluster.storageinstance_set.filter(
+                    instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
+                ):
+                    dst_proxy_addrs.append(master.machine.ip + ":" + str(master.port))
+        if not dst_proxy_addrs:
+            raise Exception(
+                "dst_cluster:{} dst_domain:{} has no reachable proxy/master address".format(
+                    dst_data.get("cluster_addr"), dst_domain
+                )
+            )
         self.log_info("check dst_cluster:{} proxy:{} connect".format(dst_domain, dst_proxy_addrs))
         DRSApi.redis_rpc(
             {

@@ -78,13 +78,13 @@ func (job *Job) Run() {
 	defer job.closeDB()
 
 	// 设置默认值，兼容老配置文件
-	if job.Conf.RedisFullBackup.BackupFileTag == "" {
-		job.Conf.RedisFullBackup.BackupFileTag = consts.RedisFullBackupTAG
+	if job.Conf.RedisFullBackup.FullBackupTag == "" {
+		job.Conf.RedisFullBackup.FullBackupTag = consts.RedisFullBackupTAG
 	}
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, job.Conf.RedisFullBackup.BackupFileTag, job.Conf.BackupClientStrorageType)
+		consts.COSInfoFile, job.Conf.RedisFullBackup.FullBackupTag, job.Conf.BackupClientStrorageType)
 	if job.Err != nil && !strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 		return
 	}
@@ -176,7 +176,7 @@ func (job *Job) createTasks() {
 				consts.NormalBackupType, svrItem.CacheBackupMode, job.RealBackupDir,
 				job.Conf.RedisFullBackup.TarSplit, job.Conf.RedisFullBackup.TarSplitPartSize,
 				svrItem.ServerShards[instStr], job.Reporter,
-				job.Conf.BackupClientStrorageType, job.Conf.RedisFullBackup.BackupFileTag,
+				job.Conf.BackupClientStrorageType, job.Conf.RedisFullBackup.FullBackupTag,
 				job.sqdb)
 			if job.Err != nil {
 				return

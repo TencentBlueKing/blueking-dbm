@@ -30,7 +30,9 @@ type ConfServerItem struct {
 
 // ConfRedisFullBackup 全备配置
 type ConfRedisFullBackup struct {
-	BackupFileTag  string `json:"backup_file_tag" mapstructure:"backup_file_tag"`
+	// FullBackupTag 全备上传备份系统时使用的tag(backup_client --tag参数)，对应dbconfig conf_name: full_backup_tag
+	// 兼容老dbmon没有该配置的情况，为空时使用默认值 consts.RedisFullBackupTAG
+	FullBackupTag  string `json:"full_backup_tag" mapstructure:"full_backup_tag"`
 	ToBackupSystem string `json:"to_backup_system" mapstructure:"to_backup_system"`
 
 	Cron             string `json:"cron" mapstructure:"cron"`
@@ -41,8 +43,10 @@ type ConfRedisFullBackup struct {
 
 // ConfRedisBinlogBackup binlog备份配置
 type ConfRedisBinlogBackup struct {
-	BackupFileTag  string `json:"backup_file_tag" mapstructure:"backup_file_tag"`
-	ToBackupSystem string `json:"to_backup_system" mapstructure:"to_backup_system"`
+	// BinlogBackupTag binlog上传备份系统时使用的tag(backup_client --tag参数)，对应dbconfig conf_name: binlog_backup_tag
+	// 兼容老dbmon没有该配置的情况，为空时使用默认值 consts.RedisBinlogTAG
+	BinlogBackupTag string `json:"binlog_backup_tag" mapstructure:"binlog_backup_tag"`
+	ToBackupSystem  string `json:"to_backup_system" mapstructure:"to_backup_system"`
 
 	Cron           string `json:"cron" mapstructure:"cron"`
 	OldFileLeftDay int    `json:"old_file_left_day" mapstructure:"old_file_left_day"`
@@ -116,14 +120,14 @@ func loadConfigFile() {
 	if conf.RedisFullBackup.OldFileLeftDay == 0 {
 		conf.RedisFullBackup.OldFileLeftDay = 3 // 默认全备保留天数
 	}
-	if conf.RedisFullBackup.BackupFileTag == "" {
-		conf.RedisFullBackup.BackupFileTag = consts.RedisFullBackupTAG // 默认全备文件标签
+	if conf.RedisFullBackup.FullBackupTag == "" {
+		conf.RedisFullBackup.FullBackupTag = consts.RedisFullBackupTAG // 默认全备文件标签，兼容老dbmon没有该配置的情况
 	}
 	if conf.RedisBinlogBackup.OldFileLeftDay == 0 {
 		conf.RedisBinlogBackup.OldFileLeftDay = 3 // 默认binlog保留天数
 	}
-	if conf.RedisBinlogBackup.BackupFileTag == "" {
-		conf.RedisBinlogBackup.BackupFileTag = consts.RedisBinlogTAG // 默认binlog文件标签
+	if conf.RedisBinlogBackup.BinlogBackupTag == "" {
+		conf.RedisBinlogBackup.BinlogBackupTag = consts.RedisBinlogTAG // 默认binlog文件标签，兼容老dbmon没有该配置的情况
 	}
 	if conf.ReportLeftDay == 0 {
 		conf.ReportLeftDay = 15
