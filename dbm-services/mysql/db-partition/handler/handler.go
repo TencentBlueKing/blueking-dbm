@@ -295,34 +295,6 @@ func CreatePartitionLog(r *gin.Context) {
 	return
 }
 
-// MigrateConfig 迁移分区规则
-func MigrateConfig(r *gin.Context) {
-	var input service.MigratePara
-	err := r.ShouldBind(&input)
-	if err != nil {
-		err = errno.ErrReadEntity.Add(err.Error())
-		slog.Error(err.Error())
-		SendResponse(r, err, nil)
-		return
-	}
-	mysqlIds, mysqlFail, spiderIds, spiderFail, err := input.MigrateConfig()
-	info := "迁移成功"
-	if err != nil {
-		slog.Error("msg", "迁移失败", err.Error())
-		info = "迁移失败"
-	}
-	data := struct {
-		MigratedMysqlIds  []int  `json:"migrated_mysql_ids"`
-		MysqlMigrateFail  []int  `json:"mysql_migrate_fail"`
-		MigratedSpiderIds []int  `json:"migrated_spider_ids"`
-		SpiderMigrateFail []int  `json:"spider_migrate_fail"`
-		Info              string `json:"info"`
-	}{mysqlIds, mysqlFail, spiderIds,
-		spiderFail, info}
-	SendResponse(r, err, data)
-	return
-}
-
 // CronEntries 查询定时任务
 func CronEntries(r *gin.Context) {
 	var entries []cron_pkg.Entry
