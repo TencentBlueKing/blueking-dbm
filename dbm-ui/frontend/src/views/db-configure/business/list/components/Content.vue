@@ -104,6 +104,8 @@
 </script>
 
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .database-content {
     height: 100%;
 

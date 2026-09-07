@@ -216,13 +216,15 @@
 </script>
 
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .log-content {
     width: 100%;
     height: 100%;
 
     .log-tools {
-      display: flex;
-      align-items: center;
+      .flex-center();
+
       width: 100%;
       height: 42px;
       padding: 0 16px;
@@ -249,8 +251,7 @@
       .log-tools-bar {
         flex: 1;
         justify-content: flex-end;
-        display: flex;
-        align-items: center;
+        .flex-center();
 
         i {
           margin-left: 16px;

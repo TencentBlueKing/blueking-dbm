@@ -312,6 +312,8 @@
 </script>
 
 <style lang="less">
+  @import '@styles/mixins.less';
+
   .oracle-ha-instance-list-page {
     height: 100%;
     padding: 24px 0;

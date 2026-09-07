@@ -372,6 +372,8 @@
   };
 </script>
 <style lang="less">
+  @import '@styles/mixins.less';
+
   .service-apply-page {
     .history-list {
       display: flex;
