@@ -589,11 +589,12 @@
 </script>
 
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .db-ip-selector {
     .db-ip-selector-operations {
       justify-content: space-between;
-      display: flex;
-      align-items: center;
+      .flex-center();
     }
 
     .db-ip-selector-desc {

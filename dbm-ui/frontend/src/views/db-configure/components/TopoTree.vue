@@ -131,6 +131,8 @@
 </script>
 
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .config-tree {
     height: 100%;
     padding: 16px;
@@ -154,8 +156,8 @@
     }
 
     .config-tree-node {
-      display: flex;
-      align-items: center;
+      .flex-center();
+
       padding: 0 4px;
     }
 

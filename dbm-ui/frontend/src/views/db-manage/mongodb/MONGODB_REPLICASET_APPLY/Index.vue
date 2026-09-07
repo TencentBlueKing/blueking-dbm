@@ -471,46 +471,7 @@
 </script>
 
 <style lang="less" scoped>
-  .apply-form {
-    .apply-form-tips {
-      font-size: @font-size-mini;
-      color: @gray-color;
-
-      :deep(.bk-button-text) {
-        margin-left: 4px;
-        font-size: @font-size-mini;
-      }
-    }
-
-    .db-card {
-      margin-bottom: 16px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .bk-form-item:last-child {
-        margin-bottom: 0;
-      }
-    }
-
-    .inline-box {
-      display: inline-flex;
-      width: 220px;
-    }
-
-    :deep(.bk-radio-group) {
-      width: 435px;
-
-      .bk-radio-button {
-        flex: auto;
-      }
-
-      .bk-radio-button-label {
-        width: 100%;
-      }
-    }
-  }
+  @import '@styles/applyInstance.less';
 
   .apply-instance {
     :deep(.item-input) {

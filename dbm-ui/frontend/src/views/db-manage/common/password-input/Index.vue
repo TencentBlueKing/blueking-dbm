@@ -313,6 +313,8 @@
 </script>
 
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .password-form-item {
     display: flex;
 
