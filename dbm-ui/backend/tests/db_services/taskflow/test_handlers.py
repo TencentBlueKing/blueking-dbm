@@ -365,8 +365,8 @@ class TestTaskFlowHandler:
 
     @patch("backend.db_services.taskflow.handlers.TaskFlowHandler.bklog_esquery_search")
     @patch("backend.db_services.taskflow.handlers.TaskFlowHandler.get_node_histories")
-    def test_get_version_error_logs_for_dbactuator(self, mock_get_histories, mock_esquery, test_flow_node):
-        """测试获取节点错误日志"""
+    def test_get_version_error_logs(self, mock_get_histories, mock_esquery, test_flow_node):
+        """测试获取节点错误日志（dbm_log + dbactuator）"""
         now = timezone.now()
         mock_get_histories.return_value = [
             {
@@ -375,24 +375,47 @@ class TestTaskFlowHandler:
                 "version": taskflow.VERSION_ID,
             }
         ]
-        mock_esquery.return_value = [
-            {
-                "_source": {
-                    "log": '{"levelname": "ERROR", "msg": "Error message"}',
-                    "serverIp": "127.0.0.1",
-                    "time": "2023-01-01 12:00:00",
-                    "dtEventTimeStamp": "1672574400000",
-                    "gseIndex": "1",
-                    "iterationIndex": "1",
-                },
-                "_index": "test_dbactuator",
-            }
+        mock_esquery.side_effect = [
+            # dbm_log 错误日志
+            [
+                {
+                    "_source": {
+                        "log": '{"levelname": "ERROR", "msg": "Flow error message"}',
+                        "serverIp": "127.0.0.1",
+                        "time": "2023-01-01 12:00:00",
+                        "dtEventTimeStamp": "1672574400000",
+                        "gseIndex": "1",
+                        "iterationIndex": "1",
+                    },
+                    "_index": "2005000002_bklog_dbm_log",
+                }
+            ],
+            # dbactuator 错误日志
+            [
+                {
+                    "_source": {
+                        "log": '{"levelname": "ERROR", "msg": "Actuator error message"}',
+                        "serverIp": "127.0.0.1",
+                        "time": "2023-01-01 12:00:01",
+                        "dtEventTimeStamp": "1672574401000",
+                        "gseIndex": "1",
+                        "iterationIndex": "1",
+                    },
+                    "_index": "test_dbactuator",
+                }
+            ],
         ]
 
         handler = TaskFlowHandler(root_id=taskflow.ROOT_ID)
-        logs = handler.get_version_error_logs_for_dbactuator(node_id=taskflow.NODE_ID, version_id=taskflow.VERSION_ID)
+        logs = handler.get_version_error_logs(node_id=taskflow.NODE_ID, version_id=taskflow.VERSION_ID)
 
-        assert len(logs) >= 1
+        assert len(logs) == 2
+        assert logs[0]["levelname"] == "ERROR"
+        assert "Flow error message" in logs[0]["message"]
+        assert "Actuator error message" in logs[1]["message"]
+        assert mock_esquery.call_count == 2
+        assert "dbm_log" in mock_esquery.call_args_list[0].kwargs["indices"]
+        assert "dbm_dbactuator" in mock_esquery.call_args_list[1].kwargs["indices"]
 
     def test_generate_log_record(self):
         """测试生成日志记录"""

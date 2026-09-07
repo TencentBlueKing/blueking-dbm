@@ -346,10 +346,10 @@ class TaskFlowHandler:
             return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
         return logs
 
-    def get_version_error_logs_for_dbactuator(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
-        """仅获取指定节点版本的错误级别日志
+    def get_version_error_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
+        """获取指定节点版本的错误级别日志。
 
-        参考 get_version_logs 的实现，但仅查询 dbactuator 采集的日志，并增加 levelname:error 过滤。
+        默认同时查询 dbm_log（pod 采集）与 dbactuator 采集日志，按时间合并后返回。
         """
         if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
             return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
@@ -365,20 +365,36 @@ class TaskFlowHandler:
 
         start_time = datetime2str(history["started_time"])
         end_time = datetime2str(history["finished_time"] + timedelta(days=1))
+        error_filter = 'AND "levelname: error"'
 
-        # 仅查询 dbactuator 采集日志，并增加 error 级别过滤（兼容大小写）
-        query_string = f' {self.root_id} AND {node_id} AND {version_id} and "levelname: error"  '
-        logger.info(_("BKLog ERROR 查询DSL: {}").format(query_string))
+        # 默认扫描 dbm_log 错误日志（与 get_version_logs 同一套 pod 探测）
+        detected_pods = ["schedule", "worker", "dbsimulation", "dbpriv"]
+        detected_pods_query = " OR ".join([f"__ext.io_kubernetes_pod:*{pod}*" for pod in detected_pods])
+        dbm_logs_query = (
+            f'("{self.root_id}" AND "{node_id}" AND {version_id}) AND ({detected_pods_query}) {error_filter}'
+        )
+        logger.info(_("BKLog DBM_LOG ERROR 查询DSL: {}").format(dbm_logs_query))
+        dbm_logs = self.bklog_esquery_search(
+            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log",
+            query_string=dbm_logs_query,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        # 查询 dbactuator 采集的错误日志
+        dbm_dbactuator_query = f'"{self.root_id}" AND "{node_id}" AND {version_id} {error_filter}'
+        logger.info(_("BKLog DBACTUATOR ERROR 查询DSL: {}").format(dbm_dbactuator_query))
         dbm_dbactuator_logs = self.bklog_esquery_search(
             indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
-            query_string=query_string,
+            query_string=dbm_dbactuator_query,
             start_time=start_time,
             end_time=end_time,
         )
         logger.info(_("BKLog DBACTUATOR 查询结果: {}").format(dbm_dbactuator_logs))
+
         logs: List[Dict] = []
         sorted_hits = sorted(
-            dbm_dbactuator_logs,
+            dbm_logs + dbm_dbactuator_logs,
             key=lambda x: (
                 int(x["_source"]["dtEventTimeStamp"]),
                 int(x["_source"]["gseIndex"]),
