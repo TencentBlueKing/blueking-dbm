@@ -144,8 +144,8 @@
       const englishName = currentBiz.value?.english_name;
       hasEnglishName.value = !!englishName;
       appAbbr.value = englishName ?? '';
-      // 从申请实例 跳转过来，或单据克隆，需要同步数据出去
-      if ((route.query.bizId || route.query.ticketType) && currentBiz.value) {
+      // 业务由页面自动带出时，也要把业务信息同步给提单页
+      if (currentBiz.value) {
         handleAppChange(currentBiz.value);
       }
     },

@@ -451,7 +451,7 @@
   });
 
   // 基础设置
-  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   useTicketDetail<Mysql.SingleApply>(TicketTypes.MYSQL_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
@@ -719,14 +719,12 @@
    * 变更业务选择
    */
   const handleChangeBiz = (info: BizItem) => {
-    // 仅当业务真的变化时才清空模块选择，避免单据回显阶段 BusinessItems 自动 emit changeBiz 误清空
-    if (info.bk_biz_id !== formData.bk_biz_id) {
-      formData.details.db_module_id = null;
-    }
-    bizState.info = info;
-    bizState.hasEnglishName = !!info.english_name;
+    const bizChanged = applyBizInfo(info);
     serviceApply?.changeBizId(info.bk_biz_id);
-
+    if (!bizChanged) {
+      return;
+    }
+    formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
     formData.details.nodes.proxy = [];
     moduleRef.value?.clearValidate();
