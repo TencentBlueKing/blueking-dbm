@@ -20,18 +20,17 @@
     <InfoItem :label="t('业务代号')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
+  <InfoList>
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
-  </InfoList>
-  <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
-  <InfoList>
     <InfoItem :label="t('SQLServer 起始端口')">
       {{ ticketDetails.details.start_mssql_port || '--' }}
     </InfoItem>
   </InfoList>
-  <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
     <InfoItem :label="t('集群数量')">
       {{ ticketDetails.details.cluster_count }}
@@ -39,9 +38,9 @@
     <InfoItem :label="t('每组主机部署集群')">
       {{ ticketDetails.details.inst_num }}
     </InfoItem>
-    <InfoItem :label="t('服务器选择')">
+    <!-- <InfoItem :label="t('服务器选择')">
       {{ ticketDetails.details.ip_source === 'resource_pool' ? t('自动从资源池匹配') : t('业务空闲机') }}
-    </InfoItem>
+    </InfoItem> -->
     <template v-if="resourceSpecs">
       <InfoItem :label="t('后端存储规格')">
         <SpecDetailPopover
@@ -54,7 +53,7 @@
           </span>
         </SpecDetailPopover>
       </InfoItem>
-      <InfoItem :label="t('Proxy 资源标签')">
+      <InfoItem :label="t('后端存储资源标签')">
         <template v-if="resourceSpecs.label_names?.length">
           <DbTag
             v-for="item in resourceSpecs.label_names"
@@ -126,6 +125,10 @@
       </TicketInfoTable>
     </InfoItem>
   </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -138,6 +141,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {

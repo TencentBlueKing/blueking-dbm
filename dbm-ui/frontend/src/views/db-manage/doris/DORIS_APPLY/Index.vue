@@ -41,7 +41,7 @@
         ref="regionRequirements"
         v-model="formData.details"
         @cloud-change="handleCloudChange" />
-      <DbCard :title="t('部署需求')">
+      <DbCard :title="t('部署配置')">
         <BkFormItem
           :label="t('Doris版本')"
           property="details.db_version"
@@ -50,6 +50,34 @@
             v-model="formData.details.db_version"
             :db-type="DBTypes.DORIS"
             query-key="doris" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('查询端口')"
+          property="details.query_port"
+          required>
+          <DbInput
+            v-model="formData.details.query_port"
+            clearable
+            :max="65535"
+            :min="1024"
+            show-clear-only-hover
+            style="width: 185px"
+            type="number" />
+          <span class="input-desc">{{ t('范围min_max', { min: 1024, max: 65535 }) }}</span>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('http端口')"
+          property="details.http_port"
+          required>
+          <DbInput
+            v-model="formData.details.http_port"
+            clearable
+            :max="65535"
+            :min="1024"
+            show-clear-only-hover
+            style="width: 185px"
+            type="number" />
+          <span class="input-desc">{{ t('范围min_max', { min: 1024, max: 65535 }) }}</span>
         </BkFormItem>
         <!-- <BkFormItem
           :label="t('服务器选择')"
@@ -374,39 +402,18 @@
             </BkFormItem>
           </div>
         </Transition>
-        <BkFormItem
-          :label="t('查询端口')"
-          property="details.query_port"
-          required>
-          <DbInput
-            v-model="formData.details.query_port"
-            clearable
-            :max="65535"
-            :min="1024"
-            show-clear-only-hover
-            style="width: 185px"
-            type="number" />
-          <span class="input-desc">{{ t('范围min_max', { min: 1024, max: 65535 }) }}</span>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('http端口')"
-          property="details.http_port"
-          required>
-          <DbInput
-            v-model="formData.details.http_port"
-            clearable
-            :max="65535"
-            :min="1024"
-            show-clear-only-hover
-            style="width: 185px"
-            type="number" />
-          <span class="input-desc">{{ t('范围min_max', { min: 1024, max: 65535 }) }}</span>
-        </BkFormItem>
+      </DbCard>
+      <DbCard :title="t('补充信息')">
         <EstimatedCost
           :params="{
             db_type: DBTypes.DORIS,
             resource_spec: formData.details.resource_spec,
           }" />
+        <NotifyRelatedPersons
+          ref="notifyRelatedPersonsRef"
+          v-model="formData.config.send_msg_config"
+          :biz-id="formData.bk_biz_id"
+          :db-type="DBTypes.DORIS" />
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
@@ -451,7 +458,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MessageTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -461,6 +468,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -478,9 +486,17 @@
   useTicketDetail<Doris.Apply>(TicketTypes.DORIS_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -542,6 +558,13 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
       bk_cloud_id: 0,
       city_code: '',
@@ -609,6 +632,7 @@
   const specObserverRef = ref<InstanceType<typeof SpecSelector>>();
   const specHotRef = ref<InstanceType<typeof SpecSelector>>();
   const specWarmRef = ref<InstanceType<typeof SpecSelector>>();
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
   const totalCapacity = ref(0);
   const isClickSubmit = ref(false);
   const cloudInfo = ref({
@@ -974,6 +998,9 @@
 
       const params = {
         ...formData,
+        config: {
+          send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+        },
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据

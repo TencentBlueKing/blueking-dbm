@@ -42,7 +42,7 @@
         ref="regionRequirements"
         v-model="formData.details"
         @cloud-change="handleCloudChange" />
-      <DbCard :title="t('部署需求')">
+      <DbCard :title="t('部署配置')">
         <BkFormItem
           :label="t('Hadoop版本')"
           property="details.db_version"
@@ -337,11 +337,18 @@
             </BkFormItem>
           </div>
         </Transition>
+      </DbCard>
+      <DbCard :title="t('补充信息')">
         <EstimatedCost
           :params="{
             db_type: DBTypes.HDFS,
             resource_spec: formData.details.resource_spec,
           }" />
+        <NotifyRelatedPersons
+          ref="notifyRelatedPersonsRef"
+          v-model="formData.config.send_msg_config"
+          :biz-id="formData.bk_biz_id"
+          :db-type="DBTypes.HDFS" />
         <BkFormItem
           :label="t('备注')"
           property="remark">
@@ -388,7 +395,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MessageTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -397,6 +404,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -411,9 +419,17 @@
   useTicketDetail<Hdfs.Apply>(TicketTypes.HDFS_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -455,6 +471,13 @@
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
       bk_cloud_id: 0,
       city_code: '',
@@ -516,6 +539,7 @@
   const specDatanodeRef = ref();
   const specNamenodeRef = ref();
   const specZookeeperRef = ref();
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
   const totalCapacity = ref(0);
 
   const cloudInfo = reactive({
@@ -713,6 +737,9 @@
 
       const params = {
         ...formData,
+        config: {
+          send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+        },
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
