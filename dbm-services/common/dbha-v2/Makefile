@@ -92,6 +92,8 @@ PROBE_TEMPLATES  = probe.yaml
 PROBE_SNIPPETS   = probe_mysql_shard.yaml probe_redis_shard.yaml
 
 GUARD_UTILS_LIB = scripts/lib/guard-utils.sh
+# probe-only: lifecycle locking/fence helpers, deliberately not shipped to server
+PROBE_LIFECYCLE_LIB = scripts/lib/probe-lifecycle-utils.sh
 SERVER_SCRIPTS  = scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
                   scripts/deploy.sh scripts/render_configs.py
 PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
@@ -223,8 +225,9 @@ package-probe: probe
 	@chmod +x $(PROBE_PKG_DIR)/render_configs.py \
 		$(PROBE_PKG_DIR)/compare_probe_config.py
 	@mkdir -p $(PROBE_PKG_DIR)/lib
-	@cp $(GUARD_UTILS_LIB) $(PROBE_PKG_DIR)/lib/
-	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh
+	@cp $(GUARD_UTILS_LIB) $(PROBE_LIFECYCLE_LIB) $(PROBE_PKG_DIR)/lib/
+	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh \
+		$(PROBE_PKG_DIR)/lib/probe-lifecycle-utils.sh
 	@mkdir -p $(PROBE_PKG_DIR)/etc/templates/snippets
 	@cp $(addprefix etc/templates/,$(PROBE_TEMPLATES)) \
 		$(PROBE_PKG_DIR)/etc/templates/
