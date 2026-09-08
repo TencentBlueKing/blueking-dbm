@@ -81,7 +81,7 @@
     closable: false,
     radius: '2px',
     size: 'default',
-    stopPropagation: true,
+    stopPropagation: false,
     theme: '',
     type: '',
   });
@@ -97,7 +97,6 @@
   const overflowTips = ref('');
 
   const handleClick = (event: MouseEvent) => {
-    event.preventDefault();
     if (props.stopPropagation) {
       event.stopPropagation();
     }
