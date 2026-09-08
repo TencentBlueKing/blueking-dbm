@@ -17,6 +17,14 @@ urlpatterns = [
         "bizs/<int:bk_biz_id>/surrealdbsingle/",
         include("backend.db_services.kubernetes.surrealdb.surrealdbsingle.urls"),
     ),
+    path(
+        "bizs/<int:bk_biz_id>/vmstandard/",
+        include("backend.db_services.kubernetes.victoriametrics.victoriametricsstandard.urls"),
+    ),
+    path(
+        "bizs/<int:bk_biz_id>/vmquery/",
+        include("backend.db_services.kubernetes.victoriametrics.victoriametricsquery.urls"),
+    ),
     path("bizs/<int:bk_biz_id>/qdrantha/", include("backend.db_services.kubernetes.qdrant.urls")),
     path("", include("backend.db_services.kubernetes.surrealdb.toolbox.urls")),
 ]

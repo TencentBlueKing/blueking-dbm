@@ -66,7 +66,9 @@ class ClusterType(StrStructuredEnum):
     # k8s集群 HA/Single 拆分
     K8sSurrealdbHa = EnumField("k8s_surrealdb_ha", _("k8s SurrealDB集群版"))
     K8sSurrealdbSingle = EnumField("k8s_surrealdb_single", _("k8s SurrealDB单机版"))
+    K8sVictoriametricsStandard = EnumField("k8s_victoriametrics_standard", _("k8s VictoriaMetrics标准集群"))
     K8sVictoriametricsHa = EnumField("k8s_victoriametrics_ha", _("k8s VictoriaMetrics集群版"))
+    K8sVictoriametricsQuery = EnumField("k8s_victoriametrics_query", _("k8s VictoriaMetrics查询集群"))
     K8sRisingwaveHa = EnumField("k8s_risingwave_ha", _("k8s Risingwave集群版"))
     K8sGreptimedbHa = EnumField("k8s_greptimedb_ha", _("k8s GreptimeDB集群版"))
     K8sMilvusHa = EnumField("k8s_milvus_ha", _("k8s Milvus集群版"))
@@ -109,7 +111,11 @@ class ClusterType(StrStructuredEnum):
             DBType.Vm.value: [cls.Vm],
             DBType.Oracle.value: [cls.OraclePrimaryStandby, cls.OracleSingleNone],
             DBType.K8sSurrealdb.value: [cls.K8sSurrealdbHa, cls.K8sSurrealdbSingle],
-            DBType.K8sVictoriametrics.value: [cls.K8sVictoriametricsHa],
+            DBType.K8sVictoriametrics.value: [
+                cls.K8sVictoriametricsStandard,
+                cls.K8sVictoriametricsHa,
+                cls.K8sVictoriametricsQuery,
+            ],
             DBType.K8sRisingwave.value: [cls.K8sRisingwaveHa],
             DBType.K8sMilvus.value: [cls.K8sMilvusHa],
             DBType.K8sQdrant.value: [cls.K8sQdrantHa],
@@ -132,7 +138,9 @@ class ClusterType(StrStructuredEnum):
             for t in (
                 cls.K8sSurrealdbHa,
                 cls.K8sSurrealdbSingle,
+                cls.K8sVictoriametricsStandard,
                 cls.K8sVictoriametricsHa,
+                cls.K8sVictoriametricsQuery,
                 cls.K8sRisingwaveHa,
                 cls.K8sMilvusHa,
                 cls.K8sQdrantHa,
@@ -218,6 +226,9 @@ class ClusterType(StrStructuredEnum):
             cls.K8sQdrantHa.value: "qdrant",
             cls.K8sSurrealdbSingle: "surrealdb",
             cls.K8sSurrealdbHa: "surrealdb",
+            cls.K8sVictoriametricsStandard: "victoriametrics",
+            cls.K8sVictoriametricsHa: "victoriametrics",
+            cls.K8sVictoriametricsQuery: "victoriametrics",
         }
 
     @classmethod

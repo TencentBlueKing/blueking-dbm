@@ -29,7 +29,7 @@ class InstallK8sVmSceneApiView(FlowTestView):
             "created_by": "xxx",
             "remark": "xxxxx",
             "bk_biz_id": xxx,
-            "ticket_type": "K8S_VICTORIAMETRICS_APPLY",
+            "ticket_type": "K8S_VICTORIAMETRICS_STANDARD_APPLY",
             "db_app_abbr": "xxxx",
             "bk_biz_name": "蓝鲸",
             "bk_cloud_id": 0,

@@ -171,7 +171,11 @@ class K8sSurrealClusterResourceProvider(ClusterResourceProvider):
 
 class K8sVictoriametricsClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_VICTORIAMETRICS
-    cluster_types: ClusterType = [ClusterType.K8sVictoriametricsHa]
+    cluster_types: ClusterType = [
+        ClusterType.K8sVictoriametricsStandard,
+        ClusterType.K8sVictoriametricsHa,
+        ClusterType.K8sVictoriametricsQuery,
+    ]
 
 
 class K8sRisingwaveClusterResourceProvider(ClusterResourceProvider):
