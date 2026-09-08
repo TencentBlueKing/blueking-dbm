@@ -2,9 +2,9 @@
 # End-to-end concurrency tests for start-probe.sh / stop-probe.sh.
 #
 # Run: scripts/tests/test-probe-start-stop-race.sh
-# Requires a Go toolchain to build the stub binary in testdata/fake-probe
-# (skipped with a clear message when go is unavailable). crontab is mocked
-# through PATH, so the real user crontab is never touched.
+# Requires a Go toolchain to build the stub binary in testdata/fake-probe.
+# Missing go or a failed build exits 1. crontab is mocked through PATH, so the
+# real user crontab is never touched.
 
 # Deliberately no "set -e": a failing assertion must not abort the run, and
 # cleanup must always execute.
@@ -130,18 +130,18 @@ trap cleanup EXIT
 # --- build the stub and lay out a package-shaped install root ---
 
 if ! command -v go >/dev/null 2>&1; then
-    echo "SKIP: go toolchain not available, cannot build the probe stub"
-    exit 0
+    echo "FAIL: go toolchain not available, cannot build the probe stub" >&2
+    exit 1
 fi
 
 ROOT="$(mktemp -d)"
 mkdir -p "${ROOT}/bin" "${ROOT}/etc" "${ROOT}/pids" "${ROOT}/lib" "${ROOT}/logs"
 FAKE_BIN="${ROOT}/bin/dbha-probe"
 
-if ! (cd "$MODULE_DIR" && go build -o "$FAKE_BIN" ./scripts/tests/testdata/fake-probe) 2>/dev/null; then
-    if ! (cd "${SELF_DIR}/testdata/fake-probe" && go build -o "$FAKE_BIN" main.go); then
-        echo "SKIP: cannot build the probe stub"
-        exit 0
+if ! (cd "$MODULE_DIR" && GOWORK=off go build -o "$FAKE_BIN" ./scripts/tests/testdata/fake-probe); then
+    if ! (cd "${SELF_DIR}/testdata/fake-probe" && GOWORK=off go build -o "$FAKE_BIN" main.go); then
+        echo "FAIL: cannot build the probe stub" >&2
+        exit 1
     fi
 fi
 
@@ -562,8 +562,8 @@ old_pid="$(pids_of_kind daemon-start | head -n 1)"
 make_deleted_exe_orphan
 run_start
 assert_eq "O1 start after deleted exe exits 0" 0 $?
-if kill -0 "$old_pid" 2>/dev/null; then
-    fail "O1 old guard pid is gone" "still alive: ${old_pid}"
+if exe_belongs_here "$old_pid"; then
+    fail "O1 old guard pid is gone" "still a probe of this install: ${old_pid}"
 else
     ok "O1 old guard pid is gone"
 fi
@@ -574,29 +574,35 @@ if [ "$new_pid" = "$old_pid" ]; then
 else
     ok "O1 remaining guard is a new process"
 fi
+kill_test_procs
+: > "$MOCK_CRONTAB_FILE"
 
 run_start
 old_pid="$(pids_of_kind daemon-start | head -n 1)"
 make_deleted_exe_orphan
 run_stop
 assert_eq "O2 stop of deleted-exe orphan exits 0" 0 $?
-if kill -0 "$old_pid" 2>/dev/null; then
+if exe_belongs_here "$old_pid"; then
     fail "O2 orphan is gone after stop"
 else
     ok "O2 orphan is gone after stop"
 fi
 assert_eq "O2 no guard left" 0 "$(count_of_kind daemon-start)"
+kill_test_procs
+: > "$MOCK_CRONTAB_FILE"
 
 FAKE_PROBE_IGNORE_TERM=1 run_start
 old_pid="$(pids_of_kind daemon-start | head -n 1)"
 make_deleted_exe_orphan
 run_stop
 assert_eq "O3 IGNORE_TERM orphan stop exits 0" 0 $?
-if kill -0 "$old_pid" 2>/dev/null; then
+if exe_belongs_here "$old_pid"; then
     fail "O3 IGNORE_TERM orphan was KILLed"
 else
     ok "O3 IGNORE_TERM orphan was KILLed"
 fi
+kill_test_procs
+: > "$MOCK_CRONTAB_FILE"
 
 run_start
 old_pid="$(pids_of_kind daemon-start | head -n 1)"
@@ -605,7 +611,7 @@ rm -f "${ROOT}/pids/probe.pid"
 : > "$PROBE_LOG"
 DBHA_REAP_DELETED_EXE=0 run_start
 assert_eq "O4 reap-disabled start exits 0" 0 $?
-if kill -0 "$old_pid" 2>/dev/null; then
+if exe_belongs_here "$old_pid"; then
     ok "O4 orphan still alive when reap is disabled"
 else
     fail "O4 orphan still alive when reap is disabled"
@@ -628,7 +634,7 @@ printf '%s stop \n' "$now_ts" > "${ROOT}/pids/probe.intent"
 : > "$PROBE_LOG"
 run_start --intent-ts "$(( now_ts - 2000000000 ))"
 assert_eq "O5 start after orphan+later-stop exits 0" 0 $?
-if kill -0 "$old_pid" 2>/dev/null; then
+if exe_belongs_here "$old_pid"; then
     fail "O5 orphan reaped before the fence"
 else
     ok "O5 orphan reaped before the fence"
