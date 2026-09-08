@@ -28,10 +28,13 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('部署需求') }}</div>
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
   <InfoList>
-    <InfoItem :label="t('版本')">
+    <InfoItem :label="t('Pulsar 版本')">
       {{ ticketDetails.details.db_version || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('访问端口')">
+      {{ ticketDetails.details.port || '--' }}
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('Bookkeeper节点规格')">
@@ -160,9 +163,10 @@
     <InfoItem :label="t('至少写入成功副本数量')">
       {{ ticketDetails.details.ack_quorum || '--' }}
     </InfoItem>
-    <InfoItem :label="t('访问端口')">
-      {{ ticketDetails.details.port || '--' }}
-    </InfoItem>
+  </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
   </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
@@ -183,6 +187,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   type ServiceKeys = 'bookkeeper' | 'zookeeper' | 'broker';

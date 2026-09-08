@@ -19,48 +19,22 @@
     <InfoItem :label="t('业务代号')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
+  <InfoList>
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
-  </InfoList>
-  <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
-  <InfoList>
     <InfoItem :label="t('MySQL起始端口')">
       {{ ticketDetails?.details?.start_mysql_port || '--' }}
     </InfoItem>
-  </InfoList>
-  <div class="info-title mt-20">{{ t('需求信息') }}</div>
-  <InfoList>
-    <template v-if="ticketDetails.details.resource_spec?.backend">
-      <InfoItem :label="t('后端存储资源规格')">
-        <SpecDetailPopover
-          :data="ticketDetails.details.resource_spec.backend"
-          placement="top">
-          <span
-            class="pb-2"
-            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-            {{ ticketDetails.details.resource_spec.backend.spec_name }}（{{
-              `${ticketDetails.details.resource_spec.backend.count} ${t('台')}`
-            }}）
-          </span>
-        </SpecDetailPopover>
-      </InfoItem>
-      <InfoItem :label="t('后端存储资源标签')">
-        <template v-if="ticketDetails.details.resource_spec.backend.label_names?.length">
-          <DbTag
-            v-for="item in ticketDetails.details.resource_spec.backend.label_names"
-            :key="item">
-            {{ item }}
-          </DbTag>
-        </template>
-        <DbTag
-          v-else
-          theme="success">
-          {{ t('通用无标签') }}
-        </DbTag>
-      </InfoItem>
-    </template>
+    <InfoItem :label="t('实例数量')">
+      {{ ticketDetails?.details?.cluster_count || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('每台主机部署实例数量')">
+      {{ ticketDetails?.details?.inst_num || '--' }}
+    </InfoItem>
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
@@ -103,6 +77,39 @@
         </TicketInfoTableColumn>
       </TicketInfoTable>
     </InfoItem>
+    <template v-if="ticketDetails.details.resource_spec?.backend">
+      <InfoItem :label="t('后端存储资源规格')">
+        <SpecDetailPopover
+          :data="ticketDetails.details.resource_spec.backend"
+          placement="top">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ ticketDetails.details.resource_spec.backend.spec_name }}（{{
+              `${ticketDetails.details.resource_spec.backend.count} ${t('台')}`
+            }}）
+          </span>
+        </SpecDetailPopover>
+      </InfoItem>
+      <InfoItem :label="t('后端存储资源标签')">
+        <template v-if="ticketDetails.details.resource_spec.backend.label_names?.length">
+          <DbTag
+            v-for="item in ticketDetails.details.resource_spec.backend.label_names"
+            :key="item">
+            {{ item }}
+          </DbTag>
+        </template>
+        <DbTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </DbTag>
+      </InfoItem>
+    </template>
+  </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
   </InfoList>
 </template>
 
@@ -116,6 +123,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {
