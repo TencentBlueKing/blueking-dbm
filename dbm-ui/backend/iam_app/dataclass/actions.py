@@ -2754,6 +2754,18 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    # --- K8s Addon 管理（跨存储类型，作用于 K8s 集群级别）---
+    K8S_ADDON_MANAGE = ActionMeta(
+        id="k8s_addon_manage",
+        name=_("K8s Addon 管理"),
+        name_en="k8s_addon_manage",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("K8s数据库"),
+        subgroup=_("Addon管理"),
+    )
+
     # --- K8s SurrealDB ---
     K8S_SURREALDB_VIEW = ActionMeta(
         id="k8s_surrealdb_view",
