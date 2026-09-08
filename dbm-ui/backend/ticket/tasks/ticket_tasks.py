@@ -35,6 +35,7 @@ from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
 from backend.exceptions import ApiResultError
 from backend.ticket.builders.common.base import fetch_cluster_ids
@@ -371,15 +372,15 @@ class TicketTask(object):
     def auto_create_replenish_ticket(cls):
         """自动创建补货单据"""
 
+        # 如果有正在进行的补货记录，则跳过（与手动提单防重逻辑一致）
+        if ResourceReplenishRecord.is_latest_running():
+            logger.info(_("有正在进行的补货记录，跳过自动补货"))
+            return
+
         # 获取最新的资源水位数据
         water_level_data = ResourceHandler.calc_resource_water_level()
         water_level_infos = water_level_data["water_level"]
         operator = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_REPLENISH_MAINTAINER) or DEFAULT_SYSTEM_USER
-
-        # 如果有正在进行的水位记录，则跳过
-        if water_level_data["running_replenish_record"]:
-            logger.info(_("有正在进行的水位记录，跳过自动补货"))
-            return
 
         # 根据参考水位和资源水位计算补货数量
         replenish_infos = []
