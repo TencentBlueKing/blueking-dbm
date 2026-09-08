@@ -22,19 +22,18 @@
           v-for="(item, index) in localValue"
           :key="index"
           v-model="timePickerModel"
-          v-model:is-show="isShow"
           :current-index="currentIndex"
           :mode="mode"
           :time-ranges="localValue"
           @close="closeTimePicker"
           @confirm="handleTimePickerConfirm">
-          <BkTag
+          <DbTag
             v-bk-tooltips="{
               content: t('点击编辑'),
               disabled: disabled || currentIndex === index,
             }"
             class="time-tag editable-tag"
-            :class="{ editing: currentIndex === index && isShow }"
+            :class="{ editing: currentIndex === index && isEditing }"
             :closable="!disabled && localValue.length > 1"
             type="stroke"
             @click="(evt: MouseEvent) => handleClickItem(evt, index)"
@@ -47,11 +46,10 @@
               <span>-</span>
               <span>{{ handleFormatTime(item[1]) }}</span>
             </span>
-          </BkTag>
+          </DbTag>
         </TimePickerPopover>
         <TimePickerPopover
           v-model="timePickerModel"
-          v-model:is-show="isShow"
           :current-index="currentIndex"
           :mode="mode"
           :time-ranges="localValue"
@@ -113,7 +111,8 @@
 
   const { t } = useI18n();
 
-  const isShow = ref(false);
+  // 仅用于标记当前正在编辑的时间段（标签高亮），弹窗开关由 DbPopconfirm 内部的点击触发控制
+  const isEditing = ref(false);
   const mode = ref<EMode>(EMode.add);
   const currentIndex = ref(0);
   const localValue = ref<Array<TimeRange>>([]);
@@ -212,7 +211,7 @@
     if (props.disabled) {
       event.preventDefault();
       event.stopPropagation();
-      isShow.value = false;
+      isEditing.value = false;
       return;
     }
     mode.value = EMode.edit;
@@ -226,7 +225,7 @@
       startHour: parseInt(sH),
       startMinute: parseInt(sM),
     };
-    isShow.value = true;
+    isEditing.value = true;
   };
 
   const handleCloseItem = (index: number) => {
@@ -251,7 +250,6 @@
       startHour: Math.floor(start / 60),
       startMinute: start % 60,
     };
-    isShow.value = true;
   };
 
   const handleTimePickerConfirm = ({
@@ -274,11 +272,11 @@
       localValue.value[currentIndex.value] = newRange;
     }
     modelValue.value = localValue.value;
-    isShow.value = false;
+    isEditing.value = false;
   };
 
   const closeTimePicker = () => {
-    isShow.value = false;
+    isEditing.value = false;
     currentIndex.value = 0;
   };
 
