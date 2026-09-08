@@ -63,19 +63,36 @@ func (k *DbPodSets) waitClusterNodesReady(podIp string) error {
 	return nil
 }
 
-// execCreateClusterSQL executes one topology SQL; CREATE NODE gets limited short retries on connect/12034.
-func (k *DbPodSets) execCreateClusterSQL(sql string) error {
+// execCreateClusterSQL executes one topology statement; CREATE NODE gets limited short retries on connect/12034.
+func (k *DbPodSets) execCreateClusterSQL(stmt readyutil.CreateClusterStmt) error {
 	if k.DbWork == nil || k.DbWork.Db == nil {
 		return errors.New("exec create cluster sql failed: DbWork is nil")
 	}
-	if !readyutil.IsCreateNodeSQL(sql) {
-		_, err := k.DbWork.Db.Exec(sql)
+	switch stmt.Kind {
+	case readyutil.KindEnablePrimary:
+		_, err := k.DbWork.Db.Exec(readyutil.EnablePrimarySQL)
+		return err
+	case readyutil.KindFlushRouting:
+		_, err := k.DbWork.Db.Exec(readyutil.FlushRoutingSQL)
+		return err
+	case readyutil.KindCreateNode:
+		return k.execCreateNodeSQL(stmt)
+	default:
+		return errors.Errorf("unknown create cluster sql kind %q", stmt.Kind)
+	}
+}
+
+func (k *DbPodSets) execCreateNodeSQL(stmt readyutil.CreateClusterStmt) error {
+	if k.BaseInfo == nil {
+		return errors.New("exec create node sql failed: BaseInfo is nil")
+	}
+	wrapper, err := readyutil.SanitizeCreateNodeWrapper(stmt.Wrapper)
+	if err != nil {
 		return err
 	}
-
 	var lastErr error
 	for i := 0; i < createNodeRetryTimes; i++ {
-		_, lastErr = k.DbWork.Db.Exec(sql)
+		_, lastErr = k.DbWork.Db.Exec(readyutil.CreateNodeSQL, wrapper, k.BaseInfo.RootPwd, stmt.Port)
 		if lastErr == nil {
 			return nil
 		}
