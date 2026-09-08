@@ -286,7 +286,7 @@ class MySQLMigrateSingleFlow(object):
                                 "addresses": [master_model.ip_port],
                                 "cmds": ["show global variables like 'log_bin'"],
                                 "force": False,
-                                "bk_cloud_id": cluster_class.bk_cloud_id,
+                                "bk_cloud_id": cluster_model.bk_cloud_id,
                             }
                         )
                         if (
@@ -398,7 +398,7 @@ class MySQLMigrateSingleFlow(object):
                     act_component_code=MysqlCrondMonitorControlComponent.code,
                     kwargs=asdict(
                         CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            bk_cloud_id=cluster_model.bk_cloud_id,
                             exec_ips=[master_model.machine.ip],
                             name="dbbackup",
                             port=master_model.port,

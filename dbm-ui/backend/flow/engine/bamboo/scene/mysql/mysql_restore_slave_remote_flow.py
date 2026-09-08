@@ -221,7 +221,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     "add_slave_only": self.add_slave_only,
                     "mysql_port": master.port,
                     "cluster_id": cluster_model.id,
-                    "cluster_type": cluster_class.cluster_type,
+                    "cluster_type": cluster_model.cluster_type,
                     "master_ip": master.machine.ip,
                     "master_port": master.port,
                     "new_slave_ip": self.data["new_slave_ip"],
@@ -236,7 +236,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 if not self.add_slave_only:
                     cluster["restore_privilege"] = True
                     cluster["privilege_ips"] = [self.data["old_slave_ip"]]
-                    check_slave = cluster_class.storageinstance_set.get(
+                    check_slave = cluster_model.storageinstance_set.get(
                         machine__ip=self.data["old_slave_ip"], port=master.port
                     )
                     cluster["is_stand_by"] = check_slave.is_stand_by
@@ -322,7 +322,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         act_component_code=MysqlCrondMonitorControlComponent.code,
                         kwargs=asdict(
                             CrondMonitorKwargs(
-                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                bk_cloud_id=cluster_model.bk_cloud_id,
                                 exec_ips=[self.data["old_slave_ip"]],
                                 name="dbbackup",
                                 port=master.port,
