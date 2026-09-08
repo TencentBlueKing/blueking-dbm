@@ -28,9 +28,9 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('部署需求') }}</div>
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
   <InfoList>
-    <InfoItem :label="t('版本')">
+    <InfoItem :label="t('Hadoop 版本')">
       {{ ticketDetails.details.db_version || '--' }}
     </InfoItem>
     <template v-if="isFromResourcePool">
@@ -149,6 +149,10 @@
       </InfoItem>
     </template>
   </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
     :fetch-nodes="getTicketHostNodes"
@@ -170,6 +174,7 @@
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {

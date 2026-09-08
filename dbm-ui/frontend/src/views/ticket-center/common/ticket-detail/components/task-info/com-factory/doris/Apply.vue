@@ -28,14 +28,14 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
   <InfoList>
     <InfoItem :label="t('Doris版本')">
       {{ ticketDetails.details.db_version || '--' }}
     </InfoItem>
-    <InfoItem :label="t('服务器选择方式')">
+    <!-- <InfoItem :label="t('服务器选择方式')">
       {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
-    </InfoItem>
+    </InfoItem> -->
     <InfoItem :label="t('查询端口')">
       {{ ticketDetails.details.query_port || '--' }}
     </InfoItem>
@@ -200,6 +200,10 @@
       </InfoItem>
     </template>
   </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
   <HostPreview
     v-model:is-show="isPreviewShow"
     :fetch-nodes="getTicketHostNodes"
@@ -221,6 +225,7 @@
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {

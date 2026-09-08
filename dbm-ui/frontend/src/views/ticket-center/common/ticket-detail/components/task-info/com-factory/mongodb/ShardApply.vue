@@ -28,7 +28,7 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
   <InfoList>
     <InfoItem :label="t('MongoDB版本')">
       {{ ticketDetails.details.db_version || '--' }}
@@ -36,9 +36,6 @@
     <InfoItem :label="t('访问端口')">
       {{ ticketDetails.details.start_port || '--' }}
     </InfoItem>
-  </InfoList>
-  <div class="info-title mt-20">{{ t('需求信息') }}</div>
-  <InfoList>
     <InfoItem :label="t('Config Server资源规格')">
       <SpecDetailPopover
         v-if="configServerSpec"
@@ -149,6 +146,10 @@
       {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>
   </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -161,6 +162,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirementsMongodb.vue';
 
   interface Props {

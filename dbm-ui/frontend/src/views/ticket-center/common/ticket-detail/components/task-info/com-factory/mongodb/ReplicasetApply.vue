@@ -22,7 +22,7 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
   <InfoList>
     <InfoItem :label="t('MongoDB版本')">
       {{ ticketDetails.details.db_version || '--' }}
@@ -30,9 +30,6 @@
     <InfoItem :label="t('访问端口')">
       {{ ticketDetails.details.start_port || '--' }}
     </InfoItem>
-  </InfoList>
-  <div class="info-title mt-20">{{ t('需求信息') }}</div>
-  <InfoList>
     <InfoItem :label="t('部署副本集数量')">
       {{ ticketDetails.details.replica_count || '--' }}
     </InfoItem>
@@ -41,36 +38,6 @@
     </InfoItem>
     <InfoItem :label="t('Shard 节点数')">
       {{ ticketDetails.details.node_count || '--' }}
-    </InfoItem>
-    <InfoItem :label="t('规格')">
-      <SpecDetailPopover
-        v-if="backendSpec"
-        :data="backendSpec"
-        placement="top">
-        <span
-          class="pb-2"
-          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ backendSpec.spec_name }}（{{ `${backendSpec.count} ${t('台')}` }}）
-        </span>
-      </SpecDetailPopover>
-      <span v-else>--</span>
-    </InfoItem>
-    <InfoItem :label="t('资源标签')">
-      <template v-if="backendSpec && backendSpec.label_names?.length">
-        <DbTag
-          v-for="item in backendSpec.label_names"
-          :key="item">
-          {{ item }}
-        </DbTag>
-      </template>
-      <DbTag
-        v-else
-        theme="success">
-        {{ t('通用无标签') }}
-      </DbTag>
-    </InfoItem>
-    <InfoItem :label="t('每台主机 oplog 容量占比')">
-      {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
@@ -96,6 +63,40 @@
         </TicketInfoTableColumn>
       </TicketInfoTable>
     </InfoItem>
+    <InfoItem :label="t('后端存储规格')">
+      <SpecDetailPopover
+        v-if="backendSpec"
+        :data="backendSpec"
+        placement="top">
+        <span
+          class="pb-2"
+          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+          {{ backendSpec.spec_name }}（{{ `${backendSpec.count} ${t('台')}` }}）
+        </span>
+      </SpecDetailPopover>
+      <span v-else>--</span>
+    </InfoItem>
+    <InfoItem :label="t('后端存储资源标签')">
+      <template v-if="backendSpec && backendSpec.label_names?.length">
+        <DbTag
+          v-for="item in backendSpec.label_names"
+          :key="item">
+          {{ item }}
+        </DbTag>
+      </template>
+      <DbTag
+        v-else
+        theme="success">
+        {{ t('通用无标签') }}
+      </DbTag>
+    </InfoItem>
+    <InfoItem :label="t('每台主机 oplog 容量占比')">
+      {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
+    </InfoItem>
+  </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
   </InfoList>
 </template>
 
@@ -109,6 +110,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirementsMongodb.vue';
 
   interface Props {
