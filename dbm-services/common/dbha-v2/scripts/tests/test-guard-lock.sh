@@ -716,12 +716,15 @@ mkdir -p "${STUB}/bin" "${STUB}/pids"
 MODULE_DIR="$(cd "${SCRIPTS_DIR}/.." && pwd)"
 stub_built=0
 if command -v go >/dev/null 2>&1; then
-    if (cd "$MODULE_DIR" && go build -o "${STUB}/bin/dbha-probe" \
-            ./scripts/tests/testdata/fake-probe 2>/dev/null); then
+    if (cd "$MODULE_DIR" && GOWORK=off go build -o "${STUB}/bin/dbha-probe" \
+            ./scripts/tests/testdata/fake-probe); then
         stub_built=1
     elif (cd "${SCRIPTS_DIR}/tests/testdata/fake-probe" && \
-            go build -o "${STUB}/bin/dbha-probe" main.go 2>/dev/null); then
+            GOWORK=off go build -o "${STUB}/bin/dbha-probe" main.go); then
         stub_built=1
+    else
+        echo "FAIL: go is present but the probe stub failed to build" >&2
+        exit 1
     fi
 fi
 if [ "$stub_built" -eq 1 ]; then
@@ -855,10 +858,10 @@ if [ "${stub_built:-0}" -eq 1 ]; then
     kill -KILL "$sleep_pid" 2>/dev/null || true
 
     DBHA_REAP_DELETED_EXE=0
-    if kill -0 "$n_guard" 2>/dev/null; then
+    if probe_exe_deleted_matches "$n_guard" "dbha-probe" "$stub_exe"; then
         probe_reap_orphans "guard,worker" "$stub_exe" >/dev/null 2>&1
         assert_rc "N6 reap disabled returns 0" 0 $?
-        if kill -0 "$n_guard" 2>/dev/null; then
+        if probe_exe_deleted_matches "$n_guard" "dbha-probe" "$stub_exe"; then
             ok "N6 reap disabled leaves the orphan running"
         else
             fail "N6 reap disabled leaves the orphan running"
@@ -869,7 +872,7 @@ if [ "${stub_built:-0}" -eq 1 ]; then
     DBHA_REAP_DELETED_EXE=1
     probe_reap_orphans "guard,worker" "$stub_exe" >/dev/null 2>&1
     assert_rc "N7 reap clears the orphan" 0 $?
-    if kill -0 "$n_guard" 2>/dev/null; then
+    if probe_exe_deleted_matches "$n_guard" "dbha-probe" "$stub_exe"; then
         fail "N7 orphan gone after reap"
         kill -KILL "$n_guard" 2>/dev/null || true
     else
@@ -897,7 +900,7 @@ if [ "${stub_built:-0}" -eq 1 ]; then
         *) ok "N8 keepalive orphan rejects other addr" ;;
     esac
     probe_reap_keepalive_orphans "$stub_exe" "127.0.0.1:18080" >/dev/null 2>&1
-    if kill -0 "$n_ka" 2>/dev/null; then
+    if probe_exe_deleted_matches "$n_ka" "*" "$stub_exe"; then
         fail "N8 keepalive orphan reaped"
         kill -KILL "$n_ka" 2>/dev/null || true
     else

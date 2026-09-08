@@ -501,6 +501,7 @@ DBHA_LOCK_WAIT=5 ./stop-probe.sh
 回归测试：
 
 ```bash
+make test-scripts                             # 在 dbha-v2 目录：锁单测 + 并发启停（需 Go）
 scripts/tests/test-guard-lock.sh              # 锁/分类/栅栏/cron 收敛单测
 scripts/tests/test-probe-start-stop-race.sh   # 并发启停端到端（需 go 构建桩二进制）
 ```

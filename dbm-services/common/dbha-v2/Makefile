@@ -64,7 +64,7 @@ define GO_BUILD
 endef
 
 .PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr probe-sandbox-mock \
-        clean format test package package-server package-probe help \
+        clean format test test-scripts package package-server package-probe help \
         probe-windows package-probe-windows check-windows
 
 # package
@@ -184,6 +184,11 @@ format:
 test:
 	go test -v -race -cover ./...
 
+# probe start/stop shell suites (not part of `make test`; needs a Go toolchain)
+test-scripts:
+	bash scripts/tests/test-guard-lock.sh
+	bash scripts/tests/test-probe-start-stop-race.sh
+
 # build and package
 package: package-server package-probe package-probe-windows
 
@@ -288,5 +293,6 @@ help:
 	@echo "  package-probe-windows - Create Windows probe release package ($(VERSION)-probe-windows.zip)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
+	@echo "  test-scripts - Run probe start/stop shell suites (needs Go)"
 	@echo "  clean      - Clean build artifacts"
 	@echo "  help       - Show this help message"
