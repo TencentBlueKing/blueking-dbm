@@ -428,10 +428,6 @@ tlinux4_dependencies_script = """
                     fi
                 fi
                 {% endfor %}
-                if [ -L /usr/lib64/libmysqlclient.so.21 ]; then
-                    echo "Found symlink /usr/lib64/libmysqlclient.so.21, removing it"
-                    unlink /usr/lib64/libmysqlclient.so.21
-                fi
             else
                 echo "Skip installation: ID=$ID, VERSION_ID=$VERSION_ID (requires version 4.x+)"
                 exit 0
