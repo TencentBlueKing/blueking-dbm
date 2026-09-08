@@ -96,12 +96,14 @@
   );
 
   watch([ticketStatus, isAssist], () => {
-    dataTableRef.value!.fetchData();
-    dataTableRef.value!.resetSelection();
-    router.replace({
-      params: {
-        status: ticketStatus.value,
-      },
+    nextTick(() => {
+      dataTableRef.value!.fetchData();
+      dataTableRef.value!.resetSelection();
+      router.replace({
+        params: {
+          status: ticketStatus.value,
+        },
+      });
     });
   });
 
