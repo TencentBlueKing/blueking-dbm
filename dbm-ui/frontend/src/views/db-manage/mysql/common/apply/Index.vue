@@ -26,19 +26,19 @@
             v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="mysql_apply"
             @change-biz="handleChangeBiz" />
-          <ModuleItem
-            v-model="formData.details.db_module_id"
-            v-model:module-alias-name="moduleAliasName"
-            v-model:module-level-config="moduleLevelConfig"
-            :biz-id="formData.bk_biz_id"
-            :cluster-type="clusterType" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
           v-model="formData.details"
           :type="isSingleType ? 'single' : 'common'"
           @cloud-change="handleCloudChange" />
-        <DbCard :title="t('数据库部署信息')">
+        <DbCard :title="t('部署配置')">
+          <ModuleItem
+            v-model="formData.details.db_module_id"
+            v-model:module-alias-name="moduleAliasName"
+            v-model:module-level-config="moduleLevelConfig"
+            :biz-id="formData.bk_biz_id"
+            :cluster-type="clusterType" />
           <BkFormItem
             v-if="!isSingleType"
             :label="t('Proxy起始端口')"
@@ -73,8 +73,6 @@
               {{ t('多集群部署时_系统将从起始端口开始自动分配') }}
             </span>
           </BkFormItem>
-        </DbCard>
-        <DbCard :title="t('需求信息')">
           <BkFormItem
             :label="formItemLabels.clusterCount"
             property="details.cluster_count"
@@ -224,7 +222,7 @@
               </BkFormItem>
               <template v-else>
                 <BkFormItem
-                  :label="t('Proxy 存储资源规格')"
+                  label="Proxy"
                   required>
                   <div class="resource-pool-item">
                     <BkFormItem
@@ -254,10 +252,20 @@
                         labels: formData.details.resource_spec.proxy.labels.map((item) => item.id).join(','),
                       }"
                       property="details.resource_spec.proxy.labels" />
+                    <BkFormItem
+                      v-if="isClbShow"
+                      :label="t('负载均衡')"
+                      :required="false">
+                      <BkCheckbox
+                        v-model="formData.details.apply_clb"
+                        v-db-console="'common.clb'">
+                        CLB
+                      </BkCheckbox>
+                    </BkFormItem>
                   </div>
                 </BkFormItem>
                 <BkFormItem
-                  :label="t('后端存储资源规格')"
+                  :label="t('后端存储')"
                   required>
                   <div class="resource-pool-item">
                     <BkFormItem
@@ -292,11 +300,18 @@
               </template>
             </div>
           </Transition>
+        </DbCard>
+        <DbCard :title="t('补充信息')">
           <EstimatedCost
             :params="{
               db_type: DBTypes.MYSQL,
               resource_spec: resourceSepc,
             }" />
+          <NotifyRelatedPersons
+            ref="notifyRelatedPersonsRef"
+            v-model="formData.config.send_msg_config"
+            :biz-id="formData.bk_biz_id"
+            :db-type="DBTypes.MYSQL" />
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
@@ -369,7 +384,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, clusterTypeInfos, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, clusterTypeInfos, ClusterTypes, DBTypes, MessageTypes, OSTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -377,11 +392,14 @@
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
+
+  import { checkDbConsole } from '@utils';
 
   import DomainTable from './components/MySQLDomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
@@ -397,7 +415,15 @@
 
   const getFormData = () => ({
     bk_biz_id: '' as '' | number,
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
+      apply_clb: false,
       bk_cloud_id: 0,
       charset: '',
       city_code: '',
@@ -455,10 +481,18 @@
 
   useTicketDetail<Mysql.SingleApply>(TicketTypes.MYSQL_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
+      const { config, details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -506,13 +540,22 @@
 
   useTicketDetail<Mysql.HaApply>(TicketTypes.MYSQL_HA_APPLY, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
+      const { config, details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
+        apply_clb: details.apply_clb,
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_count: details.domains.length,
@@ -568,7 +611,10 @@
 
   const serviceApply = inject(serviceApplyKey);
 
+  const isClbShow = checkDbConsole('common.clb');
+
   const regionRequirementsRef = useTemplateRef('regionRequirements');
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
 
   const specProxyRef = ref();
   const specBackendRef = ref();
@@ -906,6 +952,11 @@
         const details: Record<string, any> = _.cloneDeep(formData.details);
         const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
+        // 单机架构无 Proxy，不上送负载均衡字段
+        if (isSingleType) {
+          delete details.apply_clb;
+        }
+
         if (formData.details.ip_source === 'resource_pool') {
           delete details.nodes;
           if (isSingleType) {
@@ -961,6 +1012,9 @@
 
       const params = {
         ...formData,
+        config: {
+          send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+        },
         details: getDetails(),
       };
 

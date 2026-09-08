@@ -19,13 +19,13 @@
     <InfoItem :label="t('业务代号')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
+  </InfoList>
+  <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
+  <InfoList>
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
-  </InfoList>
-  <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
-  <InfoList>
     <InfoItem :label="t('Proxy起始端口')">
       {{ ticketDetails.details.start_proxy_port || '--' }}
     </InfoItem>
@@ -33,7 +33,7 @@
       {{ ticketDetails.details.start_mysql_port || '--' }}
     </InfoItem>
   </InfoList>
-  <div class="info-title mt-20">{{ t('需求信息') }}</div>
+  <!-- <div class="info-title mt-20">{{ t('需求信息') }}</div> -->
   <InfoList>
     <InfoItem :label="t('数量')">
       {{ ticketDetails.details.cluster_count }}
@@ -65,6 +65,11 @@
           theme="success">
           {{ t('通用无标签') }}
         </DbTag>
+      </InfoItem>
+      <InfoItem
+        v-if="isClbShow"
+        :label="t('负载均衡')">
+        {{ ticketDetails.details.apply_clb ? 'CLB' : '--' }}
       </InfoItem>
     </template>
     <template v-if="ticketDetails.details.resource_spec?.backend_group">
@@ -134,6 +139,10 @@
       </TicketInfoTable>
     </InfoItem>
   </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
 </template>
 
 <script setup lang="ts">
@@ -145,7 +154,10 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  import { checkDbConsole } from '@utils';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {
@@ -160,6 +172,8 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const isClbShow = checkDbConsole('common.clb');
 </script>
 <style lang="less" scoped>
   .info-title {
