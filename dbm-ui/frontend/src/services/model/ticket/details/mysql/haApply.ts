@@ -1,6 +1,7 @@
 import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface HaApply extends DetailBase {
+  apply_clb?: boolean;
   bk_cloud_id: number;
   bk_cloud_name: string;
   charset: string;
