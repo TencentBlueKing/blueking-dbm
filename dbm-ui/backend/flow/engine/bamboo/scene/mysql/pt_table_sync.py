@@ -22,8 +22,10 @@ from backend.flow.consts import ACCOUNT_PREFIX
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.pt_table_sync import PtTableSyncComponent
+from backend.flow.plugins.components.collections.mysql.pt_table_sync_summary import PtTableSyncSummaryComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, PtTableSyncKwargs
+from backend.flow.utils.mysql.mysql_context_dataclass import PtTableSyncContext
 
 logger = logging.getLogger("flow")
 
@@ -88,6 +90,7 @@ class PtTableSyncFlow(object):
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
+                    "is_remote_rewritable": True,
                 }
             )
         if not acts_list:
@@ -130,6 +133,15 @@ class PtTableSyncFlow(object):
                         )
                     ),
                 )
+                # 追加摘要写入节点：从 trans_data.result[slave_ip] 展平为 (集群, ip, 库, 表) 行，合并写入 FlowSummary
+                slave_sync_sub_pipeline.add_act(
+                    act_name=_("写入数据修复摘要"),
+                    act_component_code=PtTableSyncSummaryComponent.code,
+                    kwargs={
+                        "cluster_domain": cluster.immute_domain,
+                        "slave_ip": slave["ip"],
+                    },
+                )
                 cluster_sync_sub_list.append(
                     slave_sync_sub_pipeline.build_sub_process(
                         sub_name=_("{}:{}做数据修复").format(slave["ip"], slave["port"])
@@ -143,4 +155,4 @@ class PtTableSyncFlow(object):
             raise Exception(_("修复单据找不到可修复的集群"))
 
         table_sync_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        table_sync_pipeline.run_pipeline(is_drop_random_user=True)
+        table_sync_pipeline.run_pipeline(is_drop_random_user=True, init_trans_data_class=PtTableSyncContext())

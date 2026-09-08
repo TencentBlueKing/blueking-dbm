@@ -430,3 +430,12 @@ class TendbClusterSpiderUpgradeContext:
     @staticmethod
     def get_alarm_shield_id_var_name() -> str:
         return "alarm_shield_id"
+
+
+@dataclass()
+class PtTableSyncContext:
+    """
+    定义数据修复的flow的上下文dataclass类
+    """
+
+    result: dict = field(default_factory=dict)

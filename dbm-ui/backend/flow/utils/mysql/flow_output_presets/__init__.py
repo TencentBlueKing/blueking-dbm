@@ -38,6 +38,7 @@ from backend.flow.utils.mysql.flow_output_presets.instance_change import (
 )
 from backend.flow.utils.mysql.flow_output_presets.message import MessageSummarySerializer
 from backend.flow.utils.mysql.flow_output_presets.precheck import PrecheckResultSummarySerializer
+from backend.flow.utils.mysql.flow_output_presets.pt_table_sync import PtTableSyncSummarySerializer
 from backend.flow.utils.mysql.flow_output_presets.sql_exec import SqlExecResultSummarySerializer
 
 __all__ = [
@@ -47,5 +48,6 @@ __all__ = [
     "PrecheckResultSummarySerializer",
     "SqlExecResultSummarySerializer",
     "MessageSummarySerializer",
+    "PtTableSyncSummarySerializer",
     "InstanceChangeAction",
 ]
