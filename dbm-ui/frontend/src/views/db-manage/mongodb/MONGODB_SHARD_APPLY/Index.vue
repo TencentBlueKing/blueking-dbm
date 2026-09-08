@@ -40,7 +40,7 @@
           ref="regionRequirements"
           v-model="formData.details"
           @cloud-change="handleCloudChange" />
-        <DbCard :title="t('数据库部署信息')">
+        <DbCard :title="t('部署配置')">
           <BkFormItem
             :label="t('MongoDB版本')"
             property="details.db_version"
@@ -70,8 +70,6 @@
               style="width: 185px"
               type="number" />
           </BkFormItem>
-        </DbCard>
-        <DbCard :title="t('需求信息')">
           <BkFormItem
             label="Config Server"
             required>
@@ -190,11 +188,18 @@
             </DbInput>
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
+        </DbCard>
+        <DbCard :title="t('补充信息')">
           <EstimatedCost
             :params="{
               db_type: DBTypes.MONGODB,
               resource_spec: resourceSepc,
             }" />
+          <NotifyRelatedPersons
+            ref="notifyRelatedPersonsRef"
+            v-model="formData.config.send_msg_config"
+            :biz-id="formData.bk_biz_id"
+            :db-type="DBTypes.MONGODB" />
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
@@ -241,7 +246,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, MessageTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import DbForm from '@components/db-form/index.vue';
@@ -250,6 +255,7 @@
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -260,6 +266,13 @@
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
       bk_cloud_id: 0,
       city_code: '',
@@ -320,9 +333,17 @@
   useTicketDetail<Mongodb.ShardApply>(TicketTypes.MONGODB_SHARD_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -372,6 +393,7 @@
   const formRef = ref<InstanceType<typeof DbForm>>();
   const mongoCofigSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongosSpecRef = ref<InstanceType<typeof SpecSelector>>();
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
 
   const applySchema = ref<APPLY_SCHEME>(APPLY_SCHEME.AUTO);
   const mongoConfigSpecData = ref<ComponentProps<typeof MongoConfigSpec>['specData']>();
@@ -518,6 +540,9 @@
 
     const params = {
       ...formData,
+      config: {
+        send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+      },
       details: {
         ...details,
         resource_spec: {

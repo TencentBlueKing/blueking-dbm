@@ -13,6 +13,13 @@
             v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="sqlserver_apply"
             @change-biz="handleChangeBiz" />
+        </DbCard>
+        <RegionRequirements
+          ref="regionRequirements"
+          v-model="formData.details"
+          :type="isSingleType ? 'single' : 'common'"
+          @cloud-change="handleCloudChange" />
+        <DbCard :title="t('部署配置')">
           <ModuleItem
             ref="moduleItemRef"
             v-model="formData.details.db_module_id"
@@ -20,13 +27,6 @@
             v-model:module-level-config="moduleLevelConfig"
             :biz-id="formData.bk_biz_id"
             :cluster-type="clusterType" />
-        </DbCard>
-        <RegionRequirements
-          ref="regionRequirements"
-          v-model="formData.details"
-          :type="isSingleType ? 'single' : 'common'"
-          @cloud-change="handleCloudChange" />
-        <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             :label="t('SQLServer 起始端口')"
             property="details.start_mssql_port"
@@ -39,8 +39,6 @@
               type="number" />
             <span class="ml-10">{{ t('默认从起始端口开始分配') }}</span>
           </BkFormItem>
-        </DbCard>
-        <DbCard :title="t('需求信息')">
           <BkFormItem
             :label="t('集群数量')"
             property="details.cluster_count"
@@ -132,7 +130,7 @@
               v-else
               class="mb-24">
               <BkFormItem
-                :label="t('后端存储资源规格')"
+                :label="t('后端存储')"
                 required>
                 <div class="resource-pool-item">
                   <BkFormItem
@@ -166,11 +164,18 @@
               </BkFormItem>
             </div>
           </Transition>
+        </DbCard>
+        <DbCard :title="t('补充信息')">
           <EstimatedCost
             :params="{
               db_type: DBTypes.SQLSERVER,
               resource_spec: resourceSepc,
             }" />
+          <NotifyRelatedPersons
+            ref="notifyRelatedPersonsRef"
+            v-model="formData.config.send_msg_config"
+            :biz-id="formData.bk_biz_id"
+            :db-type="DBTypes.SQLSERVER" />
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
@@ -245,13 +250,14 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MessageTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -271,9 +277,17 @@
   useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -323,9 +337,17 @@
   useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -379,6 +401,13 @@
 
   const initData = () => ({
     bk_biz_id: '' as '' | number,
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
       bk_cloud_id: 0,
       city_code: '',
@@ -423,6 +452,7 @@
 
   const formRef = ref();
   const backendRef = ref();
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
   const moduleItemRef = ref<InstanceType<typeof ModuleItem>>();
   const isShowPreview = ref(false);
   const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
@@ -639,6 +669,9 @@
     };
     const params = {
       ...formData,
+      config: {
+        send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+      },
       details: getDetails(),
     };
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
