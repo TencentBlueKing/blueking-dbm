@@ -21,6 +21,7 @@ repos:
       - id: flake8
         files: ^dbm-ui/backend/
         args: [--config=./dbm-ui/backend/.flake8]
+        language_version: python3.11
   - repo: local
     hooks:
       - id: goimports

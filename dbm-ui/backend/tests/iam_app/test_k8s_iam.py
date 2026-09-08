@@ -20,11 +20,13 @@ from backend.iam_app.dataclass.resources import ResourceEnum
 
 pytestmark = pytest.mark.django_db
 
-# 7 个 K8s 集群类型（SurrealDB 拆为 HA + Single，其余均为 HA）
+# 9 个 K8s 集群类型：SurrealDB HA/Single、VictoriaMetrics Cluster/HA/Select，其余为 HA。
 K8S_CLUSTER_TYPES = [
     ClusterType.K8sSurrealdbHa,
     ClusterType.K8sSurrealdbSingle,
+    ClusterType.K8sVictoriametricsCluster,
     ClusterType.K8sVictoriametricsHa,
+    ClusterType.K8sVictoriametricsSelect,
     ClusterType.K8sRisingwaveHa,
     ClusterType.K8sMilvusHa,
     ClusterType.K8sQdrantHa,
@@ -42,23 +44,29 @@ K8S_ACTION_SUFFIXES = [
     "manage",
 ]
 
-# 已落地 IAM Action 的类型。VictoriaMetrics / RisingWave / Milvus / GreptimeDB
-# 资源与 Provider 已注册，Action 待对应组件补齐后再加。
+# 已落地 IAM Action 的类型；RisingWave / GreptimeDB 的 Action 尚未落地。
 K8S_TYPE_ACTIONS = {
     "k8s_surrealdb": K8S_ACTION_SUFFIXES,
     "k8s_qdrant": K8S_ACTION_SUFFIXES,
+    "k8s_milvus": K8S_ACTION_SUFFIXES,
+    "k8s_victoriametrics": K8S_ACTION_SUFFIXES,
 }
 
-# IAM 限制 action id 最长 32 字符，victoriametrics 的 db_type 名过长，
-# 其 action id 前缀使用缩写 k8s_vm（其余类型 action 前缀与 db_type 一致）
+# IAM 限制 action id 最长 32 字符，仅 VictoriaMetrics enable_disable 使用缩写。
 K8S_ACTION_ID_PREFIX = {
     "k8s_surrealdb": "k8s_surrealdb",
-    "k8s_victoriametrics": "k8s_vm",
+    "k8s_victoriametrics": "k8s_victoriametrics",
     "k8s_risingwave": "k8s_risingwave",
     "k8s_milvus": "k8s_milvus",
     "k8s_qdrant": "k8s_qdrant",
     "k8s_greptimedb": "k8s_greptimedb",
 }
+
+
+def _k8s_action_id(prefix, suffix):
+    if prefix == "k8s_victoriametrics" and suffix == "enable_disable":
+        return "k8s_vm_enable_disable"
+    return f"{K8S_ACTION_ID_PREFIX[prefix]}_{suffix}"
 
 
 class TestK8sClusterTypeEnum:
@@ -88,7 +96,6 @@ class TestK8sClusterTypeEnum:
     def test_each_ha_only_k8s_cluster_type_maps_to_db_type(self):
         """HA-only 集群类型映射到各自 db_type"""
         ha_only = {
-            ClusterType.K8sVictoriametricsHa: "k8s_victoriametrics",
             ClusterType.K8sRisingwaveHa: "k8s_risingwave",
             ClusterType.K8sMilvusHa: "k8s_milvus",
             ClusterType.K8sQdrantHa: "k8s_qdrant",
@@ -99,6 +106,16 @@ class TestK8sClusterTypeEnum:
             assert db_type == expected_db_type
             types_for_db = ClusterType.db_type_to_cluster_types(expected_db_type)
             assert types_for_db == [ct]
+
+    def test_victoriametrics_types_map_to_shared_db_type(self):
+        expected = [
+            ClusterType.K8sVictoriametricsCluster,
+            ClusterType.K8sVictoriametricsHa,
+            ClusterType.K8sVictoriametricsSelect,
+        ]
+        assert ClusterType.db_type_to_cluster_types("k8s_victoriametrics") == expected
+        for cluster_type in expected:
+            assert ClusterType.cluster_type_to_db_type(cluster_type) == "k8s_victoriametrics"
 
     def test_k8s_container_cluster_type_values(self):
         assert ClusterType.k8s_container_cluster_type_values() == frozenset(ct.value for ct in K8S_CLUSTER_TYPES)
@@ -195,9 +212,8 @@ class TestK8sActionIds:
 
     def test_all_per_type_k8s_actions_exist_in_all_actions(self):
         for prefix, suffixes in K8S_TYPE_ACTIONS.items():
-            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             for suffix in suffixes:
-                action_id = f"{action_prefix}_{suffix}"
+                action_id = _k8s_action_id(prefix, suffix)
                 assert action_id in _all_actions, f"action_id {action_id!r} not found in _all_actions"
         assert "k8s_addon_manage" in _all_actions
 
@@ -205,9 +221,8 @@ class TestK8sActionIds:
         """所有 K8s action_id 格式符合 k8s_{type}_{action} 规范"""
         pattern = re.compile(r"^k8s_[a-z]+(_[a-z]+)*$")
         for prefix, suffixes in K8S_TYPE_ACTIONS.items():
-            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             for suffix in suffixes:
-                action_id = f"{action_prefix}_{suffix}"
+                action_id = _k8s_action_id(prefix, suffix)
                 assert pattern.match(action_id), f"{action_id!r} does not match expected pattern"
 
     def test_k8s_actions_count(self):
@@ -224,15 +239,18 @@ class TestK8sActionIds:
         """每种 K8s 集群类型 action 数均为 6 个（统一操作集 view/edit/apply/destroy/enable_disable/manage）"""
         action_prefix = K8S_ACTION_ID_PREFIX[cluster_type_prefix]
         matching = [aid for aid in _all_actions if aid.startswith(f"{action_prefix}_")]
+        if cluster_type_prefix == "k8s_victoriametrics":
+            matching.extend(aid for aid in _all_actions if aid.startswith("k8s_vm_"))
         expected_suffixes = K8S_TYPE_ACTIONS[cluster_type_prefix]
-        assert len(matching) == len(expected_suffixes), (
+        expected_ids = {_k8s_action_id(cluster_type_prefix, suffix) for suffix in expected_suffixes}
+        assert set(matching) == expected_ids, (
             f"{cluster_type_prefix} should have {len(expected_suffixes)} actions, " f"got {len(matching)}: {matching}"
         )
 
     def test_apply_actions_have_business_resource(self):
         """apply 类 action 的 related_resource_types 包含 BUSINESS"""
         for prefix in self.K8S_TYPE_PREFIXES:
-            action_id = f"{K8S_ACTION_ID_PREFIX[prefix]}_apply"
+            action_id = _k8s_action_id(prefix, "apply")
             action = _all_actions[action_id]
             resource_ids = [rt.id for rt in action.related_resource_types]
             assert (
@@ -243,10 +261,9 @@ class TestK8sActionIds:
         """非 apply 类 action 的 related_resource_types 包含对应 K8s 集群资源"""
         for prefix in self.K8S_TYPE_PREFIXES:
             expected_resource_id = prefix  # e.g. "k8s_surrealdb"（resource id 与 db_type 一致）
-            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             non_apply_suffixes = [s for s in K8S_TYPE_ACTIONS[prefix] if s != "apply"]
             for suffix in non_apply_suffixes:
-                action_id = f"{action_prefix}_{suffix}"
+                action_id = _k8s_action_id(prefix, suffix)
                 action = _all_actions[action_id]
                 resource_ids = [rt.id for rt in action.related_resource_types]
                 assert (
@@ -256,12 +273,11 @@ class TestK8sActionIds:
     def test_actions_have_db_manage_in_related_actions(self):
         """所有 K8s action 都将 db_manage 列为 related_actions（enable_disable/manage 除外，它们遵循已有模式引用对应 _view）"""
         for prefix in self.K8S_TYPE_PREFIXES:
-            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             for suffix in K8S_TYPE_ACTIONS[prefix]:
                 # enable_disable/manage 遵循代码库已有模式仅引用对应 _view（如 MYSQL_ENABLE_DISABLE → MYSQL_VIEW）
                 if suffix in ("enable_disable", "manage"):
                     continue
-                action_id = f"{action_prefix}_{suffix}"
+                action_id = _k8s_action_id(prefix, suffix)
                 action = _all_actions[action_id]
                 related_ids = [a if isinstance(a, str) else a.id for a in action.related_actions]
                 assert (
