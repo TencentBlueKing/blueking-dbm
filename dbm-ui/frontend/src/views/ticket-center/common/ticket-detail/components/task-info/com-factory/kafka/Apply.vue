@@ -28,39 +28,15 @@
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
-  <div class="info-title mt-20">{{ t('部署需求') }}</div>
+  <div class="info-title mt-20">{{ t('部署配置') }}</div>
   <InfoList>
-    <InfoItem :label="t('版本')">
+    <InfoItem :label="t('kafka 版本')">
       {{ ticketDetails.details.db_version || '--' }}
     </InfoItem>
+    <InfoItem :label="t('访问端口')">
+      {{ ticketDetails.details.port || '--' }}
+    </InfoItem>
     <template v-if="isFromResourcePool">
-      <InfoItem :label="t('Broker节点规格')">
-        <SpecDetailPopover
-          v-if="brokerSpec"
-          :data="brokerSpecInfo"
-          placement="top">
-          <span
-            class="pb-2"
-            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-            {{ brokerSpec.spec_name }}（{{ `${brokerSpec.count} ${t('台')}` }}）
-          </span>
-        </SpecDetailPopover>
-        <span v-else>--</span>
-      </InfoItem>
-      <InfoItem :label="t('Broker 节点资源标签')">
-        <template v-if="brokerSpec && brokerSpec.label_names?.length">
-          <DbTag
-            v-for="item in brokerSpec.label_names"
-            :key="item">
-            {{ item }}
-          </DbTag>
-        </template>
-        <DbTag
-          v-else
-          theme="success">
-          {{ t('通用无标签') }}
-        </DbTag>
-      </InfoItem>
       <InfoItem :label="t('Zookeeper节点规格')">
         <SpecDetailPopover
           v-if="zookeeperSpec"
@@ -78,6 +54,33 @@
         <template v-if="zookeeperSpec && zookeeperSpec.label_names?.length">
           <DbTag
             v-for="item in zookeeperSpec.label_names"
+            :key="item">
+            {{ item }}
+          </DbTag>
+        </template>
+        <DbTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </DbTag>
+      </InfoItem>
+      <InfoItem :label="t('Broker节点规格')">
+        <SpecDetailPopover
+          v-if="brokerSpec"
+          :data="brokerSpecInfo"
+          placement="top">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ brokerSpec.spec_name }}（{{ `${brokerSpec.count} ${t('台')}` }}）
+          </span>
+        </SpecDetailPopover>
+        <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Broker 节点资源标签')">
+        <template v-if="brokerSpec && brokerSpec.label_names?.length">
+          <DbTag
+            v-for="item in brokerSpec.label_names"
             :key="item">
             {{ item }}
           </DbTag>
@@ -120,9 +123,7 @@
     <InfoItem :label="t('总容量')">
       {{ totalCapacity }}
     </InfoItem>
-    <InfoItem :label="t('访问端口')">
-      {{ ticketDetails.details.port || '--' }}
-    </InfoItem>
+
     <InfoItem :label="t('Partition数量')">
       {{ ticketDetails.details.partition_num || '--' }}
     </InfoItem>
@@ -141,6 +142,10 @@
     <InfoItem :label="t('副本数量')">
       {{ ticketDetails.details.replication_num || '--' }}
     </InfoItem>
+  </InfoList>
+  <div class="info-title mt-20">{{ t('补充信息') }}</div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
   </InfoList>
   <HostPreview
     v-model:is-show="previewState.isShow"
@@ -163,6 +168,7 @@
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {
