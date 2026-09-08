@@ -708,10 +708,16 @@ class TicketType(StrStructuredEnum):
     K8S_QDRANT_RESTART = TicketEnumField("K8S_QDRANT_RESTART", _("Qdrant 集群重启"))
 
     # VICTORIAMETRICS K8s
-    K8S_VICTORIAMETRICS_APPLY = TicketEnumField("K8S_VICTORIAMETRICS_APPLY", _("VictoriaMetrics 集群部署"))
+    K8S_VICTORIAMETRICS_STANDARD_APPLY = TicketEnumField(
+        "K8S_VICTORIAMETRICS_STANDARD_APPLY", _("VictoriaMetrics 标准集群部署")
+    )
+    K8S_VICTORIAMETRICS_QUERY_APPLY = TicketEnumField(
+        "K8S_VICTORIAMETRICS_QUERY_APPLY", _("VictoriaMetrics 查询集群部署")
+    )
     K8S_VICTORIAMETRICS_ENABLE = TicketEnumField("K8S_VICTORIAMETRICS_ENABLE", _("VictoriaMetrics 集群启动"))
     K8S_VICTORIAMETRICS_DISABLE = TicketEnumField("K8S_VICTORIAMETRICS_DISABLE", _("VictoriaMetrics 集群停止"))
     K8S_VICTORIAMETRICS_DELETE = TicketEnumField("K8S_VICTORIAMETRICS_DELETE", _("VictoriaMetrics 集群卸载"))
+    K8S_VICTORIAMETRICS_DESTROY = TicketEnumField("K8S_VICTORIAMETRICS_DESTROY", _("VictoriaMetrics 集群删除"))
     K8S_VICTORIAMETRICS_RESTART = TicketEnumField("K8S_VICTORIAMETRICS_RESTART", _("VictoriaMetrics 集群重启"))
 
     # 资源池
