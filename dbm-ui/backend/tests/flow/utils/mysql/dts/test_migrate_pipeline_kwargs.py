@@ -28,7 +28,7 @@ def _builtin_task_spec(**overrides) -> DtsTaskSpec:
             SourceSpec(
                 cluster_id=100,
                 source_name="src-1",
-                sync_scope=SyncScope(do_dbs=["db_a"]),
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                 worker_name="worker-1",
             )
         ],
@@ -70,6 +70,7 @@ class DtsPlanSerializeTest(SimpleTestCase):
         self.assertEqual(restored.sources[0].cluster_id, 100)
         self.assertEqual(restored.sources[0].worker_name, "worker-1")
         self.assertEqual(restored.sources[0].sync_scope.do_dbs, ["db_a"])
+        self.assertEqual(restored.sources[0].sync_scope.do_tables, [{"schema": "*", "table": "*"}])
 
     def test_migrate_plan_roundtrip_json(self):
         original = _minimal_plan()

@@ -49,7 +49,13 @@ def _task_spec(
     return DtsTaskSpec(
         task_name=task_name,
         target_cluster_id=2,
-        sources=[SourceSpec(cluster_id=1, source_name="src-1", sync_scope=SyncScope(do_dbs=["db_a"]))],
+        sources=[
+            SourceSpec(
+                cluster_id=1,
+                source_name="src-1",
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+            )
+        ],
         target_config=TargetConfig(host="127.0.0.1", port=3306, user="u", password="p", cluster_type="mysql"),
         dts_task_config=DtsTaskConfig(
             full_load_engine=full_load_engine,
@@ -89,6 +95,10 @@ class BuildDtsTaskRequestFullMigrateTest(SimpleTestCase):
         self.assertIsNotNone(conf)
         self.assertEqual(conf.data_dir, EXPECTED_DATA_DIR)
         self.assertEqual(conf.disk_quota, "0")
+        source_conf = req.task.source_config.source_conf[0]
+        self.assertEqual(source_conf.table_filter.do_dbs, ["db_a"])
+        self.assertEqual(source_conf.table_filter.do_tables[0].table, "*")
+        self.assertEqual(req.task.table_migrate_rule, [])
 
     def test_builtin_requires_cluster_name(self):
         spec = _task_spec()
@@ -106,6 +116,7 @@ class BuildDtsTaskRequestFullMigrateTest(SimpleTestCase):
         )
         req = build_dts_task_request(_plan(), spec, user="u", password="p")
         self.assertIsNone(req.task.source_config.full_migrate_conf)
+        self.assertIsNotNone(req.task.source_config.source_conf[0].table_filter)
 
 
 class DumpFullMigrateEmptyStrTest(SimpleTestCase):

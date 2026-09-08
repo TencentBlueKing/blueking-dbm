@@ -56,7 +56,7 @@ def _myloader_task_spec(**kwargs) -> DtsTaskSpec:
             SourceSpec(
                 cluster_id=1,
                 source_name="src-1",
-                sync_scope=SyncScope(do_dbs=["db_a"]),
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                 myloader=MyloaderSpec(
                     myloader_dir="/data/dbbak/root1/dts_myloader/src-1",
                     myloader_path=DEFAULT_MYLOADER_PATH,
@@ -103,7 +103,11 @@ class BuildDtsTaskRequestMyloaderTest(SimpleTestCase):
                 "topology": MigrateTopology.ONE_TO_ONE.value,
                 "one_to_one": {
                     "task_name": "mysql-dts-1-1-2",
-                    "source": {"cluster_id": 1, "source_name": "src-1", "sync_scope": {"do_dbs": ["db_a"]}},
+                    "source": {
+                        "cluster_id": 1,
+                        "source_name": "src-1",
+                        "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]},
+                    },
                     "target": {"cluster_id": 2},
                 },
             },

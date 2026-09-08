@@ -42,7 +42,7 @@ class ScopeToChecksumPatternsTest(SimpleTestCase):
         _db_patterns, _ignore_dbs, table_patterns, _ignore_tables = _scope_to_checksum_patterns(scope)
         self.assertEqual(table_patterns, ["*"])
 
-    def test_table_routes_win_over_do_dbs(self):
+    def test_table_routes_win_over_db_patterns(self):
         scope = SyncScope(
             do_dbs=["should_not_use"],
             table_routes=[{"source_db": "bkapp-power--aqe", "source_table": "*"}],
@@ -51,14 +51,28 @@ class ScopeToChecksumPatternsTest(SimpleTestCase):
         self.assertEqual(db_patterns, ["bkapp-power--aqe"])
         self.assertEqual(table_patterns, ["*"])
 
-    def test_do_dbs_without_routes_unchanged(self):
-        db_patterns, ignore_dbs, table_patterns, ignore_tables = _scope_to_checksum_patterns(
-            SyncScope(do_dbs=["db_a"])
+    def test_same_name_percent_stays_checksum_percent(self):
+        from backend.flow.utils.mysql.dts.migrate_plan import _parse_sync_scope
+
+        scope = _parse_sync_scope(
+            {
+                "db_patterns": ["db%"],
+                "table_patterns": ["tb%"],
+                "ignore_tables": ["tb1%"],
+            }
         )
-        self.assertEqual(db_patterns, ["db_a"])
+        db_patterns, _ignore_dbs, table_patterns, ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(db_patterns, ["db%"])
+        self.assertEqual(table_patterns, ["tb%"])
+        self.assertEqual(ignore_tables, ["tb1%"])
+
+    def test_same_name_mid_percent_stays_checksum_percent(self):
+        from backend.flow.utils.mysql.dts.migrate_plan import _parse_sync_scope
+
+        scope = _parse_sync_scope({"db_patterns": ["pre%mid"], "table_patterns": ["*"]})
+        db_patterns, _ignore_dbs, table_patterns, _ignore_tables = _scope_to_checksum_patterns(scope)
+        self.assertEqual(db_patterns, ["pre%mid"])
         self.assertEqual(table_patterns, ["*"])
-        self.assertEqual(ignore_dbs, [])
-        self.assertEqual(ignore_tables, [])
 
 
 def _role_value(role):
@@ -176,7 +190,7 @@ class BuildDtsChecksumTicketInfoTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="source-100-abc",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                     source_host="127.0.0.1:3306",
                 )
             ],
@@ -257,7 +271,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="src-100",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                     source_host="127.0.0.12:20000",
                 )
             ],
@@ -284,7 +298,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="src-100",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                     source_host="127.0.0.12:20000",
                 )
             ],
@@ -308,7 +322,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="src-100",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                 )
             ],
         )
@@ -330,7 +344,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="src-100",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                     source_instance_role=InstanceRole.BACKEND_SLAVE.value,
                 )
             ],
@@ -359,7 +373,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="src-100",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                     source_host="127.0.0.12:20000",
                 )
             ],
@@ -383,7 +397,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=100,
                     source_name="src-100",
-                    sync_scope=SyncScope(do_dbs=["db_a"]),
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
                     source_host="127.0.0.12:20000",
                 )
             ],

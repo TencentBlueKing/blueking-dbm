@@ -19,6 +19,7 @@ from backend.db_meta.models import Cluster, Machine, MysqlDtsCluster
 from backend.db_meta.models.mysql_dts import MysqlDtsInfo
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.utils.mysql.dts.constants import (
     DtsLifecycleMode,
@@ -39,10 +40,11 @@ from backend.flow.utils.mysql.dts.migrate_plan import (
     resolve_ticket_destroy_policy,
     resolve_ticket_lifecycle,
 )
-from backend.flow.utils.mysql.dts.sync_scope_overlap import landing_objects, objects_overlap, source_objects
+from backend.flow.utils.mysql.dts.sync_scope_exist import scope_to_exist_query
+from backend.flow.utils.mysql.dts.sync_scope_overlap import landing_object_set, objects_overlap, source_object_set
 from backend.flow.utils.mysql.dts.task_name import patch_migrate_task_names_into_details
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.models import Ticket
 
@@ -72,10 +74,10 @@ class TableRouteSerializer(serializers.Serializer):
 
 
 class SyncScopeSerializer(serializers.Serializer):
-    do_dbs = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    ignore_dbs = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    do_tables = serializers.ListField(child=serializers.DictField(), required=False, default=list)
-    ignore_tables = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    db_patterns = serializers.ListField(child=DBTableField(db_field=True), required=False, default=list)
+    ignore_dbs = serializers.ListField(child=DBTableField(db_field=True), required=False, default=list)
+    table_patterns = serializers.ListField(child=DBTableField(), required=False, default=list)
+    ignore_tables = serializers.ListField(child=DBTableField(), required=False, default=list)
     table_routes = serializers.ListField(child=TableRouteSerializer(), required=False, default=list)
     binlog_filters = serializers.ListField(child=serializers.DictField(), required=False, default=list)
 
@@ -330,6 +332,11 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
         _validate_src_ne_dst(plans, has_infos=has_infos)
         if has_infos:
             _validate_infos_object_overlap(plans)
+        _validate_source_objects_exist(
+            plans,
+            bk_biz_id=self.context.get("bk_biz_id", plans[0].bk_biz_id),
+            has_infos=has_infos,
+        )
         return attrs
 
 
@@ -446,13 +453,13 @@ def _iter_plan_sources(plans):
 
 def _validate_sync_scope_nonempty(plans, *, has_infos: bool) -> None:
     """拦空同步范围（空规则在引擎侧等于全库，产品不允许靠空范围表达全量）。
-    生效：每行，三种迁移单。合法反例：do_dbs 列出库名，或 do_dbs=['*'] 表示整实例。
+    生效：每行，三种迁移单。合法反例：同名填写四列，或 table_routes；整实例 db_patterns=['*'] 且 table_patterns=['*']。
     """
     for idx, _spec, source in _iter_plan_sources(plans):
-        if source_objects(source.sync_scope):
+        if source_object_set(source.sync_scope):
             continue
         raise serializers.ValidationError(
-            gettext_runtime("{} 同步范围为空，请填写 do_dbs / table_routes（整实例全量请传 do_dbs=['*']）").format(
+            gettext_runtime("{} 同步范围为空，请填写 db_patterns / table_patterns 或 table_routes（整实例全量请传 ['*'] / ['*']）").format(
                 _row_label(idx, has_infos)
             )
         )
@@ -468,6 +475,39 @@ def _validate_src_ne_dst(plans, *, has_infos: bool) -> None:
         )
 
 
+def _validate_source_objects_exist(plans, *, bk_biz_id: int, has_infos: bool) -> None:
+    """通过 DRS 展开源端同步范围；库为空，或指定表后表为空，均拒单。"""
+    remote_handler = RemoteServiceHandler(bk_biz_id)
+    for idx, _spec, source in _iter_plan_sources(plans):
+        label = _row_label(idx, has_infos)
+        query = scope_to_exist_query(source.sync_scope)
+        try:
+            databases = remote_handler.show_database_with_pattern(
+                source.cluster_id,
+                query.dbs,
+                query.ignore_dbs,
+                keep_system_dbs=["test"] if "test" in query.dbs else [],
+            )
+            tables = (
+                remote_handler.show_table_with_pattern(source.cluster_id, databases, query.tables, query.ignore_tables)
+                if databases and query.need_check_tables
+                else None
+            )
+        except Exception as exc:
+            logger.exception(gettext_runtime("{} 查询源集群 {} 的迁移对象失败").format(label, source.cluster_id))
+            raise serializers.ValidationError(
+                gettext_runtime("{} 查询源集群 {} 的迁移对象失败: {}").format(label, source.cluster_id, str(exc))
+            ) from exc
+        if not databases:
+            raise serializers.ValidationError(
+                gettext_runtime("{} 在源集群 {} 上按同步范围匹配不到任何业务库").format(label, source.cluster_id)
+            )
+        if query.need_check_tables and not tables:
+            raise serializers.ValidationError(
+                gettext_runtime("{} 在源集群 {} 上按同步范围匹配不到任何业务表").format(label, source.cluster_id)
+            )
+
+
 def _validate_infos_object_overlap(plans) -> None:
     """拦 infos 中同一源+同一目标的库表对象重叠。
     生效：仅 infos[] 跨行。合法反例：同源同目标但库不同；同源不同目标同库。
@@ -475,7 +515,7 @@ def _validate_infos_object_overlap(plans) -> None:
     buckets: dict[tuple[int, int], list[tuple[int, set]]] = {}
     for idx, spec, source in _iter_plan_sources(plans):
         key = (source.cluster_id, spec.target_cluster_id)
-        buckets.setdefault(key, []).append((idx, source_objects(source.sync_scope)))
+        buckets.setdefault(key, []).append((idx, source_object_set(source.sync_scope)))
     for (src_id, dst_id), items in buckets.items():
         for left_i, left_objs in items:
             for right_i, right_objs in items:
@@ -495,7 +535,7 @@ def _validate_infos_rename_dest_landing(plans) -> None:
     """
     by_dst: dict[int, list[tuple[int, set]]] = {}
     for idx, spec, source in _iter_plan_sources(plans):
-        by_dst.setdefault(spec.target_cluster_id, []).append((idx, landing_objects(source.sync_scope)))
+        by_dst.setdefault(spec.target_cluster_id, []).append((idx, landing_object_set(source.sync_scope)))
     for dst_id, items in by_dst.items():
         for left_i, left_objs in items:
             for right_i, right_objs in items:
@@ -540,11 +580,35 @@ def _validate_mysql_to_mysql_cluster_types(migrate_plan) -> None:
             )
 
 
+def _walk_raw_sync_scopes(obj):
+    if isinstance(obj, dict):
+        scope = obj.get("sync_scope")
+        if isinstance(scope, dict):
+            yield scope
+        for value in obj.values():
+            yield from _walk_raw_sync_scopes(value)
+    elif isinstance(obj, list):
+        for item in obj:
+            yield from _walk_raw_sync_scopes(item)
+
+
+def _validate_same_name_sync_scope_contract(raw_details: dict) -> None:
+    """同名迁移：拒绝旧键 do_dbs/do_tables；db_patterns 与 table_patterns 均不能空。"""
+    for scope in _walk_raw_sync_scopes(raw_details):
+        if "do_dbs" in scope or "do_tables" in scope:
+            raise serializers.ValidationError(
+                gettext_runtime("同名迁移 sync_scope 请使用 db_patterns / table_patterns，不再支持 do_dbs / do_tables")
+            )
+        if not (scope.get("db_patterns") or []) or not (scope.get("table_patterns") or []):
+            raise serializers.ValidationError(gettext_runtime("同名迁移必须提供非空的 db_patterns 与 table_patterns（整实例请传 ['*']）"))
+
+
 class MysqlToMysqlMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
     """MySQL 数据迁移（HA/Single 互迁）入参校验。"""
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        _validate_same_name_sync_scope_contract(_raw_ticket_details(self, attrs))
         for plan in self.context.get("migrate_plans") or [self.context["migrate_plan"]]:
             _validate_mysql_to_mysql_cluster_types(plan)
         return attrs
@@ -567,9 +631,7 @@ def _validate_rename_routes(plan) -> None:
         for source in spec.sources:
             routes = source.sync_scope.table_routes or []
             if not routes:
-                raise serializers.ValidationError(
-                    gettext_runtime("重命名迁移必须提供 source.sync_scope.table_routes，不能只传 do_dbs")
-                )
+                raise serializers.ValidationError(gettext_runtime("重命名迁移必须提供 source.sync_scope.table_routes，不能只传库表四列"))
             for route in routes:
                 if not is_real_rename_route(route):
                     raise serializers.ValidationError(
@@ -964,6 +1026,15 @@ class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     inner_flow_name = _("MySQL 数据迁移")
 
 
+class MysqlHaToClusterMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
+    """HA → Cluster 同名迁移：四列契约与 MYSQL_TO_MYSQL 相同。"""
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        _validate_same_name_sync_scope_contract(_raw_ticket_details(self, attrs))
+        return attrs
+
+
 class MysqlHaToClusterMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
     controller = MySQLController.mysql_ha_to_cluster_migrate_scene
     migrate_type = "ha_to_cluster"
@@ -971,7 +1042,7 @@ class MysqlHaToClusterMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE)
 class MysqlHaToClusterMigrateFlowBuilder(DtsMigrateFlowBuilder):
-    serializer = MysqlMigrateBaseDetailSerializer
+    serializer = MysqlHaToClusterMigrateDetailSerializer
     inner_flow_builder = MysqlHaToClusterMigrateFlowParamBuilder
     inner_flow_name = _("MySQL HA到Cluster数据迁移")
 

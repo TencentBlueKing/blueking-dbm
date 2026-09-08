@@ -35,7 +35,11 @@ from backend.components.mysqldtsapi.types import (
     Task,
 )
 from backend.flow.utils.mysql.dts.constants import DtsLifecycleMode, MigrateTopology, MigrateType
-from backend.flow.utils.mysql.dts.migrate_helper import _build_table_migrate_rules, build_dts_task_request
+from backend.flow.utils.mysql.dts.migrate_helper import (
+    _build_table_migrate_rules,
+    build_dts_task_request,
+    sync_scope_to_table_filter,
+)
 from backend.flow.utils.mysql.dts.migrate_plan import DtsMigratePlan, DtsTaskConfig, DtsTaskSpec, SourceSpec, SyncScope
 from backend.tests.flow.utils.mysql.dts.migrate_ut_report import MigrateUtReport, ScenarioResult
 
@@ -288,14 +292,14 @@ SCENARIOS: list[ScenarioDef] = [
     ScenarioDef(
         "S1",
         "部分库",
-        SyncScope(do_dbs=["dts_ut_db_a"]),
+        SyncScope(do_dbs=["dts_ut_db_a"], do_tables=[{"schema": "*", "table": "*"}]),
         _seed_s1,
         _expect_s1,
     ),
     ScenarioDef(
         "S2",
         "部分表",
-        SyncScope(do_tables=[{"db": "dts_ut_db_c", "table": "t1"}]),
+        SyncScope(do_dbs=["dts_ut_db_c"], do_tables=[{"schema": "*", "table": "t1"}]),
         _seed_s2,
         _expect_s2,
     ),
@@ -341,7 +345,11 @@ SCENARIOS: list[ScenarioDef] = [
     ScenarioDef(
         "S6",
         "ignore 白名单减法",
-        SyncScope(do_dbs=["dts_ut_db_a", "dts_ut_db_b"], ignore_dbs=["dts_ut_db_b"]),
+        SyncScope(
+            do_dbs=["dts_ut_db_a", "dts_ut_db_b"],
+            do_tables=[{"schema": "*", "table": "*"}],
+            ignore_dbs=["dts_ut_db_b"],
+        ),
         _seed_s6,
         _expect_s6,
     ),
@@ -581,7 +589,12 @@ class DtsMigrateE2EOpenApiTest(unittest.TestCase):
                     cluster_type="mysql",
                 ),
                 source_config=SourceConfig(
-                    source_conf=[SourceConfItem(source_name=source_name)],
+                    source_conf=[
+                        SourceConfItem(
+                            source_name=source_name,
+                            table_filter=sync_scope_to_table_filter(scenario.sync_scope),
+                        )
+                    ],
                 ),
                 table_migrate_rule=rules,
             )

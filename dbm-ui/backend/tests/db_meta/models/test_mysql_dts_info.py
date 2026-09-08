@@ -126,7 +126,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
                 "topology": "one_to_one",
                 "one_to_one": {
                     "task_name": "mysql-dts-900-10-300",
-                    "source": {"cluster_id": 10, "sync_scope": {"do_dbs": ["db_a"]}},
+                    "source": {"cluster_id": 10, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
                     "target": {"cluster_id": 300},
                 },
             },
@@ -152,7 +152,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
                 "topology": "one_to_one",
                 "one_to_one": {
                     "task_name": "mysql-dts-901-10-300",
-                    "source": {"cluster_id": 10, "sync_scope": {"do_dbs": ["db_a"]}},
+                    "source": {"cluster_id": 10, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
                     "target": {"cluster_id": 300},
                 },
             },
@@ -164,7 +164,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
                 "topology": "one_to_one",
                 "one_to_one": {
                     "task_name": "mysql-dts-902-10-400",
-                    "source": {"cluster_id": 10, "sync_scope": {"do_dbs": ["db_a"]}},
+                    "source": {"cluster_id": 10, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
                     "target": {"cluster_id": 400},
                 },
             },

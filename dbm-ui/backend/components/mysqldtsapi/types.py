@@ -255,12 +255,25 @@ class TargetConfig(BaseModel):
 # ============================================================
 
 
+class TaskTableFilterTable(BaseModel):
+    schema: str = Field(description=_("库名通配，DBM 适配固定为 *"))
+    table: str = Field(description=_("表名通配，支持 * / ? / ~正则"))
+
+
+class TaskTableFilter(BaseModel):
+    do_dbs: list[str] = Field(default_factory=list, description=_("库白名单（DTS 通配）"))
+    ignore_dbs: list[str] = Field(default_factory=list, description=_("库黑名单"))
+    do_tables: list[TaskTableFilterTable] = Field(default_factory=list, description=_("表白名单"))
+    ignore_tables: list[TaskTableFilterTable] = Field(default_factory=list, description=_("表黑名单"))
+
+
 class SourceConfItem(BaseModel):
     source_name: str = Field(description=_("已注册的 source 名称"))
     binlog_name: str = Field(default="", description=_("增量起始 binlog 文件"))
     binlog_pos: int = Field(default=0, description=_("增量起始位点"))
     binlog_gtid: str = Field(default="", description=_("增量起始 GTID"))
     myloader_config_name: str = Field(default="", description=_("引用 myloaders 命名配置"))
+    table_filter: TaskTableFilter | None = Field(default=None, description=_("源端库表白名单（同名迁移）"))
 
 
 class FullMigrateConfig(BaseModel):

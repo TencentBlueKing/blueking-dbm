@@ -373,7 +373,13 @@ class ClusterTargetSpiderResolveTest(SimpleTestCase):
         task_spec = DtsTaskSpec(
             task_name="ha-to-cluster-1",
             target_cluster_id=cluster.id,
-            sources=[SourceSpec(cluster_id=1, source_name="src-1", sync_scope=SyncScope(do_dbs=["db_a"]))],
+            sources=[
+                SourceSpec(
+                    cluster_id=1,
+                    source_name="src-1",
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+                )
+            ],
             target_spider="127.0.0.141:25000",
             dts_task_config=DtsTaskConfig(),
         )

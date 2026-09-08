@@ -86,8 +86,16 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
     def test_many_to_one_writes_all_source_ids(self):
         """AE1：两源一目标 → source_cluster_ids == [src1, src2]。"""
         sources = [
-            SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"])),
-            SourceSpec(cluster_id=102, source_name="s2", sync_scope=SyncScope(do_dbs=["db_b"])),
+            SourceSpec(
+                cluster_id=101,
+                source_name="s1",
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+            ),
+            SourceSpec(
+                cluster_id=102,
+                source_name="s2",
+                sync_scope=SyncScope(do_dbs=["db_b"], do_tables=[{"schema": "*", "table": "*"}]),
+            ),
         ]
         row, unused_ctx = self._run(sources)
         self.assertEqual(row.source_cluster_ids, [101, 102])
@@ -96,7 +104,13 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
 
     def test_one_source_writes_single_id(self):
         """AE2：单源 → 长度为 1。"""
-        sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
+        sources = [
+            SourceSpec(
+                cluster_id=101,
+                source_name="s1",
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+            )
+        ]
         row, unused_ctx = self._run(sources, target_cluster_id=201)
         self.assertEqual(row.source_cluster_ids, [101])
 
@@ -117,21 +131,39 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
             updater="tester",
         )
         row, unused_ctx = self._run(
-            [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
+            [
+                SourceSpec(
+                    cluster_id=101,
+                    source_name="s1",
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+                )
+            ]
         )
         self.assertEqual(MysqlDtsInfo.objects.filter(ticket_id=100, dts_task_id="mysql-dts-test-task").count(), 1)
         self.assertEqual(row.status, MysqlDtsStatus.FullOnline.value)
         self.assertEqual(row.source_cluster_ids, [101])
 
     def test_missing_cluster_id_fails_without_write(self):
-        sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
+        sources = [
+            SourceSpec(
+                cluster_id=101,
+                source_name="s1",
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+            )
+        ]
         unused_row, unused_ctx = self._run(
             sources, dts_cluster_id=None, cluster_name="", context_cluster_id=7, expect_ok=False
         )
         self.assertFalse(MysqlDtsInfo.objects.filter(ticket_id=100, dts_task_id="mysql-dts-test-task").exists())
 
     def test_name_lookup_when_kwargs_id_empty(self):
-        sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
+        sources = [
+            SourceSpec(
+                cluster_id=101,
+                source_name="s1",
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+            )
+        ]
         with patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.update_meta.load_active_dts_cluster",
             return_value=SimpleNamespace(id=11),

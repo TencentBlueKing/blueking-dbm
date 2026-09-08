@@ -33,12 +33,15 @@ from backend.components.mysqldtsapi.types import (
     TargetSpiderConfig,
     TargetSpiderShard,
     Task,
+    TaskTableFilter,
+    TaskTableFilterTable,
     parse_dts_binlog_coord,
 )
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, MysqlDtsCluster, ProxyInstance, StorageInstance
 from backend.db_meta.models.mysql_dts import MysqlDtsClusterStatus
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+from backend.flow.consts import SYSTEM_DBS
 from backend.flow.utils.mysql.dts.constants import (
     DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT,
     DTS_COLLATION_COMPATIBLE_STRICT,
@@ -55,6 +58,7 @@ from backend.flow.utils.mysql.dts.migrate_plan import (
     SourceSpec,
     SyncScope,
     copy_myloader_spec,
+    to_dts_glob,
 )
 
 logger = logging.getLogger("flow")
@@ -251,26 +255,60 @@ def collect_migrate_grant_targets(plan: DtsMigratePlan) -> list[DtsGrantTarget]:
     return list(targets.values())
 
 
-def _table_item_schema_table(item) -> tuple[str, str]:
-    """兼容 do_tables/ignore_tables 的 dict 或 'db.table' 字符串。"""
+def _table_item_name(item) -> str:
     if isinstance(item, dict):
-        schema = item.get("db") or item.get("schema") or item.get("dbname") or "*"
-        table = item.get("table") or item.get("tablename") or "*"
-        return schema, table
-    if isinstance(item, str) and "." in item:
-        schema, table = item.split(".", 1)
-        return schema, table
-    if isinstance(item, str):
-        return "*", item
-    return "*", "*"
+        return (item.get("table") or item.get("tablename") or "*").strip() or "*"
+    if isinstance(item, str) and item.strip():
+        return item.strip()
+    return "*"
+
+
+def _merge_system_ignore_dbs(do_dbs: list[str], ignore_dbs: list[str]) -> list[str]:
+    """DTS ignore 补系统库；仅当白名单精确包含 test 时保留 test。"""
+    keep_test = any((item or "").strip() == "test" for item in do_dbs)
+    extra = [name for name in SYSTEM_DBS if name != "test" or not keep_test]
+    seen: set[str] = set()
+    merged: list[str] = []
+    for name in list(ignore_dbs) + extra:
+        text = (name or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        merged.append(text)
+    return merged
+
+
+def sync_scope_to_table_filter(sync_scope: SyncScope) -> TaskTableFilter | None:
+    """SyncScope（用户写的单据通配）→ source_conf.table_filter；有 table_routes 时返回 None。"""
+    if sync_scope.table_routes:
+        return None
+    do_dbs = [to_dts_glob(item) for item in (sync_scope.do_dbs or []) if (item or "").strip()]
+    do_tables = list(sync_scope.do_tables or [])
+    if not do_dbs or not do_tables:
+        return None
+    ignore_dbs = [to_dts_glob(item) for item in (sync_scope.ignore_dbs or []) if (item or "").strip()]
+    return TaskTableFilter(
+        do_dbs=list(do_dbs),
+        ignore_dbs=_merge_system_ignore_dbs(sync_scope.do_dbs or [], ignore_dbs),
+        do_tables=[
+            TaskTableFilterTable(
+                schema=(item.get("schema") or "*") if isinstance(item, dict) else "*",
+                table=to_dts_glob(_table_item_name(item)),
+            )
+            for item in do_tables
+        ],
+        ignore_tables=[
+            TaskTableFilterTable(
+                schema=(item.get("schema") or "*") if isinstance(item, dict) else "*",
+                table=to_dts_glob(_table_item_name(item)),
+            )
+            for item in (sync_scope.ignore_tables or [])
+        ],
+    )
 
 
 def _build_table_migrate_rules(source_name: str, sync_scope: SyncScope) -> list[TableMigrateRule]:
-    """将 sync_scope 转为 DTS table_migrate_rule。
-
-    优先使用显式 table_routes；否则由 do_dbs/do_tables 生成白名单规则。
-    ignore_dbs/ignore_tables 一期通过不生成对应规则实现（仅白名单模式）。
-    """
+    """仅由 table_routes 生成带 target 的改名规则；同名白名单不再写入 table_migrate_rule。"""
     rules: list[TableMigrateRule] = []
     for route in sync_scope.table_routes:
         rules.append(
@@ -284,37 +322,6 @@ def _build_table_migrate_rules(source_name: str, sync_scope: SyncScope) -> list[
                     schema=route.target_db or None,
                     table=route.target_table or None,
                 ),
-            )
-        )
-    if rules:
-        return rules
-
-    ignore_db_set = set(sync_scope.ignore_dbs or [])
-    ignore_table_set = set()
-    for item in sync_scope.ignore_tables or []:
-        schema, table = _table_item_schema_table(item)
-        ignore_table_set.add((schema, table))
-
-    for db_name in sync_scope.do_dbs or []:
-        if db_name in ignore_db_set:
-            continue
-        if ("*", "*") in ignore_table_set or (db_name, "*") in ignore_table_set:
-            continue
-        rules.append(
-            TableMigrateRule(
-                source=TableMigrateSource(source_name=source_name, schema=db_name, table="*"),
-            )
-        )
-
-    for item in sync_scope.do_tables or []:
-        schema, table = _table_item_schema_table(item)
-        if schema in ignore_db_set:
-            continue
-        if (schema, table) in ignore_table_set or (schema, "*") in ignore_table_set:
-            continue
-        rules.append(
-            TableMigrateRule(
-                source=TableMigrateSource(source_name=source_name, schema=schema, table=table),
             )
         )
     return rules
@@ -810,13 +817,16 @@ def build_dts_task_request(
 ) -> CreateTaskRequest:
     table_rules: list[TableMigrateRule] = []
     binlog_filters: dict[str, BinlogFilterRuleEntry] = {}
+    table_filters: dict[str, TaskTableFilter] = {}
     for src in task_spec.sources:
         table_rules.extend(_build_table_migrate_rules(src.source_name, src.sync_scope))
         binlog_filters.update(_build_binlog_filter_rules(src.sync_scope))
+        table_filter = sync_scope_to_table_filter(src.sync_scope)
+        if table_filter is not None:
+            table_filters[src.source_name] = table_filter
 
-    if not table_rules:
-        # 引擎侧空 table_migrate_rule 等价于全库迁移，与「空 sync_scope=不同步」语义冲突，必须拦截
-        raise ValueError(_("同步范围为空，拒绝创建 DTS 任务（空 table_migrate_rule 在引擎侧等价于全库迁移）"))
+    if not table_rules and not table_filters:
+        raise ValueError(_("同步范围为空，拒绝创建 DTS 任务（需要 table_filter 或 table_routes）"))
 
     target_cfg = task_spec.target_config
     if not target_cfg or not target_cfg.host:
@@ -837,7 +847,13 @@ def build_dts_task_request(
         for src in task_spec.sources:
             conf_name = f"myloader-{src.source_name}"
             myloaders[conf_name] = _build_myloader_config_for_source(src, cfg)
-            source_conf.append(SourceConfItem(source_name=src.source_name, myloader_config_name=conf_name))
+            source_conf.append(
+                SourceConfItem(
+                    source_name=src.source_name,
+                    myloader_config_name=conf_name,
+                    table_filter=table_filters.get(src.source_name),
+                )
+            )
         task_mode = _resolve_myloader_task_mode(cfg.task_mode)
         source_config = SourceConfig(
             source_conf=source_conf,
@@ -848,7 +864,10 @@ def build_dts_task_request(
     else:
         if not cluster_name:
             raise ValueError(_("builtin 全量缺少 DTS 集群名，无法生成 dump data_dir"))
-        source_conf = [SourceConfItem(source_name=src.source_name) for src in task_spec.sources]
+        source_conf = [
+            SourceConfItem(source_name=src.source_name, table_filter=table_filters.get(src.source_name))
+            for src in task_spec.sources
+        ]
         task_mode = cfg.task_mode
         source_config = SourceConfig(
             source_conf=source_conf,

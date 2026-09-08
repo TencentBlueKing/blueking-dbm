@@ -22,9 +22,10 @@ from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskConfig, DtsTaskSpec
 
 class CutoverHelperTest(SimpleTestCase):
     def test_sync_scope_to_dict_compact(self):
-        scope = SyncScope(do_dbs=["db1"], do_tables=[{"db": "db1", "table": "t1"}])
+        scope = SyncScope(do_dbs=["db1"], do_tables=[{"schema": "*", "table": "*"}])
         d = sync_scope_to_dict(scope)
         self.assertEqual(d["do_dbs"], ["db1"])
+        self.assertEqual(d["do_tables"], [{"schema": "*", "table": "*"}])
         self.assertNotIn("lock_tables", d)
 
     def test_merge_task_sync_scopes_from_first_source(self):
@@ -35,7 +36,7 @@ class CutoverHelperTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=1,
                     source_name="src1",
-                    sync_scope=SyncScope(do_dbs=["app"]),
+                    sync_scope=SyncScope(do_dbs=["app"], do_tables=[{"schema": "*", "table": "*"}]),
                 )
             ],
             dts_task_config=DtsTaskConfig(),
@@ -53,7 +54,7 @@ class CutoverHelperTest(SimpleTestCase):
                 SourceSpec(
                     cluster_id=1,
                     source_name="src1",
-                    sync_scope=SyncScope(do_dbs=["app"], do_tables=[{"db": "app", "table": "*"}]),
+                    sync_scope=SyncScope(do_dbs=["app"], do_tables=[{"schema": "*", "table": "*"}]),
                 )
             ],
             dts_task_config=DtsTaskConfig(),
@@ -83,7 +84,13 @@ class CutoverHelperTest(SimpleTestCase):
         task = DtsTaskSpec(
             task_name="t",
             target_cluster_id=2,
-            sources=[SourceSpec(cluster_id=1, source_name="s", sync_scope=SyncScope(do_dbs=["a"]))],
+            sources=[
+                SourceSpec(
+                    cluster_id=1,
+                    source_name="s",
+                    sync_scope=SyncScope(do_dbs=["a"], do_tables=[{"schema": "*", "table": "*"}]),
+                )
+            ],
         )
         with self.assertRaises(ValueError):
             build_dts_cutover_payload(
@@ -99,7 +106,13 @@ class CutoverHelperTest(SimpleTestCase):
         task = DtsTaskSpec(
             task_name="t",
             target_cluster_id=2,
-            sources=[SourceSpec(cluster_id=1, source_name="s", sync_scope=SyncScope(do_dbs=["a"]))],
+            sources=[
+                SourceSpec(
+                    cluster_id=1,
+                    source_name="s",
+                    sync_scope=SyncScope(do_dbs=["a"], do_tables=[{"schema": "*", "table": "*"}]),
+                )
+            ],
         )
         with self.assertRaises(ValueError):
             build_dts_cutover_payload(

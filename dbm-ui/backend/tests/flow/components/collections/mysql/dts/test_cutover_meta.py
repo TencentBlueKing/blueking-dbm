@@ -148,7 +148,13 @@ class CutoverSubflowWiringTest(SimpleTestCase):
                 task_spec=DtsTaskSpec(
                     task_name="t1",
                     target_cluster_id=2,
-                    sources=[SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(do_dbs=["db"]))],
+                    sources=[
+                        SourceSpec(
+                            cluster_id=1,
+                            source_name="s1",
+                            sync_scope=SyncScope(do_dbs=["db"], do_tables=[{"schema": "*", "table": "*"}]),
+                        )
+                    ],
                     dts_task_config=spec_cfg,
                 ),
                 migrate_plan=SimpleNamespace(bk_cloud_id=0, dts_task_config=plan_cfg),

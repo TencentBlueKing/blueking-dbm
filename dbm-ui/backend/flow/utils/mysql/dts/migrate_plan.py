@@ -71,13 +71,47 @@ class TableRoute:
         return name or "*"
 
 
+def to_dts_glob(pattern: str) -> str:
+    """把单据通配渲染成 DTS 通配。
+
+    单据通配即用户在四列里写的写法，与 MySQL LIKE 一致：% 匹配任意长度，? 匹配单字符，
+    整段 * 表示全部。DTS 侧 % 是普通字符，只认末尾 *、? 和 ~ 开头的正则，故需转换：
+    独立 * 保持；末尾 % 改成 *；中间 %/? 走 ~正则。
+    """
+    text = (pattern or "").strip()
+    if not text or set(text) == {"*"}:
+        return "*"
+    if text.startswith("~"):
+        return text
+    if "%" not in text and "?" not in text:
+        return text
+    if "?" not in text and text.endswith("%") and text.count("%") == 1:
+        return text[:-1] + "*"
+    if "%" not in text:
+        return text
+    regex = "^" + text.replace("%", ".*").replace("?", ".") + "$"
+    return "~" + regex
+
+
+def _table_filter_items(patterns: list | None) -> list[dict]:
+    """四列表项保留用户写的单据通配；DTS 通配只在 sync_scope_to_table_filter 里渲染。"""
+    items: list[dict] = []
+    for pattern in patterns or []:
+        if not isinstance(pattern, str) or not pattern.strip():
+            continue
+        items.append({"schema": "*", "table": pattern.strip()})
+    return items
+
+
 @dataclass
 class SyncScope:
-    """同步范围。两套写法共用，约定按场景选用，单据层不互斥。
+    """同步范围，字段与 DTS table_filter / routes 同形。
 
-    同名迁移用 do_dbs / do_tables（可选 ignore_*）；rename 用 table_routes，do_dbs 应空着不传。
-    整实例全量写 do_dbs=['*']，空范围拒单。创建任务时若 table_routes 非空则只吃路由，白名单不生效。
-    binlog_filters 两套都能用。
+    同名单据入参是备份四列（db_patterns / ignore_dbs / table_patterns / ignore_tables），
+    解析后写入 do_dbs / ignore_dbs / do_tables / ignore_tables（表项 {schema, table}，schema 固定 *），
+    内部保留用户写的单据通配（% 任意长度、? 单字符、整段 * 全部），checksum / cutover 直接消费；
+    只有下发 DTS table_filter 时才用 to_dts_glob 转成 DTS 通配。
+    重名用 table_routes。空范围拒单；整实例 do_dbs=['*'] 且 do_tables=[{schema:'*', table:'*'}]。
     """
 
     do_dbs: list[str] = field(default_factory=list)
@@ -88,7 +122,6 @@ class SyncScope:
     binlog_filters: list[dict] = field(default_factory=list)
 
     def __post_init__(self):
-        # 兼容单据/测试仍传入 list[dict] 的写法
         self.table_routes = [_parse_table_route(item) for item in (self.table_routes or [])]
 
 
@@ -241,12 +274,34 @@ def _parse_table_route(raw: dict | TableRoute | Any) -> TableRoute:
 
 def _parse_sync_scope(raw: dict | None) -> SyncScope:
     raw = raw or {}
+    table_routes = [_parse_table_route(item) for item in (raw.get("table_routes") or [])]
+    if table_routes:
+        return SyncScope(
+            table_routes=table_routes,
+            ignore_dbs=[item for item in (raw.get("ignore_dbs") or []) if isinstance(item, str)],
+            binlog_filters=raw.get("binlog_filters", []),
+        )
+    # 单据四列原样保留用户写的通配；pipeline asdict 已是 do_dbs/do_tables 则原样还原
+    if raw.get("db_patterns") or raw.get("table_patterns"):
+        ignore_table_names = [item for item in (raw.get("ignore_tables") or []) if isinstance(item, str)]
+        return SyncScope(
+            do_dbs=[item for item in (raw.get("db_patterns") or []) if isinstance(item, str) and item.strip()],
+            ignore_dbs=[item for item in (raw.get("ignore_dbs") or []) if isinstance(item, str) and item.strip()],
+            do_tables=_table_filter_items(raw.get("table_patterns") or []),
+            ignore_tables=_table_filter_items(ignore_table_names),
+            binlog_filters=raw.get("binlog_filters", []),
+        )
+    ignore_tables = []
+    for item in raw.get("ignore_tables") or []:
+        if isinstance(item, dict):
+            ignore_tables.append(item)
+        elif isinstance(item, str) and item.strip():
+            ignore_tables.append({"schema": "*", "table": item.strip()})
     return SyncScope(
-        do_dbs=raw.get("do_dbs", []),
-        ignore_dbs=raw.get("ignore_dbs", []),
-        do_tables=raw.get("do_tables", []),
-        ignore_tables=raw.get("ignore_tables", []),
-        table_routes=[_parse_table_route(item) for item in (raw.get("table_routes") or [])],
+        do_dbs=list(raw.get("do_dbs") or []),
+        ignore_dbs=list(raw.get("ignore_dbs") or []),
+        do_tables=list(raw.get("do_tables") or []),
+        ignore_tables=ignore_tables,
         binlog_filters=raw.get("binlog_filters", []),
     )
 

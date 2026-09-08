@@ -88,7 +88,11 @@ class BuildTicketDtsCleanNamesTest(SimpleTestCase):
         self.assertEqual(len(source_names), len(set(source_names)))
 
     def test_dedupe_preserves_order(self):
-        src = SourceSpec(cluster_id=1, source_name="src-a", sync_scope=SyncScope(do_dbs=["db"]))
+        src = SourceSpec(
+            cluster_id=1,
+            source_name="src-a",
+            sync_scope=SyncScope(do_dbs=["db"], do_tables=[{"schema": "*", "table": "*"}]),
+        )
         plan = _minimal_plan(
             task_specs=[
                 DtsTaskSpec(task_name="t1", target_cluster_id=2, sources=[src], dts_task_config=DtsTaskConfig()),
@@ -181,7 +185,11 @@ class OuterRunFlowCleanInputNamesTest(SimpleTestCase):
 
     def _assert_clean_input_has_ticket_names(self, flow_cls, module_path):
         grant_targets = [DtsGrantTarget(bk_cloud_id=0, address="127.0.0.2:3306", cluster_id=1)]
-        src = SourceSpec(cluster_id=1, source_name="src-ticket", sync_scope=SyncScope(do_dbs=["db"]))
+        src = SourceSpec(
+            cluster_id=1,
+            source_name="src-ticket",
+            sync_scope=SyncScope(do_dbs=["db"], do_tables=[{"schema": "*", "table": "*"}]),
+        )
         plan = _minimal_plan(
             task_specs=[
                 DtsTaskSpec(
