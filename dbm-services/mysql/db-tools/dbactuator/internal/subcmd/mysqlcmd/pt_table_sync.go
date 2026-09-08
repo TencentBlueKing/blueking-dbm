@@ -61,6 +61,14 @@ func (d *PtTableSyncAct) Run() (err error) {
 	// subcmd.Steps 顺序执行，某个步骤error，剩下步骤不执行
 	defer d.Service.DropSyncUser()
 	defer d.Service.DropTempTable()
+	// 最后声明的 defer 最先执行, 保证在清理账号/临时表之前通过 OutputCtx 输出修复报告
+	defer func() {
+		report, perr := d.Service.PrintRepairReport()
+		if perr != nil {
+			return
+		}
+		d.OutputCtx(report)
+	}()
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化",

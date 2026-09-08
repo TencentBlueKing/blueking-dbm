@@ -55,7 +55,20 @@ BEGIN {
 {
 package Percona::Toolkit;
 
-our $VERSION = '3.3.2';
+our $VERSION = '3.3.2-dbm-0.0.1';
+# 版本号说明（bk-dbm 定制版）：
+#   格式 = <上游 percona-toolkit 基线版本>-dbm-<dbm 定制序号>
+#   - 3.3.2     ：上游 percona-toolkit 基线版本
+#   - dbm-0.0.1 ：bk-dbm 定制第 1 版
+# 本版定制内容（#20161）：修复中文 chunk 边界双重编码导致"假修复"——
+#   - 方案A：8 处 SQL 执行出口 utf8::downgrade 还原被隐式升级的字符串
+#     （sync_table / _take_action / make_row / make_UPDATE / Nibble 边界
+#      发现 / TableChunker MIN·MAX·EXPLAIN / get_first_valid_value）；
+#   - 方案B：TableParser::parse 入口将 DDL 还原为原始字节串，消除
+#     tbl_struct 全部派生字段的 UTF8 标志源头（pack/unpack 方式，
+#     兼容 DDL 含中文 COMMENT 的场景）。
+#   机理、验证与部署详见同目录 issue-20161-pt-table-sync-chinese-boundary-bug.md。
+# 后续 dbm 定制变更请递增 -dbm- 后序号（0.0.2、0.0.3 ...）并在此追加记录。
 
 use strict;
 use warnings FATAL => 'all';
@@ -2865,6 +2878,34 @@ sub parse {
    my ( $self, $ddl, $opts ) = @_;
    return unless $ddl;
 
+   # 修复 #20161（方案B，源头加固）：tbl_struct 的 UTF8 标志源头治理。
+   # mysql_enable_utf8=1 时（dbactuator 传 --charset=utf8 触发，见
+   # DSNParser 连接属性逻辑），SHOW CREATE TABLE 的 DDL 被 DBD 解码、
+   # 整串带 UTF8 标志（即使内容纯 ASCII）。本函数从 $ddl 正则派生的
+   # 全部结构字段（cols/type_for/engine/charset/is_numeric...）继承该
+   # 标志，并随列名/索引名进入所有 SQL 模板。带标志模板与不带标志的
+   # utf8 字节串值（如 checksum 表读回的中文边界值）拼接时，Perl 将
+   # 值的每个字节按 Latin-1 码点隐式 utf8::upgrade，DBD 发送时二次
+   # 编码为乱码（2026-09 插桩实测：P1 全字段 flag=1，P3 diff_where
+   # 产物即现 c3a7c294 双重编码）。在解析入口把 DDL 还原为字节串，
+   # 所有派生字段天然不带标志，任何模板插值（含未来新增 SQL 路径）
+   # 都不再触发升级——以一处源头修复替代在每个 SQL 出口逐点打补丁。
+   # 实现说明（修正版）：DDL 常含中文 COMMENT（如 COMMENT '用户名'），
+   # DBD 解码后这些字符是码点 >= 0x100 的真宽字符，utf8::downgrade
+   # 对此 no-op（2026-09 实测：含中文注释的表上 P1 仍全 flag=1）。
+   # 故改用 pack/unpack 把"解码形态"强制还原为"原始 utf8 字节串"：
+   #   - 宽字符 -> 其 UTF-8 字节（恰为服务器返回的原始字节；中文
+   #     COMMENT 以字节形态留存于 DDL，不参与列名/索引名/引擎等
+   #     结构字段的派生，派生字段全为 ASCII）；
+   #   - ASCII 部分（列名/类型/引擎/字符集）字节不变；
+   #   - 派生的结构字段从此不带 UTF8 标志，模板插值不再触发升级；
+   #   - flag=0 的字节串 DDL（未开 utf8 的连接）不进入该分支，原样。
+   # $ddl 为局部拷贝，不影响调用方；$src->{ddl} 等原文消费点经核查
+   # 仅作本函数入参，字节化无下游影响。与各 SQL 出口的
+   # utf8::downgrade（方案A）叠加构成纵深防御：本处消除污染的产生，
+   # 出口兜底本处前提之外的一切。
+   $ddl = pack 'C0 C*', unpack 'U0 C*', $ddl if utf8::is_utf8($ddl);
+
    if ( $ddl =~ m/CREATE (?:TEMPORARY )?TABLE "/ ) {
       $ddl = $self->ansi_to_legacy($ddl);
    }
@@ -3478,6 +3519,13 @@ sub dst {
 
 sub _take_action {
    my ( $self, $sql, $dbh ) = @_;
+   # 修复 #20161：所有修复语句（REPLACE/DELETE/UPDATE/INSERT）的统一出口。
+   # 行数据里的中文列值（如 xxx='/质量中心/...'）从 DBI 取回后
+   # 同样会被隐式 utf8::upgrade，生成的修复 SQL 被二次 UTF-8 编码——即使
+   # 比对阶段已修好，--execute 阶段也会把乱码写进表里，把好数据修坏。
+   # 此处统一还原为原始字节。机理与安全性详见 TableSyncer::sync_table
+   # 中的核心修复注释。
+   utf8::downgrade($sql, 1);
    PTDEBUG && _d('Calling subroutines on', $dbh, $sql);
    foreach my $action ( @{$self->{actions}} ) {
       $action->($sql, $dbh);
@@ -3581,6 +3629,8 @@ sub make_UPDATE {
    my @cols;
    if ( my $dbh = $self->{fetch_back} ) {
       my $sql = $self->make_fetch_back_query($where);
+      # 修复 #20161：同 make_row，防止 fetch_back 的 WHERE 中文键值被二次编码。
+      utf8::downgrade($sql, 1);
       PTDEBUG && _d('Fetching data on dbh', $dbh, 'for UPDATE:', $sql);
       my $res = $dbh->selectrow_hashref($sql);
       @{$row}{keys %$res} = values %$res;
@@ -3627,6 +3677,10 @@ sub make_row {
    if ( my $dbh = $self->{fetch_back} ) {
       my $where = $self->make_where_clause($row, $cols);
       my $sql   = $self->make_fetch_back_query($where);
+      # 修复 #20161：fetch_back 回查整行的 SELECT，其 WHERE 可能包含中文
+      # 键值（GroupBy 算法 key_cols 为全部列），不还原会被二次编码导致
+      # 回查不到行。详见 TableSyncer::sync_table 中的核心修复注释。
+      utf8::downgrade($sql, 1);
       PTDEBUG && _d('Fetching data on dbh', $dbh, 'for', $verb, ':', $sql);
       my $res = $dbh->selectrow_hashref($sql);
       @{$row}{keys %$res} = values %$res;
@@ -4290,6 +4344,13 @@ sub get_range_statistics {
       my $sql = "SELECT MIN($col), MAX($col) FROM $db_tbl"
               . ($args{index_hint} ? " $args{index_hint}" : "")
               . ($where ? " WHERE ($where)" : '');
+      # 修复 #20161（方案A-2）：MIN/MAX 范围统计 SQL 同样内插 diff WHERE
+      # 且在 TableChunker 内部执行，不经过 sync_table 的修复通道。不还原
+      # 时乱码边界使范围为空集、MIN/MAX 返回 NULL，TableSyncChunk 对
+      # NULL 的兜底是退化为单 chunk（1=1）——比对结果仍正确（比对 SQL
+      # 已修复），但 chunk 粒度退化：大表会被当成一整个 chunk 锁定和
+      # 比对，放大锁范围与内存开销。机理详见 sync_table 核心修复注释。
+      utf8::downgrade($sql, 1);
       PTDEBUG && _d($dbh, $sql);
       ($min, $max) = $dbh->selectrow_array($sql);
       PTDEBUG && _d("Actual end points:", $min, $max);
@@ -4313,6 +4374,9 @@ sub get_range_statistics {
    my $sql = "EXPLAIN SELECT * FROM $db_tbl"
            . ($args{index_hint} ? " $args{index_hint}" : "")
            . ($where ? " WHERE $where" : '');
+   # 修复 #20161（方案A-2）：EXPLAIN 行数估算 SQL，WHERE 同上，需还原，
+   # 否则 rows_in_range 估算失真。
+   utf8::downgrade($sql, 1);
    PTDEBUG && _d($sql);
    my $expl = $dbh->selectrow_hashref($sql);
 
@@ -4560,6 +4624,10 @@ sub get_first_valid_value {
            . "WHERE $col $cmp ? AND $col IS NOT NULL "
            . ($args{where} ? "AND ($args{where}) " : "")
            . "ORDER BY $col LIMIT 1";
+   # 修复 #20161（方案A-3，防御性）：该 SQL 也内插 diff WHERE。当前仅
+   # temporal 切分列（值为 ASCII）会走到此分支，实际无风险；为保持
+   # "所有内插 diff WHERE 的 SQL 出口统一还原"的不变式而修补。
+   utf8::downgrade($sql, 1);
    PTDEBUG && _d($dbh, $sql);
    my $sth = $dbh->prepare($sql);
 
@@ -5573,6 +5641,19 @@ sub __get_boundaries {
       my $sql;
       ($sql, $lb) = $self->__make_boundary_sql(%args);  # $lb from outer scope!
 
+      # 修复 #20161（方案A-1）：Nibble 的边界发现 SQL 在插件内部构建并
+      # 执行（EXPLAIN 索引校验 + selectrow_hashref 取下一边界行），不经
+      # 过 TableSyncer::sync_table 中已修复的 $src_sql/$dst_sql 通道。
+      # 该 SQL 内插了含非 ASCII 边界值的 diff WHERE（病态字符串形态），
+      # 若不在两个执行出口前还原为原始字节：
+      #   - 边界值被双重编码，叠加 utf8_general_ci 口音折叠，边界范围
+      #     成为空集（MySQL 视为 Impossible WHERE，EXPLAIN 无索引可用）；
+      #   - 第 0 个 nibble 的索引校验失败，die "Cannot nibble table ...
+      #     because MySQL chose no index instead of the `PRIMARY` index"，
+      #     整表修复直接失败（--algorithms 列表不会自动降级到下一算法）。
+      # 机理与安全性论证详见 TableSyncer::sync_table 中的核心修复注释。
+      utf8::downgrade($sql, 1);
+
       if ( $self->{nibble} == 0 && !$self->{small_table} ) {
          my $explain_index = $self->__get_explain_index($sql);
          if ( lc($explain_index || '') ne lc($s->{index}) ) {
@@ -6075,6 +6156,38 @@ sub sync_table {
             $dst_sql .= ' FOR UPDATE';
          }
       }
+      # 修复 #20161（核心修复）：解决 chunk 边界含非 ASCII 字符（如中文）时
+      # 主从差异永远无法被修复的问题。
+      #
+      # 故障机理（已在 5.7.20 环境实测复现）：
+      #   1. checksum 表里的 lower/upper_boundary 存的是正确的 utf8 字节串
+      #      （如 '用户' = E794A8 E688B7），经 DBI 读回后是【未置 UTF8 标志】
+      #      的原始字节字符串；
+      #   2. diff_where() 把边界值替换进 WHERE 模板时，Perl 对混合字符串做了
+      #      隐式 utf8::upgrade：把这些字节逐个当作 Latin-1 码点并置上 UTF8
+      #      标志，字符串内容变成 \x{e7}\x{94}\x{a8}\x{e6}\x{88}\x{b7}；
+      #   3. DBD::mysql（mysql_enable_utf8=1）在发送带 UTF8 标志的字符串前会
+      #      重新做 UTF-8 编码，于是服务器实际收到的是二次编码后的乱码字面量
+      #      （C3A7C294C2A8C3A6C288C2B7，即 6 个 Latin-1 字符，首字符 'ç'）；
+      #   4. utf8_general_ci 对 Latin-1 补充区字符做口音折叠（'ç' 的排序权重
+      #      等同 'c'），乱码上边界被排到下边界 'deanchi' 之前，比对范围
+      #      （user_name > 'deanchi' AND user_name < 乱码串）变成空集；
+      #   5. 主从两侧对空范围各算出 cnt=0, crc=0，same_row 误判“一致”，工具
+      #      静默 exit 0——差异永远修不上；且上层 dbactuator 会把 exit 0 当
+      #      修复成功并清空 checksum 差异标记，形成“假修复”闭环。
+      #
+      # 修复方式：SQL 交给 DBD 发送前，用 utf8::downgrade 把被误升级的字符串
+      # 无损还原为原始字节（码点 -> 字节，恰好是第 2 步的逆操作）。
+      #
+      # 安全性说明：
+      #   - utf8::downgrade($s, 1) 仅当字符串所有码点均 <256（即恰好处于
+      #     “字节被当作码点”的误升级形态）时才转换，正是本 bug 的形态；
+      #   - 若字符串含真正的宽字符（码点 >=0x100，即曾被正确解码过），带
+      #     fail_ok=1 的 downgrade 不做任何修改（no-op），而 DBD 对这种字符
+      #     串重编码的结果本来就是正确的 utf8 字节；
+      #   - 纯 ASCII 字符串两种形态等价，不受影响。三种情况均安全。
+      utf8::downgrade($src_sql, 1);
+      utf8::downgrade($dst_sql, 1);
       PTDEBUG && _d('src:', $src_sql);
       PTDEBUG && _d('dst:', $dst_sql);
 
@@ -13101,6 +13214,6 @@ Place, Suite 330, Boston, MA  02111-1307  USA.
 
 =head1 VERSION
 
-pt-table-sync 3.4.0
+pt-table-sync 3.3.2-dbm-0.0.1
 
 =cut

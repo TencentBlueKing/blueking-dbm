@@ -31,7 +31,9 @@ from backend.flow.utils.script_template import actuator_template, fast_execute_s
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
-cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
+# 非贪婪模式，只匹配第一次出现的自定义 tag
+# 使用 [\s\S]+? 而非 .+? ：db-actuator 侧若产出多行 JSON（含 \n），默认 `.` 不匹配换行会导致 re.search 返回 None
+cpl = re.compile(r"<ctx>(?P<context>[\s\S]+?)</ctx>")
 
 
 class ExecuteDBActuatorScriptService(BkJobService):

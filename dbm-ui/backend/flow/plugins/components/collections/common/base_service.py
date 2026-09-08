@@ -35,7 +35,7 @@ from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
-cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
+cpl = re.compile(r"<ctx>(?P<context>[\s\S]+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag；[\s\S]+? 兼容跨行 JSON
 
 
 class ServiceLogMixin:
@@ -311,8 +311,17 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             # 结果返回异常，则异常退出
             return False
         try:
+            # 先提取 <ctx> 段，命中不到时打明确日志；避免 .group() 抛 AttributeError 被通用 except 吞掉
+            match = re.search(cpl, resp["data"]["log_content"])
+            if not match:
+                self.log_error(
+                    _("[写入上下文结果失败] stdout 中未发现 <ctx>...</ctx> 结构化输出，log_content 长度={}").format(
+                        len(resp["data"].get("log_content") or "")
+                    )
+                )
+                return False
             # 以dict形式追加写入
-            result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
+            result = json.loads(match.group("context"))
 
             if write_op == WriteContextOpType.APPEND.value:
                 context = copy.deepcopy(getattr(trans_data, write_payload_var))
