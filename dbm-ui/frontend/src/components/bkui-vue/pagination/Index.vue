@@ -380,7 +380,7 @@
     align-items: center;
 
     .dbm-pagination-limit-select {
-      width: 60px;
+      width: 80px;
       margin: 0 4px;
 
       .dbm-select-input-box {
