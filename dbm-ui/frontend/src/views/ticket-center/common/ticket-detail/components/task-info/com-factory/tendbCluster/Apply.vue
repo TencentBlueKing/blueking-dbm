@@ -20,7 +20,7 @@
     <InfoItem :label="t('业务代号')">
       {{ ticketDetails?.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群名称')">
+    <InfoItem :label="t('集群标识')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
     <InfoItem :label="t('集群别名')">
@@ -31,7 +31,7 @@
   <div
     class="ticket-details-info-title"
     style="margin-top: 20px">
-    {{ t('部署需求') }}
+    {{ t('部署配置') }}
   </div>
   <InfoList>
     <InfoItem :label="t('DB模块')">
@@ -72,6 +72,11 @@
         theme="success">
         {{ t('通用无标签') }}
       </DbTag>
+    </InfoItem>
+    <InfoItem
+      v-if="isClbShow"
+      :label="t('负载均衡')">
+      {{ ticketDetails.details.apply_clb ? 'CLB' : '--' }}
     </InfoItem>
     <InfoItem
       :label="t('后端存储')"
@@ -120,6 +125,14 @@
       </TicketInfoTable>
     </InfoItem>
   </InfoList>
+  <div
+    class="ticket-details-info-title"
+    style="margin-top: 20px">
+    {{ t('补充信息') }}
+  </div>
+  <InfoList>
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -132,7 +145,10 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  import { checkDbConsole } from '@utils';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {
@@ -147,6 +163,8 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const isClbShow = checkDbConsole('common.clb');
 </script>
 <style lang="less">
   .ticket-details-info-title {
