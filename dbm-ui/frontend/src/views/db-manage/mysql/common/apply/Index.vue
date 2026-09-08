@@ -188,7 +188,7 @@
               class="mb-24">
               <BkFormItem
                 v-if="isSingleType"
-                :label="t('后端存储资源规格')"
+                :label="t('后端存储')"
                 required>
                 <div class="resource-pool-item">
                   <BkFormItem

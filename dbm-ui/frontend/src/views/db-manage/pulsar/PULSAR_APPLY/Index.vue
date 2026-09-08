@@ -40,7 +40,7 @@
         ref="regionRequirements"
         v-model="formData.details"
         @cloud-change="handleCloudChange" />
-      <DbCard :title="t('部署需求')">
+      <DbCard :title="t('部署配置')">
         <BkFormItem
           :label="t('Pulsar版本')"
           property="details.db_version"
@@ -49,6 +49,17 @@
             v-model="formData.details.db_version"
             :db-type="DBTypes.PULSAR"
             query-key="pulsar" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('访问端口')"
+          property="details.port"
+          required>
+          <DbInput
+            v-model="formData.details.port"
+            clearable
+            :min="1"
+            style="width: 185px"
+            type="number" />
         </BkFormItem>
         <!-- <BkFormItem
           :label="t('服务器选择')"
@@ -351,22 +362,18 @@
             type="number" />
           <span class="input-desc">{{ t('当达到数量后_立即返回结果_减少用户等待时间') }}</span>
         </BkFormItem>
-        <BkFormItem
-          :label="t('访问端口')"
-          property="details.port"
-          required>
-          <DbInput
-            v-model="formData.details.port"
-            clearable
-            :min="1"
-            style="width: 185px"
-            type="number" />
-        </BkFormItem>
+      </DbCard>
+      <DbCard :title="t('补充信息')">
         <EstimatedCost
           :params="{
             db_type: DBTypes.PULSAR,
             resource_spec: formData.details.resource_spec,
           }" />
+        <NotifyRelatedPersons
+          ref="notifyRelatedPersonsRef"
+          v-model="formData.config.send_msg_config"
+          :biz-id="formData.bk_biz_id"
+          :db-type="DBTypes.PULSAR" />
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
@@ -412,7 +419,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MessageTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -421,6 +428,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -430,6 +438,13 @@
 
   const getInitFormdata = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
       ack_quorum: 1,
       bk_cloud_id: 0,
@@ -498,9 +513,17 @@
   useTicketDetail<Pulsar.Apply>(TicketTypes.PULSAR_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
@@ -557,6 +580,7 @@
   const specBookkeeperRef = ref();
   const specZookeeperRef = ref();
   const specBrokerRef = ref();
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
   const totalCapacity = ref(0);
 
   const ackQuorumMax = computed(() => {
@@ -775,6 +799,9 @@
 
       const params = {
         ...formData,
+        config: {
+          send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+        },
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
