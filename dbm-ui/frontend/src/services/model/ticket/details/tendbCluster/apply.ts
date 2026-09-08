@@ -1,6 +1,7 @@
 import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface Apply extends DetailBase {
+  apply_clb?: boolean; // 默认 false
   bk_cloud_id: number;
   bk_cloud_name: string;
   charset: string;

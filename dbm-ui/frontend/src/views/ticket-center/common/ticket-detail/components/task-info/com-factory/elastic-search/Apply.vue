@@ -20,7 +20,7 @@
     <InfoItem :label="t('业务代号')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群名称')">
+    <InfoItem :label="t('集群标识')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
     <InfoItem :label="t('集群别名')">
