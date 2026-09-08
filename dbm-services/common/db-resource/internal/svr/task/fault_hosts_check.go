@@ -11,7 +11,7 @@
 package task
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/samber/lo"
 
@@ -20,13 +20,11 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// FaultHostCheck TODO
+// FaultHostCheck 巡检资源池空闲主机是否有未关闭 uwork，命中则标记 FaultHazard。
+// HOST_TO_FAULT_SWITCH 只控制是否再调 resource_delete 转入故障池。
 func FaultHostCheck() (err error) {
-	// 获取空闲机器
-	var machines []model.TbRpDetail
-	if err = model.DB.Self.Table(model.TbRpDetailName()).
-		Where("status = ? ", model.Unused).
-		Find(&machines).Error; err != nil {
+	machines, err := listUnusedMachinesFn()
+	if err != nil {
 		logger.Error("get unused machines failed %s", err.Error())
 		return err
 	}
@@ -34,37 +32,50 @@ func FaultHostCheck() (err error) {
 		logger.Info("no unused machines found")
 		return nil
 	}
-	for _, mgp := range lo.Chunk(machines, 50) {
-		var hosts []dbmapi.CheckFaultHostsParamItem
-		for _, m := range mgp {
-			hosts = append(hosts, dbmapi.CheckFaultHostsParamItem{
-				BkHostID: m.BkHostID,
-				IP:       m.IP,
-			})
-		}
-		checkResult, err := dbmapi.CheckFaultHosts(hosts)
-		if err != nil {
-			logger.Error("check fault hosts failed %s", err.Error())
-			continue
-		}
-		if len(checkResult) == 0 {
-			logger.Info("no fault hosts found in this batch")
-			continue
-		}
-		for hostId, item := range checkResult {
-			if item.CheckIsOK() {
-				continue
-			}
-			logger.Info("host %s fault info %v", hostId, item)
-			err = model.DB.Self.Table(model.TbRpDetailName()).
-				Where("bk_host_id = ? and status = ?", hostId, model.Unused).
-				Updates(map[string]interface{}{"status": model.FaultHazard, "update_time": time.Now()}).
-				Error
-			if err != nil {
-				logger.Error("update machine status failed %s", err.Error())
-				return err
-			}
+
+	doDelete, switchErr := faultDeleteEnabled()
+	var failedBatches int
+	var lastErr error
+	for _, mgp := range lo.Chunk(machines, hostCheckBatchSize) {
+		if batchErr := processFaultBatch(mgp, doDelete); batchErr != nil {
+			failedBatches++
+			lastErr = batchErr
 		}
 	}
-	return
+	if failedBatches > 0 {
+		return fmt.Errorf("fault check failed for %d batches, last: %w", failedBatches, lastErr)
+	}
+	return switchErr
+}
+
+func faultDeleteEnabled() (bool, error) {
+	switches, err := fetchSwitchesFn()
+	if err != nil {
+		logger.Error("get dissolved uwork info failed %s", err.Error())
+		return false, err
+	}
+	if !switches.HostToFaultSwitch {
+		logger.Info("HOST_TO_FAULT_SWITCH is off, skip resource_delete")
+		return false, nil
+	}
+	return true, nil
+}
+
+func processFaultBatch(mgp []model.TbRpDetail, doDelete bool) error {
+	uworkHosts, checkErr := checkUworkFn(hostIdsOf(mgp))
+	if checkErr != nil {
+		logger.Error("check uwork hosts failed %s", checkErr.Error())
+		return checkErr
+	}
+	hitIds := make([]int, 0, len(uworkHosts))
+	for _, h := range uworkHosts {
+		hitIds = append(hitIds, h.BkHostID)
+	}
+	hitIds = filterUnusedHits(mgp, hitIds)
+	if len(hitIds) == 0 {
+		logger.Info("no fault hosts found in this batch")
+		return nil
+	}
+	logger.Info("found fault hosts %v", hitIds)
+	return markThenMaybeDelete(mgp, hitIds, model.FaultHazard, dbmapi.EventToFault, remarkFaultToFaultPool, doDelete)
 }

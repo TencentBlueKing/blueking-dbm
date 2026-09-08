@@ -24,4 +24,17 @@ const (
 	DBMFaultHostsCheckApi = "/apis/dbresource/resource/check_fault_hosts/"
 	// DBMDissolveHostsCheckApi 查询主机是否为待裁撤
 	DBMDissolveHostsCheckApi = "/apis/db_dirty/check_host_is_dissolved/"
+	// DBMCheckHostHasUworkApi 查询主机是否有未关闭 uwork 故障单
+	DBMCheckHostHasUworkApi = "/apis/db_dirty/check_host_has_uwork/"
+	// DBMGetDissolvedUworkInfoApi 获取待裁撤和故障主机开关
+	DBMGetDissolvedUworkInfoApi = "/apis/db_dirty/get_dissolved_uwork_info/"
+	// DBMResourceDeleteApi 资源删除（转入待回收池/故障池）
+	DBMResourceDeleteApi = "/apis/dbresource/resource/delete/"
+)
+
+const (
+	// EventToRecycle 转入待回收池
+	EventToRecycle = "to_recycle"
+	// EventToFault 转入故障池
+	EventToFault = "to_fault"
 )
