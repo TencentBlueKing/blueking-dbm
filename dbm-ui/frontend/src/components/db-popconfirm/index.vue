@@ -50,6 +50,7 @@
 <script setup lang="ts">
   import tippy, { type Instance, type Placement, type SingleTarget } from 'tippy.js';
   import { onBeforeUnmount, onMounted, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     cancelHandler?: () => Promise<any> | void;
