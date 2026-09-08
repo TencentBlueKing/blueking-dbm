@@ -38,11 +38,26 @@
         <RegionRequirements
           ref="regionRequirements"
           v-model="formData.details" />
-        <DbCard :title="t('部署需求')">
+        <DbCard :title="t('部署配置')">
           <ModuleItem
             v-model="formData.details.db_module_id"
             :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER" />
+          <BkFormItem
+            :label="t('访问端口')"
+            property="details.spider_port"
+            required>
+            <DbInput
+              v-model="formData.details.spider_port"
+              clearable
+              :max="65535"
+              :min="3306"
+              style="width: 185px"
+              type="number" />
+            <span class="input-desc">
+              {{ t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }) }}
+            </span>
+          </BkFormItem>
           <BkFormItem
             label="Spider Master"
             required>
@@ -86,6 +101,16 @@
                   <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
                 </div>
               </BkFormItem>
+              <BkFormItem
+                v-if="isClbShow"
+                :label="t('负载均衡')"
+                :required="false">
+                <BkCheckbox
+                  v-model="formData.details.apply_clb"
+                  v-db-console="'common.clb'">
+                  CLB
+                </BkCheckbox>
+              </BkFormItem>
             </div>
           </BkFormItem>
           <BkFormItem
@@ -103,26 +128,18 @@
               :subzone-ids="formData.details.sub_zone_ids"
               :subzone-names="formData.details.sub_zone_names" />
           </BkFormItem>
-          <BkFormItem
-            :label="t('访问端口')"
-            property="details.spider_port"
-            required>
-            <DbInput
-              v-model="formData.details.spider_port"
-              clearable
-              :max="65535"
-              :min="3306"
-              style="width: 185px"
-              type="number" />
-            <span class="input-desc">
-              {{ t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }) }}
-            </span>
-          </BkFormItem>
+        </DbCard>
+        <DbCard :title="t('补充信息')">
           <EstimatedCost
             :params="{
               db_type: DBTypes.TENDBCLUSTER,
               resource_spec: resourceSepc,
             }" />
+          <NotifyRelatedPersons
+            ref="notifyRelatedPersonsRef"
+            v-model="formData.config.send_msg_config"
+            :biz-id="formData.bk_biz_id"
+            :db-type="DBTypes.TENDBCLUSTER" />
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
@@ -168,7 +185,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MessageTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
@@ -176,10 +193,13 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
+
+  import { checkDbConsole } from '@utils';
 
   import BackendQPSSpec from './components/BackendQPSSpec.vue';
 
@@ -189,9 +209,19 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
+  const isClbShow = checkDbConsole('common.clb');
+
   const initData = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
+      apply_clb: false,
       bk_cloud_id: 0,
       city_code: '',
       city_name: '',
@@ -241,13 +271,22 @@
 
   useTicketDetail<TendbCluster.Apply>(TicketTypes.TENDBCLUSTER_APPLY, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
+      const { config, details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = config;
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
+        config: {
+          send_msg_config: {
+            is_send: sendMsgConfig.is_send ?? true,
+            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+          },
+        },
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
+        apply_clb: details.apply_clb,
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
@@ -292,6 +331,7 @@
   });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
 
   const formRef = ref();
   const specProxyRef = ref();
@@ -397,6 +437,9 @@
     };
     const params = {
       ...formData,
+      config: {
+        send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+      },
       details: getDetails(),
     };
 
