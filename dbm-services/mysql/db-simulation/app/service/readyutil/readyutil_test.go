@@ -99,6 +99,45 @@ func TestIsCreateNodeSQL(t *testing.T) {
 	}
 }
 
+func TestBuildCreateClusterStmts(t *testing.T) {
+	t.Parallel()
+
+	got := BuildCreateClusterStmts(2)
+	want := []CreateClusterStmt{
+		{Kind: KindCreateNode, Wrapper: WrapperSpider, Port: 25000},
+		{Kind: KindCreateNode, Wrapper: WrapperSpider, Port: 25001},
+		{Kind: KindCreateNode, Wrapper: WrapperMysql, Port: BackendSimPort},
+		{Kind: KindCreateNode, Wrapper: WrapperTdbctl, Port: TdbctlSimPort},
+		{Kind: KindEnablePrimary},
+		{Kind: KindFlushRouting},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("len=%d want %d, got=%+v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("stmt[%d]=%+v want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestSanitizeCreateNodeWrapper(t *testing.T) {
+	t.Parallel()
+
+	for _, wrapper := range []string{WrapperSpider, WrapperMysql, WrapperTdbctl} {
+		got, err := SanitizeCreateNodeWrapper(wrapper)
+		if err != nil {
+			t.Fatalf("SanitizeCreateNodeWrapper(%q) err=%v", wrapper, err)
+		}
+		if got != wrapper {
+			t.Fatalf("SanitizeCreateNodeWrapper(%q)=%q", wrapper, got)
+		}
+	}
+	if _, err := SanitizeCreateNodeWrapper("SPIDER'; drop table t; --"); err == nil {
+		t.Fatal("expected injected wrapper to be rejected")
+	}
+}
+
 func assertIntSliceEqual(t *testing.T, got, want []int) {
 	t.Helper()
 	if len(got) != len(want) {

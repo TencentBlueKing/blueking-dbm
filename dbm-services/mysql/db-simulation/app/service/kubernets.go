@@ -36,6 +36,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/app/service/readyutil"
 	"dbm-services/mysql/db-simulation/model"
 )
 
@@ -123,23 +124,8 @@ func NewDbPodSets() *DbPodSets {
 	}
 }
 
-func (k *DbPodSets) getCreateClusterSqls() []string {
-	var ss []string
-	for idx, _ := range k.SpiderPods {
-		spiderPort := 25000 + idx
-		ss = append(ss, fmt.Sprintf(
-			"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port %d);",
-			k.BaseInfo.RootPwd, spiderPort))
-	}
-	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host '127.0.0.1', port 20000);",
-		k.BaseInfo.RootPwd))
-	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host '127.0.0.1', port 26000);",
-		k.BaseInfo.RootPwd))
-	ss = append(ss, "tdbctl enable primary;")
-	ss = append(ss, "tdbctl flush routing;")
-	return ss
+func (k *DbPodSets) getCreateClusterStmts() []readyutil.CreateClusterStmt {
+	return readyutil.BuildCreateClusterStmts(len(k.SpiderPods))
 }
 
 // getClusterPodContainerSpec create cluster pod container spec
@@ -296,8 +282,8 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string, xlogger *logger.Logger
 		return err
 	}
 	// create cluster relation
-	for _, sql := range k.getCreateClusterSqls() {
-		if err = k.execCreateClusterSQL(sql); err != nil {
+	for _, stmt := range k.getCreateClusterStmts() {
+		if err = k.execCreateClusterSQL(stmt); err != nil {
 			return err
 		}
 	}
@@ -447,7 +433,8 @@ func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger
 	}
 	logger.Info("the podIp is %s", podIp)
 	fnc := func() error {
-		k.DbWork, err = cmutil.NewDbWorker(fmt.Sprintf("%s:%s@tcp(%s:%d)/?timeout=5s&multiStatements=true",
+		k.DbWork, err = cmutil.NewDbWorker(fmt.Sprintf(
+			"%s:%s@tcp(%s:%d)/?timeout=5s&multiStatements=true&interpolateParams=true",
 			DefaultUser,
 			k.BaseInfo.RootPwd,
 			podIp, probePort))
