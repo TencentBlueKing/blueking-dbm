@@ -23,7 +23,7 @@
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群名称')">
+    <InfoItem :label="t('集群标识')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
     <InfoItem :label="t('集群别名')">
