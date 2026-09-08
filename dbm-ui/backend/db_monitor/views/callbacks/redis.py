@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
-import random
 import time
 
 from celery import shared_task
@@ -40,8 +39,12 @@ DEDUP_LOCK_TTL = 300
 class RedisAlarm(AlarmCallback):
     """Redis 告警回调处理器"""
 
+    # 支持的集群类型：Redis 相关的集群类型
+    SUPPORTED_CLUSTER_TYPES = {ct.value for ct in ClusterType.redis_cluster_types()}
+
     # 处理函数 -> 匹配条件列表的映射
     # level: 蓝鲸监控告警级别，1-致命, 2-预警, 3-提醒（空列表表示不限制）
+    # ratelimit: 频率限制，格式 "次数 / 小时数"（可选，不配置则不限频）
     STRATEGY_HANDLERS = {
         "call_redis_alarm_correlation_analysis": [
             {
@@ -88,26 +91,6 @@ class RedisAlarm(AlarmCallback):
             cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
             cluster_type = cluster.cluster_type if cluster else None
             bk_biz_id = cluster.bk_biz_id if cluster else bk_biz_id
-
-        # 只处理 Redis 组件的告警，非 Redis 集群类型直接忽略
-        redis_cluster_type_values = {ct.value for ct in ClusterType.redis_cluster_types()}
-        if cluster_type and cluster_type not in redis_cluster_type_values:
-            # 如果策略名包含 Redis 相关关键字却被过滤，打印 warning 便于排查误过滤
-            redis_keywords = ("耗时", "Persist异常", "单核CPU使用率", "Redis", "redis")
-            if any(kw in strategy_name for kw in redis_keywords):
-                logger.warning(
-                    _(
-                        "[RedisAlarm] 疑似 Redis 告警被过滤: strategy='{}', cluster_type='{}', "
-                        "cluster_domain='{}', redis_types={}"
-                    ).format(strategy_name, cluster_type, cluster_domain, redis_cluster_type_values)
-                )
-            elif random.random() < 0.01:
-                logger.debug(
-                    _("[RedisAlarm] 忽略非 Redis 告警: strategy='{}', cluster_type='{}'").format(
-                        strategy_name, cluster_type
-                    )
-                )
-            return
 
         logger.info(
             _(
@@ -157,6 +140,12 @@ class RedisAlarm(AlarmCallback):
                         )
                     )
                     continue
+
+                # 频率限制检查
+                if not cls.check_rate_limit(
+                    cluster_domain, handler_name, condition["keyword"], condition.get("ratelimit", "")
+                ):
+                    return
 
                 handler = globals().get(handler_name)
                 if handler:

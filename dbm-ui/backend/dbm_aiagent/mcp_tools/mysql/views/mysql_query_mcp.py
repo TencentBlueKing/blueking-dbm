@@ -184,6 +184,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_create_tables(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
+        db_name = self.get_param("db_name") or ""
         table_names = self.get_param("table_names")
 
         cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
@@ -197,7 +198,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                     "create_sql": show_create_table(
                         cluster_type=cluster_obj.cluster_type,
                         cluster_domain=cluster_domain,
-                        dbname="",
+                        dbname=db_name,
                         tablename=table_name,
                     ),
                 }

@@ -57,6 +57,14 @@ data:
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
         charset: utf8mb4
+    - name: mysql_bk_dbm_stats
+      type: mysql
+      dsn:
+        address: "{{ $statsDB.host }}:{{ $statsDB.port }}"
+        user: "{{ $statsDB.user }}"
+        password: "{{ $statsDB.password }}"
+        database: "{{ $statsDB.name }}"
+        charset: utf8mb4
     - name: doris_bk_dbm_stats
       type: doris
       dsn:

@@ -52,13 +52,13 @@ dependencies:
   version: 0.0.7
 - name: backup-consumer
   repository: file://charts/backup-consumer
-  version: 0.0.6
+  version: 0.0.7
 - name: bkdata-kafka-consumer
   repository: file://charts/bkdata-kafka-consumer
   version: 0.0.9
 - name: db-event-consumer
   repository: file://charts/db-event-consumer
-  version: 0.0.16
+  version: 0.0.17
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.6
@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 3.0.1
-digest: sha256:8985d4ac2343ab1ff995045f57c30a382aa165e99f3a89d97b3bd486cf490143
-generated: "2026-09-03T19:57:00.540275+08:00"
+digest: sha256:9e4eb42f249b22c124be2d4c6c1223bcbf8a54a5c1a7144ad5d1f077cbc5d927
+generated: "2026-09-08T16:46:30.588445+08:00"
