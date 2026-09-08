@@ -2968,6 +2968,73 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    # --- K8s VictoriaMetrics (k8s_victoriametrics) ---
+    K8S_VICTORIAMETRICS_VIEW = ActionMeta(
+        id="k8s_victoriametrics_view",
+        name=_("VictoriaMetrics 集群详情查看"),
+        name_en="k8s_victoriametrics_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("集群管理"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+    K8S_VICTORIAMETRICS_EDIT = ActionMeta(
+        id="k8s_victoriametrics_edit",
+        name=_("VictoriaMetrics 集群元数据编辑"),
+        name_en="k8s_victoriametrics_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("集群管理"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+    K8S_VICTORIAMETRICS_APPLY = ActionMeta(
+        id="k8s_victoriametrics_apply",
+        name=_("VictoriaMetrics 部署"),
+        name_en="k8s_victoriametrics_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("集群管理"),
+        subgroup=_("集群管理"),
+    )
+    K8S_VICTORIAMETRICS_DESTROY = ActionMeta(
+        id="k8s_victoriametrics_destroy",
+        name=_("VictoriaMetrics 集群删除"),
+        name_en="k8s_victoriametrics_destroy",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("集群管理"),
+        subgroup=_("集群管理"),
+    )
+    K8S_VICTORIAMETRICS_ENABLE_DISABLE = ActionMeta(
+        id="k8s_vm_enable_disable",
+        name=_("VictoriaMetrics 集群禁用启用"),
+        name_en="k8s_vm_enable_disable",
+        type="execute",
+        related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("集群管理"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+    K8S_VICTORIAMETRICS_MANAGE = ActionMeta(
+        id="k8s_victoriametrics_manage",
+        name=_("VictoriaMetrics 集群运维管理"),
+        name_en="k8s_victoriametrics_manage",
+        description=_("重启、配置变更、升降配、硬盘扩容、水平扩容、组件重启、CLB 启停"),
+        type="manage",
+        related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("集群管理"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     @classmethod
     def get_action_by_id(cls, action_id: Union[(ActionMeta, str)]) -> ActionMeta:
         if isinstance(action_id, ActionMeta):

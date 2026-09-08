@@ -20,6 +20,7 @@ from backend.ticket.builders.common.base import SurrealDBTicketFlowBuilderPatchM
 class BaseSurrealDBTicketFlowBuilder(SurrealDBTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.K8sSurrealdb.value
     cluster_types = [ClusterType.K8sSurrealdbHa.value, ClusterType.K8sSurrealdbSingle.value]
+    namespace_prefix = NAMESPACE_PREFIX
 
     operation_type = None
     enable_operation_log = True
@@ -38,6 +39,7 @@ class BaseSurrealDBTicketFlowBuilder(SurrealDBTicketFlowBuilderPatchMixin, Ticke
         name_space = cluster_detail.get("namespace")
         k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
 
+        # clusters 中的多个集群需同属同一 K8s 集群和 namespace；此处仅 clusterName 随循环变化。
         for cluster_id, cluster_info in clusters.items():
             data = {
                 "ticketId": ticket.id,
@@ -52,7 +54,7 @@ class BaseSurrealDBTicketFlowBuilder(SurrealDBTicketFlowBuilderPatchMixin, Ticke
     @classmethod
     def add_apply_operation_log(cls, ticket, operation_type):
         """添加 SurrealDB 部署类单据的 DBS 操作日志"""
-        name_space = f"{NAMESPACE_PREFIX}-{ticket.details['db_app_abbr']}-{ticket.bk_biz_id}"
+        name_space = f"{cls.namespace_prefix}-{ticket.details['db_app_abbr']}-{ticket.bk_biz_id}"
         data = {
             "ticketId": ticket.id,
             "clusterName": ticket.details["cluster_name"],
