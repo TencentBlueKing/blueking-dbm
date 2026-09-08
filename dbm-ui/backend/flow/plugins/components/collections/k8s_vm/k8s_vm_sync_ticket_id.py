@@ -45,7 +45,10 @@ class K8sVmSyncTicketIdService(BaseService):
             cluster_id = trans_data.cluster_id
 
         # delete类型的单据从trans_data中取数据
-        if global_data["ticket_type"] == TicketType.K8S_VICTORIAMETRICS_DELETE:
+        if global_data["ticket_type"] in [
+            TicketType.K8S_VICTORIAMETRICS_DELETE,
+            TicketType.K8S_VICTORIAMETRICS_DESTROY,
+        ]:
             k8s_cluster_name = trans_data.k8s_cluster_name
             namespace = trans_data.namespace
             cluster_name = trans_data.cluster_name
@@ -77,13 +80,16 @@ class K8sVmSyncTicketIdService(BaseService):
 
     @staticmethod
     def get_request_type(ticket_type: str) -> str:
-        if ticket_type == TicketType.K8S_VICTORIAMETRICS_APPLY:
+        if ticket_type in [
+            TicketType.K8S_VICTORIAMETRICS_STANDARD_APPLY,
+            TicketType.K8S_VICTORIAMETRICS_QUERY_APPLY,
+        ]:
             return "CreateCluster"
         elif ticket_type == TicketType.K8S_VICTORIAMETRICS_ENABLE:
             return "StartCluster"
         elif ticket_type == TicketType.K8S_VICTORIAMETRICS_DISABLE:
             return "StopCluster"
-        elif ticket_type == TicketType.K8S_VICTORIAMETRICS_DELETE:
+        elif ticket_type in [TicketType.K8S_VICTORIAMETRICS_DELETE, TicketType.K8S_VICTORIAMETRICS_DESTROY]:
             return "DeleteCluster"
         elif ticket_type == TicketType.K8S_VICTORIAMETRICS_RESTART:
             return "RestartCluster"

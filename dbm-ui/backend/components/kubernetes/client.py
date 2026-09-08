@@ -45,6 +45,11 @@ class _KubernetesApi(BaseApi):
             url="/v4/dbs/component/pods",
             description=_("获取组件实例列表"),
         )
+        self.cluster_services = self.generate_data_api(
+            method="GET",
+            url="/v4/dbs/cluster/services",
+            description=_("获取集群连接信息"),
+        )
         self.pod_detail = self.generate_data_api(
             method="GET",
             url="/v4/dbs/k8s_cluster/pod",
