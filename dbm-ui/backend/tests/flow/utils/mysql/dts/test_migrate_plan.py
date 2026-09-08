@@ -20,7 +20,11 @@ from backend.flow.utils.mysql.dts.migrate_credentials import (
     generate_dts_migrate_credentials,
     generate_dts_migrate_username,
 )
-from backend.flow.utils.mysql.dts.migrate_helper import _build_table_migrate_rules
+from backend.flow.utils.mysql.dts.migrate_helper import (
+    _build_table_migrate_rules,
+    _merge_system_ignore_dbs,
+    sync_scope_to_table_filter,
+)
 from backend.flow.utils.mysql.dts.migrate_plan import (
     SyncScope,
     TableRoute,
@@ -35,6 +39,7 @@ from backend.flow.utils.mysql.dts.migrate_plan import (
     patch_deploy_cluster_names_into_details,
     resolve_ticket_destroy_policy,
     resolve_ticket_lifecycle,
+    to_dts_glob,
 )
 
 # 内部默认名：source-{cluster_id}-{12 hex}
@@ -239,40 +244,28 @@ class MigratePlanTest(SimpleTestCase):
 
 
 class SyncScopeMappingTest(SimpleTestCase):
-    """L1：S1–S7 sync_scope → table_migrate_rule 映射验收。"""
+    """L1：同名 table_filter / 重名 table_migrate_rule 映射验收。"""
 
-    def _dump_rules(self, scenario_id: str, scope: SyncScope, rules):
-        payload = [
-            {
-                "source": r.source.model_dump(),
-                "target": r.target.model_dump() if r.target else None,
-            }
-            for r in rules
-        ]
-        print(f"[DTS-UT][{scenario_id}] RULES {payload}")
+    def test_s1_same_name_partial_database_table_filter(self):
+        scope = SyncScope(do_dbs=["dts_ut_db_a", "dts_ut_db_b"], do_tables=[{"schema": "*", "table": "*"}])
+        tf = sync_scope_to_table_filter(scope)
+        self.assertIsNotNone(tf)
+        self.assertEqual(tf.do_dbs, ["dts_ut_db_a", "dts_ut_db_b"])
+        self.assertEqual([(item.schema, item.table) for item in tf.do_tables], [("*", "*")])
+        self.assertEqual(_build_table_migrate_rules("src-ut", scope), [])
 
-    def test_s1_do_dbs_partial_database(self):
-        scope = SyncScope(do_dbs=["dts_ut_db_a", "dts_ut_db_b"])
-        rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S1", scope, rules)
-        self.assertEqual(len(rules), 2)
-        self.assertEqual({r.source.schema for r in rules}, {"dts_ut_db_a", "dts_ut_db_b"})
-        self.assertTrue(all(r.source.table == "*" for r in rules))
-
-    def test_s2_do_tables_partial_table(self):
-        scope = SyncScope(do_tables=[{"db": "dts_ut_db_c", "table": "t1"}])
-        rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S2", scope, rules)
-        self.assertEqual(len(rules), 1)
-        self.assertEqual(rules[0].source.schema, "dts_ut_db_c")
-        self.assertEqual(rules[0].source.table, "t1")
+    def test_s2_same_name_partial_table_table_filter(self):
+        scope = SyncScope(do_dbs=["dts_ut_db_c"], do_tables=[{"schema": "*", "table": "t1"}])
+        tf = sync_scope_to_table_filter(scope)
+        self.assertEqual(tf.do_dbs, ["dts_ut_db_c"])
+        self.assertEqual([(item.schema, item.table) for item in tf.do_tables], [("*", "t1")])
+        self.assertEqual(_build_table_migrate_rules("src-ut", scope), [])
 
     def test_s3_full_db_wildcard_route(self):
         scope = SyncScope(
             table_routes=[{"source_db": "dts_ut_db_full", "source_table": "*"}],
         )
         rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S3", scope, rules)
         self.assertEqual(len(rules), 1)
         self.assertEqual(rules[0].source.schema, "dts_ut_db_full")
         self.assertEqual(rules[0].source.table, "*")
@@ -289,7 +282,6 @@ class SyncScopeMappingTest(SimpleTestCase):
             ],
         )
         rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S4", scope, rules)
         self.assertEqual(len(rules), 1)
         self.assertIsNotNone(rules[0].target)
         self.assertEqual(rules[0].target.schema, "dts_ut_db_r")
@@ -307,23 +299,25 @@ class SyncScopeMappingTest(SimpleTestCase):
             ],
         )
         rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S5", scope, rules)
         self.assertEqual(len(rules), 1)
         self.assertEqual(rules[0].source.schema, "dts_ut_src")
         self.assertEqual(rules[0].target.schema, "dts_ut_dst")
 
-    def test_s6_ignore_dbs_whitelist_subtract(self):
-        scope = SyncScope(do_dbs=["dts_ut_db_a", "dts_ut_db_b"], ignore_dbs=["dts_ut_db_b"])
-        rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S6", scope, rules)
-        self.assertEqual(len(rules), 1)
-        self.assertEqual(rules[0].source.schema, "dts_ut_db_a")
+    def test_s6_ignore_dbs_go_to_table_filter(self):
+        scope = SyncScope(
+            do_dbs=["dts_ut_db_a", "dts_ut_db_b"],
+            do_tables=[{"schema": "*", "table": "*"}],
+            ignore_dbs=["dts_ut_db_b"],
+        )
+        tf = sync_scope_to_table_filter(scope)
+        self.assertEqual(tf.do_dbs, ["dts_ut_db_a", "dts_ut_db_b"])
+        self.assertEqual(tf.ignore_dbs, _merge_system_ignore_dbs(["dts_ut_db_a", "dts_ut_db_b"], ["dts_ut_db_b"]))
+        self.assertEqual(_build_table_migrate_rules("src-ut", scope), [])
 
-    def test_s7_empty_scope_yields_no_rules(self):
+    def test_s7_empty_scope_yields_no_filter_or_rules(self):
         scope = SyncScope()
-        rules = _build_table_migrate_rules("src-ut", scope)
-        self._dump_rules("S7", scope, rules)
-        self.assertEqual(rules, [])
+        self.assertIsNone(sync_scope_to_table_filter(scope))
+        self.assertEqual(_build_table_migrate_rules("src-ut", scope), [])
 
     def test_build_task_rejects_empty_rules(self):
         from backend.components.mysqldtsapi.types import TargetConfig
@@ -353,13 +347,51 @@ class SyncScopeMappingTest(SimpleTestCase):
         with self.assertRaises(ValueError):
             build_dts_task_request(plan, task_spec, user="u", password="p")
 
-    def test_do_dbs_to_table_migrate_rules(self):
-        scope = SyncScope(do_dbs=["db_a", "db_b"], ignore_dbs=["db_b"])
-        rules = _build_table_migrate_rules("src-1", scope)
-        self.assertEqual(len(rules), 1)
-        self.assertEqual(rules[0].source.source_name, "src-1")
-        self.assertEqual(rules[0].source.schema, "db_a")
-        self.assertEqual(rules[0].source.table, "*")
+    def test_ae1_wiki_table_filter_glob_render(self):
+        from backend.flow.utils.mysql.dts.migrate_plan import _parse_sync_scope
+
+        scope = _parse_sync_scope(
+            {
+                "db_patterns": ["db%"],
+                "ignore_dbs": ["db3", "db4"],
+                "table_patterns": ["tb%"],
+                "ignore_tables": ["tb1%"],
+            }
+        )
+        tf = sync_scope_to_table_filter(scope)
+        self.assertEqual(scope.do_dbs, ["db%"])
+        self.assertEqual(tf.do_dbs, ["db*"])
+        self.assertEqual(tf.ignore_dbs, _merge_system_ignore_dbs(["db%"], ["db3", "db4"]))
+        self.assertEqual([(item.schema, item.table) for item in tf.do_tables], [("*", "tb*")])
+        self.assertEqual([(item.schema, item.table) for item in tf.ignore_tables], [("*", "tb1*")])
+        self.assertEqual(_build_table_migrate_rules("src-1", scope), [])
+        self.assertEqual(to_dts_glob("*"), "*")
+        self.assertEqual(to_dts_glob("tb?"), "tb?")
+        self.assertEqual(to_dts_glob("pre%mid"), "~^pre.*mid$")
+
+    def test_internal_scope_keeps_mid_percent(self):
+        from backend.flow.utils.mysql.dts.migrate_plan import _parse_sync_scope
+
+        scope = _parse_sync_scope({"db_patterns": ["pre%mid"], "table_patterns": ["*"]})
+        self.assertEqual(scope.do_dbs, ["pre%mid"])
+        tf = sync_scope_to_table_filter(scope)
+        self.assertEqual(tf.do_dbs, ["~^pre.*mid$"])
+
+    def test_system_dbs_merged_into_table_filter_ignore(self):
+        tf = sync_scope_to_table_filter(SyncScope(do_dbs=["app"], do_tables=[{"schema": "*", "table": "*"}]))
+        self.assertIn("db_infobase", tf.ignore_dbs)
+        self.assertIn("test", tf.ignore_dbs)
+        self.assertIn("mysql", tf.ignore_dbs)
+
+    def test_exact_test_db_kept_out_of_ignore(self):
+        tf = sync_scope_to_table_filter(SyncScope(do_dbs=["test"], do_tables=[{"schema": "*", "table": "*"}]))
+        self.assertNotIn("test", tf.ignore_dbs)
+        self.assertIn("db_infobase", tf.ignore_dbs)
+
+    def test_same_name_star_instance_table_filter(self):
+        tf = sync_scope_to_table_filter(SyncScope(do_dbs=["*"], do_tables=[{"schema": "*", "table": "*"}]))
+        self.assertEqual(tf.do_dbs, ["*"])
+        self.assertEqual([(item.schema, item.table) for item in tf.do_tables], [("*", "*")])
 
     def test_table_routes_preferred(self):
         scope = SyncScope(

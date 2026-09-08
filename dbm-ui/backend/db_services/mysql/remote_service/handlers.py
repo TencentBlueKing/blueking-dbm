@@ -167,14 +167,19 @@ class RemoteServiceHandler:
 
         return list(cluster_id__check_info.values())
 
-    def show_database_with_pattern(self, cluster_id: int, dbs: list, ignore_dbs: list) -> list:
+    def show_database_with_pattern(
+        self, cluster_id: int, dbs: list, ignore_dbs: list, *, keep_system_dbs: List[str] = None
+    ) -> list:
         """
         根据库正则查询单个集群的库信息
         @param cluster_id: 集群id，
         @param dbs: 库正则列表
         @param ignore_dbs: 忽略库正则
+        @param keep_system_dbs: 不从查询结果排除的系统库
         """
-        sys_db_list = "(" + ",".join([f"'{db}'" for db in SYSTEM_DBS]) + ")"
+        keep_system_dbs = set(keep_system_dbs or [])
+        excluded_system_dbs = [db for db in SYSTEM_DBS if db not in keep_system_dbs]
+        sys_db_list = "(" + ",".join([f"'{db}'" for db in excluded_system_dbs]) + ")"
         cluster_handler, address = self._get_cluster_address({}, cluster_id)
 
         # 构造查询库的sql语句

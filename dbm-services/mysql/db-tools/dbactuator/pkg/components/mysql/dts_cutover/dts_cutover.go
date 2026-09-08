@@ -81,12 +81,14 @@ func (c *Comp) Example() interface{} {
 					Password:   "p",
 					SourceName: "src1",
 					SyncScope: &SyncScope{
-						DoDBs: []string{"app"},
+						DoDBs:    []string{"app"},
+						DoTables: []TableItem{{Schema: "*", Table: "*"}},
 					},
 				},
 			},
 			SyncScope: &SyncScope{
-				DoDBs: []string{"app"},
+				DoDBs:    []string{"app"},
+				DoTables: []TableItem{{Schema: "*", Table: "*"}},
 			},
 			CatchupRecheck: defaultCatchupRecheck,
 			CatchupPollMax: defaultCatchupPollMax,

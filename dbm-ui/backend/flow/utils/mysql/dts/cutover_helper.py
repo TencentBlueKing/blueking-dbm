@@ -38,7 +38,7 @@ def resolve_master_addr_from_plan(plan: DtsMigratePlan) -> str:
 
 def sync_scope_to_dict(scope: SyncScope) -> dict[str, Any]:
     """将 SyncScope 转为 actuator 可消费的紧凑 dict（不含展开后的海量表名）。"""
-    return {
+    payload: dict[str, Any] = {
         "do_dbs": list(scope.do_dbs or []),
         "ignore_dbs": list(scope.ignore_dbs or []),
         "do_tables": list(scope.do_tables or []),
@@ -46,6 +46,7 @@ def sync_scope_to_dict(scope: SyncScope) -> dict[str, Any]:
         "table_routes": [asdict(route) for route in (scope.table_routes or [])],
         "binlog_filters": list(scope.binlog_filters or []),
     }
+    return payload
 
 
 def merge_task_sync_scopes(task_spec: DtsTaskSpec) -> dict[str, Any]:

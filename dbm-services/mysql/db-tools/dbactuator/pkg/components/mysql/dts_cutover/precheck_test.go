@@ -112,7 +112,7 @@ func TestPreCheckChecksumGate(t *testing.T) {
 		SourceEndpoints: []SourceEndpoint{{
 			Host: "127.0.0.10", Port: 20000, User: "u", Password: "p",
 		}},
-		SyncScope:      &SyncScope{DoDBs: []string{"app"}},
+		SyncScope:      &SyncScope{DoDBs: []string{"app"}, DoTables: []TableItem{{Schema: "*", Table: "*"}}},
 		ChecksumPassed: false,
 		SkipChecksum:   false,
 	}}
@@ -129,7 +129,7 @@ func TestPreCheckSourceConnectFailFast(t *testing.T) {
 			{Host: "127.0.0.1", Port: 1, User: "u", Password: "p", SourceName: "src1"},
 			{Host: "127.0.0.1", Port: 2, User: "u", Password: "p", SourceName: "src2"},
 		},
-		SyncScope:      &SyncScope{DoDBs: []string{"app"}},
+		SyncScope:      &SyncScope{DoDBs: []string{"app"}, DoTables: []TableItem{{Schema: "*", Table: "*"}}},
 		ChecksumPassed: true,
 	}}
 	err := c.PreCheck()

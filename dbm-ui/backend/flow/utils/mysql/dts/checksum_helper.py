@@ -23,7 +23,7 @@ from backend.ticket.constants import TicketType
 
 
 def _to_checksum_glob(name: str) -> str:
-    """DTS 通配 * 转为 checksum 方言：独立 * 保持 *，tb_* 转为 tb_%。"""
+    """同名内部已是用户写的单据通配（%/?/*），与 checksum 一致；仅把残留 DTS * 转成 %。"""
     text = (name or "").strip()
     if not text or set(text) == {"*"}:
         return "*"
@@ -42,22 +42,22 @@ def _unique_keep_order(names: list[str]) -> list[str]:
 
 
 def _ignore_table_names(scope: SyncScope) -> list[str]:
-    ignore_tables: list[str] = []
+    names: list[str] = []
     for item in scope.ignore_tables or []:
         if isinstance(item, dict):
-            ignore_tables.append(item.get("table") or item.get("tablename") or "")
+            names.append(item.get("table") or item.get("tablename") or "")
         elif isinstance(item, str):
-            ignore_tables.append(item.split(".")[-1])
-    return [t for t in ignore_tables if t]
+            names.append(item)
+    return [name for name in names if name]
 
 
 def _scope_to_checksum_patterns(scope: SyncScope) -> tuple[list[str], list[str], list[str], list[str]]:
-    """将迁移 sync_scope 粗映射为 checksum db/table patterns。
+    """将迁移 sync_scope 映射为 checksum db/table patterns。
 
-    table_routes 优先取源端（source_db / source_db_pattern / source_table），不读 target。
+    table_routes 优先取源端。同名四列保留用户写的单据通配；残留 DTS * 转为 checksum 的 %。
     """
-    ignore_dbs = list(scope.ignore_dbs or [])
-    ignore_tables = _ignore_table_names(scope)
+    ignore_dbs = [_to_checksum_glob(item) for item in (scope.ignore_dbs or [])]
+    ignore_tables = [_to_checksum_glob(item) for item in _ignore_table_names(scope)]
     if scope.table_routes:
         db_patterns = _unique_keep_order(
             [_to_checksum_glob(route.source_schema()) for route in scope.table_routes if route.source_schema()]
@@ -67,15 +67,11 @@ def _scope_to_checksum_patterns(scope: SyncScope) -> tuple[list[str], list[str],
         )
         return db_patterns, ignore_dbs, table_patterns or ["*"], ignore_tables
 
-    db_patterns = list(scope.do_dbs or []) or ["*"]
+    db_patterns = [_to_checksum_glob(item) for item in (scope.do_dbs or [])]
     table_patterns: list[str] = []
     for item in scope.do_tables or []:
         if isinstance(item, dict):
-            table_patterns.append(item.get("table") or item.get("tablename") or "*")
-        elif isinstance(item, str):
-            table_patterns.append(item.split(".")[-1])
-    if not table_patterns:
-        table_patterns = ["*"]
+            table_patterns.append(_to_checksum_glob(item.get("table") or item.get("tablename") or "*"))
     return db_patterns, ignore_dbs, table_patterns, ignore_tables
 
 

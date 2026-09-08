@@ -48,7 +48,13 @@ def _spec(*, task_mode="all", incr_migrate=None, full_load_engine=FullLoadEngine
     spec = DtsTaskSpec(
         task_name="mysql-dts-1-1-2",
         target_cluster_id=2,
-        sources=[SourceSpec(cluster_id=1, source_name="src-1", sync_scope=SyncScope(do_dbs=["db_a"]))],
+        sources=[
+            SourceSpec(
+                cluster_id=1,
+                source_name="src-1",
+                sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+            )
+        ],
         target_config=TargetConfig(host="127.0.0.1", port=3306, user="u", password="p", cluster_type="mysql"),
         dts_task_config=cfg,
     )

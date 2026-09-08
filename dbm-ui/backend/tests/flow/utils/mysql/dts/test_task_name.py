@@ -66,7 +66,10 @@ class PatchInfosTaskNameUniqueTest(SimpleTestCase):
                     "migrate": {
                         "topology": MigrateTopology.ONE_TO_ONE.value,
                         "one_to_one": {
-                            "source": {"cluster_id": 100, "sync_scope": {"do_dbs": ["db_a"]}},
+                            "source": {
+                                "cluster_id": 100,
+                                "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]},
+                            },
                             "target": {"cluster_id": 200},
                         },
                     }
@@ -75,7 +78,10 @@ class PatchInfosTaskNameUniqueTest(SimpleTestCase):
                     "migrate": {
                         "topology": MigrateTopology.ONE_TO_ONE.value,
                         "one_to_one": {
-                            "source": {"cluster_id": 100, "sync_scope": {"do_dbs": ["db_b"]}},
+                            "source": {
+                                "cluster_id": 100,
+                                "sync_scope": {"db_patterns": ["db_b"], "table_patterns": ["*"]},
+                            },
                             "target": {"cluster_id": 200},
                         },
                     }

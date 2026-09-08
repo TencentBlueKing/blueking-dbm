@@ -56,8 +56,17 @@ func TestTableItemUnmarshal(t *testing.T) {
 func TestSyncScopeIsEmpty(t *testing.T) {
 	require.True(t, (*SyncScope)(nil).IsEmpty())
 	require.True(t, (&SyncScope{}).IsEmpty())
-	require.False(t, (&SyncScope{DoDBs: []string{"app"}}).IsEmpty())
+	require.False(t, (&SyncScope{DoDBs: []string{"app"}, DoTables: []TableItem{{Schema: "*", Table: "*"}}}).IsEmpty())
 	require.False(t, (&SyncScope{TableRoutes: []TableRoute{{SourceDB: "app", SourceTable: "t1"}}}).IsEmpty())
+}
+
+func TestSyncScopeFourColumnUnmarshal(t *testing.T) {
+	var scope SyncScope
+	raw := `{"do_dbs":["db*"],"ignore_dbs":["db3"],"do_tables":[{"schema":"*","table":"tb*"}],"ignore_tables":["tb1*"]}`
+	require.NoError(t, json.Unmarshal([]byte(raw), &scope))
+	require.Equal(t, []string{"db*"}, scope.DoDBs)
+	require.Equal(t, []TableItem{{Schema: "*", Table: "tb*"}}, scope.DoTables)
+	require.Equal(t, []TableItem{{Schema: "*", Table: "tb1*"}}, scope.IgnoreTables)
 }
 
 func TestTableRouteUnmarshalAndAccessors(t *testing.T) {
@@ -146,6 +155,114 @@ func TestExpandSyncScopeTableRoutesRejectEmptyExpand(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, tables, 1)
+}
+
+func TestExpandSyncScopeFourColumnDbTableFilter(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(`FROM information_schema\.SCHEMATA`).
+		WithArgs("db%").
+		WillReturnRows(sqlmock.NewRows([]string{"SCHEMA_NAME"}).
+			AddRow("db1").AddRow("db2").AddRow("db3"))
+	mock.ExpectQuery(`FROM information_schema\.TABLES`).
+		WithArgs("db1", "tb%").
+		WillReturnRows(sqlmock.NewRows([]string{"TABLE_SCHEMA", "TABLE_NAME"}).
+			AddRow("db1", "tb2").AddRow("db1", "tb10"))
+	mock.ExpectQuery(`FROM information_schema\.TABLES`).
+		WithArgs("db2", "tb%").
+		WillReturnRows(sqlmock.NewRows([]string{"TABLE_SCHEMA", "TABLE_NAME"}).
+			AddRow("db2", "tb2").AddRow("db2", "tb10"))
+
+	scope := &SyncScope{
+		DoDBs:        []string{"db*"},
+		IgnoreDBs:    []string{"db3"},
+		DoTables:     []TableItem{{Schema: "*", Table: "tb*"}},
+		IgnoreTables: []TableItem{{Schema: "*", Table: "tb1*"}},
+	}
+	tables, err := ExpandSyncScope(db, scope)
+	require.NoError(t, err)
+	require.Equal(t, []LockedTable{
+		{Schema: "db1", Table: "tb2"},
+		{Schema: "db2", Table: "tb2"},
+	}, tables)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExpandSyncScopeFourColumnBackupPercent(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(`FROM information_schema\.SCHEMATA`).
+		WithArgs("db%").
+		WillReturnRows(sqlmock.NewRows([]string{"SCHEMA_NAME"}).AddRow("db1"))
+	mock.ExpectQuery(`FROM information_schema\.TABLES`).
+		WithArgs("db1", "tb%").
+		WillReturnRows(sqlmock.NewRows([]string{"TABLE_SCHEMA", "TABLE_NAME"}).AddRow("db1", "tb2"))
+
+	tables, err := ExpandSyncScope(db, &SyncScope{
+		DoDBs:    []string{"db%"},
+		DoTables: []TableItem{{Schema: "*", Table: "tb%"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []LockedTable{{Schema: "db1", Table: "tb2"}}, tables)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExpandSyncScopeFourColumnRejectRegex(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	_, err = ExpandSyncScope(db, &SyncScope{
+		DoDBs:    []string{"~^pre.*mid$"},
+		DoTables: []TableItem{{Schema: "*", Table: "*"}},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "正则")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExpandSyncScopeFourColumnFiltersSystemDBs(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(`FROM information_schema\.SCHEMATA`).
+		WithArgs("%").
+		WillReturnRows(sqlmock.NewRows([]string{"SCHEMA_NAME"}).
+			AddRow("app").AddRow("db_infobase").AddRow("test"))
+	mock.ExpectQuery(`FROM information_schema\.TABLES`).
+		WithArgs("app").
+		WillReturnRows(sqlmock.NewRows([]string{"TABLE_SCHEMA", "TABLE_NAME"}).AddRow("app", "t1"))
+
+	tables, err := ExpandSyncScope(db, &SyncScope{
+		DoDBs:    []string{"*"},
+		DoTables: []TableItem{{Schema: "*", Table: "*"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []LockedTable{{Schema: "app", Table: "t1"}}, tables)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExpandSyncScopeFourColumnKeepsExactTest(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(`FROM information_schema\.TABLES`).
+		WithArgs("test").
+		WillReturnRows(sqlmock.NewRows([]string{"TABLE_SCHEMA", "TABLE_NAME"}).AddRow("test", "t1"))
+
+	tables, err := ExpandSyncScope(db, &SyncScope{
+		DoDBs:    []string{"test"},
+		DoTables: []TableItem{{Schema: "*", Table: "*"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []LockedTable{{Schema: "test", Table: "t1"}}, tables)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestBuildLockMasterSnapshots(t *testing.T) {
