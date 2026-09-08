@@ -23,17 +23,6 @@ from backend.exceptions import ApiError
 
 logger = logging.getLogger("root")
 
-# 权限模型管理。system_id 固定为 bk_dbm，直接拼进路径
-MODEL_URL = f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}"
-# 鉴权
-AUTH_URL = f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}"
-# 授权管理
-MGMT_URL = f"/api/v1/open/rbac/mgmt/systems/{env.BK_IAM_SYSTEM_ID}"
-# 系统共享查询。注：IAM侧路径拼写为 rabc 而非 rbac，需照此调用
-SHARE_MODEL_URL = f"/api/v1/open/rabc/share/model/systems/{env.BK_IAM_SYSTEM_ID}"
-# IAM SAAS URL
-SAAS_URL = "/api/v1/open/application"
-
 # 分页拉取的每页条数，list_role 协议明确上限为100，其余列表接口未给上限，统一按100取
 LIST_PAGE_SIZE = 100
 # 批量创建的分片大小，DBM有近500个动作，一次性提交容易触发网关的包体限制
@@ -89,115 +78,128 @@ class _IAMV4Api(BaseApi):
         )
         self.retrieve_system = self.generate_data_api(
             method="GET",
-            url=f"{MODEL_URL}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/",
             description=_("查询系统信息"),
         )
         self.update_system = self.generate_data_api(
             method="PUT",
-            url=f"{MODEL_URL}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/",
             description=_("更新系统信息"),
         )
         self.retrieve_system_auth_token = self.generate_data_api(
             method="GET",
-            url=f"{MODEL_URL}/auth-token/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/auth-token/",
             description=_("获取系统AuthToken"),
         )
+        # IAM侧路径拼写为 rabc 而非 rbac，需照此调用
         self.share_retrieve_system = self.generate_data_api(
             method="GET",
-            url=f"{SHARE_MODEL_URL}/",
+            url=f"/api/v1/open/rabc/share/model/systems/{env.BK_IAM_SYSTEM_ID}/",
             description=_("查询系统详情"),
         )
         self.batch_create_resource_type = self.generate_data_api(
             method="POST",
-            url=f"{MODEL_URL}/resource-types/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/resource-types/",
             description=_("批量创建资源类型"),
         )
         self.list_resource_type = self.generate_data_api(
             method="GET",
-            url=f"{MODEL_URL}/resource-types/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/resource-types/",
             description=_("查询资源类型列表"),
         )
         self.update_resource_type = self.generate_data_api(
             method="PUT",
-            url=f"{MODEL_URL}/resource-types/{{resource_type_id}}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/resource-types/{{resource_type_id}}/",
             description=_("更新资源类型"),
         )
         self.delete_resource_type = self.generate_data_api(
             method="DELETE",
-            url=f"{MODEL_URL}/resource-types/{{resource_type_id}}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/resource-types/{{resource_type_id}}/",
             description=_("删除资源类型"),
         )
         self.batch_create_action = self.generate_data_api(
             method="POST",
-            url=f"{MODEL_URL}/actions/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/actions/",
             description=_("批量创建操作"),
         )
         self.list_action = self.generate_data_api(
             method="GET",
-            url=f"{MODEL_URL}/actions/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/actions/",
             description=_("查询操作列表"),
         )
         self.update_action = self.generate_data_api(
             method="PUT",
-            url=f"{MODEL_URL}/actions/{{action_id}}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/actions/{{action_id}}/",
             description=_("更新操作"),
         )
         self.delete_action = self.generate_data_api(
             method="DELETE",
-            url=f"{MODEL_URL}/actions/{{action_id}}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/actions/{{action_id}}/",
             description=_("删除操作"),
         )
         self.batch_create_role = self.generate_data_api(
             method="POST",
-            url=f"{MODEL_URL}/roles/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/roles/",
             description=_("批量创建角色"),
         )
         self.list_role = self.generate_data_api(
             method="GET",
-            url=f"{MODEL_URL}/roles/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/roles/",
             description=_("查询角色列表"),
         )
         self.update_role = self.generate_data_api(
             method="PUT",
-            url=f"{MODEL_URL}/roles/{{role_id}}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/roles/{{role_id}}/",
             description=_("更新角色"),
         )
         self.delete_role = self.generate_data_api(
             method="DELETE",
-            url=f"{MODEL_URL}/roles/{{role_id}}/",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/roles/{{role_id}}/",
             description=_("删除角色"),
         )
         self.direct_auth = self.generate_data_api(
             method="POST",
-            url=f"{AUTH_URL}/auth/",
+            url=f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}/auth/",
             description=_("直接鉴权"),
         )
         # 一次返回该动作下所有资源类型的授权实例，调用方自行按类型过滤
         self.list_authorized_resource = self.generate_data_api(
             method="POST",
-            url=f"{AUTH_URL}/relation/authorized-resources/",
+            url=f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}/relation/authorized-resources/",
             description=_("查询有权限的资源实例"),
         )
         # body为授权记录数组，单次最多20条，调用时必须带上 X-Bkiam-Operator 头
         self.add_authorization = self.generate_data_api(
             method="POST",
-            url=f"{MGMT_URL}/authorizations/",
+            url=f"/api/v1/open/rbac/mgmt/systems/{env.BK_IAM_SYSTEM_ID}/authorizations/",
             description=_("批量角色授权"),
         )
         # 与授权同路径，用一致的 role_id + subject + resources 撤销，同样要带 X-Bkiam-Operator 头
         self.revoke_authorization = self.generate_data_api(
             method="DELETE",
-            url=f"{MGMT_URL}/authorizations/",
+            url=f"/api/v1/open/rbac/mgmt/systems/{env.BK_IAM_SYSTEM_ID}/authorizations/",
             description=_("批量撤销授权"),
         )
         self.direct_auth_by_actions = self.generate_data_api(
-            method="POST", url=f"{AUTH_URL}/auth-by-actions/", description=_("批量操作直接鉴权")
+            method="POST",
+            url=f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}/auth-by-actions/",
+            description=_("批量操作直接鉴权"),
         )
         self.direct_auth_by_resources = self.generate_data_api(
-            method="POST", url=f"{AUTH_URL}/auth-by-resources/", description=_("批量资源直接鉴权")
+            method="POST",
+            url=f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}/auth-by-resources/",
+            description=_("批量资源直接鉴权"),
         )
         self.generate_perm_apply_url = self.generate_data_api(
-            method="POST", url=f"{SAAS_URL}/permission-apply-urls/", description=_("获取申请权限url")
+            method="POST",
+            url="/api/v1/open/application/permission-apply-urls/",
+            description=_("获取申请权限url"),
+        )
+        # 角色默认展示资源层级。路径在 /mgmt/ 下，与模型管理的 /rbac/model/ 不是同一前缀
+        self.update_role_display_resource_types = self.generate_data_api(
+            method="PUT",
+            url=f"/api/v1/open/mgmt/systems/{env.BK_IAM_SYSTEM_ID}/roles/{{role_id}}/display-resource-types/",
+            description=_("更新角色默认展示资源层级"),
         )
 
     def batch_create_role_action(self, role_id: str, actions: List[Dict]):
@@ -206,7 +208,9 @@ class _IAMV4Api(BaseApi):
         body是数组，无法像其他接口那样用params渲染路径上的role_id，故单独构造
         """
         api = self.generate_data_api(
-            method="POST", url=f"{MODEL_URL}/roles/{role_id}/actions/", description=_("批量添加角色操作")
+            method="POST",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/roles/{role_id}/actions/",
+            description=_("批量添加角色操作"),
         )
         return api(params=actions)
 
@@ -214,7 +218,7 @@ class _IAMV4Api(BaseApi):
         """批量删除角色操作，待删除的操作以query传递。IAM要求每种资源类型下至少保留一个操作"""
         api = self.generate_data_api(
             method="DELETE",
-            url=f"{MODEL_URL}/roles/{role_id}/actions/?ids={','.join(action_ids)}",
+            url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/roles/{role_id}/actions/?ids={','.join(action_ids)}",
             description=_("批量删除角色操作"),
         )
         return api()
@@ -246,6 +250,17 @@ class _IAMV4Api(BaseApi):
         created = [item for item in local if item["id"] not in remote_ids]
         updated = [item for item in local if item["id"] in remote_ids]
         return created, updated
+
+    @staticmethod
+    def _display_resource_types(role: Dict) -> List[Dict]:
+        """角色关联的资源类型即默认展示层级，授权粒度与展示粒度保持同一级"""
+        resource_type_ids = sorted(
+            {action["resource_type_id"] for action in role.get("actions") or [] if action.get("resource_type_id")}
+        )
+        return [
+            {"related_resource_type_id": resource_type_id, "display_resource_type_id": resource_type_id}
+            for resource_type_id in resource_type_ids
+        ]
 
     @staticmethod
     def _group_by_depth(resources: List[Dict]) -> List[List[Dict]]:
@@ -297,6 +312,13 @@ class _IAMV4Api(BaseApi):
         }
         add_role_actions = {role_id: actions for role_id, actions in add_role_actions.items() if actions}
 
+        # 角色默认展示层级：授权粒度与展示粒度保持同一级。接口要求列表非空，无关资源的角色跳过
+        role_display_resource_types = {}
+        for role in model["roles"]:
+            display_resource_types = self._display_resource_types(role)
+            if display_resource_types:
+                role_display_resource_types[role["id"]] = display_resource_types
+
         if not dry_run:
             # 资源类型：动作与角色都引用它，必须最先注册。按拓扑逐层提交，确保祖先先于子级落库
             for layer in self._group_by_depth(new_resources):
@@ -323,6 +345,11 @@ class _IAMV4Api(BaseApi):
             for role_id, actions in add_role_actions.items():
                 for chunk in self._chunks(actions):
                     self.batch_create_role_action(role_id, chunk)
+            # 角色默认展示层级必须在角色落库后更新
+            for role_id, display_resource_types in role_display_resource_types.items():
+                self.update_role_display_resource_types(
+                    params={"role_id": role_id, "display_resource_types": display_resource_types}
+                )
 
         summary = {
             "dry_run": dry_run,
@@ -339,6 +366,10 @@ class _IAMV4Api(BaseApi):
                 "created": [item["id"] for item in new_roles],
                 "updated": [item["id"] for item in mod_roles],
                 "action_added": {role_id: [a["id"] for a in acts] for role_id, acts in add_role_actions.items()},
+                "display_resource_types": {
+                    role_id: [item["related_resource_type_id"] for item in items]
+                    for role_id, items in role_display_resource_types.items()
+                },
             },
         }
         # 变更项可达数百个，日志只记数量，明细由返回值给调用方
