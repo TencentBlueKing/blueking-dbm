@@ -1,11 +1,12 @@
 <template>
   <DbPopconfirm
-    v-model:is-show="isShow"
     :confirm-handler="handleConfirm"
     :title="title"
     :width="320"
     @toggle-show="handleToggleShow">
-    <slot />
+    <div>
+      <slot />
+    </div>
     <template #content>
       <div class="time-picker-popover-content">
         <div class="time-bar-wrapper">
@@ -132,7 +133,6 @@
   }>({
     required: true,
   });
-  const isShow = defineModel<boolean>('is-show', { required: true });
 
   const { t } = useI18n();
 
@@ -197,12 +197,6 @@
     },
   );
 
-  watch(isShow, (val) => {
-    if (val) {
-      conflictTip.value = '';
-    }
-  });
-
   const parseTimeToMinutes = (time: string) => {
     if (time === '24:00') return 1440;
     const [hour, minute] = time.split(':').map(Number);
@@ -249,8 +243,8 @@
   };
 
   const handleToggleShow = (value: boolean) => {
+    conflictTip.value = '';
     if (!value) {
-      conflictTip.value = '';
       emit('close');
     }
   };
