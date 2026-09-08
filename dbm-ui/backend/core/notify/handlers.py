@@ -671,6 +671,11 @@ class NotifyAdapter:
         except AppCache.DoesNotExist:
             pass
 
+        # 从 share_url 中提取 UUID，用于 markdown 链接展示
+        share_uuid = ""
+        if share_url and "/ai-chat/share/" in share_url:
+            share_uuid = share_url.split("/ai-chat/share/")[-1].strip("/")
+
         # 渲染通知内容
         jinja_env = Environment()
         template = jinja_env.from_string(AI_MYSQL_ALARM_ANALYSIS_TEMPLATE)
@@ -683,6 +688,7 @@ class NotifyAdapter:
                 alarm_level=base_info["level"],
                 alarm_time=base_info["alarm_time"],
                 share_url=share_url,
+                share_uuid=share_uuid,
                 ai_result=ai_result,
             )
         )

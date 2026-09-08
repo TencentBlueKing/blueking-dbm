@@ -24,6 +24,11 @@ class ShowCreateTableOutputSerializer(serializers.Serializer):
 
 class ShowCreateTablesInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"), required=True)
+    db_name = serializers.CharField(
+        help_text=_("库名，提供库名可以更准确的找到 table. 传空或不传将会从 table_names 根据 . 来分隔提取 db_name"),
+        required=False,
+        default="",
+    )
     table_names = serializers.ListField(child=serializers.CharField(), help_text=_("表名, db.table 格式"), required=True)
 
 

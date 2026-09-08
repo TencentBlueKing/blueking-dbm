@@ -129,10 +129,18 @@ def _resolve_cluster_and_role(callback_data: dict, alarm_base_info: dict, log_ta
 class MySQLAlarm(AlarmCallback):
     """MySQL 告警回调处理器，处理所有 MySQL 相关的告警回调"""
 
+    # 支持的集群类型：MySQL 相关的集群类型
+    SUPPORTED_CLUSTER_TYPES = {
+        ClusterType.TenDBSingle.value,
+        ClusterType.TenDBHA.value,
+        ClusterType.TenDBCluster.value,
+    }
+
     # 处理函数 -> 匹配条件列表的映射
     # keyword: 策略名中的关键字
     # level: 告警级别列表（0-致命, 1-预警, 2-提醒）
     # cluster_type: 集群类型列表
+    # ratelimit: 频率限制，格式 "次数 / 小时数"（可选，不配置则不限频）
     STRATEGY_HANDLERS = {
         "call_slowlog_ai_analysis": [
             {
@@ -158,6 +166,7 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "Threads_running",
                 "level": [0, 1, 2],
                 "cluster_type": [],
+                "ratelimit": "1 / 6",
             },
             {
                 "keyword": "连接失败",
@@ -238,6 +247,12 @@ class MySQLAlarm(AlarmCallback):
                 if cluster_type_list and cluster_type and cluster_type not in cluster_type_list:
                     continue
 
+                # 频率限制检查
+                if not cls.check_rate_limit(
+                    cluster_domain, handler_name, condition["keyword"], condition.get("ratelimit", "")
+                ):
+                    return
+
                 handler = globals().get(handler_name)
                 if handler:
                     handler.delay(callback_data, alarm_base_info)
@@ -277,27 +292,23 @@ def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
 
     try:
         # 延迟导入，避免监控策略视图在单测收集期强依赖 aidev Agent 包
-        from backend.dbm_aiagent.agent.commands.commands import MySQLAlarmAnalyzerCommand
         from backend.dbm_aiagent.agent.handlers import AgentHandler
 
-        # 调用 AI Agent 进行慢查询分析
+        # 调用 AI Agent 进行告警分析
         user_prompt = extract_callback_key_info(callback_data)
         logger.info(
             _("[mysql_alarm_analyzer] 告警触发 AI 分析开始，集群: {}. user prompt: {}").format(cluster_domain, user_prompt)
         )
-        # only return summary that length < 2000, otherwise notify will send failed
-        result_summary = AgentHandler.ask_agent_with_command(
-            command=MySQLAlarmAnalyzerCommand.command,
-            command_params={
-                "alarm_content": user_prompt,
-            },
+        content = "/mysql_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 1800 字符以内。\n" f"告警内容:\n{user_prompt}"
+        agent_output = AgentHandler.ask_agent_with_content(
+            agent_code=DBMAgentCode.MYSQL_AI_INSPECT_AGENT,
+            content=content,
         )
 
-        if not result_summary:
+        if not agent_output:
             logger.info(_("[mysql_alarm_analyzer] 集群 {} AI 分析无结果，跳过通知").format(cluster_domain))
             return
-
-        logger.info(_("[mysql_alarm_analyzer] 集群 {} AI 分析分析完成，开始推送通知").format(cluster_domain))
+        logger.info(_("[mysql_alarm_analyzer] 集群 {} AI 分析完成，开始推送通知").format(cluster_domain))
 
         title = _("「DBM」：集群 {} 告警 AI 分析结果").format(cluster_domain)
         # 调用 NotifyAdapter 发送 AI 分析报告通知
@@ -305,7 +316,7 @@ def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
             bk_biz_id=alarm_base_info["bk_biz_id"],
             base_info=alarm_base_info,
             title=title,
-            ai_result=result_summary,
+            ai_result=agent_output,
             share_url="",
             receivers=alarm_base_info["appointees"],
         )

@@ -92,7 +92,7 @@ AI_MYSQL_ALARM_ANALYSIS_TEMPLATE = _(
     集群域名: {{cluster_domain}}
     告警策略: {{alarm_strategy}} (级别: {{alarm_level}})
     告警时间: {{alarm_time}}
-    {% if share_url %}报告详情链接: {{share_url}}
+    {% if share_url %}报告详情链接: [{{share_uuid}}]({{share_url}})
     {% endif %}
     AI分析结果: {{ai_result}}\
     """
