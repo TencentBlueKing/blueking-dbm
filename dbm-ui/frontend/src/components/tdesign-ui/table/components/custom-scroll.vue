@@ -31,7 +31,7 @@
   </Teleport>
 </template>
 <script setup lang="ts">
-  import { throttle } from 'lodash-es';
+  import { throttle } from 'lodash';
   import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
 
   const tableEl = ref<HTMLElement>();
