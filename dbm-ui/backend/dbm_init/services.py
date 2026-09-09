@@ -344,7 +344,7 @@ class Services:
         CollectInstance.sync_collect_strategy()
 
         # 加载告警策略
-        MonitorPolicy.sync_plat_monitor_policy(callback_actions=callback_actions, force=True)
+        MonitorPolicy.sync_plat_monitor_policy(callback_actions=callback_actions)
 
         return True
 
