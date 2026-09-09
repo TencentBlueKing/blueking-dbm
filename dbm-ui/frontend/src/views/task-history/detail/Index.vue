@@ -345,41 +345,4 @@
       }
     }
   }
-
-  .task-history-flow-operation-main {
-    width: 280px;
-    padding: 12px 8px;
-    color: @default-color;
-
-    .title {
-      font-size: 16px;
-      color: #313238;
-    }
-
-    .sub-title {
-      margin-top: 6px;
-      margin-bottom: 16px;
-      font-size: 12px;
-      color: #63656e;
-    }
-
-    .btn {
-      width: 100%;
-      margin-top: 14px;
-      text-align: right;
-
-      .confirm {
-        width: 88px;
-        color: #fff;
-        background: #ea3636;
-        border: none;
-      }
-
-      .bk-button {
-        height: 26px;
-        padding: 0 12px;
-        font-size: 12px;
-      }
-    }
-  }
 </style>
