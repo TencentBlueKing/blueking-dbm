@@ -207,7 +207,11 @@ initContainers:
     - /bin/bash
     - -c
   args:
+    {{- if eq $db_type "monitor" }}
+    - "python main.py --type sync_monitor"
+    {{- else }}
     - "python main.py --type upload --db {{ $db_type }} && python main.py --type sync --db {{ $db_type }}"
+    {{- end }}
   envFrom:
     {{- if $root.Values.dbmedium.extraEnvVarsCM }}
     - configMapRef:
