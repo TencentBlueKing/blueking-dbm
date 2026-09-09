@@ -29,14 +29,14 @@ var CheckInputError = errors.New("invalid input")
 //
 //	[direct: mongos] test>
 //	utRs44Prompt [direct: primary] test>
-//	utRs44Prompt [direct: secondary] test>
+//	dba-smoke0909rs70 [direct: other] test>
 //	utRs44Prompt [primary] test>
 //	PRIMARY> / SECONDARY>
 //
 // Intentionally narrow: lines like "score> 10" or "n> 5" must not be stripped.
 // After "direct:" there is exactly one space (mongosh format).
 var mongoshPromptPrefix = regexp.MustCompile(
-	`^(?:(?:[A-Za-z0-9_.$-]+\s+)?\[(?:direct: )?(?:primary|secondary|mongos)\]\s+[A-Za-z0-9_.$-]+|(?:PRIMARY|SECONDARY|ARBITER))>\s?`,
+	`^(?:(?:[A-Za-z0-9_.$-]+\s+)?\[(?:direct: )?(?:primary|secondary|mongos|other|arbiter|recovering|unknown|standalone)\]\s+[A-Za-z0-9_.$-]+|(?:PRIMARY|SECONDARY|ARBITER))>\s?`,
 )
 
 // stripMongoShellPrompt removes interactive shell prompts from command output.
@@ -254,6 +254,14 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 	return argv, nil
 }
 
+func startMongoShellProcess(argv []string, files []*os.File) (*os.Process, error) {
+	proc, err := os.StartProcess(argv[0], argv, &os.ProcAttr{Files: files})
+	if err != nil {
+		return nil, fmt.Errorf("start MongoDB shell %s: %w", argv[0], err)
+	}
+	return proc, nil
+}
+
 // Run starts the MongoShell process.
 // 如果返回Error，表示进程启动失败，startWg.Done() 不会被调用
 func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
@@ -288,12 +296,6 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 		return err
 	}
 
-	// 启动进程，启动后，将进程的Pid出发送到 BufChan
-	// 如果进程退出，关闭 BufChan
-	pidChan := make(chan int)
-	procCtx, procCancel := context.WithCancel(context.Background())
-	_ = procCancel
-
 	argv, err := buildArgs(r)
 	if err != nil {
 		r.logger.Error("buildArgs", slog.Any("err", err))
@@ -302,17 +304,21 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	r.logger.Info("StartProcess", slog.String("cmdPath", argv[0]),
 		slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")))
 
-	go func(pid chan<- int) {
-		proc, err := os.StartProcess(argv[0], argv, &os.ProcAttr{
-			Files: []*os.File{inr, outw, outw},
-		})
-		if err != nil {
-			r.logger.Error("os.StartProcess", slog.Any("err", err))
-		}
-		pidChan <- proc.Pid
+	proc, err := startMongoShellProcess(argv, []*os.File{inr, outw, outw})
+	if err != nil {
+		r.logger.Error("os.StartProcess", slog.Any("err", err))
+		return err
+	}
+
+	procCtx, procCancel := context.WithCancel(context.Background())
+	go func() {
 		// 等待进程结束， 进程结束后，关闭 BufChan
 		state, err := proc.Wait()
-		r.logger.Info("proc.exited", slog.String("state", state.String()), slog.Any("err", err))
+		if state != nil {
+			r.logger.Info("proc.exited", slog.String("state", state.String()), slog.Any("err", err))
+		} else {
+			r.logger.Error("proc.Wait", slog.Any("err", err))
+		}
 
 		r.Pid = 0
 		procCancel()
@@ -322,11 +328,9 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 			r.logger.Error("outw.Write", slog.Any("err", err))
 		}
 		r.logger.Info("procCancel")
+	}()
 
-	}(pidChan)
-
-	pid := <-pidChan
-	r.Pid = pid
+	r.Pid = proc.Pid
 	time.Sleep(2 * time.Second)
 	r.logger.Info("startProcess",
 		slog.String("cmdPath", argv[0]), slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")),
