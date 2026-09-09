@@ -145,7 +145,7 @@ export default defineConfig(({ mode }) => {
       } as Parameters<typeof monacoEditorPlugin.default>[0]),
     ].concat(isHttps ? [basicSsl()] : []),
     optimizeDeps: {
-      include: ['lodash-es', 'element-plus'],
+      include: ['element-plus'],
     },
     build: {
       target: 'es2020',
