@@ -485,7 +485,7 @@ func (op *TdbctlOperator) SelectTdbctlNodes(
 	}
 
 	var tdbctlList []TdbctlNodeInfo
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
 
 	queryErr := gdb.Raw(SelectTdbctlNodesSql).Scan(&tdbctlList).Error
@@ -523,7 +523,7 @@ func (op *TdbctlOperator) SelectRouteInfo(
 	}
 
 	var routeInfoList []TdbctlRouteInfo
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
 
 	queryErr := gdb.Raw(SelectRouteInfoSql).Scan(&routeInfoList).Error
@@ -560,7 +560,7 @@ func (op *TdbctlOperator) TdbctlDropNode(
 	}
 
 	dropNodeSql := fmt.Sprintf(TdbctlDropNodeSql, nodeName)
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
 
 	result := gdb.Exec(dropNodeSql)
@@ -596,7 +596,7 @@ func (op *TdbctlOperator) TdbctlFlushRouting(
 		flushRouteSql = TdbctlFlushRouteForceSql
 	}
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
 
 	if result := gdb.Exec(flushRouteSql); result.Error != nil {
@@ -628,7 +628,7 @@ func (op *TdbctlOperator) execAlterNode(
 	sqlForLog := fmt.Sprintf(TdbctlAlterNodeSql, masterRoute.ServerName,
 		slaveRoute.Host, slaveRoute.Port, slaveRoute.UserName, "<secret>")
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
 
 	result := gdb.Exec(alterNodeSQL)
@@ -775,7 +775,7 @@ func (op *TdbctlOperator) TdbctlEnablePrimary(
 		enablePimarySql = TdbctlEnablePrimaryForceSql
 	}
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
 
 	if result := gdb.Exec(enablePimarySql); result.Error != nil {

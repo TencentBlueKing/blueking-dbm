@@ -565,7 +565,7 @@ func DoShowSlaveStatus(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLo
 	showSlaveSQL := "SHOW SLAVE STATUS"
 
 	slaveStatus := &SlaveStatusInfo{}
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb, cancel := GormWithExecSqlTimeout(slaveDB)
 	defer cancel()
 
 	err := gdb.Raw(showSlaveSQL).Scan(slaveStatus).Error
@@ -589,7 +589,7 @@ func DoStopSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc)
 	slavePort := slaveDB.Port()
 	stopSlaveSQL := "STOP SLAVE"
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb, cancel := GormWithExecSqlTimeout(slaveDB)
 	defer cancel()
 
 	err := gdb.Exec(stopSlaveSQL).Error
@@ -613,7 +613,7 @@ func DoShowMasterStatus(db *hamysql.GormDB, reportLogf switchlogger.SwitchLogFun
 	showMasterSQL := "SHOW MASTER STATUS"
 
 	masterStatus := &MasterStatusInfo{}
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(db)
+	gdb, cancel := GormWithExecSqlTimeout(db)
 	defer cancel()
 
 	err := gdb.Raw(showMasterSQL).Scan(masterStatus).Error
@@ -637,7 +637,7 @@ func DoResetSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc
 	slavePort := slaveDB.Port()
 	resetSlaveSQL := "RESET SLAVE /*!50516 ALL */"
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb, cancel := GormWithExecSqlTimeout(slaveDB)
 	defer cancel()
 
 	err := gdb.Exec(resetSlaveSQL).Error
@@ -708,7 +708,7 @@ func DoStartSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc
 	slavePort := slaveDB.Port()
 	startSlaveSQL := "START SLAVE"
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb, cancel := GormWithExecSqlTimeout(slaveDB)
 	defer cancel()
 
 	err := gdb.Exec(startSlaveSQL).Error
@@ -762,7 +762,7 @@ func DoChangeMasterSteps(
 			slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos)
 	}
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb, cancel := GormWithExecSqlTimeout(slaveDB)
 	defer cancel()
 
 	if err = gdb.Exec(changeMasterSQL).Error; err != nil {
