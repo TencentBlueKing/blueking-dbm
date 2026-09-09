@@ -45,7 +45,7 @@ const (
 )
 
 func redisCommandTimeout() time.Duration {
-	d := config.Cfg.Workflow.SwitchFlow.RedisCommandTimeout
+	d := config.Cfg.Workflow.SwitchFlow.Redis.CommandTimeout
 	if d <= 0 {
 		return defaultRedisCommandTimeout
 	}
