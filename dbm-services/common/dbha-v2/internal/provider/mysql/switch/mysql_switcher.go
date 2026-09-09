@@ -57,6 +57,9 @@ func (m *Mysql) DbTypeName() haprobe.DbType {
 // NewSwitchInstance creates a MySQL switch instance according to the provided metadata
 func (m *Mysql) NewSwitchInstance(metadata *dbm.DbInstMetadata, switchID string, actionScope hamodel.ActionScopeType) (
 	switchableInstance switchcore.SwitchableInstance, retErr error) {
+	if metadata == nil {
+		return nil, gerrors.Newf(gerrors.InvalidParameter, "nil metadata for mysql switch instance")
+	}
 
 	switch metadata.ClusterType {
 	case haprobe.DbmMetadataClusterTypeTendbha:
@@ -142,25 +145,6 @@ func (m *Mysql) NewSwitchCluster(clusterKey switchcore.ClusterKey, instDataMap s
 	return swCluster, nil
 }
 
-// NewSwitchLogger creates mysql switch logger set
-func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
-	loggers := []switchlogger.DbSwitchLogger{
-		switchlogger.NewLogToStdHandler(),
-	}
-
-	dbHdl, newDbHdlErr := switchlogger.NewLogToDbHandlerFromConfig()
-	if newDbHdlErr != nil {
-		return loggers, gerrors.Newf(gerrors.Failure, "failed to create db switch logger: %s", newDbHdlErr.Error())
-	}
-
-	if openErr := dbHdl.Open(); openErr != nil {
-		return loggers, gerrors.Newf(gerrors.Failure, "failed to open db switch logger: %s", openErr.Error())
-	}
-
-	loggers = append(loggers, dbHdl)
-	return loggers, nil
-}
-
 // InstanceLevelSwitch handles MySQL instance switching operations
 func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *switcher.Request) *switcher.Response {
 	start := time.Now()
@@ -203,13 +187,8 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 			swInst.SetSwitchLogger(switchLoggers)
 
 			if switchSuccess, swErr := switchcore.SwitchSingleInstance(ctx, swInst); !switchSuccess {
-				errStr := "nil"
-				if swErr != nil {
-					errStr = swErr.Error()
-				}
-
 				swReporter.ReportSwitchLogf(switchlogger.SwitchFail, "failed to switch the single mysql instance, errmsg: %s",
-					errStr)
+					swErr.Error())
 				rsp.AddFailureInst(instKey, inst)
 				return
 			}
@@ -528,16 +507,11 @@ func (m *Mysql) Switch(ctx context.Context, req *switcher.Request) *switcher.Res
 		return rsp
 	}
 
-	switchLoggers, newLoggerErr := m.NewSwitchLogger()
+	switchLoggers, releaseLoggers, newLoggerErr := switchlogger.NewSwitchLoggers()
 	if newLoggerErr != nil {
 		logger.Error("Mysql switcher failed to create switch logger: %s", newLoggerErr)
 	}
-
-	defer func() {
-		for _, switchLogger := range switchLoggers {
-			switchLogger.Close()
-		}
-	}()
+	defer releaseLoggers()
 
 	switch req.ActionScope {
 	case hamodel.ActionScopeTypeCluster:

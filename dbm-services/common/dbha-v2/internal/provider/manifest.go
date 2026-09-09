@@ -72,6 +72,6 @@ var Entries = []Entry{
 	{
 		Name:     "redis",
 		BasePath: providerRoot + "/redis",
-		Caps:     []Capability{CapDesc, CapHarvest, CapMetrics},
+		Caps:     []Capability{CapDesc, CapHarvest, CapSwitch, CapMetrics},
 	},
 }
