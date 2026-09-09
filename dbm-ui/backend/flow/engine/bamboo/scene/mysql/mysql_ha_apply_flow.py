@@ -36,6 +36,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_clb_util import build_mysql_clb_apply_subs
 from backend.flow.utils.mysql.mysql_context_dataclass import HaApplyManualContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
@@ -361,6 +362,22 @@ class MySQLHAApplyFlow(object):
                     )
                 ),
             )
+
+            # 部署成功后按单据传参创建CLB（依赖元数据已落库，执行态按主域名解析cluster_id）
+            clb_sub_list = []
+            for cluster in sub_flow_context["clusters"]:
+                clb_sub_list.extend(
+                    build_mysql_clb_apply_subs(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(sub_flow_context),
+                        bk_biz_id=self.data["bk_biz_id"],
+                        domain_name=cluster["master"],
+                        creator=self.data["created_by"],
+                        apply_clb=self.data.get("apply_clb", False),
+                    )
+                )
+            if clb_sub_list:
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=clb_sub_list)
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署MySQL高可用集群")))
 
