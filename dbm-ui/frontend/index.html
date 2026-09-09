@@ -20,6 +20,10 @@
       window.BK_SITE_PATH = '{{BK_SITE_PATH}}';
       window.BK_STATIC_URL = '{{BK_STATIC_URL}}';
       window.BK_AJAX_URL = '{{BK_AJAX_URL}}';
+      // 模板变量未被后端替换时（如本地开发）回退为根路径
+      if (window.BK_AJAX_URL.includes('{{')) {
+        window.BK_AJAX_URL = '/';
+      }
 
       // 构建期静态资源路径前缀（vite base），静态文件实际部署在站点根路径的该子目录下；占位符未被替换时按空前缀处理
       const rawStaticPrefix = '{{PUBLIC_STATIC_PATH}}';
