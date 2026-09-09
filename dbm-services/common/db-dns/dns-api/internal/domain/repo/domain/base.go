@@ -46,6 +46,7 @@ func (base *DnsDomainBaseImpl) Get(query map[string]interface{}, fields []string
 	rs := []interface{}{}
 	var err error
 	where := "1 = 1"
+	args := []interface{}{}
 	for k, v := range query {
 		if k == "ins" || k == "ip" {
 			continue
@@ -53,35 +54,32 @@ func (base *DnsDomainBaseImpl) Get(query map[string]interface{}, fields []string
 		switch v.(type) {
 		case []string:
 			if len(v.([]string)) != 0 {
-				t := ""
-				for _, tv := range v.([]string) {
-					t = fmt.Sprintf("%s,'%s'", t, tv)
-				}
-				t = strings.Trim(t, ",")
-				where = fmt.Sprintf("%s and %s in (%s)", where, k, t)
+				where = fmt.Sprintf("%s and %s in (?)", where, k)
+				args = append(args, v.([]string))
 			}
 		case string:
-			where = fmt.Sprintf("%s and %s = '%s' ", where, k, v)
+			where = fmt.Sprintf("%s and %s = ? ", where, k)
+			args = append(args, v)
 		default:
 			continue
 		}
 	}
-	insStr := "''"
-	ipStr := "''"
-	if ins, _ok := query["ins"]; _ok {
-		insStr = "'" + strings.Join(ins.([]string), "','") + "'"
+	var insList, ipList []string
+	if ins, _ok := query["ins"].([]string); _ok {
+		insList = ins
 	}
-	if ip, _ok := query["ip"]; _ok {
-		ipStr = "'" + strings.Join(ip.([]string), "','") + "'"
+	if ip, _ok := query["ip"].([]string); _ok {
+		ipList = ip
 	}
-	if insStr != "''" || ipStr != "''" {
-		where = fmt.Sprintf("%s and (ip in (%s) or concat(ip,'#',port) in (%s))", where, ipStr, insStr)
+	if len(insList) != 0 || len(ipList) != 0 {
+		where = fmt.Sprintf("%s and (ip in (?) or concat(ip,'#',port) in (?))", where)
+		args = append(args, ipList, insList)
 	}
 
 	q := fmt.Sprintf("select * from %s where %s", new(entity.TbDnsBase).TableName(), where)
-	logger.Info(fmt.Sprintf("query sql is [%+v]", q))
+	logger.Info(fmt.Sprintf("query sql is [%+v], args[%+v]", q, args))
 	var l []entity.TbDnsBase
-	if err := dao.DnsDB.Raw(q).Scan(&l).Error; err == nil || entity.IsNoRowFoundError(err) {
+	if err := dao.DnsDB.Raw(q, args...).Scan(&l).Error; err == nil || entity.IsNoRowFoundError(err) {
 		// rs = append(rs, l)
 		if len(fields) == 0 {
 			for _, v := range l {
@@ -130,33 +128,29 @@ func (base *DnsDomainBaseImpl) Insert(dnsList []*entity.TbDnsBase) (num int64, e
 // Delete 删除域名
 func (base *DnsDomainBaseImpl) Delete(tableName, app, domainName string, bkCloudId int64,
 	ins []string) (rowsAffected int64, err error) {
-	execSql := fmt.Sprintf("delete from %s where  app = '%s' and bk_cloud_id = '%d'",
-		tableName, app, bkCloudId)
+	execSql := fmt.Sprintf("delete from %s where  app = ? and bk_cloud_id = ?", tableName)
+	args := []interface{}{app, bkCloudId}
 	if domainName != "" {
-		execSql = fmt.Sprintf("%s and domain_name = '%s'", execSql, domainName)
+		execSql = fmt.Sprintf("%s and domain_name = ?", execSql)
+		args = append(args, domainName)
 	}
 	if len(ins) != 0 {
-		insStr := "''"
-		ipStr := "''"
+		var insList, ipList []string
 		for _, i := range ins {
 			if strings.HasSuffix(i, "#0") {
-				ip := strings.Split(i, "#")[0]
-				ipStr = fmt.Sprintf("%s,'%s'", ipStr, ip)
+				ipList = append(ipList, strings.Split(i, "#")[0])
 			} else {
-				insStr = fmt.Sprintf("%s,'%s'", insStr, i)
+				insList = append(insList, i)
 			}
-
 		}
-		insStr = strings.Trim(insStr, ",")
-		ipStr = strings.Trim(ipStr, ",")
-		execSql = fmt.Sprintf("%s and  (concat(ip,'#',port) in (%s) or ip in (%s))",
-			execSql, insStr, ipStr)
+		execSql = fmt.Sprintf("%s and  (concat(ip,'#',port) in (?) or ip in (?))", execSql)
+		args = append(args, insList, ipList)
 	} else {
-		execSql = fmt.Sprintf("delete from %s where  domain_name = '%s' and app = '%s' and bk_cloud_id ='%d'",
-			tableName, domainName, app, bkCloudId)
+		execSql = fmt.Sprintf("delete from %s where  domain_name = ? and app = ? and bk_cloud_id = ?", tableName)
+		args = []interface{}{domainName, app, bkCloudId}
 	}
-	logger.Info(fmt.Sprintf("delete sql:[%+v]", execSql))
-	r := dao.DnsDB.Exec(execSql)
+	logger.Info(fmt.Sprintf("delete sql:[%+v], args:[%+v]", execSql, args))
+	r := dao.DnsDB.Exec(execSql, args...)
 
 	if r.Error != nil {
 		return 0, r.Error

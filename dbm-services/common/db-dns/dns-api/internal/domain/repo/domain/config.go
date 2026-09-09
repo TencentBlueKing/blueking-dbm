@@ -33,14 +33,16 @@ func (dci *DnsConfigImpl) Get(query map[string]interface{}) (
 	rs := []interface{}{}
 	var err error
 	where := "1 = 1"
+	args := []interface{}{}
 	for k, v := range query {
-		where = fmt.Sprintf("%s and %s = '%s' ", where, k, v)
+		where = fmt.Sprintf("%s and %s = ? ", where, k)
+		args = append(args, v)
 	}
 
 	q := fmt.Sprintf("select * from %s where %s", new(entity.TbDnsConfig).TableName(), where)
-	logger.Info(fmt.Sprintf("query sql is [%+v]", q))
+	logger.Info(fmt.Sprintf("query sql is [%+v], args[%+v]", q, args))
 	var l []entity.TbDnsConfig
-	if err := dao.DnsDB.Raw(q).Scan(&l).Error; err == nil || entity.IsNoRowFoundError(err) {
+	if err := dao.DnsDB.Raw(q, args...).Scan(&l).Error; err == nil || entity.IsNoRowFoundError(err) {
 		for _, v := range l {
 			rs = append(rs, v)
 		}
