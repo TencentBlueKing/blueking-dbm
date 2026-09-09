@@ -71,6 +71,7 @@ const (
 	EtcdFailure
 	MysqlFailure
 	NodeAbnormal
+	RedisFailure
 )
 
 // New create a internal error.
