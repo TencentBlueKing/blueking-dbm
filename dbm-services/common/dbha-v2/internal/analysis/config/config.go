@@ -65,6 +65,7 @@ var Cfg = Configuration{
 			DbmApiMaxConcurrentRequests:      8,
 			SwitchLogWriteTimeout:            1 * time.Second,
 			DbConnectTimeout:                 3 * time.Second,
+			RedisCommandTimeout:              10 * time.Second,
 			ClusterLockTimeout:               60 * time.Second,
 			ExecSqlTimeout:                   6 * time.Second,
 			AllowedIgnoreCheckSum:            false,
@@ -116,6 +117,7 @@ type SwitchFlowConfig struct {
 	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum"   mapstructure:"clusterLevelSwitchMaxInstanceNum"`
 	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"              mapstructure:"switchLogWriteTimeout"`
 	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                   mapstructure:"dbConnectTimeout"`
+	RedisCommandTimeout              time.Duration `yaml:"redisCommandTimeout"              mapstructure:"redisCommandTimeout"`
 	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"                 mapstructure:"clusterLockTimeout"`
 	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                     mapstructure:"execSqlTimeout"`
 	AllowedIgnoreCheckSum            bool          `yaml:"slaveAllowedIgnoreCheckSum"         mapstructure:"slaveAllowedIgnoreCheckSum"`
