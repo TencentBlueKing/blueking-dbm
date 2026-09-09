@@ -799,13 +799,13 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 		return all, nil
 	}
 
+	dbName := viper.GetString("db.name")
 	vsql := fmt.Sprintf("select conf.id as config_id from `%s`.`%s` as conf,"+
 		"`%s`.`%s` as log where conf.id=log.config_id "+
-		"and conf.time_zone='%s' and log.cron_date='%s' and log.status like '%s'",
-		viper.GetString("db.name"), configTb, viper.GetString("db.name"),
-		logTb, vzone, cronDate, Success)
-	slog.Info(vsql)
-	err = model.DB.Self.Raw(vsql).Scan(&doNothing).Error
+		"and conf.time_zone=? and log.cron_date=? and log.status like ?",
+		dbName, configTb, dbName, logTb)
+	slog.Info(vsql, slog.String("time_zone", vzone), slog.String("cron_date", cronDate))
+	err = model.DB.Self.Raw(vsql, vzone, cronDate, Success).Scan(&doNothing).Error
 	if err != nil {
 		slog.Error(vsql, "execute err", err)
 		return nil, err

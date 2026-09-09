@@ -617,9 +617,9 @@ func (m *CreatePartitionsInput) CompareWithExistDB(tbName string) (warnings []st
 }
 
 func (m *CreatePartitionsInput) checkExistRules(tbName string) (existRules []ExistRule, err error) {
-	condition := fmt.Sprintf("bk_biz_id=%d and immute_domain='%s' and bk_cloud_id=%d", m.BkBizId, m.ImmuteDomain,
-		m.BkCloudId)
-	err = model.DB.Self.Table(tbName).Select("dblike", "tblike").Where(condition).Find(&existRules).Error
+	err = model.DB.Self.Table(tbName).Select("dblike", "tblike").
+		Where("bk_biz_id = ? and immute_domain = ? and bk_cloud_id = ?", m.BkBizId, m.ImmuteDomain, m.BkCloudId).
+		Find(&existRules).Error
 	if err != nil {
 		return existRules, err
 	}
