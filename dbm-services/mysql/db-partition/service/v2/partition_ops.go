@@ -499,8 +499,9 @@ func compareWithExistDBV2(m *service.CreatePartitionsInput, tbName string) (warn
 
 // checkExistRulesV2 对齐 v1：只查询同业务/同域名/同云区域的现有规则
 func checkExistRulesV2(m *service.CreatePartitionsInput, tbName string) (existRules []service.ExistRule, err error) {
-	condition := fmt.Sprintf("bk_biz_id=%d and immute_domain='%s' and bk_cloud_id=%d", m.BkBizId, m.ImmuteDomain, m.BkCloudId)
-	err = model.DB.Self.Table(tbName).Select("dblike", "tblike").Where(condition).Find(&existRules).Error
+	err = model.DB.Self.Table(tbName).Select("dblike", "tblike").
+		Where("bk_biz_id = ? and immute_domain = ? and bk_cloud_id = ?", m.BkBizId, m.ImmuteDomain, m.BkCloudId).
+		Find(&existRules).Error
 	if err != nil {
 		return existRules, err
 	}

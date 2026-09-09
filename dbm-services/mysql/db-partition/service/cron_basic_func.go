@@ -136,7 +136,8 @@ func (m *PartitionJob) ExecuteTendbhaPartition() {
 			continue
 		}
 		slog.Info("msg", "objects", objects)
-		filename := fmt.Sprintf("partition_%s_%s_%s_%s.json", ip, m.CronDate, m.CronType, timeStr)
+		filename := fmt.Sprintf("partition_%s_%s_%s_%s.json",
+			sanitizeFileToken(ip), sanitizeFileToken(m.CronDate), sanitizeFileToken(m.CronType), sanitizeFileToken(timeStr))
 		err := UploadObejct(objects, filename)
 		if err != nil {
 			continue
@@ -265,7 +266,8 @@ func (m *PartitionJob) ExecuteTendbclusterPartition() {
 		for host, objects := range doList {
 			tmp := strings.Split(host, "|")
 			ip := tmp[0]
-			filename := fmt.Sprintf("partition_%s_%s_%s_%s.json", ip, m.CronDate, m.CronType, timeStr)
+			filename := fmt.Sprintf("partition_%s_%s_%s_%s.json",
+				sanitizeFileToken(ip), sanitizeFileToken(m.CronDate), sanitizeFileToken(m.CronType), sanitizeFileToken(timeStr))
 			slog.Info(
 				"do ExecuteTendbclusterPartition begin upload file",
 				slog.String("cluster", cluster),
@@ -378,7 +380,15 @@ func NeedExecuteList(doSomething map[string][]PartitionObject, nothing,
 
 // UploadObejct 分区结构转换为文件上传到介质中心
 func UploadObejct(objects []PartitionObject, filename string) error {
-	err := ObjectToFile(objects, filename)
+	filename, err := safeLocalFilename(filename)
+	if err != nil {
+		return err
+	}
+	localPath, err := resolveSafeLocalPath(filename)
+	if err != nil {
+		return err
+	}
+	err = ObjectToFile(objects, filename)
 	if err != nil {
 		msg := fmt.Sprintf("object to file %s fail", filename)
 		SendMonitor(msg, err)
@@ -405,7 +415,7 @@ func UploadObejct(objects []PartitionObject, filename string) error {
 		slog.Error("msg", msg)
 		return fmt.Errorf("upload error")
 	}
-	_ = os.Remove(filename)
+	_ = os.Remove(localPath)
 	return nil
 }
 
@@ -653,6 +663,10 @@ func SendMonitor(msg string, err error) {
 
 // ObjectToFile 分区结构体转换为文件
 func ObjectToFile(objects []PartitionObject, filename string) error {
+	localPath, err := resolveSafeLocalPath(filename)
+	if err != nil {
+		return err
+	}
 	b, err := json.Marshal(objects)
 	if err != nil {
 		msg := "json.Marshal error"
@@ -660,18 +674,17 @@ func ObjectToFile(objects []PartitionObject, filename string) error {
 		slog.Error("msg", msg, err)
 		return err
 	}
-	inputFile, err := os.OpenFile(filename,
-		os.O_CREATE|os.O_RDWR, 0644)
+	inputFile, err := os.OpenFile(localPath, os.O_CREATE|os.O_RDWR, 0640)
 	if err != nil {
-		msg := fmt.Sprintf("create file %s error", filename)
+		msg := fmt.Sprintf("create file %s error", localPath)
 		SendMonitor(msg, err)
 		slog.Error("msg", msg, err)
 		return err
 	}
 	if _, err = inputFile.Write(b); err != nil {
 		_ = inputFile.Close()
-		_ = os.Remove(filename)
-		msg := fmt.Sprintf("write file %s error", filename)
+		_ = os.Remove(localPath)
+		msg := fmt.Sprintf("write file %s error", localPath)
 		SendMonitor(msg, err)
 		slog.Error("msg", msg, err)
 		return err
