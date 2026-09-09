@@ -49,7 +49,7 @@ class ExposeK8sVmVminsertServiceService(BaseService):
         attempt = data.outputs["attempt"] + 1
         data.outputs["attempt"] = attempt
         max_retries = data.outputs["max_retries"]
-        clb_id = trans_data.vminsert_clb_id
+        clb_id = trans_data.clb_id
 
         params = {
             "k8sClusterName": global_data["k8s_cluster_name"],
