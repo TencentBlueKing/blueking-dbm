@@ -332,7 +332,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, switchcore.HostLevelSwitchMaxHostConcurrency())
 
-	// parallelize the processing of the same host (bounded by workflow.switchflow.hostLevelSwitchMaxHostNum)
+	// parallelize the processing of the same host (bounded by workflow.switchflow.common.hostLevelSwitchMaxHostNum)
 	for host, instDataMap := range ipGroup {
 		wg.Add(1)
 		sem <- struct{}{}
@@ -417,7 +417,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
 
-	// parallelize cluster-level switch (bounded by workflow.switchflow.clusterLevelSwitchMaxClusterNum)
+	// parallelize cluster-level switch (bounded by workflow.switchflow.common.clusterLevelSwitchMaxClusterNum)
 	for clusterKey, instDataMap := range clusterGroup {
 		wg.Add(1)
 		sem <- struct{}{}
