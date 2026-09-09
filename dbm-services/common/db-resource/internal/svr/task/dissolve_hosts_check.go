@@ -12,7 +12,6 @@ package task
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -21,12 +20,19 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// DissolveHostCheck 巡检资源池空闲主机是否待裁撤，命中则标记为 Dissolved
+// DissolveHostCheck 巡检资源池空闲主机是否待裁撤。
+// HOST_DISSOLVED_SWITCH 控制是否执行整次巡检（扫描、标记 Dissolved、转入待回收池）。
 func DissolveHostCheck() (err error) {
-	var machines []model.TbRpDetail
-	if err = model.DB.Self.Table(model.TbRpDetailName()).
-		Where("status = ? ", model.Unused).
-		Find(&machines).Error; err != nil {
+	enabled, err := dissolveInspectEnabled()
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
+	machines, err := listUnusedMachinesFn()
+	if err != nil {
 		logger.Error("get unused machines failed %s", err.Error())
 		return err
 	}
@@ -37,34 +43,42 @@ func DissolveHostCheck() (err error) {
 
 	var failedBatches int
 	var lastErr error
-	for _, mgp := range lo.Chunk(machines, 50) {
-		bkHostIds := make([]int, 0, len(mgp))
-		for _, m := range mgp {
-			bkHostIds = append(bkHostIds, m.BkHostID)
-		}
-		dissolvedHostIds, checkErr := dbmapi.CheckHostIsDissolved(bkHostIds)
-		if checkErr != nil {
-			logger.Error("check dissolve hosts failed %s", checkErr.Error())
+	for _, mgp := range lo.Chunk(machines, hostCheckBatchSize) {
+		if batchErr := processDissolveBatch(mgp); batchErr != nil {
 			failedBatches++
-			lastErr = checkErr
-			continue
-		}
-		if len(dissolvedHostIds) == 0 {
-			logger.Info("no dissolved hosts found in this batch")
-			continue
-		}
-		logger.Info("found dissolved hosts %v", dissolvedHostIds)
-		err = model.DB.Self.Table(model.TbRpDetailName()).
-			Where("bk_host_id in (?) and status = ?", dissolvedHostIds, model.Unused).
-			Updates(map[string]interface{}{"status": model.Dissolved, "update_time": time.Now()}).
-			Error
-		if err != nil {
-			logger.Error("update machine status to Dissolved failed %s", err.Error())
-			return err
+			lastErr = batchErr
 		}
 	}
 	if failedBatches > 0 {
 		return fmt.Errorf("dissolve check failed for %d batches, last: %w", failedBatches, lastErr)
 	}
 	return nil
+}
+
+func dissolveInspectEnabled() (bool, error) {
+	switches, err := fetchSwitchesFn()
+	if err != nil {
+		logger.Error("get dissolved uwork info failed %s", err.Error())
+		return false, err
+	}
+	if !switches.HostDissolvedSwitch {
+		logger.Info("HOST_DISSOLVED_SWITCH is off, skip dissolve inspect")
+		return false, nil
+	}
+	return true, nil
+}
+
+func processDissolveBatch(mgp []model.TbRpDetail) error {
+	dissolvedHostIds, checkErr := checkDissolvedFn(hostIdsOf(mgp))
+	if checkErr != nil {
+		logger.Error("check dissolve hosts failed %s", checkErr.Error())
+		return checkErr
+	}
+	hitIds := filterUnusedHits(mgp, dissolvedHostIds)
+	if len(hitIds) == 0 {
+		logger.Info("no dissolved hosts found in this batch")
+		return nil
+	}
+	logger.Info("found dissolved hosts %v", hitIds)
+	return markThenMaybeDelete(mgp, hitIds, model.Dissolved, dbmapi.EventToRecycle, remarkDissolveRecycle, true)
 }

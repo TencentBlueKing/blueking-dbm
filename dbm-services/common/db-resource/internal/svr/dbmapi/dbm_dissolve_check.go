@@ -76,3 +76,53 @@ func CheckHostIsDissolved(bkHostIds []int) (dissolvedHostIds []int, err error) {
 	}
 	return dissolvedHostIds, nil
 }
+
+// DissolvedUworkInfo 待裁撤 / 故障主机系统开关
+type DissolvedUworkInfo struct {
+	HostDissolvedSwitch bool `json:"HOST_DISSOLVED_SWITCH"`
+	HostToFaultSwitch   bool `json:"HOST_TO_FAULT_SWITCH"`
+}
+
+// GetDissolvedUworkInfo 请求 DBM API 获取待裁撤和故障主机开关
+func GetDissolvedUworkInfo() (info DissolvedUworkInfo, err error) {
+	cli := NewDbmClient()
+	u, err := url.JoinPath(cli.EndPoint, DBMGetDissolvedUworkInfoApi)
+	if err != nil {
+		return info, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), dissolveCheckTimeout)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return info, err
+	}
+	request.Header.Add("content-type", "application/json;charset=utf-8")
+	cli.addCookie(request)
+
+	resp, err := cli.Client.Do(request)
+	if err != nil {
+		return info, err
+	}
+	defer resp.Body.Close()
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("read GetDissolvedUworkInfo response body failed %s", err.Error())
+		return info, err
+	}
+	logger.Info("GetDissolvedUworkInfo response %s", string(content))
+
+	var baseResp DbmBaseResp
+	if err = json.Unmarshal(content, &baseResp); err != nil {
+		return info, err
+	}
+	if baseResp.Code != 0 {
+		return info, fmt.Errorf("GetDissolvedUworkInfo response code:%d, message:%s", baseResp.Code, baseResp.Message)
+	}
+	if len(baseResp.Data) == 0 || string(baseResp.Data) == "null" {
+		return DissolvedUworkInfo{}, nil
+	}
+	if err = json.Unmarshal(baseResp.Data, &info); err != nil {
+		return info, err
+	}
+	return info, nil
+}
