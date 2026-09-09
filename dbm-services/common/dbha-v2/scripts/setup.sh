@@ -383,6 +383,7 @@ workflow:
     dbmApiMaxConcurrentRequests: 8
     switchLogWriteTimeout: 1s
     dbConnectTimeout: 3s
+    redisCommandTimeout: 10s
     clusterLockTimeout: 60s
     execSqlTimeout: 6s
     slaveAllowedIgnoreCheckSum: false

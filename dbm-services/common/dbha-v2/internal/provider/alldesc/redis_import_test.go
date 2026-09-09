@@ -39,6 +39,7 @@ func TestDescImportSetRegistersRedis(t *testing.T) {
 		haprobe.DbmMetadataClusterTypeTwemproxyRedis,
 		haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
 		haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
+		haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 		haprobe.DbmMetadataClusterTypePredixyRedisCluster,
 	}
 	for _, ct := range cases {
