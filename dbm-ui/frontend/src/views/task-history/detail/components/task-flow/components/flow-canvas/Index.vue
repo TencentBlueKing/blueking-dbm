@@ -25,25 +25,12 @@
       @zoom-change="(value) => applyZoom(value)" />
   </div>
   <div style="position: absolute; top: 0; left: 0; display: none">
-    <NodeSkip
-      ref="skipTemplateRef"
+    <NodeOperation
+      ref="nodeOperationRef"
       :data="nodeOperationState.currentNode"
       :root-id="rootId"
-      @close="(refresh) => handleCancelOperation('skip', refresh)" />
-    <NodeRetry
-      ref="retryTemplateRef"
-      :data="nodeOperationState.currentNode"
-      :root-id="rootId"
-      @close="(refresh) => handleCancelOperation('retry', refresh)" />
-    <NodeContinue
-      ref="continueTemplateRef"
-      :data="nodeOperationState.currentNode"
-      @close="(refresh) => handleCancelOperation('continue', refresh)" />
-    <NodeForceFail
-      ref="forceFailTemplateRef"
-      :data="nodeOperationState.currentNode"
-      :root-id="rootId"
-      @close="(refresh) => handleCancelOperation('forceFail', refresh)" />
+      :type="nodeOperationState.type"
+      @close="handleCancelOperation" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -71,10 +58,7 @@
   import { CanvasEvent, GraphEvent, NodeEvent } from '@antv/g6';
   import { useFullscreen } from '@vueuse/core';
 
-  import NodeContinue from './components/node-operation/Continue.vue';
-  import NodeForceFail from './components/node-operation/ForceFail.vue';
-  import NodeRetry from './components/node-operation/Retry.vue';
-  import NodeSkip from './components/node-operation/Skip.vue';
+  import NodeOperation, { type NodeOperationType } from './components/node-operation/Index.vue';
   import Tools from './components/Tools.vue';
   import { FlowGraph, type Node, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './utils';
 
@@ -124,10 +108,7 @@
 
   const formRef = ref<InstanceType<typeof BkForm>>();
   const flowCanvasContainerRef = ref<HTMLDivElement>();
-  const skipTemplateRef = ref<InstanceType<typeof NodeSkip>>();
-  const retryTemplateRef = ref<InstanceType<typeof NodeRetry>>();
-  const continueTemplateRef = ref<InstanceType<typeof NodeContinue>>();
-  const forceFailTemplateRef = ref<InstanceType<typeof NodeForceFail>>();
+  const nodeOperationRef = ref<InstanceType<typeof NodeOperation>>();
   const canvasZoomValue = ref(100);
   const isMinimapVisible = ref(false);
 
@@ -137,6 +118,8 @@
   // 聚焦要等这一轮的建图 / 重新布局落地，否则节点还没进画布就去取它的位置
   let syncTask: Promise<void> = Promise.resolve();
   let statusTooltip: Instance | null = null;
+  // 操作气泡锚点的画布坐标。屏幕位置每次现算，锚点本身在画布上是固定的
+  let operationAnchor: [number, number] | null = null;
 
   const { isFullscreen, toggle } = useFullscreen(flowCanvasContainerRef);
 
@@ -149,6 +132,8 @@
     log: {
       isShow: false,
     },
+    // 气泡内容按操作类型渲染，打开前先定下来
+    type: 'retry' as NodeOperationType,
   });
 
   const formData = reactive({
@@ -165,6 +150,15 @@
     flowGraphInstance?.zoomTo(nextZoom / 100, animate ? ZOOM_ANIMATION : undefined, origin);
   };
 
+  /**
+   * 弹层的定位基准。节点在画布上的坐标是固定的，屏幕位置则随平移缩放变化，
+   * 所以每次定位都按当前视口换算一次，配合 AFTER_TRANSFORM 里的 forceUpdate，弹层才跟得住节点
+   */
+  const getCanvasReferenceRect = (canvasPoint: [number, number]) => () => {
+    const [left, top] = flowGraphInstance!.getClientByCanvas(canvasPoint);
+    return new DOMRect(left, top, 0, 0);
+  };
+
   const handleShowTooltip = (e: any) => {
     const { target } = e;
     const status = getNodeDisplayStatus(target.data);
@@ -177,7 +171,6 @@
     // 右上角状态图标画在卡片右上角，即包围盒的右边缘
     x += style.width / 2;
     y -= 36;
-    const [targetX, targetY] = flowGraphInstance!.getClientByCanvas([x, y]);
     statusTooltip?.destroy();
     statusTooltip = dbTippy(document.body, {
       allowHTML: true,
@@ -193,33 +186,19 @@
       zIndex: 9999,
     });
     statusTooltip.setProps({
-      getReferenceClientRect: () =>
-        ({
-          bottom: targetY,
-          height: 0,
-          left: targetX,
-          right: targetX,
-          top: targetY,
-          width: 0,
-          x,
-          y,
-        }) as any,
+      getReferenceClientRect: getCanvasReferenceRect([x, y]),
     });
     statusTooltip.show();
   };
 
-  const handleOperationShowTip = (type: string, e: any) => {
-    const contentTemplateMap = {
-      continue: continueTemplateRef.value!.getTemplateRef()!,
-      forceFail: forceFailTemplateRef.value!.getTemplateRef()!,
-      retry: retryTemplateRef.value!.getTemplateRef()!,
-      skip: skipTemplateRef.value!.getTemplateRef()!,
-    };
+  const handleOperationShowTip = async (type: NodeOperationType, e: any) => {
     const { target } = e;
     const id = target.data.id;
     let [x, y] = flowGraphInstance!.getElementPosition(id);
     y += 28;
-    const { skippable, todoId } = target.data;
+    const { retryable, todoId } = target.data;
+    // 偏移量是操作按钮中心相对节点中心的距离：节点宽 224（getNodeSize），按钮从卡片左边缘 4px 起
+    // 横向排列、间距 8px，画在哪由 normalNode 的 drawOperationShape 决定，改那边要同步改这里
     switch (type) {
       case 'continue':
         x -= 68;
@@ -232,23 +211,27 @@
         }
         break;
       case 'skip':
-        x -= 80;
+        // 可重试的节点上「跳过」排在「重试」右边，否则它自己占第一个位置
+        x -= retryable ? 16 : 80;
         break;
       case 'retry':
-        if (skippable) {
-          x -= 16;
-        } else {
-          x -= 80;
-        }
+        x -= 80;
         break;
     }
-    const [targetX, targetY] = flowGraphInstance!.getClientByCanvas([x, y]);
+    const anchor: [number, number] = [x, y];
+
     nodeOperationState.instance?.destroy();
+    operationAnchor = anchor;
+    nodeOperationState.type = type;
+    nodeOperationState.currentNode = target.data;
+    // 气泡内容随操作类型变，等这一轮渲染落地再交给 tippy，否则会先闪一下上一次的文案
+    await nextTick();
+
     nodeOperationState.instance = dbTippy(document.body, {
       allowHTML: true,
       appendTo: () => flowCanvasContainerRef.value!,
       arrow: true,
-      content: contentTemplateMap[type as keyof typeof contentTemplateMap],
+      content: nodeOperationRef.value!.getTemplateRef()!,
       hideOnClick: true,
       interactive: true,
       maxWidth: 400,
@@ -258,26 +241,14 @@
       zIndex: 9999,
     });
     nodeOperationState.instance.setProps({
-      getReferenceClientRect: () =>
-        ({
-          bottom: targetY,
-          height: 0,
-          left: targetX,
-          right: targetX,
-          top: targetY,
-          width: 0,
-          x,
-          y,
-        }) as any,
+      getReferenceClientRect: getCanvasReferenceRect(anchor),
     });
     nodeOperationState.instance.show();
-    nodeOperationState.currentNode = target.data;
   };
 
-  const handleCancelOperation = (type: string, refresh: boolean) => {
-    if (nodeOperationState.instance) {
-      nodeOperationState.instance.destroy();
-    }
+  const handleCancelOperation = (refresh: boolean) => {
+    nodeOperationState.instance?.destroy();
+    operationAnchor = null;
     if (refresh) {
       emits('refresh');
     }
@@ -454,6 +425,21 @@
     graph.on(NodeEvent.POINTER_LEAVE, () => {
       statusTooltip?.destroy();
       statusTooltip = null;
+    });
+
+    // 拖动或缩放画布时节点跟着走，弹层的定位基准要重算，否则会停在原来的屏幕位置上。
+    // 不能防抖：拖动过程中每一帧都要跟上，慢一拍就是肉眼可见的甩尾
+    graph.on(GraphEvent.AFTER_TRANSFORM, () => {
+      statusTooltip?.popperInstance?.forceUpdate();
+      if (!operationAnchor) {
+        return;
+      }
+      // 锚点被拖出可见区域后，popper 会把气泡按在画布边上，看着就是气泡和节点脱节了，这时直接关掉
+      if (!graph.isCanvasPointVisible(operationAnchor, canvasLeftOffset.value)) {
+        handleCancelOperation(false);
+        return;
+      }
+      nodeOperationState.instance?.popperInstance?.forceUpdate();
     });
 
     graph.on(CanvasEvent.CLICK, () => {

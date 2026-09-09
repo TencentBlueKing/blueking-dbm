@@ -371,6 +371,16 @@ export class FlowGraph {
     await this.applyGraphData();
   }
 
+  /**
+   * 画布上的某个点是否还落在可见区域内，同样扣掉左侧浮动面板盖住的那一段。
+   * 判的是点不是包围盒：挂在节点上的弹层只关心自己的锚点有没有被拖出去
+   */
+  isCanvasPointVisible(canvasPoint: [number, number], leftOffset = 0) {
+    const [x, y] = this.graph!.getViewportByCanvas(canvasPoint) as [number, number];
+    const [viewWidth, viewHeight] = this.getSize();
+    return x >= leftOffset && x <= viewWidth && y >= 0 && y <= viewHeight;
+  }
+
   /** 与 moveNodeIntoView 共用一套可见区域口径：按包围盒判断，并扣掉左侧浮动面板盖住的那一段 */
   isNodeVisible(nodeId: string, leftOffset = 0) {
     const [dx, dy] = this.getIntoViewOffset(nodeId, leftOffset);
