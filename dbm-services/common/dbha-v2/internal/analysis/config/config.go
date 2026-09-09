@@ -58,22 +58,28 @@ var Cfg = Configuration{
 		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
 		EnableWhiteList:            true,
 		SwitchFlow: SwitchFlowConfig{
-			HostLevelSwitchMaxHostNum:        32,
-			HostLevelSwitchMaxInstanceNum:    64,
-			ClusterLevelSwitchMaxClusterNum:  32,
-			ClusterLevelSwitchMaxInstanceNum: 64,
-			DbmApiMaxConcurrentRequests:      8,
-			SwitchLogWriteTimeout:            1 * time.Second,
-			DbConnectTimeout:                 3 * time.Second,
-			RedisCommandTimeout:              10 * time.Second,
-			ClusterLockTimeout:               60 * time.Second,
-			ExecSqlTimeout:                   6 * time.Second,
-			AllowedIgnoreCheckSum:            false,
-			AllowedIgnoreSlaveDelay:          false,
-			AllowedSlowBytes:                 0,
-			AllowedMaxChecksumFailCnt:        2,
-			AllowedMaxHeartbeatDelay:         600,
-			AllowedMaxSecondsBehindMaster:    600,
+			Common: SwitchFlowCommonConfig{
+				HostLevelSwitchMaxHostNum:        32,
+				HostLevelSwitchMaxInstanceNum:    64,
+				ClusterLevelSwitchMaxClusterNum:  32,
+				ClusterLevelSwitchMaxInstanceNum: 64,
+				DbmApiMaxConcurrentRequests:      8,
+				SwitchLogWriteTimeout:            1 * time.Second,
+				DbConnectTimeout:                 3 * time.Second,
+				ClusterLockTimeout:               60 * time.Second,
+			},
+			Mysql: SwitchFlowMysqlConfig{
+				ExecSqlTimeout:                6 * time.Second,
+				AllowedIgnoreCheckSum:         false,
+				AllowedIgnoreSlaveDelay:       false,
+				AllowedSlowBytes:              0,
+				AllowedMaxChecksumFailCnt:     2,
+				AllowedMaxHeartbeatDelay:      600,
+				AllowedMaxSecondsBehindMaster: 600,
+			},
+			Redis: SwitchFlowRedisConfig{
+				CommandTimeout: 10 * time.Second,
+			},
 		},
 	},
 
@@ -108,24 +114,39 @@ type DbmApi struct {
 	Timeout time.Duration `yaml:"timeout" mapstructure:"timeout"`
 }
 
-// SwitchFlowConfig defines the configuration for the switch flow
+// SwitchFlowConfig groups switch-flow settings by shared / mysql / redis.
 type SwitchFlowConfig struct {
-	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"        mapstructure:"dbmApiMaxConcurrentRequests"`
-	HostLevelSwitchMaxHostNum        int           `yaml:"hostLevelSwitchMaxHostNum"          mapstructure:"hostLevelSwitchMaxHostNum"`
-	HostLevelSwitchMaxInstanceNum    int           `yaml:"hostLevelSwitchMaxInstanceNum"      mapstructure:"hostLevelSwitchMaxInstanceNum"`
-	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"    mapstructure:"clusterLevelSwitchMaxClusterNum"`
-	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum"   mapstructure:"clusterLevelSwitchMaxInstanceNum"`
-	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"              mapstructure:"switchLogWriteTimeout"`
-	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                   mapstructure:"dbConnectTimeout"`
-	RedisCommandTimeout              time.Duration `yaml:"redisCommandTimeout"              mapstructure:"redisCommandTimeout"`
-	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"                 mapstructure:"clusterLockTimeout"`
-	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                     mapstructure:"execSqlTimeout"`
-	AllowedIgnoreCheckSum            bool          `yaml:"slaveAllowedIgnoreCheckSum"         mapstructure:"slaveAllowedIgnoreCheckSum"`
-	AllowedIgnoreSlaveDelay          bool          `yaml:"slaveAllowedIgnoreSlaveDelay"       mapstructure:"slaveAllowedIgnoreSlaveDelay"`
-	AllowedSlowBytes                 int           `yaml:"slaveAllowedSlowBytes"              mapstructure:"slaveAllowedSlowBytes"`
-	AllowedMaxChecksumFailCnt        int           `yaml:"slaveAllowedMaxChecksumFailCnt"     mapstructure:"slaveAllowedMaxChecksumFailCnt"`
-	AllowedMaxHeartbeatDelay         int           `yaml:"slaveAllowedMaxHeartbeatDelay"      mapstructure:"slaveAllowedMaxHeartbeatDelay"`
-	AllowedMaxSecondsBehindMaster    int           `yaml:"slaveAllowedMaxSecondsBehindMaster" mapstructure:"slaveAllowedMaxSecondsBehindMaster"`
+	Common SwitchFlowCommonConfig `yaml:"common" mapstructure:"common"`
+	Mysql  SwitchFlowMysqlConfig  `yaml:"mysql"  mapstructure:"mysql"`
+	Redis  SwitchFlowRedisConfig  `yaml:"redis"  mapstructure:"redis"`
+}
+
+// SwitchFlowCommonConfig holds switch-flow settings shared by all database types.
+type SwitchFlowCommonConfig struct {
+	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"      mapstructure:"dbmApiMaxConcurrentRequests"`
+	HostLevelSwitchMaxHostNum        int           `yaml:"hostLevelSwitchMaxHostNum"        mapstructure:"hostLevelSwitchMaxHostNum"`
+	HostLevelSwitchMaxInstanceNum    int           `yaml:"hostLevelSwitchMaxInstanceNum"    mapstructure:"hostLevelSwitchMaxInstanceNum"`
+	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
+	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
+	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`
+	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                 mapstructure:"dbConnectTimeout"`
+	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"               mapstructure:"clusterLockTimeout"`
+}
+
+// SwitchFlowMysqlConfig holds MySQL / TenDB switch-flow settings.
+type SwitchFlowMysqlConfig struct {
+	ExecSqlTimeout                time.Duration `yaml:"execSqlTimeout"                     mapstructure:"execSqlTimeout"`
+	AllowedIgnoreCheckSum         bool          `yaml:"slaveAllowedIgnoreCheckSum"         mapstructure:"slaveAllowedIgnoreCheckSum"`
+	AllowedIgnoreSlaveDelay       bool          `yaml:"slaveAllowedIgnoreSlaveDelay"       mapstructure:"slaveAllowedIgnoreSlaveDelay"`
+	AllowedSlowBytes              int           `yaml:"slaveAllowedSlowBytes"              mapstructure:"slaveAllowedSlowBytes"`
+	AllowedMaxChecksumFailCnt     int           `yaml:"slaveAllowedMaxChecksumFailCnt"     mapstructure:"slaveAllowedMaxChecksumFailCnt"`
+	AllowedMaxHeartbeatDelay      int           `yaml:"slaveAllowedMaxHeartbeatDelay"      mapstructure:"slaveAllowedMaxHeartbeatDelay"`
+	AllowedMaxSecondsBehindMaster int           `yaml:"slaveAllowedMaxSecondsBehindMaster" mapstructure:"slaveAllowedMaxSecondsBehindMaster"`
+}
+
+// SwitchFlowRedisConfig holds Redis switch-flow settings.
+type SwitchFlowRedisConfig struct {
+	CommandTimeout time.Duration `yaml:"commandTimeout" mapstructure:"commandTimeout"`
 }
 
 // WorkflowConfig workflow's configuration

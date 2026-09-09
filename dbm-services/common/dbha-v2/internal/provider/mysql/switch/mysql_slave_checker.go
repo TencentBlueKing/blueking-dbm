@@ -110,48 +110,48 @@ type MySQLSlaveChecker struct {
 	ReportLogf   switchlogger.SwitchLogFunc
 }
 
-// allowedIgnoreCheckSum returns workflow.switchflow.slaveAllowedIgnoreCheckSum.
+// allowedIgnoreCheckSum returns workflow.switchflow.mysql.slaveAllowedIgnoreCheckSum.
 func (*MySQLSlaveChecker) allowedIgnoreCheckSum() bool {
-	return config.Cfg.Workflow.SwitchFlow.AllowedIgnoreCheckSum
+	return config.Cfg.Workflow.SwitchFlow.Mysql.AllowedIgnoreCheckSum
 }
 
-// allowedIgnoreSlaveDelay returns workflow.switchflow.slaveAllowedIgnoreSlaveDelay.
+// allowedIgnoreSlaveDelay returns workflow.switchflow.mysql.slaveAllowedIgnoreSlaveDelay.
 func (*MySQLSlaveChecker) allowedIgnoreSlaveDelay() bool {
-	return config.Cfg.Workflow.SwitchFlow.AllowedIgnoreSlaveDelay
+	return config.Cfg.Workflow.SwitchFlow.Mysql.AllowedIgnoreSlaveDelay
 }
 
-// allowedSlowBytes returns workflow.switchflow.slaveAllowedSlowBytes, or default when negative.
+// allowedSlowBytes returns workflow.switchflow.mysql.slaveAllowedSlowBytes, or default when negative.
 func (*MySQLSlaveChecker) allowedSlowBytes() int {
-	v := config.Cfg.Workflow.SwitchFlow.AllowedSlowBytes
+	v := config.Cfg.Workflow.SwitchFlow.Mysql.AllowedSlowBytes
 	if v < 0 {
 		return defaultAllowedSlowBytes
 	}
 	return v
 }
 
-// allowedMaxChecksumFailCnt returns workflow.switchflow.slaveAllowedMaxChecksumFailCnt, or default when negative.
+// allowedMaxChecksumFailCnt returns workflow.switchflow.mysql.slaveAllowedMaxChecksumFailCnt, or default when negative.
 func (*MySQLSlaveChecker) allowedMaxChecksumFailCnt() int {
-	v := config.Cfg.Workflow.SwitchFlow.AllowedMaxChecksumFailCnt
+	v := config.Cfg.Workflow.SwitchFlow.Mysql.AllowedMaxChecksumFailCnt
 	if v < 0 {
 		return defaultAllowedMaxChecksumFailCnt
 	}
 	return v
 }
 
-// allowedMaxHeartbeatDelay returns workflow.switchflow.slaveAllowedMaxHeartbeatDelay, or default when not positive.
-// Kept but unused, see GetSlaveTimeDelay.
+// allowedMaxHeartbeatDelay returns workflow.switchflow.mysql.slaveAllowedMaxHeartbeatDelay,
+// or default when not positive. Kept but unused, see GetSlaveTimeDelay.
 func (*MySQLSlaveChecker) allowedMaxHeartbeatDelay() int {
-	v := config.Cfg.Workflow.SwitchFlow.AllowedMaxHeartbeatDelay
+	v := config.Cfg.Workflow.SwitchFlow.Mysql.AllowedMaxHeartbeatDelay
 	if v <= 0 {
 		return defaultAllowedMaxHeartbeatDelay
 	}
 	return v
 }
 
-// allowedMaxSecondsBehindMaster returns workflow.switchflow.slaveAllowedMaxSecondsBehindMaster,
+// allowedMaxSecondsBehindMaster returns workflow.switchflow.mysql.slaveAllowedMaxSecondsBehindMaster,
 // or default when not positive.
 func (*MySQLSlaveChecker) allowedMaxSecondsBehindMaster() int {
-	v := config.Cfg.Workflow.SwitchFlow.AllowedMaxSecondsBehindMaster
+	v := config.Cfg.Workflow.SwitchFlow.Mysql.AllowedMaxSecondsBehindMaster
 	if v <= 0 {
 		return defaultAllowedMaxSecondsBehindMaster
 	}
@@ -349,7 +349,7 @@ func queryMaxBinlogSize(slaveDB *hamysql.GormDB) (uint64, error) {
 	ip := slaveDB.Host()
 	port := slaveDB.Port()
 	var varQueryRes MySQLVariableResult
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb, cancel := GormWithExecSqlTimeout(slaveDB)
 	defer cancel()
 
 	err := gdb.Raw("show variables like 'max_binlog_size'").Scan(&varQueryRes).Error
@@ -378,7 +378,7 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 	port := slaveDB.Port()
 
 	slaveStatus := SlaveStatusInfo{}
-	gdb1, cancel1 := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb1, cancel1 := GormWithExecSqlTimeout(slaveDB)
 	defer cancel1()
 
 	err := gdb1.Raw("show slave status").Scan(&slaveStatus).Error
@@ -402,7 +402,7 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 	}
 
 	delayInfo := SlaveTimeDelayInfo{}
-	gdb2, cancel2 := switchcore.GormWithExecSqlTimeout(slaveDB)
+	gdb2, cancel2 := GormWithExecSqlTimeout(slaveDB)
 	defer cancel2()
 
 	tx := gdb2.Raw(CheckDelaySQL, slaveStatus.MasterHost, slaveStatus.MasterPort, slaveStatus.MasterServerID).
@@ -461,7 +461,7 @@ func (checker *MySQLSlaveChecker) GetSlaveCheckSum(db *hamysql.GormDB) (int, int
 		checksumCnt, checksumFailCnt int
 	)
 
-	gdb1, cancel1 := switchcore.GormWithExecSqlTimeout(db)
+	gdb1, cancel1 := GormWithExecSqlTimeout(db)
 	defer cancel1()
 
 	err := gdb1.Raw(CheckSumSQL).Scan(&checksumCnt).Error
@@ -470,7 +470,7 @@ func (checker *MySQLSlaveChecker) GetSlaveCheckSum(db *hamysql.GormDB) (int, int
 			ip, port, err.Error())
 	}
 
-	gdb2, cancel2 := switchcore.GormWithExecSqlTimeout(db)
+	gdb2, cancel2 := GormWithExecSqlTimeout(db)
 	defer cancel2()
 
 	err = gdb2.Raw(CheckSumFailSQL).Scan(&checksumFailCnt).Error
@@ -600,7 +600,7 @@ func HasUserCreatedDatabase(db *hamysql.GormDB, reportLogf switchlogger.SwitchLo
 	port := db.Port()
 
 	var databases []string
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(db)
+	gdb, cancel := GormWithExecSqlTimeout(db)
 	defer cancel()
 
 	err := gdb.Raw("show databases").Scan(&databases).Error
