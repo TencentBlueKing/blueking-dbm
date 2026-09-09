@@ -2,6 +2,7 @@
 package mongodb_rpc
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -88,6 +89,28 @@ func TestResolveMongoShellBinMissing(t *testing.T) {
 	}
 }
 
+func TestStartMongoShellProcessExecFormatError(t *testing.T) {
+	badShell := t.TempDir() + "/mongosh"
+	if err := os.WriteFile(badShell, []byte("not an executable format"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	proc, err := startMongoShellProcess([]string{badShell}, []*os.File{os.Stdin, os.Stdout, os.Stderr})
+	if err == nil {
+		if proc != nil {
+			_ = proc.Kill()
+			_, _ = proc.Wait()
+		}
+		t.Fatal("expected exec format error")
+	}
+	if proc != nil {
+		t.Fatalf("expected nil process on start failure, got pid %d", proc.Pid)
+	}
+	if !strings.Contains(err.Error(), "start MongoDB shell") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestIsResponseEnd(t *testing.T) {
 	if !isResponseEnd([]byte("ok\n" + EndOfOutput + "\n")) {
 		t.Fatal("expected response end marker to be detected")
@@ -127,6 +150,15 @@ func TestStripMongoShellPrompt(t *testing.T) {
 			name:  "replica set secondary direct",
 			input: "utRs44Prompt [direct: secondary] test> test\nutRs44Prompt [direct: secondary] test> \n",
 			want:  "test\n",
+		},
+		{
+			name: "replica set direct other show dbs",
+			input: "dba-smoke0909rs70 [direct: other] test> admin   280.00 KiB\n" +
+				"config  164.00 KiB\n" +
+				"local   420.00 KiB\n" +
+				"dba-smoke0909rs70 [direct: other] test> \n" +
+				"dba-smoke0909rs70 [direct: other] test> \n",
+			want: "admin   280.00 KiB\nconfig  164.00 KiB\nlocal   420.00 KiB\n",
 		},
 		{
 			name:  "replica set topology primary tag",
