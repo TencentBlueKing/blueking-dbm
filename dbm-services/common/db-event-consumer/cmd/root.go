@@ -58,7 +58,11 @@ var rootCmd = &cobra.Command{
 				continue
 			}
 			// 创建 DSWriter 是致命错误（配置问题），失败则退出程序
-			dsWriter, err := sinkerPkg.GetDSWriter(sinkerPkg.DatasourceMap[sink.Datasource])
+			ds, ok := sinkerPkg.DatasourceMap[sink.Datasource]
+			if !ok {
+				return fmt.Errorf("datasource %q not found, please check datasource name in config", sink.Datasource)
+			}
+			dsWriter, err := sinkerPkg.GetDSWriter(ds)
 			if err != nil {
 				return err
 			}

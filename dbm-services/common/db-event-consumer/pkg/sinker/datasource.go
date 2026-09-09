@@ -59,6 +59,9 @@ type InstanceDsn struct {
 }
 
 func GetDSWriter(ds *Datasource) (base.DSWriter, error) {
+	if ds == nil {
+		return nil, errors.New("datasource not found, please check datasource name in config")
+	}
 	if ds.Type == "mysql" {
 		var mysqlDsn InstanceDsn
 		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"fmt"
 
 	"bk-dbconfig/assets"
@@ -23,16 +24,26 @@ func DoMigrateFromEmbed() error {
 	if err != nil {
 		return err
 	}
-	dbURL := fmt.Sprintf(
-		"mysql://%s:%s@tcp(%s)/%s?charset=%s&parseTime=true&loc=Local&multiStatements=true&interpolateParams=true",
+	// 使用 DSN 格式建立连接，避免密码中的特殊字符（如 %、@）在 URL 格式中被错误解析
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&loc=Local&multiStatements=true&interpolateParams=true",
 		config.GetString("db.username"),
 		config.GetString("db.password"),
 		config.GetString("db.addr"),
 		config.GetString("db.name"),
-		"utf8",
 	)
-	mig, err = migrate.NewWithSourceInstance("iofs", d, dbURL)
+	sqlDB, err := sql.Open("mysql", dsn)
 	if err != nil {
+		return errors.WithMessage(err, "open db for migrate")
+	}
+	dbDriver, err := mysql.WithInstance(sqlDB, &mysql.Config{})
+	if err != nil {
+		sqlDB.Close()
+		return errors.WithMessage(err, "create migrate db driver")
+	}
+	mig, err = migrate.NewWithInstance("iofs", d, "mysql", dbDriver)
+	if err != nil {
+		sqlDB.Close()
 		return errors.WithMessage(err, "migrate from embed")
 	}
 	defer mig.Close()
