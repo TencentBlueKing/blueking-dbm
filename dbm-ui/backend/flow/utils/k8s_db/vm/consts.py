@@ -17,6 +17,7 @@ NAMESPACE_PREFIX = "victoriametrics"
 # dbs 侧标识
 STORAGE_ADDON_TYPE = "victoriametrics"
 HA_TOPO_NAME = "cluster"
+QUERY_TOPO_NAME = "select"
 HA_TAGS = ["dbm", "victoriametrics"]
 
 # 组件名（与 dbs 约定的 componentName 一致）
@@ -31,8 +32,7 @@ VMINSERT_PORT = 8480
 VMSELECT_PORT = 8481
 
 # CLB 名称后缀
-VMINSERT_CLB_SUFFIX = "vminsert-clb"
-VMSELECT_CLB_SUFFIX = "vmselect-clb"
+CLB_NAME_SUFFIX = "vm-clb"
 
 # 域名前缀，最终形如 "{DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
 VMINSERT_DOMAIN_PREFIX = "vminsert"

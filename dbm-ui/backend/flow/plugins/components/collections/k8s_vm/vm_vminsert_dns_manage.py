@@ -37,10 +37,10 @@ class VmVminsertDnsManageService(BaseService):
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(kwargs["dns_op_type"]))
             return False
 
-        clb_detail = trans_data.vminsert_clb_detail
+        clb_detail = trans_data.clb_detail
         vip = clb_detail.get("LoadBalancerVips")
         if not vip:
-            self.log_error(_("vminsert CLB详情缺少LoadBalancerVips"))
+            self.log_error(_("CLB详情缺少LoadBalancerVips"))
             return False
 
         trans_data.vminsert_domain = kwargs["domain_name"]

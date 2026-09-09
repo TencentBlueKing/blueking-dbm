@@ -18,6 +18,7 @@ from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.components import KubernetesApi
+from backend.db_meta.enums import ClusterType
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.k8s_db.vm.consts import (
@@ -26,6 +27,7 @@ from backend.flow.utils.k8s_db.vm.consts import (
     COMPONENT_VMSTORAGE,
     HA_TOPO_NAME,
     NAMESPACE_PREFIX,
+    QUERY_TOPO_NAME,
     STORAGE_ADDON_TYPE,
 )
 
@@ -48,9 +50,17 @@ class CreateK8sVmClusterService(BaseService):
 
         component_items = global_data["component_list"]
         component_names = [item.get("component_name") for item in component_items]
-        expected_component_names = {COMPONENT_VMINSERT, COMPONENT_VMSELECT, COMPONENT_VMSTORAGE}
+        expected_component_names = (
+            {COMPONENT_VMSELECT}
+            if global_data["cluster_type"] == ClusterType.K8sVictoriametricsSelect.value
+            else {COMPONENT_VMINSERT, COMPONENT_VMSELECT, COMPONENT_VMSTORAGE}
+        )
         if len(component_names) != len(expected_component_names) or set(component_names) != expected_component_names:
-            self.log_error(_("VictoriaMetrics组件列表必须且只能包含vminsert、vmselect、vmstorage"))
+            self.log_error(
+                _("VictoriaMetrics集群类型[{}]的组件列表必须且只能包含[{}]，当前为[{}]").format(
+                    global_data["cluster_type"], "、".join(sorted(expected_component_names)), component_names
+                )
+            )
             return False
 
         for item in component_items:
@@ -63,6 +73,7 @@ class CreateK8sVmClusterService(BaseService):
                 return False
 
         component_list = []
+        is_query_cluster = global_data["cluster_type"] == ClusterType.K8sVictoriametricsSelect.value
         for item in component_items:
             component = {
                 "componentName": item["component_name"],
@@ -77,6 +88,18 @@ class CreateK8sVmClusterService(BaseService):
                     "memory": item.get("limit_memory", item["request_memory"]),
                 },
             }
+
+            if item.get("env"):
+                if is_query_cluster:
+                    # 查询版：dbs select 路径透传用户 env，保持 EXTRA_ARGS 嵌套格式
+                    component["env"] = item["env"]
+                else:
+                    # 标准版：dbs cluster 路径按扁平参数名->值合并进默认 EXTRA_ARGS
+                    env = dict(item["env"])
+                    if isinstance(env.get("EXTRA_ARGS"), dict):
+                        env.update(env.pop("EXTRA_ARGS"))
+                    if env:
+                        component["env"] = env
 
             if item.get("storage"):
                 component["volumeClaimTemplates"] = {
@@ -96,7 +119,7 @@ class CreateK8sVmClusterService(BaseService):
             "storageAddonType": STORAGE_ADDON_TYPE,
             "storageAddonVersion": global_data["major_version"],
             "addonClusterVersion": global_data["major_version"],
-            "topoName": HA_TOPO_NAME,
+            "topoName": QUERY_TOPO_NAME if is_query_cluster else HA_TOPO_NAME,
             "terminationPolicy": "DoNotTerminate",
             "bkBizId": global_data["bk_biz_id"],
             "bkBizName": global_data["bk_biz_name"],
