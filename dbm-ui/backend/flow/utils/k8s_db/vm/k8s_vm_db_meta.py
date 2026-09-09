@@ -66,3 +66,9 @@ class VmDBMeta(object):
 
         with atomic():
             return api.cluster.k8s_vm.create(**cluster)
+
+    def k8s_victoriametrics_cluster_apply(self) -> dict:
+        return self.k8s_victoriametrics_apply()
+
+    def k8s_victoriametrics_select_apply(self) -> dict:
+        return self.k8s_victoriametrics_apply()
