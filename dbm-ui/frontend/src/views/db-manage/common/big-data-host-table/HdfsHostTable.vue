@@ -93,7 +93,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { computed, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -101,6 +101,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import { execCopy } from '@utils';
 

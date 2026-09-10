@@ -69,11 +69,11 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { Radio } from 'tdesign-vue-next';
   import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import Radio from '@components/tdesign-ui/radio';
 
   import Input from '../common/Input.vue';
   import { isSearchKeywordMatch } from '../common/searchKeyword';

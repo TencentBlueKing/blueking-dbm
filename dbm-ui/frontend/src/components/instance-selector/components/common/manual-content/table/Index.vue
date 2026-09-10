@@ -21,7 +21,8 @@
       class="mt-12"
       :columns="columns"
       :data="pageData"
-      :max-height="530">
+      :max-height="530"
+      :row-key="firstColumnFieldId">
       <template #empty>
         <EmptyStatus
           :is-anomalies="false"
@@ -41,11 +42,12 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import { type InstanceSelectorValues, type IValue, type PanelListType } from '../../../../Index.vue';
 
@@ -92,7 +94,7 @@
 
   const checkedMap = shallowRef({} as Record<string, IValue>);
 
-  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
+  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as string);
   const renderManualData = computed(() => {
     if (searchValue.value === '') {
       return props.manualTableData;

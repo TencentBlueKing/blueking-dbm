@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { useSelectorSearch } from '@hooks';
@@ -57,6 +57,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterDetailRelatedTicket from '@views/db-manage/common/ClusterDetailRelatedTicket.vue';

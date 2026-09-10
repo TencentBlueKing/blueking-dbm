@@ -219,7 +219,7 @@ export default defineConfigWithVueTs(
         {
           type: 'unsorted',
           useConfigurationIf: {
-            callingFunctionNamePattern: '^defineOptions',
+            callingFunctionNamePattern: '^(defineOptions|defineComponent)',
           },
         },
       ],

@@ -62,7 +62,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -77,6 +77,7 @@
   import { TicketTypes } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 

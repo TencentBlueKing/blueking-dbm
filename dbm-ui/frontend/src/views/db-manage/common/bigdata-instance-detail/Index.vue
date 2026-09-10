@@ -89,7 +89,7 @@
   lang="tsx"
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { InfoBox } from 'bkui-vue';
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -118,6 +118,7 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderInstanceStatus from '@views/db-manage/common/RenderInstanceStatus.vue';
