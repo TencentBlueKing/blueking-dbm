@@ -25,11 +25,8 @@
 package harvest
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
-	"net"
 	"strings"
 	"time"
 
@@ -39,6 +36,23 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/redis/go-redis/v9"
+)
+
+const (
+	// redisProbeDB is the DB index selected before the write probe, aligned with v1.
+	redisProbeDB = "1"
+
+	// redisProbeKeyPrefix is the fixed prefix of the write probe key.
+	redisProbeKeyPrefix = "dbha:probe"
+
+	// redisProbeValueLayout is the timestamp layout of the write probe value, aligned with v1.
+	redisProbeValueLayout = "2006-01-02 15:04:05"
+
+	// redis auth failure substrings, aligned with v1 CheckRedisErrIsAuthFail.
+	redisAuthErrorNoauth      = "NOAUTH Authentication"
+	redisAuthErrorWrongpass   = "WRONGPASS invalid"
+	redisAuthErrorInvalidPass = "invalid password"
+	redisAuthErrorPermDeny    = "auth permission deny"
 )
 
 type collector struct {
@@ -55,6 +69,9 @@ type collector struct {
 	rdb          *redis.Client
 }
 
+// open builds the redis client and pings it to establish the connection and
+// complete authentication. The error is classified into a connection or auth
+// DbEvent.
 func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {
 	addr := c.endpoint.Addr()
 
@@ -76,14 +93,7 @@ func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {
 
 	if err := c.rdb.Ping(ctx).Err(); err != nil {
 		logger.Warn("failed to connect to redis, endpoint: %s, errmsg: %s", addr, err)
-		event := &haprobe.DbEvent{
-			Name:       haprobe.DbEventNameDetectFailure,
-			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeRedis,
-			Endpoint:   c.endpoint,
-			Message:    err.Error(),
-		}
-		return event, err
+		return c.classifyOpenError(err), err
 	}
 
 	return nil, nil
@@ -93,22 +103,107 @@ func (c *collector) close() {
 	if c.rdb == nil {
 		return
 	}
-	err := c.rdb.Close()
-	if err != nil {
+	if err := c.rdb.Close(); err != nil {
 		logger.Warn("failed to close redis db, errmsg: %s", err)
-		return
 	}
 }
 
-func (c *collector) info(ctx context.Context, section string) (string, error) {
-	if c.rdb == nil {
-		return "", fmt.Errorf("redis client is not initialized")
+// isAuthError reports whether err is a redis authentication failure.
+func isAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, redisAuthErrorNoauth) ||
+		strings.Contains(errStr, redisAuthErrorWrongpass) ||
+		strings.Contains(errStr, redisAuthErrorInvalidPass) ||
+		strings.Contains(errStr, redisAuthErrorPermDeny)
+}
+
+// connectionExceptionEvent builds a connection-exception DbEvent.
+func (c *collector) connectionExceptionEvent(err error) *haprobe.DbEvent {
+	return &haprobe.DbEvent{
+		Name:       haprobe.DbEventNameDetectFailure,
+		Reason:     haprobe.DbEventNameReasonConnectionException,
+		DbTypeName: haprobe.DbTypeRedis,
+		Endpoint:   c.endpoint,
+		Message:    err.Error(),
+	}
+}
+
+// authExceptionEvent builds an auth-exception DbEvent.
+func (c *collector) authExceptionEvent(err error) *haprobe.DbEvent {
+	return &haprobe.DbEvent{
+		Name:       haprobe.DbEventNameDetectRedisAuthFailureV1,
+		Reason:     haprobe.DbEventNameReasonAuthException,
+		DbTypeName: haprobe.DbTypeRedis,
+		Endpoint:   c.endpoint,
+		Message:    err.Error(),
+	}
+}
+
+// classifyOpenError classifies the open (Ping) error into a DbEvent. Auth errors
+// map to auth events, anything else maps to connection events.
+func (c *collector) classifyOpenError(err error) *haprobe.DbEvent {
+	if isAuthError(err) {
+		return c.authExceptionEvent(err)
+	}
+	return c.connectionExceptionEvent(err)
+}
+
+// classifyCommandError classifies a command error. Auth errors map to auth
+// events, anything else returns nil and is recorded as State=failed.
+func (c *collector) classifyCommandError(err error) *haprobe.DbEvent {
+	if isAuthError(err) {
+		return c.authExceptionEvent(err)
+	}
+	return nil
+}
+
+// obtainReplicationInfo runs INFO Replication and returns the parsed key-value map.
+// Callers read the fields they need (e.g. "role") from the returned map.
+func (c *collector) obtainReplicationInfo(ctx context.Context) (map[string]string, error) {
+	infoStr, err := c.rdb.Info(ctx, "Replication").Result()
+	if err != nil {
+		return nil, err
+	}
+	return parseRedisInfoToMap(infoStr), nil
+}
+
+// obtainHeartbeat runs SELECT and SET write probe and returns the raw results.
+func (c *collector) obtainHeartbeat(ctx context.Context) (string, string, error) {
+	selRsp, err := c.rdb.Do(ctx, "SELECT", redisProbeDB).Result()
+	if err != nil {
+		return "", "", err
+	}
+	// On success redis SELECT always replies with the simple string "OK"
+	// (RESP2/RESP3, see https://redis.io/docs/latest/commands/select/); any
+	// failure such as "ERR DB index is out of range" is returned as err above.
+	// So no extra strings.Contains(selectResult, "OK") check is needed, unlike v1.
+	selectResult, ok := selRsp.(string)
+	if !ok {
+		return "", "", fmt.Errorf("select result type is not string")
 	}
 
-	if section == "" {
-		return c.rdb.Info(ctx).Result()
+	key := fmt.Sprintf("%s:%s:%d", redisProbeKeyPrefix, c.endpoint.Host, c.endpoint.Port)
+	value := time.Now().Format(redisProbeValueLayout)
+
+	setRsp, err := c.rdb.Do(ctx, "SET", key, value).Result()
+	if err != nil {
+		return selectResult, "", err
 	}
-	return c.rdb.Info(ctx, strings.ToLower(section)).Result()
+	setResult, ok := setRsp.(string)
+	if !ok {
+		return selectResult, "", fmt.Errorf("set result type is not string")
+	}
+
+	return selectResult, setResult, nil
+}
+
+// obtainReadCheck runs TYPE twemproxy_mon read-only probe.
+func (c *collector) obtainReadCheck(ctx context.Context) error {
+	_, err := c.rdb.Type(ctx, "twemproxy_mon").Result()
+	return err
 }
 
 func (c *collector) isTwemproxy() bool {
@@ -136,99 +231,48 @@ func (c *collector) isTendisPlus() bool {
 		c.machineType == haprobe.DbmMetadataMachineTypeTendisPlus
 }
 
-func (c *collector) isRedisCluster() bool {
+// isProxyInstance reports whether the collector is a supported proxy instance.
+// It matches the (clusterType, machineType) pair to guard against an unknown
+// cluster type being probed as a known proxy.
+func (c *collector) isProxyInstance() bool {
+	switch {
+	case c.isTwemproxy():
+		return c.clusterType == haprobe.DbmMetadataClusterTypeTwemproxyRedis ||
+			c.clusterType == haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD
+	case c.isPredixy():
+		return c.clusterType == haprobe.DbmMetadataClusterTypePredixyRedisCluster ||
+			c.clusterType == haprobe.DbmMetadataClusterTypePredixyTendisplusCluster ||
+			c.clusterType == haprobe.DbmMetadataClusterTypePredixyTendisplusInstance
+	default:
+		return false
+	}
+}
+
+// isStorageInstance reports whether the collector is a supported storage instance.
+// It matches the (clusterType, machineType) pair; storage layers of autonomous
+// clusters (PredixyRedisCluster / PredixyTendisplusCluster) are deliberately excluded.
+func (c *collector) isStorageInstance() bool {
+	switch {
+	case c.isTendisCache():
+		return c.clusterType == haprobe.DbmMetadataClusterTypeTwemproxyRedis ||
+			c.clusterType == haprobe.DbmMetadataClusterTypeRedis
+	case c.isTendisSSD():
+		return c.clusterType == haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD
+	case c.isTendisPlus():
+		return c.clusterType == haprobe.DbmMetadataClusterTypePredixyTendisplusInstance
+	default:
+		return false
+	}
+}
+
+// shouldSkipStorage PredixyRedisCluster / PredixyTendisplusCluster only probe their proxy layer.
+func (c *collector) shouldSkipStorage() bool {
 	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeStorage &&
-		(c.clusterType == haprobe.DbmMetadataClusterTypePredixyRedisCluster)
+		(c.clusterType == haprobe.DbmMetadataClusterTypePredixyRedisCluster ||
+			c.clusterType == haprobe.DbmMetadataClusterTypePredixyTendisplusCluster)
 }
 
-func (c *collector) obtainTwemproxyStatus(ctx context.Context) (*haprobe.RedisTwemproxyStatus, error) {
-	addr := c.endpoint.Addr()
-
-	conn, err := net.DialTimeout("tcp", addr, c.timeout)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to twemproxy stats port:%s,errmsg: %w", addr, err)
-	}
-	defer conn.Close()
-
-	if err := conn.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
-		return nil, fmt.Errorf("failed to set read deadline: %w", err)
-	}
-
-	reader := bufio.NewReader(conn)
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read twemproxy stats: %w", err)
-	}
-
-	status := &haprobe.RedisTwemproxyStatus{}
-	parseInfoToTwemproxyStatus(data, status)
-	return status, nil
-}
-
-func (c *collector) obtainPredixyStatus(ctx context.Context) (*haprobe.RedisPredixyStatus, error) {
-	infoStr, err := c.info(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-
-	status := &haprobe.RedisPredixyStatus{}
-	parseInfoToPredixyStatus(infoStr, status)
-
-	serversInfo, err := c.info(ctx, "Servers")
-	if err != nil {
-		logger.Warn("failed to get predixy servers info, errmsg: %s", err)
-	} else {
-		parsePredixyServersInfo(serversInfo, status)
-	}
-
-	return status, nil
-}
-
-func (c *collector) obtainTendisCacheStatus(ctx context.Context) (*haprobe.RedisTendisCacheStatus, error) {
-	infoStr, err := c.info(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-
-	status := &haprobe.RedisTendisCacheStatus{}
-	parseInfoToTendisCacheStatus(infoStr, status)
-	return status, nil
-}
-
-func (c *collector) obtainTendisSSDStatus(ctx context.Context) (*haprobe.RedisTendisSSDStatus, error) {
-	infoStr, err := c.info(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-
-	status := &haprobe.RedisTendisSSDStatus{}
-	parseInfoToTendisSSDStatus(infoStr, status)
-	return status, nil
-}
-
-func (c *collector) obtainTendisPlusStatus(ctx context.Context) (*haprobe.RedisTendisPlusStatus, error) {
-	infoStr, err := c.info(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-
-	status := &haprobe.RedisTendisPlusStatus{}
-	parseInfoToTendisPlusStatus(infoStr, status)
-	return status, nil
-}
-
-func (c *collector) obtainRedisClusterStatus(ctx context.Context) (*haprobe.RedisClusterStatus, error) {
-	infoStr, err := c.info(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-
-	status := &haprobe.RedisClusterStatus{}
-	parseInfoToRedisClusterStatus(infoStr, status)
-	return status, nil
-}
-
-func (c *collector) obtainHostStatus(ctx context.Context) (*haprobe.HostMetric, error) {
+func (c *collector) obtainHostStatus() (*haprobe.HostMetric, error) {
 	hostStatus := &haprobe.HostMetric{}
 	if err := c.SetCpuStatus(hostStatus); err != nil {
 		logger.Warn("failed to update CPU status, errmsg: %s", err)
