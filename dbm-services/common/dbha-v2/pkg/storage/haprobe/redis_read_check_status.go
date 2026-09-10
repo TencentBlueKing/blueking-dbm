@@ -24,14 +24,9 @@
 
 package haprobe
 
-// RedisTendisCacheStatus TendisCache storage status
-type RedisTendisCacheStatus struct {
-	Base        RedisBaseStatus        `json:"base,omitempty"`
-	Memory      RedisMemoryStatus      `json:"memory,omitempty"`
-	Persistence RedisPersistenceStatus `json:"persistence,omitempty"`
-	Keyspace    []RedisDBKeyspace      `json:"keyspace,omitempty"`
-
-	SyncFull          int64 `json:"sync_full,omitempty"`
-	SyncPartialErr    int64 `json:"sync_partial_err,omitempty"`
-	TotalErrorReplies int64 `json:"total_error_replies,omitempty"`
+// RedisReadCheckStatus reports the result of the read-only probe
+// (TYPE twemproxy_mon) for proxy instances (Twemproxy / Predixy).
+type RedisReadCheckStatus struct {
+	State         string `json:"state"`
+	FailureReason string `json:"failure_reason"`
 }
