@@ -330,14 +330,15 @@ def _summarize_and_write_report(
     share_url = ""
     try:
         summary_content = (
-            "Please summarize the following analysis report concisely, "
-            "keep the key findings and conclusions within 800 characters.\n"
-            "Return in the following json format strictly:\n"
+            "Please summarize the following analysis report concisely.\n"
+            "Keep the key findings or conclusions or the root cause within 800 characters.\n"
+            "The summary will be sent as a WeCom/Markdown notification, so it must be easy to read on mobile, "
+            "and do not write one long paragraph, markdown bullet lines is preferred.\n"
+            "Return strictly in the following JSON format wrapped by <output></output>:\n"
             "<output>\n"
             '{"share_url": "<if have one>", "summary": "<your summary>"}'
             "</output>\n\n"
             "Original content:\n"
-            f"{agent_output}"
         )
         summary_result = AgentHandler.ask_agent_with_content(
             agent_code=DBMAgentCode.DBM_AGENT_SUMMARY,

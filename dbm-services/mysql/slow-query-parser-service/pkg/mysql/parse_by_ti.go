@@ -92,7 +92,7 @@ func AnalyzeSql(db, oneSql string) (resp *Response, err error) {
 	// 生成两个版本：一个带注释（用于显示），一个不带注释（用于计算MD5）
 	fingerprintWithComment, fingerprintForHash := replaceMultiValuesWithCount(fingerprint)
 
-	resp := &Response{
+	resp = &Response{
 		QueryString: oneSql, // do not return original sql
 		// remove # Time:
 		QueryLength:     len(oneSql),
