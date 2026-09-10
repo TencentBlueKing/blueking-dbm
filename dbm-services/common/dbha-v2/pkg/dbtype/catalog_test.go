@@ -49,6 +49,7 @@ var allKnownClusterTypes = []haprobe.DbmMetadataClusterType{
 	haprobe.DbmMetadataClusterTypeDoris,
 	haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
 	haprobe.DbmMetadataClusterTypePredixyRedisCluster,
+	haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 	haprobe.DbmMetadataClusterTypePulsar,
 }
 
@@ -59,11 +60,12 @@ var unsupportedAllowlist = map[haprobe.DbmMetadataClusterType]struct{}{}
 // redisClusterTypes are owned by provider/redis/dbtypedesc and are NOT
 // expected in the built-in catalog (pkg/dbtype alone).
 var redisClusterTypes = map[haprobe.DbmMetadataClusterType]struct{}{
-	haprobe.DbmMetadataClusterTypeTwemproxyRedis:           {},
-	haprobe.DbmMetadataClusterTypeRedis:                    {},
-	haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD:       {},
-	haprobe.DbmMetadataClusterTypePredixyTendisplusCluster: {},
-	haprobe.DbmMetadataClusterTypePredixyRedisCluster:      {},
+	haprobe.DbmMetadataClusterTypeTwemproxyRedis:            {},
+	haprobe.DbmMetadataClusterTypeRedis:                     {},
+	haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD:        {},
+	haprobe.DbmMetadataClusterTypePredixyTendisplusCluster:  {},
+	haprobe.DbmMetadataClusterTypePredixyRedisCluster:       {},
+	haprobe.DbmMetadataClusterTypePredixyTendisplusInstance: {},
 }
 
 func TestBuiltinCatalogCompleteness(t *testing.T) {
