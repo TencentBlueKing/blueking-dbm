@@ -34,7 +34,6 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
@@ -43,13 +42,6 @@ import (
 
 const (
 	Name = "redis"
-
-	RedisConnectionProto = "tcp"
-)
-
-var (
-	ErrInvalidRedisIp   = gerrors.Newf(gerrors.InvalidParameter, "invalid Redis ip")
-	ErrInvalidRedisPort = gerrors.Newf(gerrors.InvalidParameter, "invalid Redis port")
 )
 
 // Redis redis harvester
@@ -154,20 +146,6 @@ func (r *Redis) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 	return c
 }
 
-func (r *Redis) loadAdminCollectors(epoint config.DbEndpointConfig) {
-	for _, ports := range epoint.AdminPorts {
-		eports, err := base.ParsePorts(ports)
-		if err != nil {
-			continue
-		}
-
-		for _, eport := range eports {
-			c := r.makeCollector(epoint, eport)
-			r.collectors[c.endpoint.String()] = c
-		}
-	}
-}
-
 func (r *Redis) loadStorageCollector(epoint config.DbEndpointConfig) {
 	for _, ports := range epoint.Ports {
 		eports, err := base.ParsePorts(ports)
@@ -188,10 +166,6 @@ func (r *Redis) loadCollectors() {
 	}
 
 	for _, epoint := range r.cfg.Endpoints {
-		if len(epoint.AdminPorts) != 0 {
-			r.loadAdminCollectors(epoint)
-		}
-
 		if len(epoint.Ports) != 0 {
 			r.loadStorageCollector(epoint)
 		}
@@ -227,19 +201,15 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 		dataC <- data
 	}()
 
-	if hostStatus, err := c.obtainHostStatus(ctx); err != nil {
+	if hostStatus, err := c.obtainHostStatus(); err != nil {
 		logger.Warn("failed to obtain the host status, errmsg: %s", err)
 	} else {
 		data.Host = hostStatus
 	}
 
-	if c.isTwemproxy() {
-		dbStatus, err := c.obtainTwemproxyStatus(ctx)
-		if err != nil {
-			logger.Warn("failed to obtain the Redis(Twemproxy) status, errmsg: %s", err)
-			return
-		}
-		status.TwemproxyStatus = dbStatus
+	// Skip the storage layer of clusters that only probe their proxy layer.
+	if c.shouldSkipStorage() {
+		logger.Debug("skip storage detection, cluster: %s, machine: %s", c.clusterType, c.machineType)
 		return
 	}
 
@@ -247,55 +217,96 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 	if err != nil {
 		dbEvent.BkCloudID = r.bkCloudID
 		data.Events = []*haprobe.DbEvent{dbEvent}
-		logger.Error("failed to open the collector for the db: %s", c.endpoint)
+		logger.Error("failed to open the collector for the db: %s, errmsg: %s", c.endpoint, err)
 		return
 	}
 
-	r.populateOpenedDbStatus(ctx, c, status)
+	r.populateOpenedDbStatus(ctx, c, status, data)
 }
 
-func (r *Redis) populateOpenedDbStatus(ctx context.Context, c *collector, status *haprobe.RedisStatus) {
+func (r *Redis) populateOpenedDbStatus(ctx context.Context, c *collector, status *haprobe.RedisStatus, data *plugin.HarvestData) {
 	switch {
-	case c.isPredixy():
-		dbStatus, err := c.obtainPredixyStatus(ctx)
-		if err != nil {
-			logger.Warn("failed to obtain the Redis(Predixy) status, errmsg: %s", err)
-			return
-		}
-		status.PredixyStatus = dbStatus
-
-	case c.isTendisCache():
-		dbStatus, err := c.obtainTendisCacheStatus(ctx)
-		if err != nil {
-			logger.Warn("failed to obtain the Redis(TendisCache) status, errmsg: %s", err)
-			return
-		}
-		status.TendisCacheStatus = dbStatus
-
-	case c.isTendisSSD():
-		dbStatus, err := c.obtainTendisSSDStatus(ctx)
-		if err != nil {
-			logger.Warn("failed to obtain the Redis(TendisSSD) status, errmsg: %s", err)
-			return
-		}
-		status.TendisSSDStatus = dbStatus
-
-	case c.isTendisPlus():
-		dbStatus, err := c.obtainTendisPlusStatus(ctx)
-		if err != nil {
-			logger.Warn("failed to obtain the Redis(TendisPlus) status, errmsg: %s", err)
-			return
-		}
-		status.TendisPlusStatus = dbStatus
-
+	case c.isProxyInstance():
+		r.populateReadCheck(ctx, c, status, data)
+	case c.isStorageInstance():
+		r.populateStorage(ctx, c, status, data)
 	default:
-		dbStatus, err := c.obtainRedisClusterStatus(ctx)
-		if err != nil {
-			logger.Warn("failed to obtain the Redis status, errmsg: %s", err)
+		logger.Warn("unsupported redis instance, skip detection, cluster: %s, machine: %s, access_layer: %s",
+			c.clusterType, c.machineType, c.accessLayer)
+	}
+}
+
+// populateReadCheck probes proxy instances (twemproxy / predixy) with the
+// TYPE twemproxy_mon read-only command.
+func (r *Redis) populateReadCheck(ctx context.Context, c *collector, status *haprobe.RedisStatus, data *plugin.HarvestData) {
+	readCheck := &haprobe.RedisReadCheckStatus{}
+	if err := c.obtainReadCheck(ctx); err != nil {
+		if event := c.classifyCommandError(err); event != nil {
+			event.BkCloudID = r.bkCloudID
+			data.Events = []*haprobe.DbEvent{event}
 			return
 		}
-		status.RedisClusterStatus = dbStatus
+		readCheck.State = haprobe.RedisStateFailed
+		readCheck.FailureReason = err.Error()
+		status.ReadCheckStatus = readCheck
+		return
 	}
+	readCheck.State = haprobe.RedisStateOk
+	status.ReadCheckStatus = readCheck
+}
+
+// populateStorage probes storage instances (tendiscache / tendisssd / tendisplus)
+// with INFO Replication to read the role, then runs the SELECT + SET write probe
+// on masters.
+func (r *Redis) populateStorage(ctx context.Context, c *collector, status *haprobe.RedisStatus, data *plugin.HarvestData) {
+	replication := &haprobe.RedisReplicationStatus{}
+	replicationInfo, err := c.obtainReplicationInfo(ctx)
+	if err != nil {
+		if event := c.classifyCommandError(err); event != nil {
+			event.BkCloudID = r.bkCloudID
+			data.Events = []*haprobe.DbEvent{event}
+			return
+		}
+		replication.State = haprobe.RedisStateFailed
+		replication.FailureReason = err.Error()
+		status.ReplicationStatus = replication
+		return
+	}
+
+	role, ok := replicationInfo["role"]
+	if !ok {
+		replication.State = haprobe.RedisStateFailed
+		replication.FailureReason = "response un-find role"
+		status.ReplicationStatus = replication
+		return
+	}
+
+	replication.State = haprobe.RedisStateOk
+	replication.Role = role
+	status.ReplicationStatus = replication
+
+	// Only masters run the write probe.
+	if role != "master" {
+		return
+	}
+
+	heartbeat := &haprobe.RedisHeartbeatStatus{}
+	selectResult, setResult, err := c.obtainHeartbeat(ctx)
+	heartbeat.SelectResult = selectResult
+	heartbeat.SetResult = setResult
+	if err != nil {
+		if event := c.classifyCommandError(err); event != nil {
+			event.BkCloudID = r.bkCloudID
+			data.Events = []*haprobe.DbEvent{event}
+			return
+		}
+		heartbeat.State = haprobe.RedisStateFailed
+		heartbeat.FailureReason = err.Error()
+		status.HeartbeatStatus = heartbeat
+		return
+	}
+	heartbeat.State = haprobe.RedisStateOk
+	status.HeartbeatStatus = heartbeat
 }
 
 func (r *Redis) beginCollecting(ctx context.Context, wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData) {

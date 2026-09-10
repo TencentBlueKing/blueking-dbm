@@ -24,15 +24,20 @@
 
 package harvest
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
-func TestRedisInfo(t *testing.T) {
-	info := []redisInfo{}
+func TestParseRedisInfoToMap(t *testing.T) {
+	info := "# Replication\nrole:master\nconnected_slaves:0\n\n# Keyspace\ndb0:keys=1,expires=0,avg_ttl=0\n"
 
-	status := convertToRedisStatus(info)
+	result := parseRedisInfoToMap(info)
 
-	fmt.Println("redis-status: ", status)
+	if result["role"] != "master" {
+		t.Errorf("expected role master, got %q", result["role"])
+	}
+	if result["connected_slaves"] != "0" {
+		t.Errorf("expected connected_slaves 0, got %q", result["connected_slaves"])
+	}
+	if _, ok := result["# Replication"]; ok {
+		t.Errorf("comment line should be skipped")
+	}
 }
