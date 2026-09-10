@@ -3688,7 +3688,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
-      "description": "Dbsize/expired/evicted",
+      "description": "Dbsize/expired/evicted。扩容切换时新旧实例同时上报会使 sum 翻倍，个别实例漏采会使 sum 掉坑；这里按 count == 最近1h中位数 屏蔽实例数异常的采样点，异常期间曲线断开、数值不失真（实例数变化后约10分钟恢复，按1分钟一点观察）；expired/evicted 为速率，未做处理",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3743,7 +3743,28 @@
           },
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "expired_keys|evicted_keys"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix:key/s"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "key/s"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -3788,7 +3809,7 @@
           "promqlAlias": "keys_no_expiring",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) - sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) - sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
           "step": "2m",
           "type": "range"
         },
@@ -3805,7 +3826,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "expired_keys_total",
+          "promqlAlias": "expired_keys",
           "query_configs": [],
           "refId": "B",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_expired_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
@@ -3825,7 +3846,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "evicted_keys_total",
+          "promqlAlias": "evicted_keys",
           "query_configs": [],
           "refId": "C",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_evicted_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
@@ -3848,7 +3869,7 @@
           "promqlAlias": "keys_expiring",
           "query_configs": [],
           "refId": "D",
-          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
           "step": "2m",
           "type": "range"
         },
@@ -3868,7 +3889,7 @@
           "promqlAlias": "keys_total",
           "query_configs": [],
           "refId": "E",
-          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
           "step": "2m",
           "type": "range"
         }
@@ -3881,7 +3902,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
-      "description": "",
+      "description": "集群已使用内存。扩容切换时新旧实例同时上报会使 sum 翻倍，个别实例漏采会使 sum 掉坑；mem_used / mem_total 按 count == 最近1h中位数 屏蔽实例数异常的采样点（异常期间断开，实例数变化后约10分钟恢复，按1分钟一点观察）。mem_used% 为比值，分子分母同增同减，不做屏蔽、始终连续，右轴",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3935,7 +3956,73 @@
           },
           "unit": "bytes"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_used"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_total"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_used%"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "mem_used%"
+              },
+              {
+                "id": "custom.axisSoftMax",
+                "value": 1
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -3977,13 +4064,14 @@
           "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
+          "hide": false,
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "memory_rss_used",
+          "promqlAlias": "mem_used",
           "query_configs": [],
-          "refId": "A",
-          "source": "sum by (cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "refId": "B",
+          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
           "step": "2m",
           "type": "range"
         },
@@ -4000,10 +4088,30 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "memory_used",
+          "promqlAlias": "mem_used%",
           "query_configs": [],
-          "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "refId": "C",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "mem_total",
+          "query_configs": [],
+          "refId": "D",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
           "step": "2m",
           "type": "range"
         }
@@ -6033,7 +6141,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
-      "description": "master写入slave的数据量.  建议告警阀值: 10MiB ",
+      "description": "每个分片(master)的内存使用率 = used_memory / maxmemory，用于发现分片间内存倾斜",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -6065,7 +6173,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -6073,15 +6181,17 @@
           },
           "decimals": 1,
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -6091,7 +6201,7 @@
         "x": 12,
         "y": 81
       },
-      "id": 52,
+      "id": 92,
       "interval": "2m",
       "options": {
         "legend": {
@@ -6129,12 +6239,12 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_master_repl_offset{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
           "type": "range"
         }
       ],
-      "title": "Redis MasterReplOffset",
+      "title": "Redis Shard MemUsed%",
       "type": "timeseries"
     },
     {
@@ -6380,6 +6490,115 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
+      "description": "master写入slave的数据量.  建议告警阀值: 10MiB ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 97
+      },
+      "id": 52,
+      "interval": "2m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 300
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance",
+          "query_configs": [],
+          "refId": "A",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_master_repl_offset{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "step": "2m",
+          "type": "range"
+        }
+      ],
+      "title": "Redis MasterReplOffset",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
       "description": "Host Memory",
       "fieldConfig": {
         "defaults": {
@@ -6438,7 +6657,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 97
+        "y": 105
       },
       "id": 79,
       "interval": "2m",
@@ -6715,7 +6934,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 97
+        "y": 105
       },
       "id": 80,
       "interval": "2m",
@@ -6994,7 +7213,7 @@
   "timezone": "",
   "title": "tendis-TwemproxyRedisInstance",
   "uid": "6nXM8aF42xx",
-  "version": 64,
+  "version": 85,
   "weekStart": "",
   "__inputs": [
     {
