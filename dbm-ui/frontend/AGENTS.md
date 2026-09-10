@@ -119,8 +119,9 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 
 多步骤任务先给简短执行计划，并标注每一步的验证方式。
 
-任务收尾回顾：本次读过或改过的代码里，同一语义有没有在多处独立实现并已经漂移；够判据的按 `codebase-insights`
-skill 记录，**只记录不修改**。
+已知问题：**改 `src/` 下任何文件前、以及用户指出写法问题时，按 `known-issues` skill 执行**，边界与写入规范都在
+`.agents/skills/known-issues/SKILL.md`，此处不重复。**扫完必须在回复里写一行 `known-issues: 已扫，命中 N 条`**，N
+为 0 也要写——这是漏扫的唯一可观测信号，所以只能写在这里，写进 skill 就失效了。
 
 ## 规则与技能索引
 
@@ -137,8 +138,8 @@ skill 记录，**只记录不修改**。
 | `toolbox-code.mdc`       | 新增或修改工具箱提单页                                       |
 
 `.agents/skills/` 按各 `SKILL.md` 的 description 触发，其中 `dbm-frontend-design`
-覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`codebase-insights`
-存历次沉淀的一致性问题，动手改代码前查阅。
+覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`known-issues`
+存已固化的检查项，改 `src/` 下文件前必读（见上「工作方式」）。
 
 ## 不要碰
 
@@ -149,10 +150,10 @@ skill 记录，**只记录不修改**。
 <!-- CODEGRAPH_START -->
 ## CodeGraph
 
-In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+仓库已被 CodeGraph 索引（根目录存在 `.codegraph/`）时，需要理解或定位代码，优先用它，而不是先 grep / find 或直接读文件：
 
-- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
-- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+- **MCP 工具**（可用时）：`codegraph_explore` 一次调用就能回答大部分代码问题——相关符号的原始源码，以及它们之间的调用链路，包含 grep 追不到的动态分发跳转。查询里写上文件名或符号名，就能拿到它当前带行号的源码。如果工具已列出但处于延迟加载状态，按名字通过工具检索加载。
+- **Shell**（始终可用）：`codegraph explore "<符号名或问题>"` 输出同样的内容。
 
-If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+没有 `.codegraph/` 目录就完全跳过 CodeGraph——是否建索引由用户决定。
 <!-- CODEGRAPH_END -->
