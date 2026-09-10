@@ -2,9 +2,14 @@
 package mongodb_rpc
 
 import (
+	"bytes"
+	"log/slog"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestPrecheckInput(t *testing.T) {
@@ -88,6 +93,28 @@ func TestResolveMongoShellBinMissing(t *testing.T) {
 	}
 }
 
+func TestStartMongoShellProcessExecFormatError(t *testing.T) {
+	badShell := t.TempDir() + "/mongosh"
+	if err := os.WriteFile(badShell, []byte("not an executable format"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	proc, err := startMongoShellProcess([]string{badShell}, []*os.File{os.Stdin, os.Stdout, os.Stderr})
+	if err == nil {
+		if proc != nil {
+			_ = proc.Kill()
+			_, _ = proc.Wait()
+		}
+		t.Fatal("expected exec format error")
+	}
+	if proc != nil {
+		t.Fatalf("expected nil process on start failure, got pid %d", proc.Pid)
+	}
+	if !strings.Contains(err.Error(), "start MongoDB shell") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestIsResponseEnd(t *testing.T) {
 	if !isResponseEnd([]byte("ok\n" + EndOfOutput + "\n")) {
 		t.Fatal("expected response end marker to be detected")
@@ -127,6 +154,15 @@ func TestStripMongoShellPrompt(t *testing.T) {
 			name:  "replica set secondary direct",
 			input: "utRs44Prompt [direct: secondary] test> test\nutRs44Prompt [direct: secondary] test> \n",
 			want:  "test\n",
+		},
+		{
+			name: "replica set direct other show dbs",
+			input: "dba-smoke0909rs70 [direct: other] test> admin   280.00 KiB\n" +
+				"config  164.00 KiB\n" +
+				"local   420.00 KiB\n" +
+				"dba-smoke0909rs70 [direct: other] test> \n" +
+				"dba-smoke0909rs70 [direct: other] test> \n",
+			want: "admin   280.00 KiB\nconfig  164.00 KiB\nlocal   420.00 KiB\n",
 		},
 		{
 			name:  "replica set topology primary tag",
@@ -206,5 +242,55 @@ func TestIsValidInput(t *testing.T) {
 				t.Errorf("isValidInput() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPrecheckInputPreservesCheckInputError(t *testing.T) {
+	_, err := precheckInput("mongosh", []byte("db.foo.find({"))
+	if err == nil {
+		t.Fatal("expected invalid input error")
+	}
+	if !errors.Is(err, CheckInputError) {
+		t.Fatalf("errors.Is CheckInputError = false, err=%v", err)
+	}
+}
+
+func TestMongoHostWithoutSecrets(t *testing.T) {
+	h := MongoHost{Host: "127.0.0.1:27017", Password: "secret", AdminPassword: "admin-secret"}
+	safe := h.withoutSecrets()
+	if safe.Password != "" || safe.AdminPassword != "" {
+		t.Fatalf("secrets leaked: %+v", safe)
+	}
+	if h.Password != "secret" {
+		t.Fatal("withoutSecrets must not mutate original")
+	}
+}
+
+func TestMongoShellStopZeroPid(t *testing.T) {
+	r := &MongoShell{
+		StopChan: make(chan struct{}, 1),
+		logger:   slog.Default(),
+	}
+	r.Stop()
+	r.Stop()
+}
+
+func TestResponseEndSplitAcrossChunks(t *testing.T) {
+	marker := []byte(EndOfOutput)
+	first := marker[:len(marker)/2]
+	second := marker[len(marker)/2:]
+	if isResponseEnd(first) || isResponseEnd(second) {
+		t.Fatal("split marker must not match a single chunk")
+	}
+	joined := append(append([]byte{}, first...), second...)
+	if !bytes.Contains(joined, marker) {
+		t.Fatal("joined chunks should contain marker")
+	}
+}
+
+func TestGetUniqSessionToken(t *testing.T) {
+	p := &QueryParams{ClusterDomain: "m1.a.db", OaUser: "u1", Token: "t1"}
+	if p.GetUniqSessionToken() != "m1.a.db_u1_t1" {
+		t.Fatalf("got %q", p.GetUniqSessionToken())
 	}
 }

@@ -29,14 +29,14 @@ var CheckInputError = errors.New("invalid input")
 //
 //	[direct: mongos] test>
 //	utRs44Prompt [direct: primary] test>
-//	utRs44Prompt [direct: secondary] test>
+//	dba-smoke0909rs70 [direct: other] test>
 //	utRs44Prompt [primary] test>
 //	PRIMARY> / SECONDARY>
 //
 // Intentionally narrow: lines like "score> 10" or "n> 5" must not be stripped.
 // After "direct:" there is exactly one space (mongosh format).
 var mongoshPromptPrefix = regexp.MustCompile(
-	`^(?:(?:[A-Za-z0-9_.$-]+\s+)?\[(?:direct: )?(?:primary|secondary|mongos)\]\s+[A-Za-z0-9_.$-]+|(?:PRIMARY|SECONDARY|ARBITER))>\s?`,
+	`^(?:(?:[A-Za-z0-9_.$-]+\s+)?\[(?:direct: )?(?:primary|secondary|mongos|other|arbiter|recovering|unknown|standalone)\]\s+[A-Za-z0-9_.$-]+|(?:PRIMARY|SECONDARY|ARBITER))>\s?`,
 )
 
 // stripMongoShellPrompt removes interactive shell prompts from command output.
@@ -96,6 +96,24 @@ func (h *MongoHost) Uri() string {
 	}
 }
 
+func (h MongoHost) withoutSecrets() MongoHost {
+	h.Password = ""
+	h.AdminPassword = ""
+	return h
+}
+
+func (r *MongoShell) setPid(pid int) {
+	r.pidMu.Lock()
+	r.pid = pid
+	r.pidMu.Unlock()
+}
+
+func (r *MongoShell) getPid() int {
+	r.pidMu.Lock()
+	defer r.pidMu.Unlock()
+	return r.pid
+}
+
 // MongoShell is a routine that can be run and stopped.
 type MongoShell struct {
 	logger        *slog.Logger
@@ -104,7 +122,8 @@ type MongoShell struct {
 	OutBuf        []byte
 	Cmd           string
 	BufChan       chan []byte
-	Pid           int
+	pidMu         sync.Mutex
+	pid           int
 	StopChan      chan struct{}
 	MongoHost     MongoHost
 	ClusterType   string
@@ -222,7 +241,7 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 			// 分片集群，总是先执行一次 setReadPref secondary
 			evalJs = "db.getMongo().setReadPref('secondary');"
 		} else {
-			// 副本集，4.2 之前的版本，使用 setSlaveOk
+			// 副本集，legacy mongo shell（<4.4）使用 setSecondaryOk
 			if isLowerVersion {
 				evalJs = "db.getMongo().setSecondaryOk(true);"
 			} else {
@@ -237,7 +256,7 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 		if isMongos {
 			evalJs = "db.getMongo().setReadPref('secondaryPreferred');"
 		} else {
-			// 副本集: 4.2 之前的版本，使用 setSecondaryOk
+			// 副本集: legacy mongo shell（<4.4）使用 setSecondaryOk
 			if isLowerVersion {
 				evalJs = "if (! db.isMaster().ismaster) {db.getMongo().setSecondaryOk(true);}"
 			} else {
@@ -252,6 +271,14 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 	}
 	argv = append(argv, []string{cmdPath, "--norc", "--quiet", "--eval", evalJs, "--shell", r.MongoHost.Uri()}...)
 	return argv, nil
+}
+
+func startMongoShellProcess(argv []string, files []*os.File) (*os.Process, error) {
+	proc, err := os.StartProcess(argv[0], argv, &os.ProcAttr{Files: files})
+	if err != nil {
+		return nil, fmt.Errorf("start MongoDB shell %s: %w", argv[0], err)
+	}
+	return proc, nil
 }
 
 // Run starts the MongoShell process.
@@ -278,7 +305,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	defer outr.Close()
 	defer outw.Close()
 
-	r.logger.Info("createMongoShell", slog.Any("MongoHost", r.MongoHost))
+	r.logger.Info("createMongoShell", slog.Any("MongoHost", r.MongoHost.withoutSecrets()))
 	// try to create readonly user
 
 	err = createReadOnlyUser(r.MongoHost.Host, r.MongoHost.AdminUsername, r.MongoHost.AdminPassword,
@@ -288,12 +315,6 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 		return err
 	}
 
-	// 启动进程，启动后，将进程的Pid出发送到 BufChan
-	// 如果进程退出，关闭 BufChan
-	pidChan := make(chan int)
-	procCtx, procCancel := context.WithCancel(context.Background())
-	_ = procCancel
-
 	argv, err := buildArgs(r)
 	if err != nil {
 		r.logger.Error("buildArgs", slog.Any("err", err))
@@ -302,19 +323,23 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	r.logger.Info("StartProcess", slog.String("cmdPath", argv[0]),
 		slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")))
 
-	go func(pid chan<- int) {
-		proc, err := os.StartProcess(argv[0], argv, &os.ProcAttr{
-			Files: []*os.File{inr, outw, outw},
-		})
-		if err != nil {
-			r.logger.Error("os.StartProcess", slog.Any("err", err))
-		}
-		pidChan <- proc.Pid
+	proc, err := startMongoShellProcess(argv, []*os.File{inr, outw, outw})
+	if err != nil {
+		r.logger.Error("os.StartProcess", slog.Any("err", err))
+		return err
+	}
+
+	procCtx, procCancel := context.WithCancel(context.Background())
+	go func() {
 		// 等待进程结束， 进程结束后，关闭 BufChan
 		state, err := proc.Wait()
-		r.logger.Info("proc.exited", slog.String("state", state.String()), slog.Any("err", err))
+		if state != nil {
+			r.logger.Info("proc.exited", slog.String("state", state.String()), slog.Any("err", err))
+		} else {
+			r.logger.Error("proc.Wait", slog.Any("err", err))
+		}
 
-		r.Pid = 0
+		r.setPid(0)
 		procCancel()
 		// send a byte to close the pipe
 		_, err = outw.Write([]byte("exit\n"))
@@ -322,15 +347,13 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 			r.logger.Error("outw.Write", slog.Any("err", err))
 		}
 		r.logger.Info("procCancel")
+	}()
 
-	}(pidChan)
-
-	pid := <-pidChan
-	r.Pid = pid
+	r.setPid(proc.Pid)
 	time.Sleep(2 * time.Second)
 	r.logger.Info("startProcess",
 		slog.String("cmdPath", argv[0]), slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")),
-		slog.Int("pid", r.Pid), slog.Any("err", err))
+		slog.Int("pid", r.getPid()), slog.Any("err", err))
 	startWg.Done() // signal to main goroutine
 
 	wg := sync.WaitGroup{}
@@ -358,16 +381,15 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 					slog.String("data", shortMsg(string(buf[:n]), 512)),
 					slog.Any("err", readErr),
 				)
-				if err != nil {
-					r.logger.Error("outr.Read", slog.Any("err", readErr))
-					goto done
-				}
 				if n > 0 {
-					// 发送到 BufChan
 					r.logger.Info("sendToBufChan", slog.Int("n", n), slog.String("data", shortMsg(string(buf[:n]), 512)))
 					var tmpBuf = make([]byte, n)
 					copy(tmpBuf, buf[:n])
 					r.BufChan <- tmpBuf
+				}
+				if readErr != nil {
+					r.logger.Error("outr.Read", slog.Any("err", readErr))
+					goto done
 				}
 			}
 		}
@@ -392,17 +414,12 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 	for {
 		select {
 		case v, ok := <-r.BufChan:
-			endFlag := isResponseEnd(v)
-			r.logger.Info("readFromBufChan", slog.Bool("isResponseEnd", endFlag),
-				slog.String("data", shortMsg(string(v), 512)))
-
 			if !ok {
 				r.logger.Info("chan closed", slog.String("data", shortMsg(string(v), 512)))
 				return msg.Bytes(), fmt.Errorf("chan closed")
 			}
 			n, werr := msg.Write(v)
 			bytesTotal += n
-			// 超过了bufSize
 			if werr != nil {
 				r.logger.Error("msg.Write", slog.Any("err", werr))
 				return msg.Bytes(), werr
@@ -413,8 +430,10 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 				return nil, fmt.Errorf("excess data size %dMB", maxRespSize/1024/1024)
 			}
 
+			endFlag := bytes.Contains(msg.Bytes(), []byte(EndOfOutput))
+			r.logger.Info("readFromBufChan", slog.Bool("isResponseEnd", endFlag),
+				slog.String("data", shortMsg(string(v), 512)))
 			if endFlag {
-				// delete EndOfOutput and strip interactive shell prompts
 				out = msg.Bytes()
 				out = bytes.ReplaceAll(out, []byte(EndOfOutput), []byte(""))
 				out = stripMongoShellPrompt(out)
@@ -434,10 +453,25 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 }
 
 func (r *MongoShell) Stop() {
-	r.logger.Info("kill process", slog.Int("pid", r.Pid))
-	syscall.Kill(r.Pid, syscall.SIGKILL)
-	r.StopChan <- struct{}{}
-	r.logger.Info("stopped, pid", slog.Int("pid", r.Pid))
+	r.pidMu.Lock()
+	pid := r.pid
+	r.pid = 0
+	r.pidMu.Unlock()
+	if r.logger != nil {
+		r.logger.Info("kill process", slog.Int("pid", pid))
+	}
+	if pid > 0 {
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+	}
+	if r.StopChan != nil {
+		select {
+		case r.StopChan <- struct{}{}:
+		default:
+		}
+	}
+	if r.logger != nil {
+		r.logger.Info("stopped", slog.Int("pid", pid))
+	}
 }
 
 func precheckInput(ShellBin string, msg []byte) ([]byte, error) {
@@ -447,7 +481,7 @@ func precheckInput(ShellBin string, msg []byte) ([]byte, error) {
 	}
 
 	if isValid, err := isValidInput(msg); !isValid {
-		return nil, fmt.Errorf("invalid input, err:%s", err.Error())
+		return nil, errors.Wrap(err, "invalid input")
 	}
 	msg = append(msg, []byte(";\nprint('"+EndOfOutput+"');\n")...)
 	return msg, nil

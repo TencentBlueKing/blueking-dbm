@@ -59,9 +59,11 @@ func (r *respHandle) SendResp(data string, code int, errMsg string, sessionReqCo
 	})
 }
 
-// SendError send a resp with code 1
+// SendError send a failed command result.
+// code stays 0: dbm-ui ProxyAPI treats code!=0 as ApiResultError, and ticket flows
+// parse mongodb_rpc's returned data string (disconnect. error: ...).
 func (r *respHandle) SendError(errMsg string, sessionReqCount int) {
-	r.SendResp(fmt.Sprintf("disconnect. error: %s", errMsg), 0, "", sessionReqCount)
+	r.SendResp(fmt.Sprintf("disconnect. error: %s", errMsg), 0, errMsg, sessionReqCount)
 }
 
 func NewRespHandle(c *gin.Context, param *QueryParams, logger *slog.Logger) *respHandle {
