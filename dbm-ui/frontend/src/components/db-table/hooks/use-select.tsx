@@ -1,10 +1,11 @@
 import { Popover } from 'bkui-vue';
 import _ from 'lodash';
-import { Checkbox, Radio } from 'tdesign-vue-next';
 import { defineComponent, getCurrentInstance, type Reactive, type Ref, ref, shallowRef, type UnwrapRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import DbIcon from '@components/db-icon/index';
+import Checkbox from '@components/tdesign-ui/checkbox';
+import Radio from '@components/tdesign-ui/radio';
 import { TableColumn } from '@components/tdesign-ui/table';
 
 import { type Exposes, type Props } from '../IndexNew.vue';

@@ -67,11 +67,11 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { Checkbox } from 'tdesign-vue-next';
   import { ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import Input from '../common/Input.vue';
   import { isSearchKeywordMatch } from '../common/searchKeyword';

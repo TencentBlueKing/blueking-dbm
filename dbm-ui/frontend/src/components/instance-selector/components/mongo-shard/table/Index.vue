@@ -21,6 +21,7 @@
         :columns="generatedColumns"
         :data="tableData"
         :max-height="520"
+        :row-key="firstColumnFieldId"
         style="margin-top: 12px"
         @row-click="handleRowClick">
         <template #empty>
@@ -43,7 +44,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -56,6 +57,7 @@
     TableSetting,
   } from '@components/instance-selector/Index.vue';
   import { activePanelInjectionKey } from '@components/instance-selector/Index.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import { useTableData } from './useTableData';
 
@@ -102,7 +104,7 @@
   const checkedMap = shallowRef({} as DataRow);
 
   const selectClusterId = computed(() => props.clusterId);
-  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
+  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as string);
   const mainSelectDisable = computed(() =>
     props.disabledRowConfig
       ? tableData.value.filter((data) => props.disabledRowConfig?.handler(data)).length === tableData.value.length
