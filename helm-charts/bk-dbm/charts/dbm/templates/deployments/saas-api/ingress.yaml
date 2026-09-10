@@ -1,4 +1,80 @@
 {{- if .Values.ingress.enabled -}}
+{{- /* 子域名 / 子路径切换：总开关 dbm.subpath.enabled=false（默认）沿用原「子域名模式」（ingress 直接渲染，独立 host + 根路径）；
+       =true 则切换到「子路径模式」。下方 else 分支为原渲染逻辑，保持不变 */ -}}
+{{- $master := .Values.subpath | default dict -}}
+{{- $sp := .Values.ingress.subpath | default dict -}}
+{{- if $master.enabled }}
+{{- /* ===== 子路径模式（新） ===== */ -}}
+{{- $fullName := include "bk-dbm.fullname" . -}}
+{{- $svcPort := .Values.service.port -}}
+{{- $spClassName := $sp.className | default .Values.ingress.className -}}
+{{- /* 统一兜底 annotations：用户未显式配置 ingress.subpath.annotations 时 $sp.annotations 为 nil，
+      对 nil map 调用 set 会 panic；下方 K8s <1.18 分支与 mergeOverwrite 均复用该变量，避免两处重复 default */ -}}
+{{- $spAnns := $sp.annotations | default dict -}}
+{{- if and $spClassName (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey $spAnns "kubernetes.io/ingress.class") }}
+  {{- $_ := set $spAnns "kubernetes.io/ingress.class" $spClassName}}
+  {{- end }}
+{{- end }}
+{{- /* 子路径模式默认追加 rewrite-target / use-regex，用户可在 ingress.subpath.annotations 中覆盖 */ -}}
+{{- $spAnnotations := mergeOverwrite (dict "nginx.ingress.kubernetes.io/rewrite-target" "/$2" "nginx.ingress.kubernetes.io/use-regex" "true") $spAnns -}}
+{{- $spPaths := $sp.paths | default (list (dict "path" "/bkdbm(/|$)(.*)" "pathType" "ImplementationSpecific")) -}}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "bk-dbm.labels" . | nindent 4 }}
+  {{- with $spAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and $spClassName (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ $spClassName }}
+  {{- end }}
+  {{- $spTls := $sp.tls | default .Values.ingress.tls -}}
+  {{- if $spTls }}
+  tls:
+    {{- range $spTls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- $spHostname := $sp.hostname | default .Values.ingress.hostname -}}
+    {{- if $spHostname }}
+    - host: {{ $spHostname }}
+      http:
+        paths:
+          {{- range $spPaths }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+              {{- else }}
+              serviceName: {{ $fullName }}
+              servicePort: {{ $svcPort }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+{{- else }}
+{{- /* ===== 子域名模式（原渲染逻辑，保持不变） ===== */ -}}
 {{- $fullName := include "bk-dbm.fullname" . -}}
 {{- $svcPort := .Values.service.port -}}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
@@ -58,4 +134,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

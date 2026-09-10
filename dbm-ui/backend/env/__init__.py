@@ -357,5 +357,4 @@ BK_SUBPATH_PREFIX = get_type_env(key="BK_SUBPATH_PREFIX", _type=str, default="")
 BK_PAAS_DOMAIN = get_type_env(key="BK_PAAS_DOMAIN", _type=str, default="")
 
 # 外部系统 baseUrl（子路径适配）
-BK_IAM_URL = get_type_env(key="BK_IAM_URL", _type=str, default="")
 BK_MONITOR_URL = get_type_env(key="BK_MONITOR_URL", _type=str, default="")
