@@ -141,6 +141,11 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin, serviceID str
 			baseInfo := rep.GetBaseInfo()
 			data.AgentID = baseInfo.AgentID
 			data.BkCloudID = baseInfo.BkCloudID
+			for _, ev := range data.Events {
+				if ev != nil {
+					ev.BkCloudID = baseInfo.BkCloudID
+				}
+			}
 			data.DbTypeName = data.Value.GetDbType()
 			data.Probe = selfmetric.Snapshot()
 

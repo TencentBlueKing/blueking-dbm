@@ -39,6 +39,7 @@ func init() {
 			haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
 			haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
 			haprobe.DbmMetadataClusterTypePredixyRedisCluster,
+			haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 		},
 	})
 }

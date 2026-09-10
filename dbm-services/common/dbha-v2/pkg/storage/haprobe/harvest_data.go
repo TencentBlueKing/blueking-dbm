@@ -55,23 +55,24 @@ const (
 	DbmMetadataAccessLayerTypeStorage DbmMetadataAccessLayerType = "storage"
 
 	// Cluster Type
-	DbmMetadataClusterTypeTendbha                  DbmMetadataClusterType = "tendbha"
-	DbmMetadataClusterTypeSqlServer                DbmMetadataClusterType = "sqlserver_ha"
-	DbmMetadataClusterTypeTendbCluster             DbmMetadataClusterType = "tendbcluster"
-	DbmMetadataClusterTypeSqlServerSingle          DbmMetadataClusterType = "sqlserver_single"
-	DbmMetadataClusterTypeMongoReplicaSet          DbmMetadataClusterType = "MongoReplicaSet"
-	DbmMetadataClusterTypeRiak                     DbmMetadataClusterType = "riak"
-	DbmMetadataClusterTypeHdfs                     DbmMetadataClusterType = "hdfs"
-	DbmMetadataClusterTypeTwemproxyRedis           DbmMetadataClusterType = "TwemproxyRedisInstance"
-	DbmMetadataClusterTypeRedis                    DbmMetadataClusterType = "RedisInstance"
-	DbmMetadataClusterTypeEs                       DbmMetadataClusterType = "es"
-	DbmMetadataClusterTypeTwemproxyTendisSSD       DbmMetadataClusterType = "TwemproxyTendisSSDInstance"
-	DbmMetadataClusterTypeKafka                    DbmMetadataClusterType = "kafka"
-	DbmMetadataClusterTypeMongoShardeCluster       DbmMetadataClusterType = "MongoShardedCluster"
-	DbmMetadataClusterTypeDoris                    DbmMetadataClusterType = "doris"
-	DbmMetadataClusterTypePredixyTendisplusCluster DbmMetadataClusterType = "PredixyTendisplusCluster"
-	DbmMetadataClusterTypePredixyRedisCluster      DbmMetadataClusterType = "PredixyRedisCluster"
-	DbmMetadataClusterTypePulsar                   DbmMetadataClusterType = "pulsar"
+	DbmMetadataClusterTypeTendbha                   DbmMetadataClusterType = "tendbha"
+	DbmMetadataClusterTypeSqlServer                 DbmMetadataClusterType = "sqlserver_ha"
+	DbmMetadataClusterTypeTendbCluster              DbmMetadataClusterType = "tendbcluster"
+	DbmMetadataClusterTypeSqlServerSingle           DbmMetadataClusterType = "sqlserver_single"
+	DbmMetadataClusterTypeMongoReplicaSet           DbmMetadataClusterType = "MongoReplicaSet"
+	DbmMetadataClusterTypeRiak                      DbmMetadataClusterType = "riak"
+	DbmMetadataClusterTypeHdfs                      DbmMetadataClusterType = "hdfs"
+	DbmMetadataClusterTypeTwemproxyRedis            DbmMetadataClusterType = "TwemproxyRedisInstance"
+	DbmMetadataClusterTypeRedis                     DbmMetadataClusterType = "RedisInstance"
+	DbmMetadataClusterTypeEs                        DbmMetadataClusterType = "es"
+	DbmMetadataClusterTypeTwemproxyTendisSSD        DbmMetadataClusterType = "TwemproxyTendisSSDInstance"
+	DbmMetadataClusterTypeKafka                     DbmMetadataClusterType = "kafka"
+	DbmMetadataClusterTypeMongoShardeCluster        DbmMetadataClusterType = "MongoShardedCluster"
+	DbmMetadataClusterTypeDoris                     DbmMetadataClusterType = "doris"
+	DbmMetadataClusterTypePredixyTendisplusCluster  DbmMetadataClusterType = "PredixyTendisplusCluster"
+	DbmMetadataClusterTypePredixyRedisCluster       DbmMetadataClusterType = "PredixyRedisCluster"
+	DbmMetadataClusterTypePredixyTendisplusInstance DbmMetadataClusterType = "PredixyTendisplusInstance"
+	DbmMetadataClusterTypePulsar                    DbmMetadataClusterType = "pulsar"
 
 	// Machine Type
 	DbmMetadataMachineTypeSingle           DbmMetadataMachineType = "single"
@@ -118,6 +119,10 @@ const (
 	TenDBClusterStorageSlave  DbmMetadataInstanceRole = "remote_slave"
 	TenDBClusterProxyMaster   DbmMetadataInstanceRole = "spider_master"
 	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
+
+	// redis instance role
+	RedisStorageMaster DbmMetadataInstanceRole = "redis_master"
+	RedisStorageSlave  DbmMetadataInstanceRole = "redis_slave"
 )
 
 // String returns the string representation of DbmMetadataInstanceRole.
