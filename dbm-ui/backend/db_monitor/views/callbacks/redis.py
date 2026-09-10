@@ -49,8 +49,9 @@ class RedisAlarm(AlarmCallback):
         "call_redis_alarm_correlation_analysis": [
             {
                 "keyword": "耗时",
-                "level": [1, 2],
+                "level": [1],
                 "cluster_type": [],
+                "ratelimit": "2 / 1",
             },
         ],
         "call_redis_persist_anomaly_analysis": [
@@ -58,13 +59,15 @@ class RedisAlarm(AlarmCallback):
                 "keyword": "Persist异常",
                 "level": [1],
                 "cluster_type": [],
+                "ratelimit": "1 / 1",
             },
         ],
         "call_redis_single_cpu_high_analysis": [
             {
                 "keyword": "单核CPU使用率",
-                "level": [1, 2],
+                "level": [1],
                 "cluster_type": [],
+                "ratelimit": "1 / 1",
             },
         ],
     }
@@ -108,6 +111,21 @@ class RedisAlarm(AlarmCallback):
             "level": event_level,
             "appointees": callback_data.get("appointees", []),
         }
+
+        # 过滤非生产环境集群：域名第二段包含 test/migrate/dev/stage 子串的集群忽略告警分析
+        # 域名格式示例: xxx.test.db / xxx.sgamehubcondmigrate.aa.db / xxx.dev.db
+        NON_PROD_KEYWORDS = ("test", "migrate", "dev", "stage")
+        domain_parts = cluster_domain.split(".")
+        if len(domain_parts) >= 2:
+            second_part = domain_parts[1].lower()
+            matched_keyword = next((kw for kw in NON_PROD_KEYWORDS if kw in second_part), None)
+            if matched_keyword:
+                logger.info(
+                    _("[RedisAlarm] 集群 '{}' 域名第二段 '{}' 包含非生产环境标识 '{}'，跳过告警分析").format(
+                        cluster_domain, domain_parts[1], matched_keyword
+                    )
+                )
+                return
 
         for handler_name, conditions in cls.STRATEGY_HANDLERS.items():
             for condition in conditions:
