@@ -24,15 +24,10 @@
 
 package haprobe
 
-// RedisTendisSSDStatus TendisSSD storage status
-type RedisTendisSSDStatus struct {
-	Base                   RedisBaseStatus   `json:"base,omitempty"`
-	Memory                 RedisMemoryStatus `json:"memory,omitempty"`
-	Master                 RedisMasterInfo   `json:"master,omitempty"`
-	BlockedClients         int64             `json:"blocked_clients,omitempty"`
-	InstantaneousOpsPerSec int64             `json:"instantaneous_ops_per_sec,omitempty"`
-	RDBLastBgsaveStatus    string            `json:"rdb_last_bgsave_status,omitempty"`
-	SlavesConnected        int               `json:"slaves_connected,omitempty"`
-	SlavesDisconnected     int               `json:"slaves_disconnected,omitempty"`
-	SlaveStates            []RedisSlaveState `json:"slave_states,omitempty"`
+// RedisReplicationStatus reports the result of the INFO Replication probe for
+// storage instances (TendisCache / TendisSSD / TendisPlus).
+type RedisReplicationStatus struct {
+	State         string `json:"state"`
+	FailureReason string `json:"failure_reason"`
+	Role          string `json:"role,omitempty"`
 }
