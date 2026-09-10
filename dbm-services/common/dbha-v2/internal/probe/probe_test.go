@@ -26,12 +26,16 @@ package probe
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/pkg/hanet"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // fakePlugin is a minimal plugin used to drive the loadPlugins / startPlugin
@@ -189,5 +193,77 @@ func TestStartRuntime_OnlyRedisConfigured(t *testing.T) {
 	case <-done:
 	case <-time.After(2 * time.Second):
 		t.Fatal("startRuntime goroutines did not exit after stop")
+	}
+}
+
+// captureReporter records the raw payloads it posts so tests can inspect them.
+type captureReporter struct {
+	posted chan []byte
+}
+
+func (c *captureReporter) Name() string { return "capture" }
+func (c *captureReporter) Post(_ context.Context, b []byte) error {
+	c.posted <- b
+	return nil
+}
+func (c *captureReporter) GetBaseInfo() client.BaseInfo {
+	return client.BaseInfo{AgentID: "agent-1", BkCloudID: 7}
+}
+func (c *captureReporter) Close() {}
+
+func TestRunPlugin_FillsBkCloudIDIntoEvents(t *testing.T) {
+	capture := &captureReporter{posted: make(chan []byte, 1)}
+	ch := make(chan *plugin.HarvestData, 1)
+	plug := &channelPlugin{name: "redis", ch: ch}
+
+	data := &plugin.HarvestData{
+		HarvestBaseData: haprobe.HarvestBaseData{
+			Events: []*haprobe.DbEvent{
+				{
+					Name:     haprobe.DbEventNameDetectFailure,
+					Endpoint: &hanet.Endpoint{Host: "127.0.0.1", Port: 6379},
+				},
+			},
+		},
+		Value: stubStatus{},
+	}
+	ch <- data
+
+	p := &Probe{
+		machineID: "m1",
+		reporter:  &reporterUnit{reporter: capture},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		p.runPlugin(ctx, plug, "svc")
+	}()
+
+	var posted []byte
+	select {
+	case posted = <-capture.posted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("no data posted")
+	}
+
+	cancel()
+	<-done
+
+	var out haprobe.HarvestData
+	if err := json.Unmarshal(posted, &out); err != nil {
+		t.Fatalf("unmarshal posted data failed, errmsg: %s", err)
+	}
+	if out.BkCloudID != 7 {
+		t.Fatalf("BkCloudID = %d, want 7", out.BkCloudID)
+	}
+	if len(out.Events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(out.Events))
+	}
+	if out.Events[0].BkCloudID != 7 {
+		t.Fatalf("event BkCloudID = %d, want 7", out.Events[0].BkCloudID)
 	}
 }
