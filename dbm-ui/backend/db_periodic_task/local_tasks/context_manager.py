@@ -8,26 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
-from contextlib import contextmanager
+# 实现已统一迁移到 backend.utils.trace，此处保留导入路径以兼容既有调用方
+from backend.utils.trace import start_new_span  # noqa: F401
 
-from opentelemetry.trace import get_tracer
-
-from backend import env
-
-logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def start_new_span(func):
-    """
-    开启一个新的span，同时也会生成新的 trace ID
-    为了解决削峰执行周期任务时，trace_id 都是同一个的问题
-    """
-    if env.ENABLE_OTEL_TRACE:
-        logger.debug("Start a new span")
-        with get_tracer(__name__).start_as_current_span(func.__name__) as span:
-            logger.debug("Span is active with trace ID: %s", span.get_span_context().trace_id)
-            yield span
-    else:
-        yield
+__all__ = ["start_new_span"]
