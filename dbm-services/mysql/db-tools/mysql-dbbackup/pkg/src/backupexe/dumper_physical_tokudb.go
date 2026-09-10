@@ -261,8 +261,8 @@ func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, m
 	// teh mark indicating whether the update is a full backup or not
 	metaInfo.JudgeBackupMethod(cnf)
 	if err = os.Remove(tmpFileName); err != nil {
-		logger.Log.Errorf("do not delete the tmp file, file name:%s, errmsg:%s", tmpFileName, err)
-		return err
+		logger.Log.Warnf("do not delete the tmp file, file name:%s, errmsg:%s", tmpFileName, err)
+		//return err
 	}
 
 	return nil
