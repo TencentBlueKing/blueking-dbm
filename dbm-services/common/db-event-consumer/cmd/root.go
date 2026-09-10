@@ -53,10 +53,6 @@ var rootCmd = &cobra.Command{
 
 		wg := &sync.WaitGroup{}
 		for _, sink := range config.SinkerConfigs {
-			if sink.Enable != nil && *sink.Enable == false {
-				slog.Info("skip sink", slog.String("table", sink.ModelTable))
-				continue
-			}
 			// 创建 DSWriter 是致命错误（配置问题），失败则退出程序
 			ds, ok := sinkerPkg.DatasourceMap[sink.Datasource]
 			if !ok {
@@ -67,6 +63,13 @@ var rootCmd = &cobra.Command{
 				return err
 			}
 			dsWriter.SetWriteMode(sink.WriteMode)
+
+			if sink.Enable != nil && *sink.Enable == false {
+				// 禁用的 sinker 不启动 kafka consumer，但仍注册 handler 到 ModelDSWriterMap
+				// 供 retry_event 路由时使用，避免仅消费 retry_event 时需要启用所有其它 event_type
+				registerSinkerHandler(sink, dsWriter, collectorsMap)
+				continue
+			}
 			startSinkerConsumer(sink, dsWriter, collectorsMap, wg)
 		}
 		wg.Wait()
@@ -117,6 +120,49 @@ func initHTTPServer() {
 			slog.Error("http server failed", slog.String("error", err.Error()))
 		}
 	}()
+}
+
+// registerSinkerHandler 为禁用的 sinker 注册 handler 到 ModelDSWriterMap，
+// 使其可通过 retry_event 路由转发，但不启动 kafka consumer 也不消费 kafka 数据
+func registerSinkerHandler(sink *config.SinkerConfig, dsWriter base.DSWriter, collectorsMap map[string]*config.BkDataConfig) {
+	sinkerObj := consumer.Sinker{
+		RuntimeConfig: sink,
+		DSWriter:      dsWriter,
+	}
+
+	// 解析 kafka 元信息以获取 topic name
+	if err := resolveKafkaMeta(&sinkerObj, sink, collectorsMap); err != nil {
+		slog.Warn("resolve kafka meta for disabled sink failed, skip handler registration",
+			slog.String("table", sink.ModelTable), slog.Any("error", err))
+		return
+	}
+
+	consumerHandler, err := sinkerObj.NewSinkHandler()
+	if err != nil {
+		slog.Warn("new sink handler for disabled sink failed, skip handler registration",
+			slog.String("table", sink.ModelTable), slog.Any("error", err))
+		return
+	}
+
+	// 触发 schema migration，确保目标表存在（因为不启动 consumer group，Setup 不会被自动调用）
+	// retry event 不做 migrate
+	/*
+		if err := consumerHandler.Setup(nil); err != nil {
+			slog.Warn("migrate schema for disabled sink failed",
+				slog.String("table", sink.ModelTable), slog.Any("error", err))
+			// 不 return，继续注册 handler（表可能已存在）
+		}
+	*/
+
+	if handler, ok := consumerHandler.(base.MessageHandler); ok {
+		sinkerPkg.ModelDSWriterMap[sink.Topic] = sinkerPkg.ModelSinkEntry{
+			Writer:  dsWriter,
+			Model:   sinkerPkg.ModelSinkerRegistered[sink.ModelTable],
+			Handler: handler,
+		}
+		slog.Info("registered handler for disabled sink (retry_event routing only)",
+			slog.String("topic", sink.Topic), slog.String("table", sink.ModelTable))
+	}
 }
 
 // startSinkerConsumer 启动单个 sinker 的消费者，内部错误均为非致命（跳过该 sinker）

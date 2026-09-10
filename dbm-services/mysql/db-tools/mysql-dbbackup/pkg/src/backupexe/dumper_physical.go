@@ -317,7 +317,6 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInf
 		}
 	}
 	if err = os.Remove(tmpFileName); err != nil {
-		//return err
 	}
 	return nil
 }
