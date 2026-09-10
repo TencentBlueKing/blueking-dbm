@@ -301,7 +301,7 @@ def _count_markdown_tables(text: str) -> int:
     return table_count
 
 
-def _needs_summary(text: str, max_length: int = 2000, max_tables: int = 2) -> bool:
+def _needs_summary(text: str, max_length: int = 1200, max_tables: int = 1) -> bool:
     """判断 agent 输出是否需要摘要：文本长度超限或 markdown 表格数量超限。"""
     if len(text) > max_length:
         return True

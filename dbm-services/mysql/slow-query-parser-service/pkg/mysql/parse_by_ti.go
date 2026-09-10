@@ -43,7 +43,14 @@ func replaceMultiValuesWithCount(fingerprint string) (withComment, forHash strin
 // 计算指纹
 // 获取表名
 // 获取 sql 类型
-func AnalyzeSql(db, oneSql string) (*Response, error) {
+func AnalyzeSql(db, oneSql string) (resp *Response, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// tidb parser test_driver 的 MyDecimal 实现在遇到特殊数值时会 panic，降级到 percona 解析
+			resp, err = parseByPercona(db, oneSql)
+		}
+	}()
+
 	stmts, _, err := parser.New().Parse(oneSql, "", "")
 	if err != nil {
 		return parseByPercona(db, oneSql) // percona 正则替换的方式
