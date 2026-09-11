@@ -68,7 +68,7 @@
       <TableColumn
         col-key="related_clusters"
         :min-width="200"
-        :title="t('关联集群')">
+        :title="t('所属集群')">
         <template #default="{ row }: { row: IRowData }">
           <RenderCluster
             v-if="row.related_clusters?.length"
@@ -76,6 +76,12 @@
           <span v-else>--</span>
         </template>
       </TableColumn>
+      <!-- 仅 Redis 主机展示架构类型列（同类型多架构） -->
+      <TableColumn
+        v-if="clusterType === ClusterTypes.REDIS"
+        col-key="cluster_type_name"
+        :min-width="120"
+        :title="t('架构类型')" />
       <TableColumn
         col-key="bk_city_id"
         :title="t('地域')"
@@ -174,8 +180,8 @@
 
   import { queryBizMachineAttrs } from '@services/source/dbbase';
 
-  import { specialOptionLabelMap, SpecialOptions } from '@common/const';
-  import { batchSplitRegex, ipv4 } from '@common/regex';
+  import { ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { batchSplitRegex, ipPort, ipv4 } from '@common/regex';
 
   import DbTable from '@components/db-table/IndexNew.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
@@ -260,6 +266,14 @@
           return t('格式错误');
         }
         return true;
+      },
+    },
+    {
+      id: 'domain',
+      name: t('所属集群'),
+      type: 'multiple-input' as const,
+      validator: (value: string) => {
+        return !ipPort.test(value) && !ipv4.test(value);
       },
     },
     {
