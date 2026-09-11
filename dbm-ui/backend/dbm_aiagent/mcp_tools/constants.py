@@ -69,6 +69,8 @@ class DBMMcpTools(StrStructuredEnum):
     PULSAR_BILL = EnumField("pulsar-bill", "pulsar-bill")
     PULSAR_METRICS = EnumField("pulsar-metrics", "pulsar-metrics")
     PULSAR_TOOLBOX = EnumField("pulsar-toolbox", "pulsar-toolbox")
+    ES_QUERY_META = EnumField("es-query-meta", "es-query-meta")
+    ES_BILL = EnumField("es-bill", "es-bill")
 
 
 class DBMMCPTags(StrStructuredEnum):

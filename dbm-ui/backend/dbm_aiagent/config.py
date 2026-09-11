@@ -611,6 +611,32 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
+    {
+        "name": "es-query-meta",
+        "description": """Elasticsearch cluster meta information query services""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["es-query-meta"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "es-bill",
+        "description": """Elasticsearch bill creation services""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["es-bill"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
 ]
 
 __all__ = [
