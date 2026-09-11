@@ -15,6 +15,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,12 @@ type ClearInstanceConfigComp struct {
 type ClearInstanceConfigParam struct {
 	ClearPorts  []int  `json:"clear_ports" validate:"required,gt=0,dive"`
 	MachineType string `json:"machine_type"`
+	// ClearDBHAProbeConfig 是否执行清理 dbha 探针端口配置的逻辑，默认 false 表示跳过
+	// 仅当置为 true 时，DoClearDBHAProbeConfig 才会真正执行清理动作
+	ClearDBHAProbeConfig bool `json:"clear_dbha_probe_config"`
+	// DBHAAdminEndpoints dbha 探针 gen-config 使用的 admin-endpoints，多个用逗号分隔
+	// 仅在 ClearDBHAProbeConfig=true 时使用
+	DBHAAdminEndpoints string `json:"dbha_admin_endpoints"`
 }
 
 // Example 样例
@@ -180,7 +187,7 @@ func (c *ClearInstanceConfigComp) clearRotateBinlog() (err error) {
 		logger.Info("%s not exists, skip", binPath)
 		return nil
 	}
-	clearPortString := strings.Replace(strings.Trim(fmt.Sprint(c.Params.ClearPorts), "[]"), " ", ",", -1)
+	clearPortString := util.IntSlice2String(c.Params.ClearPorts, ",")
 	cmd := fmt.Sprintf(
 		`%s -c %s --removeConfig %s`, binPath, configFile, clearPortString,
 	)
@@ -227,4 +234,59 @@ func (c *ClearInstanceConfigComp) clearMySQLMonitor() {
 
 	logger.Info("remove mysql monitor config finish")
 	return
+}
+
+// DoClearDBHAProbeConfig 清理 dbha 探针指定端口的配置
+// 0. 若 ClearDBHAProbeConfig 开关未打开，则直接跳过（默认行为）
+// 1. 若探针目录不存在，则跳过
+// 2. 若 ClearPorts 为空，则跳过
+// 3. 执行 ./bin/dbha-probe gen-config --clear-port <ports> 清理指定端口的配置
+func (c *ClearInstanceConfigComp) DoClearDBHAProbeConfig() (err error) {
+	if !c.Params.ClearDBHAProbeConfig {
+		logger.Info("clear_dbha_probe_config is disabled, skip clear dbha probe config")
+		return nil
+	}
+
+	probeDir := cst.DBHAProbeInstallDir
+	if !cmutil.FileExists(probeDir) {
+		logger.Info("probe not deployed on this host [%s], skip clear probe config", probeDir)
+		return nil
+	}
+
+	if len(c.Params.ClearPorts) == 0 {
+		logger.Info("clear_ports is empty, skip clear dbha probe config")
+		return nil
+	}
+
+	if strings.TrimSpace(c.Params.DBHAAdminEndpoints) == "" {
+		err = errors.Errorf("dbha_admin_endpoints is required for clearing dbha probe config")
+		logger.Error(err.Error())
+		return err
+	}
+
+	// 将端口列表转成逗号分隔的字符串，例如 [10000 20000] -> "10000,20000"
+	clearPortString := util.IntSlice2String(c.Params.ClearPorts, ",")
+
+	// 直接使用 argv 方式调用，避免走 shell 拼接导致 admin-endpoints 出现特殊字符时被截断/注入
+	probeBin := path.Join(probeDir, "bin", "dbha-probe")
+	probeCmd := exec.Command(
+		probeBin,
+		"gen-config",
+		"--admin-endpoints", c.Params.DBHAAdminEndpoints,
+		"--clear-port", clearPortString,
+	)
+	probeCmd.Dir = probeDir
+
+	var stdout, stderr bytes.Buffer
+	probeCmd.Stdout = &stdout
+	probeCmd.Stderr = &stderr
+
+	if err = probeCmd.Run(); err != nil {
+		logger.Error("clear dbha probe config failed: %s, stderr: %s, stdout: %s",
+			err.Error(), stderr.String(), stdout.String())
+		return err
+	}
+	logger.Info("clear dbha probe config success [%s], output: %s",
+		clearPortString, stdout.String())
+	return nil
 }

@@ -54,8 +54,11 @@ _DEFAULT_MYSQL_CLUSTER_TYPES: List[ClusterType] = [
 # 判定为"已过期"的 Flow 状态集合：终止 / 已完成
 _EXPIRED_FLOW_STATUSES: List[str] = [StateType.REVOKED, StateType.FINISHED]
 
-# host 白名单：仅这两类才认定为 dbm 产生的临时账号；其它 host 一律不清理
-_LOCAL_HOSTS: frozenset = frozenset({"localhost"})
+# host 白名单：认定为 dbm 产生的临时账号的 host 集合；其它 host 一律不清理
+#   - "localhost"：本机回环账号，dbm 常见创建形态
+#   - "%"        ：通配 host，dbm 部分场景（如跨实例授权）会以 % 创建临时账号，
+#                  这类账号同样需要在 Flow 已终结后被清理，避免残留放大授权面
+_LOCAL_HOSTS: frozenset = frozenset({"localhost", "%"})
 
 # Celery worker 任务名，仅用于日志展示
 _MYSQL_BATCH_TASK_NAME: str = "check_expired_job_users_for_mysql"
@@ -83,7 +86,7 @@ class CheckExpiredJobUserForMysql(object):
     """
 
     # host 白名单策略常量：
-    #   strict   —— 仅 {localhost, 本机IP}；定时任务默认，与创建时的 host 集合完全对齐，最安全；
+    #   strict   —— 仅 {localhost, "%", 本机IP}；定时任务默认，与 dbm 创建临时账号时的 host 集合对齐，最安全；
     #   topology —— strict 基础上 + 集群拓扑内所有节点 IP；用于人工清理主从同步漂移账号；
     #   loose    —— 不校验 host；应急兜底，谨慎使用。
     HOST_MODE_STRICT: str = "strict"
@@ -227,7 +230,7 @@ class CheckExpiredJobUserForMysql(object):
         :param instance_address: 形如 "ip:port"；从中取出实例本机 IP
         :return: host 白名单集合；HOST_MODE_LOOSE 时返回 None，代表"不校验 host"
         边界：
-          - strict   -> {localhost, 本机IP}（与创建时的 host 集合完全对齐，默认路径，最安全）；
+          - strict   -> {localhost, "%", 本机IP}（与 dbm 创建临时账号时的 host 集合对齐，默认路径，最安全）；
           - topology -> 上面 + 集群拓扑内所有 storage / proxy 节点 IP；
           - loose    -> None，调用方需自行判断"不校验"。
         """

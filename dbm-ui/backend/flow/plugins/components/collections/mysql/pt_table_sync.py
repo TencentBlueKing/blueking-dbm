@@ -13,7 +13,7 @@ import logging
 from pipeline.component_framework.component import Component
 
 from backend.components import DBPrivManagerApi
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, LONG_JOB_TIMEOUT
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, LONG_JOB_TIMEOUT, WriteContextOpType
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -78,6 +78,8 @@ class PtTableSyncService(ExecuteDBActuatorScriptService):
         data.get_one_of_inputs("kwargs")["get_trans_data_ip_var"] = None
         data.get_one_of_inputs("kwargs")["cluster"] = cluster_info
         data.get_one_of_inputs("kwargs")["job_timeout"] = LONG_JOB_TIMEOUT
+        data.get_one_of_inputs("kwargs")["write_op"] = WriteContextOpType.APPEND.value
+        data.inputs.write_payload_var = "result"  # 记录修复后结果的上下文地方
         return super()._execute(data, parent_data)
 
 

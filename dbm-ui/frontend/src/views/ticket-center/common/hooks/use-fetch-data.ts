@@ -21,7 +21,6 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     current: 1,
     limit: paginationLimitCache.value,
     limitList: [10, 20, 50, 100, 200, 500],
-    remote: true,
   });
   const ordering = ref('');
   const tableMaxHeight = ref<number | 'auto'>('auto');
@@ -34,7 +33,7 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
   const { run: fetchTicketStatus } = useRequest(
     () => {
       if (dataList.value.length < 1) {
-        return Promise.reject();
+        return Promise.resolve({} as Record<number, string>);
       }
       return getTicketStatus({
         ticket_ids: dataList.value.map((item) => item.id).join(','),

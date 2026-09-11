@@ -199,6 +199,7 @@ SUCCESS_LIST = [SUCCESS, IGNORE_ERROR, SKIPPED, MANUAL_TERMINAL, SUCCESS_FORCIBL
 FAILED_LIST = [FAILED, ABNORMAL_STATE, FAILED_FORCIBLY_TERMINATED]
 DBA_SYSTEM_USER = "mysql"
 DBA_ROOT_USER = "root"
+DBA_ORACLE_USER = "oracle"
 
 # ip port 分隔符，对应授权远程接口传入参数时使用的分隔符
 AUTH_ADDRESS_DIVIDER = ":"
@@ -372,6 +373,7 @@ class MediumEnum(StrStructuredEnum):
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
     Oracle = EnumField("oracle", _("oracle"))
+    Patch = EnumField("patch", _("patch"))
     TLinux4Dependencies = EnumField("tlinux4-dependencies", _("tlinux4-dependencies"))
     DBHAV2Probe = EnumField("dbha-v2-probe", _("dbha-v2-probe 探针"))
 
@@ -446,6 +448,7 @@ class DBActuatorTypeEnum(StrStructuredEnum):
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
     OS = EnumField("os", _("os"))
+    Oracle = EnumField("oracle", _("oracle"))
 
 
 class DBActuatorActionEnum(StrStructuredEnum):
@@ -749,6 +752,31 @@ class RiakActuatorActionEnum(StrStructuredEnum):
     StopMonitor = EnumField("stop-monitor", _("stop-monitor"))
 
 
+class OracleActuatorActionEnum(StrStructuredEnum):
+    SysinitOracle = EnumField("sysinit", _("sysinit"))
+    Install = EnumField("install", _("install"))
+    Uninstall = EnumField("uninstall", _("uninstall"))
+    GetConfig = EnumField("get-config", _("get-config"))
+    GetPfile = EnumField("get-pfile", _("get-pfile"))
+    GetPasswordFile = EnumField("get-password-file", _("get-password-file"))
+    GetSymbolicLink = EnumField("get-symbolic-link", _("get-symbolic-link"))
+    ConfigDataguard = EnumField("config-dataguard", _("config-dataguard"))
+    InstallInstanceFromExisting = EnumField("install-instance-from-existing", _("install-instance-from-existing"))
+    RmanDuplicate = EnumField("rman-duplicate", _("rman-duplicate"))
+    MasterDataguardConfig = EnumField("master-dataguard-config", _("master-dataguard-config"))
+    RMANDuplicate = EnumField("rman-duplicate", _("rman-duplicate"))
+    AddSlave = EnumField("add-slave", _("add-slave"))
+    OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
+    OracleExecuteScript = EnumField("execute_script", _("execute_script"))
+    RealTimeApply = EnumField("real-time-apply", _("real-time-apply"))
+    PauseSync = EnumField("pause-sync", _("pause-sync"))
+    StartListener = EnumField("start-listener", _("start-listener"))
+    CheckSyncStatus = EnumField("check-sync-status", _("check-sync-status"))
+    RealMaster = EnumField("real-master", _("real-master"))
+    SwitchLog = EnumField("switch-log", _("switch-log"))
+    Shutdown = EnumField("shutdown", _("shutdown"))
+
+
 class SqlserverActuatorActionEnum(StrStructuredEnum):
     SysInit = EnumField("sysinit", _("机器初始化"))
     Deploy = EnumField("deploy", _("实例安装"))
@@ -882,6 +910,8 @@ class ManagerServiceType(StrStructuredEnum):
 class ManagerDefaultPort(IntStructuredEnum):
     KIBANA = EnumField(5601, _("KIBANA_PORT"))
     KAFKA_MANAGER = EnumField(9000, _("KAFKA_MANAGER_PORT"))
+    ORACLE_STATISTIC_PORT = EnumField(1522, _("ORACLE_STATISTIC_PORT"))
+    ORACLE_PORT = EnumField(1521, _("ORACLE_PORT"))
 
 
 class AuthorizeStatus(IntStructuredEnum):
@@ -1059,6 +1089,11 @@ class RedisBackupEnum(StrStructuredEnum):
 class KafkaFlowEnum(StrStructuredEnum):
     KAFKA_REPLACE = EnumField("KAFKA_REPLACE", _("KAFKA_REPLACE"))
     KAFKA_SCALE_UP = EnumField("KAFKA_SCALE_UP", _("KAFKA_SCALE_UP"))
+
+
+class OracleFlowEnum(StrStructuredEnum):
+    ORACLE_ADD_SLAVE = EnumField("ORACLE_ADD_SLAVE", _("ORACLE_ADD_SLAVE"))
+    ORACLE_ADD_SLAVE_VIA_CASCADING = EnumField("ORACLE_ADD_SLAVE_VIA_CASCADING", _("ORACLE_ADD_SLAVE_VIA_CASCADING"))
 
 
 class InfluxdbFlowEnum(StrStructuredEnum):
@@ -1324,6 +1359,8 @@ class UserName(StrStructuredEnum):
     REDIS_DEFAULT = EnumField("default", _("REDIS默认账号"))
     HDFS_DEFAULT = EnumField("root", _("HDFS默认账号"))
     PARTITION_YW = EnumField("partition_yw", _("分区实例账号"))
+    OS_ORACLE = EnumField("oracle", _("ORACLE系统账号"))
+    ORACLE_SYS = EnumField("sys", _("ORACLE默认账号"))
 
 
 class MySQLPrivComponent(StrStructuredEnum):
@@ -1345,6 +1382,7 @@ class MySQLPrivComponent(StrStructuredEnum):
     DORIS_FAKE_USER = EnumField("doris_user", _("doris_user"))
     VM_FAKE_USER = EnumField("vm_user", _("vm_user"))
     DORIS_CLOUD_APP_ID = EnumField("doris_cloud_app_id", _("doris_cloud_app_id"))
+    ORACLE = EnumField("oracle", _("oracle"))
 
 
 class RequestResultCode(IntStructuredEnum):

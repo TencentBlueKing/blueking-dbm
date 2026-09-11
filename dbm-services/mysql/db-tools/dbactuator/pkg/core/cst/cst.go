@@ -27,6 +27,8 @@ const (
 	BK_PKG_INSTALL_PATH = "/data/install"
 	// MYSQL_TOOL_INSTALL_PATH 默认工具安装路径
 	MYSQL_TOOL_INSTALL_PATH = "/home/mysql"
+	// DBHAProbeInstallDir dbha 探针安装目录
+	DBHAProbeInstallDir = "/home/mysql/dbha-v2"
 )
 
 const (

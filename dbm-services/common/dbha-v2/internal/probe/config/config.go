@@ -184,6 +184,13 @@ type HarvesterConfig struct {
 	Redis           *RedisHarvesterConfig `yaml:"redis"           mapstructure:"redis"`
 }
 
+// HealthConfig health check configuration. DiskWriteDirs lists the directories the probe health
+// command writes a marker file into to verify the local disk is writable; empty means fall back to
+// the default dirs (DefaultDiskWriteDirs).
+type HealthConfig struct {
+	DiskWriteDirs []string `yaml:"diskWriteDirs" mapstructure:"diskWriteDirs"`
+}
+
 // LogConfig log configuration
 type LogConfig struct {
 	Path      string `yaml:"path"      mapstructure:"path"`
@@ -202,6 +209,7 @@ type Configuration struct {
 	Client     ClientConfig    `yaml:"client"     mapstructure:"client"`
 	Admin      AdminConfig     `yaml:"admin"      mapstructure:"admin"`
 	Harvester  HarvesterConfig `yaml:"harvester"  mapstructure:"harvester"`
+	Health     HealthConfig    `yaml:"health"     mapstructure:"health"`
 	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
 	ClearPorts []int           `yaml:"clearPorts" mapstructure:"clearPorts"`
 }

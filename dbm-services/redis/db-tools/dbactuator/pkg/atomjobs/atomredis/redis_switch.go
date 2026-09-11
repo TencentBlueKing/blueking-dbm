@@ -365,7 +365,9 @@ func (job *RedisSwitch) tryShutdownMasterInstance(ip string, port int, pass stri
 	}
 	defer oldMasterConn.Close()
 	job.runtime.Logger.Warn("[%s] try shutdown instance , when RedisInstance exec switch.", oldMasterAddr)
-	if _, err := oldMasterConn.DoCommand([]string{"ShutDown"}, 0); err != nil {
+	// NOSAVE: 这台实例有存盘点时, 裸 SHUTDOWN 会先做一次阻塞式 SAVE, 长链接迟迟不断;
+	// 而这份数据紧接着就会被"作为新从库重新同步"整个覆盖掉, 存下来没人用
+	if _, err := oldMasterConn.DoCommand([]string{"ShutDown", "NOSAVE"}, 0); err != nil {
 		job.runtime.Logger.Warn("[%s] shutdown old master failed:%+v", oldMasterAddr, err)
 	}
 }

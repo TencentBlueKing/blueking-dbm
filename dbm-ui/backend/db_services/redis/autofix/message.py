@@ -147,7 +147,7 @@ def send_msg_2_qywx(sub_title: str, msgs) -> bool:
             else:
                 content += _("{} : {}\n".format(k, v))
 
-        if env.ENABLE_DBM_AI and db_type == DBType.Redis.value and redis_DBA:
+        if env.ENABLE_DBM_AI and db_type == DBType.Redis.value and redis_DBA and _("分析") not in sub_title:
             session_code = RedisConn.get(session_code_key)
             ask_content = _("""查询这个{}集群最近10分钟的性能波动情况,只需给出简要的结论（再加上一个点的数据）""".format(immute_doamin))
             try:

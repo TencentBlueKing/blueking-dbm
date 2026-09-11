@@ -128,8 +128,24 @@ func (m *JobGenericManager) RegisterAtomJob() {
 		m.atomJobMapper = make(map[string]AtomJobCreatorFunc)
 		for _, f := range []AtomJobCreatorFunc{
 			atomsys.NewOsOracleInit,
+			atomsys.NewSysInitCommand,
 			atomoracle.NewExecuteScript,
 			atomoracle.NewCheckLongTransaction,
+			atomoracle.NewGetConfig,
+			atomoracle.NewGetPfile,
+			atomoracle.NewGetPasswordFile,
+			atomoracle.NewGetSymbolicLink,
+			atomoracle.NewInstallOracle,
+			atomoracle.NewInstallInstanceFromExisting,
+			atomoracle.NewConfigDataguard,
+			atomoracle.NewRmanDuplicate,
+			atomoracle.NewRealTimeApply,
+			atomoracle.NewPauseSync,
+			atomoracle.NewCheckSyncStatus,
+			atomoracle.NewStartListener,
+			atomoracle.NewRealMaster,
+			atomoracle.NewSwitchLog,
+			atomoracle.NewShutdown,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}

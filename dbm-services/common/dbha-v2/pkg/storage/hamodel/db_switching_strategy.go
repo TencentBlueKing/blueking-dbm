@@ -47,13 +47,15 @@ var ActionTypeMap = map[ActionType]ActionType{
 	ActionTypeSwitch: ActionTypeSwitch,
 }
 
-// ActionScopeType  impact scope: cluster, host.
+// ActionScopeType  impact scope: cluster, host, db_instance, none.
 type ActionScopeType string
 
 const (
 	ActionScopeTypeCluster    ActionScopeType = "cluster"
 	ActionScopeTypeHost       ActionScopeType = "host"
 	ActionScopeTypeDbInstance ActionScopeType = "db_instance"
+	// ActionScopeTypeNone is used for notify actions that do not perform a switch.
+	ActionScopeTypeNone ActionScopeType = "none"
 )
 
 func (a ActionScopeType) String() string {
@@ -125,7 +127,13 @@ type DbSwitchingStrategy struct {
 
 	// The reason for the event name.
 	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"column:trigger_event_name_reason;primaryKey;index"`
-	// This strategy will be triggered after the number of events reaches this value.
+	// TriggerCount is the threshold that triggers this strategy. Its meaning depends on the
+	// strategy type:
+	//   - normal strategies: the number of times the same failed instance reports the same event
+	//     within the sliding window (counted per instance+event);
+	//   - the two current special strategies (proxy+backend / spider+remote master): the number of
+	//     times a cluster satisfies the simultaneous-failure condition (counted per cluster).
+	//     Future special strategies may count on other dimensions, not necessarily clusters.
 	TriggerCount int `gorm:"column:trigger_count"`
 
 	// level: 0 > 1> 2 > 3 > ...

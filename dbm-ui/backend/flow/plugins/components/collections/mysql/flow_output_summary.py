@@ -46,6 +46,7 @@ from backend.flow.utils.mysql.flow_output_presets import (
     InstanceChangeSummarySerializer,
     MessageSummarySerializer,
     PrecheckResultSummarySerializer,
+    PtTableSyncSummarySerializer,
     SqlExecResultSummarySerializer,
 )
 from backend.ticket.models import Flow
@@ -62,6 +63,7 @@ _PRESET_REGISTRY: Dict[str, Type[BaseFlowOutputSerializer]] = {
     "precheck": PrecheckResultSummarySerializer,
     "sql_exec": SqlExecResultSummarySerializer,
     "message": MessageSummarySerializer,
+    "pt_table_sync": PtTableSyncSummarySerializer,
 }
 
 

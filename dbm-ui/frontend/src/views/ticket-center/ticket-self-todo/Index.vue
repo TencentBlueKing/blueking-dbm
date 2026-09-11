@@ -26,7 +26,7 @@
         style="width: 550px; margin-left: auto" />
     </div>
     <TicketTable
-      :key="ticketStatus"
+      :key="refreshKey"
       ref="dataTable"
       :data-source="dataSource"
       :exclude-filter-field="['status']"
@@ -82,6 +82,7 @@
   const selectTicketIdList = shallowRef<TicketModel[]>([]);
   const isShowBatchOperation = ref(false);
   const isAssist = ref(Number(route.params.assist));
+  const refreshKey = ref(Date.now().toString());
 
   const { defaultStatus: ticketStatus, list: statusList } = useStatusList(isAssist);
 
@@ -96,12 +97,18 @@
   );
 
   watch([ticketStatus, isAssist], () => {
-    dataTableRef.value!.fetchData();
-    dataTableRef.value!.resetSelection();
     router.replace({
       params: {
         status: ticketStatus.value,
       },
+    });
+    setTimeout(() => {
+      refreshKey.value = Date.now().toString();
+
+      nextTick(() => {
+        dataTableRef.value!.fetchData();
+        dataTableRef.value!.resetSelection();
+      });
     });
   });
 

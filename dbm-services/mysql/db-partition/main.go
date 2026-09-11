@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"dbm-services/mysql/db-partition/monitor"
-	"dbm-services/mysql/db-partition/service"
 	"dbm-services/mysql/db-partition/util"
 
 	"github.com/gin-gonic/gin"
@@ -42,18 +41,18 @@ func main() {
 	// 获取监控配置，多次尝试，获取监控配置失败
 	monitor.InitMonitor()
 
-	// 注册定时任务
-	cronList, err := service.RegisterCron()
-	if err != nil {
-		os.Exit(0)
-	}
-
-	defer func() {
-		for _, c := range cronList {
-			c.Stop()
-		}
-		slog.Info("stop all cron jobs")
-	}()
+	// 日常分区定时任务暂时关闭，仅保留 HTTP 服务；需要恢复时打开 RegisterCron
+	// cronList, err := service.RegisterCron()
+	// if err != nil {
+	// 	os.Exit(0)
+	// }
+	//
+	// defer func() {
+	// 	for _, c := range cronList {
+	// 		c.Stop()
+	// 	}
+	// 	slog.Info("stop all cron jobs")
+	// }()
 
 	// 注册服务
 	gin.SetMode(gin.ReleaseMode)
@@ -75,7 +74,7 @@ func main() {
 		slog.Info("router", slog.Any("router", ele.Path))
 	}
 
-	if err = r.Run(viper.GetString("listen_address")); err != nil {
+	if err := r.Run(viper.GetString("listen_address")); err != nil {
 		slog.Error("register router fail:", err)
 		os.Exit(0)
 	}

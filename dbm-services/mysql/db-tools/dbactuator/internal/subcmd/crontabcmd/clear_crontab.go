@@ -65,6 +65,14 @@ func (s *ClearCrontabAct) Run() (err error) {
 			FunName: "清理机器周边目录",
 			Func:    s.Service.CleanDBToolsFolder,
 		},
+		{
+			FunName: "停止dbha探针",
+			Func:    s.Service.StopDBHAProbe,
+		},
+		{
+			FunName: "清理dbha探针目录",
+			Func:    s.Service.CleanDBHAProbeFolder,
+		},
 	}
 	logger.Info("start clean crontab ...")
 	for idx, f := range steps {

@@ -37,6 +37,8 @@ export const useApplyBase = () => {
   const baseState = reactive({
     isSubmitting: false,
   });
+  // 上一次同步的业务，用于区分「页面自动带出」与「用户切换业务」
+  let prevBizId: number | undefined;
 
   /**
    * 取消申请
@@ -46,12 +48,24 @@ export const useApplyBase = () => {
   }
 
   /**
+   * 同步当前业务；仅在用户切换业务时返回 true（首次自动带出不算变更，不要清空规格 / IP）
+   */
+  function applyBizInfo(info: BizItem) {
+    const bizChanged = prevBizId !== undefined && prevBizId !== info.bk_biz_id;
+    prevBizId = info.bk_biz_id;
+    bizState.info = info;
+    bizState.hasEnglishName = !!info.english_name;
+    return bizChanged;
+  }
+
+  /**
    * 创建业务英文缩写
    */
   function handleCreateAppAbbr(formdata: any) {
     const appAbbr = formdata.details.db_app_abbr;
+    const bizName = bizState.info.display_name || bizState.info.name || '';
     InfoBox({
-      content: t('业务Codexx将被保存到业务xx且保存后不允许修改', [appAbbr, bizState.info.display_name]),
+      content: t('业务Codexx将被保存到业务xx且保存后不允许修改', [appAbbr, bizName]),
       onCancel: () => {
         baseState.isSubmitting = false;
       },
@@ -99,6 +113,7 @@ export const useApplyBase = () => {
   }
 
   return {
+    applyBizInfo,
     baseState,
     bizState,
     handleCancel,

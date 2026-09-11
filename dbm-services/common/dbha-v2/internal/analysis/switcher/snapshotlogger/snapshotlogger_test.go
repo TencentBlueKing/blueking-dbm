@@ -123,6 +123,7 @@ func newTestSnapshotData() *SwitchingSnapshotData {
 			Reason:      "test reason",
 			DbType:      "mysql",
 			ActionScope: "cluster",
+			Action:      hamodel.SnapshotActionTypePreSwitch,
 			StartTime:   &now,
 			Status:      hamodel.DbSwitchingSnapshotLogStatusDoing,
 		},
@@ -252,7 +253,7 @@ func TestDbSnapshotHandler_ParameterValidation(t *testing.T) {
 		record := &SwitchingSnapshotData{}
 		err := hdl.PreSwitchLog(record)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "DbSwitchingSnapshotLog is nil for before db switching snapshot")
+		assert.Contains(t, err.Error(), "dbSwitchingSnapshotLog is nil for before db switching snapshot")
 	})
 
 	t.Run("PostSwitchLog_NilRecord", func(t *testing.T) {
@@ -269,7 +270,7 @@ func TestDbSnapshotHandler_ParameterValidation(t *testing.T) {
 		record := &SwitchingSnapshotData{}
 		err := hdl.PostSwitchLog(record)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "DbSwitchingSnapshotLog is nil for after db switching snapshot")
+		assert.Contains(t, err.Error(), "dbSwitchingSnapshotLog is nil for after db switching snapshot")
 	})
 
 	t.Run("PostSwitchLog_ZeroRecordID", func(t *testing.T) {
@@ -336,13 +337,14 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			t.Logf("PreSwitchLog succeeded on iteration %d", i)
 			// Verify PreSwitchLog output contains switch ID and pre-switch type
 			assert.Contains(t, ml.messages[0], record.DbSwitchingSnapshotLog.SwitchID)
-			assert.Contains(t, ml.messages[0], string(SwitchSnapshotLogTypePre))
+			assert.Contains(t, ml.messages[0], hamodel.SnapshotActionTypePreSwitch.String())
 
 			// Simulate post-switch
 			now := time.Now()
 			record.DbSwitchingSnapshotLog.FinishedTime = &now
 			record.DbSwitchingSnapshotLog.Result = "switching completed successfully"
 			record.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusSuccess
+			record.DbSwitchingSnapshotLog.Action = hamodel.SnapshotActionTypePostSwitch
 
 			// PostSwitchLog
 			ml.messages = nil
@@ -353,7 +355,7 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			t.Logf("PostSwitchLog succeeded on iteration %d", i)
 			// Verify PostSwitchLog output contains switch ID and post-switch type
 			assert.Contains(t, ml.messages[0], record.DbSwitchingSnapshotLog.SwitchID)
-			assert.Contains(t, ml.messages[0], string(SwitchSnapshotLogTypePost))
+			assert.Contains(t, ml.messages[0], hamodel.SnapshotActionTypePostSwitch.String())
 		})
 	}
 

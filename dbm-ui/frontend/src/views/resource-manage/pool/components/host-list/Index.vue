@@ -176,6 +176,14 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="status"
+        :title="t('资源状态')"
+        :width="100">
+        <template #default="{ row }: { row: DbResourceModel }">
+          {{ row.resourceStatusDisplay }}
+        </template>
+      </TableColumn>
+      <TableColumn
         col-key="resourceOwner"
         :title="t('资源归属')"
         :width="320">

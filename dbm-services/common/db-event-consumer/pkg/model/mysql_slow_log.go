@@ -156,7 +156,7 @@ type SlowLog struct {
 }
 
 func (m *MysqlSlowLogModel) TableName() string {
-	return "tb_mysql_slow_log2"
+	return "tb_mysql_slow_log"
 }
 
 func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {

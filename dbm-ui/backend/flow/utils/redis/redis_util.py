@@ -305,14 +305,30 @@ def version_ge(version1, version2):
     return version_eq(version1, version2) or version_gt(version1, version2)
 
 
+def get_redis_engine_family(version_name: str) -> str:
+    """从版本名/包名解析引擎家族, 如 'valkey-8.0.1' -> 'valkey', 'redis-6.2.14' -> 'redis'
+
+    tendisplus / tendisssd 归入 redis 家族: 它们的候选版本来自各自 pkg_type, 不会和 valkey 混。
+    """
+    if (version_name or "").strip().lower().startswith("valkey"):
+        return "valkey"
+    return "redis"
+
+
+def is_cross_engine_version_change(current_version: str, target_version: str) -> bool:
+    return get_redis_engine_family(current_version) != get_redis_engine_family(target_version)
+
+
 # 根据db_version 获取 redis 最新 Package
-def get_latest_redis_package_by_version(db_version):
+def get_latest_redis_package_by_version(db_version, name_prefix=None):
     pkg_type = MediumEnum.Redis
     if db_version.startswith("TendisSSD"):
         pkg_type = MediumEnum.TendisSsd
     if db_version.startswith("Tendisplus"):
         pkg_type = MediumEnum.TendisPlus
-    redis_pkg = Package.get_latest_package(version=db_version, pkg_type=pkg_type, db_type=DBType.Redis)
+    redis_pkg = Package.get_latest_package(
+        version=db_version, pkg_type=pkg_type, db_type=DBType.Redis, name_prefix=name_prefix
+    )
     return redis_pkg
 
 

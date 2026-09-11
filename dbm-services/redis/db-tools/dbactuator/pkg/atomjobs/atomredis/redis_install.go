@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -69,7 +68,7 @@ func (job *RedisInstall) Init(m *jobruntime.JobGenericRuntime) error {
 	job.runtime = m
 	err := json.Unmarshal([]byte(job.runtime.PayloadDecoded), &job.params)
 	if err != nil {
-		job.runtime.Logger.Error(fmt.Sprintf("json.Unmarshal failed,err:%+v", err))
+		job.runtime.Logger.Error("json.Unmarshal failed,err:%+v", err)
 		return err
 	}
 	// 参数有效性检查
@@ -90,13 +89,13 @@ func (job *RedisInstall) Init(m *jobruntime.JobGenericRuntime) error {
 	// ports 和 inst_num 不能同时为空
 	if len(job.params.Ports) == 0 && job.params.InstNum == 0 {
 		err = fmt.Errorf("RedisInstall ports(%+v) and inst_num(%d) is invalid", job.params.Ports, job.params.InstNum)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return err
 	}
 	// 6379<= start_port <= 64534
 	if job.params.InstNum > 0 && (job.params.StartPort > 64534 || job.params.StartPort < 6379) {
 		err = fmt.Errorf("RedisInstall start_port(%d) must range [6379,64534]", job.params.StartPort)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return err
 	}
 	if job.params.InstNum > 0 {
@@ -106,8 +105,8 @@ func (job *RedisInstall) Init(m *jobruntime.JobGenericRuntime) error {
 		}
 		job.params.Ports = ports
 	}
-	job.runtime.Logger.Info(fmt.Sprintf("init end, server:%s,ports:%s",
-		job.params.IP, myredis.ConvertSlotToStr(job.params.Ports)))
+	job.runtime.Logger.Info("init end, server:%s,ports:%s",
+		job.params.IP, myredis.ConvertSlotToStr(job.params.Ports))
 
 	return nil
 }
@@ -221,7 +220,7 @@ func (job *RedisInstall) UntarMedia() (err error) {
 		// 如果包不存在,则解压到 /usr/local 下
 		pkgAbsPath := job.params.GetAbsolutePath()
 		tarCmd := fmt.Sprintf("tar -zxf %s -C %s", pkgAbsPath, consts.UsrLocal)
-		job.runtime.Logger.Info(tarCmd)
+		job.runtime.Logger.Info("%s", tarCmd)
 		_, err = util.RunBashCmd(tarCmd, "", nil, 10*time.Second)
 		if err != nil {
 			return
@@ -235,7 +234,7 @@ func (job *RedisInstall) UntarMedia() (err error) {
 		err = os.Symlink(job.RedisBinDir, redisSoftLink)
 		if err != nil {
 			err = fmt.Errorf("os.Symlink failed,err:%v,dir:%s,softLink:%s", err, job.RedisBinDir, redisSoftLink)
-			job.runtime.Logger.Error(err.Error())
+			job.runtime.Logger.Error("%s", err)
 			return
 		}
 		job.runtime.Logger.Info("create soft link success,redisBinDir:%s,redisSoftLink:%s", job.RedisBinDir, redisSoftLink)
@@ -245,7 +244,7 @@ func (job *RedisInstall) UntarMedia() (err error) {
 	realLink, err := filepath.EvalSymlinks(redisSoftLink)
 	if err != nil {
 		err = fmt.Errorf("filepath.EvalSymlinks failed,err:%v,redisSoftLink:%s", err, redisSoftLink)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return
 	}
 	redisBaseName := filepath.Base(realLink)
@@ -253,7 +252,7 @@ func (job *RedisInstall) UntarMedia() (err error) {
 	if pkgBaseName != redisBaseName && isAdditionalDeployAndMajorVersionSame == false {
 		// 不是追加部署,且大版本相同,则报错
 		err = fmt.Errorf("%s 指向 %s 而不是 %s", redisSoftLink, redisBaseName, pkgBaseName)
-		job.runtime.Logger.DPanic(err.Error())
+		job.runtime.Logger.DPanic("%s", err)
 		return
 	}
 	job.RedisBinDir = filepath.Join(redisSoftLink, "bin")
@@ -270,8 +269,8 @@ fi
 	if err != nil {
 		return err
 	}
-	job.runtime.Logger.Info(fmt.Sprintf("UntarMedia success,redisBinDir:%s,redisSoftLink:%s", job.RedisBinDir,
-		redisSoftLink))
+	job.runtime.Logger.Info("UntarMedia success,redisBinDir:%s,redisSoftLink:%s", job.RedisBinDir,
+		redisSoftLink)
 
 	err = job.params.DbToolsPkg.Install()
 	if err != nil {
@@ -292,7 +291,7 @@ fi
 func (job *RedisInstall) IsAdditionalDeployAndMajorVersionSame(currentVer, targetVer string) (ok bool, err error) {
 	// 先判断是否是 追加部署,追加部署只在 主从版本上存在,所以直接判断 redis-server进程存在与否即可
 	psCmd := "ps aux|grep 'redis-server'|grep -v grep"
-	job.runtime.Logger.Info(psCmd)
+	job.runtime.Logger.Info("%s", psCmd)
 	ret, _ := util.RunBashCmd(psCmd, "", nil, 10*time.Second)
 	if ret == "" {
 		// 判断没有 redis-server,说明不是追加部署,返回false
@@ -344,13 +343,13 @@ func (job *RedisInstall) InitInstanceDirs() (err error) {
 			dirs = append(dirs, filepath.Join(instDir, "rbinlog"))
 		} else {
 			err = fmt.Errorf("unknown dbType(%s)", job.params.DbType)
-			job.runtime.Logger.Error(err.Error())
+			job.runtime.Logger.Error("%s", err)
 			return
 		}
 		job.runtime.Logger.Info("MkDirAll %+v", dirs)
 		err = util.MkDirsIfNotExists(dirs)
 		if err != nil {
-			job.runtime.Logger.Error(err.Error())
+			job.runtime.Logger.Error("%s", err)
 			return err
 		}
 	}
@@ -374,7 +373,7 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 	instConfFile := filepath.Join(instDir, "redis.conf")
 	if util.FileExists(instConfFile) {
 		grepCmd := fmt.Sprintf("grep -i requirepass %s |grep -vP '^#'||{ true; }", instConfFile)
-		job.runtime.Logger.Info(grepCmd)
+		job.runtime.Logger.Info("%s", grepCmd)
 		grepRet, err := util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
 		if err != nil {
 			return false, err
@@ -387,7 +386,7 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 
 	portIsUse, err := util.CheckPortIsInUse(job.params.IP, strconv.Itoa(port))
 	if err != nil {
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return
 	}
 	if !portIsUse {
@@ -400,7 +399,7 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		err = fmt.Errorf("%d is in used by other process", port)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return false, err
 	}
 	defer redisCli.Close()
@@ -412,7 +411,7 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 	if dbSize > 20 {
 		// key个数大于20
 		err = fmt.Errorf("redis:%s is in use,dbsize=%d", redisAddr, dbSize)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return
 	}
 	if !consts.IsTendisplusInstanceDbType(job.params.DbType) {
@@ -429,7 +428,7 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 		}
 		if len(randomRets) > 0 {
 			err = fmt.Errorf("redis:%s is in use,exists keys:%+v", redisAddr, randomRets)
-			job.runtime.Logger.Error(err.Error())
+			job.runtime.Logger.Error("%s", err)
 			return
 		}
 	}
@@ -454,12 +453,12 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 	if !strings.Contains(pkgBaseName, serverVer) && isAdditionalDeployAndMajorVersionSame == false {
 		// 不是追加部署,且大版本相同,则报错
 		err = fmt.Errorf("redis:%s installed but version(%s) not %s", redisAddr, serverVer, pkgBaseName)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return
 	}
 	// redis实例已成功安装,且是一个空实例,且版本正确
-	job.runtime.Logger.Info(fmt.Sprintf("redis(%s) install success,dbsize:%d,version:%s",
-		redisAddr, dbSize, serverVer))
+	job.runtime.Logger.Info("redis(%s) install success,dbsize:%d,version:%s",
+		redisAddr, dbSize, serverVer)
 	return true, nil
 }
 
@@ -474,8 +473,8 @@ func (job *RedisInstall) isModulesSoFileExists() (err error) {
 	for _, moduleItem := range job.params.LoadModulesDetail {
 		soFile = filepath.Join(consts.RedisModulePath, moduleItem.SoFile)
 		if !util.FileExists(soFile) {
-			err = errors.New(fmt.Sprintf("module(%s) not exists", soFile))
-			job.runtime.Logger.Error(err.Error())
+			err = fmt.Errorf("module(%s) not exists", soFile)
+			job.runtime.Logger.Error("%s", err)
 			return err
 		}
 	}
@@ -486,52 +485,8 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 	if job.RedisConfTemplate != "" {
 		return nil
 	}
-	pkgBaseName := job.params.GePkgBaseName()
-	sb := strings.Builder{}
-	for key, value := range job.params.RedisConfConfigs {
-		key = strings.TrimSpace(key)
-		lower_key := strings.ToLower(key)
-		value = strings.TrimSpace(value)
-		if key == "loadmodule" {
-			continue
-		}
-		if key == "repl-diskless-sync" &&
-			strings.HasPrefix(pkgBaseName, "redis-2.8.17") {
-			continue
-		}
-		if lower_key == "netiothreadnum" {
-			value = strconv.Itoa(util.GetTendisplusNetIOThreadNum())
-		} else if lower_key == "executorthreadnum" {
-			value = strconv.Itoa(util.GetTendisplusExeThreadNum())
-		} else if lower_key == "executorworkpoolsize" {
-			value = strconv.Itoa(util.GetTendisplusExeWorkPoolSize())
-		} else if lower_key == "rocks.max_background_jobs" {
-			value = strconv.Itoa(util.GetTendisplusMaxBGJobs())
-		} else if lower_key == "rocks.max_background_compactions" {
-			value = strconv.Itoa(util.GetMaxBgCompactions())
-		} else if lower_key == "migratesenderthreadnum" {
-			value = strconv.Itoa(util.GetMigrateSenderThreadNum())
-		} else if lower_key == "migratereceivethreadnum" {
-			value = strconv.Itoa(util.GetMigrateReceiverThreadNum())
-		} else if lower_key == "migrateclearthreadnum" {
-			value = strconv.Itoa(util.GetMigrateClearTheadNum())
-		}
-		if value == "" {
-			value = "\"\"" // 针对 save ""的情况
-		}
-		sb.WriteString(key + " " + value + "\n")
-	}
-	// 加载module
-	soFile := ""
-	for _, moduleItem := range job.params.LoadModulesDetail {
-		if strings.Contains(moduleItem.SoFile, "libB2RedisModule") {
-			// libB2RedisModule 相关module需要关闭 aof,否则会报错
-			sb.WriteString("appendonly no\n")
-		}
-		soFile = filepath.Join(consts.RedisModulePath, moduleItem.SoFile)
-		sb.WriteString("loadmodule " + soFile + "\n")
-	}
-	job.RedisConfTemplate = sb.String()
+	job.RedisConfTemplate = BuildRedisConfTemplate(
+		job.params.RedisConfConfigs, job.params.LoadModulesDetail, job.params.GePkgBaseName())
 	return nil
 }
 
@@ -547,36 +502,26 @@ func (job *RedisInstall) GenerateConfigFile(port int) (err error) {
 		return err
 	}
 
-	clusterEnabled := "no"
-	if consts.IsClusterDbType(job.params.DbType) {
-		clusterEnabled = "yes"
-	}
 	instDir := filepath.Join(job.RealDataDir, strconv.Itoa(port))
 	instConfFile := filepath.Join(instDir, "redis.conf")
-	instBlockcache, err := util.GetTendisplusBlockcache(uint64(len(job.params.Ports)))
+	renderValues, err := RedisConfRenderParams{
+		IP:        job.params.IP,
+		Port:      port,
+		Password:  job.params.Password,
+		Databases: job.params.Databases,
+		InstDir:   instDir,
+		DbType:    job.params.DbType,
+		MaxMemory: "0", // 由 dbmon 动态设置
+		InstCount: uint64(len(job.params.Ports)),
+	}.Resolve()
 	if err != nil {
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return err
 	}
-	writeBufferSize, err := util.GetTendisplusWriteBufferSize(uint64(len(job.params.Ports)))
+	confData := RenderRedisConfData(job.RedisConfTemplate, renderValues)
+	err = os.WriteFile(instConfFile, []byte(confData), os.ModePerm)
 	if err != nil {
-		job.runtime.Logger.Error(err.Error())
-		return err
-	}
-	confData := job.RedisConfTemplate
-	confData = strings.ReplaceAll(confData, "{{address}}", job.params.IP)
-	confData = strings.ReplaceAll(confData, "{{port}}", strconv.Itoa(port))
-	confData = strings.ReplaceAll(confData, "{{password}}", job.params.Password)
-	confData = strings.ReplaceAll(confData, "{{redis_data_dir}}", instDir)
-	confData = strings.ReplaceAll(confData, "{{databases}}", strconv.Itoa(job.params.Databases))
-	confData = strings.ReplaceAll(confData, "{{cluster_enabled}}", clusterEnabled)
-	confData = strings.ReplaceAll(confData, "{{maxmemory}}", "0")
-	confData = strings.ReplaceAll(confData, "{{rocks_blockcachemb}}", strconv.FormatUint(instBlockcache, 10))
-	confData = strings.ReplaceAll(confData, "{{rocks_write_buffer_size}}",
-		strconv.FormatUint(writeBufferSize, 10))
-	err = ioutil.WriteFile(instConfFile, []byte(confData), os.ModePerm)
-	if err != nil {
-		job.runtime.Logger.Error("ioutil.WriteFile failed,err:%v,config_file:%s,confData:%s", err, instConfFile, confData)
+		job.runtime.Logger.Error("os.WriteFile failed,err:%v,config_file:%s,confData:%s", err, instConfFile, confData)
 		return err
 	}
 	util.LocalDirChownMysql(job.RealDataDir)
@@ -631,7 +576,7 @@ func (job *RedisInstall) StartAll() error {
 		if err != nil {
 			return err
 		}
-		job.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\"", consts.MysqlAaccount, startScript+"  "+strconv.Itoa(port)))
+		job.runtime.Logger.Info("su %s -c \"%s\"", consts.MysqlAaccount, startScript+"  "+strconv.Itoa(port))
 		_, err = util.RunLocalCmd("su", []string{consts.MysqlAaccount, "-c", startScript + "  " + strconv.Itoa(port)}, "",
 			nil, 10*time.Second)
 		if err != nil {
@@ -669,7 +614,7 @@ func (job *RedisInstall) StartAll() error {
 			return err
 		}
 		err = fmt.Errorf("redis(%s:%d) startup failed,logData:%s", job.params.IP, port, logData)
-		job.runtime.Logger.Error(err.Error())
+		job.runtime.Logger.Error("%s", err)
 		return err
 	}
 	return nil

@@ -266,7 +266,8 @@ class Builder(object):
                 type=Var.PLAIN, value=act_info.get("write_payload_var", False)
             )
 
-            self.rewritable_node_source_keys.append({"source_act": act.id, "source_key": "trans_data"})
+            if not act_info.get("is_remote_rewritable", False):
+                self.rewritable_node_source_keys.append({"source_act": act.id, "source_key": "trans_data"})
 
             flow_node_list.append(FlowNode(uid=self.data["uid"], root_id=self.root_id, node_id=act.id))
             acts.append(act)

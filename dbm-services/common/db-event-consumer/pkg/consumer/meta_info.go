@@ -67,7 +67,7 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 		slog.Error("pack header", err.Error())
 		return err
 	}
-	slog.Info("pack header", slog.String("header", string(content)))
+	// slog.Info("pack header", slog.String("header", string(content)))  // 可能包含密钥
 
 	req.Header.Set("X-Bkapi-Authorization", string(content))
 	if bkTenantId := os.Getenv("BK_TENANT_ID"); bkTenantId != "" {

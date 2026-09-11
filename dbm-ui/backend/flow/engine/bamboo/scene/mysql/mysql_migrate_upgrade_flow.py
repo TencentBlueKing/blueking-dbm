@@ -436,6 +436,7 @@ def tendbha_cluster_upgrade_subflow(
             with_collect_sysinfo=False,
             with_cc_standardize=True,
             with_instance_standardize=True,
+            with_probe=False,
         )
     )
 

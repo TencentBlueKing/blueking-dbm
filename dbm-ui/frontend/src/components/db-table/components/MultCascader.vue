@@ -78,9 +78,11 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
-  import { Checkbox, Input } from 'tdesign-vue-next';
+  import { Input } from 'tdesign-vue-next';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import useMenuList from './hooks/useMenuList';
 

@@ -179,7 +179,7 @@ func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(ctx context.Context, bkBizI
 		hamodel.DbSwitchingStrategyFieldStatus)
 
 	query := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
-	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Find(&strategies).Error; e != nil {
+	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Order(hamodel.DbSwitchingStrategyFieldID).Find(&strategies).Error; e != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
 	}
 
@@ -302,6 +302,7 @@ func (ha *DbhaData) UpdateSwitchingSnapshotLog(ctx context.Context, record *hamo
 	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
 		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldID), record.ID).
 		Updates(map[string]any{
+			hamodel.DbSwitchingSnapshotLogFieldAction:       record.Action,
 			hamodel.DbSwitchingSnapshotLogFieldStatus:       record.Status,
 			hamodel.DbSwitchingSnapshotLogFieldInstances:    record.Instances,
 			hamodel.DbSwitchingSnapshotLogFieldResult:       record.Result,

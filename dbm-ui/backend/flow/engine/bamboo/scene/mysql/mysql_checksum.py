@@ -120,6 +120,7 @@ class MysqlChecksumFlow(object):
                     with_instance_standardize=False,
                     with_backup_client=False,
                     with_exporter_config=False,
+                    with_probe=False,
                 )
             )
 

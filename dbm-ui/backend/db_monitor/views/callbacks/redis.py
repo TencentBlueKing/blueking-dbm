@@ -49,8 +49,9 @@ class RedisAlarm(AlarmCallback):
         "call_redis_alarm_correlation_analysis": [
             {
                 "keyword": "耗时",
-                "level": [0, 1, 2],
+                "level": [1],
                 "cluster_type": [],
+                "ratelimit": "2 / 1",
             },
         ],
         "call_redis_persist_anomaly_analysis": [
@@ -58,13 +59,15 @@ class RedisAlarm(AlarmCallback):
                 "keyword": "Persist异常",
                 "level": [1],
                 "cluster_type": [],
+                "ratelimit": "1 / 1",
             },
         ],
         "call_redis_single_cpu_high_analysis": [
             {
                 "keyword": "单核CPU使用率",
-                "level": [1, 2],
+                "level": [1],
                 "cluster_type": [],
+                "ratelimit": "1 / 1",
             },
         ],
     }
@@ -108,6 +111,21 @@ class RedisAlarm(AlarmCallback):
             "level": event_level,
             "appointees": callback_data.get("appointees", []),
         }
+
+        # 过滤非生产环境集群：域名第二段包含 test/migrate/dev/stage 子串的集群忽略告警分析
+        # 域名格式示例: xxx.test.db / xxx.sgamehubcondmigrate.aa.db / xxx.dev.db
+        NON_PROD_KEYWORDS = ("test", "migrate", "dev", "stage")
+        domain_parts = cluster_domain.split(".")
+        if len(domain_parts) >= 2:
+            second_part = domain_parts[1].lower()
+            matched_keyword = next((kw for kw in NON_PROD_KEYWORDS if kw in second_part), None)
+            if matched_keyword:
+                logger.info(
+                    _("[RedisAlarm] 集群 '{}' 域名第二段 '{}' 包含非生产环境标识 '{}'，跳过告警分析").format(
+                        cluster_domain, domain_parts[1], matched_keyword
+                    )
+                )
+                return
 
         for handler_name, conditions in cls.STRATEGY_HANDLERS.items():
             for condition in conditions:
@@ -225,11 +243,13 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
         if domain:
             cluster_domains.add(domain)
 
-    affected_clusters = len(cluster_domains)
+    # 预先计算排好序的集群列表，统一用于后续的 AI 输入和消息推送，保证一致性
+    sorted_cluster_domains = sorted(cluster_domains)
+    affected_clusters = len(sorted_cluster_domains)
 
     logger.info(
         _("[redis_alarm_correlation] 策略 '{}' 涉及集群数: {}，集群列表: {}").format(
-            strategy_name, affected_clusters, cluster_domains
+            strategy_name, affected_clusters, sorted_cluster_domains
         )
     )
 
@@ -245,7 +265,9 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
 
         correlation_input = {
             "strategy_name": strategy_name,
-            "cluster_domains": list(cluster_domains),
+            # SDK 的 context_type="text" 只支持字符串值，list 类型会导致模板变量渲染为空 []
+            # 因此将集群列表序列化为 JSON 字符串传入，模板中 {{ cluster_domains }} 可直接展示
+            "cluster_domains": json.dumps(sorted_cluster_domains, ensure_ascii=False),
         }
 
         result_summary = AgentHandler.ask_agent_with_command(
@@ -263,11 +285,8 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
         msgs = {
             "BKID": alarm_base_info["bk_biz_id"],
             _("集群类型"): alarm_base_info.get("cluster_type", ClusterType.RedisInstance.value),
-            _("触发集群"): cluster_domain,
-            _("受影响集群数"): len(cluster_domains),
-            _("受影响集群列表"): json.dumps(sorted(cluster_domains), ensure_ascii=False),
-            _("受影响集群明细"): "\n".join(f"- {d}" for d in sorted(cluster_domains)),
-            _("AI分析结论"): result_summary,
+            _("集群列表"): json.dumps(sorted_cluster_domains, ensure_ascii=False),
+            _("AI结论"): result_summary,
         }
         send_msg_2_qywx(title, msgs)
         logger.info(
@@ -321,7 +340,7 @@ def call_redis_persist_anomaly_analysis(callback_data: dict, alarm_base_info: di
             "BKID": alarm_base_info["bk_biz_id"],
             _("集群类型"): alarm_base_info.get("cluster_type", ClusterType.RedisInstance.value),
             _("触发集群"): cluster_domain,
-            _("AI分析结论"): result_summary,
+            _("AI结论"): result_summary,
         }
         send_msg_2_qywx(title, msgs)
         logger.info(
@@ -375,7 +394,7 @@ def call_redis_single_cpu_high_analysis(callback_data: dict, alarm_base_info: di
             "BKID": alarm_base_info["bk_biz_id"],
             _("集群类型"): alarm_base_info.get("cluster_type", ClusterType.RedisInstance.value),
             _("触发集群"): cluster_domain,
-            _("AI分析结论"): result_summary,
+            _("AI结论"): result_summary,
         }
         send_msg_2_qywx(title, msgs)
         logger.info(

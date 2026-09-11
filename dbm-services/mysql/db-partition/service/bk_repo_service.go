@@ -16,17 +16,27 @@ import (
 
 // UploadDirectToBkRepo 上传文件到介质中心
 func UploadDirectToBkRepo(filename string) (*BkRepoRespone, error) {
+	objectName, err := safeLocalFilename(filename)
+	if err != nil {
+		slog.Error("invalid upload filename", "err", err)
+		return nil, err
+	}
+	localPath, err := resolveSafeLocalPath(objectName)
+	if err != nil {
+		slog.Error("invalid upload filepath", "err", err)
+		return nil, err
+	}
 	// 路径需要包含文件名称
 	targetURL, err := url.JoinPath(model.BkRepo.EndPointUrl,
-		path.Join("generic", model.BkRepo.Project, model.BkRepo.PublicBucket, "mysql", "partition", filename))
+		path.Join("generic", model.BkRepo.Project, model.BkRepo.PublicBucket, "mysql", "partition", objectName))
 	if err != nil {
 		slog.Error("get url fail")
 		return nil, err
 	}
-	slog.Info(fmt.Sprintf("start upload files from  %s to %s", filename, targetURL))
+	slog.Info(fmt.Sprintf("start upload files from  %s to %s", localPath, targetURL))
 	bodyBuf := bytes.NewBufferString("")
 	bodyWriter := multipart.NewWriter(bodyBuf)
-	fh, err := os.Open(filename)
+	fh, err := os.Open(localPath)
 	if err != nil {
 		slog.Error("opening file error", "err", err)
 		return nil, err

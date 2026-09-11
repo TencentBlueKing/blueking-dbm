@@ -36,6 +36,17 @@ const (
 	StatusStopped Status = "stopped"
 )
 
+// Probe health exit codes. The analysis detector captures these from the SSH
+// session when it runs "dbha-probe health -j" on the remote host.
+const (
+	ExitCodeHealthDiskWriteFail = 40
+	ExitCodeHealthUptimeFail    = 41
+)
+
+// ProbeHealthMarkerFile is the fixed marker file name the probe health command
+// writes into each write verification dir to verify the local disk is writable.
+const ProbeHealthMarkerFile = "dbhav2_probe"
+
 // HealthInfo health information.
 type HealthInfo struct {
 	Pid      int32  `json:"pid"`

@@ -88,8 +88,8 @@ WHILE @@FETCH_STATUS = 0
     SET @sql = ''
 
     SELECT @servername = srv.name ,
-    @datasource = ISNULL(srv.data_source, N'''') ,
-    @productName = ISNULL(srv.product, N'''') ,
+    @datasource = ISNULL(srv.data_source, N'') ,
+    @productName = ISNULL(srv.product, N'') ,
     @provider = ISNULL(srv.provider, N'SQLNCLI') ,
     @collationcompatible = CAST(srv.is_collation_compatible AS BIT) ,
     @dataaccess = CAST(srv.is_data_access_enabled AS BIT) ,
@@ -103,7 +103,7 @@ WHILE @@FETCH_STATUS = 0
     @querytimeout = srv.query_timeout ,
     @useremotecollation = srv.uses_remote_collation ,
     @remoteproctransactionpromotion = CAST(srv.is_remote_proc_transaction_promotion_enabled AS BIT) ,
-    @catalog = ISNULL(srv.catalog, N'''')
+    @catalog = ISNULL(srv.catalog, N'')
     FROM sys.servers AS srv
     WHERE ( srv.server_id != 0 ) AND ( srv.name = @servername ) AND ( srv.[server_id] = @id )
 
@@ -123,10 +123,28 @@ WHILE @@FETCH_STATUS = 0
     
     SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN'
     
-    IF LEN(@datasource) > 0
-        SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC master.dbo.sp_addlinkedserver @server = N'''+@servername+''', @srvproduct=N'''+@productName+''', @provider=N'''+@provider+''', @datasrc=N'''+@datasource+''''+CASE WHEN @catalog IS NOT NULL AND @catalog <> N'''' THEN ', @catalog=N'''+@catalog+'''' ELSE '''' END
+    -- NOTE: In T-SQL string literals, '''' == a single quote char (NOT empty string).
+    -- Empty string in a string-literal context must be written as '' (evaluates to '').
+    -- The earlier "N''''" bug set ISNULL default to a single quote and CASE compared
+    -- against a single quote instead of empty string, which corrupted @datasrc / @catalog
+    -- values and surfaced as a misleading "Database 'remote' does not exist" error.
+    --
+    -- IMPORTANT — sp_addlinkedserver's parameter contract:
+    -- When @srvproduct = N'SQL Server' (case-insensitive), SQL Server treats it as
+    -- the "shortcut" form that links to another SQL Server instance identified by
+    -- @server itself. In this mode you MUST NOT pass @provider / @datasrc / @location
+    -- / @provstr / @catalog — doing so raises:
+    --    "You cannot specify a provider or any properties for product 'SQL Server'."
+    -- So we branch on @productName here. This bug was previously masked by the
+    -- unterminated-string bug above; once quotes were fixed, SQL Server actually
+    -- reached the semantic validator and rejected the call.
+    IF UPPER(LTRIM(RTRIM(@productName))) = N'SQL SERVER'
+        -- Shortcut form: only @server + @srvproduct are allowed.
+        SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC master.dbo.sp_addlinkedserver @server = N'''+@servername+''', @srvproduct=N'''+@productName+''''
+    ELSE IF LEN(@datasource) > 0
+        SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC master.dbo.sp_addlinkedserver @server = N'''+@servername+''', @srvproduct=N'''+@productName+''', @provider=N'''+@provider+''', @datasrc=N'''+@datasource+''''+CASE WHEN @catalog IS NOT NULL AND @catalog <> N'' THEN ', @catalog=N'''+@catalog+'''' ELSE '' END
     ELSE
-        SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC master.dbo.sp_addlinkedserver @server = N'''+@servername+''', @srvproduct=N'''+@productName+''''+CASE WHEN @catalog IS NOT NULL AND @catalog <> N'''' THEN ', @catalog=N'''+@catalog+'''' ELSE '''' END
+        SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC master.dbo.sp_addlinkedserver @server = N'''+@servername+''', @srvproduct=N'''+@productName+''''+CASE WHEN @catalog IS NOT NULL AND @catalog <> N'' THEN ', @catalog=N'''+@catalog+'''' ELSE '' END
 
     -- NOTE: sp_addlinkedsrvlogin is intentionally NOT emitted here.
     -- The Go layer will append the correct login statement per linked server

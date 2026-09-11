@@ -40,6 +40,8 @@ def drf_exception_handler(exc, context):
     logger.error(
         _("捕获未处理异常, 请求URL->{}, 请求方法->{} 请求参数->{}").format(request.path, request.method, json.dumps(request_params))
     )
+    # 末两位为 00 表示上游未采样，此时本地 span 会被丢弃、APM 查不到记录
+    logger.error("traceparent from upstream: %s", request.META.get("HTTP_TRACEPARENT"))
     # 专门处理 404 异常，直接返回前端，前端处理
     if isinstance(exc, Http404):
         return JsonResponse(_error(404, str(exc)))

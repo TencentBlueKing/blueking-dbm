@@ -12,7 +12,7 @@ import copy
 import json
 import logging.config
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -105,6 +105,32 @@ cache_cluster_type_list = [
     ClusterType.TendisRedisInstance.value,
     ClusterType.TendisRedisCluster.value,
 ]
+
+
+def query_cluster_dbconf_map(
+    bk_biz_id: int,
+    level_name: str,
+    level_value: str | None,
+    cluster_type: str,
+    conf_file: str,
+) -> Dict[str, str]:
+    """查 dbconfig MAP, 不实例化 RedisActPayload(其 __init__ 会拉介质包)."""
+    params = {
+        "bk_biz_id": str(bk_biz_id),
+        "level_name": level_name,
+        "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+        "conf_file": conf_file,
+        "conf_type": ConfigTypeEnum.DBConf,
+        "namespace": cluster_type,
+        "format": FormatType.MAP,
+    }
+    if level_value is not None:
+        params["level_value"] = str(level_value)
+    resp = DBConfigApi.query_conf_item(params=params)
+    content = (resp or {}).get("content") or {}
+    if not isinstance(content, dict):
+        return {}
+    return {str(k): "" if v is None else str(v) for k, v in content.items()}
 
 
 class RedisActPayload(object):
@@ -350,10 +376,9 @@ class RedisActPayload(object):
         """
         from backend.flow.utils.redis.redis_util import version_ge
 
-        # 判断是否为版本升级场景
-        is_version_upgrade = False
-        if target_version and target_version != cluster_version:
-            is_version_upgrade = version_ge(target_version, cluster_version)
+        # 判断是否为版本升级场景. 同 major(相等)也走全量 plat schema, 不能掉进只继承
+        # maxmemory/databases 的降级分支, 否则 actuator 会用空壳配置覆盖 redis.conf.
+        is_version_upgrade = bool(target_version) and version_ge(target_version, cluster_version)
 
         # 判断类型是否变更
         type_changed = target_cluster_type and target_cluster_type != cluster_type
@@ -370,6 +395,8 @@ class RedisActPayload(object):
             conf_names.append("cluster-enabled")
         if is_redis_instance_type(cluster_type) or is_tendisssd_instance_type(cluster_type):
             conf_names.append("maxmemory")
+        # 只有主从版会改 databases; Predixy/Twemproxy 等 plat 常是 {{databases}}, 不能当客制项继承
+        if cluster_type == ClusterType.TendisRedisInstance:
             conf_names.append("databases")
         return conf_names, None
 
@@ -2340,87 +2367,236 @@ class RedisActPayload(object):
             },
         }
 
+    # actuator 会按下发的配置项整份重建 redis.conf, 缺这些项等于写出一份没有端口、
+    # 没有数据目录的配置. 与 dbactuator 侧 validateRegenConf 的必备指令保持一致.
+    REGEN_REQUIRED_CONF_NAMES = ("port", "dir")
+
+    def build_port_conf_configs(self, conf_redispatch_infos: list) -> Dict[str, dict]:
+        """为原地升级构造 port -> 目标版本配置 的映射
+
+        一台主机上的端口可能分属不同集群(主从版架构), 每个集群有各自的域名与 dbconfig,
+        所以按集群算一次目标版本配置, 再展开到该集群在本机的端口上.
+
+        只有"配置项完整"的集群才下发: 下发即意味着 actuator 整份重建配置文件,
+        宁可退回"只换二进制"的旧行为, 也不能拿一份残缺配置去覆盖线上文件.
+
+        conf_redispatch_infos 每项:
+            {"immute_domain","bk_biz_id","cluster_type","current_version","databases","cluster_id","ports"}
+        """
+        port_conf_configs: Dict[str, dict] = {}
+        for info in conf_redispatch_infos:
+            ports = info.get("ports") or []
+            if not ports:
+                continue
+            target_conf_map, _upsert, _stale = self.build_target_version_conf_map(
+                bk_biz_id=info["bk_biz_id"],
+                cluster_domain=info["immute_domain"],
+                cluster_type=info["cluster_type"],
+                current_version=info["current_version"],
+                target_version=info["target_version"],
+            )
+            if not target_conf_map:
+                logger.warning(
+                    _("集群:{} 目标版本:{} 配置项为空, 跳过配置文件重建").format(info["immute_domain"], info["target_version"])
+                )
+                continue
+            # 降版本、集群类型变更等场景同样只继承少量配置项, 用必备项兜住这些口径
+            missing_conf_names = [name for name in self.REGEN_REQUIRED_CONF_NAMES if name not in target_conf_map]
+            if missing_conf_names:
+                logger.warning(
+                    _("集群:{} 目标版本:{} 配置项不完整(缺少 {}), 跳过配置文件重建").format(
+                        info["immute_domain"], info["target_version"], ",".join(missing_conf_names)
+                    )
+                )
+                continue
+            # 复制关系只来自磁盘 carry-over 或升级路径的 applyReplExpectationToConf,
+            # 不能把 plat/CLUSTER 里误带的 replicaof/slaveof 下发给 actuator.
+            conf_configs = dict(target_conf_map)
+            conf_configs.pop("replicaof", None)
+            conf_configs.pop("slaveof", None)
+            if info.get("cluster_type") == ClusterType.TendisRedisInstance:
+                # 主从版可改 databases; 缺省 0 让 actuator 跟磁盘, 避免 silently 写成 2
+                databases = int(info.get("databases") or 0)
+            else:
+                # Predixy/Twemproxy/RedisCluster: 不改 databases, {{databases}} + 0 跟磁盘
+                databases = 0
+                conf_configs["databases"] = "{{databases}}"
+            conf_item = {
+                "conf_configs": conf_configs,
+                "databases": databases,
+                "load_modules_detail": get_cluster_redis_modules_detail(cluster_id=info["cluster_id"]),
+            }
+            for port in ports:
+                port_conf_configs[str(port)] = conf_item
+        return port_conf_configs
+
     # redis 原地升级
     def redis_cluster_version_update_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
         db_version = params["db_version"]
         cluster_type = params.get("cluster_type", "")
-        redis_pkg = get_latest_redis_package_by_version(db_version)
+        redis_pkg = get_latest_redis_package_by_version(db_version, name_prefix=params.get("pkg_name_prefix"))
+        payload = {
+            "pkg": redis_pkg.name,
+            "pkg_md5": redis_pkg.md5,
+            "ip": params["ip"],
+            "ports": params["ports"],
+            "role": params["role"],
+            "cluster_type": cluster_type,
+            "flush_after_upgrade": params.get("flush_after_upgrade", False),
+        }
+        # 空载起进程 + 升级即建同步: 三项都缺省时 actuator 保持旧行为(带着本地数据重启、不碰主从关系)
+        if params.get("sync_masters"):
+            payload["sync_masters"] = params["sync_masters"]
+        if params.get("discard_local_data_on_restart"):
+            payload["discard_local_data_on_restart"] = True
+            payload["sync_wait_timeout_seconds"] = params.get("sync_wait_timeout_seconds", 0)
+        # 目标版本配置文件重建: conf_redispatch_infos 缺省时 actuator 保持旧行为(只换二进制)
+        conf_redispatch_infos = params.get("conf_redispatch_infos") or []
+        if conf_redispatch_infos:
+            port_conf_configs = self.build_port_conf_configs(conf_redispatch_infos)
+            if port_conf_configs:
+                payload["port_conf_configs"] = port_conf_configs
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.VERSION_UPDATE.value,
-            "payload": {
-                "pkg": redis_pkg.name,
-                "pkg_md5": redis_pkg.md5,
-                "ip": params["ip"],
-                "ports": params["ports"],
-                "role": params["role"],
-                "cluster_type": cluster_type,
-                "flush_after_upgrade": params.get("flush_after_upgrade", False),
-            },
+            "payload": payload,
         }
+
+    def _query_dbconf_map(
+        self,
+        bk_biz_id: int,
+        level_name: str,
+        level_value: str | None,
+        cluster_type: str,
+        conf_file: str,
+    ) -> Dict[str, str]:
+        cache = getattr(self, "_dbconf_map_cache", None)
+        if cache is None:
+            cache = {}
+            self._dbconf_map_cache = cache
+        cache_key = (bk_biz_id, level_name, level_value, cluster_type, conf_file)
+        if cache_key not in cache:
+            cache[cache_key] = query_cluster_dbconf_map(
+                bk_biz_id=bk_biz_id,
+                level_name=level_name,
+                level_value=level_value,
+                cluster_type=cluster_type,
+                conf_file=conf_file,
+            )
+        return dict(cache[cache_key])
+
+    def build_target_version_conf_map(
+        self,
+        bk_biz_id: int,
+        cluster_domain: str,
+        cluster_type: str,
+        current_version: str,
+        target_version: str,
+    ) -> Tuple[Dict[str, str], Dict[str, str], List[str]]:
+        """计算版本升级后集群应有的 redis 配置项
+
+        类型不变且版本升级: 以目标版本 plat 的配置项名为 schema.
+        源集群(改名后)有则用源取值, 源没有则用目标版本业务级默认(继承 plat).
+        源有但目标 plat 不认的项丢掉; 已改名迁走的旧名不再用 plat 默认补回去.
+
+        降级/类型变更: 只继承少量指定项, 不补目标版本全量默认.
+
+        Returns:
+            (target_conf_map, cluster_upsert_map, stale_conf_names)
+            target_conf_map: 给 actuator 渲染的完整目标配置(含 plat/APP 默认补项)
+            cluster_upsert_map: 仅源 CLUSTER 上实际有过的项(改名后), 给 dbconfig UPDATE
+            stale_conf_names: 源版本 conf_file 下需要清理的配置项名
+        """
+        src_content = self._query_dbconf_map(
+            bk_biz_id=bk_biz_id,
+            level_name=LevelName.CLUSTER,
+            level_value=cluster_domain,
+            cluster_type=cluster_type,
+            conf_file=current_version,
+        )
+        conf_result = self.redis_conf_names_by_cluster_type(
+            cluster_type,
+            current_version,
+            target_cluster_type=cluster_type,
+            target_version=target_version,
+        )
+        # 返回值为元组 (conf_names, target_version_for_rename)
+        conf_names, _target_version = conf_result if isinstance(conf_result, tuple) else (conf_result, None)
+        is_version_upgrade = conf_names is None
+        # 如果返回None，表示需要继承所有配置项（版本升级场景）
+        if conf_names is None:
+            conf_names = list(src_content.keys())
+
+        # 获取目标版本plat级别的配置项
+        target_plat_map = self._query_dbconf_map(
+            bk_biz_id=PLAT_BIZ_ID,
+            level_name=LevelName.PLAT,
+            level_value=None,
+            cluster_type=cluster_type,
+            conf_file=target_version,
+        )
+        target_conf_names = list(target_plat_map.keys())
+        rename_version = _target_version or ""
+        renamed_src_map: Dict[str, str] = {}
+        renamed_away: set = set()
+        stale_conf_names: List[str] = []
+        for conf_name in conf_names:
+            # 先按目标版本改名, 再判断目标版本认不认这个配置项.
+            # 顺序反过来就会漏: Redis 的 slave-*/ziplist-* 在 Valkey 的定义里叫
+            # replica-*/listpack-*, 用旧名去查目标版本定义查不到, 会在改名之前就被
+            # 过滤掉, 集群调过的取值直接丢失(_VALKEY_8_LEGACY_CONF_NAME_MAP 形同虚设).
+            new_conf_name = self._replace_legacy_conf_name(conf_name, rename_version)
+            if conf_name in src_content and new_conf_name in target_conf_names:
+                renamed_src_map[new_conf_name] = src_content[conf_name]
+            if conf_name in src_content:
+                if conf_name == "cluster-enabled" and current_version == RedisVersion.Redis20.value:
+                    continue
+                stale_conf_names.append(conf_name)
+                if new_conf_name != conf_name:
+                    renamed_away.add(conf_name)
+
+        if not is_version_upgrade:
+            return renamed_src_map, dict(renamed_src_map), stale_conf_names
+
+        # 升级: 按目标 plat schema 填值. 业务级 MAP 已继承 plat, 缺项再回落 plat.
+        target_default_map = dict(target_plat_map)
+        target_app_map = self._query_dbconf_map(
+            bk_biz_id=bk_biz_id,
+            level_name=LevelName.APP,
+            level_value=str(bk_biz_id),
+            cluster_type=cluster_type,
+            conf_file=target_version,
+        )
+        target_default_map.update(target_app_map)
+        target_conf_map: Dict[str, str] = {}
+        for new_name in target_conf_names:
+            if new_name in renamed_src_map:
+                target_conf_map[new_name] = renamed_src_map[new_name]
+            elif new_name in renamed_away:
+                continue
+            elif new_name in target_default_map:
+                target_conf_map[new_name] = target_default_map[new_name]
+        # CLUSTER 层只写源集群客制项, plat/APP 补出来的新项不下发成集群覆盖
+        return target_conf_map, dict(renamed_src_map), stale_conf_names
 
     # redis 原地升级更新dbconfig
     def redis_cluster_version_update_dbconfig(self, cluster_map: dict):
         # 如果版本没变化，不需要更新
         if cluster_map["current_version"] == cluster_map["target_version"]:
             return
-        src_resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster_map["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_map["cluster_domain"],
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster_map["current_version"],
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster_map["cluster_type"],
-                "format": FormatType.MAP,
-            }
-        )
-        conf_result = self.redis_conf_names_by_cluster_type(
-            cluster_map["cluster_type"],
-            cluster_map["current_version"],
-            target_cluster_type=cluster_map["cluster_type"],
+        _target_conf_map, cluster_upsert_map, stale_conf_names = self.build_target_version_conf_map(
+            bk_biz_id=cluster_map["bk_biz_id"],
+            cluster_domain=cluster_map["cluster_domain"],
+            cluster_type=cluster_map["cluster_type"],
+            current_version=cluster_map["current_version"],
             target_version=cluster_map["target_version"],
         )
-        # 返回值为元组 (conf_names, target_version_for_rename)
-        conf_names, _target_version = conf_result if isinstance(conf_result, tuple) else (conf_result, None)
-        # 如果返回None，表示需要继承所有配置项（版本升级场景）
-        if conf_names is None:
-            conf_names = list(src_resp["content"].keys())
-
-        # 获取目标版本plat级别的配置项
-        target_conf_items = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(PLAT_BIZ_ID),
-                "level_name": LevelName.PLAT,
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster_map["target_version"],
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster_map["cluster_type"],
-                "format": FormatType.MAP,
-            }
-        )
-        target_conf_names = list(target_conf_items["content"].keys())
-        conf_items = []
-        remove_items = []
-        for conf_name in conf_names:
-            # 构建写入项：只包含源版本存在且目标版本定义中也有的配置项
-            if conf_name in src_resp["content"] and conf_name in target_conf_names:
-                # 如果目标版本>=5，需要将slave-lazy-flush替换为replica-lazy-flush
-                new_conf_name = self._replace_legacy_conf_name(conf_name, _target_version or "")
-                conf_items.append(
-                    {
-                        "conf_name": new_conf_name,
-                        "conf_value": src_resp["content"][conf_name],
-                        "op_type": OpType.UPDATE,
-                    }
-                )
-            # 构建删除项：只删除源版本中实际存在的配置项
-            if conf_name in src_resp["content"]:
-                if conf_name == "cluster-enabled" and cluster_map["current_version"] == RedisVersion.Redis20.value:
-                    continue
-                remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
+        conf_items = [
+            {"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE}
+            for conf_name, conf_value in cluster_upsert_map.items()
+        ]
+        remove_items = [{"conf_name": conf_name, "op_type": OpType.REMOVE} for conf_name in stale_conf_names]
         upsert_param = {
             "conf_file_info": {
                 "conf_file": "",  # 需要替换成真实值

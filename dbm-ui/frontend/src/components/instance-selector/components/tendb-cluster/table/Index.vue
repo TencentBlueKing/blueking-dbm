@@ -26,6 +26,7 @@
         :filter-value="searchValue"
         :height="500"
         :max-height="530"
+        :row-key="firstColumnFieldId"
         style="margin-top: 12px"
         @filter-change="handleFilterChange"
         @row-click="handleRowClick">
@@ -50,7 +51,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { useSelectorSearch } from '@hooks';
@@ -59,6 +60,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import Checkbox from '@components/tdesign-ui/checkbox';
 
   import {
     activePanelInjectionKey,
@@ -111,7 +113,7 @@
 
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
-  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
+  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as string);
   const mainSelectDisable = computed(() =>
     props.disabledRowConfig
       ? tableData.value.filter((data) => props.disabledRowConfig?.handler(data)).length === tableData.value.length

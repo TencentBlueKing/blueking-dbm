@@ -433,6 +433,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     with_instance_standardize=False,
                     with_collect_sysinfo=False,
                     with_cc_standardize=False,
+                    with_probe=False,
                 )
             )
             # 人工确认切换迁移实例

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import base64
 
 from backend.components import DBPrivManagerApi
-from backend.flow.consts import MediumEnum, RequestResultCode
+from backend.flow.consts import DEFAULT_INSTANCE, MediumEnum, MySQLPrivComponent, RequestResultCode
 
 
 class OraclePassword(object):
@@ -101,3 +101,14 @@ class OraclePassword(object):
         for item in result["data"]["items"]:
             item["password"] = self.base64_decode(item["password"])
         return {"password": result["data"]["items"], "info": None}
+
+    @staticmethod
+    def get_sys_account(username: str):
+        """获取系统、默认内置账号"""
+        data = DBPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [{"username": username, "component": MySQLPrivComponent.ORACLE.value}],
+            }
+        )["items"]
+        return {"username": username, "password": base64.b64decode(data[0]["password"]).decode("utf-8")}

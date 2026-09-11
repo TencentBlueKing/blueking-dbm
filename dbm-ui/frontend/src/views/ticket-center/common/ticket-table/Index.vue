@@ -271,9 +271,10 @@
         </template>
       </PrimaryTable>
       <div class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
           @change="handlePageValueChange"
           @limit-change="handlePageLimitChange">
           <template
@@ -287,7 +288,7 @@
               <span class="number">{{ selectedCount }}</span>
             </I18nT>
           </template>
-        </BkPagination>
+        </DbPagination>
       </div>
     </div>
     <TableDetailDialog
@@ -573,6 +574,10 @@
 
   // 切换页码
   const handlePageValueChange = (pageValue: number) => {
+    // 外部重置 current 后组件会回抛一次 change，这里去重避免重复请求
+    if (pagination.current === pageValue) {
+      return;
+    }
     pagination.current = pageValue;
 
     isPaginationChangeFetch = true;
@@ -712,12 +717,9 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      .bk-pagination {
+      // 占满一行，让总条数、每页条数靠左，页码靠右
+      .dbm-pagination {
         width: 100%;
-
-        & > .is-last {
-          margin-left: auto;
-        }
       }
     }
   }

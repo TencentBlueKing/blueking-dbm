@@ -46,6 +46,7 @@ from backend.iam_app.handlers.drf_perm.base import (
 from backend.iam_app.handlers.drf_perm.monitor import GlobalMonitorPolicyPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
+from backend.utils.trace import detached_root_span
 
 logger = logging.getLogger("root")
 
@@ -453,6 +454,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         serializer_class=serializers.MySQLAlarmCallbackDataSerializer,
         permission_classes=[AllowAny],
     )
+    @detached_root_span
     def alarm_callback(self, request, *args, **kwargs):
         # 处理套餐: dbm_alarm_http_callback. 定义在 ALARM_CALLBACK_ACTIONS
         logger.info("[alarm_callback] request data: %s", json.dumps(request.data))
@@ -495,6 +497,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         serializer_class=serializers.AlarmCallBackDataSerializer,
         permission_classes=[AllowAny],
     )
+    @detached_root_span
     def callback(self, request, *args, **kwargs):
         # 处理套餐: dbm_autofix_http_callback. 定义在 ALARM_CALLBACK_ACTIONS
         # 监控回调需要使用 Bearer Token 进行验证
