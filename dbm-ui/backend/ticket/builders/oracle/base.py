@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
@@ -31,9 +30,6 @@ class BaseOracleTicketFlowBuilder(BaseTicketFlowBuilderPatchMixin, TicketFlowBui
 class OracleOpsBaseDetailSerializer(
     TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, ParamValidateSerializerMixin, serializers.Serializer
 ):
-    # TODO: rules内部校验
-    rules = serializers.JSONField(help_text=_("提取/删除/备份规则列表"))
-
     def validate(self, attrs):
         """
         公共校验：集群操作互斥校验
