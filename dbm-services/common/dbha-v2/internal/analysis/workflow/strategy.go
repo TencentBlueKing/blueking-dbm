@@ -27,6 +27,7 @@ package workflow
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -34,31 +35,38 @@ import (
 )
 
 // SpecialMatchFunc is the function signature for special strategy matching.
-// It takes all instances in a group and returns the count of matched special conditions.
+// It takes unbound instances and a trigger threshold, then returns matching failure instances.
 type SpecialMatchFunc = failure.SpecialMatchFunc
 
-// GetSpecialMatchFunc returns the special strategy match function for the given event name.
+// GetSpecialMatchFunc returns the provider-registered special matcher for the event name.
 func GetSpecialMatchFunc(eventName haprobe.DbEventName) SpecialMatchFunc {
 	return failure.SpecialMatchOf(eventName)
 }
 
-// CountInstancesByEventName counts the number of instances matching the specified event name.
-func CountInstancesByEventName(instances []FailureInstanceInfo, eventName haprobe.DbEventName) int {
-	count := 0
+// FilterInstancesByEventAndCount returns instances matching eventName whose count reaches threshold.
+func FilterInstancesByEventAndCount(
+	instances []FailureInstanceInfo,
+	eventName haprobe.DbEventName,
+	threshold int,
+) []FailureInstanceInfo {
+	out := make([]FailureInstanceInfo, 0, len(instances))
 	for _, inst := range instances {
-		if inst.EventName == eventName {
-			count++
+		if inst.EventName == eventName && inst.Count >= threshold {
+			out = append(out, inst)
 		}
 	}
-	return count
+	return out
 }
 
 // SortCandidates sorts the candidate strategy list by priority.
 // Sorting rules (compared from high to low):
 //  1. Biz-level strategies (BkBizID != 0) take priority over global strategies (BkBizID == 0)
 //  2. Lower Priority value means higher priority
+//  3. When priority is equal, switch action takes priority over notify action
+//
+// Equal candidates retain their original order.
 func SortCandidates(candidates []*hamodel.DbSwitchingStrategy) {
-	sort.Slice(candidates, func(i, j int) bool {
+	sort.SliceStable(candidates, func(i, j int) bool {
 		// tier 1: biz-level strategy > global strategy
 		iBiz := candidates[i].BkBizID != 0
 		jBiz := candidates[j].BkBizID != 0
@@ -67,23 +75,30 @@ func SortCandidates(candidates []*hamodel.DbSwitchingStrategy) {
 		}
 
 		// tier 2: lower priority value first
-		return candidates[i].Priority < candidates[j].Priority
+		if candidates[i].Priority != candidates[j].Priority {
+			return candidates[i].Priority < candidates[j].Priority
+		}
+
+		// tier 3: switch action > notify action when priority is equal
+		iSwitch := candidates[i].Action == hamodel.ActionTypeSwitch
+		jSwitch := candidates[j].Action == hamodel.ActionTypeSwitch
+		return iSwitch && !jSwitch
 	})
 }
 
-// FormatInstanceEventSummary summarizes event names and their counts for all instances in a group, used for logging.
-func FormatInstanceEventSummary(instances []FailureInstanceInfo) string {
-	eventCounts := make(map[haprobe.DbEventName]int)
+// FormatInstanceNotifySummary formats instance details for notification content.
+func FormatInstanceNotifySummary(instances []FailureInstanceInfo) string {
+	parts := make([]string, 0, len(instances))
 	for _, inst := range instances {
-		eventCounts[inst.EventName]++
+		parts = append(parts, fmt.Sprintf(
+			"cluster:%s(%d),inst:%s:%d,event:%s,reason:%s",
+			inst.Cluster,
+			inst.ClusterID,
+			inst.IP,
+			inst.Port,
+			inst.EventName.String(),
+			inst.EventNameReason.Str().String(),
+		))
 	}
-
-	summary := ""
-	for name, count := range eventCounts {
-		if summary != "" {
-			summary += ", "
-		}
-		summary += fmt.Sprintf("%s:%d", name, count)
-	}
-	return summary
+	return strings.Join(parts, " | ")
 }

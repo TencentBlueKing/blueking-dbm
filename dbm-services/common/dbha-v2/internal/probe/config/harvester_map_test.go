@@ -137,3 +137,36 @@ harvester:
 		}
 	}
 }
+
+func TestLoad_HealthDiskWriteDirs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "probe.yaml")
+	content := `
+name: probe
+health:
+  diskWriteDirs:
+    - /tmp
+harvester:
+  mysql:
+    user: mysql_user
+    password: mysql_pwd
+    interval: 20s
+    timeout: 5s
+    endpoints:
+      - ip: 127.0.0.1
+        ports: ["3306"]
+        clusterType: tendbha
+        machineType: backend
+        accessLayer: storage
+        proto: tcp
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config failed, errmsg: %s", err)
+	}
+	if err := config.Load(path); err != nil {
+		t.Fatalf("load config failed, errmsg: %s", err)
+	}
+	if len(config.Cfg.Health.DiskWriteDirs) != 1 || config.Cfg.Health.DiskWriteDirs[0] != "/tmp" {
+		t.Fatalf("Health.DiskWriteDirs = %#v, want [/tmp]", config.Cfg.Health.DiskWriteDirs)
+	}
+}
