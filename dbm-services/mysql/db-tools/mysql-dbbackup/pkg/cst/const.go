@@ -42,7 +42,7 @@ const (
 	// 磁盘空间数据量大于 BackupTypeAutoDataSizeGB ，物理备份
 	// glibc 版本小于 2.14，物理备份
 	BackupTypeAuto           = "auto"
-	BackupTypeAutoDataSizeGB = 400
+	BackupTypeAutoDataSizeGB = 200
 )
 
 const (
