@@ -10,6 +10,8 @@ export interface DataStructure extends DetailBase {
     resource_spec: {
       redis: {
         count: number;
+        label_names: string[];
+        labels: string[];
         spec_id: number;
       };
     };

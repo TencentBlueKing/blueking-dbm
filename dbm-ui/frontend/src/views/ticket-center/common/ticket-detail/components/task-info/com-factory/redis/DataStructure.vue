@@ -43,10 +43,10 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="spec"
-      :title="t('规格需求')">
+      col-key="recovery_time_point"
+      :title="t('构造到指定时间')">
       <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.specs[row.resource_spec.redis.spec_id].name }}
+        {{ utcDisplayTime(row.recovery_time_point) }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -57,10 +57,27 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="recovery_time_point"
-      :title="t('构造到指定时间')">
+      col-key="spec"
+      :title="t('目标规格')">
       <template #default="{ row }: { row: RowData }">
-        {{ utcDisplayTime(row.recovery_time_point) }}
+        {{ ticketDetails.details.specs[row.resource_spec.redis.spec_id].name }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_tag"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <DbTag
+          v-for="labelName in row.resource_spec.redis.label_names"
+          :key="labelName"
+          class="mr-4">
+          {{ labelName }}
+        </DbTag>
+        <DbTag
+          v-if="!(row.resource_spec.redis.label_names || []).length"
+          theme="success">
+          {{ t('通用无标签') }}
+        </DbTag>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
