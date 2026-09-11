@@ -175,6 +175,8 @@ export enum TicketTypes {
   MONGODB_ADD_SHARD = 'MONGODB_ADD_SHARD', // 分片集群增加分片数
   MONGODB_ADD_SHARD_NODES = 'MONGODB_ADD_SHARD_NODES', // mongo 扩容 shard 节点数，拆分为两个单据，暂时保留以查看历史单据
   MONGODB_AUTHORIZE_RULES = 'MONGODB_AUTHORIZE_RULES', // MongoDB 集群授权
+  MONGODB_AUTOFIX = 'MONGODB_AUTOFIX', // MongoDB 故障自愈
+  MONGODB_AUTOFIX_PRE = 'MONGODB_AUTOFIX_PRE', // MongoDB 故障自愈确认
   MONGODB_BACKUP = 'MONGODB_BACKUP', // mongo 库表备份
   MONGODB_CLUSTER_STANDARDIZE = 'MONGODB_CLUSTER_STANDARDIZE', // mongo 集群标准化
   MONGODB_CUTOFF = 'MONGODB_CUTOFF', // mongo 整机替换, 拆分为两个单据，暂时保留以查看历史单据

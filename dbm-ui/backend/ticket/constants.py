@@ -661,7 +661,11 @@ class TicketType(StrStructuredEnum):
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"), register_iam=True)
     MONGODB_INSTALL_DBMON = TicketEnumField("MONGODB_INSTALL_DBMON", _("MongoDB 安装DBMon"), _("集群维护"))
     MONGODB_AUTOFIX = TicketEnumField("MONGODB_AUTOFIX", _("MongoDB 故障自愈"), _("集群维护"))
+    MONGODB_AUTOFIX_PRE = TicketEnumField("MONGODB_AUTOFIX_PRE", _("MongoDB 故障自愈确认"), _("集群维护"))
     MONGODB_INSTANCE_DEINSTALL = TicketEnumField("MONGODB_INSTANCE_DEINSTALL", _("MongoDB 实例下架"), _("集群维护"))
+    MONGODB_DEFERRED_DEINSTALL = TicketEnumField(
+        "MONGODB_DEFERRED_DEINSTALL", _("MongoDB 延迟下架"), _("集群维护")
+    )
     MONGODB_INSTANCE_FIX_STATUS = TicketEnumField("MONGODB_INSTANCE_FIX_STATUS", _("MongoDB 节点状态修复"),
                                                   _("集群维护"))
     MONGODB_CLUSTER_STANDARDIZE = TicketEnumField("MONGODB_CLUSTER_STANDARDIZE", _("MongoDB 集群标准化"))

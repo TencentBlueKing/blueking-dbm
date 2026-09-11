@@ -1,5 +1,7 @@
 export * from './addShardNodes';
 export * from './authorizeRules';
+export * from './autofix';
+export * from './autofixPre';
 export * from './backup';
 export * from './clusterStandardize';
 export * from './cutoff';

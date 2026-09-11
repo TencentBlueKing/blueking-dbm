@@ -73,6 +73,8 @@ class CMRMongoDBMetaService(BaseService):
                     )
                 )
 
+            defer_deinstall = bool(kwargs.get("defer_deinstall"))
+
             # 替换 Mongos 节点
             if kwargs.get("mongos"):
                 logger.info("cmr cluster {} mongos : {} ".format(mongo_cluster.immute_domain, kwargs.get("mongos")))
@@ -82,7 +84,9 @@ class CMRMongoDBMetaService(BaseService):
                             mongo_cluster.immute_domain, mongo_cluster.cluster_type
                         )
                     )
-                self.mongos_replace_scene(mongo_cluster, kwargs.get("mongos"), kwargs.get("created_by"))
+                self.mongos_replace_scene(
+                    mongo_cluster, kwargs.get("mongos"), kwargs.get("created_by"), keep_machine=defer_deinstall
+                )
 
             # 替换 MongoDB 节点
             if kwargs.get("mongodb"):
@@ -92,6 +96,7 @@ class CMRMongoDBMetaService(BaseService):
                     kwargs.get("mongodb"),
                     MachineType.MONGODB.value,
                     kwargs.get("created_by"),
+                    keep_machine=defer_deinstall,
                 )
 
             # 替换 Mongo config 节点
@@ -104,6 +109,7 @@ class CMRMongoDBMetaService(BaseService):
                     kwargs.get("mongo_config"),
                     MachineType.MONOG_CONFIG.value,
                     kwargs.get("created_by"),
+                    keep_machine=defer_deinstall,
                 )
 
         except Exception as e:
@@ -115,7 +121,7 @@ class CMRMongoDBMetaService(BaseService):
 
     # mongdb/mongo_cofig 替换
     @transaction.atomic
-    def mongdb_replace_scene(self, cluster: Cluster, mongodb_info, machine_type, created_by):
+    def mongdb_replace_scene(self, cluster: Cluster, mongodb_info, machine_type, created_by, keep_machine=False):
         machines, mongdb_insts = [], []
         for rep_link in mongodb_info:
             old_ip, new_ip = rep_link["ip"], rep_link["target"]["ip"]
@@ -161,7 +167,10 @@ class CMRMongoDBMetaService(BaseService):
 
         # # 实例下架
         api.cluster.nosqlcomm.decommission_backends(
-            cluster, backends=[inst["old"] for inst in mongdb_insts], is_all=False
+            cluster,
+            backends=[inst["old"] for inst in mongdb_insts],
+            is_all=False,
+            keep_machine=keep_machine,
         )
 
     @transaction.atomic
@@ -239,7 +248,7 @@ class CMRMongoDBMetaService(BaseService):
 
     # mongos(proxy) 替换
     @transaction.atomic
-    def mongos_replace_scene(self, cluster: Cluster, mongos_info, created_by):
+    def mongos_replace_scene(self, cluster: Cluster, mongos_info, created_by, keep_machine=False):
         mongos_ports = set(obj.port for obj in cluster.proxyinstance_set.all())
         machines, proxies, old_proxies = [], [], []
         for rep_link in mongos_info:
@@ -285,7 +294,9 @@ class CMRMongoDBMetaService(BaseService):
         MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxy_objs)
 
         # # 删除老 mongos
-        api.cluster.nosqlcomm.decommission_proxies(cluster, proxies=old_proxies, is_all=False)
+        api.cluster.nosqlcomm.decommission_proxies(
+            cluster, proxies=old_proxies, is_all=False, keep_machine=keep_machine
+        )
 
     # mongos(proxy) 添加到集群
     @transaction.atomic
