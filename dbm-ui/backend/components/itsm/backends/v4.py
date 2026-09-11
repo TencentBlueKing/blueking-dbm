@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-import time
 
 from ..client import ItsmV4Api
 from .base import BaseItsmBackend
@@ -130,9 +129,7 @@ class ItsmV4Backend(BaseItsmBackend):
         """查询 ITSM V4 单据审批结果，并兼容旧版审批结果结构。"""
         detail = ItsmV4Api.get_ticket_detail(self.format_ticket_id_params(params), *args, **kwargs)
         if detail.get("status", "").lower() == "draft":
-            # 提单后 ITSM 状态可能有延迟，这里等待后重试一次。
-            time.sleep(1)
-            detail = ItsmV4Api.get_ticket_detail(self.format_ticket_id_params(params), *args, **kwargs)
+            detail["status"] = "running"
         return [self.normalize_ticket_approval_result(detail)]
 
     def get_ticket_logs(self, params, *args, **kwargs):
