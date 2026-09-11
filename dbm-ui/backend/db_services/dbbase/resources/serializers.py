@@ -165,6 +165,7 @@ class ListMachineSLZ(serializers.Serializer):
     )
     spec_id = serializers.CharField(help_text=_("规格ID(多个过滤以逗号分隔)"), required=False)
     spec_name = serializers.CharField(help_text=_("规格名称(多个过滤以逗号分隔)"), required=False)
+    domain = serializers.CharField(help_text=_("集群域名(按集群域名模糊匹配, 支持多域名逗号分隔)"), required=False)
     creator = serializers.CharField(help_text=_("创建者"), required=False)
 
 
