@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -14,17 +14,17 @@ from django.utils.translation import gettext_lazy as _
 from backend.db_meta.enums import ClusterType
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.victoriametrics.k8s_victoriametrics_standard_apply import (
+from backend.ticket.builders.victoriametrics.k8s_victoriametrics_cluster_apply import (
     BaseK8sVictoriaMetricsApplyFlowBuilder,
 )
 from backend.ticket.constants import TicketType
 
 
 @builders.BuilderFactory.register(
-    TicketType.K8S_VICTORIAMETRICS_QUERY_APPLY,
+    TicketType.K8S_VICTORIAMETRICS_SELECT_APPLY,
     is_apply=True,
-    cluster_type=ClusterType.K8sVictoriametricsQuery,
+    cluster_type=ClusterType.K8sVictoriametricsSelect,
     iam=ActionEnum.K8S_VICTORIAMETRICS_APPLY,
 )
-class K8sVictoriaMetricsQueryApplyFlowBuilder(BaseK8sVictoriaMetricsApplyFlowBuilder):
+class K8sVictoriaMetricsSelectApplyFlowBuilder(BaseK8sVictoriaMetricsApplyFlowBuilder):
     inner_flow_name = _("VictoriaMetrics 查询集群部署执行")

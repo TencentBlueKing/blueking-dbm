@@ -81,8 +81,8 @@ class K8sVmSyncTicketIdService(BaseService):
     @staticmethod
     def get_request_type(ticket_type: str) -> str:
         if ticket_type in [
-            TicketType.K8S_VICTORIAMETRICS_STANDARD_APPLY,
-            TicketType.K8S_VICTORIAMETRICS_QUERY_APPLY,
+            TicketType.K8S_VICTORIAMETRICS_CLUSTER_APPLY,
+            TicketType.K8S_VICTORIAMETRICS_SELECT_APPLY,
         ]:
             return "CreateCluster"
         elif ticket_type == TicketType.K8S_VICTORIAMETRICS_ENABLE:
