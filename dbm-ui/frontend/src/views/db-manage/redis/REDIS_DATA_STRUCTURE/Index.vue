@@ -54,21 +54,33 @@
             <MasterInstancesColumn
               v-model="item.master_instances"
               :cluster="item.cluster" />
-            <SpecColumn
-              v-model="item.specId"
-              :cluster-type="DBTypes.REDIS"
-              :current-spec-id-list="item.cluster?.cluster_spec?.spec_id ? [item.cluster.cluster_spec.spec_id] : []"
-              field="cluster.cluster_spec.spec_id"
-              :label="t('规格需求')"
-              required
-              :tooltips="t('默认使用部署时选定的规格，将从资源池自动匹配机器')" />
+            <RecoveryTimePointColumn
+              v-model="item.recovery_time_point"
+              @batch-edit="handleBatchEdit" />
             <CountColumn
               v-model="item.count"
               :max="item.master_instances.length"
               @batch-edit="handleBatchEdit" />
-            <RecoveryTimePointColumn
-              v-model="item.recovery_time_point"
+            <SpecColumn
+              v-model="item.specId"
+              :cluster-type="DBTypes.REDIS"
+              :current-spec-id-list="item.cluster?.cluster_spec?.spec_id ? [item.cluster.cluster_spec.spec_id] : []"
+              field="specId"
+              :label="t('目标规格')"
+              required
+              selectable
+              :tooltips="t('默认使用部署时选定的规格，将从资源池自动匹配机器')" />
+            <ResourceTagColumn
+              v-model="item.labels"
               @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :params="{
+                city: item.cluster.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                spec_id: item.specId,
+                labels: item.labels.map((item) => item.id).join(','),
+              }" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -106,6 +118,8 @@
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTicketPayload,
@@ -127,8 +141,13 @@
       id: number;
       master_domain: string;
       redis_master: RedisModel['redis_master'];
+      region: string;
     };
     count: number;
+    labels: {
+      id: number;
+      value: string;
+    }[];
     master_instances: string[];
     recovery_time_point: string;
     specId: number;
@@ -146,10 +165,12 @@
         id: 0,
         master_domain: '',
         redis_master: [] as RedisModel['redis_master'],
+        region: '',
       },
       values.cluster,
     ),
     count: values.count || 1,
+    labels: values.labels || [],
     master_instances: values.master_instances || [],
     recovery_time_point: values.recovery_time_point || '',
     specId: values.specId || 0,
@@ -175,8 +196,13 @@
               master_domain: clusters[infoItem.cluster_id].immute_domain,
             } as IDataRow['cluster'],
             count: infoItem.resource_spec.redis.count,
+            labels: (infoItem.resource_spec.redis.labels || []).map((item, index) => ({
+              id: Number(item),
+              value: (infoItem.resource_spec.redis.label_names || [])[index] || '',
+            })),
             master_instances: infoItem.master_instances,
             recovery_time_point: infoItem.recovery_time_point,
+            specId: infoItem.resource_spec.redis.spec_id,
           }),
         ),
       });
@@ -192,6 +218,8 @@
       resource_spec: {
         redis: {
           count: number;
+          label_names: string[];
+          labels: string[];
           spec_id: number;
         };
       };
@@ -211,18 +239,30 @@
       label: t('待构造的实例'),
     },
     {
+      case: '2025-03-11T10:26:13',
+      key: 'recovery_time_point',
+      label: t('构造到指定时间'),
+    },
+    {
       case: '1',
       key: 'count',
       label: t('构造主机数量'),
     },
     {
-      case: '2025-03-11T10:26:13',
-      key: 'recovery_time_point',
-      label: t('构造到指定时间'),
+      case: '2核_4G_50G',
+      key: 'specId',
+      label: t('目标规格'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
     },
   ];
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const tableKey = ref(random());
 
@@ -245,6 +285,7 @@
               id: item.id,
               master_domain: item.master_domain,
               redis_master: item.redis_master,
+              region: item.region,
             },
           }),
         );
@@ -262,8 +303,10 @@
             master_domain: item.master_domain,
           } as IDataRow['cluster'],
           count: item.count ? Number(item.count) : 1,
+          labels: ((item.labels as string)?.split(',').map((labelItem) => ({ value: labelItem })) || []) as IDataRow['labels'],
           master_instances: item.master_instances ? item.master_instances.split(',') : [],
           recovery_time_point: item.recovery_time_point || '',
+          specId: item.specId || '',
         }),
       );
       return acc;
@@ -299,7 +342,9 @@
             resource_spec: {
               redis: {
                 count: tableItem.count,
-                spec_id: tableItem.cluster.cluster_spec.spec_id,
+                label_names: tableItem.labels.map((item) => item.value),
+                labels: tableItem.labels.map((item) => String(item.id)),
+                spec_id: tableItem.specId,
               },
             },
           })),
