@@ -20,11 +20,19 @@
   字面量，或页面报 `Invalid token in placeholder`
 - [K8s source 的 retrieve / topo / log / spec / toolbox 请求参数保持 camelCase](doc/k8s-source-camelcase-params.md)
   —— 改 `src/services/source/qdrantHa.ts`、`surrealdbHa.ts`、`surrealdbSingle.ts`、`kubernetesToolbox.ts` 的请求参数名
-- [没有兄弟目录时 common/ 这层不该留](doc/redundant-common-dir.md) —— 本次改动删掉或合并了某目录下的兄弟目录，
-  使得父目录下只剩一个 `common/`
-- [选择器弹窗骨架已按 host-selector 对齐，别再发明第三套](doc/selector-dialog-skeleton.md) ——
-  改 `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
+- [没有兄弟目录时 common/ 这层不该留](doc/redundant-common-dir.md)
+  —— 本次改动删掉或合并了某目录下的兄弟目录，使得父目录下只剩一个 `common/`
+- [选择器弹窗骨架已按 host-selector 对齐，别再发明第三套](doc/selector-dialog-skeleton.md) ——改
+  `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
   的弹窗外壳 / PanelTab / 表格容器 / 取值语义，或新写「左表格 + 右结果预览」选择器
+- [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
+  `.validate()`，且返回值被当布尔判断
+- [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md) —— `<BkPagination>` /
+  `<DbPagination>` 只写了 `v-bind="pagination"`
+- [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md) —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect`
+  传 `value` / 写选项 `value`
+- [语言包值里的字面花括号必须用 {'@'} 式转义](doc/locale-literal-brace.md) —— 往 `src/locales/*.json` 的值写 `{`
+  字面量，或页面报 `Invalid token in placeholder`
 
 ## B 类：只报告，改法未定
 
@@ -43,8 +51,7 @@
 - 改集群搜索条件列表，或改标签筛选选项的编码（`rg -ln "tag_keys#" src`）——
   [集群搜索条件列表有两套 hook，标签选项转换有三份](doc/cluster-search-condition-fork.md)
 - `components/{cluster,host,instance}-selector*`、`components/{cluster,machine}-resource-selector/**`
-  的预览侧栏，或同形的 `shard-selector` / mongo-host-selector / REDIS_CLUSTER_CUTOFF
-  resource-selector——
+  的预览侧栏，或同形的 `shard-selector` / mongo-host-selector / REDIS_CLUSTER_CUTOFF resource-selector——
   [选择器右侧结果预览视觉是一套](doc/selector-preview-style.md)
 
 ## 已下沉到工具，不用再扫
