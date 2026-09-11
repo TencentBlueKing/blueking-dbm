@@ -10,16 +10,23 @@ specific language governing permissions and limitations under the License.
 """
 
 import io
+import logging
+import posixpath
 import zipfile
 from typing import Any, Dict, List
 
 from bkstorages.exceptions import RequestError as BKStorageError
 from django.http import StreamingHttpResponse
+from django.utils.translation import gettext as _
 from rest_framework.status import HTTP_200_OK
 
 from backend import env
+from backend.core.storages.constants import STAGING_PREFIX
+from backend.core.storages.exceptions import StagingFileError
 from backend.core.storages.storage import CustomBKRepoStorage, get_storage
 from backend.exceptions import ApiRequestError, ApiResultError
+
+logger = logging.getLogger("root")
 
 
 class StorageHandler(object):
@@ -100,6 +107,66 @@ class StorageHandler(object):
             raise ApiRequestError(e)
 
         return True
+
+    def move_file(self, source_path: str, target_dir: str, overwrite: bool = False) -> str:
+        """
+        将文件从一个目录挪到另一个目录（同一制品库仓库内，文件名保持不变）
+        :param source_path: 源文件完整路径
+        :param target_dir: 目标目录
+        :param overwrite: 目标已存在同名文件时是否覆盖
+        :return: 移动后的文件完整路径
+        """
+        # 目标路径 = 目标目录 + 源文件名（制品库路径恒为 POSIX 风格）
+        file_name = posixpath.basename(source_path.rstrip("/"))
+        target_path = posixpath.join(target_dir, file_name)
+
+        try:
+            self.storage.client.move_file(source_path, target_path, overwrite=overwrite)
+        except BKStorageError as e:
+            raise ApiRequestError(e)
+
+        return target_path
+
+    def move_staging_file_to_formal(self, staging_path: str, overwrite: bool = True) -> str:
+        """
+        将暂存区文件移动到正式目录（去除 /staging 前缀）
+
+        例如: /staging/mysql/mysql-dumper/latest/xxxx.py -> /mysql/mysql-dumper/latest/xxxx.py
+
+        非暂存区路径（如 CI 同步直接给出的正式路径）不做处理，原样返回；
+        暂存区文件已不存在但正式目录已有该文件时，视为此前已转正，幂等返回正式路径；
+        暂存区路径不合法、或暂存与正式目录均无该文件时抛出异常，避免把失效路径写入 DB。
+
+        :param staging_path: 暂存区文件完整路径
+        :param overwrite: 正式目录已存在同名文件时是否覆盖
+        :return: 移动后的正式目录文件路径；非暂存区路径原样返回
+        :raises StagingFileError: 暂存区路径非法，或文件在暂存与正式目录中均不存在
+        """
+        # 1. 非暂存区路径无需转正，原样返回
+        prefix = STAGING_PREFIX.rstrip("/") + "/"
+        if not staging_path or not staging_path.startswith(prefix) or staging_path == prefix:
+            return staging_path
+
+        # 2. 不允许包含 . / .. 等路径段（防止路径穿越）
+        segments = [seg for seg in staging_path.split("/") if seg != ""]
+        if any(seg in (".", "..") for seg in segments):
+            raise StagingFileError(_("非法的暂存区路径: {}").format(staging_path))
+
+        # 去除 /staging 前缀得到正式路径
+        formal_path = staging_path[len(STAGING_PREFIX.rstrip("/")) :]
+
+        # 3. 暂存区文件不存在时，若正式目录已有该文件，说明此前已转正（如批量提交部分成功后重试），
+        if not self.storage.exists(staging_path):
+            if self.storage.exists(formal_path):
+                logger.info(_("[move_staging_file_to_formal] 文件已转正，跳过移动: %s"), formal_path)
+                return formal_path
+            raise StagingFileError(_("暂存区文件不存在，可能已被清理: {}").format(staging_path))
+
+        # 4. 按正式目录移动
+        target_dir = posixpath.dirname(formal_path)
+        moved_path = self.move_file(staging_path, target_dir, overwrite=overwrite)
+        logger.info(_("[move_staging_file_to_formal] 移动成功: %s -> %s"), staging_path, moved_path)
+        return moved_path
 
     def create_bkrepo_access_token(self, path: str):
         """
