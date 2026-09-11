@@ -401,8 +401,11 @@ def _make_dba_actions(db_type: str) -> List[ActionMeta]:
     按组件生成 DBA 的操作集合：本组件全部前缀操作 + 各组件共有的操作。
     MySQL 额外含 Dumper 与授权白名单
     """
+    # *_dbconsole  管理控制台仅分配给【平台管理员】这个角色，从其他角色里移除
     component_actions = [
-        action for action_id, action in _all_actions.items() if action_id.startswith("{}_".format(db_type))
+        action
+        for action_id, action in _all_actions.items()
+        if action_id.startswith("{}_".format(db_type)) and action_id != f"{db_type}_dbconsole"
     ]
     extra_actions = MYSQL_DBA_EXTRA_ACTIONS if db_type in [DBType.MySQL, DBType.TenDBCluster] else []
     actions = DBA_SHARED_ACTIONS + component_actions + extra_actions
