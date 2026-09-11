@@ -441,6 +441,11 @@ workflow:
     timeout: 10s
     token: "${DBM_API_TOKEN}"
 
+  dbmApiQueryRedisPassword:
+    api: ${DBM_API_BASE}/apis/proxypass/dbpriv/proxy_password/
+    timeout: 10s
+    token: "${DBM_API_TOKEN}"
+
   dbhav1ApiBlackWhitelistGet:
     api: ${DBHAV1_API_BASE}/blackwhitelist/
     timeout: 10s
