@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.k8s_vm import K8sVmController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
@@ -28,9 +29,17 @@ VICTORIAMETRICS_CLUSTER_TYPES = [
 ]
 
 
-class K8sVictoriaMetricsClusterSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+class K8sVictoriaMetricsDestroyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     clusters = serializers.DictField(help_text=_("集群信息"), required=False, default=dict)
+
+    def validate_cluster_id(self, value):
+        cluster = Cluster.objects.filter(id=value).only("id", "name", "phase").first()
+        if not cluster:
+            raise serializers.ValidationError(_("集群{}不存在").format(value))
+        if cluster.phase != ClusterPhase.OFFLINE.value:
+            raise serializers.ValidationError(_("集群{}当前状态不是禁用，不能提删除单据").format(cluster.name))
+        return value
 
 
 class K8sVictoriaMetricsDestroyFlowParamBuilder(builders.FlowParamBuilder):
@@ -40,11 +49,10 @@ class K8sVictoriaMetricsDestroyFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.K8S_VICTORIAMETRICS_DESTROY,
     phase=ClusterPhase.DESTROY,
-    cluster_type=ClusterType.K8sVictoriametricsStandard,
     iam=ActionEnum.K8S_VICTORIAMETRICS_DESTROY,
 )
 class K8sVictoriaMetricsDestroyFlowBuilder(BaseK8sVmTicketFlowBuilder):
-    serializer = K8sVictoriaMetricsClusterSerializer
+    serializer = K8sVictoriaMetricsDestroyDetailSerializer
     inner_flow_builder = K8sVictoriaMetricsDestroyFlowParamBuilder
     inner_flow_name = _("VictoriaMetrics 集群删除执行")
     operation_type = VictoriaMetricsOperationType.DeleteCluster
