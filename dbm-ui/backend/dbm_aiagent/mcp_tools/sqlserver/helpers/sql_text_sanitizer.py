@@ -66,8 +66,22 @@ _RE_SECRET_KV = re.compile(
 # 是否为 EXEC / EXECUTE 开头（允许前导空白、注释暂不考虑）
 _RE_EXEC_PREFIX = re.compile(r"^\s*(?:exec|execute)\b", re.IGNORECASE)
 
-# 是否为 sp_executesql 调用
+# 是否为 sp_executesql 调用（严格开头：EXEC/EXECUTE sp_executesql）
 _RE_SP_EXECUTESQL = re.compile(r"^\s*(?:exec|execute)\s+sp_executesql\b", re.IGNORECASE)
+
+
+def is_sp_executesql(text: Optional[str]) -> bool:
+    """判断文本是否为 sp_executesql 动态 SQL 调用（宽松判定，大小写不敏感）。
+
+    兼容 DBCC INPUTBUFFER 的两种 EventInfo 形态：
+    1. Language Event：``EXEC sp_executesql N'...', ...``
+    2. RPC Event：``sp_executesql (@P1 int,...)SELECT...``
+
+    此函数用于给上层打标记；脱敏策略里的 sp_executesql 分支使用严格的
+    ``_RE_SP_EXECUTESQL``（EXEC 开头），二者语义不同，请勿混淆。
+    """
+    return bool(text) and "sp_executesql" in text.lower()
+
 
 # 命名参数赋值：@name = '值' / @name = N'值' / @name = 数字 / @name = 标识符
 # 等号右侧整体被替换；为避免破坏后续解析，采用"按字符串/数字/标识"逐类匹配
@@ -97,8 +111,14 @@ def _redact_sp_executesql(text: str) -> str:
         EXEC sp_executesql N'SQL模板', N'@p1 int,@p2 nvarchar(20)', @p1=1, @p2=N'xxx'
     其中前 2 个参数（SQL 模板 + 参数声明）本身不含敏感数据，保留以便分析；
     后面 @p1=1, @p2=N'xxx' 是真正的实参，必须打掉。
+
+    注意：SQL 模板里可能硬编码手机号/身份证/邮箱/password= 等敏感值
+    （例如 ``EXEC sp_executesql N'... WHERE phone=''13800138000'''``），
+    因此先对整条文本跑一遍通用敏感模式，再打掉命名实参。
     """
-    # 直接复用命名参数替换：前 2 个参数没有 @xxx= 形式，不会被误伤
+    # 先对整条文本（含 SQL 模板）脱敏高危模式，避免模板硬编码敏感值泄漏
+    text = _sanitize_general_sql(text)
+    # 再打掉 @xxx=值 命名实参
     return _redact_named_params(text)
 
 
@@ -121,7 +141,9 @@ def _redact_positional_params(text: str) -> str:
     )
     m = proc_pattern.match(text)
     if not m:
-        return text
+        # 过程名无法按规范解析（如含 # 临时过程名、特殊字符）时，降级为通用高危模式脱敏，
+        # 绝不返回原文，避免实参泄漏
+        return _sanitize_general_sql(text)
     head, args, tail = m.group(1), m.group(2), m.group(3)
     # 按逗号粗略切分（不解析嵌套，因为参数为字面量；够用即可）
     parts = [p.strip() for p in args.split(",")]
