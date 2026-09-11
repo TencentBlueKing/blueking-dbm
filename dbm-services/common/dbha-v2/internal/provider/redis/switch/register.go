@@ -25,7 +25,9 @@
 package redisswitch
 
 import (
+	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	redispasswd "dbm-services/common/dbha-v2/internal/provider/redis/passwd"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -37,5 +39,15 @@ func init() {
 	dbtype.RegisterSwitchAlarmEvents(haprobe.DbTypeRedis, dbtype.SwitchAlarmEvents{
 		Success: haprobe.DbEventNameRedisSwitchSuccessV1,
 		Failure: haprobe.DbEventNameRedisSwitchFailureV1,
+	})
+
+	// Register the config loader for the password service.
+	redispasswd.RegisterConfigLoader(func() redispasswd.QueryConfig {
+		api := config.Cfg.Workflow.DbmApiQueryRedisPassword
+		return redispasswd.QueryConfig{
+			API:     api.Api,
+			Token:   api.Token,
+			Timeout: api.Timeout,
+		}
 	})
 }

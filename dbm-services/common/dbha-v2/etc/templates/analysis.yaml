@@ -102,6 +102,11 @@ workflow:
     timeout: {{COMMON_DBM_API_TIMEOUT}}
     token: "{{COMMON_DBM_API_DUMPER_SWITCH_TOKEN}}"
 
+  dbmApiQueryRedisPassword:
+    api: "{{COMMON_DBM_API_QUERY_REDIS_PASSWORD_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_QUERY_REDIS_PASSWORD_TOKEN}}"
+
   dbhav1ApiBlackWhitelistGet:
     api: "{{COMMON_DBHAV1_API_BLACK_WHITELIST_GET_API}}"
     timeout: {{COMMON_DBHAV1_API_TIMEOUT}}
