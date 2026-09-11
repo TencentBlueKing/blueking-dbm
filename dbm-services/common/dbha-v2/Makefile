@@ -64,7 +64,7 @@ define GO_BUILD
 endef
 
 .PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr probe-sandbox-mock \
-        clean format test package package-server package-probe help \
+        clean format test test-scripts package package-server package-probe help \
         probe-windows package-probe-windows check-windows check-generate
 
 # package
@@ -92,6 +92,8 @@ PROBE_TEMPLATES  = probe.yaml
 PROBE_SNIPPETS   = probe_mysql_shard.yaml probe_redis_shard.yaml
 
 GUARD_UTILS_LIB = scripts/lib/guard-utils.sh
+# probe-only: lifecycle locking/fence helpers, deliberately not shipped to server
+PROBE_LIFECYCLE_LIB = scripts/lib/probe-lifecycle-utils.sh
 SERVER_SCRIPTS  = scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
                   scripts/deploy.sh scripts/render_configs.py
 PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
@@ -193,6 +195,11 @@ check-generate:
 		exit 1; \
 	fi
 
+# probe start/stop shell suites (not part of `make test`; needs a Go toolchain)
+test-scripts:
+	bash scripts/tests/test-guard-lock.sh
+	bash scripts/tests/test-probe-start-stop-race.sh
+
 # build and package
 package: package-server package-probe package-probe-windows
 
@@ -234,8 +241,9 @@ package-probe: probe
 	@chmod +x $(PROBE_PKG_DIR)/render_configs.py \
 		$(PROBE_PKG_DIR)/compare_probe_config.py
 	@mkdir -p $(PROBE_PKG_DIR)/lib
-	@cp $(GUARD_UTILS_LIB) $(PROBE_PKG_DIR)/lib/
-	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh
+	@cp $(GUARD_UTILS_LIB) $(PROBE_LIFECYCLE_LIB) $(PROBE_PKG_DIR)/lib/
+	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh \
+		$(PROBE_PKG_DIR)/lib/probe-lifecycle-utils.sh
 	@mkdir -p $(PROBE_PKG_DIR)/etc/templates/snippets
 	@cp $(addprefix etc/templates/,$(PROBE_TEMPLATES)) \
 		$(PROBE_PKG_DIR)/etc/templates/
@@ -296,6 +304,7 @@ help:
 	@echo "  package-probe-windows - Create Windows probe release package ($(VERSION)-probe-windows.zip)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
+	@echo "  test-scripts - Run probe start/stop shell suites (needs Go)"
 	@echo "  check-generate - Regenerate provider aggregates and fail if dirty"
 	@echo "  clean      - Clean build artifacts"
 	@echo "  help       - Show this help message"
