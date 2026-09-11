@@ -14,11 +14,11 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.k8s_vm.k8s_vm_base_flow import K8sVmBaseFlow
-from backend.flow.plugins.components.collections.k8s_vm.apply_k8s_vm_vminsert_clb import ApplyK8sVmVminsertClbComponent
-from backend.flow.plugins.components.collections.k8s_vm.apply_k8s_vm_vmselect_clb import ApplyK8sVmVmselectClbComponent
+from backend.flow.plugins.components.collections.k8s_vm.apply_k8s_vm_clb import ApplyK8sVmClbComponent
 from backend.flow.plugins.components.collections.k8s_vm.create_k8s_vm_cluster import CreateK8sVmClusterComponent
 from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vminsert_service import (
     ExposeK8sVmVminsertServiceComponent,
@@ -26,12 +26,7 @@ from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vminsert_s
 from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vmselect_service import (
     ExposeK8sVmVmselectServiceComponent,
 )
-from backend.flow.plugins.components.collections.k8s_vm.get_k8s_vm_vminsert_clb_detail import (
-    GetK8sVmVminsertClbDetailComponent,
-)
-from backend.flow.plugins.components.collections.k8s_vm.get_k8s_vm_vmselect_clb_detail import (
-    GetK8sVmVmselectClbDetailComponent,
-)
+from backend.flow.plugins.components.collections.k8s_vm.get_k8s_vm_clb_detail import GetK8sVmClbDetailComponent
 from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_sync_ticket_id import K8sVmSyncTicketIdComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_db_meta import VmDBMetaComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_sync_cluster import VmSyncClusterComponent
@@ -73,47 +68,35 @@ class K8sVmApplyFlow(K8sVmBaseFlow):
             act_name=_("创建集群"), act_component_code=CreateK8sVmClusterComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        # 调用dbs接口申请vminsert clb
+        # 调用dbs接口申请clb（vminsert/vmselect共用）
         vm_pipeline.add_act(
-            act_name=_("创建vminsert CLB"),
-            act_component_code=ApplyK8sVmVminsertClbComponent.code,
+            act_name=_("创建CLB"),
+            act_component_code=ApplyK8sVmClbComponent.code,
             kwargs=asdict(act_kwargs),
         )
 
-        # 调用dbs接口申请vmselect clb
+        # 调用dbs clb详情接口获取状态和vip
         vm_pipeline.add_act(
-            act_name=_("创建vmselect CLB"),
-            act_component_code=ApplyK8sVmVmselectClbComponent.code,
+            act_name=_("查询CLB详情"),
+            act_component_code=GetK8sVmClbDetailComponent.code,
             kwargs=asdict(act_kwargs),
         )
 
-        # 调用dbs clb详情接口获取vminsert状态和vip
-        vm_pipeline.add_act(
-            act_name=_("查询vminsert CLB详情"),
-            act_component_code=GetK8sVmVminsertClbDetailComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-
-        # 调用dbs clb详情接口获取vmselect状态和vip
-        vm_pipeline.add_act(
-            act_name=_("查询vmselect CLB详情"),
-            act_component_code=GetK8sVmVmselectClbDetailComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-
-        # 添加vminsert域名
-        vminsert_domain = "{}.{}.{}.db".format(VMINSERT_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
-        vminsert_dns_kwargs = DnsKwargs(
-            bk_cloud_id=self.bk_cloud_id,
-            dns_op_type=DnsOpType.CREATE,
-            domain_name=vminsert_domain,
-            dns_op_exec_port=VMINSERT_PORT,
-        )
-        vm_pipeline.add_act(
-            act_name=_("添加vminsert域名"),
-            act_component_code=VmVminsertDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(vminsert_dns_kwargs)},
-        )
+        # 添加vminsert域名（查询版集群无vminsert组件，跳过）
+        is_query_cluster = self.cluster_type == ClusterType.K8sVictoriametricsSelect.value
+        if not is_query_cluster:
+            vminsert_domain = "{}.{}.{}.db".format(VMINSERT_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
+            vminsert_dns_kwargs = DnsKwargs(
+                bk_cloud_id=self.bk_cloud_id,
+                dns_op_type=DnsOpType.CREATE,
+                domain_name=vminsert_domain,
+                dns_op_exec_port=VMINSERT_PORT,
+            )
+            vm_pipeline.add_act(
+                act_name=_("添加vminsert域名"),
+                act_component_code=VmVminsertDnsManageComponent.code,
+                kwargs={**asdict(act_kwargs), **asdict(vminsert_dns_kwargs)},
+            )
 
         # 添加vmselect域名
         vmselect_domain = "{}.{}.{}.db".format(VMSELECT_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
@@ -139,12 +122,13 @@ class K8sVmApplyFlow(K8sVmBaseFlow):
             act_name=_("回写集群ID"), act_component_code=VmSyncClusterComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        # 调用dbs服务暴露接口暴露vminsert service
-        vm_pipeline.add_act(
-            act_name=_("暴露vminsert服务"),
-            act_component_code=ExposeK8sVmVminsertServiceComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
+        # 调用dbs服务暴露接口暴露vminsert service（查询版集群无vminsert组件，跳过）
+        if not is_query_cluster:
+            vm_pipeline.add_act(
+                act_name=_("暴露vminsert服务"),
+                act_component_code=ExposeK8sVmVminsertServiceComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
         # 调用dbs服务暴露接口暴露vmselect service
         vm_pipeline.add_act(
