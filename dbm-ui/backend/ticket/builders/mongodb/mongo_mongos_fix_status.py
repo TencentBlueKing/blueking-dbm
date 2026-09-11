@@ -19,11 +19,11 @@ from backend.ticket.constants import TicketType
 
 
 class MongoDBInstanceFixStatusDetailSerializer(BaseMongoDBOperateDetailSerializer):
-    """MongoDB Mongos/instance 状态修复单据参数"""
+    """MongoDB 节点状态修复单据参数"""
 
     class InstanceFixStatusInfoSerializer(serializers.Serializer):
-        ip = serializers.IPAddressField(help_text=_("Mongos/instance IP"))
-        port = serializers.IntegerField(help_text=_("Mongos/instance 端口"))
+        ip = serializers.IPAddressField(help_text=_("实例 IP"))
+        port = serializers.IntegerField(help_text=_("实例端口"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         dry_run = serializers.BooleanField(help_text=_("是否测试"), default=False)
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
@@ -31,12 +31,12 @@ class MongoDBInstanceFixStatusDetailSerializer(BaseMongoDBOperateDetailSerialize
         master_domain = serializers.CharField(help_text=_("集群域名"), required=True)
 
     infos = serializers.ListSerializer(
-        help_text=_("Mongos/instance 状态修复信息"), child=InstanceFixStatusInfoSerializer(), allow_empty=False
+        help_text=_("节点状态修复信息"), child=InstanceFixStatusInfoSerializer(), allow_empty=False
     )
 
 
 class MongoDBInstanceFixStatusFlowParamBuilder(builders.FlowParamBuilder):
-    """构建 MongoDB Mongos/instance 状态修复 Flow 参数，并指定 controller"""
+    """构建 MongoDB 节点状态修复 Flow 参数，并指定 controller"""
 
     controller = MongoDBController.instance_fix_status
 
@@ -45,12 +45,24 @@ class MongoDBInstanceFixStatusFlowParamBuilder(builders.FlowParamBuilder):
     TicketType.MONGODB_INSTANCE_FIX_STATUS, is_apply=False, iam=ActionEnum.MONGODB_MANAGE
 )
 class MongoDBInstanceFixStatusFlowBuilder(BaseMongoDBTicketFlowBuilder):
-    """MongoDB Mongos/instance 状态修复单据 Flow 构建器"""
+    """MongoDB 节点状态修复单据 Flow 构建器"""
 
     serializer = MongoDBInstanceFixStatusDetailSerializer
     inner_flow_builder = MongoDBInstanceFixStatusFlowParamBuilder
-    inner_flow_name = _("MongoDB Mongos/instance 状态修复")
+    inner_flow_name = _("MongoDB 节点状态修复")
 
-    # 需要审批和人工确认
+    # 需要审批和人工确认（自愈自动创单可通过 details 关闭）
     default_need_itsm = True
     default_need_manual_confirm = True
+
+    @property
+    def need_itsm(self):
+        if "need_itsm" in self.ticket.details:
+            return bool(self.ticket.details["need_itsm"])
+        return super().need_itsm
+
+    @property
+    def need_manual_confirm(self):
+        if "need_manual_confirm" in self.ticket.details:
+            return bool(self.ticket.details["need_manual_confirm"])
+        return super().need_manual_confirm

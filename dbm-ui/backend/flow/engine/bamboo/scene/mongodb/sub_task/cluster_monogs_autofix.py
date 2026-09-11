@@ -23,6 +23,9 @@ from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns impor
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
     ExecAddPasswordToDBOperationComponent,
 )
+from backend.flow.plugins.components.collections.mongodb.deferred_deinstall_ticket import (
+    ExecDeferredDeInstallTicketOperationComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.delete_password_from_db import (
     ExecDeletePasswordFromDBOperationComponent,
 )
@@ -49,6 +52,7 @@ def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
     sub_sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
     # 获取参数
+    down = info.get("down")
     sub_sub_get_kwargs.mongos_info = {}
     sub_sub_get_kwargs.payload["config_nodes"] = []
     sub_sub_get_kwargs.payload["shards_nodes"] = []
@@ -162,6 +166,7 @@ def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
     cluster_mongos["db_type"] = "mongos"
     cluster_mongos["created_by"] = sub_sub_get_kwargs.payload.get("created_by")
     cluster_mongos["bk_biz_id"] = sub_sub_get_kwargs.payload.get("bk_biz_id")
+    cluster_mongos["down"] = down
     kwargs = sub_sub_get_kwargs.get_change_meta_replace_kwargs(info=cluster_mongos, instance={})
     sub_sub_pipeline.add_act(
         act_name=_("MongoDB-mongos修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
@@ -224,17 +229,30 @@ def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
         allow_empty_instance=True,
     )
 
-    # 老实例提下架单
+    # 老实例下架：down=True 出延迟下架单
+    nodes = sub_sub_get_kwargs.payload["nodes"]
+    for node in nodes:
+        node.setdefault("instance_type", MongoDBInstanceType.MongoS.value)
+        node.setdefault("role", MongoDBInstanceType.MongoS.value)
+        node.setdefault("cluster_id", cluster_id)
     kwargs = {
-        "infos": sub_sub_get_kwargs.payload["nodes"],
+        "infos": nodes,
         "creator": sub_sub_get_kwargs.payload["created_by"],
         "bk_biz_id": sub_sub_get_kwargs.payload["bk_biz_id"],
+        "parent_ticket_id": ticket_data.get("uid"),
     }
-    sub_sub_pipeline.add_act(
-        act_name=_("MongoDB-实例下架提单"),
-        act_component_code=ExecInstanceDeInstallTicketOperationComponent.code,
-        kwargs=kwargs,
-    )
+    if down:
+        sub_sub_pipeline.add_act(
+            act_name=_("MongoDB-延迟下架提单"),
+            act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
+            kwargs=kwargs,
+        )
+    else:
+        sub_sub_pipeline.add_act(
+            act_name=_("MongoDB-实例下架提单"),
+            act_component_code=ExecInstanceDeInstallTicketOperationComponent.code,
+            kwargs=kwargs,
+        )
 
     return sub_sub_pipeline.build_sub_process(
         sub_name=_("MongoDB--mongos自愈--{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"])))

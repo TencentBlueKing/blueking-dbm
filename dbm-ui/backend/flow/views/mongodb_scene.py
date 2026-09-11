@@ -178,6 +178,19 @@ class MongoDBInstanceRestartView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class MongoDBInstanceEnsureStartView(FlowTestView):
+    """
+    MongoDB 进程拉起 scene（已监听则跳过）。
+    前置：Autofix PRE；非工具箱入口（仅内部/联调）。
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).instance_ensure_start()
+        return Response({"root_id": root_id})
+
+
 class MongoRemoveNsApiView(FlowTestView):
     """
     Mongo RemoveNs Api
