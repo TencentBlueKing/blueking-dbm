@@ -117,6 +117,8 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getSpiderVersionModules } from '@services/source/mysqlToolbox';
 
+  import { ClusterTypes } from '@common/const';
+
   import InnerSelect from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/InnerSelect.vue';
 
   type ModulesInfo = ServiceReturnType<typeof getSpiderVersionModules>[0];
@@ -157,7 +159,6 @@
 
   const { t } = useI18n();
 
-  const route = useRoute();
   const router = useRouter();
 
   const packageSelectList = ref<
@@ -279,12 +280,9 @@
 
   const handleCreateModule = () => {
     const url = router.resolve({
-      name: 'createSpiderModule',
+      name: 'DbConfigureCreateModule',
       params: {
-        bizId: window.PROJECT_CONFIG.BIZ_ID,
-      },
-      query: {
-        from: route.name as string,
+        clusterType: ClusterTypes.TENDBCLUSTER,
       },
     });
     window.open(url.href, '_blank');

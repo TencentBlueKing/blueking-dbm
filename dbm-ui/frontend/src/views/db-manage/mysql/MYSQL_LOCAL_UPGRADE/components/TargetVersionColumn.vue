@@ -116,7 +116,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { getVersionModules } from '@services/source/mysqlToolbox';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import InnerSelect from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/InnerSelect.vue';
 
@@ -279,12 +279,6 @@
       name: 'DbConfigureCreateModule',
       params: {
         clusterType: props.cluster.cluster_type,
-      },
-      query: {
-        from:
-          props.cluster.cluster_type === ClusterTypes.TENDBSINGLE
-            ? TicketTypes.MYSQL_SINGLE_APPLY
-            : TicketTypes.MYSQL_HA_APPLY,
       },
     });
     window.open(url.href, '_blank');
