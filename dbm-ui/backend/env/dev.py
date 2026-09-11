@@ -26,3 +26,8 @@ STATSDB_DBNAME = get_type_env(key="STATSDB_DBNAME", _type=str, default="")
 
 # 跳过审批开关，默认关闭，方便本地联调
 ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=bool, default=False)
+
+# MongoDB 自愈申请机器时的资源标签（正式环境默认空；本地冒烟池需 cyc 时在 local.env 配置）
+# 例：MONGODB_AUTOFIX_RESOURCE_LABELS=3  MONGODB_AUTOFIX_RESOURCE_LABEL_NAMES=cyc
+MONGODB_AUTOFIX_RESOURCE_LABELS = get_type_env(key="MONGODB_AUTOFIX_RESOURCE_LABELS", _type=list, default=[])
+MONGODB_AUTOFIX_RESOURCE_LABEL_NAMES = get_type_env(key="MONGODB_AUTOFIX_RESOURCE_LABEL_NAMES", _type=list, default=[])

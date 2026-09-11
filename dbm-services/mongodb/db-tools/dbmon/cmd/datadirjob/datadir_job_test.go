@@ -1,6 +1,11 @@
 package datadirjob
 
-import "testing"
+import (
+	"os"
+	"strings"
+	"testing"
+	"time"
+)
 
 func TestRoundTotalKB(t *testing.T) {
 	cases := []struct {
@@ -46,5 +51,43 @@ func TestShareCount(t *testing.T) {
 	}
 	if got := shareCount(nil, 8, 1); got != 1 {
 		t.Fatalf("shareCount(nil)=%d, want 1", got)
+	}
+}
+
+func TestProbeDiskRWSuccess(t *testing.T) {
+	dir := t.TempDir()
+	ok, latencyMs := probeDiskRW(dir, 3*time.Second)
+	if ok != 1 {
+		t.Fatalf("probeDiskRW ok=%v, want 1", ok)
+	}
+	if latencyMs < 0 {
+		t.Fatalf("probeDiskRW latencyMs=%v, want >= 0", latencyMs)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".dbmon_disk_rw_") {
+			t.Fatalf("probe temp file not cleaned: %s", e.Name())
+		}
+	}
+}
+
+func TestProbeDiskRWFailNonexistent(t *testing.T) {
+	// dbPath 与父目录均不存在，CreateTemp 两级都会失败（父目录可写时会回退成功）
+	ok, latencyMs := probeDiskRW("/no/such/dbmon_disk_rw_probe_dir/db", 3*time.Second)
+	if ok != 0 {
+		t.Fatalf("probeDiskRW ok=%v, want 0", ok)
+	}
+	if latencyMs != -1 {
+		t.Fatalf("probeDiskRW latencyMs=%v, want -1", latencyMs)
+	}
+}
+
+func TestDoDiskRWProbe(t *testing.T) {
+	dir := t.TempDir()
+	if err := doDiskRWProbe(dir); err != nil {
+		t.Fatalf("doDiskRWProbe: %v", err)
 	}
 }

@@ -2,9 +2,13 @@
 package datadirjob
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"math"
+	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,9 +29,15 @@ const (
 	MetricDatadirDiskUsedKB = "mongo_datadir_disk_used_kb"
 	// MetricDatadirDiskTotalKB 实例分摊后的磁盘总容量（同盘实例均分，KB）
 	MetricDatadirDiskTotalKB = "mongo_datadir_disk_total_kb"
-	bytesPerKB               = 1024
+	// MetricDatadirDiskRWOk datadir 所在文件系统读写探测是否成功（1/0）
+	MetricDatadirDiskRWOk = "mongo_datadir_disk_rw_ok"
+	// MetricDatadirDiskRWLatencyMs datadir 读写探测耗时（毫秒，仅成功时上报）
+	MetricDatadirDiskRWLatencyMs = "mongo_datadir_disk_rw_latency_ms"
+	bytesPerKB                   = 1024
 	// kbPerG 1GiB = 1024*1024 KB
 	kbPerG = 1024 * 1024
+	// diskRWProbeTimeout 磁盘读写探测超时，避免 hang 住整轮采集
+	diskRWProbeTimeout = 3 * time.Second
 )
 
 var (
@@ -103,6 +113,19 @@ func (job *Job) Run() {
 			continue
 		}
 		deviceCount[deviceKey(info.major, info.minor)]++
+
+		// 磁盘读写健康探测：超时或失败上报 ok=0，不阻塞整轮采集
+		rwOk, rwLatencyMs := probeDiskRW(info.dbPath, diskRWProbeTimeout)
+		if err := job.reportRWMetrics(svr, rwOk, rwLatencyMs); err != nil {
+			job.Logger.Warn("report datadir rw metrics failed",
+				zap.String("instance", svr.Addr()), zap.Error(err))
+		} else {
+			job.Logger.Info("report datadir rw metrics ok",
+				zap.String("instance", svr.Addr()),
+				zap.String("dbPath", info.dbPath),
+				zap.Float64("rw_ok", rwOk),
+				zap.Float64("rw_latency_ms", rwLatencyMs))
+		}
 
 		used, err := duDirBytes(info.dbPath)
 		if err != nil {
@@ -210,6 +233,72 @@ func duDirBytes(dbPath string) (uint64, error) {
 	return strconv.ParseUint(fields[0], 10, 64)
 }
 
+// probeDiskRW 在 dbPath（或父目录）写入临时文件并 fsync/读回/删除，探测文件系统读写是否可用。
+// 超时或失败返回 ok=0；成功返回 ok=1 与耗时毫秒。超时后后台 goroutine 可能仍挂起，属预期。
+func probeDiskRW(dbPath string, timeout time.Duration) (ok float64, latencyMs float64) {
+	type probeResult struct {
+		latencyMs float64
+		err       error
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ch := make(chan probeResult, 1)
+	go func() {
+		start := time.Now()
+		err := doDiskRWProbe(dbPath)
+		ch <- probeResult{latencyMs: float64(time.Since(start).Milliseconds()), err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return 0, -1
+	case r := <-ch:
+		if r.err != nil {
+			return 0, -1
+		}
+		return 1, r.latencyMs
+	}
+}
+
+func doDiskRWProbe(dbPath string) error {
+	dir := dbPath
+	payload := []byte("dbmon-disk-rw-probe")
+	f, err := os.CreateTemp(dir, ".dbmon_disk_rw_*")
+	if err != nil {
+		// dbPath 不可写时回退到父目录（同盘）
+		parent := filepath.Dir(dir)
+		f, err = os.CreateTemp(parent, ".dbmon_disk_rw_*")
+		if err != nil {
+			return fmt.Errorf("create temp file under %s or %s: %w", dir, parent, err)
+		}
+	}
+	name := f.Name()
+	defer func() {
+		_ = f.Close()
+		_ = os.Remove(name)
+	}()
+
+	if _, err = f.Write(payload); err != nil {
+		return fmt.Errorf("write probe file: %w", err)
+	}
+	if err = f.Sync(); err != nil {
+		return fmt.Errorf("fsync probe file: %w", err)
+	}
+	if _, err = f.Seek(0, 0); err != nil {
+		return fmt.Errorf("seek probe file: %w", err)
+	}
+	got := make([]byte, len(payload))
+	n, err := f.Read(got)
+	if err != nil {
+		return fmt.Errorf("read probe file: %w", err)
+	}
+	if n != len(payload) || !bytes.Equal(got, payload) {
+		return fmt.Errorf("probe file content mismatch: got %q", got[:n])
+	}
+	return nil
+}
+
 func (job *Job) reportMetrics(svr *config.ConfServerItem, usedKB, totalKB float64) error {
 	beat := &job.MyConf.BkMonitorBeat
 	msgH, err := config.GetBkMonitorBeatSender(beat, svr)
@@ -229,4 +318,28 @@ func (job *Job) reportMetrics(svr *config.ConfServerItem, usedKB, totalKB float6
 	msgH2.SetLabel("port", strconv.Itoa(svr.Port))
 	return msgH2.SendTimeSeriesMsg(beat.MetricConfig.DataID, beat.MetricConfig.Token,
 		svr.IP, MetricDatadirDiskTotalKB, totalKB, job.Logger)
+}
+
+func (job *Job) reportRWMetrics(svr *config.ConfServerItem, rwOk, latencyMs float64) error {
+	beat := &job.MyConf.BkMonitorBeat
+	msgH, err := config.GetBkMonitorBeatSender(beat, svr)
+	if err != nil {
+		return err
+	}
+	msgH.SetLabel("port", strconv.Itoa(svr.Port))
+	if err = msgH.SendTimeSeriesMsg(beat.MetricConfig.DataID, beat.MetricConfig.Token,
+		svr.IP, MetricDatadirDiskRWOk, rwOk, job.Logger); err != nil {
+		return err
+	}
+	// 失败时跳过 latency，避免无意义的 -1 干扰面板（ok 已表达失败）
+	if rwOk < 1 {
+		return nil
+	}
+	msgH2, err := config.GetBkMonitorBeatSender(beat, svr)
+	if err != nil {
+		return err
+	}
+	msgH2.SetLabel("port", strconv.Itoa(svr.Port))
+	return msgH2.SendTimeSeriesMsg(beat.MetricConfig.DataID, beat.MetricConfig.Token,
+		svr.IP, MetricDatadirDiskRWLatencyMs, latencyMs, job.Logger)
 }

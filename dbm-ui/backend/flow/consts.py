@@ -630,6 +630,7 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     MongoRestart = EnumField("mongo_restart", _("mongo_restart"))
     MongoDReplace = EnumField("mongod_replace", _("mongod_replace"))
     MongoDeInstall = EnumField("mongo_deinstall", _("mongo_deinstall"))
+    MongoDeferredDeInstall = EnumField("mongo_deferred_deinstall", _("mongo_deferred_deinstall"))
     InstallDBMon = EnumField("install_dbmon", _("install_dbmon"))
     MongoStart = EnumField("mongo_start", _("mongo_start"))
     MongoHello = EnumField("mongodb_hello", _("mongodb_hello"))

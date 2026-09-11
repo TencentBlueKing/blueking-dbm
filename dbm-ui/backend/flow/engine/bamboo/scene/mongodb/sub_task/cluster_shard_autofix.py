@@ -99,13 +99,13 @@ def shard_autofix(
         act_name=_("MongoDB-mongod修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
     )
 
-    # 安装dbmon
+    # 安装dbmon（挂到本层 sub_pipeline，而非并行叶子）
     ip_list = sub_get_kwargs.payload["plugin_hosts"]
     exec_ips = [host["ip"] for host in ip_list]
     add_install_dbmon(
         root_id=root_id,
         flow_data=ticket_data,
-        pipeline=sub_sub_pipeline,
+        pipeline=sub_pipeline,
         iplist=exec_ips,
         bk_cloud_id=ip_list[0]["bk_cloud_id"],
         allow_empty_instance=True,

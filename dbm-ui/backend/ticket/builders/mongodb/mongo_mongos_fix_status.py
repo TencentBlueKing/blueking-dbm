@@ -51,6 +51,18 @@ class MongoDBInstanceFixStatusFlowBuilder(BaseMongoDBTicketFlowBuilder):
     inner_flow_builder = MongoDBInstanceFixStatusFlowParamBuilder
     inner_flow_name = _("MongoDB Mongos/instance 状态修复")
 
-    # 需要审批和人工确认
+    # 需要审批和人工确认（自愈自动创单可通过 details 关闭）
     default_need_itsm = True
     default_need_manual_confirm = True
+
+    @property
+    def need_itsm(self):
+        if "need_itsm" in self.ticket.details:
+            return bool(self.ticket.details["need_itsm"])
+        return super().need_itsm
+
+    @property
+    def need_manual_confirm(self):
+        if "need_manual_confirm" in self.ticket.details:
+            return bool(self.ticket.details["need_manual_confirm"])
+        return super().need_manual_confirm

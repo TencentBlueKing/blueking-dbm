@@ -162,3 +162,16 @@ class MongoDBInstanceReloadApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     inner_flow_builder = MongoDBInstanceReloadFlowParamBuilder
     inner_flow_name = _("MongoDB重启")
     need_patch_instance_details = True
+
+    @property
+    def need_itsm(self):
+        # 自愈等自动链路可在 details 显式关闭审批；未设置时走单据流程配置
+        if "need_itsm" in self.ticket.details:
+            return bool(self.ticket.details["need_itsm"])
+        return super().need_itsm
+
+    @property
+    def need_manual_confirm(self):
+        if "need_manual_confirm" in self.ticket.details:
+            return bool(self.ticket.details["need_manual_confirm"])
+        return super().need_manual_confirm

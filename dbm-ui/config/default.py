@@ -156,6 +156,7 @@ INSTALLED_APPS += (
     "backend.db_services.dbresource",
     "backend.dbm_init",
     "backend.db_services.mongodb.password",
+    "backend.db_services.mongodb.autofix",
 )
 
 if env.ENABLE_DBM_AI:

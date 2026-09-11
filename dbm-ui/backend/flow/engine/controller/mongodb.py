@@ -9,12 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix import MongoAutofixFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix_pre import MongoAutofixPreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_change_biz import MongoDBChangeBizFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_add_shard import MongoDBClusterAddShardFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_reduce_shard import MongoDBClusterReduceShardFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_data_export import MongoDataExportFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_deferred_deinstall import MongoDeferredDeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_enable_disable import MongoEnableDisableFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
@@ -25,10 +27,10 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_deinstall import 
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_fix_status import MongoDBInstanceFixStatusFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_migrate import MongoDBInstanceMigrateFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_machine_replace import MongoMachineReplaceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_migrate import MongoDBMigrateMetaFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_pitr_restore import MongoPitrRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
-from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplaceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoScaleNodeFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
@@ -129,10 +131,10 @@ class MongoDBController(BaseController):
 
     def machine_replace(self):
         """
-        整机替换
+        整机替换（统一 MongoMachineReplaceFlow）
         """
 
-        flow = MongoReplaceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MongoMachineReplaceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_host_replace_flow()
 
     def increase_mongos(self):
@@ -207,6 +209,14 @@ class MongoDBController(BaseController):
         flow = MongoInstanceDeInstallFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_instance_deinstall_flow()
 
+    def deferred_deinstall(self):
+        """
+        延迟下架：等待 GSE 可达后严格卸载
+        """
+
+        flow = MongoDeferredDeInstallFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_instance_deferred_deinstall_flow()
+
     def mongo_autofix(self):
         """
         mongodb自愈
@@ -214,6 +224,14 @@ class MongoDBController(BaseController):
 
         flow = MongoAutofixFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix()
+
+    def mongo_autofix_pre(self):
+        """
+        mongodb自愈预确认（磁盘/GSE/DRS 分叉后出 RELOAD 或 AUTOFIX）
+        """
+
+        flow = MongoAutofixPreFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run()
 
     def migrate_meta(self):
         """

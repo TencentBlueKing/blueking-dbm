@@ -25,7 +25,7 @@ logger = logging.getLogger("flow")
 
 
 @transaction.atomic
-def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = False):
+def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = False, keep_machine: bool = False):
     """
     1. 支持集群中部分proxy 下架 (故障、裁撤、替换等场景)
     2. 支持整个集群proxy下架 (但需要有检查) (集群下架场景)
@@ -34,6 +34,8 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
     1. 默认不允许全部下架,只允许下架一部分
     2. 集群整体下架时,   允许下架所有proxy实例
     3. 非集群整体下架时,不允许下架所有proxy实例
+
+    keep_machine: 延迟下架场景保留 Machine，供后续 check_meta / 回收单补 old_nodes。
     """
     logger.info("user request decmmission proxies {} {}".format(cluster.immute_domain, proxies))
     try:
@@ -77,6 +79,8 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
                 machine__ip=proxy_obj.machine.ip, machine__bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=cluster.bk_biz_id
             ).exists():
                 logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
+            elif keep_machine:
+                logger.info("keep proxy machine {} for deferred deinstall".format(proxy_obj.machine))
             else:
                 logger.info("proxy machine {}".format(proxy_obj.machine))
                 cc_manage.recycle_host([proxy_obj.machine.bk_host_id])
@@ -87,7 +91,7 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
 
 
 @transaction.atomic
-def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool = False):
+def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool = False, keep_machine: bool = False):
     """
     1. 扩缩容替换场景
     2. 裁撤替换场景
@@ -97,6 +101,8 @@ def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool =
     要求：
         1. 如果是下架集群， 必须先下架proxy,然后再下架 backends
         2. 不允许直接下架RUNNING状态实例
+
+    keep_machine: 延迟下架场景保留 Machine，供后续 check_meta / 回收单补 old_nodes。
     """
     logger.info("user request decmmission backends {} {}".format(cluster.immute_domain, backends))
     cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
@@ -125,6 +131,8 @@ def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool =
         for machine in machines:
             if StorageInstance.objects.filter(machine__ip=machine.ip).exists():
                 logger.info("ignore storage machine {} , another instance existed.".format(machine))
+            elif keep_machine:
+                logger.info("keep storage machine {} for deferred deinstall".format(machine))
             else:
                 logger.info("storage machine {} ".format(machine))
                 cc_manage.recycle_host([machine.bk_host_id])
