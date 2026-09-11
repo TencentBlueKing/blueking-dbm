@@ -45,5 +45,5 @@ func TestTriggerSwitching_UnregisteredDbTypeSkipped(t *testing.T) {
 	req := &switcher.Request{DbType: haprobe.DbTypeKafka, SwitchID: "sw-unregistered"}
 
 	// Must not panic; unregistered type is a no-op skip.
-	e.TriggerSwitching(haprobe.DbTypeKafka, req, nil)
+	e.TriggerSwitching(haprobe.DbTypeKafka, req, nil, nil)
 }

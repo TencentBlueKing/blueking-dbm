@@ -69,6 +69,12 @@ func (s *SwitchLog) ListSwitchSnapshotLogs(
 		query = query.Where(switchFinishedTimeCond, switchFinishedTime)
 	}
 
+	// only return switch records, filter out notify records.
+	// historical records have a NULL action (before the column was added) and are kept.
+	actionField := hamodel.DbSwitchingSnapshotLogFieldAction
+	notifyCond := fmt.Sprintf("(%s IS NULL OR %s != ?)", actionField, actionField)
+	query = query.Where(notifyCond, hamodel.SnapshotActionTypeNotify.String())
+
 	if err := query.Count(&count).Error; err != nil {
 		return nil, 0, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
