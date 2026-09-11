@@ -189,7 +189,7 @@ def _handle_migrate_callback(root_id: str, node_id: str, status: StateType, tick
     _finalize_ephemeral_dts(global_data)
 
 
-@create_ticket_handler(TicketType.MYSQL_TO_MYSQL_MIGRATE)
+@create_ticket_handler(TicketType.MYSQL_DTS_DATA_MIGRATE)
 def mysql_to_mysql_migrate_callback_handler(root_id: str, node_id: str, status: StateType, **kwargs):
     """MySQL 数据迁移状态回调与终态清理。"""
     logger.info(_("执行 mysql_to_mysql_migrate_callback_handler root_id={}").format(root_id))
@@ -203,7 +203,7 @@ def mysql_ha_to_cluster_migrate_callback_handler(root_id: str, node_id: str, sta
     _handle_migrate_callback(root_id, node_id, status, ticket_id_from_signal=int(kwargs.get("ticket_id") or 0))
 
 
-@create_ticket_handler(TicketType.MYSQL_RENAME_MIGRATE)
+@create_ticket_handler(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME)
 def mysql_rename_migrate_callback_handler(root_id: str, node_id: str, status: StateType, **kwargs):
     """MySQL 重命名迁移状态回调与终态清理。"""
     logger.info(_("执行 mysql_rename_migrate_callback_handler root_id={}").format(root_id))
