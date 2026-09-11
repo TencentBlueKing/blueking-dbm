@@ -29,6 +29,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
+	redispasswd "dbm-services/common/dbha-v2/internal/provider/redis/passwd"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -37,8 +38,9 @@ import (
 type RedisBaseSwitchInstance struct {
 	switchcore.BaseSwitchInstance
 
-	Password string
-	Timeout  time.Duration // timeout for redis commands execution
+	Password         string
+	passwordResolved bool          // indicates whether the password has been resolved
+	Timeout          time.Duration // timeout for redis commands execution
 }
 
 // initBaseInfoFromMetadata initializes the base information from the DBM metadata.
@@ -56,21 +58,31 @@ func (sw *RedisBaseSwitchInstance) initBaseInfoFromMetadata(metadata *dbm.DbInst
 	sw.InstanceRole = metadata.InstanceRole
 	sw.DbmClient = &dbm.Client{}
 	sw.Timeout = redisCommandTimeout()
-	sw.Password = uninitializedRedisPassword
-	sw.applyPassword(metadata.MachineType)
 }
 
+// applyPassword prefetches the password while the instance is being built.
 func (sw *RedisBaseSwitchInstance) applyPassword(machineType haprobe.DbmMetadataMachineType) {
-	passwd, err := GetInstancePassByClusterId(string(machineType), sw.ClusterID)
+	passwd, err := redispasswd.GetDbInstPasswd(sw.BkCloudID, sw.ClusterID, machineType)
 	if err != nil {
 		logger.Error("get redis switch passwd failed,err:%s,info:%s", err.Error(), sw.GetInstanceInfo())
 		return
 	}
 	sw.Password = passwd
+	sw.passwordResolved = true
 }
 
-func (sw *RedisBaseSwitchInstance) ensurePassword() {
-	if sw.Password == uninitializedRedisPassword {
-		sw.Password = GetPassByClusterID(sw.ClusterID, string(sw.MachineType))
+// ensurePassword resolves the password right before it is used.
+func (sw *RedisBaseSwitchInstance) ensurePassword() error {
+	if sw.passwordResolved {
+		return nil
 	}
+
+	passwd, err := redispasswd.GetDbInstPasswd(sw.BkCloudID, sw.ClusterID, sw.MachineType)
+	if err != nil {
+		return err
+	}
+
+	sw.Password = passwd
+	sw.passwordResolved = true
+	return nil
 }
