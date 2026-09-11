@@ -99,6 +99,20 @@ func TestWithClearPorts_MatchesLegacyZeroing(t *testing.T) {
 			},
 		},
 		{
+			name:  "tendbcluster mysql-proxy admin port drop also drops data port",
+			ports: []int{10000},
+			metadata: []probeconfig.ProbeMetadataItem{
+				tendbclusterProxyItem("127.0.0.1", 3306, 10000),
+			},
+		},
+		{
+			name:  "tendbcluster mysql-proxy data port drop keeps admin",
+			ports: []int{3306},
+			metadata: []probeconfig.ProbeMetadataItem{
+				tendbclusterProxyItem("127.0.0.1", 3306, 10000),
+			},
+		},
+		{
 			name:  "one port on both fields empties the endpoint",
 			ports: []int{20000},
 			metadata: []probeconfig.ProbeMetadataItem{
@@ -264,4 +278,13 @@ func mysqlProxyItem(ip string, port, adminPort int) probeconfig.ProbeMetadataIte
 		MachineType: string(haprobe.DbmMetadataMachineTypeProxy),
 		AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeProxy),
 	}
+}
+
+// tendbclusterProxyItem is the same (proxy, proxy) shape on a tendbcluster cluster. The endpoint
+// router keys off DbType, so it dual-produces this entry just like a tendbha proxy; clear-port
+// cleanup has to recognise it as well.
+func tendbclusterProxyItem(ip string, port, adminPort int) probeconfig.ProbeMetadataItem {
+	item := mysqlProxyItem(ip, port, adminPort)
+	item.ClusterType = string(haprobe.DbmMetadataClusterTypeTendbCluster)
+	return item
 }

@@ -48,6 +48,12 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
+// MatchResult is the result of one strategy-matching pass over a failure group.
+type MatchResult struct {
+	Groups     []*FailureGroup
+	Strategies []*hamodel.DbSwitchingStrategy
+}
+
 // SwitchExecutor creates switcher requests from failure groups, matches strategies, and triggers switching.
 type SwitchExecutor struct {
 	hadata      *storage.DbhaData
@@ -57,23 +63,13 @@ type SwitchExecutor struct {
 }
 
 // NewSwitchExecutor creates a SwitchExecutor.
-func NewSwitchExecutor(hadata *storage.DbhaData, dbmSync *Synchronizer, switchers map[haprobe.DbType]switcher.Switcher, serviceID string) *SwitchExecutor {
+func NewSwitchExecutor(
+	hadata *storage.DbhaData,
+	dbmSync *Synchronizer,
+	switchers map[haprobe.DbType]switcher.Switcher,
+	serviceID string,
+) *SwitchExecutor {
 	return &SwitchExecutor{hadata: hadata, dbmSync: dbmSync, switchers: switchers, myServiceID: serviceID}
-}
-
-// generateDoubleCheckID derives a stable, machine-scoped double-check id from the switch context.
-// It is a deterministic function of (switchID, bkCloudID, ip), so it can be called multiple times:
-//   - all instances on the same machine within one switch request get the same id;
-//   - different machines or different switch requests get different ids.
-func generateDoubleCheckID(switchID string, bkCloudID int, ip string) int64 {
-	key := fmt.Sprintf("%s|%d|%s", switchID, bkCloudID, ip)
-	// Use 63 bits so the hash always fits into a positive int64.
-	id := int64(machine.Hash(key, 63))
-	// 0 is reserved to mean "uninitialized", so never emit it.
-	if id == 0 {
-		id = 1
-	}
-	return id
 }
 
 // CreateRequestWithGroup creates a switcher request from a failure group.
@@ -118,55 +114,87 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 	return req
 }
 
-// MatchStrategyForGroup loads biz-level and global strategies, iterates each strategy for matching
-// (normal strategies count instances by event name, special strategies invoke registered match functions),
-// adds strategies meeting the triggerCount threshold to the candidate list, and returns the highest
-// priority strategy after sorting (biz-level first > lower priority value first).
-func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
+// MatchStrategies loads and sorts strategies, then greedily binds each unbound instance event.
+func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGroup) *MatchResult {
 	if len(group.Instances) == 0 {
-		return false, nil
+		return nil
 	}
 
-	bkBizID := group.Instances[0].BkBizID
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	defer cancel()
 
-	strategies, err := e.hadata.ReadSwitchingStrategyWithBkBizId(qCtx, bkBizID)
+	strategies, err := e.hadata.ReadSwitchingStrategyWithBkBizId(qCtx, group.BkBizID)
 	if err != nil {
-		logger.Warn("failed to read switching strategy, bkBizId: %d, errmsg: %s", bkBizID, err)
-		return false, nil
+		logger.Warn("failed to read switching strategy, bkBizId: %d, errmsg: %s", group.BkBizID, err)
+		return nil
 	}
 
-	var candidates []*hamodel.DbSwitchingStrategy
+	result := &MatchResult{Strategies: strategies}
+	SortCandidates(strategies)
+
+	bound := make(map[string]struct{}, len(group.Instances))
 	for _, s := range strategies {
+		unbound := filterUnboundInstances(group.Instances, bound)
+		if len(unbound) == 0 {
+			break
+		}
+
 		threshold := s.TriggerCount
 		if threshold <= 0 {
 			threshold = 1
 		}
 
-		var count int
-
-		// check if this is a special strategy, invoke the corresponding match function
+		var matched []FailureInstanceInfo
 		if matchFunc := GetSpecialMatchFunc(s.TriggerEventName); matchFunc != nil {
-			count = matchFunc(group.Instances)
+			matched = matchFunc(unbound, threshold)
 		} else {
-			// normal strategy: count instances matching the event name in the group
-			count = CountInstancesByEventName(group.Instances, s.TriggerEventName)
+			matched = FilterInstancesByEventAndCount(unbound, s.TriggerEventName, threshold)
+		}
+		if len(matched) == 0 {
+			continue
 		}
 
-		if count >= threshold {
-			candidates = append(candidates, s)
+		for _, inst := range matched {
+			bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)] = struct{}{}
+		}
+		result.Groups = append(result.Groups, &FailureGroup{
+			BkBizID:         group.BkBizID,
+			BkCloudID:       group.BkCloudID,
+			DbType:          group.DbType,
+			Strategy:        s,
+			Instances:       matched,
+			OriginInstances: group.OriginInstances,
+		})
+	}
+
+	var unmatched []FailureInstanceInfo
+	for _, inst := range group.Instances {
+		if _, ok := bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)]; !ok {
+			unmatched = append(unmatched, inst)
 		}
 	}
-
-	if len(candidates) == 0 {
-		return false, nil
+	if len(unmatched) > 0 {
+		result.Groups = append(result.Groups, &FailureGroup{
+			BkBizID:         group.BkBizID,
+			BkCloudID:       group.BkCloudID,
+			DbType:          group.DbType,
+			Instances:       unmatched,
+			OriginInstances: group.OriginInstances,
+		})
 	}
 
-	// sort by priority: biz-level first > lower priority value first
-	SortCandidates(candidates)
+	return result
+}
 
-	return true, candidates[0]
+func filterUnboundInstances(instances []FailureInstanceInfo, bound map[string]struct{}) []FailureInstanceInfo {
+	out := make([]FailureInstanceInfo, 0, len(instances))
+	for _, inst := range instances {
+		if _, ok := bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)]; ok {
+			continue
+		}
+		out = append(out, inst)
+	}
+	return out
 }
 
 // excludeUnavailableInstances keeps only the group instances that appear in DBM's query result
@@ -200,9 +228,34 @@ func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher
 	return out
 }
 
+// filterRequestByHosts builds a request containing metadata for the requested hosts only.
+func filterRequestByHosts(req *switcher.Request, instances []FailureInstanceInfo) *switcher.Request {
+	if req == nil || len(instances) == 0 {
+		return nil
+	}
+
+	hostSet := make(map[string]struct{}, len(instances))
+	for _, inst := range instances {
+		hostSet[hostKey(inst.BkCloudID, inst.IP)] = struct{}{}
+	}
+
+	groupReq := &switcher.Request{DbType: req.DbType}
+	for _, meta := range req.InstData {
+		if _, ok := hostSet[hostKey(meta.BkCloudID, meta.IP)]; ok {
+			groupReq.AddDbInstMetadata(meta)
+		}
+	}
+	return groupReq
+}
+
 // TriggerSwitching runs the switcher for the given db type and posts success/failure alarms.
-func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request,
-	snapshotData *snapshotlogger.SwitchingSnapshotData) {
+// The caller owns and closes snapshotLoggers.
+func (e *SwitchExecutor) TriggerSwitching(
+	dbType haprobe.DbType,
+	req *switcher.Request,
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	snapshotData *snapshotlogger.SwitchingSnapshotData,
+) {
 
 	if !config.Cfg.Workflow.EnableSwitching {
 		logger.Warn("switching operation is disabled")
@@ -216,12 +269,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 	}
 
 	start := time.Now()
-	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotData, start)
-	defer func() {
-		for _, swLogger := range switchingSnapshotLogger.SnapshotLoggers {
-			swLogger.Close()
-		}
-	}()
+	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
 
 	// Report before switching snapshot
 	switchingSnapshotLogger.ReportBeforeSwitchingSnapshot()
@@ -366,4 +414,14 @@ func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.
 			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
 		}
 	}
+}
+
+// generateDoubleCheckID derives a stable, machine-scoped ID from the switch context.
+func generateDoubleCheckID(switchID string, bkCloudID int, ip string) int64 {
+	key := fmt.Sprintf("%s|%d|%s", switchID, bkCloudID, ip)
+	id := int64(machine.Hash(key, 63))
+	if id == 0 {
+		id = 1
+	}
+	return id
 }

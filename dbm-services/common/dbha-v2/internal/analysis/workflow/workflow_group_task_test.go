@@ -88,8 +88,8 @@ func assertTask(t *testing.T, task *groupTask, wantAction hamodel.ActionType,
 	if task.req == nil {
 		t.Fatalf("expected non-nil req")
 	}
-	gotReqKeys := make([]string, 0, len(task.req.MySqlInstData))
-	for _, meta := range task.req.MySqlInstData {
+	gotReqKeys := make([]string, 0, len(task.req.InstData))
+	for _, meta := range task.req.InstData {
 		gotReqKeys = append(gotReqKeys, fmt.Sprintf("%s:%d", meta.IP, meta.Port))
 	}
 	if !sameStringSet(gotReqKeys, wantReqKeys) {
@@ -132,20 +132,20 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "switch and notify groups split into their own tasks with correct action and req",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
-				taskMeta("127.0.0.2", 3306),
+				taskMeta("::1", 3306),
 			},
 		},
 		groups: []*FailureGroup{
 			taskGroup(taskStrategy(1, hamodel.ActionTypeSwitch),
 				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure)),
 			taskGroup(taskStrategy(2, hamodel.ActionTypeNotify),
-				inst("127.0.0.2", 3306, haprobe.DbEventNameProbeOffline)),
+				inst("::1", 3306, haprobe.DbEventNameProbeOffline)),
 		},
 		wantTasks: []wantTask{
 			{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.1:3306"}, reqKeys: []string{"127.0.0.1:3306"}},
-			{action: hamodel.ActionTypeNotify, instances: []string{"1:127.0.0.2:3306"}, reqKeys: nil},
+			{action: hamodel.ActionTypeNotify, instances: []string{"1:::1:3306"}, reqKeys: nil},
 		},
 	},
 	{
@@ -153,7 +153,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "same host occupied by a higher-priority switch is skipped in later switch groups",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 				taskMeta("127.0.0.1", 3307),
 			},
@@ -178,20 +178,20 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "different hosts are not affected by each other's occupancy",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
-				taskMeta("127.0.0.2", 3306),
+				taskMeta("::1", 3306),
 			},
 		},
 		groups: []*FailureGroup{
 			taskGroup(taskStrategy(1, hamodel.ActionTypeSwitch),
 				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure)),
 			taskGroup(taskStrategy(2, hamodel.ActionTypeSwitch),
-				inst("127.0.0.2", 3306, haprobe.DbEventNameSshTimeout)),
+				inst("::1", 3306, haprobe.DbEventNameSshTimeout)),
 		},
 		wantTasks: []wantTask{
 			{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.1:3306"}, reqKeys: []string{"127.0.0.1:3306"}},
-			{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.2:3306"}, reqKeys: []string{"127.0.0.2:3306"}},
+			{action: hamodel.ActionTypeSwitch, instances: []string{"1:::1:3306"}, reqKeys: []string{"::1:3306"}},
 		},
 	},
 	{
@@ -199,7 +199,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "notify groups do not participate in host dedup",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 			},
 		},
@@ -219,7 +219,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "a switch group whose hosts are all occupied is skipped entirely",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 			},
 		},
@@ -238,9 +238,9 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "switch task req keeps only the metadata of its own group hosts",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
-				taskMeta("127.0.0.2", 3306),
+				taskMeta("::1", 3306),
 			},
 		},
 		groups: []*FailureGroup{
@@ -266,7 +266,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "nil strategy (unmatched instances) produces a notify task",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 			},
 		},
@@ -283,32 +283,32 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "mixed switch/notify/nil groups with host overlap dedup correctly and independently",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
-				taskMeta("127.0.0.2", 3306),
-				taskMeta("127.0.0.3", 3306),
-				taskMeta("127.0.0.4", 3306),
+				taskMeta("::1", 3306),
+				taskMeta("localhost", 3306),
+				taskMeta("localhost", 3306),
 			},
 		},
 		groups: []*FailureGroup{
 			// switch strategy 1: host A (127.0.0.1), DetectFailure
 			taskGroup(taskStrategy(1, hamodel.ActionTypeSwitch),
 				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure)),
-			// switch strategy 2: host B (127.0.0.2), SshTimeout
+			// switch strategy 2: host B (::1), SshTimeout
 			taskGroup(taskStrategy(2, hamodel.ActionTypeSwitch),
-				inst("127.0.0.2", 3306, haprobe.DbEventNameSshTimeout)),
-			// nil strategy: host C (127.0.0.3), ProbeOffline
+				inst("::1", 3306, haprobe.DbEventNameSshTimeout)),
+			// nil strategy: host C (localhost), ProbeOffline
 			taskGroup(nil,
-				inst("127.0.0.3", 3306, haprobe.DbEventNameProbeOffline)),
-			// notify strategy: host D (127.0.0.4), DiskWriteFailure
+				inst("localhost", 3306, haprobe.DbEventNameProbeOffline)),
+			// notify strategy: host D (localhost), DiskWriteFailure
 			taskGroup(taskStrategy(3, hamodel.ActionTypeNotify),
-				inst("127.0.0.4", 3306, haprobe.DbEventNameDiskWriteFailure)),
+				inst("localhost", 3306, haprobe.DbEventNameDiskWriteFailure)),
 		},
 		wantTasks: []wantTask{
 			{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.1:3306"}, reqKeys: []string{"127.0.0.1:3306"}},
-			{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.2:3306"}, reqKeys: []string{"127.0.0.2:3306"}},
-			{action: hamodel.ActionTypeNotify, instances: []string{"1:127.0.0.3:3306"}, reqKeys: nil},
-			{action: hamodel.ActionTypeNotify, instances: []string{"1:127.0.0.4:3306"}, reqKeys: nil},
+			{action: hamodel.ActionTypeSwitch, instances: []string{"1:::1:3306"}, reqKeys: []string{"::1:3306"}},
+			{action: hamodel.ActionTypeNotify, instances: []string{"1:localhost:3306"}, reqKeys: nil},
+			{action: hamodel.ActionTypeNotify, instances: []string{"1:localhost:3306"}, reqKeys: nil},
 		},
 	},
 	{
@@ -316,7 +316,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "same instance (different events) matched by two switch groups keeps only one switch task",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 			},
 		},
@@ -335,7 +335,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "same instance (different events) matched by two notify groups keeps both notify tasks",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 			},
 		},
@@ -355,7 +355,7 @@ var buildGroupTasksCases = []buildGroupTasksCase{
 		desc: "same instance in a switch group and a notify group keeps both tasks",
 		req: &switcher.Request{
 			DbType: haprobe.DbTypeMySql,
-			MySqlInstData: []*dbm.DbInstMetadata{
+			InstData: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 			},
 		},
@@ -387,7 +387,7 @@ func TestBuildGroupTasks(t *testing.T) {
 func TestFilterHostsNotOccupied(t *testing.T) {
 	insts := []FailureInstanceInfo{
 		inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure),
-		inst("127.0.0.2", 3306, haprobe.DbEventNameDetectFailure),
+		inst("::1", 3306, haprobe.DbEventNameDetectFailure),
 	}
 
 	// empty occupied: all kept
@@ -398,12 +398,12 @@ func TestFilterHostsNotOccupied(t *testing.T) {
 	// partial: only 127.0.0.1 occupied
 	occupied := map[string]struct{}{hostKey(1, "127.0.0.1"): {}}
 	got := filterHostsNotOccupied(insts, occupied)
-	if len(got) != 1 || got[0].IP != "127.0.0.2" {
-		t.Fatalf("partial occupied: expected [127.0.0.2], got %v", got)
+	if len(got) != 1 || got[0].IP != "::1" {
+		t.Fatalf("partial occupied: expected [::1], got %v", got)
 	}
 
 	// all occupied
-	occupied = map[string]struct{}{hostKey(1, "127.0.0.1"): {}, hostKey(1, "127.0.0.2"): {}}
+	occupied = map[string]struct{}{hostKey(1, "127.0.0.1"): {}, hostKey(1, "::1"): {}}
 	if got := filterHostsNotOccupied(insts, occupied); len(got) != 0 {
 		t.Fatalf("all occupied: expected 0, got %d", len(got))
 	}
@@ -412,15 +412,15 @@ func TestFilterHostsNotOccupied(t *testing.T) {
 func TestFilterRequestByHosts(t *testing.T) {
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			taskMeta("127.0.0.1", 3306),
-			taskMeta("127.0.0.2", 3306),
+			taskMeta("::1", 3306),
 		},
 	}
 	insts := []FailureInstanceInfo{inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure)}
 
 	got := filterRequestByHosts(req, insts)
-	if got == nil || len(got.MySqlInstData) != 1 || got.MySqlInstData[0].IP != "127.0.0.1" {
+	if got == nil || len(got.InstData) != 1 || got.InstData[0].IP != "127.0.0.1" {
 		t.Fatalf("expected only 127.0.0.1, got %v", got)
 	}
 
@@ -435,7 +435,7 @@ func TestFilterRequestByHosts(t *testing.T) {
 func TestFilterUnboundInstances(t *testing.T) {
 	insts := []FailureInstanceInfo{
 		inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure),
-		inst("127.0.0.2", 3306, haprobe.DbEventNameDetectFailure),
+		inst("::1", 3306, haprobe.DbEventNameDetectFailure),
 	}
 
 	// none bound: all kept
@@ -448,14 +448,14 @@ func TestFilterUnboundInstances(t *testing.T) {
 		instanceEventKey(1, "127.0.0.1", 3306, haprobe.DbEventNameDetectFailure): {},
 	}
 	got := filterUnboundInstances(insts, bound)
-	if len(got) != 1 || got[0].IP != "127.0.0.2" {
-		t.Fatalf("partial bound: expected [127.0.0.2], got %v", got)
+	if len(got) != 1 || got[0].IP != "::1" {
+		t.Fatalf("partial bound: expected [::1], got %v", got)
 	}
 
 	// all bound
 	bound = map[string]struct{}{
 		instanceEventKey(1, "127.0.0.1", 3306, haprobe.DbEventNameDetectFailure): {},
-		instanceEventKey(1, "127.0.0.2", 3306, haprobe.DbEventNameDetectFailure): {},
+		instanceEventKey(1, "::1", 3306, haprobe.DbEventNameDetectFailure):       {},
 	}
 	if got := filterUnboundInstances(insts, bound); len(got) != 0 {
 		t.Fatalf("all bound: expected 0, got %d", len(got))
@@ -504,7 +504,7 @@ func runMatchToTasksCase(t *testing.T, tc matchToTasksCase) {
 		}
 	}
 
-	req := &switcher.Request{DbType: haprobe.DbTypeMySql, MySqlInstData: tc.reqMetas}
+	req := &switcher.Request{DbType: haprobe.DbTypeMySql, InstData: tc.reqMetas}
 	tasks := (&Workflow{}).buildGroupTasks(req, result.Groups)
 
 	if len(tasks) != len(tc.wantTasks) {
@@ -533,21 +533,25 @@ func TestMatchStrategiesToBuildGroupTasks(t *testing.T) {
 				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure),
 				inst("127.0.0.1", 3307, haprobe.DbEventNameSshTimeout),
 				// host B: SshAuthFailure(3306) + DiskWriteFailure(3307)
-				inst("127.0.0.2", 3306, haprobe.DbEventNameSshAuthFailure),
-				inst("127.0.0.2", 3307, haprobe.DbEventNameDiskWriteFailure),
+				inst("::1", 3306, haprobe.DbEventNameSshAuthFailure),
+				inst("::1", 3307, haprobe.DbEventNameDiskWriteFailure),
 			},
 			reqMetas: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 				taskMeta("127.0.0.1", 3307),
-				taskMeta("127.0.0.2", 3306),
-				taskMeta("127.0.0.2", 3307),
+				taskMeta("::1", 3306),
+				taskMeta("::1", 3307),
 			},
 			// sorted order by priority: ssh(1), disk(2), detect(3), auth(4)
 			wantOrder: []string{"switch-ssh", "switch-disk", "switch-detect", "switch-auth"},
 			// ssh(1) occupies host A; disk(2) occupies host B; detect(3)/auth(4) are deduped
 			wantTasks: []wantTask{
-				{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.1:3307"}, reqKeys: []string{"127.0.0.1:3306", "127.0.0.1:3307"}},
-				{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.2:3307"}, reqKeys: []string{"127.0.0.2:3306", "127.0.0.2:3307"}},
+				{
+					action:    hamodel.ActionTypeSwitch,
+					instances: []string{"1:127.0.0.1:3307"},
+					reqKeys:   []string{"127.0.0.1:3306", "127.0.0.1:3307"},
+				},
+				{action: hamodel.ActionTypeSwitch, instances: []string{"1:::1:3307"}, reqKeys: []string{"::1:3306", "::1:3307"}},
 			},
 		},
 		{
@@ -565,23 +569,27 @@ func TestMatchStrategiesToBuildGroupTasks(t *testing.T) {
 				inst("127.0.0.1", 3306, haprobe.DbEventNameDetectFailure),
 				inst("127.0.0.1", 3307, haprobe.DbEventNameSshTimeout),
 				// host B: SshAuthFailure(3306, global switch)
-				inst("127.0.0.2", 3306, haprobe.DbEventNameSshAuthFailure),
+				inst("::1", 3306, haprobe.DbEventNameSshAuthFailure),
 				// host C: ProbeOffline (unmatched)
-				inst("127.0.0.3", 3306, haprobe.DbEventNameProbeOffline),
+				inst("localhost", 3306, haprobe.DbEventNameProbeOffline),
 			},
 			reqMetas: []*dbm.DbInstMetadata{
 				taskMeta("127.0.0.1", 3306),
 				taskMeta("127.0.0.1", 3307),
-				taskMeta("127.0.0.2", 3306),
-				taskMeta("127.0.0.3", 3306),
+				taskMeta("::1", 3306),
+				taskMeta("localhost", 3306),
 			},
 			// sorted: notify-detect(1, biz), switch-ssh(2, biz), ssh-auth(9999, global), "" (unmatched)
 			wantOrder: []string{"notify-detect", "switch-ssh", haprobe.DbEventNameSshAuthFailure.String(), ""},
 			wantTasks: []wantTask{
 				{action: hamodel.ActionTypeNotify, instances: []string{"1:127.0.0.1:3306"}, reqKeys: nil},
-				{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.1:3307"}, reqKeys: []string{"127.0.0.1:3306", "127.0.0.1:3307"}},
-				{action: hamodel.ActionTypeSwitch, instances: []string{"1:127.0.0.2:3306"}, reqKeys: []string{"127.0.0.2:3306"}},
-				{action: hamodel.ActionTypeNotify, instances: []string{"1:127.0.0.3:3306"}, reqKeys: nil},
+				{
+					action:    hamodel.ActionTypeSwitch,
+					instances: []string{"1:127.0.0.1:3307"},
+					reqKeys:   []string{"127.0.0.1:3306", "127.0.0.1:3307"},
+				},
+				{action: hamodel.ActionTypeSwitch, instances: []string{"1:::1:3306"}, reqKeys: []string{"::1:3306"}},
+				{action: hamodel.ActionTypeNotify, instances: []string{"1:localhost:3306"}, reqKeys: nil},
 			},
 		},
 	}
@@ -610,19 +618,19 @@ func TestGroupEntriesByCloudAndDbType(t *testing.T) {
 		},
 		{
 			FailureInstanceInfo: FailureInstanceInfo{
-				BkCloudID: 1, DbType: haprobe.DbTypeMySql, IP: "127.0.0.2", Port: 3306,
+				BkCloudID: 1, DbType: haprobe.DbTypeMySql, IP: "::1", Port: 3306,
 				EventName: haprobe.DbEventNameSshTimeout, Count: 1,
 			},
 		},
 		{
 			FailureInstanceInfo: FailureInstanceInfo{
-				BkCloudID: 2, DbType: haprobe.DbTypeMySql, IP: "127.0.0.3", Port: 3306,
+				BkCloudID: 2, DbType: haprobe.DbTypeMySql, IP: "localhost", Port: 3306,
 				EventName: haprobe.DbEventNameDetectFailure, Count: 2,
 			},
 		},
 		{
 			FailureInstanceInfo: FailureInstanceInfo{
-				BkCloudID: 1, DbType: haprobe.DbTypeRedis, IP: "127.0.0.4", Port: 6379,
+				BkCloudID: 1, DbType: haprobe.DbTypeRedis, IP: "localhost", Port: 6379,
 				EventName: haprobe.DbEventNameDetectFailure, Count: 5,
 			},
 		},
@@ -661,8 +669,8 @@ func TestGroupEntriesByCloudAndDbType(t *testing.T) {
 	if countByInstEvent[instanceEventKey(1, "127.0.0.1", 3306, haprobe.DbEventNameSshTimeout)] != 2 {
 		t.Errorf("ssh-timeout Count not propagated in 1:mysql: %v", countByInstEvent)
 	}
-	if countByInstEvent[instanceEventKey(1, "127.0.0.2", 3306, haprobe.DbEventNameSshTimeout)] != 1 {
-		t.Errorf("127.0.0.2 Count not propagated in 1:mysql: %v", countByInstEvent)
+	if countByInstEvent[instanceEventKey(1, "::1", 3306, haprobe.DbEventNameSshTimeout)] != 1 {
+		t.Errorf("::1 Count not propagated in 1:mysql: %v", countByInstEvent)
 	}
 
 	// (cloud=2, mysql): 1 instance, Count propagated
@@ -670,7 +678,7 @@ func TestGroupEntriesByCloudAndDbType(t *testing.T) {
 	if g == nil || len(g.Instances) != 1 {
 		t.Fatalf("expected 1 instance in 2:mysql, got %v", g)
 	}
-	if g.Instances[0].IP != "127.0.0.3" || g.Instances[0].Count != 2 {
+	if g.Instances[0].IP != "localhost" || g.Instances[0].Count != 2 {
 		t.Fatalf("Count not propagated in 2:mysql: %+v", g.Instances[0])
 	}
 
@@ -679,7 +687,7 @@ func TestGroupEntriesByCloudAndDbType(t *testing.T) {
 	if g == nil || len(g.Instances) != 1 {
 		t.Fatalf("expected 1 instance in 1:redis, got %v", g)
 	}
-	if g.Instances[0].IP != "127.0.0.4" || g.Instances[0].Count != 5 {
+	if g.Instances[0].IP != "localhost" || g.Instances[0].Count != 5 {
 		t.Fatalf("Count not propagated in 1:redis: %+v", g.Instances[0])
 	}
 }
