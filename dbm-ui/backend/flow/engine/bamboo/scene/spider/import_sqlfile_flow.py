@@ -42,6 +42,9 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script_with
 )
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.spider.check_rocksdb_ghost_collation import (
+    CheckRocksDBGhostCollationComponent,
+)
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_bk_config import get_cluster_config, get_engine_from_bk_mysql_config
@@ -172,6 +175,11 @@ class ImportSQLFlow(object):
                 ),
             )
             if engine.lower() == "rocksdb":
+                sub_pipeline.add_act(
+                    act_name=_("检查 RocksDB gh-ost collation 配置"),
+                    act_component_code=CheckRocksDBGhostCollationComponent.code,
+                    kwargs={"cluster_id": cluster.id},
+                )
                 sub_pipeline.add_act(
                     act_name=_("使用工具在线变更DDL"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
