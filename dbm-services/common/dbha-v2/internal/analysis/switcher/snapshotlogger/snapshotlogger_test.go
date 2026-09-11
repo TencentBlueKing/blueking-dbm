@@ -318,7 +318,8 @@ func TestDbSnapshotHandler_ParameterValidation(t *testing.T) {
 
 // --- Tests for StdSnapshotHandler ---
 
-// TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle tests the complete PreSwitchLog-PostSwitchLog cycle of StdSnapshotHandler
+// TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle tests the complete
+// PreSwitchLog-PostSwitchLog cycle of StdSnapshotHandler.
 func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 	ml := &mockLogger{}
 	handler := NewStdSnapshotHandler(ml)

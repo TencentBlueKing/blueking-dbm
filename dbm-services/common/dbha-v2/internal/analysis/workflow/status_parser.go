@@ -25,7 +25,7 @@
 package workflow
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -45,7 +45,7 @@ func (s *StatusParser) ParseDbStatus(dbStatus []parser.DBTyperWrapper) ([]*hapro
 	for _, v := range dbStatus {
 		logger.Debug("parse DB status, DB type: %v", v.DbTypeName)
 
-		processer, ok := parser.Parsers[v.DbTypeName]
+		processer, ok := parser.Lookup(v.DbTypeName)
 		if !ok {
 			logger.Warn("no processer for DB type: %v", v.DbTypeName)
 			continue

@@ -34,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/internal/probe/selfmetric"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
@@ -74,10 +75,15 @@ func newProbe(ctx context.Context, clientID string) *Probe {
 	}
 }
 
+func (p *Probe) startSelfMetric(ctx context.Context) {
+	go selfmetric.Run(ctx, p.shutdown)
+}
+
 // Run starts harvest plugins and the reporter, then blocks until Close signals
 // shutdown. The context argument is unused; cancelation uses p.parent which was
 // set by newProbe before signal listening began.
 func (p *Probe) Run(ctx context.Context) error {
+	p.startSelfMetric(ctx)
 	_ = ctx
 	p.runtime = p.startRuntime(p.parent, config.Cfg.ServiceID)
 	p.reporter.start(p.parent, config.Cfg.Reporter)
@@ -136,6 +142,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin, serviceID str
 			data.AgentID = baseInfo.AgentID
 			data.BkCloudID = baseInfo.BkCloudID
 			data.DbTypeName = data.Value.GetDbType()
+			data.Probe = selfmetric.Snapshot()
 
 			dataEncoded, err := json.Marshal(data)
 			if err != nil {
@@ -180,7 +187,7 @@ func (p *Probe) startPlugin(
 func (p *Probe) startRuntime(parent context.Context, serviceID string) *harvestRuntime {
 	ctx, cancel := context.WithCancel(parent)
 	rt := &harvestRuntime{cancel: cancel}
-	for _, e := range pluginEntries {
+	for _, e := range effectivePluginEntries() {
 		p.startPlugin(ctx, rt, e.name, e.factory, serviceID)
 	}
 	return rt
