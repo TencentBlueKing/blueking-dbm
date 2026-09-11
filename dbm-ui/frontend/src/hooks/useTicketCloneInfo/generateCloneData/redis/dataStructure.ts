@@ -46,10 +46,14 @@ export async function generateRedisDataStructureCloneData(ticketData: TicketMode
         hostNum: `${item.resource_spec.redis.count}`,
         instances,
         isLoading: false,
+        labels: (item.resource_spec.redis.labels || []).map((labelItem, index) => ({
+          id: Number(labelItem),
+          value: (item.resource_spec.redis.label_names || [])[index] || '',
+        })),
         rowKey: random(),
         spec: {
           ...currentClusterInfo.cluster_spec,
-          id: currentClusterInfo.cluster_spec.spec_id,
+          id: item.resource_spec.redis.spec_id,
           name: currentClusterInfo.cluster_spec.spec_name,
         },
         targetDateTime: item.recovery_time_point,
