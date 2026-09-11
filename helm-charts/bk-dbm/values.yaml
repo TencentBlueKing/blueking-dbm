@@ -97,6 +97,11 @@ dbm:
     # TODO: 验证后开启
     dbmServicesEnabled: false
 
+  # 子路径/子域名总开关。enabled=true 切换为子路径模式，模板与 dbm.envs 自动注入
+  # BK_SUBPATH_ENABLED / BK_SUBPATH_PREFIX / FORCE_SCRIPT_NAME（prefix 默认 /bkdbm，需与 ingress path 前缀一致）
+  subpath:
+    enabled: false
+
   image:
     registry: "mirrors.tencent.com"
     repository: "build/blueking/bk-dbm"
