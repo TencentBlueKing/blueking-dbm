@@ -95,6 +95,14 @@ func goldenPayloadMultiFamily() probeconfig.ProbeConfigPayload {
 	})
 }
 
+func goldenPayloadWithHealth() probeconfig.ProbeConfigPayload {
+	payload := goldenPayloadProxyDualProduce()
+	payload.Health = &probeconfig.ProbeHealthConfig{
+		DiskWriteDirs: []string{"/tmp"},
+	}
+	return payload
+}
+
 func TestGenProbeYAML_GoldenFiles(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -115,6 +123,11 @@ func TestGenProbeYAML_GoldenFiles(t *testing.T) {
 			name:    "multi_family",
 			file:    "multi_family.yaml",
 			payload: goldenPayloadMultiFamily(),
+		},
+		{
+			name:    "proxy_dual_produce_with_health",
+			file:    "proxy_dual_produce_with_health.yaml",
+			payload: goldenPayloadWithHealth(),
 		},
 	}
 

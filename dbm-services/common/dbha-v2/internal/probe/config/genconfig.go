@@ -67,7 +67,8 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload, opts ...GenOption) (st
 
 	if payload.ProxyAdmin == nil && len(mysqlProxyAdminEndpoints) > 0 {
 		logger.Info(
-			"payload missing proxy-admin creds, falling back to probeMysql for mysql-proxy admin ports, count: %d, hint: upgrade admin to enable proxy-admin block",
+			"payload missing proxy-admin creds, falling back to probeMysql for mysql-proxy admin ports, "+
+				"count: %d, hint: upgrade admin to enable proxy-admin block",
 			len(mysqlProxyAdminEndpoints),
 		)
 		mysqlEndpoints = append(mysqlEndpoints, mysqlProxyAdminEndpoints...)
@@ -76,6 +77,10 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload, opts ...GenOption) (st
 	}
 
 	cfg := newProbeYAML(payload)
+
+	if payload.Health != nil {
+		cfg.Health = &probeHealthYAML{DiskWriteDirs: payload.Health.DiskWriteDirs}
+	}
 
 	fillNamedHarvesters(&cfg, payload, mysqlEndpoints, mysqlProxyAdminEndpoints, redisEndpoints)
 	fillExtraHarvesters(&cfg, payload, extraEndpoints)
@@ -759,8 +764,12 @@ func durationToYAML(d time.Duration) string {
 	return d.String()
 }
 
+// isMysqlProxyEndpoint reports whether a metadata entry is a mysql-family proxy node, i.e.
+// mysql-family clusterType AND access_layer=proxy AND machine_type=proxy. It must stay in sync
+// with routeMySQLEndpoint, which routes by DbType and therefore covers every mysql-family
+// cluster type; otherwise clear-port cleanup would miss endpoints the router dual-produced.
 func isMysqlProxyEndpoint(clusterType, machineType, accessLayer string) bool {
-	return clusterType == string(haprobe.DbmMetadataClusterTypeTendbha) &&
+	return dbtype.DbTypeOf(haprobe.DbmMetadataClusterType(clusterType)) == haprobe.DbTypeMySql &&
 		accessLayer == string(haprobe.DbmMetadataAccessLayerTypeProxy) &&
 		machineType == string(haprobe.DbmMetadataMachineTypeProxy)
 }

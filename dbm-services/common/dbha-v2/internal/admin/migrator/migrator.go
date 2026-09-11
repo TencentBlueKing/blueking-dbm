@@ -51,11 +51,59 @@ const (
 // defaultGlobalStrategies defines the default global strategy list
 var defaultGlobalStrategies = []hamodel.DbSwitchingStrategy{
 	{
-		Name:                   string(haprobe.DbEventNameDoubleCheckSshFailureV1),
+		Name:                   haprobe.DbEventNameDoubleCheckSshFailureV1.String(),
 		BkBizID:                0,
 		Status:                 hamodel.StatusTypeEnabled,
 		TriggerEventName:       haprobe.DbEventNameDoubleCheckSshFailureV1,
 		TriggerEventNameReason: haprobe.DbEventNameReasonConnectionException,
+		TriggerCount:           1,
+		Priority:               9999,
+		Scope:                  hamodel.ActionScopeTypeHost,
+		Action:                 hamodel.ActionTypeSwitch,
+		Description:            "",
+	},
+	{
+		Name:                   haprobe.DbEventNameSshAuthFailure.String(),
+		BkBizID:                0,
+		Status:                 hamodel.StatusTypeEnabled,
+		TriggerEventName:       haprobe.DbEventNameSshAuthFailure,
+		TriggerEventNameReason: haprobe.DbEventNameReasonSSHAuthException,
+		TriggerCount:           1,
+		Priority:               9999,
+		Scope:                  hamodel.ActionScopeTypeHost,
+		Action:                 hamodel.ActionTypeSwitch,
+		Description:            "",
+	},
+	{
+		Name:                   haprobe.DbEventNameSshTimeout.String(),
+		BkBizID:                0,
+		Status:                 hamodel.StatusTypeEnabled,
+		TriggerEventName:       haprobe.DbEventNameSshTimeout,
+		TriggerEventNameReason: haprobe.DbEventNameReasonSshTimeout,
+		TriggerCount:           1,
+		Priority:               9999,
+		Scope:                  hamodel.ActionScopeTypeHost,
+		Action:                 hamodel.ActionTypeSwitch,
+		Description:            "",
+	},
+	{
+		Name:                   haprobe.DbEventNameDiskWriteFailure.String(),
+		BkBizID:                0,
+		Status:                 hamodel.StatusTypeEnabled,
+		TriggerEventName:       haprobe.DbEventNameDiskWriteFailure,
+		TriggerEventNameReason: haprobe.DbEventNameReasonDiskWriteException,
+		TriggerCount:           1,
+		Priority:               9999,
+		Scope:                  hamodel.ActionScopeTypeHost,
+		Action:                 hamodel.ActionTypeSwitch,
+		Description:            "",
+	},
+	{
+		Name:                   haprobe.DbEventNameUptimeFailure.String(),
+		BkBizID:                0,
+		Status:                 hamodel.StatusTypeEnabled,
+		TriggerEventName:       haprobe.DbEventNameUptimeFailure,
+		TriggerEventNameReason: haprobe.DbEventNameReasonUptimeException,
 		TriggerCount:           1,
 		Priority:               9999,
 		Scope:                  hamodel.ActionScopeTypeHost,
@@ -216,10 +264,11 @@ func (m *Migrator) createDefaultGlobalStrategies(db *gorm.DB) error {
 // isStrategyExists checks whether a strategy with the same TriggerEventName already exists.
 func (m *Migrator) isStrategyExists(db *gorm.DB, strategy *hamodel.DbSwitchingStrategy) (bool, error) {
 	var count int64
-	err := db.Model(&hamodel.DbSwitchingStrategy{}).Where(map[string]any{
-		hamodel.DbSwitchingStrategyFieldBkBizID:          strategy.BkBizID,
-		hamodel.DbSwitchingStrategyFieldTriggerEventName: strategy.TriggerEventName,
-	}).Count(&count).Error
+	err := db.Session(&gorm.Session{}).Model(&hamodel.DbSwitchingStrategy{}).
+		Where(map[string]any{
+			hamodel.DbSwitchingStrategyFieldBkBizID:          strategy.BkBizID,
+			hamodel.DbSwitchingStrategyFieldTriggerEventName: strategy.TriggerEventName,
+		}).Count(&count).Error
 	if err != nil {
 		return false, gerrors.Newf(gerrors.MysqlFailure,
 			"failed to query default global strategy(%s), errmsg: %s", strategy.Name, err)

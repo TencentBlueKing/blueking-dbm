@@ -33,8 +33,8 @@ import (
 // MatchProxyBackendSimultaneous matches cases where proxy and backend master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A backend master must satisfy both MachineType == backend and InstanceRole == MySQLStorageMaster.
-// Returns the count of matched clusters.
-func MatchProxyBackendSimultaneous(instances []failure.Instance) int {
+// It returns instances from clusters whose matched unit count reaches threshold.
+func MatchProxyBackendSimultaneous(instances []failure.Instance, threshold int) []failure.Instance {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]failure.Instance)
 	for _, inst := range instances {
@@ -42,8 +42,9 @@ func MatchProxyBackendSimultaneous(instances []failure.Instance) int {
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
-	count := 0
-	for _, group := range clusterGroups {
+	clusterCounts := make(map[switchcore.ClusterKey]int)
+	var matched []failure.Instance
+	for key, group := range clusterGroups {
 		hasProxy := false
 		hasBackendMaster := false
 		for _, inst := range group {
@@ -62,18 +63,23 @@ func MatchProxyBackendSimultaneous(instances []failure.Instance) int {
 			}
 		}
 		if hasProxy && hasBackendMaster {
-			count++
+			clusterCounts[key]++
 		}
 	}
 
-	return count
+	for key, count := range clusterCounts {
+		if count >= threshold {
+			matched = append(matched, clusterGroups[key]...)
+		}
+	}
+	return matched
 }
 
 // MatchSpiderRemoteMasterSimultaneous matches cases where spider and remote master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A remote master must satisfy both MachineType == remote and InstanceRole == TenDBClusterStorageMaster.
-// Returns the count of matched clusters.
-func MatchSpiderRemoteMasterSimultaneous(instances []failure.Instance) int {
+// It returns instances from clusters whose matched unit count reaches threshold.
+func MatchSpiderRemoteMasterSimultaneous(instances []failure.Instance, threshold int) []failure.Instance {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]failure.Instance)
 	for _, inst := range instances {
@@ -81,8 +87,9 @@ func MatchSpiderRemoteMasterSimultaneous(instances []failure.Instance) int {
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
-	count := 0
-	for _, group := range clusterGroups {
+	clusterCounts := make(map[switchcore.ClusterKey]int)
+	var matched []failure.Instance
+	for key, group := range clusterGroups {
 		hasSpider := false
 		hasRemoteMaster := false
 		for _, inst := range group {
@@ -101,9 +108,14 @@ func MatchSpiderRemoteMasterSimultaneous(instances []failure.Instance) int {
 			}
 		}
 		if hasSpider && hasRemoteMaster {
-			count++
+			clusterCounts[key]++
 		}
 	}
 
-	return count
+	for key, count := range clusterCounts {
+		if count >= threshold {
+			matched = append(matched, clusterGroups[key]...)
+		}
+	}
+	return matched
 }

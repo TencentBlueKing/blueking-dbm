@@ -34,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -50,7 +51,11 @@ func (c whitelistCluster) String() string {
 }
 
 // queryBlackWhiteListFromDbhaV1 queries black white list from dbha-v1.
-func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(ctx context.Context, bkBizId int, bkCloudId int) ([]*dbm.Dbhav1BlackWhiteListItem, error) {
+func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(
+	ctx context.Context,
+	bkBizId int,
+	bkCloudId int,
+) ([]*dbm.Dbhav1BlackWhiteListItem, error) {
 	if s.cli == nil {
 		return nil, gerrors.Newf(gerrors.Failure, "dbm client is not initialized")
 	}
@@ -182,7 +187,13 @@ func (w *Workflow) filterByWhitelistForScan(ctx context.Context, bizID int, bizM
 
 // filterByWhitelistForSwitch filters switch requests by whitelist:
 // whitelisted instances proceed to switching, others are removed and notified only.
-func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *FailureGroup, req *switcher.Request) error {
+func (w *Workflow) filterByWhitelistForSwitch(
+	ctx context.Context,
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup,
+	req *switcher.Request,
+	strategies []*hamodel.DbSwitchingStrategy,
+) error {
 	if !config.Cfg.Workflow.EnableWhiteList {
 		logger.Warn("whitelist is disabled, skip filtering whitelisted instances")
 		return nil
@@ -196,7 +207,7 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *Failur
 		return nil
 	}
 
-	bkBizID := group.Instances[0].BkBizID
+	bkBizID := group.BkBizID
 
 	whiteList, err := w.dbmSync.queryBlackWhiteListFromDbhaV1(ctx, bkBizID, group.BkCloudID)
 	if err != nil {
@@ -247,14 +258,18 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *Failur
 		return nil
 	}
 
+	w.reportWhitelistNotifySnapshot(snapshotLoggers, group, remaining, req.SwitchID, strategies)
+
 	// send a notification alarm for non-whitelisted instances
-	clusterInfos := make([]string, 0, len(remaining))
+	instanceInfos := make([]string, 0, len(remaining))
 	for _, meta := range remaining {
-		clusterInfos = append(clusterInfos, fmt.Sprintf("%d:%s", meta.ClusterID, meta.Cluster))
+		instanceInfos = append(instanceInfos,
+			fmt.Sprintf("%s(%d):%s:%d", meta.Cluster, meta.ClusterID, meta.IP, meta.Port))
 	}
 	log := fmt.Sprintf(
-		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
-		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(clusterInfos, ", "))
+		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, "+
+			"bkCloudId: %d, dbType: %s, instances: [%s]",
+		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(instanceInfos, ", "))
 	logger.Info("%s", log)
 	w.alarm.TriggerWithBizId(bkBizID, log)
 	return nil

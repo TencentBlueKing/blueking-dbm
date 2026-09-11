@@ -107,6 +107,7 @@ func assertMirrors(t *testing.T, source, mirror reflect.Type) {
 func TestMirrorStructsCoverSource(t *testing.T) {
 	assertMirrors(t, reflect.TypeOf(ClientConfig{}), reflect.TypeOf(probeClientYAML{}))
 	assertMirrors(t, reflect.TypeOf(AdminConfig{}), reflect.TypeOf(probeAdminYAML{}))
+	assertMirrors(t, reflect.TypeOf(HealthConfig{}), reflect.TypeOf(probeHealthYAML{}))
 }
 
 // TestProbeYAMLCoversConfigurationKeys is the top-level counterpart of TestMirrorStructsCoverSource.

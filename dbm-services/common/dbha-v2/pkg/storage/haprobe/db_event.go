@@ -69,6 +69,10 @@ const (
 	DbEventNameProbeOffline                    DbEventName = "dbha_probe_offline"
 	DbEventNameTendbhaProxyBackendFailure      DbEventName = "dbha_tendbha_proxy_backend_failure"
 	DbEventNameTendbclusterSpiderRemoteFailure DbEventName = "dbha_tendbcluster_spider_remote_failure"
+	DbEventNameSshAuthFailure                  DbEventName = "dbha_ssh_auth_failure"
+	DbEventNameSshTimeout                      DbEventName = "dbha_ssh_timeout"
+	DbEventNameDiskWriteFailure                DbEventName = "dbha_disk_write_failure"
+	DbEventNameUptimeFailure                   DbEventName = "dbha_uptime_failure"
 )
 
 // DbEventNameMap db event name map
@@ -79,6 +83,10 @@ var DbEventNameMap = map[DbEventName]DbEventName{
 	DbEventNameTendbhaProxyBackendFailure:      DbEventNameTendbhaProxyBackendFailure,
 	DbEventNameTendbclusterSpiderRemoteFailure: DbEventNameTendbclusterSpiderRemoteFailure,
 	DbEventNameProbeOffline:                    DbEventNameProbeOffline,
+	DbEventNameSshAuthFailure:                  DbEventNameSshAuthFailure,
+	DbEventNameSshTimeout:                      DbEventNameSshTimeout,
+	DbEventNameDiskWriteFailure:                DbEventNameDiskWriteFailure,
+	DbEventNameUptimeFailure:                   DbEventNameUptimeFailure,
 }
 
 // DbEventNameList db event name list
@@ -89,6 +97,10 @@ var DbEventNameList = []DbEventName{
 	DbEventNameTendbhaProxyBackendFailure,
 	DbEventNameTendbclusterSpiderRemoteFailure,
 	DbEventNameProbeOffline,
+	DbEventNameSshAuthFailure,
+	DbEventNameSshTimeout,
+	DbEventNameDiskWriteFailure,
+	DbEventNameUptimeFailure,
 }
 
 // DbEventNameReasonStr db event name reason
@@ -121,6 +133,15 @@ func (t DbEventNameReason) Str() DbEventNameReasonStr {
 	case DbEventNameReasonHeartbeatWriteFailure:
 		return HeartbeatWriteFailure
 
+	case DbEventNameReasonSshTimeout:
+		return SshTimeout
+
+	case DbEventNameReasonDiskWriteException:
+		return DiskWriteFailure
+
+	case DbEventNameReasonUptimeException:
+		return UptimeFailure
+
 	default:
 		unknown := fmt.Sprintf("unknown event name reason: %d", t)
 		return DbEventNameReasonStr(unknown)
@@ -134,6 +155,9 @@ const (
 	DbEventNameReasonMissedProbe
 	DbEventNameReasonNoTarget
 	DbEventNameReasonHeartbeatWriteFailure
+	DbEventNameReasonSshTimeout
+	DbEventNameReasonDiskWriteException
+	DbEventNameReasonUptimeException
 )
 
 const (
@@ -143,6 +167,9 @@ const (
 	MissedProbe           DbEventNameReasonStr = "missed probe"
 	NoTarget              DbEventNameReasonStr = "no target"
 	HeartbeatWriteFailure DbEventNameReasonStr = "heartbeat write failure"
+	SshTimeout            DbEventNameReasonStr = "ssh timeout"
+	DiskWriteFailure      DbEventNameReasonStr = "disk write failure"
+	UptimeFailure         DbEventNameReasonStr = "uptime failure"
 )
 
 // DbType  db type
