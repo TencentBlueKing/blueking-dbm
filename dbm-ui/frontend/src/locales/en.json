@@ -6241,7 +6241,7 @@
   "mongos、同一副本集主机必须分布在不同园区": "mongos and hosts in the same replica set must be in different zones",
   "mongos、同一副本集主机至少跨 2 个园区，且同一园区时必须分布在不同机架": "mongos and hosts in the same replica set must span at least 2 zones, and must be on different racks when in the same zone",
   "name不能重复": "name cannot be duplicated",
-  "{集群名}": "{Cluster Name}",
+  "{集群名}": "{'{'}Cluster Name{'}'}",
   "· 按使用时间倒序 · 跨业务空间保留": "· Sorted by last used time (desc) · Retained across business spaces",
   "· 按收藏时间倒序 · 跨业务空间保留": "· Sorted by favorite time (desc) · Retained across business spaces",
   "一键清除问题 IP": "Clear Invalid IPs",
