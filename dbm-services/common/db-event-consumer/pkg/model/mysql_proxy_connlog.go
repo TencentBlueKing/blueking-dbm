@@ -32,16 +32,19 @@ type MysqlProxyConnlog struct {
 	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:bigint;not null" json:"dteventtimestamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
 	DtEventTimeHour string `gorm:"column:dteventtimehour;type:varchar(127);not null" json:"dteventtimehour" db:"dteventtimehour"`
-	BkBizId         int    `gorm:"column:bk_biz_id;type:int;not null" json:"bk_biz_id" db:"bk_biz_id"`
-	BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
-	ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
+	// LogTime string 东八区: 2026-03-10 16:27:07
+	LogTime string `gorm:"column:log_time;type:varchar(30);not null" json:"log_time" db:"log_time"`
+
+	BkBizId       int    `gorm:"column:bk_biz_id;type:int;not null" json:"bk_biz_id" db:"bk_biz_id"`
+	BkCloudId     int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
+	ClusterDomain string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
 	// ProxyIp proxy serverIp
-	ProxyIp   string    `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
-	ProxyPort int       `gorm:"column:proxy_port;type:int" json:"proxy_port" db:"proxy_port"`
-	ClientIp  string    `gorm:"column:client_ip;type:varchar(127);not null" json:"client_ip" db:"client_ip"`
-	ConnUser  string    `gorm:"column:conn_user;type:varchar(127);not null" json:"conn_user" db:"conn_user"`
-	ConnTime  time.Time `gorm:"column:conn_time;type:datetime;not null" json:"conn_time" db:"conn_time"`
-	SessionId int64     `gorm:"column:session_id;type:bigint;not null" json:"session_id" db:"session_id"`
+	ProxyIp   string `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
+	ProxyPort int    `gorm:"column:proxy_port;type:int" json:"proxy_port" db:"proxy_port"`
+	ClientIp  string `gorm:"column:client_ip;type:varchar(127);not null" json:"client_ip" db:"client_ip"`
+	ConnUser  string `gorm:"column:conn_user;type:varchar(127);not null" json:"conn_user" db:"conn_user"`
+	ConnTime  string `gorm:"column:conn_time;type:varchar(30);not null" json:"conn_time" db:"conn_time"`
+	SessionId int64  `gorm:"column:session_id;type:bigint;not null" json:"session_id" db:"session_id"`
 }
 
 func (m *MysqlProxyConnlog) TableName() string {
@@ -65,16 +68,16 @@ func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 		return fmt.Errorf("connlog format not match(%s): %s ", msg.Ip, queryString)
 	}
 	// matches[1]=datetime, matches[2]=user, matches[3]=ip, matches[4]=session_id
-	connTime, err := time.ParseInLocation("2006-01-02 15:04:05", matches[1], time.Local)
+	connTime, err := time.ParseInLocation("2006-01-02 15:04:05", matches[1], loc)
 	if err != nil {
 		return errors.WithMessagef(err, "parse conn_time failed: %s", matches[1])
 	}
 	//m.ClusterDomain = msg.BkModule
 	m.BkCloudId = msg.BkCloudId
-	m.DtEventTimeStamp = connTime
+	m.DtEventTimeStamp = connTime.UTC()
 	m.ProxyIp = msg.Ip
 
-	m.ConnTime = connTime
+	m.ConnTime = matches[1]
 	m.ConnUser = matches[2]
 	m.ClientIp = matches[3]
 	sessionId, _ := strconv.ParseInt(matches[4], 10, 64)
@@ -86,14 +89,16 @@ func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	}
 
 	// 公共时间字段
-	//m.TheDate, _ = strconv.Atoi(connTime.Format("20060102"))
-	m.DtEventTimeHour = connTime.Format("2006-01-02 15")
+	m.DtEventTimeHour = m.DtEventTimeStamp.Format("2006-01-02 15")
+	m.LogTime = m.DtEventTimeStamp.In(loc).Format(time.DateTime) // 东八区 string
 
 	// 维度字段从 msg.Ext 中提取
 	if msg.Ext != nil {
 		m.BkBizId = cast.ToInt(msg.Ext["app_id"])
 		m.BkCloudId = cast.ToInt(msg.Ext["bk_cloud_id"])
 		m.ClusterDomain = cast.ToString(msg.Ext["cluster_domain"])
+		m.ProxyPort = cast.ToInt(msg.Ext["instance_port"])
+		// m.ProxyIp = cast.ToString(msg.Ext["instance_host"])
 	}
 	return nil
 }
@@ -103,6 +108,8 @@ func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 var connlogRegexp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s*\(\w+\)\s*conn_log,\s*current user is '([^']*)'@'([^']*)'\s+(-?\d+)$`)
 
 func (m *MysqlProxyConnlog) MigrateSchema(w base.DSWriter) error {
+	loc, _ = time.LoadLocation("Asia/Shanghai")
+
 	slog.Info("run migrate for MysqlProxyConnlog", slog.String("table", m.TableName()))
 	dbWriter, ok := w.(base.GormMigrator)
 	if !ok {
@@ -169,7 +176,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 	builder := sb.NewInsertBuilder()
 	builder.InsertInto(m.TableName())
 	builder.Cols(
-		"dteventtimestamp", "dteventtimehour",
+		"dteventtimestamp", "dteventtimehour", "log_time",
 		"cluster_domain",
 		"proxy_ip",
 		"proxy_port",
@@ -183,7 +190,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 	for _, kafkaObj := range kafkaObjs {
 		kafkaObj.DtEventTimeHour = kafkaObj.DtEventTimeStamp.Format("2006-01-02 15")
 		builder.Values(
-			kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
+			kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour, kafkaObj.LogTime,
 			kafkaObj.ClusterDomain,
 			kafkaObj.ProxyIp,
 			kafkaObj.ProxyPort,
@@ -216,9 +223,10 @@ CREATE TABLE IF NOT EXISTS %s (
   cluster_domain varchar(200) NOT NULL,
   dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by',
   dteventtimestamp datetime NOT NULL,
+  log_time varchar(30) NULL COMMENT 'cst time',
   proxy_ip varchar(60) NOT NULL,
   proxy_port int DEFAULT NULL,
-  conn_time datetime NOT NULL,
+  conn_time varchar(30) NOT NULL,
   client_ip varchar(127) DEFAULT NULL,
   conn_user varchar(127) DEFAULT NULL,
   session_id bigint DEFAULT NULL,
@@ -241,8 +249,10 @@ CREATE TABLE IF NOT EXISTS %s (
   cluster_domain varchar(200) NOT NULL,
   dteventtimehour datetime NOT NULL COMMENT "datetime precision to hour, used as where,group-by,expire",
   dteventtimestamp datetime NOT NULL,
+  log_time varchar(30) NULL COMMENT 'cst time',
   proxy_ip varchar(60) NOT NULL,
-  conn_time datetime NOT NULL,
+  proxy_port int NULL,
+  conn_time varchar(30) NOT NULL,
   client_ip varchar(60) NULL,
   conn_user varchar(100) NULL,
   session_id bigint NULL,

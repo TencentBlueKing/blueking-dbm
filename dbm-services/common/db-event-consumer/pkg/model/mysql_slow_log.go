@@ -11,7 +11,6 @@ package model
 import (
 	"fmt"
 	"log/slog"
-	"strconv"
 	"sync"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 // 分配 64MB 足够存储所有实例的上下文信息。
 var slowLogDbNameCache *freecache.Cache
 var slowLogCacheOnce sync.Once
+var loc *time.Location
 
 // slowlog file 我们一天会 flush 一次
 const slowLogDbNameExpireSec = 86400 * 2 // 48小时
@@ -63,12 +63,10 @@ type MysqlSlowLogModel struct {
 	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:timestamp;not null" json:"dteventtimestamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
 	DtEventTimeHour string `gorm:"column:dteventtimehour;type:varchar(127);not null" json:"dteventtimehour" db:"dteventtimehour"`
-	// LogTime	2026-03-10 16:27:07
-	LogTime time.Time `gorm:"column:log_time;type:datetime;not null" json:"log_time" db:"log_time"`
+	// LogTime string 东八区: 2026-03-10 16:27:07
+	LogTime string `gorm:"column:log_time;type:varchar(30);not null" json:"log_time" db:"log_time"`
 	// SqlTimestamp	1773131220
 	SqlTimestamp uint `gorm:"column:sql_timestamp;type:bigint;not null" json:"sql_timestamp" db:"sql_timestamp"`
-	// TheDate 20250101
-	TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 
 	ClusterDomain string `gorm:"column:cluster_domain;type:varchar(255);not null" json:"cluster_domain" db:"cluster_domain"`
 	InstanceHost  string `gorm:"column:instance_host;type:varchar(60);not null" json:"instance_host" db:"instance_host"`
@@ -85,7 +83,7 @@ type MysqlSlowLogModel struct {
 	QueryDigestText string `gorm:"column:query_digest_text;type:text;not null" json:"query_digest_text" db:"query_digest_text"`
 	QueryString     string `gorm:"column:query_string;type:longtext;not null" json:"query_string" db:"query_string"`
 	QueryLength     int    `gorm:"column:query_length;type:int;not null" json:"query_length" db:"query_length"`
-	QueryCommand    string `gorm:"column:query_command;type:varchar(60);not null" json:"command" db:"query_command"`
+	QueryCommand    string `gorm:"column:query_command;type:varchar(60);not null" json:"query_command" db:"query_command"`
 	TableNames      string `gorm:"column:table_names;type:varchar(1024);not null" json:"table_names" db:"table_names"`
 	QueryDbName     string `gorm:"column:query_db_name;type:varchar(255);not null" json:"query_db_name" db:"query_db_name"`
 	// DbName: Schema 最权威，其次是 DbName,最后是 QueryDbName
@@ -94,10 +92,10 @@ type MysqlSlowLogModel struct {
 	// QueryStartTs SqlTimestamp
 	// QueryStartTs uint `gorm:"column:query_start_ts;type:bigint;not null" json:"query_start_ts" db:"query_start_ts"`
 
-	Username     string `gorm:"column:username;type:varchar(127);not null" json:"user" db:"username"`
+	Username     string `gorm:"column:username;type:varchar(127);not null" json:"username" db:"username"`
 	ClientHost   string `gorm:"column:client_host;type:varchar(60);not null" json:"client_host" db:"client_host"`
-	AppName      string `gorm:"column:app_name;type:varchar(60);not null" json:"app" db:"app_name"`
-	BkBizId      int    `gorm:"column:bk_biz_id;type:int;not null" json:"app_id" db:"bk_biz_id"`
+	AppName      string `gorm:"column:app_name;type:varchar(60);not null" json:"app_name" db:"app_name"`
+	BkBizId      int    `gorm:"column:bk_biz_id;type:int;not null" json:"bk_biz_id" db:"bk_biz_id"`
 	BkCloudId    int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
 	ParseFailure int    `gorm:"column:parse_failure;type:int;not null" json:"parse_failure" db:"parse_failure"`
 }
@@ -160,6 +158,7 @@ func (m *MysqlSlowLogModel) TableName() string {
 }
 
 func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {
+	loc, _ = time.LoadLocation("Asia/Shanghai")
 	initSlowLogDbNameCache()
 	slog.Info("run migrate for MysqlSlowLogModel", slog.String("table", m.TableName()))
 	dbWriter, ok := w.(base.GormMigrator)
@@ -223,7 +222,8 @@ func (m *MysqlSlowLogModel) dorisCreate(i interface{}, db *gorm.DB) error {
 	builder := sb.NewInsertBuilder()
 	builder.InsertInto(m.TableName())
 	builder.Cols(
-		"dteventtimehour", "dteventtimestamp", "log_time", "thedate",
+		"dteventtimehour", "dteventtimestamp", "sql_timestamp",
+		"log_time",
 		"cluster_domain",
 		"instance_host",
 		"instance_port",
@@ -256,7 +256,8 @@ func (m *MysqlSlowLogModel) dorisCreate(i interface{}, db *gorm.DB) error {
 	for _, kafkaObj := range kafkaObjs {
 		// slog.Debug("unmarshal task obj", slog.Any("obj", kafkaObj))
 		builder.Values(
-			kafkaObj.DtEventTimeHour, kafkaObj.DtEventTimeStamp, kafkaObj.LogTime, kafkaObj.TheDate,
+			kafkaObj.DtEventTimeHour, kafkaObj.DtEventTimeStamp, kafkaObj.SqlTimestamp,
+			kafkaObj.LogTime,
 			kafkaObj.ClusterDomain,
 			kafkaObj.InstanceHost,
 			kafkaObj.InstancePort,
@@ -309,8 +310,7 @@ CREATE TABLE IF NOT EXISTS %s (
   dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by,expire',
   dteventtimestamp datetime NOT NULL,
   sql_timestamp int NULL,
-  thedate int NOT NULL,
-  log_time datetime NULL,
+  log_time datetime NULL COMMENT 'cst time',
   query_digest_md5 varchar(60) DEFAULT NULL,
   instance_host varchar(60) DEFAULT NULL,
   instance_port int DEFAULT NULL,
@@ -355,8 +355,7 @@ CREATE TABLE IF NOT EXISTS %s (
   
   dteventtimestamp datetime NOT NULL,
   sql_timestamp int NULL,
-  thedate int NULL,
-  log_time datetime NULL,
+  log_time varchar(30) NULL COMMENT 'cst time',
   instance_host varchar(60) NULL,
   instance_port int NULL,
 
@@ -432,7 +431,7 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.LockTime = logParsed.LockTime
 	m.RowsExamined = logParsed.RowsExamined
 	m.RowsSent = logParsed.RowsSent
-	m.SqlTimestamp = logParsed.SqlTimestamp
+	m.SqlTimestamp = logParsed.QueryStartTs // logParsed.SqlTimestamp
 	m.QueryString = logParsed.QueryString
 	m.QueryDigestText = logParsed.QueryDigestText
 	m.QueryDigestMd5 = logParsed.QueryDigestMd5
@@ -459,12 +458,15 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 
 	m.GetSchemaFromContext()
 
-	m.DtEventTimeStamp = msg.LogTime.Time
-	m.LogTime = msg.UtcTime.Time
-
-	m.TheDate, _ = strconv.Atoi(m.LogTime.Format("20060102"))
-	m.DtEventTimeHour = m.LogTime.Format("2006-01-02 15")
-
+	m.DtEventTimeStamp = time.Unix(int64(m.SqlTimestamp), 0).UTC()
+	m.DtEventTimeHour = m.DtEventTimeStamp.Format("2006-01-02 15")
+	m.LogTime = m.DtEventTimeStamp.In(loc).Format(time.DateTime) // 东八区 string
+	/*
+		m.DtEventTimeStamp = msg.LogTime.Time
+		m.LogTime = msg.UtcTime.Time
+		m.TheDate, _ = strconv.Atoi(m.LogTime.Format("20060102"))
+		m.DtEventTimeHour = m.LogTime.Format("2006-01-02 15")
+	*/
 	return nil
 }
 

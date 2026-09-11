@@ -10,6 +10,7 @@ import (
 	"github.com/pingcap/tidb/pkg/parser/ast"
 	"github.com/pingcap/tidb/pkg/parser/format"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/slow-query-parser-service/pkg/tiparser"
 )
 
@@ -106,7 +107,7 @@ func AnalyzeSql(db, oneSql string) (resp *Response, err error) {
 		}
 		resp.TableReferences = append(resp.TableReferences, ref)
 	}
-	resp.Command = strings.Join(sqlCommands.CommandName, ",")
+	resp.Command = strings.Join(cmutil.RemoveDuplicate(sqlCommands.CommandName), ",")
 	// fmt.Println("xxxx", resp.Command, resp.TableReferences)
 	// 优先取第一个表名
 	for _, dbt := range resp.TableReferences {

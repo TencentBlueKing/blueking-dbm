@@ -35,6 +35,9 @@ type DorisHttpDsn struct {
 	// FeHttpAddress 为 Doris FE 的 HTTP 地址，支持逗号分隔的多个 ip:port（默认端口 8030）。
 	// 如果为空，则取 Address 的 host:8030
 	FeHttpAddress string `yaml:"fe_http_address" mapstructure:"fe_http_address"`
+	// Timezone Stream Load 的 timezone 参数，默认 UTC。
+	// 约定：模型中 time.Time 字段一律存 UTC，需要本地时间的字段用 string 存无时区字面量。
+	Timezone string `yaml:"timezone" mapstructure:"timezone"`
 }
 
 // DorisHttpWriter 使用 Doris HTTP Stream Load 接口写入数据
@@ -44,6 +47,7 @@ type DorisHttpWriter struct {
 	httpClient      *http.Client
 	writeMode       string
 	feHttpAddresses []string // 解析后的 FE HTTP 地址列表
+	timezone        string   // Stream Load 使用的时区，构造时确定
 }
 
 func NewDorisHttpWriter(dsn *DorisHttpDsn) (*DorisHttpWriter, error) {
@@ -59,6 +63,17 @@ func NewDorisHttpWriter(dsn *DorisHttpDsn) (*DorisHttpWriter, error) {
 	if err != nil {
 		return nil, err
 	}
+	// time.Time 的默认 json 序列化为 RFC3339（带 "Z" 或 "+08:00"），
+	// Doris 对带时区后缀的 datetime 会按本次导入的 timezone 换算后落盘，
+	// 且未指定该 header 时默认按东八区处理，会把 UTC 时间 +8。
+	// 本项目约定 time.Time 字段一律存 UTC，故显式声明。
+	// 注意：不带时区后缀的字面量（如 "2026-09-11 16:15:00"）视为绝对时间，不受影响。
+	timezone := dsn.Timezone
+	if timezone == "" {
+		timezone = "+00:00"
+	}
+	slog.Info("doris http writer timezone",
+		slog.String("database", dsn.Database), slog.String("timezone", timezone))
 
 	// 初始化 gorm 连接用于 AutoMigrate（DDL 操作仍需 MySQL 协议）
 	var dbGorm *gorm.DB
@@ -90,6 +105,7 @@ func NewDorisHttpWriter(dsn *DorisHttpDsn) (*DorisHttpWriter, error) {
 		dbGorm:          dbGorm,
 		httpClient:      httpClient,
 		feHttpAddresses: feAddresses,
+		timezone:        timezone,
 	}, nil
 }
 
@@ -261,6 +277,7 @@ func (w *DorisHttpWriter) setStreamLoadHeaders(req *http.Request) {
 	req.Header.Set("format", "json")
 	req.Header.Set("strip_outer_array", "true")
 	req.Header.Set("Expect", "100-continue")
+	req.Header.Set("timezone", w.timezone)
 }
 
 // parseStreamLoadResponse 解析 Stream Load 响应
