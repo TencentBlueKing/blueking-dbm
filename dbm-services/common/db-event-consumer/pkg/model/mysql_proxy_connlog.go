@@ -26,8 +26,6 @@ import (
 )
 
 type MysqlProxyConnlog struct {
-	// TheDate 20250101
-	// TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 	// DtEventTimeStamp 1577836800000
 	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:bigint;not null" json:"dteventtimestamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
