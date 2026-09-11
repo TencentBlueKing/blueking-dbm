@@ -72,7 +72,7 @@ func (s *instOpJob) Name() string {
 // Retry 重启类 op 允许 actuator 侧重试；各 op 实现需保持幂等。
 func (s *instOpJob) Retry() uint {
 	switch s.ConfParams.Op {
-	case "shield_dbmon", "stop", "start", "unblock_dbmon", "check_rs_availability", "check_rs_all_members_ready", "step_down_if_primary":
+	case "shield_dbmon", "stop", "start", "ensure_start", "unblock_dbmon", "check_rs_availability", "check_rs_all_members_ready", "step_down_if_primary":
 		return 3
 	default:
 		return s.BaseJob.Retry()
@@ -164,6 +164,9 @@ func (s *instOpJob) Run() error {
 			return op.DoWaitUntilReady(s.runtime.Logger, timeout)
 		}
 		return nil
+	case "ensure_start":
+		// 自愈「进程拉起」：已监听则跳过；未监听则 start + wait。不包含 stop。
+		return s.doEnsureStart(op)
 	case "start_as_standalone":
 		err := op.DoStop()
 		if err != nil {
@@ -246,6 +249,38 @@ func (s *instOpJob) startTimeoutDuration() time.Duration {
 		return 0
 	}
 	return time.Duration(*s.ConfParams.StartTimeoutSeconds) * time.Second
+}
+
+// doEnsureStart 已监听则跳过；否则 DoStart("auth") + DoWaitUntilReady。
+func (s *instOpJob) doEnsureStart(op *common.InstanceOp) error {
+	pid, running, err := op.IsRunning()
+	if err != nil {
+		return errors.Wrap(err, "IsRunning")
+	}
+	if shouldSkipEnsureStart(running) {
+		s.runtime.Logger.Info("instance is running pid = %d , skip ensure_start", pid)
+		return nil
+	}
+	if err = op.DoStart("auth"); err != nil {
+		pid, running, runErr := op.IsRunning()
+		if runErr != nil || !running {
+			return errors.Wrap(err, "DoStart")
+		}
+		s.runtime.Logger.Warn(
+			"DoStart returned error but %s is listening (pid=%d), continue wait: %v",
+			op.Addr(), pid, err,
+		)
+	}
+	timeout := s.startTimeoutDuration()
+	if timeout <= 0 {
+		timeout = 300 * time.Second
+	}
+	return op.DoWaitUntilReady(s.runtime.Logger, timeout)
+}
+
+// shouldSkipEnsureStart reports whether ensure_start should no-op because the process is already listening.
+func shouldSkipEnsureStart(running bool) bool {
+	return running
 }
 
 func (s *instOpJob) doBackupMongodata() error {

@@ -55,10 +55,26 @@ class MongoDBAutofixFlowParamBuilder(builders.FlowParamBuilder):
 
 class MongoDBAutofixResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
-        pass
+        # 补充城市和亲和性（与 cutoff 一致）；resource_spec 以故障 IP 为 group
+        self.patch_info_affinity_location(replace_zone=True)
+        super().format()
 
     def post_callback(self):
-        pass
+        """
+        资源申请后，applied hosts 已按 resource_spec 的 group（故障 IP）写入 infos[i][ip]。
+        MongoAutofixFlow 通过 autofix_info[mongod/mongos["ip"]] 读取申请结果，此处保证映射完整。
+        """
+        with self.next_flow_manager() as next_flow:
+            for info in next_flow.details["ticket_data"]["infos"]:
+                for host in list(info.get("mongos_list") or []) + list(info.get("mongod_list") or []):
+                    ip = host.get("ip")
+                    if not ip:
+                        continue
+                    applied = info.get(ip)
+                    if not applied:
+                        continue
+                    # 显式保留 ip → apply result，供 flow.shard_get_data / rs_get_data 使用
+                    info[ip] = applied
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_AUTOFIX, is_apply=True, iam=ActionEnum.MONGODB_MANAGE)

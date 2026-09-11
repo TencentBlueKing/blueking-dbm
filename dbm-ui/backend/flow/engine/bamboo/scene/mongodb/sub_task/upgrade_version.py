@@ -12,8 +12,12 @@ from typing import Optional
 
 from django.utils.translation import gettext as _
 
+from backend.db_meta.enums import InstanceStatus
 from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBClusterRole, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_op import InstanceOpSubTask
+from backend.flow.plugins.components.collections.mongodb.change_instance_status_by_addrs import (
+    ChangeInstanceStatusByAddrsComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoNode
@@ -22,6 +26,38 @@ from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 class MongoUpgradeVersionSubTask:
     """MongoDB version-upgrade atom actions for one node."""
+
+    @classmethod
+    def change_instance_status_act(
+        cls,
+        exec_node: MongoNode,
+        status: str,
+        instance_kind: Optional[str] = None,
+    ) -> dict:
+        """Bamboo act: set StorageInstance/ProxyInstance.status before stop / after start."""
+        if instance_kind is None:
+            instance_kind = "proxy" if exec_node.role == MongoDBClusterRole.Mongos.value else "storage"
+        return {
+            "act_name": _("MongoDB-修改实例状态-{}-{}:{}".format(status, exec_node.ip, exec_node.port)),
+            "act_component_code": ChangeInstanceStatusByAddrsComponent.code,
+            "kwargs": {
+                "addrs": [exec_node.addr()],
+                "status": status,
+                "instance_kind": instance_kind,
+            },
+        }
+
+    @classmethod
+    def mark_upgrading_act(cls, exec_node: MongoNode, instance_kind: Optional[str] = None) -> dict:
+        return cls.change_instance_status_act(
+            exec_node=exec_node, status=InstanceStatus.UPGRADING.value, instance_kind=instance_kind
+        )
+
+    @classmethod
+    def mark_running_act(cls, exec_node: MongoNode, instance_kind: Optional[str] = None) -> dict:
+        return cls.change_instance_status_act(
+            exec_node=exec_node, status=InstanceStatus.RUNNING.value, instance_kind=instance_kind
+        )
 
     @classmethod
     def shield_dbmon_act(

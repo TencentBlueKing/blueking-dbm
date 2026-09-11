@@ -1320,6 +1320,83 @@ class ActKwargs:
             },
         }
 
+    def _resolve_deferred_deinstall_password(
+        self, ip: str, port: int, bk_cloud_id: int, cluster_id: int = None
+    ) -> str:
+        """
+        延迟下架 mongod REMOVED 校验所需密码。
+
+        替换流程常先删旧实例密码记录；密码服务此时可能返回空串而非异常，
+        必须把空串视为未命中，再回退同集群其它实例（副本集 dba 密码一致）。
+        """
+        username = MongoDBManagerUser.DbaUser.value
+
+        def _try_get(tip: str, tport: int, tcloud: int) -> str:
+            try:
+                pwd = self.get_password(ip=tip, port=tport, bk_cloud_id=tcloud, username=username)
+            except Exception:  # noqa: BLE001
+                return ""
+            return pwd or ""
+
+        password = _try_get(ip, port, bk_cloud_id)
+        if password:
+            return password
+        if not cluster_id:
+            return ""
+        from backend.db_meta.models import ProxyInstance, StorageInstance
+
+        candidates = []
+        for inst in StorageInstance.objects.filter(cluster__id=cluster_id).select_related("machine")[:8]:
+            candidates.append((inst.machine.ip, inst.port, inst.machine.bk_cloud_id))
+        for inst in ProxyInstance.objects.filter(cluster__id=cluster_id).select_related("machine")[:8]:
+            candidates.append((inst.machine.ip, inst.port, inst.machine.bk_cloud_id))
+        for cip, cport, ccloud in candidates:
+            if cip == ip and cport == port:
+                continue
+            password = _try_get(cip, cport, ccloud)
+            if password:
+                return password
+        return ""
+
+    def get_mongo_deferred_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info: list) -> dict:
+        """延迟下架严格卸载原子任务 kwargs（不做 force）。"""
+        nodes = [node["ip"] for node in nodes_info]
+        cluster_id = node_info.get("cluster_id") or 0
+        password = ""
+        if instance_type == MongoDBInstanceType.MongoD.value:
+            password = self._resolve_deferred_deinstall_password(
+                ip=node_info["ip"],
+                port=node_info["port"],
+                bk_cloud_id=node_info.get("bk_cloud_id", self.payload.get("bk_cloud_id", 0)),
+                cluster_id=cluster_id or None,
+            )
+            if not password:
+                raise ValueError(
+                    "resolve deferred deinstall admin password fail for {}:{} cluster_id={}".format(
+                        node_info["ip"], node_info["port"], cluster_id
+                    )
+                )
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": node_info.get("bk_cloud_id", self.payload.get("bk_cloud_id")),
+            "exec_ip": node_info["ip"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoDeferredDeInstall,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": node_info["ip"],
+                    "port": node_info["port"],
+                    "setId": node_info.get("set_id") or self.payload.get("set_id") or "",
+                    "nodeInfo": nodes,
+                    "instanceType": instance_type,
+                    "renameDir": True,
+                    "adminUsername": MongoDBManagerUser.DbaUser.value,
+                    "adminPassword": password,
+                },
+            },
+        }
+
     def get_meta_deinstall_kwargs(self, cluster_id: int) -> dict:
         """卸载集群修改元数据的kwarg"""
 
@@ -1630,6 +1707,8 @@ class ActKwargs:
             "mongos": mongos,
             "mongodb": mongodb,
             "mongo_config": mongo_config,
+            # down=True 延迟下架：CMR 删实例但保留 Machine，供 check_meta / old_nodes
+            "defer_deinstall": bool(info.get("down")),
         }
 
     def get_password_from_db(self, info: dict) -> dict:
@@ -2196,8 +2275,11 @@ class ActKwargs:
             },
         }
 
-    def get_dbmon_operation_kwargs(self, node_info: dict, operation_type: str) -> dict:
-        """dbmon操作的kwargs"""
+    def get_dbmon_operation_kwargs(self, node_info: dict, operation_type: str, tolerate_failure: bool = False) -> dict:
+        """dbmon操作的kwargs。
+
+        tolerate_failure=True 时将脚本失败分支的 exit 1 改为 exit 0（延迟下架等场景显式容忍）。
+        """
         exec_account = ExecuteShellScriptUser.Mysql.value
         if operation_type == MongoInstanceDbmonType.ShieldDbmon:
             script_content = mongodb_script_template.mongodb_dbmon_shield_port.replace(
@@ -2211,6 +2293,11 @@ class ActKwargs:
             script_content = mongodb_script_template.mongodb_dbmon_delete_port.replace(
                 "{{port}}", str(node_info["port"])
             ).replace("{{exec_account}}", exec_account)
+        else:
+            script_content = ""
+        if tolerate_failure and script_content:
+            # 显式参数控制，不依赖完整 echo 文案匹配
+            script_content = script_content.replace("exit 1", "exit 0")
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,

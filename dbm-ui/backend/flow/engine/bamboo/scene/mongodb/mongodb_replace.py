@@ -11,73 +11,22 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import Dict, Optional
 
-from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task.cluster_replace import cluster_replace
-from backend.flow.engine.bamboo.scene.mongodb.sub_task.replicaset_replace import replicaset_replace
-from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
-from backend.ticket.constants import TicketType
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_machine_replace import MongoMachineReplaceFlow
 
 logger = logging.getLogger("flow")
 
 
 class MongoReplaceFlow(object):
-    """MongoDB整机替换flow"""
+    """
+    MongoDB整机替换flow（兼容薄壳）。
+
+    实际编排见 MongoMachineReplaceFlow；请新代码直接使用后者。
+    """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
-        """
-        传入参数
-        @param root_id : 任务流程定义的root_id
-        @param data : 单据传递过来的参数列表，是dict格式
-        """
-
         self.root_id = root_id
         self.data = data
-        self.get_kwargs = ActKwargs()
-        self.get_kwargs.payload = data
-        self.get_kwargs.get_file_path()
-        self.get_kwargs.replace_check_instance_domain()
+        self._impl = MongoMachineReplaceFlow(root_id=root_id, data=data)
 
     def multi_host_replace_flow(self):
-        """
-        multi host replace流程
-        """
-
-        # 创建流程实例
-        pipeline = Builder(root_id=self.root_id, data=self.data)
-
-        # 复制集整机替换——子流程并行
-        sub_pipelines = []
-        if self.data.get("cluster_type") == ClusterType.MongoReplicaSet.value:
-            for replicaset in self.data["infos"]:
-                sub_pipline = replicaset_replace(
-                    root_id=self.root_id,
-                    ticket_data=self.data,
-                    sub_kwargs=self.get_kwargs,
-                    info=replicaset,
-                    cluster_role="",
-                )
-                sub_pipelines.append(sub_pipline)
-
-        # cluster整机替换——子流程并行 一次替换一种类型 mongos mongodb mongo_config
-        if self.data.get("cluster_type") == ClusterType.MongoShardedCluster.value:
-            for cluster in self.data["infos"]:
-                sub_pipline = cluster_replace(
-                    root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
-                )
-                sub_pipelines.append(sub_pipline)
-        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
-        # 运行流程
-        check_ai_monitor_cluster_list = []
-        if self.data.get("ticket_type") == TicketType.MONGODB_SHARD_CUTOFF.value:
-            check_ai_monitor_cluster_list = [cluster["cluster_id"] for cluster in self.data["infos"]]
-        elif self.data.get("ticket_type") == TicketType.MONGODB_REPLICASET_CUTOFF.value:
-            for cluster_info in self.data["infos"]:
-                # cluster_info["cluster_id"] 有可能是int 和 list
-                if isinstance(cluster_info["cluster_id"], int):
-                    check_ai_monitor_cluster_list.append(cluster_info["cluster_id"])
-                elif isinstance(cluster_info["cluster_id"], list):
-                    check_ai_monitor_cluster_list.extend(cluster_info["cluster_id"])
-
-        pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=check_ai_monitor_cluster_list)
+        self._impl.multi_host_replace_flow()

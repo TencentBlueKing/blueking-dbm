@@ -53,7 +53,12 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
             raise RemoteServiceBaseException(_("DRS调用失败，错误信息: {}").format(cluster_database_infos["error_msg"]))
 
         # 拆分字符串为行，并去掉空行, 提取数据库名称
-        exist_dbs = {line.split()[0].lower() for line in cluster_database_infos["query"].strip().split("\n")}
+        exist_dbs = set()
+        for line in cluster_database_infos["query"].strip().split("\n"):
+            line = line.strip()
+            if not line or line.startswith("connect to server") or line.startswith("disconnect."):
+                continue
+            exist_dbs.add(line.split()[0].lower())
         # 判断库是否存在
         check_dbs_map = [{"name": db, "is_exists": db.lower() in exist_dbs} for db in db_list]
 

@@ -13,6 +13,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import DEPENDENCIES_PLUGINS, MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder
@@ -38,7 +39,11 @@ logger = logging.getLogger("flow")
 
 
 def install_plugin(pipeline: Builder, get_kwargs: ActKwargs, new_cluster: bool):
-    """安装蓝鲸插件"""
+    """安装蓝鲸插件；测试环境可用 MONGODB_SKIP_INSTALL_PLUGIN=true 跳过。"""
+
+    if getattr(env, "MONGODB_SKIP_INSTALL_PLUGIN", False):
+        logger.warning("MONGODB_SKIP_INSTALL_PLUGIN=true, skip nodeman plugin install")
+        return
 
     acts_list = []
     for plugin_name in DEPENDENCIES_PLUGINS:

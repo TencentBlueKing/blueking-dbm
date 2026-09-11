@@ -776,6 +776,8 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
     ):
         # upgrade_phase 透传给所有原子步骤：shield_dbmon 在 mongod 在线时判定并持久化跳过决策，
         # 其余步骤据该决策 no-op；upgrade_phase 为空（如 mongos）时不启用守卫。
+        # 注意：meta status 变更不走 upgrade_phase 守卫；若原子 stop/start 被 no-op，status 仍会先 UPGRADING 再 RUNNING。
+        instance_kind = "proxy" if instance_type == MongoDBClusterRole.Mongos.value else "storage"
         sb.add_act(
             **MongoUpgradeVersionSubTask.shield_dbmon_act(
                 file_path=file_path,
@@ -785,6 +787,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                 instance_type=instance_type,
             )
         )
+        sb.add_act(**MongoUpgradeVersionSubTask.mark_upgrading_act(exec_node=node, instance_kind=instance_kind))
         sb.add_act(
             **MongoUpgradeVersionSubTask.stop_act(
                 file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version
@@ -817,6 +820,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                 file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version
             )
         )
+        sb.add_act(**MongoUpgradeVersionSubTask.mark_running_act(exec_node=node, instance_kind=instance_kind))
         sb.add_act(
             **MongoUpgradeVersionSubTask.unblock_dbmon_act(
                 file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version

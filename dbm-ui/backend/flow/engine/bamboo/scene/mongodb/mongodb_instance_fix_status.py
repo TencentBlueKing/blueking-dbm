@@ -109,7 +109,7 @@ class MongoDBInstanceFixStatusFlow(MongoBaseFlow):
         ticket_type = serializers.CharField()
         infos = DataRow(many=True)
 
-    """MongoDB Mongos/instance 状态修复flow"""
+    """MongoDB 节点状态修复 flow"""
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
@@ -128,9 +128,9 @@ class MongoDBInstanceFixStatusFlow(MongoBaseFlow):
 
     def start(self):
         """
-        Mongos/instance 状态修复流程
-        1. 确认mongod/mongos的服务正常
-        2. 修复DnsEntry 和 ClbEntry
+        节点状态修复流程
+        1. 确认 mongod/mongos 服务正常
+        2. 修复 DnsEntry 和 ClbEntry
         """
         logger.debug("MongoDBInstanceFixStatusFlow start, payload", self.payload)
         # actuator_workdir 在部署的时候就创建好的

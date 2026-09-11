@@ -662,9 +662,19 @@ class TicketType(StrStructuredEnum):
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"), register_iam=True)
     MONGODB_INSTALL_DBMON = TicketEnumField("MONGODB_INSTALL_DBMON", _("MongoDB 安装DBMon"), _("集群维护"))
     MONGODB_AUTOFIX = TicketEnumField("MONGODB_AUTOFIX", _("MongoDB 故障自愈"), _("集群维护"))
+    MONGODB_AUTOFIX_PRE = TicketEnumField("MONGODB_AUTOFIX_PRE", _("MongoDB 故障自愈确认"), _("集群维护"))
     MONGODB_INSTANCE_DEINSTALL = TicketEnumField("MONGODB_INSTANCE_DEINSTALL", _("MongoDB 实例下架"), _("集群维护"))
+    MONGODB_DEFERRED_DEINSTALL = TicketEnumField(
+        "MONGODB_DEFERRED_DEINSTALL", _("MongoDB 延迟下架"), _("集群维护")
+    )
     MONGODB_INSTANCE_FIX_STATUS = TicketEnumField("MONGODB_INSTANCE_FIX_STATUS", _("MongoDB 节点状态修复"),
                                                   _("集群维护"))
+    # 自愈 PRE(process_bad) 跟单；不挂工具箱入口（与 MONGODB_INSTANCE_RELOAD 分离）
+    MONGODB_INSTANCE_ENSURE_START = TicketEnumField(
+        "MONGODB_INSTANCE_ENSURE_START", _("MongoDB 进程拉起"), _("集群维护")
+    )
+    # 自愈 PRE(auth_error / gse_inconclusive) 显式跟单，便于人工跟踪；不挂工具箱
+    MONGODB_AUTOFIX_MANUAL = TicketEnumField("MONGODB_AUTOFIX_MANUAL", _("MongoDB 自愈人工处理"), _("集群维护"))
     MONGODB_CLUSTER_STANDARDIZE = TicketEnumField("MONGODB_CLUSTER_STANDARDIZE", _("MongoDB 集群标准化"))
     MONGODB_UPGRADE_VERSION = TicketEnumField("MONGODB_UPGRADE_VERSION", _("MongoDB 版本升级"))
     MONGODB_CHANGE_BIZ = TicketEnumField("MONGODB_CHANGE_BIZ", _("MongoDB 集群业务变更"), _("集群维护"))

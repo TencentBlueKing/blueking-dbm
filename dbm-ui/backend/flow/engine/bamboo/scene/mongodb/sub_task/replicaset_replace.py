@@ -20,12 +20,69 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
+from backend.flow.plugins.components.collections.mongodb.deferred_deinstall_ticket import (
+    ExecDeferredDeInstallTicketOperationComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 
-from .mongod_replace import mongod_replace
+from .mongod_replace import CUTOVER_REPLACE_WITH_SOURCE_DOWN, mongod_replace
+
+
+def _build_deferred_deinstall_infos(info: dict, old_instances: list, instance_type: str) -> list:
+    """组装延迟下架 infos，补齐 cluster_id / role。"""
+    cluster_id = None
+    for inst in info.get("instances") or []:
+        if inst.get("cluster_id"):
+            cluster_id = inst["cluster_id"]
+            break
+    infos = []
+    for old in old_instances:
+        item = {
+            "ip": old["ip"],
+            "port": old["port"],
+            "bk_cloud_id": old["bk_cloud_id"],
+            "role": instance_type,
+            "instance_type": instance_type,
+            "set_id": old.get("set_id") or "",
+        }
+        if cluster_id:
+            item["cluster_id"] = cluster_id
+        infos.append(item)
+    return infos
+
+
+def _fill_instance_roles_from_meta(info: dict, cluster_role: str) -> list:
+    """
+    down=True 时不探活 primary（故障机可能不可达），仅从 meta 填 instance_role / role_status。
+    sourceDown 切主不依赖 primary_ip。
+    """
+    instances = list(info.get("instances") or [])
+    for instance in instances:
+        cluster_id = instance["cluster_id"]
+        cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
+        ip = info["ip"]
+        members = []
+        if not cluster_role:
+            members = cluster_info.get_shards()[0].members
+        elif cluster_role == MongoDBClusterRole.ConfigSvr.value:
+            members = cluster_info.get_config().members
+        elif cluster_role == MongoDBClusterRole.ShardSvr.value:
+            seg_range = instance.get("seg_range")
+            for shard in cluster_info.get_shards():
+                if shard.set_name == seg_range:
+                    members = shard.members
+                    break
+        instance["role_status"] = "secondary"
+        for member in members:
+            if member.ip == ip:
+                instance["instance_role"] = member.role
+                break
+        instance.setdefault("instance_role", "")
+    return instances
 
 
 def replicaset_replace(
@@ -73,8 +130,13 @@ def replicaset_replace(
     # 根据计算容量新的 cachesize 和 oplogsize  self.replicaset_info["cacheSizeGB"]  self.replicaset_info["oplogSizeMB"]
     sub_get_kwargs.calc_param_migrate(info=info["target"], instance_num=len(info["instances"]))
 
-    # 获取节点 role
-    info["instances"] = sub_get_kwargs.get_role_replace_kwargs(info=info, cluster_role=cluster_role)
+    # 获取节点 role：死机走 meta，活机探 primary
+    if info.get("down"):
+        info["instances"] = _fill_instance_roles_from_meta(info=info, cluster_role=cluster_role)
+        cutover_mode = CUTOVER_REPLACE_WITH_SOURCE_DOWN
+    else:
+        info["instances"] = sub_get_kwargs.get_role_replace_kwargs(info=info, cluster_role=cluster_role)
+        cutover_mode = None
 
     # 进行替换——并行 以ip为维度
     sub_sub_pipelines = []
@@ -87,6 +149,7 @@ def replicaset_replace(
             cluster_role=cluster_role,
             info=info,
             mongod_scale=False,
+            cutover_mode=cutover_mode,
         )
         sub_sub_pipelines.append(sub_sub_pipeline)
     sub_pipeline.add_parallel_sub_pipeline(sub_sub_pipelines)
@@ -129,18 +192,34 @@ def replicaset_replace(
             allow_empty_instance=True,
         )
 
-        # 下架
+        # 下架：故障机 down=True 出延迟下架单；否则内联卸载
         old_hosts, old_instances = sub_get_kwargs.get_old_host_replace(
             info=info, cluster_type=ClusterType.MongoReplicaSet.value
         )
-        sub_sub_pipeline = multi_instance_deinstall(
-            root_id=root_id,
-            ticket_data=ticket_data,
-            sub_kwargs=sub_get_kwargs,
-            old_hosts=old_hosts,
-            old_instances=old_instances,
-            instance_type=MongoDBInstanceType.MongoD.value,
-        )
-        sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
+        if info.get("down"):
+            defer_infos = _build_deferred_deinstall_infos(
+                info=info, old_instances=old_instances, instance_type=MongoDBInstanceType.MongoD.value
+            )
+            kwargs = {
+                "infos": defer_infos,
+                "creator": sub_get_kwargs.payload["created_by"],
+                "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
+                "parent_ticket_id": ticket_data.get("uid"),
+            }
+            sub_pipeline.add_act(
+                act_name=_("MongoDB-延迟下架单据"),
+                act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
+                kwargs=kwargs,
+            )
+        else:
+            sub_sub_pipeline = multi_instance_deinstall(
+                root_id=root_id,
+                ticket_data=ticket_data,
+                sub_kwargs=sub_get_kwargs,
+                old_hosts=old_hosts,
+                old_instances=old_instances,
+                instance_type=MongoDBInstanceType.MongoD.value,
+            )
+            sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}整机替换--ip:{}".format(name, info["ip"])))

@@ -156,15 +156,20 @@ func (d *DeInstall) checkMongoService() error {
 	return nil
 }
 
-// checkConnection 检查是否仍有外部客户端连到本机 Mongo 端口。
-// 读取 /proc/net/tcp（IPv4），排除回环与 NodeInfo 中的节点 IP；若仍有外部 ESTABLISHED 连接则失败，
-// 并打印 来源IP:PORT、目标IP:PORT、连接数量。
-func (d *DeInstall) checkConnection() error {
-	d.runtime.Logger.Info("start to check connection via /proc/net/tcp")
+// checkExternalMongoConnections 检查是否仍有外部客户端连到本机 Mongo 端口。
+// 读取 /proc/net/tcp（IPv4），排除回环与 NodeInfo 中的节点 IP；若仍有外部 ESTABLISHED 连接则失败。
+func checkExternalMongoConnections(
+	logFn func(format string, args ...interface{}),
+	errFn func(format string, args ...interface{}),
+	port int,
+	ip string,
+	nodeInfo []string,
+) error {
+	logFn("start to check connection via /proc/net/tcp")
 
 	rows, err := linuxproc.ProcNetTcp(nil)
 	if err != nil {
-		d.runtime.Logger.Error("check connection fail, read /proc/net/tcp error:%s", err)
+		errFn("check connection fail, read /proc/net/tcp error:%s", err)
 		return fmt.Errorf("check connection fail, read /proc/net/tcp error:%s", err)
 	}
 
@@ -172,19 +177,18 @@ func (d *DeInstall) checkConnection() error {
 		"0.0.0.0":   {},
 		"127.0.0.1": {},
 	}
-	for _, ip := range d.ConfParams.NodeInfo {
-		if ip = strings.TrimSpace(ip); ip != "" {
-			excludeIPs[ip] = struct{}{}
+	for _, nip := range nodeInfo {
+		if nip = strings.TrimSpace(nip); nip != "" {
+			excludeIPs[nip] = struct{}{}
 		}
 	}
-	if ip := strings.TrimSpace(d.ConfParams.IP); ip != "" {
+	if ip = strings.TrimSpace(ip); ip != "" {
 		excludeIPs[ip] = struct{}{}
 	}
 
-	// key: "sourceIP:sourcePort -> targetIP:targetPort" -> count
 	counts := make(map[string]int)
 	for _, row := range rows {
-		if row.LocalPort != d.ConfParams.Port || row.St != linuxproc.ESTABLISHED {
+		if row.LocalPort != port || row.St != linuxproc.ESTABLISHED {
 			continue
 		}
 		if row.RemoteHost == "" || row.RemotePort == 0 {
@@ -221,15 +225,26 @@ func (d *DeInstall) checkConnection() error {
 		parts := strings.SplitN(k, " -> ", 2)
 		src, dst := parts[0], parts[1]
 		line := fmt.Sprintf("count=%d source=%s target=%s", n, src, dst)
-		d.runtime.Logger.Error("external connection: %s", line)
+		errFn("external connection: %s", line)
 		if b.Len() > 0 {
 			b.WriteByte('\n')
 		}
 		b.WriteString(line)
 	}
 	msg := fmt.Sprintf("check connection fail, external connections=%d:\n%s", total, b.String())
-	d.runtime.Logger.Error("%s", msg)
+	errFn("%s", msg)
 	return fmt.Errorf("%s", msg)
+}
+
+// checkConnection 检查是否仍有外部客户端连到本机 Mongo 端口。
+func (d *DeInstall) checkConnection() error {
+	return checkExternalMongoConnections(
+		d.runtime.Logger.Info,
+		d.runtime.Logger.Error,
+		d.ConfParams.Port,
+		d.ConfParams.IP,
+		d.ConfParams.NodeInfo,
+	)
 }
 
 // shutdownProcess 关闭进程
