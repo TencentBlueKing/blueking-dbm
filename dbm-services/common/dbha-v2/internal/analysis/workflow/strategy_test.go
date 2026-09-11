@@ -80,6 +80,19 @@ func TestFilterInstancesByEventAndCount_NoMatch(t *testing.T) {
 	}
 }
 
+func TestFilterInstancesByEventAndCount_BelowThreshold(t *testing.T) {
+	// only instances with Count >= threshold are kept
+	instances := []FailureInstanceInfo{
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 3},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 5},
+	}
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 3)
+	if len(matched) != 2 {
+		t.Errorf("expected 2 (count 3 and 5), got %d", len(matched))
+	}
+}
+
 // ============================================================
 // 2. GetSpecialMatchFunc tests
 // ============================================================
