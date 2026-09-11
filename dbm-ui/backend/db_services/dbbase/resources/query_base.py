@@ -49,6 +49,22 @@ def build_q_for_domain_by_instance(query_params):
     return base_query & query
 
 
+def build_q_for_domain_by_machines(query_params):
+    # 从查询参数中提取域
+    domains = query_params.get("domain", "").split(",")
+
+    base_query = Q()
+    if len(domains) == 1:
+        storage_instance_query = Q(storageinstance__cluster__clusterentry__entry__icontains=domains[0].strip())
+        proxy_instance_query = Q(proxyinstance__cluster__clusterentry__entry__icontains=domains[0].strip())
+    else:
+        domains = [domain.strip() for domain in domains if domain.strip()]
+        storage_instance_query = Q(storageinstance__cluster__clusterentry__entry__in=domains)
+        proxy_instance_query = Q(proxyinstance__cluster__clusterentry__entry__in=domains)
+
+    return base_query & storage_instance_query | base_query & proxy_instance_query
+
+
 def build_q_for_domain_by_mongo_instance(query_params):
     # 从查询参数中提取域
     domains = query_params.get("domain", "").split(",")

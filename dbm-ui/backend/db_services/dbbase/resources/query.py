@@ -38,6 +38,7 @@ from backend.db_services.dbbase.resources.query_base import (
     build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
+    build_q_for_domain_by_machines,
     build_q_for_instance_filter,
 )
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
@@ -1208,6 +1209,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "bk_svr_device_cls_name": build_empty_and_in_q(
                 "bk_svr_device_cls_name", query_params.get("bk_svr_device_cls_name", "")
             ),
+            # 集群域名过滤（与 _list_clusters 的 domain 行为一致：单值模糊、多值精确、去端口）
+            "domain": build_q_for_domain_by_machines(query_params),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
 
