@@ -24,6 +24,7 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.impl.index_analysis import (
     sqlserver_get_table_schema,
     sqlserver_get_table_stats,
 )
+from backend.dbm_aiagent.mcp_tools.sqlserver.impl.input_buffer import sqlserver_input_buffer
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.instance_summary import sqlserver_instance_summary
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.list_databases import sqlserver_list_databases
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.list_table_status import sqlserver_list_table_status
@@ -60,6 +61,10 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.index_analysis import (
     SQLServerTableSchemaOutputSerializer,
     SQLServerTableStatsInputSerializer,
     SQLServerTableStatsOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.input_buffer import (
+    SQLServerInputBufferInputSerializer,
+    SQLServerInputBufferOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.instance_summary import (
     SQLServerInstanceSummaryInputSerializer,
@@ -262,6 +267,39 @@ class SqlserverMcpToolsViewSet(McpToolsViewSet):
                 cluster_domain=cluster_domain,
                 address=address,
                 top=top,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "查询指定会话（session_id）的 input buffer，即 DBCC INPUTBUFFER 的 EventInfo"
+                "（该会话最近执行的 SQL 文本）；"
+                "返回原生 event_type（RPC Event 存储过程调用 / Language Event 直接 SQL），"
+                "并以 is_sp_executesql 进一步标记是否为 sp_executesql 动态 SQL；"
+                "基于 DBCC INPUTBUFFER 逐会话查询，兼容 SQL Server 2008/2012/2014/2016/2017/2019/2022；"
+                "session_ids 一次最多 100 个；address 不传时缺省查询 master"
+            )
+        ),
+        request_slz=SQLServerInputBufferInputSerializer,
+        response_slz=SQLServerInputBufferOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.SQLSERVER_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="sqlserver_query",
+    )
+    def input_buffer(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        session_ids = self.get_param("session_ids")
+        address = self.get_param("address")
+        max_event_info_chars = self.get_param("max_event_info_chars")
+        return Response(
+            sqlserver_input_buffer(
+                cluster_domain=cluster_domain,
+                session_ids=session_ids,
+                address=address,
+                max_event_info_chars=max_event_info_chars,
             )
         )
 

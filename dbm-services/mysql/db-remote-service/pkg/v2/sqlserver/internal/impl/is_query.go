@@ -53,6 +53,8 @@ var ReadOnlyCommands = &CommandClassifier{
 	queryCmds: []string{
 		"show",
 		"select",
+		"dbcc inputbuffer",
+		"sp_helptext",
 	},
 	executeCmds: []string{},
 }

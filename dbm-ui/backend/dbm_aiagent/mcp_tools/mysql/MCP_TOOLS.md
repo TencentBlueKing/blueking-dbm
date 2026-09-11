@@ -42,6 +42,10 @@
 | 14 | `submit_bill_mysql_clone_grants` | 创建 DB 权限克隆流程 | TenDBSingle / TenDBHA / TenDBCluster |
 | 15 | `submit_bill_mysql_disable` | **创建 MySQL 集群禁用单据（新增）** | TenDBSingle / TenDBHA / TenDBCluster |
 | 16 | `submit_bill_mysql_destroy` | **创建 MySQL 集群删除单据（新增，需集群已禁用）** | TenDBSingle / TenDBHA / TenDBCluster |
+| 17 | `submit_bill_proxy_conf_change` | 创建 TenDBHA proxy 升降配单据（多行，每行一个集群） | TenDBHA |
+| 18 | `submit_bill_tendbha_migrate` | 创建 TenDBHA 主从迁移单据（多行，每行一个集群） | TenDBHA |
+| 19 | `submit_bill_spider_conf_change` | 创建 TenDBCluster 接入层（spider）升降配单据（多行） | TenDBCluster |
+| 20 | `submit_bill_tendbcluster_node_rebalance` | 创建 TenDBCluster 集群容量变更单据（多行） | TenDBCluster |
 
 > operation_id 完整形式：`mysql_bill_` + 上表方法名，如 `mysql_bill_submit_bill_mysql_disable`。
 
@@ -152,3 +156,165 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_mysql_destroy 
 - **集群名前缀限制**：仅允许 `spider.temp` 或 `tmpdb.` 前缀的临时集群删除（与禁用一致），其他域名直接报错，不产生单据。
 - `force` 只影响删除单据内部的状态转移校验，不豁免「必须已禁用」的前置检查；集群未禁用时即使 `force=true` 也会报错。
 - 一个请求混合多种集群类型时，会按类型生成多张单据，需逐一确认。
+
+---
+
+## `submit_bill_proxy_conf_change`：创建 TenDBHA proxy 升降配单据
+
+**用途**：对一批 TenDBHA 集群的 proxy 层做升降配，支持多行，每行一个集群。
+
+**operation_id**：`mysql_bill_submit_bill_proxy_conf_change`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `infos[]` | object[] | 是 | 升降配信息，每行一个集群 |
+| `infos[].cluster_domain` | string | 是 | 集群域名 |
+| `infos[].target_spec_id` | int | 是 | 目标规格 ID |
+| `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的升降配单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 每行一个集群，`cluster_ids` 固定为单集群，不自动合并同组共享集群。
+- 目标规格统一校验（存在 + 启用 + proxy 类型）；`labels` 随每行资源申请参数生效。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_proxy_conf_change \
+  body_param='{"infos": [{"cluster_domain": "ha1.db.com", "target_spec_id": 12, "labels": ["1"]}]}' \
+  --raw-query "对 ha1.db.com 的 proxy 升降配到规格 12"
+```
+
+---
+
+## `submit_bill_tendbha_migrate`：创建 TenDBHA 主从迁移单据
+
+**用途**：对一批 TenDBHA 集群做主从迁移，支持多行，每行一个集群 + 独立规格/数量/标签。
+
+**operation_id**：`mysql_bill_submit_bill_tendbha_migrate`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `infos[]` | object[] | 是 | 迁移信息，每行一个集群 |
+| `infos[].cluster_domain` | string | 是 | 集群域名 |
+| `infos[].spec_id` | int | 是 | 目标规格 ID |
+| `infos[].count` | int | 否（默认 `1`） | 机器组数（1组=1主+1从） |
+| `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+| `opera_object` | string | 是 | 迁移类型：`cluster`=集群迁移，`machine`=整机迁移 |
+| `backup_source` | string | 否（默认 `remote`） | 备份源 |
+| `need_checksum` | bool | 否（默认 `true`） | 执行前是否数据校验 |
+| `is_safe` | bool | 否（默认 `true`） | 安全模式 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的迁移单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- `spec_id` / `count` / `labels` 每行独立；`opera_object` / `backup_source` / `need_checksum` / `is_safe` 整单共用。
+- 目标规格按 backend 存储类型校验（存在 + 启用）。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbha_migrate \
+  body_param='{"infos": [{"cluster_domain": "ha1.db.com", "spec_id": 12, "count": 1}], "opera_object": "cluster"}' \
+  --raw-query "对 ha1.db.com 做集群迁移"
+```
+
+---
+
+## `submit_bill_spider_conf_change`：创建 TenDBCluster 接入层升降配单据
+
+**用途**：对一批 TenDBCluster 集群的接入层（spider）做升降配，支持多行，每行一个集群 + 一个角色。
+
+**operation_id**：`mysql_bill_submit_bill_spider_conf_change`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `infos[]` | object[] | 是 | 升降配信息，每行一个集群 |
+| `infos[].cluster_domain` | string | 是 | 集群域名 |
+| `infos[].spider_role` | string | 是 | 接入层角色：`spider_master`=主接入层，`spider_slave`=从接入层 |
+| `infos[].target_spec_id` | int | 是 | 目标规格 ID |
+| `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的升降配单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 升降配是整集群操作，同一集群只能出现一行（锁定单一 spider 角色），否则 flow 侧重复集群校验会拦截。
+- 目标规格按 proxy（spider 映射为 proxy）类型校验（存在 + 启用）。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_spider_conf_change \
+  body_param='{"infos": [{"cluster_domain": "spider1.db.com", "spider_role": "spider_master", "target_spec_id": 12}]}' \
+  --raw-query "对 spider1.db.com 的 spider_master 升降配到规格 12"
+```
+
+---
+
+## `submit_bill_tendbcluster_node_rebalance`：创建 TenDBCluster 集群容量变更单据
+
+**用途**：对一批 TenDBCluster 集群做容量变更（remote 节点扩缩容），支持多行，每行一个集群 + 目标规格 + 机器组数。
+
+**operation_id**：`mysql_bill_submit_bill_tendbcluster_node_rebalance`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `infos[]` | object[] | 是 | 容量变更信息，每行一个集群 |
+| `infos[].cluster_domain` | string | 是 | 集群域名 |
+| `infos[].spec_id` | int | 是 | 目标规格 ID |
+| `infos[].count` | int | 否（默认 `1`） | 目标机器组数 |
+| `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+| `backup_source` | string | 否（默认 `remote`） | 备份源 |
+| `need_checksum` | bool | 否（默认 `true`） | 执行前是否数据校验 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的容量变更单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 集群总分片数（`cluster_shard_num`）由工具从 db_meta 自动查询，固定不变；单机分片数 = 总分片数 / 机器组数，要求 `count` 能整除总分片数。
+- 目标规格按 remote（backend 存储类型）校验（存在 + 启用）。
+- `prev_cluster_spec_name` / `prev_machine_pair` / 变更前规格由工具自动填充。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbcluster_node_rebalance \
+  body_param='{"infos": [{"cluster_domain": "spider1.db.com", "spec_id": 12, "count": 2}]}' \
+  --raw-query "对 spider1.db.com 做容量变更到 2 组机器"
+```
