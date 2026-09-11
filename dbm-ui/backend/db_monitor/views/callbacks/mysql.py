@@ -339,6 +339,7 @@ def _summarize_and_write_report(
             '{"share_url": "<if have one>", "summary": "<your summary>"}'
             "</output>\n\n"
             "Original content:\n"
+            f"{agent_output}"
         )
         summary_result = AgentHandler.ask_agent_with_content(
             agent_code=DBMAgentCode.DBM_AGENT_SUMMARY,
