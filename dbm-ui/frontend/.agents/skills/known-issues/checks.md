@@ -16,6 +16,8 @@
   —— `<BkPagination>` / `<DbPagination>` 只写了 `v-bind="pagination"`
 - [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md)
   —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect` 传 `value` / 写选项 `value`
+- [语言包值里的字面花括号必须用 {'@'} 式转义](doc/locale-literal-brace.md)
+  —— 往 `src/locales/*.json` 的值写 `{` 字面量，或页面报 `Invalid token in placeholder`
 
 ## B 类：只报告，改法未定
 
