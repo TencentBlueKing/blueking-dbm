@@ -8,7 +8,7 @@ BackupType 可选值：`logical`, `physical`, `auto`
 `auto` 表示自动选择备份类型，自动判断条件：
  - 当机器 glibc 版本 < 2.14 (centos 6.x)，`physical`
  - 当数据目录的数据量 > 400G 时，`physical`
- - 当机器 glibc 版本 >=2.14 且数据量小于 400G，`logical`
+ - 当机器 glibc 版本 >=2.14 且数据量小于 200G，`logical`
 
 **如果是临时发起一次逻辑备份**
 可不用修改配置文件
@@ -29,7 +29,7 @@ DataSchemaGrant = all
 ./dbbackup dumpbackup -c dbbackup.3306.ini --backup-type logical  --nocheck-diskspace
 ```
 每次备份之后，都会往 `infodba_schema.local_backup_report` 里记录一条备份信息，下一次备份时遇到空间不足，会从这里读取上次备份的文件大小来判断空间。
-不建议将 `Public.NoCheckDiskSpace` 持久化到配置文件
+不建议将 `Public.NoCheckDiskSpace` 持久化到配置文件。
 
 ### 4. 怎么修改备份开始时间
 
@@ -282,8 +282,41 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 #### 7. DDLoperation has been performed
 
 #### 8. InnoDB: Error: could not open single-table tablespace file xxx
+
+类似错误:
+```
+InnoDB: Operating system error number 24 in a file operation.
+InnoDB: Error number 24 means 'Too many open files'.
+innobackupex_56.pl: got a fatal error with the following stacktrace: at /home/mysql/dbbackup-go/bin/xtrabackup/innobackupex_56.pl line 2783
+```
+
 ibd 文件太多了，超过 os 打开文件数量的现在。
 可以给 mysql 用户设置更大的 ulimit，比如修改：`/etc/security/limits.conf`
 ```
 mysql   -       nofile          512000
+```
+
+如果无法修改，也可以临时使用逻辑备份。
+
+
+#### 9. mysql module is not installed
+```
+innobackupex_56.pl: Error: Failed to connect to MySQL server as DBD::mysql module is not installed at /home/mysql/dbbackup-go/bin/xtrabackup/innobackupex_56.pl line 3078
+```
+
+linux 机器上 上缺少 perl mysql 模块:
+```
+dnf install perl-DBD-MySQL -y
+```
+
+可以运行 `perl -e 'use DBD::mysql; print "OK\n"'` 来确认，如果提示错误:
+```
+Can't load '/usr/lib64/perl5/vendor_perl/auto/DBD/mysql/mysql.so' for module DBD::mysql: libmysqlclient.so.21: cannot open shared object file: No such file or directory at /usr/lib64/perl5/DynaLoader.pm line 206.
+```
+
+说明是缺少对应版本的 libmysqlclient.so： `ldd /usr/lib64/perl5/vendor_perl/auto/DBD/mysql/mysql.so |grep "not found"`
+
+如果`ls /usr/lib64/libmysqlclient.so.21.*`有输出，可以加个软链:
+```
+ln -s /usr/lib64/libmysqlclient.so.21.2.42 /usr/lib64/libmysqlclient.so.21
 ```
