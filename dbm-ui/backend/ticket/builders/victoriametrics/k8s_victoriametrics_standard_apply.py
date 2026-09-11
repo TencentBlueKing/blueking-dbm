@@ -49,6 +49,11 @@ class K8sVictoriaMetricsApplyDetailSerializer(TicketBaseValidateSerializerMixin,
             raise serializers.ValidationError(_("VictoriaMetrics 标准集群类型不正确"))
 
         for item in attrs["component_list"]:
+            replicas = item.get("replicas")
+            if not isinstance(replicas, int):
+                raise serializers.ValidationError(_("replicas 必须是整数"))
+            if not 2 <= replicas <= 100:
+                raise serializers.ValidationError(_("replicas 最小为2，最大为100"))
             if item["component_name"] == COMPONENT_VMSTORAGE and not item.get("storage"):
                 raise serializers.ValidationError(_("vmstorage 组件必须配置持久化存储"))
             if item["component_name"] != COMPONENT_VMSTORAGE and item.get("storage"):

@@ -53,9 +53,3 @@ class ResourceSLZ(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": paginated_resource_example["results"][0]}
         ref_name = f"{REF_NAME}_ResourceSLZ"
-
-
-class ResourceTopoGraphSLZ(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": {"nodes": [], "groups": [], "lines": []}}
-        ref_name = f"{REF_NAME}_ResourceTopoGraphSLZ"
