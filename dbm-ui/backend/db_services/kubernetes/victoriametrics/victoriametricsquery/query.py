@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -17,7 +17,7 @@ from backend.db_services.kubernetes.victoriametrics.query import VictoriaMetrics
 
 @register_resource_decorator()
 class VictoriaMetricsQueryListRetrieveResource(VictoriaMetricsBaseListRetrieveResource):
-    cluster_types = [ClusterType.K8sVictoriametricsQuery]
+    cluster_types = [ClusterType.K8sVictoriametricsSelect]
     instance_roles = [InstanceRole.VM_SELECT]
     fields = [
         *VictoriaMetricsBaseListRetrieveResource.fields,
