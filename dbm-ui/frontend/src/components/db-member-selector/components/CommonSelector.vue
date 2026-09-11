@@ -47,9 +47,10 @@
 
   const userSelectorRef = ref();
 
-  const exactSearchMethod = () =>
+  // 用入参而非 modelValue：emit 到父组件后 prop 尚未回流，此时读 modelValue 拿到的是选人之前的旧值
+  const exactSearchMethod = (usernames: string[]) =>
     getUserList({
-      exact_lookups: modelValue.value.join(','),
+      exact_lookups: usernames.join(','),
     }).then((result) => result.results);
 
   const pasteValidator = (values: string[]) => values;

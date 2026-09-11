@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div class="release-version-list-main">
     <div class="title-operate">
@@ -74,7 +87,7 @@
 
   interface Emits {
     (e: 'releaseListCountChange', count: number): void;
-    (e: 'chooseRelease', data: ReleaseItem): void;
+    (e: 'chooseRelease', data?: ReleaseItem): void;
   }
 
   interface Exposes {
@@ -88,6 +101,8 @@
 
   const { locale, t } = useI18n();
 
+  const VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX = 'VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX';
+
   const scrollFakerRef = useTemplateRef('scrollFakerRef');
   const isShowEditRelease = ref(false);
   const isEditRelease = ref(false);
@@ -95,9 +110,40 @@
   const currentRelease = ref<ReleaseItem>();
   const releaseList = ref<ReleaseItem[]>([]);
 
-  const existedReleaseNames = computed(() => releaseList.value?.map((item) => item.name.toLowerCase()) || []);
+  const existedReleaseNames = computed(() => releaseList.value.map((item) => item.name.toLowerCase()));
 
-  const VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX = 'VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX';
+  // 新增发行版后需要把列表滚回顶部
+  let shouldScrollToTop = false;
+
+  /** 缓存内容可能来自旧版本或被手工改坏，读写都不能让页面挂掉 */
+  const readMemoryIndex = () => {
+    try {
+      const cacheStr = localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX);
+      if (!cacheStr) {
+        return 0;
+      }
+      const index = Number(JSON.parse(cacheStr)?.[props.dbType]?.[props.pkgType]);
+      return Number.isInteger(index) && index > 0 ? index : 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const writeMemoryIndex = (index: number) => {
+    let cache: Record<string, Record<string, number>> = {};
+    try {
+      cache = JSON.parse(localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX) || '{}') || {};
+    } catch {
+      cache = {};
+    }
+    Object.assign(cache, {
+      [props.dbType]: {
+        ...cache[props.dbType],
+        [props.pkgType]: index,
+      },
+    });
+    localStorage.setItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX, JSON.stringify(cache));
+  };
 
   const { run: runGetReleaseVersionList } = useRequest(getReleaseVersionList, {
     manual: true,
@@ -109,6 +155,12 @@
         }),
       );
       emits('releaseListCountChange', data.length);
+      if (shouldScrollToTop) {
+        shouldScrollToTop = false;
+        nextTick(() => {
+          scrollFakerRef.value?.scrollTo(0, 0);
+        });
+      }
     },
   });
 
@@ -122,9 +174,16 @@
   watch(
     () => [activeReleaseIndex.value, releaseList.value],
     () => {
-      if (releaseList.value && releaseList.value.length > 0) {
-        emits('chooseRelease', releaseList.value[activeReleaseIndex.value]);
+      if (releaseList.value.length === 0) {
+        emits('chooseRelease', undefined);
+        return;
       }
+      // 发行版被删除后记忆下标可能越界，先收敛到最后一项再对外抛出
+      if (activeReleaseIndex.value > releaseList.value.length - 1) {
+        activeReleaseIndex.value = releaseList.value.length - 1;
+        return;
+      }
+      emits('chooseRelease', releaseList.value[activeReleaseIndex.value]);
     },
     {
       immediate: true,
@@ -132,31 +191,13 @@
   );
 
   const handleSuccess = () => {
+    shouldScrollToTop = !isEditRelease.value;
     fetchReleaseList();
-    if (!isEditRelease.value) {
-      setTimeout(() => {
-        scrollFakerRef.value?.scrollTo(0, 0);
-      }, 500);
-    }
   };
 
   const handleChooseRelease = (index: number) => {
     activeReleaseIndex.value = index;
-    let newIndexMap = {
-      [props.dbType]: {
-        [props.pkgType]: index,
-      },
-    };
-    const localIndexMapStr = localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX);
-    if (localIndexMapStr) {
-      newIndexMap = JSON.parse(localIndexMapStr);
-      Object.assign(newIndexMap, {
-        [props.dbType]: {
-          [props.pkgType]: index,
-        },
-      });
-    }
-    localStorage.setItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX, JSON.stringify(newIndexMap));
+    writeMemoryIndex(index);
   };
 
   const handleEditRelease = (isEdit: boolean, data?: ReleaseItem) => {
@@ -166,14 +207,8 @@
   };
 
   onMounted(() => {
-    const memoryIndexMapStr = localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX);
-    if (memoryIndexMapStr) {
-      const memoryIndexMap = JSON.parse(memoryIndexMapStr);
-      const index = memoryIndexMap[props.dbType][props.pkgType];
-      if (index) {
-        activeReleaseIndex.value = Number(index);
-      }
-    }
+    activeReleaseIndex.value = readMemoryIndex();
+    fetchReleaseList();
   });
 
   defineExpose<Exposes>({

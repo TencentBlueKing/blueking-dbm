@@ -1,4 +1,5 @@
 import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
+
 import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
@@ -33,11 +34,11 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
   };
   ignore_check_db: boolean;
   infos: {
+    affect_database_list?: string[];
     backup_source: string;
     backupinfo: BackupLogRecordModel;
     cluster_id: number;
     databases: string[];
-    affect_database_list?: string[];
     databases_ignore: string[];
     resource_spec: {
       rollback_host: {

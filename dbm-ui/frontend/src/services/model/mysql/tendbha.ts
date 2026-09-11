@@ -93,7 +93,6 @@ export default class Tendbha extends ClusterBase {
     mysql_partition_manage?: boolean;
     mysql_priv_manage?: boolean;
     mysql_rename_database?: boolean;
-    mysql_rollback_cluster?: boolean;
     mysql_subscribe_monitor: boolean;
     mysql_truncate_data?: boolean;
     mysql_view: boolean;

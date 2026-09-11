@@ -145,7 +145,7 @@
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const basePath = window.PROJECT_ENV.VITE_PUBLIC_PATH ? window.PROJECT_ENV.VITE_PUBLIC_PATH : '/';
+  const basePath = window.PROJECT_STATIC_PATH ? window.PROJECT_STATIC_PATH : '/';
   const excelState = reactive({
     importable: false,
     isLoading: false,
@@ -267,8 +267,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .excel-authorize {
     padding-bottom: 40px;
     font-size: @font-size-mini;
@@ -278,10 +276,11 @@
     }
 
     .excel-authorize-file {
+      display: flex;
+      align-items: center;
       overflow: hidden;
       font-size: @font-size-mini;
       flex: 1;
-      .flex-center();
 
       .db-icon-excel {
         margin-right: 16px;

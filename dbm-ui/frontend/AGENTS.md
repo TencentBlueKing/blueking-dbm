@@ -115,32 +115,45 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 - 用最少的代码解决问题
 - 不为一次性需求创建抽象层，不为"未来可能用到"增加扩展性和可配置性
 - 不抽离没有复用性的代码，允许大段代码保持阅读的完整性
-- 必要的代码注释，特殊变量注释，方法功能注释，逻辑分支注释
+- 必要的代码注释，变量注释，方法功能注释，逻辑分支注释
 
 多步骤任务先给简短执行计划，并标注每一步的验证方式。
 
-任务收尾回顾：本次读过或改过的代码里，同一语义有没有在多处独立实现并已经漂移；够判据的按 `codebase-insights`
-skill 记录，**只记录不修改**。
+已知问题：**改 `src/` 下任何文件前、以及用户指出写法问题时，按 `known-issues` skill 执行**，边界与写入规范都在
+`.agents/skills/known-issues/SKILL.md`，此处不重复。**扫完必须在回复里写一行 `known-issues: 已扫，命中 N 条`**，N
+为 0 也要写——这是漏扫的唯一可观测信号，所以只能写在这里，写进 skill 就失效了。
 
 ## 规则与技能索引
 
 `.agents/rules/` 不会被工具自动附加，agent 按下表「什么时候读」主动加载：
 
-| 文件                | 什么时候读                                                     |
-| ------------------- | -------------------------------------------------------------- |
-| `db-manage.mdc`     | 改 `db-manage/**`：集群/实例列表、集群详情、工具箱提单、路由    |
-| `direct-link.mdc`   | 新增或修改直达链接（URL 带 `?open=` 参数自动执行动作）入口      |
-| `layout.mdc`        | 改 `src/layout/**`，或新增页面要挂菜单入口                     |
-| `services.mdc`      | 改 `services/**`，或新增接口                                   |
-| `ticket-detail.mdc` | 改 `ticket-center/**`，或新增单据详情组件与 details 类型        |
-| `toolbox-code.mdc`  | 新增或修改工具箱提单页                                         |
+| 文件                     | 什么时候读                                                   |
+| ------------------------ | ------------------------------------------------------------ |
+| `db-manage.mdc`          | 改 `db-manage/**`：集群/实例列表、集群详情、工具箱提单、路由 |
+| `direct-link.mdc`        | 新增或修改直达链接（URL 带 `?open=` 参数自动执行动作）入口   |
+| `layout.mdc`             | 改 `src/layout/**`，或新增页面要挂菜单入口                   |
+| `search-filter-sync.mdc` | 页面同时有 `DbQuickSearch` 搜索栏和表格列筛选                |
+| `services.mdc`           | 改 `services/**`，或新增接口                                 |
+| `ticket-detail.mdc`      | 改 `ticket-center/**`，或新增单据详情组件与 details 类型     |
+| `toolbox-code.mdc`       | 新增或修改工具箱提单页                                       |
 
 `.agents/skills/` 按各 `SKILL.md` 的 description 触发，其中 `dbm-frontend-design`
-覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`codebase-insights`
-存历次沉淀的一致性问题，动手改代码前查阅。
+覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`known-issues`
+存已固化的检查项，改 `src/` 下文件前必读（见上「工作方式」）。
 
 ## 不要碰
 
 - `dist/`、`node_modules/`、`src/types/auto-imports.d.ts`（自动生成）
 - `.env.local`、`.env.production`
 - `auto-copyright.js`：会重写全仓库文件，且在 `"type": "module"` 下用 `require` 会直接报错，不要执行
+
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+仓库已被 CodeGraph 索引（根目录存在 `.codegraph/`）时，需要理解或定位代码，优先用它，而不是先 grep / find 或直接读文件：
+
+- **MCP 工具**（可用时）：`codegraph_explore` 一次调用就能回答大部分代码问题——相关符号的原始源码，以及它们之间的调用链路，包含 grep 追不到的动态分发跳转。查询里写上文件名或符号名，就能拿到它当前带行号的源码。如果工具已列出但处于延迟加载状态，按名字通过工具检索加载。
+- **Shell**（始终可用）：`codegraph explore "<符号名或问题>"` 输出同样的内容。
+
+没有 `.codegraph/` 目录就完全跳过 CodeGraph——是否建索引由用户决定。
+<!-- CODEGRAPH_END -->

@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div
     v-if="abstractList.length"
@@ -6,14 +19,29 @@
       {{ t('根据任务执行情况，输出以下任务执行结果摘要：') }}
     </div>
     <div class="table-list">
-      <TableCollapse
+      <BkCollapse
         v-for="(item, index) in abstractList"
         :key="index"
-        :title="item.table_name">
-        <PrimaryTable
-          :columns="item.titles"
-          :data="item.values" />
-      </TableCollapse>
+        v-model="activeIndex"
+        class="table-collapse-main">
+        <BkCollapsePanel :name="String(index)">
+          <template #header>
+            <div class="collapse-panel-header">
+              <span class="panel-title">
+                {{ item.table_name }}
+              </span>
+              <DbIcon
+                :class="{ 'active-icon': !activeIndex.includes(String(index)) }"
+                type="down-big" />
+            </div>
+          </template>
+          <template #content>
+            <PrimaryTable
+              :columns="item.titles"
+              :data="item.values" />
+          </template>
+        </BkCollapsePanel>
+      </BkCollapse>
     </div>
   </div>
 </template>
@@ -23,8 +51,6 @@
   import { useRequest } from 'vue-request';
 
   import { getTicketFlows } from '@services/source/ticketFlow';
-
-  import TableCollapse from '@components/table-collapse/Index.vue';
 
   import { isHttpUrl } from '@utils';
 
@@ -49,6 +75,7 @@
   const { t } = useI18n();
 
   const abstractList = ref<AbstractItem[]>([]);
+  const activeIndex = ref<string[]>([]);
 
   const { run: fetchTicketFlows } = useRequest(getTicketFlows, {
     manual: true,
@@ -92,6 +119,16 @@
   });
 
   watch(
+    abstractList,
+    (list) => {
+      activeIndex.value = list.map((_, index) => String(index));
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
     () => props.ticketId,
     () => {
       if (props.ticketId) {
@@ -111,6 +148,40 @@
 
     .tip-display {
       margin-bottom: 16px;
+    }
+
+    .table-collapse-main {
+      .collapse-panel-header {
+        position: relative;
+        display: flex;
+        height: 28px;
+        padding: 0 12px 0 16px;
+        color: #313238;
+        cursor: pointer;
+        background: #f0f1f5;
+        align-items: center;
+        justify-content: space-between;
+
+        .db-icon-down-shape {
+          color: #979ba5;
+          transform: rotateZ(0deg);
+          transition: all 0.5s;
+        }
+
+        .panel-title {
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .active-icon {
+          transform: rotateZ(-90deg);
+          transition: all 0.5s;
+        }
+      }
+
+      .bk-collapse-content {
+        padding: 0;
+      }
     }
   }
 </style>

@@ -7,17 +7,21 @@
  * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+    10| * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
 
 <template>
-  <TableEditInput
-    ref="editRef"
-    v-model="localValue"
-    :placeholder="t('请输入或选择集群')"
+  <EditableColumn
+    field="srcCluster.clusterName"
+    :label="t('数据源集群')"
+    :min-width="120"
     :rules="rules"
-    @submit="handleInputFinished" />
+    :width="220">
+    <EditableInput
+      v-model="clusterName"
+      :placeholder="t('请输入或选择集群')" />
+  </EditableColumn>
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -29,66 +33,60 @@
 
   import { domainRegex } from '@common/regex';
 
-  import TableEditInput from '@components/render-table/columns/input/index.vue';
+  import { Column as EditableColumn, Input as EditableInput } from '@components/editable-table/Index.vue';
 
   import { random } from '@utils';
 
-  import type { IDataRow } from './Row.vue';
-
-  interface Props {
-    data: IDataRow['srcCluster'];
-  }
-
-  type Emits = (e: 'cluster-input-finish', value: IDataRow['srcCluster']) => void;
-
-  interface Exposes {
-    getValue: () => Promise<{
-      cluster_id: number;
-      db_module_id: number;
-    }>;
-  }
-
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  const modelValue = defineModel<{
+    clusterId: number;
+    clusterName: string;
+    moduleId: number;
+  }>({
+    required: true,
+  });
 
   const { t } = useI18n();
-  const localValue = ref('');
-  const editRef = ref();
-  const localClusterId = ref(0);
 
   const instanceKey = `render_cluster_${random()}`;
   clusterIdMemo[instanceKey] = {};
 
+  const clusterName = computed({
+    get: () => modelValue.value.clusterName,
+    set: (value) => {
+      modelValue.value.clusterName = value;
+    },
+  });
+
   const rules = [
     {
       message: t('不能为空'),
+      trigger: 'blur',
       validator: (value: string) => Boolean(value),
     },
     {
       message: t('目标集群输入格式有误'),
+      trigger: 'blur',
       validator: (value: string) => domainRegex.test(value),
     },
     {
       message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: async (value: string) => {
         const ret = await getTendbhaList({ domain: value });
         const { results } = ret;
         if (results.length > 0) {
           const [item] = results;
-          localClusterId.value = item.id;
-          const obj = {
-            clusterId: item.id,
-            clusterName: value,
-            moduleId: item.db_module_id,
-          };
-          emits('cluster-input-finish', obj);
+          modelValue.value.clusterId = item.id;
+          modelValue.value.moduleId = item.db_module_id;
+          // 直接写已选记录，避免清空后重新输入同一集群时 watch 同值不触发导致漏记
+          clusterIdMemo[instanceKey][item.id] = true;
         }
         return results.length > 0;
       },
     },
     {
       message: t('集群重复'),
+      trigger: 'blur',
       validator: () => {
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
@@ -114,46 +112,26 @@
     },
   ];
 
-  watch(
-    () => props.data,
-    (data) => {
-      localValue.value = data.clusterName;
-      localClusterId.value = data.clusterId;
-    },
-    {
-      immediate: true,
-    },
-  );
+  // 输入清空时当前实例的已选记录一并清空
+  watch(clusterName, (value) => {
+    if (!value) {
+      clusterIdMemo[instanceKey] = {};
+    }
+  });
 
   // 获取关联集群
   watch(
-    localClusterId,
-    () => {
-      if (!localClusterId.value) {
+    () => modelValue.value.clusterId,
+    (clusterId) => {
+      if (!clusterId) {
         return;
       }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
+      clusterIdMemo[instanceKey][clusterId] = true;
     },
     {
       immediate: true,
     },
   );
-
-  const handleInputFinished = async (value: string) => {
-    if (!value) {
-      delete clusterIdMemo[instanceKey];
-    }
-    await editRef.value.getValue();
-  };
-
-  defineExpose<Exposes>({
-    getValue() {
-      return editRef.value.getValue().then(() => ({
-        cluster_id: props.data.clusterId,
-        db_module_id: props.data.moduleId,
-      }));
-    },
-  });
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];

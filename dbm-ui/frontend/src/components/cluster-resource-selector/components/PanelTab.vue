@@ -44,15 +44,14 @@
   };
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .cluster-resource-selector-panel-tab {
+    display: flex;
+    align-items: center;
     height: 42px;
     font-size: @font-size-mini;
     line-height: 42px;
     background-color: #fafbfd;
     border-bottom: 1px solid @border-disable;
-    .flex-center();
 
     .tab-item {
       min-width: 200px;

@@ -259,8 +259,6 @@
   });
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .influxdb-instance-detail {
     height: 100%;
 
@@ -274,8 +272,8 @@
       }
 
       .base-info-item {
-        .flex-center();
-
+        display: flex;
+        align-items: center;
         line-height: 32px;
       }
 
@@ -289,8 +287,8 @@
       }
 
       .base-info-value-container {
-        .flex-center();
-
+        display: flex;
+        align-items: center;
         overflow: hidden;
         color: @title-color;
         flex: 1;

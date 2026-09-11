@@ -5,22 +5,18 @@ import {
   type ComponentPublicInstance,
   computed,
   defineComponent,
-  getCurrentInstance,
   type HTMLAttributes,
   nextTick,
+  onBeforeUpdate,
   ref,
   watch,
   withModifiers,
 } from 'vue';
 
 import AlternateItem from './alternate-item';
-import instanceStore from './instance-store';
 
 export default defineComponent({
   setup() {
-    const { proxy } = getCurrentInstance();
-    instanceStore.setInstance('alternateContent', 'alternateList', proxy);
-
     const selector = ref(null);
     const keyword = ref('');
     const next = ref(true);
@@ -70,7 +66,6 @@ export default defineComponent({
     };
 
     watch(keyword, () => {
-      alternateItem.value = [];
       nextTick(() => {
         alternateList.value.scrollTop = 0;
       });
@@ -80,8 +75,15 @@ export default defineComponent({
     const alternateList = ref(null);
     const alternateItem = ref([]);
 
+    // 函数式 ref 每次渲染都会重新收集，渲染前先清空，否则数组会不断累积并混入卸载时传入的 null
+    onBeforeUpdate(() => {
+      alternateItem.value = [];
+    });
+
     const setRef = (el: HTMLElement | ComponentPublicInstance | HTMLAttributes) => {
-      alternateItem.value.push(el);
+      if (el) {
+        alternateItem.value.push(el);
+      }
     };
 
     return {
@@ -129,7 +131,6 @@ export default defineComponent({
                   {user.children.map((child: any, childIndex: number) => (
                     <>
                       <AlternateItem
-                        // ref="alternateItem"
                         ref={(el: HTMLElement | ComponentPublicInstance | HTMLAttributes) => void this.setRef(el)}
                         index={this.getIndex(index, childIndex)}
                         selector={this.selector}
@@ -144,7 +145,6 @@ export default defineComponent({
             return (
               <>
                 <AlternateItem
-                  // ref="alternateItem"
                   ref={(el: HTMLElement | ComponentPublicInstance | HTMLAttributes) => void this.setRef(el)}
                   selector={this.selector}
                   user={user}

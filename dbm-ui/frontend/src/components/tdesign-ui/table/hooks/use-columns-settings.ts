@@ -1,3 +1,16 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
+
 import type { TableProps } from 'tdesign-vue-next';
 import { computed, type ExtractPropTypes, type h, type Ref, shallowRef, useSlots, watch } from 'vue';
 
@@ -130,18 +143,21 @@ export const useColumnsSettings = (
     return undefined;
   });
 
-  const customProps = computed<
-    {
-      bkUiSettings?: BkUiSettings;
-    } & TableProps
-  >(() => {
-    const columns = reorderTableColumns(tableColumns.value, localColumnSettings.value.order);
+  const orderedColumns = computed(() => reorderTableColumns(tableColumns.value, localColumnSettings.value.order));
 
-    let lastDisplayColumnColKey = columns.at(-1)?.colKey;
-    if (displayColumns.value) {
-      const displayColumnsMap = makeMap(displayColumns.value as string[]);
-      lastDisplayColumnColKey = columns.filter((item) => item.colKey && displayColumnsMap[item.colKey]).at(-1)?.colKey;
+  const lastDisplayColumnColKey = computed(() => {
+    if (!displayColumns.value) {
+      return orderedColumns.value.at(-1)?.colKey;
     }
+    const displayColumnsMap = makeMap(displayColumns.value as string[]);
+    return orderedColumns.value.filter((item) => item.colKey && displayColumnsMap[item.colKey]).at(-1)?.colKey;
+  });
+
+  // 列配置单独成 computed，只依赖列相关状态。
+  // 若跟着 customProps 一起在 data 等无关 props 变化时重算，
+  // tdesign 会因为 columns 引用变化重置列宽，丢失用户拖拽的宽度
+  const finalColumns = computed(() => {
+    const columns = [...orderedColumns.value];
 
     if (isBkuiSettingsControl.value) {
       columns.push({
@@ -194,25 +210,35 @@ export const useColumnsSettings = (
       });
     }
 
-    return deleteUndefinedProps({
-      ...props,
-      columns: customFilterComponent(columns),
-      rowspanAndColspan: ({ col, colIndex, row, rowIndex }) => {
-        if (
-          isBkuiSettingsControl.value &&
-          lastDisplayColumnColKey &&
-          col.colKey === lastDisplayColumnColKey &&
-          col.fixed !== 'left'
-        ) {
-          return {
-            colspan: col.fixed === 'right' ? 1 : 2,
-            rowspan: 1,
-          };
-        }
-        return props.rowspanAndColspan ? props.rowspanAndColspan({ col, colIndex, row, rowIndex }) : {};
-      },
-    });
+    return customFilterComponent(columns);
   });
+
+  const rowspanAndColspan: NonNullable<TableProps['rowspanAndColspan']> = ({ col, colIndex, row, rowIndex }) => {
+    if (
+      isBkuiSettingsControl.value &&
+      lastDisplayColumnColKey.value &&
+      col.colKey === lastDisplayColumnColKey.value &&
+      col.fixed !== 'left'
+    ) {
+      return {
+        colspan: col.fixed === 'right' ? 1 : 2,
+        rowspan: 1,
+      };
+    }
+    return props.rowspanAndColspan ? props.rowspanAndColspan({ col, colIndex, row, rowIndex }) : {};
+  };
+
+  const customProps = computed<
+    {
+      bkUiSettings?: BkUiSettings;
+    } & TableProps
+  >(() =>
+    deleteUndefinedProps({
+      ...props,
+      columns: finalColumns.value,
+      rowspanAndColspan,
+    }),
+  );
 
   const columnController = computed<TableProps['columnController']>(() =>
     isBkuiSettingsControl.value ? undefined : props.columnController,

@@ -12,7 +12,7 @@
  */
 
 import type { CancelTokenSource } from 'axios';
-import _ from 'lodash';
+import urlJoin from 'url-join';
 
 import { buildURLParams, downloadUrl } from '@utils';
 
@@ -49,7 +49,7 @@ methodList.forEach((method) => {
     get() {
       return function (url: string, params: Record<string, any>, payload: IRequestPayload) {
         if (method === 'download') {
-          downloadUrl(`${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/${_.trim(url, '/')}?${buildURLParams(params)}`);
+          downloadUrl(`${urlJoin(window.BK_AJAX_URL, url)}?${buildURLParams(params)}`);
           return Promise.resolve();
         }
         const handler = new Request({
