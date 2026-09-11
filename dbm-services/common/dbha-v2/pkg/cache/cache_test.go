@@ -309,7 +309,8 @@ func TestHighPerformanceTTLCache_Close(t *testing.T) {
 		t.Errorf("Expected size 2 before close, got %d", size)
 	}
 
-	// Close the cache
+	// Close the cache twice; the second call must not panic.
+	cache.Close()
 	cache.Close()
 
 	// Try to use cache after close (should not panic)
