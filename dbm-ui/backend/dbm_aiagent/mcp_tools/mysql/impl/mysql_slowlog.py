@@ -326,8 +326,8 @@ def query_slowlog_aggregated(
         base_filter = Q(
             cluster_domain=cluster_domain,
             instance_role=instance_role,
-            log_time__gt=start_time,
-            log_time__lte=end_time,
+            dteventtimestamp__gt=start_time,
+            dteventtimestamp__lte=end_time,
         )
         # 排除系统 SQL：username 为系统用户，或 query_digest_text 包含系统 schema
         if exclude_system:
