@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -43,8 +43,8 @@ class K8sVictoriaMetricsApplyDetailSerializer(TicketBaseValidateSerializerMixin,
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("cluster_type") not in [
-            ClusterType.K8sVictoriametricsStandard.value,
-            ClusterType.K8sVictoriametricsQuery.value,
+            ClusterType.K8sVictoriametricsCluster.value,
+            ClusterType.K8sVictoriametricsSelect.value,
         ]:
             raise serializers.ValidationError(_("VictoriaMetrics 标准集群类型不正确"))
 
@@ -76,10 +76,10 @@ class BaseK8sVictoriaMetricsApplyFlowBuilder(BaseK8sVmTicketFlowBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.K8S_VICTORIAMETRICS_STANDARD_APPLY,
+    TicketType.K8S_VICTORIAMETRICS_CLUSTER_APPLY,
     is_apply=True,
-    cluster_type=ClusterType.K8sVictoriametricsStandard,
+    cluster_type=ClusterType.K8sVictoriametricsCluster,
     iam=ActionEnum.K8S_VICTORIAMETRICS_APPLY,
 )
-class K8sVictoriaMetricsStandardApplyFlowBuilder(BaseK8sVictoriaMetricsApplyFlowBuilder):
+class K8sVictoriaMetricsClusterApplyFlowBuilder(BaseK8sVictoriaMetricsApplyFlowBuilder):
     inner_flow_name = _("VictoriaMetrics 标准集群部署执行")

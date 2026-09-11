@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -66,9 +66,9 @@ class ClusterType(StrStructuredEnum):
     # k8s集群 HA/Single 拆分
     K8sSurrealdbHa = EnumField("k8s_surrealdb_ha", _("k8s SurrealDB集群版"))
     K8sSurrealdbSingle = EnumField("k8s_surrealdb_single", _("k8s SurrealDB单机版"))
-    K8sVictoriametricsStandard = EnumField("k8s_victoriametrics_standard", _("k8s VictoriaMetrics标准集群"))
+    K8sVictoriametricsCluster = EnumField("k8s_victoriametrics_cluster", _("k8s VictoriaMetrics标准集群"))
     K8sVictoriametricsHa = EnumField("k8s_victoriametrics_ha", _("k8s VictoriaMetrics集群版"))
-    K8sVictoriametricsQuery = EnumField("k8s_victoriametrics_query", _("k8s VictoriaMetrics查询集群"))
+    K8sVictoriametricsSelect = EnumField("k8s_victoriametrics_select", _("k8s VictoriaMetrics查询集群"))
     K8sRisingwaveHa = EnumField("k8s_risingwave_ha", _("k8s Risingwave集群版"))
     K8sGreptimedbHa = EnumField("k8s_greptimedb_ha", _("k8s GreptimeDB集群版"))
     K8sMilvusHa = EnumField("k8s_milvus_ha", _("k8s Milvus集群版"))
@@ -112,9 +112,9 @@ class ClusterType(StrStructuredEnum):
             DBType.Oracle.value: [cls.OraclePrimaryStandby, cls.OracleSingleNone],
             DBType.K8sSurrealdb.value: [cls.K8sSurrealdbHa, cls.K8sSurrealdbSingle],
             DBType.K8sVictoriametrics.value: [
-                cls.K8sVictoriametricsStandard,
+                cls.K8sVictoriametricsCluster,
                 cls.K8sVictoriametricsHa,
-                cls.K8sVictoriametricsQuery,
+                cls.K8sVictoriametricsSelect,
             ],
             DBType.K8sRisingwave.value: [cls.K8sRisingwaveHa],
             DBType.K8sMilvus.value: [cls.K8sMilvusHa],
@@ -138,9 +138,9 @@ class ClusterType(StrStructuredEnum):
             for t in (
                 cls.K8sSurrealdbHa,
                 cls.K8sSurrealdbSingle,
-                cls.K8sVictoriametricsStandard,
+                cls.K8sVictoriametricsCluster,
                 cls.K8sVictoriametricsHa,
-                cls.K8sVictoriametricsQuery,
+                cls.K8sVictoriametricsSelect,
                 cls.K8sRisingwaveHa,
                 cls.K8sMilvusHa,
                 cls.K8sQdrantHa,
@@ -226,9 +226,9 @@ class ClusterType(StrStructuredEnum):
             cls.K8sQdrantHa.value: "qdrant",
             cls.K8sSurrealdbSingle: "surrealdb",
             cls.K8sSurrealdbHa: "surrealdb",
-            cls.K8sVictoriametricsStandard: "victoriametrics",
+            cls.K8sVictoriametricsCluster: "victoriametrics",
             cls.K8sVictoriametricsHa: "victoriametrics",
-            cls.K8sVictoriametricsQuery: "victoriametrics",
+            cls.K8sVictoriametricsSelect: "victoriametrics",
         }
 
     @classmethod
