@@ -62,7 +62,10 @@ func (ins *RedisStorageSwitchInstance) commandContext() (context.Context, contex
 
 // buildRedisConn builds a redis connection.
 func (ins *RedisStorageSwitchInstance) buildRedisConn(ip string, port int, db int) (*haredis.Client, error) {
-	ins.ensurePassword()
+	if err := ins.ensurePassword(); err != nil {
+		return nil, err
+	}
+
 	cmdTimeout := ins.Timeout
 	if cmdTimeout <= 0 {
 		cmdTimeout = redisCommandTimeout()

@@ -177,6 +177,7 @@ type WorkflowConfig struct {
 	DbmApiCLBDeregister        DbmApi           `yaml:"dbmApiCLBDeregister"        mapstructure:"dbmApiCLBDeregister"`
 	DbmApiPolarisUnbind        DbmApi           `yaml:"dbmApiPolarisUnbind"        mapstructure:"dbmApiPolarisUnbind"`
 	DbmApiDumperSwitch         DbmApi           `yaml:"dbmApiDumperSwitch"         mapstructure:"dbmApiDumperSwitch"`
+	DbmApiQueryRedisPassword   DbmApi           `yaml:"dbmApiQueryRedisPassword"   mapstructure:"dbmApiQueryRedisPassword"`
 	Dbhav1ApiBlackWhitelistGet DbmApi           `yaml:"dbhav1ApiBlackWhitelistGet" mapstructure:"dbhav1ApiBlackWhitelistGet"`
 }
 

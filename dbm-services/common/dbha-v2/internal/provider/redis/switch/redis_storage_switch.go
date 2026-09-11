@@ -74,6 +74,7 @@ func NewRedisStorageSwitchInstance(metadata *dbm.DbInstMetadata) (*RedisStorageS
 		SlaveList: metadata.Receiver,
 	}
 	ins.initBaseInfoFromMetadata(metadata)
+	ins.applyPassword(metadata.MachineType)
 	return ins, nil
 }
 
