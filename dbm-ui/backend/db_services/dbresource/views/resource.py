@@ -457,7 +457,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
 
         host_ip__id_map = {host["ip"]: host["bk_host_id"] for host in data["hosts"]}
-        uwork_infos_map = HCMApi.check_host_has_uwork(list(host_ip__id_map.keys()))
+        uwork_infos_map = HCMApi.check_host_has_uwork(list(host_ip__id_map.values()))
         xwork_infos_map = XworkApi.check_xwork_list(host_ip__id_map)
 
         fault_host_infos = {
