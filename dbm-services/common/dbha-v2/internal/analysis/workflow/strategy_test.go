@@ -28,55 +28,55 @@ import (
 	"strings"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // ============================================================
-// 1. CountInstancesByEventName tests
+// 1. FilterInstancesByEventAndCount tests
 // ============================================================
 
-func TestCountInstancesByEventName_EmptyInstances(t *testing.T) {
-	count := CountInstancesByEventName(nil, haprobe.DbEventNameDetectFailure)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+func TestFilterInstancesByEventAndCount_EmptyInstances(t *testing.T) {
+	matched := FilterInstancesByEventAndCount(nil, haprobe.DbEventNameDetectFailure, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
-func TestCountInstancesByEventName_AllMatch(t *testing.T) {
+func TestFilterInstancesByEventAndCount_AllMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 2},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 3},
 	}
-	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
-	if count != 3 {
-		t.Errorf("expected 3, got %d", count)
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 1)
+	if len(matched) != 3 {
+		t.Errorf("expected 3, got %d", len(matched))
 	}
 }
 
-func TestCountInstancesByEventName_PartialMatch(t *testing.T) {
+func TestFilterInstancesByEventAndCount_PartialMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameProbeOffline},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameProbeOffline},
-		{EventName: haprobe.DbEventNameProbeOffline},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 1},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
+		{EventName: haprobe.DbEventNameDetectFailure, Count: 2},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
 	}
-	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
-	if count != 2 {
-		t.Errorf("expected 2, got %d", count)
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 2)
+	if len(matched) != 1 {
+		t.Errorf("expected 1, got %d", len(matched))
 	}
 }
 
-func TestCountInstancesByEventName_NoMatch(t *testing.T) {
+func TestFilterInstancesByEventAndCount_NoMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameProbeOffline},
-		{EventName: haprobe.DbEventNameProbeOffline},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 1},
+		{EventName: haprobe.DbEventNameProbeOffline, Count: 2},
 	}
-	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := FilterInstancesByEventAndCount(instances, haprobe.DbEventNameDetectFailure, 1)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -84,17 +84,14 @@ func TestCountInstancesByEventName_NoMatch(t *testing.T) {
 // 2. GetSpecialMatchFunc tests
 // ============================================================
 
-func TestGetSpecialMatchFunc_RegisteredProxyBackendEvent(t *testing.T) {
-	fn := GetSpecialMatchFunc(haprobe.DbEventNameTendbhaProxyBackendFailure)
+func TestGetSpecialMatchFunc_RegisteredEvent(t *testing.T) {
+	eventName := haprobe.DbEventName("test_special_match")
+	failure.RegisterSpecialMatch(eventName, func(instances []failure.Instance, threshold int) []failure.Instance {
+		return instances
+	})
+	fn := GetSpecialMatchFunc(eventName)
 	if fn == nil {
-		t.Error("expected non-nil match func for registered proxy-backend special event")
-	}
-}
-
-func TestGetSpecialMatchFunc_RegisteredSpiderRemoteEvent(t *testing.T) {
-	fn := GetSpecialMatchFunc(haprobe.DbEventNameTendbclusterSpiderRemoteFailure)
-	if fn == nil {
-		t.Error("expected non-nil match func for registered spider-remote special event")
+		t.Error("expected non-nil match func for registered special event")
 	}
 }
 
@@ -191,47 +188,82 @@ func TestSortCandidates_Single(t *testing.T) {
 	}
 }
 
+func TestSortCandidates_SamePrioritySwitchBeforeNotify(t *testing.T) {
+	candidates := []*hamodel.DbSwitchingStrategy{
+		{BkBizID: 100, Priority: 1, Action: hamodel.ActionTypeNotify},
+		{BkBizID: 100, Priority: 1, Action: hamodel.ActionTypeSwitch},
+	}
+	SortCandidates(candidates)
+	if candidates[0].Action != hamodel.ActionTypeSwitch {
+		t.Errorf("expected switch before notify, got action: %s", candidates[0].Action)
+	}
+}
+
+func TestSortCandidates_HigherPriorityNotifyBeforeSwitch(t *testing.T) {
+	candidates := []*hamodel.DbSwitchingStrategy{
+		{BkBizID: 100, Priority: 2, Action: hamodel.ActionTypeSwitch},
+		{BkBizID: 100, Priority: 1, Action: hamodel.ActionTypeNotify},
+	}
+	SortCandidates(candidates)
+	if candidates[0].Action != hamodel.ActionTypeNotify {
+		t.Errorf("expected higher-priority notify first, got action: %s", candidates[0].Action)
+	}
+}
+
 // ============================================================
-// 4. FormatInstanceEventSummary tests
+// 4. FormatInstanceNotifySummary tests
 // ============================================================
 
-func TestFormatInstanceEventSummary_Empty(t *testing.T) {
-	result := FormatInstanceEventSummary(nil)
+func TestFormatInstanceNotifySummary_Empty(t *testing.T) {
+	result := FormatInstanceNotifySummary(nil)
 	if result != "" {
 		t.Errorf("expected empty string, got %q", result)
 	}
 }
 
-func TestFormatInstanceEventSummary_SingleEventName(t *testing.T) {
+func TestFormatInstanceNotifySummary_SingleInstance(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
+		{
+			Cluster:         "test-cluster",
+			ClusterID:       10,
+			IP:              "127.0.0.1",
+			Port:            3306,
+			EventName:       haprobe.DbEventNameDetectFailure,
+			EventNameReason: haprobe.DbEventNameReasonSSHAuthException,
+		},
 	}
-	result := FormatInstanceEventSummary(instances)
-	expected := "dbha_detect_db_failure:3"
+	result := FormatInstanceNotifySummary(instances)
+	expected := "cluster:test-cluster(10),inst:127.0.0.1:3306,event:dbha_detect_db_failure,reason:ssh auth failure"
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
 }
 
-func TestFormatInstanceEventSummary_MultipleEventNames(t *testing.T) {
+func TestFormatInstanceNotifySummary_MultipleInstances(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameProbeOffline},
+		{
+			Cluster:         "c1",
+			ClusterID:       1,
+			IP:              "127.0.0.1",
+			Port:            3306,
+			EventName:       haprobe.DbEventNameDetectFailure,
+			EventNameReason: haprobe.DbEventNameReasonConnectionException,
+		},
+		{
+			Cluster:         "c2",
+			ClusterID:       2,
+			IP:              "127.0.0.2",
+			Port:            3307,
+			EventName:       haprobe.DbEventNameProbeOffline,
+			EventNameReason: haprobe.DbEventNameReasonMissedProbe,
+		},
 	}
-	result := FormatInstanceEventSummary(instances)
-
-	// map iteration order is non-deterministic, so verify by containment
-	if !strings.Contains(result, "dbha_detect_db_failure:2") {
-		t.Errorf("result %q should contain 'dbha_detect_db_failure:2'", result)
-	}
-	if !strings.Contains(result, "dbha_probe_offline:1") {
-		t.Errorf("result %q should contain 'dbha_probe_offline:1'", result)
-	}
-	// verify format: separated by ", "
-	if !strings.Contains(result, ", ") {
-		t.Errorf("result %q should contain ', ' separator", result)
+	result := FormatInstanceNotifySummary(instances)
+	expected := strings.Join([]string{
+		"cluster:c1(1),inst:127.0.0.1:3306,event:dbha_detect_db_failure,reason:connection exception",
+		"cluster:c2(2),inst:127.0.0.2:3307,event:dbha_probe_offline,reason:missed probe",
+	}, " | ")
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
 	}
 }

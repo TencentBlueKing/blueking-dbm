@@ -101,6 +101,9 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 		Metadata: items,
 	}
 
+	payload.Health = &probeconfig.ProbeHealthConfig{
+		DiskWriteDirs: Cfg.ProbeHealth.DiskWriteDirs,
+	}
 	applyAllHarvesterPayload(&payload)
 	return marshalProbeConfigPayload(payload)
 }
