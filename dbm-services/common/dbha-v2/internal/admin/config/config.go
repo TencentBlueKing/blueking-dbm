@@ -231,6 +231,14 @@ type ProbeHarvesterCred struct {
 	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
 }
 
+// ProbeHealthConfig defaults for probe health-check write verification; admin loads from YAML
+// and passes to probe. DiskWriteDirs lists the directories the probe health command writes a
+// marker file into to verify the local disk is writable; empty means fall back to the default
+// dirs (DefaultDiskWriteDirs).
+type ProbeHealthConfig struct {
+	DiskWriteDirs []string `yaml:"diskWriteDirs" mapstructure:"diskWriteDirs"`
+}
+
 // Configuration admin's configuration
 type Configuration struct {
 	Name            string                        `yaml:"name"            mapstructure:"name"`
@@ -250,6 +258,7 @@ type Configuration struct {
 	ProbeProxyAdmin ProbeProxyAdminConfig         `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
 	ProbeHarvesters map[string]ProbeHarvesterCred `yaml:"probeHarvesters" mapstructure:"probeHarvesters"`
 	ProbeMetadata   ProbeMetadataConfig           `yaml:"probeMetadata"   mapstructure:"probeMetadata"`
+	ProbeHealth     ProbeHealthConfig             `yaml:"probeHealth"     mapstructure:"probeHealth"`
 }
 
 // clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,

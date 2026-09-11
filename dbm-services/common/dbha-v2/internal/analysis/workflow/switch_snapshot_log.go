@@ -1,3 +1,27 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2023 腾讯蓝鲸
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package workflow
 
 import (
@@ -13,38 +37,102 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
-// NewSwitchingSnapshotData creates a new SwitchingSnapshotData instance.
+// NewSwitchingSnapshotData creates snapshot data for switch and notify actions.
 func NewSwitchingSnapshotData(
 	strategy *hamodel.DbSwitchingStrategy,
+	strategies []*hamodel.DbSwitchingStrategy,
 	group *FailureGroup,
 	req *switcher.Request,
+	action hamodel.SnapshotActionType,
 	swSnapshotLogger logger.Logger,
 ) *snapshotlogger.SwitchingSnapshotData {
-	if strategy == nil || group == nil || req == nil || swSnapshotLogger == nil {
+	if group == nil || swSnapshotLogger == nil {
 		return nil
+	}
+
+	data := newSnapshotDataBase(group, req, action, swSnapshotLogger)
+	data.DbSwitchingSnapshotLog.SetStrategies(strategies)
+
+	strategyID := marshalSnapshotStrategy(data, strategy, swSnapshotLogger)
+	marshalSnapshotStrategies(data, strategies, swSnapshotLogger)
+	marshalSnapshotFailures(data, group, swSnapshotLogger)
+	marshalSnapshotOriginInstances(data, group, swSnapshotLogger)
+	fillSnapshotInstances(data, group, req, strategyID, swSnapshotLogger)
+	return data
+}
+
+func newSnapshotDataBase(
+	group *FailureGroup,
+	req *switcher.Request,
+	action hamodel.SnapshotActionType,
+	swSnapshotLogger logger.Logger,
+) *snapshotlogger.SwitchingSnapshotData {
+	switchID := generateSwitchID()
+	actionScope := string(hamodel.ActionScopeTypeNone)
+	dbType := string(group.DbType)
+	if req != nil {
+		switchID = req.SwitchID
+		actionScope = string(req.ActionScope)
+		dbType = string(req.DbType)
 	}
 
 	data := &snapshotlogger.SwitchingSnapshotData{
 		DbSwitchingSnapshotLog: &hamodel.DbSwitchingSnapshotLog{
-			SwitchID:    req.SwitchID,
+			SwitchID:    switchID,
 			BkCloudID:   group.BkCloudID,
-			DbType:      string(req.DbType),
-			ActionScope: string(req.ActionScope),
+			DbType:      dbType,
+			ActionScope: actionScope,
+			Action:      action,
 		},
 		SwSnapshotLogger: swSnapshotLogger,
 	}
+	return data
+}
 
-	// marshal strategy
+func marshalSnapshotStrategy(
+	data *snapshotlogger.SwitchingSnapshotData,
+	strategy *hamodel.DbSwitchingStrategy,
+	swSnapshotLogger logger.Logger,
+) int {
+	if strategy == nil {
+		return 0
+	}
+
 	strategyJSON, err := json.Marshal(strategy)
 	if err != nil {
 		swSnapshotLogger.Warn(
 			"failed to marshal strategy for switching snapshot, switchId: %s, errmsg: %s",
-			req.SwitchID, err)
+			data.DbSwitchingSnapshotLog.SwitchID, err)
 	} else {
 		data.StdSwitchingSnapshotData.StrategyJSON = strategyJSON
 	}
+	return strategy.ID
+}
 
-	// marshal failure instances
+func marshalSnapshotStrategies(
+	data *snapshotlogger.SwitchingSnapshotData,
+	strategies []*hamodel.DbSwitchingStrategy,
+	swSnapshotLogger logger.Logger,
+) {
+	if strategies == nil {
+		return
+	}
+
+	strategiesJSON, err := json.Marshal(strategies)
+	if err != nil {
+		swSnapshotLogger.Warn(
+			"failed to marshal strategies for switching snapshot, switchId: %s, errmsg: %s",
+			data.DbSwitchingSnapshotLog.SwitchID, err)
+		return
+	}
+	data.StdSwitchingSnapshotData.StrategiesJSON = strategiesJSON
+}
+
+func marshalSnapshotFailures(
+	data *snapshotlogger.SwitchingSnapshotData,
+	group *FailureGroup,
+	swSnapshotLogger logger.Logger,
+) {
 	failures := []FailureInstanceInfo{}
 	if group.Instances != nil {
 		failures = group.Instances
@@ -54,43 +142,64 @@ func NewSwitchingSnapshotData(
 	if err != nil {
 		swSnapshotLogger.Warn(
 			"failed to marshal failure instances for switching snapshot, switchId: %s, errmsg: %s",
-			req.SwitchID, err)
-	} else {
-		data.StdSwitchingSnapshotData.FailureInstancesJSON = failureJSON
+			data.DbSwitchingSnapshotLog.SwitchID, err)
+		return
+	}
+	data.StdSwitchingSnapshotData.FailureInstancesJSON = failureJSON
+	data.DbSwitchingSnapshotLog.BkBizID = group.BkBizID
+	if len(group.Instances) > 0 {
+		data.DbSwitchingSnapshotLog.Reason = group.Instances[0].EventNameReason.Str().String()
+	}
+}
 
-		if len(group.Instances) > 0 {
-			data.DbSwitchingSnapshotLog.BkBizID = group.Instances[0].BkBizID
-			data.DbSwitchingSnapshotLog.Reason = group.Instances[0].EventNameReason.Str().String()
-		}
+func marshalSnapshotOriginInstances(
+	data *snapshotlogger.SwitchingSnapshotData,
+	group *FailureGroup,
+	swSnapshotLogger logger.Logger,
+) {
+	if group.OriginInstances == nil {
+		return
 	}
 
-	// marshal metadata set
-	metaSet := []*dbm.DbInstMetadata{}
-	if req.InstData != nil {
-		metaSet = req.InstData
+	originJSON, err := json.Marshal(group.OriginInstances)
+	if err != nil {
+		swSnapshotLogger.Warn(
+			"failed to marshal origin instances for switching snapshot, switchId: %s, errmsg: %s",
+			data.DbSwitchingSnapshotLog.SwitchID, err)
+		return
+	}
+	data.DbSwitchingSnapshotLog.SetOriginInstances(originJSON)
+	data.StdSwitchingSnapshotData.OriginInstancesJSON = originJSON
+}
+
+func fillSnapshotInstances(
+	data *snapshotlogger.SwitchingSnapshotData,
+	group *FailureGroup,
+	req *switcher.Request,
+	strategyID int,
+	swSnapshotLogger logger.Logger,
+) {
+	if req == nil || req.InstData == nil {
+		data.DbSwitchingSnapshotLog.SetInstances(buildInstancesListFromFailures(group.Instances, strategyID))
+		return
 	}
 
-	// build a lookup of instance detection times (from the SSH double-check) keyed by instance
 	checkTimeByInst := make(map[string]*FailureInstanceInfo, len(group.Instances))
 	for i := range group.Instances {
 		inst := &group.Instances[i]
 		checkTimeByInst[instanceKey(inst.BkCloudID, inst.IP, inst.Port)] = inst
 	}
+	data.DbSwitchingSnapshotLog.SetInstances(
+		buildInstancesListFromMetadata(req.InstData, checkTimeByInst, strategyID))
 
-	// set instances on the DB log record for persistence
-	instances := buildInstancesListFromMetadata(metaSet, checkTimeByInst)
-	data.DbSwitchingSnapshotLog.SetInstances(instances)
-
-	metadataJSON, err := json.Marshal(metaSet)
+	metadataJSON, err := json.Marshal(req.InstData)
 	if err != nil {
 		swSnapshotLogger.Warn(
 			"failed to marshal metadata set for switching snapshot, switchId: %s, errmsg: %s",
-			req.SwitchID, err)
+			data.DbSwitchingSnapshotLog.SwitchID, err)
 	} else {
 		data.StdSwitchingSnapshotData.MetadataSetJSON = metadataJSON
 	}
-
-	return data
 }
 
 // SwitchingSnapshotReport is the data structure for switching snapshot reporting.
@@ -99,38 +208,39 @@ type SwitchingSnapshotReport struct {
 	SnapshotLoggers []snapshotlogger.SnapshotLogger
 }
 
-// NewSwitchingSnapshotReport creates a new SwitchingSnapshotReport instance.
-// It initializes the DB snapshot handler and the file (stdout) snapshot handler.
-func NewSwitchingSnapshotReport(snapshotData *snapshotlogger.SwitchingSnapshotData, startTime time.Time) *SwitchingSnapshotReport {
+// NewSwitchSnapshotLoggers creates the snapshot loggers shared by one failure group.
+func NewSwitchSnapshotLoggers(swSnapshotLogger logger.Logger) []snapshotlogger.SnapshotLogger {
+	loggers := []snapshotlogger.SnapshotLogger{
+		snapshotlogger.NewStdSnapshotHandler(swSnapshotLogger),
+	}
+
+	dbSnapshotHdl, err := snapshotlogger.NewDbSnapshotHandlerFromConfig()
+	if err != nil {
+		logger.Warn("failed to create db snapshot handler, errmsg: %s", err)
+		return loggers
+	}
+	if err = dbSnapshotHdl.Open(); err != nil {
+		logger.Warn("failed to open db snapshot handler, errmsg: %s", err)
+		dbSnapshotHdl.Close()
+		return loggers
+	}
+	return append(loggers, dbSnapshotHdl)
+}
+
+// NewSwitchingSnapshotReport creates a report using shared snapshot loggers.
+func NewSwitchingSnapshotReport(
+	loggers []snapshotlogger.SnapshotLogger,
+	snapshotData *snapshotlogger.SwitchingSnapshotData,
+	startTime time.Time,
+) *SwitchingSnapshotReport {
 	if snapshotData == nil {
 		return &SwitchingSnapshotReport{}
 	}
 	snapshotData.DbSwitchingSnapshotLog.StartTime = &startTime
 
-	snapshotLoggers := []snapshotlogger.SnapshotLogger{}
-
-	// initialize the database snapshot handler
-	dbSnapshotHdl, dbSnapshotErr := snapshotlogger.NewDbSnapshotHandlerFromConfig()
-	if dbSnapshotErr != nil {
-		logger.Warn("failed to create db snapshot handler, switchId: %s, errmsg: %s",
-			snapshotData.DbSwitchingSnapshotLog.SwitchID, dbSnapshotErr)
-	} else {
-		if openErr := dbSnapshotHdl.Open(); openErr != nil {
-			logger.Warn("failed to open db snapshot handler, switchId: %s, errmsg: %s",
-				snapshotData.DbSwitchingSnapshotLog.SwitchID, openErr)
-			dbSnapshotHdl.Close()
-		} else {
-			snapshotLoggers = append(snapshotLoggers, dbSnapshotHdl)
-		}
-	}
-
-	// initialize the file (stdout) snapshot handler
-	swSnapshotLogger := snapshotlogger.NewStdSnapshotHandler(snapshotData.SwSnapshotLogger)
-	snapshotLoggers = append(snapshotLoggers, swSnapshotLogger)
-
 	return &SwitchingSnapshotReport{
 		SnapshotData:    snapshotData,
-		SnapshotLoggers: snapshotLoggers,
+		SnapshotLoggers: loggers,
 	}
 }
 
@@ -188,9 +298,10 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 		s.SnapshotData.InstancesJSON = instancesJSON
 	}
 
-	// set finished time, status and result based on the switch response
+	// set finished time, action, status and result based on the switch response
 	now := time.Now()
 	s.SnapshotData.DbSwitchingSnapshotLog.FinishedTime = &now
+	s.SnapshotData.DbSwitchingSnapshotLog.Action = hamodel.SnapshotActionTypePostSwitch
 	if rsp.Err != nil {
 		s.SnapshotData.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusFailed
 		s.SnapshotData.DbSwitchingSnapshotLog.Result = fmt.Sprintf("switching failed: %s", rsp.Err.Error())
@@ -207,6 +318,24 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 	}
 }
 
+// ReportNotifySnapshot writes a successful notify snapshot.
+func (s *SwitchingSnapshotReport) ReportNotifySnapshot() {
+	if s.SnapshotData == nil || s.SnapshotData.DbSwitchingSnapshotLog == nil {
+		return
+	}
+
+	now := time.Now()
+	s.SnapshotData.DbSwitchingSnapshotLog.FinishedTime = &now
+	s.SnapshotData.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusSuccess
+	s.SnapshotData.DbSwitchingSnapshotLog.Result = "notify completed successfully"
+	for _, snapshotLogger := range s.SnapshotLoggers {
+		if err := snapshotLogger.PreSwitchLog(s.SnapshotData); err != nil {
+			logger.Warn("failed to create notify snapshot record, switchId: %s, errmsg: %s",
+				s.SnapshotData.DbSwitchingSnapshotLog.SwitchID, err)
+		}
+	}
+}
+
 // buildInstancesListFromMetadata converts a DbInstMetadata list to a SwitchingSnapshotInstance
 // list for database storage. If the instance role is empty, it falls back to the Spider role.
 // checkTimeByInst maps each instance to its SSH detection window from the failure group;
@@ -214,6 +343,7 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 func buildInstancesListFromMetadata(
 	metaSet []*dbm.DbInstMetadata,
 	checkTimeByInst map[string]*FailureInstanceInfo,
+	strategyID int,
 ) []*hamodel.SwitchingSnapshotInstance {
 	if metaSet == nil {
 		return nil
@@ -227,9 +357,12 @@ func buildInstancesListFromMetadata(
 		}
 
 		var checkStart, checkFinish *time.Time
+		var eventName, eventReason string
 		if src, ok := checkTimeByInst[instanceKey(meta.BkCloudID, meta.IP, meta.Port)]; ok {
 			checkStart = src.CheckStartTime
 			checkFinish = src.CheckFinishedTime
+			eventName = src.EventName.String()
+			eventReason = src.EventNameReason.Str().String()
 		}
 
 		instances = append(instances, &hamodel.SwitchingSnapshotInstance{
@@ -239,11 +372,41 @@ func buildInstancesListFromMetadata(
 			Port:              meta.Port,
 			MachineType:       string(meta.MachineType),
 			InstanceRole:      instanceRole,
+			StrategyID:        strategyID,
+			EventName:         eventName,
+			EventNameReason:   eventReason,
 			BkIdcID:           meta.BkIdcID,
 			CheckStartTime:    checkStart,
 			CheckFinishedTime: checkFinish,
 		})
 	}
 
+	return instances
+}
+
+func buildInstancesListFromFailures(
+	failures []FailureInstanceInfo,
+	strategyID int,
+) []*hamodel.SwitchingSnapshotInstance {
+	if failures == nil {
+		return nil
+	}
+
+	instances := make([]*hamodel.SwitchingSnapshotInstance, 0, len(failures))
+	for _, failure := range failures {
+		instances = append(instances, &hamodel.SwitchingSnapshotInstance{
+			ClusterID:         failure.ClusterID,
+			ClusterName:       failure.Cluster,
+			IP:                failure.IP,
+			Port:              failure.Port,
+			MachineType:       string(failure.MachineType),
+			InstanceRole:      failure.InstanceRole.String(),
+			StrategyID:        strategyID,
+			EventName:         failure.EventName.String(),
+			EventNameReason:   failure.EventNameReason.Str().String(),
+			CheckStartTime:    failure.CheckStartTime,
+			CheckFinishedTime: failure.CheckFinishedTime,
+		})
+	}
 	return instances
 }

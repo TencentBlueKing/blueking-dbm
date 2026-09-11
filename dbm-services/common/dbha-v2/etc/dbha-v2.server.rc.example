@@ -219,6 +219,10 @@ ADMIN_PROBE_METADATA_CACHE_MAX_AGE=10m
 # that IP. Must be at least CACHE_MAX_AGE; rc files omitting it default to 24h.
 ADMIN_PROBE_METADATA_TOMBSTONE_AGE=24h
 
+# ## admin · probe health-check write verification (returned to probe via GetProbeConfig)
+# directories the probe health command writes a marker file into to verify the local disk is writable;
+ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS=["/data1/dbha","/data/dbha"]
+
 # --- analysis ---
 
 # ## analysis · process and identity

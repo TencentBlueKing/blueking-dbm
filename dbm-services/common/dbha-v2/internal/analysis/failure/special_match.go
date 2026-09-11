@@ -32,16 +32,16 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-// SpecialMatchFunc counts special-condition matches among a failure group's instances.
-type SpecialMatchFunc func(instances []Instance) int
+// SpecialMatchFunc returns instances matching a special strategy when the matched unit count reaches threshold.
+type SpecialMatchFunc func(instances []Instance, threshold int) []Instance
 
 var (
 	specialMatchMu      sync.RWMutex
 	specialMatchByEvent = map[haprobe.DbEventName]SpecialMatchFunc{}
 )
 
-// RegisterSpecialMatch registers a special strategy matcher for a trigger event name.
-// Panics on empty event name, nil func, or duplicate registration.
+// RegisterSpecialMatch registers a threshold-aware special strategy matcher for a trigger event name.
+// It panics on an empty event name, a nil matcher, or duplicate registration.
 func RegisterSpecialMatch(eventName haprobe.DbEventName, fn SpecialMatchFunc) {
 	if eventName == "" {
 		panic("failure: refuse to register special match for empty event name")
@@ -59,7 +59,7 @@ func RegisterSpecialMatch(eventName haprobe.DbEventName, fn SpecialMatchFunc) {
 	specialMatchByEvent[eventName] = fn
 }
 
-// SpecialMatchOf returns the matcher for the event name, or nil when unregistered.
+// SpecialMatchOf returns the threshold-aware matcher for the event name, or nil when unregistered.
 func SpecialMatchOf(eventName haprobe.DbEventName) SpecialMatchFunc {
 	specialMatchMu.RLock()
 	defer specialMatchMu.RUnlock()
