@@ -97,6 +97,9 @@ class _DBPrivManagerApi(BaseApi):
             url="/priv/v2/add_priv",
             description=_("添加授权 v2"),
         )
+        self.add_mysql_temp_account_v2 = self.generate_data_api(
+            method="POST", url="priv/v2/add_mysql_temp_account", description=_("添加 mysql 临时账号 v2")
+        )
         self.get_online_rules = self.generate_data_api(
             method="POST",
             url="/priv/get_online_rules",
