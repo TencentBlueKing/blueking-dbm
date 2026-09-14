@@ -116,10 +116,14 @@ class TestSqlserverHostMigrate:
         machine.ip = "1.1.1.1"
         machine.bk_cloud_id = 0
         machine.bk_host_id = 10001
-        mock_machine.objects.filter.return_value.first.return_value = machine
+        mock_machine.objects.filter.return_value = [machine]
 
         # 机器实际只承载集群 1，与输入 [1,2] 不一致（等价校验必须拒绝，而非只做包含校验）
-        mock_storage.objects.filter.return_value.values_list.return_value.distinct.return_value = [1]
+        si = MagicMock()
+        si.machine.ip = "1.1.1.1"
+        si.port = 1433
+        si.cluster.all.return_value = [c1]
+        mock_storage.objects.filter.return_value.select_related.return_value.prefetch_related.return_value = [si]
 
         infos = [
             {

@@ -7,11 +7,19 @@ on:
       - "dbm-ui/backend/**"
       - "dbm-ui/config/**"
       - "dbm-ui/poetry.lock"
+      - "dbm-ui/pytest.ini"
+      - "dbm-ui/pyproject.toml"
+      - "dbm-ui/scripts/ci/**"
+      - ".github/workflows/python_unit_test.yml"
   pull_request:
     paths:
       - "dbm-ui/backend/**"
       - "dbm-ui/config/**"
       - "dbm-ui/poetry.lock"
+      - "dbm-ui/pytest.ini"
+      - "dbm-ui/pyproject.toml"
+      - "dbm-ui/scripts/ci/**"
+      - ".github/workflows/python_unit_test.yml"
 
 jobs:
   run:
@@ -51,3 +59,13 @@ jobs:
         export REDIS_PORT=6379
         export BROKER_URL="redis://localhost:6379/0"
         ./dbm-ui/scripts/ci/bk_ci.sh
+    - name: Upload pytest reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-reports
+        path: |
+          dbm-ui/pytest-output.log
+          dbm-ui/pytest-junit.xml
+          dbm-ui/pytest-cov.xml
+        if-no-files-found: warn

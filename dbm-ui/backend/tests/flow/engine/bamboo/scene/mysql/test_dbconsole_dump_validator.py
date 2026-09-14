@@ -48,7 +48,9 @@ class TestDbConsoleDumpFlowValidatorInject(SimpleTestCase):
             params={
                 "sql": "SELECT * FROM `db1`.`t1` WHERE (111 union select * from t2)",
                 "judge_subquery_diff_table": True,
-            }
+            },
+            timeout=DbConsoleDumpFlowValidator.INJECT_CHECK_TIMEOUT,
+            retry_times=DbConsoleDumpFlowValidator.INJECT_CHECK_RETRY_TIMES,
         )
 
     @patch(

@@ -25,6 +25,7 @@ pytestmark = pytest.mark.django_db
 
 _RID = "11111111-2222-3333-4444-555555555555"
 _URL = f"https://dbm.example.com/ai-chat/share/{_RID}/"
+_AGENT_ASK = "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content"
 
 
 def _seed_row(Model, **kwargs):
@@ -47,8 +48,8 @@ def test_worker_success_persists_fields(ai_inspect_table, inspect_tasks):
     row = _seed_row(Model)
     lock_key = f"mysql_config_ai_inspect:{row.batch_id}:{row.cluster_id}"
     agent_json = f'{{"report_id": "{_RID}", "share_url": "{_URL}", "summary": "s"}}'
-    with patch.object(inspect_tasks.cache, "delete") as delete_mock, patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value=agent_json
+    with patch.object(inspect_tasks.cache, "delete") as delete_mock, patch(
+        _AGENT_ASK, return_value=agent_json
     ), patch.object(inspect_tasks, "ingest_summary") as ingest_mock:
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     row.refresh_from_db()
@@ -73,9 +74,9 @@ def test_worker_success_tendbcluster_portrait_db_type(ai_inspect_table, inspect_
     row = _seed_row(Model, cluster_type=ClusterType.TenDBCluster.value, cluster_domain="spider.t.db")
     lock_key = "k-spider"
     agent_json = f'{{"report_id": "{_RID}", "share_url": "{_URL}", "summary": "ok"}}'
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value=agent_json
-    ), patch.object(inspect_tasks, "ingest_summary") as ingest_mock:
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, return_value=agent_json), patch.object(
+        inspect_tasks, "ingest_summary"
+    ) as ingest_mock:
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     assert ingest_mock.call_args.kwargs["db_type"] == DBType.TenDBCluster
 
@@ -84,9 +85,9 @@ def test_worker_retries_then_fails(ai_inspect_table, inspect_tasks):
     Model = ai_inspect_table
     row = _seed_row(Model, retry_count=0)
     lock_key = "k1"
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value="not-json"
-    ), patch.object(inspect_tasks, "ingest_summary") as ingest_mock:
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, return_value="not-json"), patch.object(
+        inspect_tasks, "ingest_summary"
+    ) as ingest_mock:
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     row.refresh_from_db()
     assert row.status == MysqlConfigAiInspectStatus.PENDING.value
@@ -95,9 +96,9 @@ def test_worker_retries_then_fails(ai_inspect_table, inspect_tasks):
 
     row.status = MysqlConfigAiInspectStatus.RUNNING.value
     row.save(update_fields=["status"])
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value="not-json"
-    ), patch.object(inspect_tasks, "ingest_summary") as ingest_mock:
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, return_value="not-json"), patch.object(
+        inspect_tasks, "ingest_summary"
+    ) as ingest_mock:
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     row.refresh_from_db()
     assert row.retry_count == 2
@@ -106,9 +107,9 @@ def test_worker_retries_then_fails(ai_inspect_table, inspect_tasks):
 
     row.status = MysqlConfigAiInspectStatus.RUNNING.value
     row.save(update_fields=["status"])
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value="not-json"
-    ), patch.object(inspect_tasks, "ingest_summary") as ingest_mock:
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, return_value="not-json"), patch.object(
+        inspect_tasks, "ingest_summary"
+    ) as ingest_mock:
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     row.refresh_from_db()
     assert row.retry_count == 3
@@ -121,9 +122,9 @@ def test_worker_success_after_retry(ai_inspect_table, inspect_tasks):
     row = _seed_row(Model, retry_count=1, status=MysqlConfigAiInspectStatus.RUNNING.value)
     lock_key = "k2"
     agent_json = f'{{"report_id": "{_RID}", "share_url": "{_URL}"}}'
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value=agent_json
-    ), patch.object(inspect_tasks, "ingest_summary") as ingest_mock:
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, return_value=agent_json), patch.object(
+        inspect_tasks, "ingest_summary"
+    ) as ingest_mock:
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     row.refresh_from_db()
     assert row.status == MysqlConfigAiInspectStatus.SUCCESS.value
@@ -138,9 +139,9 @@ def test_worker_success_keeps_status_when_portrait_fails(ai_inspect_table, inspe
     row = _seed_row(Model)
     lock_key = "k-portrait-fail"
     agent_json = f'{{"report_id": "{_RID}", "share_url": "{_URL}", "summary": "s"}}'
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", return_value=agent_json
-    ), patch.object(inspect_tasks, "ingest_summary", side_effect=PortraitSDKBaseException("portrait boom")):
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, return_value=agent_json), patch.object(
+        inspect_tasks, "ingest_summary", side_effect=PortraitSDKBaseException("portrait boom")
+    ):
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     row.refresh_from_db()
     assert row.status == MysqlConfigAiInspectStatus.SUCCESS.value
@@ -315,9 +316,8 @@ def test_worker_agent_exception_retries(ai_inspect_table, inspect_tasks):
     Model = ai_inspect_table
     row = _seed_row(Model, retry_count=0)
     lock_key = "k-agent-exc"
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler,
-        "ask_agent_with_content",
+    with patch.object(inspect_tasks.cache, "delete"), patch(
+        _AGENT_ASK,
         side_effect=TimeoutError("agent down"),
     ):
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
@@ -338,9 +338,9 @@ def test_worker_prompt_includes_domain_and_json(ai_inspect_table, inspect_tasks)
         captured["content"] = kwargs["content"]
         return f'{{"report_id": "{_RID}", "share_url": "{_URL}", "summary": "s"}}'
 
-    with patch.object(inspect_tasks.cache, "delete"), patch.object(
-        inspect_tasks.AgentHandler, "ask_agent_with_content", side_effect=_ask
-    ), patch.object(inspect_tasks, "ingest_summary"):
+    with patch.object(inspect_tasks.cache, "delete"), patch(_AGENT_ASK, side_effect=_ask), patch.object(
+        inspect_tasks, "ingest_summary"
+    ):
         inspect_tasks.run_mysql_config_ai_inspect(row.id, lock_key)
     assert "cluster_domain: prompt.db" in captured["content"]
     assert '"report_id"' in captured["content"]

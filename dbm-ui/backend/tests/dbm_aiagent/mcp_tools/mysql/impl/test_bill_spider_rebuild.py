@@ -116,7 +116,7 @@ class TestSpiderRebuildSuccessPath:
 
         assert len(result) == 1
         assert result[0]["bill_id"] == 123
-        assert result[0]["bill_url"].endswith("/ticket/123")
+        assert result[0]["bill_url"].endswith("/ticket-business-manage/123")
 
         details = mock_ticket.create_ticket.call_args.kwargs["details"]
         infos = details["infos"]
@@ -152,5 +152,5 @@ class TestSpiderRebuildDuplicate:
         result = bill_spider_rebuild("admin", ["test.tendbcluster.db"], ["1.1.1.1"])
 
         assert result[0]["bill_id"] == 999
-        assert result[0]["bill_url"].endswith("/ticket/999")
+        assert result[0]["bill_url"].endswith("/ticket-business-manage/999")
         mock_ticket.create_ticket.assert_not_called()

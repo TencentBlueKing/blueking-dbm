@@ -71,6 +71,10 @@ def _user_table_create(dbname: str = "app") -> TableCreateInfo:
     )
 
 
+def _wire_storage_set(mock_storage_set_cls, storage_set):
+    mock_storage_set_cls.objects.using.return_value.get.return_value = storage_set
+
+
 def _ctx_with_shard_match(
     *,
     sql: str,
@@ -290,7 +294,7 @@ class TestExplainSqlTendbclusterEndToEnd:
         receiver.ip_port = "127.0.0.1:3306"
         storage_set = MagicMock()
         storage_set.storage_instance_tuple.receiver = receiver
-        mock_storage_set_cls.objects.get.return_value = storage_set
+        _wire_storage_set(mock_storage_set_cls, storage_set)
 
         explain_rows = [{"id": 1, "select_type": "SIMPLE", "table": "user"}]
         mock_drs_rpc.return_value = [
@@ -314,7 +318,9 @@ class TestExplainSqlTendbclusterEndToEnd:
         assert result["explain_result"] == explain_rows
         assert result["rewritten"] is False
 
-        mock_storage_set_cls.objects.get.assert_called_once_with(cluster=cluster_obj, shard_id=shard_id)
+        mock_storage_set_cls.objects.using.return_value.get.assert_called_once_with(
+            cluster=cluster_obj, shard_id=shard_id
+        )
         drs_payload = mock_drs_rpc.call_args[0][0]
         assert drs_payload["addresses"] == ["127.0.0.1:3306"]
         assert drs_payload["cmds"][0] == f"USE `app_{shard_id}`"
@@ -342,7 +348,7 @@ class TestExplainSqlTendbclusterEndToEnd:
         receiver.ip_port = "127.0.0.1:3306"
         storage_set = MagicMock()
         storage_set.storage_instance_tuple.receiver = receiver
-        mock_storage_set_cls.objects.get.return_value = storage_set
+        _wire_storage_set(mock_storage_set_cls, storage_set)
 
         mock_drs_rpc.return_value = [
             {
@@ -363,4 +369,4 @@ class TestExplainSqlTendbclusterEndToEnd:
 
         assert result["explain_result"] == [{"id": 1}]
         assert result["rewritten"] is False
-        mock_storage_set_cls.objects.get.assert_called_once_with(cluster=cluster_obj, shard_id=0)
+        mock_storage_set_cls.objects.using.return_value.get.assert_called_once_with(cluster=cluster_obj, shard_id=0)

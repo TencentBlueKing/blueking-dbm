@@ -551,8 +551,7 @@ class TestStorageErrorTypes:
             rows = cr.make_records()
             assert any("redis_exporter_mixed_role" in row.msg for row in rows)
             mixed = next(row for row in rows if "redis_exporter_mixed_role" in row.msg)
-            assert "127.0.0.1:6379" in mixed.msg
-            assert "127.0.0.1:6380" in mixed.msg
+            assert "127.0.0.1:6379-6380" in mixed.msg
 
 
 class TestProxyErrorTypes:

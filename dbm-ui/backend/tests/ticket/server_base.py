@@ -111,7 +111,9 @@ class BaseTicketTest:
         """
         itsm_data = copy.deepcopy(ticket_data)
         resp = self.client.post("/apis/tickets/", data=itsm_data)
-        assert status.is_success(resp.status_code)
+        assert status.is_success(resp.status_code), getattr(resp, "content", resp)
+        if not hasattr(resp, "data"):
+            raise AssertionError(f"ticket create returned JsonResponse: {resp.content.decode()}")
         ticket = Ticket.objects.get(id=resp.data["id"])
         current_flow = None
 

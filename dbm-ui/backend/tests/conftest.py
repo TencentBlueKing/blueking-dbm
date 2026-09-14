@@ -8,6 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+# isort: off
+import backend.tests.aidev_handler_stub  # noqa: F401  # ENABLE_DBM_AI=false 时为 AgentHandler 安装测试桩
+
+# isort: on
 import copy
 import os
 from unittest import mock
@@ -25,6 +29,11 @@ from backend.db_package.models import Package
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components.cc import CCInitMock
 from backend.tests.mock_data.constant import INIT_SPEC_DATA, INIT_TENDBHA_CREATE_API_DATA
+from backend.tests.mock_data.db_package import (
+    clear_mysql_v2_release_packages,
+    seed_mysql_v2_release_packages,
+    seed_redis_packages,
+)
 
 
 def mock_bk_user(username):
@@ -63,8 +72,7 @@ def __init_city(django_db_setup, django_db_blocker):
         LogicalCity.objects.all().delete()
 
 
-# 全局初始化package信息.
-# 目前仅有mysql，后续如果其他集群需要pkg信息则往这里补充
+# 全局初始化package信息
 @pytest.fixture(scope="session", autouse=True)
 def __init_package(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
@@ -74,7 +82,12 @@ def __init_package(django_db_setup, django_db_blocker):
             {"name": "pk-2", "pkg_type": PackageType.MySQLProxy, "db_type": DBType.MySQL, **fake_pkg_info},
         ]
         Package.objects.bulk_create([Package(**data) for data in packages])
+        # GetFileList.mysql_install_package 走 V2 备份包查询，旧 Package 行没有 db_version 会返回 None
+        seed_mysql_v2_release_packages()
+        # Redis 单据 patch_ticket_detail 会冻结 RedisTools latest 包
+        seed_redis_packages()
         yield
+        clear_mysql_v2_release_packages()
         Package.objects.all().delete()
 
 

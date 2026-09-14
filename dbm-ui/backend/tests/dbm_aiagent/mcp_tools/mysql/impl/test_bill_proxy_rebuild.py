@@ -103,7 +103,7 @@ class TestProxyRebuildSuccessPath:
 
         assert len(result) == 1
         assert result[0]["bill_id"] == 123
-        assert result[0]["bill_url"].endswith("/ticket/123")
+        assert result[0]["bill_url"].endswith("/ticket-business-manage/123")
 
         details = mock_ticket.create_ticket.call_args.kwargs["details"]
         info = details["infos"][0]
@@ -137,5 +137,5 @@ class TestProxyRebuildDuplicate:
         result = bill_proxy_rebuild("admin", ["test.tendbha.db"], ["1.1.1.1"])
 
         assert result[0]["bill_id"] == 999
-        assert result[0]["bill_url"].endswith("/ticket/999")
+        assert result[0]["bill_url"].endswith("/ticket-business-manage/999")
         mock_ticket.create_ticket.assert_not_called()

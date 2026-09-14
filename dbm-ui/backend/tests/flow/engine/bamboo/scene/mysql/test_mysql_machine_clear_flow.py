@@ -30,8 +30,9 @@ class ClearMysqlMachineFlowTest(SimpleTestCase):
         clear_call = pipeline.add_act.call_args
         self.assertEqual(clear_call.kwargs["act_component_code"], ClearMachineScriptComponent.code)
         script = clear_call.kwargs["kwargs"]["clear_machine_script"]
-        self.assertIn('pkill -f "/data/dts/dts-make-test/bin/dm-worker"', script)
-        self.assertIn('rm -rf "/data/dts/dts-make-test"', script)
+        self.assertIn("DEPLOY_PATH=/data/dts/dts-make-test", script)
+        self.assertIn('pkill -f "${DEPLOY_PATH}/bin/dm-worker"', script)
+        self.assertIn('rm -rf -- "${DEPLOY_PATH}"', script)
         self.assertNotIn("/data/mysqldata", script)
 
     @patch("backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow.Builder")

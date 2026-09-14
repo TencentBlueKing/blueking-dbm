@@ -42,14 +42,11 @@ K8S_ACTION_SUFFIXES = [
     "manage",
 ]
 
-# 各 K8s 类型预期操作集（全部统一为 6 个操作）
+# 已落地 IAM Action 的类型。VictoriaMetrics / RisingWave / Milvus / GreptimeDB
+# 资源与 Provider 已注册，Action 待对应组件补齐后再加。
 K8S_TYPE_ACTIONS = {
     "k8s_surrealdb": K8S_ACTION_SUFFIXES,
-    "k8s_victoriametrics": K8S_ACTION_SUFFIXES,
-    "k8s_risingwave": K8S_ACTION_SUFFIXES,
-    "k8s_milvus": K8S_ACTION_SUFFIXES,
     "k8s_qdrant": K8S_ACTION_SUFFIXES,
-    "k8s_greptimedb": K8S_ACTION_SUFFIXES,
 }
 
 # IAM 限制 action id 最长 32 字符，victoriametrics 的 db_type 名过长，
@@ -214,9 +211,10 @@ class TestK8sActionIds:
                 assert pattern.match(action_id), f"{action_id!r} does not match expected pattern"
 
     def test_k8s_actions_count(self):
-        """_all_actions 中以 k8s_ 开头的 action 为 37 个（6 个类型各 6 个，加 addon_manage）"""
+        """_all_actions 中以 k8s_ 开头的 action 为已落地类型各 6 个，加 addon_manage"""
         k8s_actions = [aid for aid in _all_actions if aid.startswith("k8s_")]
-        assert len(k8s_actions) == 37, f"Expected 37 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
+        expected = sum(len(suffixes) for suffixes in K8S_TYPE_ACTIONS.values()) + 1
+        assert len(k8s_actions) == expected, f"Expected {expected} K8s actions, got {len(k8s_actions)}: {k8s_actions}"
 
     @pytest.mark.parametrize(
         "cluster_type_prefix",

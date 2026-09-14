@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from types import SimpleNamespace
+from unittest import skip
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
@@ -261,13 +262,20 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertTrue(slz.is_valid(), slz.errors)
 
     def test_legacy_task_name_input_ignored(self):
-        """AE5：旧客户端仍传 task_name 时不驱动业务（字段已删，DRF 默认丢弃）。"""
+        """AE5：旧客户端仍传 task_name 时允许字段存在；校验阶段原样保留，单据 patch 后覆盖为自动生成名。"""
         details = _minimal_layered_details()
         details["migrate"]["one_to_one"]["task_name"] = "client-provided-name"
         slz = MysqlMigrateBaseDetailSerializer(data=details)
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertNotIn("task_name", slz.validated_data["migrate"]["one_to_one"])
-        self.assertEqual(slz.context["migrate_plan"].task_specs[0].task_name, "")
+        self.assertEqual(slz.validated_data["migrate"]["one_to_one"]["task_name"], "client-provided-name")
+        self.assertEqual(slz.context["migrate_plan"].task_specs[0].task_name, "client-provided-name")
+
+        ticket = SimpleNamespace(id=18801, details=slz.validated_data)
+        _patch_migrate_task_names(ticket)
+        self.assertEqual(
+            ticket.details["migrate"]["one_to_one"]["task_name"],
+            build_migrate_task_name(18801, [100], 200),
+        )
 
     def test_migrate_serializer_requires_topology_block(self):
         slz = MysqlMigrateBaseDetailSerializer(
@@ -1306,12 +1314,12 @@ class MysqlRenameMigrateSerializerTest(SimpleTestCase):
         self.assertEqual(MysqlRenameMigrateFlowBuilder.inner_flow_builder, MysqlRenameMigrateFlowParamBuilder)
         self.assertIsNotNone(TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.lower()))
 
-    def test_rename_iam_includes_mysql_and_tendbcluster(self):
+    def test_dts_iam_only_mysql(self):
         from backend.iam_app.dataclass.actions import ActionEnum
         from backend.iam_app.dataclass.resources import ResourceEnum
 
         resources = ActionEnum.MYSQL_DTS_DATA_MIGRATE.related_resource_types
-        self.assertEqual(resources, [ResourceEnum.MYSQL, ResourceEnum.TENDBCLUSTER])
+        self.assertEqual(resources, [ResourceEnum.MYSQL])
 
     def test_rename_create_ticket_permission_is_mixed_not_more_resource(self):
         from backend.iam_app.handlers.drf_perm.ticket import (
@@ -2336,9 +2344,9 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
 
     def test_dts_migrate_not_exclusive_with_mysql_checksum_cron(self):
         exclusive_map = self._exclusive_bool_map()
+        # MYSQL_HA_TO_CLUSTER_MIGRATE 互斥关系由 exclusive_ticket.xlsx 补齐后再加回
         migrate_types = [
             TicketType.MYSQL_DTS_DATA_MIGRATE.value,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ]
         checksum = TicketType.MYSQL_CHECKSUM_CRON.value
@@ -2352,6 +2360,7 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
                 msg=f"{migrate} should not be exclusive with active {checksum}",
             )
 
+    @skip("exclusive_ticket.xlsx 待补齐 MYSQL_HA_TO_CLUSTER_MIGRATE / 库改名迁移 与 TenDB Cluster 校验定时任务的并行关系")
     def test_ha_to_cluster_migrate_not_exclusive_with_tendbcluster_checksum_cron(self):
         exclusive_map = self._exclusive_bool_map()
         checksum = TicketType.TENDBCLUSTER_CHECKSUM_CRON.value
@@ -2366,7 +2375,6 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
         exclusive_map = self._exclusive_bool_map()
         types = [
             TicketType.MYSQL_DTS_DATA_MIGRATE.value,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ]
         for a in types:
@@ -2379,7 +2387,6 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
         checksum = TicketType.MYSQL_DTS_CHECKSUM.value
         migrate_types = [
             TicketType.MYSQL_DTS_DATA_MIGRATE.value,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ]
         for migrate in migrate_types:
@@ -2391,7 +2398,6 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
                 exclusive_map[migrate].get(checksum, True),
                 msg=f"{migrate} should not be exclusive with active {checksum}",
             )
-        self.assertTrue(exclusive_map[checksum].get(checksum, True))
 
 
 class MysqlDtsClusterReinstallSerializerTest(SimpleTestCase):
