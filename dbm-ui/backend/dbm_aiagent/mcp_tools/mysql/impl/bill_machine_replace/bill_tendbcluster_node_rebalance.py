@@ -99,7 +99,14 @@ def bill_tendbcluster_node_rebalance(
 
         current_machine_cnt = remote_insts.values_list("machine__bk_host_id", flat=True).distinct().count()
         current_machine_pair = current_machine_cnt // 2
-        current_spec_id = remote_insts.first().machine.spec_id
+
+        # 当前规格：容量变更是整集群操作，同一集群 remote 实例规格必须一致
+        current_spec_ids = set(remote_insts.values_list("machine__spec_id", flat=True))
+        if len(current_spec_ids) != 1:
+            raise DBMMcpBaseException(
+                msg=_("集群 {} 的 remote 实例规格不一致: {}").format(cluster.immute_domain, sorted(current_spec_ids))
+            )
+        current_spec_id = current_spec_ids.pop()
 
         # 当前规格名（仅用于详情展示）
         prev_cluster_spec_name = ""

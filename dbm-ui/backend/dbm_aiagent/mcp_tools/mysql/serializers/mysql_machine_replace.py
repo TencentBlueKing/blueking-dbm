@@ -36,6 +36,7 @@ class SubmitBillMySQLProxyConfChangeSerializer(serializers.Serializer):
     infos = serializers.ListField(
         child=ProxyConfChangeInfoSerializer(), help_text=_("升降配信息（每行一个集群）"), allow_empty=False
     )
+    is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True, required=False)
 
 
 class SubmitBillMySQLMigrateClusterSerializer(serializers.Serializer):
@@ -80,6 +81,7 @@ class SubmitBillSpiderConfChangeSerializer(serializers.Serializer):
     infos = serializers.ListField(
         child=SpiderConfChangeInfoSerializer(), help_text=_("升降配信息（每行一个集群）"), allow_empty=False
     )
+    is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True, required=False)
 
 
 class SubmitBillTendbClusterNodeRebalanceSerializer(serializers.Serializer):

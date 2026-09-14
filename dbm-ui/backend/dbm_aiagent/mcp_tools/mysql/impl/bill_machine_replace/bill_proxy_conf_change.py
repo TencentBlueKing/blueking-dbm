@@ -26,12 +26,13 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
-def bill_proxy_conf_change(username: str, infos: List[dict]):
+def bill_proxy_conf_change(username: str, infos: List[dict], is_safe: bool = True):
     """
     创建 TenDBHA proxy 升降配单据，支持多行，每行一个集群：
     - cluster_domain: 集群域名
     - target_spec_id: 目标规格 ID
     - labels: 资源标签 ID 列表（可选）
+    is_safe 为整单共用参数（安全模式，默认 True）。
     """
     if not infos:
         raise DBMMcpBaseException(msg=_("infos 不能为空"))
@@ -82,7 +83,7 @@ def bill_proxy_conf_change(username: str, infos: List[dict]):
                     "ip": pi.machine.ip,
                     "bk_host_id": pi.machine.bk_host_id,
                     "bk_biz_id": bk_biz_id,
-                    "port": 0,
+                    "port": pi.port,
                 }
             )
         proxy_infos = list({pi["bk_host_id"]: pi for pi in proxy_infos}.values())
@@ -107,7 +108,7 @@ def bill_proxy_conf_change(username: str, infos: List[dict]):
         "creator": username,
         "helpers": [],
         "details": {
-            "is_safe": False,
+            "is_safe": is_safe,
             "ip_source": IpSource.RESOURCE_POOL,
             "infos": built_infos,
             "disable_manual_confirm": False,
