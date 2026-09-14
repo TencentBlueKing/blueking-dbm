@@ -36,7 +36,8 @@ type AddonIAMEntry struct {
 var addonIAMRegistry = []AddonIAMEntry{
 	{"surrealdb", "k8s_surrealdb_ha", "k8s_surrealdb", []string{"surreal-tikv"}},
 	{"surrealdb", "k8s_surrealdb_single", "k8s_surrealdb", []string{"surreal-rocksdb", "surreal-memory"}},
-	{"victoriametrics", "k8s_victoriametrics_ha", "k8s_victoriametrics", nil},
+	{"victoriametrics", "k8s_victoriametrics_cluster", "k8s_victoriametrics", []string{"cluster"}},
+	{"victoriametrics", "k8s_victoriametrics_select", "k8s_victoriametrics", []string{"select"}},
 	{"risingwave", "k8s_risingwave_ha", "k8s_risingwave", nil},
 	{"greptimedb", "k8s_greptimedb_ha", "k8s_greptimedb", nil},
 	{"milvus", "k8s_milvus_ha", "k8s_milvus", nil},

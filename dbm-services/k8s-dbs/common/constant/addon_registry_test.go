@@ -35,8 +35,8 @@ func TestAddonIAMRegistry_NoDuplicateClusterType(t *testing.T) {
 }
 
 func TestAddonIAMRegistry_EntryCount(t *testing.T) {
-	assert.Equal(t, 7, len(addonIAMRegistry),
-		"registry should have exactly 7 entries (surrealdb ha+single, 5 others ha)")
+	assert.Equal(t, 8, len(addonIAMRegistry),
+		"registry should have exactly 8 entries (surrealdb ha+single, victoria cluster+select, 4 others ha)")
 }
 
 func TestAddonIAMRegistry_AllAddonsPresent(t *testing.T) {
@@ -54,13 +54,14 @@ func TestAddonIAMRegistry_AllAddonsPresent(t *testing.T) {
 
 func TestClusterTypeToIAMPrefix_MapsToCorrectPrefix(t *testing.T) {
 	expected := map[string]string{
-		"k8s_surrealdb_ha":       "k8s_surrealdb",
-		"k8s_surrealdb_single":   "k8s_surrealdb",
-		"k8s_victoriametrics_ha": "k8s_victoriametrics",
-		"k8s_risingwave_ha":      "k8s_risingwave",
-		"k8s_greptimedb_ha":      "k8s_greptimedb",
-		"k8s_milvus_ha":          "k8s_milvus",
-		"k8s_qdrant_ha":          "k8s_qdrant",
+		"k8s_surrealdb_ha":            "k8s_surrealdb",
+		"k8s_surrealdb_single":        "k8s_surrealdb",
+		"k8s_victoriametrics_cluster": "k8s_victoriametrics",
+		"k8s_victoriametrics_select":  "k8s_victoriametrics",
+		"k8s_risingwave_ha":           "k8s_risingwave",
+		"k8s_greptimedb_ha":           "k8s_greptimedb",
+		"k8s_milvus_ha":               "k8s_milvus",
+		"k8s_qdrant_ha":               "k8s_qdrant",
 	}
 	for ct, expectedPrefix := range expected {
 		prefix, exists := ClusterTypeToIAMPrefix[ct]
@@ -83,12 +84,32 @@ func TestResolveClusterType_SurrealdbSingle(t *testing.T) {
 	}
 }
 
+func TestResolveClusterType_Victoriametrics(t *testing.T) {
+	cases := []struct {
+		topo       string
+		expectedCT string
+	}{
+		{"cluster", "k8s_victoriametrics_cluster"},
+		{"select", "k8s_victoriametrics_select"},
+	}
+	for _, tc := range cases {
+		ct, ok := ResolveClusterType("victoriametrics", tc.topo)
+		assert.True(t, ok, "topo %s should resolve", tc.topo)
+		assert.Equal(t, tc.expectedCT, ct, "topo %s should resolve to %s", tc.topo, tc.expectedCT)
+	}
+
+	_, ok := ResolveClusterType("victoriametrics", "unknown-topo")
+	assert.False(t, ok, "unknown topo should not resolve for victoriametrics")
+
+	_, ok = ResolveClusterType("victoriametrics", "")
+	assert.False(t, ok, "empty topo should not resolve for victoriametrics")
+}
+
 func TestResolveClusterType_CatchAll(t *testing.T) {
 	catchAllAddons := []struct {
 		addonType  string
 		expectedCT string
 	}{
-		{"victoriametrics", "k8s_victoriametrics_ha"},
 		{"risingwave", "k8s_risingwave_ha"},
 		{"greptimedb", "k8s_greptimedb_ha"},
 		{"milvus", "k8s_milvus_ha"},

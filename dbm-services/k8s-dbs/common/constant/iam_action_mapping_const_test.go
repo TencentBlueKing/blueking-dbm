@@ -58,7 +58,8 @@ func TestClusterTypeToIAMPrefix_AllTypes(t *testing.T) {
 	expectedTypes := []string{
 		"k8s_surrealdb_ha",
 		"k8s_surrealdb_single",
-		"k8s_victoriametrics_ha",
+		"k8s_victoriametrics_cluster",
+		"k8s_victoriametrics_select",
 		"k8s_risingwave_ha",
 		"k8s_milvus_ha",
 		"k8s_qdrant_ha",

@@ -115,7 +115,7 @@ class K8sVmApplyFlow(K8sVmBaseFlow):
             kwargs={**asdict(act_kwargs), **asdict(vminsert_dns_kwargs)},
         )
 
-        # 添加vmselect域名
+        # 添加 vmselect 域名
         vmselect_domain = "{}.{}.{}.db".format(VMSELECT_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
         vmselect_dns_kwargs = DnsKwargs(
             bk_cloud_id=self.bk_cloud_id,

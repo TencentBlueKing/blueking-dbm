@@ -279,6 +279,36 @@ func (c *OpsController) ExposeCluster(ctx *gin.Context) {
 	api.SuccessResponse(ctx, responseData, commconst.Success)
 }
 
+// ExposeVMStorageInstances 暴露 vmstorage 实例级服务
+func (c *OpsController) ExposeVMStorageInstances(ctx *gin.Context) {
+	// 鉴权与 metrics 归类复用组件级 expose（URL 映射到 APIClusterExpose）
+	request := &coreentity.VMExposeInstanceRequest{}
+	err := ctx.ShouldBindJSON(request)
+	if err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
+		return
+	}
+	// 转换为通用 Request 供 metrics 指标上报消费
+	clusterRequest := &coreentity.Request{
+		K8sClusterName: request.K8sClusterName,
+		Metadata: coreentity.Metadata{
+			ClusterName: request.ClusterName,
+			Namespace:   request.Namespace,
+		},
+	}
+	c.setAPIRequestContext(ctx, clusterRequest, commconst.APIClusterExpose)
+	dbsCtx := &commentity.DbsContext{
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.ExposeService,
+	}
+	responseData, err := c.opsRequestProvider.ExposeVMStorageInstances(dbsCtx, request)
+	if err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError, err))
+		return
+	}
+	api.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
 // setAPIRequestContext 设置 api 请求上下文
 func (c *OpsController) setAPIRequestContext(ctx *gin.Context, request *coreentity.Request, apiName string) {
 	ctx.Set(commconst.APIName, apiName)

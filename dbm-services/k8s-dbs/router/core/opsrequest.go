@@ -40,6 +40,7 @@ func BuildOpsRequestRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		opsRequestGroup.POST("/upgrade", opsController.UpgradeCluster)
 		opsRequestGroup.POST("/vexpansion", opsController.VolumeExpansion)
 		opsRequestGroup.POST("/expose", opsController.ExposeCluster)
+		opsRequestGroup.POST("/expose/instance", opsController.ExposeVMStorageInstances)
 		opsRequestGroup.POST("/describe", opsController.DescribeOpsRequest)
 		opsRequestGroup.POST("/status", opsController.GetOpsRequestStatus)
 	}

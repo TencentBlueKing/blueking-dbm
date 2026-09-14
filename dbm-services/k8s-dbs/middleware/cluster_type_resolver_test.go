@@ -119,10 +119,11 @@ func TestResolve_Create_TopLevelStorageAddonType(t *testing.T) {
 func TestResolve_Create_NestedStorageAddonType(t *testing.T) {
 	r := newTestResolver(nil, nil)
 
-	result, err := r.Resolve(constant.APIClusterCreate, []byte(`{"basicInfo":{"storageAddonType":"victoriametrics"}}`))
+	result, err := r.Resolve(constant.APIClusterCreate,
+		[]byte(`{"basicInfo":{"storageAddonType":"victoriametrics"},"resourceConfig":{"topoName":"cluster"}}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_victoriametrics_ha", result.ClusterType)
+	assert.Equal(t, "k8s_victoriametrics_cluster", result.ClusterType)
 	assert.Equal(t, "victoriametrics", result.AddonType)
 }
 

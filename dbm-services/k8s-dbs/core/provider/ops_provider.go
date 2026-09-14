@@ -20,6 +20,7 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
@@ -28,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 
+	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
 	dbserrors "k8s-dbs/errors"
@@ -40,6 +42,7 @@ import (
 
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/pkg/errors"
@@ -864,6 +867,185 @@ func (o *OpsRequestProvider) doExposeCluster(
 		return nil, errors.Wrapf(err, "获取服务暴露任务详情失败")
 	}
 	return &responseData.Metadata, nil
+}
+
+// ExposeVMStorageInstances 服务暴露
+func (o *OpsRequestProvider) ExposeVMStorageInstances(
+	ctx *commentity.DbsContext,
+	request *coreentity.VMExposeInstanceRequest,
+) (*coreentity.Metadata, error) {
+	// 转换为通用 Request 复用元数据同步链路
+	converted := &coreentity.Request{
+		K8sClusterName: request.K8sClusterName,
+		Metadata: coreentity.Metadata{
+			ClusterName: request.ClusterName,
+			Namespace:   request.Namespace,
+		},
+		BKAdditional: request.BKAdditional,
+	}
+	return o.withMetaDataSync(ctx, converted, func(
+		syncCtx *commentity.DbsContext,
+		_ *coreentity.Request,
+	) (*coreentity.Metadata, error) {
+		return o.doExposeVMStorageInstances(syncCtx, request)
+	}, nil)
+}
+
+// doExposeVMStorageInstances 服务暴露（vmstorage 实例级）
+func (o *OpsRequestProvider) doExposeVMStorageInstances(
+	ctx *commentity.DbsContext,
+	request *coreentity.VMExposeInstanceRequest,
+) (*coreentity.Metadata, error) {
+	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
+	}
+
+	// 校验集群：dbmClusterId 唯一且与请求三元组一致、victoriametrics 标准拓扑
+	if err = o.validateVMStorageCluster(request, k8sClusterConfig.ID); err != nil {
+		return nil, err
+	}
+	if err = validateVMStorageCLB(k8sClient, request); err != nil {
+		return nil, err
+	}
+	pods, err := listVMStoragePods(k8sClient, request)
+	if err != nil {
+		return nil, err
+	}
+
+	// 构造批量 OpsRequest 并下发
+	expose, err := coreutil.CreateVMExposeInstanceObject(request, pods)
+	if err != nil {
+		return nil, err
+	}
+	converted := &coreentity.Request{
+		K8sClusterName: request.K8sClusterName,
+		Metadata: coreentity.Metadata{
+			ClusterName: request.ClusterName,
+			Namespace:   request.Namespace,
+		},
+		BKAdditional: request.BKAdditional,
+	}
+	if err = metautil.CreateOpsRequestMetaData(
+		o.opsRequestProvider,
+		o.clusterMetaProvider,
+		converted,
+		expose,
+		ctx.RequestID,
+		k8sClusterConfig.ID,
+	); err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+
+	if err = coreutil.CreateCRD(k8sClient, expose); err != nil {
+		return nil, errors.Wrapf(err, "下发 vmstorage 实例暴露任务失败")
+	}
+
+	responseData, err := coreentity.GetOpsRequestData(expose.ResourceObject)
+	if err != nil {
+		return nil, errors.Wrapf(err, "获取服务暴露任务详情失败")
+	}
+	return &responseData.Metadata, nil
+}
+
+// validateVMStorageCluster 校验集群身份及支持的存储类型和拓扑。
+func (o *OpsRequestProvider) validateVMStorageCluster(
+	request *coreentity.VMExposeInstanceRequest,
+	k8sClusterConfigID uint64,
+) error {
+	clusterEntity, err := o.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		DbmClusterID: request.DbmClusterID,
+	})
+	if err != nil || clusterEntity == nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("dbmClusterId %d 未找到对应集群", request.DbmClusterID))
+	}
+	if clusterEntity.K8sClusterConfigID != k8sClusterConfigID ||
+		clusterEntity.ClusterName != request.ClusterName ||
+		clusterEntity.Namespace != request.Namespace {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("集群身份与 DBS 元数据不一致: dbmClusterId=%d, clusterName=%s, namespace=%s",
+				request.DbmClusterID, request.ClusterName, request.Namespace))
+	}
+	if clusterEntity.AddonInfo == nil || clusterEntity.AddonInfo.AddonType != "victoriametrics" {
+		return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+			fmt.Errorf("集群 %s 不是 victoriametrics 集群", request.ClusterName))
+	}
+	if clusterEntity.TopoName != "cluster" {
+		return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+			fmt.Errorf("集群 %s 拓扑 %s 不支持该操作，仅标准集群（cluster）可用",
+				request.ClusterName, clusterEntity.TopoName))
+	}
+	return nil
+}
+
+// validateVMStorageCLB 复核 vminsert/vmselect 的共享 CLB 与请求值一致。
+func validateVMStorageCLB(k8sClient *commutil.K8sClient, request *coreentity.VMExposeInstanceRequest) error {
+	sourceCLB := ""
+	for _, componentName := range []string{"vminsert", "vmselect"} {
+		sourceName := request.ClusterName + "-" + componentName + "-" + componentName + "-clb"
+		service, getErr := k8sClient.ClientSet.CoreV1().Services(request.Namespace).
+			Get(context.TODO(), sourceName, metav1.GetOptions{})
+		if getErr != nil {
+			return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+				fmt.Errorf("查询源 Service %s 失败: %v", sourceName, getErr))
+		}
+		clbID, extractErr := coreutil.ExtractVMCLBID(service.Annotations)
+		if extractErr != nil {
+			return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError, extractErr)
+		}
+		if clbID == "" {
+			return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+				fmt.Errorf("源 Service %s 未绑定 CLB，请稍后重试", sourceName))
+		}
+		if sourceCLB == "" {
+			sourceCLB = clbID
+		} else if sourceCLB != clbID {
+			return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+				fmt.Errorf("源 Service 的 CLB ID 不一致: %s vs %s", sourceCLB, clbID))
+		}
+	}
+	if sourceCLB != request.LoadBalancerID {
+		return dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+			fmt.Errorf("源 Service CLB %s 与请求 loadBalancerId %s 不一致", sourceCLB, request.LoadBalancerID))
+	}
+	return nil
+}
+
+// listVMStoragePods 查询非删除态 vmstorage Pod 并解析 ordinal。
+func listVMStoragePods(
+	k8sClient *commutil.K8sClient,
+	request *coreentity.VMExposeInstanceRequest,
+) ([]coreutil.VMStoragePod, error) {
+	labelSelector := fmt.Sprintf("%s=%s,%s=%s",
+		coreconst.InstanceName, request.ClusterName, coreconst.ComponentName, "vmstorage")
+	podList, err := k8sClient.ClientSet.CoreV1().Pods(request.Namespace).
+		List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+			fmt.Errorf("查询 vmstorage Pod 失败: %v", err))
+	}
+	var pods []coreutil.VMStoragePod
+	for _, pod := range podList.Items {
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+		ordinal, parseErr := coreutil.ParseVMStorageOrdinal(pod.Name, request.ClusterName)
+		if parseErr != nil {
+			return nil, dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError, parseErr)
+		}
+		pods = append(pods, coreutil.VMStoragePod{PodName: pod.Name, Ordinal: ordinal})
+	}
+	if len(pods) == 0 {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.ExposeClusterError,
+			fmt.Errorf("集群 %s 不存在可用的 vmstorage Pod", request.ClusterName))
+	}
+
+	return pods, nil
 }
 
 // DescribeOpsRequest describe OpsRequest
