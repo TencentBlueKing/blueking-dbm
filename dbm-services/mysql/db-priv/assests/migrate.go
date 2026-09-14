@@ -1,6 +1,7 @@
 package assests
 
 import (
+	"database/sql"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
 	"embed"
@@ -12,9 +13,9 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4/database"
+	migrateMySQL "github.com/golang-migrate/migrate/v4/database/mysql"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql" // mysql TODO
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -30,17 +31,26 @@ func DoMigrateFromEmbed() error {
 	if d, err := iofs.New(fs, "migrations"); err != nil {
 		return err
 	} else {
-		dbURL := fmt.Sprintf(
-			"mysql://%s:%s@tcp(%s)/%s?charset=%s&parseTime=true&loc=Local&multiStatements=true&interpolateParams=true",
+		// 使用 DSN 格式建立连接，避免密码中的特殊字符（如 %、@）在 URL 格式中被错误解析
+		dsn := fmt.Sprintf(
+			"%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&loc=Local&multiStatements=true&interpolateParams=true",
 			viper.GetString("db.username"),
 			viper.GetString("db.password"),
 			viper.GetString("db.addr"),
 			viper.GetString("db.name"),
-			"utf8",
 		)
+		sqlDB, err := sql.Open("mysql", dsn)
+		if err != nil {
+			return errors.WithMessage(err, "open db for migrate")
+		}
+		dbDriver, err := migrateMySQL.WithInstance(sqlDB, &migrateMySQL.Config{})
+		if err != nil {
+			sqlDB.Close()
+			return errors.WithMessage(err, "create migrate db driver")
+		}
 		i := 1
 		for ; i <= 10; i++ {
-			mig, err = migrate.NewWithSourceInstance("iofs", d, dbURL)
+			mig, err = migrate.NewWithInstance("iofs", d, "mysql", dbDriver)
 			if err == nil {
 				break
 			} else if err == database.ErrLocked {

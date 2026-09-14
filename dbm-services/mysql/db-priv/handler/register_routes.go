@@ -73,6 +73,9 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "add_security_rule", HandlerFunc: m.AddSecurityRule},
 		{Method: http.MethodPost, Path: "modify_security_rule", HandlerFunc: m.ModifySecurityRule},
 		{Method: http.MethodPost, Path: "delete_security_rule", HandlerFunc: m.DeleteSecurityRule},
+
+		// 克隆dbm A业务的账号与权限规则到B业务
+		{Method: http.MethodPost, Path: "clone_account_rule", HandlerFunc: m.MigrateAccountRuleInDbm},
 	}
 }
 
