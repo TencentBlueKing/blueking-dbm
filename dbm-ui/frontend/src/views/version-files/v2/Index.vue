@@ -162,7 +162,7 @@
   const route = useRoute();
   const router = useRouter();
 
-  const excludeDbTypes: DBTypes[] = [DBTypes.TENDBCLUSTER, DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT];
+  const excludeDbTypes: DBTypes[] = [DBTypes.TENDBCLUSTER, DBTypes.K8S_SURREALDB, DBTypes.K8S_QDRANT];
 
   // 包类型自身还受功能开关控制的场景（redis 的集群架构）
   const pkgTypeFunctionKeyMap: Record<string, FunctionKeys> = {

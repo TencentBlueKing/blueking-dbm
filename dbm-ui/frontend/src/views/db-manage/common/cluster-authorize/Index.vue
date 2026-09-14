@@ -35,15 +35,13 @@
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import { preCheckAuthorizeRules as preCheckMongodbAuthorizeRules } from '@services/source/mongodbPermissionAuthorize';
   import { preCheckAuthorizeRules as preCheckMysqlAuthorizeRules } from '@services/source/mysqlPermissionAuthorize';
   import { preCheckAuthorizeRules as preCheckSqlserverAuthorizeRules } from '@services/source/sqlserverPermissionAuthorize';
-  import { createTicket } from '@services/source/ticket';
   import type { HostInfo, PermissionRule } from '@services/types';
 
-  import { useBeforeClose, useTicketMessage } from '@hooks';
+  import { useBeforeClose, useCreateTicket } from '@hooks';
 
   import { AccountTypes } from '@common/const';
 
@@ -93,7 +91,6 @@
   });
 
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
   const handleBeforeClose = useBeforeClose();
 
   const comMap = {
@@ -109,16 +106,16 @@
   });
   const dbComRef = ref();
 
-  const { run: createTicketRun } = useRequest(createTicket, {
-    manual: true,
-    onSuccess: (res) => {
-      ticketMessage(res.id);
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    onSuccess: () => {
       nextTick(() => {
         emits('success');
         window.changeConfirm = false;
         handleClose();
       });
     },
+    successMessage: t('操作提交成功'),
   });
 
   /**
@@ -144,12 +141,10 @@
       } = await apiMap[props.accountType](params);
       if (preCheck) {
         createTicketRun({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             authorize_data: data,
             authorize_uid: uid,
           },
-          remark: '',
           ticket_type: ticketType,
         });
         state.errorMessage = '';

@@ -13,15 +13,11 @@
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
-
-const { currentBizId } = useGlobalBizs();
 
 /**
  * 获取业务拓扑树
  */
 export function getMysqlResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${currentBizId}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }

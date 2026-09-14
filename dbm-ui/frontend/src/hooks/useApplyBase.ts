@@ -16,8 +16,9 @@ import InfoBox from 'bkui-vue/lib/info-box';
 import { useI18n } from 'vue-i18n';
 
 import { createAppAbbr } from '@services/source/cmdb';
-import { createTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types';
+
+import { useCreateTicket } from '@hooks';
 
 import { getBusinessHref } from '@utils';
 
@@ -27,6 +28,11 @@ import { getBusinessHref } from '@utils';
 export const useApplyBase = () => {
   const { t } = useI18n();
   const router = useRouter();
+
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    successMessage: false,
+  });
 
   // 业务相关状态
   const bizState = reactive({
@@ -95,17 +101,19 @@ export const useApplyBase = () => {
     delete params.sub_zone_names;
     delete params.city_name;
 
-    createTicket(params)
-      .then((data) => {
+    createTicketRun(params)
+      .then((ticketId) => {
+        if (!ticketId) {
+          return;
+        }
         Message({
           message: t('申请成功'),
           theme: 'success',
         });
-        window.changeConfirm = false;
         const { href } = router.resolve({
           name: 'bizTicketManage',
         });
-        window.open(getBusinessHref(href, data.bk_biz_id), '_blank');
+        window.open(getBusinessHref(href, formdata.bk_biz_id), '_blank');
       })
       .finally(() => {
         baseState.isSubmitting = false;

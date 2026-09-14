@@ -14,9 +14,7 @@
 import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
-import { createTicket } from '@services/source/ticket';
-
-import { useTicketMessage } from '@hooks';
+import { useCreateTicket } from '@hooks';
 
 import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -41,7 +39,10 @@ const ticketTypeMap = {
 
 export function useBindOrUnbindClb<T>(clusterType: keyof typeof ticketTypeMap) {
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<T>(undefined, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const handleBindOrUnbindClb = (formData: { details: T; remark?: string }, isBind: boolean) => {
     const title = isBind ? t('确认恢复 DNS 域名指向？') : t('确认将 DNS 域名指向 CLB ?');
@@ -51,13 +52,10 @@ export function useBindOrUnbindClb<T>(clusterType: keyof typeof ticketTypeMap) {
     InfoBox({
       content,
       onConfirm: () => {
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        createTicketRun({
           details: formData.details,
-          remark: formData.remark || '',
+          remark: formData.remark,
           ticket_type: ticketType,
-        }).then((ticketResult) => {
-          ticketMessage(ticketResult.id);
         });
       },
       title,

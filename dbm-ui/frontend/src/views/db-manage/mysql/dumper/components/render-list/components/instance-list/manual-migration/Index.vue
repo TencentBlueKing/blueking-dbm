@@ -131,11 +131,8 @@
   import { useI18n } from 'vue-i18n';
 
   import DumperInstanceModel from '@services/model/dumper/dumper';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useBeforeClose, useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useBeforeClose, useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -161,8 +158,14 @@
   const { t } = useI18n();
 
   const handleBeforeClose = useBeforeClose();
-  const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.TBINLOGDUMPER_SWITCH_NODES, {
+    isToolbox: false,
+    onSuccess: () => {
+      emits('success');
+      isShow.value = false;
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   const formRef = ref();
   const isSubmitting = ref(false);
@@ -200,7 +203,6 @@
   const handleConfirm = async () => {
     await formRef.value.validate();
     const params = {
-      bk_biz_id: currentBizId,
       details: {
         infos: [
           {
@@ -219,17 +221,10 @@
         ],
         is_safe: true,
       },
-      remark: '',
-      ticket_type: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,
     };
     isSubmitting.value = true;
     try {
-      const data = await createTicket(params);
-      if (data.id) {
-        ticketMessage(data.id);
-        emits('success');
-        isShow.value = false;
-      }
+      await createTicketRun(params);
     } finally {
       isSubmitting.value = false;
     }

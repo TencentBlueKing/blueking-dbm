@@ -18,13 +18,9 @@ import EsMachineModel from '@services/model/es/es-machine';
 import EsNodeModel from '@services/model/es/es-node';
 import type { BigDataClusterPassword, ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/bigdata/bizs/${currentBizId}/es/es_resources`;
+const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/es/es_resources`;
 
 /**
  * 获取集群列表
@@ -39,7 +35,7 @@ export function getEsList(params: {
   name?: string;
   offset?: number;
 }) {
-  return http.get<ListBase<EsModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<EsModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
       (item: EsModel) =>
@@ -56,7 +52,7 @@ export function getEsList(params: {
  * 获取查询返回字段
  */
 export function getEsTableFields() {
-  return http.get<ListBase<EsModel[]>>(`${path}/get_table_fields/`);
+  return http.get<ListBase<EsModel[]>>(`${getRootPath()}/get_table_fields/`);
 }
 
 /**
@@ -75,7 +71,7 @@ export function getEsInstanceList(params: {
   role?: string;
   status?: string;
 }) {
-  return http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<EsInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new EsInstanceModel(item)),
   }));
@@ -85,28 +81,28 @@ export function getEsInstanceList(params: {
  * 获取实例详情
  */
 export function retrieveEsInstance(params: { cluster_id?: number; dbType: string; instance?: string; type?: string }) {
-  return http.get<ListBase<EsModel[]>>(`${path}/retrieve_instance/`, params);
+  return http.get<ListBase<EsModel[]>>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getEsDetail(params: { id: number }) {
-  return http.get<EsDetailModel>(`${path}/${params.id}/`).then((data) => new EsDetailModel(data));
+  return http.get<EsDetailModel>(`${getRootPath()}/${params.id}/`).then((data) => new EsDetailModel(data));
 }
 
 /**
  * 获取集群拓扑
  */
 export function getEsTopoGraph(params: { cluster_id: number }) {
-  return http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ListBase<EsModel[]>>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 获取 ES 集群访问密码
  */
 export function getEsPassword(params: { cluster_id: number }) {
-  return http.get<BigDataClusterPassword>(`${path}/${params.cluster_id}/get_password/`);
+  return http.get<BigDataClusterPassword>(`${getRootPath()}/${params.cluster_id}/get_password/`);
 }
 
 /**
@@ -118,31 +114,33 @@ export function getEsNodeList(
     cluster_id: number;
   } & Record<string, any>,
 ) {
-  return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
-    ...data,
-    results: data.results.map(
-      (item) =>
-        new EsNodeModel(
-          Object.assign(item, {
-            permission: data.permission,
-          }),
-        ),
-    ),
-  }));
+  return http
+    .get<ListBase<Array<EsNodeModel>>>(`${getRootPath()}/${params.cluster_id}/list_nodes/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map(
+        (item) =>
+          new EsNodeModel(
+            Object.assign(item, {
+              permission: data.permission,
+            }),
+          ),
+      ),
+    }));
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportEsClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportEsInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
@@ -164,7 +162,7 @@ export function getEsMachineList(params: {
   machine_type?: string;
   offset?: number;
 }) {
-  return http.get<ListBase<EsMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
+  return http.get<ListBase<EsMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new EsMachineModel(item)),
   }));

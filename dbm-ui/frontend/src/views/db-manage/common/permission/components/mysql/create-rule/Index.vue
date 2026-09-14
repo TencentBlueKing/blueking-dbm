@@ -84,10 +84,9 @@
     modifyAccountRule,
     preCheckAddAccountRule,
   } from '@services/source/mysqlPermissionAccount';
-  import { createTicket } from '@services/source/ticket';
   import type { AccountRule, AccountRulePrivilege, PermissionRuleInfo } from '@services/types/permission';
 
-  import { useBeforeClose, useTicketMessage } from '@hooks';
+  import { useBeforeClose, useCreateTicket } from '@hooks';
 
   import { AccountTypes, TicketTypes } from '@common/const';
 
@@ -120,7 +119,6 @@
   });
 
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
   const handleBeforeClose = useBeforeClose();
 
   const initFormData = (): AccountRule => ({
@@ -190,17 +188,14 @@
   /**
    * 规则变更（有权限被删除）时走单据
    */
-  const { run: createTicketRun } = useRequest(createTicket, {
-    manual: true,
-    onAfter() {
-      isSubmitting.value = false;
-    },
-    onSuccess(data) {
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    onSuccess: () => {
       window.changeConfirm = false;
       handleClose();
-      ticketMessage(data.id);
       emits('success');
     },
+    successMessage: t('操作提交成功'),
   });
 
   watch(
@@ -211,12 +206,10 @@
         account_id: props.accountId ?? -1,
         privilege: props.ruleObj?.privilege
           ? Object.entries(configMap[props.accountType].dbOperations).reduce<AccountRulePrivilege>(
-              (acc, [key, values]) => {
-                acc[key as keyof AccountRulePrivilege] = values.filter((value) =>
-                  props.ruleObj?.privilege.includes(value),
-                );
-                return acc;
-              },
+              (acc, [key, values]) => ({
+                ...acc,
+                [key]: values.filter((value) => props.ruleObj?.privilege.includes(value)),
+              }),
               {} as AccountRulePrivilege,
             )
           : {},
@@ -290,7 +283,6 @@
             [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
           };
           createTicketRun({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             details: {
               action: 'change',
               last_account_rules: {
@@ -300,7 +292,6 @@
               ...params,
               rule_id: props.ruleObj!.rule_id,
             },
-            remark: '',
             ticket_type: ticketTypeMap[props.accountType],
           });
         } else {

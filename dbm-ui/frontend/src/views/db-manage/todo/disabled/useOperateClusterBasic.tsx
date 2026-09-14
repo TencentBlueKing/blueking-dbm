@@ -15,15 +15,18 @@ import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
 import TicketClusterDisableTodoModel from '@services/model/ticket-cluster-disable-todo/TicketClusterDisableTodo';
-import { createTicket } from '@services/source/ticket';
 
-import { useTicketMessage } from '@hooks';
+import { useCreateTicket } from '@hooks';
 
 import { clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
 
 export const useOperateClusterBasic = (options: { onSuccess: () => void }) => {
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<{ cluster_id?: number; cluster_ids?: number[] }>(undefined, {
+    isToolbox: false,
+    onSuccess: () => options.onSuccess(),
+    successMessage: t('操作提交成功'),
+  });
 
   // 除 大数据 和 redis集群 暂未支持，其余都已支持批量提单
   const batchOperateTicketTypeList: string[] = [
@@ -136,13 +139,10 @@ export const useOperateClusterBasic = (options: { onSuccess: () => void }) => {
   };
 
   const handleConfirm = (ticketType: TicketTypes, dataList: TicketClusterDisableTodoModel[]) => {
-    createTicket({
+    createTicketRun({
       bk_biz_id: dataList[0].bk_biz_id, // 当前暂无批量提交的交互，实际数据量为1
       details: getDetailParam(ticketType, dataList),
       ticket_type: ticketType,
-    }).then((data) => {
-      options.onSuccess();
-      ticketMessage(data.id);
     });
   };
 
