@@ -27,6 +27,6 @@ export enum DBTypes {
   ORACLE = 'oracle',
 }
 export enum DBTypes {
-  K8S_QRRANT = 'k8s_qdrant',
+  K8S_QDRANT = 'k8s_qdrant',
   K8S_SURREALDB = 'k8s_surrealdb',
 }

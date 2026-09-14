@@ -166,11 +166,8 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { listDumperConfig, verifyDuplicateName } from '@services/source/dumper';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useBeforeClose, useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useBeforeClose, useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -200,8 +197,16 @@
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
-  const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.TBINLOGDUMPER_INSTALL, {
+    isToolbox: false,
+    onSuccess: () => {
+      initFormData();
+      emits('success');
+      isShow.value = false;
+      window.changeConfirm = false;
+    },
+    successMessage: t('操作提交成功'),
+  });
   const router = useRouter();
 
   const formRef = ref();
@@ -339,7 +344,6 @@
         : await subscribeDbTableRef.value.getValue();
       const infos = await receiverDataRef.value.getValue();
       const params = {
-        bk_biz_id: currentBizId,
         details: {
           add_type: syncType.value,
           infos,
@@ -348,18 +352,9 @@
             : formModel.name,
           repl_tables: replTables,
         },
-        remark: '',
-        ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
       };
 
-      const data = await createTicket(params);
-      if (data && data.id) {
-        ticketMessage(data.id);
-        initFormData();
-        emits('success');
-        isShow.value = false;
-      }
-      window.changeConfirm = false;
+      await createTicketRun(params);
     } finally {
       isSubmitting.value = false;
     }

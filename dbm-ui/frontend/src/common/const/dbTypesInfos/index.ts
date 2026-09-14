@@ -43,7 +43,7 @@ export const DBTypeInfos = {
 } as RequiredInfoType;
 
 const readExcludeDbTypeMap = Object.fromEntries(
-  [DBTypes.INFLUXDB, DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT].map((item) => [item, true]),
+  [DBTypes.INFLUXDB, DBTypes.K8S_SURREALDB, DBTypes.K8S_QDRANT].map((item) => [item, true]),
 );
 export const readResourceDbTypes = Object.values(DBTypeInfos)
   .filter((item) => !readExcludeDbTypeMap[item.id])
@@ -59,7 +59,7 @@ export const readResourceDbTypes = Object.values(DBTypeInfos)
   ]);
 
 const editExcludeDbTypeMap = Object.fromEntries(
-  [DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER, DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT].map((item) => [item, true]),
+  [DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER, DBTypes.K8S_SURREALDB, DBTypes.K8S_QDRANT].map((item) => [item, true]),
 );
 export const editResourceDbTypes = Object.values(DBTypeInfos)
   .filter((item) => !editExcludeDbTypeMap[item.id])

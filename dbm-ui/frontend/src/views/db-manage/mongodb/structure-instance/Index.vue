@@ -244,11 +244,8 @@
 
   import MongodbRollbackRecordModel from '@services/model/mongodb/mongodb-rollback-record';
   import { queryRestoreRecord } from '@services/source/mongodbRestore';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -262,9 +259,11 @@
 
   import { execCopy, transfromDataToQuery } from '@utils';
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
-  const handleDeleteSuccess = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<{ cluster_ids: number[] }>(TicketTypes.MONGODB_TEMPORARY_DESTROY, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const searchValue = ref<Record<string, string>>({});
   const selectedList = ref<MongodbRollbackRecordModel[]>([]);
@@ -352,20 +351,15 @@
   // 批量销毁
   const handleDestroyCluster = (row?: MongodbRollbackRecordModel) => {
     const params = {
-      bk_biz_id: currentBizId,
       details: {
         cluster_ids: row ? [row.target_cluster.id] : selectedList.value.map((item) => item.target_cluster.id),
       },
-      ticket_type: TicketTypes.MONGODB_TEMPORARY_DESTROY,
     };
     const count = row ? 1 : selectedList.value.length;
     InfoBox({
       confirmText: t('删除'),
       onConfirm: () => {
-        createTicket(params).then((data) => {
-          const ticketId = data.id;
-          handleDeleteSuccess(ticketId);
-        });
+        createTicketRun(params);
       },
       subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
       title: t('确认销毁n个集群的构造记录', { n: count }),

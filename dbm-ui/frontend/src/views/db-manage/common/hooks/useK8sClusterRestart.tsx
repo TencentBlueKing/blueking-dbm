@@ -14,9 +14,7 @@
 import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
-import { createTicket } from '@services/source/ticket';
-
-import { useTicketMessage } from '@hooks';
+import { useCreateTicket } from '@hooks';
 
 import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -27,7 +25,11 @@ const ticketTypeMap = {
 
 export function useK8sClusterRestart(clusterType: keyof typeof ticketTypeMap, options: { onSuccess: () => void }) {
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<{ cluster_id: number }>(ticketTypeMap[clusterType], {
+    isToolbox: false,
+    onSuccess: () => options.onSuccess(),
+    successMessage: t('操作提交成功'),
+  });
 
   const handleClusterRestart = (data: { cluster_name: string; id: number }) => {
     InfoBox({
@@ -35,16 +37,10 @@ export function useK8sClusterRestart(clusterType: keyof typeof ticketTypeMap, op
       confirmText: t('重启'),
       content: `${t('集群名称：')}${data.cluster_name}`,
       onConfirm: () => {
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        createTicketRun({
           details: {
             cluster_id: data.id,
           },
-          remark: '',
-          ticket_type: ticketTypeMap[clusterType],
-        }).then((ticketResult) => {
-          ticketMessage(ticketResult.id);
-          options.onSuccess();
         });
       },
       title: t('确认重启该集群？'),

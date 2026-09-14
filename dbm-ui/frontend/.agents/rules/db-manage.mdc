@@ -11,15 +11,20 @@ alwaysApply: false
 仓库分层、命令与编码约定见 `AGENTS.md`。工具箱提单逐步实现见 `toolbox-code.mdc`。单据详情见
 `ticket-detail.mdc`。服务层见 `services.mdc`。排版交互见 `dbm-frontend-design` skill。
 
-13 个 DB 各一个目录，公共能力放 `common/`、`hooks/`、`const/`、`utils/`。
+15 个 DB 各一个目录，公共能力放 `common/`、`hooks/`、`const/`、`utils/`。
 
 **目录名等于 `DBTypes` 枚举值**（`src/common/const/dbTypes.ts`），只有两个例外，写路径和 glob 时容易踩：
 
 - `TENDBCLUSTER` 枚举值是 `tendbcluster`，目录是 `tendb-cluster`（`createToolboxRoute` 内做了映射）
-- `ES` 枚举值是 `es`，目录是 `elastic-search`
+- `ES` 枚举值是 `es`，目录是 `elastic-search`（映射只在 `createApplyRoute` 内，原因见下）
 
 单 DB 内目录名基本自解释（`*-cluster-list/`、`*-instance-list/`、`*-detail/`、`toolbox/`、`routes.ts`），两个要记的：工具箱提单目录名是全大写的
 `{TICKET_TYPE}/`，工具箱菜单在 `toolbox/toolboxMenuList.ts`。
+
+**只有 6 个 DB 有工具箱**：`mysql`、`tendb-cluster`、`redis`、`mongodb`、`sqlserver`、`oracle`，等于存在
+`toolbox/toolboxMenuList.ts` 的目录和 `createToolboxRoute` 的调用方。大数据与 k8s 类 DB（`elastic-search`、`kafka`、`hdfs`、`pulsar`、`doris`、`influxdb`、`riak`、`qdrant`、`surrealdb`）只有集群列表、详情与申请入口，没有工具箱，这是业务设定。所以
+`createToolboxRoute` 只映射 `TENDBCLUSTER` 一个目录例外是正确的，不要照 `createApplyRoute` 给它补 `ES` / `K8S_*`
+映射。
 
 ## 集群列表
 

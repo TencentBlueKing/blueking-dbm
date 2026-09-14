@@ -12,6 +12,8 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
+import { registerBusinessModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -41,5 +43,7 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export default function getRoutes() {
-  return checkDbConsole('observableManage.DBHASwitchEvents') ? routes : [];
+  if (checkDbConsole('observableManage.DBHASwitchEvents')) {
+    registerBusinessModule(routes);
+  }
 }

@@ -14,9 +14,7 @@
 import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
-import { createTicket } from '@services/source/ticket';
-
-import { useTicketMessage } from '@hooks';
+import { useCreateTicket } from '@hooks';
 
 import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -27,18 +25,17 @@ const ticketTypeMap = {
 
 export function useAddPolaris<T>(clusterType: keyof typeof ticketTypeMap) {
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<T>(ticketTypeMap[clusterType], {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const handleAddPolaris = (formData: { details: T; remark?: string }) => {
     InfoBox({
       onConfirm: () => {
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        createTicketRun({
           details: formData.details,
-          remark: formData.remark || '',
-          ticket_type: ticketTypeMap[clusterType],
-        }).then((ticketResult) => {
-          ticketMessage(ticketResult.id);
+          remark: formData.remark,
         });
       },
       title: t('确定启用北极星？'),
