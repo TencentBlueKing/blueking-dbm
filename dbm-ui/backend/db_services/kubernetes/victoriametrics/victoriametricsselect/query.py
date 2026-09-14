@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_meta.api.cluster.k8s_vm.victoriametricsquery.detail import scan_cluster
+from backend.db_meta.api.cluster.k8s_vm.victoriametricsselect.detail import scan_cluster
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
@@ -16,7 +16,7 @@ from backend.db_services.kubernetes.victoriametrics.query import VictoriaMetrics
 
 
 @register_resource_decorator()
-class VictoriaMetricsQueryListRetrieveResource(VictoriaMetricsBaseListRetrieveResource):
+class VictoriaMetricsSelectListRetrieveResource(VictoriaMetricsBaseListRetrieveResource):
     cluster_types = [ClusterType.K8sVictoriametricsSelect]
     instance_roles = [InstanceRole.VM_SELECT]
     fields = [

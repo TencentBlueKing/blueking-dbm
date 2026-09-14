@@ -15,9 +15,9 @@ from rest_framework import status
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.resources import serializers
 from backend.db_services.kubernetes.victoriametrics import constants
-from backend.db_services.kubernetes.victoriametrics.victoriametricsquery import yasg_slz
-from backend.db_services.kubernetes.victoriametrics.victoriametricsquery.query import (
-    VictoriaMetricsQueryListRetrieveResource,
+from backend.db_services.kubernetes.victoriametrics.victoriametricscluster import yasg_slz
+from backend.db_services.kubernetes.victoriametrics.victoriametricscluster.query import (
+    VictoriaMetricsClusterListRetrieveResource,
 )
 from backend.db_services.kubernetes.victoriametrics.views import BaseVictoriaMetricsResourceViewSet
 
@@ -64,5 +64,5 @@ from backend.db_services.kubernetes.victoriametrics.views import BaseVictoriaMet
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class VictoriaMetricsQueryResourceViewSet(BaseVictoriaMetricsResourceViewSet):
-    query_class = VictoriaMetricsQueryListRetrieveResource
+class VictoriaMetricsClusterResourceViewSet(BaseVictoriaMetricsResourceViewSet):
+    query_class = VictoriaMetricsClusterListRetrieveResource

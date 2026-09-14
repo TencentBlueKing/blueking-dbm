@@ -10,9 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework import serializers
 
-from .query import VictoriaMetricsQueryListRetrieveResource
+from .query import VictoriaMetricsSelectListRetrieveResource
 
-REF_NAME = "victoriametricsquery"
+REF_NAME = "victoriametricsselect"
 
 paginated_resource_example = {
     "count": 10,
@@ -43,7 +43,7 @@ class PaginatedResourceSLZ(serializers.Serializer):
 
 class ResourceFieldSLZ(serializers.Serializer):
     class Meta:
-        swagger_schema_fields = {"example": VictoriaMetricsQueryListRetrieveResource.get_fields()}
+        swagger_schema_fields = {"example": VictoriaMetricsSelectListRetrieveResource.get_fields()}
         ref_name = f"{REF_NAME}_ResourceFieldSLZ"
 
 
