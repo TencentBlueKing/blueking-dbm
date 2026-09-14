@@ -111,7 +111,7 @@ def generate_report():
     cluster_objs = (
         Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster])
         .annotate(id_mod_hour=Mod("id", 3))
-        .filter(id_mod_hour=current_hour)
+        .filter(id_mod_hour=current_hour - 1)
     )
     cluster_count = cluster_objs.count()
     logger.info(

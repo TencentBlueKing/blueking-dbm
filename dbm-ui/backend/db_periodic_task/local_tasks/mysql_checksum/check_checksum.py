@@ -5,6 +5,8 @@ from typing import Optional
 
 from blueapps.core.celery.celery import app
 from celery import shared_task
+from django.db.models.functions import Mod
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
@@ -37,15 +39,23 @@ def check_mysql_checksum():
     now = datetime.now(local_tz)
 
     cluster_type_filter = [ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value]
-    cluster_ids = list(Cluster.objects.filter(cluster_type__in=cluster_type_filter).values_list("id", flat=True))
+
+    current_hour = timezone.localtime().hour
+
+    cluster_ids = list(
+        Cluster.objects.filter(cluster_type__in=cluster_type_filter)
+        .annotate(id_mod_hour=Mod("id", 4))
+        .filter(id_mod_hour=current_hour - 4)
+        .values_list("id", flat=True)
+    )
+
     total = len(cluster_ids)
     logger.info("[auto_check_checksum] scheduling checksum check for %d clusters", total)
     for index, cluster_id in enumerate(cluster_ids):
-        countdown = calculate_countdown(count=total, index=index, duration=3 * TimeUnit.HOUR)
+        countdown = calculate_countdown(count=total, index=index, duration=40 * TimeUnit.MINUTE)
         logger.info("cluster(%s) checksum will be run after %s seconds.", cluster_id, countdown)
         # 每个集群在独立任务中执行
         with start_new_span(check_cluster_checksum):
-            # 延迟调度，均摊到一小时
             check_cluster_checksum.apply_async(
                 kwargs={"index": index, "cluster_id": int(cluster_id), "now": now},
                 countdown=countdown,
