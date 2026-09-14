@@ -266,8 +266,9 @@ func (ins *RedisStorageSwitchInstance) CheckTwemproxyBackends() error {
 	if err := ins.ProcessFailedTwemproxies(failedProxies); err != nil {
 		ins.ReportLogf(switchlogger.SwitchWarn,
 			"not all failed twemproxies are processed successfully, err:%s", err.Error())
+	} else {
+		ins.ReportLogf(switchlogger.SwitchInfo, "successfully processed all the failed twemproxies")
 	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "successfully processed all the failed twemproxies")
 
 	proxyMd5Map := map[string][]string{} // backend MD5 -> proxy addr list
 	for addr, serverMap := range proxyServers {
