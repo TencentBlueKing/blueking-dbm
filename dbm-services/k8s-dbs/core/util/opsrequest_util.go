@@ -26,6 +26,7 @@ import (
 	"k8s-dbs/core/entity"
 	metaenitty "k8s-dbs/metadata/entity"
 	"log/slog"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -628,6 +629,182 @@ func createOpsService(request *entity.Request, podSelect map[string]string) (opv
 		}
 	}
 	return service, nil
+}
+
+// VM 私有常量：vmstorage 实例级 CLB 暴露的固定规则
+const (
+	// vmStorageComponent vmstorage 组件名
+	vmStorageComponent = "vmstorage"
+	// vmStorageCLBServiceInfix 实例 Service 名称中缀，OpsService.Name 为 clb-storage-{ordinal}。
+	vmStorageCLBServiceInfix = "clb-storage"
+	// vmStorageBasePort 实例 Service 对外端口基数，实际端口 8000 + ordinal
+	vmStorageBasePort int32 = 8000
+	// vmStorageTargetPort 固定 targetPort，对应 vmstorage 的 vmselect 访问端口
+	vmStorageTargetPort int32 = 8401
+	// vmStorageMaxPort 对外端口上限
+	vmStorageMaxPort int32 = 65535
+	// 共享 CLB 上 vminsert/vmselect 源 Service 已占用的监听端口
+	vmInsertCLBPort int32 = 8480
+	vmSelectCLBPort int32 = 8481
+	// CLB ID 标注键
+	vmCLBAnnotationKey        = "service.kubernetes.io/loadbalance-id"
+	vmCLBExistedAnnotationKey = "service.kubernetes.io/tke-existed-lbid"
+	vmCLBDirectAccessKey      = "service.cloud.tencent.com/direct-access"
+)
+
+// vmCLBIDAnnotationKeys CLB ID 标注键，按读取优先级排序
+var vmCLBIDAnnotationKeys = []string{
+	vmCLBExistedAnnotationKey,
+	vmCLBAnnotationKey,
+}
+
+// VMStoragePod vmstorage Pod 引用，Pod 名必须可解析出唯一非负 ordinal
+type VMStoragePod struct {
+	PodName string
+	Ordinal int
+}
+
+// ParseVMStorageOrdinal 从 vmstorage Pod 名解析唯一非负 ordinal
+func ParseVMStorageOrdinal(podName, clusterName string) (int, error) {
+	prefix := clusterName + "-" + vmStorageComponent + "-"
+	if !strings.HasPrefix(podName, prefix) {
+		return 0, fmt.Errorf("pod 名 %s 不符合 %s{ordinal} 命名规则", podName, prefix)
+	}
+	ordinal, err := strconv.Atoi(strings.TrimPrefix(podName, prefix))
+	if err != nil || ordinal < 0 {
+		return 0, fmt.Errorf("pod 名 %s 无法解析出唯一非负 ordinal", podName)
+	}
+	return ordinal, nil
+}
+
+// ExtractVMCLBID 按优先级从 annotations 提取 CLB ID；两个键同时存在且值不同时视为冲突，不允许猜测
+func ExtractVMCLBID(annotations map[string]string) (string, error) {
+	values := map[string]string{}
+	for _, key := range vmCLBIDAnnotationKeys {
+		if value, exists := annotations[key]; exists && value != "" {
+			values[key] = value
+		}
+	}
+	if len(values) > 1 {
+		unique := make(map[string]struct{})
+		for _, value := range values {
+			unique[value] = struct{}{}
+		}
+		if len(unique) > 1 {
+			return "", fmt.Errorf("CLB ID 标注冲突: %v", values)
+		}
+	}
+	for _, key := range vmCLBIDAnnotationKeys {
+		if value, exists := values[key]; exists {
+			return value, nil
+		}
+	}
+	return "", nil
+}
+
+// CreateVMExposeInstanceObject 构造 vmstorage 实例级暴露 OpsRequest（参考 CreateExposeClusterObject，
+// 区别：一个 Expose 条目携带全部实例 Service，每个 Service 的 selector 精确到 Pod，
+// OpsService.Name 为 clb-storage-{ordinal}
+func CreateVMExposeInstanceObject(
+	request *entity.VMExposeInstanceRequest,
+	pods []VMStoragePod,
+) (*entity.CustomResourceDefinition, error) {
+	objectName := commutil.ResourceName("ops-expose-instance-", OpsNameSuffixLength)
+
+	opsServices, err := createVMStorageOpsServices(request, pods)
+	if err != nil {
+		return nil, err
+	}
+
+	exposeSwitch := opv1.DisableExposeSwitch
+	if request.Enable {
+		exposeSwitch = opv1.EnableExposeSwitch
+	}
+	opsRequest := &opv1.OpsRequest{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: coreconst.APIVersion,
+			Kind:       coreconst.OpsRequest,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      objectName,
+			Namespace: request.Namespace,
+		},
+		Spec: opv1.OpsRequestSpec{
+			ClusterName:                 request.ClusterName,
+			Type:                        coreconst.Expose,
+			TTLSecondsAfterSucceed:      TTLSecondsAfterSucceed,
+			PreConditionDeadlineSeconds: commutil.Int32Ptr(PreConditionDeadlineSeconds),
+			TimeoutSeconds:              commutil.Int32Ptr(TimeoutSeconds),
+			SpecificOpsRequest: opv1.SpecificOpsRequest{
+				ExposeList: []opv1.Expose{
+					{
+						ComponentName: vmStorageComponent,
+						Switch:        exposeSwitch,
+						Services:      opsServices,
+					},
+				},
+			},
+		},
+	}
+
+	unstructuredOpsRequest, err := runtime.DefaultUnstructuredConverter.ToUnstructured(opsRequest)
+	if err != nil {
+		return nil, fmt.Errorf("转换 OpsRequest 为 Unstructured 类型失败: %v", err)
+	}
+	return &entity.CustomResourceDefinition{
+		Labels:               opsRequest.Labels,
+		Namespace:            request.Namespace,
+		ResourceType:         coreconst.Expose,
+		ResourceName:         objectName,
+		GroupVersionResource: kbtypes.OpsGVR(),
+		ResourceObject: &unstructured.Unstructured{
+			Object: unstructuredOpsRequest,
+		},
+	}, nil
+}
+
+// createVMStorageOpsServices 构造各 vmstorage Pod 的独立 CLB Service 配置。
+func createVMStorageOpsServices(
+	request *entity.VMExposeInstanceRequest,
+	pods []VMStoragePod,
+) ([]opv1.OpsService, error) {
+	var opsServices []opv1.OpsService
+	for _, pod := range pods {
+		port := vmStorageBasePort + int32(pod.Ordinal)
+		if port > vmStorageMaxPort {
+			return nil, fmt.Errorf("实例 %d 的对外端口 %d 超出上限 65535", pod.Ordinal, port)
+		}
+		if port == vmInsertCLBPort || port == vmSelectCLBPort {
+			return nil, fmt.Errorf("实例 %d 的对外端口 %d 与共享 CLB 上 vminsert(%d)/vmselect(%d) 监听端口冲突",
+				pod.Ordinal, port, vmInsertCLBPort, vmSelectCLBPort)
+		}
+		serviceName := fmt.Sprintf("%s-%d", vmStorageCLBServiceInfix, pod.Ordinal)
+		opsServices = append(opsServices, opv1.OpsService{
+			Name:        serviceName,
+			ServiceType: corev1.ServiceTypeLoadBalancer,
+			Annotations: map[string]string{
+				vmCLBAnnotationKey:        request.LoadBalancerID,
+				vmCLBExistedAnnotationKey: request.LoadBalancerID,
+				vmCLBDirectAccessKey:      "true",
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "http-port",
+					Port:       port,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt(int(vmStorageTargetPort)),
+				},
+			},
+			PodSelector: map[string]string{
+				coreconst.InstanceName:  request.ClusterName,
+				coreconst.ManagedBy:     coreconst.Kubeblocks,
+				coreconst.ComponentName: vmStorageComponent,
+				coreconst.PodName:       pod.PodName,
+			},
+		})
+	}
+
+	return opsServices, nil
 }
 
 // UpdateValWithHScaling updates the release entity's chart values with horizontal scaling configurations.
