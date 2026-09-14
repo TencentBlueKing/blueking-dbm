@@ -44,7 +44,6 @@ func TestAnalysisImportSetRegistersRedis(t *testing.T) {
 		haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
 		haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 		haprobe.DbmMetadataClusterTypePredixyRedisCluster,
-		haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 	}
 	for _, ct := range cases {
 		if got := dbtype.DbTypeOf(ct); got != haprobe.DbTypeRedis {
