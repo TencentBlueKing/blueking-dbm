@@ -38,7 +38,7 @@ const (
 	ZstdBin     = "/home/mysql/dbtools/zstd"
 )
 
-// Oracle 安装日志相关常量
+// Oracle 安装相关常量
 const (
 	OraInventoryLogDir     = "/u/oraInventory/logs"
 	InstallSuccessKeyword  = "The installation of Oracle Database 11g was successful."
@@ -69,16 +69,38 @@ const (
 	FindDestByDbUniqueName = `select dest_id from v$archive_dest
 where dest_id between 4 and 9
   and db_unique_name = :1`
-	CharacterSet          = "select value from v$nls_parameters where parameter='NLS_CHARACTERSET'"
-	InstanceName          = "select instance_name from v$instance"
-	RedoLogSize           = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$LOG"
-	StandbyLogSize        = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$STANDBY_LOG"
-	DbUniqueName          = "select value from v$parameter where name='db_unique_name'"
-	ServiceNames          = "select value from v$parameter where name='service_names'"
-	DatabaseRole          = "select database_role from v$database"
-	SwitchLogfile         = "alter system switch logfile"
+	CharacterSet            = "select value from v$nls_parameters where parameter='NLS_CHARACTERSET'"
+	InstanceName            = "select instance_name from v$instance"
+	RedoLogSize             = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$LOG"
+	StandbyLogSize          = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$STANDBY_LOG"
+	DbUniqueName            = "select value from v$parameter where name='db_unique_name'"
+	ServiceNames            = "select value from v$parameter where name='service_names'"
+	DatabaseRole            = "select database_role from v$database"
+	SwitchLogfile           = "alter system switch logfile"
+	RecoverCancel           = "recover managed standby database cancel"
+	MountInstance           = "startup mount"
+	ShutdownImmediate       = "shutdown immediate"
+	ShutdownAbort           = "shutdown abort"
+	ActivateStandbyDatabase = "alter database activate standby database"
+	OpenInstance            = "alter database open"
+	AlterSystemRegister     = "alter system register"
+	CheckSyncLagSQL         = `SELECT NAME,
+		NVL(VALUE, '') AS VALUE,
+		CASE
+		  WHEN VALUE IS NULL OR TRIM(VALUE) IS NULL THEN -1
+		  ELSE EXTRACT(DAY    FROM TO_DSINTERVAL(VALUE)) * 86400
+		     + EXTRACT(HOUR   FROM TO_DSINTERVAL(VALUE)) * 3600
+		     + EXTRACT(MINUTE FROM TO_DSINTERVAL(VALUE)) * 60
+		     + EXTRACT(SECOND FROM TO_DSINTERVAL(VALUE))
+		END AS LAG_SECONDS
+		FROM V$DATAGUARD_STATS
+		WHERE NAME IN ('transport lag','apply lag')`
+	CheckMRPProcessSQL = `SELECT PROCESS, STATUS, SEQUENCE#, THREAD#, BLOCK#, DELAY_MINS
+		FROM V$MANAGED_STANDBY
+		WHERE PROCESS LIKE 'MRP%'`
 	StatisticListenerPort = 1522
 	ListenerPort          = 1521
+	SqlplusDefaultTimeout = 5 * time.Minute
 )
 
 // 与 tnsnames.ora / DG 配置相关的常量与占位符定义，集中管理避免散落在函数体内

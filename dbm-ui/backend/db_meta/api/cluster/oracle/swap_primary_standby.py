@@ -15,7 +15,7 @@ from datetime import datetime
 from django.db import transaction
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import InstancePhase, InstanceRole, InstanceStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 
@@ -23,7 +23,7 @@ logger = logging.getLogger("flow")
 
 
 @transaction.atomic
-def swap_primary_standby(bk_biz_id: int, cluster_id: int):
+def swap_primary_standby(bk_biz_id: int, cluster_id: int, failover=False):
     """
     通过集群 ID 自动查出 primary / standby 实例，执行角色互换
     操作内容：
@@ -33,6 +33,9 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
     Args:
     bk_biz_id: 业务 ID
     cluster_id: 集群 ID
+    failover: 是否是failover场景
+    Returns:
+        None
     """
 
     try:
@@ -46,7 +49,7 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
         primary_inst = storage_objs.filter(instance_role=InstanceRole.PRIMARY.value).first()
         if not primary_inst:
             raise ValueError(_("集群 {} 未找到 PRIMARY 实例").format(cluster_id))
-        standby_inst = storage_objs.filter(instance_role=InstanceRole.STANDBY.value).first()
+        standby_inst = storage_objs.filter(instance_role=InstanceRole.STANDBY.value, is_stand_by=True).first()
         if not standby_inst:
             raise ValueError(_("集群 {} 未找到 STANDBY 实例").format(cluster_id))
 
@@ -75,7 +78,13 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
         primary_inst.update_at = date
         standby_inst.update_at = date
 
-        primary_inst.save(update_fields=["instance_role", "instance_inner_role", "update_at"])
+        update_fields = ["instance_role", "instance_inner_role", "update_at"]
+        if failover:
+            primary_inst.status = InstanceStatus.UNAVAILABLE.value
+            primary_inst.phase = InstancePhase.OFFLINE.value
+            update_fields += ["status", "phase"]
+
+        primary_inst.save(update_fields=update_fields)
         standby_inst.save(update_fields=["instance_role", "instance_inner_role", "update_at"])
         logger.info(
             _("[swap_primary_standby] 实例角色已互换: instance_role {}: {} -> {}, instance_role {}: {} -> {}").format(

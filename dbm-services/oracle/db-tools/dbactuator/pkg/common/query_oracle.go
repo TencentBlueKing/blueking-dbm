@@ -3,8 +3,12 @@ package common
 
 import (
 	"database/sql"
+	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/core/staticembed"
+	"dbm-services/oracle/db-tools/dbactuator/pkg/util"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/godror/godror"
 	_ "github.com/godror/godror" // godror oracle 驱动
@@ -107,6 +111,49 @@ func ExecuteOracle(db *sql.DB, query string, args ...any) error {
 	_, err := db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("执行 SQL 失败: %v", err)
+	}
+	return nil
+}
+
+// ExecuteSqlplusAsSysdba 通过 `sqlplus -S / as sysdba` 执行 SQL*Plus 客户端命令。
+// 使用场景：`shutdown immediate` / `shutdown abort` / `startup mount` /
+// `recover managed standby database cancel` 等命令属于 SQL*Plus 客户端指令，
+func ExecuteSqlplusAsSysdba(cmds ...string) error {
+	return ExecuteSqlplusAsSysdbaWithTimeout(consts.SqlplusDefaultTimeout, cmds...)
+}
+
+// ExecuteSqlplusAsSysdbaWithTimeout 与 ExecuteSqlplusAsSysdba 相同，但允许自定义超时时间。
+func ExecuteSqlplusAsSysdbaWithTimeout(timeout time.Duration, cmds ...string) error {
+	if len(cmds) == 0 {
+		return fmt.Errorf("sqlplus 待执行命令为空")
+	}
+
+	var script strings.Builder
+	script.WriteString("WHENEVER SQLERROR EXIT SQL.SQLCODE\n")
+	script.WriteString("WHENEVER OSERROR EXIT FAILURE\n")
+	script.WriteString("SET ECHO ON\n")
+	script.WriteString("SET HEADING OFF\n")
+	script.WriteString("SET FEEDBACK OFF\n")
+	for _, c := range cmds {
+		c = strings.TrimSpace(c)
+		if c == "" {
+			continue
+		}
+
+		if !strings.HasSuffix(c, ";") {
+			c += ";"
+		}
+
+		script.WriteString(c)
+		script.WriteString("\n")
+	}
+	script.WriteString("EXIT;\n")
+
+	bashCmd := fmt.Sprintf("sqlplus -S / as sysdba <<'SQLPLUS_EOF'\n%sSQLPLUS_EOF", script.String())
+
+	stdout, err := util.RunBashCmd(bashCmd, "", nil, timeout)
+	if err != nil {
+		return fmt.Errorf("执行 sqlplus 失败: %v, stdout: %s", err, stdout)
 	}
 	return nil
 }

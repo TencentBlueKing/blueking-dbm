@@ -54,11 +54,16 @@ class OracleAddSlaveFlow(OracleBaseFlow):
                 "cluster_id": 2,
                 "old_node": {"ip": "1.1.1.1", "bk_cloud_id": 0},
                 "replace_flag": False,
-                "resource_spec": {"oracle": {"spec_id": 1, "count": 1}}
+                "replace_host": {"ip": "1.1.1.1", "bk_cloud_id": 0},
+                "resource_spec": {"oracle": {"id": 1, "count": 1}}
             }
         ],
         "ip_source": "resource_pool"
     }
+
+    old_node： RMAN复制源，以及最终同步源
+    replace_flag： 是否整体替换
+    replace_host: 待替换主机
     """
 
     def _build_replace_meta_kwargs(self, cluster: Cluster, info: dict, new_slave: str):
@@ -69,7 +74,7 @@ class OracleAddSlaveFlow(OracleBaseFlow):
                     cluster_id=info["cluster_id"],
                     bk_biz_id=self.data["bk_biz_id"],
                     new_slave=new_slave,
-                    old_node=info["old_node"]["ip"],
+                    old_node=info["replace_host"]["ip"],
                 ),
                 ClusterEntryRole.SLAVE_ENTRY.value,
             )
@@ -101,7 +106,7 @@ class OracleAddSlaveFlow(OracleBaseFlow):
             cluster_master = cluster.storageinstance_set.get(instance_role=InstanceRole.PRIMARY.value).machine.ip
             old_node = info["old_node"]["ip"]
             new_slave = info["new_slave"]["ip"]
-
+            replace_host = info["replace_host"]["ip"]
             # 1. 环境预检查 + 依赖插件安装
             sub_pipeline.add_sub_pipeline(
                 sub_flow=build_precheck_sub_flow(
@@ -204,7 +209,7 @@ class OracleAddSlaveFlow(OracleBaseFlow):
                         data=sub_flow_data,
                         cluster=cluster,
                         bk_cloud_id=bk_cloud_id,
-                        old_node=old_node,
+                        old_node=replace_host,
                         new_slave=new_slave,
                         cluster_master=cluster_master,
                         meta_kwargs=meta_kwargs,

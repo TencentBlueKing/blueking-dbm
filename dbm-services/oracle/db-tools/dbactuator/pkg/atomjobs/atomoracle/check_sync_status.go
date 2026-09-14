@@ -122,10 +122,7 @@ func CheckMRPProcess(db *sql.DB) error {
 // 返回值：err=nil 表示所有 MRP 进程都健康（APPLYING_LOG / WAIT_FOR_LOG），
 // 否则返回具体的非健康原因，交由上层决定是否重试。
 func probeMRPProcess(db *sql.DB) error {
-	query := `SELECT PROCESS, STATUS, SEQUENCE#, THREAD#, BLOCK#, DELAY_MINS
-		FROM V$MANAGED_STANDBY
-		WHERE PROCESS LIKE 'MRP%'`
-
+	query := consts.CheckMRPProcessSQL
 	type mrpRow struct {
 		Process   string
 		Status    string
@@ -162,18 +159,7 @@ func probeMRPProcess(db *sql.DB) error {
 
 // CheckDataguardLag 校验 transport lag / apply lag 在阈值内
 func CheckDataguardLag(db *sql.DB) error {
-	query := `SELECT NAME,
-		NVL(VALUE, '') AS VALUE,
-		CASE
-		  WHEN VALUE IS NULL OR TRIM(VALUE) IS NULL THEN -1
-		  ELSE EXTRACT(DAY    FROM TO_DSINTERVAL(VALUE)) * 86400
-		     + EXTRACT(HOUR   FROM TO_DSINTERVAL(VALUE)) * 3600
-		     + EXTRACT(MINUTE FROM TO_DSINTERVAL(VALUE)) * 60
-		     + EXTRACT(SECOND FROM TO_DSINTERVAL(VALUE))
-		END AS LAG_SECONDS
-		FROM V$DATAGUARD_STATS
-		WHERE NAME IN ('transport lag','apply lag')`
-
+	query := consts.CheckSyncLagSQL
 	type lagRow struct {
 		Name   string
 		Value  string

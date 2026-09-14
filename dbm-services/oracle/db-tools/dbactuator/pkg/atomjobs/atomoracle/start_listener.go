@@ -1,6 +1,8 @@
 package atomoracle
 
 import (
+	"dbm-services/oracle/db-tools/dbactuator/pkg/common"
+	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/util"
 	"encoding/json"
@@ -82,6 +84,16 @@ func (e *StartListener) Run() error {
 			return fmt.Errorf("no [success] key in ouput: %s, cmd: %s", out, c)
 		}
 		e.Runtime.Logger.Info("run cmd %s successfully, output:\n%s", c, out)
+	}
+
+	db, err := common.OpenOracleAsSysdba()
+	if err != nil {
+		return fmt.Errorf("open oracle as sysdba failed: %v", err)
+	}
+	defer db.Close()
+	err = common.ExecuteOracle(db, consts.AlterSystemRegister)
+	if err != nil {
+		return fmt.Errorf("%s failed: %v", consts.AlterSystemRegister, err)
 	}
 	return nil
 }

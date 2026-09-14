@@ -111,13 +111,17 @@ func (e *RmanDuplicate) loadTemplate() ([]byte, error) {
 		err      error
 		tplName  string
 	)
-	if e.Params.RealMaster {
-		tplName = staticembed.RMANDuplicateSlowlyScriptFileName
-		tplBytes, err = staticembed.RMANDuplicateSlowlyScript.ReadFile(tplName)
-	} else {
-		tplName = staticembed.RMANDuplicateScriptFileName
-		tplBytes, err = staticembed.RMANDuplicateScript.ReadFile(tplName)
-	}
+	/*
+		if e.Params.RealMaster {
+			tplName = staticembed.RMANDuplicateSlowlyScriptFileName
+			tplBytes, err = staticembed.RMANDuplicateSlowlyScript.ReadFile(tplName)
+		} else {
+			tplName = staticembed.RMANDuplicateScriptFileName
+			tplBytes, err = staticembed.RMANDuplicateScript.ReadFile(tplName)
+		}
+	*/
+	tplName = staticembed.RMANDuplicateSlowlyScriptFileName
+	tplBytes, err = staticembed.RMANDuplicateSlowlyScript.ReadFile(tplName)
 	if err != nil {
 		e.Runtime.Logger.Error("read embedded %s fail, error:%s", tplName, err)
 		return nil, fmt.Errorf("read embedded %s fail, error:%s", tplName, err)

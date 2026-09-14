@@ -8,30 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+import uuid
 
-from . import (
-    doris,
-    es,
-    hdfs,
-    influxdb,
-    k8s_vm,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    oracle,
-    pulsar,
-    qdrantha,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    surrealdb,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    vm,
-)
-from .apis import domain_exists, query_instances
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.oracle import OracleController
+from backend.flow.views.base import FlowTestView
+
+logger = logging.getLogger("root")
+
+
+class OracleMasterFailoverApiView(FlowTestView):
+    """主库故障切换"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        OracleController(root_id=root_id, ticket_data=request.data).oracle_master_failover_scene()
+        return Response({"root_id": root_id})

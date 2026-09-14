@@ -23,11 +23,12 @@ from backend.ticket.constants import TicketType
 
 class OracleAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     class RestoreInfoSerializer(serializers.Serializer):
-        old_node = HostInfoSerializer(help_text=_("旧实例信息"), required=False)
+        old_node = HostInfoSerializer(help_text=_("RMAN克隆源实例信息"), required=False)
         new_slave = HostInfoSerializer(help_text=_("新从库信息"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
         replace_flag = serializers.BooleanField(help_text=_("是否替换"), required=False)
+        replace_host = HostInfoSerializer(help_text=_("待替换的旧实例信息"), required=False)
 
     infos = serializers.ListField(help_text=_("集群添加从库/重建从库"), child=RestoreInfoSerializer())
     ip_source = serializers.ChoiceField(
