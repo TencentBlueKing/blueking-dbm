@@ -61,7 +61,7 @@ class OracleAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         )
         cluster_id__master_map = {master.cluster.first().id: master for master in masters}
         for info in ticket_data["infos"]:
-            master = cluster_id__master_map[info["cluster_ids"][0]]
+            master = cluster_id__master_map[info["cluster_id"]]
             if info["old_node"]["ip"] == master.machine.ip:
                 cls.patch_common_affinity(info, role="oracle", cluster=master.cluster.first(), no_need_affinity=True)
             else:
