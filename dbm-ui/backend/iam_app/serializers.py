@@ -13,6 +13,7 @@ import copy
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend import env
 from backend.iam_app import mock_data
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -34,6 +35,19 @@ class SimpleIamActionResourceRequestSerializer(serializers.Serializer):
     is_raise_exception = serializers.BooleanField(help_text=_("是否抛出异常"), required=False, default=False)
 
     def validate(self, attrs):
+        # 前端传参不变的情况下， 如果是绑定BIZ_DBTYPE类型的action， 需要单独处理
+        if (
+            env.ENABLE_IAM_V4
+            and ActionEnum.get_action_by_id(attrs["action_id"]).related_resource_type_v4 == ResourceEnum.BIZ_DBTYPE
+        ):
+            attrs["resources"] = [
+                {
+                    "type": ResourceEnum.BIZ_DBTYPE.id,
+                    "id": ResourceEnum.BIZ_DBTYPE.make_instance_id(attrs["bk_biz_id"], attrs["resource_id"]),
+                }
+            ]
+            return attrs
+
         related_resources = copy.deepcopy(ActionEnum.get_action_by_id(attrs["action_id"]).related_resource_types)
         if len(related_resources) > 2 or (
             len(related_resources) == 2 and ResourceEnum.BUSINESS not in related_resources
