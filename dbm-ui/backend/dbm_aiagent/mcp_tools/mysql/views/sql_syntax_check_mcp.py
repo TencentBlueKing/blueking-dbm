@@ -52,7 +52,6 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         permission_classes=[McpSkipPermission],
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.SQL_SYNTAX_CHECK, DBMMcpTools.DBM_PUBLIC_MARKET],
-        name_prefix="check_sql_syntax",
     )
     def check_sql_syntax(self, request, *args, **kwargs):
         """
@@ -100,7 +99,6 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         permission_classes=[McpSkipPermission],
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.SQL_SYNTAX_CHECK, DBMMcpTools.DBM_PUBLIC_MARKET],
-        name_prefix="check_sql_file_syntax",
     )
     def check_sql_file_syntax(self, request, *args, **kwargs):
         """
@@ -156,7 +154,6 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         permission_classes=[McpSkipPermission],
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.SQL_SYNTAX_CHECK, DBMMcpTools.DBM_PUBLIC_MARKET],
-        name_prefix="parse_sql_file_statement",
     )
     def parse_sql_file_statement(self, request, *args, **kwargs):
         """
