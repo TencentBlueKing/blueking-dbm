@@ -365,11 +365,6 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         if not username:
             raise DBMMcpUsernameNotFoundException()
 
-        cluster_domains = [info["cluster_domain"] for info in infos]
-        assert_cluster_type(
-            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
-        )
-
         return Response(bill_proxy_conf_change(username=username, infos=infos, is_safe=self.get_param("is_safe")))
 
     @mcp_tools_api_decorator(
@@ -388,11 +383,6 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         username = request.user.username
         if not username:
             raise DBMMcpUsernameNotFoundException()
-
-        cluster_domains = [info["cluster_domain"] for info in infos]
-        assert_cluster_type(
-            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
-        )
 
         return Response(
             bill_tendbha_migrate(
@@ -481,12 +471,6 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         if not username:
             raise DBMMcpUsernameNotFoundException()
 
-        cluster_domains = [info["cluster_domain"] for info in infos]
-        assert_cluster_type(
-            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
-            [ClusterType.TenDBCluster],
-        )
-
         return Response(bill_spider_conf_change(username=username, infos=infos, is_safe=self.get_param("is_safe")))
 
     @mcp_tools_api_decorator(
@@ -504,12 +488,6 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         username = request.user.username
         if not username:
             raise DBMMcpUsernameNotFoundException()
-
-        cluster_domains = [info["cluster_domain"] for info in infos]
-        assert_cluster_type(
-            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
-            [ClusterType.TenDBCluster],
-        )
 
         return Response(
             bill_tendbcluster_node_rebalance(

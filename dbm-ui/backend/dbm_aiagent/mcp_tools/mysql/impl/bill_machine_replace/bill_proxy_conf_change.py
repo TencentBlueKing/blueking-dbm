@@ -44,6 +44,7 @@ def bill_proxy_conf_change(username: str, infos: List[dict], is_safe: bool = Tru
     # 统一校验集群（确保同属一个业务）
     cluster_objs, bk_biz_id, _bk_cloud_id = validate_clusters(cluster_domains, ClusterType.TenDBHA)
     cluster_map = {cluster.immute_domain: cluster for cluster in cluster_objs}
+    cluster_ids = [cluster.id for cluster in cluster_objs]
 
     # 校验所有行的目标规格存在且启用，且为 MySQL proxy 类型
     spec_ids = {info["target_spec_id"] for info in infos}
@@ -58,6 +59,20 @@ def bill_proxy_conf_change(username: str, infos: List[dict], is_safe: bool = Tru
         missing = spec_ids - found_ids
         raise DBMMcpBaseException(msg=_("目标规格不存在或未启用: spec_id={}").format(sorted(missing)))
 
+    # 一次性取出所有集群的 proxy 实例（含 machine），避免逐集群 N+1 查询
+    # 注意：ProxyInstance.cluster 为 ManyToManyField，需用 cluster__pk 过滤并按 cluster 分组
+    proxy_objs_all = (
+        ProxyInstance.objects.using(MYSQL_MCP_DB_READ)
+        .filter(cluster__pk__in=cluster_ids)
+        .select_related("machine")
+        .prefetch_related("cluster")
+    )
+    proxies_by_cluster = {}
+    for pi in proxy_objs_all:
+        for cluster in pi.cluster.all():
+            if cluster.id in cluster_ids:
+                proxies_by_cluster.setdefault(cluster.id, []).append(pi)
+
     built_infos = []
     for info in infos:
         cluster = cluster_map[info["cluster_domain"]]
@@ -66,12 +81,12 @@ def bill_proxy_conf_change(username: str, infos: List[dict], is_safe: bool = Tru
 
         # 升降配是整集群操作：origin_proxies 必须是集群的全部 proxy
         # （flow 侧 MySQLProxySwitchForExtendValidator 会校验「是否传全集群全部机器」）
-        proxy_objs = ProxyInstance.objects.using(MYSQL_MCP_DB_READ).filter(cluster=cluster)
-        if not proxy_objs.exists():
+        proxy_objs = proxies_by_cluster.get(cluster.id, [])
+        if not proxy_objs:
             raise DBMMcpBaseException(msg=_("集群无 proxy 实例: {}").format(cluster.immute_domain))
 
         # 校验目标规格与当前规格不同：当集群内所有 proxy 均为目标规格时，无需升降配
-        current_spec_ids = set(proxy_objs.values_list("machine__spec_id", flat=True))
+        current_spec_ids = {pi.machine.spec_id for pi in proxy_objs}
         if current_spec_ids == {target_spec_id}:
             raise DBMMcpBaseException(msg=_("目标规格与当前规格相同，无需升降配: {}").format(cluster.immute_domain))
 
