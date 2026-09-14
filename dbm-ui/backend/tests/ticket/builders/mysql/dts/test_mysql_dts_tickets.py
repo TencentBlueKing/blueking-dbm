@@ -193,6 +193,27 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         # validate 阶段无 ticket.id，允许空 task_name
         self.assertEqual(plan.task_specs[0].task_name, "")
 
+    def test_same_name_omits_unspecified_scope_keys(self):
+        slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+        scope = slz.validated_data["migrate"]["one_to_one"]["source"]["sync_scope"]
+        self.assertEqual(scope["db_patterns"], ["db_a"])
+        self.assertEqual(scope["table_patterns"], ["*"])
+        self.assertNotIn("table_routes", scope)
+        self.assertNotIn("binlog_filters", scope)
+        self.assertNotIn("ignore_dbs", scope)
+        self.assertNotIn("ignore_tables", scope)
+
+    def test_same_name_keeps_binlog_filters_when_provided(self):
+        details = _minimal_layered_details()
+        details["migrate"]["one_to_one"]["source"]["sync_scope"]["binlog_filters"] = [
+            {"name": "skip_ddl", "ignore_events": ["query"]}
+        ]
+        slz = MysqlMigrateBaseDetailSerializer(data=details)
+        self.assertTrue(slz.is_valid(), slz.errors)
+        scope = slz.validated_data["migrate"]["one_to_one"]["source"]["sync_scope"]
+        self.assertEqual(scope["binlog_filters"], [{"name": "skip_ddl", "ignore_events": ["query"]}])
+
     def test_source_database_pattern_matches_nothing_rejected(self):
         self.mock_show_databases.return_value = []
         slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
@@ -1106,6 +1127,40 @@ class MysqlRenameMigrateSerializerTest(SimpleTestCase):
         slz = MysqlRenameMigrateDetailSerializer(data=_rename_layered_details())
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertEqual(slz.validated_data["migrate_type"], MigrateType.MYSQL_TO_MYSQL.value)
+
+    def test_rename_omits_unspecified_route_and_scope_keys(self):
+        slz = MysqlRenameMigrateDetailSerializer(data=_rename_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+        scope = slz.validated_data["migrate"]["one_to_one"]["source"]["sync_scope"]
+        self.assertEqual(
+            scope["table_routes"],
+            [{"source_db": "db_old", "source_table": "*", "target_db": "db_new"}],
+        )
+        for key in (
+            "source_name",
+            "source_db_pattern",
+            "source_table_pattern",
+            "target_table",
+        ):
+            self.assertNotIn(key, scope["table_routes"][0])
+        for key in (
+            "db_patterns",
+            "ignore_dbs",
+            "table_patterns",
+            "ignore_tables",
+            "binlog_filters",
+        ):
+            self.assertNotIn(key, scope)
+
+    def test_rename_keeps_binlog_filters_when_provided(self):
+        details = _rename_layered_details()
+        details["migrate"]["one_to_one"]["source"]["sync_scope"]["binlog_filters"] = [
+            {"name": "skip_ddl", "ignore_events": ["query"]}
+        ]
+        slz = MysqlRenameMigrateDetailSerializer(data=details)
+        self.assertTrue(slz.is_valid(), slz.errors)
+        scope = slz.validated_data["migrate"]["one_to_one"]["source"]["sync_scope"]
+        self.assertEqual(scope["binlog_filters"], [{"name": "skip_ddl", "ignore_events": ["query"]}])
 
     def test_table_rename_valid(self):
         slz = MysqlRenameMigrateDetailSerializer(
