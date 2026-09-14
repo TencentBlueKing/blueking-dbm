@@ -170,7 +170,9 @@ func (ha *DbhaData) SaveSwitchingLog(ctx context.Context, records ...*hamodel.Db
 }
 
 // ReadSwitchingStrategyWithBkBizId returns switching strategies for the given business ID.
-func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(ctx context.Context, bkBizId int) ([]*hamodel.DbSwitchingStrategy, error) {
+func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(
+	ctx context.Context, bkBizId int,
+) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
 	cond := fmt.Sprintf("(%s = ? or %s = 0) and %s = ?",
@@ -179,8 +181,11 @@ func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(ctx context.Context, bkBizI
 		hamodel.DbSwitchingStrategyFieldStatus)
 
 	query := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
-	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Order(hamodel.DbSwitchingStrategyFieldID).Find(&strategies).Error; e != nil {
-		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
+	err := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).
+		Order(hamodel.DbSwitchingStrategyFieldID).
+		Find(&strategies).Error
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
 	return strategies, nil
@@ -201,7 +206,9 @@ func (ha *DbhaData) ReadSkipDbInstancesWithBkBizId(bkBizId int) ([]*hamodel.Skip
 }
 
 // ReadBlackWhiteList returns black-white list records for the given business ID and cloud ID.
-func (ha *DbhaData) ReadBlackWhiteList(ctx context.Context, bkBizId int, bkCloudId int) ([]*hamodel.DbBlackWhiteList, error) {
+func (ha *DbhaData) ReadBlackWhiteList(
+	ctx context.Context, bkBizId int, bkCloudId int,
+) ([]*hamodel.DbBlackWhiteList, error) {
 	var blackWhiteList []*hamodel.DbBlackWhiteList
 
 	cond := fmt.Sprintf("%s = ? and %s = ? and %s = ? and %s = ?",

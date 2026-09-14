@@ -55,6 +55,7 @@ type HealthInfo struct {
 	ErrMsg   string `json:"errmsg"`
 }
 
+// IsAlive reports whether the probed process is running.
 func (h HealthInfo) IsAlive() bool {
 	return h.Status == StatusRunning
 }

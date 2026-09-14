@@ -376,21 +376,25 @@ workflow:
   readDbEventOffsetDuration: -10m
   enableSwitching: true
   switchflow:
-    hostLevelSwitchMaxHostNum: 32
-    hostLevelSwitchMaxInstanceNum: 64
-    clusterLevelSwitchMaxClusterNum: 32
-    clusterLevelSwitchMaxInstanceNum: 64
-    dbmApiMaxConcurrentRequests: 8
-    switchLogWriteTimeout: 1s
-    dbConnectTimeout: 3s
-    clusterLockTimeout: 60s
-    execSqlTimeout: 6s
-    slaveAllowedIgnoreCheckSum: false
-    slaveAllowedIgnoreSlaveDelay: false
-    slaveAllowedSlowBytes: 0
-    slaveAllowedMaxChecksumFailCnt: 2
-    slaveAllowedMaxHeartbeatDelay: 600
-    slaveAllowedMaxSecondsBehindMaster: 600
+    common:
+      hostLevelSwitchMaxHostNum: 32
+      hostLevelSwitchMaxInstanceNum: 64
+      clusterLevelSwitchMaxClusterNum: 32
+      clusterLevelSwitchMaxInstanceNum: 64
+      dbmApiMaxConcurrentRequests: 8
+      switchLogWriteTimeout: 1s
+      dbConnectTimeout: 3s
+      clusterLockTimeout: 60s
+    mysql:
+      execSqlTimeout: 6s
+      slaveAllowedIgnoreCheckSum: false
+      slaveAllowedIgnoreSlaveDelay: false
+      slaveAllowedSlowBytes: 0
+      slaveAllowedMaxChecksumFailCnt: 2
+      slaveAllowedMaxHeartbeatDelay: 600
+      slaveAllowedMaxSecondsBehindMaster: 600
+    redis:
+      commandTimeout: 10s
 
   dbmApiMetadata:
     api: ${DBM_API_BASE}/apis/proxypass/dbmeta/dbha/instances
@@ -434,6 +438,11 @@ workflow:
 
   dbmApiDumperSwitch:
     api: ${DBM_API_BASE}/apis/proxypass/dumper/switch/
+    timeout: 10s
+    token: "${DBM_API_TOKEN}"
+
+  dbmApiQueryRedisPassword:
+    api: ${DBM_API_BASE}/apis/proxypass/dbpriv/proxy_password/
     timeout: 10s
     token: "${DBM_API_TOKEN}"
 

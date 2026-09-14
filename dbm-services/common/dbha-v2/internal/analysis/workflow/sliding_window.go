@@ -249,6 +249,8 @@ func instanceWindowKey(bkCloudID int, ip string, port int, dbType haprobe.DbType
 
 // instanceWindowEventKey returns a unique key for the same instance and event, so that the same
 // instance reporting different events are kept as separate entries in the window.
-func instanceWindowEventKey(bkCloudID int, ip string, port int, dbType haprobe.DbType, eventName haprobe.DbEventName) string {
+func instanceWindowEventKey(
+	bkCloudID int, ip string, port int, dbType haprobe.DbType, eventName haprobe.DbEventName,
+) string {
 	return fmt.Sprintf("%d:%s:%d:%s:%s", bkCloudID, ip, port, dbType, eventName)
 }

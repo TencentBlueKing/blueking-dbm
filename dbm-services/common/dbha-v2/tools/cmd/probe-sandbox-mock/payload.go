@@ -70,6 +70,9 @@ func defaultPayload() probeconfig.ProbeConfigPayload {
 			ReplDelayInterval: "5s",
 			Timeout:           "2s",
 		},
+		Health: &probeconfig.ProbeHealthConfig{
+			DiskWriteDirs: []string{"/tmp"},
+		},
 		Metadata: []probeconfig.ProbeMetadataItem{
 			{
 				IP:           mockListenIP,
