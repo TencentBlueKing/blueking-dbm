@@ -173,6 +173,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_mysql_destroy 
 | `infos[].cluster_domain` | string | 是 | 集群域名 |
 | `infos[].target_spec_id` | int | 是 | 目标规格 ID |
 | `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+| `is_safe` | bool | 否（默认 `true`） | 安全模式 |
 
 **输出字段**
 
@@ -255,6 +256,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbha_migrat
 | `infos[].spider_role` | string | 是 | 接入层角色：`spider_master`=主接入层，`spider_slave`=从接入层 |
 | `infos[].target_spec_id` | int | 是 | 目标规格 ID |
 | `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+| `is_safe` | bool | 否（默认 `true`） | 安全模式 |
 
 **输出字段**
 
@@ -310,6 +312,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_spider_conf_ch
 - 集群总分片数（`cluster_shard_num`）由工具从 db_meta 自动查询，固定不变；单机分片数 = 总分片数 / 机器组数，要求 `count` 能整除总分片数。
 - 目标规格按 remote（backend 存储类型）校验（存在 + 启用）。
 - `prev_cluster_spec_name` / `prev_machine_pair` / 变更前规格由工具自动填充。
+- 该工具**不支持** `is_safe` 参数（与 proxy/spider 升降配不同），无安全模式开关。
 
 **调用示例**
 
