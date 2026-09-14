@@ -5,9 +5,10 @@ BK-Dataview 可提供标准数据源接入, 也是一个标准的grafana fronten
 - 向监控获取DBA业务对应的监控数据源token（暂不支持线上获取）
 - 打开dbm的grafana代理根路径，且必须带上orgName=dbm参数：/grafana/?orgName=dbm
 
-目前包含 2 个模块
+目前包含 3 个模块
 - datasources: 标准数据源接入
 - grafana: 代理访问后端grafana服务，可内嵌到其他产品使用，提供完整的权限控制, 动态注入数据源和视图等
+- prometheus: DBM SaaS 平台自监控（进程内指标 + 自定义上报）。方案、原理与其它项目接入指南见 [prometheus/README.md](prometheus/README.md)
 
 ## Grafana 特性
 - 代理访问

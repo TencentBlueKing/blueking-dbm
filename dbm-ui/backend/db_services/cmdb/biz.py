@@ -266,8 +266,9 @@ def get_or_create_dbm_module(module_name: str):
     if topo.get(module_name):
         return topo[module_name]
 
-    manage_set_id = get_or_create_set_with_name(env.DBA_APP_BK_BIZ_ID, DB_MANAGE_SET)
-    module_id = get_or_create_cmdb_module_with_name(env.DBA_APP_BK_BIZ_ID, manage_set_id, module_name)
+    manage_biz = get_resource_biz()
+    manage_set_id = get_or_create_set_with_name(manage_biz, DB_MANAGE_SET)
+    module_id = get_or_create_cmdb_module_with_name(manage_biz, manage_set_id, module_name)
     topo.update({"set_id": manage_set_id, module_name: module_id})
     SystemSettings.insert_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value, value=topo, value_type="dict")
     return module_id
