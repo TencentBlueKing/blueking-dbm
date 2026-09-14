@@ -42,7 +42,22 @@ class TestTendbClusterNodeRebalanceShardDivision:
         mock_storage_set.objects.using.return_value.filter.return_value.count.return_value = 6
 
         infos = [{"cluster_domain": cluster.immute_domain, "spec_id": 1, "count": 0}]
-        with pytest.raises(Exception, match="无法被机器组数 0 整除"):
+        with pytest.raises(Exception, match="机器组数必须为正整数: 0"):
+            bill_tendbcluster_node_rebalance("admin", infos)
+
+    @patch(f"{MODULE}.StorageInstance")
+    @patch(f"{MODULE}.TenDBClusterStorageSet")
+    @patch(f"{MODULE}.Spec")
+    @patch(f"{MODULE}.validate_clusters")
+    def test_count_negative_raises(self, mock_validate, mock_spec, mock_storage_set, mock_storage_instance):
+        """机器组数为负整数时，提前命中 count <= 0 分支报错，避免参与取模运算"""
+        cluster = _cluster()
+        mock_validate.return_value = ([cluster], 1, 0)
+        mock_spec.objects.filter.return_value.count.return_value = 1
+        mock_storage_set.objects.using.return_value.filter.return_value.count.return_value = 6
+
+        infos = [{"cluster_domain": cluster.immute_domain, "spec_id": 1, "count": -3}]
+        with pytest.raises(Exception, match="机器组数必须为正整数: -3"):
             bill_tendbcluster_node_rebalance("admin", infos)
 
     @patch(f"{MODULE}.StorageInstance")
