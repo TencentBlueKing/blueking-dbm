@@ -83,8 +83,12 @@ def bill_tendbcluster_node_rebalance(
         if cluster_shard_num <= 0:
             raise DBMMcpBaseException(msg=_("集群 {} 无分片信息").format(cluster.immute_domain))
 
+        # 机器组数必须为正整数，提前校验，避免负数/零参与取模运算
+        if count <= 0:
+            raise DBMMcpBaseException(msg=_("机器组数必须为正整数: {}").format(count))
+
         # 单机分片数 = 总分片数 / 机器组数，必须整除
-        if count <= 0 or cluster_shard_num % count != 0:
+        if cluster_shard_num % count != 0:
             raise DBMMcpBaseException(
                 msg=_("集群 {} 总分片数 {} 无法被机器组数 {} 整除").format(cluster.immute_domain, cluster_shard_num, count)
             )

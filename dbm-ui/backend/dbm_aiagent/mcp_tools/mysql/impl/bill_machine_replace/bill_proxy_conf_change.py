@@ -101,7 +101,8 @@ def bill_proxy_conf_change(username: str, infos: List[dict], is_safe: bool = Tru
                     "port": pi.port,
                 }
             )
-        proxy_infos = list({pi["bk_host_id"]: pi for pi in proxy_infos}.values())
+        # 同一台机器可能运行多个 proxy 进程（不同端口），去重键需使用 (bk_host_id, port) 组合
+        proxy_infos = list({(pi["bk_host_id"], pi["port"]): pi for pi in proxy_infos}.values())
 
         # 升降配：目标规格由用户显式指定（区别于替换的「继承旧规格」）
         resource_spec = {"spec_id": target_spec_id, "count": len(proxy_infos), "labels": labels}
