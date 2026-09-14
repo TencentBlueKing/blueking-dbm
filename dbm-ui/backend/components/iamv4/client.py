@@ -254,11 +254,21 @@ class _IAMV4Api(BaseApi):
     @staticmethod
     def _display_resource_types(role: Dict) -> List[Dict]:
         """角色关联的资源类型即默认展示层级，授权粒度与展示粒度保持同一级"""
+        # 业务层级的角色默认展示层级是业务
+        from backend.iam_app.dataclass.resources import BusinessResourceMeta
+        from backend.iam_app.dataclass.roles import RoleEnum
+
+        display_resource_type_id = None
+        if role.get("id") in [RoleEnum.BIZ_READ_ONLY.id, RoleEnum.BIZ_MAINTAIN.id, RoleEnum.BIZ_DEVELOPER.id]:
+            display_resource_type_id = BusinessResourceMeta.id
         resource_type_ids = sorted(
             {action["resource_type_id"] for action in role.get("actions") or [] if action.get("resource_type_id")}
         )
         return [
-            {"related_resource_type_id": resource_type_id, "display_resource_type_id": resource_type_id}
+            {
+                "related_resource_type_id": resource_type_id,
+                "display_resource_type_id": display_resource_type_id or resource_type_id,
+            }
             for resource_type_id in resource_type_ids
         ]
 
