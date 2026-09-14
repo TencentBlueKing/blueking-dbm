@@ -26,7 +26,6 @@ func (c *SqlserverRPCEmbed) InitQueryParseCommands() []string {
 		"restore filelistonly",
 		"restore headeronly",
 		"dbcc inputbuffer",
-		"sp_helptext",
 	}
 }
 

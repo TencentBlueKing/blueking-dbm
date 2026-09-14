@@ -370,7 +370,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
             Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
         )
 
-        return Response(bill_proxy_conf_change(username=username, infos=infos))
+        return Response(bill_proxy_conf_change(username=username, infos=infos, is_safe=self.get_param("is_safe")))
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBHA 主从迁移单据（集群迁移/整机迁移，支持多行，每行一个集群 + 规格 + 数量 + 资源标签）""")),
@@ -487,7 +487,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
             [ClusterType.TenDBCluster],
         )
 
-        return Response(bill_spider_conf_change(username=username, infos=infos))
+        return Response(bill_spider_conf_change(username=username, infos=infos, is_safe=self.get_param("is_safe")))
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBCluster 集群容量变更单据（支持多行，每行一个集群 + 目标规格 + 机器组数 + 资源标签）""")),

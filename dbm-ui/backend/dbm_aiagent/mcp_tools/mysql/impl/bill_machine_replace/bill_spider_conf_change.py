@@ -32,7 +32,7 @@ SUPPORT_SPIDER_ROLES = [
 ]
 
 
-def bill_spider_conf_change(username: str, infos: List[dict]):
+def bill_spider_conf_change(username: str, infos: List[dict], is_safe: bool = True):
     """
     创建 TenDBCluster 接入层（spider）升降配单据，支持多行，每行一个集群：
     - cluster_domain: 集群域名
@@ -41,6 +41,7 @@ def bill_spider_conf_change(username: str, infos: List[dict]):
     - labels: 资源标签 ID 列表（可选）
 
     注意：升降配是整集群操作，同一集群只能出现一行（锁定单一 spider 角色）。
+    is_safe 为整单共用参数（安全模式，默认 True）。
     """
     if not infos:
         raise DBMMcpBaseException(msg=_("infos 不能为空"))
@@ -125,7 +126,7 @@ def bill_spider_conf_change(username: str, infos: List[dict]):
         "creator": username,
         "helpers": [],
         "details": {
-            "is_safe": False,
+            "is_safe": is_safe,
             "ip_source": IpSource.RESOURCE_POOL,
             "disable_manual_confirm": False,
             "infos": built_infos,
