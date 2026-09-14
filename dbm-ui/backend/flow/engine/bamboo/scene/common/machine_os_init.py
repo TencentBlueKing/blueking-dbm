@@ -551,7 +551,7 @@ class ImportResourceInitStepFlow(object):
         )
 
         # 转移模块到资源池
-        # 这里提前转移是可能海磊申请主机的业务≠资源池业务
+        # 这里提前转移是可能海磊申请主机的业务 ≠ 资源池业务
         p.add_act(
             act_name=_("主机纳管到资源池业务"),
             act_component_code=TransferHostServiceComponent.code,
@@ -562,6 +562,6 @@ class ImportResourceInitStepFlow(object):
             },
         )
 
-        # 资源池导入
+        # 资源池导入(资源池补充的单据固定是resource_biz，否则空闲检查可能有问题)
         self.__build_machine_import_pipeline(p, self.data)
         p.run_pipeline()
