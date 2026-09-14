@@ -18,12 +18,12 @@ urlpatterns = [
         include("backend.db_services.kubernetes.surrealdb.surrealdbsingle.urls"),
     ),
     path(
-        "bizs/<int:bk_biz_id>/vmstandard/",
-        include("backend.db_services.kubernetes.victoriametrics.victoriametricsstandard.urls"),
+        "bizs/<int:bk_biz_id>/vmcluster/",
+        include("backend.db_services.kubernetes.victoriametrics.victoriametricscluster.urls"),
     ),
     path(
-        "bizs/<int:bk_biz_id>/vmquery/",
-        include("backend.db_services.kubernetes.victoriametrics.victoriametricsquery.urls"),
+        "bizs/<int:bk_biz_id>/vmselect/",
+        include("backend.db_services.kubernetes.victoriametrics.victoriametricsselect.urls"),
     ),
     path("bizs/<int:bk_biz_id>/qdrantha/", include("backend.db_services.kubernetes.qdrant.urls")),
     path("", include("backend.db_services.kubernetes.surrealdb.toolbox.urls")),
