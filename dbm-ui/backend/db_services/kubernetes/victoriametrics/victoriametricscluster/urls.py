@@ -11,15 +11,15 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.kubernetes.victoriametrics.victoriametricsstandard.views import (
-    VictoriaMetricsStandardResourceViewSet,
+from backend.db_services.kubernetes.victoriametrics.victoriametricscluster.views import (
+    VictoriaMetricsClusterResourceViewSet,
 )
 
 router = DefaultRouter(trailing_slash=True)
 router.register(
-    r"vmstandard_resources",
-    VictoriaMetricsStandardResourceViewSet,
-    basename="vmstandard_resources",
+    r"vmcluster_resources",
+    VictoriaMetricsClusterResourceViewSet,
+    basename="vmcluster_resources",
 )
 
 urlpatterns = router.urls
