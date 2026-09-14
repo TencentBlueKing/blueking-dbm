@@ -377,11 +377,7 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 	ip := slaveDB.Host()
 	port := slaveDB.Port()
 
-	slaveStatus := SlaveStatusInfo{}
-	gdb1, cancel1 := switchcore.GormWithExecSqlTimeout(slaveDB)
-	defer cancel1()
-
-	err := gdb1.Raw("show slave status").Scan(&slaveStatus).Error
+	slaveStatus, err := DoShowSlaveStatus(slaveDB, checker.ReportLogf)
 	if err != nil {
 		return 0, gerrors.Newf(gerrors.Failure,
 			"failed to query slave status, slave: %s:%d, errmsg: %s", ip, port, err.Error())
