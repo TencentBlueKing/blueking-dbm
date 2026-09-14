@@ -12,36 +12,32 @@
  */
 
 import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
+import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
-import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
+const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/fixpoint_rollback`;
 
 /**
  * 通过日志平台获取集群备份记录
  */
 export function queryBackupLogFromBklog(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_bklog/`, params);
+  return http.get<BackupLogRecordModel[]>(`${getRootPath()}/query_backup_log_from_bklog/`, params);
 }
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
 export function queryBackupLogFromLoacal(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_local/`, params);
+  return http.get<BackupLogRecordModel[]>(`${getRootPath()}/query_backup_log_from_local/`, params);
 }
 
 /**
  * 获取集群列表
  */
 export function queryFixpointLog(params: { cluster_id: number; job_instance_id: number; rollback_time: string }) {
-  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params).then((data) => ({
+  return http.get<ListBase<FixpointLogModel[]>>(`${getRootPath()}/query_fixpoint_log/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new FixpointLogModel(item)),
   }));
@@ -51,45 +47,45 @@ export function queryFixpointLog(params: { cluster_id: number; job_instance_id: 
  * 获取定点构造记录
  */
 export function queryLatesBackupLog(params: {
+  backup_method?: string;
+  backup_source?: string;
   bk_biz_id: number;
   cluster_id: number;
   job_instance_id?: number;
   rollback_time: string;
-  backup_source?: string;
-  backup_method?: string;
 }) {
-  return http.get<BackupLogRecordModel>(`${path}/query_latest_backup_log/`, params);
+  return http.get<BackupLogRecordModel>(`${getRootPath()}/query_latest_backup_log/`, params);
 }
 
 /**
  * 获取最近备份记录
  */
 export function queryLatestTimeBackupLog(params: {
+  backup_method?: string;
+  backup_source?: string;
   bk_biz_id: number;
   cluster_id: number;
   deadlines_days?: number;
+  is_full_backup?: boolean;
   latest_time?: string;
-  backup_source?: string;
-  backup_method?: string;
   limit?: number;
   offset?: number;
-  is_full_backup?: boolean;
 }) {
-  return http.get<BackupLogRecordModel>(`${path}/latest_time_backup_log/`, params);
+  return http.get<BackupLogRecordModel>(`${getRootPath()}/latest_time_backup_log/`, params);
 }
 
 /**
  * 获取集群备份记录
  */
 export function queryBackupLogFromHandler(params: {
+  backup_method?: string; // 过滤备份类型
+  backup_source?: string; // 备份源
   cluster_id: number;
+  deadlines_days?: number; // 指定备份天数前数据
+  is_full_backup?: boolean; // 是否为全备
+  latest_time?: string; // 备份最迟时间
   limit?: number;
   offset?: number;
-  deadlines_days?: number; //指定备份天数前数据
-  latest_time?: string; //备份最迟时间
-  backup_method?: string; //过滤备份类型
-  is_full_backup?: boolean; //是否为全备
-  backup_source?: string; //备份源
 }) {
-  return http.get<Record<string, BackupLogRecordModel>>(`${path}/query_backup_log_from_handler/`, params);
+  return http.get<Record<string, BackupLogRecordModel>>(`${getRootPath()}/query_backup_log_from_handler/`, params);
 }

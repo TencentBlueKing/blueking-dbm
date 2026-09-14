@@ -10,32 +10,33 @@
 
 ## A 类：命中即修
 
-- [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md)
-  —— 用到 `DbForm` / `EditableTable` 的 `.validate()`，且返回值被当布尔判断
-- [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md)
-  —— `<BkPagination>` / `<DbPagination>` 只写了 `v-bind="pagination"`
-- [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md)
-  —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect` 传 `value` / 写选项 `value`
-- [语言包值里的字面花括号必须用 {'@'} 式转义](doc/locale-literal-brace.md)
-  —— 往 `src/locales/*.json` 的值写 `{` 字面量，或页面报 `Invalid token in placeholder`
+- [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
+  `.validate()`，且返回值被当布尔判断
+- [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md) —— `<BkPagination>` /
+  `<DbPagination>` 只写了 `v-bind="pagination"`
+- [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md) —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect`
+  传 `value` / 写选项 `value`
+- [语言包值里的字面花括号必须用 {'@'} 式转义](doc/locale-literal-brace.md) —— 往 `src/locales/*.json` 的值写 `{`
+  字面量，或页面报 `Invalid token in placeholder`
+- [K8s source 的 retrieve / topo / log / spec / toolbox 请求参数保持 camelCase](doc/k8s-source-camelcase-params.md)
+  —— 改 `src/services/source/qdrantHa.ts`、`surrealdbHa.ts`、`surrealdbSingle.ts`、`kubernetesToolbox.ts` 的请求参数名
 
 ## B 类：只报告，改法未定
 
-- `views/db-manage/common/{cluster,instance}-table/**`、任何新增表格列
-  —— [新增表格列不要再造一个宽度取值](doc/table-column-width.md)
-- 任何写 `shortcuts: [` 的地方
-  —— [时间范围快捷选项同目录共用一份常量](doc/datetime-range-shortcuts.md)
-- 做拖拽改宽度的面板、侧栏、弹窗
-  —— [可拖拽改宽度不要用 `table-detail-dialog/hooks/use-resize.ts`](doc/resize-panel-width.md)
-- `components/db-quick-search/**/value-menu/**`、`components/db-table/components/**`
-  —— [筛选下拉面板有两套同源拷贝](doc/filter-panel-fork.md)
+- `views/db-manage/common/{cluster,instance}-table/**`、任何新增表格列——
+  [新增表格列不要再造一个宽度取值](doc/table-column-width.md)
+- 任何写 `shortcuts: [` 的地方—— [时间范围快捷选项同目录共用一份常量](doc/datetime-range-shortcuts.md)
+- 做拖拽改宽度的面板、侧栏、弹窗——
+  [可拖拽改宽度不要用 `table-detail-dialog/hooks/use-resize.ts`](doc/resize-panel-width.md)
+- `components/db-quick-search/**/value-menu/**`、`components/db-table/components/**` ——
+  [筛选下拉面板有两套同源拷贝](doc/filter-panel-fork.md)
 - `components/ip-selector/components/CollapseTable.vue`、`db-manage/common/big-data-host-table/**`、
-  `db-manage/common/cluster-authorize/components/TargetInstances.vue`，或新写「折叠头部 + 本地分页表」
-  —— [折叠预览表有 5 份独立实现](doc/collapse-preview-table-fork.md)
-- `views/task-history/detail/**` 的重试 / 跳过 / 强制失败 / 确认继续
-  —— [任务流节点操作有四个独立入口](doc/node-operation-fork.md)
+  `db-manage/common/cluster-authorize/components/TargetInstances.vue`，或新写「折叠头部 + 本地分页表」——
+  [折叠预览表有 5 份独立实现](doc/collapse-preview-table-fork.md)
+- `views/task-history/detail/**` 的重试 / 跳过 / 强制失败 / 确认继续——
+  [任务流节点操作有四个独立入口](doc/node-operation-fork.md)
 
 ## 已下沉到工具，不用再扫
 
-- `setTimeout(..., 210)` 等标签输入失焦 → `eslint.config.mjs` 的 `no-restricted-syntax`，
-  报错信息指向 [doc/tag-input-blur-delay.md](doc/tag-input-blur-delay.md)
+- `setTimeout(..., 210)` 等标签输入失焦 → `eslint.config.mjs` 的 `no-restricted-syntax`，报错信息指向
+  [doc/tag-input-blur-delay.md](doc/tag-input-blur-delay.md)

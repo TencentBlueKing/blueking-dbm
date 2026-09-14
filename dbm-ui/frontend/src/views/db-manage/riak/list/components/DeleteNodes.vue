@@ -57,9 +57,8 @@
   import RiakModel from '@services/model/riak/riak';
   import RiakNodeModel from '@services/model/riak/riak-node';
   import { getRiakNodeList } from '@services/source/riak';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
+  import { useCreateTicket } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -87,7 +86,14 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.RIAK_CLUSTER_SCALE_IN, {
+    isToolbox: false,
+    onSuccess: () => {
+      emits('submitSuccess');
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   let selectedList: RiakNodeModel[] = [];
 
@@ -137,9 +143,8 @@
             footerAlign: 'center',
             headerAlign: 'center',
             onClose: () => reject(),
-            onConfirm: () => {
-              createTicket({
-                bk_biz_id: currentBizId,
+            onConfirm: async () => {
+              const ticketId = await createTicketRun({
                 details: {
                   bk_cloud_id: props.data.bk_cloud_id,
                   cluster_id: props.data.id,
@@ -151,12 +156,10 @@
                     })),
                   },
                 },
-                ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
-              }).then((createTicketResult) => {
-                ticketMessage(createTicketResult.id);
-                emits('submitSuccess');
-                resolve(true);
               });
+              const isSuccess = Boolean(ticketId);
+              resolve(isSuccess);
+              return isSuccess;
             },
             subTitle: (
               <>

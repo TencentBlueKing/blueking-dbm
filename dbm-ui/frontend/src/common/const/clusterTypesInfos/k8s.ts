@@ -7,7 +7,7 @@ import { type ClusterTypeInfo } from './index';
 
 export const k8s: ClusterTypeInfo = {
   [ClusterTypes.K8S_QDRANT_HA]: {
-    dbType: DBTypes.K8S_QRRANT,
+    dbType: DBTypes.K8S_QDRANT,
     id: ClusterTypes.K8S_QDRANT_HA,
     listRouteName: 'QdrantHaList',
     machineList: [],

@@ -131,10 +131,9 @@
   import { useI18n } from 'vue-i18n';
 
   import RiakModel from '@services/model/riak/riak';
-  import { createTicket } from '@services/source/ticket';
   import type { HostInfo } from '@services/types';
 
-  import { useTicketMessage } from '@hooks';
+  import { useCreateTicket } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -160,7 +159,14 @@
 
   const { t } = useI18n();
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
-  const ticketMessage = useTicketMessage();
+
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.RIAK_CLUSTER_SCALE_OUT, {
+    isToolbox: false,
+    onSuccess: () => {
+      emits('submitSuccess');
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   const formRules = {
     nodes: [
@@ -210,12 +216,10 @@
 
       const { ip_source: ipSource } = formData;
       const params = {
-        bk_biz_id: currentBizId,
         details: {
           cluster_id: props.data.id,
           ip_source: 'resource_pool',
         },
-        ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_OUT,
       };
 
       if (ipSource === 'resource_pool') {
@@ -245,10 +249,7 @@
         });
       }
 
-      return createTicket(params).then((createTicketResult) => {
-        ticketMessage(createTicketResult.id);
-        emits('submitSuccess');
-      });
+      return Boolean(await createTicketRun(params));
     },
   });
 </script>

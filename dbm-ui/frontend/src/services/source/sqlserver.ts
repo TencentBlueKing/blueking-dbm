@@ -16,38 +16,38 @@ import SqlserverBackupLogModel from '@services/model/sqlserver/backup-log';
 
 import http from '../http';
 
-const path = `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}`;
+const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}`;
 
 /**
  * 判断库名是否在集群存在
  */
 export function checkSqlserverDbExist(params: { cluster_id: number; db_list: string[] }) {
-  return http.post<Record<string, boolean>>(`${path}/cluster/check_sqlserver_db_exist/`, params);
+  return http.post<Record<string, boolean>>(`${getRootPath()}/cluster/check_sqlserver_db_exist/`, params);
 }
 
 /**
  * 通过库表匹配查询db
  */
 export function getSqlserverDbs(params: { cluster_id: number; db_list: string[]; ignore_db_list: string[] }) {
-  return http.post<string[]>(`${path}/cluster/get_sqlserver_dbs/`, params);
+  return http.post<string[]>(`${getRootPath()}/cluster/get_sqlserver_dbs/`, params);
 }
 
 /**
  * 获取业务拓扑树
  */
 export function geSqlserverResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`${getRootPath()}/resource_tree/`, params);
 }
 
 // 通过库表匹配批量查询db
 export function getBatchSqlserverDbs(params: { cluster_ids: number[]; db_list: string[]; ignore_db_list: string[] }) {
-  return http.post<Record<string, string[]>>(`${path}/cluster/multi_get_dbs_for_drs/`, params);
+  return http.post<Record<string, string[]>>(`${getRootPath()}/cluster/multi_get_dbs_for_drs/`, params);
 }
 
 // 导入构造DB数据
 export function importDbStruct(params: FormData) {
   return http.post<Record<'db_name' | 'target_db_name' | 'rename_db_name', string>[]>(
-    `${path}/cluster/import_db_struct/`,
+    `${getRootPath()}/cluster/import_db_struct/`,
     params,
   );
 }
@@ -55,7 +55,7 @@ export function importDbStruct(params: FormData) {
 // 根据时间范围查询集群备份记录
 export function queryBackupLogs(params: { cluster_id: number; days?: number; end_time?: string }) {
   return http
-    .post<SqlserverBackupLogModel[]>(`${path}/rollback/query_backup_logs/`, params)
+    .post<SqlserverBackupLogModel[]>(`${getRootPath()}/rollback/query_backup_logs/`, params)
     .then((data) => data.map((item) => new SqlserverBackupLogModel(item)));
 }
 
@@ -69,12 +69,12 @@ export function queryDbsByBackupLog(params: {
   ignore_db: string[];
   restore_time?: string;
 }) {
-  return http.post<string[]>(`${path}/rollback/query_dbs_by_backup_log/`, params);
+  return http.post<string[]>(`${getRootPath()}/rollback/query_dbs_by_backup_log/`, params);
 }
 
 // 根据回档时间集群最近备份记录
 export function queryLatestBackupLog(params: { cluster_id: number; rollback_time: string }) {
   return http
-    .post<SqlserverBackupLogModel>(`${path}/rollback/query_latest_backup_log/`, params)
+    .post<SqlserverBackupLogModel>(`${getRootPath()}/rollback/query_latest_backup_log/`, params)
     .then((data) => new SqlserverBackupLogModel(data));
 }

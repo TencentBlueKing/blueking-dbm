@@ -12,6 +12,8 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
+import { registerBusinessModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -30,5 +32,7 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export default function getRoutes() {
-  return checkDbConsole('globalConfigManage.rotationManage') ? routes : [];
+  if (checkDbConsole('globalConfigManage.rotationManage')) {
+    registerBusinessModule(routes);
+  }
 }

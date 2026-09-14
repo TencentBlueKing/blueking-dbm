@@ -15,18 +15,18 @@
   <RenderCom :ticket-details="ticketDetails" />
 </template>
 <script setup lang="ts">
-  import TicketModel, { type Es } from '@services/model/ticket/ticket';
+  import TicketModel, { type Doris } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   import RenderCom from '../common/bigdata/scale-up-&-shrink/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Es.ScaleUp>;
+    ticketDetails: TicketModel<Doris.ScaleUp>;
   }
 
   defineOptions({
-    name: TicketTypes.ES_SCALE_UP,
+    name: TicketTypes.DORIS_SCALE_UP,
     inheritAttrs: false,
   });
 

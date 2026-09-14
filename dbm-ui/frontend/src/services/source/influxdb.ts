@@ -14,19 +14,15 @@
 import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/bigdata/bizs/${currentBizId}/influxdb/influxdb_resources`;
+const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/influxdb/influxdb_resources`;
 
 /**
  * 获取实例列表
  */
 export function getInfluxdbInstanceList(params: { bk_biz_id: number } & Record<string, any>) {
-  return http.get<ListBase<InfluxdbInstanceModel[]>>(`${path}/list_instances/`, params).then((res) => ({
+  return http.get<ListBase<InfluxdbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
     ...res,
     results: res.results.map((item: InfluxdbInstanceModel) => new InfluxdbInstanceModel(item)),
   }));
@@ -37,7 +33,7 @@ export function getInfluxdbInstanceList(params: { bk_biz_id: number } & Record<s
  */
 export function retrieveInfluxdbInstance(params: { bk_biz_id: number; instance_address: string }) {
   return http
-    .get<InfluxdbInstanceModel>(`${path}/retrieve_instance/`, params)
+    .get<InfluxdbInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
     .then((data) => new InfluxdbInstanceModel(data));
 }
 
@@ -45,12 +41,12 @@ export function retrieveInfluxdbInstance(params: { bk_biz_id: number; instance_a
  * 导出集群数据为 excel 文件
  */
 export function exportInfluxdbClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportInfluxdbInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }

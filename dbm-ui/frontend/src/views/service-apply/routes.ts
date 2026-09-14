@@ -12,7 +12,7 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import { registerBusinessModule } from '@router';
+import { registerBusinessModule, registerModule } from '@router';
 
 import { DBTypes, TicketTypes } from '@common/const';
 
@@ -58,13 +58,14 @@ const routes: RouteRecordRaw[] = [
       createApplyRoute(DBTypes.DORIS, TicketTypes.DORIS_APPLY, t('申请Doris集群部署')),
       createApplyRoute(DBTypes.K8S_SURREALDB, TicketTypes.K8S_SURREALDB_HA_APPLY, t('申请 SurrealDB 集群部署')),
       createApplyRoute(DBTypes.K8S_SURREALDB, TicketTypes.K8S_SURREALDB_SINGLE_APPLY, t('申请 SurrealDB 单节点部署')),
-      createApplyRoute(DBTypes.K8S_QRRANT, TicketTypes.K8S_QDRANT_HA_APPLY, t('申请 Qdrant 集群部署')),
+      createApplyRoute(DBTypes.K8S_QDRANT, TicketTypes.K8S_QDRANT_HA_APPLY, t('申请 Qdrant 集群部署')),
     ],
   },
 ];
 
 export default function getRoutes() {
   if (checkDbConsole('personalWorkbench.serviceApply')) {
+    registerModule(routes);
     registerBusinessModule([
       {
         path: 'service-apply',
@@ -88,6 +89,4 @@ export default function getRoutes() {
       },
     ]);
   }
-
-  return checkDbConsole('personalWorkbench.serviceApply') ? routes : [];
 }
