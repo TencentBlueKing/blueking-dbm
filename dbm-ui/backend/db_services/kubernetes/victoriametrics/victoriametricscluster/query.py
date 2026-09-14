@@ -19,6 +19,25 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.kubernetes.victoriametrics.query import VictoriaMetricsBaseListRetrieveResource
+from backend.exceptions import AppBaseException
+from backend.flow.utils.k8s_db.vm.consts import (
+    COMPONENT_VMINSERT,
+    COMPONENT_VMSELECT,
+    VMINSERT_SERVICE_NAME,
+    VMSELECT_SERVICE_NAME,
+)
+
+# CLB ID 标注键，按优先级排序
+CLB_ID_ANNOTATION_KEYS = [
+    "service.kubernetes.io/tke-existed-lbid",
+    "service.kubernetes.io/loadbalance-id",
+]
+
+# 源 Service：组件名 -> 暴露的 Service 名（完整名为 {cluster_name}-{component_name}-{service_name}）
+SOURCE_SERVICE_NAMES = {
+    COMPONENT_VMINSERT: VMINSERT_SERVICE_NAME,
+    COMPONENT_VMSELECT: VMSELECT_SERVICE_NAME,
+}
 
 
 @register_resource_decorator()
@@ -129,3 +148,105 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
 
         clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, name__in=cluster_name_list).only("id", "name")
         return {cluster.name: cluster.id for cluster in clusters}
+
+    @classmethod
+    def set_vmstorage_clb_enabled(cls, bk_biz_id: int, cluster_id: int, enable: bool, bk_username: str) -> dict:
+        """启用/停用 vmstorage 实例级 CLB 暴露，返回 DBS 处理结果"""
+        cluster = cls.get_cluster(bk_biz_id, cluster_id)
+        context = cls.get_cluster_context(cluster)
+        load_balancer_id = cls.get_source_load_balancer(context)
+        return KubernetesApi.expose_instance(
+            {
+                "dbmClusterId": cluster_id,
+                "k8sClusterName": context["k8s_cluster_name"],
+                "clusterName": context["cluster_name"],
+                "namespace": context["namespace"],
+                "enable": enable,
+                "loadBalancerId": load_balancer_id,
+                "bk_username": bk_username,
+            }
+        )
+
+    @classmethod
+    def get_cluster(cls, bk_biz_id: int, cluster_id: int) -> Cluster:
+        """校验集群存在且属于当前业务，且为 VM 标准集群（查询版集群无 vmstorage 组件）"""
+        try:
+            cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        except Cluster.DoesNotExist:
+            raise AppBaseException(_("集群不存在"))
+        if cluster.cluster_type != ClusterType.K8sVictoriametricsCluster.value:
+            raise AppBaseException(_("该操作仅支持 K8s VictoriaMetrics 标准集群"))
+        return cluster
+
+    @classmethod
+    def get_cluster_context(cls, cluster: Cluster) -> dict:
+        """通过 DBS 元数据获取集群身份并交叉校验
+
+        :return: {"k8s_cluster_name", "cluster_name", "namespace"}
+        """
+        detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True) or {}
+        if detail.get("clusterName") != cluster.name:
+            raise AppBaseException(_("集群元数据校验失败，请确认集群是否正常"))
+
+        context = {
+            "k8s_cluster_name": (detail.get("k8sClusterConfig") or {}).get("clusterName"),
+            "cluster_name": detail.get("clusterName"),
+            "namespace": detail.get("namespace"),
+        }
+        if not all(context.values()):
+            raise AppBaseException(_("集群元数据信息不完整，请联系管理员"))
+        return context
+
+    @classmethod
+    def get_source_load_balancer(cls, context: dict) -> str:
+        """从 vminsert-clb / vmselect-clb 两个源 Service 提取共享 CLB ID 并互验一致"""
+        response = (
+            KubernetesApi.cluster_services(
+                {
+                    "k8sClusterName": context["k8s_cluster_name"],
+                    "clusterName": context["cluster_name"],
+                    "namespace": context["namespace"],
+                },
+                use_admin=True,
+            )
+            or {}
+        )
+        component_services = response.get("componentServices") or []
+
+        load_balancer_ids = [
+            cls.extract_component_load_balancer(
+                component_services, component_name, f"{context['cluster_name']}-{component_name}-{service_name}"
+            )
+            for component_name, service_name in SOURCE_SERVICE_NAMES.items()
+        ]
+
+        if not all(load_balancer_ids):
+            raise AppBaseException(_("vminsert/vmselect CLB 尚未就绪，请稍后重试"))
+        if len(set(load_balancer_ids)) != 1:
+            raise AppBaseException(_("源 CLB 信息异常，请联系管理员"))
+        return load_balancer_ids[0]
+
+    @classmethod
+    def extract_component_load_balancer(
+        cls, component_services: list, component_name: str, expected_service_name: str
+    ) -> str:
+        """定位指定组件的源 Service，并从 annotations 提取 CLB ID；找不到时返回空字符串"""
+        for component in component_services:
+            if component.get("componentName") != component_name:
+                continue
+            for external_service in component.get("externalServiceInfo") or []:
+                if external_service.get("serviceName") != expected_service_name:
+                    continue
+                return cls.extract_load_balancer_id(external_service.get("annotations") or {})
+        return ""
+
+    @classmethod
+    def extract_load_balancer_id(cls, annotations: dict) -> str:
+        """按优先级从 annotations 提取 CLB ID；两个 key 同时存在且不一致时视为冲突，不猜测"""
+        values = {key: annotations[key] for key in CLB_ID_ANNOTATION_KEYS if annotations.get(key)}
+        if len(set(values.values())) > 1:
+            raise AppBaseException(_("源 CLB 信息异常，请联系管理员"))
+        for key in CLB_ID_ANNOTATION_KEYS:
+            if annotations.get(key):
+                return annotations[key]
+        return ""
