@@ -48,9 +48,5 @@ func (c *PrivTaskPara) fetchTargetDBMetaInfo() ([]*service.Instance, error) {
 		)
 		return nil, err
 	}
-	//slog.Info(
-	//	"fetch target detail",
-	//	slog.String("res", fmt.Sprintf("%+v", res)),
-	//)
 	return res, nil
 }
