@@ -253,7 +253,7 @@ class DBTypeResourceMeta(ResourceMeta):
 
     system_id: str = BK_IAM_SYSTEM_ID
     id: str = "dbtype"
-    name: str = _("DB类型")
+    name: str = _("全局DB类型")
     selection_mode: str = "instance"
     lookup_field: str = "db_type"
 

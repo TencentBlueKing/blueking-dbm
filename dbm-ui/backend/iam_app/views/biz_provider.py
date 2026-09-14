@@ -51,7 +51,7 @@ class BusinessResourceProvider(BaseModelResourceProvider):
         global_biz = self.get_global_biz()
         keyword = filter.get("search") or filter.get("keyword")
         if page.offset == 0 and (not keyword or keyword in global_biz["display_name"]):
-            result.results.insert(0, global_biz)
+            result.results.append(global_biz)
             result.count += 1
         return result
 
