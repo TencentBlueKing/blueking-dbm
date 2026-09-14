@@ -18,13 +18,9 @@ import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 import MongodbMachineModel from '@services/model/mongodb/mongodb-machine';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import type { ClusterTypes } from '@common/const';
 
 import http from '../http';
-
-const { currentBizId } = useGlobalBizs();
 
 const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/mongodb_resources`;
 
@@ -105,9 +101,16 @@ export function getMongoTopoList(params: {
   region?: string;
   version?: string;
 }) {
-  return http
-    .get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params)
-    .then((data) => data.results.map((item) => new MongodbModel(item)));
+  return http.get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params).then((data) =>
+    data.results.map(
+      (item) =>
+        new MongodbModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  );
 }
 
 /**
@@ -218,7 +221,7 @@ export function exportMongodbInstanceToExcel(params: { bk_host_ids?: number[] })
  * 获取业务拓扑树
  */
 export function getMongoDBResourceTree(params: { cluster_type: ClusterTypes }) {
-  return http.get<BizConfTopoTreeModel[]>(`/apis/mongodb/bizs/${currentBizId}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }
 
 /**
@@ -226,7 +229,7 @@ export function getMongoDBResourceTree(params: { cluster_type: ClusterTypes }) {
  */
 export function getRelatedClustersByClusterIds(params: { cluster_ids: number[] }) {
   return http.post<RelatedCluster[]>(
-    `/apis/mongodb/bizs/${currentBizId}/cluster/find_related_clusters_by_cluster_ids/`,
+    `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/cluster/find_related_clusters_by_cluster_ids/`,
     params,
   );
 }

@@ -14,11 +14,9 @@
 import DumperModel from '@services/model/dumper/dumper';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http, { type IRequestPayload } from '../http';
 
-const { currentBizId } = useGlobalBizs();
+const getBizPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}`;
 
 interface DumperConfig {
   add_type: string;
@@ -63,49 +61,49 @@ export function listDumperConfig(
         };
       }[]
     >
-  >(`/apis/mysql/bizs/${currentBizId}/dumper_config/`, params, payload);
+  >(`${getBizPath()}/dumper_config/`, params, payload);
 }
 
 /**
  * 新建数据订阅配置
  */
 export const createDumperConfig = function (params: Omit<DumperConfig, 'id'>) {
-  return http.post<any>(`/apis/mysql/bizs/${currentBizId}/dumper_config/`, params);
+  return http.post<any>(`${getBizPath()}/dumper_config/`, params);
 };
 
 /**
  * 校验订阅配置是否重名
  */
 export function verifyDuplicateName(params: { name: string }) {
-  return http.get<any>(`/apis/mysql/bizs/${currentBizId}/dumper_config/verify_duplicate_name/`, params);
+  return http.get<any>(`${getBizPath()}/dumper_config/verify_duplicate_name/`, params);
 }
 
 /**
  * 数据订阅配置详情
  */
 export function getDumperConfigDetail(params: { id: number }, payload = {} as IRequestPayload) {
-  return http.get<DumperConfig>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, {}, payload);
+  return http.get<DumperConfig>(`${getBizPath()}/dumper_config/${params.id}/`, {}, payload);
 }
 
 /**
  * 更新数据订阅配置
  */
 export function updateDumperConfig(params: DumperConfig) {
-  return http.put<DumperConfig>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, params);
+  return http.put<DumperConfig>(`${getBizPath()}/dumper_config/${params.id}/`, params);
 }
 
 /**
  * 更新部分数据订阅配置
  */
 export function updateDumperConfigPartial(params: Partial<DumperConfig>) {
-  return http.patch<DumperConfig>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, params);
+  return http.patch<DumperConfig>(`${getBizPath()}/dumper_config/${params.id}/`, params);
 }
 
 /**
  * 删除数据订阅配置
  */
 export function deleteDumperConfig(params: { id: number }) {
-  return http.delete<null>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, params);
+  return http.delete<null>(`${getBizPath()}/dumper_config/${params.id}/`, params);
 }
 
 /**
@@ -119,15 +117,13 @@ export function listDumperInstance(params: {
   source_cluster?: string;
   start_time?: string;
 }) {
-  return http
-    .get<ListBase<DumperModel[]>>(`/apis/mysql/bizs/${currentBizId}/dumper_instance/`, params)
-    .then((data) => ({
-      ...data,
-      results: data.results.map((item) => new DumperModel(item)),
-    }));
+  return http.get<ListBase<DumperModel[]>>(`${getBizPath()}/dumper_instance/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new DumperModel(item)),
+  }));
 }
 
 // 查询dumper配置正在运行的任务
 export function getRunningTaskList(params: { dumper_config_id: number }) {
-  return http.get<number[]>(`/apis/mysql/bizs/${currentBizId}/dumper_config/get_running_tasks/`, params);
+  return http.get<number[]>(`${getBizPath()}/dumper_config/get_running_tasks/`, params);
 }

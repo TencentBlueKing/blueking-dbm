@@ -79,8 +79,11 @@ export const getSurrealdbSingleInstanceList = function (params: {
  */
 export const retrieveSurrealdbSingleInstanceDetail = function (params: {
   cluster_id: number;
+  /** K8s 后端约定，保持 camelCase */
   clusterName: string;
+  /** K8s 后端约定，保持 camelCase */
   componentName: string;
+  /** K8s 后端约定，保持 camelCase */
   k8sClusterName: string;
   namespace: string;
   podName: string;
@@ -118,6 +121,7 @@ export function exportSurrealdbSingleInstanceToExcel(params: { bk_host_ids?: num
 
 /**
  * 获取集群拓扑
+ * k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export function getSurrealdbSingleTopoGraph(params: { cluster_id: number; k8sClusterName: string; namespace: string }) {
   return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`, params);
@@ -125,6 +129,7 @@ export function getSurrealdbSingleTopoGraph(params: { cluster_id: number; k8sClu
 
 /**
  * 获取集群操作日志接口
+ * clusterName / k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export const getSurrealdbSingleOperationLog = function (params: {
   bk_biz_id: number;
@@ -149,6 +154,7 @@ export const getSurrealdbSingleOperationLog = function (params: {
 
 /**
  * 获取集群操作日志接口
+ * clusterName / k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export const getSurrealdbOperationLog = function (params: {
   clusterName: string;
@@ -170,6 +176,7 @@ export const getSurrealdbOperationLog = function (params: {
 
 /**
  * 获取集群组件规格
+ * clusterName / k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export const getSurrealdbSingleComponentSpec = function (params: {
   clusterName: string;

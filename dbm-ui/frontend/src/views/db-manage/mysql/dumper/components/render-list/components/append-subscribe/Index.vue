@@ -80,18 +80,15 @@
   import { useI18n } from 'vue-i18n';
 
   import { listDumperConfig } from '@services/source/dumper';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useBeforeClose, useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useBeforeClose, useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
   import ReceiverData from '@views/db-manage/mysql/dumper/components/create-rule/components/receiver-data/Index.vue';
 
   interface Props {
-    data: DumperConfig | null;
+    data?: DumperConfig | null;
   }
 
   interface Emits {
@@ -109,8 +106,15 @@
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
-  const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.TBINLOGDUMPER_INSTALL, {
+    isToolbox: false,
+    onSuccess: () => {
+      emits('success');
+      isShow.value = false;
+      window.changeConfirm = false;
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   const receiverDataRef = ref();
   const deployPlace = ref('master');
@@ -124,25 +128,16 @@
     }
     const infos = await receiverDataRef.value.getValue();
     const params = {
-      bk_biz_id: currentBizId,
       details: {
         add_type: syncType.value,
         infos,
         name: props.data.name,
         repl_tables: props.data.repl_tables,
       },
-      remark: '',
-      ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
     };
     isSubmitting.value = true;
     try {
-      const data = await createTicket(params);
-      if (data.id) {
-        ticketMessage(data.id);
-        emits('success');
-        isShow.value = false;
-      }
-      window.changeConfirm = false;
+      await createTicketRun(params);
     } finally {
       isSubmitting.value = false;
     }

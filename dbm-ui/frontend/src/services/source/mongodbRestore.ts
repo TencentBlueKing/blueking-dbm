@@ -13,8 +13,6 @@
 import MongodbRollbackRecordModel from '@services/model/mongodb/mongodb-rollback-record';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import type { ClusterTypes } from '@common/const';
 
 import http from '../http';
@@ -54,9 +52,7 @@ interface ClusterBackupLog {
   total_file_num: number;
 }
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mongodb/bizs/${currentBizId}/restore`;
+const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/restore`;
 
 /**
  * 查询定点构造记录
@@ -68,15 +64,17 @@ export function queryRestoreRecord(params: {
   limit?: number;
   offset?: number;
 }) {
-  return http.get<ListBase<MongodbRollbackRecordModel[]>>(`${path}/query_restore_record/`, params).then((data) => ({
-    ...data,
-    results: data.results.map((item) => new MongodbRollbackRecordModel(item)),
-  }));
+  return http
+    .get<ListBase<MongodbRollbackRecordModel[]>>(`${getRootPath()}/query_restore_record/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map((item) => new MongodbRollbackRecordModel(item)),
+    }));
 }
 
 /**
  * 获取集群备份记录
  */
 export function queryClustersBackupLog(params: { cluster_ids: number[]; cluster_type: ClusterTypes }) {
-  return http.post<Record<number, ClusterBackupLog[]>>(`${path}/query_clusters_backup_log/`, params);
+  return http.post<Record<number, ClusterBackupLog[]>>(`${getRootPath()}/query_clusters_backup_log/`, params);
 }

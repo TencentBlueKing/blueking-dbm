@@ -14,9 +14,7 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { createTicket } from '@services/source/ticket';
-
-import { useTicketMessage } from '@hooks';
+import { useCreateTicket } from '@hooks';
 
 import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -74,7 +72,14 @@ export const useOperateClusterBatch = <T extends ClusterCommon>(
   options: OperateClusterBatchOptions<T>,
 ) => {
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<{ cluster_id?: number; cluster_ids?: number[] }>(undefined, {
+    isToolbox: false,
+    onSuccess: () => {
+      isShow.value = false;
+      options.onSuccess();
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   // 除 大数据 和 redis集群 暂未支持，其余都已支持批量提单
   const batchOperateTicketTypeList: string[] = [
@@ -188,14 +193,9 @@ export const useOperateClusterBatch = <T extends ClusterCommon>(
   const ticketTypeInfo = ticketTypeMap[clusterType];
 
   const handleConfirm = (ticketType: TicketTypes, dataList: { id: number }[]) => {
-    createTicket({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    createTicketRun({
       details: getDetailParam(ticketType, dataList),
       ticket_type: ticketType,
-    }).then((data) => {
-      isShow.value = false;
-      options.onSuccess();
-      ticketMessage(data.id);
     });
   };
 

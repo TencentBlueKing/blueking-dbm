@@ -16,6 +16,8 @@
   —— `<BkPagination>` / `<DbPagination>` 只写了 `v-bind="pagination"`
 - [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md)
   —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect` 传 `value` / 写选项 `value`
+- [K8s source 的 retrieve / topo / log / spec / toolbox 请求参数保持 camelCase](doc/k8s-source-camelcase-params.md)
+  —— 改 `src/services/source/qdrantHa.ts`、`surrealdbHa.ts`、`surrealdbSingle.ts`、`kubernetesToolbox.ts` 的请求参数名
 
 ## B 类：只报告，改法未定
 
