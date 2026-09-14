@@ -33,11 +33,80 @@ def test_agent_check_config_rejects_unsafe_producer_values(raw):
         RedisAgentCheckConfig.validate_raw(raw)
 
 
+class _FakeClusterQuerySet:
+    def __init__(self, candidate_ids):
+        self.candidate_ids = list(candidate_ids)
+        self.excluded_ids = set()
+        self.gt = None
+        self.domains = None
+
+    def exclude(self, **kwargs):
+        self.excluded_ids.update(kwargs.get("id__in", set()))
+        return self
+
+    def filter(self, **kwargs):
+        if "id__gt" in kwargs:
+            self.gt = kwargs["id__gt"]
+        if "immute_domain__in" in kwargs:
+            self.domains = set(kwargs["immute_domain__in"])
+        return self
+
+    def order_by(self, *_args):
+        return self
+
+    def values_list(self, *args, **_kwargs):
+        alive = [
+            cid for cid in self.candidate_ids if cid not in self.excluded_ids and (self.gt is None or cid > self.gt)
+        ]
+        if args == ("immute_domain", "id"):
+            return [
+                (f"cluster-{cid}.db", cid)
+                for cid in alive
+                if self.domains is None or f"cluster-{cid}.db" in self.domains
+            ]
+        return alive
+
+
 class TestRedisClusterSelector:
     _CLUSTER = "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.redis_adapter.Cluster"
     _CLUSTER_OPERATE_RECORD = (
         "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.redis_adapter.ClusterOperateRecord"
     )
+
+    @staticmethod
+    def _create_report(selector, cluster_id, msg, created_at, state, report_day=None):
+        from backend.db_report.models import RedisCheckReport
+        from backend.db_report.repo.task_record_repo import get_report_day_from_time
+
+        report = RedisCheckReport.objects.create(
+            cluster_id=cluster_id,
+            subtype=selector.subtype.value,
+            report_day=report_day if report_day is not None else get_report_day_from_time(created_at),
+            cluster=f"cluster-{cluster_id}.db",
+            cluster_type="TwemproxyRedisInstance",
+            bk_biz_id=1001,
+            bk_cloud_id=0,
+            shard="all",
+            instance="all",
+            status=True,
+            state=state,
+            msg=msg,
+            creator="",
+            updater="",
+        )
+        RedisCheckReport.objects.filter(id=report.id).update(create_at=created_at, update_at=created_at)
+        return report
+
+    def _patch_cluster_qs(self, candidate_ids):
+        def _filter_side_effect(*_args, **kwargs):
+            if "id__in" in kwargs:
+                ids = kwargs["id__in"]
+                domain_qs = MagicMock()
+                domain_qs.values_list.return_value = [(cid, f"cluster-{cid}.db") for cid in ids]
+                return domain_qs
+            return _FakeClusterQuerySet(candidate_ids=candidate_ids)
+
+        return _filter_side_effect
 
     @pytest.mark.django_db
     def test_skip_reports_use_normal_window(self, redis_adapter, base):
@@ -47,7 +116,6 @@ class TestRedisClusterSelector:
 
         from backend.db_report.enums import ReportStateType
         from backend.db_report.enums.redis_sub_type import RedisCheckSubType
-        from backend.db_report.models import RedisCheckReport
 
         config = base.RedisAgentCheckConfig(
             enabled=True,
@@ -61,84 +129,156 @@ class TestRedisClusterSelector:
             task_key="test.fake",
         )
 
-        class _FakeClusterQuerySet:
-            def __init__(self, candidate_ids):
-                self.candidate_ids = list(candidate_ids)
-                self.excluded_ids = set()
-                self.gt = None
-
-            def exclude(self, **kwargs):
-                self.excluded_ids.update(kwargs.get("id__in", set()))
-                return self
-
-            def filter(self, **kwargs):
-                if "id__gt" in kwargs:
-                    self.gt = kwargs["id__gt"]
-                return self
-
-            def order_by(self, *_args):
-                return self
-
-            def values_list(self, *_args, **_kwargs):
-                return [
-                    cid
-                    for cid in self.candidate_ids
-                    if cid not in self.excluded_ids and (self.gt is None or cid > self.gt)
-                ]
-
-        def _create_report(cluster_id, msg, created_at, state=ReportStateType.NORMAL.value):
-            report = RedisCheckReport.objects.create(
-                cluster_id=cluster_id,
-                subtype=selector.subtype.value,
-                report_day=int(created_at.strftime("%Y%m%d")),
-                cluster=f"cluster-{cluster_id}.db",
-                cluster_type="TwemproxyRedisInstance",
-                bk_biz_id=1001,
-                bk_cloud_id=0,
-                shard="all",
-                instance="all",
-                status=True,
-                state=state,
-                msg=msg,
-                creator="",
-                updater="",
-            )
-            RedisCheckReport.objects.filter(id=report.id).update(create_at=created_at, update_at=created_at)
-
         now = timezone.now()
-        _create_report(
+        self._create_report(
+            selector,
             1,
             f"{base.SKIP_REPORT_MSG_PREFIX} maxmemory-policy=allkeys-lru enables eviction",
             now,
+            ReportStateType.NORMAL.value,
         )
-        _create_report(
+        self._create_report(
+            selector,
             2,
             f"{base.SKIP_REPORT_MSG_PREFIX} maxmemory-policy=volatile-lru enables eviction",
             now - timedelta(hours=25),
+            ReportStateType.NORMAL.value,
         )
-        _create_report(3, "agent reported no capacity growth risk", now - timedelta(hours=25))
+        self._create_report(
+            selector,
+            3,
+            "agent reported no capacity growth risk",
+            now - timedelta(hours=25),
+            ReportStateType.NORMAL.value,
+        )
 
-        fake_cluster_qs = _FakeClusterQuerySet(candidate_ids=[1, 2, 3, 4])
-
-        def _filter_side_effect(*_args, **kwargs):
-            if "id__in" in kwargs:
-                ids = kwargs["id__in"]
-                domain_qs = MagicMock()
-                domain_qs.values_list.return_value = [(cid, f"cluster-{cid}.db") for cid in ids]
-                return domain_qs
-            return fake_cluster_qs
+        filter_side_effect = self._patch_cluster_qs([1, 2, 3, 4])
 
         with (
             patch(self._CLUSTER) as cluster_cls,
             patch(self._CLUSTER_OPERATE_RECORD) as operate_record_cls,
         ):
-            cluster_cls.objects.filter.side_effect = _filter_side_effect
+            cluster_cls.objects.filter.side_effect = filter_side_effect
             operate_record_cls.objects.filter.return_value.filter.return_value.values_list.return_value = []
 
             clusters, next_cursor = selector.select_rotation(cursor=0, limit=10)
             assert [t["cluster_id"] for t in clusters] == [4]
             # id space exhausted after cluster 4 -> cursor wraps for the next run
             assert next_cursor == 0
+
+    @pytest.mark.django_db
+    def test_recently_checked_uses_shanghai_calendar_day(self, redis_adapter, base):
+        from datetime import datetime
+        from datetime import timezone as dt_timezone
+
+        from backend.db_report.enums import ReportStateType
+        from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+        from backend.db_report.repo.task_record_repo import get_report_day_from_time
+
+        now = datetime(2026, 9, 10, 16, 30, tzinfo=dt_timezone.utc)
+        selector = redis_adapter.RedisClusterSelector(
+            base.RedisAgentCheckConfig(enabled=True, recent_check_mode="calendar_day"),
+            RedisCheckSubType.ClusterCapacityGrowthRisk,
+            task_key="test.fake",
+        )
+        self._create_report(
+            selector,
+            101,
+            "warning",
+            now,
+            ReportStateType.WARNING.value,
+        )
+        self._create_report(
+            selector,
+            102,
+            "before shanghai midnight",
+            datetime(2026, 9, 10, 14, 0, tzinfo=dt_timezone.utc),
+            ReportStateType.WARNING.value,
+        )
+        self._create_report(
+            selector,
+            103,
+            "stale report_day",
+            now,
+            ReportStateType.WARNING.value,
+            report_day=20260910,
+        )
+        assert get_report_day_from_time(now) == 20260911
+        assert int(now.strftime("%Y%m%d")) == 20260910
+        checked = selector._build_recently_checked_ids(now)
+        assert {101, 103}.issubset(checked)
+        assert 102 not in checked
+
+    @pytest.mark.django_db
+    def test_rotation_skips_warning_checked_today(self, redis_adapter, base):
+        from django.utils import timezone
+
+        from backend.db_report.enums import ReportStateType
+        from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+
+        now = timezone.now()
+        selector = redis_adapter.RedisClusterSelector(
+            base.RedisAgentCheckConfig(enabled=True, candidate_page_size=10, max_candidate_scan=10),
+            RedisCheckSubType.ClusterCapacityGrowthRisk,
+            task_key="test.fake",
+        )
+        self._create_report(selector, 501, "capacity warning", now, ReportStateType.WARNING.value)
+        filter_side_effect = self._patch_cluster_qs([501, 502])
+        with (
+            patch(self._CLUSTER) as cluster_cls,
+            patch(self._CLUSTER_OPERATE_RECORD) as operate_record_cls,
+        ):
+            cluster_cls.objects.filter.side_effect = filter_side_effect
+            operate_record_cls.objects.filter.return_value.filter.return_value.values_list.return_value = []
+            clusters, _next_cursor = selector.select_rotation(cursor=0, limit=10)
+        assert [item["cluster_id"] for item in clusters] == [502]
+
+    @pytest.mark.django_db
+    def test_priority_includes_recent_normal_but_skips_today(self, redis_adapter, base):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from backend.db_report.enums import ReportStateType
+        from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+
+        now = timezone.now()
+        selector = redis_adapter.RedisClusterSelector(
+            base.RedisAgentCheckConfig(
+                enabled=True,
+                candidate_page_size=10,
+                max_candidate_scan=10,
+                normal_skip_days=7,
+            ),
+            RedisCheckSubType.ClusterCapacityGrowthRisk,
+            task_key="test.fake",
+        )
+        self._create_report(
+            selector,
+            601,
+            "normal two days ago",
+            now - timedelta(days=2),
+            ReportStateType.NORMAL.value,
+        )
+        self._create_report(selector, 602, "warning today", now, ReportStateType.WARNING.value)
+
+        filter_side_effect = self._patch_cluster_qs([601, 602, 603])
+        with (
+            patch(self._CLUSTER) as cluster_cls,
+            patch(self._CLUSTER_OPERATE_RECORD) as operate_record_cls,
+            patch.object(
+                selector,
+                "_pull_priority_alarm_cluster_domains",
+                return_value=["cluster-601.db", "cluster-602.db", "cluster-603.db"],
+            ),
+        ):
+            cluster_cls.objects.filter.side_effect = filter_side_effect
+            operate_record_cls.objects.filter.return_value.filter.return_value.values_list.return_value = []
+            rotation, _ = selector.select_rotation(cursor=0, limit=10)
+            priority = selector.select_priority(limit=10)
+
+        assert [item["cluster_id"] for item in rotation] == [603]
+        assert [item["cluster_id"] for item in priority] == [601, 603]
 
     @staticmethod
     def _selector(**overrides):

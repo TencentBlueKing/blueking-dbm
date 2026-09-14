@@ -8,11 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List, Union
+from typing import List, Literal, Union, overload
 
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.models import AppCache
+
+
+@overload
+def get_biz_by_abbr(app_abbr: str, detailed: Literal[False] = False) -> List[int]:
+    ...
+
+
+@overload
+def get_biz_by_abbr(app_abbr: str, detailed: Literal[True]) -> List[dict]:
+    ...
 
 
 def get_biz_by_abbr(app_abbr: str, detailed: bool = False) -> Union[List[int], List[dict]]:
@@ -23,6 +33,16 @@ def get_biz_by_abbr(app_abbr: str, detailed: bool = False) -> Union[List[int], L
         rows = queryset.values_list("bk_biz_id", "bk_biz_name", "db_app_abbr")
         return [{"bk_biz_id": bid, "app_name": name, "abbr": abbr} for bid, name, abbr in rows]
     return list(queryset.values_list("bk_biz_id", flat=True))
+
+
+@overload
+def get_managed_biz(username: str, db_type: DBType, detailed: Literal[False] = False) -> List[int]:
+    ...
+
+
+@overload
+def get_managed_biz(username: str, db_type: DBType, detailed: Literal[True]) -> List[dict]:
+    ...
 
 
 def get_managed_biz(username: str, db_type: DBType, detailed: bool = False) -> Union[List[int], List[dict]]:
