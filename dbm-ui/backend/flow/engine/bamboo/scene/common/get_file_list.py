@@ -762,7 +762,7 @@ class GetFileList(object):
         oracle安装需要的安装包列表
         """
 
-        # oracle_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Oracle, db_type=DBType.Oracle)
+        oracle_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Oracle, db_type=DBType.Oracle)
         oracle_patch_pkgs = []
         for patch_version in patch_versions:
             oracle_patch_pkg = Package.get_latest_package(
@@ -771,7 +771,7 @@ class GetFileList(object):
             oracle_patch_pkgs.append(oracle_patch_pkg)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{oracle_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{oracle_pkg.path}",
             *[
                 f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{oracle_patch_pkg.path}"
                 for oracle_patch_pkg in oracle_patch_pkgs

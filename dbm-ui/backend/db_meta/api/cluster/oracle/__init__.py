@@ -9,29 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import (
-    doris,
-    es,
-    hdfs,
-    influxdb,
-    k8s_vm,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    oracle,
-    pulsar,
-    qdrantha,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    surrealdb,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    vm,
-)
-from .apis import domain_exists, query_instances
+from .change_password import ip_change_password
+from .delete_cluster import oracle_delete_cluster
+from .detail import scan_cluster, single_scan_cluster
+from .primary_standby_create import create_oracle_instances, create_oracle_set, pkg_create_oracle
+from .replace_primary_standby import new_machine, replace_instance, replace_primary_and_standby
+from .replace_single_instance import replace_single_instance
+from .replace_standby import replace_standby
+from .swap_primary_standby import swap_primary_standby

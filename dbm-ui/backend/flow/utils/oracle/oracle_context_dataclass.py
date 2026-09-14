@@ -31,7 +31,7 @@ class OracleActKwargs:
 @dataclass()
 class AddSlaveContext:
     """
-    定义申请集群的上下文dataclass类(手输ip模式)
+    定义整机替换以及新增从库上下文dataclass类
     """
 
     configs: dict = None  # 集群配置信息
@@ -62,71 +62,25 @@ class AddSlaveContext:
 
 
 @dataclass()
-class ApplyManualContext:
+class MasterFailoverContext:
     """
-    定义申请集群的上下文dataclass类(手输ip模式)
+    定义主库故障切换上下文dataclass类
     """
 
-    nodes: list = field(default_factory=list)  # 手工输入的所有ip
-    base_node: str = None  # 选取一个ip为操作节点
-    operate_nodes: list = field(default_factory=list)  # 除base_node外的其他ip
+    tnsnames: dict = None  # 监听文件
+
+    @staticmethod
+    def get_tnsnames_var_name() -> str:
+        return "tnsnames"
 
 
 @dataclass()
-class ScaleOutManualContext:
+class MetaReplaceKwargs:
     """
-    定义扩容的上下文dataclass类(手输ip模式)
-    """
-
-    nodes: list = field(default_factory=list)
-    base_node: str = None  # 集群中已存在的一个节点
-    operate_nodes: list = field(default_factory=list)  # 新增节点
-    configs: dict = None
-
-    @staticmethod
-    def get_nodes_var_name() -> str:
-        return "nodes"
-
-    @staticmethod
-    def get_base_node_var_name() -> str:
-        return "base_node"
-
-    @staticmethod
-    def get_operate_nodes_var_name() -> str:
-        return "operate_nodes"
-
-
-@dataclass()
-class ScaleInManualContext:
-    """
-    定义缩容的上下文dataclass类(手输ip模式)
+    定义元数据替换上下文dataclass类
     """
 
-    nodes: list = field(default_factory=list)
-    base_node: str = None  # 集群中已存在的一个节点
-    operate_nodes: list = field(default_factory=list)  # 待剔除的节点
-
-    @staticmethod
-    def get_base_node_var_name() -> str:
-        return "base_node"
-
-    @staticmethod
-    def get_operate_nodes_var_name() -> str:
-        return "operate_nodes"
-
-    @staticmethod
-    def get_nodes_var_name() -> str:
-        return "nodes"
-
-
-@dataclass()
-class NodesContext:
-    """
-    定义销毁、启用、禁用集群的上下文dataclass类
-    """
-
-    nodes: list = field(default_factory=list)
-
-    @staticmethod
-    def get_nodes_var_name() -> str:
-        return "nodes"
+    cluster_id: int
+    bk_biz_id: int
+    meta_func_name: str
+    failover: bool = False

@@ -194,6 +194,7 @@ from backend.flow.views.name_service import (
 )
 from backend.flow.views.oracle_add_slave import OracleAddSlaveApiView
 from backend.flow.views.oracle_add_slave_via_cascading import OracleAddSlaveViaCascadingApiView
+from backend.flow.views.oracle_master_failover import OracleMasterFailoverApiView
 from backend.flow.views.oracle_scene import MultiOracleExecuteScriptApiView
 from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
@@ -437,6 +438,7 @@ urlpatterns = [
     url(r"^scene/multi_oracle_execute_script$", MultiOracleExecuteScriptApiView.as_view()),
     url(r"^scene/oracle_add_slave$", OracleAddSlaveApiView.as_view()),
     url(r"^scene/oracle_add_slave_via_cascading$", OracleAddSlaveViaCascadingApiView.as_view()),
+    url(r"^scene/oracle_master_failover$", OracleMasterFailoverApiView.as_view()),
     # oracle end
     # mysql upgrade
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),

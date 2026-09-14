@@ -54,11 +54,17 @@ class OracleAddSlaveViaCascadingFlow(OracleBaseFlow):
                 "old_master": {"ip": "1.1.1.1", "bk_cloud_id": 0},
                 "old_node": {"ip": "1.1.1.1", "bk_cloud_id": 0},
                 "replace_flag": False,
+                "replace_host": {"ip": "1.1.1.1", "bk_cloud_id": 0},
                 "resource_spec": {"oracle": {"spec_id": 1, "count": 1}}
             }
         ],
         "ip_source": "resource_pool"
     }
+
+    old_master: 上游实例，即最终同步源
+    old_node： RMAN复制源
+    replace_flag： 是否整体替换
+    replace_host: 待替换主机
     """
 
     def oracle_add_slave_via_cascading_flow(self):
@@ -79,6 +85,7 @@ class OracleAddSlaveViaCascadingFlow(OracleBaseFlow):
             old_master = info["old_master"]["ip"]
             old_node = info["old_node"]["ip"]
             new_slave = info["new_slave"]["ip"]
+            replace_host = info["replace_host"]["ip"]
 
             # 1. 环境预检查 + 依赖插件安装
             sub_pipeline.add_sub_pipeline(
@@ -190,7 +197,7 @@ class OracleAddSlaveViaCascadingFlow(OracleBaseFlow):
                     cluster_id=info["cluster_id"],
                     bk_biz_id=self.data["bk_biz_id"],
                     new_slave=new_slave,
-                    old_node=old_node,
+                    old_node=replace_host,
                 )
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=build_replace_common_sub_flow(
@@ -198,7 +205,7 @@ class OracleAddSlaveViaCascadingFlow(OracleBaseFlow):
                         data=sub_flow_data,
                         cluster=cluster,
                         bk_cloud_id=bk_cloud_id,
-                        old_node=old_node,
+                        old_node=replace_host,
                         new_slave=new_slave,
                         cluster_master=cluster_master,
                         meta_kwargs=meta_kwargs,

@@ -126,41 +126,43 @@ func (e *CheckLongTransaction) CheckLongTransaction() error {
 	e.Runtime.Logger.Info("start to check long transaction")
 	// 每次调用先清空上一次的结果，避免残留
 	e.Sessions = e.Sessions[:0]
-	sql := []string{common.GetLongTransactionSql, common.GetUncommittedTransactionSql}
+	sqls := []string{common.GetLongTransactionSql, common.GetUncommittedTransactionSql}
 	// 获取长事务、未提交事务
-	for _, s := range sql {
-		if err := e.querySessions(s); err != nil {
+	for _, s := range sqls {
+		sessions, err := querySessions(s)
+		if err != nil {
 			return err
 		}
+		e.Sessions = append(e.Sessions, sessions...)
+	}
+	for _, session := range e.Sessions {
+		e.Runtime.Logger.Info("found long transaction session: sid=%s, serial=%s, username=%s, machine=%s, "+
+			"last_call_et=%d, sql_id=%s",
+			session.Sid, session.Serial, session.Username, session.Machine, session.LastCallEt, session.SqlId)
 	}
 	return nil
 }
 
 // querySessions 执行单条查询 SQL，将结果 append 到 e.Sessions
-func (e *CheckLongTransaction) querySessions(query string) error {
+func querySessions(query string) ([]Session, error) {
 	db, err := common.OpenOracleAsSysdba()
 	if err != nil {
-		e.Runtime.Logger.Error("open oracle as sysdba fail, error:%s", err)
-		return fmt.Errorf("open oracle as sysdba fail, error:%s", err)
+		return nil, fmt.Errorf("open oracle as sysdba fail, error:%s", err)
 	}
 	defer db.Close()
-
+	sessions := make([]Session, 0)
 	if err = common.QueryOracle(db, query, func(rows *sql.Rows) error {
 		var session Session
-		if err := rows.Scan(&session.Sid, &session.Serial, &session.Username, &session.Machine,
+		if err = rows.Scan(&session.Sid, &session.Serial, &session.Username, &session.Machine,
 			&session.LastCallEt, &session.SqlId); err != nil {
-			return err
+			return fmt.Errorf("scan session fail, error:%s", err)
 		}
-		e.Sessions = append(e.Sessions, session)
-		e.Runtime.Logger.Info("sid: %s, serial: %s, username: %s, machine: %s, last_call_et: %d, sql_id: %s",
-			session.Sid, session.Serial, session.Username, session.Machine, session.LastCallEt, session.SqlId)
+		sessions = append(sessions, session)
 		return nil
 	}); err != nil {
-		e.Runtime.Logger.Error("check long transaction fail, error:%s", err)
-		return fmt.Errorf("check long transaction fail, error:%s", err)
+		return nil, fmt.Errorf("check session fail, error:%s", err)
 	}
-	e.Runtime.Logger.Info("check long transaction successfully")
-	return nil
+	return sessions, nil
 }
 
 // KillLongTransaction kill 上一次 CheckLongTransaction 查出的所有会话

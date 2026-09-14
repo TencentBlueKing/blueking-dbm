@@ -26,3 +26,16 @@ WHERE  s.saddr = t.ses_addr
    AND s.status = 'INACTIVE'
    AND s.username IN ('IDIP')
    AND s.last_call_et > 600`
+
+var GetSessionsSql = `SELECT sid,
+       serial#,
+       username,
+       machine,
+       last_call_et,
+       sql_id
+FROM v$session
+WHERE username IS NOT NULL
+   AND status = 'ACTIVE'
+   AND type <> 'BACKGROUND'
+   AND username NOT IN ('SYS', 'SYSTEM')
+ORDER BY username`

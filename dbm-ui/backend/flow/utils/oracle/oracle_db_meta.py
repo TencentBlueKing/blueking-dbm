@@ -19,8 +19,7 @@ import logging
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.api.cluster.oracle.replace_primary_standby import new_machine, replace_instance
-from backend.db_meta.api.cluster.oracle.replace_single_instance import replace_single_instance
+from backend.db_meta.api.cluster import oracle
 
 logger = logging.getLogger("flow")
 
@@ -51,7 +50,7 @@ class OracleDBMeta(object):
             cluster_type: 集群类型
         """
         try:
-            new_machine(
+            oracle.new_machine(
                 bk_cloud_id=self.info["bk_cloud_id"],
                 bk_biz_id=self.info["bk_biz_id"],
                 ip=self.info["new_ip"],
@@ -80,7 +79,7 @@ class OracleDBMeta(object):
             old_instance_port: 旧实例端口
         """
         try:
-            replace_instance(
+            oracle.replace_instance(
                 cluster_id=self.info["cluster_id"],
                 new_instance_ip=self.info["new_instance_ip"],
                 new_instance_port=self.info["new_instance_port"],
@@ -106,7 +105,7 @@ class OracleDBMeta(object):
             new_port: 新实例端口
         """
         try:
-            replace_single_instance(
+            oracle.replace_single_instance(
                 cluster_id=self.info["cluster_id"],
                 new_ip=self.info["new_ip"],
                 new_port=self.info["new_port"],
@@ -116,4 +115,26 @@ class OracleDBMeta(object):
             logger.error("oracle replace single instance meta fail, error:{}".format(str(e)))
             return False
         logger.info("oracle replace single instance meta successfully")
+        return True
+
+    def swap_primary_standby(self):
+        """Oracle 主备集群主备切换 -- 写元数据
+
+        用于 OraclePrimaryStandby 集群下, 主备切换
+
+        info 期望字段:
+            bk_biz_id: 业务 ID
+            cluster_id: 集群 ID
+            failover: 是否是failover场景
+        """
+        try:
+            oracle.swap_primary_standby(
+                bk_biz_id=self.info["bk_biz_id"],
+                cluster_id=self.info["cluster_id"],
+                failover=self.info["failover"],
+            )
+        except Exception as e:
+            logger.error("oracle swap primary standby meta fail, error:{}".format(str(e)))
+            return False
+        logger.info("oracle swap primary standby meta successfully")
         return True

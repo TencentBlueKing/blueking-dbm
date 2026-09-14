@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from backend.flow.engine.bamboo.scene.oracle.oracle_add_slave import OracleAddSlaveFlow
 from backend.flow.engine.bamboo.scene.oracle.oracle_add_slave_via_cascading import OracleAddSlaveViaCascadingFlow
 from backend.flow.engine.bamboo.scene.oracle.oracle_exec_script import OracleExecuteScriptFlow
+from backend.flow.engine.bamboo.scene.oracle.oracle_master_failover import OracleMasterFailoverFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -42,3 +43,11 @@ class OracleController(BaseController):
 
         flow = OracleAddSlaveViaCascadingFlow(root_id=self.root_id, data=self.ticket_data)
         flow.oracle_add_slave_via_cascading_flow()
+
+    def oracle_master_failover_scene(self):
+        """
+        主库故障切换
+        """
+
+        flow = OracleMasterFailoverFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.oracle_master_failover_flow()

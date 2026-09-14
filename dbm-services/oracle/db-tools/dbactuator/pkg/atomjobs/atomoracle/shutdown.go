@@ -2,11 +2,10 @@ package atomoracle
 
 import (
 	"dbm-services/oracle/db-tools/dbactuator/pkg/common"
+	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/oracle/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -68,26 +67,48 @@ func (e *Shutdown) Name() string {
 
 // Run 执行函数
 func (e *Shutdown) Run() error {
-	db, err := common.OpenOracleAsSysdba()
+	e.Runtime.Logger.Info("start to shutdown listener")
+	err := ShutdownListener()
 	if err != nil {
-		return fmt.Errorf("shutdown immediate failed: %v", err)
+		e.Runtime.Logger.Info("shutdown listener fail, skipped: %v", err)
 	}
-	defer db.Close()
-
-	query := `shutdown immediate`
-	err = common.ExecuteOracle(db, query)
+	isRunning, err := CheckListenerStatus()
 	if err != nil {
-		return fmt.Errorf("shutdown immediate failed: %v", err)
+		e.Runtime.Logger.Error("check listener status fail: %s", err)
+		return err
+	} else if isRunning {
+		e.Runtime.Logger.Info("listener is running")
+		return fmt.Errorf("listener is running, please check and shutdown listener manually")
 	}
+	e.Runtime.Logger.Info("shutdown listener success")
 
-	cmd := []string{`lsnrctl stop`, `lsnrctl stop LISTENER1`}
-	for _, c := range cmd {
-		out, err := util.RunBashCmd(c, "", nil, 30*time.Second)
-		if err != nil {
-			e.Runtime.Logger.Warn("run cmd %s fail: %s", c, err)
-			continue
-		}
-		e.Runtime.Logger.Info("run cmd %s success: %s", c, out)
+	e.Runtime.Logger.Info("start to shutdown instance")
+	err = ShutdownInstance(false)
+	if err != nil {
+		e.Runtime.Logger.Error("shutdown instance fail: %s", err)
+		return err
+	}
+	e.Runtime.Logger.Info("shutdown instance success")
+	return nil
+
+}
+
+// ShutdownInstance 关闭实例
+// 注意：shutdown immediate / shutdown abort 是 SQL*Plus 客户端命令，无法通过 OCI/godror 下发，
+// 必须借助 `sqlplus / as sysdba` 执行，否则会返回 ORA-00900: invalid SQL statement。
+func ShutdownInstance(force bool) error {
+	shutdownSQL := consts.ShutdownImmediate
+	err := common.ExecuteSqlplusAsSysdba(shutdownSQL)
+	if err == nil {
+		return nil
+	}
+	if !force {
+		return fmt.Errorf("failed to execute shutdown command: %s error: %v", shutdownSQL, err)
+	}
+	shutdownSQL = consts.ShutdownAbort
+	err = common.ExecuteSqlplusAsSysdba(shutdownSQL)
+	if err != nil {
+		return fmt.Errorf("failed to execute shutdown command: %s error: %v", shutdownSQL, err)
 	}
 	return nil
 }

@@ -217,6 +217,40 @@ class OracleActPayload(object):
             "payload": {},
         }
 
+    def get_stop_listener_payload(self, **kwargs) -> dict:
+        """
+        关闭监听器
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.StopListener.value,
+            "payload": {},
+        }
+
+    def get_merge_tnsnames_payload(self, **kwargs) -> dict:
+        """
+        合并tnsnames.ora文件
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.MergeTnsnames.value,
+            "payload": {
+                "master_host": self.ticket_data["master"]["ip"],
+                "slave_host": self.ticket_data["slave"]["ip"],
+                "tnsnames_file": "{}/{}.tnsnames.ora".format(BK_PKG_INSTALL_PATH, self.ticket_data["uid"]),
+            },
+        }
+
+    def get_activate_standby_payload(self, **kwargs) -> dict:
+        """
+        激活备库
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.ActivateStandby.value,
+            "payload": {},
+        }
+
     def get_password_file_payload(self, **kwargs) -> dict:
         """
         获取密码文件
@@ -224,6 +258,16 @@ class OracleActPayload(object):
         return {
             "db_type": DBActuatorTypeEnum.Oracle.value,
             "action": OracleActuatorActionEnum.GetPasswordFile.value,
+            "payload": {},
+        }
+
+    def get_tnsnames_file_payload(self, **kwargs) -> dict:
+        """
+        获取密码文件
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.GetTnsnamesFile.value,
             "payload": {},
         }
 
@@ -306,6 +350,26 @@ class OracleActPayload(object):
         return {
             "db_type": DBActuatorTypeEnum.Oracle.value,
             "action": OracleActuatorActionEnum.CheckSyncStatus.value,
+            "payload": {},
+        }
+
+    def get_shutdown_force_payload(self, **kwargs) -> dict:
+        """
+        关闭Oracle服务
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.ShutdownForce.value,
+            "payload": {},
+        }
+
+    def get_check_connections_payload(self, **kwargs) -> dict:
+        """
+        检查Oracle连接
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.CheckConnections.value,
             "payload": {},
         }
 

@@ -146,6 +146,12 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atomoracle.NewRealMaster,
 			atomoracle.NewSwitchLog,
 			atomoracle.NewShutdown,
+			atomoracle.NewCheckConnections,
+			atomoracle.NewShutdownForce,
+			atomoracle.NewActivateStandby,
+			atomoracle.NewMergeTnsnames,
+			atomoracle.NewStopListener,
+			atomoracle.NewGetTnsnamesFile,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}
