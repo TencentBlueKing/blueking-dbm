@@ -324,10 +324,9 @@
   import { queryBizClusterAttrs } from '@services/source/dbbase';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
   import { getGroupList, moveInstancesToGroup } from '@services/source/influxdbGroup';
-  import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
-  import { useTableSettings, useTicketMessage } from '@hooks';
+  import { useCreateTicket, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -351,9 +350,13 @@
 
   const route = useRoute();
   const router = useRouter();
-  const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
   const { locale, t } = useI18n();
+
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const searchValue = ref<Record<string, string>>({});
   const sortValue: {
@@ -657,29 +660,24 @@
           ))}
         </div>
       ),
-      onConfirm: () => {
+      onConfirm: async () => {
         data.forEach((item) => {
           handleChangeTableActionLoading(item.id, true);
         });
-        return createTicket({
-          bk_biz_id: currentBizId,
+        const ticketId = await createTicketRun({
           details: {
             instance_list: formatInstanceData(data),
           },
-          ticket_type: 'INFLUXDB_REBOOT',
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-            if (data.length > 1) {
-              data.forEach((item) => tableRef.value?.removeSelectByKey(`${item.id}`));
-              batchSelectInstances.value = {};
-            }
-          })
-          .finally(() => {
-            data.forEach((item) => {
-              handleChangeTableActionLoading(item.id, false);
-            });
-          });
+          ticket_type: TicketTypes.INFLUXDB_REBOOT,
+        });
+        data.forEach((item) => {
+          handleChangeTableActionLoading(item.id, false);
+        });
+        if (ticketId && data.length > 1) {
+          data.forEach((item) => tableRef.value?.removeSelectByKey(`${item.id}`));
+          batchSelectInstances.value = {};
+        }
+        return Boolean(ticketId);
       },
       title: t('确认重启实例'),
       type: 'warning',
@@ -698,21 +696,16 @@
           <p>{t('实例【instance】启用后将恢复访问', { instance: data.instance_address })}</p>
         </div>
       ),
-      onConfirm: () => {
+      onConfirm: async () => {
         handleChangeTableActionLoading(data.id, true);
-        return createTicket({
-          bk_biz_id: currentBizId,
+        const ticketId = await createTicketRun({
           details: {
             instance_list: formatInstanceData([data]),
           },
-          ticket_type: 'INFLUXDB_ENABLE',
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-          })
-          .finally(() => {
-            handleChangeTableActionLoading(data.id, false);
-          });
+          ticket_type: TicketTypes.INFLUXDB_ENABLE,
+        });
+        handleChangeTableActionLoading(data.id, false);
+        return Boolean(ticketId);
       },
       title: t('确认启用该实例'),
       type: 'warning',
@@ -733,21 +726,16 @@
           </p>
         </div>
       ),
-      onConfirm: () => {
+      onConfirm: async () => {
         handleChangeTableActionLoading(data.id, true);
-        return createTicket({
-          bk_biz_id: currentBizId,
+        const ticketId = await createTicketRun({
           details: {
             instance_list: formatInstanceData([data]),
           },
-          ticket_type: 'INFLUXDB_DISABLE',
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-          })
-          .finally(() => {
-            handleChangeTableActionLoading(data.id, false);
-          });
+          ticket_type: TicketTypes.INFLUXDB_DISABLE,
+        });
+        handleChangeTableActionLoading(data.id, false);
+        return Boolean(ticketId);
       },
       title: t('确认禁用该实例'),
       type: 'warning',
@@ -770,21 +758,16 @@
           <p>{t('2_删除xx实例数据_停止相关进程', { name: instanceAddress })}</p>
         </div>
       ),
-      onConfirm: () => {
+      onConfirm: async () => {
         handleChangeTableActionLoading(data.id, true);
-        return createTicket({
-          bk_biz_id: currentBizId,
+        const ticketId = await createTicketRun({
           details: {
             instance_list: formatInstanceData([data]),
           },
-          ticket_type: 'INFLUXDB_DESTROY',
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-          })
-          .finally(() => {
-            handleChangeTableActionLoading(data.id, false);
-          });
+          ticket_type: TicketTypes.INFLUXDB_DESTROY,
+        });
+        handleChangeTableActionLoading(data.id, false);
+        return Boolean(ticketId);
       },
       title: t('确定删除该实例'),
       type: 'warning',

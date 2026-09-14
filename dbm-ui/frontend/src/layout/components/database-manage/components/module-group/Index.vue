@@ -38,7 +38,7 @@
     [DBTypes.ES]: Es,
     [DBTypes.HDFS]: Hdfs,
     [DBTypes.INFLUXDB]: Influxdb,
-    [DBTypes.K8S_QRRANT]: Qdrant,
+    [DBTypes.K8S_QDRANT]: Qdrant,
     [DBTypes.K8S_SURREALDB]: SurrealDB,
     [DBTypes.KAFKA]: Kafka,
     [DBTypes.MONGODB]: MongoDB,

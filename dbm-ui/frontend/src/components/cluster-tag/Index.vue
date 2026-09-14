@@ -95,7 +95,7 @@
     [DBTypes.ES]: 'es_edit',
     [DBTypes.HDFS]: 'hdfs_edit',
     [DBTypes.INFLUXDB]: 'influxdb_edit',
-    [DBTypes.K8S_QRRANT]: 'k8s_qdrant_edit',
+    [DBTypes.K8S_QDRANT]: 'k8s_qdrant_edit',
     [DBTypes.K8S_SURREALDB]: 'k8s_surrealdb_edit',
     [DBTypes.KAFKA]: 'kafka_edit',
     [DBTypes.MONGODB]: 'mongodb_edit',

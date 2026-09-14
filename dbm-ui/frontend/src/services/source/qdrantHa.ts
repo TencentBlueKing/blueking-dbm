@@ -74,8 +74,11 @@ export const getQdrantHaInstanceList = function (params: {
  */
 export const retrieveQdrantHaInstanceDetail = function (params: {
   cluster_id: number;
+  /** K8s 后端约定，保持 camelCase */
   clusterName: string;
+  /** K8s 后端约定，保持 camelCase */
   componentName: string;
+  /** K8s 后端约定，保持 camelCase */
   k8sClusterName: string;
   namespace: string;
   podName: string;
@@ -113,6 +116,7 @@ export function exportQdrantHaInstanceToExcel(params: { bk_host_ids?: number[] }
 
 /**
  * 获取集群拓扑
+ * k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export function getQdrantHaTopoGraph(params: { cluster_id: number; k8sClusterName: string; namespace: string }) {
   return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`, params);
@@ -120,6 +124,7 @@ export function getQdrantHaTopoGraph(params: { cluster_id: number; k8sClusterNam
 
 /**
  * 获取集群操作日志接口
+ * clusterName / k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export const getQdrantHaOperationLog = function (params: {
   bk_biz_id: number;
@@ -144,6 +149,7 @@ export const getQdrantHaOperationLog = function (params: {
 
 /**
  * 获取集群组件规格
+ * clusterName / k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export const getQdrantHaComponentSpec = function (params: {
   clusterName: string;

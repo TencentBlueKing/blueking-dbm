@@ -246,6 +246,7 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
     const getApi = () => {
       if (props.clusterType in k8sApiMap) {
         return k8sApiMap[props.clusterType as keyof typeof k8sApiMap]({
+          cluster_id: props.clusterData.id,
           clusterName: props.clusterData.cluster_name,
           componentName: '',
           k8sClusterName: props.clusterData.k8s_cluster_name!,

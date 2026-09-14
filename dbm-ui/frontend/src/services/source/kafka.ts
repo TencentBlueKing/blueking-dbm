@@ -18,13 +18,9 @@ import KafkaMachineModel from '@services/model/kafka/kafka-machine';
 import KafkaNodeModel from '@services/model/kafka/kafka-node';
 import type { BigDataClusterPassword, ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/bigdata/bizs/${currentBizId}/kafka/kafka_resources`;
+const getRootPath = () => `/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/kafka/kafka_resources`;
 
 /**
  * 获取集群列表
@@ -39,7 +35,7 @@ export function getKafkaList(params: {
   name?: string;
   offset?: number;
 }) {
-  return http.get<ListBase<KafkaModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<KafkaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
       (item: KafkaModel) =>
@@ -56,7 +52,7 @@ export function getKafkaList(params: {
  * 获取查询返回字段
  */
 export function getKafkaTableFields() {
-  return http.get<ListBase<KafkaModel[]>>(`${path}/get_table_fields/`);
+  return http.get<ListBase<KafkaModel[]>>(`${getRootPath()}/get_table_fields/`);
 }
 
 /**
@@ -75,7 +71,7 @@ export function getKafkaInstanceList(params: {
   role?: string;
   status?: string;
 }) {
-  return http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<KafkaInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
   }));
@@ -90,28 +86,28 @@ export function retrieveKafkaInstance(params: {
   instance?: string;
   type?: string;
 }) {
-  return http.get<ListBase<KafkaModel[]>>(`${path}/retrieve_instance/`, params);
+  return http.get<ListBase<KafkaModel[]>>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getKafkaDetail(params: { id: number }) {
-  return http.get<KafkaDetailModel>(`${path}/${params.id}/`).then((data) => new KafkaDetailModel(data));
+  return http.get<KafkaDetailModel>(`${getRootPath()}/${params.id}/`).then((data) => new KafkaDetailModel(data));
 }
 
 /**
  * 获取集群拓扑
  */
 export function getKafkaTopoGraph(params: { cluster_id: number }) {
-  return http.get<ListBase<KafkaModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ListBase<KafkaModel[]>>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 获取 Kafka 集群访问密码
  */
 export function getKafkaPassword(params: { cluster_id: number } & Record<string, any>) {
-  return http.get<BigDataClusterPassword>(`${path}/${params.cluster_id}/get_password/`);
+  return http.get<BigDataClusterPassword>(`${getRootPath()}/${params.cluster_id}/get_password/`);
 }
 
 /**
@@ -123,31 +119,33 @@ export function getKafkaNodeList(
     cluster_id: number;
   } & Record<string, any>,
 ) {
-  return http.get<ListBase<Array<KafkaNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
-    ...data,
-    results: data.results.map(
-      (item) =>
-        new KafkaNodeModel(
-          Object.assign(item, {
-            permission: data.permission,
-          }),
-        ),
-    ),
-  }));
+  return http
+    .get<ListBase<Array<KafkaNodeModel>>>(`${getRootPath()}/${params.cluster_id}/list_nodes/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map(
+        (item) =>
+          new KafkaNodeModel(
+            Object.assign(item, {
+              permission: data.permission,
+            }),
+          ),
+      ),
+    }));
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportKafkaClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportKafkaInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
@@ -169,7 +167,7 @@ export function getKafkaMachineList(params: {
   machine_type?: string;
   offset?: number;
 }) {
-  return http.get<ListBase<KafkaMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
+  return http.get<ListBase<KafkaMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new KafkaMachineModel(item)),
   }));

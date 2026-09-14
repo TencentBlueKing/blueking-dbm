@@ -15,33 +15,29 @@ import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
 import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
+const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/fixpoint_rollback`;
 
 /**
  * 通过日志平台获取集群备份记录
  */
 export function queryBackupLogFromBklog(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_bklog/`, params);
+  return http.get<BackupLogRecordModel[]>(`${getRootPath()}/query_backup_log_from_bklog/`, params);
 }
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
 export function queryBackupLogFromLoacal(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_local/`, params);
+  return http.get<BackupLogRecordModel[]>(`${getRootPath()}/query_backup_log_from_local/`, params);
 }
 
 /**
  * 获取集群列表
  */
 export function queryFixpointLog(params: { cluster_id: number; job_instance_id: number; rollback_time: string }) {
-  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params).then((data) => ({
+  return http.get<ListBase<FixpointLogModel[]>>(`${getRootPath()}/query_fixpoint_log/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new FixpointLogModel(item)),
   }));
@@ -58,7 +54,7 @@ export function queryLatesBackupLog(params: {
   job_instance_id?: number;
   rollback_time: string;
 }) {
-  return http.get<BackupLogRecordModel>(`${path}/query_latest_backup_log/`, params);
+  return http.get<BackupLogRecordModel>(`${getRootPath()}/query_latest_backup_log/`, params);
 }
 
 /**
@@ -75,7 +71,7 @@ export function queryLatestTimeBackupLog(params: {
   limit?: number;
   offset?: number;
 }) {
-  return http.get<BackupLogRecordModel>(`${path}/latest_time_backup_log/`, params);
+  return http.get<BackupLogRecordModel>(`${getRootPath()}/latest_time_backup_log/`, params);
 }
 
 /**
@@ -91,5 +87,5 @@ export function queryBackupLogFromHandler(params: {
   limit?: number;
   offset?: number;
 }) {
-  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_handler/`, params);
+  return http.get<BackupLogRecordModel[]>(`${getRootPath()}/query_backup_log_from_handler/`, params);
 }

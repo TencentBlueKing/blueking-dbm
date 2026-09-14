@@ -17,34 +17,15 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 
 import { useGlobalBizs } from '@stores';
 
-import getAiChatRoutes from '@views/ai-chat/routes';
-import getBackupStorageRoutes from '@views/backup-storage/routes';
 import BizPermission from '@views/BizPermission.vue';
-import getDashborderRoutes from '@views/dashboard-manage/routes';
-import getDbConfRoutes from '@views/db-configure/routes';
-import getDbManageRoutes from '@views/db-manage/routes';
-import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
-import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
-import getExerciseReportRoutes from '@views/exercise-report/routes';
-import getInspectionRoutes from '@views/inspection-manage/routes';
-import getMonitorAlarmRoutes from '@views/monitor-alarm/routes';
-import getNotificationSettingRoutes from '@views/notification-setting/routes';
-import getPasswordManageRoutes from '@views/password-manage/routes';
-import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
-import getQuickSearchRoutes from '@views/quick-search/routes';
-import getResourceManageRoutes from '@views/resource-manage/routes';
-import getRiskMemoRoutes from '@views/risk-memo/routes';
-import getServiceApplyRoutes from '@views/service-apply/routes';
-import getServiceStatusRoutes from '@views/service-status/routes';
-import getStaffManageRoutes from '@views/staff-manage/routes';
-import getTaskHistoryRoutes from '@views/task-history/routes';
-import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
-import getTicketRoutes from '@views/ticket-center/routes';
-import getTodoRemindRoutes from '@views/todo-remind/routes';
-import getVersionFilesRoutes from '@views/version-files/routes';
-import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole, siteBasePath } from '@utils';
+
+// 各模块的路由由自身 routes.ts 默认导出的函数调用 registerModule / registerBusinessModule 注册
+// deployment-plan、尚未接入路由，排除
+const routeModules = import.meta.glob<{ default: () => void }>(['../views/*/routes.ts'], {
+  eager: true,
+});
 
 let appRouter: Router;
 
@@ -102,29 +83,13 @@ export default () => {
     bizPermission = true;
   }
 
-  getTicketRoutes();
-  getTaskHistoryRoutes();
-  getInspectionRoutes();
-  getMonitorAlarmRoutes();
-  getResourceManageRoutes();
-  getDashborderRoutes();
-  getDbManageRoutes();
-  getRiskMemoRoutes();
-  getAiChatRoutes();
-  getStaffManageRoutes();
+  Object.values(routeModules).forEach((routeModule) => {
+    routeModule.default();
+  });
 
   const routes = [
     {
       children: [
-        ...getVersionFilesRoutes(),
-        ...getPlatformDbConfigureRoutes(),
-        ...getPasswordManageRoutes(),
-        ...getServiceApplyRoutes(),
-        ...getQuickSearchRoutes(),
-        ...getDutyRuleManageRoutes(),
-        ...getServiceStatusRoutes(),
-        ...getExerciseReportRoutes(),
-        ...getTodoRemindRoutes(),
         ...moduleList,
         {
           component: () => import('@/demo/Index.vue'),
@@ -138,15 +103,7 @@ export default () => {
       },
     },
     {
-      children: [
-        ...getDbConfRoutes(),
-        ...getDbhaSwitchEventsRouters(),
-        ...getBackupStorageRoutes(),
-        ...getNotificationSettingRoutes(),
-        ...getWhitelistRoutes(),
-        ...getTemporaryPasswordModify(),
-        ...businessModuleList,
-      ],
+      children: [...businessModuleList],
       path: `${rootPath}${currentBiz}`,
     },
     {

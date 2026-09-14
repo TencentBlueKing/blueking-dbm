@@ -73,11 +73,8 @@
 
   import { batchDownloadDirs, createBkrepoAccessToken } from '@services/source/storage';
   import { getKeyFiles } from '@services/source/taskflow';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -102,8 +99,10 @@
   });
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.REDIS_KEYS_DELETE, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const isAnomalies = ref(false);
 
@@ -321,26 +320,18 @@
       ),
       extCls: 'redis-delete-keys-confirm',
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            details: {
-              delete_type: 'files',
-              rules: data.map((item) => ({
-                cluster_id: item.cluster_id,
-                domain: item.domain,
-                path: item.name,
-              })),
-            },
-            ticket_type: TicketTypes.REDIS_KEYS_DELETE,
-          };
-          await createTicket(params).then((res) => {
-            ticketMessage(res.id);
-          });
-          return true;
-        } catch {
-          return false;
-        }
+        const params = {
+          details: {
+            delete_type: 'files',
+            rules: data.map((item) => ({
+              cluster_id: item.cluster_id,
+              domain: item.domain,
+              path: item.name,
+            })),
+          },
+        };
+        const ticketId = await createTicketRun(params);
+        return Boolean(ticketId);
       },
       title: t('确认从数据库中删除Key'),
       type: 'warning',

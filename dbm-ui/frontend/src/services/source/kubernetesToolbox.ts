@@ -15,6 +15,8 @@ const getRootPath = () => `/apis/kubernetes/toolbox`;
 
 import http from '../http';
 
+// clusterName / componentName / k8sClusterName / podName 等为 K8s 后端约定，保持 camelCase
+
 /**
  * 获取存储版本信息
  */

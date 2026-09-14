@@ -14,6 +14,6 @@ export const ClusterCountMap: Record<string, string[]> = {
 };
 
 export const ClusterK8sCountMap: Record<string, string[]> = {
-  [DBTypes.K8S_QRRANT]: [ClusterTypes.K8S_QDRANT_HA],
+  [DBTypes.K8S_QDRANT]: [ClusterTypes.K8S_QDRANT_HA],
   [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
 };

@@ -8,7 +8,7 @@ export function createApplyRoute(
 ) {
   const routeNameMap = {
     [DBTypes.ES]: 'elastic-search',
-    [DBTypes.K8S_QRRANT]: 'qdrant',
+    [DBTypes.K8S_QDRANT]: 'qdrant',
     [DBTypes.K8S_SURREALDB]: 'surrealdb',
     [DBTypes.TENDBCLUSTER]: 'tendb-cluster',
   };

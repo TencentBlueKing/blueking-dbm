@@ -152,8 +152,8 @@
     }
 
     .related-cluster-item {
-      line-height: 28px;
       padding: 0 12px;
+      line-height: 28px;
       color: #3a84ff;
       cursor: pointer;
 
