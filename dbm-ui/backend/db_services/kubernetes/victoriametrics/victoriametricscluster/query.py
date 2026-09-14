@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 from django.utils.translation import gettext_lazy as _
 
 from backend.components.kubernetes.client import KubernetesApi
-from backend.db_meta.api.cluster.k8s_vm.victoriametricsstandard.detail import scan_cluster
+from backend.db_meta.api.cluster.k8s_vm.victoriametricscluster.detail import scan_cluster
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.query import ResourceList
@@ -22,7 +22,7 @@ from backend.db_services.kubernetes.victoriametrics.query import VictoriaMetrics
 
 
 @register_resource_decorator()
-class VictoriaMetricsStandardListRetrieveResource(VictoriaMetricsBaseListRetrieveResource):
+class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieveResource):
     cluster_types = [ClusterType.K8sVictoriametricsCluster]
     instance_roles = [InstanceRole.VM_INSERT, InstanceRole.VM_SELECT, InstanceRole.VM_STORAGE]
     fields = [
