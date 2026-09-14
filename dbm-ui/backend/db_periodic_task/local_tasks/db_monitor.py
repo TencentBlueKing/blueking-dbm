@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from celery import shared_task
 from celery.schedules import crontab
 from django.core.cache import cache
+from django.db import connection
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -423,3 +424,36 @@ def scan_running_tickets_and_alert():
 
     except Exception as e:
         logger.error(f"定时任务 scan_running_tickets_and_alert 执行失败: {e}")
+
+
+@register_periodic_task(run_every=crontab(minute="0"))
+def fix_dba_administrator_update_at():
+    """
+    定时任务：每小时检查 configuration_dbadministrator 表中 update_at 为空的记录，
+    打印为空记录的字段，随后将 update_at 更新为当前时间
+    """
+    query_sql = (
+        "SELECT bk_biz_id, db_type, users, updater, update_at FROM configuration_dbadministrator "
+        "WHERE update_at IS NULL OR CAST(update_at AS CHAR) = '0000-00-00 00:00:00.000000'"
+    )
+    update_sql = (
+        "UPDATE configuration_dbadministrator SET update_at = NOW() "
+        "WHERE update_at IS NULL OR CAST(update_at AS CHAR) = '0000-00-00 00:00:00.000000'"
+    )
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query_sql)
+            empty_rows = cursor.fetchall()
+            for row in empty_rows:
+                logger.info(
+                    "configuration_dbadministrator update_at 为空: "
+                    "bk_biz_id=%s, db_type=%s, users=%s, updater=%s, update_at=%s",
+                    *row,
+                )
+
+            if empty_rows:
+                cursor.execute(update_sql)
+                logger.info("共修复 {} 条 update_at 为空的记录".format(cursor.rowcount))
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error("定时任务 fix_dba_administrator_update_at 执行失败: {}".format(e))
