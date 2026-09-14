@@ -1,61 +1,58 @@
 #!/bin/bash
+# 执行单元测试，并检测收集结果，避免 0 用例 / 1 error 假绿。
+set -euo pipefail
 
-# 单元测试
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=ci_guards.sh
+source "${SCRIPT_DIR}/ci_guards.sh"
+
+# shellcheck disable=SC1091
 source "${VENV_DIR}/bin/activate"
+assert_ci_python_bin "$(command -v python)" "单测 Python"
+
+PYTEST_VER="$(python -c 'import pytest; print(pytest.__version__)')"
+if [[ ! "$PYTEST_VER" =~ ^6\.2\. ]]; then
+  echo "❌ pytest 版本异常: ${PYTEST_VER}（期望 6.2.x）。请勿在 prepare_services 中安装未钉版本的 pytest"
+  exit 1
+fi
+echo "✅ pytest 版本: ${PYTEST_VER}"
+
 DBM_DIR="./dbm-ui"
+cd "$DBM_DIR"
 
-cd $DBM_DIR
-TEST_LOGS=$(pytest --cov)
+PYTEST_LOG="pytest-output.log"
+rm -f "$PYTEST_LOG" pytest-junit.xml pytest-cov.xml
 
-# TEST_LOGS e.g.
-# ============================= test session starts ==============================
-# platform linux -- Python 3.6.15, pytest-6.2.4, py-1.11.0, pluggy-0.13.1
-# django: settings: config.prod (from env)
-# rootdir: /home/runner/work/blueking-dbm/blueking-dbm/dbm-ui, configfile: pytest.ini, testpaths: ./backend
-# plugins: cov-2.10.1, celery-4.4.0, django-3.9.0
-# collected 103 items
-#
-# backend/tests/db_meta/api/cluster/tendbha/test_handler.py .              [  0%]
-# backend/tests/db_meta/api/db_module/test_apis.py ..                      [  80%]
-# TOTAL 66348  39795    40%
-# ====== 1 failed, 109 passed, 3 skipped, 580 warnings, 3 errors in 48.02s =======
-TEST_RESULT=$(echo "$TEST_LOGS" | tail -n 1)
-TEST_TIME=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\.[0-9]*\)s.*/\1/g')
+set +e
+pytest --cov \
+  --cov-report=term \
+  --cov-report=xml:pytest-cov.xml \
+  --junitxml=pytest-junit.xml 2>&1 | tee "$PYTEST_LOG"
+PYTEST_RC=${PIPESTATUS[0]}
+set -e
 
-echo $TEST_RESULT
+parse_pytest_log "$PYTEST_LOG"
 
-TEST_COVERAGE=$(echo "$TEST_LOGS" | grep "^TOTAL" | sed 's/.*[[:space:]]\([0-9]*%\)$/\1/')
-TEST_FAILURE=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* failed.*/\1/p')
-TEST_ERROR=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* errors.*/\1/p')
-TEST_SUCCESS=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* passed.*/\1/p')
-TEST_SKIP=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* skipped.*/\1/p')
+echo "${PYTEST_SUMMARY:-<missing pytest summary>}"
+echo "测试时长: 见 pytest summary"
+echo "单元测试覆盖率: ${PYTEST_COVERAGE:-N/A}"
+echo "收集用例数: ${PYTEST_COLLECTED}"
+echo "统计用例数: ${PYTEST_COUNT}"
+echo "成功数: ${PYTEST_PASSED}"
+echo "失败数: ${PYTEST_FAILED}"
+echo "异常数: ${PYTEST_ERRORS}"
+echo "跳过数: ${PYTEST_SKIPPED}"
+echo "未通过数: ${PYTEST_NOT_SUCCESS}"
+echo "pytest 退出码: ${PYTEST_RC}"
 
-# 如果没有匹配到相关关键字，默认为0
-TEST_FAILURE=${TEST_FAILURE:-0}
-TEST_SUCCESS=${TEST_SUCCESS:-0}
-TEST_SKIP=${TEST_SKIP:-0}
-TEST_ERROR=${TEST_ERROR:-0}
-
-TEST_COUNT=$[$TEST_SUCCESS+$TEST_FAILURE+$TEST_SKIP+$TEST_ERROR]
-TEST_NOT_SUCCESS_COUNT=$[$TEST_FAILURE+$TEST_ERROR]
-
-echo "测试时长: $TEST_TIME 秒"
-echo "单元测试覆盖率: $TEST_COVERAGE"
-echo "单元测试数: $TEST_COUNT"
-echo "成功数: $TEST_SUCCESS"
-echo "失败数: $TEST_FAILURE"
-echo "异常数: $TEST_ERROR"
-echo "跳过数: $TEST_SKIP"
-echo "未通过数: $TEST_NOT_SUCCESS_COUNT"
-
-
-if [[ $TEST_NOT_SUCCESS_COUNT -ne 0 ]];
-then
-  echo -e "\033[1;31m $TEST_LOGS  \033[0m"
+if ! assert_pytest_session_healthy "$PYTEST_RC" "$PYTEST_COLLECTED" "$PYTEST_NOT_SUCCESS"; then
+  echo "❌ 单元测试未通过，完整日志见 ${PYTEST_LOG}"
   exit 1
 fi
 
-# 打印报告
-#coverage report --include "$COVERAGE_INCLUDE_PATH" --omit "$COVERAGE_OMIT_PATH"
+if [[ ! -f pytest-junit.xml ]]; then
+  echo "❌ 未生成 pytest-junit.xml，CI 无法收集单测报告"
+  exit 1
+fi
 
 exit 0

@@ -56,7 +56,6 @@ from backend.db_services.flow_node_baseline.constants import (
 )
 from backend.db_services.flow_node_baseline.name_cleaner import NameCleaner
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 
 logger = logging.getLogger("root")
 
@@ -177,6 +176,8 @@ class _LLMSemanticMatcher:
 
     def _call_llm(self, prompt: str) -> str:
         """调用 AgentHandler 获取 LLM 原始响应文本。"""
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         start_ts: float = time.time()
         response_text: str = AgentHandler.ask_agent_with_content(
             agent_code=self._AGENT_CODE,

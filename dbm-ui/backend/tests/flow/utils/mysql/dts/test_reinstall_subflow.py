@@ -12,7 +12,8 @@ import shlex
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+import pytest
+from django.test import SimpleTestCase, TestCase
 
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_reinstall_subflow import _collect_reinstall_hosts
 from backend.flow.utils.mysql.dts.context import DtsHostSpec, MysqlDtsReinstallSubflowInput
@@ -143,8 +144,9 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
         self.assertIn("CONFIG_FILE=" + shlex.quote("dm-master-1.toml"), script)
 
 
-class ReinstallSubflowIntegrationTest(SimpleTestCase):
-    """测试重装子流程编排（不依赖数据库）。"""
+@pytest.mark.django_db
+class ReinstallSubflowIntegrationTest(TestCase):
+    """测试重装子流程编排（会写入 FlowNode）。"""
 
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_reinstall_subflow.build_dts_trans_file_kwargs")
     def test_subflow_builds_without_error(self, mock_trans):

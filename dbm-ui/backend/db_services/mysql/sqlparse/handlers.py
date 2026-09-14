@@ -14,6 +14,7 @@ import re
 
 import sqlparse
 from django.utils.translation import gettext as _
+from sqlparse.exceptions import SQLParseError
 
 from backend.db_services.mysql.sqlparse.exceptions import SQLParseBaseException
 from backend.flow.consts import SYSTEM_DBS
@@ -30,6 +31,13 @@ class SQLParseHandler:
         self.commands = set()
         self.tables = set()
         self.table_token = None
+
+    def _safe_sqlparse(self, sql: str):
+        """封装 sqlparse.parse，将超长/过于复杂的 SQL 转为业务异常。"""
+        try:
+            return sqlparse.parse(sql)
+        except SQLParseError as exc:
+            raise SQLParseBaseException(_("SQL语句过长或结构过于复杂，无法解析: {}").format(exc)) from exc
 
     def parse_tokens(self, tokens):
         """
@@ -77,10 +85,10 @@ class SQLParseHandler:
         """
         解析 SQL
         """
-        parsed_sqls = sqlparse.parse(sql)
+        parsed_sqls = self._safe_sqlparse(sql)
         if len(parsed_sqls) == 0:
             return {}
-        tokens = sqlparse.parse(sql)[0].tokens
+        tokens = parsed_sqls[0].tokens
         self.parse_tokens(tokens=tokens)
         digest_sql = " ".join(self.sql_items)
         for char in ["\r", "\n", "\t"]:
@@ -146,7 +154,7 @@ class SQLParseHandler:
             return is_select, is_contain_keywords
 
         # 一次性只解析一条sql语句
-        parsed_sqls = sqlparse.parse(sql)
+        parsed_sqls = self._safe_sqlparse(sql)
         if len(parsed_sqls) > 1:
             raise SQLParseBaseException(_("请保证一次只解析一条select语句"))
 

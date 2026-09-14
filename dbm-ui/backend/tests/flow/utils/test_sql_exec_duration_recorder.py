@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
@@ -70,12 +71,14 @@ class TestSqlExecDurationEnrich(SimpleTestCase):
         self.assertEqual(size, 200)
         mock_tbl_size.assert_called_once()
 
-    @patch.object(recorder.MysqlSqlExecDuration.objects, "bulk_create")
-    @patch.object(recorder.MysqlSqlExecDuration.objects, "filter")
+    @patch.object(recorder, "MysqlSqlExecDuration")
     @patch.object(recorder, "_resolve_sim_cluster_type", return_value="mysql")
     @patch.object(recorder, "_parse_sql_queries")
-    def test_persist_fills_fields_and_parse_fail_ok(self, mock_parse, mock_ctype, mock_filter, mock_bulk):
-        mock_filter.return_value.values_list.return_value = []
+    def test_persist_fills_fields_and_parse_fail_ok(self, mock_parse, mock_ctype, mock_model):
+        mock_model.objects.filter.return_value.values_list.return_value = []
+        mock_bulk = MagicMock()
+        mock_model.objects.bulk_create = mock_bulk
+        mock_model.side_effect = lambda **kwargs: SimpleNamespace(**kwargs)
         mock_parse.return_value = [
             {"command": "update", "db_name": "db1", "table_name": "t1"},
         ]

@@ -71,6 +71,8 @@ class MySQLComponentBaseTest(BaseComponentTest):
         # 创建默认单据（类型默认为mysql_single_apply）
         # TODO: 是否需要根据组件不同而修改单据类型
         ticket_type = TicketType.MYSQL_SINGLE_APPLY.value
+        # pytest 全量跑时前面用例可能已提交 id=1，类级事务回滚兜不住，先清再插
+        Ticket.objects.filter(id=1).delete()
         Ticket.objects.create(id=1, creator="admin", updater="admin", bk_biz_id=1, ticket_type=ticket_type)
 
         # 创建Package数据

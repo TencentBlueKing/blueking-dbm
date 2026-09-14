@@ -217,7 +217,7 @@ class TestRocksDBGhostCollationCheck(TestCase):
         assert findings == []
         assert mock_rpc.call_count == 2
         assert [len(call.args[0]["addresses"]) for call in mock_rpc.call_args_list] == [3, 1]
-        assert DRS_ADDRESS_CHUNK_SIZE == 20
+        assert DRS_ADDRESS_CHUNK_SIZE == 10
 
     def test_batch_rpc_exception_marks_chunk_as_query_failed(self):
         findings, unused = self.check_cluster(

@@ -5,6 +5,7 @@ on:
     target-branches:  [ "*" ]
     paths:
       - dbm-ui/backend/*
+      - dbm-ui/scripts/ci/*
 
 stages:
   - name: "python单元测试"

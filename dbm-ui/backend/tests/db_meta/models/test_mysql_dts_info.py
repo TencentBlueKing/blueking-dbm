@@ -47,7 +47,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         with self.assertRaises(ClusterExclusiveOperateException):
             MysqlDtsInfo.dts_info_clusive(
                 ticket_id=2,
-                ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 details={"cluster_id": 20},
             )
 
@@ -56,7 +56,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         self._create_active(source_cluster_ids=[20], target_cluster_id=300, ticket_id=1)
         MysqlDtsInfo.dts_info_clusive(
             ticket_id=2,
-            ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             details={"cluster_id": 10, "target_cluster_id": 400},
         )
 
@@ -65,7 +65,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         with self.assertRaises(ClusterExclusiveOperateException):
             MysqlDtsInfo.dts_info_clusive(
                 ticket_id=2,
-                ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 details={"cluster_id": 99, "target_cluster_id": 300},
             )
 
@@ -73,7 +73,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         self._create_active(source_cluster_ids=[10, 20], target_cluster_id=300, ticket_id=9)
         MysqlDtsInfo.dts_info_clusive(
             ticket_id=9,
-            ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             details={"cluster_id": 20, "target_cluster_id": 300},
         )
 
@@ -83,7 +83,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         with self.assertRaises(ClusterExclusiveOperateException):
             MysqlDtsInfo.dts_info_clusive(
                 ticket_id=877,
-                ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 details={"cluster_id": 10, "target_cluster_id": 400},
             )
 
@@ -100,7 +100,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         with self.assertRaises(ClusterExclusiveOperateException):
             MysqlDtsInfo.dts_info_clusive(
                 ticket_id=877,
-                ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 details={"cluster_id": 10, "target_cluster_id": 400},
             )
 
@@ -115,7 +115,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         )
         MysqlDtsInfo.dts_info_clusive(
             ticket_id=877,
-            ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             details={"cluster_id": 10, "target_cluster_id": 300},
         )
 
@@ -134,7 +134,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         }
         MysqlDtsInfo.check_exclusive_and_reserve(
             ticket_id=900,
-            ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             details=details,
             bk_biz_id=1,
             migrate_type="mysql_to_mysql",
@@ -172,7 +172,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         }
         MysqlDtsInfo.check_exclusive_and_reserve(
             ticket_id=901,
-            ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             details=details_a,
             bk_biz_id=1,
             migrate_type="mysql_to_mysql",
@@ -180,7 +180,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
         with self.assertRaises(ClusterExclusiveOperateException):
             MysqlDtsInfo.check_exclusive_and_reserve(
                 ticket_id=902,
-                ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 details=details_b,
                 bk_biz_id=1,
                 migrate_type="mysql_to_mysql",

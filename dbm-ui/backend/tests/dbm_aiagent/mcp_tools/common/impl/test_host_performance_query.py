@@ -144,9 +144,9 @@ class TestDatadirMountAndFlatten:
         assert matched["disk_type"] == "NVME_SSD"
         assert mod._match_disk_by_mount(disks, "/data2") is None
 
-    @patch.object(mod.StorageInstance.objects, "filter")
-    def test_flatten_storage_row(self, filter_qs):
-        filter_qs.return_value.count.return_value = 16
+    @patch.object(mod, "StorageInstance")
+    def test_flatten_storage_row(self, storage_cls):
+        storage_cls.objects.filter.return_value.count.return_value = 16
         machine = MagicMock()
         perf = {
             "machine": {"ip": "127.0.0.20", "bk_cloud_id": 0, "bk_svr_device_cls_name": "S5"},

@@ -10,6 +10,8 @@ export APP_TOKEN=xxx
 export YUM_INSTALL_SERVICE=1
 export CREATE_PYTHON_VENV=1
 export VENV_DIR="/tmp/ci_py_venv"
+export EXPECTED_PYTHON_MAJOR_MINOR="3.11"
+export PINNED_VIRTUALENV_VERSION="20.36.1"
 
 # CI自定义环境变量
 # 数据库

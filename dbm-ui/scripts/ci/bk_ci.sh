@@ -3,42 +3,28 @@
 # DBM 项目 CI 检查主脚本
 # 功能：执行项目的完整性检查、安装和质量控制
 # ============================================================
+set -euo pipefail
 
 # 获取当前脚本所在目录
-SCRIPT_DIR=$(dirname $(readlink -f "$0"))
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "当前脚本目录: $SCRIPT_DIR"
 echo "============================================================"
 
-# 初始化失败计数器
-FAILED_COUNT=0
-
-# ============================================================
-# 执行各个检查步骤
-# ============================================================
-
-# 1. 准备服务环境
-echo "[1/3] 准备服务环境..."
-${SCRIPT_DIR}/prepare_services.sh
-FAILED_COUNT=$[$FAILED_COUNT+$?]
-
-# 3. 安装依赖
-echo "[2/3] 安装项目依赖并进行迁移文件检查..."
-${SCRIPT_DIR}/install.sh
-FAILED_COUNT=$[$FAILED_COUNT+$?]
-
-# 5. 代码质量检查
-echo "[3/3] 执行代码质量检查..."
-${SCRIPT_DIR}/code_quality.sh
-FAILED_COUNT=$[$FAILED_COUNT+$?]
-
-# ============================================================
-# 汇总检查结果
-# ============================================================
-echo "============================================================"
-if [[ $FAILED_COUNT -ne 0 ]]; then
-    echo "❌ CI 检查失败：共有 $FAILED_COUNT 个检查项未通过"
+run_step() {
+  local name="$1"
+  local script="$2"
+  echo "${name}"
+  if ! "${script}"; then
+    echo "❌ ${name} 失败，终止 CI"
     exit 1
-else
-    echo "🎉 所有 CI 检查通过！"
-    exit 0
-fi
+  fi
+}
+
+run_step "[0/4] CI 检测机制自检..." "${SCRIPT_DIR}/test_ci_guards.sh"
+run_step "[1/4] 准备服务环境..." "${SCRIPT_DIR}/prepare_services.sh"
+run_step "[2/4] 安装项目依赖并进行迁移文件检查..." "${SCRIPT_DIR}/install.sh"
+run_step "[3/4] 执行代码质量检查..." "${SCRIPT_DIR}/code_quality.sh"
+
+echo "============================================================"
+echo "🎉 所有 CI 检查通过！"
+exit 0
