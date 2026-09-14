@@ -50,7 +50,6 @@ var allKnownClusterTypes = []haprobe.DbmMetadataClusterType{
 	haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
 	haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 	haprobe.DbmMetadataClusterTypePredixyRedisCluster,
-	haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
 	haprobe.DbmMetadataClusterTypePulsar,
 }
 
