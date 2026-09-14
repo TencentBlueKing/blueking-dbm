@@ -401,8 +401,11 @@ def _make_dba_actions(db_type: str) -> List[ActionMeta]:
     按组件生成 DBA 的操作集合：本组件全部前缀操作 + 各组件共有的操作。
     MySQL 额外含 Dumper 与授权白名单
     """
+    # *_dbconsole  管理控制台仅分配给【平台管理员】这个角色，从其他角色里移除
     component_actions = [
-        action for action_id, action in _all_actions.items() if action_id.startswith("{}_".format(db_type))
+        action
+        for action_id, action in _all_actions.items()
+        if action_id.startswith("{}_".format(db_type)) and action_id != f"{db_type}_dbconsole"
     ]
     extra_actions = MYSQL_DBA_EXTRA_ACTIONS if db_type in [DBType.MySQL, DBType.TenDBCluster] else []
     actions = DBA_SHARED_ACTIONS + component_actions + extra_actions
@@ -434,78 +437,79 @@ class RoleEnum:
     )
 
     # ---------------- 组件 DBA：按组件各一个角色，为本组件的运维超集 ----------------
-    MYSQL_DBA = RoleMeta(
-        id="dbm_mysql_dba",
-        name=_("MySQL DBA"),
-        description=_("拥有本业务 MySQL 全部运维权限（含运维聚合、扩缩容/切换、临时密码、Dumper、授权白名单）。"),
-        actions=_make_dba_actions(DBType.MySQL),
-    )
-    TENDBCLUSTER_DBA = RoleMeta(
-        id="dbm_tendbcluster_dba",
-        name=_("TenDBCluster DBA"),
-        description=_("拥有本业务 TenDBCluster 全部运维权限（含运维聚合、扩缩容/切换、临时密码）。"),
-        actions=_make_dba_actions(DBType.TenDBCluster),
-    )
-    REDIS_DBA = RoleMeta(
-        id="dbm_redis_dba",
-        name=_("Redis DBA"),
-        description=_("拥有本业务 Redis 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Redis),
-    )
-    MONGODB_DBA = RoleMeta(
-        id="dbm_mongodb_dba",
-        name=_("MongoDB DBA"),
-        description=_("拥有本业务 MongoDB 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.MongoDB),
-    )
-    SQLSERVER_DBA = RoleMeta(
-        id="dbm_sqlserver_dba",
-        name=_("SQLServer DBA"),
-        description=_("拥有本业务 SQLServer 全部运维权限（含运维聚合、扩缩容/切换、临时密码）。"),
-        actions=_make_dba_actions(DBType.Sqlserver),
-    )
-    ES_DBA = RoleMeta(
-        id="dbm_es_dba",
-        name=_("ES DBA"),
-        description=_("拥有本业务 ES 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Es),
-    )
-    KAFKA_DBA = RoleMeta(
-        id="dbm_kafka_dba",
-        name=_("Kafka DBA"),
-        description=_("拥有本业务 Kafka 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Kafka),
-    )
-    HDFS_DBA = RoleMeta(
-        id="dbm_hdfs_dba",
-        name=_("HDFS DBA"),
-        description=_("拥有本业务 HDFS 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Hdfs),
-    )
-    PULSAR_DBA = RoleMeta(
-        id="dbm_pulsar_dba",
-        name=_("Pulsar DBA"),
-        description=_("拥有本业务 Pulsar 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Pulsar),
-    )
-    DORIS_DBA = RoleMeta(
-        id="dbm_doris_dba",
-        name=_("Doris DBA"),
-        description=_("拥有本业务 Doris 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Doris),
-    )
-    RIAK_DBA = RoleMeta(
-        id="dbm_riak_dba",
-        name=_("Riak DBA"),
-        description=_("拥有本业务 Riak 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Riak),
-    )
-    ORACLE_DBA = RoleMeta(
-        id="dbm_oracle_dba",
-        name=_("Oracle DBA"),
-        description=_("拥有本业务 Oracle 全部运维权限（含运维聚合、扩缩容/切换）。"),
-        actions=_make_dba_actions(DBType.Oracle),
-    )
+    # TODO 暂时注释掉，后期放开
+    # MYSQL_DBA = RoleMeta(
+    #     id="dbm_mysql_dba",
+    #     name=_("MySQL DBA"),
+    #     description=_("拥有本业务 MySQL 全部运维权限（含运维聚合、扩缩容/切换、临时密码、Dumper、授权白名单）。"),
+    #     actions=_make_dba_actions(DBType.MySQL),
+    # )
+    # TENDBCLUSTER_DBA = RoleMeta(
+    #     id="dbm_tendbcluster_dba",
+    #     name=_("TenDBCluster DBA"),
+    #     description=_("拥有本业务 TenDBCluster 全部运维权限（含运维聚合、扩缩容/切换、临时密码）。"),
+    #     actions=_make_dba_actions(DBType.TenDBCluster),
+    # )
+    # REDIS_DBA = RoleMeta(
+    #     id="dbm_redis_dba",
+    #     name=_("Redis DBA"),
+    #     description=_("拥有本业务 Redis 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Redis),
+    # )
+    # MONGODB_DBA = RoleMeta(
+    #     id="dbm_mongodb_dba",
+    #     name=_("MongoDB DBA"),
+    #     description=_("拥有本业务 MongoDB 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.MongoDB),
+    # )
+    # SQLSERVER_DBA = RoleMeta(
+    #     id="dbm_sqlserver_dba",
+    #     name=_("SQLServer DBA"),
+    #     description=_("拥有本业务 SQLServer 全部运维权限（含运维聚合、扩缩容/切换、临时密码）。"),
+    #     actions=_make_dba_actions(DBType.Sqlserver),
+    # )
+    # ES_DBA = RoleMeta(
+    #     id="dbm_es_dba",
+    #     name=_("ES DBA"),
+    #     description=_("拥有本业务 ES 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Es),
+    # )
+    # KAFKA_DBA = RoleMeta(
+    #     id="dbm_kafka_dba",
+    #     name=_("Kafka DBA"),
+    #     description=_("拥有本业务 Kafka 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Kafka),
+    # )
+    # HDFS_DBA = RoleMeta(
+    #     id="dbm_hdfs_dba",
+    #     name=_("HDFS DBA"),
+    #     description=_("拥有本业务 HDFS 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Hdfs),
+    # )
+    # PULSAR_DBA = RoleMeta(
+    #     id="dbm_pulsar_dba",
+    #     name=_("Pulsar DBA"),
+    #     description=_("拥有本业务 Pulsar 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Pulsar),
+    # )
+    # DORIS_DBA = RoleMeta(
+    #     id="dbm_doris_dba",
+    #     name=_("Doris DBA"),
+    #     description=_("拥有本业务 Doris 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Doris),
+    # )
+    # RIAK_DBA = RoleMeta(
+    #     id="dbm_riak_dba",
+    #     name=_("Riak DBA"),
+    #     description=_("拥有本业务 Riak 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Riak),
+    # )
+    # ORACLE_DBA = RoleMeta(
+    #     id="dbm_oracle_dba",
+    #     name=_("Oracle DBA"),
+    #     description=_("拥有本业务 Oracle 全部运维权限（含运维聚合、扩缩容/切换）。"),
+    #     actions=_make_dba_actions(DBType.Oracle),
+    # )
 
     # ---------------- 平台管理员：含全部已注册操作，随注册面自动增减 ----------------
     PLATFORM_ADMIN = RoleMeta(
