@@ -22,14 +22,14 @@ export default class DbResource {
     DISSOLVED: 'Dissolved',
     FAULT_HAZARD: 'FaultHazard',
     UNUSED: 'Unused',
-    // USED_BY_OTHER: 'UsedByOther',
+    USED_BY_OTHER: 'UsedByOther',
   };
 
   static readonly ResourceStatusDisplayMap = {
     [DbResource.ResourceStatus.DISSOLVED]: t('待裁撤'),
     [DbResource.ResourceStatus.FAULT_HAZARD]: t('故障机'),
     [DbResource.ResourceStatus.UNUSED]: t('可申领'),
-    // [DbResource.ResourceStatus.USED_BY_OTHER]: t('已被他用'),
+    [DbResource.ResourceStatus.USED_BY_OTHER]: t('已被他用'),
   };
 
   agent_status: number;
