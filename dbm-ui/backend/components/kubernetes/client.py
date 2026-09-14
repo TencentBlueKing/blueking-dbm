@@ -125,6 +125,11 @@ class _KubernetesApi(BaseApi):
             url="/v4/dbs/opsRequest/expose",
             description=_("暴露端口"),
         )
+        self.expose_instance = self.generate_data_api(
+            method="POST",
+            url="/v4/dbs/opsRequest/expose/instance",
+            description=_("vmstorage实例级CLB启停"),
+        )
         self.get_regions = self.generate_data_api(
             method="GET",
             url="/v4/dbs/metadata/k8s_cluster_config/regions?isPublic=true",

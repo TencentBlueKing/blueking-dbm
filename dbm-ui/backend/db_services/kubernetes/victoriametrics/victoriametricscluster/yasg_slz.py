@@ -53,3 +53,21 @@ class ResourceSLZ(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": paginated_resource_example["results"][0]}
         ref_name = f"{REF_NAME}_ResourceSLZ"
+
+
+vmstorage_clb_response_example = {
+    "opsRequestName": "ops-expose-instance-abc123",
+    "namespace": "victoriametrics-demo-2",
+    "clusterName": "monitor-6",
+    "podCount": 6,
+    "serviceCount": 6,
+    "noOp": False,
+}
+
+
+class VMStorageCLBResponseSLZ(serializers.Serializer):
+    """vmstorage 实例级 CLB 启停响应"""
+
+    class Meta:
+        swagger_schema_fields = {"example": vmstorage_clb_response_example}
+        ref_name = f"{REF_NAME}_VMStorageCLBResponseSLZ"

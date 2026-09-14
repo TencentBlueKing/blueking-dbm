@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and limitations 
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.resources import serializers
@@ -19,7 +21,10 @@ from backend.db_services.kubernetes.victoriametrics.victoriametricscluster impor
 from backend.db_services.kubernetes.victoriametrics.victoriametricscluster.query import (
     VictoriaMetricsClusterListRetrieveResource,
 )
+from backend.db_services.kubernetes.victoriametrics.victoriametricscluster.serializers import VMStorageCLBSerializer
 from backend.db_services.kubernetes.victoriametrics.views import BaseVictoriaMetricsResourceViewSet
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 @method_decorator(
@@ -64,5 +69,36 @@ from backend.db_services.kubernetes.victoriametrics.views import BaseVictoriaMet
         tags=[constants.RESOURCE_TAG],
     ),
 )
+@method_decorator(
+    name="vmstorage_clb",
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("启用/停用 vmstorage 实例级 CLB 暴露"),
+        request_body=VMStorageCLBSerializer(),
+        responses={status.HTTP_200_OK: yasg_slz.VMStorageCLBResponseSLZ()},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
 class VictoriaMetricsClusterResourceViewSet(BaseVictoriaMetricsResourceViewSet):
     query_class = VictoriaMetricsClusterListRetrieveResource
+
+    def _get_custom_permissions(self):
+        if self.action == "vmstorage_clb":
+            return [DBManagePermission(actions=[ActionEnum.K8S_VICTORIAMETRICS_MANAGE])]
+        return super()._get_custom_permissions()
+
+    @action(
+        methods=["POST"],
+        detail=False,
+        url_path="vmstorage_clb",
+        serializer_class=VMStorageCLBSerializer,
+    )
+    def vmstorage_clb(self, request, bk_biz_id: int):
+        """启用/停用 vmstorage 实例级 CLB 暴露"""
+        data = self.params_validate(self.get_serializer_class())
+        result = self.query_class.set_vmstorage_clb_enabled(
+            bk_biz_id=bk_biz_id,
+            cluster_id=data["cluster_id"],
+            enable=data["enable"],
+            bk_username=request.user.username,
+        )
+        return Response(result)
