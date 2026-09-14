@@ -19,7 +19,7 @@ import { t } from '@locales/index';
 export function getRoutes() {
   return {
     path: 'db-manage-todo',
-    name: 'DbManageToto',
+    name: 'DbManageTodo',
     redirect: {
       name: 'ClusterDisableTodo',
     },

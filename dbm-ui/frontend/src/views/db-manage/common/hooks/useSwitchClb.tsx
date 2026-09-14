@@ -14,9 +14,7 @@
 import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
-import { createTicket } from '@services/source/ticket';
-
-import { useTicketMessage } from '@hooks';
+import { useCreateTicket } from '@hooks';
 
 import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -33,24 +31,22 @@ const ticketTypeMap = {
 
 export const useSwitchClb = (clusterType: keyof typeof ticketTypeMap) => {
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<{ cluster_id: number }>(ticketTypeMap[clusterType].create, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const handleSwitchClb = (data: { id: number }) => {
     const title = t('确定启用CLB？');
     const content = t('启用 CLB 之后，该集群可以通过 CLB 来访问');
-    const ticketType = ticketTypeMap[clusterType].create;
 
     InfoBox({
       content,
       onConfirm: () => {
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        createTicketRun({
           details: {
             cluster_id: data.id,
           },
-          ticket_type: ticketType,
-        }).then((ticketResult) => {
-          ticketMessage(ticketResult.id);
         });
       },
       title,

@@ -148,11 +148,8 @@
 
   import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
   import { queryFixpointLog } from '@services/source/fixpointRollback';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -160,8 +157,14 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket<{ cluster_ids: (string | number)[] }>(
+    TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
+    {
+      isToolbox: false,
+      onSuccess: () => fetchData(),
+      successMessage: t('操作提交成功'),
+    },
+  );
 
   const tableRef = ref();
   const selectionList = ref<string[]>([]);
@@ -173,16 +176,10 @@
   const disableSelectMethodCallback = (data: FixpointLogModel) => !data.isDestoryEnable;
 
   const handleDestroy = (payload: FixpointLogModel) =>
-    createTicket({
-      bk_biz_id: currentBizId,
+    createTicketRun({
       details: {
         cluster_ids: [payload.target_cluster.cluster_id],
       },
-      remark: '',
-      ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
-    }).then((data) => {
-      ticketMessage(data.id);
-      fetchData();
     });
 
   const handleSelectionChange = (payload: string[]) => {
@@ -190,16 +187,10 @@
   };
 
   const handleBatchDisable = () =>
-    createTicket({
-      bk_biz_id: currentBizId,
+    createTicketRun({
       details: {
         cluster_ids: selectionList.value,
       },
-      remark: '',
-      ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
-    }).then((data) => {
-      ticketMessage(data.id);
-      fetchData();
     });
 
   onMounted(() => {

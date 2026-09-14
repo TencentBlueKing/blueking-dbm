@@ -299,11 +299,8 @@
 
   import DumperInstanceModel from '@services/model/dumper/dumper';
   import { getRunningTaskList, listDumperConfig, listDumperInstance } from '@services/source/dumper';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
   import { ipPort, ipv4 } from '@common/regex';
@@ -330,8 +327,6 @@
 
   const props = defineProps<Props>();
 
-  const ticketMessage = useTicketMessage();
-  const { currentBizId } = useGlobalBizs();
   const { locale, t } = useI18n();
   const router = useRouter();
 
@@ -426,14 +421,10 @@
     },
   });
 
-  const { run: runCreateTicket } = useRequest(createTicket, {
-    manual: true,
-    onSuccess: (data) => {
-      if (data && data.id) {
-        ticketMessage(data.id);
-        fetchTableData();
-      }
-    },
+  const { run: runCreateTicket } = useCreateTicket<{ dumper_instance_ids: number[] }>(undefined, {
+    isToolbox: false,
+    onSuccess: () => fetchTableData(),
+    successMessage: t('操作提交成功'),
   });
 
   const fetchTableData = () => {
@@ -494,11 +485,9 @@
         infoType: 'warning',
         onConfirm: () => {
           const params = {
-            bk_biz_id: currentBizId,
             details: {
               dumper_instance_ids: [data.id],
             },
-            remark: '',
             ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
           };
           runCreateTicket(params);
@@ -510,11 +499,9 @@
     }
     // 启用
     const params = {
-      bk_biz_id: currentBizId,
       details: {
         dumper_instance_ids: [data.id],
       },
-      remark: '',
       ticket_type: TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
     };
     runCreateTicket(params);
@@ -528,11 +515,9 @@
       infoType: 'warning',
       onConfirm: () => {
         const params = {
-          bk_biz_id: currentBizId,
           details: {
             dumper_instance_ids: selectedList.value.map((item) => item.id),
           },
-          remark: '',
           ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
         };
         runCreateTicket(params);
@@ -561,11 +546,9 @@
       ),
       onConfirm: () => {
         const params = {
-          bk_biz_id: currentBizId,
           details: {
             dumper_instance_ids: [data.id],
           },
-          remark: '',
           ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
         };
         runCreateTicket(params);
@@ -583,11 +566,9 @@
       content: t('删除后数据传输将会终止，并删除实例，请谨慎操作！'),
       onConfirm: () => {
         const params = {
-          bk_biz_id: currentBizId,
           details: {
             dumper_instance_ids: selectedList.value.map((item) => item.id),
           },
-          remark: '',
           ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
         };
         runCreateTicket(params);

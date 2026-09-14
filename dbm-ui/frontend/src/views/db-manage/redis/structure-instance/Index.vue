@@ -68,9 +68,8 @@
 
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList } from '@services/source/redisRollback';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useDefaultPagination, useTicketMessage } from '@hooks';
+  import { useCreateTicket, useDefaultPagination } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -81,8 +80,11 @@
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
   const { currentBizId } = useGlobalBizs();
-  const handleDeleteSuccess = useTicketMessage();
   const { t } = useI18n();
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
   const router = useRouter();
   const tableData = ref<RedisRollbackModel[]>([]);
   const isTableDataLoading = ref(false);
@@ -436,19 +438,14 @@
   const handleBatchDestruct = () => {
     const infos = generateRequestParam();
     const params = {
-      bk_biz_id: currentBizId,
       details: {
         infos,
       },
-      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
     };
     InfoBox({
       confirmText: t('删除'),
       onConfirm: () => {
-        createTicket(params).then((data) => {
-          const ticketId = data.id;
-          handleDeleteSuccess(ticketId);
-        });
+        createTicketRun(params);
       },
       subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
       title: t('确认销毁 n 个集群的构造实例？', { n: infos.length }),
@@ -474,19 +471,14 @@
     }
     const infos = generateRequestParam(data);
     const params = {
-      bk_biz_id: currentBizId,
       details: {
         infos,
       },
-      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
     };
     InfoBox({
       confirmText: t('删除'),
       onConfirm: () => {
-        createTicket(params).then((data) => {
-          const ticketId = data.id;
-          handleDeleteSuccess(ticketId);
-        });
+        createTicketRun(params);
       },
       subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
       title: t('确认销毁 n 个集群的构造实例？', { n: 1 }),

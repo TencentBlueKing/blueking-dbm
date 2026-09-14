@@ -200,23 +200,4 @@
       background-color: #f0f1f5;
     }
   }
-
-  .user-info-box {
-    cursor: pointer;
-
-    .username-text {
-      padding-right: 4px;
-      line-height: 32px;
-    }
-
-    .user-info-arrow {
-      display: inline-block;
-      font-size: 12px;
-      transition: all 0.2s;
-
-      &.is-active {
-        transform: rotate(180deg);
-      }
-    }
-  }
 </style>

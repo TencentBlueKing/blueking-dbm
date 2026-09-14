@@ -22,7 +22,8 @@
             <span class="label">{{ t('账号') }} ：</span>{{ t('访问 DB 的用户名，包括它的密码') }}
           </p>
           <p>
-            <span class="label">{{ t('授权规则') }} ：</span>{{ t('权限模板，预定义账号拥有哪些权限') }}
+            <span class="label">{{ t('授权规则') }}：</span>
+            {{ t('权限模板，预定义账号拥有哪些权限。只是模版, 不代表 db 集群上有这个权限，需要基于规则 执行授权') }}
           </p>
           <p>
             <span class="label">{{ t('授权') }} ：</span>{{ t('根据 grant 语法授予 DB 实例的访问权限') }}
@@ -106,10 +107,9 @@
     deleteAccount as deleteSqlserverAccount,
     getPermissionRules as getSqlserverPermissionRules,
   } from '@services/source/sqlserverPermissionAccount';
-  import { createTicket } from '@services/source/ticket';
   import type { PermissionRule, PermissionRuleInfo } from '@services/types/permission';
 
-  import { useTicketDetail, useTicketMessage } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -218,8 +218,6 @@
   };
 
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
-
   useTicketDetail<Mysql.AuthorizeRules>(configMap[props.accountType].ticketType, {
     async onSuccess(ticketData) {
       const { authorize_data: data } = ticketData.details;
@@ -566,12 +564,10 @@
   /**
    * 规则变更走单据
    */
-  const { run: createTicketRun } = useRequest(createTicket, {
-    manual: true,
-    onSuccess(data) {
-      ticketMessage(data.id);
-      fetchData();
-    },
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    onSuccess: () => fetchData(),
+    successMessage: t('操作提交成功'),
   });
 
   /**
@@ -729,7 +725,6 @@
       [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
     };
     createTicketRun({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       details: {
         account_id: row.account.account_id,
         account_type: props.accountType,
@@ -740,7 +735,6 @@
         },
         rule_id: row.rules[index].rule_id,
       },
-      remark: '',
       ticket_type: ticketTypeMap[props.accountType as AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER],
     });
   };

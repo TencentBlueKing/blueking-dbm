@@ -10,21 +10,13 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import InfoBox from 'bkui-vue/lib/info-box';
-
 import TicketModel from '@services/model/ticket/ticket';
 import TicketClusterDisableTodoModel from '@services/model/ticket-cluster-disable-todo/TicketClusterDisableTodo';
 import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
 import type { HostNode, ListBase } from '@services/types';
 import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
-import { getRouter } from '@router';
-
 import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
-
-import { messageError } from '@utils';
-
-import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
 import type { DetailClusters } from '../model/ticket/details/common';
@@ -95,88 +87,6 @@ export function createTicketBatch<T>(params: {
       timeout: 300000,
     },
   );
-}
-
-/**
- * 创建单据、过后摒弃
- */
-export function createTicket(formData: Record<string, any>) {
-  return http
-    .post<{ bk_biz_id: number; id: number }>(`${path}/`, formData, {
-      catchError: true,
-      timeout: 300000,
-    })
-    .then((res) => res)
-    .catch((e) => {
-      const { code, data } = e;
-      const duplicateCode = 8704005;
-      if (code === duplicateCode) {
-        const id = data.duplicate_ticket_id;
-        const router = getRouter();
-
-        const route = router.resolve({
-          name: 'SelfServiceMyTickets',
-          params: {
-            ticketId: id,
-          },
-        });
-        return new Promise<{ bk_biz_id: number; id: number }>((resolve, reject) => {
-          InfoBox({
-            cancelText: t('取消提单'),
-            confirmText: t('继续提单'),
-            content: () => {
-              if (locale.value === 'en') {
-                return (
-                  <span>
-                    The system has detected that a similar ticket has already been submitted
-                    <a
-                      href={route.href}
-                      target='_blank'>
-                      {' '}
-                      ticket[{id}]{' '}
-                    </a>
-                    with the same target cluster, continue?
-                  </span>
-                );
-              }
-
-              return (
-                <span>
-                  系统检测到已提交过包含相同集群的同类
-                  <a
-                    href={route.href}
-                    target='_blank'>
-                    单据[{id}]
-                  </a>
-                  ，是否继续？
-                </span>
-              );
-            },
-            onCancel: () => {
-              reject(e);
-            },
-            onConfirm: async () => {
-              try {
-                const res = await createTicket({
-                  ...formData,
-                  ignore_duplication: true,
-                });
-                window.changeConfirm = false;
-                return resolve(res);
-              } catch (e: any) {
-                messageError(e?.message);
-                return reject(e);
-              }
-            },
-            title: t('是否继续提交单据'),
-          });
-        });
-      }
-
-      messageError(e.message);
-
-      return Promise.reject(e);
-    });
 }
 
 /**
