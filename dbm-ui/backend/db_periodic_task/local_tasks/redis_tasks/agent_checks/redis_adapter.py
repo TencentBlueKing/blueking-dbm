@@ -12,11 +12,13 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, TypedDict
 
+import pytz
 from django.db.models import Q
 from django.utils import timezone
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.constants import DEFAULT_TIME_ZONE_AREA
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.config import RedisAgentCheckConfig
@@ -118,17 +120,24 @@ class RedisClusterSelector:
 
     def _build_recently_checked_ids(self, now: datetime) -> set[int]:
         if self.config.recent_check_mode == "calendar_day":
-            report_day = int(now.strftime("%Y%m%d"))
-            return set(
-                RedisCheckReport.objects.filter(
-                    subtype=self.subtype.value,
-                    report_day=report_day,
-                ).values_list("cluster_id", flat=True)
-            )
+            local_now = now.astimezone(pytz.timezone(DEFAULT_TIME_ZONE_AREA))
+            cutoff = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            cutoff = now - timedelta(hours=24)
         return set(
             RedisCheckReport.objects.filter(
                 subtype=self.subtype.value,
-                create_at__gte=now - timedelta(hours=24),
+                create_at__gte=cutoff,
+            ).values_list("cluster_id", flat=True)
+        )
+
+    def _build_recently_normal_ids(self, now: datetime) -> set[int]:
+        normal_skip_days = self.config.normal_skip_days or (self.config.lookback_days / 2)
+        return set(
+            RedisCheckReport.objects.filter(
+                subtype=self.subtype.value,
+                state=ReportStateType.NORMAL.value,
+                create_at__gte=now - timedelta(days=normal_skip_days),
             ).values_list("cluster_id", flat=True)
         )
 
@@ -205,27 +214,24 @@ class RedisClusterSelector:
 
         return ordered_domains
 
-    def _base_cluster_qs(self, now: datetime):
-        """Eligibility base queryset + lookback cutoff, shared by both lanes.
+    def _base_cluster_qs(self, now: datetime, *, skip_recently_normal: bool = True):
+        """Eligibility base queryset + lookback cutoff.
 
-        Applies: cluster type / min-age / ONLINE phase, minus recently-checked and
-        recently-NORMAL clusters, minus ignore-list. Does NOT drop busy clusters
-        (that needs the paged ``ClusterOperateRecord`` join) and does NOT order.
+        Applies: cluster type / min-age / ONLINE phase, minus local-day reports
+        (``create_at`` since Shanghai midnight, or rolling 24h),
+        optionally minus recently-NORMAL clusters, minus ignore-list. Does NOT
+        drop busy clusters (that needs the paged ``ClusterOperateRecord`` join)
+        and does NOT order.
+
+        Rotation uses ``skip_recently_normal=True``. Priority only skips today's
+        reports so a recent NORMAL cluster can still be alarm-checked once today.
         """
         lookback_cutoff = now - timedelta(days=self.config.lookback_days)
         cluster_types = self.config.cluster_types or ClusterType.redis_cluster_types()
 
-        recently_checked_ids = self._build_recently_checked_ids(now)
-        normal_skip_days = self.config.normal_skip_days or (self.config.lookback_days / 2)
-        recently_normal_ids = set(
-            RedisCheckReport.objects.filter(
-                subtype=self.subtype.value,
-                state=ReportStateType.NORMAL.value,
-                create_at__gte=now - timedelta(days=normal_skip_days),
-            ).values_list("cluster_id", flat=True)
-        )
-
-        skip_ids = recently_checked_ids | recently_normal_ids
+        skip_ids = self._build_recently_checked_ids(now)
+        if skip_recently_normal:
+            skip_ids = skip_ids | self._build_recently_normal_ids(now)
         cluster_qs = Cluster.objects.filter(
             cluster_type__in=cluster_types,
             create_at__lte=lookback_cutoff,
@@ -268,7 +274,7 @@ class RedisClusterSelector:
         priority_domains = self._pull_priority_alarm_cluster_domains(now, limit=limit)
         if not priority_domains:
             return []
-        base_qs, lookback_cutoff = self._base_cluster_qs(now)
+        base_qs, lookback_cutoff = self._base_cluster_qs(now, skip_recently_normal=False)
         domain_to_id = dict(base_qs.filter(immute_domain__in=priority_domains).values_list("immute_domain", "id"))
         ordered_ids = [domain_to_id[d] for d in priority_domains if d in domain_to_id]
         busy_ids = self._busy_cluster_ids(ordered_ids, lookback_cutoff)

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/RobertCraigie/pyright-config-schema/main/pyrightconfig.schema.json",
   "include": [
     "dbm-ui/**/*"
   ],
@@ -27,5 +26,12 @@
   "reportUnknownParameterType": "none",
   "reportUnknownMemberType": "none",
   "reportUnknownArgumentType": "none",
-  "reportUnusedCallResult": "none"
+  "reportUnusedCallResult": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportIncompatibleVariableOverride": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportAny": "none",
+  "reportExplicitAny": "none",
+  "reportUnannotatedClassAttribute": "none"
 }

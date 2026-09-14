@@ -24,6 +24,7 @@ from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.config import
 from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.redis_adapter import RedisAgentCheckTask
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+from backend.db_report.repo.task_record_repo import get_report_day_from_time
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.dbm_aiagent.tasks.registry import ai_task
 from backend.flow.consts import ConfigTypeEnum
@@ -94,7 +95,7 @@ def _eviction_skip_reason(policy: str) -> str:
 
 
 def _write_eviction_skip_report(cluster, subtype, reason: str) -> None:
-    report_day = int(timezone.now().strftime("%Y%m%d"))
+    report_day = get_report_day_from_time(timezone.now())
     RedisReportWriter().write_redis_report(
         cluster_id=cluster.id,
         subtype=subtype.value,
