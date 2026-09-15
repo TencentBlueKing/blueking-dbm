@@ -187,7 +187,7 @@ class DisplayInfoSerializer(serializers.Serializer):
 
 
 class InstanceInfoSerializer(HostInfoSerializer):
-    port = serializers.IntegerField(help_text=_("端口号"), required=False)
+    role = serializers.CharField(help_text=_("角色"), required=False)
 
 
 class ResourceSpecBaseSerializer(serializers.Serializer):
