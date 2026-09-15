@@ -26,34 +26,25 @@ package admin
 
 import (
 	"context"
-	"encoding/json"
-	"net"
 	"sync"
 	"time"
 
-	"dbm-services/common/dbha-v2/internal/admin/api/open"
 	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/admin/config"
+	"dbm-services/common/dbha-v2/internal/admin/slot"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
-	"dbm-services/common/dbha-v2/pkg/proto"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
-	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/hako/durafmt"
-	"github.com/swaggest/swgui"
-	"github.com/swaggest/swgui/v5emb"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
+
+var processAPMInit sync.Once
 
 // Name returns the process name from the current executable (same as Makefile binary name).
 func Name() string {
@@ -63,18 +54,25 @@ func Name() string {
 // Service is the admin service. It references AdminGrpcService and manages its lifecycle;
 // gRPC API is served by AdminGrpcService.
 type Service struct {
-	quit         chan struct{}
-	info         discovery.ServiceInfo
-	apmSvr       *haapm.Server
-	discoveryCli *discovery.Client
-	regCli       *discovery.Registry
-	wg           sync.WaitGroup
-	db           *hamysql.GormDB
-	address      string
-	grpcSvc      *AdminGrpcService // gRPC API implementation, created and owned by Service
-	svr          *grpc.Server
-	logger       *zap.Logger
-	gormLogger   logger.Logger
+	quit             chan struct{}
+	info             discovery.ServiceInfo
+	grpcSvc          *AdminGrpcService // gRPC API implementation, created and owned by Service
+	logger           *zap.Logger
+	gormLogger       logger.Logger
+	runtimeLogger    *logger.DbmLogger
+	configPath       string
+	pidFile          string
+	reloadC          chan struct{}
+	reloadWorkerDone chan struct{}
+	shutdown         chan struct{}
+	infoMu           sync.Mutex
+	closeOnce        sync.Once
+	apmSlot          *slot.Slot[haapm.Server]
+	discoverySlot    *slot.Slot[discoveryResource]
+	storageSlot      *slot.Slot[storageResource]
+	webSlot          *slot.Slot[hanet.GinHTTPServer]
+	grpcSlot         *grpcSlot
+	slots            []slot.Ops
 }
 
 // Run run admin service
@@ -89,23 +87,13 @@ func (s *Service) Run(ctx context.Context) error {
 	s.info.StartTime = time.Now().Local()
 	s.info.IPs = ips
 
-	// create discovery client
-	if err := s.createDiscovery(); err != nil {
-		return err
-	}
-
-	// create apm server
-	if err := s.createApmServer(); err != nil {
-		return err
-	}
-
-	// create grpc server
-	if err := s.createGrpcServer(); err != nil {
-		return err
-	}
-
-	// create web server
-	if err := s.createWebServer(); err != nil {
+	processAPMInit.Do(func() {
+		trace.Setup()
+		apm.InitAPM(s.info.ID, s.info.Name)
+	})
+	s.grpcSvc = NewAdminGrpcService(s)
+	s.initSlots()
+	if err := s.startSlots(ctx, config.Snapshot()); err != nil {
 		return err
 	}
 
@@ -117,7 +105,7 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	timerTimeout := config.Cfg.Discovery.ServiceTimerInterval
+	timerTimeout := config.Snapshot().Discovery.ServiceTimerInterval
 	if timerTimeout == 0 {
 		timerTimeout = constant.DefaultServiceTimerInterval
 	}
@@ -134,207 +122,85 @@ func (s *Service) Run(ctx context.Context) error {
 
 		case <-timer.C:
 			s.updateInfo()
+			timerTimeout = config.Snapshot().Discovery.ServiceTimerInterval
+			if timerTimeout == 0 {
+				timerTimeout = constant.DefaultServiceTimerInterval
+			}
 			timer.Reset(timerTimeout)
 		}
 	}
-
 }
 
 // Close close admin service
 func (s *Service) Close() {
-	if s.svr != nil {
-		s.svr.Stop()
-		s.svr = nil
-	}
-	s.grpcSvc = nil
-
-	if s.apmSvr != nil {
-		_ = s.apmSvr.Stop()
-		s.apmSvr = nil
-	}
-
-	s.wg.Wait()
+	s.closeOnce.Do(func() {
+		closeSignal(s.shutdown)
+		closeSignal(s.quit)
+		if s.reloadWorkerDone != nil {
+			<-s.reloadWorkerDone
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		s.closeSlots(ctx, len(s.slots))
+		s.grpcSvc = nil
+	})
 }
 
-func (s *Service) createDiscovery() error {
-	discoveryTLSEnabled := config.Cfg.Discovery.CertFile != "" && config.Cfg.Discovery.KeyFile != ""
-	etcdEndpoints, err := discovery.ParseEtcdEndpoints(config.Cfg.Discovery.Endpoint, discoveryTLSEnabled)
-	if err != nil {
-		return err
+func (s *Service) startSlots(ctx context.Context, cfg config.Configuration) error {
+	for index, resourceSlot := range s.slots {
+		if s.isShuttingDown() {
+			s.closeSlots(ctx, index)
+			return context.Canceled
+		}
+		if err := resourceSlot.Rebuild(ctx, cfg); err != nil {
+			s.closeSlots(ctx, index)
+			return err
+		}
 	}
-
-	opts := []discovery.Option{
-		discovery.OptionEndpoints(etcdEndpoints),
-		discovery.OptionUser(config.Cfg.Discovery.User),
-		discovery.OptionPassword(config.Cfg.Discovery.Password),
-		discovery.OptionServiceName(s.info.Name),
-		discovery.OptionServiceID(s.info.ID),
-		discovery.OptionLogger(s.logger),
-	}
-
-	if config.Cfg.Discovery.CertFile != "" {
-		opts = append(opts, discovery.OptionCertFile(config.Cfg.Discovery.CertFile))
-	}
-	if config.Cfg.Discovery.KeyFile != "" {
-		opts = append(opts, discovery.OptionKeyFile(config.Cfg.Discovery.KeyFile))
-	}
-	if config.Cfg.Discovery.TrustedCAFile != "" {
-		opts = append(opts, discovery.OptionTrustedCAFile(config.Cfg.Discovery.TrustedCAFile))
-	}
-
-	cli, err := discovery.NewClientWithOptions(opts...)
-	if err != nil {
-		return err
-	}
-
-	s.discoveryCli = cli
-
-	s.regCli = cli.CreateRegistry()
-	s.updateInfo()
 	return nil
 }
 
-func (s *Service) updateInfo() {
-	s.info.UpdatedAt = time.Now().Local()
-	s.info.Uptime = durafmt.Parse(time.Now().Local().Sub(s.info.StartTime)).String()
+func (s *Service) closeSlots(ctx context.Context, count int) {
+	for index := count - 1; index >= 0; index-- {
+		s.slots[index].Close(ctx)
+	}
+}
 
-	data, err := json.Marshal(s.info)
-	if err != nil {
-		logger.Warn("failed to marshal service info to json, errmsg: %s", err)
+func (s *Service) updateInfo() {
+	resource := s.discoverySlot.Get()
+	if resource == nil || resource.registry == nil {
 		return
 	}
-
-	updateTimeout := config.Cfg.Discovery.ServiceUpdateTimeout
+	updateTimeout := config.Snapshot().Discovery.ServiceUpdateTimeout
 	if updateTimeout == 0 {
 		updateTimeout = constant.DefaultServiceUpdateTimeout
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), updateTimeout)
 	defer cancel()
-
-	if err = s.regCli.SetService(ctx, string(data)); err != nil {
+	if err := s.setServiceInfo(ctx, resource.registry); err != nil {
 		logger.Warn("failed to update the service info in the registry, errmsg: %s", err)
 	}
 }
 
-func (s *Service) createApmServer() error {
-	trace.Setup()
-	apm.InitAPM(s.info.ID, s.info.Name)
-
-	ep, err := hanet.Parse(config.Cfg.Apm.ListenAddress, "http")
-	if err != nil {
-		logger.Error("invalid admin apm listen address, errmsg: %s", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin apm listen address, errmsg: %s", err)
+func (s *Service) isShuttingDown() bool {
+	if s.shutdown == nil {
+		return false
 	}
-
-	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
-		Addr:         ep.HostPort(),
-		Subsystem:    "dbha-v2-admin",
-		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
-		WriteTimeout: config.Cfg.Apm.WriteTimeout,
-	})
-
-	if err != nil {
-		return err
+	select {
+	case <-s.shutdown:
+		return true
+	default:
+		return false
 	}
-	return nil
 }
 
-func (s *Service) createGrpcServer() error {
-	s.grpcSvc = NewAdminGrpcService(s)
-	svr := s.grpcSvc.NewServer()
-	proto.RegisterAdminServiceServer(svr, s.grpcSvc)
-
-	ep, err := hanet.Parse(config.Cfg.Grpc.ListenAddress, "tcp")
-	if err != nil {
-		logger.Error("invalid admin grpc listen address, errmsg: %s", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin grpc listen address, errmsg: %s", err)
+func closeSignal(signal chan struct{}) {
+	if signal == nil {
+		return
 	}
-
-	listen, err := net.Listen("tcp", ep.HostPort())
-	if err != nil {
-		return gerrors.New(gerrors.NetException, err.Error())
+	select {
+	case <-signal:
+	default:
+		close(signal)
 	}
-
-	s.svr = svr
-
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		if err := s.svr.Serve(listen); err != nil {
-			logger.Fatal("failed to run grpc server, errmsg: %s", err)
-		}
-		logger.Info("exited from the grpc server")
-	}()
-
-	return nil
-}
-
-func (s *Service) createWebServer() error {
-	// Initialize database connection
-	if err := s.createStorage(); err != nil {
-		return err
-	}
-
-	ep, err := hanet.Parse(config.Cfg.Web.ListenAddress, "http")
-	if err != nil {
-		logger.Error("invalid admin web listen address, errmsg: %s", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin web listen address, errmsg: %s", err)
-	}
-
-	serverConfig := &hanet.GinServerConfig{
-		Host:         ep.Host,
-		Port:         ep.Port,
-		ReadTimeout:  config.Cfg.Web.ReadTimeout,
-		WriteTimeout: config.Cfg.Web.WriteTimeout,
-	}
-	server := hanet.NewGinHTTPServer(serverConfig)
-
-	// Set metric middleware for API requests
-	server.SetMetricMiddleware(apm.MetricMiddleware())
-
-	// register open api
-	open.RegisterOpenAPI(s.db, server)
-
-	// add swagger api
-	server.SetSwaggerFileRoute(config.Cfg.DocFileDir + "/swagger.json")
-	hd := v5emb.NewHandlerWithConfig(swgui.Config{
-		Title:       "admin api doc",
-		SwaggerJSON: "/swagger.json",
-		BasePath:    "/swagger-ui",
-		ShowTopBar:  true,
-		HideCurl:    false,
-		JsonEditor:  true,
-	})
-	server.RegisterAPI(&hanet.ResetAPI{
-		Method:  hanet.HttpMethodGet,
-		Path:    "/swagger-ui/*any",
-		Handler: gin.WrapH(hd),
-	})
-	return server.Start()
-}
-
-func (s *Service) createStorage() error {
-	epoint, err := hanet.NewEndpoint(config.Cfg.Storage.Endpoint)
-	if err != nil {
-		logger.Error("invalid storage configuration, errmsg: %s", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, errmsg: %s", err)
-	}
-
-	db, err := hamysql.NewGormDB(
-		hamysql.OptionProto(epoint.Proto),
-		hamysql.OptionIP(epoint.Host),
-		hamysql.OptionPort(epoint.Port),
-		hamysql.OptionDBName(hamodel.DatabaseName),
-		hamysql.OptionUser(config.Cfg.Storage.User),
-		hamysql.OptionPassword(config.Cfg.Storage.Password),
-		hamysql.OptionLogger(s.gormLogger),
-	)
-
-	if err != nil {
-		logger.Warn("create mysql storage failed, errmsg: %s", err)
-		return err
-	}
-
-	s.db = db
-	return nil
 }
