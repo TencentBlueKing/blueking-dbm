@@ -61,26 +61,24 @@ class DtsHostSpecSerializer(serializers.Serializer):
 class TableRouteSerializer(serializers.Serializer):
     """库表路由（对应 DTS routes / table_migrate_rule）。"""
 
-    source_name = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("源名称（可选）"))
-    source_db = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("源库名"))
-    source_db_pattern = serializers.CharField(
-        required=False, allow_blank=True, default="", help_text=_("源库通配（优先于 source_db）")
-    )
-    source_table = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("源表名"))
+    source_name = serializers.CharField(required=False, allow_blank=True, help_text=_("源名称（可选）"))
+    source_db = serializers.CharField(required=False, allow_blank=True, help_text=_("源库名"))
+    source_db_pattern = serializers.CharField(required=False, allow_blank=True, help_text=_("源库通配（优先于 source_db）"))
+    source_table = serializers.CharField(required=False, allow_blank=True, help_text=_("源表名"))
     source_table_pattern = serializers.CharField(
-        required=False, allow_blank=True, default="", help_text=_("源表通配（优先于 source_table）")
+        required=False, allow_blank=True, help_text=_("源表通配（优先于 source_table）")
     )
-    target_db = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("目标库名（可选）"))
-    target_table = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("目标表名（可选）"))
+    target_db = serializers.CharField(required=False, allow_blank=True, help_text=_("目标库名（可选）"))
+    target_table = serializers.CharField(required=False, allow_blank=True, help_text=_("目标表名（可选）"))
 
 
 class SyncScopeSerializer(serializers.Serializer):
-    db_patterns = serializers.ListField(child=DBTableField(db_field=True), required=False, default=list)
-    ignore_dbs = serializers.ListField(child=DBTableField(db_field=True), required=False, default=list)
-    table_patterns = serializers.ListField(child=DBTableField(), required=False, default=list)
-    ignore_tables = serializers.ListField(child=DBTableField(), required=False, default=list)
-    table_routes = serializers.ListField(child=TableRouteSerializer(), required=False, default=list)
-    binlog_filters = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    db_patterns = serializers.ListField(child=DBTableField(db_field=True), required=False)
+    ignore_dbs = serializers.ListField(child=DBTableField(db_field=True), required=False)
+    table_patterns = serializers.ListField(child=DBTableField(), required=False)
+    ignore_tables = serializers.ListField(child=DBTableField(), required=False)
+    table_routes = serializers.ListField(child=TableRouteSerializer(), required=False)
+    binlog_filters = serializers.ListField(child=serializers.DictField(), required=False)
 
 
 class MyloaderSpecSerializer(serializers.Serializer):
