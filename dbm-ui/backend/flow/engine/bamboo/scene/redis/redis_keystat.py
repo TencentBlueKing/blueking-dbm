@@ -27,6 +27,10 @@ from backend.flow.consts import ConfigDefaultEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_job2 import RedisExecJobComponent2
+from backend.flow.plugins.components.collections.redis.redis_keystat_restore_policy import (
+    RedisKeystatRecordPolicyComponent,
+    need_keystat_maxmemory_policy_steps,
+)
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -37,6 +41,15 @@ logger = logging.getLogger("flow")
 class RedisKeystatFlow(object):
     """
     redis 内存分析统计
+
+    元数据 major_version < 6：不涉及 maxmemory-policy（不下发 change、不编排记录/二次确认）。
+    元数据 major_version >= 6：
+      1) DRS confxx/CONFIG get 记录 maxmemory-policy
+      2) actuator keystat（payload.change_maxmemory_policy=true；内部再看 live Major 决定是否临时改/defer）
+      3) actuator 按记录值二次确认 maxmemory-policy（仅在 keystat 成功后执行）
+
+    部署顺序：必须先把含 atom keystat_set_maxmemory_policy 的 dbactuator 打到 REDIS_KEYSTAT_CENTER，
+    再上新 Flow；否则分析成功后会卡在未知 atom（即便 defer 已恢复 policy，单据仍失败）。
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -152,6 +165,20 @@ class RedisKeystatFlow(object):
             act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
+        # 元数据 Major < 6：不编排策略节点，且 keystat payload.change_maxmemory_policy=false
+        # 元数据 Major >= 6：DRS 记录 + actuator 二次确认；是否临时改仍由 live Major 决定
+        policy_infos = [
+            {"cluster_id": info["cluster_id"], "ins": info["ins"]}
+            for info in self.data["infos"]
+            if need_keystat_maxmemory_policy_steps(clusters[info["cluster_id"]].major_version)
+        ]
+        if policy_infos:
+            redis_pipeline.add_act(
+                act_name=_("记录 maxmemory-policy"),
+                act_component_code=RedisKeystatRecordPolicyComponent.code,
+                kwargs={"set_trans_data_dataclass": CommonContext.__name__, "infos": policy_infos},
+            )
+
         # 生成下发任务
         acts_list = []
         for info in self.data["infos"]:
@@ -171,6 +198,25 @@ class RedisKeystatFlow(object):
             )
 
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # keystat 成功后，用中心机 actuator 按分析前记录值再对齐一次（DRS 不允许 confxx set）
+        if policy_infos:
+            restore_acts = []
+            for info in policy_infos:
+                cluster = clusters[info["cluster_id"]]
+                restore_acts.append(
+                    {
+                        "act_name": _("二次确认 maxmemory-policy: {}").format(cluster.immute_domain),
+                        "act_component_code": RedisExecJobComponent2.code,
+                        "kwargs": self.make_restore_kwargs(
+                            cluster,
+                            info,
+                            exec_ip=self.__get_exec_ip(cluster.bk_cloud_id),
+                        ),
+                    }
+                )
+            redis_pipeline.add_parallel_acts(acts_list=restore_acts)
+
         redis_pipeline.run_pipeline()
 
     @classmethod
@@ -203,6 +249,36 @@ class RedisKeystatFlow(object):
                     "ins_list": info["ins"],
                     "check_last_visit": info["check_last_visit"],
                     "delimiter": info["delimiter"],
+                    # 元数据 Major < 6 时为 false，禁止 actuator 改 maxmemory-policy（避免 live 偏高漏恢复）
+                    "change_maxmemory_policy": need_keystat_maxmemory_policy_steps(cluster.major_version),
+                },
+            },
+        }
+
+    @classmethod
+    def make_restore_kwargs(cls, cluster: Cluster, info: dict, exec_ip: str) -> dict:
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
+        redis_pwd = passwd_ret["redis_password"]
+        addrs = [ins["addr"] for ins in (info.get("ins") or []) if ins.get("addr")]
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "exec_ip": exec_ip,
+            "payload_func": {
+                "module": "backend.flow.plugins.components.collections.redis.redis_keystat_restore_policy",
+                "function": "inject_keystat_restore_policies",
+            },
+            "db_act_template": {
+                "action": RedisActuatorActionEnum.KEYSTAT_SET_MAXMEMORY_POLICY.value,
+                "exec_account": "root",
+                "sudo_account": "root",
+                "file_path": ConfigDefaultEnum.DATA_DIRS[0],
+                "payload": {
+                    "redis_password": redis_pwd,
+                    "addrs": addrs,
+                    # addr_policies 由 payload_func 从 trans_data 注入
+                    "addr_policies": {},
                 },
             },
         }
