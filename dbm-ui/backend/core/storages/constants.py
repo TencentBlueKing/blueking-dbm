@@ -16,6 +16,9 @@ from django.utils.translation import gettext as _
 from backend.utils.cache import class_member_cache
 from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
+# 制品库暂存区根目录：前端先将文件上传到该目录，后台再挪到正式目录
+STAGING_PREFIX = "/staging"
+
 
 class CosBucketEnum(StrStructuredEnum):
     """对象存储仓库枚举"""
