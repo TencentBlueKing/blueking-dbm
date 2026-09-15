@@ -26,7 +26,9 @@
 package config
 
 import (
+	"bytes"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/constant"
@@ -93,6 +95,29 @@ var Cfg = Configuration{
 		MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
 		MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
 	},
+}
+
+// snapshot mirrors Cfg for lock-free concurrent reads. Apply keeps the two in step.
+var snapshot atomic.Pointer[Configuration]
+
+func init() {
+	initial := Cfg
+	snapshot.Store(&initial)
+}
+
+// Apply installs next as the applied configuration.
+func Apply(next Configuration) {
+	Cfg = next
+	applied := next
+	snapshot.Store(&applied)
+}
+
+// Snapshot returns the configuration currently applied, without racing against hot reload.
+func Snapshot() Configuration {
+	if applied := snapshot.Load(); applied != nil {
+		return *applied
+	}
+	return Cfg
 }
 
 // DiscoveryConfig discovery configuration
@@ -310,35 +335,128 @@ func clampProbeHarvesterTimeout(name string, d time.Duration) time.Duration {
 	return d
 }
 
-// Load loads admin configuration from file
-func Load(configFilePath string) error {
-	viper.SetConfigName("admin")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
+// Parse reads admin configuration from path without mutating the package-level Cfg
+// or the global viper instance.
+func Parse(configFilePath string) (Configuration, error) {
+	v := newConfigViper()
 
 	if configFilePath != "" {
-		viper.SetConfigFile(configFilePath)
+		v.SetConfigFile(configFilePath)
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
+		return Configuration{}, err
+	}
+
+	return unmarshalConfig(v)
+}
+
+// ParseBytes parses an in-memory YAML document into a Configuration.
+func ParseBytes(data []byte) (Configuration, error) {
+	v := newConfigViper()
+
+	if err := v.ReadConfig(bytes.NewReader(data)); err != nil {
+		return Configuration{}, err
+	}
+
+	return unmarshalConfig(v)
+}
+
+func newConfigViper() *viper.Viper {
+	v := viper.New()
+	v.SetConfigName("admin")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./etc")
+	return v
+}
+
+func unmarshalConfig(v *viper.Viper) (Configuration, error) {
+	next := defaultConfiguration()
+	if err := v.Unmarshal(&next); err != nil {
+		return Configuration{}, err
+	}
+	postProcess(&next)
+	return next, nil
+}
+
+func defaultConfiguration() Configuration {
+	return Configuration{
+		Name:    "admin",
+		PidFile: defaultPidFile,
+		Log: LogConfig{
+			Path:      "./logs/admin.log",
+			Level:     logger.InfoLevel.String(),
+			FileCount: 10,
+			FileSize:  100,
+		},
+		Grpc: GrpcConfig{
+			ServerPingTime:        constant.DefaultServerPingTime,
+			PingTimeout:           constant.DefaultPingTimeout,
+			KeepAliveMinTime:      constant.DefaultKeepAliveMiniTime,
+			PermitWithoutStream:   true,
+			MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
+			MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
+		},
+	}
+}
+
+// postProcess applies clamps and nil/empty normalization on a not-yet-published config.
+func postProcess(cfg *Configuration) {
+	if cfg.PidFile == "" {
+		cfg.PidFile = defaultPidFile
+	}
+	cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(cfg.ProbeGse.ConnTimeout)
+	clampProbeHarvesterDurations(cfg)
+	cfg.ProbeMetadata = normalizeProbeMetadata(cfg.ProbeMetadata)
+	normalizeReferenceFields(cfg)
+}
+
+// normalizeReferenceFields rebuilds map/slice fields so nil and empty compare equal
+// and later readers never mutate a shared backing array/map.
+func normalizeReferenceFields(cfg *Configuration) {
+	if cfg.ProbeHarvesters == nil {
+		cfg.ProbeHarvesters = map[string]ProbeHarvesterCred{}
+	} else {
+		cloned := make(map[string]ProbeHarvesterCred, len(cfg.ProbeHarvesters))
+		for k, v := range cfg.ProbeHarvesters {
+			cloned[k] = v
+		}
+		cfg.ProbeHarvesters = cloned
+	}
+
+	if cfg.DbmApis == nil {
+		cfg.DbmApis = []DbmApi{}
+	} else {
+		cloned := make([]DbmApi, len(cfg.DbmApis))
+		copy(cloned, cfg.DbmApis)
+		cfg.DbmApis = cloned
+	}
+
+	if cfg.ProbeHealth.DiskWriteDirs == nil {
+		cfg.ProbeHealth.DiskWriteDirs = []string{}
+	} else {
+		cloned := make([]string, len(cfg.ProbeHealth.DiskWriteDirs))
+		copy(cloned, cfg.ProbeHealth.DiskWriteDirs)
+		cfg.ProbeHealth.DiskWriteDirs = cloned
+	}
+}
+
+// Load loads admin configuration from file into the package-level Cfg.
+func Load(configFilePath string) error {
+	next, err := Parse(configFilePath)
+	if err != nil {
 		return err
 	}
-
-	if err := viper.Unmarshal(&Cfg); err != nil {
-		return err
-	}
-
-	if Cfg.PidFile == "" {
-		Cfg.PidFile = defaultPidFile
-	}
-
-	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
-
-	clampProbeHarvesterDurations()
-
-	Cfg.ProbeMetadata = normalizeProbeMetadata(Cfg.ProbeMetadata)
-
+	Apply(next)
 	return nil
+}
+
+// RetainIdentity copies fields that must not change across a hot reload from old into next.
+func RetainIdentity(old, next Configuration) Configuration {
+	next.Name = old.Name
+	next.Version = old.Version
+	next.PidFile = old.PidFile
+	return next
 }
 
 // normalizeProbeMetadata fills in the defaults and enforces the freshness floor. Unlike the
@@ -372,35 +490,42 @@ func normalizeProbeMetadata(cfg ProbeMetadataConfig) ProbeMetadataConfig {
 	return cfg
 }
 
-// clampProbeHarvesterDurations normalizes every probe harvester interval / timeout in Cfg
+// clampProbeHarvesterDurations normalizes every probe harvester interval / timeout on cfg
 // against its floor, so probe never receives a zero or too-aggressive cadence.
-func clampProbeHarvesterDurations() {
-	Cfg.ProbeMysql.Interval = clampProbeHarvesterInterval(
-		"probeMysql.interval", Cfg.ProbeMysql.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeMysql.HeartbeatInterval = clampProbeHarvesterInterval(
-		"probeMysql.heartbeatInterval", Cfg.ProbeMysql.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
-	Cfg.ProbeMysql.ReplDelayInterval = clampProbeHarvesterInterval(
-		"probeMysql.replDelayInterval", Cfg.ProbeMysql.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
-	Cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql.timeout", Cfg.ProbeMysql.Timeout)
+// The ProbeHarvesters map is rebuilt rather than mutated in place to avoid concurrent
+// map read/write with GenProbeConfig.
+func clampProbeHarvesterDurations(cfg *Configuration) {
+	cfg.ProbeMysql.Interval = clampProbeHarvesterInterval(
+		"probeMysql.interval", cfg.ProbeMysql.Interval, minProbeHarvesterInterval)
+	cfg.ProbeMysql.HeartbeatInterval = clampProbeHarvesterInterval(
+		"probeMysql.heartbeatInterval", cfg.ProbeMysql.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
+	cfg.ProbeMysql.ReplDelayInterval = clampProbeHarvesterInterval(
+		"probeMysql.replDelayInterval", cfg.ProbeMysql.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
+	cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql.timeout", cfg.ProbeMysql.Timeout)
 
-	Cfg.ProbeRedis.Interval = clampProbeHarvesterInterval(
-		"probeRedis.interval", Cfg.ProbeRedis.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis.timeout", Cfg.ProbeRedis.Timeout)
+	cfg.ProbeRedis.Interval = clampProbeHarvesterInterval(
+		"probeRedis.interval", cfg.ProbeRedis.Interval, minProbeHarvesterInterval)
+	cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis.timeout", cfg.ProbeRedis.Timeout)
 
-	Cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.interval", Cfg.ProbeProxyAdmin.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeProxyAdmin.HeartbeatInterval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.heartbeatInterval", Cfg.ProbeProxyAdmin.HeartbeatInterval,
+	cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.interval", cfg.ProbeProxyAdmin.Interval, minProbeHarvesterInterval)
+	cfg.ProbeProxyAdmin.HeartbeatInterval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.heartbeatInterval", cfg.ProbeProxyAdmin.HeartbeatInterval,
 		minProbeHarvesterHeartbeatInterval)
-	Cfg.ProbeProxyAdmin.ReplDelayInterval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.replDelayInterval", Cfg.ProbeProxyAdmin.ReplDelayInterval,
+	cfg.ProbeProxyAdmin.ReplDelayInterval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.replDelayInterval", cfg.ProbeProxyAdmin.ReplDelayInterval,
 		minProbeHarvesterReplHeartbeatInterval)
-	Cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin.timeout", Cfg.ProbeProxyAdmin.Timeout)
+	cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin.timeout", cfg.ProbeProxyAdmin.Timeout)
 
-	for name, cred := range Cfg.ProbeHarvesters {
+	if len(cfg.ProbeHarvesters) == 0 {
+		return
+	}
+	rebuilt := make(map[string]ProbeHarvesterCred, len(cfg.ProbeHarvesters))
+	for name, cred := range cfg.ProbeHarvesters {
 		cred.Interval = clampProbeHarvesterInterval(
 			"probeHarvesters."+name+".interval", cred.Interval, minProbeHarvesterInterval)
 		cred.Timeout = clampProbeHarvesterTimeout("probeHarvesters."+name+".timeout", cred.Timeout)
-		Cfg.ProbeHarvesters[name] = cred
+		rebuilt[name] = cred
 	}
+	cfg.ProbeHarvesters = rebuilt
 }

@@ -236,6 +236,18 @@ func TestConvertLevel(t *testing.T) {
 	}
 }
 
+func TestDbmLoggerSetLevel(t *testing.T) {
+	path := t.TempDir() + "/dynamic.log"
+	log := NewDbmLogger(Config{FileName: path, LogLevel: InfoLevel})
+	if got := zapcore.Level(log.level.Load()); got != zapcore.InfoLevel {
+		t.Fatalf("initial level: %s, want info", got)
+	}
+	log.SetLevel(DebugLevel)
+	if got := zapcore.Level(log.level.Load()); got != zapcore.DebugLevel {
+		t.Fatalf("updated level: %s, want debug", got)
+	}
+}
+
 func TestNewZapLogger(t *testing.T) {
 	tmpFile := "/tmp/test_zap_logger.log"
 	defer os.Remove(tmpFile)

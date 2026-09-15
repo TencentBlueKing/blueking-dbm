@@ -43,7 +43,7 @@ func TestApplyAllHarvesterPayloadNormalizesKeys(t *testing.T) {
 	}
 
 	payload := probeconfig.ProbeConfigPayload{}
-	applyAllHarvesterPayload(&payload)
+	applyAllHarvesterPayload(&payload, Cfg)
 
 	if _, ok := payload.Harvesters["mynewdb"]; !ok {
 		t.Fatalf("expected normalized key mynewdb, got: %#v", payload.Harvesters)
