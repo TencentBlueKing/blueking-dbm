@@ -12,28 +12,25 @@
 -->
 
 <template>
-  <div class="machine-resource-selector-collapse-mini">
+  <div
+    class="collapse-mini"
+    :class="[{ 'collapse-mini-collapse': state.collapse }]">
     <div
       class="collapse-mini-header"
       @click="handleToggle">
-      <i
-        class="db-icon-down-big collapse-mini-icon"
-        :class="[{ 'collapse-mini-collapse': state.collapse }]" />
+      <i class="db-icon-down-big collapse-mini-icon" />
       <slot name="title">
+        <strong>{{ title ? `【${title}】` : '' }}</strong>
         <p>
-          <strong>【{{ title }}】</strong>
-          <span class="mr-4">-</span>
-        </p>
-        <I18nT
-          keypath="共m个"
-          tag="span">
-          <template #m>
+          {{ title ? `-` : '' }}
+          <I18nT
+            keypath="共n个"
+            tag="span">
             <strong style="color: #3a84ff">{{ count }}</strong>
-          </template>
-        </I18nT>
+          </I18nT>
+        </p>
       </slot>
     </div>
-
     <Transition mode="in-out">
       <div
         v-show="state.collapse"
@@ -43,15 +40,27 @@
     </Transition>
   </div>
 </template>
+<script lang="ts">
+  export default {
+    name: 'CollapseMini',
+  };
+</script>
 
 <script setup lang="ts">
-  interface Props {
-    collapse: boolean;
-    count: number;
-    title: string;
-  }
-
-  const props = defineProps<Props>();
+  const props = defineProps({
+    collapse: {
+      default: true,
+      type: Boolean,
+    },
+    count: {
+      default: 0,
+      type: Number,
+    },
+    title: {
+      default: 'Title',
+      type: String,
+    },
+  });
 
   const state = reactive({
     collapse: props.collapse,
@@ -70,7 +79,7 @@
 </script>
 
 <style lang="less" scoped>
-  .machine-resource-selector-collapse-mini {
+  .collapse-mini {
     margin-bottom: 8px;
 
     &:first-child {
@@ -95,8 +104,15 @@
       transition: all 0.2s;
     }
 
-    .collapse-mini-collapse {
-      transform: rotate(0) !important;
+    .collapse-mini-content {
+      max-height: 520px;
+      overflow-y: auto;
+    }
+  }
+
+  .collapse-mini-collapse {
+    .collapse-mini-icon {
+      transform: rotate(0);
     }
   }
 </style>

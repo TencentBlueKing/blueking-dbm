@@ -122,7 +122,9 @@ export const useSelect = (
                   v-bk-tooltips={{
                     content: _.isString(selectDisabled) ? selectDisabled : t('禁止选择'),
                     disabled: !selectDisabled,
-                  }}>
+                  }}
+                  // 开启行点击选中时，勾选框自身的点击不能再冒泡到行，否则两次切换互相抵消
+                  onClick={props.rowClickSelectable ? (e: Event) => e.stopPropagation() : undefined}>
                   {props.selectSingle ? (
                     <Radio
                       disabled={Boolean(selectDisabled)}
@@ -208,6 +210,7 @@ export const useSelect = (
 
   return {
     handleClearWholeSelect,
+    handleSelect,
     isWholeChecked,
     selectColumn,
     selectedRowMap,

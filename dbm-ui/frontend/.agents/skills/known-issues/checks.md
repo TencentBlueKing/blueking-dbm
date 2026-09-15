@@ -20,6 +20,8 @@
   字面量，或页面报 `Invalid token in placeholder`
 - [K8s source 的 retrieve / topo / log / spec / toolbox 请求参数保持 camelCase](doc/k8s-source-camelcase-params.md)
   —— 改 `src/services/source/qdrantHa.ts`、`surrealdbHa.ts`、`surrealdbSingle.ts`、`kubernetesToolbox.ts` 的请求参数名
+- [没有兄弟目录时 common/ 这层不该留](doc/redundant-common-dir.md) —— 本次改动删掉或合并了某目录下的兄弟目录，
+  使得父目录下只剩一个 `common/`
 
 ## B 类：只报告，改法未定
 
@@ -35,6 +37,12 @@
   [折叠预览表有 5 份独立实现](doc/collapse-preview-table-fork.md)
 - `views/task-history/detail/**` 的重试 / 跳过 / 强制失败 / 确认继续——
   [任务流节点操作有四个独立入口](doc/node-operation-fork.md)
+- 改集群搜索条件列表，或改标签筛选选项的编码（`rg -ln "tag_keys#" src`）——
+  [集群搜索条件列表有两套 hook，标签选项转换有三份](doc/cluster-search-condition-fork.md)
+- `components/{cluster,host,instance}-selector*`、`components/{cluster,machine}-resource-selector/**`
+  的预览侧栏，或同形的 `shard-selector` / mongo-host-selector / REDIS_CLUSTER_CUTOFF
+  resource-selector——
+  [选择器右侧结果预览视觉是一套](doc/selector-preview-style.md)
 
 ## 已下沉到工具，不用再扫
 
