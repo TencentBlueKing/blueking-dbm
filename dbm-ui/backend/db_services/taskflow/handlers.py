@@ -268,7 +268,7 @@ class TaskFlowHandler:
         return node_ids
 
     @staticmethod
-    def bklog_esquery_search(indices, query_string, start_time, end_time):
+    def bklog_esquery_search(indices, query_string, start_time, end_time, start: int = 0, size: int = 10000):
         """esquery搜索"""
         resp = BKLogApi.esquery_search(
             {
@@ -276,25 +276,33 @@ class TaskFlowHandler:
                 "start_time": start_time,
                 "end_time": end_time,
                 "query_string": query_string,
-                "start": 0,
-                "size": 10000,
+                "start": start,
+                "size": size,
             }
         )
         return resp["hits"]["hits"]
 
-    def get_version_logs(self, node_id: str, version_id: str, label_filters: list = None) -> List[Dict[str, Dict]]:
+    def get_version_logs(
+        self, node_id: str, version_id: str, label_filters: list = None, offset: int = 0, limit: Optional[int] = None
+    ) -> Dict:
         """获取节点的日志信息"""
         if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
-            return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
+            return {"has_more": False, "logs": [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]}
 
         try:
             node_histories_map = {h["version"]: h for h in self.get_node_histories(node_id)}
             history = node_histories_map[version_id]
         except KeyError:
-            return [self.generate_log_record(message=_("无法找到当前版本{}的节点日志").format(version_id))]
+            return {
+                "has_more": False,
+                "logs": [self.generate_log_record(message=_("无法找到当前版本{}的节点日志").format(version_id))],
+            }
 
         if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
-            return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
+            return {
+                "has_more": False,
+                "logs": [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))],
+            }
 
         # 探测日志的pod名称
         detected_pods = ["schedule", "worker", "dbsimulation", "dbpriv"]
@@ -310,6 +318,8 @@ class TaskFlowHandler:
             query_string=dbm_logs_query,
             start_time=start_time,
             end_time=end_time,
+            start=offset,
+            size=limit,
         )
         # 获取dbactuator采集日志
         dbm_dbactuator_query = f'"{self.root_id}" AND "{node_id}" AND {version_id}'
@@ -319,6 +329,8 @@ class TaskFlowHandler:
             query_string=dbm_dbactuator_query,
             start_time=start_time,
             end_time=end_time,
+            start=offset,
+            size=limit,
         )
         logger.info(_("BKLog DBACTUATOR 查询结果: {}").format(dbm_dbactuator_logs))
         # 格式化日志信息
@@ -343,8 +355,11 @@ class TaskFlowHandler:
                 )
             )
         if not logs:
-            return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
-        return logs
+            if offset == 0:
+                return {"has_more": False, "logs": [self.generate_log_record(message=_("日志上报中，请稍后查看"))]}
+            else:
+                return {"has_more": False, "logs": logs}
+        return {"has_more": True, "logs": logs}
 
     def get_version_error_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
         """获取指定节点版本的错误级别日志。

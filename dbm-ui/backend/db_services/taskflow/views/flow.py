@@ -305,17 +305,19 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         node_id = validated_data["node_id"]
         version_id = validated_data["version_id"]
         label_filters = validated_data.get("labels")
+        offset = validated_data.get("offset")
+        limit = validated_data.get("limit")
         label_filters = label_filters.split(",") if label_filters else []
-        logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters)
+        result = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters, offset, limit)
         if validated_data["download"]:
             # 导出下载日志
             return HttpResponse(
-                logs,
+                result["logs"],
                 content_type="application/text charset=utf-8",
                 headers={"Content-Disposition": f'attachment; filename="{root_id}-{node_id}-{version_id}.log"'},
             )
         else:
-            return Response(logs)
+            return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("回调节点"),
