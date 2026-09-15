@@ -21,13 +21,30 @@ from backend.components.hadb.client import HADBApi
 from backend.components.hadbv2.client import HADBApiV2
 from backend.db_event.serializers import QueryDetailSerializer, QueryListSerializer
 from backend.db_meta.models import AppCache, Cluster
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 
 SWAGGER_TAG = _("DBHA事件")
 
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
     def get_action_permission_map(self):
-        return {("cat", "ls"): []}
+        return {
+            ("ls",): [
+                ResourceActionPermission(
+                    [ActionEnum.DB_MANAGE],
+                    ResourceEnum.BUSINESS,
+                    instance_ids_getter=self.instance_app_getter,
+                )
+            ],
+            ("cat",): [],
+        }
+
+    @staticmethod
+    def instance_app_getter(request, view):
+        app = get_request_key_id(request, "app")
+        return [app] if app else []
 
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),
@@ -59,6 +76,10 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
             # v1 和 v2 切换日志数据合并，当 v2 有数据时，优先展示 v2 的最新数据
             if switch_queues_v2:
                 switch_queues = switch_queues_v2 + switch_queues
+
+        # 仅返回已鉴权业务的切换事件
+        app = validated_data["app"]
+        switch_queues = [switch for switch in switch_queues if str(switch.get("app")) == app]
 
         # fill bk_biz_name
         id_to_name = AppCache.id_to_name()

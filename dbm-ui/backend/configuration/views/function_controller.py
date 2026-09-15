@@ -16,6 +16,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.serializers import FunctionControllerSerializer
+from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
 tags = [_("功能开关")]
 
@@ -26,7 +27,8 @@ class FunctionControllerViewSet(viewsets.AuditedModelViewSet):
     serializer_class = FunctionControllerSerializer
     queryset = FunctionController.objects.all()
 
-    default_permission_class = []
+    action_permission_map = {("list",): []}
+    default_permission_class = [RejectPermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("功能开关列表"),

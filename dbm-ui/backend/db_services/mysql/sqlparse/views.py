@@ -1,15 +1,23 @@
-# -*- coding:UTF-8 -*-
-import json
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+from rest_framework.response import Response
 
-from blueapps.account.decorators import login_exempt
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
+from backend.bk_web import viewsets
 from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
+from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
 
-@login_exempt
-@csrf_exempt
-def parse_sql(request):
-    sql = json.loads(request.body.decode()).get("content", "")
-    return JsonResponse(SQLParseHandler().parse_sql(sql=sql))
+class SQLParseViewSet(viewsets.SystemViewSet):
+    default_permission_class = [RejectPermission()]
+
+    def parse_sql(self, request):
+        sql = request.data.get("content", "")
+        return Response(SQLParseHandler().parse_sql(sql=sql))
