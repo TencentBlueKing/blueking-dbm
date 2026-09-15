@@ -79,16 +79,32 @@ class HttpHandler:
                     url=url, headers=headers, verify=verify, cert=cert, timeout=timeout, cookies=cookies, **kwargs
                 )
             elif method == "POST":
-                resp = self.session.post(
-                    url=url,
-                    headers=headers,
-                    json=data,
-                    verify=verify,
-                    cert=cert,
-                    timeout=timeout,
-                    cookies=cookies,
-                    **kwargs,
-                )
+                # 是否为文件上传：优先由调用方显式声明 send_file=True；
+                is_send_file = kwargs.pop("send_file", False)
+                if is_send_file:
+                    headers = dict(headers) if headers else {}
+                    headers.pop("Content-Type", None)
+                    resp = self.session.post(
+                        url=url,
+                        headers=headers,
+                        data=data,
+                        verify=verify,
+                        cert=cert,
+                        timeout=timeout,
+                        cookies=cookies,
+                        **kwargs,
+                    )
+                else:
+                    resp = self.session.post(
+                        url=url,
+                        headers=headers,
+                        json=data,
+                        verify=verify,
+                        cert=cert,
+                        timeout=timeout,
+                        cookies=cookies,
+                        **kwargs,
+                    )
             elif method == "DELETE":
                 resp = self.session.delete(
                     url=url,
@@ -163,9 +179,12 @@ class HttpHandler:
             **kwargs,
         )
 
-    def post(self, url, data, headers=None, verify=False, cert=None, timeout=None, cookies=None, **kwargs):
+    def post(
+        self, url, data, headers=None, verify=False, cert=None, timeout=None, cookies=None, send_file=False, **kwargs
+    ):
         if not headers:
-            headers, cookies = self._gen_header_cookie()
+            headers, cookies = self._gen_header_cookie(send_file=send_file)
+        # 将 send_file 透传给底层，用于判定是否走文件上传分支
         return self._http_request(
             method="POST",
             url=url,
@@ -175,6 +194,7 @@ class HttpHandler:
             cert=cert,
             timeout=timeout,
             cookies=cookies,
+            send_file=send_file,
             **kwargs,
         )
 
