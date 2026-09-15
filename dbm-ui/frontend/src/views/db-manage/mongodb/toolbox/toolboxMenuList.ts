@@ -34,7 +34,13 @@ export const toolboxMenuList = [
       {
         dbConsoleValue: 'mongodb.toolbox.addShard',
         id: TicketTypes.MONGODB_ADD_SHARD,
-        name: t('分片集群增加分片数'),
+        name: t('分片集群增加分片'),
+        parentId: 'mongo_manage',
+      },
+      {
+        dbConsoleValue: 'mongodb.toolbox.reduceShard',
+        id: TicketTypes.MONGODB_REDUCE_SHARD,
+        name: t('分片集群减少分片'),
         parentId: 'mongo_manage',
       },
       {
