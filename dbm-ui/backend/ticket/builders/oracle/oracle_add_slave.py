@@ -18,7 +18,11 @@ from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.oracle import OracleController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
+from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
+    InstanceInfoSerializer,
+    fetch_cluster_ids,
+)
 from backend.ticket.builders.oracle.base import BaseOracleTicketFlowBuilder, OracleOpsBaseDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -26,8 +30,8 @@ from backend.ticket.constants import TicketType
 class OracleAddSlaveDetailSerializer(OracleOpsBaseDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        old_node = HostInfoSerializer(help_text=_("旧机器信息"))
-        old_master = HostInfoSerializer(help_text=_("旧master主机"), required=False)
+        old_node = InstanceInfoSerializer(help_text=_("旧机器信息"))
+        old_master = InstanceInfoSerializer(help_text=_("旧master主机"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
 
     infos = serializers.ListField(help_text=_("添加从库信息"), child=AddSlaveInfoSerializer())
