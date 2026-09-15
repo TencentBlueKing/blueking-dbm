@@ -81,5 +81,5 @@ class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
 class MongoDBAddShardFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBAddShardDetailSerializer
     inner_flow_builder = MongoDBAddShardFlowParamBuilder
-    inner_flow_name = _("MongoDB 增加分片数")
+    inner_flow_name = _("分片集群增加分片")
     resource_batch_apply_builder = MongoDBAddShardResourceParamBuilder
