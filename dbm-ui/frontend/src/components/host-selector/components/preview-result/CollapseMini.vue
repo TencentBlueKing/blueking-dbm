@@ -59,7 +59,7 @@
 
 <style lang="less" scoped>
   .collapse-mini {
-    margin-top: 16px;
+    margin-bottom: 8px;
 
     &:first-child {
       margin-top: 0;
@@ -67,10 +67,14 @@
 
     .collapse-mini-header {
       display: flex;
-      height: 24px;
+      height: 32px;
       padding-bottom: 4px;
       cursor: pointer;
       align-items: center;
+
+      &:hover {
+        background: #e1ecff;
+      }
     }
 
     .collapse-mini-icon {

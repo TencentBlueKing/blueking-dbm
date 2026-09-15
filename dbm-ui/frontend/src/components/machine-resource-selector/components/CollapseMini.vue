@@ -73,17 +73,22 @@
   @import '@styles/mixins.less';
 
   .machine-resource-selector-collapse-mini {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 
-    .collapse-mini:first-child {
+    &:first-child {
       margin-top: 0;
     }
 
     .collapse-mini-header {
-      height: 24px;
+      display: flex;
+      align-items: center;
+      height: 32px;
       padding-bottom: 4px;
       cursor: pointer;
-      .flex-center();
+
+      &:hover {
+        background: #e1ecff;
+      }
     }
 
     .collapse-mini-icon {

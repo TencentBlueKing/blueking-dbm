@@ -24,13 +24,16 @@
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
-      :initial-divide="400"
+      :initial-divide="350"
       :max="500"
       :min="300"
       placement="right">
       <template #aside>
         <div class="cluster-selector-result">
           <div class="result-title">
+            <DbIcon
+              class="mr-4"
+              type="legend" />
             <span>{{ t('结果预览') }}</span>
             <BkDropdown
               class="result-dropdown"
@@ -51,13 +54,15 @@
               </template>
             </BkDropdown>
           </div>
-          <Component
-            :is="activePanelObj.resultContent"
-            :display-key="activePanelObj.previewResultKey"
-            :selected-map="selectedMap"
-            :show-title="activePanelObj.showPreviewResultTitle"
-            :tab-list="tabList"
-            @delete="handleDeleteItem" />
+          <div class="result-content">
+            <Component
+              :is="activePanelObj.resultContent"
+              :display-key="activePanelObj.previewResultKey"
+              :selected-map="selectedMap"
+              :show-title="activePanelObj.showPreviewResultTitle"
+              :tab-list="tabList"
+              @delete="handleDeleteItem" />
+          </div>
         </div>
       </template>
       <template #main>
@@ -93,6 +98,7 @@
         <div class="cluster-selector-content">
           <Component
             :is="activePanelObj.tableContent"
+            :key="activeTab"
             :active-tab="activeTab"
             :column-status-filter="activePanelObj.columnStatusFilter"
             :custom-colums="activePanelObj.customColums"
@@ -100,7 +106,7 @@
             :get-resource-list="activePanelObj.getResourceList"
             :multiple="activePanelObj.multiple"
             :search-select-list="activePanelObj.searchSelectList"
-            :selected="selectedMap[activeTab].list"
+            :selected="selectedMap[activeTab] ?? []"
             @change="handleSelectTable" />
         </div>
       </template>
@@ -116,7 +122,7 @@
         <BkButton
           v-test="{ type: 'button', value: 'clusterSelectorConfirm' }"
           class="cluster-selector-button mr-8"
-          :disabled="submitButtonDisabledInfo.disabled || selectedMap[activeTab].list.length === 0"
+          :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
           @click="handleConfirm">
           {{ t('确定') }}
@@ -174,24 +180,15 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
   import { execCopy, messageWarn } from '@utils';
 
-  import ResultPreview from './components/common/result-preview/Index.vue';
-  import type { SearchSelectList } from './components/common/SearchBar.vue';
-  import MongoTable from './components/mongo/Index.vue';
-  import OracleHaTable from './components/oracle-ha/Index.vue';
-  import OracleSingleTable from './components/oracle-single/Index.vue';
-  import RedisTable from './components/redis/Index.vue';
-  import SqlserverHaTable from './components/sqlserver-ha/Index.vue';
-  import SqlserverSingleTable from './components/sqlserver-single/Index.vue';
-  import SpiderTable from './components/tendb-cluster/Index.vue';
-  import TendbSingleTable from './components/tendb-single/Index.vue';
-  import TendbhaTable from './components/tendbha/Index.vue';
-  import TendbhaSlaveTable from './components/tendbha-slave/Index.vue';
+  import ClusterTable from './components/ClusterTable.vue';
+  import ResultPreview from './components/result-preview/Index.vue';
+  import { getTabRowKey } from './components/tableConfig';
 
   export type TabListType = {
-    // checkbox hover 提示
-    checkboxHoverTip?: (data: any) => string;
     // 状态列
     columnStatusFilter?: (data: any) => boolean;
     // 自定义列
@@ -211,7 +208,7 @@
     previewResultKey?: string;
     resultContent: any;
     // 搜索栏下拉选项
-    searchSelectList?: SearchSelectList;
+    searchSelectList?: QuickSearchProps['data'];
     showPreviewResultTitle?: boolean;
     tableContent: any;
   }[];
@@ -220,12 +217,8 @@
 
   export type TabConfig = Omit<TabItem, 'tableContent' | 'resultContent'>;
 
-  export interface SelectMapValueType<T> {
-    [key: string]: {
-      list: T[];
-      map: Record<string, T>;
-    };
-  }
+  // 按 tab id 索引的选中结果，与 Props['selected'] 同构
+  export type SelectMapValueType<T> = Record<string, T[]>;
 
   export interface Props<T> {
     clusterTypes: string[];
@@ -253,254 +246,158 @@
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
 
+  // 13 个 tab 的禁用规则、选择模式、表格与结果预览组件完全一致，只有查询接口与名称不同
+  const createTabItem = (config: Pick<TabItem, 'getResourceList' | 'id' | 'name' | 'showPreviewResultTitle'>) => ({
+    disabledRowConfig: [
+      {
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      },
+    ],
+    multiple: true,
+    resultContent: ResultPreview,
+    tableContent: ClusterTable,
+    ...config,
+  });
+
   const tabListMap: Record<string, TabItem> = {
-    [ClusterTypes.MONGO_REPLICA_SET]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      getResourceList: getMongoList,
+    [ClusterTypes.MONGO_REPLICA_SET]: createTabItem({
+      // 副本集与分片集群共用 getMongoList，须带上 cluster_type 区分
+      getResourceList: (params: ServiceParameters<typeof getMongoList>) =>
+        getMongoList({
+          cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+          ...params,
+        }),
       id: ClusterTypes.MONGO_REPLICA_SET,
-      multiple: true,
       name: t('副本集'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: MongoTable,
-    },
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      getResourceList: getMongoList,
+    }),
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: createTabItem({
+      getResourceList: (params: ServiceParameters<typeof getMongoList>) =>
+        getMongoList({
+          cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+          ...params,
+        }),
       id: ClusterTypes.MONGO_SHARED_CLUSTER,
-      multiple: true,
       name: t('分片集群'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: MongoTable,
-    },
-    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: createTabItem({
       getResourceList: getOracleHaClusterList,
       id: ClusterTypes.ORACLE_PRIMARY_STANDBY,
-      multiple: true,
       name: t('Oracle 主从'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: OracleHaTable,
-    },
-    [ClusterTypes.ORACLE_SINGLE_NONE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.ORACLE_SINGLE_NONE]: createTabItem({
       getResourceList: getOracleSingleClusterList,
       id: ClusterTypes.ORACLE_SINGLE_NONE,
-      multiple: true,
       name: t('Oracle 单节点'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: OracleSingleTable,
-    },
-    [ClusterTypes.REDIS]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.REDIS]: createTabItem({
       getResourceList: getRedisList,
       id: ClusterTypes.REDIS,
-      multiple: true,
       name: t('集群选择'),
-      resultContent: ResultPreview,
-      tableContent: RedisTable,
-    },
-    [ClusterTypes.REDIS_INSTANCE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.REDIS_INSTANCE]: createTabItem({
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
           cluster_type: ClusterTypes.REDIS_INSTANCE,
           ...params,
         }),
       id: ClusterTypes.REDIS_INSTANCE,
-      multiple: true,
       name: t('Redis 主从'),
-      resultContent: ResultPreview,
-      tableContent: RedisTable,
-    },
-    [ClusterTypes.SQLSERVER_HA]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.SQLSERVER_HA]: createTabItem({
       getResourceList: getHaClusterList,
       id: ClusterTypes.SQLSERVER_HA,
-      multiple: true,
       name: t('SqlServer 主从'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: SqlserverHaTable,
-    },
-    [ClusterTypes.SQLSERVER_SINGLE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.SQLSERVER_SINGLE]: createTabItem({
       getResourceList: getSingleClusterList,
       id: ClusterTypes.SQLSERVER_SINGLE,
-      multiple: true,
       name: t('SqlServer 单节点'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: SqlserverSingleTable,
-    },
-    [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.TENDBCLUSTER]: createTabItem({
       getResourceList: getTendbClusterList,
       id: ClusterTypes.TENDBCLUSTER,
-      multiple: true,
       name: t('集群选择'),
-      resultContent: ResultPreview,
-      tableContent: SpiderTable,
-    },
-    [ClusterTypes.TENDBHA]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.TENDBHA]: createTabItem({
       getResourceList: getTendbhaList,
       id: ClusterTypes.TENDBHA,
-      multiple: true,
       name: t('主从集群'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: TendbhaTable,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    [ClusterTypes.TENDBSINGLE]: createTabItem({
       getResourceList: getTendbsingleList,
       id: ClusterTypes.TENDBSINGLE,
-      multiple: true,
       name: t('单节点集群'),
-      resultContent: ResultPreview,
       showPreviewResultTitle: true,
-      tableContent: TendbSingleTable,
-    },
-    tendbclusterSlave: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    tendbclusterSlave: createTabItem({
       getResourceList: getTendbClusterList,
       id: 'tendbclusterSlave',
-      multiple: true,
       name: t('集群选择'),
-      resultContent: ResultPreview,
-      tableContent: SpiderTable,
-    },
-    tendbhaSlave: {
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+    }),
+    tendbhaSlave: createTabItem({
       getResourceList: getTendbhaSalveList,
       id: 'tendbhaSlave',
-      multiple: true,
       name: t('主从集群'),
-      resultContent: ResultPreview,
-      tableContent: TendbhaSlaveTable,
-    },
+    }),
   };
 
-  const tabTipsRef = useTemplateRef<HTMLElement>('tabTips');
+  // v-for 上的 ref，拿到的是 BkPopover 实例数组
+  const tabTipsRef = useTemplateRef<{ hide: () => void }[]>('tabTips');
   const activeTab = ref(ClusterTypes.TENDBCLUSTER as string);
-  const showTabTips = ref(false);
-  const isSelectedAll = ref(false);
   const selectedMap = ref<SelectMapValueType<T>>({});
 
-  const activePanelObj = shallowRef(tabListMap[ClusterTypes.TENDBCLUSTER]);
-
   const clusterTabListMap = computed<Record<string, TabItem>>(() => {
-    if (props.tabListConfig) {
-      Object.keys(props.tabListConfig).forEach((type) => {
-        if (props.tabListConfig?.[type]) {
-          const disabledRowConfigList = props.supportOfflineData
-            ? []
-            : [
-                {
-                  handler: (data: T) => data.isOffline,
-                  tip: t('集群已禁用'),
-                },
-              ];
-          const disabledRowConfigProp = props.tabListConfig?.[type].disabledRowConfig;
-          if (disabledRowConfigProp) {
-            // 外部设置了 disabledRowConfig, 需要追加到 disabledRowConfig列表
-            disabledRowConfigList.push(...disabledRowConfigProp);
-          }
-          tabListMap[type] = {
-            ...tabListMap[type],
-            ...props.tabListConfig[type],
-            disabledRowConfig: disabledRowConfigList,
-          };
-        }
-      });
+    if (!props.tabListConfig) {
+      return tabListMap;
     }
-    return tabListMap;
+    return Object.entries(props.tabListConfig).reduce<Record<string, TabItem>>(
+      (results, [type, config]) => {
+        if (!config) {
+          return results;
+        }
+        const disabledRowConfigList = props.supportOfflineData
+          ? []
+          : [
+              {
+                handler: (data: T) => data.isOffline,
+                tip: t('集群已禁用'),
+              },
+            ];
+        if (config.disabledRowConfig) {
+          // 外部设置了 disabledRowConfig, 需要追加到 disabledRowConfig列表
+          disabledRowConfigList.push(...config.disabledRowConfig);
+        }
+        return Object.assign(results, {
+          [type]: {
+            ...results[type],
+            ...config,
+            disabledRowConfig: disabledRowConfigList,
+          },
+        });
+      },
+      { ...tabListMap },
+    );
   });
 
   const tabList = computed(() =>
     props.clusterTypes ? props.clusterTypes.map((type) => clusterTabListMap.value[type]) : [],
   );
 
-  // 显示切换 tab tips
-  // const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
-  // 选中结果是否为空
-  const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (item) => Object.keys(item).length < 1));
+  const activePanelObj = computed(() => clusterTabListMap.value[activeTab.value]);
+
+  // 所有 tab 都没有选中项
+  const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (clusterList) => clusterList.length < 1));
 
   const selectedClusterList = computed(() =>
-    Object.values(selectedMap.value).reduce<string[]>((prevList, selectedItem) => {
-      const clusterList = selectedItem.list.map((clusterItem) => clusterItem.master_domain);
-      prevList.push(...clusterList);
-      return prevList;
-    }, []),
+    Object.values(selectedMap.value).flatMap((clusterList) => clusterList.map((item) => item.master_domain)),
   );
 
   const submitButtonDisabledInfo = computed(() => {
@@ -534,7 +431,6 @@
     () => props.clusterTypes,
     (types) => {
       if (types) {
-        activePanelObj.value = clusterTabListMap.value[types[0]];
         [activeTab.value] = types;
       }
     },
@@ -546,42 +442,22 @@
 
   watch(isShow, () => {
     if (isShow.value && tabList.value) {
-      selectedMap.value = tabList.value
-        .map((item) => item.id)
-        .reduce((result, tabKey) => {
-          if (!props.selected[tabKey]) {
-            return result;
-          }
-          const tabSelectMap = {
-            list: _.cloneDeep(props.selected[tabKey]),
-            map: _.cloneDeep(props.selected[tabKey]).reduce(
-              (selectResult, selectItem) => ({
-                ...selectResult,
-                [selectItem.id]: selectItem,
-              }),
-              {} as Record<string, T>,
-            ),
-          };
-          return {
-            ...result,
-            [tabKey]: tabSelectMap,
-          };
-        }, {} as SelectMapValueType<T>);
-
-      showTabTips.value = true;
+      selectedMap.value = tabList.value.reduce<SelectMapValueType<T>>((result, tabItem) => {
+        if (!props.selected[tabItem.id]) {
+          return result;
+        }
+        return Object.assign(result, {
+          [tabItem.id]: _.cloneDeep(props.selected[tabItem.id]),
+        });
+      }, {});
     }
   });
 
   const initSelectedMap = () => {
-    selectedMap.value = Object.keys(selectedMap.value).reduce<SelectMapValueType<T>>((results, id) => {
-      Object.assign(results, {
-        [id]: {
-          list: [],
-          map: {},
-        },
-      });
-      return results;
-    }, {});
+    selectedMap.value = Object.keys(selectedMap.value).reduce<SelectMapValueType<T>>(
+      (results, id) => Object.assign(results, { [id]: [] }),
+      {},
+    );
   };
 
   /**
@@ -591,11 +467,7 @@
     if (activeTab.value === obj.id) {
       return;
     }
-    const currentTab = tabList.value.find((item) => item.id === obj.id);
     activeTab.value = obj.id;
-    if (currentTab) {
-      activePanelObj.value = currentTab;
-    }
     if (props.onlyOneType) {
       initSelectedMap();
     }
@@ -605,7 +477,6 @@
    * 关闭提示
    */
   const handleCloseTabTips = () => {
-    showTabTips.value = false;
     if (tabTipsRef.value) {
       for (const ref of tabTipsRef.value) {
         ref.hide();
@@ -618,18 +489,13 @@
    */
   const handleClearSelected = () => {
     initSelectedMap();
-    isSelectedAll.value = false;
   };
 
   /**
    * 复制集群域名
    */
   const handleCopyCluster = () => {
-    const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
-      result.push(...selectItem.list.map((item) => item.master_domain));
-      return result;
-    }, [] as string[]);
-
+    const copyValues = selectedClusterList.value;
     if (copyValues.length < 1) {
       messageWarn(t('没有可复制集群'));
       return;
@@ -638,14 +504,7 @@
   };
 
   const handleConfirm = () => {
-    const result = Object.keys(selectedMap.value).reduce(
-      (result, tabKey) => ({
-        ...result,
-        [tabKey]: selectedMap.value[tabKey].list,
-      }),
-      {},
-    );
-    emits('change', result);
+    emits('change', { ...selectedMap.value });
     handleClose();
   };
 
@@ -657,8 +516,10 @@
    * 选择当行数据
    */
   const handleDeleteItem = (data: T, tabKey: string) => {
-    delete selectedMap.value[tabKey].map[data.id];
-    selectedMap.value[tabKey].list = selectedMap.value[tabKey].list.filter((item) => item.id !== data.id);
+    // 按该 tab 的行标识删除：tendbhaSlave 等一个集群 id 拆多行的 tab，用 id 会把同组的其它行一起删掉
+    const rowKey = getTabRowKey(tabKey);
+    const targetKey = _.get(data, rowKey);
+    selectedMap.value[tabKey] = selectedMap.value[tabKey].filter((item) => _.get(item, rowKey) !== targetKey);
   };
 
   const handleSelectTable = (selected: T[]) => {
@@ -667,14 +528,11 @@
       // 只会有一个key
       Object.keys(selectedMap.value).forEach((key) => {
         if (key !== activeTab.value) {
-          selectedMap.value[key] = {
-            list: [],
-            map: {},
-          };
+          selectedMap.value[key] = [];
         }
       });
     }
-    selectedMap.value[activeTab.value].list = selected;
+    selectedMap.value[activeTab.value] = selected;
   };
 </script>
 
@@ -702,14 +560,15 @@
       .flex-center();
 
       .tabs-item {
-        min-width: 200px;
         margin-bottom: -1px;
         text-align: center;
         cursor: pointer;
-        border: 1px solid @border-disable;
-        border-top: 0;
-        border-left: 0;
         border-bottom-color: transparent;
+        flex: 1;
+
+        & ~ .tabs-item {
+          border-left: 1px solid @border-disable;
+        }
       }
 
       .tabs-item-active {
@@ -731,17 +590,20 @@
 
     .cluster-selector-result {
       height: 100%;
-      padding: 12px 24px;
       font-size: @font-size-mini;
       background-color: #f5f6fa;
 
       .result-title {
-        padding-bottom: 16px;
-        .flex-center();
+        display: flex;
+        height: 42px;
+        padding: 0 24px;
+        font-weight: bold;
+        background-color: #fff;
+        align-items: center;
 
         > span {
           flex: 1;
-          font-size: @font-size-normal;
+          font-size: 12px;
           color: @title-color;
         }
 
@@ -761,6 +623,10 @@
             border-radius: 2px;
           }
         }
+      }
+
+      .result-content {
+        padding: 8px 24px;
       }
     }
 

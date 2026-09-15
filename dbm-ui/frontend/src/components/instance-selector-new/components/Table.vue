@@ -26,6 +26,7 @@
       :data-source="realDataSource"
       :disable-select-method="disableSelectMethod"
       :filter-value="quickSearchValue"
+      row-click-selectable
       row-key="instance_address"
       :select-single="single"
       selectable
@@ -133,7 +134,7 @@
         :filter="columnFilter?.['create_at']"
         sorter
         :title="t('部署时间')"
-        :width="140">
+        :width="180">
         <template #default="{ row }: { row: IRowData }">
           {{ row.createAtDisplay || '--' }}
         </template>
@@ -143,6 +144,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends ISupportClusterType">
+  import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -197,22 +199,20 @@
     instanceTableRef.value!.fetchData(Object.assign({}, quickSearchValue.value));
   };
 
+  // DbQuickSearch 挂载时会回显一次并 emit change，首次列表数据由此拉取，不再额外 onMounted 请求
   const handleQuickSearchChange = () => {
     fetchData();
   };
 
-  const handleFilterChange = (filterValue: Record<string, string>) => {
-    quickSearchValue.value = filterValue;
+  const handleFilterChange = (filterValue: Record<string, string | string[]>) => {
+    // 搜索栏与筛选面板都按逗号分隔字符串取值，多选列重置时表格会回传数组，入口处统一归一
+    quickSearchValue.value = _.mapValues(filterValue, (value) => (Array.isArray(value) ? value.join(',') : value));
     fetchData();
   };
 
   const handleSelection = (_key: string[], list: IRowData[]) => {
     emits('selection', list);
   };
-
-  onMounted(() => {
-    fetchData();
-  });
 </script>
 
 <style lang="less">

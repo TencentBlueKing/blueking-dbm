@@ -13,7 +13,7 @@
     </div>
     <div
       v-if="isShowExpand"
-      style="margin-top: 8; line-height: 20px">
+      style="margin-top: 8px; line-height: 20px">
       <BkButton
         text
         theme="primary"
