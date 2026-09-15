@@ -352,68 +352,6 @@
                 }
               }
             }
-          },
-          "v4_ticket_url": {
-            "translations": {
-              "name": "需求详情",
-              "name_en": "需求详情",
-              "name_zh_hans": "需求详情"
-            },
-            "key": "v4_ticket_url",
-            "name": "需求详情",
-            "type": "text",
-            "is_builtin": false,
-            "jsonschema": {
-              "translations": {
-                "title": "",
-                "title_en": "",
-                "title_zh_hans": ""
-              },
-              "type": "string",
-              "title": "",
-              "render_code": null,
-              "maxLength": 1000,
-              "minLength": null,
-              "maximum": null,
-              "minimum": null,
-              "number_unit": "",
-              "table_relation": null,
-              "into_todo": [],
-              "out_todo": [],
-              "attr_relation": null,
-              "itsm_jmespath": null,
-              "itsm_options": null,
-              "itsm_options_type": null,
-              "format": null,
-              "columns": null,
-              "properties": null,
-              "items": null
-            },
-            "meta": {
-              "key": "v4_ticket_url",
-              "desc": "",
-              "tips": "请输入",
-              "type": "text",
-              "title": {
-                "value": "需求详情",
-                "isHide": false
-              },
-              "permission": {
-                "readonly": [
-                  "title",
-                  "key",
-                  "tips",
-                  "desc"
-                ]
-              },
-              "translations": {
-                "title": {
-                  "name": "需求详情",
-                  "name_en": "需求详情",
-                  "name_zh_hans": "需求详情"
-                }
-              }
-            }
           }
         },
         "fields_order": [
@@ -421,7 +359,6 @@
           "summary",
           "domain",
           "approve_mode",
-          "v4_ticket_url",
           "approver"
         ],
         "components": null
@@ -456,9 +393,14 @@
               },
               "key": "close",
               "name": "关闭",
-              "enable": false,
+              "enable": true,
               "meta": {
-                "button_permission": null,
+                "button_permission": [
+                  {
+                    "type": "permission",
+                    "value": []
+                  }
+                ],
                 "urging_time": null
               },
               "extra": {}
@@ -471,9 +413,14 @@
               },
               "key": "terminate",
               "name": "终止",
-              "enable": false,
+              "enable": true,
               "meta": {
-                "button_permission": null,
+                "button_permission": [
+                  {
+                    "type": "permission",
+                    "value": []
+                  }
+                ],
                 "urging_time": null
               },
               "extra": {}
@@ -532,7 +479,7 @@
         }
       },
       "version": {
-        "key": "20260812031700008001",
+        "key": "20260827035500009902",
         "workflow_key": "$Workflow20260810065000003601",
         "desc": null,
         "workflows": {
@@ -1072,10 +1019,13 @@
                 "button_code": "withdraw",
                 "key": "withdraw",
                 "name": "撤回",
-                "enable": false,
+                "enable": true,
                 "extra": {},
                 "meta": {
-                  "can_withdraw_activity": []
+                  "can_withdraw_activity": [
+                    "activityobject_20260810145113_1",
+                    "activityobject_20260810145116_1"
+                  ]
                 }
               },
               {
@@ -1143,7 +1093,60 @@
             "type": "form",
             "align": "top",
             "class": [],
-            "rules": [],
+            "rules": [
+              {
+                "id": "CybhU",
+                "name": "规则1",
+                "actions": [
+                  {
+                    "id": "bDKV2",
+                    "fields": [
+                      "dynamic_fields"
+                    ],
+                    "condition": "hide"
+                  }
+                ],
+                "conditions": {
+                  "operator": "and",
+                  "conditions": [
+                    {
+                      "operator": "and",
+                      "conditions": [
+                        {
+                          "left": {
+                            "obj": {
+                              "id": "show_table",
+                              "key": "DATA_TABLE",
+                              "name": "是否显示嵌套表格",
+                              "type": "Numeric",
+                              "fieldType": "number",
+                              "parentKey": "",
+                              "jsonschema": {
+                                "type": "number",
+                                "title": "是否显示嵌套表格"
+                              },
+                              "parentType": "",
+                              "containerType": ""
+                            },
+                            "type": "variable",
+                            "excludeId": []
+                          },
+                          "right": {
+                            "obj": {
+                              "type": "Numeric",
+                              "value": 0
+                            },
+                            "type": "value",
+                            "excludeId": []
+                          },
+                          "compare": "="
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
             "layout": [
               {
                 "list": [
@@ -1154,7 +1157,7 @@
                     "tips": "请输入",
                     "type": "text",
                     "class": [],
-                    "state": "default",
+                    "state": "readonly",
                     "title": {
                       "value": "标题",
                       "isHide": false
@@ -1200,12 +1203,7 @@
                         "enabled": false
                       }
                     }
-                  }
-                ],
-                "type": "row"
-              },
-              {
-                "list": [
+                  },
                   {
                     "key": "app",
                     "desc": "",
@@ -1213,7 +1211,7 @@
                     "tips": "请输入",
                     "type": "text",
                     "class": [],
-                    "state": "default",
+                    "state": "readonly",
                     "title": {
                       "value": "业务",
                       "isHide": false
@@ -1265,71 +1263,13 @@
               {
                 "list": [
                   {
-                    "key": "summary",
-                    "desc": "",
-                    "slot": [],
-                    "tips": "请输入",
-                    "type": "text",
-                    "class": [],
-                    "state": "default",
-                    "title": {
-                      "value": "备注",
-                      "isHide": false
-                    },
-                    "width": "COL_6",
-                    "columnId": "rR3Yn28h",
-                    "location": "form",
-                    "sceneKey": "summary",
-                    "permission": {
-                      "readonly": [
-                        "title",
-                        "key",
-                        "tips",
-                        "desc"
-                      ]
-                    },
-                    "defaultValue": "",
-                    "translations": {
-                      "title": {
-                        "name": "备注",
-                        "name_en": "备注",
-                        "name_zh_hans": "备注"
-                      }
-                    },
-                    "verification": {
-                      "required": {
-                        "value": false,
-                        "enabled": false
-                      },
-                      "wordLimit": {
-                        "value": {
-                          "max": 1000,
-                          "min": 0
-                        },
-                        "enabled": false
-                      },
-                      "formatLimit": {
-                        "value": {
-                          "errorTips": "",
-                          "expression": ""
-                        },
-                        "enabled": false
-                      }
-                    }
-                  }
-                ],
-                "type": "row"
-              },
-              {
-                "list": [
-                  {
                     "key": "domain",
                     "desc": "",
                     "slot": [],
                     "tips": "请输入",
                     "type": "text",
                     "class": [],
-                    "state": "default",
+                    "state": "readonly",
                     "title": {
                       "value": "域名",
                       "isHide": false
@@ -1374,126 +1314,7 @@
                         "enabled": false
                       }
                     }
-                  }
-                ],
-                "type": "row"
-              },
-              {
-                "list": [
-                  {
-                    "key": "approve_mode",
-                    "desc": "",
-                    "slot": [],
-                    "tips": "请输入",
-                    "type": "number",
-                    "class": [],
-                    "state": "default",
-                    "title": {
-                      "value": "审批模式",
-                      "isHide": false
-                    },
-                    "width": "COL_6",
-                    "columnId": "v5vsqlSN",
-                    "location": "form",
-                    "sceneKey": "approve_mode",
-                    "permission": {
-                      "readonly": [
-                        "title",
-                        "key",
-                        "tips",
-                        "desc"
-                      ]
-                    },
-                    "defaultValue": "",
-                    "numberConfig": {
-                      "unit": "",
-                      "precision": "",
-                      "thousandth": false
-                    },
-                    "translations": {
-                      "title": {
-                        "name": "审批模式",
-                        "name_en": "审批模式",
-                        "name_zh_hans": "审批模式"
-                      }
-                    },
-                    "verification": {
-                      "required": {
-                        "value": false,
-                        "enabled": false
-                      },
-                      "numberRange": {
-                        "value": {
-                          "max": "",
-                          "min": ""
-                        },
-                        "enabled": false
-                      }
-                    }
-                  }
-                ],
-                "type": "row"
-              },
-              {
-                "list": [
-                  {
-                    "key": "v4_ticket_url",
-                    "desc": "",
-                    "slot": [],
-                    "tips": "请输入",
-                    "type": "text",
-                    "class": [],
-                    "state": "default",
-                    "title": {
-                      "value": "需求详情",
-                      "isHide": false
-                    },
-                    "width": "COL_6",
-                    "columnId": "IMLyOeF8",
-                    "location": "form",
-                    "sceneKey": "v4_ticket_url",
-                    "permission": {
-                      "readonly": [
-                        "title",
-                        "key",
-                        "tips",
-                        "desc"
-                      ]
-                    },
-                    "defaultValue": "",
-                    "translations": {
-                      "title": {
-                        "name": "需求详情",
-                        "name_en": "需求详情",
-                        "name_zh_hans": "需求详情"
-                      }
-                    },
-                    "verification": {
-                      "required": {
-                        "value": false,
-                        "enabled": false
-                      },
-                      "wordLimit": {
-                        "value": {
-                          "max": 1000,
-                          "min": 0
-                        },
-                        "enabled": false
-                      },
-                      "formatLimit": {
-                        "value": {
-                          "errorTips": "",
-                          "expression": ""
-                        },
-                        "enabled": false
-                      }
-                    }
-                  }
-                ],
-                "type": "row"
-              },
-              {
-                "list": [
+                  },
                   {
                     "key": "approver",
                     "desc": "",
@@ -1501,7 +1322,7 @@
                     "tips": "请输入",
                     "type": "multiUser",
                     "class": [],
-                    "state": "default",
+                    "state": "readonly",
                     "title": {
                       "value": "审批人",
                       "isHide": false
@@ -1582,6 +1403,242 @@
                       "allowDisabledUser": false
                     },
                     "hideOptionsWhenNoSearch": false
+                  }
+                ],
+                "type": "row"
+              },
+              {
+                "list": [
+                  {
+                    "key": "summary",
+                    "desc": "",
+                    "slot": [],
+                    "tips": "请输入",
+                    "type": "text",
+                    "class": [],
+                    "state": "readonly",
+                    "title": {
+                      "value": "备注",
+                      "isHide": false
+                    },
+                    "width": "COL_6",
+                    "columnId": "rR3Yn28h",
+                    "location": "form",
+                    "sceneKey": "summary",
+                    "permission": {
+                      "readonly": [
+                        "title",
+                        "key",
+                        "tips",
+                        "desc"
+                      ]
+                    },
+                    "defaultValue": "",
+                    "translations": {
+                      "title": {
+                        "name": "备注",
+                        "name_en": "备注",
+                        "name_zh_hans": "备注"
+                      }
+                    },
+                    "verification": {
+                      "required": {
+                        "value": false,
+                        "enabled": false
+                      },
+                      "wordLimit": {
+                        "value": {
+                          "max": 1000,
+                          "min": 0
+                        },
+                        "enabled": false
+                      },
+                      "formatLimit": {
+                        "value": {
+                          "errorTips": "",
+                          "expression": ""
+                        },
+                        "enabled": false
+                      }
+                    }
+                  },
+                  {
+                    "key": "dbm_ticket_url",
+                    "desc": "",
+                    "tips": "请输入",
+                    "type": "link",
+                    "class": [],
+                    "state": "default",
+                    "title": {
+                      "value": "需求详情",
+                      "isHide": false
+                    },
+                    "width": "COL_6",
+                    "columnId": "onS96cXK",
+                    "location": "form",
+                    "linkConfig": {
+                      "url": " ",
+                      "showText": "点击查看"
+                    },
+                    "translations": {
+                      "tips": {
+                        "name": "请输入",
+                        "name_en": "Please input",
+                        "name_zh_hant": "請輸入"
+                      },
+                      "title": {
+                        "name": "需求详情",
+                        "name_en": "Link",
+                        "name_zh_hans": "需求详情"
+                      }
+                    },
+                    "verification": {
+                      "required": {
+                        "value": false,
+                        "enabled": true
+                      }
+                    }
+                  }
+                ],
+                "type": "row"
+              },
+              {
+                "list": [
+                  {
+                    "key": "approve_mode",
+                    "desc": "",
+                    "slot": [],
+                    "tips": "请输入",
+                    "type": "number",
+                    "class": [],
+                    "state": "hide",
+                    "title": {
+                      "value": "审批模式",
+                      "isHide": false
+                    },
+                    "width": "COL_12",
+                    "columnId": "v5vsqlSN",
+                    "location": "form",
+                    "sceneKey": "approve_mode",
+                    "hideLogic": "normal",
+                    "permission": {
+                      "readonly": [
+                        "title",
+                        "key",
+                        "tips",
+                        "desc"
+                      ]
+                    },
+                    "defaultValue": "",
+                    "numberConfig": {
+                      "unit": "",
+                      "precision": "",
+                      "thousandth": false
+                    },
+                    "translations": {
+                      "title": {
+                        "name": "审批模式",
+                        "name_en": "审批模式",
+                        "name_zh_hans": "审批模式"
+                      }
+                    },
+                    "verification": {
+                      "required": {
+                        "value": false,
+                        "enabled": false
+                      },
+                      "numberRange": {
+                        "value": {
+                          "max": "",
+                          "min": ""
+                        },
+                        "enabled": false
+                      }
+                    }
+                  }
+                ],
+                "type": "row"
+              },
+              {
+                "list": [
+                  {
+                    "key": "show_table",
+                    "desc": "",
+                    "slot": [],
+                    "tips": "请输入",
+                    "type": "number",
+                    "class": [],
+                    "state": "hide",
+                    "title": {
+                      "value": "是否显示嵌套表格",
+                      "isHide": false
+                    },
+                    "width": "COL_12",
+                    "columnId": "uiuDwfFT",
+                    "location": "form",
+                    "defaultValue": "0",
+                    "numberConfig": {
+                      "unit": "",
+                      "precision": "",
+                      "thousandth": false
+                    },
+                    "translations": {
+                      "tips": {
+                        "name": "请输入",
+                        "name_en": "Please input",
+                        "name_zh_hant": "請輸入"
+                      },
+                      "title": {
+                        "name": "是否显示嵌套表格",
+                        "name_en": "Numeric",
+                        "name_zh_hans": "是否显示嵌套表格"
+                      }
+                    },
+                    "verification": {
+                      "required": {
+                        "value": false,
+                        "enabled": false
+                      },
+                      "numberRange": {
+                        "value": {
+                          "max": "",
+                          "min": ""
+                        },
+                        "enabled": false
+                      }
+                    }
+                  }
+                ],
+                "type": "row"
+              },
+              {
+                "list": [
+                  {
+                    "key": "dynamic_fields",
+                    "desc": "",
+                    "type": "nestedTable",
+                    "state": "readonly",
+                    "title": {
+                      "value": "模拟执行",
+                      "isHide": false
+                    },
+                    "width": "COL_6",
+                    "columnId": "oZhuVGLn",
+                    "location": "form",
+                    "readOnlyText": "readonly",
+                    "translations": {
+                      "title": {
+                        "name": "模拟执行",
+                        "name_en": "模拟执行",
+                        "name_zh_hans": "模拟执行"
+                      }
+                    },
+                    "verification": {
+                      "required": {
+                        "value": false,
+                        "enabled": false
+                      }
+                    }
                   }
                 ],
                 "type": "row"
@@ -1725,6 +1782,32 @@
                   "items": null
                 }
               },
+              "show_table": {
+                "translations": {
+                  "title": "是否显示嵌套表格",
+                  "title_en": "Numeric",
+                  "title_zh_hans": "是否显示嵌套表格"
+                },
+                "type": "number",
+                "title": "是否显示嵌套表格",
+                "render_code": null,
+                "maxLength": null,
+                "minLength": null,
+                "maximum": null,
+                "minimum": null,
+                "number_unit": "",
+                "table_relation": null,
+                "into_todo": [],
+                "out_todo": [],
+                "attr_relation": null,
+                "itsm_jmespath": null,
+                "itsm_options": null,
+                "itsm_options_type": null,
+                "format": null,
+                "columns": null,
+                "properties": null,
+                "items": null
+              },
               "approve_mode": {
                 "translations": {
                   "title": "审批模式",
@@ -1777,16 +1860,16 @@
                 "properties": null,
                 "items": null
               },
-              "v4_ticket_url": {
+              "dbm_ticket_url": {
                 "translations": {
                   "title": "需求详情",
-                  "title_en": "需求详情",
+                  "title_en": "Link",
                   "title_zh_hans": "需求详情"
                 },
-                "type": "string",
+                "type": "object",
                 "title": "需求详情",
                 "render_code": null,
-                "maxLength": 1000,
+                "maxLength": null,
                 "minLength": null,
                 "maximum": null,
                 "minimum": null,
@@ -1798,9 +1881,298 @@
                 "itsm_jmespath": null,
                 "itsm_options": null,
                 "itsm_options_type": null,
-                "format": null,
+                "format": "link",
                 "columns": null,
-                "properties": null,
+                "properties": {
+                  "url": {
+                    "translations": {
+                      "title_en": "Address",
+                      "title_zh_hans": "链接地址",
+                      "title_zh_hant": "鏈接地址"
+                    },
+                    "type": "string",
+                    "title": "链接地址",
+                    "render_code": null,
+                    "maxLength": null,
+                    "minLength": null,
+                    "maximum": null,
+                    "minimum": null,
+                    "number_unit": "",
+                    "table_relation": null,
+                    "into_todo": [],
+                    "out_todo": [],
+                    "attr_relation": null,
+                    "itsm_jmespath": null,
+                    "itsm_options": null,
+                    "itsm_options_type": null,
+                    "format": null,
+                    "columns": null,
+                    "properties": null,
+                    "items": null
+                  },
+                  "show_text": {
+                    "translations": {
+                      "title_en": "Display text",
+                      "title_zh_hans": "显示文本",
+                      "title_zh_hant": "顯示文本"
+                    },
+                    "type": "string",
+                    "title": "显示文本",
+                    "render_code": null,
+                    "maxLength": null,
+                    "minLength": null,
+                    "maximum": null,
+                    "minimum": null,
+                    "number_unit": "",
+                    "table_relation": null,
+                    "into_todo": [],
+                    "out_todo": [],
+                    "attr_relation": null,
+                    "itsm_jmespath": null,
+                    "itsm_options": null,
+                    "itsm_options_type": null,
+                    "format": null,
+                    "columns": null,
+                    "properties": null,
+                    "items": null
+                  }
+                },
+                "items": null
+              },
+              "dynamic_fields": {
+                "translations": {
+                  "title": "模拟执行",
+                  "title_en": "模拟执行",
+                  "title_zh_hans": "模拟执行"
+                },
+                "type": "object",
+                "title": "模拟执行",
+                "render_code": null,
+                "maxLength": null,
+                "minLength": null,
+                "maximum": null,
+                "minimum": null,
+                "number_unit": "",
+                "table_relation": null,
+                "into_todo": [],
+                "out_todo": [],
+                "attr_relation": null,
+                "itsm_jmespath": null,
+                "itsm_options": null,
+                "itsm_options_type": null,
+                "format": "nesting",
+                "columns": null,
+                "properties": {
+                  "data": {
+                    "translations": {
+                      "title": "",
+                      "title_en": "",
+                      "title_zh_hans": ""
+                    },
+                    "type": "array",
+                    "title": "",
+                    "render_code": null,
+                    "maxLength": null,
+                    "minLength": null,
+                    "maximum": null,
+                    "minimum": null,
+                    "number_unit": "",
+                    "table_relation": null,
+                    "into_todo": [],
+                    "out_todo": [],
+                    "attr_relation": null,
+                    "itsm_jmespath": null,
+                    "itsm_options": null,
+                    "itsm_options_type": null,
+                    "format": null,
+                    "columns": null,
+                    "properties": null,
+                    "items": {
+                      "translations": {
+                        "title": "",
+                        "title_en": "",
+                        "title_zh_hans": ""
+                      },
+                      "type": "object",
+                      "title": "",
+                      "render_code": null,
+                      "maxLength": null,
+                      "minLength": null,
+                      "maximum": null,
+                      "minimum": null,
+                      "number_unit": "",
+                      "table_relation": null,
+                      "into_todo": [],
+                      "out_todo": [],
+                      "attr_relation": null,
+                      "itsm_jmespath": null,
+                      "itsm_options": null,
+                      "itsm_options_type": null,
+                      "format": null,
+                      "columns": null,
+                      "properties": {
+                        "label": {
+                          "translations": {
+                            "title": "",
+                            "title_en": "",
+                            "title_zh_hans": ""
+                          },
+                          "type": "string",
+                          "title": "",
+                          "render_code": null,
+                          "maxLength": null,
+                          "minLength": null,
+                          "maximum": null,
+                          "minimum": null,
+                          "number_unit": "",
+                          "table_relation": null,
+                          "into_todo": [],
+                          "out_todo": [],
+                          "attr_relation": null,
+                          "itsm_jmespath": null,
+                          "itsm_options": null,
+                          "itsm_options_type": null,
+                          "format": null,
+                          "columns": null,
+                          "properties": null,
+                          "items": null
+                        },
+                        "scheme": {
+                          "translations": {
+                            "title": "",
+                            "title_en": "",
+                            "title_zh_hans": ""
+                          },
+                          "type": "string",
+                          "title": "",
+                          "render_code": null,
+                          "maxLength": null,
+                          "minLength": null,
+                          "maximum": null,
+                          "minimum": null,
+                          "number_unit": "",
+                          "table_relation": null,
+                          "into_todo": [],
+                          "out_todo": [],
+                          "attr_relation": null,
+                          "itsm_jmespath": null,
+                          "itsm_options": null,
+                          "itsm_options_type": null,
+                          "format": null,
+                          "columns": null,
+                          "properties": null,
+                          "items": null
+                        }
+                      },
+                      "items": null
+                    }
+                  },
+                  "schemes": {
+                    "translations": {
+                      "title": "",
+                      "title_en": "",
+                      "title_zh_hans": ""
+                    },
+                    "type": "object",
+                    "title": "",
+                    "render_code": null,
+                    "maxLength": null,
+                    "minLength": null,
+                    "maximum": null,
+                    "minimum": null,
+                    "number_unit": "",
+                    "table_relation": null,
+                    "into_todo": [],
+                    "out_todo": [],
+                    "attr_relation": null,
+                    "itsm_jmespath": null,
+                    "itsm_options": null,
+                    "itsm_options_type": null,
+                    "format": null,
+                    "columns": null,
+                    "properties": {
+                      "type": {
+                        "translations": {
+                          "title": "",
+                          "title_en": "",
+                          "title_zh_hans": ""
+                        },
+                        "type": "string",
+                        "title": "",
+                        "render_code": null,
+                        "maxLength": null,
+                        "minLength": null,
+                        "maximum": null,
+                        "minimum": null,
+                        "number_unit": "",
+                        "table_relation": null,
+                        "into_todo": [],
+                        "out_todo": [],
+                        "attr_relation": null,
+                        "itsm_jmespath": null,
+                        "itsm_options": null,
+                        "itsm_options_type": null,
+                        "format": null,
+                        "columns": null,
+                        "properties": null,
+                        "items": null
+                      }
+                    },
+                    "items": null
+                  },
+                  "content_md": {
+                    "translations": {
+                      "title": "",
+                      "title_en": "",
+                      "title_zh_hans": ""
+                    },
+                    "type": "string",
+                    "title": "",
+                    "render_code": null,
+                    "maxLength": null,
+                    "minLength": null,
+                    "maximum": null,
+                    "minimum": null,
+                    "number_unit": "",
+                    "table_relation": null,
+                    "into_todo": [],
+                    "out_todo": [],
+                    "attr_relation": null,
+                    "itsm_jmespath": null,
+                    "itsm_options": null,
+                    "itsm_options_type": null,
+                    "format": null,
+                    "columns": null,
+                    "properties": null,
+                    "items": null
+                  },
+                  "content_str": {
+                    "translations": {
+                      "title": "",
+                      "title_en": "",
+                      "title_zh_hans": ""
+                    },
+                    "type": "string",
+                    "title": "",
+                    "render_code": null,
+                    "maxLength": null,
+                    "minLength": null,
+                    "maximum": null,
+                    "minimum": null,
+                    "number_unit": "",
+                    "table_relation": null,
+                    "into_todo": [],
+                    "out_todo": [],
+                    "attr_relation": null,
+                    "itsm_jmespath": null,
+                    "itsm_options": null,
+                    "itsm_options_type": null,
+                    "format": null,
+                    "columns": null,
+                    "properties": null,
+                    "items": null
+                  }
+                },
                 "items": null
               }
             },
