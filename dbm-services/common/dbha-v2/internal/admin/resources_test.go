@@ -22,33 +22,44 @@
  * SOFTWARE.
  */
 
-package config
+package admin
 
 import (
+	"context"
 	"testing"
 	"time"
 
-	"dbm-services/common/dbha-v2/pkg/probeconfig"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+
+	"gorm.io/gorm"
 )
 
-func TestApplyAllHarvesterPayloadNormalizesKeys(t *testing.T) {
-	orig := Cfg.ProbeHarvesters
-	t.Cleanup(func() { Cfg.ProbeHarvesters = orig })
-
-	Cfg.ProbeMysql = ProbeMysqlConfig{User: "m", Password: "p", Interval: time.Second, Timeout: time.Second}
-	Cfg.ProbeRedis = ProbeRedisConfig{User: "r", Password: "p", Interval: time.Second, Timeout: time.Second}
-	Cfg.ProbeProxyAdmin = ProbeProxyAdminConfig{User: "a", Password: "p", Interval: time.Second, Timeout: time.Second}
-	Cfg.ProbeHarvesters = map[string]ProbeHarvesterCred{
-		"MyNewDb": {User: "u", Password: "p", Interval: 20 * time.Second, Timeout: 5 * time.Second},
+func TestStorageCloseWaitsForActiveRequest(t *testing.T) {
+	closed := make(chan struct{})
+	resource := newStorageResource(hamysql.WithGormDB(&gorm.DB{}, func() { close(closed) }))
+	if !resource.acquire() {
+		t.Fatal("initial acquire should succeed")
 	}
 
-	payload := probeconfig.ProbeConfigPayload{}
-	applyAllHarvesterPayload(&payload, Cfg)
+	done := make(chan struct{})
+	go func() {
+		resource.close(context.Background())
+		close(done)
+	}()
 
-	if _, ok := payload.Harvesters["mynewdb"]; !ok {
-		t.Fatalf("expected normalized key mynewdb, got: %#v", payload.Harvesters)
+	select {
+	case <-closed:
+		t.Fatal("database closed before active request released")
+	case <-time.After(20 * time.Millisecond):
 	}
-	if _, ok := payload.Harvesters["MyNewDb"]; ok {
-		t.Fatal("raw camelCase key should not be present after normalization")
+	if resource.acquire() {
+		t.Fatal("acquire should fail after close starts")
+	}
+	resource.release()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("storage close did not finish after release")
 	}
 }
