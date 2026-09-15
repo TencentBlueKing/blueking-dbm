@@ -18,6 +18,7 @@ from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow im
 )
 from backend.flow.utils.mysql.dts.context import MysqlDtsTransData
 from backend.flow.utils.mysql.dts.migrate_plan import (
+    collect_migrate_plans_cluster_ids,
     infer_rename_migrate_type_from_plan,
     resolve_migrate_plans_from_ticket_data,
 )
@@ -25,22 +26,12 @@ from backend.flow.utils.mysql.dts.migrate_plan import (
 logger = logging.getLogger("flow")
 
 
-def _collect_plan_cluster_ids(plans) -> set[int]:
-    ids: set[int] = set()
-    for plan in plans:
-        for spec in plan.task_specs:
-            for source in spec.sources:
-                ids.add(source.cluster_id)
-            ids.add(spec.target_cluster_id)
-    return ids
-
-
 def fill_rename_migrate_types(plans) -> None:
     """按行补 plan.migrate_type；已有值保留。"""
     missing = [plan for plan in plans if not getattr(plan, "migrate_type", "")]
     if not missing:
         return
-    cluster_ids = _collect_plan_cluster_ids(missing)
+    cluster_ids = collect_migrate_plans_cluster_ids(missing)
     clusters = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)} if cluster_ids else {}
     for plan in missing:
         plan.migrate_type = infer_rename_migrate_type_from_plan(plan, clusters)
@@ -64,4 +55,7 @@ class MysqlRenameMigrateFlow:
             data=self.data,
             migrate_plans=migrate_plans,
         )
-        pipeline.run_pipeline(init_trans_data_class=MysqlDtsTransData())
+        pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MysqlDtsTransData(),
+            check_ai_monitor_cluster_list=list(collect_migrate_plans_cluster_ids(migrate_plans)),
+        )

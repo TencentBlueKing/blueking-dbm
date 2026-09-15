@@ -942,6 +942,17 @@ def contains_dataclass(obj: Any) -> bool:
     return False
 
 
+def collect_migrate_plans_cluster_ids(plans) -> set[int]:
+    """从迁移计划收集源∪目标业务集群 ID，不含 dts_cluster_id。"""
+    ids: set[int] = set()
+    for plan in plans or []:
+        for spec in plan.task_specs:
+            for source in spec.sources:
+                ids.add(source.cluster_id)
+            ids.add(spec.target_cluster_id)
+    return ids
+
+
 def resolve_migrate_plans_from_ticket_data(data: dict[str, Any]) -> list[DtsMigratePlan]:
     """从 Flow ticket_data 解析 plan 列表，并 pop 掉 migrate_plan(s) 避免污染 Builder global_data。"""
     data.pop("migrate_plan", None)
