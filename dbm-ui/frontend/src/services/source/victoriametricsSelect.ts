@@ -13,16 +13,16 @@
 
 import KubernetesComponentSpecModel from '@services/model/kubernetes/kubernetes-component-spec';
 import KubernetesOperationLogModel from '@services/model/kubernetes/kubernetes-operation-log';
-import VictoriametricsInstanceModel from '@services/model/victoriametrics/victoriametrics-instance';
-import VictoriametricsQueryModel from '@services/model/victoriametrics/victoriametrics-query';
-import VictoriametricsQueryDetailModel from '@services/model/victoriametrics/victoriametrics-query-detail';
+import VictoriametricsSelectModel from '@services/model/victoriametrics/victoriametrics-select';
+import VictoriametricsSelectDetailModel from '@services/model/victoriametrics/victoriametrics-select-detail';
+import VictoriametricsSelectInstanceModel from '@services/model/victoriametrics/victoriametrics-select-instance';
 
 import http from '../http';
 import type { ListBase, ResourceTopo } from '../types';
 
 const getRootPath = () => `/apis/kubernetes/bizs/${window.PROJECT_CONFIG.BIZ_ID}/vmselect/vmselect_resources`;
 
-export function getVictoriametricsQueryList(params: {
+export function getVictoriametricsSelectList(params: {
   bk_biz_id: number;
   cluster_ids?: string;
   creator?: string;
@@ -34,11 +34,11 @@ export function getVictoriametricsQueryList(params: {
   offset: number;
   type: string;
 }) {
-  return http.get<ListBase<VictoriametricsQueryModel[]>>(`${getRootPath()}/`, params).then((res) => ({
+  return http.get<ListBase<VictoriametricsSelectModel[]>>(`${getRootPath()}/`, params).then((res) => ({
     ...res,
     results: res.results.map(
       (item) =>
-        new VictoriametricsQueryModel(
+        new VictoriametricsSelectModel(
           Object.assign(item, {
             permission: Object.assign({}, item.permission, res.permission),
           }),
@@ -50,32 +50,32 @@ export function getVictoriametricsQueryList(params: {
 /**
  * 获取集群详情
  */
-export function getVictoriametricsQueryDetail(params: { id: number }) {
+export function getVictoriametricsSelectDetail(params: { id: number }) {
   return http
-    .get<VictoriametricsQueryDetailModel>(`${getRootPath()}/${params.id}/`)
-    .then((res) => new VictoriametricsQueryDetailModel(res));
+    .get<VictoriametricsSelectDetailModel>(`${getRootPath()}/${params.id}/`)
+    .then((res) => new VictoriametricsSelectDetailModel(res));
 }
 
 /**
  * 获取集群实例列表
  */
-export const getVictoriametricsQueryInstanceList = function (params: {
+export const getVictoriametricsSelectInstanceList = function (params: {
   cluster_name: string;
   k8s_cluster_name: string;
   namespace: string;
 }) {
   return http
-    .get<ListBase<VictoriametricsInstanceModel[]>>(`${getRootPath()}/list_instances/`, params)
+    .get<ListBase<VictoriametricsSelectInstanceModel[]>>(`${getRootPath()}/list_instances/`, params)
     .then((data) => ({
       ...data,
-      results: data.results.map((item) => new VictoriametricsInstanceModel(item)),
+      results: data.results.map((item) => new VictoriametricsSelectInstanceModel(item)),
     }));
 };
 
 /**
  * 获取集群实例详情
  */
-export const retrieveVictoriametricsQueryInstanceDetail = function (params: {
+export const retrieveVictoriametricsSelectInstanceDetail = function (params: {
   cluster_id: number;
   clusterName: string;
   componentName: string;
@@ -84,14 +84,14 @@ export const retrieveVictoriametricsQueryInstanceDetail = function (params: {
   podName: string;
 }) {
   return http
-    .get<VictoriametricsInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
-    .then((res) => new VictoriametricsInstanceModel(res));
+    .get<VictoriametricsSelectInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
+    .then((res) => new VictoriametricsSelectInstanceModel(res));
 };
 
 /**
  * 修改集群元数据（别名 / 标签）
  */
-export function updateVictoriametricsQueryClusterMeta(params: {
+export function updateVictoriametricsSelectClusterMeta(params: {
   bk_biz_id: number;
   cluster_alias?: string;
   cluster_id: number;
@@ -103,21 +103,21 @@ export function updateVictoriametricsQueryClusterMeta(params: {
 /**
  * 导出集群数据为 excel 文件
  */
-export function exportVictoriametricsQueryClusterToExcel(params: { cluster_ids?: number[] }) {
+export function exportVictoriametricsSelectClusterToExcel(params: { cluster_ids?: number[] }) {
   return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
-export function exportVictoriametricsQueryInstanceToExcel(params: { bk_host_ids?: number[] }) {
+export function exportVictoriametricsSelectInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
  * 获取集群拓扑
  */
-export function getVictoriametricsQueryTopoGraph(params: {
+export function getVictoriametricsSelectTopoGraph(params: {
   cluster_id: number;
   k8sClusterName: string;
   namespace: string;
@@ -128,7 +128,7 @@ export function getVictoriametricsQueryTopoGraph(params: {
 /**
  * 获取集群操作日志接口
  */
-export const getVictoriametricsQueryOperationLog = function (params: {
+export const getVictoriametricsSelectOperationLog = function (params: {
   bk_biz_id: number;
   clusterName: string;
   creator?: string;
@@ -152,7 +152,7 @@ export const getVictoriametricsQueryOperationLog = function (params: {
 /**
  * 获取集群组件规格
  */
-export const getVictoriametricsQueryComponentSpec = function (params: {
+export const getVictoriametricsSelectComponentSpec = function (params: {
   clusterName: string;
   k8sClusterName: string;
   namespace: string;

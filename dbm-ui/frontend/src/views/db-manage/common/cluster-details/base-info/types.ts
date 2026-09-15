@@ -16,8 +16,8 @@ import SqlserverSingleModelDetail from '@services/model/sqlserver/sqlserver-sing
 import SurrealdbHaModelDetail from '@services/model/surrealdb/surrealdb-ha-detail';
 import SurrealdbSingleModelDetail from '@services/model/surrealdb/surrealdb-single-detail';
 import TendbClusterModelDetail from '@services/model/tendbcluster/tendbcluster-detail';
-import VictoriametricsQueryDetailModel from '@services/model/victoriametrics/victoriametrics-query-detail';
-import VictoriametricsStandardDetailModel from '@services/model/victoriametrics/victoriametrics-standard-detail';
+import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
+import VictoriametricsSelectDetailModel from '@services/model/victoriametrics/victoriametrics-select-detail';
 
 import { ClusterTypes } from '@common/const';
 
@@ -58,8 +58,8 @@ export interface ClusterTypeRelateClusterModelDetail {
   [ClusterTypes.K8S_QDRANT_HA]: QdrantHaModelDetail;
   [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaModelDetail;
   [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleModelDetail;
-  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsStandardDetailModel;
-  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsQueryDetailModel;
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsClusterDetailModel;
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsSelectDetailModel;
   [ClusterTypes.KAFKA]: KafkaModelDetail;
   [ClusterTypes.MONGO_REPLICA_SET]: MongodbModelDetail;
   [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModelDetail;

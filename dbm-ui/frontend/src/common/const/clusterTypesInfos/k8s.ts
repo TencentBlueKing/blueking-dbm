@@ -36,7 +36,7 @@ export const k8s: ClusterTypeInfo = {
   [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: {
     dbType: DBTypes.K8S_VICTORIAMETRICS,
     id: ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER,
-    listRouteName: 'VictoriametricsStandardList',
+    listRouteName: 'VictoriametricsClusterList',
     machineList: [],
     moduleId: 'k8s',
     name: t('VictoriaMetrics 标准集群'),
@@ -45,7 +45,7 @@ export const k8s: ClusterTypeInfo = {
   [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: {
     dbType: DBTypes.K8S_VICTORIAMETRICS,
     id: ClusterTypes.K8S_VICTORIAMETRICS_SELECT,
-    listRouteName: 'VictoriametricsQueryList',
+    listRouteName: 'VictoriametricsSelectList',
     machineList: [],
     moduleId: 'k8s',
     name: t('VictoriaMetrics 查询集群'),

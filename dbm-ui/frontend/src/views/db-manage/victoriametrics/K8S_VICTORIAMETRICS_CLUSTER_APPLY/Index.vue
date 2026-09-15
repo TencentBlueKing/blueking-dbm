@@ -1,6 +1,6 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
-    <div class="victoriametrics-standard-apply">
+    <div class="victoriametrics-cluster-apply">
       <DbForm
         ref="formRef"
         auto-label-width
@@ -363,7 +363,7 @@
     }
   }
 
-  .victoriametrics-standard-apply {
+  .victoriametrics-cluster-apply {
     .item-input {
       width: 435px;
     }

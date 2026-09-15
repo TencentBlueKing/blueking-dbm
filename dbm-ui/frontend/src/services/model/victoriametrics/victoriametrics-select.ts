@@ -19,7 +19,7 @@ import { t } from '@locales/index';
 
 import ClusterBase from '../_clusterBase';
 
-export default class VictoriametricsStandard extends ClusterBase {
+export default class VictoriametricsSelect extends ClusterBase {
   static operationIconMap: Record<string, string> = {
     [TicketTypes.K8S_VICTORIAMETRICS_DESTROY]: t('删除中'),
     [TicketTypes.K8S_VICTORIAMETRICS_DISABLE]: t('禁用中'),
@@ -75,15 +75,16 @@ export default class VictoriametricsStandard extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  // 入口由后端拼好端口返回；storage_entry 多个以换行分隔
+  // 入口由后端拼好端口返回；查询集群 write_entry 仅在存在主入口时返回
   query_entry: string;
   status: 'normal' | 'abnormal';
-  storage_entry: string;
+  // 查询集群关联的外部 Storage 节点（多节点中文逗号分隔），来源/字段契约待后端确认（占位）
+  storage_nodes: string[];
   update_at: string;
   updater: string;
   write_entry: string;
 
-  constructor(payload = {} as VictoriametricsStandard) {
+  constructor(payload = {} as VictoriametricsSelect) {
     super(payload);
     this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id || 0;
@@ -111,7 +112,6 @@ export default class VictoriametricsStandard extends ClusterBase {
     this.k8s_cluster_name = payload.k8s_cluster_name;
     this.master_domain = payload.master_domain || '';
     this.query_entry = payload.query_entry || '';
-    this.storage_entry = payload.storage_entry || '';
     this.write_entry = payload.write_entry || '';
     this.major_version = payload.major_version || '';
     this.namespace = payload.namespace;
@@ -120,6 +120,7 @@ export default class VictoriametricsStandard extends ClusterBase {
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
     this.status = payload.status || '';
+    this.storage_nodes = payload.storage_nodes || [];
     this.update_at = payload.update_at || '';
     this.updater = payload.updater;
   }
@@ -150,16 +151,12 @@ export default class VictoriametricsStandard extends ClusterBase {
     return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.K8S_VICTORIAMETRICS_ENABLE));
   }
 
-  get isStorageClbEnabled() {
-    return Boolean(this.getClbEntryByRole('storage'));
-  }
-
   get masterDomain() {
     return this.masterDomainDisplayName;
   }
 
   get masterDomainDisplayName() {
-    return this.writeEntryDisplay;
+    return this.SelectEntryDisplay;
   }
 
   get operationDisabled() {
@@ -185,18 +182,18 @@ export default class VictoriametricsStandard extends ClusterBase {
   }
 
   get operationStatusIcon() {
-    return VictoriametricsStandard.operationIconMap[this.operationRunningStatus];
+    return VictoriametricsSelect.operationIconMap[this.operationRunningStatus];
   }
 
   get operationStatusText() {
-    return VictoriametricsStandard.operationTextMap[this.operationRunningStatus];
+    return VictoriametricsSelect.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: VictoriametricsStandard.operationIconMap[item.ticket_type],
+      icon: VictoriametricsSelect.operationIconMap[item.ticket_type],
       ticketId: item.ticket_id,
-      tip: VictoriametricsStandard.operationTextMap[item.ticket_type],
+      tip: VictoriametricsSelect.operationTextMap[item.ticket_type],
     }));
   }
 
@@ -211,36 +208,18 @@ export default class VictoriametricsStandard extends ClusterBase {
     return operation.ticket_id;
   }
 
-  get queryEntryDisplay() {
-    return this.query_entry;
-  }
-
   get roleFailedInstanceInfo() {
     return {
-      Vminsert: [],
       Vmselect: [],
-      Vmstorage: [],
     };
   }
 
   get runningOperation() {
-    const operateTicketTypes = Object.keys(VictoriametricsStandard.operationTextMap);
+    const operateTicketTypes = Object.keys(VictoriametricsSelect.operationTextMap);
     return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
-  get storageEntryDisplay() {
-    // 存储入口支持多个，后端以换行分隔（如 127.0.0.1:8400\n127.0.0.2:8400）
-    return this.storage_entry;
-  }
-
-  get writeEntryDisplay() {
-    return this.write_entry;
-  }
-
-  /**
-   * 判断存储入口 CLB 是否已启用（依赖 cluster_entry 中 role='storage' 的 CLB 记录）
-   */
-  private getClbEntryByRole(role: 'write' | 'query' | 'storage') {
-    return this.cluster_entry.find((item) => item.cluster_entry_type === 'clbDns' && item.role === role);
+  get SelectEntryDisplay() {
+    return this.query_entry;
   }
 }

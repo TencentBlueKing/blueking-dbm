@@ -16,11 +16,11 @@
     class="cluster-detail-dialog-mode">
     <template v-if="data">
       <DisplayBox
-        cluster-detail-router-name="VictoriametricsQueryDetail"
+        cluster-detail-router-name="VictoriametricsSelectDetail"
         :data="data">
         <div
           v-if="data.isOnline"
-          v-db-console="'victoriametrics.queryClusterList.disable'"
+          v-db-console="'victoriametrics.selectClusterList.disable'"
           class="ml-4">
           <OperationBtnStatusTips :data="data">
             <AuthButton
@@ -36,7 +36,7 @@
         </div>
         <div
           v-if="data.isOnline"
-          v-db-console="'victoriametrics.queryClusterList.restart'"
+          v-db-console="'victoriametrics.selectClusterList.restart'"
           class="ml-4">
           <OperationBtnStatusTips :data="data">
             <AuthButton
@@ -61,17 +61,24 @@
             :data="data"
             @refresh="fetchDetailData">
             <template #queryEntry>
-              <template v-if="data.queryEntryDisplay">
-                {{ data.queryEntryDisplay }}
+              <template v-if="data.SelectEntryDisplay">
+                {{ data.SelectEntryDisplay }}
                 <DbIcon
                   class="entry-copy-icon"
                   type="copy"
-                  @click="handleCopy(data.queryEntryDisplay)" />
+                  @click="handleCopy(data.SelectEntryDisplay)" />
               </template>
               <template v-else>--</template>
             </template>
             <template #storageNode>
-              {{ data.storage_nodes || '--' }}
+              <template v-if="data.storage_nodes.length">
+                <div
+                  v-for="node in data.storage_nodes"
+                  :key="node">
+                  {{ node }}
+                </div>
+              </template>
+              <span v-else>--</span>
             </template>
             <template #k8sClusterName>
               <K8SClusterName
@@ -101,8 +108,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import VictoriametricsQueryDetailModel from '@services/model/victoriametrics/victoriametrics-query-detail';
-  import { getVictoriametricsQueryDetail } from '@services/source/victoriametricsQuery';
+  import VictoriametricsSelectDetailModel from '@services/model/victoriametrics/victoriametrics-select-detail';
+  import { getVictoriametricsSelectDetail } from '@services/source/victoriametricsSelect';
 
   import { ClusterTypes } from '@common/const';
 
@@ -130,10 +137,10 @@
 
   const { t } = useI18n();
 
-  const data = ref<VictoriametricsQueryDetailModel>();
+  const data = ref<VictoriametricsSelectDetailModel>();
   const isLoading = ref(false);
 
-  const { run: fetchClusterDetail } = useRequest(getVictoriametricsQueryDetail, {
+  const { run: fetchClusterDetail } = useRequest(getVictoriametricsSelectDetail, {
     manual: true,
     onAfter() {
       isLoading.value = false;

@@ -16,11 +16,11 @@
     class="cluster-detail-dialog-mode">
     <template v-if="data">
       <DisplayBox
-        cluster-detail-router-name="VictoriametricsStandardDetail"
+        cluster-detail-router-name="VictoriametricsClusterDetail"
         :data="data">
         <div
           v-if="data.isOnline"
-          v-db-console="'victoriametrics.standardClusterList.disable'"
+          v-db-console="'victoriametrics.clusterList.disable'"
           class="ml-4">
           <OperationBtnStatusTips :data="data">
             <AuthButton
@@ -36,7 +36,7 @@
         </div>
         <div
           v-if="data.isOnline"
-          v-db-console="'victoriametrics.standardClusterList.restart'"
+          v-db-console="'victoriametrics.clusterList.restart'"
           class="ml-4">
           <OperationBtnStatusTips :data="data">
             <AuthButton
@@ -83,11 +83,18 @@
             <template #storageEntry>
               <!-- storage_entry 多个以换行分隔，展示与复制均转为中文逗号串 -->
               <template v-if="data.storageEntryDisplay">
-                {{ data.storageEntryDisplay.replace(/\n/g, '，') }}
-                <DbIcon
-                  class="entry-copy-icon"
-                  type="copy"
-                  @click="handleCopy(data.storageEntryDisplay.replace(/\n/g, '，'))" />
+                <template v-if="data.storageEntryDisplay">
+                  <div
+                    v-for="(node, index) in data.storageEntryDisplay.split('\n')"
+                    :key="node">
+                    {{ node }}
+                    <DbIcon
+                      v-if="index === 0"
+                      class="entry-copy-icon"
+                      type="copy"
+                      @click="handleCopy(data.storageEntryDisplay)" />
+                  </div>
+                </template>
               </template>
               <template v-else>--</template>
             </template>
@@ -133,9 +140,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import VictoriametricsInstanceModel from '@services/model/victoriametrics/victoriametrics-instance';
-  import VictoriametricsStandardDetailModel from '@services/model/victoriametrics/victoriametrics-standard-detail';
-  import { getVictoriametricsStandardDetail } from '@services/source/victoriametricsStandard';
+  import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
+  import VictoriametricsClusterInstanceModel from '@services/model/victoriametrics/victoriametrics-cluster-instance';
 
   import { ClusterTypes } from '@common/const';
 
@@ -152,6 +158,8 @@
 
   import { execCopy } from '@utils';
 
+  import { getVictoriametricsClusterDetail } from '@/services/source/victoriametricsCluster';
+
   import useRoleList from './useRoleList';
 
   interface Props {
@@ -165,11 +173,11 @@
 
   const { t } = useI18n();
 
-  const data = ref<VictoriametricsStandardDetailModel>();
+  const data = ref<VictoriametricsClusterDetailModel>();
   const isLoading = ref(false);
 
   const { changeCountData, defaultRole: role, list: roleList } = useRoleList();
-  const { run: fetchClusterDetail } = useRequest(getVictoriametricsStandardDetail, {
+  const { run: fetchClusterDetail } = useRequest(getVictoriametricsClusterDetail, {
     manual: true,
     onAfter() {
       isLoading.value = false;
@@ -213,7 +221,7 @@
     },
   );
 
-  const handleRequestSuccess = (list: VictoriametricsInstanceModel[]) => {
+  const handleRequestSuccess = (list: VictoriametricsClusterInstanceModel[]) => {
     const currantCountData = list.reduce(
       (acc, cur) => {
         return Object.assign(acc, { [cur.componentName]: (acc[cur.componentName as keyof typeof acc] || 0) + 1 });

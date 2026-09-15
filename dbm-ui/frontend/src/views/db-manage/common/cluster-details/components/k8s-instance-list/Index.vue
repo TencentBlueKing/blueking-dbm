@@ -17,27 +17,27 @@
         :get-table-data="getBatchCopyData"
         :selected="selectedList" />
       <AuthButton
-        :action-id="`${dbType}_manage`"
+        :action-id="manageActionId"
         class="ml-8"
         :disabled="originalData.length === 0"
-        :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
+        :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
         @click="handlePatchComponentConfigShow">
         {{ t('配置变更') }}
       </AuthButton>
       <AuthButton
-        :action-id="`${dbType}_manage`"
+        :action-id="manageActionId"
         class="ml-8"
         :disabled="originalData.length === 0"
-        :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
+        :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
         @click="handleBatchRestart">
         {{ t('重启') }}
       </AuthButton>
       <BkDropdown
-        class="instance-batch-copy"
+        class="instance-batch-copy mr-8"
         :popover-options="{
           clickContentAutoHide: true,
         }"
@@ -57,8 +57,8 @@
         <template #content>
           <BkDropdownMenu class="dropdown-menu-with-button">
             <AuthTemplate
-              :action-id="`${dbType}_manage`"
-              :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
+              :action-id="manageActionId"
+              :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
               :resource="clusterData.id">
               <BkDropdownItem>
                 <BkButton
@@ -68,7 +68,7 @@
                   {{ t('升降配置') }}
                 </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem v-if="!(clusterType === ClusterTypes.K8S_SURREALDB_HA && role === 'surreal')">
+              <BkDropdownItem v-if="isDiskExpansionShow">
                 <BkButton
                   style="width: 105px"
                   text
@@ -76,7 +76,15 @@
                   {{ t('磁盘扩容') }}
                 </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem v-if="[ClusterTypes.K8S_SURREALDB_HA, ClusterTypes.K8S_QDRANT_HA].includes(clusterType)">
+              <BkDropdownItem
+                v-if="
+                  [
+                    ClusterTypes.K8S_SURREALDB_HA,
+                    ClusterTypes.K8S_QDRANT_HA,
+                    ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER,
+                    ClusterTypes.K8S_VICTORIAMETRICS_SELECT,
+                  ].includes(clusterType)
+                ">
                 <BkButton
                   style="width: 105px"
                   text
@@ -172,8 +180,8 @@
             :width="60">
             <template #default="{ row }: { row: IColumnData }">
               <AuthButton
-                :action-id="`${dbType}_manage`"
-                :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
+                :action-id="manageActionId"
+                :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
                 :resource="clusterData.id"
                 text
                 theme="primary"
@@ -223,6 +231,7 @@
   </div>
 </template>
 <script lang="tsx">
+  import BkAlert from 'bkui-vue/lib/alert/index';
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import type { VNode } from 'vue';
@@ -233,16 +242,16 @@
   import QdrantHaDetailModel from '@services/model/qdrant/qdrant-ha-detail';
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
   import SurrealdbSingleDetailModel from '@services/model/surrealdb/surrealdb-single-detail';
-  import VictoriametricsQueryDetailModel from '@services/model/victoriametrics/victoriametrics-query-detail';
-  import VictoriametricsStandardDetailModel from '@services/model/victoriametrics/victoriametrics-standard-detail';
-  import { toggleVictoriametricsStorageClb } from '@services/source/victoriametricsStandard';
+  import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
+  import VictoriametricsSelectDetailModel from '@services/model/victoriametrics/victoriametrics-select-detail.ts';
+  import { toggleVictoriametricsStorageClb } from '@services/source/victoriametricsCluster.ts';
 
   // import { restartComponent } from '@services/source/kubernetesToolbox.ts';
   import { useUrlSearch } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterK8sInstanceStatus from '@components/cluster-k8s-instance-status/Index.vue';
 
@@ -266,8 +275,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: QdrantHaDetailModel;
     [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaDetailModel;
     [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleDetailModel;
-    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsStandardDetailModel;
-    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsQueryDetailModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsClusterDetailModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsSelectDetailModel;
   }
 
   type IColumnData = ServiceReturnType<
@@ -305,14 +314,34 @@
     onSuccess: () => handleOperateSuccess(),
   });
 
-  const dbType = clusterTypeInfos[props.clusterType].dbType;
+  // K8s 系实例操作（配置变更/重启/更多配置/删除）统一使用各库的 manage 权限
+  const manageActionIdMap: Record<string, string> = {
+    [ClusterTypes.K8S_QDRANT_HA]: 'k8s_qdrant_manage',
+    [ClusterTypes.K8S_SURREALDB_HA]: 'k8s_surrealdb_manage',
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: 'k8s_surrealdb_manage',
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'k8s_victoriametrics_manage',
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: 'k8s_victoriametrics_manage',
+  };
+  const manageActionId = manageActionIdMap[props.clusterType as string];
+
+  // 磁盘扩容显隐：VictoriaMetrics 仅标准集群 vmstorage 角色支持（查询集群无磁盘扩容）；
+  // 其余集群沿用原规则（SurrealDB HA 的 surreal 角色除外）
+  const isDiskExpansionShow = computed(() => {
+    if (props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER) {
+      return props.role === 'vmstorage';
+    }
+    if (props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_SELECT) {
+      return false;
+    }
+    return !(props.clusterType === ClusterTypes.K8S_SURREALDB_HA && props.role === 'surreal');
+  });
 
   // VictoriaMetrics 标准集群 vmstorage 支持存储入口 CLB 启停（更多配置）
   const isVmstorageClbTab = computed(
     () => props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER && props.role === 'vmstorage',
   );
   const vmstorageClbEnabled = computed(() =>
-    isVmstorageClbTab.value ? (props.clusterData as VictoriametricsStandardDetailModel).isStorageClbEnabled : false,
+    isVmstorageClbTab.value ? (props.clusterData as VictoriametricsClusterDetailModel).isStorageClbEnabled : false,
   );
 
   const handleToggleClb = (enable: boolean) => {
@@ -321,22 +350,38 @@
         cluster_id: props.clusterData.id,
         enable,
       }).then(() => {
-        messageSuccess(enable ? t('已启用存储 CLB') : t('已停用存储 CLB'));
+        // messageSuccess(enable ? t('已启用存储 CLB') : t('已停用存储 CLB'));
         handleOperateSuccess();
       });
     };
     if (enable) {
-      doToggle();
+      InfoBox({
+        cancelText: t('取消'),
+        confirmText: t('启用'),
+        content: '',
+        onConfirm: doToggle,
+        title: t('确定启用 CLB？'),
+      });
       return;
     }
-    const storageEntry = (props.clusterData as VictoriametricsStandardDetailModel).storageEntryDisplay || 'CLB';
+    const storageEntry = (props.clusterData as VictoriametricsClusterDetailModel).storageEntryDisplay || 'CLB';
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('停用'),
-      content: `${t('停用后存储入口')} ${storageEntry} ${t('将不可访问。该操作调用 API，成功后写入操作记录。')}`,
+      content: (
+        <div>
+          <div>
+            {t('停用后存储入口')} {storageEntry} {t('立即不可用，引用该入口的查询集群将读不到数据。')}
+          </div>
+          <BkAlert
+            class='mt-8'
+            theme='warning'
+            title={t('该操作调用 API，成功后写入操作记录。')}></BkAlert>
+        </div>
+      ),
       onConfirm: doToggle,
       theme: 'danger',
-      title: t('确定停用存储 CLB？'),
+      title: t('确定停用 CLB？'),
     });
   };
 

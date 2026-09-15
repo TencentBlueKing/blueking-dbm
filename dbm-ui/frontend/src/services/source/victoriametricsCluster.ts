@@ -13,16 +13,16 @@
 
 import KubernetesComponentSpecModel from '@services/model/kubernetes/kubernetes-component-spec';
 import KubernetesOperationLogModel from '@services/model/kubernetes/kubernetes-operation-log';
-import VictoriametricsInstanceModel from '@services/model/victoriametrics/victoriametrics-instance';
-import VictoriametricsStandardModel from '@services/model/victoriametrics/victoriametrics-standard';
-import VictoriametricsStandardDetailModel from '@services/model/victoriametrics/victoriametrics-standard-detail';
+import VictoriametricsClusterModel from '@services/model/victoriametrics/victoriametrics-cluster';
+import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
+import VictoriametricsClusterInstanceModel from '@services/model/victoriametrics/victoriametrics-cluster-instance';
 
 import http from '../http';
 import type { ListBase, ResourceTopo } from '../types';
 
 const getRootPath = () => `/apis/kubernetes/bizs/${window.PROJECT_CONFIG.BIZ_ID}/vmcluster/vmcluster_resources`;
 
-export function getVictoriametricsStandardList(params: {
+export function getVictoriametricsClusterList(params: {
   bk_biz_id: number;
   cluster_ids?: string;
   creator?: string;
@@ -34,11 +34,11 @@ export function getVictoriametricsStandardList(params: {
   offset: number;
   type: string;
 }) {
-  return http.get<ListBase<VictoriametricsStandardModel[]>>(`${getRootPath()}/`, params).then((res) => ({
+  return http.get<ListBase<VictoriametricsClusterModel[]>>(`${getRootPath()}/`, params).then((res) => ({
     ...res,
     results: res.results.map(
       (item) =>
-        new VictoriametricsStandardModel(
+        new VictoriametricsClusterModel(
           Object.assign(item, {
             permission: Object.assign({}, item.permission, res.permission),
           }),
@@ -50,32 +50,32 @@ export function getVictoriametricsStandardList(params: {
 /**
  * 获取集群详情
  */
-export function getVictoriametricsStandardDetail(params: { id: number }) {
+export function getVictoriametricsClusterDetail(params: { id: number }) {
   return http
-    .get<VictoriametricsStandardDetailModel>(`${getRootPath()}/${params.id}/`)
-    .then((res) => new VictoriametricsStandardDetailModel(res));
+    .get<VictoriametricsClusterDetailModel>(`${getRootPath()}/${params.id}/`)
+    .then((res) => new VictoriametricsClusterDetailModel(res));
 }
 
 /**
  * 获取集群实例列表
  */
-export const getVictoriametricsStandardInstanceList = function (params: {
+export const getVictoriametricsClusterInstanceList = function (params: {
   cluster_name: string;
   k8s_cluster_name: string;
   namespace: string;
 }) {
   return http
-    .get<ListBase<VictoriametricsInstanceModel[]>>(`${getRootPath()}/list_instances/`, params)
+    .get<ListBase<VictoriametricsClusterInstanceModel[]>>(`${getRootPath()}/list_instances/`, params)
     .then((data) => ({
       ...data,
-      results: data.results.map((item) => new VictoriametricsInstanceModel(item)),
+      results: data.results.map((item) => new VictoriametricsClusterInstanceModel(item)),
     }));
 };
 
 /**
  * 获取集群实例详情
  */
-export const retrieveVictoriametricsStandardInstanceDetail = function (params: {
+export const retrieveVictoriametricsClusterInstanceDetail = function (params: {
   cluster_id: number;
   clusterName: string;
   componentName: string;
@@ -84,14 +84,14 @@ export const retrieveVictoriametricsStandardInstanceDetail = function (params: {
   podName: string;
 }) {
   return http
-    .get<VictoriametricsInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
-    .then((res) => new VictoriametricsInstanceModel(res));
+    .get<VictoriametricsClusterInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
+    .then((res) => new VictoriametricsClusterInstanceModel(res));
 };
 
 /**
  * 修改集群元数据（别名 / 标签）
  */
-export function updateVictoriametricsStandardClusterMeta(params: {
+export function updateVictoriametricsClusterClusterMeta(params: {
   bk_biz_id: number;
   cluster_alias?: string;
   cluster_id: number;
@@ -103,21 +103,21 @@ export function updateVictoriametricsStandardClusterMeta(params: {
 /**
  * 导出集群数据为 excel 文件
  */
-export function exportVictoriametricsStandardClusterToExcel(params: { cluster_ids?: number[] }) {
+export function exportVictoriametricsClusterClusterToExcel(params: { cluster_ids?: number[] }) {
   return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
-export function exportVictoriametricsStandardInstanceToExcel(params: { bk_host_ids?: number[] }) {
+export function exportVictoriametricsClusterInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
  * 获取集群拓扑
  */
-export function getVictoriametricsStandardTopoGraph(params: {
+export function getVictoriametricsClusterTopoGraph(params: {
   cluster_id: number;
   k8sClusterName: string;
   namespace: string;
@@ -128,7 +128,7 @@ export function getVictoriametricsStandardTopoGraph(params: {
 /**
  * 获取集群操作日志接口
  */
-export const getVictoriametricsStandardOperationLog = function (params: {
+export const getVictoriametricsClusterOperationLog = function (params: {
   bk_biz_id: number;
   clusterName: string;
   creator?: string;
@@ -152,7 +152,7 @@ export const getVictoriametricsStandardOperationLog = function (params: {
 /**
  * 获取集群组件规格
  */
-export const getVictoriametricsStandardComponentSpec = function (params: {
+export const getVictoriametricsClusterComponentSpec = function (params: {
   clusterName: string;
   k8sClusterName: string;
   namespace: string;
@@ -164,15 +164,17 @@ export const getVictoriametricsStandardComponentSpec = function (params: {
 
 /**
  * 存储入口 CLB 启用 / 停用
- * TODO: 后端接口契约就绪后替换路径与入参（当前为占位）
  */
 export function toggleVictoriametricsStorageClb(params: { cluster_id: number; enable: boolean }) {
-  return http.post<Record<string, never>>(
-    `${getRootPath()}/toggle_storage_clb/`,
-    {
-      cluster_id: params.cluster_id,
-      enable: params.enable,
-    },
-    // TODO: 停用弹窗确认后调用，成功后写入操作记录（待后端通道确认）
-  );
+  return http.post<{
+    clusterName: string;
+    namespace: string;
+    noOp: boolean;
+    opsRequestName: string;
+    podCount: number;
+    serviceCount: number;
+  }>(`${getRootPath()}/vmstorage_clb/`, {
+    cluster_id: params.cluster_id,
+    enable: params.enable,
+  });
 }

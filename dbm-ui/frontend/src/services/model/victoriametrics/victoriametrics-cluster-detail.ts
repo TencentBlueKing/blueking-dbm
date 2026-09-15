@@ -13,12 +13,12 @@
 
 import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 
-import VictoriametricsStandardModel from './victoriametrics-standard';
+import VictoriametricsClusterModel from './victoriametrics-cluster';
 
-export default class VictoriametricsStandardDetail extends VictoriametricsStandardModel {
+export default class VictoriametricsClusterDetail extends VictoriametricsClusterModel {
   cluster_entry_details: ClusterEntryDetailModel[];
 
-  constructor(payload = {} as VictoriametricsStandardDetail) {
+  constructor(payload = {} as VictoriametricsClusterDetail) {
     super(payload);
     this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
   }

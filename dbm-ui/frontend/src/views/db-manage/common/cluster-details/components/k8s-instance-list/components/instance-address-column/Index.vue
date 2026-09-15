@@ -50,7 +50,8 @@
 
   import SurrealdbHaInstanceModel from '@services/model/surrealdb/surrealdb-ha-instance';
   import SurrealdbSingleInstanceModel from '@services/model/surrealdb/surrealdb-single-instance';
-  import VictoriametricsInstanceModel from '@services/model/victoriametrics/victoriametrics-instance';
+  import VictoriametricsClusterInstanceModel from '@services/model/victoriametrics/victoriametrics-cluster-instance';
+  import VictoriametricsSelectInstanceModel from '@services/model/victoriametrics/victoriametrics-select-instance';
 
   import { ClusterTypes } from '@common/const';
 
@@ -66,8 +67,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: QdrantHaInstanceModel;
     [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaInstanceModel;
     [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleInstanceModel;
-    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsInstanceModel;
-    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsInstanceModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsClusterInstanceModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsSelectInstanceModel;
   }
 
   type IColumnData = ServiceReturnType<

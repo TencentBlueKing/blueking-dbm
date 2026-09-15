@@ -124,6 +124,8 @@
   import { getQdrantHaOperationLog } from '@services/source/qdrantHa';
   import { getSurrealdbHaOperationLog } from '@services/source/surrealdbHa';
   import { getSurrealdbSingleOperationLog } from '@services/source/surrealdbSingle';
+  import { getVictoriametricsClusterOperationLog } from '@services/source/victoriametricsCluster.ts';
+  import { getVictoriametricsSelectOperationLog } from '@services/source/victoriametricsSelect.ts';
 
   import { useUrlSearch } from '@hooks';
 
@@ -161,6 +163,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaOperationLog,
     [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaOperationLog,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleOperationLog,
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsClusterOperationLog,
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsSelectOperationLog,
   };
 
   const tableRef = ref();

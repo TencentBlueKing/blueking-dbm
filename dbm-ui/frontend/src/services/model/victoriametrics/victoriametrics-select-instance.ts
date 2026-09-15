@@ -4,7 +4,7 @@
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
  *
  * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
@@ -13,9 +13,9 @@
 
 import { ClusterK8sInstStatusKeys } from '@common/const';
 
-import { utcDisplayTime } from '@/utils';
+import { utcDisplayTime } from '@utils';
 
-export default class VictoriametricsInstance {
+export default class VictoriametricsSelectInstance {
   componentName: string;
   createdTime: string;
   instance_address: string;
@@ -39,7 +39,7 @@ export default class VictoriametricsInstance {
   };
   status: string;
 
-  constructor(payload = {} as VictoriametricsInstance) {
+  constructor(payload = {} as VictoriametricsSelectInstance) {
     this.componentName = payload.componentName;
     this.createdTime = payload.createdTime || '';
     this.instance_address = payload.instance_address;

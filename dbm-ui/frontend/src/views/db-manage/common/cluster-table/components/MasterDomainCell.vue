@@ -119,6 +119,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: 'k8s_qdrant_view',
     [ClusterTypes.K8S_SURREALDB_HA]: 'k8s_surrealdb_view',
     [ClusterTypes.K8S_SURREALDB_SINGLE]: 'k8s_surrealdb_view',
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'k8s_victoriametrics_view',
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: 'k8s_victoriametrics_view',
     [ClusterTypes.KAFKA]: 'kafka_view',
     [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb_view',
     [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb_view',

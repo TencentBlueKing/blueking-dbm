@@ -30,8 +30,8 @@
   import { retrieveQdrantHaInstanceDetail } from '@services/source/qdrantHa';
   import { retrieveSurrealdbHaInstanceDetail } from '@services/source/surrealdbHa';
   import { retrieveSurrealdbSingleInstanceDetail } from '@services/source/surrealdbSingle';
-  import { retrieveVictoriametricsQueryInstanceDetail } from '@services/source/victoriametricsQuery';
-  import { retrieveVictoriametricsStandardInstanceDetail } from '@services/source/victoriametricsStandard';
+  import { retrieveVictoriametricsClusterInstanceDetail } from '@services/source/victoriametricsCluster';
+  import { retrieveVictoriametricsSelectInstanceDetail } from '@services/source/victoriametricsSelect';
 
   import { getOffset } from '@utils';
 
@@ -55,8 +55,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: retrieveQdrantHaInstanceDetail,
     [ClusterTypes.K8S_SURREALDB_HA]: retrieveSurrealdbHaInstanceDetail,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: retrieveSurrealdbSingleInstanceDetail,
-    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: retrieveVictoriametricsStandardInstanceDetail,
-    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: retrieveVictoriametricsQueryInstanceDetail,
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: retrieveVictoriametricsClusterInstanceDetail,
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: retrieveVictoriametricsSelectInstanceDetail,
   };
   let editor: monaco.editor.IStandaloneCodeEditor;
 
