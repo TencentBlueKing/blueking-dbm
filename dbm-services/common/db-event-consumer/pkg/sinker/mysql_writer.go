@@ -89,11 +89,23 @@ func (w *MysqlWriter) WriteBatch(table interface{}, ms interface{}) error {
 		}
 		w.dbWithModel = true
 	}
-	err = w.db.Create(ms).Error
+	// write_mode 在写入前已知, 直接预带上冲突处理子句, 生成 INSERT IGNORE /
+	// INSERT ... ON DUPLICATE KEY UPDATE, 避免先盲插再靠 1062 触发兜底产生的重复键报错
+	createDB := w.db
+	switch w.writeMode {
+	case cst.ModeInsertIgnore:
+		createDB = createDB.Clauses(clause.Insert{Modifier: "IGNORE"})
+	case cst.ModeUpsert, cst.ModeReplace:
+		createDB = createDB.Clauses(clause.OnConflict{UpdateAll: true})
+	}
+	err = createDB.Create(ms).Error
 	var mysqlErr *mysql.MySQLError
 
 	if err != nil { // create
-		if (errors.As(err, &mysqlErr) && mysqlErr.Number != 1062) && !errors.Is(err, gorm.ErrDuplicatedKey) {
+		// 只有真正的重复键错误才走 OnDuplicate 兜底, 其它错误(如连接断开)直接返回, 不能被吞掉
+		isDuplicateKey := (errors.As(err, &mysqlErr) && mysqlErr.Number == 1062) ||
+			errors.Is(err, gorm.ErrDuplicatedKey)
+		if !isDuplicateKey {
 			return err
 		}
 		slog.Warn("MysqlWriter insert duplicate key error", slog.Any("err", err))
