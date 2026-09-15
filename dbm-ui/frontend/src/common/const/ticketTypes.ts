@@ -172,7 +172,7 @@ export enum TicketTypes {
 }
 export enum TicketTypes {
   MONGODB_ADD_MONGOS = 'MONGODB_ADD_MONGOS', // mongo 扩容接入层
-  MONGODB_ADD_SHARD = 'MONGODB_ADD_SHARD', // 分片集群增加分片数
+  MONGODB_ADD_SHARD = 'MONGODB_ADD_SHARD', // mongo 分片集群增加分片
   MONGODB_ADD_SHARD_NODES = 'MONGODB_ADD_SHARD_NODES', // mongo 扩容 shard 节点数，拆分为两个单据，暂时保留以查看历史单据
   MONGODB_AUTHORIZE_RULES = 'MONGODB_AUTHORIZE_RULES', // MongoDB 集群授权
   MONGODB_BACKUP = 'MONGODB_BACKUP', // mongo 库表备份
@@ -193,6 +193,7 @@ export enum TicketTypes {
   MONGODB_PLUGIN_CREATE_CLB = 'MONGODB_PLUGIN_CREATE_CLB', // mongo 启用 clb
   MONGODB_PLUGIN_DELETE_CLB = 'MONGODB_PLUGIN_DELETE_CLB', // mongo 禁用 clb
   MONGODB_REDUCE_MONGOS = 'MONGODB_REDUCE_MONGOS', // mongo 缩容接入层
+  MONGODB_REDUCE_SHARD = 'MONGODB_REDUCE_SHARD', // mongo 分片集群减少分片
   MONGODB_REDUCE_SHARD_NODES = 'MONGODB_REDUCE_SHARD_NODES', // mongo 缩容 shard 节点数
   MONGODB_REMOVE_NS = 'MONGODB_REMOVE_NS', // mongo 清档
   MONGODB_REPLICA_ADD_SHARD_NODES = 'MONGODB_REPLICA_ADD_SHARD_NODES', // mongo 副本集集群扩容 shard 节点数
