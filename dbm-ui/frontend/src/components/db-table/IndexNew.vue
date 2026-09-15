@@ -58,6 +58,7 @@
         <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
           @change="handlePageValueChange"
           @limit-change="handlePageLimitChange">
           <template
@@ -114,6 +115,8 @@
     customSortMethod?: (sort: TableSort) => any;
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     defaultLimit?: number;
+    // 关闭 10s 自动轮询，弹窗类场景（选择器）用
+    disablePolling?: boolean;
     disableSelectMethod?: (data: any) => boolean | string;
     filterValue?: Record<string, string | string[]>;
     // 固定分页，不通过容器高度自动计算
@@ -172,6 +175,7 @@
     containerHeight: undefined,
     customSortMethod: undefined,
     defaultLimit: undefined,
+    disablePolling: false,
     disableSelectMethod: () => false,
     filterValue: undefined,
     fixedPagination: false,
@@ -190,6 +194,8 @@
   const inhertProps = computed(() => {
     const baseProps = { ...props };
     delete baseProps['containerHeight'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['disablePolling'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['disableSelectMethod'];
     // @ts-expect-error 删除不存在的 props
@@ -240,7 +246,7 @@
     defaultLimit: props.defaultLimit,
   });
 
-  const { handleClearWholeSelect, isWholeChecked, selectColumn, selectedRowMap } = useSelect(
+  const { handleClearWholeSelect, handleSelect, selectColumn, selectedRowMap } = useSelect(
     props,
     tableData,
     pagination,
@@ -261,6 +267,10 @@
   let isReady = false;
   let isSortChangeFetch = false;
   let isPaginationChangeFetch = false;
+  // 请求序号，只接受最后一次请求的结果，避免快速切换筛选或分页时旧响应覆盖新数据
+  let fetchSeq = 0;
+  // 首屏那次请求不是用户改条件触发的，清空选中会把 selected 传进来的默认选中项冲掉
+  let isFirstFetch = true;
 
   /**
    * 判断是否处于搜索状态
@@ -301,9 +311,13 @@
         });
       }
       isRequestFailed.value = false;
+      const currentFetchSeq = ++fetchSeq;
       props
         .dataSource(params, payload)
         .then((data) => {
+          if (currentFetchSeq !== fetchSeq) {
+            return;
+          }
           tableData.value = data;
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();
@@ -315,13 +329,14 @@
             });
           }
 
-          if (!isPaginationChangeFetch && !isSortChangeFetch && !isPolling) {
+          if (!isPaginationChangeFetch && !isSortChangeFetch && !isPolling && !isFirstFetch) {
             handleClearWholeSelect();
           }
           isSortChangeFetch = false;
           isPaginationChangeFetch = false;
+          isFirstFetch = false;
 
-          if (data.results.length < 1) {
+          if (data.results.length < 1 || props.disablePolling) {
             handleStopPolling();
           } else {
             handleStartPolling();
@@ -330,26 +345,37 @@
           emits('requestSuccess', data);
         })
         .catch((error) => {
+          if (currentFetchSeq !== fetchSeq) {
+            return;
+          }
           console.log('from dbtable error = ', error);
           tableData.value.results = [];
           pagination.count = 0;
           isRequestFailed.value = true;
         })
         .finally(() => {
-          isLoading.value = false;
+          if (currentFetchSeq === fetchSeq) {
+            isLoading.value = false;
+          }
         });
     });
   };
 
-  const { start: handleStartPolling, stop: handleStopPolling } = useTimeoutFn(() => {
-    fetchListData(false, true);
-  }, 10 * 1000);
+  const { start: handleStartPolling, stop: handleStopPolling } = useTimeoutFn(
+    () => {
+      fetchListData(false, true);
+    },
+    10 * 1000,
+    // useTimeoutFn 默认创建即计时，关闭轮询时连首次都不要起
+    { immediate: !props.disablePolling },
+  );
 
   // 拉取全量数据
   const fetchAllData = async () => {
     const { results } = await props.dataSource({
       limit: -1,
-      offset: (pagination.current - 1) * pagination.limit,
+      // 跨页全选要的是当前条件下的全集，offset 必须归零，否则从第 2 页触发会漏掉前面几页
+      offset: 0,
       ...paramsMemo,
     });
     return results;
@@ -402,16 +428,8 @@
     if (props.disableSelectMethod(payload.row)) {
       return;
     }
-    const selectedMap = { ...selectedRowMap.value };
-    if (!selectedMap[_.get(payload.row, props.rowKey)]) {
-      selectedMap[_.get(payload.row, props.rowKey)] = payload.row;
-    } else {
-      delete selectedMap[_.get(payload.row, props.rowKey)];
-    }
-    isWholeChecked.value = false;
-    selectedRowMap.value = selectedMap;
-
-    triggerSelection();
+    // 复用勾选框的处理，单选模式下同样是替换而非累加
+    handleSelect(payload.row);
   };
 
   const handleSortChange = (payload: TableSort) => {
