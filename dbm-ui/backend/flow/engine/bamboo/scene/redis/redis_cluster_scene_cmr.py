@@ -23,7 +23,7 @@ from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail
-from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
+from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal, is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -37,6 +37,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisInstanceSlaveReplaceJob,
 )
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_submit_backup_ticket import (
@@ -45,6 +46,7 @@ from backend.flow.plugins.components.collections.redis.redis_submit_backup_ticke
 )
 from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import async_get_multi_cluster_info_by_cluster_ids
@@ -441,8 +443,13 @@ class RedisClusterCMRSceneFlow(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # 仅在master/slave(存储节点)替换时，predixy类型的集群需要在流程结束前执行config rewrite
+        # 仅在master/slave(存储节点)替换时，才需要以下收尾步骤
         if replacement_param.get("redis_master") or replacement_param.get("redis_slave"):
+            # rediscluster/tendisplus等集群协议类型的集群需要forget掉已下架的旧实例
+            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
+                self._add_forget_old_instances_act(sub_pipeline, act_kwargs, replacement_param)
+
+            # predixy类型的集群需要在流程结束前执行config rewrite
             if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
                 # 在所有predixy节点上执行config rewrite
                 predixy_conf_rewrite_builder = ClusterPredixyConfigServersRewriteAtomJob(
@@ -458,6 +465,72 @@ class RedisClusterCMRSceneFlow(object):
                     sub_pipeline.add_sub_pipeline(sub_flow=predixy_conf_rewrite_builder)
 
         return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
+
+    @staticmethod
+    def _collect_forget_instances(cluster: Dict, replacement_param: Dict) -> List[Dict]:
+        """收集整机替换中被下架的旧实例(按 ip:port 去重)
+
+        - slave替换: 旧slave机器上的全部实例
+        - master成对替换: 旧master机器 + 配对的旧slave机器上的全部实例
+        """
+        forget_instances, seen = [], set()
+
+        def _append_forget_instance(ip, ports):
+            if not ip:
+                return
+            for port in ports or []:
+                ins_addr = "{}:{}".format(ip, port)
+                if ins_addr in seen:
+                    continue
+                seen.add(ins_addr)
+                forget_instances.append({"ip": ip, "port": int(port)})
+
+        # 被替换下架的旧slave
+        for slave_link in replacement_param.get("redis_slave") or []:
+            old_slave_ip = slave_link["ip"]
+            _append_forget_instance(old_slave_ip, cluster["slave_ports"].get(old_slave_ip))
+
+        # 被替换下架的旧master(master是成对替换, 配对的旧slave机器也一并下架)
+        for master_link in replacement_param.get("redis_master") or []:
+            old_master_ip = master_link["ip"]
+            _append_forget_instance(old_master_ip, cluster["master_ports"].get(old_master_ip))
+            old_pair_slave_ip = cluster["master_slave_map"].get(old_master_ip)
+            _append_forget_instance(old_pair_slave_ip, cluster["slave_ports"].get(old_pair_slave_ip))
+
+        return forget_instances
+
+    def _add_forget_old_instances_act(self, sub_pipeline, act_kwargs, replacement_param):
+        """rediscluster/tendisplus集群整机替换完成后, 把已下架的旧实例从集群中forget掉, 避免游离节点残留
+
+        forget原子任务会按域名实时查询集群现存master并发送cluster forget, 幂等可重复执行
+        """
+        forget_instances = self._collect_forget_instances(act_kwargs.cluster, replacement_param)
+        if not forget_instances:
+            return
+
+        # 在新替换的存储节点上执行(部署阶段已安装dbactuator), actuator会连接集群现存的master执行cluster forget
+        if replacement_param.get("redis_master"):
+            exec_ip = replacement_param["redis_master"][0]["target"]["master"]["ip"]
+        else:
+            exec_ip = replacement_param["redis_slave"][0]["target"]["ip"]
+
+        forget_kwargs = deepcopy(act_kwargs)
+        forget_kwargs.exec_ip = exec_ip
+        forget_kwargs.is_update_trans_data = False
+        forget_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
+        forget_kwargs.cluster = {
+            "bk_biz_id": act_kwargs.cluster["bk_biz_id"],
+            "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+            "cluster_id": act_kwargs.cluster["cluster_id"],
+            "immute_domain": act_kwargs.cluster["immute_domain"],
+            "cluster_type": act_kwargs.cluster["cluster_type"],
+            "forget_instances": forget_instances,
+        }
+        sub_pipeline.add_act(
+            act_name=_("{}-集群forget旧实例").format(act_kwargs.cluster["immute_domain"]),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(forget_kwargs),
+        )
 
     def proxy_replacement(self, sub_pipeline, proxy_kwargs, proxy_replace_info):
         act_kwargs = copy.deepcopy(proxy_kwargs)
