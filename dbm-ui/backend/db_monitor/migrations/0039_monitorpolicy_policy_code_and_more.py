@@ -2,6 +2,9 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import MachineType
+from backend.db_monitor.constants import PolicyGlobalCode
+
 
 class Migration(migrations.Migration):
 
@@ -14,55 +17,14 @@ class Migration(migrations.Migration):
             model_name="monitorpolicy",
             name="policy_code",
             field=models.CharField(
-                choices=[("actual_cpu_usage", "实际CPU使用率")], default="", max_length=128, verbose_name="策略代号"
+                choices=PolicyGlobalCode.get_choices(), default="", max_length=128, verbose_name="策略代号"
             ),
         ),
         migrations.AlterField(
             model_name="mysqldbhaautofixticketstagequeue",
             name="machine_type",
             field=models.CharField(
-                choices=[
-                    ("spider", "spider"),
-                    ("remote", "remote"),
-                    ("proxy", "proxy"),
-                    ("backend", "backend"),
-                    ("single", "single"),
-                    ("mysql_dts_master", "mysql_dts_master"),
-                    ("mysql_dts_worker", "mysql_dts_worker"),
-                    ("mysql_dts_colocated", "mysql_dts_colocated"),
-                    ("predixy", "predixy"),
-                    ("twemproxy", "twemproxy"),
-                    ("redis", "redis"),
-                    ("tendiscache", "tendiscache"),
-                    ("tendisssd", "tendisssd"),
-                    ("tendisplus", "tendisplus"),
-                    ("es_datanode", "es_datanode"),
-                    ("es_master", "es_master"),
-                    ("es_client", "es_client"),
-                    ("broker", "broker"),
-                    ("zookeeper", "zookeeper"),
-                    ("hdfs_master", "hdfs_master"),
-                    ("hdfs_datanode", "hdfs_datanode"),
-                    ("mongos", "mongos"),
-                    ("mongodb", "mongodb"),
-                    ("mongo_config", "mongo_config"),
-                    ("influxdb", "influxdb"),
-                    ("pulsar_zookeeper", "pulsar_zookeeper"),
-                    ("pulsar_bookkeeper", "pulsar_bookkeeper"),
-                    ("pulsar_broker", "pulsar_broker"),
-                    ("riak", "riak"),
-                    ("doris_backend", "doris_backend"),
-                    ("doris_follower", "doris_follower"),
-                    ("doris_observer", "doris_observer"),
-                    ("sqlserver_single", "sqlserver_single"),
-                    ("sqlserver_ha", "sqlserver_ha"),
-                    ("vmstorage", "vmstorage"),
-                    ("vminsert", "vminsert"),
-                    ("vmselect", "vmselect"),
-                    ("vmauth", "vmauth"),
-                    ("tbinlogdumper", "TBinlogDumper"),
-                    ("oracle", "oracle"),
-                ],
+                choices=MachineType.get_choices(),
                 help_text="机器类型",
                 max_length=64,
             ),
