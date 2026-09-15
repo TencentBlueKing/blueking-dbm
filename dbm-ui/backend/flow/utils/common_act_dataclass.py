@@ -121,6 +121,8 @@ class ResourceHcmReplenishKwargs:
     os_name: str
     spec_id: int
     count: int
+    # 海磊资源分布方式(主机亲和性等级)，为空表示不指定
+    anti_affinity_level: str = ""
 
 
 @dataclass
