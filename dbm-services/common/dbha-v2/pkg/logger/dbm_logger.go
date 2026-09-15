@@ -25,46 +25,66 @@
 package logger
 
 import (
+	"strings"
+	"sync/atomic"
+
 	dbmlogger "dbm-services/common/go-pubpkg/logger"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
+// DbmLogger wraps the DBM log library and supports changing the minimum level at runtime.
 type DbmLogger struct {
 	dbmLogger *dbmlogger.Logger
+	level     atomic.Int32
 }
 
+// OriginLogger returns the underlying zap logger.
 func (z *DbmLogger) OriginLogger() *zap.Logger {
 	return z.dbmLogger.Zap
 }
 
+// Debug logs a debug message.
 func (z *DbmLogger) Debug(format string, args ...any) {
 	z.dbmLogger.Debug(format, args...)
 }
 
+// Info logs an info message.
 func (z *DbmLogger) Info(format string, args ...any) {
 	z.dbmLogger.Info(format, args...)
 }
 
+// Warn logs a warning message.
 func (z *DbmLogger) Warn(format string, args ...any) {
 	z.dbmLogger.Warn(format, args...)
 }
 
+// Error logs an error message.
 func (z *DbmLogger) Error(format string, args ...any) {
 	z.dbmLogger.Error(format, args...)
 }
 
+// Fatal logs a fatal message and then exits.
 func (z *DbmLogger) Fatal(format string, args ...any) {
 	z.dbmLogger.Fatal(format, args...)
 }
 
+// Sync flushes any buffered log entries.
 func (z *DbmLogger) Sync() error {
 	return z.dbmLogger.Sync()
 }
 
+// SetLevel changes the minimum enabled level for subsequent log entries.
+func (z *DbmLogger) SetLevel(level Level) {
+	normalized := Level(strings.ToLower(strings.TrimSpace(level.String())))
+	z.level.Store(int32(convertLevel(normalized)))
+}
+
 // NewDbmLogger Create a logger with DBM log library.
-func NewDbmLogger(config Config) Logger {
+func NewDbmLogger(config Config) *DbmLogger {
+	logger := &DbmLogger{}
+	logger.SetLevel(config.LogLevel)
 	opts := []dbmlogger.TreeOption{
 		{
 			FileName: config.FileName,
@@ -76,12 +96,13 @@ func NewDbmLogger(config Config) Logger {
 			},
 
 			Lef: func(level zapcore.Level) bool {
-				return level >= convertLevel(config.LogLevel)
+				return level >= zapcore.Level(logger.level.Load())
 			},
 		},
 	}
 
 	lg := dbmlogger.NewRotate(opts)
 	dbmlogger.ResetDefault(lg)
-	return &DbmLogger{dbmLogger: lg}
+	logger.dbmLogger = lg
+	return logger
 }

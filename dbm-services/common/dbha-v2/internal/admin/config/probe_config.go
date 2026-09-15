@@ -82,7 +82,9 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 		return "", ErrDbNil
 	}
 
-	items, err := loadProbeMetadata(ctx, db, bkCloudID, ip)
+	cfg := Snapshot()
+
+	items, err := loadProbeMetadata(ctx, db, bkCloudID, ip, cfg)
 	if err != nil {
 		return "", err
 	}
@@ -93,51 +95,51 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 
 	payload := probeconfig.ProbeConfigPayload{
 		Gse: probeconfig.GseConfig{
-			Endpoint:        Cfg.ProbeGse.Endpoint,
-			DataID:          Cfg.ProbeGse.DataID,
-			ConnTimeout:     Cfg.ProbeGse.ConnTimeout,
-			LocalSocketPort: Cfg.ProbeGse.LocalSocketPort,
+			Endpoint:        cfg.ProbeGse.Endpoint,
+			DataID:          cfg.ProbeGse.DataID,
+			ConnTimeout:     cfg.ProbeGse.ConnTimeout,
+			LocalSocketPort: cfg.ProbeGse.LocalSocketPort,
 		},
 		Metadata: items,
 	}
 
 	payload.Health = &probeconfig.ProbeHealthConfig{
-		DiskWriteDirs: Cfg.ProbeHealth.DiskWriteDirs,
+		DiskWriteDirs: cfg.ProbeHealth.DiskWriteDirs,
 	}
-	applyAllHarvesterPayload(&payload)
+	applyAllHarvesterPayload(&payload, cfg)
 	return marshalProbeConfigPayload(payload)
 }
 
-func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload) {
+func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload, cfg Configuration) {
 	payload.MySQL = &probeconfig.ProbeMySQLConfig{
-		User:              Cfg.ProbeMysql.User,
-		Password:          Cfg.ProbeMysql.Password,
-		Interval:          durationToYAMLString(Cfg.ProbeMysql.Interval),
-		HeartbeatInterval: durationToYAMLString(Cfg.ProbeMysql.HeartbeatInterval),
-		ReplDelayInterval: durationToYAMLString(Cfg.ProbeMysql.ReplDelayInterval),
-		Timeout:           durationToYAMLString(Cfg.ProbeMysql.Timeout),
+		User:              cfg.ProbeMysql.User,
+		Password:          cfg.ProbeMysql.Password,
+		Interval:          durationToYAMLString(cfg.ProbeMysql.Interval),
+		HeartbeatInterval: durationToYAMLString(cfg.ProbeMysql.HeartbeatInterval),
+		ReplDelayInterval: durationToYAMLString(cfg.ProbeMysql.ReplDelayInterval),
+		Timeout:           durationToYAMLString(cfg.ProbeMysql.Timeout),
 	}
 	payload.Redis = &probeconfig.ProbeRedisConfig{
-		User:     Cfg.ProbeRedis.User,
-		Password: Cfg.ProbeRedis.Password,
-		Interval: durationToYAMLString(Cfg.ProbeRedis.Interval),
-		Timeout:  durationToYAMLString(Cfg.ProbeRedis.Timeout),
+		User:     cfg.ProbeRedis.User,
+		Password: cfg.ProbeRedis.Password,
+		Interval: durationToYAMLString(cfg.ProbeRedis.Interval),
+		Timeout:  durationToYAMLString(cfg.ProbeRedis.Timeout),
 	}
 	payload.ProxyAdmin = &probeconfig.ProbeProxyAdminConfig{
-		User:              Cfg.ProbeProxyAdmin.User,
-		Password:          Cfg.ProbeProxyAdmin.Password,
-		Interval:          durationToYAMLString(Cfg.ProbeProxyAdmin.Interval),
-		HeartbeatInterval: durationToYAMLString(Cfg.ProbeProxyAdmin.HeartbeatInterval),
-		ReplDelayInterval: durationToYAMLString(Cfg.ProbeProxyAdmin.ReplDelayInterval),
-		Timeout:           durationToYAMLString(Cfg.ProbeProxyAdmin.Timeout),
+		User:              cfg.ProbeProxyAdmin.User,
+		Password:          cfg.ProbeProxyAdmin.Password,
+		Interval:          durationToYAMLString(cfg.ProbeProxyAdmin.Interval),
+		HeartbeatInterval: durationToYAMLString(cfg.ProbeProxyAdmin.HeartbeatInterval),
+		ReplDelayInterval: durationToYAMLString(cfg.ProbeProxyAdmin.ReplDelayInterval),
+		Timeout:           durationToYAMLString(cfg.ProbeProxyAdmin.Timeout),
 	}
 
 	// Pure pass-through for newly added DB types: no provider / HarvestBlock dependency.
-	if len(Cfg.ProbeHarvesters) == 0 {
+	if len(cfg.ProbeHarvesters) == 0 {
 		return
 	}
-	payload.Harvesters = make(map[string]probeconfig.ProbeHarvesterConfig, len(Cfg.ProbeHarvesters))
-	for name, cred := range Cfg.ProbeHarvesters {
+	payload.Harvesters = make(map[string]probeconfig.ProbeHarvesterConfig, len(cfg.ProbeHarvesters))
+	for name, cred := range cfg.ProbeHarvesters {
 		// Defensive: viper already lowercases map keys; keep the invariant if a
 		// future loader preserves camelCase.
 		payload.Harvesters[dbtype.NormalizeBlockName(name)] = probeconfig.ProbeHarvesterConfig{
@@ -174,9 +176,9 @@ func durationToYAMLString(d time.Duration) string {
 // instance that moved away, or miss one that arrived — and that is worse than the added latency
 // of asking DBM. This is why the fallback re-reads the whole machine rather than the stale rows.
 func loadProbeMetadata(
-	ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip string,
+	ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip string, cfg Configuration,
 ) ([]probeconfig.ProbeMetadataItem, error) {
-	metadataCfg := Cfg.ProbeMetadata
+	metadataCfg := cfg.ProbeMetadata
 
 	list, err := getMetadataFromDBHA(db, bkCloudID, ip, metadataCfg.TombstoneAge)
 	if err != nil {
@@ -192,7 +194,7 @@ func loadProbeMetadata(
 		bkCloudID, ip, reason)
 	observeMetadataFallback(reason)
 
-	dmList, err := getMetadataFromDBM(ctx, bkCloudID, ip)
+	dmList, err := getMetadataFromDBM(ctx, bkCloudID, ip, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -311,10 +313,12 @@ func observeMetadataFallback(reason string) {
 // Concurrent calls for the same (bk_cloud_id, ip) share one round-trip. The returned slice is
 // therefore shared between callers and must be treated as read-only; convertFromDBM only reads
 // from it.
-func getMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.DbInstMetadata, error) {
+func getMetadataFromDBM(
+	ctx context.Context, bkCloudID int, ip string, cfg Configuration,
+) ([]*dbm.DbInstMetadata, error) {
 	key := fmt.Sprintf("%d/%s", bkCloudID, ip)
 	result, err, _ := metadataGroup.Do(key, func() (any, error) {
-		return fetchMetadataFromDBM(ctx, bkCloudID, ip)
+		return fetchMetadataFromDBM(ctx, bkCloudID, ip, cfg)
 	})
 	if err != nil {
 		return nil, err
@@ -324,11 +328,11 @@ func getMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.D
 	return list, nil
 }
 
-func fetchMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.DbInstMetadata, error) {
+func fetchMetadataFromDBM(ctx context.Context, bkCloudID int, ip string, cfg Configuration) ([]*dbm.DbInstMetadata, error) {
 	var api *DbmApi
-	for i := range Cfg.DbmApis {
-		if Cfg.DbmApis[i].Name == constant.DbmApiNameMetadata {
-			api = &Cfg.DbmApis[i]
+	for i := range cfg.DbmApis {
+		if cfg.DbmApis[i].Name == constant.DbmApiNameMetadata {
+			api = &cfg.DbmApis[i]
 			break
 		}
 	}
