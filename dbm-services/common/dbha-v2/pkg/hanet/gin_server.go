@@ -27,6 +27,7 @@ package hanet
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"slices"
 	"sync"
@@ -69,16 +70,17 @@ type ResetAPI struct {
 
 // GinHTTPServer Gin HTTP server implementation
 type GinHTTPServer struct {
-	config           *GinServerConfig
-	authHandler      AuthHandler
-	rateLimit        *RateLimitConfig
-	resetAPIs        []*ResetAPI
-	server           *http.Server
-	router           *gin.Engine
-	metricMiddleware gin.HandlerFunc
-	mu               sync.RWMutex
-	wg               sync.WaitGroup
-	started          bool
+	config              *GinServerConfig
+	authHandler         AuthHandler
+	rateLimit           *RateLimitConfig
+	resetAPIs           []*ResetAPI
+	server              *http.Server
+	router              *gin.Engine
+	metricMiddleware    gin.HandlerFunc
+	lifecycleMiddleware gin.HandlerFunc
+	mu                  sync.RWMutex
+	wg                  sync.WaitGroup
+	started             bool
 }
 
 // NewGinHTTPServer creates a new Gin HTTP server
@@ -119,6 +121,13 @@ func (s *GinHTTPServer) SetMetricMiddleware(middleware gin.HandlerFunc) {
 	s.metricMiddleware = middleware
 }
 
+// SetLifecycleMiddleware sets middleware that brackets each request's resource lifetime.
+func (s *GinHTTPServer) SetLifecycleMiddleware(middleware gin.HandlerFunc) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lifecycleMiddleware = middleware
+}
+
 // RegisterAPI register reset API
 func (s *GinHTTPServer) RegisterAPI(resetAPI *ResetAPI) {
 	s.mu.Lock()
@@ -131,7 +140,8 @@ func (s *GinHTTPServer) SetSwaggerFileRoute(path string) {
 	s.router.StaticFile("/swagger.json", path)
 }
 
-// Start starts the HTTP server
+// Start starts the HTTP server. Bind errors are returned synchronously so callers
+// can detect listen failures during hot-replace.
 func (s *GinHTTPServer) Start() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -152,12 +162,17 @@ func (s *GinHTTPServer) Start() error {
 	// Setup routes
 	s.setupRoutes()
 
+	ln, err := net.Listen("tcp", s.server.Addr)
+	if err != nil {
+		return fmt.Errorf("listen %s failed: %w", s.server.Addr, err)
+	}
+
 	// Start the server
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
 		logger.Info("Starting HTTP server on %s", s.server.Addr)
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
 			logger.Error("failed to start server, errmsg: %s", err)
 		}
 	}()
@@ -181,14 +196,15 @@ func (s *GinHTTPServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := s.server.Shutdown(ctx); err != nil {
+	err := s.server.Shutdown(ctx)
+	// Always wait for the Serve goroutine and clear started, even when Shutdown fails,
+	// so a subsequent Start can retry cleanly.
+	s.wg.Wait()
+	s.started = false
+	if err != nil {
 		logger.Error("server shutdown error, errmsg: %s", err)
 		return err
 	}
-
-	// Wait for goroutines to complete
-	s.wg.Wait()
-	s.started = false
 	logger.Info("HTTP server stopped successfully")
 	return nil
 }
@@ -200,6 +216,10 @@ func (s *GinHTTPServer) setupMiddlewares() {
 
 	// Logging middleware
 	s.router.Use(s.loggingMiddleware())
+
+	if s.lifecycleMiddleware != nil {
+		s.router.Use(s.lifecycleMiddleware)
+	}
 
 	// Metric middleware
 	if s.metricMiddleware != nil {

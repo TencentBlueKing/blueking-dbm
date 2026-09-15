@@ -37,7 +37,8 @@ import (
 
 // SwitchLog db connection
 type SwitchLog struct {
-	DB *hamysql.GormDB
+	DB         *hamysql.GormDB
+	DBProvider func(context.Context) *hamysql.GormDB
 }
 
 // ListSwitchSnapshotLogs list switch snapshot logs
@@ -52,7 +53,7 @@ func (s *SwitchLog) ListSwitchSnapshotLogs(
 	var count int64
 	var switchLogs []*hamodel.DbSwitchingSnapshotLog
 
-	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{})
+	query := s.db(ctx).DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{})
 
 	if bkBizID != 0 {
 		bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingSnapshotLogFieldBkBizID)
@@ -96,7 +97,7 @@ func (s *SwitchLog) GetSwitchSnapshotLogByID(ctx context.Context, id int) (*hamo
 	var switchSnapshotLog *hamodel.DbSwitchingSnapshotLog
 
 	idCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingSnapshotLogFieldID)
-	if err := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
+	if err := s.db(ctx).DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
 		Where(idCond, id).Find(&switchSnapshotLog).Error; err != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
@@ -113,7 +114,7 @@ func (s *SwitchLog) ListSwitchLogInfo(
 ) ([]*hamodel.DbSwitchingLog, error) {
 	var switchLogInfos []*hamodel.DbSwitchingLog
 
-	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingLog{})
+	query := s.db(ctx).DB().WithContext(ctx).Model(&hamodel.DbSwitchingLog{})
 
 	if bkBizID != 0 {
 		bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingLogFieldBkBizID)
@@ -141,4 +142,11 @@ func (s *SwitchLog) ListSwitchLogInfo(
 	}
 
 	return switchLogInfos, nil
+}
+
+func (s *SwitchLog) db(ctx context.Context) *hamysql.GormDB {
+	if s.DBProvider != nil {
+		return s.DBProvider(ctx)
+	}
+	return s.DB
 }

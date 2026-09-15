@@ -46,6 +46,8 @@ type validationRule struct {
 var (
 	validate        *validator.Validate
 	once            sync.Once
+	registerOnce    sync.Once
+	registerOnceErr error
 	errMsgs         = make(map[string]string)
 	validationRules []validationRule
 )
@@ -67,15 +69,18 @@ func AddValidation(tag string, fn validator.Func, errMsg string) {
 	})
 }
 
-// RegisterValidator register validator
+// RegisterValidator register validator. Safe to call repeatedly; registration runs once.
 func RegisterValidator() error {
-	for _, rule := range validationRules {
-		errMsgs[rule.Tag] = rule.ErrMsg
-		if err := getValidate().RegisterValidation(rule.Tag, rule.Fn); err != nil {
-			return err
+	registerOnce.Do(func() {
+		for _, rule := range validationRules {
+			errMsgs[rule.Tag] = rule.ErrMsg
+			if err := getValidate().RegisterValidation(rule.Tag, rule.Fn); err != nil {
+				registerOnceErr = err
+				return
+			}
 		}
-	}
-	return nil
+	})
+	return registerOnceErr
 }
 
 // BindAndValidate bind and validate
