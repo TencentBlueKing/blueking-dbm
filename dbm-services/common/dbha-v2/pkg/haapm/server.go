@@ -27,6 +27,7 @@ package haapm
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -62,6 +63,7 @@ type Server struct {
 	server  *http.Server
 	router  *gin.Engine
 	mu      sync.Mutex
+	wg      sync.WaitGroup
 	started bool
 }
 
@@ -127,8 +129,16 @@ func (s *Server) RegisterMetrics(metrics []*Metric) *Server {
 
 // bindPrometheus creates Prometheus collectors from s.metrics, registers them,
 // and assigns Collector back to each metric so Ha* types can use them.
+// Idempotent per *Metric object: if m.Collector is already set, that metric is skipped.
+// Different Metric objects with the same name still conflict (AlreadyRegisteredError).
 func (s *Server) bindPrometheus() error {
 	for _, m := range s.metrics {
+		if m == nil {
+			continue
+		}
+		if m.Collector != nil {
+			continue
+		}
 		col := newCollector(m, s.config.Subsystem)
 		if col == nil {
 			return fmt.Errorf("unsupported metric type %s for %s", m.Type, m.Name)
@@ -142,6 +152,7 @@ func (s *Server) bindPrometheus() error {
 }
 
 // Start starts the HTTP server for /metrics (and optionally /health). Non-blocking.
+// Bind errors are returned synchronously so hot-replace callers can detect listen failures.
 func (s *Server) Start() error {
 	s.mu.Lock()
 	if s.started {
@@ -167,33 +178,81 @@ func (s *Server) Start() error {
 		ReadTimeout:  s.config.ReadTimeout,
 		WriteTimeout: s.config.WriteTimeout,
 	}
+
+	ln, err := net.Listen("tcp", s.config.Addr)
+	if err != nil {
+		s.router = nil
+		s.server = nil
+		s.mu.Unlock()
+		return fmt.Errorf("listen %s failed: %w", s.config.Addr, err)
+	}
+
+	httpSrv := s.server
+	addr := s.config.Addr
 	s.started = true
+	s.wg.Add(1)
 	s.mu.Unlock()
 
 	go func() {
-		logger.Info("haapm metrics server listening on %s", s.config.Addr)
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		defer s.wg.Done()
+		logger.Info("haapm metrics server listening on %s", addr)
+		if err := httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			logger.Error("haapm metrics server error, errmsg: %s", err)
 		}
 	}()
 	return nil
 }
 
-// Stop shuts down the HTTP server.
+// Stop shuts down the HTTP server. Collectors stay registered so a later Start
+// (or ApplyListenConfig) can reuse them without AlreadyRegisteredError.
 func (s *Server) Stop() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.stopLocked()
+}
+
+func (s *Server) stopLocked() error {
 	if !s.started || s.server == nil {
+		s.started = false
+		s.server = nil
+		s.router = nil
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err := s.server.Shutdown(ctx)
-	if err != nil {
-		return err
-	}
 	s.started = false
 	s.server = nil
 	s.router = nil
-	return nil
+	// Wait outside holding semantics: Shutdown unblocks Serve; wait for goroutine exit.
+	s.mu.Unlock()
+	s.wg.Wait()
+	s.mu.Lock()
+	return err
+}
+
+// ApplyListenConfig updates listen-related fields and restarts the HTTP server
+// without rebinding Prometheus collectors. Subsystem is preserved from the first
+// successful bind so hot-replace of the metrics address stays idempotent.
+func (s *Server) ApplyListenConfig(cfg ServerConfig) error {
+	if cfg.MetricsPath == "" {
+		cfg.MetricsPath = defaultMetricsPath
+	}
+	if cfg.HealthPath == "" {
+		cfg.HealthPath = defaultHealthPath
+	}
+
+	s.mu.Lock()
+	if err := s.stopLocked(); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	subsystem := s.config.Subsystem
+	s.config = cfg
+	if s.config.Subsystem == "" {
+		s.config.Subsystem = subsystem
+	}
+	s.mu.Unlock()
+
+	return s.Start()
 }

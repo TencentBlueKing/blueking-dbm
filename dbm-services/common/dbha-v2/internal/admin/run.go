@@ -28,6 +28,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"dbm-services/common/dbha-v2/internal/admin/config"
@@ -42,20 +43,21 @@ func setupGracefulShutdown(svr *Service) {
 	sigC := make(chan os.Signal, 1)
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
-	process.SavePid(config.Cfg.PidFile)
+	process.SavePid(svr.pidFile)
 
 	go func() {
 		for sig := range sigC {
 			if sig == syscall.SIGHUP {
 				logger.Info("received SIGHUP, reloading configuration...")
+				svr.requestReload()
 				continue
 			}
 
 			logger.Info("shutdown admin server")
 			svr.Close()
 
-			if config.Cfg.PidFile != "" {
-				_ = os.Remove(config.Cfg.PidFile)
+			if svr.pidFile != "" {
+				_ = os.Remove(svr.pidFile)
 			}
 			os.Exit(0)
 		}
@@ -76,26 +78,45 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
+	// Preserve historical startup semantics: Unmarshal into a local copy (no clamp)
+	// then publish via Apply. Reload uses Parse (with clamp) + Validate instead.
+	next := config.Cfg
+	if err := viper.Unmarshal(&next); err != nil {
 		return err
+	}
+	config.Apply(next)
+
+	configPath := viper.ConfigFileUsed()
+	if abs, err := filepath.Abs(configPath); err == nil {
+		configPath = abs
 	}
 
 	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSize,
-		MaxBackups: config.Cfg.Log.FileCount,
+		FileName:   next.Log.Path,
+		LogLevel:   logger.Level(next.Log.Level),
+		MaxSizeMB:  next.Log.FileSize,
+		MaxBackups: next.Log.FileCount,
 	}
 
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("admin startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
+	logger.Debug("admin startup config, log_path: %s, log_level: %s", next.Log.Path, next.Log.Level)
 
 	ctx := context.Background()
-	svr := &Service{logger: log.OriginLogger()}
+	svr := &Service{
+		logger:           log.OriginLogger(),
+		gormLogger:       log,
+		runtimeLogger:    log,
+		configPath:       configPath,
+		pidFile:          next.PidFile,
+		reloadC:          make(chan struct{}, 1),
+		reloadWorkerDone: make(chan struct{}),
+		shutdown:         make(chan struct{}),
+	}
 
 	setupGracefulShutdown(svr)
+	go svr.runReloadWorker()
 
 	return svr.Run(ctx)
 }

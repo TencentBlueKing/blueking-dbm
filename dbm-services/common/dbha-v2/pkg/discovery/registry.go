@@ -54,6 +54,16 @@ func (r *Registry) grant(ctx context.Context) error {
 	r.cliMu.Lock()
 	defer r.cliMu.Unlock()
 
+	if r.keepAliveCancel != nil {
+		r.keepAliveCancel()
+		r.keepAliveCancel = nil
+	}
+	if r.client != nil {
+		_ = r.client.Close()
+		r.client = nil
+		r.leaseID = 0
+	}
+
 	cli, err := r.createEtcdClient()
 	if err != nil {
 		return err
@@ -63,6 +73,8 @@ func (r *Registry) grant(ctx context.Context) error {
 
 	leaseResp, err := r.client.Grant(ctx, r.ttl)
 	if err != nil {
+		_ = r.client.Close()
+		r.client = nil
 		return gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 	r.leaseID = leaseResp.ID
@@ -71,7 +83,9 @@ func (r *Registry) grant(ctx context.Context) error {
 
 	_, err = r.client.Put(ctx, r.rootKey, "", clientv3.WithLease(r.leaseID))
 	if err != nil {
-		r.client.Close()
+		_ = r.client.Close()
+		r.client = nil
+		r.leaseID = 0
 		return gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
@@ -152,19 +166,26 @@ func (r *Registry) Set(ctx context.Context, key, value string) error {
 	return nil
 }
 
-// Close Registry instance
+// Close Registry instance. Idempotent: safe to call more than once.
 func (r *Registry) Close() {
 	r.cliMu.Lock()
-	defer r.cliMu.Unlock()
-
 	if r.keepAliveCancel != nil {
 		r.keepAliveCancel()
+		r.keepAliveCancel = nil
 	}
+	cli := r.client
+	leaseID := r.leaseID
+	r.client = nil
+	r.leaseID = 0
+	r.cliMu.Unlock()
 
-	if r.leaseID != 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		r.client.Revoke(ctx, r.leaseID)
+	if cli != nil {
+		if leaseID != 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_, _ = cli.Revoke(ctx, leaseID)
+			cancel()
+		}
+		_ = cli.Close()
 	}
 
 	r.wg.Wait()
@@ -177,12 +198,22 @@ func (r *Registry) GetRootKey() string {
 }
 
 func (r *Registry) createKeepAlive() error {
+	// Cancel any prior keepalive before starting a new one to avoid goroutine leaks.
+	// Do not Wait here: callers may already be the keepalive goroutine (renewal path).
+	if r.keepAliveCancel != nil {
+		r.keepAliveCancel()
+		r.keepAliveCancel = nil
+	}
+
 	// NOTE: keepAlive must use the context without timeout.
 	keepAliveCtx, cancel := context.WithCancel(context.Background())
 	r.keepAliveCancel = cancel
 	keepAliveResp, err := r.client.KeepAlive(keepAliveCtx, r.leaseID)
 	if err != nil {
-		r.client.Close()
+		_ = r.client.Close()
+		r.client = nil
+		r.leaseID = 0
+		r.keepAliveCancel = nil
 		return gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
