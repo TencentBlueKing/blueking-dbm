@@ -114,6 +114,7 @@ class ItsmV4Backend(BaseItsmBackend):
         """将旧版撤销单据参数转换为 ITSM V4 撤销接口参数。"""
         return {
             "ticket_id": cls.get_ticket_id(params.get("sn")),
+            "operator": params.get("operator"),
             "system_id": ItsmV4Api.get_system_id(),
         }
 
