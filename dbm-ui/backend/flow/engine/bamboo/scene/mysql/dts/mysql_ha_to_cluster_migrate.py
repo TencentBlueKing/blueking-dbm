@@ -17,7 +17,10 @@ from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow im
 )
 from backend.flow.utils.mysql.dts.constants import MigrateType
 from backend.flow.utils.mysql.dts.context import MysqlDtsTransData
-from backend.flow.utils.mysql.dts.migrate_plan import resolve_migrate_plans_from_ticket_data
+from backend.flow.utils.mysql.dts.migrate_plan import (
+    collect_migrate_plans_cluster_ids,
+    resolve_migrate_plans_from_ticket_data,
+)
 
 logger = logging.getLogger("flow")
 
@@ -41,4 +44,7 @@ class MysqlHaToClusterMigrateFlow:
             migrate_plans=migrate_plans,
             migrate_type=MigrateType.HA_TO_CLUSTER.value,
         )
-        pipeline.run_pipeline(init_trans_data_class=MysqlDtsTransData())
+        pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MysqlDtsTransData(),
+            check_ai_monitor_cluster_list=list(collect_migrate_plans_cluster_ids(migrate_plans)),
+        )

@@ -270,7 +270,9 @@ class OuterRunFlowDtsTaskCleanMountTest(SimpleTestCase):
 
     def _assert_run_flow_mount_order(self, flow_cls, module_path):
         grant_targets = [DtsGrantTarget(bk_cloud_id=0, address="127.0.0.2:3306", cluster_id=1)]
-        plan = _minimal_plan()
+        plan = _minimal_plan(
+            task_specs=[SimpleNamespace(target_cluster_id=20, sources=[SimpleNamespace(cluster_id=10)])]
+        )
 
         with patch(f"{module_path}.resolve_migrate_plans_from_ticket_data", return_value=[plan]), patch(
             f"{self._ROW_MOD}.resolve_migrate_temp_account_for_pipeline",
@@ -314,7 +316,10 @@ class OuterRunFlowDtsTaskCleanMountTest(SimpleTestCase):
             migrate_inp = mock_migrate.call_args[0][0]
             self.assertEqual(migrate_inp.dts_user, "dts_m_shared")
             self.assertEqual(migrate_inp.dts_password, "pwd")
-            pipeline.run_pipeline.assert_called_once()
+            pipeline.run_pipeline.assert_not_called()
+            pipeline.run_pipeline_with_sidecar.assert_called_once()
+            sidecar_kwargs = pipeline.run_pipeline_with_sidecar.call_args.kwargs
+            self.assertEqual(set(sidecar_kwargs["check_ai_monitor_cluster_list"]), {10, 20})
 
     def test_mysql_to_mysql_run_flow_mounts_dts_task_clean(self):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate import MysqlToMysqlMigrateFlow

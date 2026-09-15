@@ -11,10 +11,14 @@ from backend.flow.utils.mysql.dts.migrate_credentials import DtsGrantTarget
 _ROW_MOD = "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow"
 
 
+def _cluster_spec(source_id=10, target_id=20):
+    return SimpleNamespace(target_cluster_id=target_id, sources=[SimpleNamespace(cluster_id=source_id)])
+
+
 def _minimal_plan(**overrides):
     plan = SimpleNamespace(
         topology=MigrateTopology.ONE_TO_ONE.value,
-        task_specs=[],
+        task_specs=[_cluster_spec()],
         dts_cluster_id=1,
         auto_deploy_dts=False,
         deploy_subflow_inp=None,
@@ -52,7 +56,7 @@ class BuildMigrateRowSubNameTest(SimpleTestCase):
     def test_missing_specs_fallback(self):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow import build_migrate_row_sub_name
 
-        self.assertEqual(build_migrate_row_sub_name(_minimal_plan()), "- 迁移-> -")
+        self.assertEqual(build_migrate_row_sub_name(_minimal_plan(task_specs=[])), "- 迁移-> -")
 
 
 class BuildParallelMigrateRowPipelinesTest(SimpleTestCase):
@@ -203,7 +207,11 @@ class OneToOneSceneParallelRowsTest(SimpleTestCase):
             self.assertEqual(kwargs["migrate_plans"], plans)
             self.assertEqual(kwargs["migrate_type"], migrate_type)
             self.assertIs(kwargs["pipeline"], pipeline)
-            pipeline.run_pipeline.assert_called_once()
+            pipeline.run_pipeline.assert_not_called()
+            pipeline.run_pipeline_with_sidecar.assert_called_once()
+            sidecar_kwargs = pipeline.run_pipeline_with_sidecar.call_args.kwargs
+            self.assertEqual(set(sidecar_kwargs["check_ai_monitor_cluster_list"]), {10, 20})
+            self.assertNotIn(0, sidecar_kwargs["check_ai_monitor_cluster_list"])
 
     def test_mysql_to_mysql_two_rows(self):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate import MysqlToMysqlMigrateFlow
@@ -259,4 +267,27 @@ class OneToOneSceneParallelRowsTest(SimpleTestCase):
             self.assertIsNone(kwargs.get("migrate_type"))
             self.assertEqual(kwargs["migrate_plans"][0].migrate_type, MT.MYSQL_TO_MYSQL.value)
             self.assertEqual(kwargs["migrate_plans"][1].migrate_type, MT.HA_TO_CLUSTER.value)
-            pipeline.run_pipeline.assert_called_once()
+            pipeline.run_pipeline.assert_not_called()
+            pipeline.run_pipeline_with_sidecar.assert_called_once()
+            sidecar_kwargs = pipeline.run_pipeline_with_sidecar.call_args.kwargs
+            self.assertEqual(set(sidecar_kwargs["check_ai_monitor_cluster_list"]), {10, 20})
+
+    def test_sidecar_dedupes_source_and_excludes_dts_cluster(self):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate import MysqlToMysqlMigrateFlow
+
+        module_path = "backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate"
+        plans = [
+            _minimal_plan(dts_cluster_id=99, task_specs=[_cluster_spec(10, 20)]),
+            _minimal_plan(dts_cluster_id=99, task_specs=[_cluster_spec(10, 30)]),
+        ]
+        with patch(f"{module_path}.resolve_migrate_plans_from_ticket_data", return_value=plans), patch(
+            f"{module_path}.build_parallel_migrate_row_pipelines"
+        ), patch(f"{module_path}.Builder") as mock_builder:
+            pipeline = MagicMock()
+            mock_builder.return_value = pipeline
+            MysqlToMysqlMigrateFlow(
+                root_id="root-sidecar", data={"bk_biz_id": 1, "ticket_id": 19943, "created_by": "t"}
+            ).run_flow()
+            sidecar_kwargs = pipeline.run_pipeline_with_sidecar.call_args.kwargs
+            self.assertEqual(set(sidecar_kwargs["check_ai_monitor_cluster_list"]), {10, 20, 30})
+            self.assertNotIn(99, sidecar_kwargs["check_ai_monitor_cluster_list"])

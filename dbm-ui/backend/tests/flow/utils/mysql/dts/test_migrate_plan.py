@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -30,6 +31,7 @@ from backend.flow.utils.mysql.dts.migrate_plan import (
     TableRoute,
     build_migrate_plan,
     build_migrate_plans,
+    collect_migrate_plans_cluster_ids,
     dts_task_spec_from_dict,
     dts_task_spec_to_dict,
     infer_dts_resource_intent,
@@ -938,3 +940,28 @@ class TicketLifecyclePolicyTest(SimpleTestCase):
         expected = {"destroy_after_migrate": True, "recycle_hosts": True, "cleanup_after_migrate": False}
         self.assertEqual(infos_defaults, expected)
         self.assertEqual(single_defaults, expected)
+
+
+def _cluster_spec(source_id: int, target_id: int):
+    return SimpleNamespace(target_cluster_id=target_id, sources=[SimpleNamespace(cluster_id=source_id)])
+
+
+class CollectMigratePlansClusterIdsTest(SimpleTestCase):
+    def test_one_row_source_and_target(self):
+        plans = [SimpleNamespace(task_specs=[_cluster_spec(10, 20)], dts_cluster_id=99)]
+        self.assertEqual(collect_migrate_plans_cluster_ids(plans), {10, 20})
+
+    def test_two_rows_dedup_source(self):
+        plans = [
+            SimpleNamespace(task_specs=[_cluster_spec(10, 20)], dts_cluster_id=99),
+            SimpleNamespace(task_specs=[_cluster_spec(10, 30)], dts_cluster_id=99),
+        ]
+        self.assertEqual(collect_migrate_plans_cluster_ids(plans), {10, 20, 30})
+
+    def test_excludes_dts_cluster_id(self):
+        plans = [SimpleNamespace(task_specs=[_cluster_spec(10, 20)], dts_cluster_id=99)]
+        self.assertNotIn(99, collect_migrate_plans_cluster_ids(plans))
+
+    def test_empty_task_specs(self):
+        plans = [SimpleNamespace(task_specs=[], dts_cluster_id=99)]
+        self.assertEqual(collect_migrate_plans_cluster_ids(plans), set())
