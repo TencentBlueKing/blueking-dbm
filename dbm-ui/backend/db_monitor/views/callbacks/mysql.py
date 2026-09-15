@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
@@ -17,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
+from backend.configuration.constants import DBType
 from backend.core.notify.handlers import NotifyAdapter
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
@@ -154,13 +156,19 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "慢查询数量",
                 "level": [0, 1],
                 "cluster_type": [],
-                "ratelimit": "1 / 8",
+                "ratelimit": "1 / 24",
+            },
+            {
+                "keyword": "主机内存使用率",
+                "level": [0, 1, 2],
+                "cluster_type": [],
+                "ratelimit": "1 / 24",
             },
             {
                 "keyword": "主机 CPU 负载",
                 "level": [0, 1, 2],
                 "cluster_type": ["tendbha", "tendbsingle"],
-                "ratelimit": "1 / 8",
+                "ratelimit": "1 / 24",
             },
         ],
         "call_mysql_alarm_analyzer": [
@@ -168,7 +176,7 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "Threads_running",
                 "level": [0, 1, 2],
                 "cluster_type": [],
-                "ratelimit": "1 / 6",
+                "ratelimit": "1 / 8",
             },
             {
                 "keyword": "连接失败",
@@ -200,6 +208,7 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "长空闲事务未关闭",
                 "level": [0, 1, 2],
                 "cluster_type": [],
+                "ratelimit": "1 / 4",
             },
         ],
     }
@@ -443,10 +452,17 @@ def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
         logger.info(
             _("[mysql_alarm_analyzer] 告警触发 AI 分析开始，集群: {}. user prompt: {}").format(cluster_domain, user_prompt)
         )
+        start_time = time.monotonic()
         content = "使用 mysql_alarm_analyzer 告警分析 skill 来分析一下 db 告警，" f"告警内容:\n{user_prompt}"
         agent_output = AgentHandler.ask_agent_with_content(
             agent_code=DBMAgentCode.MYSQL_AI_INSPECT_AGENT,
             content=content,
+        )
+        cost_ms = int((time.monotonic() - start_time) * 1000)
+        logger.info(
+            _("[mysql_alarm_analyzer] 集群 {} 策略 '{}' AI 分析耗时: {} ms").format(
+                cluster_domain, alarm_base_info.get("strategy_name", ""), cost_ms
+            )
         )
 
         if not agent_output:
@@ -514,10 +530,17 @@ def _call_agent_and_notify(
         from backend.dbm_aiagent.agent.handlers import AgentHandler
 
         logger.info(_("[{}] 告警触发 AI 分析，集群: {}").format(log_tag, cluster_domain))
+        start_time = time.monotonic()
         agent_output = AgentHandler.ask_agent_with_content(
             agent_code=agent_code,
             content=content,
             timeout=timeout,
+        )
+        cost_ms = int((time.monotonic() - start_time) * 1000)
+        logger.info(
+            _("[{}] 集群 {} 策略 '{}' AI 分析耗时: {} ms").format(
+                log_tag, cluster_domain, alarm_base_info.get("strategy_name", ""), cost_ms
+            )
         )
         if not agent_output:
             logger.info(_("[{}] 集群 {} AI 分析无结果，跳过通知").format(log_tag, cluster_domain))
@@ -540,8 +563,11 @@ def _call_agent_and_notify(
             receivers=alarm_base_info["appointees"],
         )
         try:
+            db_type = (
+                DBType.TenDBCluster if (alarm_base_info["cluster_type"] == ClusterType.TenDBCluster) else DBType.MySQL
+            )
             ingest_summary(
-                db_type=alarm_base_info["cluster_type"],
+                db_type=db_type,
                 dimension=portrait_dimension,
                 bk_biz_id=alarm_base_info["bk_biz_id"],
                 cluster_domain=alarm_base_info["cluster_domain"],
@@ -628,6 +654,7 @@ instance_role: {instance_role}
 返回格式严格是一个 json, 内容包裹在 <output></output> 中. 示例:
 <output>
 {{
+  "report_id": "<dbm 报告uuid>",
   "share_url": "<dbm 报告url分享地址>",
   "summary": "<agent 分析结果的摘要>"
 }}
