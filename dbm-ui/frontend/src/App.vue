@@ -109,7 +109,7 @@
     'zh-cn': '数据库管理 | 腾讯蓝鲸智云',
   };
 
-  const noticeApi = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/notice/announcements/');
+  const noticeApi = urlJoin(window.BK_AJAX_URL, '/notice/announcements/');
   const isShowBKNotice = ref(false);
   const isShowSystemVersionLog = ref(false);
 
@@ -198,25 +198,6 @@
     &.active {
       color: @primary-color;
       background-color: #f0f1f5;
-    }
-  }
-
-  .user-info-box {
-    cursor: pointer;
-
-    .username-text {
-      padding-right: 4px;
-      line-height: 32px;
-    }
-
-    .user-info-arrow {
-      display: inline-block;
-      font-size: 12px;
-      transition: all 0.2s;
-
-      &.is-active {
-        transform: rotate(180deg);
-      }
     }
   }
 </style>

@@ -67,16 +67,13 @@
     </EditableBlock>
   </EditableColumn>
 
-  <InstanceSelector
+  <MongoHostSelector
+    v-model="selectedHosts"
     v-model:is-show="showSelector"
-    :cluster-types="['mongoCluster']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :fetch-params="fetchParams"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
-  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -86,24 +83,26 @@
   import { ipv4 } from '@common/regex';
 
   import type { IRule } from '@components/editable-table/types';
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
 
-  export type SelectorHost = IValue;
+  import MongoHostSelector, {
+    type MongoHostFetchParams,
+    type MongoHostRow,
+  } from '@views/db-manage/mongodb/common/mongo-host-selector/Index.vue';
+
+  export type SelectorHost = MongoHostRow;
+
+  type MongoClusterType = ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
 
   interface Props {
     appendRules?: IRule[];
-    clusterTypes: (ClusterTypes.MONGO_SHARED_CLUSTER | ClusterTypes.MONGO_REPLICA_SET)[];
+    clusterTypes: MongoClusterType[];
     columns?: ('instance' | 'cluster')[];
+    fetchParams?: MongoHostFetchParams;
     label?: string;
     selected: Array<typeof modelValue.value>;
-    tabListConfig?: Record<string, PanelListType>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SelectorHost[]) => void;
 
   const props = defineProps<Props>();
 
@@ -126,14 +125,22 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    mongoCluster: props.selected.map(
+
+  // 批量选择弹窗的数据源过滤：clusterTypes 默认透传，页面可经 fetchParams 覆盖（如 role: 'proxy'）
+  const fetchParams = computed<MongoHostFetchParams>(() => ({
+    ...(props.clusterTypes.length ? { cluster_type: props.clusterTypes.join(',') } : {}),
+    ...props.fetchParams,
+  }));
+
+  // 弹窗回显勾选以 ip 为键，占位行即可命中
+  const selectedHosts = computed<MongoHostRow[]>(() =>
+    props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as MongoHostRow,
     ),
-  }));
+  );
 
   const rules = computed(() => {
     const baseRules = [
@@ -198,8 +205,8 @@
     );
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.mongoCluster);
+  const handleSelectorChange = (list: MongoHostRow[]) => {
+    emits('batch-edit', list);
   };
 
   watch(

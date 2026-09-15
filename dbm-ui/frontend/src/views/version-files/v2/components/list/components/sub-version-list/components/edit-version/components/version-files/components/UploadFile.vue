@@ -38,6 +38,7 @@
     :size="10240"
     :tip="acceptInfo.tips"
     :url="uploadUrl"
+    @error="handleUploadError"
     @success="handleUpdateSuccess">
     <template #trigger>
       <BkButton
@@ -136,9 +137,15 @@
     }
 
     const filePath = `/${dbType}/${pkgType}/${props.version}/${filename}`;
-    const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
-    const uploadDomain = import.meta.env.MODE === 'production' ? tokenResult.url : '/bkrepo_upload';
-    uploadUrl.value = `${uploadDomain}/generic/temporary/upload/${tokenResult.project}/${tokenResult.repo}${tokenResult.path}?token=${tokenResult.token}`;
+    try {
+      const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
+      const uploadDomain = import.meta.env.MODE === 'production' ? tokenResult.url : '/bkrepo_upload';
+      uploadUrl.value = `${uploadDomain}/generic/temporary/upload/${tokenResult.project}/${tokenResult.repo}${tokenResult.path}?token=${tokenResult.token}`;
+    } catch {
+      // 拿不到上传凭证时必须复位 loading，否则上传入口会一直处于禁用状态
+      uploadLoading.value = false;
+      return false;
+    }
     return true;
   };
 
@@ -228,15 +235,24 @@
   /**
    * 文件上传成功
    */
-  const handleUpdateSuccess = (file: any) => {
-    const fileInfo = {
-      md5: file?.data.md5,
-      name: file?.data.name,
-      path: file?.data.fullPath,
-      size: file?.data.size,
-    };
+  const handleUpdateSuccess = (response: { data?: { fullPath: string; md5: string; name: string; size: number } }) => {
     uploadLoading.value = false;
-    emits('success', fileInfo);
+    if (!response?.data) {
+      return;
+    }
+    emits('success', {
+      md5: response.data.md5,
+      name: response.data.name,
+      path: response.data.fullPath,
+      size: response.data.size,
+    });
+  };
+
+  /**
+   * 文件上传失败
+   */
+  const handleUploadError = () => {
+    uploadLoading.value = false;
   };
 
   defineExpose<Exposes>({

@@ -41,7 +41,7 @@
       versionId.value = route.params.versionId as string;
       nextTick(async () => {
         app = await window.BkVisionSDK.init(rootRef.value!, versionId.value, {
-          apiPrefix: urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, `/bkvision/`),
+          apiPrefix: urlJoin(window.BK_AJAX_URL, `/bkvision/`),
           chartToolMenu: [
             {
               build_in: true,

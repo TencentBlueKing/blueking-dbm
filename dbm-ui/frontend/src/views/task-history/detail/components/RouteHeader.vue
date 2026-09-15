@@ -21,10 +21,10 @@
   <Teleport to="#dbContentHeaderAppend">
     <div class="mission-detail-status-box">
       <div
-        v-if="statusText"
+        v-if="statusInfo.text"
         class="mission-detail-status-info">
-        <BkTag :theme="statueTheme">
-          {{ statusText }}
+        <BkTag :theme="statusInfo.theme">
+          {{ statusInfo.text }}
           <span
             v-if="isTaskFailed"
             class="top-count is-failed">
@@ -44,7 +44,6 @@
         width="288"
         @confirm="handleRevokePipeline">
         <BkButton
-          ref="revokeButtonRef"
           class="top-operate-btn"
           :loading="isRevokeLoading">
           <DbIcon
@@ -79,13 +78,13 @@
 
   import { messageSuccess } from '@utils';
 
-  import { type FlowDetail } from '../Index.vue';
-
-  import TaskFlow from './task-flow/Index.vue';
+  import { type FlowDetail, type NodeStatusCount, superUserModeInjectionKey } from '../utils';
 
   interface Props {
     data?: FlowDetail;
     rootId?: string;
+    /** 节点状态计数，由上层统一从解析结果算好，和搜索树的筛选下拉同一口径 */
+    statusCount?: NodeStatusCount;
   }
 
   type Emits = (e: 'refresh') => void;
@@ -93,96 +92,56 @@
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
     rootId: '',
+    statusCount: undefined,
   });
   const emits = defineEmits<Emits>();
-  const isSuperUserMode = defineModel<boolean>('isSuperUserMode', { required: true });
 
-  const route = useRoute();
-  const router = useRouter();
   const { t } = useI18n();
   const { isSuperuser } = useUserProfile();
 
-  const taskFlowRef = ref<InstanceType<typeof TaskFlow>>();
+  const isSuperUserMode = inject(superUserModeInjectionKey)!;
 
-  const baseInfo = computed(() => props.data?.flow_info || ({} as FlowDetail['flow_info']));
-  const isTaskFailed = computed(() => props.data?.flow_info.status === 'FAILED');
-  const isSuperuserSwitchShow = computed(
-    () => isSuperuser && props.data?.flow_info && !['FINISHED', 'REVOKED'].includes(props.data.flow_info.status),
-  );
+  // 任务级状态，与节点级不是一套：这里的 BLOCKED、等待执行是流程引擎自己的状态
+  const TASK_STATUS_MAP = {
+    BLOCKED: { text: t('执行中'), theme: 'info' },
+    CREATED: { text: t('等待执行'), theme: undefined },
+    FINISHED: { text: t('执行成功'), theme: 'success' },
+    READY: { text: t('等待执行'), theme: undefined },
+    REVOKED: { text: t('已终止'), theme: 'danger' },
+    RUNNING: { text: t('执行中'), theme: 'info' },
+  } as const;
 
-  const statusText = computed(() => {
+  const taskStatus = computed(() => props.data?.flow_info.status);
+  const isTaskFailed = computed(() => taskStatus.value === 'FAILED');
+  // 数据还没回来，或者任务已经走完，都不允许再干预
+  const isTaskOver = computed(() => !taskStatus.value || ['FINISHED', 'REVOKED'].includes(taskStatus.value));
+  const isSuperuserSwitchShow = computed(() => isSuperuser && !isTaskOver.value);
+  const todoNodesCount = computed(() => props.statusCount?.TODO ?? 0);
+  const failNodesCount = computed(() => props.statusCount?.FAILED ?? 0);
+
+  // 文案与配色一起给：此前拆成两个 computed，各写了一遍「失败优先于待继续」的判断
+  const statusInfo = computed(() => {
     if (isTaskFailed.value) {
-      return t('执行失败');
+      return {
+        text: t('执行失败'),
+        theme: 'danger' as const,
+      };
     }
     if (todoNodesCount.value) {
-      return t('待继续');
+      return {
+        text: t('待继续'),
+        theme: 'warning' as const,
+      };
     }
-    const statusMap = {
-      BLOCKED: t('执行中'),
-      CREATED: t('等待执行'),
-      // FAILED: t('执行失败'),
-      FINISHED: t('执行成功'),
-      READY: t('等待执行'),
-      REVOKED: t('已终止'),
-      RUNNING: t('执行中'),
-    };
-    const status = props.data?.flow_info.status as keyof typeof statusMap;
-    return status && statusMap[status] ? t(statusMap[status]) : '';
+    return (
+      TASK_STATUS_MAP[taskStatus.value as keyof typeof TASK_STATUS_MAP] ?? {
+        text: '',
+        theme: undefined,
+      }
+    );
   });
 
-  const statueTheme = computed(() => {
-    const status = props.data?.flow_info.status;
-    if (isTaskFailed.value) {
-      return 'danger';
-    }
-    if (todoNodesCount.value) {
-      return 'warning';
-    }
-    const themes = {
-      CREATED: undefined,
-      FINISHED: 'success',
-      REVOKED: 'danger',
-      RUNNING: 'info',
-    } as const;
-    return themes[status as keyof typeof themes];
-  });
-
-  const todoNodesCount = computed(() => {
-    if (props.data?.flow_info) {
-      const { status } = props.data.flow_info;
-      return (props.data.todos || []).filter(
-        (todoItem) => (status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO',
-      ).length;
-    }
-    return 0;
-  });
-
-  const failNodesCount = computed(() => {
-    let failNodesNum = 0;
-    const getFailNodesNum = (activities: FlowDetail['activities']) => {
-      const flowList: FlowDetail['activities'][string][] = [];
-      Object.values(activities).forEach((item) => {
-        if (item.status === 'FAILED') {
-          if (item.pipeline) {
-            getFailNodesNum(item.pipeline.activities);
-          } else {
-            failNodesNum = failNodesNum + 1;
-          }
-        }
-      });
-      return flowList;
-    };
-    getFailNodesNum(props.data?.activities || {});
-    return failNodesNum;
-  });
-
-  const isRevokable = computed(() => {
-    if (!props.data) {
-      return false;
-    }
-
-    return !['FINISHED', 'REVOKED'].includes(baseInfo.value.status);
-  });
+  const isRevokable = computed(() => !isTaskOver.value);
 
   const { loading: isRevokeLoading, run: runRevokePipeline } = useRequest(revokePipeline, {
     manual: true,
@@ -190,26 +149,6 @@
       handleOperateSuccess();
     },
   });
-
-  watch(
-    () => [isTaskFailed.value, todoNodesCount.value],
-    () => {
-      setTimeout(() => {
-        if (isTaskFailed.value) {
-          taskFlowRef.value?.setTreeStatus('FAILED');
-          return;
-        }
-
-        if (todoNodesCount.value) {
-          taskFlowRef.value?.setTreeStatus('TODO');
-          return;
-        }
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const handleOperateSuccess = () => {
     emits('refresh');
@@ -219,20 +158,6 @@
   const handleRevokePipeline = () => {
     runRevokePipeline({ rootId: props.rootId });
   };
-
-  defineExpose({
-    routerBack() {
-      if (!route.query.from) {
-        router.push({
-          name: 'taskHistoryList',
-        });
-        return;
-      }
-      router.push({
-        name: route.query.from as string,
-      });
-    },
-  });
 </script>
 <style lang="less">
   .mission-detail-status-box {

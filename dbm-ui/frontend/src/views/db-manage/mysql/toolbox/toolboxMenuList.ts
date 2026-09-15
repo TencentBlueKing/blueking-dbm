@@ -84,12 +84,6 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.MYSQL_ROLLBACK,
         name: t('回档'),
       },
-      // {
-      //   dbConsoleValue: 'mysql.toolbox.rollback',
-      //   desc: t('回到指定时间点重建集群'),
-      //   id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-      //   name: t('定点构造（旧）'),
-      // },
     ],
     icon: 'data-recovery',
     id: 'fileback',
@@ -122,6 +116,13 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         desc: t('跨集群复制 DB 数据'),
         id: TicketTypes.MYSQL_DATA_MIGRATE,
         name: t('DB 数据克隆'),
+      },
+      {
+        bind: [TicketTypes.MYSQL_DTS_DATA_MIGRATE, TicketTypes.MYSQL_DTS_DATA_MIGRATE_RENAME],
+        dbConsoleValue: 'mysql.toolbox.dtsDataMigrate',
+        desc: t('按库表将数据从源集群迁到目标集群，目标库与源库同名'),
+        id: TicketTypes.MYSQL_DTS_DATA_MIGRATE,
+        name: t('DTS 数据迁移'),
       },
       {
         dbConsoleValue: 'mysql.toolbox.mergeDiskSpace',

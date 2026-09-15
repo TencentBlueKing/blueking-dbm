@@ -1,7 +1,7 @@
 <template>
   <FunController module-id="k8s">
     <MenuGroup
-      :db-type="DBTypes.K8S_QRRANT"
+      :db-type="DBTypes.K8S_QDRANT"
       :is-error="isError">
       <FunController
         controller-id="k8s_qdrant"

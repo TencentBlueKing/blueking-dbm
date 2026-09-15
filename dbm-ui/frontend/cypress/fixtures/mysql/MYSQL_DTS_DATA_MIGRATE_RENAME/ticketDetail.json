@@ -1,0 +1,104 @@
+{
+  "data": {
+    "id": 5699,
+    "creator": "admin",
+    "create_at": "2026-09-03T11:35:11+08:00",
+    "updater": "admin",
+    "update_at": "2026-09-03T11:35:18+08:00",
+    "ticket_type": "MYSQL_DTS_DATA_MIGRATE_RENAME",
+    "remark": "",
+    "group": "mysql",
+    "details": {
+      "task": {
+        "task_mode": "all",
+        "enable_validator": false,
+        "shard_mode": "",
+        "on_duplicate": "error",
+        "meta_schema": "dm_meta",
+        "ignore_checking_items": [],
+        "engine_options": {}
+      },
+      "infos": [
+        {
+          "dts_resource": {
+            "mode": null,
+            "deploy": {
+              "cluster_name": "dts-migrate-5699-0-de1aff530a15",
+              "deploy_path": "/data/dts/dts-migrate-5699-0-de1aff530a15",
+              "master_ha": false
+            }
+          },
+          "migrate": {
+            "topology": "one_to_one",
+            "one_to_one": {
+              "source": {
+                "cluster_id": 1000293,
+                "sync_scope": {
+                  "db_patterns": [],
+                  "ignore_dbs": [],
+                  "ignore_tables": [],
+                  "table_patterns": [],
+                  "table_routes": [
+                    {
+                      "source_name": "",
+                      "source_db": "partition_test",
+                      "source_db_pattern": "",
+                      "source_table": "",
+                      "source_table_pattern": "",
+                      "target_db": "*",
+                      "target_table": ""
+                    }
+                  ],
+                  "binlog_filters": []
+                }
+              },
+              "target": {
+                "cluster_id": 1000294,
+                "target_spider": null
+              },
+              "task_name": "mysql-dts-5699-1000293-1000294-9afb817da958"
+            }
+          },
+          "resource_spec": {
+            "master": {
+              "spec_id": 344,
+              "count": 1,
+              "labels": [],
+              "location_spec": {}
+            },
+            "worker": {
+              "spec_id": 344,
+              "count": 1,
+              "labels": [],
+              "location_spec": {}
+            }
+          }
+        }
+      ],
+      "destroy_after_migrate": true,
+      "recycle_hosts": true,
+      "cleanup_after_migrate": false,
+      "nodes": {
+        "master": [],
+        "worker": []
+      }
+    },
+    "todo_operators": ["admin"],
+    "todo_helpers": [],
+    "status": "TODO",
+    "status_display": "待执行",
+    "ticket_type_display": "MySQL DTS 库改名迁移",
+    "cost_time": 150,
+    "bk_biz_name": "DBA",
+    "db_app_abbr": "dba",
+    "ignore_duplication": false,
+    "config": {},
+    "bk_biz_id": 3,
+    "send_msg_config": {},
+    "is_reviewed": false
+  },
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "67d5196eaea9434fae9e90e94c491520"
+}

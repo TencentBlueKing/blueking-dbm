@@ -19,12 +19,14 @@
       :data="tableData"
       :empty="t('请选择业务')"
       row-key="cluster_name" />
-    <InstanceSelector
+    <HostSelector
       :key="instanceSelectorKey"
-      v-model:is-show="isShowInstanceSelector"
-      :cluster-types="['RedisHost']"
-      :selected="selectedHostList"
-      :tab-list-config="tabListConfig"
+      v-model="selectedHostList"
+      v-model:is-show="isShowHostSelector"
+      :cluster-types="[ClusterTypes.REDIS]"
+      :data-source-map="dataSourceMap"
+      :disable-select-method="disableSelectMethod"
+      :tab-name-map="{ [ClusterTypes.REDIS]: t('Master 主机') }"
       @change="handleInstancesChange" />
   </div>
 </template>
@@ -34,19 +36,13 @@
   import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
-  import RedisMachineModel from '@services/model/redis/redis-machine';
-  import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
+  import { getRedisMachineList } from '@services/source/redis';
   import { checkDomainRepeat } from '@services/source/ticket.tsx';
 
   import { ClusterTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx, ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import HostSelector, { type HostModel, type HostSelectorValues } from '@components/host-selector/Index.vue';
 
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
@@ -378,69 +374,26 @@
     return baseColums;
   });
 
-  const isShowInstanceSelector = ref(false);
+  const isShowHostSelector = ref(false);
   const instanceSelectorIndex = ref(-1);
 
-  const selectedHostList = shallowRef({ RedisHost: [] } as InstanceSelectorValues<IValue>);
+  const selectedHostList = shallowRef({ [ClusterTypes.REDIS]: [] } as HostSelectorValues<ClusterTypes.REDIS>);
 
-  const tabListConfig = computed(
-    () =>
-      ({
-        RedisHost: [
-          {
-            tableConfig: {
-              disabledRowConfig: {
-                handler: (data: RedisMachineModel) => data.isUnvailable,
-                tip: t('异常主机不可用'),
-              },
-              getTableList: (params: Record<string, any>) =>
-                getRedisMachineList({
-                  ...params,
-                  bk_city_name: props.cityInfo.city_name,
-                  bk_cloud_id: props.cloudId as number,
-                  cluster_type: ClusterTypes.REDIS_INSTANCE,
-                }),
-            },
-            topoConfig: {
-              getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-                getRedisClusterList({
-                  ...params,
-                  region: props.cityInfo.city_code,
-                }),
-              totalCountFunc: (dataList: RedisModel[]) => {
-                const ipSet = new Set<string>();
-                dataList.forEach((dataItem) => dataItem.redis_master.forEach((masterItem) => ipSet.add(masterItem.ip)));
-                return ipSet.size;
-              },
-            },
-          },
-          {
-            manualConfig: {
-              checkInstances: (params: Record<string, any>) =>
-                getRedisMachineList({
-                  ...params,
-                  bk_city_name: props.cityInfo.city_name,
-                  bk_cloud_id: props.cloudId as number,
-                  cluster_type: ClusterTypes.REDIS_INSTANCE,
-                }),
-            },
-            tableConfig: {
-              disabledRowConfig: {
-                handler: (data: RedisMachineModel) => data.isUnvailable,
-                tip: t('异常主机不可用'),
-              },
-              getTableList: (params: Record<string, any>) =>
-                getRedisMachineList({
-                  ...params,
-                  bk_city_name: props.cityInfo.city_name,
-                  bk_cloud_id: props.cloudId as number,
-                  cluster_type: ClusterTypes.REDIS_INSTANCE,
-                }),
-            },
-          },
-        ],
-      }) as unknown as Record<'RedisHost', PanelListType>,
-  );
+  // 限定城市/管控区域下的单节点集群主机（cluster_type: REDIS_INSTANCE），主库角色
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        ...params,
+        bk_city_name: props.cityInfo.city_name,
+        bk_cloud_id: props.cloudId as number,
+        cluster_type: ClusterTypes.REDIS_INSTANCE,
+        instance_role: 'redis_master',
+      }),
+  };
+
+  // 异常主机禁选
+  const disableSelectMethod = (data: HostModel<ClusterTypes.REDIS>) =>
+    data.isUnvailable ? t('异常主机不可用') : false;
 
   // 没有 appName 则不展示 table 数据
   const tableData = computed(() => {
@@ -501,12 +454,12 @@
   };
 
   const handleInstancesSelectorShow = (index: number) => {
-    isShowInstanceSelector.value = true;
+    isShowHostSelector.value = true;
     instanceSelectorIndex.value = index;
   };
 
-  const handleInstancesChange = (selectedValues: InstanceSelectorValues<IValue>) => {
-    const { ip } = selectedValues.RedisHost[0];
+  const handleInstancesChange = (selectedValues: HostSelectorValues<ClusterTypes.REDIS>) => {
+    const { ip } = selectedValues[ClusterTypes.REDIS][0];
     const newDomains = _.cloneDeep(domains.value);
     Object.assign(newDomains[instanceSelectorIndex.value].masterHost, {
       ip,

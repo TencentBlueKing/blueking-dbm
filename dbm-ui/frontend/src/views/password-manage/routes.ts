@@ -12,6 +12,8 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
+import { registerModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -43,5 +45,7 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export default function getRoutes() {
-  return checkDbConsole('globalConfigManage.passwordSafe') ? routes : [];
+  if (checkDbConsole('globalConfigManage.passwordSafe')) {
+    registerModule(routes);
+  }
 }

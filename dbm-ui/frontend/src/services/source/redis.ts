@@ -63,7 +63,14 @@ export function getRedisListByBizId(
     .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
     .then((data) => ({
       ...data,
-      results: data.results.map((item) => new RedisModel(item)),
+      results: data.results.map(
+        (item) =>
+          new RedisModel(
+            Object.assign(item, {
+              permission: Object.assign({}, item.permission, data.permission),
+            }),
+          ),
+      ),
     }));
 }
 
@@ -175,9 +182,16 @@ export const getRedisClusterList = async (params: {
   domain?: string;
   region?: string;
 }) =>
-  http
-    .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
-    .then((data) => data.results.map((item) => new RedisModel(item)));
+  http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params).then((data) =>
+    data.results.map(
+      (item) =>
+        new RedisModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  );
 
 /**
  * 查询主机列表
@@ -194,6 +208,7 @@ export function getRedisMachineList(params: {
   creator?: string;
   extra?: number;
   instance_role?: string;
+  instance_status?: string;
   ip?: string;
   limit?: number;
   machine_type?: string;

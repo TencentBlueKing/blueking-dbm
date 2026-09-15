@@ -10,6 +10,8 @@ export * from './clusterStandardize';
 export * from './dataMigrate';
 export * from './dataRepair';
 export * from './deleteClearDb';
+export * from './dtsDataMigrate';
+export * from './dtsDataMigrateRename';
 export * from './dumpData';
 export * from './flashBack';
 export * from './haApply';

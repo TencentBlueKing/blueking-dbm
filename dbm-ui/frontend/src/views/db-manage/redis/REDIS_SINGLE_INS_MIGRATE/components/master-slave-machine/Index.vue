@@ -26,12 +26,13 @@
       :key="index">
       <HostColumn
         v-model="item.host"
-        :cluster-types="['RedisHost']"
-        hide-manual-input
+        :cluster-types="[ClusterTypes.REDIS]"
+        :data-source-map="dataSourceMap"
+        :disable-select-method="disableSelectMethod"
         :label="t('主库主机')"
         :placeholder="t('请输入IP（单个）')"
         :selected="selected"
-        :tab-list-config="tabListConfig"
+        :tab-name-map="{ [ClusterTypes.REDIS]: t('Master 主机') }"
         @batch-edit="handleHostBatchEdit" />
       <OldMasterSlaveHostColumn
         v-model="item.instance_data"
@@ -77,7 +78,6 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
   import RedisMachineModel from '@services/model/redis/redis-machine';
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisMachineList } from '@services/source/redis';
@@ -86,7 +86,7 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
+  import { type HostModel } from '@components/host-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -233,52 +233,26 @@
   const tableKey = ref(random());
   const tableData = ref([createRowData()]);
 
-  const tabListConfig = {
-    RedisHost: [
-      {
-        tableConfig: {
-          disabledRowConfig: {
-            handler: (data: RedisMachineModel) =>
-              data.isUnvailable || data.related_instances.some((item) => item.status === 'unavailable'),
-            tip: t('集群或实例状态异常，不可选择'),
-          },
-          getTableList: (params: ServiceReturnType<typeof getRedisMachineList>) =>
-            getRedisMachineList({
-              cluster_type: ClusterTypes.REDIS_INSTANCE,
-              ...params,
-            }),
-        },
-        topoConfig: {
-          totalCountFunc: (dataList: RedisModel[]) => {
-            const ipSet = new Set<string>();
-            dataList.forEach((dataItem) => dataItem.redis_master.forEach((masterItem) => ipSet.add(masterItem.ip)));
-            return ipSet.size;
-          },
-        },
-      },
-      {
-        manualConfig: {
-          checkInstances: (params: ServiceReturnType<typeof getRedisMachineList>) =>
-            getRedisMachineList({
-              cluster_type: ClusterTypes.REDIS_INSTANCE,
-              ...params,
-            }),
-        },
-        tableConfig: {
-          disabledRowConfig: {
-            handler: (data: RedisMachineModel) =>
-              data.isUnvailable || data.related_instances.some((item) => item.status === 'unavailable'),
-            tip: t('集群或实例状态异常，不可选择'),
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // 限定单节点集群（RedisInstance）主机，异常主机/实例禁选
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisMachineList>) =>
+      getRedisMachineList({
+        cluster_type: ClusterTypes.REDIS_INSTANCE,
+        ...params,
+      }),
+  };
+
+  const disableSelectMethod = (data: RedisMachineModel) => {
+    if (data.isUnvailable || data.related_instances.some((item) => item.status === 'unavailable')) {
+      return t('集群或实例状态异常，不可选择');
+    }
+    return false;
+  };
 
   const selected = computed(() => tableData.value.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const handleHostBatchEdit = (list: IValue[]) => {
+  const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
       if (!selectedMap.value[item.ip]) {

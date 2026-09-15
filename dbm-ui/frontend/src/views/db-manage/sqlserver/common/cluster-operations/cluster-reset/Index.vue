@@ -52,9 +52,8 @@
 
   import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
   import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
+  import { useCreateTicket } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
@@ -68,7 +67,14 @@
     required: true,
   });
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+
+  const { run: createTicketRun } = useCreateTicket(TicketTypes.SQLSERVER_RESET, {
+    isToolbox: false,
+    onSuccess: () => {
+      isShow.value = false;
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   const domainRule = [
     {
@@ -126,15 +132,11 @@
       });
     }
 
-    createTicket({
+    createTicketRun({
       bk_biz_id: props.data.bk_biz_id,
       details: {
         infos: [infoItem],
       },
-      ticket_type: TicketTypes.SQLSERVER_RESET,
-    }).then((createTicketResult) => {
-      ticketMessage(createTicketResult.id);
-      isShow.value = false;
     });
   };
 </script>

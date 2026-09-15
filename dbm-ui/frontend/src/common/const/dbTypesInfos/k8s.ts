@@ -3,9 +3,9 @@ import { DBTypes } from '../dbTypes';
 import { type DbInfoType } from './index';
 
 export const k8s: DbInfoType = {
-  [DBTypes.K8S_QRRANT]: {
+  [DBTypes.K8S_QDRANT]: {
     icon: 'cluster',
-    id: DBTypes.K8S_QRRANT,
+    id: DBTypes.K8S_QDRANT,
     machineList: [],
     moduleId: 'k8s',
     name: 'Qdrant',

@@ -314,9 +314,8 @@
 
   import TendbClusterDetailModel from '@services/model/tendbcluster/tendbcluster-detail';
   import { getTendbclusterDetail, getTendbclusterPrimary } from '@services/source/tendbcluster';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
+  import { useCreateTicket } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -350,7 +349,11 @@
 
   const router = useRouter();
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const { handleAddClb } = useAddClb<{
     bk_cloud_id: number;
@@ -463,17 +466,16 @@
   const handleDestroySlave = (data: TendbClusterDetailModel) => {
     InfoBox({
       content: t('下架后将无法访问只读集群'),
-      onConfirm: () =>
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      onConfirm: async () => {
+        const ticketId = await createTicketRun({
           details: {
             cluster_ids: [data.id],
             is_safe: true,
           },
           ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
-        }).then((res) => {
-          ticketMessage(res.id);
-        }),
+        });
+        return Boolean(ticketId);
+      },
       title: t('确认下架只读集群'),
       type: 'warning',
     });
@@ -507,13 +509,12 @@
       onCancel: () => {
         removeMNTInstances.value = [];
       },
-      onConfirm: () => {
+      onConfirm: async () => {
         if (removeMNTInstances.value.length === 0) {
           messageWarn(t('请勾选要下架的运维节点'));
           return false;
         }
-        return createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        const ticketId = await createTicketRun({
           details: {
             infos: [
               {
@@ -532,13 +533,12 @@
             is_safe: true,
           },
           ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-            removeMNTInstances.value = [];
-            return true;
-          })
-          .catch(() => false);
+        });
+        if (!ticketId) {
+          return false;
+        }
+        removeMNTInstances.value = [];
+        return true;
       },
       title: t('确认下架运维节点'),
       width: 480,

@@ -81,9 +81,8 @@
   import HdfsModel from '@services/model/hdfs/hdfs';
   import KafkaDetailModel from '@services/model/kafka/kafka-detail';
   import PulsarModel from '@services/model/pulsar/pulsar';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useInstanceQuickSearch, useTicketMessage, useUrlSearch } from '@hooks';
+  import { useCreateTicket, useInstanceQuickSearch, useUrlSearch } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -133,8 +132,12 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const ticketMessage = useTicketMessage();
   const { getSearchParams } = useUrlSearch();
+
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    successMessage: t('操作提交成功'),
+  });
 
   const requestHandler = useClusterInstanceList(props.clusterType);
   const { handleSelection, selectedList } = useClusterTableSelect<IColumnData>();
@@ -222,28 +225,22 @@
           isBatchRestartLoading.value = false;
         }
       },
-      onConfirm: () => {
+      onConfirm: async () => {
         isRestartActionDisabled.value = true;
-        return createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        const ticketId = await createTicketRun({
           details: {
             cluster_id: props.clusterData.id,
             instance_list: formatRequestData(restartInstanceList),
           },
           ticket_type: clusterTypeWithTicketTypeMap[props.clusterType],
-        })
-          .then((data) => {
-            ticketMessage(data.id);
-            window.changeConfirm = false;
-          })
-          .finally(() => {
-            isRestartActionDisabled.value = false;
-            if (data) {
-              isRestartLoading.value = false;
-            } else {
-              isBatchRestartLoading.value = false;
-            }
-          });
+        });
+        isRestartActionDisabled.value = false;
+        if (data) {
+          isRestartLoading.value = false;
+        } else {
+          isBatchRestartLoading.value = false;
+        }
+        return Boolean(ticketId);
       },
       subTitle: () => (
         <div style='background-color: #F5F7FA; padding: 8px 16px;'>

@@ -118,11 +118,10 @@
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
 
-  import { createTicket } from '@services/source/ticket';
   import type { BaseResponse } from '@services/types';
   import type { AuthorizePreCheckData, AuthorizePreCheckResult } from '@services/types/permission';
 
-  import { useTicketMessage } from '@hooks';
+  import { useCreateTicket } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -143,9 +142,13 @@
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    onSuccess: () => handleCloseUpload(),
+    successMessage: t('操作提交成功'),
+  });
 
-  const basePath = window.PROJECT_ENV.VITE_PUBLIC_PATH ? window.PROJECT_ENV.VITE_PUBLIC_PATH : '/';
+  const basePath = window.PROJECT_STATIC_PATH ? window.PROJECT_STATIC_PATH : '/';
   const excelState = reactive({
     importable: false,
     isLoading: false,
@@ -192,7 +195,6 @@
 
   const handleConfirmImport = () => {
     const params = {
-      bk_biz_id: globalBizsStore.currentBizId,
       details: {
         authorize_data_list: excelState.precheck.authorizeDataList.map((authorizeItem) => {
           const authorizeItemCopy = { ...authorizeItem };
@@ -204,18 +206,12 @@
         authorize_uid: excelState.precheck.uid,
         excel_url: excelState.precheck.excelUrl,
       },
-      remark: '',
-      ticket_type: props.ticketType,
+      ticket_type: TicketTypes[props.ticketType],
     };
     excelState.isLoading = true;
-    createTicket(params)
-      .then((res) => {
-        ticketMessage(res.id);
-        handleCloseUpload();
-      })
-      .finally(() => {
-        excelState.isLoading = false;
-      });
+    createTicketRun(params).finally(() => {
+      excelState.isLoading = false;
+    });
   };
 
   /**
@@ -267,8 +263,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .excel-authorize {
     padding-bottom: 40px;
     font-size: @font-size-mini;
@@ -278,10 +272,11 @@
     }
 
     .excel-authorize-file {
+      display: flex;
+      align-items: center;
       overflow: hidden;
       font-size: @font-size-mini;
       flex: 1;
-      .flex-center();
 
       .db-icon-excel {
         margin-right: 16px;

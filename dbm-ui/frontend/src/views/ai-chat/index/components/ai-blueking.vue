@@ -62,7 +62,7 @@
   const isSessionListLoading = ref(false);
   const activeSessionCode = ref('');
 
-  const url = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/apis/ai/agent');
+  const url = urlJoin(window.BK_AJAX_URL, '/apis/ai/agent');
 
   const aiBluekingRef = useTemplateRef<InstanceType<typeof AIBlueking>>('aiBlueking');
   const isSwitchingSessionLoading = ref(false);

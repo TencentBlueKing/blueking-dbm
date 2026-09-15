@@ -24,18 +24,22 @@
         </BkRadioGroup>
       </div>
       <div class="right-operation">
-        <SearchOperation
-          ref="searchOperationRef"
-          @search="handleSearchChange" />
+        <DbQuickSearch
+          v-model="quickSearchValue"
+          :data="quickSearchData"
+          parse-url
+          :placeholder="t('请输入或选择条件搜索')"
+          style="width: 500px"
+          @change="handleQuickSearchChange" />
       </div>
     </div>
     <DbTable
       ref="tableRef"
       :data-source="getAlarmShieldList"
+      :filter-value="quickSearchValue"
       releate-url-query
       row-key="id"
       size="large"
-      @clear-search="handleClearSearchValue"
       @filter-change="handleTableFilterChange"
       @request-success="handleRequestFinished"
       @selection="handleSelection">
@@ -55,11 +59,7 @@
       </TableColumn>
       <TableColumn
         col-key="category"
-        :filter="{
-          list: phaseFilterList,
-          showConfirmAndReset: true,
-          type: 'multiple',
-        }"
+        :filter="columnFilter?.category"
         :min-width="160"
         :title="t('屏蔽类型')">
         <template #default="{ row }: { row: RowData }">
@@ -113,9 +113,13 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="shieldTimeDisplay"
+        col-key="time_range"
+        :filter="columnFilter?.time_range"
         :min-width="420"
         :title="t('屏蔽时间')">
+        <template #default="{ row }: { row: RowData }">
+          {{ row.shieldTimeDisplay }}
+        </template>
       </TableColumn>
       <TableColumn
         col-key="row-operation"
@@ -224,18 +228,18 @@
   import { messageSuccess } from '@utils';
 
   import EditShieldAlarms from './components/edit-shield-alarms/Index.vue';
-  import SearchOperation from './components/SearchOperation.vue';
   import ShieldContent from './components/ShieldContent.vue';
+  import { useColumnFilter, useQuickSearch } from './useSearch';
 
   type RowData = ServiceReturnType<typeof getAlarmShieldList>['results'][number];
 
   const { t } = useI18n();
-  const router = useRouter();
   const route = useRoute();
   const handleBeforeClose = useBeforeClose();
+  const { quickSearchData, quickSearchValue } = useQuickSearch();
+  const { data: columnFilter } = useColumnFilter();
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
   const editMode = ref('edit');
   const showShieldAlarm = ref(false);
   const filterValue = ref(route.query.is_active ? Number(route.query.is_active) : 1);
@@ -269,31 +273,11 @@
     create: t('新建'),
     edit: t('编辑'),
   };
-  const phaseFilterList = [
-    {
-      label: t('基于事件屏蔽'),
-      value: 'alert',
-    },
-    {
-      label: t('基于维度屏蔽'),
-      value: 'dimension',
-    },
-    {
-      label: t('基于策略屏蔽'),
-      value: 'strategy',
-    },
-  ];
-  const searchDataKeys = ['category', 'content', 'updator', 'time_range'];
-
   const { run: unlockAlarmShield } = useRequest(disabledAlarmShield, {
     manual: true,
     onSuccess() {
       messageSuccess(t('解除告警屏蔽成功'));
-      const params = route.query;
-      tableRef.value?.fetchData({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        ...params,
-      });
+      fetchData();
     },
   });
 
@@ -316,23 +300,13 @@
     }
   });
 
-  watch(
-    () => route.query,
-    () => {
-      const params = route.query;
-      setTimeout(() => {
-        tableRef.value?.fetchData({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          is_active: filterValue.value,
-          ...params,
-        });
-      });
-    },
-    {
-      deep: true,
-      immediate: true,
-    },
-  );
+  const fetchData = () => {
+    tableRef.value?.fetchData({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      is_active: filterValue.value,
+      ...quickSearchValue.value,
+    });
+  };
 
   const handleRequestFinished = (data: { count: number; results: RowData[] }) => {
     if (filterValue.value) {
@@ -356,56 +330,22 @@
     showShieldAlarm.value = true;
   };
 
-  const handleClearSearchValue = () => {
-    searchOperationRef.value!.reset();
-  };
-
   const handleFilterChange = (value: number) => {
-    router.push({
-      name: route.name,
-      query: {
-        ...route.query,
-        is_active: value,
-      },
-    });
+    filterValue.value = value;
+    fetchData();
   };
 
   const handleSelection = (_: any, list: RowData[]) => {
     selectionList.value = list;
   };
 
-  const handleTableFilterChange = (filterValue: Record<string, string[]>) => {
-    const columnFilterParams = Object.keys(filterValue).reduce<Record<string, string>>((result, key) => {
-      if (filterValue[key]?.length) {
-        Object.assign(result, {
-          [key]: filterValue[key].join(','),
-        });
-      }
-      return result;
-    }, {});
-    tableRef.value?.fetchData({
-      ...route.query,
-      ...columnFilterParams,
-    });
+  const handleQuickSearchChange = () => {
+    fetchData();
   };
 
-  const handleSearchChange = (data: Record<string, string>) => {
-    const searchData = _.cloneDeep(data);
-    const query = _.cloneDeep(route.query);
-    Object.keys(route.query).forEach((key) => {
-      if (!searchData[key] && searchDataKeys.includes(key)) {
-        // searchselect 删除的项
-        delete query[key];
-      } else if (searchData[key]) {
-        query[key] = searchData[key];
-        delete searchData[key];
-      }
-    });
-    Object.assign(query, searchData);
-    router.push({
-      name: route.name,
-      query,
-    });
+  // 表头筛选写回快捷搜索，由快捷搜索的 change 统一触发请求
+  const handleTableFilterChange = (value: Record<string, string>) => {
+    quickSearchValue.value = value;
   };
 
   const handleClosed = () => {
@@ -413,11 +353,7 @@
   };
 
   const handleCreateSuccess = () => {
-    const params = route.query;
-    tableRef.value?.fetchData({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      ...params,
-    });
+    fetchData();
   };
 
   const initFilterCount = async () => {

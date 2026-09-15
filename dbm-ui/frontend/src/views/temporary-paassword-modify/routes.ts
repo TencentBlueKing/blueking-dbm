@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { registerBusinessModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -26,5 +28,7 @@ const routes = [
 ];
 
 export default function getRoutes() {
-  return checkDbConsole('databaseManage.temporaryPaasswordModify') ? routes : [];
+  if (checkDbConsole('databaseManage.temporaryPaasswordModify')) {
+    registerBusinessModule(routes);
+  }
 }

@@ -108,11 +108,8 @@
   import { getHdfsInstanceList } from '@services/source/hdfs';
   import { getKafkaInstanceList } from '@services/source/kafka';
   import { getPulsarInstanceList } from '@services/source/pulsar';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -147,8 +144,15 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { run: createTicketRun } = useCreateTicket(undefined, {
+    isToolbox: false,
+    onSuccess: () => {
+      fetchData();
+      window.changeConfirm = false;
+      emits('close');
+    },
+    successMessage: t('操作提交成功'),
+  });
 
   const activeIndex = ref(['baseInfo', 'instanceList']);
   const isAnomalies = ref(false);
@@ -425,28 +429,20 @@
           kafka: TicketTypes.KAFKA_REBOOT,
           pulsar: TicketTypes.PULSAR_REBOOT,
         };
-        createTicket({
-          bk_biz_id: currentBizId,
+        createTicketRun({
           details: {
             cluster_id: props.clusterId,
             instance_list: formatRequestData(instanceList),
           },
           ticket_type: clusterTypeMap[props.clusterType],
-        })
-          .then((data) => {
-            ticketMessage(data.id);
-            fetchData();
-            window.changeConfirm = false;
-            emits('close');
-          })
-          .finally(() => {
-            isRestartActionDisabled.value = false;
-            if (data) {
-              isRestartLoading.value = false;
-            } else {
-              isBatchRestartLoading.value = false;
-            }
-          });
+        }).finally(() => {
+          isRestartActionDisabled.value = false;
+          if (data) {
+            isRestartLoading.value = false;
+          } else {
+            isBatchRestartLoading.value = false;
+          }
+        });
       },
       subTitle,
       title: t('确认重启该实例？'),
@@ -466,8 +462,6 @@
   }
 </style>
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .bigdata-instance-detail {
     padding: 20px 24px;
 
@@ -481,8 +475,8 @@
       }
 
       .base-info-item {
-        .flex-center();
-
+        display: flex;
+        align-items: center;
         line-height: 32px;
       }
 
@@ -496,8 +490,8 @@
       }
 
       .base-info-value-container {
-        .flex-center();
-
+        display: flex;
+        align-items: center;
         overflow: hidden;
         color: @title-color;
         flex: 1;

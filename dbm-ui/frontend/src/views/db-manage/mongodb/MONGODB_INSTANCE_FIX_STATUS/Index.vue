@@ -37,8 +37,8 @@
             :append-rules="rules"
             :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
             :columns="['instance']"
+            :fetch-params="fetchParams"
             :selected="selected"
-            :tab-list-config="tabListConfig"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -67,15 +67,11 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-
-  import { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -133,37 +129,10 @@
     },
   ];
 
-  const tabListConfig = {
-    mongoCluster: [
-      {
-        id: 'mongoCluster',
-        name: t('目标主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('目标主机'),
-          },
-          getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
-            getMongoInstancesList(
-              Object.assign({}, params, {
-                cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
-                role: 'proxy',
-              }),
-            ),
-          multiple: true,
-        },
-        topoConfig: {
-          countFunc: (data: MongodbModel) => data.mongos.length,
-          getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
-            getMongoTopoList(
-              Object.assign({}, params, {
-                cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
-              }),
-            ),
-        },
-      },
-    ],
-  } as Record<string, PanelListType>;
+  // Mongos 状态修复：仅分片集群接入层（mongos/role=proxy）实例
+  const fetchParams = {
+    role: 'proxy',
+  };
 
   const formData = reactive(defaultData());
   const tableKey = ref(random());

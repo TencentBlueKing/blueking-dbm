@@ -37,15 +37,16 @@
 
     const pathRoot = `/${bkBizId}`;
     if (!window.PROJECT_CONFIG.BIZ_ID) {
-      window.location.href = pathRoot;
+      window.location.href = router.resolve(pathRoot).href;
       return;
     }
 
+    // targetPath 为不含站点根路径的路由 path，跳转前经 resolve 补全 base
     const reload = (targetPath: string) => {
       const path = targetPath.replace(/^\/[\d]+/, pathRoot);
 
       setTimeout(() => {
-        window.open(path, '_self');
+        window.open(router.resolve(path).href, '_self');
       }, 100);
     };
     // 1，当前路由不带参数，切换业务时停留在当前页面
@@ -83,7 +84,7 @@
         const route = router.resolve({
           name: redirectName,
         });
-        reload(route.href);
+        reload(route.fullPath);
         return;
       }
     }
