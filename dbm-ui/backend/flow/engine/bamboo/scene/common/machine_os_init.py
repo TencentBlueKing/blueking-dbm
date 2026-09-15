@@ -546,6 +546,7 @@ class ImportResourceInitStepFlow(object):
                     count=self.data["count"],
                     spec_id=self.data["spec_id"],
                     os_name=self.data["os_name"],
+                    anti_affinity_level=self.data.get("anti_affinity_level", ""),
                 )
             ),
         )
