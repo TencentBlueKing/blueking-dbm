@@ -27,6 +27,11 @@ from backend.flow.consts import ConfigDefaultEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_job2 import RedisExecJobComponent2
+from backend.flow.plugins.components.collections.redis.redis_keystat_restore_policy import (
+    RedisKeystatRecordPolicyComponent,
+    RedisKeystatRestorePolicyComponent,
+    need_keystat_maxmemory_policy_steps,
+)
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -152,6 +157,19 @@ class RedisKeystatFlow(object):
             act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
+        # Redis < 6 不会为 atime 改 maxmemory-policy，不编排记录/恢复步骤
+        policy_infos = [
+            {"cluster_id": info["cluster_id"], "ins": info["ins"]}
+            for info in self.data["infos"]
+            if need_keystat_maxmemory_policy_steps(clusters[info["cluster_id"]].major_version)
+        ]
+        if policy_infos:
+            redis_pipeline.add_act(
+                act_name=_("记录 maxmemory-policy"),
+                act_component_code=RedisKeystatRecordPolicyComponent.code,
+                kwargs={"set_trans_data_dataclass": CommonContext.__name__, "infos": policy_infos},
+            )
+
         # 生成下发任务
         acts_list = []
         for info in self.data["infos"]:
@@ -171,6 +189,13 @@ class RedisKeystatFlow(object):
             )
 
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
+        # dump 过程可能把 maxmemory-policy 临时改成 volatile-lru；用分析前记录的值再对齐一次
+        if policy_infos:
+            redis_pipeline.add_act(
+                act_name=_("恢复 maxmemory-policy"),
+                act_component_code=RedisKeystatRestorePolicyComponent.code,
+                kwargs={"set_trans_data_dataclass": CommonContext.__name__, "infos": policy_infos},
+            )
         redis_pipeline.run_pipeline()
 
     @classmethod
