@@ -40,7 +40,6 @@ export * from './useProps';
 export * from './useReportCount';
 export * from './useRiskMemoCount';
 export * from './useSelectorDialogWidth';
-export * from './useSelectorSearch';
 export * from './useSQLTaskNotify';
 export * from './useStickyFooter';
 export * from './useTableMaxHeight';

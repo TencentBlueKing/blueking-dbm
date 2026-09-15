@@ -26,6 +26,7 @@
       :data-source="realDataSource"
       :disable-select-method="disableSelectMethod"
       :filter-value="quickSearchValue"
+      row-click-selectable
       row-key="ip"
       :select-single="single"
       selectable
@@ -34,6 +35,7 @@
       @selection="handleSelection">
       <TableColumn
         col-key="ip"
+        :filter="tableFilter.ip"
         fixed="left"
         :min-width="140"
         :title="t('主机IP')">
@@ -48,6 +50,7 @@
       </TableColumn>
       <TableColumn
         col-key="instance_role"
+        :filter="tableFilter.instance_role"
         :min-width="140"
         :title="t('部署角色')">
         <template #default="{ row }: { row: IRowData }">
@@ -84,6 +87,7 @@
         :title="t('架构类型')" />
       <TableColumn
         col-key="bk_city_id"
+        :filter="tableFilter.bk_city_id"
         :title="t('地域')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
@@ -92,6 +96,7 @@
       </TableColumn>
       <TableColumn
         col-key="bk_sub_zone"
+        :filter="tableFilter.bk_sub_zone"
         :title="t('园区')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
@@ -108,6 +113,7 @@
       </TableColumn>
       <TableColumn
         col-key="bk_os_name"
+        :filter="tableFilter.bk_os_name"
         :title="t('操作系统')"
         :width="150">
         <template #default="{ row }: { row: IRowData }">
@@ -116,6 +122,7 @@
       </TableColumn>
       <TableColumn
         col-key="spec_id"
+        :filter="tableFilter.spec_id"
         :title="t('绑定规格')"
         :width="160">
         <template #default="{ row }: { row: IRowData }">
@@ -141,6 +148,7 @@
       </TableColumn>
       <TableColumn
         col-key="bk_svr_device_cls_name"
+        :filter="tableFilter.bk_svr_device_cls_name"
         :title="t('机型')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
@@ -176,6 +184,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends ISupportHostType">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { queryBizMachineAttrs } from '@services/source/dbbase';
@@ -183,6 +192,8 @@
   import { ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
   import { batchSplitRegex, ipPort, ipv4 } from '@common/regex';
 
+  import MultipleInput from '@components/db-table/components/MultipleInput.vue';
+  import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
@@ -314,6 +325,56 @@
     },
   ];
 
+  // 表头筛选与搜索栏是同一套条件的两个入口，字段 id 与搜索项、列 col-key 保持一致
+  const tableFilter = {
+    bk_city_id: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('bk_city_id'),
+      },
+      showConfirmAndReset: true,
+    },
+    bk_os_name: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('bk_os_name'),
+      },
+      showConfirmAndReset: true,
+    },
+    bk_sub_zone: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('bk_sub_zone'),
+      },
+      showConfirmAndReset: true,
+    },
+    bk_svr_device_cls_name: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('bk_svr_device_cls_name'),
+      },
+      showConfirmAndReset: true,
+    },
+    instance_role: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('instance_role'),
+      },
+      showConfirmAndReset: true,
+    },
+    ip: {
+      component: markRaw(MultipleInput),
+      showConfirmAndReset: true,
+    },
+    spec_id: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('spec_id'),
+      },
+      showConfirmAndReset: true,
+    },
+  };
+
   const quickSearchValue = ref<Record<string, any>>({});
 
   // 默认数据源：按主机类型映射 machine list 接口；调用方可通过 dataSourceMap 按类型覆盖（含角色过滤）
@@ -328,12 +389,14 @@
     hostTableRef.value!.fetchData(Object.assign({}, quickSearchValue.value));
   };
 
+  // DbQuickSearch 挂载时会回显一次并 emit change，首次列表数据由此拉取，不再额外 onMounted 请求
   const handleQuickSearchChange = () => {
     fetchData();
   };
 
-  const handleFilterChange = (filterValue: Record<string, string>) => {
-    quickSearchValue.value = filterValue;
+  const handleFilterChange = (filterValue: Record<string, string | string[]>) => {
+    // 搜索栏与筛选面板都按逗号分隔字符串取值，多选列重置时表格会回传数组，入口处统一归一
+    quickSearchValue.value = _.mapValues(filterValue, (value) => (Array.isArray(value) ? value.join(',') : value));
     fetchData();
   };
 
@@ -342,10 +405,6 @@
   };
 
   const transformMToG = (value?: number) => (value ? (value / 1024).toFixed(2) : '--');
-
-  onMounted(() => {
-    fetchData();
-  });
 </script>
 
 <style lang="less">
