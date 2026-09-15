@@ -599,7 +599,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             data["user_id"] = request.user.id
             data = MongoClusterServiceHandler(bk_biz_id=cluster.bk_biz_id).webconsole_rpc(**data)
         # 对外部查询进行数据脱敏
-        if getattr(request, "is_external", False) and env.BKDATA_DATA_TOKEN:
+        if getattr(request, "is_external", False) and (env.BKDATA_SENSI_AGENT_URL or env.BKDATA_DATA_TOKEN):
             username = request.user.username
             data = BKBaseApi.data_desensitization(user=username, text=json.dumps(data), bk_biz_id=cluster.bk_biz_id)
             data = json.loads(data)

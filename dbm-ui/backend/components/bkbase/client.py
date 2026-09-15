@@ -8,14 +8,26 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from urllib.parse import urljoin
 
 from django.utils.translation import gettext_lazy as _
 
 from ... import env
 from ...dbm_init.constants import CC_HOST_DBM_ATTR
-from ..base import BaseApi
+from ..base import BaseApi, DataAPI
 from ..domains import BKBASE_APIGW_DOMAIN
+
+logger = logging.getLogger("root")
+
+
+class _SensiDetectApi(DataAPI):
+    """敏感信息检测网关返回 success/detections，不遵循蓝鲸 result/code 协议，这里补齐成标准结构"""
+
+    def safe_response(self, response_result):
+        response_result.setdefault("result", bool(response_result.get("success")))
+        response_result.setdefault("data", response_result.get("detections") or [])
+        return super().safe_response(response_result)
 
 
 class _BKBaseApi(BaseApi):
@@ -28,6 +40,15 @@ class _BKBaseApi(BaseApi):
             url="v3/aiops/serving/processing/sensitive_text_classification_normal/execute/",
             description=_("敏感信息识别"),
         )
+        # 敏感信息检测 V2，部署在独立网关上，不复用 BKBASE_APIGW_DOMAIN
+        self.sensitive_ai_detect = _SensiDetectApi(
+            method="POST",
+            base=env.BKDATA_SENSI_AGENT_URL,
+            url="api/v1/sensitive/ai_detect/",
+            module=self.MODULE,
+            description=_("敏感信息识别V2"),
+        )
+
         self.report_data = self.generate_data_api(
             method="POST",
             url="v4/report_data/",
@@ -43,6 +64,26 @@ class _BKBaseApi(BaseApi):
         """
         敏感信息识别，并把敏感信息转为*
         """
+        if env.BKDATA_SENSI_AGENT_URL:
+            return self._data_desensitization_v2(text)
+        if env.BKDATA_DATA_TOKEN:
+            return self._data_desensitization_v1(user, text, bk_biz_id)
+
+        logger.warning("未配置 BKDATA_SENSI_AGENT_URL 和 BKDATA_DATA_TOKEN，跳过敏感信息识别")
+        return text
+
+    def _data_desensitization_v2(self, text):
+        """敏感信息识别V2"""
+        detections = self.sensitive_ai_detect(
+            {"content": text, "detect_mode": env.BKDATA_SENSI_DETECT_MODE},
+        )
+        values = {detection["value"] for detection in detections or [] if detection.get("value")}
+        # 敏感信息替换*，长的先替换，避免短值命中长值的一部分
+        for value in sorted(values, key=len, reverse=True):
+            text = text.replace(value, "*")
+        return text
+
+    def _data_desensitization_v1(self, user, text, bk_biz_id):
         from ...db_meta.models import AppCache
 
         app = AppCache.get_appcache("appcache_dict")[str(bk_biz_id)]

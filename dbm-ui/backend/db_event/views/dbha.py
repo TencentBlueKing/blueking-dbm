@@ -21,13 +21,30 @@ from backend.components.hadb.client import HADBApi
 from backend.components.hadbv2.client import HADBApiV2
 from backend.db_event.serializers import QueryDetailSerializer, QueryListSerializer
 from backend.db_meta.models import AppCache, Cluster
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 
 SWAGGER_TAG = _("DBHA事件")
 
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
     def get_action_permission_map(self):
-        return {("cat", "ls"): []}
+        return {
+            ("ls",): [
+                ResourceActionPermission(
+                    [ActionEnum.DB_MANAGE],
+                    ResourceEnum.BUSINESS,
+                    instance_ids_getter=self.instance_app_getter,
+                )
+            ],
+            ("cat",): [],
+        }
+
+    @staticmethod
+    def instance_app_getter(request, view):
+        app = get_request_key_id(request, "app")
+        return [app] if app else []
 
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),
