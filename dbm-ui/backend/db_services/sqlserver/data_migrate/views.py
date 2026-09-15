@@ -27,13 +27,38 @@ from backend.db_services.sqlserver.data_migrate.serializers import (
     QueryMigrateRecordsResponseSerializer,
     QueryMigrateRecordsSerializer,
 )
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
 
 SWAGGER_TAG = "db_services/sqlserver/migrate"
 
 
 class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
+
+    def get_action_permission_map(self):
+        return {
+            ("manual_terminate_sync",): [
+                ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, self.ticket_ids_getter)
+            ],
+            ("force_failed_migrate",): [
+                ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, self.dts_ids_getter)
+            ],
+        }
+
+    @staticmethod
+    def ticket_ids_getter(request, view):
+        ticket_id = get_request_key_id(request, "ticket_id")
+        return [ticket_id] if ticket_id else []
+
+    @staticmethod
+    def dts_ids_getter(request, view):
+        dts_id = get_request_key_id(request, "dts_id")
+        if not dts_id:
+            return []
+        dts = SqlserverDtsInfo.objects.filter(id=dts_id).only("ticket_id").first()
+        return [dts.ticket_id] if dts else []
 
     @common_swagger_auto_schema(
         operation_summary=_("手动断开同步"),

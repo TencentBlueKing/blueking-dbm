@@ -105,7 +105,7 @@ class BizSettingsPermission(ResourceActionPermission):
     }
 
     def inst_ids_getter(self, request, view):
-        action = self.config_action_map.get(request.data["key"])
+        action = self.config_action_map.get(request.data["key"], ActionEnum.DB_MANAGE)
         self.actions = [action] if action else []
         self.resource_meta = ResourceEnum.BUSINESS
         return [request.data["bk_biz_id"]]

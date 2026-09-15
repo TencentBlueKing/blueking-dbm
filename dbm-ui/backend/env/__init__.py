@@ -260,6 +260,10 @@ SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, def
 
 # 数据平台应用 token
 BKDATA_DATA_TOKEN = get_type_env(key="BKDATA_DATA_TOKEN", _type=str, default="")
+# 敏感信息检测 agent 网关地址，形如 https://xxx.apigw.example.com/stag/，配置后走 V2 检测
+BKDATA_SENSI_AGENT_URL = get_type_env(key="BKDATA_SENSI_AGENT_URL", _type=str, default="")
+# 敏感信息检测模式：ai(大模型语义检测，2-5s) / regex(正则规则检测，<100ms)
+BKDATA_SENSI_DETECT_MODE = get_type_env(key="BKDATA_SENSI_DETECT_MODE", _type=str, default="regex")
 # 数据平台前端数据上报地址
 BKDATA_FRONTEND_DATA_ID = get_type_env(key="BKDATA_FRONTEND_DATA_ID", _type=str, default="")
 
