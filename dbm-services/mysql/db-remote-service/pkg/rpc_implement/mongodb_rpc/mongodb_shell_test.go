@@ -2,10 +2,14 @@
 package mongodb_rpc
 
 import (
+	"bytes"
+	"log/slog"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestPrecheckInput(t *testing.T) {
@@ -238,5 +242,55 @@ func TestIsValidInput(t *testing.T) {
 				t.Errorf("isValidInput() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPrecheckInputPreservesCheckInputError(t *testing.T) {
+	_, err := precheckInput("mongosh", []byte("db.foo.find({"))
+	if err == nil {
+		t.Fatal("expected invalid input error")
+	}
+	if !errors.Is(err, CheckInputError) {
+		t.Fatalf("errors.Is CheckInputError = false, err=%v", err)
+	}
+}
+
+func TestMongoHostWithoutSecrets(t *testing.T) {
+	h := MongoHost{Host: "127.0.0.1:27017", Password: "secret", AdminPassword: "admin-secret"}
+	safe := h.withoutSecrets()
+	if safe.Password != "" || safe.AdminPassword != "" {
+		t.Fatalf("secrets leaked: %+v", safe)
+	}
+	if h.Password != "secret" {
+		t.Fatal("withoutSecrets must not mutate original")
+	}
+}
+
+func TestMongoShellStopZeroPid(t *testing.T) {
+	r := &MongoShell{
+		StopChan: make(chan struct{}, 1),
+		logger:   slog.Default(),
+	}
+	r.Stop()
+	r.Stop()
+}
+
+func TestResponseEndSplitAcrossChunks(t *testing.T) {
+	marker := []byte(EndOfOutput)
+	first := marker[:len(marker)/2]
+	second := marker[len(marker)/2:]
+	if isResponseEnd(first) || isResponseEnd(second) {
+		t.Fatal("split marker must not match a single chunk")
+	}
+	joined := append(append([]byte{}, first...), second...)
+	if !bytes.Contains(joined, marker) {
+		t.Fatal("joined chunks should contain marker")
+	}
+}
+
+func TestGetUniqSessionToken(t *testing.T) {
+	p := &QueryParams{ClusterDomain: "m1.a.db", OaUser: "u1", Token: "t1"}
+	if p.GetUniqSessionToken() != "m1.a.db_u1_t1" {
+		t.Fatalf("got %q", p.GetUniqSessionToken())
 	}
 }

@@ -29,32 +29,38 @@ type MySession struct {
 	RespCount    int
 }
 
+func (r *MySession) setStopped(stopped bool) {
+	r.stoppedMutex.Lock()
+	r.stopped = stopped
+	r.stoppedMutex.Unlock()
+}
+
 // Run starts the routine.
 func (r *MySession) Run(j Job) error {
 	r.stoppedMutex.Lock()
-	defer r.stoppedMutex.Unlock()
 	if !r.stopped {
+		r.stoppedMutex.Unlock()
 		r.logger.Info(fmt.Sprintf("routine %s is already running", r.Name))
 		return nil
 	}
-
 	r.logger.Info(fmt.Sprintf("start %s", r.Name))
 	r.job = j
+	r.stopped = false
+	r.stoppedMutex.Unlock()
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	errChan := make(chan error, 1)
 	go func() {
-		r.stopped = false
 		err := r.job.Run(&wg, r.logger)
 		if err != nil {
 			errChan <- err
 			r.logger.Info(fmt.Sprintf("routine %s done, err: %s", r.Name, err))
 			wg.Done()
 		}
-		// todo: 这里不加锁有风险吗？
-		r.stopped = true
+		r.setStopped(true)
 	}()
-	wg.Wait() // wait for the routine to start. 最多2秒.
+	wg.Wait()
 	select {
 	case err := <-errChan:
 		r.logger.Info(fmt.Sprintf("routine %s done, err: %s", r.Name, err))
@@ -65,8 +71,12 @@ func (r *MySession) Run(j Job) error {
 	}
 }
 
-// IsTimeout todo check if the routine is timeout.
+// IsTimeout reports whether the session has been idle longer than timeoutSecond.
+// A zero LastRunTime is treated as not idle so a just-created session is not reaped.
 func (r *MySession) IsTimeout(timeoutSecond int64) bool {
+	if r.LastRunTime.IsZero() {
+		return false
+	}
 	return time.Since(r.LastRunTime) > time.Duration(timeoutSecond)*time.Second
 }
 
@@ -84,9 +94,9 @@ func (r *MySession) Stop() {
 	if r.stopped {
 		return
 	}
-	// try to stop the routine. may be failed.
-	r.job.Stop()
-	// set stopped flag
+	if r.job != nil {
+		r.job.Stop()
+	}
 	r.stopped = true
 }
 
@@ -131,38 +141,44 @@ func NewPool(logger *slog.Logger) *Pool {
 	}
 }
 
-// CheckTimeout checks if any routine is timeout.
+// CheckTimeout periodically reaps idle and stopped sessions.
 func (p *Pool) CheckTimeout(timeout int64) {
 	ticker := time.NewTicker(time.Duration(timeout) * time.Second)
 	for range ticker.C {
-		// p.logger.Info("check timeout start", slog.Int("timeout", int(timeout)))
 		t := time.Now()
-		p.mutex.Lock()
-		var stopped []string
-		var runningCount int
-		for _, r := range p.routines {
-			if r.IsTimeout(timeout) {
-				p.logger.Info(fmt.Sprintf("routine %s is stopped by timeout (%d)", r.Name, timeout))
-				r.Stop()
-				delete(p.routines, r.Name)
-				stopped = append(stopped, r.Name)
-			} else if r.IsStopped() {
-				p.logger.Info(fmt.Sprintf("routine %s is stopped", r.Name))
-				stopped = append(stopped, r.Name)
-				delete(p.routines, r.Name)
-			} else {
-				runningCount++
-			}
-		}
-		p.mutex.Unlock()
+		stopped, runningCount := p.sweepTimeout(timeout)
 		p.logger.Info("check timeout",
 			slog.Int("timeout", int(timeout)),
 			slog.String("elapsed", fmt.Sprintf("%0.6f seconds", time.Since(t).Seconds())),
 			slog.Int("stopped_count", len(stopped)),
 			slog.Int("running_count", runningCount),
 			slog.String("stopped", fmt.Sprintf("%+v", stopped)))
-
 	}
+}
+
+// sweepTimeout removes idle/stopped sessions. Stop() is called after the pool lock is released.
+func (p *Pool) sweepTimeout(timeout int64) (stopped []string, runningCount int) {
+	var toKill []*MySession
+	p.mutex.Lock()
+	for name, r := range p.routines {
+		if r.IsTimeout(timeout) {
+			p.logger.Info(fmt.Sprintf("routine %s is stopped by timeout (%d)", r.Name, timeout))
+			toKill = append(toKill, r)
+			stopped = append(stopped, name)
+			delete(p.routines, name)
+		} else if r.IsStopped() && r.job != nil {
+			p.logger.Info(fmt.Sprintf("routine %s is stopped", r.Name))
+			stopped = append(stopped, name)
+			delete(p.routines, name)
+		} else {
+			runningCount++
+		}
+	}
+	p.mutex.Unlock()
+	for _, r := range toKill {
+		r.Stop()
+	}
+	return stopped, runningCount
 }
 
 // Add adds a routine to the pool.
@@ -177,6 +193,7 @@ func (p *Pool) Add(name string) *MySession {
 			stoppedMutex: sync.Mutex{},
 			logger:       p.logger.With(slog.String("routine", name)),
 			RunningLock:  sync.Mutex{},
+			LastRunTime:  time.Now(),
 		}
 	}
 	return p.routines[name]
