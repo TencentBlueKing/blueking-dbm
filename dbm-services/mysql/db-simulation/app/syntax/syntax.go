@@ -228,13 +228,19 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 			logger.Error("Do init failed %s", err.Error())
 			return nil, err
 		}
+	}
+	// 最后删除临时目录,不会返回错误
+	defer tf.DelTempDir()
+	if !tf.IsLocalFile {
+		if err = tf.rejectEmptySQLFilesFromRepo(); err != nil {
+			logger.Error("reject empty sql file: %s", err.Error())
+			return nil, err
+		}
 		if err = tf.Downloadfile(); err != nil {
 			logger.Error("failed to download sql file from the product library %s", err.Error())
 			return nil, err
 		}
 	}
-	// 最后删除临时目录,不会返回错误
-	defer tf.DelTempDir()
 
 	var errs []error
 	for _, version := range versions {
@@ -594,6 +600,25 @@ func (t *TmysqlParse) DelTempDir() {
 // 或 tmysqlparse 写同一输出文件而互相覆盖，每个物理文件只需处理一次。
 func (tf *TmysqlParseFile) uniqueFileNames() []string {
 	return lo.Uniq(tf.Param.FileNames)
+}
+
+// rejectEmptySQLFilesFromRepo 用制品库 node/detail 的 size 拒绝空文件，下载前拦截。
+func (tf *TmysqlParseFile) rejectEmptySQLFilesFromRepo() error {
+	if tf.bkRepoClient == nil {
+		return fmt.Errorf("bkrepo client is not initialized")
+	}
+	for _, fileName := range tf.uniqueFileNames() {
+		node, queryErr := tf.bkRepoClient.QueryFileNodeInfo(tf.Param.BkRepoBasePath, fileName)
+		if queryErr != nil {
+			logger.Error("query bkrepo node %s failed: %s", fileName, queryErr.Error())
+			return fmt.Errorf("query sql file %s from bkrepo failed: %w", fileName, queryErr)
+		}
+		if node.Size == 0 {
+			logger.Error("sql file %s is empty, bkrepo size=0", fileName)
+			return fmt.Errorf("制品库SQL文件[%s]内容为空，无法进行语法检查，请确认文件已正确上传后重试", fileName)
+		}
+	}
+	return nil
 }
 
 // Downloadfile download sqlfile
