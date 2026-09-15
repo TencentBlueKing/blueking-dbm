@@ -25,6 +25,8 @@
 package open
 
 import (
+	"context"
+
 	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
 	"dbm-services/common/dbha-v2/internal/admin/switchlog"
@@ -33,14 +35,14 @@ import (
 )
 
 // RegisterOpenAPI register open api
-func RegisterOpenAPI(db *hamysql.GormDB, server *hanet.GinHTTPServer) {
+func RegisterOpenAPI(dbProvider func(context.Context) *hamysql.GormDB, server *hanet.GinHTTPServer) {
 	// Register strategy api
-	strategyHandler := handler.NewStrategyHandler(&strategy.Strategy{DB: db})
+	strategyHandler := handler.NewStrategyHandler(&strategy.Strategy{DBProvider: dbProvider})
 	RegisterStrategyApi(strategyHandler, server)
 	RegisterGlobalStrategyApi(strategyHandler, server)
 
 	// Register switch log api
-	switchLogHandler := handler.NewSwitchLogHandler(&switchlog.SwitchLog{DB: db})
+	switchLogHandler := handler.NewSwitchLogHandler(&switchlog.SwitchLog{DBProvider: dbProvider})
 	RegisterSwitchLogApi(switchLogHandler, server)
 }
 

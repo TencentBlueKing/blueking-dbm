@@ -32,6 +32,7 @@ const (
 	MetricLabelMethod = "method"
 	MetricLabelPath   = "path"
 	MetricLabelStatus = "status"
+	MetricLabelResult = "result"
 	// MetricLabelReason explains why a probe config request could not be answered from the
 	// local metadata cache. It is deliberately a small fixed set of values: labelling by ip or
 	// bk_cloud_id would create one time series per machine.
@@ -47,7 +48,12 @@ var (
 	// ProbeMetadataFallbackTotal counts probe config requests served from the DBM API instead
 	// of the local cache. Probes now ask periodically, so a rise here means admin is amplifying
 	// that traffic onto DBM and is the signal to look at metadata sync lag.
-	ProbeMetadataFallbackTotal *haapm.HaCounter
+	ProbeMetadataFallbackTotal  *haapm.HaCounter
+	ConfigReloadSuccess         *haapm.HaGauge
+	ConfigReloadFailure         *haapm.HaGauge
+	ConfigReloadDurationMs      *haapm.HaGauge
+	ConfigReloadSlotCount       *haapm.HaGauge
+	ConfigReloadLastSuccessUnix *haapm.HaGauge
 )
 
 func init() {
@@ -95,6 +101,27 @@ func init() {
 		"Total number of probe config requests that fell back to the DBM metadata API",
 		MetricLabelReason,
 	)
+	ConfigReloadSuccess = haapm.NewHaGauge(
+		"config_reload_success",
+		"Whether the latest admin config reload completed without slot failures",
+	)
+	ConfigReloadFailure = haapm.NewHaGauge(
+		"config_reload_failure",
+		"Whether the latest admin config reload had a parse, validation, or slot failure",
+	)
+	ConfigReloadDurationMs = haapm.NewHaGauge(
+		"config_reload_duration_ms",
+		"Duration of the latest admin config reload in milliseconds",
+	)
+	ConfigReloadSlotCount = haapm.NewHaGauge(
+		"config_reload_slot_count",
+		"Number of resource slots processed by result",
+		MetricLabelResult,
+	)
+	ConfigReloadLastSuccessUnix = haapm.NewHaGauge(
+		"config_reload_last_success_unix",
+		"Unix timestamp of the last admin config reload that completed without failures",
+	)
 }
 
 // InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
@@ -114,5 +141,10 @@ func InitAPM(serviceID, serviceName string) {
 		APIResponseSizeBytes,
 		APIRequestErrorsTotal,
 		ProbeMetadataFallbackTotal,
+		ConfigReloadSuccess,
+		ConfigReloadFailure,
+		ConfigReloadDurationMs,
+		ConfigReloadSlotCount,
+		ConfigReloadLastSuccessUnix,
 	)
 }
