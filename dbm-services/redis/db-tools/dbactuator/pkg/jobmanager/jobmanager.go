@@ -233,6 +233,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 			atomredis.NewRedisReuploadOldBackupRecords
 		// 内存分析
 		m.atomJobMapper[atomsys.NewKeyStat().Name()] = atomsys.NewKeyStat
+		m.atomJobMapper[atomsys.NewKeyStatSetMaxmemoryPolicy().Name()] = atomsys.NewKeyStatSetMaxmemoryPolicy
 
 	})
 }

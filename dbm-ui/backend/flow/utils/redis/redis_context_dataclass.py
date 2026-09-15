@@ -78,6 +78,7 @@ class CommonContext:
 
     tendis_backup_info: list = None  # 执行备份后的信息
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    keystat_origin_maxmemory_policies: dict = None  # 内存分析前各实例的maxmemory-policy, addr -> policy
 
 
 @dataclass()

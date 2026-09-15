@@ -66,6 +66,9 @@ type KeyStatParams struct {
 	CheckInterval   int          `json:"check_interval" validate:"required,min=1"` // 检查间隔时间，单位：秒
 	ClusterId       int64        `json:"cluster_id" validate:"required"`
 	ClusterShardNum int64        `json:"cluster_shard_num" validate:"required"`
+	// ChangeMaxmemoryPolicy：由 flow 按元数据 major_version 下发。
+	// 元数据 Major < 6 时为 false，禁止改 maxmemory-policy，避免 live 版本偏高时改了却无 flow 恢复节点。
+	ChangeMaxmemoryPolicy bool `json:"change_maxmemory_policy"`
 }
 
 // HotkeyAnalysis  结构体
@@ -220,12 +223,18 @@ func (job *KeyStat) Run() (err error) {
 	}
 
 	// 支持到最新的rdb 12. 不检查版本了
-
-	if versionInfo.Major >= 6 {
-		job.runtime.Logger.Info("redis version >= 6, version:%s, will check atime", versionInfo.Str)
+	// atime/maxmemory-policy：元数据门（flow 下发）与 live Major 门同时满足才改配置。
+	if !job.params.ChangeMaxmemoryPolicy {
+		job.runtime.Logger.Info(
+			"meta major < 6 (change_maxmemory_policy=false), skip maxmemory-policy change, live version:%s",
+			versionInfo.Str,
+		)
+		job.atimeRequired = false
+	} else if versionInfo.Major >= 6 {
+		job.runtime.Logger.Info("meta allows + live version >= 6, version:%s, will check atime", versionInfo.Str)
 		job.atimeRequired = true
 	} else {
-		job.runtime.Logger.Info("redis version < 6, version:%s, will not check atime", versionInfo.Str)
+		job.runtime.Logger.Info("meta allows but live version < 6, version:%s, will not check atime", versionInfo.Str)
 		job.atimeRequired = false
 	}
 
@@ -333,12 +342,14 @@ func (job *KeyStat) checkRedisLoad(timeout time.Duration) (err error) {
 		job.runtime.Logger.Error("getRedisInfo failed, err:%s", err)
 		return err
 	}
+	job.fillMaxmemoryForLoadCheck(info1)
 	time.Sleep(timeout)
 	info2, err := job.getRedisInfo(rdbRole)
 	if err != nil {
 		job.runtime.Logger.Error("getRedisInfo failed, err:%s", err)
 		return err
 	}
+	job.fillMaxmemoryForLoadCheck(info2)
 	if len(info1) != len(info2) {
 		return errors.New("redis load is not stable")
 	}
@@ -430,9 +441,27 @@ func (job *KeyStat) getRedisInfo(role string) (redisInfo map[string]*redisinfo.I
 			errs = append(errs, err)
 			continue
 		}
+		// Maxmemory 补齐（Redis 2.8 INFO 无该字段）只在 checkRedisLoad 中做；
+		// 这里失败不得丢掉已 parse 的 INFO，否则 getRedisVersion 会被牵连。
 		redisInfo[out.Host] = &info
 	}
 	return redisInfo, errors.Join(errs...)
+}
+
+// fillMaxmemoryForLoadCheck：INFO 里 Maxmemory==0 时用 confxx（unknown command 再 CONFIG）补齐，供负载检查。
+// 补齐失败仅打日志，保留 Maxmemory=0，由 checkRedisLoad 按原规则报错。
+func (job *KeyStat) fillMaxmemoryForLoadCheck(redisInfo map[string]*redisinfo.Info) {
+	for host, info := range redisInfo {
+		if info == nil || info.Memory.Maxmemory != 0 {
+			continue
+		}
+		maxmemory, err := job.getMaxmemory(host, job.params.RedisPassword)
+		if err != nil {
+			job.runtime.Logger.Warn("fill maxmemory for load check failed, host:%s, err:%s", host, err)
+			continue
+		}
+		info.Memory.Maxmemory = maxmemory
+	}
 }
 
 func (job *KeyStat) safeDumpRdb(workDir string) (err error) {
@@ -508,24 +537,14 @@ func (job *KeyStat) safeDumpRdb(workDir string) (err error) {
 	return nil
 }
 
-// getMaxmemoryPolicy 获取当前的 maxmemory-policy 配置值
-func (job *KeyStat) getMaxmemoryPolicy(ip string, port int, pwd string) (string, error) {
-	host := fmt.Sprintf("%s:%d", ip, port)
-	// using confxx get to replace config get
-	result, err := redisinfo.ExecRedisCommand(host, pwd, "confxx", "get", "maxmemory-policy")
-	if err != nil {
-		job.runtime.Logger.Error("getMaxmemoryPolicy failed, err:%s", err)
-		return "", err
-	}
-
-	// config get 返回格式: []interface{}，如 ["maxmemory-policy", "volatile-lru"]
+func parseConfigValue(result any, configName string) (string, error) {
+	// confxx get 返回格式: []interface{}，如 ["maxmemory-policy", "volatile-lru"]
 	confInfos, ok := result.([]any)
 	if !ok {
-		return "", fmt.Errorf("getMaxmemoryPolicy result is not []interface{}, result type: %T, value: %v",
-			result, result)
+		return "", fmt.Errorf("confxx get %s result is not []interface{}, result type: %T, value: %v",
+			configName, result, result)
 	}
 
-	// 遍历结果，找到 maxmemory-policy 对应的值
 	// 格式是键值对交替出现: [key1, value1, key2, value2, ...]
 	for i := 0; i < len(confInfos); i += 2 {
 		if i+1 >= len(confInfos) {
@@ -535,38 +554,109 @@ func (job *KeyStat) getMaxmemoryPolicy(ip string, port int, pwd string) (string,
 		if !ok {
 			continue
 		}
-		if key == "maxmemory-policy" {
+		if strings.EqualFold(key, configName) {
 			value, ok := confInfos[i+1].(string)
 			if !ok {
-				return "", fmt.Errorf("getMaxmemoryPolicy value is not string, value type: %T, value: %v",
-					confInfos[i+1], confInfos[i+1])
+				return "", fmt.Errorf("confxx get %s value is not string, value type: %T, value: %v",
+					configName, confInfos[i+1], confInfos[i+1])
 			}
-			job.runtime.Logger.Info("getMaxmemoryPolicy success, policy:%s", value)
 			return value, nil
 		}
 	}
 
-	return "", fmt.Errorf("maxmemory-policy not found in config get result: %v", confInfos)
+	return "", fmt.Errorf("%s not found in confxx get result: %v", configName, confInfos)
+}
+
+func isLruMaxmemoryPolicy(policy string) bool {
+	switch strings.ToLower(strings.TrimSpace(policy)) {
+	case "volatile-lru", "allkeys-lru":
+		return true
+	default:
+		return false
+	}
+}
+
+// isUnknownCommandErr confxx 不存在时 Redis/Valkey 常见报错含 "unknown command"。
+func isUnknownCommandErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "unknown command")
+}
+
+// configGet 总是先 confxx；仅当报错含 "unknown command" 时再试原生 CONFIG GET。
+func configGet(host, pwd, name string) (string, error) {
+	result, err := redisinfo.ExecRedisCommand(host, pwd, "confxx", "get", name)
+	if err == nil {
+		return parseConfigValue(result, name)
+	}
+	if !isUnknownCommandErr(err) {
+		return "", fmt.Errorf("confxx get %s on %s failed: %w", name, host, err)
+	}
+	result, cfgErr := redisinfo.ExecRedisCommand(host, pwd, "CONFIG", "GET", name)
+	if cfgErr != nil {
+		return "", fmt.Errorf("CONFIG GET %s on %s failed after confxx unknown command: %w", name, host, cfgErr)
+	}
+	return parseConfigValue(result, name)
+}
+
+// configSet 总是先 confxx；仅当报错含 "unknown command" 时再试原生 CONFIG SET。
+func configSet(host, pwd, name, value string) error {
+	result, err := redisinfo.ExecRedisCommand(host, pwd, "confxx", "set", name, value)
+	if err == nil {
+		if resultStr, ok := result.(string); ok && strings.EqualFold(resultStr, "OK") {
+			return nil
+		}
+		// 部分版本返回格式非 OK 字符串，无 error 则视为成功
+		return nil
+	}
+	if !isUnknownCommandErr(err) {
+		return fmt.Errorf("confxx set %s on %s failed: %w", name, host, err)
+	}
+	result, cfgErr := redisinfo.ExecRedisCommand(host, pwd, "CONFIG", "SET", name, value)
+	if cfgErr != nil {
+		return fmt.Errorf("CONFIG SET %s on %s failed after confxx unknown command: %w", name, host, cfgErr)
+	}
+	if resultStr, ok := result.(string); ok && strings.EqualFold(resultStr, "OK") {
+		return nil
+	}
+	return nil
+}
+
+// getMaxmemory 获取当前的 maxmemory 配置值。Redis 2.8 的 INFO memory 不包含此字段。
+func (job *KeyStat) getMaxmemory(host string, pwd string) (int64, error) {
+	value, err := configGet(host, pwd, "maxmemory")
+	if err != nil {
+		return 0, err
+	}
+	maxmemory, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse maxmemory %q failed: %w", value, err)
+	}
+	job.runtime.Logger.Info("getMaxmemory success, host:%s, maxmemory:%d", host, maxmemory)
+	return maxmemory, nil
+}
+
+// getMaxmemoryPolicy 获取当前的 maxmemory-policy 配置值
+func (job *KeyStat) getMaxmemoryPolicy(ip string, port int, pwd string) (string, error) {
+	host := fmt.Sprintf("%s:%d", ip, port)
+	policy, err := configGet(host, pwd, "maxmemory-policy")
+	if err != nil {
+		job.runtime.Logger.Error("getMaxmemoryPolicy failed, err:%s", err)
+		return "", err
+	}
+	job.runtime.Logger.Info("getMaxmemoryPolicy success, policy:%s", policy)
+	return policy, nil
 }
 
 // setMaxmemoryPolicy 设置 maxmemory-policy 配置值
 func (job *KeyStat) setMaxmemoryPolicy(ip string, port int, pwd string, policy string) error {
 	host := fmt.Sprintf("%s:%d", ip, port)
-	// using confxx set to replace config set
-	result, err := redisinfo.ExecRedisCommand(host, pwd, "confxx", "set", "maxmemory-policy", policy)
-	if err != nil {
+	if err := configSet(host, pwd, "maxmemory-policy", policy); err != nil {
 		job.runtime.Logger.Error("setMaxmemoryPolicy failed, err:%s", err)
 		return err
 	}
-	// confxx set 返回 "OK" 字符串表示成功
-	resultStr, ok := result.(string)
-	if ok && resultStr == "OK" {
-		job.runtime.Logger.Info("setMaxmemoryPolicy success, ip:%s, port:%d, policy:%s", ip, port, policy)
-		return nil
-	}
-	// 如果返回的不是 "OK"，也记录日志但不报错（某些 Redis 版本可能返回不同的格式）
-	job.runtime.Logger.Info("setMaxmemoryPolicy completed, ip:%s, port:%d, policy:%s, result:%v",
-		ip, port, policy, result)
+	job.runtime.Logger.Info("setMaxmemoryPolicy success, ip:%s, port:%d, policy:%s", ip, port, policy)
 	return nil
 }
 
@@ -584,39 +674,39 @@ func (job *KeyStat) safeDumpRdbOne(workDir string, ins KeyStatIns, pwd string) (
 
 	var originalPolicy string
 	if job.atimeRequired {
-		// 获取当前的 maxmemory-policy 值
-		originalPolicy, err := job.getMaxmemoryPolicy(ip, port, pwd)
-		if err != nil {
-			job.runtime.Logger.Warn("getMaxmemoryPolicy failed, err:%s, will continue without restoring", err)
-			originalPolicy = "" // 如果获取失败，标记为空，不进行恢复
+		// 设置为 volatile-lru 的原因是，该模式下导出来的 rdb 会带有每个 key 的 atime，便于后续分析。
+		// 当前已经是 LRU 策略时 idle 信息本身可用，无需再改配置。
+		policy, getErr := job.getMaxmemoryPolicy(ip, port, pwd)
+		needSet := true
+		if getErr != nil {
+			job.runtime.Logger.Warn("getMaxmemoryPolicy failed, err:%s, will set volatile-lru without restoring", getErr)
+		} else if isLruMaxmemoryPolicy(policy) {
+			job.runtime.Logger.Info("maxmemory-policy already lru, skip set, policy:%s", policy)
+			needSet = false
 		} else {
-			job.runtime.Logger.Info("getMaxmemoryPolicy success, original policy:%s", originalPolicy)
+			originalPolicy = policy
 		}
-		// 设置 maxmemory-policy 为 volatile-lru
-		// 设置为volatile-lru的原因是，volatile-lru模式下，导出来的rdb文件会带有每个key的atime信息，便于后续分析。
-		// 在设置之前，先获取当前的 maxmemory-policy 值，在设置之后，再恢复原来的值。
-		// 在checkRedisLoad中会检查redis是否负载较低，如果负载高，也是不行的.
-		err = job.setMaxmemoryPolicy(ip, port, pwd, "volatile-lru")
-		if err != nil {
-			job.runtime.Logger.Error("setMaxmemoryPolicy to volatile-lru failed, err:%s", err)
-			return err
-		}
-	} else {
-		// 如果不需要检查atime，则不进行maxmemory-policy的设置和恢复
-		originalPolicy = ""
-	}
-
-	// 确保在函数返回前恢复原值
-	defer func() {
-		if originalPolicy != "" {
-			restoreErr := job.setMaxmemoryPolicy(ip, port, pwd, originalPolicy)
-			if restoreErr != nil {
-				job.runtime.Logger.Error("restore maxmemory-policy failed, err:%s, original policy:%s", restoreErr, originalPolicy)
-				// 不返回错误，只记录日志，因为 dump 可能已经成功
-			} else {
-				job.runtime.Logger.Info("restore maxmemory-policy success, original policy:%s", originalPolicy)
+		if needSet {
+			err = job.setMaxmemoryPolicy(ip, port, pwd, "volatile-lru")
+			if err != nil {
+				job.runtime.Logger.Error("setMaxmemoryPolicy to volatile-lru failed, err:%s", err)
+				return err
 			}
 		}
+	}
+
+	// 确保在函数返回前恢复原值（直连 Redis confxx set，不经 DRS）。
+	// 恢复失败只打日志、不覆盖 dump 结果，以便 flow 后续「二次确认 maxmemory-policy」节点仍有机会执行。
+	defer func() {
+		if originalPolicy == "" {
+			return
+		}
+		restoreErr := job.setMaxmemoryPolicy(ip, port, pwd, originalPolicy)
+		if restoreErr != nil {
+			job.runtime.Logger.Error("restore maxmemory-policy failed, err:%s, original policy:%s", restoreErr, originalPolicy)
+			return
+		}
+		job.runtime.Logger.Info("restore maxmemory-policy success, original policy:%s", originalPolicy)
 	}()
 
 	cmd := mycmd.New(RedisCli, "-h", ip, "-p", strconv.Itoa(port), "-a", mycmd.Password(pwd), "--rdb", rdbPath)
