@@ -17,7 +17,7 @@ from rest_framework import serializers
 from backend import env
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.constants import DBType, HcmAntiAffinityLevel, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
@@ -746,7 +746,8 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
     city = serializers.CharField(help_text=_("城市"))
-    subzone = serializers.CharField(help_text=_("园区名称"))
+    # subzone 传 "*" 表示由海磊侧按全部可用区分配，通常与 anti_affinity_level 配合使用
+    subzone = serializers.CharField(help_text=_("园区名称，传*表示全部可用区(由海磊侧分配)"))
     os_name = serializers.CharField(help_text=_("操作系统名称"))
     count = serializers.IntegerField(help_text=_("申请数量"))
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
@@ -754,6 +755,12 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     spec = serializers.JSONField(help_text=_("规格展示信息"), required=False)
     for_biz = serializers.IntegerField(help_text=_("业务ID"), required=False, default=0)
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True, required=False)
+    anti_affinity_level = serializers.ChoiceField(
+        help_text=_("资源分布方式(海磊主机亲和性)，为空表示不指定"),
+        choices=[("", _("不指定"))] + list(HcmAntiAffinityLevel.get_choices()),
+        required=False,
+        default="",
+    )
 
     def to_internal_value(self, data):
         data = super().to_representation(data)

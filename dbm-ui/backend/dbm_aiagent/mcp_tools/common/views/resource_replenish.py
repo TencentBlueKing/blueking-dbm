@@ -31,7 +31,25 @@ logger = logging.getLogger("root")
 
 class HcmResourceReplenishMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
-        description=str(_("创建海磊主机补货记录")),
+        description=str(
+            _(
+                """
+        创建海磊主机补货记录(异步执行，返回补货记录ID)。
+        infos 中每一项支持的字段：
+          db_type  str  必填，数据库类型
+          spec_id  int  必填，规格ID
+          city     str  必填，城市
+          subzone  str  必填，园区名称。传 "*" 表示全部可用区，由海磊侧选择可用区进行分配
+          os_name  str  必填，操作系统名称
+          count    int  必填，申请数量(单个单据上限100台)
+          anti_affinity_level str 选填，资源分布方式(海磊主机亲和性)。
+            传 "ANTI_CAMPUS" 表示分campus生产，即申请到的机器会对半分布到不同campus；
+            为空表示不指定，由海磊侧默认处理。
+            典型用法：需要机器跨campus打散(如100台对半分campus)时，subzone传"*"，
+            anti_affinity_level传"ANTI_CAMPUS"。
+        """
+            )
+        ),
         request_slz=HcmResourceReplenishInputSerializer,
         response_slz=HcmResourceReplenishOutputSerializer,
         tags=[DBMMCPTags.WRITE],

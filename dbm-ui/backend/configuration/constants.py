@@ -297,6 +297,16 @@ DISK_CLASSES = ["SSD", "CLOUD_SSD", "HDD", "LOCAL_HDD", "ALL"]
 # 磁盘类型和海磊(腾讯云)申请盘映射
 HCM_DISK_CLASS_MAP = {"CLOUD_SSD": "CLOUD_SSD", "HDD": "CLOUD_PREMIUM", "ALL": "CLOUD_PREMIUM"}
 
+# 海磊申请时园区/可用区传该值，表示由海磊侧按全部可用区分配
+HCM_APPLY_ALL_ZONE = "*"
+
+
+class HcmAntiAffinityLevel(StrStructuredEnum):
+    """海磊资源分布方式(主机亲和性等级)"""
+
+    ANTI_CAMPUS = EnumField("ANTI_CAMPUS", _("分campus生产"))
+
+
 # 默认轮值通知配置
 BKM_DUTY_NOTICE_VALUE = {
     "schedule_table": {
