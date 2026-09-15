@@ -11,17 +11,17 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <div class="victoriametrics-standard-list-page">
+  <div class="victoriametrics-cluster-list-page">
     <div class="operation-box">
       <AuthButton
-        v-db-console="'victoriametrics.standardClusterList.instanceApply'"
+        v-db-console="'victoriametrics.clusterList.instanceApply'"
         action-id="k8s_victoriametrics_apply"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
-        v-db-console="'victoriametrics.standardClusterList.export'"
+        v-db-console="'victoriametrics.clusterList.export'"
         :has-selected="isSelected"
         :ids="selectedIdList"
         :type="ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER" />
@@ -38,17 +38,17 @@
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER"
-      :data-source="getVictoriametricsStandardList"
+      :data-source="getVictoriametricsClusterList"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER">
-          <template #default="{ data }: { data: VictoriametricsStandardModel }">
+          <template #default="{ data }: { data: VictoriametricsClusterModel }">
             <div
               v-if="data.isOnline"
-              v-db-console="'victoriametrics.standardClusterList.disable'">
+              v-db-console="'victoriametrics.clusterList.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="k8s_vm_enable_disable"
@@ -63,7 +63,7 @@
             </div>
             <div
               v-if="data.isOnline"
-              v-db-console="'victoriametrics.standardClusterList.restart'">
+              v-db-console="'victoriametrics.clusterList.restart'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="k8s_victoriametrics_manage"
@@ -78,7 +78,7 @@
             </div>
             <div
               v-if="data.isOffline"
-              v-db-console="'victoriametrics.standardClusterList.enable'">
+              v-db-console="'victoriametrics.clusterList.enable'">
               <OperationBtnStatusTips
                 :data="data"
                 style="width: 100%">
@@ -93,7 +93,7 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'victoriametrics.standardClusterList.delete'">
+            <div v-db-console="'victoriametrics.clusterList.delete'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   v-bk-tooltips="{
@@ -126,7 +126,16 @@
           @refresh="fetchData" />
       </template>
       <template #queryDomain>
-        <QueryDomainColumn />
+        <QueryDomainColumn
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :selected-list="selectedList" />
+      </template>
+      <template #storageEntry>
+        <StorageEntryColumn
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :selected-list="selectedList" />
       </template>
     </ClusterTable>
     <TableDetailDialog
@@ -144,8 +153,7 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import VictoriametricsStandardModel from '@services/model/victoriametrics/victoriametrics-standard';
-  import { getVictoriametricsStandardList } from '@services/source/victoriametricsStandard';
+  import VictoriametricsClusterModel from '@services/model/victoriametrics/victoriametrics-cluster';
 
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
@@ -155,13 +163,16 @@
     MasterDomainColumn,
     OperationColumn,
     QueryDomainColumn,
+    StorageEntryColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useK8sClusterRestart, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
-  import ClusterDetail from '@views/db-manage/victoriametrics/common/standard-cluster-detail/Index.vue';
+  import ClusterDetail from '@views/db-manage/victoriametrics/common/cluster-detail/Index.vue';
+
+  import { getVictoriametricsClusterList } from '@/services/source/victoriametricsCluster';
 
   const route = useRoute();
   const router = useRouter();
@@ -182,22 +193,32 @@
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
-  } = useGoClusterDetail('VictoriametricsStandardDetail');
+  } = useGoClusterDetail('VictoriametricsClusterDetail');
 
   const { handleSelection, isSelected, selectedIdList, selectedList } =
-    useClusterTableSelect<VictoriametricsStandardModel>();
+    useClusterTableSelect<VictoriametricsClusterModel>();
 
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
 
   const getTableInstance = () => tableRef.value;
 
-  // 设置用户个人表头信息
-  const { settings, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.VICTORIAMETRICS_STANDARD_TABLE_SETTINGS,
-    {
-      disabled: ['domain'],
-    },
-  );
+  // 设置用户个人表头信息（存储入口列默认隐藏，列设置中打开后显示）
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.VM_CLUSTER_TABLE_SETTINGS, {
+    checked: [
+      'master_domain',
+      'query_entry_display',
+      'cluster_ids',
+      'name',
+      'tag',
+      'status',
+      'major_version',
+      'region',
+      'creator',
+      'create_at',
+      'time_zone',
+    ],
+    disabled: ['domain'],
+  });
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
@@ -225,7 +246,7 @@
 </script>
 
 <style lang="less">
-  .victoriametrics-standard-list-page {
+  .victoriametrics-cluster-list-page {
     .operation-box {
       display: flex;
       flex-wrap: wrap;

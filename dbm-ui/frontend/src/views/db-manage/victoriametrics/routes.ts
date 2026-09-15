@@ -27,45 +27,45 @@ const routes: RouteRecordRaw[] = [
       skeleton: 'clusterList',
     },
     redirect: {
-      name: 'VictoriametricsStandardList',
+      name: 'VictoriametricsClusterList',
     },
     component: () => import('@views/db-manage/victoriametrics/Index.vue'),
     children: [
       {
-        path: 'standard-list/:clusterId?',
-        name: 'VictoriametricsStandardList',
+        path: 'cluster-list/:clusterId?',
+        name: 'VictoriametricsClusterList',
         meta: {
           navName: t('VictoriaMetrics 标准集群'),
           skeleton: 'clusterList',
         },
-        component: () => import('@views/db-manage/victoriametrics/standard-cluster-list/Index.vue'),
+        component: () => import('@views/db-manage/victoriametrics/cluster-list/Index.vue'),
       },
       {
-        path: 'standard-detail/:clusterId',
-        name: 'VictoriametricsStandardDetail',
+        path: 'cluster-detail/:clusterId',
+        name: 'VictoriametricsClusterDetail',
         meta: {
           fullscreen: true,
           navName: t('VictoriaMetrics 标准集群详情'),
         },
-        component: () => import('@views/db-manage/victoriametrics/standard-cluster-detail/Index.vue'),
+        component: () => import('@views/db-manage/victoriametrics/cluster-detail/Index.vue'),
       },
       {
-        path: 'query-list/:clusterId?',
-        name: 'VictoriametricsQueryList',
+        path: 'select-list/:clusterId?',
+        name: 'VictoriametricsSelectList',
         meta: {
           navName: t('VictoriaMetrics 查询集群'),
           skeleton: 'clusterList',
         },
-        component: () => import('@views/db-manage/victoriametrics/query-cluster-list/Index.vue'),
+        component: () => import('@views/db-manage/victoriametrics/select-list/Index.vue'),
       },
       {
-        path: 'query-detail/:clusterId',
-        name: 'VictoriametricsQueryDetail',
+        path: 'select-detail/:clusterId',
+        name: 'VictoriametricsSelectDetail',
         meta: {
           fullscreen: true,
           navName: t('VictoriaMetrics 查询集群详情'),
         },
-        component: () => import('@views/db-manage/victoriametrics/query-cluster-detail/Index.vue'),
+        component: () => import('@views/db-manage/victoriametrics/select-detail/Index.vue'),
       },
     ],
   },

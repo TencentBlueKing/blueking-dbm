@@ -21,6 +21,7 @@
         name="operation" />
       <slot name="masterDomain" />
       <slot name="queryDomain" />
+      <slot name="storageEntry" />
       <IdColumn :cluster-type="clusterType" />
       <ClusterAliasColumn
         :cluster-type="clusterType"
@@ -91,6 +92,7 @@
   import RoleColumn from './RoleColumn.vue';
   import SlaveDomainColumn from './SlaveDomainColumn.vue';
   import StatusColumn from './StatusColumn.vue';
+  import StorageEntryColumn from './StorageEntryColumn.vue';
 
   export {
     ClusterNameColumn,
@@ -105,6 +107,7 @@
     RoleColumn,
     SlaveDomainColumn,
     StatusColumn,
+    StorageEntryColumn,
   };
 
   type IViewMode = 'drawer' | 'jump';
@@ -149,6 +152,7 @@
     role: () => VNode;
     slaveDomain: () => VNode;
     status: () => VNode;
+    storageEntry: () => VNode;
     syncMode: () => VNode;
   }
 

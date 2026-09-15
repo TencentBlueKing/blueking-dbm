@@ -13,15 +13,15 @@
 
 <template>
   <TableColumn
-    class-name="cluster-table-query-domain-column"
-    col-key="query_entry_display"
+    class-name="cluster-table-storage-entry-column"
+    col-key="storage_entry_display"
     :min-width="220"
-    :title="t('查询入口')">
+    :title="t('存储入口')">
     <template #title>
       <RenderHeadCopy
         :config="[
           {
-            field: 'queryEntryDisplay',
+            field: 'storageEntryDisplay',
             label: t('域名'),
           },
         ]"
@@ -29,21 +29,28 @@
         :is-filter="isFilter"
         @handle-copy-all="handleCopyAllField"
         @handle-copy-selected="handleCopySelectedField">
-        {{ t('查询入口') }}
+        {{ t('存储入口') }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ row }: { row: { queryEntryDisplay: string } }">
+    <template #default="{ row }: { row: { storageEntryDisplay: string } }">
       <TextOverflowLayout>
-        {{ row.queryEntryDisplay || '--' }}
+        <template v-if="row.storageEntryDisplay">
+          <div
+            v-for="node in row.storageEntryDisplay.split('\n')"
+            :key="node">
+            {{ node }}
+          </div>
+        </template>
+        <span v-else>--</span>
         <template #append>
           <BkButton
-            v-if="row.queryEntryDisplay"
+            v-if="row.storageEntryDisplay"
             v-bk-tooltips="t('复制域名')"
             class="ml-4"
             role="table-cell-operation"
             text
             theme="primary"
-            @click="handleCopy(row.queryEntryDisplay)">
+            @click="handleCopy(row.storageEntryDisplay)">
             <DbIcon type="copy" />
           </BkButton>
         </template>

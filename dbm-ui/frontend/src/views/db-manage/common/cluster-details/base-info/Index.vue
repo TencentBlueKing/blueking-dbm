@@ -26,11 +26,6 @@
       :label="t('存储入口')">
       <slot name="storageEntry" />
     </InfoItem>
-    <InfoItem
-      v-if="slots.storageNode"
-      :label="t('Storage 节点')">
-      <slot name="storageNode" />
-    </InfoItem>
     <slot name="clbMaster" />
     <slot name="polaris" />
     <InfoItem
@@ -77,6 +72,11 @@
     <CommonInfo :data="data">
       <template #spec>
         <slot name="spec" />
+      </template>
+      <template
+        v-if="slots.storageNode"
+        #storageNode>
+        <slot name="storageNode" />
       </template>
     </CommonInfo>
   </InfoList>

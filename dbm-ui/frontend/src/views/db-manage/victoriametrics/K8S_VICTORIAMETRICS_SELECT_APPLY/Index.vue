@@ -1,6 +1,6 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
-    <div class="victoriametrics-query-apply">
+    <div class="victoriametrics-select-apply">
       <DbForm
         ref="formRef"
         auto-label-width
@@ -40,7 +40,7 @@
               v-model="topoName"
               type="card">
               <BkRadioButton
-                label="query"
+                label="select"
                 style="flex: 0 0 100px">
                 {{ t('查询集群') }}
               </BkRadioButton>
@@ -220,7 +220,7 @@
   });
 
   const formRef = ref<InstanceType<typeof DbForm>>();
-  const topoName = ref('query');
+  const topoName = ref('select');
 
   const formData = reactive(initData());
 
@@ -367,7 +367,7 @@
     }
   }
 
-  .victoriametrics-query-apply {
+  .victoriametrics-select-apply {
     .item-input {
       width: 435px;
     }

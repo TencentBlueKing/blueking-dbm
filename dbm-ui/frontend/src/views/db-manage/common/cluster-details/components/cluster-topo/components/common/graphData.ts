@@ -119,6 +119,8 @@ export const nodeTypes = {
   TENDISSSD_MASTER: 'tendisssd::redis_master',
   TENDISSSD_SLAVE: 'tendisssd::redis_slave',
   TIKV: 'tikv',
+  VMINSERT: 'vminsert',
+  VMSELECT: 'vmselect',
 };
 
 type GroupTypesStrings = `${GroupTypes}`;
@@ -593,6 +595,26 @@ export class GraphData {
   }
 
   /**
+   * 处理 vm 标准集群 role 相关节点位置
+   * @param nodes 节点列表
+   */
+  calcVmClusterNodeLocations(rootNodes: GraphNode[] = [], nodes: GraphNode[] = []) {
+    const nodeMap = {} as Record<string, GraphNode>;
+    for (const node of [...rootNodes, ...nodes]) {
+      nodeMap[node.id] = node;
+    }
+
+    const vmInsertNode = nodeMap[nodeTypes.VMINSERT];
+    const vmSelectNode = nodeMap[nodeTypes.VMSELECT];
+
+    if (vmInsertNode && vmSelectNode) {
+      vmSelectNode.style.y = vmInsertNode.style.y;
+      vmSelectNode.style.x = vmInsertNode.style.x + vmInsertNode.style.width + this.nodeConfig.offsetX;
+      this.calcChildrenNodeLocations(vmSelectNode);
+    }
+  }
+
+  /**
    * 获取 graph 数据
    * @param data 集群拓扑数据
    * @param type 集群类型
@@ -634,6 +656,8 @@ export class GraphData {
         this.calcTendbHaNodeLocations(rootGroups, groups);
       } else if (this.clusterType === ClusterTypes.K8S_SURREALDB_HA) {
         this.calcSurrealdbHaNodeLocations(rootGroups, groups);
+      } else if (this.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER) {
+        this.calcVmClusterNodeLocations(rootGroups, groups);
       }
 
       edges = getLines(data);

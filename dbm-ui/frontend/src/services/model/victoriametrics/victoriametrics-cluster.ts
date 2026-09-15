@@ -19,7 +19,7 @@ import { t } from '@locales/index';
 
 import ClusterBase from '../_clusterBase';
 
-export default class VictoriametricsQuery extends ClusterBase {
+export default class VictoriametricsCluster extends ClusterBase {
   static operationIconMap: Record<string, string> = {
     [TicketTypes.K8S_VICTORIAMETRICS_DESTROY]: t('删除中'),
     [TicketTypes.K8S_VICTORIAMETRICS_DISABLE]: t('禁用中'),
@@ -75,16 +75,15 @@ export default class VictoriametricsQuery extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  // 入口由后端拼好端口返回；查询集群 write_entry 仅在存在主入口时返回
+  // 入口由后端拼好端口返回；storage_entry 多个以换行分隔
   query_entry: string;
   status: 'normal' | 'abnormal';
-  // 查询集群关联的外部 Storage 节点（多节点中文逗号分隔），来源/字段契约待后端确认（占位）
-  storage_nodes?: string;
+  storage_entry: string;
   update_at: string;
   updater: string;
   write_entry: string;
 
-  constructor(payload = {} as VictoriametricsQuery) {
+  constructor(payload = {} as VictoriametricsCluster) {
     super(payload);
     this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id || 0;
@@ -112,6 +111,7 @@ export default class VictoriametricsQuery extends ClusterBase {
     this.k8s_cluster_name = payload.k8s_cluster_name;
     this.master_domain = payload.master_domain || '';
     this.query_entry = payload.query_entry || '';
+    this.storage_entry = payload.storage_entry || '';
     this.write_entry = payload.write_entry || '';
     this.major_version = payload.major_version || '';
     this.namespace = payload.namespace;
@@ -120,7 +120,6 @@ export default class VictoriametricsQuery extends ClusterBase {
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
     this.status = payload.status || '';
-    this.storage_nodes = payload.storage_nodes || '';
     this.update_at = payload.update_at || '';
     this.updater = payload.updater;
   }
@@ -151,12 +150,17 @@ export default class VictoriametricsQuery extends ClusterBase {
     return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.K8S_VICTORIAMETRICS_ENABLE));
   }
 
+  get isStorageClbEnabled() {
+    // cluster_entry 的 role 实际为 master_entry/slave_entry（无 storage 角色），存储入口启停状态以 storage_entry 是否有值为准
+    return Boolean(this.storage_entry);
+  }
+
   get masterDomain() {
     return this.masterDomainDisplayName;
   }
 
   get masterDomainDisplayName() {
-    return this.queryEntryDisplay;
+    return this.writeEntryDisplay;
   }
 
   get operationDisabled() {
@@ -182,18 +186,18 @@ export default class VictoriametricsQuery extends ClusterBase {
   }
 
   get operationStatusIcon() {
-    return VictoriametricsQuery.operationIconMap[this.operationRunningStatus];
+    return VictoriametricsCluster.operationIconMap[this.operationRunningStatus];
   }
 
   get operationStatusText() {
-    return VictoriametricsQuery.operationTextMap[this.operationRunningStatus];
+    return VictoriametricsCluster.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: VictoriametricsQuery.operationIconMap[item.ticket_type],
+      icon: VictoriametricsCluster.operationIconMap[item.ticket_type],
       ticketId: item.ticket_id,
-      tip: VictoriametricsQuery.operationTextMap[item.ticket_type],
+      tip: VictoriametricsCluster.operationTextMap[item.ticket_type],
     }));
   }
 
@@ -214,12 +218,23 @@ export default class VictoriametricsQuery extends ClusterBase {
 
   get roleFailedInstanceInfo() {
     return {
+      Vminsert: [],
       Vmselect: [],
+      Vmstorage: [],
     };
   }
 
   get runningOperation() {
-    const operateTicketTypes = Object.keys(VictoriametricsQuery.operationTextMap);
+    const operateTicketTypes = Object.keys(VictoriametricsCluster.operationTextMap);
     return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  get storageEntryDisplay() {
+    // 存储入口支持多个，后端以换行分隔（如 127.0.0.1:8400\n127.0.0.2:8400）
+    return this.storage_entry;
+  }
+
+  get writeEntryDisplay() {
+    return this.write_entry;
   }
 }

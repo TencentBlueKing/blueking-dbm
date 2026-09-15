@@ -77,7 +77,7 @@ const surrealdbClusterTypePageMap = {
 
 // victoriametrics
 const victoriametricsClusterTypePageMap = {
-  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'VictoriametricsStandardDetail',
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'VictoriametricsClusterDetail',
   [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: 'VictoriametricsQueryDetail',
 };
 

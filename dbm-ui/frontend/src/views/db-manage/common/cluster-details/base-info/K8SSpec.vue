@@ -46,8 +46,8 @@
   import { getQdrantHaComponentSpec } from '@services/source/qdrantHa';
   import { getSurrealdbHaComponentSpec } from '@services/source/surrealdbHa';
   import { getSurrealdbSingleComponentSpec } from '@services/source/surrealdbSingle';
-  import { getVictoriametricsQueryComponentSpec } from '@services/source/victoriametricsQuery';
-  import { getVictoriametricsStandardComponentSpec } from '@services/source/victoriametricsStandard';
+  import { getVictoriametricsClusterComponentSpec } from '@services/source/victoriametricsCluster.ts';
+  import { getVictoriametricsSelectComponentSpec } from '@services/source/victoriametricsSelect.ts';
 
   import { ClusterTypes } from '@common/const';
 
@@ -67,8 +67,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaComponentSpec,
     [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaComponentSpec,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleComponentSpec,
-    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsStandardComponentSpec,
-    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsQueryComponentSpec,
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsClusterComponentSpec,
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsSelectComponentSpec,
   };
 
   const { data: specData, loading: isLoading } = useRequest(

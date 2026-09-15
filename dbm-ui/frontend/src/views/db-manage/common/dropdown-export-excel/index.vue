@@ -68,13 +68,13 @@
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
   import {
-    exportVictoriametricsQueryClusterToExcel,
-    exportVictoriametricsQueryInstanceToExcel,
-  } from '@services/source/victoriametricsQuery';
+    exportVictoriametricsClusterClusterToExcel,
+    exportVictoriametricsClusterInstanceToExcel,
+  } from '@services/source/victoriametricsCluster';
   import {
-    exportVictoriametricsStandardClusterToExcel,
-    exportVictoriametricsStandardInstanceToExcel,
-  } from '@services/source/victoriametricsStandard';
+    exportVictoriametricsSelectClusterToExcel,
+    exportVictoriametricsSelectInstanceToExcel,
+  } from '@services/source/victoriametricsSelect';
 
   import { ClusterTypes } from '@common/const';
 
@@ -130,12 +130,12 @@
       instance: exportSurrealdbSingleInstanceToExcel,
     },
     [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: {
-      cluster: exportVictoriametricsStandardClusterToExcel,
-      instance: exportVictoriametricsStandardInstanceToExcel,
+      cluster: exportVictoriametricsClusterClusterToExcel,
+      instance: exportVictoriametricsClusterInstanceToExcel,
     },
     [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: {
-      cluster: exportVictoriametricsQueryClusterToExcel,
-      instance: exportVictoriametricsQueryInstanceToExcel,
+      cluster: exportVictoriametricsSelectClusterToExcel,
+      instance: exportVictoriametricsSelectInstanceToExcel,
     },
     doris: {
       cluster: exportDorisClusterToExcel,

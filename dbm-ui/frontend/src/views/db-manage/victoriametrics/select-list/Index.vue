@@ -11,17 +11,17 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <div class="victoriametrics-query-list-page">
+  <div class="victoriametrics-select-list-page">
     <div class="operation-box">
       <AuthButton
-        v-db-console="'victoriametrics.queryClusterList.instanceApply'"
+        v-db-console="'victoriametrics.selectList.instanceApply'"
         action-id="k8s_victoriametrics_apply"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
-        v-db-console="'victoriametrics.queryClusterList.export'"
+        v-db-console="'victoriametrics.selectList.export'"
         :has-selected="isSelected"
         :ids="selectedIdList"
         :type="ClusterTypes.K8S_VICTORIAMETRICS_SELECT" />
@@ -38,17 +38,17 @@
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.K8S_VICTORIAMETRICS_SELECT"
-      :data-source="getVictoriametricsQueryList"
+      :data-source="getVictoriametricsSelectList"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.K8S_VICTORIAMETRICS_SELECT">
-          <template #default="{ data }: { data: VictoriametricsQueryModel }">
+          <template #default="{ data }: { data: VictoriametricsselectModel }">
             <div
               v-if="data.isOnline"
-              v-db-console="'victoriametrics.queryClusterList.disable'">
+              v-db-console="'victoriametrics.selectList.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="k8s_vm_enable_disable"
@@ -63,7 +63,7 @@
             </div>
             <div
               v-if="data.isOnline"
-              v-db-console="'victoriametrics.queryClusterList.restart'">
+              v-db-console="'victoriametrics.selectList.restart'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="k8s_victoriametrics_manage"
@@ -78,7 +78,7 @@
             </div>
             <div
               v-if="data.isOffline"
-              v-db-console="'victoriametrics.queryClusterList.enable'">
+              v-db-console="'victoriametrics.selectList.enable'">
               <OperationBtnStatusTips
                 :data="data"
                 style="width: 100%">
@@ -93,7 +93,7 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'victoriametrics.queryClusterList.delete'">
+            <div v-db-console="'victoriametrics.selectList.delete'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   v-bk-tooltips="{
@@ -141,9 +141,6 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import VictoriametricsQueryModel from '@services/model/victoriametrics/victoriametrics-query';
-  import { getVictoriametricsQueryList } from '@services/source/victoriametricsQuery';
-
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
@@ -154,7 +151,10 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
-  import ClusterDetail from '@views/db-manage/victoriametrics/common/query-cluster-detail/Index.vue';
+  import ClusterDetail from '@views/db-manage/victoriametrics/common/select-detail/Index.vue';
+
+  import VictoriametricsselectModel from '@/services/model/victoriametrics/victoriametrics-select';
+  import { getVictoriametricsSelectList } from '@/services/source/victoriametricsSelect';
 
   const route = useRoute();
   const router = useRouter();
@@ -175,22 +175,19 @@
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
-  } = useGoClusterDetail('VictoriametricsQueryDetail');
+  } = useGoClusterDetail('VictoriametricsselectDetail');
 
   const { handleSelection, isSelected, selectedIdList, selectedList } =
-    useClusterTableSelect<VictoriametricsQueryModel>();
+    useClusterTableSelect<VictoriametricsselectModel>();
 
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
 
   const getTableInstance = () => tableRef.value;
 
   // 设置用户个人表头信息
-  const { settings, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.VICTORIAMETRICS_QUERY_TABLE_SETTINGS,
-    {
-      disabled: ['domain'],
-    },
-  );
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.VM_SELECT_TABLE_SETTINGS, {
+    disabled: ['domain'],
+  });
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
@@ -218,7 +215,7 @@
 </script>
 
 <style lang="less">
-  .victoriametrics-query-list-page {
+  .victoriametrics-select-list-page {
     .operation-box {
       display: flex;
       flex-wrap: wrap;
