@@ -39,16 +39,15 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     pagination_class = AuditedLimitOffsetPagination
     filter_class = None
 
-    action_permission_map = {
-        (
-            "list_machine_events",
-            "get_host_current_events",
-            "query_machine_pool",
-            "check_host_is_dissolved",
-        ): [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])],
-        ("transfer_hosts_to_pool",): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
-    }
-    default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])]
+    def _get_custom_permissions(self):
+        if self.action in ["query_machine_pool"]:
+            if self.request.query_params.get("is_todo"):
+                return []
+            else:
+                return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
+        elif self.action in ["list_machine_events", "get_host_current_events", "check_host_is_dissolved"]:
+            return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
+        return [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("将主机转移至待回收/故障池模块"),
