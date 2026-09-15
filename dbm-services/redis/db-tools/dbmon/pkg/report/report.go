@@ -8,6 +8,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/models"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"time"
 )
 
@@ -22,21 +23,27 @@ func RedisBinlogReport(r *models.RedisBinlogHistorySchema, reporter Reporter) er
 	if reporter == nil {
 		return fmt.Errorf("report is Nil, will not report fullback")
 	}
+	// 上报时去掉绝对路径, 只保留 binlog 文件名;
+	// 本地 sqlite 记录与本地文件操作(删除过期备份等)仍使用完整路径
+	reportData := *r
+	if reportData.BackupFile != "" {
+		reportData.BackupFile = filepath.Base(reportData.BackupFile)
+	}
 	reportRow := RedisBinlogReportSch{
-		RedisBinlogHistorySchema: *r,
-		StartTime:                r.StartTime.Local().Format(time.RFC3339),
-		EndTime:                  r.EndTime.Local().Format(time.RFC3339),
+		RedisBinlogHistorySchema: reportData,
+		StartTime:                reportData.StartTime.Local().Format(time.RFC3339),
+		EndTime:                  reportData.EndTime.Local().Format(time.RFC3339),
 	}
 	tmpBytes, _ := json.Marshal(reportRow)
 	reporter.AddRecord(string(tmpBytes)+"\n", true)
 
 	// 备份上报2.0 通道
 	reverseConfig := common.GetResrveAPIConfig()
-	reportCore, err := recore.NewCoreWithAddrsFile(r.BkCloudID, reverseConfig)
+	reportCore, err := recore.NewCoreWithAddrsFile(reportData.BkCloudID, reverseConfig)
 	if err != nil {
 		return fmt.Errorf("report NewCore failed: %s", err.Error())
 	}
-	ev := RedisBinlogResultEvent(*r)
+	ev := RedisBinlogResultEvent(reportData)
 	if resp, err := reapi.SyncReport(reportCore, &ev); err != nil {
 		return fmt.Errorf("report binlog status failed:%s, resp=%s", err.Error(), string(resp))
 	}
