@@ -71,18 +71,22 @@
 
 <style lang="less" scoped>
   .cluster-resource-selector-collapse-mini {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 
-    .collapse-mini:first-child {
+    &:first-child {
       margin-top: 0;
     }
 
     .collapse-mini-header {
       display: flex;
       align-items: center;
-      height: 24px;
+      height: 32px;
       padding-bottom: 4px;
       cursor: pointer;
+
+      &:hover {
+        background: #e1ecff;
+      }
     }
 
     .collapse-mini-icon {
