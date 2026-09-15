@@ -76,7 +76,7 @@
 </template>
 
 <script lang="ts">
-  export type { AnyHostModel, HostModel, HostSelectorValues, ISupportHostType } from './types';
+  export type { HostModel, HostSelectorValues, ISupportHostType } from './types';
 </script>
 
 <script setup lang="ts" generic="T extends ISupportHostType">

@@ -23,13 +23,13 @@
       v-for="(tabSelected, tabKey) in selectedMap"
       :key="tabKey">
       <CollapseMini
-        v-if="tabSelected.list.length > 0"
+        v-if="tabSelected.length > 0"
         collapse
-        :count="tabSelected.list.length"
+        :count="tabSelected.length"
         :title="getTabInfo(tabKey as string)">
         <div
-          v-for="clusterItem in tabSelected.list"
-          :key="clusterItem.id"
+          v-for="clusterItem in tabSelected"
+          :key="_.get(clusterItem, getTabRowKey(tabKey as string))"
           class="result-item">
           <span
             v-overflow-tips
@@ -37,9 +37,14 @@
             class="text-overflow">
             {{ clusterItem[displayKey] }}
           </span>
-          <i
-            class="db-icon-close result-remove"
-            @click="handleDeleteItem(clusterItem, tabKey as string)" />
+          <div class="result-operations">
+            <i
+              class="db-icon-copy result-copy"
+              @click="execCopy(clusterItem[displayKey])" />
+            <i
+              class="db-icon-close result-remove"
+              @click="handleDeleteItem(clusterItem, tabKey as string)" />
+          </div>
         </div>
       </CollapseMini>
     </template>
@@ -48,11 +53,12 @@
 <script setup lang="tsx">
   import _ from 'lodash';
 
-  import type { SelectMapValueType } from '../../../Index.vue';
+  import { execCopy } from '@utils';
+
+  import type { SelectMapValueType } from '../../Index.vue';
+  import { getTabRowKey } from '../tableConfig';
 
   import CollapseMini from './CollapseMini.vue';
-
-  type Selected = Record<string, Record<string, any>[]>;
 
   interface Props {
     displayKey?: string;
@@ -71,12 +77,12 @@
   const emits = defineEmits<Emits>();
 
   // 选中结果是否为空
-  const isEmpty = computed(() => _.every(Object.values(props.selectedMap), (item) => item.list.length === 0));
+  const isEmpty = computed(() => _.every(Object.values(props.selectedMap), (clusterList) => clusterList.length === 0));
 
   // 获取 tab 信息
   const getTabInfo = (key: string) => (props.showTitle ? props.tabList.find((tab) => tab.id === key)?.name : '');
 
-  const handleDeleteItem = (data: ValueOf<Selected>[0], tabKey: string) => {
+  const handleDeleteItem = (data: Record<string, any>, tabKey: string) => {
     emits('delete', data, tabKey);
   };
 </script>
@@ -93,6 +99,32 @@
     justify-content: space-between;
     .flex-center();
 
+    &:hover {
+      background: #e1ecff;
+
+      .result-copy,
+      .result-remove {
+        display: block;
+      }
+    }
+
+    .result-operations {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .result-copy {
+      display: none;
+      font-size: @font-size-mini;
+      color: @gray-color;
+      cursor: pointer;
+
+      &:hover {
+        color: @primary-color;
+      }
+    }
+
     .result-remove {
       display: none;
       font-size: @font-size-large;
@@ -102,12 +134,6 @@
 
       &:hover {
         color: @default-color;
-      }
-    }
-
-    &:hover {
-      .result-remove {
-        display: block;
       }
     }
   }

@@ -1,23 +1,5 @@
 import type { PrimaryTableCol } from 'tdesign-vue-next';
 
-import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
-
-import { t } from '@locales/index';
-
-interface ResourceItem {
-  tags: { key: string; value: string }[];
-}
-
-export const tagsColumn: PrimaryTableCol = {
-  cell: (_, { row }) => {
-    const tipList = (row as ResourceItem).tags.map((tag) => `${tag.key}: ${tag.value}`);
-    return tipList.length ? <TextOverflowLayout>{tipList.join(' , ')}</TextOverflowLayout> : '--';
-  },
-  colKey: 'tag',
-  minWidth: 110,
-  title: t('标签'),
-};
-
 /**
  * 兼容外部以 bkui Table 格式传入的自定义列（field/label/render/showOverflowTooltip）
  */

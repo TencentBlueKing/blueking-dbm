@@ -14,6 +14,9 @@
 <template>
   <div class="instance-selector-preview-result">
     <div class="header">
+      <DbIcon
+        class="mr-4"
+        type="legend" />
       <span>{{ t('结果预览') }}</span>
       <BkDropdown
         class="result-dropdown"
@@ -61,9 +64,14 @@
               class="text-overflow">
               {{ item.instance_address }}
             </span>
-            <DbIcon
-              type="close result-item-remove"
-              @click="handleRemove(key, index)" />
+            <div class="result-item-operations">
+              <DbIcon
+                type="copy result-item-copy"
+                @click="execCopy(item.instance_address)" />
+              <DbIcon
+                type="close result-item-remove"
+                @click="handleRemove(key, index)" />
+            </div>
           </div>
         </CollapseMini>
       </template>
@@ -134,7 +142,6 @@
     display: flex;
     height: 100%;
     max-height: 625px;
-    padding: 12px 24px;
     overflow: hidden;
     font-size: @font-size-mini;
     background-color: #f5f6fa;
@@ -142,12 +149,16 @@
 
     .header {
       display: flex;
+      height: 40px;
+      padding: 12px 24px;
       padding-bottom: 16px;
+      font-weight: bold;
+      background-color: #fff;
       align-items: center;
 
       > span {
         flex: 1;
-        font-size: @font-size-normal;
+        font-size: 12px;
         color: @title-color;
       }
 
@@ -170,10 +181,11 @@
     }
 
     .result-wrapper {
-      flex: 1;
       display: flex;
-      flex-direction: column;
+      padding: 12px 24px;
       overflow-y: auto;
+      flex: 1;
+      flex-direction: column;
 
       .result-item {
         display: flex;
@@ -185,6 +197,32 @@
         justify-content: space-between;
         align-items: center;
 
+        &:hover {
+          background: #e1ecff;
+
+          .result-item-copy,
+          .result-item-remove {
+            display: block;
+          }
+        }
+
+        .result-item-operations {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .result-item-copy {
+          display: none;
+          font-size: @font-size-mini;
+          color: @gray-color;
+          cursor: pointer;
+
+          &:hover {
+            color: @primary-color;
+          }
+        }
+
         .result-item-remove {
           display: none;
           font-size: @font-size-large;
@@ -194,12 +232,6 @@
 
           &:hover {
             color: @default-color;
-          }
-        }
-
-        &:hover {
-          .result-item-remove {
-            display: block;
           }
         }
       }

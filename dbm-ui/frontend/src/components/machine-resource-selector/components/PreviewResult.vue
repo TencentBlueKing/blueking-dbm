@@ -14,6 +14,9 @@
 <template>
   <div class="machine-resource-selector-preview-result">
     <div class="header">
+      <DbIcon
+        class="mr-4"
+        type="legend" />
       <span>{{ t('结果预览') }}</span>
       <BkDropdown
         class="result-dropdown"
@@ -21,7 +24,7 @@
           clickContentAutoHide: true,
         }"
         trigger="click">
-        <DbIcon type="bk-dbm-icon db-icon-more result-trigger" />
+        <i class="db-icon-more result-trigger" />
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleClear">
@@ -60,9 +63,14 @@
               class="text-overflow">
               {{ item.ip }}
             </span>
-            <DbIcon
-              type="close result-item-remove"
-              @click="() => handleRemove(item as IValue)" />
+            <div class="result-item-operations">
+              <DbIcon
+                type="copy result-item-copy"
+                @click="execCopy(item.ip)" />
+              <DbIcon
+                type="close result-item-remove"
+                @click="() => handleRemove(item as IValue)" />
+            </div>
           </div>
         </CollapseMini>
       </template>
@@ -113,7 +121,6 @@
     display: flex;
     height: 100%;
     max-height: 660px;
-    padding: 12px 24px;
     overflow: hidden;
     font-size: @font-size-mini;
     background-color: #f5f6fa;
@@ -121,13 +128,16 @@
 
     .header {
       display: flex;
+      height: 40px;
+      padding: 12px 24px;
+      font-size: 12px;
+      font-weight: bold;
+      color: @title-color;
+      background-color: #fff;
       align-items: center;
-      margin-bottom: 16px;
 
       > span {
         flex: 1;
-        font-size: @font-size-normal;
-        color: @title-color;
       }
 
       .result-dropdown {
@@ -149,10 +159,11 @@
     }
 
     .result-wrapper {
-      flex: 1;
       display: flex;
-      flex-direction: column;
+      padding: 12px 24px;
       overflow-y: auto;
+      flex: 1;
+      flex-direction: column;
 
       .result-item {
         display: flex;
@@ -164,6 +175,32 @@
         justify-content: space-between;
         align-items: center;
 
+        &:hover {
+          background: #e1ecff;
+
+          .result-item-copy,
+          .result-item-remove {
+            display: block;
+          }
+        }
+
+        .result-item-operations {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .result-item-copy {
+          display: none;
+          font-size: @font-size-mini;
+          color: @gray-color;
+          cursor: pointer;
+
+          &:hover {
+            color: @primary-color;
+          }
+        }
+
         .result-item-remove {
           display: none;
           font-size: @font-size-large;
@@ -173,12 +210,6 @@
 
           &:hover {
             color: @default-color;
-          }
-        }
-
-        &:hover {
-          .result-item-remove {
-            display: block;
           }
         }
       }
