@@ -14,14 +14,14 @@
 <template>
   <DbQuickSearch
     v-model="searchValue"
-    class="cluster-selector-search"
+    class="mt-16 mb-16"
     :data="searchSelectData"
     parse-url
     @change="handleSearchChange" />
   <DbTable
     ref="tableRef"
     class="cluster-selector-table"
-    :container-height="516"
+    :container-height="containerHeight"
     :data-source="getResourceList"
     disable-polling
     :disable-select-method="disableSelectMethod"
@@ -177,6 +177,8 @@
   // 兜底空配置：tabListMap 新增了 tab 但漏配 tableConfigMap 时，退化成无搜索条件而不是整个弹窗报错
   const tableConfig = tableConfigMap[props.activeTab] ?? { searchAttrs: [] };
 
+  const containerHeight = 570 - 32 - 16; // 去除搜索框的高度和margin bottom
+
   const tableRef = useTemplateRef<DbTableExposes>('tableRef');
 
   const { columnAttrs, searchSelectData, searchValue } = useSelectorSearch(
@@ -260,10 +262,6 @@
 </script>
 
 <style lang="less" scoped>
-  .cluster-selector-search {
-    margin-bottom: 16px;
-  }
-
   .cluster-selector-table {
     :deep(.t-table__body) {
       tr {

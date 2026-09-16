@@ -47,31 +47,21 @@
   @import '@styles/mixins.less';
 
   .cluster-resource-selector-panel-tab {
-    height: 42px;
-    font-size: @font-size-mini;
-    line-height: 42px;
-    background-color: #fafbfd;
-    border-bottom: 1px solid @border-disable;
-    .flex-center();
+    display: flex;
 
     .tab-item {
-      min-width: 200px;
-      margin-bottom: -1px;
-      text-align: center;
+      display: flex;
+      height: 40px;
       cursor: pointer;
-      border: 1px solid @border-disable;
-      border-top: 0;
-      border-left: 0;
-      border-bottom-color: transparent;
+      background-color: #fafbfd;
+      border-bottom: 1px solid #dcdee5;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
 
       &.active {
-        background-color: @bg-white;
-        border-bottom-color: @border-white;
-      }
-
-      &.disabled {
-        color: #c4c6cc;
-        cursor: not-allowed;
+        background-color: #fff;
+        border-bottom-color: transparent;
       }
 
       & ~ .tab-item {
