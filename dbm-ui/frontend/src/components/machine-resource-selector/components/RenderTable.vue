@@ -15,14 +15,14 @@
   <div class="machine-resource-selector-render-table">
     <DbQuickSearch
       v-model="searchSelectValue"
-      class="mb-12"
+      class="mt-16 mb-16"
       :data="searchSelectData"
       parse-url />
     <DbTable
       ref="table"
+      :container-height="containerHeight"
       :data-source="dataSource"
-      fixed-pagination
-      :height="540"
+      row-click-selectable
       row-key="ip"
       selectable
       :selected="selected"
@@ -120,6 +120,8 @@
     },
   ];
 
+  const containerHeight = 570 - 32 - 16; // 去除搜索框的高度和margin bottom
+
   const searchSelectValue = ref<Record<string, string>>({});
   const dbTableRef = useTemplateRef('table');
 
@@ -146,7 +148,8 @@
 
 <style lang="less">
   .machine-resource-selector-render-table {
-    padding: 12px 24px;
+    height: 570px;
+    padding: 0 24px;
 
     .t-table__body {
       tr {
