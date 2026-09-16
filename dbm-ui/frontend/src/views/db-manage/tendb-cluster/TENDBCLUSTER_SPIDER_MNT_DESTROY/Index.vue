@@ -259,9 +259,6 @@
     } else {
       formData.tableData = [...(formData.tableData[0].mntNode.bk_host_id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   defineExpose({

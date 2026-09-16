@@ -28,7 +28,8 @@
       <ClusterColumn
         v-model="item.cluster"
         :selected="selected"
-        @batch-edit="handleBatchEdit" />
+        @batch-edit="handleBatchEdit"
+        @request-success="() => handleClusterRequestSuccess(item)" />
       <EditableColumn
         field="cluster.cluster_type_name"
         :label="t('架构版本')"
@@ -271,6 +272,11 @@
     Object.assign(row, {
       target_proxy_count: row.cluster.proxy.length - (Number(row.reduced_count) || 0),
     });
+  };
+
+  // 集群信息异步回填完成后重算剩余数量并校验
+  const handleClusterRequestSuccess = (row: RowData) => {
+    handleChange(row);
   };
 
   defineExpose<Exposes>({

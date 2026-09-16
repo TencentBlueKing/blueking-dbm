@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    ref="editableColumnRef"
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
@@ -120,6 +121,7 @@
 
   const { t } = useI18n();
 
+  const editableColumnRef = useTemplateRef('editableColumnRef');
   const showSelector = ref(false);
   const localClusterTypes = computed<string[]>(() => {
     if (props.clusterTypes) {
@@ -241,6 +243,8 @@
             .filter((specId) => Boolean(specId)),
         });
         emits('request-success');
+        // 集群信息异步回填完成后刷新本单元格校验（如批量录入提前触发的“集群不存在”报错）
+        editableColumnRef.value?.validate();
 
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

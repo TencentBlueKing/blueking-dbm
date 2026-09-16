@@ -377,9 +377,6 @@
     } else {
       formData.tableData = [...(formData.tableData[0]!.host.bk_host_id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

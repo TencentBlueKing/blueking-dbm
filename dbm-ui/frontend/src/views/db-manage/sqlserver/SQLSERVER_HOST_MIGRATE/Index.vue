@@ -286,8 +286,5 @@
     } else {
       formData.tableData = [...formData.tableData.filter((item) => item.host.ip), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 </script>
