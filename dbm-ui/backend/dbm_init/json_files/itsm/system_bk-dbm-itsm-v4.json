@@ -479,7 +479,7 @@
         }
       },
       "version": {
-        "key": "20260827035500009902",
+        "key": "20260916064200010301",
         "workflow_key": "$Workflow20260810065000003601",
         "desc": null,
         "workflows": {
@@ -677,7 +677,7 @@
               "processors_type": "user",
               "advanced_settings": {
                 "auto_terminate": true,
-                "creator_auto_approve": false,
+                "creator_auto_approve": true,
                 "auto_submit_with_no_handler": false,
                 "previously_approved_auto_approve": false,
                 "previously_approved_auto_approve_after_rollback": false
@@ -778,7 +778,7 @@
               "processors_type": "user",
               "advanced_settings": {
                 "auto_terminate": true,
-                "creator_auto_approve": false,
+                "creator_auto_approve": true,
                 "auto_submit_with_no_handler": false,
                 "previously_approved_auto_approve": false,
                 "previously_approved_auto_approve_after_rollback": false
