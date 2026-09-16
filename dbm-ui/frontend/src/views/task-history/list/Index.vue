@@ -18,7 +18,6 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="quickSerachPlaceholder"
         style="width: 500px"
         @change="handleQuickSearchChange" />
     </div>
@@ -212,9 +211,6 @@
   const globalBizsStore = useGlobalBizs();
 
   const isPlatformManage = route.name === 'platformTaskHistoryList';
-  const quickSerachPlaceholder = isPlatformManage
-    ? t('搜索ID_业务_任务类型_状态_关联单据_执行人_执行时间')
-    : t('搜索ID_任务类型_状态_关联单据_执行人_执行时间');
 
   const dataSource = (params: Parameters<typeof getTaskflow>[0]) => {
     const realParams = {

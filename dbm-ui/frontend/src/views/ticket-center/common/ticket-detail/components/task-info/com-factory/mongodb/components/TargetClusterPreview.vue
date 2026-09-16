@@ -24,7 +24,6 @@
         class="mb-16"
         :data="searchSelectData"
         parse-url
-        :placeholder="t('请输入域名_集群名称')"
         @change="handleChangeValues" />
       <BkLoading :loading="loading">
         <PrimaryTable

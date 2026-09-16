@@ -98,7 +98,6 @@
             <DbQuickSearch
               v-model="quickSearchValue"
               :data="slideQuickSearchData"
-              :placeholder="t('搜索单号、DB 类型')"
               style="width: 100%" />
           </div>
         </div>

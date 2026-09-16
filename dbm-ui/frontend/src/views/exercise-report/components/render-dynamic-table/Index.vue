@@ -22,7 +22,6 @@
             v-model="searchValue"
             class="search-select-main"
             :data="searchSelectData"
-            :placeholder="placeholder"
             unique-select
             value-split-code="," />
         </div>
@@ -127,17 +126,12 @@
 
   const props = defineProps<Props>();
 
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const { bizIdMap } = useGlobalBizs();
 
   const isShowLog = ref(false);
   const logDetail = ref('');
   const logTitle = ref('');
-
-  const placeholder = computed(() => {
-    const split = locale.value === 'en' ? ',' : '、';
-    return `${t('搜索')}${searchSelectData.value.map((item) => item.name).join(split)}`;
-  });
 
   const {
     columnWidthMap,

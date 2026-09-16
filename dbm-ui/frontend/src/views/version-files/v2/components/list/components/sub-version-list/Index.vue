@@ -51,7 +51,6 @@
         <DbQuickSearch
           v-model="searchValue"
           :data="searchSelectData"
-          :placeholder="t('搜索版本名，版本阶段，版本号，启停，描述，更新人')"
           style="width: 670px"
           unique-select
           value-split-code=","

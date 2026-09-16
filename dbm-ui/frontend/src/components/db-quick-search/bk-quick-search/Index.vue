@@ -37,7 +37,7 @@
           key="createArea"
           :data="toBeSelectData"
           :default-start-select="isFocusedStartSelect"
-          :placeholder="placeholder"
+          :placeholder="localPlaceholder"
           @change="handleChange"
           @error="handleError"
           @remove="handleRemove" />
@@ -60,6 +60,7 @@
   import _ from 'lodash';
   import { Icon } from 'tdesign-vue-next';
   import { computed, type InjectionKey, provide, reactive, ref, shallowRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { hideAll } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
 
@@ -140,6 +141,9 @@
   const modelValue = defineModel<IValue[]>({
     default: () => [],
   });
+
+  const { t } = useI18n();
+
   const rootRef = ref<HTMLElement>();
   const isFocused = ref(false);
   // 获得焦点时是否开始选择。如果是点击已选择的 tag 进入编辑状态获得焦点，则不开始选择
@@ -149,6 +153,11 @@
   const localSelectValueList = shallowRef<IValue[]>([]);
 
   const isSelectedValueEmpty = computed(() => localSelectValueList.value.length < 1);
+
+  // 外部没有配置 placeholder 时，用全量搜索项名称拼一份默认提示
+  const localPlaceholder = computed(
+    () => props.placeholder || t('请输入或选择 n', { n: props.data.map((item) => item.name).join('、') }),
+  );
 
   const toBeSelectData = computed(() => {
     const selectedIdMap = localSelectValueList.value.reduce(
