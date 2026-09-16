@@ -141,15 +141,17 @@
         trigger="click"
         :width="320"
         @confirm="() => handleConfirm()">
-        <AuthButton
-          action-id="global_alarm_policy_manage"
-          :disabled="resetLoading"
-          :loading="updateLoading"
-          :permission="data.permission.global_alarm_policy_manage"
-          :resource="dbType"
-          theme="primary">
-          {{ t('确定') }}
-        </AuthButton>
+        <span>
+          <AuthButton
+            action-id="global_alarm_policy_manage"
+            :disabled="resetLoading"
+            :loading="updateLoading"
+            :permission="data.permission.global_alarm_policy_manage"
+            :resource="dbType"
+            theme="primary">
+            {{ t('确定') }}
+          </AuthButton>
+        </span>
       </BkPopConfirm>
       <AuthButton
         action-id="global_alarm_policy_manage"
