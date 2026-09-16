@@ -61,7 +61,7 @@ class EventDetailSerializer(serializers.Serializer):
 class QueryListSerializer(serializers.Serializer):
     """查询dbha事件列表"""
 
-    app = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    app = serializers.IntegerField(help_text=_("业务ID"))
     # ip = serializers.IPAddressField(help_text=_("实例IP"))
     # domain_name = serializers.CharField(max_length=255, help_text=_("集群"))
     # db_type = serializers.CharField(max_length=255, help_text=_("实例类型"))
