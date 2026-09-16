@@ -380,9 +380,6 @@
     } else {
       tableData.value = [...tableData.value.filter((item) => item.multipleCluster.renderText), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

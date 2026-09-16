@@ -278,9 +278,6 @@
     } else {
       formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   const generateCity = (clusters: Record<string, { id: number; master_domain: string; region: string }>) => {

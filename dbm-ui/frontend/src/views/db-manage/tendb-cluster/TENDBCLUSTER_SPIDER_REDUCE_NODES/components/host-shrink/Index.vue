@@ -260,9 +260,6 @@
     } else {
       tableData.value = [...(tableData.value[0]!.spider_reduced_host.ip ? tableData.value : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   defineExpose<Exposes>({

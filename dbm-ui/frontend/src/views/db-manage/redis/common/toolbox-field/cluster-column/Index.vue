@@ -102,6 +102,8 @@
       if (currentCluster) {
         modelValue.value = currentCluster;
         emits('request-success');
+        // 集群信息异步回填完成后刷新本单元格校验（如批量录入提前触发的“集群不存在”报错）
+        editableColumnRef.value?.validate();
       } else {
         // 集群不存在，触发校验
         editableColumnRef.value?.validate();

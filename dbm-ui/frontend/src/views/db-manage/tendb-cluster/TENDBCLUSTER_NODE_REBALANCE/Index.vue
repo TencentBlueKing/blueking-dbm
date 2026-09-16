@@ -301,11 +301,7 @@
     } else {
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
-
   const handleBatchEditColumn = (value: any, field: string) => {
     formData.tableData.forEach((rowData) => {
       Object.assign(rowData, {

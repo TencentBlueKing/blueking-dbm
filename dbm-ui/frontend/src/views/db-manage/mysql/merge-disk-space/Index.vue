@@ -221,10 +221,6 @@
     } else {
       formData.tableData = [...(formData.tableData[0].source_cluster.id ? formData.tableData : []), ...dataList];
     }
-
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   defineExpose({
