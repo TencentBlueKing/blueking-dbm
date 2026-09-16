@@ -20,13 +20,14 @@
     :is-show="isShow"
     :quick-close="false"
     title=""
-    :width="dialogWidth"
+    width="80%"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
-      :initial-divide="350"
-      :max="500"
-      :min="300"
+      collapsible
+      initial-divide="320px"
+      :max="360"
+      :min="320"
       placement="right">
       <template #aside>
         <div class="cluster-selector-result">
@@ -121,7 +122,7 @@
       <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
         <BkButton
           v-test="{ type: 'button', value: 'clusterSelectorConfirm' }"
-          class="cluster-selector-button mr-8"
+          class="w-88"
           :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
           @click="handleConfirm">
@@ -129,7 +130,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="cluster-selector-button"
+        class="ml-8 w-88"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
@@ -175,8 +176,6 @@
   import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ListBase } from '@services/types';
-
-  import { useSelectorDialogWidth } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -243,7 +242,6 @@
     default: false,
   });
 
-  const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
 
   // 13 个 tab 的禁用规则、选择模式、表格与结果预览组件完全一致，只有查询接口与名称不同
@@ -540,7 +538,10 @@
   @import '@styles/mixins.less';
 
   .cluster-selector-dialog {
-    font-size: @font-size-mini;
+    display: block;
+    width: 80%;
+    max-width: 1600px;
+    min-width: 1200px;
 
     .bk-modal-header {
       display: none;
@@ -552,34 +553,32 @@
     }
 
     .cluster-selector-tabs {
-      height: 42px;
-      font-size: @font-size-mini;
-      line-height: 42px;
-      background-color: #fafbfd;
-      border-bottom: 1px solid @border-disable;
-      .flex-center();
+      display: flex;
 
       .tabs-item {
-        margin-bottom: -1px;
-        text-align: center;
+        display: flex;
+        height: 40px;
         cursor: pointer;
-        border-bottom-color: transparent;
+        background-color: #fafbfd;
+        border-bottom: 1px solid #dcdee5;
+        justify-content: center;
+        align-items: center;
         flex: 1;
 
         & ~ .tabs-item {
-          border-left: 1px solid @border-disable;
+          border-left: 1px solid #dcdee5;
         }
       }
 
       .tabs-item-active {
-        background-color: @bg-white;
-        border-bottom-color: @border-white;
+        background-color: #fff;
+        border-bottom-color: transparent;
       }
     }
 
     .cluster-selector-content {
-      height: 580px;
-      padding: 16px 24px 0;
+      height: 570px;
+      padding: 0 24px;
 
       :deep(.bk-pagination-small-list) {
         order: 3;
@@ -595,8 +594,8 @@
 
       .result-title {
         display: flex;
-        height: 42px;
-        padding: 0 24px;
+        height: 40px;
+        padding: 12px 24px;
         font-weight: bold;
         background-color: #fff;
         align-items: center;
@@ -626,12 +625,8 @@
       }
 
       .result-content {
-        padding: 8px 24px;
+        padding: 12px 24px;
       }
-    }
-
-    .cluster-selector-button {
-      width: 88px;
     }
   }
 

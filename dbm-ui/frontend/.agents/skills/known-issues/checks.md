@@ -20,6 +20,11 @@
   —— 改 `src/services/source/qdrantHa.ts`、`surrealdbHa.ts`、`surrealdbSingle.ts`、`kubernetesToolbox.ts` 的请求参数名
 - [没有兄弟目录时 common/ 这层不该留](doc/redundant-common-dir.md)
   —— 本次改动删掉或合并了某目录下的兄弟目录，使得父目录下只剩一个 `common/`
+- [没有兄弟目录时 common/ 这层不该留](doc/redundant-common-dir.md)
+  —— 本次改动删掉或合并了某目录下的兄弟目录，使得父目录下只剩一个 `common/`
+- [选择器弹窗骨架已按 host-selector 对齐，别再发明第三套](doc/selector-dialog-skeleton.md) ——改
+  `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
+  的弹窗外壳 / PanelTab / 表格容器 / 取值语义，或新写「左表格 + 右结果预览」选择器
 
 ## B 类：只报告，改法未定
 
