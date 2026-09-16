@@ -37,30 +37,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// minProbeGseConnTimeout is the lower bound enforced by clampProbeGseConnTimeout
-// when probeGse.connTimeout is empty, invalid, or below this duration.
-const minProbeGseConnTimeout = 5 * time.Second
-
-// minProbeHarvesterInterval / minProbeHarvesterTimeout are lower bounds enforced at admin load
-// for ProbeMysql / ProbeRedis / ProbeProxyAdmin Interval / Timeout fields. Values that are
-// zero or below the minimum are normalized so probe never receives 0s and starts a
-// zero-interval ticker.
-// minProbeHarvesterHeartbeatInterval / minProbeHarvesterReplHeartbeatInterval are the floors
-// for heartbeatInterval / replDelayInterval on probeMysql and probeProxyAdmin.
-// Empty YAML values are not clamped here: viper's duration decoder rejects them and Load returns
-// an error before clamp runs, so callers must always supply a parseable Go duration string.
-const (
-	minProbeHarvesterInterval              = 5 * time.Second
-	minProbeHarvesterHeartbeatInterval     = 1 * time.Second
-	minProbeHarvesterReplHeartbeatInterval = 5 * time.Second
-	minProbeHarvesterTimeout               = 1 * time.Second
-)
-
-// defaultPidFile is the fallback pid-file path used when the loaded config
-// leaves pidFile empty, so the running process never operates with an empty
-// pid-file path.
-const defaultPidFile = "./pids/admin.pid"
-
 const (
 	// DefaultProbeMetadataCacheMaxAge is how fresh cached metadata must be to answer a probe.
 	// Ten minutes is comfortably longer than a metadata sync cycle, so the cache still absorbs
@@ -71,6 +47,28 @@ const (
 	// beyond any sync delay, so anything older describes an instance metadata sync no longer
 	// refreshes rather than one it is late on.
 	DefaultProbeMetadataTombstoneAge = 24 * time.Hour
+
+	// minProbeGseConnTimeout is the lower bound enforced by clampProbeGseConnTimeout
+	// when probeGse.connTimeout is empty, invalid, or below this duration.
+	minProbeGseConnTimeout = 5 * time.Second
+
+	// minProbeHarvesterInterval / minProbeHarvesterTimeout are lower bounds enforced at admin load
+	// for ProbeMysql / ProbeRedis / ProbeProxyAdmin Interval / Timeout fields. Values that are
+	// zero or below the minimum are normalized so probe never receives 0s and starts a
+	// zero-interval ticker.
+	// minProbeHarvesterHeartbeatInterval / minProbeHarvesterReplHeartbeatInterval are the floors
+	// for heartbeatInterval / replDelayInterval on probeMysql and probeProxyAdmin.
+	// Empty YAML values are not clamped here: viper's duration decoder rejects them and Load returns
+	// an error before clamp runs, so callers must always supply a parseable Go duration string.
+	minProbeHarvesterInterval              = 5 * time.Second
+	minProbeHarvesterHeartbeatInterval     = 1 * time.Second
+	minProbeHarvesterReplHeartbeatInterval = 5 * time.Second
+	minProbeHarvesterTimeout               = 1 * time.Second
+
+	// defaultPidFile is the fallback pid-file path used when the loaded config
+	// leaves pidFile empty, so the running process never operates with an empty
+	// pid-file path.
+	defaultPidFile = "./pids/admin.pid"
 
 	// minProbeMetadataCacheMaxAge keeps the freshness window above a single sync cycle. Below
 	// it, ordinary sync jitter would look like staleness and send every request to DBM.

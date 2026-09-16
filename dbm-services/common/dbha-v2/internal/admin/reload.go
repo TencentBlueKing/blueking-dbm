@@ -57,6 +57,7 @@ func (s *Service) requestReload() {
 	if s.reloadC == nil {
 		return
 	}
+
 	select {
 	case s.reloadC <- struct{}{}:
 	default:
@@ -66,10 +67,12 @@ func (s *Service) requestReload() {
 
 func (s *Service) runReloadWorker() {
 	defer close(s.reloadWorkerDone)
+
 	for {
 		select {
 		case <-s.shutdown:
 			return
+
 		case <-s.reloadC:
 			safe.Run(func() {
 				s.reloadOnce()
@@ -91,6 +94,7 @@ func (s *Service) reloadOnce() {
 	case <-s.shutdown:
 		outcome.failed = true
 		return
+
 	default:
 	}
 
@@ -100,6 +104,7 @@ func (s *Service) reloadOnce() {
 		logger.Warn("parse admin config failed, config_path: %s, errmsg: %s", s.configPath, err)
 		return
 	}
+
 	if err := config.Validate(next); err != nil {
 		outcome.failed = true
 		logger.Warn("validate admin config failed, config_path: %s, errmsg: %s", s.configPath, err)
@@ -118,9 +123,11 @@ func (s *Service) reloadOnce() {
 
 	warnRestartRequiredLogFiles(current, next)
 	config.Apply(next)
+
 	if s.runtimeLogger != nil {
 		s.runtimeLogger.SetLevel(logger.Level(next.Log.Level))
 	}
+
 	if outcome.failed {
 		logger.Warn(
 			"admin config snapshot reloaded with resource failures, config_path: %s, "+
@@ -131,6 +138,7 @@ func (s *Service) reloadOnce() {
 		)
 		return
 	}
+
 	logger.Info(
 		"admin config snapshot reloaded, config_path: %s, slot_success: %s, slot_failure: %s",
 		s.configPath,
@@ -142,20 +150,25 @@ func (s *Service) reloadOnce() {
 func (s *Service) rebuildAffectedSlots(next config.Configuration, outcome *reloadOutcome) {
 	totalCtx, cancel := context.WithTimeout(context.Background(), reloadTotalTimeout)
 	defer cancel()
+
 	for index, resourceSlot := range s.slots {
 		shuttingDown := s.isShuttingDown()
 		budgetErr := totalCtx.Err()
+
 		if shuttingDown || budgetErr != nil {
 			outcome.failed = true
 			skipRemainingSlots(s.slots[index:], next, outcome, skipReason(shuttingDown, budgetErr))
 			return
 		}
+
 		if !resourceSlot.NeedsRebuild(next) {
 			continue
 		}
+
 		slotCtx, slotCancel := context.WithTimeout(context.Background(), reloadSlotTimeout)
 		err := resourceSlot.Rebuild(slotCtx, next)
 		slotCancel()
+
 		if err != nil {
 			outcome.failed = true
 			outcome.slotFailure++
@@ -163,6 +176,7 @@ func (s *Service) rebuildAffectedSlots(next config.Configuration, outcome *reloa
 			logger.Warn("admin resource reload failed, slot: %s, errmsg: %s", resourceSlot.Name(), err)
 			continue
 		}
+
 		outcome.slotSuccess++
 		outcome.successNames = append(outcome.successNames, resourceSlot.Name())
 	}
@@ -181,9 +195,11 @@ func skipReason(shuttingDown bool, totalErr error) string {
 	if shuttingDown {
 		return "shutdown"
 	}
+
 	if totalErr != nil {
 		return "total budget exhausted"
 	}
+
 	return "skipped"
 }
 
@@ -192,6 +208,7 @@ func skipRemainingSlots(slots []slot.Ops, next config.Configuration, outcome *re
 		if !resourceSlot.NeedsRebuild(next) {
 			continue
 		}
+
 		outcome.slotFailure++
 		outcome.failureNames = append(outcome.failureNames, resourceSlot.Name())
 		logger.Warn("admin resource reload skipped, slot: %s, reason: %s", resourceSlot.Name(), reason)
@@ -214,6 +231,7 @@ type logFileFP struct {
 func warnRestartRequiredLogFiles(oldCfg, next config.Configuration) {
 	oldFP := logFileFP{Path: oldCfg.Log.Path, FileCount: oldCfg.Log.FileCount, FileSize: oldCfg.Log.FileSize}
 	nextFP := logFileFP{Path: next.Log.Path, FileCount: next.Log.FileCount, FileSize: next.Log.FileSize}
+
 	if !reflect.DeepEqual(oldFP, nextFP) {
 		logger.Warn("config block changed, restart required, block: log.file")
 	}

@@ -46,13 +46,6 @@ var (
 	JsonFormatter bool
 )
 
-func procName() string {
-	if n := process.BinaryName(); n != "" {
-		return n
-	}
-	return process.NameAdmin
-}
-
 // StartCmdRunE runs the admin process in foreground.
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.StartCmdRunE(cmd, args, config.Cfg.PidFile, procName())
@@ -93,35 +86,6 @@ func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.ReloadCmdRunE(cmd, args, pidFile, procName(), StopTimeout, ForceStop)
 }
 
-func reloadSignalPidFile(configPath string) (string, error) {
-	next, err := config.Parse(configPath)
-	if err != nil {
-		if isConfigFileMissing(err) {
-			logger.Warn(
-				"admin reload config file missing, using current pid file, config_path: %s, errmsg: %s",
-				configPath, err,
-			)
-			return config.Cfg.PidFile, nil
-		}
-		return "", err
-	}
-	if err := config.Validate(next); err != nil {
-		return "", err
-	}
-	return config.Cfg.PidFile, nil
-}
-
-func isConfigFileMissing(err error) bool {
-	if err == nil {
-		return false
-	}
-	var notFound viper.ConfigFileNotFoundError
-	if errors.As(err, &notFound) {
-		return true
-	}
-	return errors.Is(err, os.ErrNotExist)
-}
-
 // DaemonStartCmdRunE starts the admin process under the process guard.
 func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
 	configPath, _ := cmd.Root().PersistentFlags().GetString("config")
@@ -148,4 +112,40 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), string(data))
 	return nil
+}
+
+func procName() string {
+	if n := process.BinaryName(); n != "" {
+		return n
+	}
+	return process.NameAdmin
+}
+
+func reloadSignalPidFile(configPath string) (string, error) {
+	next, err := config.Parse(configPath)
+	if isConfigFileMissing(err) {
+		logger.Warn(
+			"admin reload config file missing, using current pid file, config_path: %s, errmsg: %s",
+			configPath, err,
+		)
+		return config.Cfg.PidFile, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := config.Validate(next); err != nil {
+		return "", err
+	}
+	return config.Cfg.PidFile, nil
+}
+
+func isConfigFileMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	var notFound viper.ConfigFileNotFoundError
+	if errors.As(err, &notFound) {
+		return true
+	}
+	return errors.Is(err, os.ErrNotExist)
 }
