@@ -16,19 +16,28 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.bk_web.viewsets import ReadOnlyAuditedModelViewSet
+from backend.bk_web.viewsets import ReadOnlyAuditedModelViewSet, SystemViewSet
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType, DestroyedStatus
 from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.exceptions import AppBaseException
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.utils.time import str2datetime
 
 from . import constants
+from .batches import BackupBatchService
+from .exceptions import RollbackPlanError
 from .handlers import DataStructureHandler
 from .models import TbTendisRollbackTasks
-from .serializers import CheckTimeSerializer, RollbackSerializer
+from .serializers import (
+    BackupBatchQuerySerializer,
+    CheckTimeSerializer,
+    RollbackPrecheckSerializer,
+    RollbackSerializer,
+)
 
 
 class RollbackListFilter(filters.FilterSet):
@@ -141,3 +150,46 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
                     return Response({"exist": False, "msg": f"[{master_instance}] query binlog info failed"})
 
             return Response({"exist": True, "msg": "success"})
+
+
+@method_decorator(
+    name="list_batches",
+    decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),
+)
+class BackupBatchViewSet(SystemViewSet):
+    """回档备份批次与预检。"""
+
+    default_permission_class = [DBManagePermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("备份批次列表"),
+        request_body=BackupBatchQuerySerializer(),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BackupBatchQuerySerializer)
+    def list_batches(self, request, bk_biz_id, **kwargs):
+        data = self.validated_data
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=data["cluster_id"])
+        start_time = str2datetime(data["start_time"]) if data.get("start_time") else None
+        end_time = str2datetime(data["end_time"]) if data.get("end_time") else None
+        result = BackupBatchService(cluster).list_batches(
+            start_time=start_time, end_time=end_time, shard_values=data.get("shard_values") or None
+        )
+        return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("回档预检（校验全部实例后汇总）"),
+        request_body=RollbackPrecheckSerializer(),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=RollbackPrecheckSerializer)
+    def precheck(self, request, bk_biz_id, **kwargs):
+        data = self.validated_data
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=data["cluster_id"])
+        try:
+            return Response(RollbackPlanner(cluster, data).precheck())
+        except RollbackPlanError as exc:
+            message = str(exc.message) if hasattr(exc, "message") else str(exc)
+        except Exception as exc:  # pylint: disable=broad-except
+            message = str(exc)
+        return Response({"exist": False, "errors": [message], "warnings": [], "shards": []})

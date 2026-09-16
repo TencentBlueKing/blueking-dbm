@@ -53,13 +53,13 @@ def _validate_metric_role(
     return None
 
 
-def _detect_storage_role(instance_role: str) -> MetricsInstanceRole:
+def _detect_storage_role(instance_role: str) -> Optional[MetricsInstanceRole]:
     """Map a StorageInstance's instance_role to the corresponding MetricsInstanceRole."""
     if instance_role == InstanceRole.REDIS_SLAVE:
         return MetricsInstanceRole.SLAVE
     if instance_role == InstanceRole.REDIS_MASTER:
         return MetricsInstanceRole.MASTER
-    raise ValueError(f"Unsupported storage instance role for metrics query: {instance_role}")
+    return None
 
 
 def _resolve_err(message: str):
@@ -85,10 +85,10 @@ def _determine_role(cluster: Cluster, is_proxy: bool, storage_role_str: Optional
     if is_proxy:
         return _Resolved(cluster, MetricsInstanceRole.PROXY, None)
     if storage_role_str is not None:
-        try:
-            return _Resolved(cluster, _detect_storage_role(storage_role_str), None)
-        except ValueError as e:
-            return _err(str(e))
+        role = _detect_storage_role(storage_role_str)
+        if role is None:
+            return _err(f"Unsupported storage instance role for metrics query: {storage_role_str}")
+        return _Resolved(cluster, role, None)
     return _err(f"No proxy or storage instance found for {label} in cluster {cluster.immute_domain}")
 
 

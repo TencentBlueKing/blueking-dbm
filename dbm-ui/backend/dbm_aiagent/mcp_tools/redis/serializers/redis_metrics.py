@@ -295,7 +295,11 @@ class RedisMetricsSeriesOutputSerializer(serializers.Serializer):
     )
     partial_errors = serializers.JSONField(
         required=False,
-        help_text=_("Optional per-cluster_type batch errors when partial data is returned."),
+        help_text=_(
+            "Optional per-cluster_type batch errors when partial data is returned. "
+            "Business errors keep the original message. Internal query failures return "
+            "error='internal metrics query failed' and an error_id for log correlation."
+        ),
     )
 
 
@@ -325,5 +329,9 @@ class RedisMetricsStatsOutputSerializer(serializers.Serializer):
     )
     partial_errors = serializers.JSONField(
         required=False,
-        help_text=_("Optional per-cluster_type batch errors when partial data is returned."),
+        help_text=_(
+            "Optional per-cluster_type batch errors when partial data is returned. "
+            "Business errors keep the original message. Internal query failures return "
+            "error='internal metrics query failed' and an error_id for log correlation."
+        ),
     )
