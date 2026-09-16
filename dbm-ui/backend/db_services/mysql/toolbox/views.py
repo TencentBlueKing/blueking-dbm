@@ -51,6 +51,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_data_merge_disk_space import m
 from backend.flow.engine.controller.mysql_backup_data_recovery_exercise import MySQLBackupDataRecoveryController
 from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterEditPermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.basic import generate_root_id
@@ -71,6 +72,10 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         _type_: _description_
     """
 
+    action_permission_map = {
+        # 请求体无 bk_biz_id，DBManagePermission 会 fail-open；写接口按集群资源鉴权
+        ("change_cluster_spec",): [ClusterEditPermission()],
+    }
     default_permission_class = [DBManagePermission()]
 
     # This method is deprecated, use `query_higher_version_pkg_list` instead
@@ -275,8 +280,11 @@ class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):
     给从库添加域名
     """
 
-    action_permission_map = {}
-    default_permission_class = [DBManagePermission()]
+    action_permission_map = {
+        # 请求体无 bk_biz_id，DBManagePermission 会 fail-open；写接口按集群资源鉴权
+        ("slave_ins_add_domain",): [ClusterEditPermission()],
+    }
+    default_permission_class = [ClusterEditPermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("给从库添加域名"),
