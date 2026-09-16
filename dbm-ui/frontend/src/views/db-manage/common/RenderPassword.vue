@@ -360,7 +360,7 @@
         copy(username);
         break;
       case 'password':
-        copy(passwordToken);
+        copy(password);
         break;
       case 'security_certification':
         copy(securityInfo);
