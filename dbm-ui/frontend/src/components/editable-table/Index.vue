@@ -305,6 +305,14 @@
     _.flatten(rowList.value).forEach((column) => column.clearValidate());
   };
 
+  // 批量录入填充表格数据后触发整表校验，等数据回填、行重新注册完成后再执行
+  eventBus.on('editable-table-validate', () => {
+    setTimeout(() => {
+      // 校验不通过 reject(false)，此处仅用于展示错误态，无需处理
+      validate().catch(() => {});
+    }, 200);
+  });
+
   const viewError = (errorList: Parameters<Expose['viewError']>[0]) => {
     // 展示新的错误前清理上一次遗留的错误态
     clearValidate();

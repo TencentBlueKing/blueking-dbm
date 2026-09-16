@@ -153,9 +153,6 @@
     } else {
       tableData.value = [...(tableData.value[0].source_db ? tableData.value : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   defineExpose<Exposes>({

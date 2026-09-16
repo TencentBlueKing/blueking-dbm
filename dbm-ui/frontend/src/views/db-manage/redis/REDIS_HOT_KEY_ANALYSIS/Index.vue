@@ -225,10 +225,6 @@
     } else {
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
     }
-
-    setTimeout(() => {
-      editableTableRef.value!.validate();
-    }, 200);
   };
 
   const handleSubmit = () => {

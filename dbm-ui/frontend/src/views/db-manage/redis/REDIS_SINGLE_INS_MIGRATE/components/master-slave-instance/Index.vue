@@ -244,9 +244,6 @@
     } else {
       tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...newList];
     }
-    setTimeout(() => {
-      editableTableRef.value!.validate();
-    }, 200);
   };
 
   const handleBatchEdit = (value: number, field: string) => {

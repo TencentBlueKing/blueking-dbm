@@ -84,7 +84,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useCopy } from '@hooks';
+  import { useCopy, useEventBus } from '@hooks';
 
   interface Props {
     /**
@@ -113,6 +113,7 @@
 
   const { t } = useI18n();
   const copy = useCopy();
+  const eventBus = useEventBus();
   const route = useRoute();
 
   const isShow = ref(false);
@@ -156,6 +157,8 @@
 
     emits('change', result, isClear.value);
     window.changeConfirm = true;
+    // 通知页面上的可编辑表格触发整表校验（回填的数据中可能存在非法值）
+    eventBus.emit('editable-table-validate');
     handleClose();
   };
 </script>
