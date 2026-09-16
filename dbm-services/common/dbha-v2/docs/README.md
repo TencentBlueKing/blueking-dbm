@@ -45,6 +45,10 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 
 改 probe 下发相关配置会触发全网 harvester 重建，不宜频繁 SIGHUP。
 
+进程级回归（无真实 etcd / mysqld）见 skill `ha-sandbox-test` 与
+`scripts/ha-sandbox-admin-reload.sh`（依赖 `tools/cmd/ha-sandbox-mock`）。
+脚本会抓取 Admin APM `/metrics` 并核对 reload 相关 gauge 的数值（成功/失败、槽计数、last_success）。
+
 ---
 
 返回：[项目 README](../README.md)
