@@ -2,10 +2,16 @@
 package mongodb_rpc
 
 import (
+	"bytes"
+	"io"
+	"log/slog"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/pkg/errors"
 )
 
 func TestPrecheckInput(t *testing.T) {
@@ -238,5 +244,88 @@ func TestIsValidInput(t *testing.T) {
 				t.Errorf("isValidInput() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPrecheckInputPreservesCheckInputError(t *testing.T) {
+	_, err := precheckInput("mongosh", []byte("db.foo.find({"))
+	if err == nil {
+		t.Fatal("expected invalid input error")
+	}
+	if !errors.Is(err, CheckInputError) {
+		t.Fatalf("errors.Is CheckInputError = false, err=%v", err)
+	}
+}
+
+func TestMongoHostWithoutSecrets(t *testing.T) {
+	h := MongoHost{Host: "127.0.0.1:27017", Password: "secret", AdminPassword: "admin-secret"}
+	safe := h.withoutSecrets()
+	if safe.Password != "" || safe.AdminPassword != "" {
+		t.Fatalf("secrets leaked: %+v", safe)
+	}
+	if h.Password != "secret" {
+		t.Fatal("withoutSecrets must not mutate original")
+	}
+}
+
+func TestMongoShellStopZeroPid(t *testing.T) {
+	r := &MongoShell{
+		StopChan: make(chan struct{}, 1),
+		logger:   slog.Default(),
+	}
+	r.Stop()
+	r.Stop()
+}
+
+// ReceiveMsg must detect EndOfOutput on the accumulated buffer: when the marker is
+// split over two reads, neither chunk matches on its own.
+func TestReceiveMsgEndMarkerSplitAcrossChunks(t *testing.T) {
+	first := "admin  0.000GB\n" + EndOfOutput[:len(EndOfOutput)/2]
+	second := EndOfOutput[len(EndOfOutput)/2:] + "\n"
+	if isResponseEnd([]byte(first)) || isResponseEnd([]byte(second)) {
+		t.Fatal("split marker must not match a single chunk")
+	}
+
+	r := &MongoShell{
+		BufChan: make(chan []byte, 2),
+		logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+	r.BufChan <- []byte(first)
+
+	type received struct {
+		out []byte
+		err error
+	}
+	done := make(chan received, 1)
+	go func() {
+		out, err := r.ReceiveMsg(10)
+		done <- received{out, err}
+	}()
+
+	select {
+	case got := <-done:
+		t.Fatalf("ReceiveMsg returned on a partial marker: out=%q err=%v", got.out, got.err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	r.BufChan <- []byte(second)
+
+	select {
+	case got := <-done:
+		if got.err != nil {
+			t.Fatalf("ReceiveMsg: %v", got.err)
+		}
+		if want := []byte("admin  0.000GB\n"); !bytes.Equal(got.out, want) {
+			t.Fatalf("out = %q, want %q", got.out, want)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("ReceiveMsg did not return after the marker was completed")
+	}
+}
+
+func TestGetUniqSessionToken(t *testing.T) {
+	p := &QueryParams{ClusterDomain: "m1.a.db", OaUser: "u1", Token: "t1"}
+	if p.GetUniqSessionToken() != "m1.a.db_u1_t1" {
+		t.Fatalf("got %q", p.GetUniqSessionToken())
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -145,6 +146,15 @@ func connectAdminOnPrimary(host, adminUser, adminPwd string) (*mongo.Client, err
 	return client, nil
 }
 
+func isRoleAlreadyExistsErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "already exists") ||
+		strings.Contains(errStr, "roleexists")
+}
+
 func ensureShStatusReaderRole(client *mongo.Client) error {
 	var result bson.M
 	err := client.Database("admin").RunCommand(context.TODO(), bson.D{
@@ -173,6 +183,10 @@ func ensureShStatusReaderRole(client *mongo.Client) error {
 		{Key: "roles", Value: bson.A{}},
 	}).Err()
 	if err != nil {
+		// Concurrent webconsole sessions may race on createRole; RoleExists is fine.
+		if isRoleAlreadyExistsErr(err) {
+			return nil
+		}
 		return fmt.Errorf("failed to create role %q: %v", webconsoleShStatusRole, err)
 	}
 	return nil

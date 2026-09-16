@@ -1,6 +1,7 @@
 package mongodb_rpc
 
 import (
+	"fmt"
 	"os/exec"
 	"reflect"
 	"testing"
@@ -60,6 +61,18 @@ func TestExpectedWebconsoleRoles(t *testing.T) {
 	}
 	if shardedRoles[1].role != webconsoleShStatusRole {
 		t.Fatalf("expected custom sh.status role, got %+v", shardedRoles)
+	}
+}
+
+func TestIsRoleAlreadyExistsErr(t *testing.T) {
+	if isRoleAlreadyExistsErr(nil) {
+		t.Fatal("nil should not be role-exists")
+	}
+	if !isRoleAlreadyExistsErr(fmt.Errorf("RoleExists: role \"webconsoleShStatusReader\" already exists")) {
+		t.Fatal("RoleExists / already exists should be treated as success")
+	}
+	if isRoleAlreadyExistsErr(fmt.Errorf("not authorized on admin to execute command createRole")) {
+		t.Fatal("auth errors must not be treated as role-exists")
 	}
 }
 
