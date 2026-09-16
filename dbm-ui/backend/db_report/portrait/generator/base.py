@@ -106,6 +106,29 @@ class PortraitInvalidParamException(PortraitGenerateException):
     MESSAGE_TPL = _("{msg}")
 
 
+class PortraitRateLimitException(PortraitGenerateException):
+    """AI 网关 429 限速异常（可恢复，建议上层稍后重试）。
+
+    触发条件：
+        - :meth:`ClusterPortraitGenerator._call_agent` 抛出的异常携带 HTTP 状态码 429
+          （Too Many Requests，AI Agent 网关侧 QPM 限流）
+    与其他异常的区别：
+        - 语义上是 **可恢复** 的临时错误：AI 服务本身健康、只是当前调用被限速
+        - :meth:`ClusterPortraitGenerator.run` 遇到本异常时 **不落 STATUS_AI_ERROR 记录**，
+          而是先回滚已落的占位记录，再把本异常 **原样抛出**，交给上层决策
+    上层典型处理：
+        - 同步调用方（前台补跑）: 捕获后可选择人工重试 / 上抛错误提示
+        - DispatchQueue worker: 捕获后转为 :attr:`DispatchOutcomeType.REQUEUED` outcome，
+          让框架 cooldown 后自动 requeue（无需污染画像记录表）
+    边界 / 修复建议：
+        - 若同一集群短时间内反复触发，说明整体 QPM 打满，应升级为运维告警
+    """
+
+    ERROR_CODE = "112"
+    MESSAGE = _("集群画像生成被 AI 网关限速（HTTP 429）")
+    MESSAGE_TPL = _("{msg}")
+
+
 # ---------------------------------------------------------------------------
 # 结果 / 中间态 dataclass
 # ---------------------------------------------------------------------------
@@ -375,6 +398,8 @@ class ClusterPortraitGenerator:
 
         边界 / 异常：
             - 入参非法 -> :class:`PortraitInvalidParamException`（不落记录）
+            - AI 网关 429 限速 -> :class:`PortraitRateLimitException`（**回滚占位记录后冒泡**，
+              让上层决策：同步补跑走人工重试；DispatchQueue worker 走 REQUEUED outcome + cooldown）
             - AI / 解析失败 -> 不冒泡异常，通过 ``status`` 返回；已完整落记录
             - 落库失败（ORM 原生异常） -> 原样冒泡；由框架 500 兜底
         """
@@ -424,28 +449,65 @@ class ClusterPortraitGenerator:
             )
             raw_response: str = self._call_agent(content)
         except Exception as exc:  # 覆盖 AI 调用 / prompt 构造的所有异常
+            # 分支 A：AI 网关 429 限速 -> 视为「可恢复的临时错误」；不落 STATUS_AI_ERROR，
+            #        先回滚阶段 2 的占位记录（保持「两阶段写入不留半份记录」契约），
+            #        再抛 PortraitRateLimitException 让上层决策（同步补跑走人工重试；
+            #        DispatchQueue worker 走 REQUEUED outcome + cooldown 自动 requeue）
+            #
+            # 429 判定复用 :mod:`dbm_aiagent.tasks.invoker` 的公开工具函数，避免与
+            # :class:`AgentInvoker` 重复实现同一份状态码嗅探逻辑；惰性 import 与本类
+            # ``_call_agent`` 中对 :class:`AgentHandler` 的处理保持同风格
+            from backend.dbm_aiagent.tasks.invoker import is_http_rate_limit_error
+
+            if is_http_rate_limit_error(exc):
+                logger.warning(
+                    "[portrait_generator] agent rate limited (HTTP 429): " "db_type=%s cluster=%s record_id=%s exc=%s",
+                    db_type_value,
+                    cluster_domain,
+                    record_id,
+                    exc,
+                )
+                # 回滚阶段 2 的占位记录；删除失败不阻塞 429 上抛
+                try:
+                    ClusterPortraitReport.objects.filter(id=record_id).delete()
+                except Exception:  # noqa: BLE001 - 兜底：回滚失败仅告警，异常继续冒泡
+                    logger.exception(
+                        "[portrait_generator] rollback placeholder failed on 429: record_id=%s",
+                        record_id,
+                    )
+                raise PortraitRateLimitException(
+                    context={"msg": _("AI 网关限速（HTTP 429）：{cls}").format(cls=type(exc).__name__)}
+                ) from exc
+
+            # 分支 B：其余 AI 调用异常 -> 保持原有语义，落 STATUS_AI_ERROR 完整记录
             logger.exception(
                 "[portrait_generator] agent call failed: db_type=%s cluster=%s record_id=%s",
                 db_type_value,
                 cluster_domain,
                 record_id,
             )
-            error_msg: str = _("AI 调用异常：{cls}").format(cls=type(exc).__name__)
+            # 组装入库摘要：
+            #   - 加 [ai_call_error] 前缀，与 [ai_rejected] 分支对称，便于运维一眼区分
+            #     "AI 网络/超时异常" 与 "AI 语义拒绝"
+            #   - 同时携带 异常类名 + 异常消息体（str(exc)），信息量与下方 return.error 对齐；
+            #     _persist_failure 内部已有 [:4000] 防御性截断，无需担心超长
+            exc_detail: str = f"{type(exc).__name__}: {exc}".strip()
+            error_msg: str = str(_("[ai_call_error] AI 调用异常：{detail}")).format(detail=exc_detail)
             self._persist_failure(
                 record_id=record_id,
                 status=STATUS_AI_ERROR,
-                error_summary=str(error_msg),
+                error_summary=error_msg,
                 raw_response="",
                 operator=operator,
             )
             return PortraitRunResult(
                 record_id=record_id,
                 status=STATUS_AI_ERROR,
-                summary=str(error_msg),
+                summary=error_msg,
                 share_url="",
                 score=-1,
                 raw_response="",
-                error=f"{type(exc).__name__}: {exc}",
+                error=exc_detail,
             )
 
         # 阶段 4：解析 + 补齐记录（三态分支：SUCCESS / AI_ERROR / PARSE_ERROR）
