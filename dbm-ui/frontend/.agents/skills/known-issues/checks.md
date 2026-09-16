@@ -48,3 +48,6 @@
 
 - `setTimeout(..., 210)` 等标签输入失焦 → `eslint.config.mjs` 的 `no-restricted-syntax`，报错信息指向
   [doc/tag-input-blur-delay.md](doc/tag-input-blur-delay.md)
+- `<DbQuickSearch>` 传 `placeholder` → `eslint.config.mjs` 的 `vue/no-restricted-v-bind` /
+  `vue/no-restricted-static-attribute`，报错信息指向
+  [doc/db-quick-search-placeholder.md](doc/db-quick-search-placeholder.md)

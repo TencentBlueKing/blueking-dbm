@@ -40,7 +40,6 @@
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"
-        :placeholder="t('搜索主要负责人 、机型 、Agent 状态、地域、园区、操作系统名称')"
         style="width: 635px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>

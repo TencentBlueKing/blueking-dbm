@@ -27,7 +27,6 @@
         class="mb-16"
         :data="filters"
         parse-url
-        :placeholder="t('请输入账号或DB名')"
         style="width: 520px"
         @change="handleSearchSelectChange" />
       <AccountRulesTable

@@ -46,7 +46,6 @@
         v-model="searchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>

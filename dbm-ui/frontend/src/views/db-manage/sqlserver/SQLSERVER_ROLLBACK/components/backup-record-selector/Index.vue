@@ -43,7 +43,6 @@
         v-model="searchSelectValue"
         :data="searchSelectData"
         parse-url
-        :placeholder="t('搜索备份记录')"
         style="flex: 1" />
     </div>
     <BkLoading :loading="loading">

@@ -29,7 +29,6 @@
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"
-        :placeholder="t('搜索DB类型，告警产生时间，告警名称，告警内容，所属集群…')"
         style="width: 560px"
         @change="handleQuickSearchChange" />
     </div>
