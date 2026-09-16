@@ -13,6 +13,15 @@ from django.utils.translation import gettext_lazy as _
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
+class ItsmV4TicketStatus(StrStructuredEnum):
+    """ITSM V4 单据状态枚举"""
+
+    RUNNING = EnumField("running", _("处理中"))
+    FINISHED = EnumField("finished", _("已结束"))
+    REVOKED = EnumField("revoked", _("已撤单"))
+    TERMINATION = EnumField("termination", _("已终止"))
+
+
 class ItsmTicketStatus(StrStructuredEnum):
     """ITSM单据状态枚举"""
 
