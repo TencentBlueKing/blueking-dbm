@@ -15,12 +15,14 @@ from typing import Dict
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache
 from backend.flow.consts import DBActuatorTypeEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_stop_sub_flow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -138,6 +140,19 @@ def ProxyUnInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Di
         kwargs=asdict(act_kwargs),
     )
 
+    # proxy 卸载后停止探针进程，探针目录由机器回收流程（probe_clean_sub_flow）清理
+    # 当 env.ENABLE_DBHA_V2 = False 时禁用
+    # 注意：此时 act_kwargs.cluster 已被"删除元数据"步骤重置，不含 bk_cloud_id，从 sub_kwargs 取
+    if env.ENABLE_DBHA_V2:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=probe_stop_sub_flow(
+                root_id=root_id,
+                data=ticket_data,
+                bk_cloud_id=sub_kwargs.cluster["bk_cloud_id"],
+                ips=[exec_ip],
+            )
+        )
+
     return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-卸载原子任务").format(exec_ip))
 
 
@@ -236,5 +251,18 @@ def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
+
+    # proxy 卸载后停止探针进程，探针目录由机器回收流程（probe_clean_sub_flow）清理
+    # 当 env.ENABLE_DBHA_V2 = False 时禁用
+    # 注意：此时 act_kwargs.cluster 已被"卸载实例"步骤重置，不含 bk_cloud_id，从 sub_kwargs 取
+    if env.ENABLE_DBHA_V2:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=probe_stop_sub_flow(
+                root_id=root_id,
+                data=ticket_data,
+                bk_cloud_id=sub_kwargs.cluster["bk_cloud_id"],
+                ips=[exec_ip],
+            )
+        )
 
     return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-下架").format(exec_ip))

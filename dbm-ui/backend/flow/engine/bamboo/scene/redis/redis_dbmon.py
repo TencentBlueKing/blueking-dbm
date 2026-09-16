@@ -14,11 +14,13 @@ from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_upgrade_sub_flow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     ClusterDbmonInstallAtomJob,
@@ -94,6 +96,18 @@ class RedisDbmonSceneFlow(object):
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         # ### 部署DBMON ########################################################################## 完毕 ###
+
+        # 探针升级（停止旧探针 + 下发最新介质包 + 生成配置并启动）
+        # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
+        if env.ENABLE_DBHA_V2:
+            redis_pipeline.add_sub_pipeline(
+                sub_flow=probe_upgrade_sub_flow(
+                    root_id=self.root_id,
+                    data=self.data,
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    ips=list(hosts_set),
+                )
+            )
 
         redis_pipeline.run_pipeline()
 
@@ -192,4 +206,21 @@ class RedisDbmonSceneFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("集群架构-{}-重新标准化").format(cluster.immute_domain))
             )
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # 探针升级（停止旧探针 + 下发最新介质包 + 生成配置并启动）
+        # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
+        if env.ENABLE_DBHA_V2:
+            probe_ips = set()
+            for c in clusters:
+                probe_ips.update(c.proxyinstance_set.values_list("machine__ip", flat=True))
+                probe_ips.update(c.storageinstance_set.values_list("machine__ip", flat=True))
+            redis_pipeline.add_sub_pipeline(
+                sub_flow=probe_upgrade_sub_flow(
+                    root_id=self.root_id,
+                    data=self.data,
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    ips=list(probe_ips),
+                )
+            )
+
         redis_pipeline.run_pipeline()
