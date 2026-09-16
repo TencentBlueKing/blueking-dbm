@@ -148,6 +148,30 @@ class BaseValidator:
 
     @classmethod
     @validator_log_format
+    def pre_check_duplicate_ip_list(cls, check_ip_list: list):
+        """
+        判断一个ip列表内是否存在重复ip，用于单条info行内自检
+        与实例方法 pre_check_duplicate_ip 的区别：
+          - pre_check_duplicate_ip：基于 self.data["infos"] 做跨行/跨info聚合去重
+          - pre_check_duplicate_ip_list：仅对传入的单个ip列表做重复判断，属于行内校验
+        风格对齐 pre_check_domain：遍历入参，返回拼接后的 error_msg 字符串
+        @param check_ip_list: 待校验的ip字符串列表，元素为ipv4
+        """
+        error_msg = ""
+        # 统计每个ip出现的次数：dict.get 用法避免额外引入 defaultdict
+        ip_counts: dict = {}
+        for ip in check_ip_list:
+            ip_counts[ip] = ip_counts.get(ip, 0) + 1
+
+        # 按次数>1筛出重复ip，逐个拼接错误信息（保留和 pre_check_domain 一致的"逐元素一行"风格）
+        for ip, count in ip_counts.items():
+            if count > 1:
+                error_msg += _("ip[{}] is duplicated in list, count={} \n".format(ip, count))
+
+        return error_msg
+
+    @classmethod
+    @validator_log_format
     def pre_check_domain(cls, check_domain_list: list):
         """
         判断domain字符串合法性表达

@@ -10,10 +10,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
-from backend.flow.engine.bamboo.scene.mysql.validate.exception import (
-    ProxyRebuildCountFailedException,
-    ProxyRebuildDuplicateIPException,
-)
+from backend.flow.engine.bamboo.scene.mysql.validate.exception import ProxyRebuildCountFailedException
 from backend.flow.engine.validate.exceptions import DuplicateClusterIDException
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 
@@ -27,8 +24,7 @@ class MySQLProxyRebuildFlowValidator(MysqlBaseValidator):
     校验2：传入ip的合法性（ip字符串合法 + ip属于该集群的proxy机器）
     聚合校验：
     检验1：同一个flow，不能出现同样的cluster要处理
-    检验2：同一个flow，同一个集群，传入机器不能有相同
-    检验3：同一个flow，同一个集群，如果传入proxy数量，不能大于等于集群所有proxy数量
+    检验2：同一个flow，同一个集群，如果传入proxy数量，不能大于等于集群所有proxy数量
     """
 
     def pre_check_rebuild_proxy_count(self):
@@ -75,7 +71,17 @@ class MySQLProxyRebuildFlowValidator(MysqlBaseValidator):
             errors.append(error_msg)
             return errors
 
-        # 校验2.2：传入ip是否属于该集群的proxy机器
+        # 校验2.2：同一行 rebuild_proxy_hosts 内不允许出现重复ip
+        # 说明：属于行内自检，聚合校验2（pre_check_duplicate_ip）是跨行/跨info的重复检测，
+        # 这里复用基类 pre_check_duplicate_ip_list：仅对当前info内的ip列表做去重判断，
+        # 命中即记录到该行 errors，不影响其他行继续校验。
+        log_format_tag = self.create_log_tag(field="rebuild_proxy_hosts", index=index, row_key=row_key)
+        error_msg = self.pre_check_duplicate_ip_list(ip_list, **log_format_tag)
+        if error_msg:
+            errors.append(error_msg)
+            return errors
+
+        # 校验2.3：传入ip是否属于该集群的proxy机器
         log_format_tag = self.create_log_tag(field="rebuild_proxy_hosts", index=index, row_key=row_key)
         error_msg = self.pre_check_mysql_proxy_in_cluster(ip_list, [info["cluster_id"]], **log_format_tag)
         if error_msg:
@@ -97,12 +103,7 @@ class MySQLProxyRebuildFlowValidator(MysqlBaseValidator):
         if err:
             raise DuplicateClusterIDException(err)
 
-        # 聚合校验2：同一个flow，同一个集群，传入机器不能有相同
-        err = self.pre_check_duplicate_ip(check_ip_field_name="rebuild_proxy_hosts")
-        if err:
-            raise ProxyRebuildDuplicateIPException(err)
-
-        # 聚合校验3：同一个flow，同一个集群，传入proxy数量不能大于等于集群所有proxy数量
+        # 聚合校验2：同一个flow，同一个集群，传入proxy数量不能大于等于集群所有proxy数量
         err = self.pre_check_rebuild_proxy_count()
         if err:
             raise ProxyRebuildCountFailedException(err)
