@@ -6,21 +6,39 @@
     <BkSelect
       v-model="modelValue"
       style="width: 360px">
-      <BkOption value="default"> default </BkOption>
-      <BkOption value="utf8mb4"> utf8mb4 </BkOption>
-      <BkOption value="utf8"> utf8 </BkOption>
-      <BkOption value="latin1"> latin1 </BkOption>
-      <BkOption value="gbk"> gbk </BkOption>
-      <BkOption value="gb2312"> gb2312 </BkOption>
+      <BkOption
+        v-for="item in charsetList"
+        :key="item"
+        :value="item">
+        {{ item }}
+      </BkOption>
     </BkSelect>
   </BkFormItem>
 </template>
 <script setup lang="ts">
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { DBTypes } from '@common/const';
+
+  interface Props {
+    dbType?: string;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    dbType: DBTypes.MYSQL,
+  });
 
   const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
+
+  const mysqlCharsetList = ['default', 'utf8mb4', 'utf8', 'latin1', 'gbk', 'gb2312'];
+  const sqlserverCharsetList = ['GBK'];
+
+  const charsetList = computed(() =>
+    props.dbType === DBTypes.SQLSERVER ? sqlserverCharsetList : mysqlCharsetList,
+  );
 </script>
