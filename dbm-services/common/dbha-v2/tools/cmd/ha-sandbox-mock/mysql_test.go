@@ -22,38 +22,43 @@
  * SOFTWARE.
  */
 
-package hamysql
+package main
 
 import (
-	"regexp"
+	"database/sql"
+	"fmt"
+	"net"
+	"testing"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
-const (
-	sanitizedSecret      = "<secret>"
-	maxSanitizedErrorLen = 256
-)
-
-var (
-	dsnFragmentPattern    = regexp.MustCompile(`[^\s]+:[^\s]+@(tcp|unix)\([^)]+\)[^\s]*`)
-	dsnCredentialPattern  = regexp.MustCompile(`([^\s:/]+):([^@\s]+)@`)
-	sensitiveParamPattern = regexp.MustCompile(`(?i)(password|token|passwd|pwd)\s*=\s*[^\s&]+`)
-)
-
-// SanitizeConnectionError returns a desensitized error summary safe for harvest reporting.
-// Passwords, tokens, and DSN credential segments are redacted. MySQL error codes and server
-// messages are preserved when they do not embed credentials. err may be nil.
-func SanitizeConnectionError(err error) string {
-	if err == nil {
-		return ""
+func TestMySQLMockPing(t *testing.T) {
+	ln, err := startMySQLMock("127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("start mysql mock failed, errmsg: %s", err)
+	}
+	defer ln.Close()
+	addr := ln.Addr().String()
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		t.Fatalf("split host port failed, errmsg: %s", err)
 	}
 
-	msg := err.Error()
-	msg = dsnFragmentPattern.ReplaceAllString(msg, "<redacted-dsn>")
-	msg = dsnCredentialPattern.ReplaceAllString(msg, "$1:"+sanitizedSecret+"@")
-	msg = sensitiveParamPattern.ReplaceAllString(msg, "$1="+sanitizedSecret)
-
-	if len(msg) > maxSanitizedErrorLen {
-		msg = msg[:maxSanitizedErrorLen]
+	dsn := fmt.Sprintf("sandbox:sandbox@tcp(%s:%s)/dbha_data?timeout=3s&parseTime=true", host, port)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		t.Fatalf("open mysql failed, errmsg: %s", err)
 	}
-	return msg
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		t.Fatalf("ping mysql mock failed, errmsg: %s", err)
+	}
+	var version string
+	if err := db.QueryRow("SELECT VERSION()").Scan(&version); err != nil {
+		t.Fatalf("select version failed, errmsg: %s", err)
+	}
+	if version != "8.0.36" {
+		t.Fatalf("version: %s, want: 8.0.36", version)
+	}
 }
