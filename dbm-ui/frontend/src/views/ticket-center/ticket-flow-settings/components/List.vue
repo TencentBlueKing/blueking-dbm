@@ -17,7 +17,6 @@
       v-model="searchValue"
       class="mb-16"
       :data="quickSearchData"
-      :placeholder="t('请输入或选择条件搜索')"
       style="width: 500px; margin-left: auto" />
     <BkAlert
       class="mb-16"

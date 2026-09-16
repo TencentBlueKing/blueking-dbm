@@ -17,7 +17,6 @@
       v-model="quickSearchValue"
       class="mt-16 mb-16"
       :data="quickSearchData"
-      :placeholder="t('请输入或选择条件搜索')"
       @change="handleQuickSearchChange" />
     <DbTable
       ref="hostTable"

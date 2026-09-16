@@ -17,7 +17,6 @@
     class="cluster-selector-search"
     :data="searchSelectData"
     parse-url
-    :placeholder="t('请输入或选择条件搜索')"
     @change="handleSearchChange" />
   <DbTable
     ref="tableRef"

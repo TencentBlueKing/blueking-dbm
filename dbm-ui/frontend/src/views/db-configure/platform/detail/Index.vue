@@ -30,7 +30,6 @@
               v-model="searchValue"
               :data="quickSearchData"
               parse-url
-              :placeholder="t('搜索参数名_显示名_平台默认值_允许值_数据类型_重启生效_业务默认可见_业务可编辑')"
               style="width: 500px; margin-left: auto"
               @change="handleQuickSearchChange" />
           </div>

@@ -66,7 +66,6 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>
@@ -242,7 +241,6 @@
   import { useRecycleRefresh } from '@views/resource-manage/common/hooks/useRecycleRefresh';
 
   import { execCopy, messageWarn } from '@utils';
-  
 
   const { t } = useI18n();
   const route = useRoute();

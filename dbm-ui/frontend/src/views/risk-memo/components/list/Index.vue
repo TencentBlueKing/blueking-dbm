@@ -13,7 +13,6 @@
         :key="renderSearchKey"
         v-model="searchValue"
         :data="searchSelectData"
-        :placeholder="t('请选择条件搜索')"
         style="flex: 1"
         unique-select
         value-split-code="," />
