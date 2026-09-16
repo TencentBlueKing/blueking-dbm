@@ -36,7 +36,6 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>
@@ -86,8 +85,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
-
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
 
@@ -103,8 +100,6 @@
     MasterDomainColumn,
   } from '@views/db-manage/common/instance-table/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
-
-  const { t } = useI18n();
 
   const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<TendbhaInstanceModel>();
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({

@@ -19,7 +19,6 @@
     <DbQuickSearch
       v-model="quickSearchValue"
       :data="quickSearchData"
-      :placeholder="t('搜索 Key 类型、搜索 Key 名称')"
       style="width: 550px; margin-left: auto"
       @change="handleQuickSearchChange" />
     <div ref="tableContainer">

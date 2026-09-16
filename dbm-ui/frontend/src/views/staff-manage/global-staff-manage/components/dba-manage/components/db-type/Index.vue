@@ -61,7 +61,6 @@
           v-model="searchValue"
           :data="quickSearchData"
           parse-url
-          :placeholder="t('搜索业务 ID、业务名称、业务代号、标签、人员名称')"
           style="width: 500px; margin-left: auto"
           @change="handleQuickSearchChange" />
       </div>

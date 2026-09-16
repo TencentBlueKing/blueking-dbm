@@ -116,7 +116,6 @@
         v-model="searchValue"
         :data="serachData"
         parse-url
-        :placeholder="t('输入关键字或选择条件搜索')"
         style="width: 500px; margin-left: auto"
         @change="handleSearch" />
     </div>

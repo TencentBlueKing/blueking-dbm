@@ -43,7 +43,6 @@
         v-model="searchSelectValue"
         :data="searchSelectData"
         parse-url
-        :placeholder="t('搜索文件名或选择条件搜索')"
         style="flex: 1" />
     </div>
     <BkLoading :loading="loading">

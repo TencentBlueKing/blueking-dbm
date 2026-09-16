@@ -84,7 +84,6 @@
           v-model="search"
           :data="searchSelectData"
           parse-url
-          :placeholder="t('请选择条件搜索')"
           style="width: 500px"
           @change="fetchTableData" />
       </div>

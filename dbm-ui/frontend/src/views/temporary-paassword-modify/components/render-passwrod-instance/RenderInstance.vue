@@ -58,7 +58,6 @@
           class="ml-8 search-select"
           :data="searchSelectData"
           parse-url
-          :placeholder="t('请输入实例搜索')"
           @change="fetchData" />
       </div>
       <DbTable

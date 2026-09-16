@@ -3011,6 +3011,7 @@
   "待部署主库主机": "Pending Deployment Primary Host",
   "待部署从库主机": "Pending Deployment Secondary Host",
   "请输入或选择": "Please enter or select",
+  "请输入或选择 n": "Please enter or select {n}",
   "目标从库主机不能为空": "Target slave host cannot be empty",
   "目标从库主机不存在": "Target slave host does not exist",
   "批量录入待部署主库主机": "Batch Enter Master Hosts to Deploy",

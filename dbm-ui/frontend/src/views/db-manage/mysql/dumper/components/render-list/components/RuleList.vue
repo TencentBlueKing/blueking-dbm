@@ -24,7 +24,6 @@
               v-model="search"
               :data="searchSelectData"
               parse-url
-              :placeholder="t('请输入DB/表名')"
               style="width: 500px"
               @change="handleLocalSearch" />
           </div>
