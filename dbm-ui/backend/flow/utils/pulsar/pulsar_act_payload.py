@@ -56,6 +56,9 @@ class PulsarActPayload(object):
                     "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
                     "level_name": LevelName.CLUSTER,
                     "level_value": self.ticket_data["domain"],
+                    # Pulsar 集群配置归属默认大数据模块；缺少该层级信息时，
+                    # dbconfig 无法定位 cluster 的父级配置。
+                    "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
                     "conf_file": self.ticket_data["db_version"],
                     "conf_type": ConfigTypeEnum.DBConf,
                     "namespace": NameSpaceEnum.Pulsar,

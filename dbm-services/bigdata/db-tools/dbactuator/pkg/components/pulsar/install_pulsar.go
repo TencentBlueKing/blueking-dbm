@@ -131,7 +131,7 @@ func (i *InstallPulsarComp) InitPulsarDirs() error {
 ulimit -n 500000
 export JAVA_HOME=/data/pulsarenv/java/jdk
 export JRE=$JAVA_HOME/jre
-export PATH=/usr/local/bin:$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
+export PATH=/usr/local/bin:$JAVA_HOME/bin:$JRE/bin:$PATH
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
 export LC_ALL=en_US
 EOF
@@ -151,6 +151,16 @@ echo "source /data/pulsarenv/pulsarprofile" >>/etc/profile`)
 		logger.Error("修改系统参数失败:%s", err.Error())
 		return err
 	}
+
+	// crontab 拉起 supervisord 时不会加载 /etc/profile；提供全局 java
+	// 入口，确保机器重启后的 Pulsar 进程仍能找到随介质安装的 JDK。
+	extraCmd = ". /etc/profile; [ ! -e /usr/bin/java ] && ln -sf $JAVA_HOME/bin/java /usr/bin/java || true"
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("创建java软链接失败:%s", err.Error())
+		return err
+	}
+	logger.Info("检查并创建java软链接完成")
+
 	return nil
 }
 
