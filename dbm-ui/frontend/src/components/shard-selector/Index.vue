@@ -29,23 +29,25 @@
       :min="320"
       placement="right">
       <template #main>
-        <div class="shard-selector-table mt-16 mb-16">
-          <!-- <DbQuickSearch
+        <div class="shard-selector-tabs">
+          <div class="tabs-item">{{ t('分片') }}</div>
+        </div>
+        <div class="shard-selector-table">
+          <DbQuickSearch
             v-model="quickSearchValue"
             class="mt-16 mb-16"
             :data="quickSearchData"
-            :placeholder="t('请输入或选择条件搜索')"
-            @change="handleQuickSearchChange" /> -->
+            @change="handleQuickSearchChange" />
           <DbTable
             ref="shardTable"
             class="db-shard-table"
-            :container-height="570"
+            :container-height="containerHeight"
             :data-source="getMongoShard"
-            :disable-select-method="disableSelectMethod"
+            :disable-select-method="handleDisableSelect"
+            row-click-selectable
             row-key="shard_name"
             selectable
-            :selected="modelValue"
-            @request-success="handleRequestSuccess"
+            :selected="localSelected"
             @selection="handleSelection">
             <TableColumn
               col-key="shard_name"
@@ -56,16 +58,23 @@
               col-key="master_domain"
               :min-width="200"
               :title="t('所属集群')" />
-            <!-- <TableColumn
+            <TableColumn
               col-key="related_instance"
               :min-width="200"
               :title="t('关联实例')">
               <template #default="{ row }: { row: IRowData }">
-                <span
-                  v-overflow-tips
-                  class="text-overflow">
-                  {{ renderRelatedInstances(row) }}
-                </span>
+                <div
+                  v-if="row.related_instance?.length"
+                  class="related-instance-list">
+                  <div
+                    v-for="item in row.related_instance"
+                    :key="item.bk_instance_id"
+                    v-overflow-tips
+                    class="text-overflow">
+                    {{ item.instance }}
+                  </div>
+                </div>
+                <span v-else>--</span>
               </template>
             </TableColumn>
             <TableColumn
@@ -75,13 +84,16 @@
               <template #default="{ row }: { row: IRowData }">
                 {{ row.region || '--' }}
               </template>
-            </TableColumn> -->
+            </TableColumn>
           </DbTable>
         </div>
       </template>
       <template #aside>
-        <div class="shard-selector-preview-result">
-          <div class="header">
+        <div class="shard-selector-result">
+          <div class="result-title">
+            <DbIcon
+              class="mr-4"
+              type="legend" />
             <span>{{ t('结果预览') }}</span>
             <BkDropdown
               class="result-dropdown"
@@ -102,29 +114,37 @@
               </template>
             </BkDropdown>
           </div>
-          <BkException
-            v-if="modelValue.length === 0"
-            class="mt-50"
-            :description="t('暂无数据_请从左侧添加对象')"
-            scene="part"
-            type="empty" />
-          <div
-            v-else
-            class="result-wrapper db-scroll-y">
-            <div
-              v-for="(item, index) of modelValue"
-              :key="item.shard_name"
-              v-test="{ type: 'span', value: 'instanceSelectorPreviewItem' }"
-              class="result-item">
-              <span
-                v-overflow-tips
-                class="text-overflow">
-                {{ item.shard_name }}
-              </span>
-              <DbIcon
-                type="close result-item-remove"
-                @click="handleRemove(index)" />
-            </div>
+          <div class="result-content db-scroll-y">
+            <BkException
+              v-if="isEmpty"
+              class="mt-50"
+              :description="t('暂无数据_请从左侧添加对象')"
+              scene="part"
+              type="empty" />
+            <CollapseMini
+              v-else
+              :count="localSelected.length"
+              :title="t('分片')">
+              <div
+                v-for="item of localSelected"
+                :key="item.shard_name"
+                v-test="{ type: 'span', value: 'instanceSelectorPreviewItem' }"
+                class="result-item">
+                <span
+                  v-overflow-tips
+                  class="text-overflow">
+                  {{ item.shard_name }}
+                </span>
+                <div class="result-operations">
+                  <i
+                    class="db-icon-copy result-copy"
+                    @click="execCopy(item.shard_name)" />
+                  <i
+                    class="db-icon-close result-remove"
+                    @click="handleRemove(item)" />
+                </div>
+              </div>
+            </CollapseMini>
           </div>
         </div>
       </template>
@@ -132,12 +152,12 @@
     <template #footer>
       <span
         v-bk-tooltips="{
-          disabled: modelValue.length > 0,
+          disabled: !isEmpty,
           content: t('请选择分片'),
         }">
         <BkButton
           class="w-88"
-          :disabled="modelValue.length === 0"
+          :disabled="isEmpty"
           theme="primary"
           @click="handleConfirm">
           {{ t('确定') }}
@@ -161,10 +181,13 @@
 
   import { execCopy } from '@utils';
 
+  import CollapseMini from './components/CollapseMini.vue';
+
   type IRowData = ServiceReturnType<typeof getMongoShard>['results'][number];
 
   export interface Props {
-    disableSelectMethod?: (data: IRowData) => boolean | string;
+    // 第二个参数是弹窗内当前的选中态，跨集群禁选这类规则要基于它判断，不能读外部已提交的值
+    disableSelectMethod?: (data: IRowData, selected: IRowData[]) => boolean | string;
   }
 
   type Emits = {
@@ -172,9 +195,10 @@
     (e: 'cancel'): void;
   };
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  // 只作为回填数据源读取，选择结果通过 change 事件提交
   const modelValue = defineModel<IRowData[]>({
     required: true,
   });
@@ -184,56 +208,64 @@
 
   const { t } = useI18n();
 
+  const containerHeight = 570 - 32 - 16; // 去除搜索框的高度和margin bottom
+
   const shardTableRef = useTemplateRef('shardTable');
+  // 弹窗内的勾选走副本，点取消可丢弃
+  const localSelected = shallowRef<IRowData[]>([]);
+
+  const isEmpty = computed(() => localSelected.value.length === 0);
+
+  const handleDisableSelect = (data: IRowData) => props.disableSelectMethod?.(data, localSelected.value) ?? false;
+
+  // 接口只支持 shard_names 过滤（逗号分隔、精确匹配），其余条件后端会忽略
+  const quickSearchData = [
+    {
+      id: 'shard_names',
+      name: t('分片名'),
+      type: 'multiple-input' as const,
+    },
+  ];
+
+  const quickSearchValue = ref<Record<string, string>>({});
 
   const fetchData = () => {
     shardTableRef.value?.fetchData({
+      ...quickSearchValue.value,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
   };
 
+  const handleQuickSearchChange = () => {
+    fetchData();
+  };
+
+  // 不在打开时重新取数：DbTable 非首次取数会清空整表选中并回吐空 selection，把回填冲掉。
+  // 列表数据由 DbQuickSearch 挂载时的回显拉取一次即可
   watch(isShow, (show) => {
     if (show) {
-      setTimeout(() => {
-        fetchData();
-      });
+      localSelected.value = [...modelValue.value];
     }
   });
 
   const handleSelection = (_key: string[], list: IRowData[]) => {
-    modelValue.value = list;
+    localSelected.value = list;
   };
 
-  // 本次打开时预置的选中态快照
-  const openSelection = shallowRef<IRowData[]>([]);
-
-  // DbTable 取数成功后默认会清空整表选中并触发空 selection，
-  // 这里在加载完成后恢复本次打开时预置的选中态
-  const handleRequestSuccess = () => {
-    if (modelValue.value.length === 0 && openSelection.value.length > 0) {
-      modelValue.value = openSelection.value;
-    }
-  };
-
-  const handleRemove = (index: number) => {
-    const target = [...modelValue.value];
-    target.splice(index, 1);
-    modelValue.value = target;
+  const handleRemove = (item: IRowData) => {
+    localSelected.value = localSelected.value.filter((cur) => cur.shard_name !== item.shard_name);
   };
 
   const handleClear = () => {
-    modelValue.value = [];
+    localSelected.value = [];
   };
 
   const handleCopyShards = () => {
-    execCopy(modelValue.value.map((item) => item.shard_name).join('\n'), t('复制成功'));
+    execCopy(localSelected.value.map((item) => item.shard_name).join('\n'), t('复制成功'));
   };
 
-  // const renderRelatedInstances = (row: IRowData) =>
-  //   (row.related_instance || []).map((item) => item.instance).join('，') || '--';
-
   const handleConfirm = () => {
-    emits('change', modelValue.value);
+    emits('change', localSelected.value);
     handleClose();
   };
 
@@ -263,29 +295,53 @@
       margin: 0;
     }
 
+    .shard-selector-tabs {
+      display: flex;
+
+      // 只有一个固定 tab，恒为选中态，不给 cursor: pointer 免得看着像能切换
+      .tabs-item {
+        display: flex;
+        height: 40px;
+        background-color: #fff;
+        border-bottom: 1px solid transparent;
+        justify-content: center;
+        align-items: center;
+        flex: 1;
+      }
+    }
+
     .shard-selector-table {
       height: 570px;
       padding: 0 24px;
+
+      .related-instance-list {
+        padding: 6px 0;
+
+        .text-overflow {
+          line-height: 18px;
+        }
+      }
     }
 
-    .shard-selector-preview-result {
+    .shard-selector-result {
       display: flex;
       height: 100%;
-      max-height: 625px;
-      padding: 12px 24px;
       overflow: hidden;
       font-size: @font-size-mini;
       background-color: #f5f6fa;
       flex-direction: column;
 
-      .header {
+      .result-title {
         display: flex;
-        padding-bottom: 16px;
+        height: 40px;
+        padding: 12px 24px;
+        font-weight: bold;
+        background-color: @bg-white;
         align-items: center;
 
         > span {
           flex: 1;
-          font-size: @font-size-normal;
+          font-size: @font-size-mini;
           color: @title-color;
         }
 
@@ -307,38 +363,57 @@
         }
       }
 
-      .result-wrapper {
+      .result-content {
         flex: 1;
-        display: flex;
-        flex-direction: column;
+        padding: 12px 24px;
         overflow-y: auto;
+      }
 
-        .result-item {
-          display: flex;
-          padding: 0 12px;
-          margin-bottom: 2px;
-          line-height: 32px;
-          background-color: @bg-white;
-          border-radius: 2px;
-          justify-content: space-between;
-          align-items: center;
+      .result-item {
+        display: flex;
+        padding: 0 12px;
+        margin-bottom: 2px;
+        line-height: 32px;
+        background-color: @bg-white;
+        border-radius: 2px;
+        justify-content: space-between;
+        align-items: center;
 
-          .result-item-remove {
-            display: none;
-            font-size: @font-size-large;
-            font-weight: bold;
-            color: @gray-color;
-            cursor: pointer;
+        &:hover {
+          background: #e1ecff;
 
-            &:hover {
-              color: @default-color;
-            }
+          .result-copy,
+          .result-remove {
+            display: block;
           }
+        }
+
+        .result-operations {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .result-copy {
+          display: none;
+          font-size: @font-size-mini;
+          color: @gray-color;
+          cursor: pointer;
 
           &:hover {
-            .result-item-remove {
-              display: block;
-            }
+            color: @primary-color;
+          }
+        }
+
+        .result-remove {
+          display: none;
+          font-size: @font-size-large;
+          font-weight: bold;
+          color: @gray-color;
+          cursor: pointer;
+
+          &:hover {
+            color: @default-color;
           }
         }
       }
