@@ -15,6 +15,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.api import common
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
@@ -24,6 +25,7 @@ from backend.db_meta.models import AppCache, StorageInstance
 from backend.db_services.version.constants import RedisVersion
 from backend.flow.consts import DEPENDENCIES_PLUGINS, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import deploy_probe_sub_flow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
@@ -517,6 +519,18 @@ class RedisInstanceApplyFlow(object):
                     }
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 部署 dbha-v2 探针（下发介质包 + 解压 + 生成配置并启动），此时实例元数据已写入
+            # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
+            if env.ENABLE_DBHA_V2:
+                sub_pipeline.add_sub_pipeline(
+                    sub_flow=deploy_probe_sub_flow(
+                        root_id=self.root_id,
+                        data=self.data,
+                        bk_cloud_id=self.data["bk_cloud_id"],
+                        ips=list({master_ip, slave_ip}),
+                    )
+                )
 
             # 批量写入主从实例信息摘要(地区/域名/端口)，供前端"执行摘要"展示。
             # 一个master_ip下可能有多个主从实例(rule)，一次性合并为一个节点写入。

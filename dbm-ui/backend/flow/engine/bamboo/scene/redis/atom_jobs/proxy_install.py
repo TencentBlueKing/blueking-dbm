@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
@@ -21,6 +22,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail
 from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import deploy_probe_sub_flow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
@@ -201,6 +203,18 @@ def ProxyBatchInstallAtomJob(
             act_name=_("Proxy-005-{}-安装监控").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
+        )
+
+    # 部署 dbha-v2 探针（下发介质包 + 解压 + 生成配置并启动），此时实例元数据已写入
+    # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
+    if env.ENABLE_DBHA_V2:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=deploy_probe_sub_flow(
+                root_id=root_id,
+                data=ticket_data,
+                bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
+                ips=[exec_ip],
+            )
         )
 
     return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-安装原子任务").format(exec_ip))

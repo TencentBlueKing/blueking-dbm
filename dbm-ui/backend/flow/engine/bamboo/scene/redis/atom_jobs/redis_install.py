@@ -15,11 +15,13 @@ from typing import Dict
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import AppCache
 from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import deploy_probe_sub_flow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
@@ -235,6 +237,18 @@ def RedisBatchInstallAtomJob(
             act_name=_("Redis-{}-安装监控").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
+        )
+
+    # 部署 dbha-v2 探针（下发介质包 + 解压 + 生成配置并启动），此时实例元数据已写入
+    # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
+    if env.ENABLE_DBHA_V2:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=deploy_probe_sub_flow(
+                root_id=root_id,
+                data=ticket_data,
+                bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
+                ips=[exec_ip],
+            )
         )
 
     return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-{}").format(exec_ip, atom_name))
