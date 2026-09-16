@@ -15,7 +15,7 @@
           v-for="(item, index) in renderSearchList"
           :key="index"
           class="value-item"
-          @click="() => handleChange(item)">
+          @click="() => handleChange(item, item.parentLabel)">
           <Radio
             :checked="localValue === item.value"
             style="pointer-events: none" />
@@ -48,7 +48,7 @@
             :key="item.value"
             class="value-item"
             :class="{ active: localValue === item.value }"
-            @click="() => handleChange(item)">
+            @click="() => handleChange(item, expandedParent?.label)">
             <Radio
               :checked="localValue === item.value"
               style="pointer-events: none" />
@@ -137,6 +137,7 @@
           if (isSearchKeywordMatch(childItem.label, filterKey.value)) {
             result.push({
               ...childItem,
+              parentLabel: parentItem.label,
               searchLabel: `${parentItem.label} / ${childItem.label}`,
             });
           }
@@ -145,6 +146,8 @@
       },
       [] as {
         label: string;
+        // 搜索结果跨父级平铺，选中时按各自的父级拼完整路径；父级自身作为结果时无此字段
+        parentLabel?: string;
         searchLabel: string;
         value: IResult['value'];
       }[],
@@ -157,8 +160,8 @@
     });
   };
 
-  const getResultValue = (data: IResult) => ({
-    label: props.showAllLevels ? `${expandedParent.value?.label}/${data.label}` : data.label,
+  const getResultValue = (data: IResult, parentLabel?: string) => ({
+    label: props.showAllLevels && parentLabel ? `${parentLabel}/${data.label}` : data.label,
     value: data.value,
   });
 
@@ -229,9 +232,9 @@
     }
   };
 
-  const handleChange = (data: IResult) => {
+  const handleChange = (data: IResult, parentLabel?: string) => {
     localValue.value = data.value;
-    emits('change', [getResultValue(data)]);
+    emits('change', [getResultValue(data, parentLabel)]);
   };
 
   onMounted(() => {

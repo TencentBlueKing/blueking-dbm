@@ -11,7 +11,6 @@
             class="mr-18"
             :data="searchSelectData"
             parse-url
-            :placeholder="t('请输入账号或DB名')"
             style="width: 520px"
             @change="handleSearchChange" />
           <BkCheckbox

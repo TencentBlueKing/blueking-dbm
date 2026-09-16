@@ -115,7 +115,6 @@
         class="ml-8"
         :data="searchData"
         parse-url
-        :placeholder="t('搜索ID，规格名称，应用范围，业务')"
         style="width: 500px"
         @change="handleSearchValueChange" />
     </div>

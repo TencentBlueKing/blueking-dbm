@@ -36,7 +36,6 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>
@@ -78,8 +77,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
-
   import OraclehaInstanceModel from '@services/model/oracle/oracle-ha-instance';
   import { getOracleHaInstanceList } from '@services/source/oracleHaCluster';
 
@@ -95,8 +92,6 @@
     MasterDomainColumn,
   } from '@views/db-manage/common/instance-table/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
-
-  const { t } = useI18n();
 
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({
     cluster_type: ClusterTypes.ORACLE_PRIMARY_STANDBY,

@@ -37,7 +37,6 @@
         v-model="searchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>
@@ -81,7 +80,7 @@
                 @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
               <div v-db-console="'hdfs.clusterManage.scaleUp'">
                 <OperationBtnStatusTips :data="data">
-                <AuthButton
+                  <AuthButton
                     action-id="hdfs_manage"
                     :disabled="data.operationDisabled"
                     :permission="data.permission.hdfs_manage"
@@ -94,7 +93,7 @@
               </div>
               <div v-db-console="'hdfs.clusterManage.scaleDown'">
                 <OperationBtnStatusTips :data="data">
-                <AuthButton
+                  <AuthButton
                     action-id="hdfs_manage"
                     :disabled="data.operationDisabled"
                     :permission="data.permission.hdfs_manage"

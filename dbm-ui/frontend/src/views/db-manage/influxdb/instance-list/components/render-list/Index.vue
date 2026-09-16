@@ -113,7 +113,6 @@
           v-model="searchValue"
           :data="searchSelectData"
           parse-url
-          :placeholder="t('请输入或选择条件搜索')"
           @change="handleSearchValueChange" />
       </div>
     </div>

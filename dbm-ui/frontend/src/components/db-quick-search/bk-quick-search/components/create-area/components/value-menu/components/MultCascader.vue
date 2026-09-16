@@ -15,7 +15,7 @@
           v-for="(item, index) in renderSearchList"
           :key="index"
           class="value-item"
-          @click="() => handleChange(item)">
+          @click="() => handleChange(item, item.parentLabel)">
           <Checkbox
             :checked="Boolean(localValueIdMap[item.value])"
             style="pointer-events: none" />
@@ -46,7 +46,7 @@
             v-for="item in expandedParent?.children"
             :key="item.value"
             class="value-item"
-            @click="() => handleChange(item)">
+            @click="() => handleChange(item, expandedParent?.label)">
             <Checkbox
               :checked="Boolean(localValueIdMap[item.value])"
               style="pointer-events: none" />
@@ -135,6 +135,7 @@
           if (isSearchKeywordMatch(childItem.label, filterKey.value)) {
             result.push({
               ...childItem,
+              parentLabel: parentItem.label,
               searchLabel: `${parentItem.label} / ${childItem.label}`,
             });
           }
@@ -143,6 +144,8 @@
       },
       [] as {
         label: string;
+        // 搜索结果跨父级平铺，选中时按各自的父级拼完整路径；父级自身作为结果时无此字段
+        parentLabel?: string;
         searchLabel: string;
         value: IResult['value'];
       }[],
@@ -178,8 +181,8 @@
     });
   };
 
-  const getResultValue = (data: IResult) => ({
-    label: props.showAllLevels ? `${expandedParent.value?.label}/${data.label}` : data.label,
+  const getResultValue = (data: IResult, parentLabel?: string) => ({
+    label: props.showAllLevels && parentLabel ? `${parentLabel}/${data.label}` : data.label,
     value: data.value,
   });
 
@@ -259,7 +262,7 @@
       // 只能选择叶子节点
       data.children.forEach((item) => {
         if (checked) {
-          latestValueMap[item.value] = getResultValue(item);
+          latestValueMap[item.value] = getResultValue(item, data.label);
         } else {
           delete latestValueMap[item.value];
         }
@@ -272,13 +275,13 @@
     emits('change', Object.values(latestValueMap));
   };
 
-  const handleChange = (data: IResult) => {
+  const handleChange = (data: IResult, parentLabel?: string) => {
     const latestValueMap = { ...localValueIdMap.value };
 
     if (localValueIdMap.value[data.value]) {
       delete latestValueMap[data.value];
     } else {
-      latestValueMap[data.value] = getResultValue(data);
+      latestValueMap[data.value] = getResultValue(data, parentLabel);
     }
     localValueIdMap.value = latestValueMap;
 

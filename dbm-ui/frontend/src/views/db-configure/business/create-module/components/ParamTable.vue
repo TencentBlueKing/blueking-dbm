@@ -48,7 +48,6 @@
           v-model="searchValue"
           :data="quickSearchData"
           parse-url
-          :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
           style="width: 500px"
           @change="refreshTable" />
       </div>

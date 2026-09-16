@@ -19,7 +19,6 @@
     <DbQuickSearch
       v-model="quickSearchValue"
       :data="quickSearchData"
-      :placeholder="t('搜索 Key 类型、搜索 Key 模式')"
       style="width: 550px; margin-left: auto"
       @change="handleQuickSearchChange" />
     <DbTable
