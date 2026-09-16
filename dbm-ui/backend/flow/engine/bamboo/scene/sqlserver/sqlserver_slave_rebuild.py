@@ -577,7 +577,9 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_flows)
 
-            # 添加新实例的维度信息
+            # 变更元信息：新增新 slave 到集群实例集合、迁移域名/主从关系
+            # 注意：此步骤只做"加新 slave"，不移除旧 slave；旧 slave 的元数据回收在流程末尾的 reduce_slave
+            # 因此执行完本节点后，cluster.storageinstance_set 中新旧 slave 会同时存在
             sub_pipeline.add_act(
                 act_name=_("变更元信息"),
                 act_component_code=SqlserverDBMetaComponent.code,
@@ -589,6 +591,12 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
 
             # 机器维度，给新机器部署周边程序
+            # nginx_exclude_ips 说明：
+            #   - 本节点执行时刻，元数据里新旧 slave 同时存在（reduce_slave 尚未执行）
+            #   - 若不排除旧 slave IP，InitDBMNginxForSQLServerService 会遍历
+            #     cluster.storageinstance_set 向"即将卸载的旧 slave"下发 nginx 配置
+            #   - 会导致：无效下发 / 若旧机异常则整个节点失败
+            #   - 因此这里显式传入旧 slave IP，跳过对旧机器所有实例的 nginx 初始化
             sub_pipeline.add_sub_pipeline(
                 sub_flow=install_surrounding_apps_sub_flow(
                     uid=self.data["uid"],
@@ -598,6 +606,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     master_host=[],
                     slave_host=[Host(**info["new_slave_host"])],
                     cluster_domain_list=[c.immutable_domain for c in clusters],
+                    nginx_exclude_ips=[info["old_slave_host"]["ip"]],
                 )
             )
 
@@ -626,6 +635,10 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # 给旧slave下发执行器
+            # 说明：本节点固定采用"尽力而为"策略（error_ignorable=True）
+            #   - 旧 slave 即将下线，无论此刻是否可达，媒体下发失败都不应阻断后续元数据回收
+            #   - 若下发失败，紧跟着的"卸载实例"节点大概率也会失败，同样按尽力而为处理
+            #   - 真正把旧 slave 从元数据剔除的动作在末尾的 reduce_slave，必须保证能执行到
             sub_pipeline.add_act(
                 act_name=_("下发执行器在旧slave[{}]").format(info["old_slave_host"]["ip"]),
                 act_component_code=TransFileInWindowsComponent.code,
@@ -635,9 +648,13 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
                     ),
                 ),
+                error_ignorable=True,
             )
 
             # 卸载实例
+            # 说明：与上一节点保持一致的"尽力而为"策略
+            #   - 旧机器可能已宕机 / 失联 / 手工清理过，卸载失败属于可预期分支
+            #   - 允许失败继续往下，避免整个新机重建流程卡在收尾阶段
             sub_pipeline.add_act(
                 act_name=_("卸载实例[{}]").format(info["old_slave_host"]["ip"]),
                 act_component_code=SqlserverActuatorScriptComponent.code,
@@ -648,9 +665,12 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         custom_params={"ports": sub_flow_context["install_ports"], "force": True, "is_use_sa": True},
                     ),
                 ),
+                error_ignorable=True,
             )
 
             # 机器维度变更元数据
+            # 该步骤才把旧 slave 从 cluster.storageinstance_set 中彻底剔除；
+            # 因此上方 install_surrounding_apps_sub_flow 必须通过 nginx_exclude_ips 手动排除
             sub_pipeline.add_act(
                 act_name=_("回收旧slave的元信息"),
                 act_component_code=SqlserverDBMetaComponent.code,
