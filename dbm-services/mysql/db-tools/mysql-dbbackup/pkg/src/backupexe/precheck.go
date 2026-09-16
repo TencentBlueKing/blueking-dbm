@@ -14,10 +14,12 @@ package backupexe
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -56,9 +58,11 @@ func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig)
 		logger.Log.Warnf("failed to get datadir size for %d", cnf.Public.MysqlPort)
 	}
 
+	// 确定备份类型
 	if err = r.CheckBackupType(cnf, r.storageEngine); err != nil {
 		return err
 	}
+	// 之后，备份类型已经确定
 
 	// check server charset, need correct charset
 	if err = CheckCharset(cnf, r.mysqlVersion, dbh); err != nil {
@@ -81,7 +85,7 @@ func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig)
 	}
 
 	if cnf.Public.IfBackupData() || cnf.Public.BackupType == cst.BackupPhysical {
-		if err := CheckAndCleanDiskSpace(cnfPublic, r.dataDirSize, dbh); err != nil {
+		if err := r.CheckAndCleanDiskSpace(cnf, dbh); err != nil {
 			logger.Log.Errorf("disk space is not enough for %d, err:%s", cnfPublic.MysqlPort, err.Error())
 			return err
 		}
@@ -109,4 +113,32 @@ func CheckEngineTables(cnf *config.BackupConfig, db *sql.DB) error {
 
 func CheckEngineTablesFromMonitorReg() {
 	//regPath := "/home/mysql/mysql-monitor/table-engine-count-${PORT}.reg"
+}
+
+// calPartialDatabasesSize 逻辑备份部分库时，通过 db_table_filter 解析出实际匹配的数据库列表，
+// 然后计算这些数据库对应的 datadir 子目录大小之和
+func calPartialDatabasesSize(cnf *config.BackupConfig, dbh *sql.DB) (uint64, error) {
+	tf := &cnf.LogicalBackup.TableFilter
+	var databases, excludeDatabases []string
+	if tf.Databases == "" || tf.Databases == "*" {
+		databases = []string{"*"}
+	} else {
+		databases = strings.Split(tf.Databases, ",")
+	}
+	if tf.ExcludeDatabases != "" {
+		excludeDatabases = strings.Split(tf.ExcludeDatabases, ",")
+	}
+	filter, err := db_table_filter.NewFilter(databases, []string{"*"}, excludeDatabases, []string{})
+	if err != nil {
+		return 0, errors.WithMessage(err, "build db filter for partial backup")
+	}
+	dbNames, err := filter.GetDbsByConnRaw(dbh)
+	if err != nil {
+		return 0, errors.WithMessage(err, "get databases by filter")
+	}
+	if len(dbNames) == 0 {
+		return 0, errors.New("no matching databases found for partial backup")
+	}
+	logger.Log.Infof("partial backup databases resolved: %v", dbNames)
+	return util.CalDatabasesDirSize(cnf.Public.MysqlPort, dbNames)
 }

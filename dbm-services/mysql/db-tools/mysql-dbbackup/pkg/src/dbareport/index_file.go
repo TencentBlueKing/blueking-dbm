@@ -144,50 +144,8 @@ type ExtraFields struct {
 	DatabaseList []string `json:"database_list" db:"database_list"`
 }
 
-// JudgeIsFullBackup 是否是带所有数据的全备
-// 这里比较难判断逻辑备份 Regex 正则是否只包含系统库，所以优先判断如果是库表备份，认为false
-func (i *IndexContent) judgeIsFullBackup(cnf *config.Public) bool {
-	if cnf.IsFullBackup == "no" {
-		i.IsFullBackup = false
-		return false
-	} else if cnf.IsFullBackup == "yes" {
-		i.IsFullBackup = true
-		return true
-	}
-
-	// == 0: unknown，自动判断
-	// 库表备份单，false
-	if !cnf.IfBackupAll() || strings.Contains(cnf.BackupDir, "backupDatabaseTable_") {
-		i.IsFullBackup = false
-		cnf.IsFullBackup = "no"
-		return i.IsFullBackup
-	}
-	// 物理备份数据，true
-	if cnf.IfBackupAll() && i.BackupType == cst.BackupPhysical {
-		i.IsFullBackup = true
-		cnf.IsFullBackup = "yes"
-	}
-	i.IsFullBackup = true
-	cnf.IsFullBackup = "yes"
-
-	if cnf.BillId != "" {
-		if i.IsFullBackup {
-			i.BackupMethod = config.BackupFullByTicket
-		} else {
-			i.BackupMethod = config.BackupPartialByTicket
-		}
-	} else {
-		if i.IsFullBackup {
-			i.BackupMethod = config.BackupFullByRegular
-		} else {
-			i.BackupMethod = config.BackupNonFullByRegular
-		}
-	}
-	return true
-}
-
 func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
-	i.judgeIsFullBackup(&cnf.Public)
+	i.IsFullBackup = cnf.Public.JudgeIsFullBackup()
 
 	if cnf.Public.BillId != "" {
 		if i.IsFullBackup {

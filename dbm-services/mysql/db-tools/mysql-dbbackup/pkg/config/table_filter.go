@@ -49,6 +49,18 @@ const (
 	FilterTypeUnknown    FilterType = "unknown"
 )
 
+// IsPartialBackup 判断是否只备份部分库（非全量）
+// 仅在 FilterTypeForm 模式下，Databases 不为 * 且不为空时，认为是部分库备份
+func (f *TableFilter) IsPartialBackup() bool {
+	if f.GetFilterType() != FilterTypeForm {
+		return false
+	}
+	if f.Databases == "" || f.Databases == "*" {
+		return false
+	}
+	return true
+}
+
 // GetFilterType 过滤器类型，form 优先级最高
 // 在指定任意 databases tables exclude-databases exclude-tables 时生效
 func (f *TableFilter) GetFilterType() FilterType {
