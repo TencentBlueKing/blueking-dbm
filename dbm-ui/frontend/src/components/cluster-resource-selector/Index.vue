@@ -33,21 +33,27 @@
           v-model="currentClusterType"
           :panel-list="configList" />
         <RenderTable
-          v-model:selected="selected"
+          v-model:selected="localSelected"
           :params="params" />
       </template>
       <template #aside>
-        <PreviewResult v-model:selected="selected" />
+        <PreviewResult v-model:selected="localSelected" />
       </template>
     </BkResizeLayout>
     <template #footer>
-      <BkButton
-        class="w-88"
-        :disabled="selected.length === 0"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
+      <span
+        v-bk-tooltips="{
+          disabled: !isEmpty,
+          content: t('请选择集群'),
+        }">
+        <BkButton
+          class="w-88"
+          :disabled="isEmpty"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('确定') }}
+        </BkButton>
+      </span>
       <BkButton
         class="ml-8 w-88"
         @click="handleClose">
@@ -84,6 +90,7 @@
     required: true,
   });
 
+  // 只作为回填数据源读取，选择结果通过 change 事件提交
   const selected = defineModel<IValue[]>('selected', {
     required: true,
   });
@@ -91,6 +98,8 @@
   const { t } = useI18n();
 
   const currentClusterType = ref<SupportClusterTypes>(ClusterTypes.TENDBHA);
+  // 弹窗内的勾选走副本，点取消可丢弃
+  const localSelected = shallowRef<IValue[]>([]);
 
   const configList = computed(() => props.clusterTypes.map((clusterType) => comFactory[clusterType]));
 
@@ -98,9 +107,12 @@
     ...comFactory[currentClusterType.value].params,
   }));
 
+  const isEmpty = computed(() => localSelected.value.length === 0);
+
   watch(isShow, () => {
     if (isShow.value) {
       currentClusterType.value = props.clusterTypes[0];
+      localSelected.value = [...selected.value];
     }
   });
 
@@ -109,7 +121,7 @@
   };
 
   const handleSubmit = () => {
-    emits('change', selected.value);
+    emits('change', localSelected.value);
     handleClose();
   };
 </script>

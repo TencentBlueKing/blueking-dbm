@@ -46,12 +46,12 @@
   <ShardSelector
     v-model="batchSelectedInstances"
     v-model:is-show="isBatchSelectorShow"
-    :disable-select-method="batchDisableSelectMethod"
+    :disable-select-method="disableSelectMethod"
     @change="handleBatchSelectChange" />
   <ShardSelector
     v-model="cellSelectedInstances"
     v-model:is-show="isCellSelectorShow"
-    :disable-select-method="cellDisableSelectMethod"
+    :disable-select-method="disableSelectMethod"
     @change="handleCellClusterChange" />
 </template>
 <script lang="tsx" setup>
@@ -90,17 +90,9 @@
 
   const { t } = useI18n();
 
-  // 跨集群禁选：与已有选中分片不在同一集群时分片禁选
-  const batchDisableSelectMethod = (data: MongodbShardModel) => {
-    const [firstSelected] = batchSelectedInstances.value;
-    if (!firstSelected) {
-      return false;
-    }
-    return data.cluster_id !== firstSelected.cluster_id ? t('不能跨集群选择分片，请先清空已有集群的分片') : false;
-  };
-
-  const cellDisableSelectMethod = (data: MongodbShardModel) => {
-    const [firstSelected] = Object.values(modelValue.value.shards);
+  // 跨集群禁选：与弹窗内已选分片不在同一集群时分片禁选
+  const disableSelectMethod = (data: MongodbShardModel, selected: MongodbShardModel[]) => {
+    const [firstSelected] = selected;
     if (!firstSelected) {
       return false;
     }
