@@ -36,9 +36,10 @@ start_daemon() {
 start_mysql_dts_master_template = (
     """
 set -euo pipefail
-DEPLOY_PATH="{{deploy_path}}"
-PKG_NAME="{{pkg_name}}"
-DTS_NODE_NAME="{{dts_node_name}}"
+DEPLOY_PATH={{deploy_path}}
+PKG_NAME={{pkg_name}}
+DTS_NODE_NAME={{dts_node_name}}
+CONFIG_FILE={{config_file}}
 BIN_DIR="${DEPLOY_PATH}/bin"
 CONF_DIR="${DEPLOY_PATH}/conf"
 LOG_DIR="${DEPLOY_PATH}/log"
@@ -72,7 +73,7 @@ chmod +x "${BIN_DIR}/dm-master"
 """
     + _START_DAEMON_HELPER
     + """
-start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/{{config_file}}" "${OUTPUT_FILE}"
+start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
 
 LISTEN_PORT="{{listen_port}}"
 is_port_listen() {
@@ -107,9 +108,10 @@ echo "started dm-master ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
 start_mysql_dts_worker_template = (
     """
 set -euo pipefail
-DEPLOY_PATH="{{deploy_path}}"
-PKG_NAME="{{pkg_name}}"
-DTS_NODE_NAME="{{dts_node_name}}"
+DEPLOY_PATH={{deploy_path}}
+PKG_NAME={{pkg_name}}
+DTS_NODE_NAME={{dts_node_name}}
+CONFIG_FILE={{config_file}}
 BIN_DIR="${DEPLOY_PATH}/bin"
 CONF_DIR="${DEPLOY_PATH}/conf"
 LOG_DIR="${DEPLOY_PATH}/log"
@@ -143,7 +145,7 @@ chmod +x "${BIN_DIR}/dm-worker"
 """
     + _START_DAEMON_HELPER
     + """
-start_daemon "${BIN_DIR}/dm-worker" "${CONF_DIR}/{{config_file}}" "${OUTPUT_FILE}"
+start_daemon "${BIN_DIR}/dm-worker" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
 
 LISTEN_PORT="{{listen_port}}"
 is_port_listen() {
@@ -177,32 +179,44 @@ echo "started dm-worker ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
 
 stop_mysql_dts_process_template = """
 set -euo pipefail
+DEPLOY_PATH={{deploy_path}}
 # 先停 Worker 再停 Master，满足 offline_worker「进程须先离线」约束
-pkill -f "{{deploy_path}}/bin/dm-worker" 2>/dev/null || true
-pkill -f "{{deploy_path}}/bin/dm-master" 2>/dev/null || true
+pkill -f "${DEPLOY_PATH}/bin/dm-worker" 2>/dev/null || true
+pkill -f "${DEPLOY_PATH}/bin/dm-master" 2>/dev/null || true
 sleep 1
-echo "stopped dts processes under {{deploy_path}}"
+echo "stopped dts processes under ${DEPLOY_PATH}"
 """
 
 clean_mysql_dts_data_dir_template = """
 set -euo pipefail
-rm -rf "{{deploy_path}}"
-echo "cleaned {{deploy_path}}"
+DEPLOY_PATH={{deploy_path}}
+rm -rf -- "${DEPLOY_PATH}"
+echo "cleaned ${DEPLOY_PATH}"
 """
 
 push_mysql_dts_config_template = """
 set -euo pipefail
-CONF_DIR="{{deploy_path}}/conf"
+DEPLOY_PATH={{deploy_path}}
+CONFIG_FILE={{config_file}}
+CONF_DIR="${DEPLOY_PATH}/conf"
 mkdir -p "${CONF_DIR}"
-cat > "${CONF_DIR}/{{config_file}}" <<'DTS_CONFIG_EOF'
+cat > "${CONF_DIR}/${CONFIG_FILE}" <<'DTS_CONFIG_EOF'
 {{config_content}}
 DTS_CONFIG_EOF
-echo "wrote ${CONF_DIR}/{{config_file}}"
+echo "wrote ${CONF_DIR}/${CONFIG_FILE}"
 """
 
 
+# 进 Job shell 的路径/文件名字段：渲染前 shlex.quote，模板里不要再套一层双引号。
+_SHELL_QUOTE_KEYS = ("deploy_path", "pkg_name", "config_file", "dts_node_name")
+
+
 def _render(template: str, **kwargs) -> str:
-    return Environment().from_string(template).render(**kwargs)
+    payload = dict(kwargs)
+    for key in _SHELL_QUOTE_KEYS:
+        if key in payload and payload[key] is not None:
+            payload[key] = shlex.quote(str(payload[key]))
+    return Environment().from_string(template).render(**payload)
 
 
 def render_push_config_script(deploy_path: str, config_file: str, config_content: str) -> str:
@@ -341,9 +355,10 @@ ln -sfn "${PKG_BIN}" "${BIN_DIR}"
 reinstall_mysql_dts_master_template = (
     """
 set -euo pipefail
-DEPLOY_PATH="{{deploy_path}}"
-PKG_NAME="{{pkg_name}}"
-DTS_NODE_NAME="{{dts_node_name}}"
+DEPLOY_PATH={{deploy_path}}
+PKG_NAME={{pkg_name}}
+DTS_NODE_NAME={{dts_node_name}}
+CONFIG_FILE={{config_file}}
 BIN_DIR="${DEPLOY_PATH}/bin"
 CONF_DIR="${DEPLOY_PATH}/conf"
 LOG_DIR="${DEPLOY_PATH}/log"
@@ -363,8 +378,8 @@ if [[ ! -f "${PKG_FILE}" ]]; then
   ls -la /data/install/ || true
   exit 1
 fi
-if [[ ! -f "${CONF_DIR}/{{config_file}}" ]]; then
-  echo "Config file not found: ${CONF_DIR}/{{config_file}}" >&2
+if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]; then
+  echo "Config file not found: ${CONF_DIR}/${CONFIG_FILE}" >&2
   ls -la "${CONF_DIR}/" || true
   exit 1
 fi
@@ -380,7 +395,7 @@ mkdir -p "${LOG_DIR}"
 """
     + _START_DAEMON_HELPER
     + """
-start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/{{config_file}}" "${OUTPUT_FILE}"
+start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
 
 LISTEN_PORT="{{listen_port}}"
 is_port_listen() {
@@ -414,9 +429,10 @@ echo "reinstalled dm-master ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
 reinstall_mysql_dts_worker_template = (
     """
 set -euo pipefail
-DEPLOY_PATH="{{deploy_path}}"
-PKG_NAME="{{pkg_name}}"
-DTS_NODE_NAME="{{dts_node_name}}"
+DEPLOY_PATH={{deploy_path}}
+PKG_NAME={{pkg_name}}
+DTS_NODE_NAME={{dts_node_name}}
+CONFIG_FILE={{config_file}}
 BIN_DIR="${DEPLOY_PATH}/bin"
 CONF_DIR="${DEPLOY_PATH}/conf"
 LOG_DIR="${DEPLOY_PATH}/log"
@@ -436,8 +452,8 @@ if [[ ! -f "${PKG_FILE}" ]]; then
   ls -la /data/install/ || true
   exit 1
 fi
-if [[ ! -f "${CONF_DIR}/{{config_file}}" ]]; then
-  echo "Config file not found: ${CONF_DIR}/{{config_file}}" >&2
+if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]; then
+  echo "Config file not found: ${CONF_DIR}/${CONFIG_FILE}" >&2
   ls -la "${CONF_DIR}/" || true
   exit 1
 fi
@@ -453,7 +469,7 @@ mkdir -p "${LOG_DIR}"
 """
     + _START_DAEMON_HELPER
     + """
-start_daemon "${BIN_DIR}/dm-worker" "${CONF_DIR}/{{config_file}}" "${OUTPUT_FILE}"
+start_daemon "${BIN_DIR}/dm-worker" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
 
 LISTEN_PORT="{{listen_port}}"
 is_port_listen() {
