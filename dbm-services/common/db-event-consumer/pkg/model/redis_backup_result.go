@@ -151,6 +151,10 @@ func (m *RedisBackupResultModel) MigrateSchema(w base.DSWriter) error {
 			[]string{"backup_taskid"}, false, true); err != nil {
 			return err
 		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_domain_shard_time",
+			[]string{"immute_domain", "shard_value", "backup_end_time"}, false, true); err != nil {
+			return err
+		}
 		return nil
 	} else {
 		return w.AutoMigrate(m)

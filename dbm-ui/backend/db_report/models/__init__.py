@@ -41,6 +41,7 @@ from .mysql_sql_file_exec_duration import MysqlSqlFileExecDuration
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .portrait_dimension_registry import PortraitDimensionRegistry
 from .portrait_dimension_summary import PortraitDimensionSummary
+from .redis_backup_result import RedisBackupResult, RedisBinlogResult
 from .redis_check_report import RedisCheckReport
 from .redis_rollback_exercise_report import RedisRollbackExerciseReport
 from .redisbackup_check_report import RedisBackupCheckReport

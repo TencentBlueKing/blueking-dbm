@@ -32,6 +32,34 @@ class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
         )
 
 
+class BackupBatchQuerySerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    start_time = DBTimezoneField(help_text=_("开始时间"), required=False, allow_null=True, allow_blank=True)
+    end_time = DBTimezoneField(help_text=_("结束时间"), required=False, allow_null=True, allow_blank=True)
+    shard_values = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_empty=True, help_text=_("按分片过滤，不传表示全部")
+    )
+
+
+class ShardSelectionSerializer(serializers.Serializer):
+    shard_value = serializers.CharField(help_text=_("该批次当时的分片"))
+    round_key = serializers.CharField(help_text=_("轮次"), required=False, allow_blank=True, default="")
+
+
+class RollbackPrecheckSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    backup_identify = serializers.CharField(help_text=_("备份批次"), required=True)
+    shards = serializers.ListField(
+        help_text=_("勾选的分片与轮次，为空表示该批次全部分片取最新一轮"),
+        child=ShardSelectionSerializer(),
+        required=False,
+        allow_empty=True,
+    )
+    key_white_regex = serializers.CharField(required=False, allow_blank=True, default="")
+    key_black_regex = serializers.CharField(required=False, allow_blank=True, default="")
+    resource_spec = serializers.JSONField(required=False)
+
+
 class CheckTimeSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群id"))
     master_instances = serializers.ListField(help_text=_("master实例列表"))

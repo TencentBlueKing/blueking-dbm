@@ -12,6 +12,7 @@ import copy
 import logging
 import math
 import time
+import uuid
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -1044,13 +1045,22 @@ class RedisMetricsQueryService:
         t0 = time.perf_counter()
         try:
             response = BKMonitorV3Api.unify_query(params)
-        except Exception as e:
+        except Exception:
             elapsed = time.perf_counter() - t0
-            logger.error(
-                f"Failed to query metrics for clusters {[c.immute_domain for c in clusters]}: {e} "
-                f"(unify_query duration_sec={elapsed:.3f})"
+            error_id = uuid.uuid4().hex[:12]
+            logger.exception(
+                "Failed to query metrics for clusters %s error_id=%s metric_key=%s " "(unify_query duration_sec=%.3f)",
+                [c.immute_domain for c in clusters],
+                error_id,
+                metric_key,
+                elapsed,
             )
-            return None, {"error": str(e), "metric_key": metric_key, "retryable": True}
+            return None, {
+                "error": "internal metrics query failed",
+                "error_id": error_id,
+                "metric_key": metric_key,
+                "retryable": True,
+            }
         elapsed = time.perf_counter() - t0
         logger.info(f"BKMonitor unify_query completed in {elapsed:.3f}s for metric_key={metric_key}")
 

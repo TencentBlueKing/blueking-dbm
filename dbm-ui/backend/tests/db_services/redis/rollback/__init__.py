@@ -8,17 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
-
-from .views import BackupBatchViewSet, RollbackViewSet
-
-router = DefaultRouter(trailing_slash=True)
-router.register(r"rollback", RollbackViewSet, basename="rollback")
-
-batch_router = DefaultRouter(trailing_slash=True)
-batch_router.register(r"batches", BackupBatchViewSet, basename="rollback-batches")
-
-urlpatterns = [
-    path("rollback/", include(batch_router.urls)),
-] + router.urls
