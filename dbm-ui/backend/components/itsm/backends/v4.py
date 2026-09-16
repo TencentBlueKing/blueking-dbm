@@ -3,6 +3,7 @@
 import json
 
 from ..client import ItsmV4Api
+from ..constants import ItsmV4TicketStatus
 from .base import BaseItsmBackend
 
 
@@ -54,9 +55,16 @@ class ItsmV4Backend(BaseItsmBackend):
     @classmethod
     def normalize_ticket_approval_result(cls, detail):
         """将 ITSM V4 单据详情转换为旧版审批结果结构。"""
+        current_status = detail.get("status", "")
+        if detail.get("approve_result") is False and current_status.lower() == ItsmV4TicketStatus.TERMINATION:
+            # itsm v4版本的审批拒绝之后状态回显为termination,此处改成和旧版本一致finished
+            current_status = ItsmV4TicketStatus.FINISHED
+        elif detail.get("approve_result") is False and current_status.lower() == ItsmV4TicketStatus.FINISHED:
+            # itsm v4版本的关闭单据操作之后状态回显为finished,此处改成和旧版本一致termination
+            current_status = ItsmV4TicketStatus.TERMINATION
         return {
             "update_at": detail.get("updated_at"),
-            "current_status": detail.get("status", "").upper(),
+            "current_status": current_status.upper(),
             "approve_result": detail.get("approve_result"),
             "ticket_url": detail.get("frontend_url"),
         }
