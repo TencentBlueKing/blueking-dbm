@@ -296,10 +296,6 @@
     } else {
       formData.tableData = [...formData.tableData.filter((item) => item.multipleCluster.renderText), ...dataList];
     }
-
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

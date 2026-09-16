@@ -274,9 +274,6 @@
     } else {
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      editableTableRef.value!.validate();
-    }, 200);
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {

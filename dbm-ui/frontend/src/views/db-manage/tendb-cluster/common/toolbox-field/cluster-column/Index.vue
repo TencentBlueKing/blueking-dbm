@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    ref="editableColumnRef"
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
@@ -115,6 +116,7 @@
     required: true,
   });
 
+  const editableColumnRef = useTemplateRef('editableColumnRef');
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbClusterModel[]>>(() => ({
     [ClusterTypes.TENDBCLUSTER]: props.selected,
@@ -209,6 +211,8 @@
           subzones: Array.from(subzonesSet).join(','),
         });
         emits('request-success');
+        // 集群信息异步回填完成后刷新本单元格校验（如批量录入提前触发的“集群不存在”报错）
+        editableColumnRef.value?.validate();
       }
     },
   });

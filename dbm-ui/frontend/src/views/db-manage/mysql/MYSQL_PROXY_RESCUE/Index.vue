@@ -320,9 +320,6 @@
     } else {
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

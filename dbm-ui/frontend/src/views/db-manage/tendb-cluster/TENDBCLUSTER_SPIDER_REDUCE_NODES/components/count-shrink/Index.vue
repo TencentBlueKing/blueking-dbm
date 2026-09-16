@@ -29,7 +29,8 @@
         v-model="item.cluster"
         v-model:role="item.role"
         :selected="selected"
-        @batch-edit="handleBatchEdit" />
+        @batch-edit="handleBatchEdit"
+        @request-success="handleClusterRequestSuccess(item)" />
       <RoleColumn
         v-model="item.role"
         @batch-edit="handleRoleBatchEdit"
@@ -255,9 +256,10 @@
     } else {
       tableData.value = [...(tableData.value[0]!.cluster.id ? tableData.value : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
+  };
+
+  const handleClusterRequestSuccess = (item: RowData) => {
+    handleChange(item);
   };
 
   defineExpose<Exposes>({

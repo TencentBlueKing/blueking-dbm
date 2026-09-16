@@ -268,9 +268,6 @@
     } else {
       formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
     }
-    setTimeout(() => {
-      editableTableRef.value!.validate();
-    }, 200);
   };
 
   const handleSubmit = () => {
