@@ -213,25 +213,39 @@ func cleanLocalBackupReport(host string, port int, db *sqlx.DB, l *logrus.Logger
 }
 
 // CheckAndCleanDiskSpace 如果空间不足，则会强制删除所有备份文件
-func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sql.DB) (err error) {
+func (r *BackupRunner) CheckAndCleanDiskSpace(cnf *config.BackupConfig, dbh *sql.DB) (err error) {
+	// 逻辑备份部分库时，用实际数据库目录大小替代全量 datadir 大小，更精确地评估空间需求
+	if cnf.Public.BackupType == cst.BackupLogical && cnf.Public.IfBackupData() &&
+		!cnf.Public.JudgeIsFullBackup() {
+		if partialSize, dbsErr := calPartialDatabasesSize(cnf, dbh); dbsErr != nil {
+			logger.Log.Warnf("failed to calculate partial databases size, use full datadir size: %s", dbsErr.Error())
+		} else if partialSize > 0 {
+			logger.Log.Infof("logical partial backup: use databases dir size %d instead of full datadir size %d",
+				partialSize, r.dataDirSize)
+			r.dataDirSize = partialSize // expect disk size
+		}
+	}
+
+	cnfPublic := &cnf.Public
+	dbSizeBytes := r.dataDirSize
 	// 第一次检查，空间满足直接通过
-	if sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSizeBytes); err == nil {
-		logger.Log.Infof("disk space meets ok1, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSizeBytes)
+	if sizeLeft, err := util.CheckDiskSpace(cnfPublic.BackupDir, cnfPublic.MysqlPort, dbSizeBytes); err == nil {
+		logger.Log.Infof("disk space meets ok1, sizeLeft=%d, dataDirSize=%d", sizeLeft, dbSizeBytes)
 		return nil
 	}
 	// 删除旧备份后，第二次检查
-	if _, err = DeleteOldBackup(cnf, 0); err != nil {
+	if _, err = DeleteOldBackup(cnfPublic, 0); err != nil {
 		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}
-	if cnf.NoCheckDiskSpace {
-		logger.Log.Warnf("not check disk space for port %d", cnf.MysqlPort)
+	if cnfPublic.NoCheckDiskSpace {
+		logger.Log.Warnf("not check disk space for port %d", cnfPublic.MysqlPort)
 		return nil
 	}
 
-	sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSizeBytes)
+	sizeLeft, err := util.CheckDiskSpace(cnfPublic.BackupDir, cnfPublic.MysqlPort, dbSizeBytes)
 	if err == nil {
-		logger.Log.Infof("disk space meets ok2, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSizeBytes)
+		logger.Log.Infof("disk space meets ok2, sizeLeft=%d, dataDirSize=%d", sizeLeft, dbSizeBytes)
 		return nil
 	} else {
 		logger.Log.Warnf("clean all backups still does not meet space needed: %s", err.Error())
@@ -240,32 +254,32 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sq
 		// 删除 binlog，第三次检查
 		cleanBinlogCmd := []string{"./rotatebinlog", "clean-space", "--max-disk-used-pct", "20"}
 		//"--size-to-free", cast.ToString(math.Abs(float64(sizeLeft)))
-		logger.Log.Infof("to backup %d, clean binlog: %s", cnf.MysqlPort, strings.Join(cleanBinlogCmd, " "))
+		logger.Log.Infof("to backup %d, clean binlog: %s", cnfPublic.MysqlPort, strings.Join(cleanBinlogCmd, " "))
 		// 如果备份全部清理完成，预测空间还不够备份，则请求清理 binlog
 		_, strErr, err := cmutil.ExecCommand(false, cst.MysqlRotateBinlogInstallPath,
 			cleanBinlogCmd[0], cleanBinlogCmd[1:]...)
 		if err != nil {
 			logger.Log.Warnf("to backup %d, rotatebinlog clean-space failed: %s, %s",
-				cnf.MysqlPort, err.Error(), strErr)
+				cnfPublic.MysqlPort, err.Error(), strErr)
 		}
 
 		// 如果空间还不满足，尝试找上一个全备的大小，因为实际可能并不需要这么 dataDir 空间大小
-		lastBackupSize, err := GetLastBackupSize(cnf, dbh)
+		lastBackupSize, err := GetLastBackupSize(cnfPublic, dbh)
 		if err != nil {
 			logger.Log.Warn("failed to GetLastBackupSize, err:", err)
 		}
 		if lastBackupSize > 0 {
-			sizeLeft, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, lastBackupSize)
+			sizeLeft, err = util.CheckDiskSpace(cnfPublic.BackupDir, cnfPublic.MysqlPort, lastBackupSize)
 			logger.Log.Infof("evaluate using last backup size=%d, sizeLeft=%d, BackupDir=%s err=%v",
-				lastBackupSize, sizeLeft, cnf.BackupDir, err)
+				lastBackupSize, sizeLeft, cnfPublic.BackupDir, err)
 		} else {
-			sizeLeft, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSizeBytes)
+			sizeLeft, err = util.CheckDiskSpace(cnfPublic.BackupDir, cnfPublic.MysqlPort, dbSizeBytes)
 			logger.Log.Infof("evaluate using datadir size=%d, sizeLeft=%d, BackupDir=%s err=%v",
-				dataDirSizeBytes, sizeLeft, cnf.BackupDir, err)
+				dbSizeBytes, sizeLeft, cnfPublic.BackupDir, err)
 		}
 		return err
 	} else {
-		logger.Log.Infof("disk space meets ok3, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSizeBytes)
+		logger.Log.Infof("disk space meets ok3, sizeLeft=%d, dataDirSize=%d", sizeLeft, dbSizeBytes)
 	}
 	return nil
 }

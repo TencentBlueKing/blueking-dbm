@@ -11,6 +11,7 @@ package config
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"golang.org/x/exp/slices"
@@ -149,6 +150,31 @@ func (c *Public) IfBackupAll() bool {
 		}
 	}
 	return isAll
+}
+
+func (c *Public) JudgeIsFullBackup() bool {
+	if c.IsFullBackup == "no" {
+		return false
+	} else if c.IsFullBackup == "yes" {
+		return true
+	}
+
+	var fullBackup bool // == 0: unknown，自动判断
+
+	// 库表备份单，false
+	if !c.IfBackupAll() || strings.Contains(c.BackupDir, "backupDatabaseTable_") {
+		fullBackup = false
+		c.IsFullBackup = "no"
+		return fullBackup
+	}
+	// 物理备份数据，true
+	if c.IfBackupAll() && c.BackupType == cst.BackupPhysical {
+		fullBackup = true
+		c.IsFullBackup = "yes"
+	}
+	fullBackup = true
+	c.IsFullBackup = "yes"
+	return fullBackup
 }
 
 // TargetName return targetName, will generate one when empty

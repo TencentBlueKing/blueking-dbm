@@ -258,14 +258,13 @@ func (m *RedisBackupResultModel) Validate() error {
 func (m *RedisBackupResultModel) UnmarshalJSON(data []byte) error {
 	type redisBackupResultModel RedisBackupResultModel
 	msg := struct {
-		*redisBackupResultModel
+		redisBackupResultModel
 		BackupFileTag string `json:"backup_file_tag"`
-	}{
-		redisBackupResultModel: (*redisBackupResultModel)(m),
-	}
+	}{}
 	if err := json.Unmarshal(data, &msg); err != nil {
 		return err
 	}
+	*m = RedisBackupResultModel(msg.redisBackupResultModel)
 	if m.BackupIdentify == "" {
 		m.BackupIdentify = msg.BackupFileTag
 	}

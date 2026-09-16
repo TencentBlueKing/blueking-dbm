@@ -106,7 +106,16 @@ func (p *PhysicalLoader) decompress() error {
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("decompress failed: ", err, errStr)
-		return errors.Wrap(err, errStr)
+		// 尝试读取 xtrabackup.log 里 ERROR 关键字
+		errStrPrefix := fmt.Sprintf("tail 10 error from %s", logfile)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).MatchWords(nil, 10)
+		if len(errStrDetail) > 0 {
+			logger.Log.Info(errStrPrefix)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("tail can not find more detail error message from ", logfile)
+		}
+		return errors.WithMessagef(err, fmt.Sprintf("%s: %s\n%s", errStr, errStrPrefix, errStrDetail))
 	}
 	logger.Log.Info("decompress success: ", outStr)
 	return nil

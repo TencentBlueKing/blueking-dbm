@@ -122,6 +122,43 @@ func CalServerDataSize(port int) (uint64, error) {
 	return strconv.ParseUint(words[0], 10, 64)
 }
 
+// CalDatabasesDirSize 计算指定数据库的数据目录大小之和
+// 遍历 datadir 下每个 database 对应的子目录，用 du -sb 求和
+// unit: bytes
+func CalDatabasesDirSize(port int, databases []string) (uint64, error) {
+	datadir, err := common.GetDataHomeDir(port)
+	if err != nil {
+		return 0, err
+	}
+	var totalSize uint64
+	for _, db := range databases {
+		dbDir := filepath.Join(datadir, db)
+		fi, err := os.Stat(dbDir)
+		// only innodb engine
+		if err != nil || !fi.IsDir() {
+			logger.Log.Warnf("CalDatabasesDirSize: database dir %s not found or not a directory, skip", dbDir)
+			return 0, errors.Errorf("database dir %s is not a valid dir", dbDir)
+		}
+
+		cmdStr := "du -sb " + dbDir
+		res, err := exec.Command("/bin/bash", "-c", cmdStr).CombinedOutput()
+		if err != nil {
+			return 0, errors.Errorf("CalDatabasesDirSize: du -sb %s failed: %s, %s", dbDir, err.Error(), string(res))
+		}
+		datasize := strings.Replace(string(res), "\n", "", -1)
+		words := strings.Fields(datasize)
+		if len(words) == 0 {
+			return 0, errors.Errorf("CalDatabasesDirSize: du -sb %s returned empty output", dbDir)
+		}
+		size, err := strconv.ParseUint(words[0], 10, 64)
+		if err != nil {
+			return 0, errors.Errorf("CalDatabasesDirSize: parse size for %s failed: %s", dbDir, err.Error())
+		}
+		totalSize += size
+	}
+	return totalSize, nil
+}
+
 // DiskUsage Get disk usage info
 // unit: byte
 func DiskUsage(path string) (disk DiskStatus, err error) {
