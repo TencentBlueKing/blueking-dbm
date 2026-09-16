@@ -32,7 +32,9 @@
           :db-type="DBTypes.SQLSERVER"
           style="margin-top: 16px"
           :upload-file-path="uploadFilePath" />
-        <RenderCharset v-model="formData.charset" />
+        <RenderCharset
+          v-model="formData.charset"
+          :db-type="DBTypes.SQLSERVER" />
         <Backup
           ref="backupRef"
           v-model="formData.backup" />
