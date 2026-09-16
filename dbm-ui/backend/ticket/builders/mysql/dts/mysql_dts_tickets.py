@@ -26,6 +26,8 @@ from backend.flow.utils.mysql.dts.constants import (
     FullLoadEngine,
     MigrateTopology,
     get_default_deploy_path,
+    validate_dts_cluster_name,
+    validate_dts_deploy_path,
 )
 from backend.flow.utils.mysql.dts.migrate_credentials import parse_dts_migrate_major_version
 from backend.flow.utils.mysql.dts.migrate_helper import resolve_destroy_cluster_ids
@@ -196,7 +198,23 @@ class MigrateSpecSerializer(serializers.Serializer):
         return attrs
 
 
-class DtsDeploySerializer(serializers.Serializer):
+class DtsPathFieldsMixin:
+    """单据 CharField 的 cluster_name / deploy_path 进 Job shell 前先白名单。"""
+
+    def validate_cluster_name(self, value):
+        try:
+            return validate_dts_cluster_name(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+
+    def validate_deploy_path(self, value):
+        try:
+            return validate_dts_deploy_path(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+
+
+class DtsDeploySerializer(DtsPathFieldsMixin, serializers.Serializer):
     cluster_name = serializers.CharField(required=False, allow_blank=True, help_text=_("DTS 集群名"))
     bk_cloud_id = serializers.IntegerField(required=False, help_text=_("云区域ID"))
     # 资源池模式(master/worker 由资源申请回填)下可不传，手动录入模式需传
@@ -805,7 +823,7 @@ class MysqlRenameMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
         return attrs
 
 
-class MysqlDtsClusterApplyDetailSerializer(serializers.Serializer):
+class MysqlDtsClusterApplyDetailSerializer(DtsPathFieldsMixin, serializers.Serializer):
     cluster_name = serializers.CharField(help_text=_("DTS集群名称"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     master_hosts = serializers.ListSerializer(child=DtsHostSpecSerializer())

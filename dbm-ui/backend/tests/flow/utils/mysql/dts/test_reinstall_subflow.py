@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import shlex
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -96,7 +97,8 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
         self.assertIn('rm -f "${BIN_DIR}"', script)
         self.assertIn('rm -rf "${BIN_DIR}"', script)
         self.assertIn("dm-master", script)
-        self.assertIn("/data/dts/test/packages/", script)
+        self.assertIn("DEPLOY_PATH=" + shlex.quote("/data/dts/test"), script)
+        self.assertIn('PKG_ROOT="${DEPLOY_PATH}/packages/${PKG_BASENAME}"', script)
 
     def test_master_script_does_not_push_config(self):
         script = render_reinstall_master_script(
@@ -118,7 +120,7 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
         self.assertIn('ln -sfn "${PKG_BIN}" "${BIN_DIR}"', script)
         self.assertIn('if [[ -L "${BIN_DIR}" ]]; then', script)
         self.assertIn("dm-worker", script)
-        self.assertIn("/data/dts/test/packages/", script)
+        self.assertIn("DEPLOY_PATH=" + shlex.quote("/data/dts/test"), script)
 
     def test_script_extracts_to_isolation_dir(self):
         script = render_reinstall_master_script(
@@ -137,7 +139,8 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
             config_file="dm-master-1.toml",
             dts_node_name="dm-master-1",
         )
-        self.assertIn('if [[ ! -f "${CONF_DIR}/dm-master-1.toml" ]]', script)
+        self.assertIn('if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]', script)
+        self.assertIn("CONFIG_FILE=" + shlex.quote("dm-master-1.toml"), script)
 
 
 class ReinstallSubflowIntegrationTest(SimpleTestCase):

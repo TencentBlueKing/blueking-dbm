@@ -23,12 +23,10 @@ _DBM_UI = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.
 if _DBM_UI not in sys.path:
     sys.path.insert(0, _DBM_UI)
 
-from jinja2.sandbox import SandboxedEnvironment as Environment  # noqa: E402
-
 from backend.flow.utils.mysql.dts.script_template import (  # noqa: E402
-    start_mysql_dts_master_template,
-    start_mysql_dts_worker_template,
-    stop_mysql_dts_process_template,
+    render_start_master_script,
+    render_start_worker_script,
+    render_stop_process_script,
 )
 
 PKG_NAME = "mysql-dts-v0.0.1.tar.gz"
@@ -76,11 +74,10 @@ class DtsDeployScriptLocalTest(unittest.TestCase):
 
     def setUp(self):
         self.deploy_path = tempfile.mkdtemp(prefix="dts-local-test-")
-        self.env = Environment()
         self.addCleanup(self._cleanup)
 
     def _cleanup(self):
-        stop_script = self.env.from_string(stop_mysql_dts_process_template).render(deploy_path=self.deploy_path)
+        stop_script = render_stop_process_script(self.deploy_path)
         subprocess.run(["bash", "-c", stop_script], check=False, capture_output=True, text=True)
         time.sleep(1)
         shutil.rmtree(self.deploy_path, ignore_errors=True)
@@ -143,14 +140,14 @@ tar -zxf "{PKG_PATH}" -C "{bin_dir}" --strip-components=1
         with open(os.path.join(conf_dir, worker_config_file), "w", encoding="utf-8") as fp:
             fp.write(_render_worker_config(self.deploy_path, worker_name, master_addr))
 
-        master_script = self.env.from_string(start_mysql_dts_master_template).render(
+        master_script = render_start_master_script(
             deploy_path=self.deploy_path,
             pkg_name=PKG_NAME,
             config_file=master_config_file,
             dts_node_name=master_name,
             listen_port=MASTER_PORT,
         )
-        worker_script = self.env.from_string(start_mysql_dts_worker_template).render(
+        worker_script = render_start_worker_script(
             deploy_path=self.deploy_path,
             pkg_name=PKG_NAME,
             config_file=worker_config_file,

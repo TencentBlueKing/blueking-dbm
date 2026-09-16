@@ -18,6 +18,7 @@ from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_MASTER_PORT,
     MYSQL_DTS_WORKER_PORT,
     get_default_deploy_path,
+    validate_dts_deploy_path,
 )
 from backend.flow.utils.mysql.dts.context import DtsHostSpec
 from backend.flow.utils.mysql.dts.deploy_helper import (
@@ -32,7 +33,8 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
 
 
 def resolve_deploy_path(cluster_name: str, deploy_path: str = "") -> str:
-    return deploy_path or get_default_deploy_path(cluster_name)
+    path = deploy_path or get_default_deploy_path(cluster_name)
+    return validate_dts_deploy_path(path)
 
 
 def hosts_to_exec_targets(hosts: list[DtsHostSpec]) -> list[dict]:
