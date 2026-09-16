@@ -121,7 +121,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 		return
 	}
 
-	session := myPool.Add(param.Token)
+	session := myPool.Add(param.GetUniqSessionToken())
 
 	// Create a new response handler. with the request context and parameters
 	resp := NewRespHandle(c, param, logger)
@@ -171,9 +171,8 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 
 	if err != nil {
 		session.Stop()
-		// 有内容尽量返回.
 		if len(v) > 0 {
-			resp.SendResp(string(v), 0, "", session.ReqCount)
+			resp.SendError(fmt.Sprintf("%s\n%s", string(v), err.Error()), session.ReqCount)
 		} else {
 			resp.SendError(err.Error(), session.ReqCount)
 		}
