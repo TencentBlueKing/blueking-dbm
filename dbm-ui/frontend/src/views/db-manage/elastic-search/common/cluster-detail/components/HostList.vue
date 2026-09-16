@@ -93,7 +93,6 @@
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"
-        :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto" />
     </div>
     <BkAlert

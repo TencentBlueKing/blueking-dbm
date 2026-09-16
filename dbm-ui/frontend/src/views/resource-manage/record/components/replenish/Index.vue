@@ -18,7 +18,6 @@
         <DbQuickSearch
           v-model="quickSearchValue"
           :data="quickSearchData"
-          :placeholder="t('ID / DB类型 / 申请人 / 申请时间')"
           style="width: 500px" />
       </div>
       <a

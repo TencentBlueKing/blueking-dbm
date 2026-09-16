@@ -18,7 +18,6 @@
       class="mb-16"
       :data="quickSearchData"
       parse-url
-      :placeholder="t('搜索操作时间_操作人_配置类型_配置文件_操作类型_操作参数')"
       style="width: 500px"
       @change="refreshTable" />
     <DbTable

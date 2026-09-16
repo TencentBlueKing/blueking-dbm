@@ -40,8 +40,7 @@
       <DbQuickSearch
         v-model="searchValue"
         class="input-box"
-        :data="searchSelectList"
-        :placeholder="t('请选择条件搜索')" />
+        :data="searchSelectList" />
     </div>
     <DbTable
       ref="tableRef"

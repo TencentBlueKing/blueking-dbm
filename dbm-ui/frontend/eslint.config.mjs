@@ -414,6 +414,26 @@ export default defineConfigWithVueTs(
       'vue/no-setup-props-reactivity-loss': 'off',
       'vue/no-setup-props-destructure': 'off',
       'vue/no-unused-vars': ['error'],
+      'vue/no-restricted-v-bind': [
+        'error',
+        {
+          argument: '/^v-/',
+          message: 'Using `:v-xxx` is not allowed. Instead, remove `:` and use it as directive.',
+        },
+        {
+          argument: 'placeholder',
+          element: 'DbQuickSearch',
+          message: 'DbQuickSearch 不要传 placeholder，未配置时组件会用 data.name 用顿号拼成「请输入或选择 n」。',
+        },
+      ],
+      'vue/no-restricted-static-attribute': [
+        'error',
+        {
+          key: 'placeholder',
+          element: 'DbQuickSearch',
+          message: 'DbQuickSearch 不要传 placeholder，未配置时组件会用 data.name 用顿号拼成「请输入或选择 n」。',
+        },
+      ],
     },
   },
   {

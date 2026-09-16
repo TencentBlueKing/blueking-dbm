@@ -33,8 +33,7 @@
       <DbQuickSearch
         v-model="searchValue"
         class="search-selector"
-        :data="searchSelectData"
-        :placeholder="t('请输入标签关键字')" />
+        :data="searchSelectData" />
     </div>
     <DbTable
       ref="tableRef"

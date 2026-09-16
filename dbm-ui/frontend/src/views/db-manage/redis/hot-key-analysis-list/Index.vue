@@ -36,7 +36,6 @@
         class="ml-8"
         :data="searchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px"
         @change="handleSearchValueChange" />
     </div>

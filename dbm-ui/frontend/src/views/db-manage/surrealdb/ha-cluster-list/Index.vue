@@ -31,7 +31,6 @@
         class="quick-search"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
         @change="handleQuickSearchChange" />
     </div>
     <ClusterTable

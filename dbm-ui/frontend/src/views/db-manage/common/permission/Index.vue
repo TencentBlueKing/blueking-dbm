@@ -41,7 +41,6 @@
           v-model="tableSearch"
           :data="filters"
           parse-url
-          :placeholder="t('账号名称_DB名称_权限名称')"
           style="width: 500px"
           @change="handleSearchChange" />
       </div>
