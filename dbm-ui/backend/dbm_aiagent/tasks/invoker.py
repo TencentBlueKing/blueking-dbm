@@ -53,9 +53,28 @@ def _http_status_code(exc: Exception) -> Optional[int]:
     return None
 
 
-def _is_rate_limit_error(exc: Exception) -> bool:
-    """True only when the exception carries an HTTP 429 status — never free-text."""
+def is_http_rate_limit_error(exc: Exception) -> bool:
+    """判定异常是否携带 HTTP 429 状态码（严格按状态码判定，绝不做 free-text 嗅探）。
+
+    设计要点 / 怎么做：
+      - 唯一依据是 :func:`_http_status_code` 提取到的 HTTP 状态码 == 429
+      - 覆盖 ``status_code`` / ``status`` / ``response.status_code`` / ``code`` 4 个
+        常见属性位（含 ApiResultError / AppBaseException 把状态塞在 ``code`` 的情形）
+      - 作为项目公开 API 供跨模块复用（例如 :mod:`db_report.portrait.generator.base`
+        侧的 :meth:`ClusterPortraitGenerator.run` 需要就地判定 429 后回滚占位记录并
+        抛 :class:`PortraitRateLimitException`）
+
+    :param exc: 任意异常实例（通常是 AI 网关 / requests / httpx SDK 抛出的异常）
+    :return: True 表示 HTTP 429 限速；False 表示其他类型异常
+    边界：
+        - 找不到可识别的状态码属性 -> 返回 False（安全默认）
+    """
     return _http_status_code(exc) == 429
+
+
+#: 向后兼容别名：本模块内部历史调用点（第 153 行 AgentInvoker.invoke）保持不变；
+#: 未来若新增外部调用方，请直接使用公开名 :func:`is_http_rate_limit_error`
+_is_rate_limit_error = is_http_rate_limit_error
 
 
 def _truncate_agent_response_for_log(response, max_chars: int = AGENT_RESPONSE_LOG_MAX_CHARS) -> str:
