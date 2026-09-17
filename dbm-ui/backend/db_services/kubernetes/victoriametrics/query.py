@@ -62,12 +62,6 @@ class VictoriaMetricsBaseListRetrieveResource(KubernetesBaseListRetrieveResource
             if entry.get("role") == ClusterEntryRole.SLAVE_ENTRY.value:
                 query_entry = entry.get("entry") or query_entry
         return {
-            "write_entry": cls._append_entry_port(write_entry, VMINSERT_PORT),
-            "query_entry": cls._append_entry_port(query_entry, VMSELECT_PORT),
+            "write_entry": f"{write_entry}:{VMINSERT_PORT}",
+            "query_entry": f"{query_entry}:{VMSELECT_PORT}",
         }
-
-    @classmethod
-    def _append_entry_port(cls, entry: str, port: int) -> str:
-        if not entry or entry.endswith(f":{port}"):
-            return entry
-        return f"{entry}:{port}"
