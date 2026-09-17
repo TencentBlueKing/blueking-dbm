@@ -320,6 +320,8 @@ ALARM_CALLBACK_ACTION_TEMPLATE = {
     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
 }
 
+# bkmonitor 回调只能注册一个接口
+# 告警分析的回调，一定不能覆盖dbha自愈的回调
 ALARM_CALLBACK_ACTIONS = {
     AUTOFIX_ACTION_NAME: {"template": AUTOFIX_ACTION_TEMPLATE, "label_starts": ["NEED_AUTOFIX"]},
     ALARM_CALLBACK_ACTION_NAME: {

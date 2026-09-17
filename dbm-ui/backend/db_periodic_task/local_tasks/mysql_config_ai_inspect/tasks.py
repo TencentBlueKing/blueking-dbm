@@ -13,7 +13,6 @@ import time
 from datetime import datetime, timedelta
 
 from blueapps.core.celery.celery import app
-from celery.schedules import crontab
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -21,7 +20,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.db_periodic_task.local_tasks import register_periodic_task, start_new_span
+from backend.db_periodic_task.local_tasks import start_new_span
 from backend.db_periodic_task.local_tasks.mysql_config_ai_inspect.batch import ensure_open_batch
 from backend.db_periodic_task.local_tasks.mysql_config_ai_inspect.parse_result import parse_config_ai_inspect_res
 from backend.db_report.models.mysql_config_ai_inspect import MysqlConfigAiInspect, MysqlConfigAiInspectStatus
@@ -120,7 +119,7 @@ def _mark_attempt_failed(row: MysqlConfigAiInspect, error_msg: str, cost_ms: int
     return True
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+# @register_periodic_task(run_every=crontab(minute="*/5"))
 def periodic_mysql_config_ai_inspect():
     """每 5 分钟推进一批次中的一个集群配置 AI 巡检。"""
     if not env.ENABLE_DBM_AI:

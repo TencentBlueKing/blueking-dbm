@@ -134,6 +134,8 @@ BK_AIDEV_AGENT_APP_CODE = get_type_env(key="BK_AIDEV_AGENT_APP_CODE", _type=str,
 BK_AIDEV_AGENT_APP_SECRET = get_type_env(key="BK_AIDEV_AGENT_APP_SECRET", _type=str, default="")
 # 是否开启DBM AI功能
 ENABLE_DBM_AI = get_type_env(key="ENABLE_DBM_AI", _type=bool, default=False)
+# 是否允许在东八区周末(周六、周日)执行告警 AI 分析，默认不允许
+ENABLE_AI_ANALYSIS_ON_WEEKEND = get_type_env(key="ENABLE_AI_ANALYSIS_ON_WEEKEND", _type=bool, default=False)
 
 # BKVision 相关配置
 BKAPP_BKVISION_APIGW_URL = get_type_env(key="BKAPP_BKVISION_APIGW_URL", _type=str, default="")

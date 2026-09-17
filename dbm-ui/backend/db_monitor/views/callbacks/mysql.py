@@ -173,8 +173,14 @@ class MySQLAlarm(AlarmCallback):
         ],
         "call_mysql_alarm_analyzer": [
             {
-                "keyword": "Threads_running",
+                "keyword": "MySQL 实例 Threads_running",
                 "level": [0, 1, 2],
+                "cluster_type": [],
+                "ratelimit": "1 / 8",
+            },
+            {
+                "keyword": "TendbCluster 实例 Threads_running",
+                "level": [0, 1],
                 "cluster_type": [],
                 "ratelimit": "1 / 8",
             },
@@ -208,7 +214,7 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "长空闲事务未关闭",
                 "level": [0, 1, 2],
                 "cluster_type": [],
-                "ratelimit": "1 / 4",
+                "ratelimit": "1 / 8",
             },
         ],
     }

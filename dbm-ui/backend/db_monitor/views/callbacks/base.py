@@ -10,11 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from typing import List, Optional, Set, Tuple, Type
 
 from django.core.cache import cache
 
+from backend import env
+
 logger = logging.getLogger("root")
+
+# 东八区(CST)时区对象，告警回调中的时间判断统一以东八区为准
+CST_TIMEZONE = dt_timezone(timedelta(hours=8))
 
 
 class AlarmCallback(ABC):
@@ -39,6 +46,10 @@ class AlarmCallback(ABC):
             "2 / 24"  — 首次触发后 24 小时内最多触发 2 次
             "0 / 24"  — 不限频（默认）
         不配置 ratelimit 或配置为 "0 / N" 时，不做频率限制。
+
+    周末开关：
+        默认东八区周六、周日不执行任何告警回调（不做 AI 分析）。
+        需要周末照常分析时，设置环境变量 ENABLE_AI_ANALYSIS_ON_WEEKEND=true。
     """
 
     # 注册表：存储所有已注册的回调子类
@@ -78,6 +89,18 @@ class AlarmCallback(ABC):
         if not cluster_type:
             return True
         return cluster_type in cls.SUPPORTED_CLUSTER_TYPES
+
+    @staticmethod
+    def skip_by_weekend() -> bool:
+        """
+        判断当前是否因“东八区周末”而需要跳过告警回调。
+
+        默认东八区周六、周日跳过；ENABLE_AI_ANALYSIS_ON_WEEKEND=true 时不跳过。
+        """
+        if env.ENABLE_AI_ANALYSIS_ON_WEEKEND:
+            return False
+        # weekday(): 周一=0 ... 周六=5, 周日=6
+        return datetime.now(CST_TIMEZONE).weekday() >= 5
 
     @classmethod
     def _resolve_cluster_type(cls, callback_data: dict) -> Optional[str]:
@@ -220,6 +243,12 @@ class AlarmCallback(ABC):
 
         :param callback_data: 告警回调数据
         """
+        # 目前告警回调 ALARM_CALLBACK_ACTION_NAME, 现在只有 ai分析。这里跳过就是整个回调跳过了
+        # 但不影响 dbha 切换成功 的告警回调，因为它注册的是 AUTOFIX_ACTION_NAME
+        if cls.skip_by_weekend():
+            logger.info("[alarm_callback] Weekend(CST) AI analysis is disabled, skip dispatching callback")
+            return
+
         cluster_type = cls._resolve_cluster_type(callback_data)
         logger.info("[alarm_callback] Resolved cluster_type='%s', start dispatching callback", cluster_type)
 
