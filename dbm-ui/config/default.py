@@ -563,6 +563,11 @@ REST_FRAMEWORK = {
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# 请求体大小上限（字节）。Django 默认 2.5MB，AI 报告（ai_report_write_report）等接口会把
+# 完整 markdown/html 报告内联在 JSON body 里，超限会抛 RequestDataTooBig，
+# 该异常不经过 DRF exception handler，最终被 blueapps 兜底成 code=50000「系统异常」，排查成本高。
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
 SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}
 
 # DJANGO CELERY BEAT
