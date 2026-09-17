@@ -10,10 +10,10 @@ export const clusterTypesByDBTypeRaw = {
   [DBTypes.HDFS]: [ClusterTypes.HDFS],
   [DBTypes.INFLUXDB]: [ClusterTypes.INFLUXDB],
   [DBTypes.K8S_QDRANT]: [ClusterTypes.K8S_QDRANT_HA],
-  [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
+  [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_HA, ClusterTypes.K8S_SURREALDB_SINGLE],
   [DBTypes.KAFKA]: [ClusterTypes.KAFKA],
   [DBTypes.MONGODB]: [ClusterTypes.MONGODB, ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
-  [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],
+  [DBTypes.MYSQL]: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
   [DBTypes.ORACLE]: [ClusterTypes.ORACLE_PRIMARY_STANDBY, ClusterTypes.ORACLE_SINGLE_NONE],
   [DBTypes.PULSAR]: [ClusterTypes.PULSAR],
   [DBTypes.REDIS]: [
