@@ -2412,7 +2412,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
-      "description": "集群 used_memory / rss（左轴 bytes）；MemUsed% = sum(used)/sum(maxmemory)（右轴）",
+      "description": "集群 used_memory / rss（左轴 bytes）；mem_used% = sum(used)/sum(maxmemory)（右轴）；mem_total = maxmemory（左轴）",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2470,9 +2470,61 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "MemUsed%"
+              "options": "mem_used"
             },
             "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_rss"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_total"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_used%"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              },
               {
                 "id": "unit",
                 "value": "percentunit"
@@ -2487,10 +2539,14 @@
               },
               {
                 "id": "custom.axisLabel",
-                "value": "MemUsed%"
+                "value": "mem_used%"
               },
               {
-                "id": "min",
+                "id": "custom.axisSoftMax",
+                "value": 1
+              },
+              {
+                "id": "custom.axisSoftMin",
                 "value": 0
               }
             ]
@@ -2540,7 +2596,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "memory_rss_used",
+          "promqlAlias": "mem_rss",
           "query_configs": [],
           "refId": "A",
           "source": "sum by (cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
@@ -2560,7 +2616,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "memory_used",
+          "promqlAlias": "mem_used",
           "query_configs": [],
           "refId": "B",
           "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
@@ -2580,10 +2636,30 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "MemUsed%",
+          "promqlAlias": "mem_used%",
           "query_configs": [],
           "refId": "C",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "mem_total",
+          "query_configs": [],
+          "refId": "D",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
           "type": "range"
         }
@@ -4412,7 +4488,7 @@
   "timezone": "",
   "title": "tendis-RedisInstance",
   "uid": "RedisInstance",
-  "version": 74,
+  "version": 76,
   "weekStart": "",
   "__inputs": [
     {
