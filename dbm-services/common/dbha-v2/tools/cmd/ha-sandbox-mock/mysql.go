@@ -34,14 +34,19 @@ import (
 )
 
 const (
-	comQuit    = 0x01
-	comInitDB  = 0x02
-	comQuery   = 0x03
-	comPing    = 0x0e
-	comReset   = 0x1f
-	okHeader   = 0x00
-	eofHeader  = 0xfe
-	typeVarStr = 0xfd
+	comQuit        = 0x01
+	comInitDB      = 0x02
+	comQuery       = 0x03
+	comPing        = 0x0e
+	comStmtPrepare = 0x16
+	comStmtExecute = 0x17
+	comStmtClose   = 0x19
+	comStmtReset   = 0x1a
+	comReset       = 0x1f
+	okHeader       = 0x00
+	eofHeader      = 0xfe
+	errHeader      = 0xff
+	typeVarStr     = 0xfd
 
 	clientLongPassword     uint32 = 1 << 0
 	clientFoundRows        uint32 = 1 << 1
@@ -115,25 +120,37 @@ func serveMySQLCommand(conn net.Conn, payload []byte) bool {
 	switch payload[0] {
 	case comQuit:
 		return false
-	case comPing, comInitDB, comReset:
+	case comPing, comInitDB, comReset, comStmtReset:
 		return writeMySQLPacket(conn, 1, mysqlOK()) == nil
+	case comStmtClose:
+		return true
+	case comStmtPrepare, comStmtExecute:
+		return writeMySQLPacket(conn, 1, mysqlErr("prepared statements unsupported")) == nil
 	case comQuery:
 		return replyMySQLQuery(conn, string(payload[1:])) == nil
 	default:
-		return writeMySQLPacket(conn, 1, mysqlOK()) == nil
+		return writeMySQLPacket(conn, 1, mysqlErr("unsupported command")) == nil
 	}
 }
 
 func replyMySQLQuery(conn net.Conn, query string) error {
 	upper := strings.ToUpper(strings.TrimSpace(query))
 	if strings.HasPrefix(upper, "SELECT") || strings.HasPrefix(upper, "SHOW") {
-		value := "1"
 		if strings.Contains(upper, "VERSION") {
-			value = "8.0.36"
+			return writeMySQLResultset(conn, "value", "8.0.36")
 		}
-		return writeMySQLResultset(conn, "value", value)
+		return writeMySQLEmptyResultset(conn, "value")
 	}
 	return writeMySQLPacket(conn, 1, mysqlOK())
+}
+
+func mysqlErr(msg string) []byte {
+	buf := []byte{errHeader}
+	buf = binary.LittleEndian.AppendUint16(buf, 1105)
+	buf = append(buf, '#')
+	buf = append(buf, []byte("HY000")...)
+	buf = append(buf, []byte(msg)...)
+	return buf
 }
 
 func mysqlEOF() []byte {
@@ -158,6 +175,23 @@ func writeMySQLResultset(conn net.Conn, col, value string) error {
 	}
 	seq++
 	if err := writeMySQLPacket(conn, seq, lenEncStr(value)); err != nil {
+		return err
+	}
+	seq++
+	return writeMySQLPacket(conn, seq, mysqlEOF())
+}
+
+func writeMySQLEmptyResultset(conn net.Conn, col string) error {
+	seq := byte(1)
+	if err := writeMySQLPacket(conn, seq, lenEncInt(1)); err != nil {
+		return err
+	}
+	seq++
+	if err := writeMySQLPacket(conn, seq, mysqlColumnDef(col)); err != nil {
+		return err
+	}
+	seq++
+	if err := writeMySQLPacket(conn, seq, mysqlEOF()); err != nil {
 		return err
 	}
 	seq++

@@ -47,7 +47,8 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 
 进程级回归（无真实 etcd / mysqld）见 skill `ha-sandbox-test` 与
 `scripts/ha-sandbox-admin-reload.sh`（依赖 `tools/cmd/ha-sandbox-mock`）。
-脚本会抓取 Admin APM `/metrics` 并核对 reload 相关 gauge 的数值（成功/失败、槽计数、last_success）。
+脚本会抓取 Admin APM `/metrics` 并核对 reload 相关 gauge 的数值（成功/失败、槽计数、last_success），
+以及 Admin gRPC 拦截器指标（`grpc_requests_total`、错误计数、耗时/体积 histogram、`grpc_probe_config_result_total`）。
 
 ---
 
