@@ -28,6 +28,7 @@ import (
 	"context"
 	"errors"
 
+	adminapm "dbm-services/common/dbha-v2/internal/admin/apm"
 	adminconfig "dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
@@ -72,7 +73,10 @@ func (g *AdminGrpcService) NewServer(configs ...adminconfig.GrpcConfig) *grpc.Se
 		grpc.KeepaliveEnforcementPolicy(kacp),
 		grpc.MaxRecvMsgSize(cfg.MaxReceiveMessageSize),
 		grpc.MaxSendMsgSize(cfg.MaxSendMessageSize),
-		grpc.UnaryInterceptor(g.storageUnaryInterceptor()),
+		grpc.ChainUnaryInterceptor(
+			adminapm.UnaryServerInterceptor(),
+			g.storageUnaryInterceptor(),
+		),
 	)
 }
 
