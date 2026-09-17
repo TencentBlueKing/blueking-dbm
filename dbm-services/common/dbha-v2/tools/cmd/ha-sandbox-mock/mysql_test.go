@@ -25,12 +25,17 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 func TestMySQLMockPing(t *testing.T) {
@@ -60,5 +65,32 @@ func TestMySQLMockPing(t *testing.T) {
 	}
 	if version != "8.0.36" {
 		t.Fatalf("version: %s, want: 8.0.36", version)
+	}
+}
+
+func TestMySQLMockGormParameterizedQueryFailsFast(t *testing.T) {
+	ln, err := startMySQLMock("127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("start mysql mock failed, errmsg: %s", err)
+	}
+	defer ln.Close()
+
+	dsn := fmt.Sprintf("sandbox:sandbox@tcp(%s)/dbha_data?timeout=2s&parseTime=true", ln.Addr().String())
+	gdb, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger:               gormlogger.Discard,
+		DisableAutomaticPing: true,
+	})
+	if err != nil {
+		t.Fatalf("open gorm failed, errmsg: %s", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	var rows []struct {
+		IP string
+	}
+	err = gdb.WithContext(ctx).Raw("SELECT ip FROM t_dbm_metadata WHERE ip = ?", "127.0.0.1").Scan(&rows).Error
+	if ctx.Err() != nil {
+		t.Fatalf("query hung until context done, errmsg: %s", err)
 	}
 }
