@@ -27,6 +27,47 @@ cd {{data_dir}}/install/dbactuator-{{uid}}
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
 """
 
+# Linux MAX_ARG_STRLEN is 131072: a single --payload argv cannot exceed that.
+# Stay well below so uid/root_id/other args still fit. version_update always uses
+# the file path because it now ships port_conf_configs and has already blown ARG_MAX.
+REDIS_PAYLOAD_ARGV_SOFT_LIMIT = 32 * 1024
+
+
+def redis_actuator_should_use_payload_file(action: str, payload: str) -> bool:
+    """Whether JOB should write payload to a file and call dbactuator -f."""
+    if "version_update" in (action or ""):
+        return True
+    return len(payload or "") >= REDIS_PAYLOAD_ARGV_SOFT_LIMIT
+
+
+def select_redis_actuator_template(use_payload_file: bool) -> str:
+    if use_payload_file:
+        return redis_actuator_payload_file_template
+    return redis_actuator_template
+
+
+# Payload stays in the JOB script (already proven to fit) but is written to a file
+# before execve, so dbactuator argv stays short. --payload_file must be raw JSON:
+# dbactuator_redis re-base64-encodes the file contents.
+redis_actuator_payload_file_template = """
+find /home/mysql/install/dbactuator-*/ -mtime +30  -type d -name "dbactuator-*"  |xargs rm -rf
+mkdir -p {{data_dir}}/install/dbactuator-{{uid}}/logs
+chmod +x {{data_dir}}/install/dbactuator_redis
+cd {{data_dir}}/install/dbactuator-{{uid}}
+payload_b64=payload_{{node_id}}.b64
+payload_json=payload_{{node_id}}.json
+cat > "$payload_b64" <<'B64EOF'
+{{payload}}
+B64EOF
+base64 -d "$payload_b64" > "$payload_json" 2>/dev/null || base64 --decode "$payload_b64" > "$payload_json"
+if [ ! -s "$payload_json" ];then
+    echo "decode payload_file $payload_json failed"
+    exit 1
+fi
+{{data_dir}}/install/dbactuator_redis --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
+--version_id {{version_id}} --payload_file="$payload_json" --atom-job-list {{action}}
+"""
+
 
 redis_data_structure_payload_template = """
 {{payload}}

@@ -627,6 +627,9 @@ func TestRenderTargetConfEndToEnd(t *testing.T) {
 	if !strings.Contains(got, "replicaof 1.1.1.2 30000") {
 		t.Errorf("replicaof not carried over\ngot:\n%s", got)
 	}
+	if lastDirective(got, "appendonly") != "no" {
+		t.Errorf("old slave carry-over replicaof must not force aof, last appendonly=%q\ngot:\n%s", lastDirective(got, "appendonly"), got)
+	}
 	// 可重复指令保持展开
 	if count := strings.Count(got, "rename-command "); count != 3 {
 		t.Errorf("rename-command lines = %d, want 3\ngot:\n%s", count, got)
@@ -653,6 +656,9 @@ func TestRenderTargetConfModuleFallbackToDisk(t *testing.T) {
 	}
 	if !strings.Contains(got, "loadmodule /home/mysql/redis_modules/libB2RedisModule.so") {
 		t.Errorf("module not carried over from disk\ngot:\n%s", got)
+	}
+	if lastDirective(got, "appendonly") != "no" {
+		t.Errorf("libB2RedisModule must keep appendonly no, last=%q\ngot:\n%s", lastDirective(got, "appendonly"), got)
 	}
 }
 
@@ -844,6 +850,104 @@ func TestEnsureMasterAuthForReplica(t *testing.T) {
 			// 多写一条 redis 只认最后一行, 但文件里两条不同凭据之后谁读都会读错
 			if count := strings.Count(got, "masterauth "); count > 1 {
 				t.Errorf("masterauth appears %d times, want at most 1:\n%s", count, got)
+			}
+		})
+	}
+}
+
+func lastDirective(conf, name string) string {
+	return unquoteConfValue(parseRedisConfDirectives(conf).lastValue(name))
+}
+
+func TestApplyAppendonlyForReplica(t *testing.T) {
+	syncExpect := expectSyncMaster("1.1.1.1:30000", "1.1.1.2", "30000")
+	slaveExpect := replSnapshot{
+		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+	}
+	masterExpect := replSnapshot{addr: "1.1.1.1:30000", role: consts.RedisMasterRole}
+	const withRepl = "port 30000\nappendonly no\nreplicaof 1.1.1.2 30000\n"
+	const withB2 = "port 30000\nappendonly no\nreplicaof 1.1.1.2 30000\nloadmodule /home/mysql/redis_modules/libB2RedisModule.so\n"
+
+	cases := []struct {
+		name        string
+		clusterType string
+		expect      replSnapshot
+		conf        string
+		wantLast    string
+	}{
+		{
+			name:     "old master following new master enables aof",
+			expect:   syncExpect,
+			conf:     withRepl,
+			wantLast: "yes",
+		},
+		{
+			name:     "old slave carry-over replicaof keeps dbconfig no",
+			expect:   slaveExpect,
+			conf:     withRepl,
+			wantLast: "no",
+		},
+		{
+			name:     "already yes is left as is",
+			expect:   slaveExpect,
+			conf:     "port 30000\nappendonly yes\nreplicaof 1.1.1.2 30000\n",
+			wantLast: "yes",
+		},
+		{
+			name:     "master without replication keeps dbconfig no",
+			expect:   masterExpect,
+			conf:     "port 30000\nappendonly no\n",
+			wantLast: "no",
+		},
+		{
+			name:        "tendisplus is left alone",
+			clusterType: consts.TendisTypePredixyTendisplusCluster,
+			expect:      syncExpect,
+			conf:        withRepl,
+			wantLast:    "no",
+		},
+		{
+			name:        "cluster new-slave via sync_masters enables aof",
+			clusterType: consts.TendisTypePredixyRedisCluster,
+			expect:      syncExpect,
+			conf:        "port 30000\nappendonly no\n",
+			wantLast:    "yes",
+		},
+		{
+			name:        "cluster old-slave without replicaof keeps dbconfig no",
+			clusterType: consts.TendisTypePredixyRedisCluster,
+			expect:      slaveExpect,
+			conf:        "port 30000\nappendonly no\n",
+			wantLast:    "no",
+		},
+		{
+			name:        "cluster master keeps dbconfig no",
+			clusterType: consts.TendisTypePredixyRedisCluster,
+			expect:      masterExpect,
+			conf:        "port 30000\nappendonly no\n",
+			wantLast:    "no",
+		},
+		{
+			name:     "libB2RedisModule keeps appendonly no even as new-slave",
+			expect:   syncExpect,
+			conf:     withB2,
+			wantLast: "no",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			clusterType := tc.clusterType
+			if clusterType == "" {
+				clusterType = consts.TendisTypeTwemproxyRedisInstance
+			}
+			got := newRegenReqForTest(clusterType, tc.expect).applyAppendonlyForReplica(tc.conf)
+			if lastDirective(got, "appendonly") != tc.wantLast {
+				t.Errorf("last appendonly = %q, want %q\n%s", lastDirective(got, "appendonly"), tc.wantLast, got)
+			}
+			if tc.wantLast == "yes" && !confHasB2Module(got) {
+				if count := strings.Count(got, "appendonly "); count != 1 {
+					t.Errorf("appendonly appears %d times, want 1:\n%s", count, got)
+				}
 			}
 		})
 	}
@@ -1188,6 +1292,10 @@ func TestRenderTargetConfWritesSyncMaster(t *testing.T) {
 	// 主从关系和它的认证是一对: 只写 replicaof 的话同步会卡在 AUTH 上
 	if !strings.Contains(got, "masterauth xxxxpasswd") {
 		t.Fatalf("rendered conf declares replication without masterauth:\n%s", got)
+	}
+	if lastDirective(got, "appendonly") != "yes" {
+		t.Fatalf("old_master becoming replica must enable aof, last appendonly=%q\ngot:\n%s",
+			lastDirective(got, "appendonly"), got)
 	}
 	if err = job.validateRegenConf(
 		30000, "/data1/redis/30000/redis.conf", got, oldConf, oldDirectives); err != nil {

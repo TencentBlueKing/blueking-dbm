@@ -89,6 +89,83 @@ class TestAgentInvoker:
         assert outcome.should_requeue is False
         assert outcome.outcome == DispatchOutcomeType.ERROR
 
+    def test_aidev_wrapped_rate_limit_is_requeued(self):
+        # 1:1 with aidev_agent 2.2.2rc52 chat.py: raise AgentException(message=...) without ``from e``.
+        import httpx
+        from aidev_agent.exceptions import AgentException
+        from openai import RateLimitError
+
+        body = {
+            "data": None,
+            "code_name": "RATE_LIMIT_RESTRICTION",
+            "code": 1111111,
+            "result": False,
+            "message": "API rate limit exceeded by resource strategy",
+        }
+        request = httpx.Request("POST", "http://1.1.1.1/v1/chat/completions")
+        response = httpx.Response(429, request=request)
+
+        def _raise_wrapped(*_args, **_kwargs):
+            try:
+                raise RateLimitError(f"Error code: 429 - {body}", response=response, body=body)
+            except RateLimitError as inner:
+                raise AgentException(message=f"Error executing agent: {inner}")
+
+        with patch(
+            "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content",
+            side_effect=_raise_wrapped,
+        ):
+            outcome = AgentInvoker.invoke(
+                task_key="test.task",
+                agent_code="ai-x",
+                request=AgentRequest(content="hello"),
+                execution_timeout_seconds=30,
+                work_item_ref="cluster:1",
+            )
+        assert isinstance(outcome.error, AgentException)
+        assert getattr(outcome.error, "status_code", None) is None
+        assert isinstance(outcome.error.__context__, RateLimitError)
+        assert outcome.error.__context__.status_code == 429
+        assert outcome.should_requeue is True
+        assert outcome.outcome == DispatchOutcomeType.REQUEUED
+
+    def test_gateway_rate_limit_code_name_is_requeued(self):
+        class _GatewayLimited(Exception):
+            code = 1111111
+            code_name = "RATE_LIMIT_RESTRICTION"
+
+        with patch(
+            "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content",
+            side_effect=_GatewayLimited("API rate limit exceeded by resource strategy"),
+        ):
+            outcome = AgentInvoker.invoke(
+                task_key="test.task",
+                agent_code="ai-x",
+                request=AgentRequest(content="hello"),
+                execution_timeout_seconds=30,
+                work_item_ref="cluster:1",
+            )
+        assert outcome.should_requeue is True
+        assert outcome.outcome == DispatchOutcomeType.REQUEUED
+
+    def test_business_code_alone_is_not_rate_limit(self):
+        class _BizError(Exception):
+            code = 1111111
+
+        with patch(
+            "backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_content",
+            side_effect=_BizError("unrelated business failure"),
+        ):
+            outcome = AgentInvoker.invoke(
+                task_key="test.task",
+                agent_code="ai-x",
+                request=AgentRequest(content="hello"),
+                execution_timeout_seconds=30,
+                work_item_ref="cluster:1",
+            )
+        assert outcome.should_requeue is False
+        assert outcome.outcome == DispatchOutcomeType.ERROR
+
     def test_requests_timeout_maps_to_timeout(self):
         from requests.exceptions import Timeout as RequestsTimeout
 

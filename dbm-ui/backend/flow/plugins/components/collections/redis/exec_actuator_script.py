@@ -26,8 +26,9 @@ from backend.flow.consts import ConfigDefaultEnum
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.redis.redis_script_template import (
-    redis_actuator_template,
+    redis_actuator_should_use_payload_file,
     redis_fast_execute_script_common_kwargs,
+    select_redis_actuator_template,
 )
 from backend.utils.string import base64_encode
 
@@ -111,9 +112,18 @@ class ExecuteDBActuatorScriptService(BkJobService):
 
         FlowNode.objects.filter(root_id=kwargs["root_id"], node_id=node_id).update(hosts=exec_ips)
 
-        # 脚本内容
+        # 脚本内容. 超长 payload / 版本升级走 --payload_file, 避免 execve ARG_MAX
+        action = db_act_template.get("action", "")
+        payload = db_act_template["payload"]
+        use_payload_file = redis_actuator_should_use_payload_file(action, payload)
         jinja_env = Environment()
-        template = jinja_env.from_string(redis_actuator_template)
+        template = jinja_env.from_string(select_redis_actuator_template(use_payload_file))
+        if use_payload_file:
+            self.log_info(
+                _("[{}] payload too long or version_update, use --payload_file (len={})").format(
+                    node_name, len(payload)
+                )
+            )
 
         body = {
             "bk_scope_type": "biz_set",

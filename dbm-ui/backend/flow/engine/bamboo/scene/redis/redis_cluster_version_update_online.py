@@ -35,6 +35,8 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterProxysUpgradeAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_makesync import RedisMakeSyncAtomJob
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.empty_node import EmptyNodeComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -66,6 +68,9 @@ from backend.flow.utils.redis.redis_util import is_cross_engine_version_change, 
 from backend.flow.utils.redis.redis_version_upgrade_validate import register_pair_entry, validate_pair_buckets
 
 logger = logging.getLogger("flow")
+
+# 版本升级期间进程重启/主从切换会产生预期内告警, 屏蔽窗口略宽于单次 act, 结束后再解除.
+_VERSION_UPDATE_ALARM_SHIELD_SECONDS = 4 * 3600
 
 # RedisCluster / Predixy* / Tendisplus 走自身 failover 协议或不需要 flush.
 # 这里的 "after upgrade" 指 actuator 在 startRedis (新版本) 加载完毕之后立即 flushall:
@@ -676,6 +681,8 @@ class RedisClusterVersionUpdateOnline(object):
 
         cluster_process_builder = SubBuilder(root_id=self.root_id, data=self.data)
         if version_pipelines:
+            proxy_ips = {ip for ips in version_pairs.values() for ip in ips}
+            self._add_alarm_shield_act(cluster_process_builder, act_kwargs, proxy_ips, cluster_meta_data)
             cluster_process_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
             self._add_data_update_tail_sub_pipeline(
                 cluster_process_builder,
@@ -684,6 +691,7 @@ class RedisClusterVersionUpdateOnline(object):
                 ],
                 sub_name=_("Proxy数据更新收尾"),
             )
+            self._add_disable_alarm_shield_act(cluster_process_builder, act_kwargs, cluster_meta_data)
         return cluster_process_builder.build_sub_process(_("集群{}-Proxy升级").format(cluster_meta_data["cluster_name"]))
 
     def _create_storage_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
@@ -719,6 +727,7 @@ class RedisClusterVersionUpdateOnline(object):
 
         sub_builder = SubBuilder(root_id=self.root_id, data=self.data)
         self._add_built_act(sub_builder, self._build_payload_init_act(cluster_meta_data))
+        self._add_alarm_shield_act(sub_builder, act_kwargs, dbmon_reinstall_ips, cluster_meta_data)
         sub_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
         newest_version = self._get_newest_version(cluster_meta_data["major_version"], target_major_versions)
         version_update_acts = [
@@ -732,7 +741,8 @@ class RedisClusterVersionUpdateOnline(object):
             role_meta_acts=role_meta_acts,
             version_update_acts=version_update_acts,
         )
-        self._add_host_dbmon_acts(sub_builder, act_kwargs, dbmon_reinstall_ips, is_stop=False)
+        self._add_host_dbmon_acts(sub_builder, act_kwargs, dbmon_reinstall_ips)
+        self._add_disable_alarm_shield_act(sub_builder, act_kwargs, cluster_meta_data)
 
         return sub_builder.build_sub_process(sub_name=_("集群{}-Backend升级".format(cluster_meta_data["cluster_name"])))
 
@@ -778,9 +788,8 @@ class RedisClusterVersionUpdateOnline(object):
 
         # 下发介质包
         self._add_media_transfer_act(ctx)
-        # 暂停 dbmon
-        self._add_host_dbmon_acts(ctx.pipeline, ctx.act_kwargs, ctx.ips, is_stop=True)
         # 升级 Slave 节点
+        # dbmon 改由版本升级 act 内部 stop + defer start
         self._add_slave_upgrade_acts(ctx)
         # 获取需要切换的主从对 (并写回 ctx, 后续 handler 复用)
         ctx.pairs_to_switch = self._get_pairs_to_switch(ctx)
@@ -815,22 +824,63 @@ class RedisClusterVersionUpdateOnline(object):
             kwargs=asdict(ctx.act_kwargs),
         )
 
+    def _add_alarm_shield_act(
+        self,
+        pipeline,
+        act_kwargs: ActKwargs,
+        ips,
+        cluster_meta_data: Dict,
+        cluster_ids: Optional[List[int]] = None,
+    ):
+        """版本升级开始前屏蔽目标 IP 告警, 覆盖重启与主从切换窗口."""
+        ip_list = sorted({ip for ip in ips if ip})
+        if not ip_list:
+            return
+        immute_domain = cluster_meta_data.get("immute_domain")
+        bk_biz_id = cluster_meta_data.get("bk_biz_id") or self.data.get("bk_biz_id")
+        dimensions = [
+            {"name": "appid", "values": [bk_biz_id]},
+            {"name": "bk_target_ip", "values": ip_list},
+        ]
+        # 多集群主从版同机升级不按单一域名维度屏蔽
+        if immute_domain and not (cluster_ids and len(cluster_ids) > 1):
+            dimensions.insert(1, {"name": "cluster_domain", "values": [immute_domain]})
+        pipeline.add_act(
+            act_name=_("屏蔽集群告警-{}").format(immute_domain or ",".join(ip_list)),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                **asdict(act_kwargs),
+                "description": _("Redis版本升级-屏蔽告警-{}").format(immute_domain or ""),
+                "dimensions": dimensions,
+                "duration_seconds": _VERSION_UPDATE_ALARM_SHIELD_SECONDS,
+            },
+        )
+
     @staticmethod
-    def _add_host_dbmon_acts(pipeline, act_kwargs: ActKwargs, ips, is_stop: bool):
-        """按 IP 并行暂停或重装 bkdbmon, 与 RedisInstance 单 act 形态一致.
+    def _add_disable_alarm_shield_act(pipeline, act_kwargs: ActKwargs, cluster_meta_data: Dict):
+        """升级完成后解除告警屏蔽 (组件内部会再保留约 15 分钟缓冲)."""
+        pipeline.add_act(
+            act_name=_("解除集群告警屏蔽-{}").format(cluster_meta_data.get("immute_domain") or ""),
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+    @staticmethod
+    def _add_host_dbmon_acts(pipeline, act_kwargs: ActKwargs, ips):
+        """按 IP 并行重装 bkdbmon, 与 RedisInstance 单 act 形态一致.
 
         payload 用 bkdbmon_install_list_new: 按机器发现该 IP 上所有集群, 避免只写一个
         cluster 把 sibling 从 dbmon yaml 里冲掉. 不另外下发介质/重载 Nginx.
+        升级过程中的临时停 dbmon 改在 redis_version_update act 内部完成.
         """
         acts_list = []
         for ip in sorted(ips):
             act_kwargs.exec_ip = ip
-            act_kwargs.cluster = {"ip": ip, "is_stop": is_stop}
+            act_kwargs.cluster = {"ip": ip, "is_stop": False}
             act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-            act_name = _("{}-暂停bkdbmon").format(ip) if is_stop else _("{}-重装bkdbmon").format(ip)
             acts_list.append(
                 {
-                    "act_name": act_name,
+                    "act_name": _("{}-重装bkdbmon").format(ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
@@ -1201,6 +1251,7 @@ class RedisClusterVersionUpdateOnline(object):
 
         # 4) 介质下发: 只升级 slave 时不需要下发到 master_ip
         all_ips = [master_ip, slave_ip] if upgrade_master else [slave_ip]
+        self._add_alarm_shield_act(sub_pipeline, act_kwargs, all_ips, anchor_meta, cluster_ids=cluster_ids)
         act_kwargs.exec_ip = all_ips
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs.file_list = trans_files.redis_cluster_version_update(
@@ -1212,10 +1263,8 @@ class RedisClusterVersionUpdateOnline(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # 5) 关闭 bkdbmon (每台主机一次, 不按 cluster 维度并发重复)
-        self._add_host_dbmon_acts(sub_pipeline, act_kwargs, all_ips, is_stop=True)
-
-        # 6) 升级 slave (host 级别一次完成所有端口)
+        # 5) 升级 slave (host 级别一次完成所有端口)
+        #    临时停 dbmon 改在 redis_version_update act 内部完成, 切主前已拉起, 避免缺心跳.
         act_kwargs.cluster = {}
         act_kwargs.exec_ip = slave_ip
         act_kwargs.cluster["ip"] = slave_ip
@@ -1235,7 +1284,7 @@ class RedisClusterVersionUpdateOnline(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # 7) 仅升级 slave 时, 后续的切换/元数据翻转全部跳过; 直接重启 dbmon 结束
+        # 6) 仅升级 slave 时, 后续的切换/元数据翻转全部跳过; 直接重启 dbmon 结束
         if upgrade_master:
             ctx = _InstancePairUpgradeCtx(
                 sub_pipeline=sub_pipeline,
@@ -1261,8 +1310,9 @@ class RedisClusterVersionUpdateOnline(object):
                 sub_name=_("数据更新收尾"),
             )
 
-        # 8) 重装 dbmon (每台主机一次)
-        self._add_host_dbmon_acts(sub_pipeline, act_kwargs, all_ips, is_stop=False)
+        # 7) 重装 dbmon (每台主机一次)
+        self._add_host_dbmon_acts(sub_pipeline, act_kwargs, all_ips)
+        self._add_disable_alarm_shield_act(sub_pipeline, act_kwargs, anchor_meta)
 
         return sub_pipeline.build_sub_process(
             sub_name=_("主从pair {}/{} 目标版本-{}").format(master_ip, slave_ip, target_major_version)

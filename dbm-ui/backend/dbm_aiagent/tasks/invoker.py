@@ -12,7 +12,7 @@ import json
 import logging
 import time
 from dataclasses import asdict, dataclass
-from typing import Optional, Tuple, Type
+from typing import Iterator, Optional, Tuple, Type
 
 from backend.db_periodic_task.dispatch.config import DEFAULT_REQUEUE_COOLDOWN_SECONDS
 from backend.db_periodic_task.dispatch.outcomes import DispatchOutcomeType
@@ -33,48 +33,97 @@ except ImportError:  # pragma: no cover - requests is a hard dependency in pract
     pass
 
 
-def _http_status_code(exc: Exception) -> Optional[int]:
-    """Extract an HTTP status from common SDK / HTTP client exception shapes."""
-    for attr in ("status_code", "status"):
-        value = getattr(exc, attr, None)
-        if isinstance(value, int):
-            return value
-    response = getattr(exc, "response", None)
-    if response is not None:
-        value = getattr(response, "status_code", None)
-        if isinstance(value, int):
-            return value
-    # ApiResultError / AppBaseException may stash the HTTP status in ``code``.
-    code = getattr(exc, "code", None)
-    if isinstance(code, int):
-        return code
-    if isinstance(code, str) and code.isdigit():
-        return int(code)
+# aidev ``AgentException`` wraps the original SDK error as
+# ``Error executing agent: Error code: 429 - {body}`` without ``raise ... from``.
+# The HTTP 429 lives on ``__context__`` (OpenAI ``RateLimitError.status_code``).
+_HTTP_STATUS_MIN = 100
+_HTTP_STATUS_MAX = 599
+# BlueKing AI gateway body: ``{'code_name': 'RATE_LIMIT_RESTRICTION', 'code': 1111111}``.
+# ``1111111`` is a business code (module + HTTP + seq), not an HTTP status.
+_RATE_LIMIT_CODE_NAMES = frozenset({"RATE_LIMIT_RESTRICTION"})
+
+
+def _as_http_status(value) -> Optional[int]:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        status = value
+    elif isinstance(value, str) and value.isdigit():
+        status = int(value)
+    else:
+        return None
+    if _HTTP_STATUS_MIN <= status <= _HTTP_STATUS_MAX:
+        return status
     return None
 
 
+def _iter_exception_chain(exc: BaseException) -> Iterator[BaseException]:
+    stack = [exc]
+    seen: set[int] = set()
+    while stack:
+        current = stack.pop()
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        yield current
+        if current.__cause__ is not None:
+            stack.append(current.__cause__)
+        if current.__context__ is not None:
+            stack.append(current.__context__)
+
+
+def _http_status_from_exc(exc: BaseException) -> Optional[int]:
+    """Extract an HTTP status from one exception object (no chain walk)."""
+    for attr in ("status_code", "status"):
+        status = _as_http_status(getattr(exc, attr, None))
+        if status is not None:
+            return status
+    response = getattr(exc, "response", None)
+    if response is not None:
+        status = _as_http_status(getattr(response, "status_code", None))
+        if status is not None:
+            return status
+    # ApiResultError / AppBaseException may stash the HTTP status in ``code``.
+    # Reject business codes such as 1111111 — they are not HTTP statuses.
+    return _as_http_status(getattr(exc, "code", None))
+
+
+def _has_structured_rate_limit(exc: BaseException) -> bool:
+    for source in (exc, getattr(exc, "body", None)):
+        if source is None:
+            continue
+        code_name = source.get("code_name") if isinstance(source, dict) else getattr(source, "code_name", None)
+        if code_name in _RATE_LIMIT_CODE_NAMES:
+            return True
+    return False
+
+
 def is_http_rate_limit_error(exc: Exception) -> bool:
-    """判定异常是否携带 HTTP 429 状态码（严格按状态码判定，绝不做 free-text 嗅探）。
+    """判定异常是否为 HTTP 429 / 网关限频（绝不做 free-text 嗅探）。
 
     设计要点 / 怎么做：
-      - 唯一依据是 :func:`_http_status_code` 提取到的 HTTP 状态码 == 429
-      - 覆盖 ``status_code`` / ``status`` / ``response.status_code`` / ``code`` 4 个
-        常见属性位（含 ApiResultError / AppBaseException 把状态塞在 ``code`` 的情形）
+      - 沿 ``__cause__`` / ``__context__`` 追溯包装链（aidev 会把 OpenAI
+        ``RateLimitError`` 包成只有 message 的 ``AgentException``）
+      - HTTP 状态取自 ``status_code`` / ``status`` / ``response.status_code`` /
+        ``code``（仅接受 100-599；``code=1111111`` 这类业务码不算状态码）
+      - 结构化 ``code_name=RATE_LIMIT_RESTRICTION``（异常自身或 ``body`` dict）
+        也视为限频
       - 作为项目公开 API 供跨模块复用（例如 :mod:`db_report.portrait.generator.base`
         侧的 :meth:`ClusterPortraitGenerator.run` 需要就地判定 429 后回滚占位记录并
         抛 :class:`PortraitRateLimitException`）
 
     :param exc: 任意异常实例（通常是 AI 网关 / requests / httpx SDK 抛出的异常）
-    :return: True 表示 HTTP 429 限速；False 表示其他类型异常
+    :return: True 表示 HTTP 429 / 网关限速；False 表示其他类型异常
     边界：
-        - 找不到可识别的状态码属性 -> 返回 False（安全默认）
+        - 找不到可识别的状态码或 ``code_name`` -> 返回 False（安全默认）
+        - message 里偶然出现 ``429``（端口号等）不触发
     """
-    return _http_status_code(exc) == 429
-
-
-#: 向后兼容别名：本模块内部历史调用点（第 153 行 AgentInvoker.invoke）保持不变；
-#: 未来若新增外部调用方，请直接使用公开名 :func:`is_http_rate_limit_error`
-_is_rate_limit_error = is_http_rate_limit_error
+    for current in _iter_exception_chain(exc):
+        if _http_status_from_exc(current) == 429:
+            return True
+        if _has_structured_rate_limit(current):
+            return True
+    return False
 
 
 def _truncate_agent_response_for_log(response, max_chars: int = AGENT_RESPONSE_LOG_MAX_CHARS) -> str:
@@ -169,7 +218,7 @@ class AgentInvoker:
 
         except Exception as exc:
             elapsed = time.monotonic() - invoke_started_at
-            if _is_rate_limit_error(exc):
+            if is_http_rate_limit_error(exc):
                 cooldown = max(1, int(requeue_cooldown_seconds))
                 logger.warning(
                     "%s: work_item=%s outcome=%s cooldown=%ds: %s",
