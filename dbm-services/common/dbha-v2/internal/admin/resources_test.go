@@ -22,38 +22,44 @@
  * SOFTWARE.
  */
 
-package hamysql
+package admin
 
 import (
-	"regexp"
+	"context"
+	"testing"
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+
+	"gorm.io/gorm"
 )
 
-const (
-	sanitizedSecret      = "<secret>"
-	maxSanitizedErrorLen = 256
-)
-
-var (
-	dsnFragmentPattern    = regexp.MustCompile(`[^\s]+:[^\s]+@(tcp|unix)\([^)]+\)[^\s]*`)
-	dsnCredentialPattern  = regexp.MustCompile(`([^\s:/]+):([^@\s]+)@`)
-	sensitiveParamPattern = regexp.MustCompile(`(?i)(password|token|passwd|pwd)\s*=\s*[^\s&]+`)
-)
-
-// SanitizeConnectionError returns a desensitized error summary safe for harvest reporting.
-// Passwords, tokens, and DSN credential segments are redacted. MySQL error codes and server
-// messages are preserved when they do not embed credentials. err may be nil.
-func SanitizeConnectionError(err error) string {
-	if err == nil {
-		return ""
+func TestStorageCloseWaitsForActiveRequest(t *testing.T) {
+	closed := make(chan struct{})
+	resource := newStorageResource(hamysql.WithGormDB(&gorm.DB{}, func() { close(closed) }))
+	if !resource.acquire() {
+		t.Fatal("initial acquire should succeed")
 	}
 
-	msg := err.Error()
-	msg = dsnFragmentPattern.ReplaceAllString(msg, "<redacted-dsn>")
-	msg = dsnCredentialPattern.ReplaceAllString(msg, "$1:"+sanitizedSecret+"@")
-	msg = sensitiveParamPattern.ReplaceAllString(msg, "$1="+sanitizedSecret)
+	done := make(chan struct{})
+	go func() {
+		resource.close(context.Background())
+		close(done)
+	}()
 
-	if len(msg) > maxSanitizedErrorLen {
-		msg = msg[:maxSanitizedErrorLen]
+	select {
+	case <-closed:
+		t.Fatal("database closed before active request released")
+	case <-time.After(20 * time.Millisecond):
 	}
-	return msg
+	if resource.acquire() {
+		t.Fatal("acquire should fail after close starts")
+	}
+	resource.release()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("storage close did not finish after release")
+	}
 }

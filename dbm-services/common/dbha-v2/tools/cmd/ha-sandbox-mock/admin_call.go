@@ -22,38 +22,48 @@
  * SOFTWARE.
  */
 
-package hamysql
+package main
 
 import (
-	"regexp"
+	"context"
+	"log"
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/proto"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	sanitizedSecret      = "<secret>"
-	maxSanitizedErrorLen = 256
-)
+const adminGRPCCallTimeout = 5 * time.Second
 
-var (
-	dsnFragmentPattern    = regexp.MustCompile(`[^\s]+:[^\s]+@(tcp|unix)\([^)]+\)[^\s]*`)
-	dsnCredentialPattern  = regexp.MustCompile(`([^\s:/]+):([^@\s]+)@`)
-	sensitiveParamPattern = regexp.MustCompile(`(?i)(password|token|passwd|pwd)\s*=\s*[^\s&]+`)
-)
+func callAdminGRPC(addr string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), adminGRPCCallTimeout)
+	defer cancel()
 
-// SanitizeConnectionError returns a desensitized error summary safe for harvest reporting.
-// Passwords, tokens, and DSN credential segments are redacted. MySQL error codes and server
-// messages are preserved when they do not embed credentials. err may be nil.
-func SanitizeConnectionError(err error) string {
-	if err == nil {
-		return ""
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
 	}
+	defer conn.Close()
 
-	msg := err.Error()
-	msg = dsnFragmentPattern.ReplaceAllString(msg, "<redacted-dsn>")
-	msg = dsnCredentialPattern.ReplaceAllString(msg, "$1:"+sanitizedSecret+"@")
-	msg = sensitiveParamPattern.ReplaceAllString(msg, "$1="+sanitizedSecret)
-
-	if len(msg) > maxSanitizedErrorLen {
-		msg = msg[:maxSanitizedErrorLen]
+	cli := proto.NewAdminServiceClient(conn)
+	hb, err := cli.Heartbeat(ctx, &proto.HeartbeatRequest{ClientID: "ha-sandbox-mock"})
+	if err != nil {
+		log.Printf("admin grpc heartbeat failed, errmsg: %s", err)
+		return err
 	}
-	return msg
+	log.Printf("admin grpc heartbeat, grpc_code: OK, code: %d", hb.GetCode())
+
+	pc, err := cli.GetProbeConfig(ctx, &proto.ProbeConfigRequest{
+		BkCloudId: 0,
+		Ip:        "127.0.0.1",
+		ClientID:  "ha-sandbox-mock",
+	})
+	if err != nil {
+		log.Printf("admin grpc get_probe_config failed, errmsg: %s", err)
+		return err
+	}
+	log.Printf("admin grpc get_probe_config, grpc_code: OK, code: %s", pc.GetCode().String())
+	return nil
 }

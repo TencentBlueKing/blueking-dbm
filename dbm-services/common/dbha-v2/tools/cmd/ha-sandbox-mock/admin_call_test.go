@@ -22,38 +22,47 @@
  * SOFTWARE.
  */
 
-package hamysql
+package main
 
 import (
-	"regexp"
+	"context"
+	"net"
+	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/proto"
+
+	"google.golang.org/grpc"
 )
 
-const (
-	sanitizedSecret      = "<secret>"
-	maxSanitizedErrorLen = 256
-)
+type stubAdminGRPC struct {
+	proto.UnimplementedAdminServiceServer
+}
 
-var (
-	dsnFragmentPattern    = regexp.MustCompile(`[^\s]+:[^\s]+@(tcp|unix)\([^)]+\)[^\s]*`)
-	dsnCredentialPattern  = regexp.MustCompile(`([^\s:/]+):([^@\s]+)@`)
-	sensitiveParamPattern = regexp.MustCompile(`(?i)(password|token|passwd|pwd)\s*=\s*[^\s&]+`)
-)
+func (s *stubAdminGRPC) Heartbeat(
+	_ context.Context, _ *proto.HeartbeatRequest,
+) (*proto.HeartbeatResponse, error) {
+	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
+}
 
-// SanitizeConnectionError returns a desensitized error summary safe for harvest reporting.
-// Passwords, tokens, and DSN credential segments are redacted. MySQL error codes and server
-// messages are preserved when they do not embed credentials. err may be nil.
-func SanitizeConnectionError(err error) string {
-	if err == nil {
-		return ""
+func (s *stubAdminGRPC) GetProbeConfig(
+	_ context.Context, _ *proto.ProbeConfigRequest,
+) (*proto.ProbeConfigResponse, error) {
+	return &proto.ProbeConfigResponse{Code: proto.ProbeConfigCode_PROBE_CONFIG_NO_DATA}, nil
+}
+
+func TestCallAdminGRPCHeartbeatAndGetProbeConfig(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed, errmsg: %s", err)
 	}
+	defer ln.Close()
 
-	msg := err.Error()
-	msg = dsnFragmentPattern.ReplaceAllString(msg, "<redacted-dsn>")
-	msg = dsnCredentialPattern.ReplaceAllString(msg, "$1:"+sanitizedSecret+"@")
-	msg = sensitiveParamPattern.ReplaceAllString(msg, "$1="+sanitizedSecret)
+	srv := grpc.NewServer()
+	proto.RegisterAdminServiceServer(srv, &stubAdminGRPC{})
+	go srv.Serve(ln)
+	defer srv.Stop()
 
-	if len(msg) > maxSanitizedErrorLen {
-		msg = msg[:maxSanitizedErrorLen]
+	if err := callAdminGRPC(ln.Addr().String()); err != nil {
+		t.Fatalf("call admin grpc failed, errmsg: %s", err)
 	}
-	return msg
 }
