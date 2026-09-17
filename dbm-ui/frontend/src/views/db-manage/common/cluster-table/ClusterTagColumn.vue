@@ -17,7 +17,7 @@
 
   import { useClusterColumnFilter } from '@hooks';
 
-  import ClusterTag from '@components/cluster-tag/Index.vue';
+  import ClusterTag from '@views/db-manage/common/cluster-tag/Index.vue';
 
   import type { ClusterModel, ISupportClusterType } from './types';
 

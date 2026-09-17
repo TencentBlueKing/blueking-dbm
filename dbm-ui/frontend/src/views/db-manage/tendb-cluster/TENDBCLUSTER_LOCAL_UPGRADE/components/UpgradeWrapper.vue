@@ -80,7 +80,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+  import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
   const modelValue = defineModel<{
     roleType: string;

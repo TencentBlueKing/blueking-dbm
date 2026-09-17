@@ -36,7 +36,7 @@
       <div
         v-else
         class="list-display-main">
-        <RenderTagOverflow :data="horizontalTagList" />
+        <TagBlock :data="horizontalTagList" />
       </div>
     </template>
     <AuthButton
@@ -65,7 +65,7 @@
 
   import { DBTypes } from '@common/const';
 
-  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAddTag from './components/AddTag.vue';
@@ -92,6 +92,8 @@
     [DBTypes.ES]: 'es_edit',
     [DBTypes.HDFS]: 'hdfs_edit',
     [DBTypes.INFLUXDB]: 'influxdb_edit',
+    [DBTypes.K8S_QDRANT]: 'k8s_qdrant_edit',
+    [DBTypes.K8S_SURREALDB]: 'k8s_surrealdb_edit',
     [DBTypes.KAFKA]: 'kafka_edit',
     [DBTypes.MONGODB]: 'mongodb_edit',
     [DBTypes.MYSQL]: 'mysql_edit',
