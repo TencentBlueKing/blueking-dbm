@@ -16,7 +16,6 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
-from backend.db_meta.enums import ClusterType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.k8s_db.vm.k8s_vm_db_meta import VmDBMeta
 
@@ -37,12 +36,8 @@ class VmDBMetaService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         global_data["region"] = trans_data.region_name
-        # 查询版集群无vminsert组件，主入口域名使用vmselect域名
-        if global_data["cluster_type"] == ClusterType.K8sVictoriametricsSelect.value:
-            global_data["domain"] = trans_data.vmselect_domain
-        else:
-            global_data["domain"] = trans_data.vminsert_domain
-        global_data["vmselect_domain"] = trans_data.vmselect_domain
+        # vminsert / vmselect / vmstorage 共用统一域名，仅以端口区分
+        global_data["domain"] = trans_data.vm_domain
         vm_meta = VmDBMeta(ticket_data=global_data)
         result = vm_meta.write()
         trans_data.cluster_id = result["id"]

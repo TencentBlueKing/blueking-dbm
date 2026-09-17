@@ -34,6 +34,5 @@ VMSELECT_PORT = 8481
 # CLB 名称后缀
 CLB_NAME_SUFFIX = "vm-clb"
 
-# 域名前缀，最终形如 "{DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
-VMINSERT_DOMAIN_PREFIX = "vminsert"
-VMSELECT_DOMAIN_PREFIX = "vmselect"
+# 集群统一域名前缀，最终形如 "{VM_DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
+VM_DOMAIN_PREFIX = "victoriametrics"
