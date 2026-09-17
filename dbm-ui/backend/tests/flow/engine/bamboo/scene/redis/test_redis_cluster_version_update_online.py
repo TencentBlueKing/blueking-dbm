@@ -636,7 +636,10 @@ def test_proxy_upgrade_flow_builds_for_proxy_supported_cluster_types(monkeypatch
 
     assert _RecorderBuilder.created[0].ran is True
     assert _RecorderBuilder.created[0].parallel_sub_pipelines
-    assert any("update_proxy" in name for name in _flatten_act_names())
+    names = _flatten_act_names()
+    assert any("update_proxy" in name for name in names)
+    assert any(name.startswith("屏蔽集群告警-") for name in names)
+    assert any(name.startswith("解除集群告警屏蔽-") for name in names)
 
 
 @pytest.mark.parametrize(
@@ -658,6 +661,8 @@ def test_backend_flow_builds_redis_cluster_protocol_switch_branch(monkeypatch, c
     names = _flatten_act_names()
     assert _RecorderBuilder.created[0].ran is True
     assert any("cluster failover" in name for name in names)
+    assert not any("暂停bkdbmon" in name for name in names)
+    assert any(name.startswith("屏蔽集群告警-") for name in names)
     assert any("Backend数据更新收尾" == builder.sub_name for builder in _RecorderBuilder.created)
 
 
@@ -680,10 +685,11 @@ def test_backend_flow_builds_twemproxy_switch_branch(monkeypatch, cluster_type):
     names = _flatten_act_names()
     assert _RecorderBuilder.created[0].ran is True
     assert any("主从切换" in name for name in names)
-    assert any("1.1.1.1-暂停bkdbmon" == name for name in names)
-    assert any("1.1.1.2-暂停bkdbmon" == name for name in names)
+    assert not any("暂停bkdbmon" in name for name in names)
     assert any("1.1.1.1-重装bkdbmon" == name for name in names)
     assert any("1.1.1.2-重装bkdbmon" == name for name in names)
+    assert any(name.startswith("屏蔽集群告警-") for name in names)
+    assert any(name.startswith("解除集群告警屏蔽-") for name in names)
     assert not any("删除slaveof配置" in name for name in names)
     assert any("Backend数据更新收尾" == builder.sub_name for builder in _RecorderBuilder.created)
 
@@ -733,16 +739,18 @@ def test_redis_instance_pair_flow_builds_slave_only_and_master_upgrade_variants(
     names = _flatten_act_names()
     assert _RecorderBuilder.created[0].ran is True
     assert any("old_slave:1.1.1.2 版本升级至 Redis-6" == name for name in names)
+    assert not any("暂停bkdbmon" in name for name in names)
+    assert any(name.startswith("屏蔽集群告警-") for name in names)
+    assert any(name.startswith("解除集群告警屏蔽-") for name in names)
     if upgrade_master:
-        assert any("1.1.1.1-暂停bkdbmon" == name for name in names)
-        assert any("1.1.1.2-暂停bkdbmon" == name for name in names)
+        assert any("1.1.1.1-重装bkdbmon" == name for name in names)
+        assert any("1.1.1.2-重装bkdbmon" == name for name in names)
         assert any("域名指向修改" in name for name in names)
         assert any("new_slave(1.1.1.1)-版本升级至 Redis-6" == name for name in names)
     else:
-        assert not any("1.1.1.1-暂停bkdbmon" == name for name in names)
-        assert any("1.1.1.2-暂停bkdbmon" == name for name in names)
+        assert not any("1.1.1.1-重装bkdbmon" == name for name in names)
+        assert any("1.1.1.2-重装bkdbmon" == name for name in names)
         assert not any("域名指向修改" in name for name in names)
-    assert any("1.1.1.2-重装bkdbmon" == name for name in names)
 
 
 def _find_acts(name_substr):
@@ -773,6 +781,28 @@ def _run_backend_flow(monkeypatch, cluster_type, ips):
     flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = set(ips)
     flow.version_update_flow()
     return flow
+
+
+def test_backend_subflow_shields_alarm_before_upgrade_and_keeps_dbmon_reinstall(monkeypatch):
+    _run_backend_flow(monkeypatch, ClusterType.TendisTwemproxyRedisInstance, ["1.1.1.1", "1.1.1.2"])
+
+    backend_builder = next(b for b in _RecorderBuilder.created if b.sub_name and "Backend升级" in (b.sub_name or ""))
+    act_names = [act["act_name"] for act in backend_builder.acts]
+    assert act_names[0] == "初始化配置"
+    assert act_names[1].startswith("屏蔽集群告警-")
+    assert act_names[-1].startswith("解除集群告警屏蔽-")
+    assert not any("暂停bkdbmon" in name for name in _flatten_act_names())
+
+    shield = next(act for act in backend_builder.acts if act["act_name"].startswith("屏蔽集群告警-"))
+    assert shield["kwargs"]["duration_seconds"] == mod._VERSION_UPDATE_ALARM_SHIELD_SECONDS
+    dims = {item["name"]: item["values"] for item in shield["kwargs"]["dimensions"]}
+    assert dims["bk_target_ip"] == ["1.1.1.1", "1.1.1.2"]
+    assert dims["cluster_domain"] == ["cache-1.test.db"]
+    assert dims["appid"] == [100]
+
+    dbmon_names = [act["act_name"] for acts in backend_builder.parallel_acts for act in acts]
+    assert "1.1.1.1-重装bkdbmon" in dbmon_names
+    assert "1.1.1.2-重装bkdbmon" in dbmon_names
 
 
 @pytest.mark.parametrize(

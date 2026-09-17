@@ -230,6 +230,14 @@ func (job *RedisVersionUpdate) Run() (err error) {
 			return err
 		}
 	}
+	if len(restartPorts) > 0 {
+		// 只在真正停实例前停 dbmon, 函数返回后立刻拉起.
+		// 不能把停机窗口拖到后续主从切换节点, 否则缺心跳会让切换失败.
+		if err = util.StopBkDbmon(); err != nil {
+			return err
+		}
+		defer util.StartBkDbmon()
+	}
 	for _, port := range restartPorts {
 		err = job.beforeStopRedis(port)
 		if err != nil {
@@ -481,6 +489,10 @@ func (job *RedisVersionUpdate) upgradeRedisInstanceMaster() (err error) {
 	if err = job.precheckConfRegen(job.params.Ports); err != nil {
 		return err
 	}
+	if err = util.StopBkDbmon(); err != nil {
+		return err
+	}
+	defer util.StartBkDbmon()
 	pkgNeedsSwitch := job.localPkgBaseName != job.params.GePkgBaseName()
 	if pkgNeedsSwitch {
 		// 解压 介质 到 /usr/local/
