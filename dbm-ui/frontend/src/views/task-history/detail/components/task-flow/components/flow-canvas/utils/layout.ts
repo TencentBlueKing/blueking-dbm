@@ -13,7 +13,7 @@
 
 import { FlowTypes } from '@services/source/taskflow';
 
-import { type FlowModel, type FlowNode, getewayTypes } from '@views/task-history/detail/utils';
+import { type FlowModel, type FlowNode, forkGatewayTypes, getewayTypes } from '@views/task-history/detail/utils';
 
 import { AntVDagreLayout } from '@antv/g6';
 
@@ -188,20 +188,34 @@ async function layoutPipeline(ownerId: string, model: FlowModel, expandNodes: Se
     return [...rowBottom.values()].reduce((sum, bottom) => sum + bottom, 0);
   };
 
-  // 骨架按折叠尺寸算，不知道展开内容比父节点宽出来的那一段。会被这一段压住的只有汇聚干线：
-  // 干线竖直跨越整组分支的行，而内容块正插在这些行之间。其余节点各占自己的行，内容块所在的
-  // 行已被 shiftAt 腾空，碰不上，为它们让位纯属浪费横向空间。
-  // 所以只给「本身是某组分支」的展开点让位，同列取最宽的一块，跨列累加：
-  // 右边的列要让开左边每一列多出来的宽度
+  // 跨行的边都有一段竖直干线，同一行的边是一条直线，没有干线。
+  // 干线只有汇聚边贴在目标那一侧，扇出边与普通跨行边都落在源节点这一侧（见 CustomEdge.getKeyPath）。
+  // 记下每条干线所在的列，以及它竖直跨过的行区间
+  const trunks: { bottom: number; column: number; top: number }[] = [];
+  localEdges.forEach((edge) => {
+    const source = skeleton.get(edge.source)!;
+    const target = skeleton.get(edge.target)!;
+    if (source.y === target.y) {
+      return;
+    }
+    const isConverge =
+      !forkGatewayTypes.includes(model.nodeMap.get(edge.source)!.type) &&
+      model.nodeMap.get(edge.target)!.type === FlowTypes.ConvergeGateway;
+    trunks.push({
+      bottom: Math.max(source.y, target.y),
+      column: isConverge ? target.x : source.x,
+      top: Math.min(source.y, target.y),
+    });
+  });
+
+  // 骨架按折叠尺寸算，不知道展开内容比父节点宽出来的那一段。会被这一段压住的只有干线：它竖直跨过中间
+  // 每一行下方的空档，而内容块正插在空档里。其余节点各占自己的行，内容块所在的行已被 shiftAt 腾空，
+  // 碰不上，为它们让位纯属浪费横向空间。
+  // 只看列在展开点右边的干线：pushAt 推的就是这些列，左边的干线原地不动，也够不到内容。
+  // 同列取最宽的一块，跨列累加：右边的列要让开左边每一列多出来的宽度
   const columnOverhang = new Map<number, number>();
   expansions.forEach((item) => {
-    const underTrunk = localEdges.some(
-      (edge) =>
-        edge.source === item.id &&
-        model.nodeMap.get(edge.target)!.type === FlowTypes.ConvergeGateway &&
-        // 只有一条汇入的汇聚网关没有干线可画，不用为它让位
-        localEdges.filter((other) => other.target === edge.target).length > 1,
-    );
+    const underTrunk = trunks.some((trunk) => trunk.column > item.x && trunk.top <= item.y && trunk.bottom > item.y);
     if (!underTrunk) {
       return;
     }
