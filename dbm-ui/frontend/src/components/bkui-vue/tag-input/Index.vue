@@ -433,7 +433,7 @@
     tippyInstance?.hide();
   };
 
-  // 选择候选 / 全选 / 回车添加后：清除过滤词。多选下拉保持打开并回到未过滤列表；单选收起
+  // 输入词已转为标签（新建 / 回车创建）后：清除过滤词。多选下拉保持打开并回到未过滤列表；单选收起
   const resetKeywordKeepOpen = () => {
     inputValue.value = '';
     if (!props.multiple) {
@@ -441,6 +441,19 @@
       return;
     }
     showDropdown();
+  };
+
+  /**
+   * 选中候选（勾选 / 全选 / 回车选中）后的收尾。
+   * 多选保留过滤词与高亮位置，便于按同一关键词连续勾选；选中的输入词并未被消费成标签，清空会让过滤结果跳回全量。
+   * 标签增减会改变触发器高度，需重新定位弹层。单选则清空过滤词并收起。
+   */
+  const afterSelectOption = () => {
+    if (!props.multiple) {
+      resetKeywordKeepOpen();
+      return;
+    }
+    updateDropdownPosition();
   };
 
   const handleTriggerClick = () => {
@@ -525,14 +538,14 @@
       // 有高亮候选优先添加高亮项（回车不把输入串当自由值）
       if (highlightIndex.value >= 0 && highlightIndex.value < filteredList.value.length) {
         appendValues([filteredList.value[highlightIndex.value].id]);
-        resetKeywordKeepOpen();
+        afterSelectOption();
         return;
       }
       // 输入内容精确命中候选时直接选中，避免 allowCreate 下创建出与候选重复的自由值
       const matchedValue = resolveCandidateValue(inputValue.value);
       if (matchedValue) {
         appendValues([matchedValue]);
-        resetKeywordKeepOpen();
+        afterSelectOption();
         return;
       }
       // 无高亮时：允许新建则在回车时按分隔符拆分并创建标签，否则保留输入内容
@@ -634,7 +647,7 @@
       // 未选 / 半选：并集追加当前过滤全部
       appendValues(list.map((item) => item.id));
     }
-    resetKeywordKeepOpen();
+    afterSelectOption();
   };
 
   const handleCreate = () => {
@@ -652,7 +665,7 @@
     } else {
       appendValues([item.id]);
     }
-    resetKeywordKeepOpen();
+    afterSelectOption();
   };
 
   onMounted(() => {
