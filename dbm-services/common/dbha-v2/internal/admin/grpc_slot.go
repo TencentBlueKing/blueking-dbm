@@ -153,25 +153,35 @@ func (s *grpcSlot) rebuildParameters(ctx context.Context, next config.Configurat
 	if err := s.closeGeneration(ctx, old, false); err != nil {
 		return err
 	}
+
 	listener := old.listener
 	generation, err := s.startGeneration(listener, next.Grpc)
 	if err != nil {
-		recovered, recoverErr := s.startGeneration(listener, s.fp)
-		if recoverErr != nil {
-			return fmt.Errorf(
-				"grpc parameter rebuild failed, errmsg: %w; recover failed, errmsg: %s",
-				err, recoverErr,
-			)
-		}
-		s.current = recovered
-		return fmt.Errorf(
-			"grpc parameter rebuild failed after close, recovered previous config, errmsg: %w",
-			err,
-		)
+		return s.recoverAfterParameterRebuild(listener, err)
 	}
+
 	s.current = generation
 	s.fp = next.Grpc
 	return nil
+}
+
+// recoverAfterParameterRebuild restarts the gRPC server with the previous fingerprint after a
+// failed parameter rebuild. On recover success it updates current but leaves fp unchanged so
+// NeedsRebuild stays true; on recover failure it leaves both current and fp unchanged.
+func (s *grpcSlot) recoverAfterParameterRebuild(listener net.Listener, rebuildErr error) error {
+	recovered, recoverErr := s.startGeneration(listener, s.fp)
+	if recoverErr != nil {
+		return fmt.Errorf(
+			"grpc parameter rebuild failed, errmsg: %w; recover failed, errmsg: %s",
+			rebuildErr, recoverErr,
+		)
+	}
+
+	s.current = recovered
+	return fmt.Errorf(
+		"grpc parameter rebuild failed after close, recovered previous config, errmsg: %w",
+		rebuildErr,
+	)
 }
 
 func (s *grpcSlot) startGeneration(listener net.Listener, cfg config.GrpcConfig) (*grpcGeneration, error) {

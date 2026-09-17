@@ -28,6 +28,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,9 +145,10 @@ func TestGRPCSlotParameterRebuildRecoversWhenStartFails(t *testing.T) {
 		t.Fatalf("initial grpc build failed, errmsg: %s", err)
 	}
 
+	startFailed := errors.New("start failed")
 	resourceSlot.startGenerationHook = func(listener net.Listener, hookCfg config.GrpcConfig) (*grpcGeneration, error) {
 		if hookCfg.MaxReceiveMessageSize == 2048 {
-			return nil, errors.New("start failed")
+			return nil, startFailed
 		}
 		return defaultStartGeneration(resourceSlot, listener, hookCfg)
 	}
@@ -155,8 +157,61 @@ func TestGRPCSlotParameterRebuildRecoversWhenStartFails(t *testing.T) {
 	if err == nil {
 		t.Fatal("parameter rebuild should fail when startGeneration fails")
 	}
+	if !errors.Is(err, startFailed) {
+		t.Fatalf("rebuild error should wrap start failed, errmsg: %s", err)
+	}
+	if !strings.Contains(err.Error(), "recovered previous config") {
+		t.Fatalf("rebuild error should report recover success, errmsg: %s", err)
+	}
 	if resourceSlot.fp.MaxReceiveMessageSize != 1024 {
 		t.Fatalf("fp should stay on old parameters, got: %d", resourceSlot.fp.MaxReceiveMessageSize)
+	}
+	if resourceSlot.current == nil {
+		t.Fatal("current should be restored after recover success")
+	}
+	resourceSlot.Close(context.Background())
+}
+
+func TestGRPCSlotParameterRebuildKeepsStateWhenRecoverFails(t *testing.T) {
+	service := &Service{shutdown: make(chan struct{})}
+	service.grpcSvc = NewAdminGrpcService(service)
+	resourceSlot := newGRPCSlot(service)
+	cfg := config.Configuration{
+		Grpc: config.GrpcConfig{
+			ListenAddress:         freeGRPCAddress(t),
+			MaxReceiveMessageSize: 1024,
+		},
+	}
+	if err := resourceSlot.Rebuild(context.Background(), cfg); err != nil {
+		t.Fatalf("initial grpc build failed, errmsg: %s", err)
+	}
+
+	beforeCurrent := resourceSlot.current
+	startFailed := errors.New("start failed")
+	recoverFailed := errors.New("recover boom")
+	resourceSlot.startGenerationHook = func(_ net.Listener, hookCfg config.GrpcConfig) (*grpcGeneration, error) {
+		if hookCfg.MaxReceiveMessageSize == 2048 {
+			return nil, startFailed
+		}
+		return nil, recoverFailed
+	}
+
+	cfg.Grpc.MaxReceiveMessageSize = 2048
+	err := resourceSlot.Rebuild(context.Background(), cfg)
+	if err == nil {
+		t.Fatal("parameter rebuild should fail when recover also fails")
+	}
+	if !errors.Is(err, startFailed) {
+		t.Fatalf("rebuild error should wrap start failed, errmsg: %s", err)
+	}
+	if !strings.Contains(err.Error(), "recover failed, errmsg: recover boom") {
+		t.Fatalf("rebuild error should report recover failure, errmsg: %s", err)
+	}
+	if resourceSlot.fp.MaxReceiveMessageSize != 1024 {
+		t.Fatalf("fp should stay on old parameters, got: %d", resourceSlot.fp.MaxReceiveMessageSize)
+	}
+	if resourceSlot.current != beforeCurrent {
+		t.Fatal("current should stay unchanged when recover fails")
 	}
 	resourceSlot.Close(context.Background())
 }
