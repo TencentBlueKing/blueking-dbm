@@ -69,7 +69,7 @@ class CreateK8sQdrantClusterService(BaseService):
             "storageAddonVersion": global_data["major_version"],
             "addonClusterVersion": global_data["major_version"],
             "topoName": "cluster",
-            "terminationPolicy": "Delete",
+            "terminationPolicy": "DoNotTerminate",
             "bkBizId": global_data["bk_biz_id"],
             "bkBizName": global_data["bk_biz_name"],
             "bkAppAbbr": global_data["db_app_abbr"],
