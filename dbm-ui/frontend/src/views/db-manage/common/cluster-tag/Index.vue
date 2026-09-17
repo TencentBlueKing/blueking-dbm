@@ -37,7 +37,7 @@
       <div
         v-else
         class="list-display-main">
-        <RenderTagOverflow :data="horizontalTagList" />
+        <TagBlock :data="horizontalTagList" />
       </div>
     </template>
     <AuthTemplate
@@ -68,7 +68,7 @@
 
   import { DBTypes } from '@common/const';
 
-  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAddTag from './components/AddTag.vue';

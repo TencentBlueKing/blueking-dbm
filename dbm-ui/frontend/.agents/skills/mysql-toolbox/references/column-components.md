@@ -69,6 +69,6 @@ interface Props {
 
 ## 模式选择组件
 
-路径：`@components/db-card-checkbox/CardCheckbox.vue`
+路径：`@views/db-manage/common/db-card-checkbox/CardCheckbox.vue`
 
 用于回档方式、迁移方式等卡片式单选。参考 `MYSQL_ROLLBACK/Index.vue`。Props：`modelValue`、`true-value`、`icon`、`title`、`desc`。

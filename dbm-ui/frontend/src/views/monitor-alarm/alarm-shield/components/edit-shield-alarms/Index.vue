@@ -68,10 +68,9 @@
   import { useI18n } from 'vue-i18n';
 
   import AlarmShieldModel from '@services/model/monitor/alarm-shield';
+  import { createAlarmShield, EditAlarmShield } from '@services/source/monitor';
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
-
-  import { createAlarmShield, EditAlarmShield } from '@services/source/monitor';
 
   import AlertShield from './components/AlertShield.vue';
   import DimensionShield from './components/dimension-shield/Index.vue';
@@ -284,72 +283,7 @@
   });
 </script>
 
-<style lang="less">
-  .shiled-alarm-page {
-    .bk-modal-content {
-      padding: 20px 24px;
-
-      .bk-form-label {
-        font-weight: 700;
-      }
-    }
-
-    .alarm-content-main {
-      padding: 8px 25px;
-      margin-top: 8px;
-      font-size: 12px;
-      background: #f5f7fa;
-      border-radius: 2px;
-
-      .alarm-item {
-        display: flex;
-        width: 100%;
-        padding: 6px 0;
-        line-height: 20px;
-
-        .item-title {
-          width: 60px;
-        }
-
-        .item-content {
-          flex: 1;
-          flex-wrap: wrap;
-
-          .link-icon {
-            margin-left: 5px;
-            color: #3a84ff;
-            cursor: pointer;
-          }
-        }
-      }
-    }
-
-    .bk-checkbox-label {
-      display: flex;
-      align-items: center;
-
-      .sign-bar {
-        display: inline-block;
-        width: 4px;
-        height: 12px;
-        margin-right: 5px;
-        border-radius: 1px;
-
-        &.sign-bar-info {
-          background: #3a84ff;
-        }
-
-        &.sign-bar-warning {
-          background: #e38b02;
-        }
-
-        &.sign-bar-critical {
-          background: #ea3636;
-        }
-      }
-    }
-  }
-
+<style lang="less" scoped>
   .shield-date-subtitle {
     position: absolute;
     top: -32px;

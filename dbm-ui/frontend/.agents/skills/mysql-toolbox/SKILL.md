@@ -222,7 +222,7 @@ $env:NODE_OPTIONS="--max-old-space-size=8192"; npx vue-tsc -p tsconfig.check.jso
 - `vue` / `vue-router` API 已 auto-import，不要显式 import `ref`、`computed`、`watch`、`useRouter`、`useRoute`
 - `useI18n`、`useTemplateRef`、`reactive` 必须显式 import
 - 路径别名优先：`@services/*`、`@common/const`、`@views/*`、`@hooks`、`@utils`、`@components/*`
-- `CardCheckbox` 从 `@components/db-card-checkbox/CardCheckbox.vue` 导入
+- `CardCheckbox` 从 `@views/db-manage/common/db-card-checkbox/CardCheckbox.vue` 导入
 
 ### 组件命名
 

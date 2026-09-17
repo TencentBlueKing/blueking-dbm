@@ -119,9 +119,8 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
   import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
