@@ -31,6 +31,7 @@ class OracleAddSlaveDetailSerializer(OracleOpsBaseDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         old_node = InstanceInfoSerializer(help_text=_("旧机器信息"))
+        replace_host = InstanceInfoSerializer(help_text=_("替换所选的主机信息"), required=False)  # 整机替换才有的参数
         old_master = InstanceInfoSerializer(help_text=_("旧master主机"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
 
