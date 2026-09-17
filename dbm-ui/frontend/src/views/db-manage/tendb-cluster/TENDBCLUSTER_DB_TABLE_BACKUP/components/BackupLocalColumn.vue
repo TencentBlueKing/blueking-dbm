@@ -108,21 +108,29 @@
 
   const selectValueMap: Record<string, string> = {
     RemoteDB: 'master',
-    RemoteDR: 'slave',
+    RemoteDR: 'remote',
+    // 兼容旧单据回填：历史值 slave 即 RemoteDR
+    slave: 'remote',
   };
 
   watch(backupList, () => {
-    if (ipPort.test(modelValue.value)) {
-      const value = `spider_mnt::${modelValue.value}`;
-      const isContains = backupList.value.some((item) => item.value === value);
-      if (isContains) {
-        modelValue.value = value;
-      } else {
-        modelValue.value = '';
-      }
-    } else {
-      modelValue.value = selectValueMap[modelValue.value];
+    if (!modelValue.value) {
+      return;
     }
+    const isContains = (value: string) => backupList.value.some((item) => item.value === value);
+    // 已是合法选项值（remote / spider_mnt::ip:port），无需转换
+    if (isContains(modelValue.value)) {
+      return;
+    }
+    if (ipPort.test(modelValue.value)) {
+      // 批量录入的 ip:port 转换为运维节点选项值
+      const value = `spider_mnt::${modelValue.value}`;
+      modelValue.value = isContains(value) ? value : '';
+      return;
+    }
+    // 批量录入的选项文案（RemoteDB / RemoteDR）转换为对应选项值
+    const value = selectValueMap[modelValue.value];
+    modelValue.value = value && isContains(value) ? value : '';
   });
 
   const disabledMethod = (rowData?: any) => {
