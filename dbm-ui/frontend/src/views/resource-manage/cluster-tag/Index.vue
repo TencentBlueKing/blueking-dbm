@@ -103,7 +103,7 @@
         :min-width="450"
         :title="t('标签值')">
         <template #default="{ row: data, rowIndex }: { row: RowData, rowIndex: number }">
-          <RenderTagOverflow
+          <TagBlock
             v-if="isCollapsed(data.key)"
             :data="generateRowsTags(data.key)" />
           <EditableCell
@@ -256,7 +256,7 @@
 
   import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
-  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, messageError, messageSuccess } from '@utils';

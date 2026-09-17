@@ -160,7 +160,7 @@
   import ClusterBatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
   import { useOperateClusterBatch } from '@views/db-manage/common/hooks';
-  import OperateClusterConfirmDialog from '@views/db-manage/common/OperateClusterConfirmDialog/Index.vue';
+  import OperateClusterConfirmDialog from '@views/db-manage/common/operate-cluster-confirm-dialog/Index.vue';
 
   import BatchOperationButton from '../BatchOperationButton.vue';
 

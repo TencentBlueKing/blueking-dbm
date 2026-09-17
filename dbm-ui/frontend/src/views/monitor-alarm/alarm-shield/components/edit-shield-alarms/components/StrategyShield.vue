@@ -257,4 +257,29 @@
       }
     }
   }
+
+  :deep(.bk-checkbox-label) {
+    display: flex;
+    align-items: center;
+
+    .sign-bar {
+      display: inline-block;
+      width: 4px;
+      height: 12px;
+      margin-right: 5px;
+      border-radius: 1px;
+
+      &.sign-bar-info {
+        background: #3a84ff;
+      }
+
+      &.sign-bar-warning {
+        background: #e38b02;
+      }
+
+      &.sign-bar-critical {
+        background: #ea3636;
+      }
+    }
+  }
 </style>

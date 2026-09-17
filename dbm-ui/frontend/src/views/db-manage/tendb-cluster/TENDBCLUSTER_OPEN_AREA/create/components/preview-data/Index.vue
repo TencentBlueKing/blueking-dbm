@@ -44,10 +44,7 @@
           :title="t('表数据')"
           :width="180">
           <template #default="{ row }: { row: RowData }">
-            <span v-if="row.schema_tblist.length === 0">--</span>
-            <RenderTagOverflow
-              v-else
-              :data="_.flatMap(row.schema_tblist)" />
+            <TagBlock :data="_.flatMap(row.schema_tblist)" />
           </template>
         </TableColumn>
         <TableColumn
@@ -89,7 +86,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import { messageError } from '@utils';
 

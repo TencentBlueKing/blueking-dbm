@@ -193,7 +193,7 @@
   <DbSideslider
     v-model:is-show="showShieldAlarm"
     :before-close="handleBeforeClose"
-    class="shiled-alarm-page"
+    class="alarm-shield-edit-sideslider"
     :confirm-text="t('确定')"
     :disabled-confirm="isDisabled"
     width="960"
@@ -422,7 +422,15 @@
   }
 </style>
 <style lang="less">
-  .shiled-alarm-page {
+  .alarm-shield-edit-sideslider {
+    .bk-modal-content {
+      padding: 20px 24px;
+
+      .bk-form-label {
+        font-weight: 700;
+      }
+    }
+
     .header-main {
       display: flex;
       width: 100%;

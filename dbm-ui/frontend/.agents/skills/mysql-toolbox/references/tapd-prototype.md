@@ -38,7 +38,7 @@ TAPD 需求大概率包含 HTML 原型图附件。流程：
 
 原型图展示了产品意图，落地时需对照项目已有组件：
 
-- **模式选择（迁移方式等）**：项目标准用 `CardCheckbox`（`@components/db-card-checkbox/CardCheckbox.vue`），参见 `MYSQL_ROLLBACK/Index.vue`
+- **模式选择（迁移方式等）**：项目标准用 `CardCheckbox`（`@views/db-manage/common/db-card-checkbox/CardCheckbox.vue`），参见 `MYSQL_ROLLBACK/Index.vue`
 - **单选表单项**：用 `BkRadioGroup` + `BkRadio`（非 `BkRadioButton`，除非原型明确要求按钮组样式）
 - **表格**：`EditableTable` + `EditableRow` + 列组件
 - **侧滑**：`BkSideslider`
