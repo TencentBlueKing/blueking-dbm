@@ -63,6 +63,13 @@ func TestAnalysisProvidersRegisterMySQLParser(t *testing.T) {
 	}
 }
 
+func TestAnalysisProvidersRegisterRedisParser(t *testing.T) {
+	p, ok := parser.Lookup(haprobe.DbTypeRedis)
+	if !ok || p == nil {
+		t.Fatal("expected Redis processer registered via allanalysis")
+	}
+}
+
 func TestAnalysisProvidersRegisterSpecialMatchAndDnsGuard(t *testing.T) {
 	events := failure.RegisteredSpecialMatchEvents()
 	wantEvents := map[haprobe.DbEventName]bool{

@@ -48,10 +48,11 @@ func TestManifestMatchesProviderDirs(t *testing.T) {
 	}
 
 	skipDirs := map[string]struct{}{
-		"allprobe":    {},
-		"allanalysis": {},
-		"alldesc":     {},
-		"internal":    {},
+		"allprobe":      {},
+		"allanalysis":   {},
+		"allcredential": {},
+		"alldesc":       {},
+		"internal":      {},
 	}
 
 	for _, ent := range entries {
@@ -98,6 +99,8 @@ func capSubdir(cap provider.Capability) string {
 		return "parse"
 	case provider.CapMetrics:
 		return "metrics"
+	case provider.CapCredential:
+		return "credential"
 	default:
 		return ""
 	}
