@@ -43,10 +43,10 @@ import (
 func (d *DbmAPIService) SimpleCheckAllowed(
 	username, actionID string, bkBizID int, resourceID string,
 ) (bool, *infresp.ApplyData, error) {
-	if d.dbmAuthAPIURL == "" {
-		return false, nil, fmt.Errorf("环境变量 DBM_AUTH_API_URL 未配置，无法进行 IAM 鉴权")
+	url := d.dbmIAMSimpleCheckAllowedURL
+	if url == "" {
+		return false, nil, fmt.Errorf("环境变量 DBM_IAM_SIMPLE_CHECK_ALLOWED_URL 未配置，无法进行 IAM 鉴权")
 	}
-	url := fmt.Sprintf("http://%s/iam/simple_check_allowed/", d.dbmAuthAPIURL)
 	req := infreq.SimpleCheckAllowedRequest{
 		ActionID:         actionID,
 		BkBizID:          bkBizID,

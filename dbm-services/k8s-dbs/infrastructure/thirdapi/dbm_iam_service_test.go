@@ -34,17 +34,17 @@ import (
 // newDbmAPIServiceForTest 仅供测试使用，绕过 sync.Once 创建实例
 func newDbmAPIServiceForTest(apiURL string) *DbmAPIService {
 	return &DbmAPIService{
-		syncDataAPIURL:   apiURL,
-		innerBkAppCode:   "test_inner_code",
-		innerBkAppSecret: "test_inner_secret",
-		dbmAuthAPIURL:    apiURL,
+		syncDataAPIURL:              apiURL,
+		innerBkAppCode:              "test_inner_code",
+		innerBkAppSecret:            "test_inner_secret",
+		dbmIAMSimpleCheckAllowedURL: apiURL,
 	}
 }
 
 func newTestServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *DbmAPIService) {
 	t.Helper()
 	srv := httptest.NewServer(handler)
-	svc := newDbmAPIServiceForTest(srv.Listener.Addr().String())
+	svc := newDbmAPIServiceForTest(srv.URL + "/iam/simple_check_allowed/")
 	return srv, svc
 }
 
@@ -57,6 +57,8 @@ func respondJSON(w http.ResponseWriter, v interface{}) {
 
 func TestSimpleCheckAllowed_Allowed(t *testing.T) {
 	srv, svc := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/iam/simple_check_allowed/", r.URL.Path)
+
 		// 验证认证 Header 中使用的是环境变量中的内部凭据
 		auth := r.Header.Get("X-Bkapi-Authorization")
 		assert.NotEmpty(t, auth)
@@ -79,6 +81,25 @@ func TestSimpleCheckAllowed_Allowed(t *testing.T) {
 		})
 	})
 	defer srv.Close()
+
+	allowed, applyData, err := svc.SimpleCheckAllowed("user1", "k8s_surrealdb_apply", 3, "")
+	require.NoError(t, err)
+	assert.True(t, allowed)
+	assert.Nil(t, applyData)
+}
+
+func TestSimpleCheckAllowed_CustomURL(t *testing.T) {
+	srv, svc := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/custom/iam/simple_check_allowed/", r.URL.Path)
+		respondJSON(w, map[string]interface{}{
+			"result":  true,
+			"code":    0,
+			"data":    true,
+			"message": "",
+		})
+	})
+	defer srv.Close()
+	svc.dbmIAMSimpleCheckAllowedURL = srv.URL + "/custom/iam/simple_check_allowed/"
 
 	allowed, applyData, err := svc.SimpleCheckAllowed("user1", "k8s_surrealdb_apply", 3, "")
 	require.NoError(t, err)
@@ -178,17 +199,17 @@ func TestSimpleCheckAllowed_HTTPError(t *testing.T) {
 
 func TestSimpleCheckAllowed_AuthAPIURLNotConfigured(t *testing.T) {
 	svc := &DbmAPIService{
-		syncDataAPIURL:   "localhost:8080",
-		innerBkAppCode:   "test_code",
-		innerBkAppSecret: "test_secret",
-		dbmAuthAPIURL:    "",
+		syncDataAPIURL:              "localhost:8080",
+		innerBkAppCode:              "test_code",
+		innerBkAppSecret:            "test_secret",
+		dbmIAMSimpleCheckAllowedURL: "",
 	}
 
 	allowed, applyData, err := svc.SimpleCheckAllowed("user1", "k8s_surrealdb_apply", 3, "")
 	assert.Error(t, err)
 	assert.False(t, allowed)
 	assert.Nil(t, applyData)
-	assert.Contains(t, err.Error(), "DBM_AUTH_API_URL")
+	assert.Contains(t, err.Error(), "DBM_IAM_SIMPLE_CHECK_ALLOWED_URL")
 }
 
 func TestSimpleCheckAllowed_RequestBodyFormat(t *testing.T) {
