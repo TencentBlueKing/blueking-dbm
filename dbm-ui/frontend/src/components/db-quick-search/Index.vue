@@ -149,64 +149,68 @@
           return Promise.resolve(null);
         }
         // 备选
-        return Promise.resolve()
-          .then(() => {
-            // 备选数据来源
-            if (_.isFunction(searchItemConfig.remoteMethod)) {
-              return searchItemConfig.remoteMethod({ defaultValue: latestValue[searchItemConfig.id] });
-            }
-            if (_.isArray(searchItemConfig.list)) {
-              return searchItemConfig.list;
-            }
-            return [];
-          })
-          .then((data) => {
-            // 备选数据结构
-            // 级联
-            if (
-              data.length > 0 &&
-              (searchItemConfig.type === 'cascader' || searchItemConfig.type === 'multiple-cascader')
-            ) {
-              const result: { label: string; value: string | number }[] = [];
-              data.forEach((parentItem) => {
-                result.push({
-                  label: parentItem.label,
-                  value: parentItem.value,
-                });
-                (parentItem.children || []).forEach((childItem) => {
+        return (
+          Promise.resolve()
+            .then(() => {
+              // 备选数据来源
+              if (_.isFunction(searchItemConfig.remoteMethod)) {
+                return searchItemConfig.remoteMethod({ defaultValue: latestValue[searchItemConfig.id] });
+              }
+              if (_.isArray(searchItemConfig.list)) {
+                return searchItemConfig.list;
+              }
+              return [];
+            })
+            // 候选项拉取失败时退化成空候选（label 回退为原始值），避免整次回显被中断导致首屏不搜索
+            .catch(() => [])
+            .then((data) => {
+              // 备选数据结构
+              // 级联
+              if (
+                data.length > 0 &&
+                (searchItemConfig.type === 'cascader' || searchItemConfig.type === 'multiple-cascader')
+              ) {
+                const result: { label: string; value: string | number }[] = [];
+                data.forEach((parentItem) => {
                   result.push({
-                    label: searchItemConfig.props?.showAllLevels
-                      ? `${parentItem.label}/${childItem.label}`
-                      : childItem.label,
-                    value: childItem.value,
+                    label: parentItem.label,
+                    value: parentItem.value,
+                  });
+                  (parentItem.children || []).forEach((childItem) => {
+                    result.push({
+                      label: searchItemConfig.props?.showAllLevels
+                        ? `${parentItem.label}/${childItem.label}`
+                        : childItem.label,
+                      value: childItem.value,
+                    });
                   });
                 });
-              });
-              return result;
-            }
-            return data;
-          })
-          .then((data) => {
-            // 备选数据 value: label 映射
-            return data.reduce<Record<string, string>>((result, item) => {
-              return Object.assign(result, {
-                [`${item.value}`]: item.label,
-              });
-            }, {});
-          })
-          .then((data) => {
-            // 数据回填
-            return {
-              id: searchItemConfig.id,
-              name: searchItemConfig.name,
-              values: _.filter(String(latestValue[searchItemConfig.id]).split(','), (item) =>
-                Boolean(_.trim(item)),
-              ).map((text) => ({
-                label: data[text] ? data[text] : text,
-                value: text,
-              })),
-            };
-          });
+                return result;
+              }
+              return data;
+            })
+            .then((data) => {
+              // 备选数据 value: label 映射
+              return data.reduce<Record<string, string>>((result, item) => {
+                return Object.assign(result, {
+                  [`${item.value}`]: item.label,
+                });
+              }, {});
+            })
+            .then((data) => {
+              // 数据回填
+              return {
+                id: searchItemConfig.id,
+                name: searchItemConfig.name,
+                values: _.filter(String(latestValue[searchItemConfig.id]).split(','), (item) =>
+                  Boolean(_.trim(item)),
+                ).map((text) => ({
+                  label: data[text] ? data[text] : text,
+                  value: text,
+                })),
+              };
+            })
+        );
       });
       Promise.all(taskQueue).then((data) => {
         defaultValue.value = _.filter(data, (item) => Boolean(item)) as IValue[];
