@@ -63,6 +63,7 @@ class BaselineHost(AuditedModel):
     remarks = models.TextField(_("备注"), blank=True, null=True, help_text=_("其他非结构化的备注信息"))
 
     class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"
         verbose_name = _("基线主机配置")
         verbose_name_plural = _("基线主机配置")
         ordering = ["device_class"]
@@ -110,6 +111,7 @@ class BaselineDisk(AuditedModel):
     write_latency_ms = models.FloatField(_("写延迟(ms)"), null=True, blank=True, help_text=_("磁盘的写延迟性能指标，单位毫秒"))
 
     class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"
         verbose_name = _("基线磁盘配置")
         verbose_name_plural = _("基线磁盘配置")
         ordering = ["disk_type", "disk_model"]

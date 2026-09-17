@@ -34,9 +34,10 @@ class SubmitBillMySQLProxyConfChangeSerializer(serializers.Serializer):
         )
 
     infos = serializers.ListField(
-        child=ProxyConfChangeInfoSerializer(), help_text=_("升降配信息（每行一个集群）"), allow_empty=False
+        child=ProxyConfChangeInfoSerializer(),
+        help_text=_("升降配信息（每行一个代表集群，同机关联集群自动合并）"),
+        allow_empty=False,
     )
-    is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True, required=False)
 
 
 class SubmitBillMySQLMigrateClusterSerializer(serializers.Serializer):
@@ -48,7 +49,9 @@ class SubmitBillMySQLMigrateClusterSerializer(serializers.Serializer):
             child=serializers.CharField(), help_text=_("资源标签 ID 列表"), default=[], required=False
         )
 
-    infos = serializers.ListField(child=MigrateInfoSerializer(), help_text=_("迁移信息（每行一个集群）"), allow_empty=False)
+    infos = serializers.ListField(
+        child=MigrateInfoSerializer(), help_text=_("迁移信息（每行一个集群或整机迁移机器组）"), allow_empty=False
+    )
     opera_object = serializers.ChoiceField(
         choices=[
             (OperaObjType.CLUSTER.value, _("集群迁移")),
@@ -57,10 +60,12 @@ class SubmitBillMySQLMigrateClusterSerializer(serializers.Serializer):
         help_text=_("迁移类型：cluster=集群迁移，machine=整机迁移"),
     )
     backup_source = serializers.ChoiceField(
-        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE, required=False
+        help_text=_("备份源"),
+        choices=MySQLBackupSource.get_choices(),
+        default=MySQLBackupSource.REMOTE,
+        required=False,
     )
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True, required=False)
-    is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True, required=False)
 
 
 class SubmitBillSpiderConfChangeSerializer(serializers.Serializer):
@@ -81,7 +86,6 @@ class SubmitBillSpiderConfChangeSerializer(serializers.Serializer):
     infos = serializers.ListField(
         child=SpiderConfChangeInfoSerializer(), help_text=_("升降配信息（每行一个集群）"), allow_empty=False
     )
-    is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True, required=False)
 
 
 class SubmitBillTendbClusterNodeRebalanceSerializer(serializers.Serializer):
@@ -97,6 +101,30 @@ class SubmitBillTendbClusterNodeRebalanceSerializer(serializers.Serializer):
         child=NodeRebalanceInfoSerializer(), help_text=_("容量变更信息（每行一个集群）"), allow_empty=False
     )
     backup_source = serializers.ChoiceField(
-        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE, required=False
+        help_text=_("备份源"),
+        choices=MySQLBackupSource.get_choices(),
+        default=MySQLBackupSource.REMOTE,
+        required=False,
+    )
+    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True, required=False)
+
+
+class SubmitBillTendbClusterMigrateSerializer(serializers.Serializer):
+    class MigrateInfoSerializer(serializers.Serializer):
+        cluster_domain = serializers.CharField(help_text=_("集群域名"))
+        old_master_ip = serializers.CharField(help_text=_("旧 remote master IP"))
+        old_slave_ip = serializers.CharField(help_text=_("旧 remote slave IP"))
+        spec_id = serializers.IntegerField(help_text=_("目标规格 ID"))
+        count = serializers.IntegerField(help_text=_("机器组数（1组=1主+1从）"), default=1, required=False)
+        labels = serializers.ListField(
+            child=serializers.CharField(), help_text=_("资源标签 ID 列表"), default=[], required=False
+        )
+
+    infos = serializers.ListField(child=MigrateInfoSerializer(), help_text=_("迁移信息（每行一对主从）"), allow_empty=False)
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"),
+        choices=MySQLBackupSource.get_choices(),
+        default=MySQLBackupSource.REMOTE,
+        required=False,
     )
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True, required=False)
