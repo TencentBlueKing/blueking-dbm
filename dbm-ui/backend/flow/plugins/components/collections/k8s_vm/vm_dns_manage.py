@@ -17,16 +17,18 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DnsOpType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.dns_manage import DnsManage
+from backend.flow.utils.k8s_db.vm.consts import VMINSERT_PORT, VMSELECT_PORT
 
 logger = logging.getLogger("flow")
 
 
 class VmDnsManageService(BaseService):
     """
-    负责删除阶段的 CLUSTER_DELETE, 按 cluster_id 级联清理 vminsert / vmselect 双域名
+    负责集群统一域名的创建(CREATE)与删除(CLUSTER_DELETE)
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -39,8 +41,26 @@ class VmDnsManageService(BaseService):
         dns_op_type = kwargs["dns_op_type"]
         dns_manage = DnsManage(bk_biz_id=global_data["bk_biz_id"], bk_cloud_id=kwargs["bk_cloud_id"])
 
+        if dns_op_type == DnsOpType.CREATE:
+            clb_detail = trans_data.clb_detail
+            vip = clb_detail.get("LoadBalancerVips")
+            if not vip:
+                self.log_error(_("CLB详情缺少LoadBalancerVips"))
+                return False
+            # 域名统一指向 CLB VIP，实例以 vip#port 登记；查询版集群无vminsert组件，只登记vmselect端口
+            if global_data.get("cluster_type") == ClusterType.K8sVictoriametricsSelect.value:
+                ports = [VMSELECT_PORT]
+            else:
+                ports = [VMINSERT_PORT, VMSELECT_PORT]
+            trans_data.vm_domain = kwargs["domain_name"]
+            result = dns_manage.create_domain(
+                instance_list=[f"{vip}#{port}" for port in ports], add_domain_name=kwargs["domain_name"]
+            )
+            data.outputs["trans_data"] = trans_data
+            return result
+
         if dns_op_type == DnsOpType.CLUSTER_DELETE:
-            # 按 cluster_id 级联删除该集群下所有域名(vminsert + vmselect), 一次调用即可清理双域名
+            # 按 cluster_id 级联删除该集群下所有域名
             result = dns_manage.delete_domain(cluster_id=global_data["cluster_id"])
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
@@ -56,5 +76,5 @@ class VmDnsManageService(BaseService):
 
 class VmDnsManageComponent(Component):
     name = __name__
-    code = "vm_dns_manage"
+    code = "k8s_vm_dns_manage"
     bound_service = VmDnsManageService
