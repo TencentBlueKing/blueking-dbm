@@ -25,7 +25,18 @@
         </div>
       </div>
     </div>
-    <div class="mb-20">
+    <div class="search-main mb-20">
+      <DbSelect
+        v-model="dbTypes"
+        collapse-tags
+        filterable
+        :list="dbList"
+        multiple
+        multiple-mode="tag"
+        :placeholder="t('请选择xx', [t('DB类型')])"
+        show-select-all
+        style="width: 340px"
+        @change="handleDbTypeChange" />
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"
@@ -214,7 +225,7 @@
     v-model:is-show="showShieldAlarm"
     :before-close="handleBeforeClose"
     :cancel-text="isCurrentEventShielded ? t('关闭') : t('取消')"
-    class="shiled-alarm-page"
+    class="shield-alarm-sideslider"
     :disabled-confirm="isCurrentEventShielded"
     :show-confirm="!isCurrentEventShielded"
     :show-leave-confirm="false"
@@ -245,7 +256,7 @@
 
   import ShieldAlarms from './components/ShieldAlarms.vue';
   import ToAlarmPolicy from './components/ToAlarmPolicy.vue';
-  import { columnFilterConfig, dbTypeSearchId, timeRangeSearchId, useQuickSearch } from './useQuickSearch';
+  import { columnFilterConfig, timeRangeSearchId, useQuickSearch } from './useQuickSearch';
 
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
@@ -265,6 +276,8 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   // 告警级别只由这个筛选条负责，不放进快捷搜索
   const activeLevel = ref(Number(route.query.severity) || 0);
+  // DB 类型由独立的多选框负责，不放进快捷搜索
+  const dbTypes = ref<string[]>([]);
   const createShieldAlarmsRef = ref<InstanceType<typeof ShieldAlarms>>();
   const severityList = ref([
     {
@@ -308,7 +321,7 @@
   const isTodoPage = computed(() => route.name === 'platformAlarmEventsTodo');
   const isGlobalPage = computed(() => route.name === 'platformAlarmEvents');
 
-  const { defaultEndTime, defaultStartTime, quickSearchData, quickSearchValue } = useQuickSearch({
+  const { dbList, defaultEndTime, defaultStartTime, quickSearchData, quickSearchValue } = useQuickSearch({
     isGlobalPage,
     isTodoPage,
   });
@@ -422,11 +435,23 @@
     window.open(url);
   };
 
+  // 空状态的「清空筛选」要把独立的 DB 类型一起清掉，
+  // 清空 quickSearchValue 会触发 handleQuickSearchChange 统一发起请求
   const handleClearSearchValue = () => {
-    quickSearchValue.value = {
-      status: 'ABNORMAL',
-      [timeRangeSearchId]: `${defaultStartTime},${defaultEndTime}`,
-    };
+    dbTypes.value = [];
+    Object.assign(searchValue, {
+      db_types: [],
+    });
+    quickSearchValue.value = {};
+  };
+
+  const handleDbTypeChange = (value: string[]) => {
+    // 接口的 db_types 只接受数组
+    Object.assign(searchValue, {
+      db_types: value,
+    });
+
+    triggerSearch();
   };
 
   const handleSelection = (_: any, list: RowData[]) => {
@@ -459,15 +484,13 @@
 
     const [startTime, endTime] = (value[timeRangeSearchId] || '').split(',');
     Object.assign(searchValue, {
-      // 接口的 db_types 只接受数组
-      db_types: value[dbTypeSearchId] ? value[dbTypeSearchId].split(',') : [],
       // 接口的 start_time / end_time 必填，时间范围被删除时回退到默认区间
       end_time: endTime || defaultEndTime,
       start_time: startTime || defaultStartTime,
     });
 
     quickSearchData.value.forEach((item) => {
-      if (item.id === dbTypeSearchId || item.id === timeRangeSearchId || value[item.id] === undefined) {
+      if (item.id === timeRangeSearchId || value[item.id] === undefined) {
         return;
       }
       Object.assign(searchValue, {
@@ -548,7 +571,7 @@
     },
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .alarm-events-page {
     padding: 20px 24px;
 
@@ -599,27 +622,41 @@
         }
       }
     }
-  }
-</style>
-<style lang="less">
-  .alert-name-main {
-    display: flex;
-    width: 100%;
-    align-items: center;
 
-    .sign-bar {
-      width: 4px;
-      height: 12px;
-      margin-right: 4px;
-      background: #f59500;
-      border-radius: 1px;
+    .search-main {
+      display: flex;
+      gap: 8px;
     }
 
-    .alert-name {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .alert-name-main {
+      display: flex;
+      width: 100%;
+      align-items: center;
+
+      .sign-bar {
+        width: 4px;
+        height: 12px;
+        margin-right: 4px;
+        background: #f59500;
+        border-radius: 1px;
+      }
+
+      .alert-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .shield-alarm-sideslider {
+    .bk-modal-content {
+      padding: 20px 24px;
+
+      .bk-form-label {
+        font-weight: 700;
+      }
     }
   }
 </style>

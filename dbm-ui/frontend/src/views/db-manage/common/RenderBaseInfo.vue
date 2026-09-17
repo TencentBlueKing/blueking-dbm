@@ -78,9 +78,9 @@
   import { useI18n } from 'vue-i18n';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
-  import ClusterTag from '@components/cluster-tag/Index.vue';
 
   import MachineSpecCell from '@views/db-manage/common/cluster-details/components/machine-spec-cell/Index.vue';
+  import ClusterTag from '@views/db-manage/common/cluster-tag/Index.vue';
 
   interface Props {
     data: { id: number } & Record<any, any>;
