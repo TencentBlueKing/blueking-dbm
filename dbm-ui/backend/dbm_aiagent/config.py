@@ -180,6 +180,19 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "sqlserver-bill",
+        "description": """create sqlserver bill""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["sqlserver-bill"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
         "title": "DBM TenDBHA/TenDBCluster SQL语法检查",
         "name": "sql-syntax-check",
         "description": """SQL syntax check and validation services for TenDBHA/TenDBCluster.

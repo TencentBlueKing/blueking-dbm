@@ -35,11 +35,18 @@ def validate_clusters(cluster_domains: List[str], cluster_type: ClusterType) -> 
     if len(bk_biz_ids) > 1:
         raise DBMMcpBaseException(msg="multi bk biz id found: {}".format(bk_biz_ids))
 
-    return cluster_objs, bk_biz_ids[0], cluster_objs[0].bk_cloud_id
+    bk_cloud_ids = list(set(cluster_objs.values_list("bk_cloud_id", flat=True)))
+    if len(bk_cloud_ids) > 1:
+        raise DBMMcpBaseException(msg="multi bk cloud id found: {}".format(bk_cloud_ids))
+
+    return cluster_objs, bk_biz_ids[0], bk_cloud_ids[0]
 
 
 def check_clusters_consistency(input_clusters: QuerySet, ips: List[str], instance_objs: QuerySet):
-    instance_ips = set(instance_objs.values_list("machine__ip", flat=True))
+    # 一次性取出 (ip, cluster_id) 映射，避免后续循环中每个 IP 各自查询造成 N+1
+    ip_cluster_pairs = list(instance_objs.values_list("machine__ip", "cluster"))
+
+    instance_ips = {ip for ip, _ in ip_cluster_pairs}
     input_ips = set(ips)
     if instance_ips != input_ips:
         missing = input_ips - instance_ips
@@ -47,15 +54,27 @@ def check_clusters_consistency(input_clusters: QuerySet, ips: List[str], instanc
 
     input_set = set(input_clusters.values_list("id", "immute_domain", "cluster_type"))
 
-    inconsistencies = []
-    for ip in ips:
-        ip_instances = instance_objs.filter(machine__ip=ip)
-        per_ip_clusters = set(
+    # 收集所有被实例关联的集群 id，一次性查询其元信息，再在内存中按 IP 分组
+    all_cluster_ids = {cluster_id for _, cluster_id in ip_cluster_pairs if cluster_id is not None}
+    cluster_meta = {}
+    if all_cluster_ids:
+        cluster_rows = (
             Cluster.objects.using(MYSQL_MCP_DB_READ)
-            .filter(pk__in=ip_instances.values_list("cluster", flat=True))
-            .distinct()
+            .filter(pk__in=all_cluster_ids)
             .values_list("id", "immute_domain", "cluster_type")
         )
+        cluster_meta = {cid: (cid, domain, ctype) for cid, domain, ctype in cluster_rows}
+
+    ip_clusters_map = {}
+    for ip, cluster_id in ip_cluster_pairs:
+        meta = cluster_meta.get(cluster_id)
+        if meta is None:
+            continue
+        ip_clusters_map.setdefault(ip, set()).add(meta)
+
+    inconsistencies = []
+    for ip in ips:
+        per_ip_clusters = ip_clusters_map.get(ip, set())
         if per_ip_clusters != input_set:
             inconsistencies.append(
                 _("IP {ip}: 归属集群={ip_clusters}").format(

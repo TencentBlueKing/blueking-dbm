@@ -42,12 +42,66 @@
 | 14 | `submit_bill_mysql_clone_grants` | 创建 DB 权限克隆流程 | TenDBSingle / TenDBHA / TenDBCluster |
 | 15 | `submit_bill_mysql_disable` | **创建 MySQL 集群禁用单据（新增）** | TenDBSingle / TenDBHA / TenDBCluster |
 | 16 | `submit_bill_mysql_destroy` | **创建 MySQL 集群删除单据（新增，需集群已禁用）** | TenDBSingle / TenDBHA / TenDBCluster |
-| 17 | `submit_bill_proxy_conf_change` | 创建 TenDBHA proxy 升降配单据（多行，每行一个集群） | TenDBHA |
-| 18 | `submit_bill_tendbha_migrate` | 创建 TenDBHA 主从迁移单据（多行，每行一个集群） | TenDBHA |
+| 17 | `submit_bill_proxy_conf_change` | 创建 TenDBHA proxy 升降配单据（多行，每行一个代表集群，同机关联集群自动合并） | TenDBHA |
+| 18 | `submit_bill_tendbha_migrate` | 创建 TenDBHA 主从迁移单据（多行，每行一个集群或机器组） | TenDBHA |
 | 19 | `submit_bill_spider_conf_change` | 创建 TenDBCluster 接入层（spider）升降配单据（多行） | TenDBCluster |
 | 20 | `submit_bill_tendbcluster_node_rebalance` | 创建 TenDBCluster 集群容量变更单据（多行） | TenDBCluster |
+| 21 | `submit_bill_tendbcluster_fullbackup` | 创建 TenDBCluster 全库备份单据（默认 RemoteDR 物理备份） | TenDBCluster |
+| 22 | `submit_bill_spider_rebuild` | 创建 TenDBCluster 接入层（spider）原地重建单据 | TenDBCluster |
+| 23 | `submit_bill_tendbcluster_slave_rebuild` | 创建 TenDBCluster slave 原地重建单据 | TenDBCluster |
+| 24 | `submit_bill_tendbcluster_migrate` | 创建 TenDBCluster 主从迁移单据（多行，每行一对 remote 主从） | TenDBCluster |
+| 25 | `submit_bill_proxy_rebuild` | 创建 TenDBHA proxy 原地重建单据 | TenDBHA |
+| 26 | `submit_bill_tendbha_slave_rebuild` | 创建 TenDBHA 存储 slave 原地重建单据（在原机重建，不申请新资源） | TenDBHA |
 
-> operation_id 完整形式：`mysql_bill_` + 上表方法名，如 `mysql_bill_submit_bill_mysql_disable`。
+## `submit_bill_mysql_full_backup`：创建 MySQL 全库备份单据
+
+**用途**：对一个或多个 TenDBHA / TenDBCluster 集群发起全库备份，默认物理备份、slave 节点、保存 1 个月。
+
+**operation_id**：`mysql_bill_submit_bill_mysql_full_backup`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `bk_biz_id` | int | 是 | 业务 ID |
+| `cluster_domains` | string[] | 是 | 集群域名列表（支持多个，需同一集群类型） |
+| `backup_type` | string | 否（默认 `physical`） | 备份类型：`physical`=物理备份，`logical`=逻辑备份 |
+| `backup_local` | string | 否（默认 `slave`） | 备份位置：`master`=主节点，`slave`=从节点 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的全库备份单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 支持一次传入多个集群，但必须为同一集群类型（全 TenDBHA 或全 TenDBCluster），混合类型直接报错，不产生单据。
+- 按集群类型自动选择单据类型：
+
+| 集群类型 | TicketType | 单据名称 |
+|---|---|---|
+| TenDBHA | `MYSQL_HA_FULL_BACKUP` | MySQL 全库备份 |
+| TenDBCluster | `TENDBCLUSTER_FULL_BACKUP` | TenDB Cluster 全库备份 |
+
+- 所有集群按 `bk_biz_id` + `cluster_domains` 匹配；未找到的集群显式报错，不产生单据。
+- 备份保存时间固定为 1 个月（`file_tag=DBFILE1M`）。
+- 单据 `details` 结构：`{"backup_type": <backup_type>, "file_tag": "DBFILE1M", "infos": [{"cluster_id": ..., "backup_local": <backup_local>}, ...]}`，并通过对应 `DetailSerializer`（`MySQLFullBackupDetailSerializer` / `TenDBClusterFullBackUpDetailSerializer`）校验集群状态与备份位置。
+
+**调用示例**（`dbm-mcp-cli`）
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_mysql_full_backup \r
+  body_param='{"bk_biz_id": 918, "cluster_domains": ["gamedb.test0.mysql.db", "gamedb.test1.mysql.db"]}' \r
+  --raw-query "对 gamedb.test0.mysql.db 和 gamedb.test1.mysql.db 做物理备份"
+```
+
+**注意事项**
+
+- 不传 `backup_type` 时默认物理备份（`physical`），不传 `backup_local` 时默认从节点（`slave`）。
+- 全库备份为写操作，提交后需用户在 DBM 平台审批执行。
 
 ---
 
@@ -161,7 +215,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_mysql_destroy 
 
 ## `submit_bill_proxy_conf_change`：创建 TenDBHA proxy 升降配单据
 
-**用途**：对一批 TenDBHA 集群的 proxy 层做升降配，支持多行，每行一个集群。
+**用途**：对一批 TenDBHA 集群的 proxy 层做升降配，支持多行，每行一个代表集群（同机关联集群自动合并）。
 
 **operation_id**：`mysql_bill_submit_bill_proxy_conf_change`
 
@@ -169,11 +223,10 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_mysql_destroy 
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `infos[]` | object[] | 是 | 升降配信息，每行一个集群 |
-| `infos[].cluster_domain` | string | 是 | 集群域名 |
+| `infos[]` | object[] | 是 | 升降配信息，每行一个代表集群 |
+| `infos[].cluster_domain` | string | 是 | 集群域名（代表集群） |
 | `infos[].target_spec_id` | int | 是 | 目标规格 ID |
 | `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
-| `is_safe` | bool | 否（默认 `true`） | 安全模式 |
 
 **输出字段**
 
@@ -185,7 +238,9 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_mysql_destroy 
 
 **行为约定**
 
-- 每行一个集群，`cluster_ids` 固定为单集群，不自动合并同组共享集群。
+- 每行一个代表集群（`cluster_domain` + `target_spec_id` + `labels`），同机关联集群自动合并。
+- 升降配是整机维度操作：同一台 proxy 机器上的多个端口实例按「机器」去重，`origin_proxies` 的 `port` 统一置 `0`，`target_proxies.count` 为去重后的机器数。
+- 自动补齐同机关联集群：只提交一个代表集群时，底层会自动反查该机器上的全部同机共享集群（proxy 机器集合完全一致），合并为同一行提单，`cluster_ids` 传全。同机共享集群共享同一 `target_spec_id` 与 `labels`。
 - 目标规格统一校验（存在 + 启用 + proxy 类型）；`labels` 随每行资源申请参数生效。
 
 **调用示例**
@@ -200,7 +255,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_proxy_conf_cha
 
 ## `submit_bill_tendbha_migrate`：创建 TenDBHA 主从迁移单据
 
-**用途**：对一批 TenDBHA 集群做主从迁移，支持多行，每行一个集群 + 独立规格/数量/标签。
+**用途**：对一批 TenDBHA 集群做主从迁移，支持多行，每行一个集群或机器组 + 独立规格/数量/标签。
 
 **operation_id**：`mysql_bill_submit_bill_tendbha_migrate`
 
@@ -208,7 +263,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_proxy_conf_cha
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `infos[]` | object[] | 是 | 迁移信息，每行一个集群 |
+| `infos[]` | object[] | 是 | 迁移信息，每行一个集群或机器组 |
 | `infos[].cluster_domain` | string | 是 | 集群域名 |
 | `infos[].spec_id` | int | 是 | 目标规格 ID |
 | `infos[].count` | int | 否（默认 `1`） | 机器组数（1组=1主+1从） |
@@ -216,7 +271,6 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_proxy_conf_cha
 | `opera_object` | string | 是 | 迁移类型：`cluster`=集群迁移，`machine`=整机迁移 |
 | `backup_source` | string | 否（默认 `remote`） | 备份源 |
 | `need_checksum` | bool | 否（默认 `true`） | 执行前是否数据校验 |
-| `is_safe` | bool | 否（默认 `true`） | 安全模式 |
 
 **输出字段**
 
@@ -228,15 +282,30 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_proxy_conf_cha
 
 **行为约定**
 
-- `spec_id` / `count` / `labels` 每行独立；`opera_object` / `backup_source` / `need_checksum` / `is_safe` 整单共用。
+- `spec_id` / `count` / `labels` 每行独立；`opera_object` / `backup_source` / `need_checksum` 整单共用。
 - 目标规格按 backend 存储类型校验（存在 + 启用）。
+- 两种迁移类型的行为差异：
+
+| opera_object | 迁移类型 | `infos` 行粒度 | `cluster_ids` |
+|---|---|---|---|
+| `cluster` | 集群迁移 | 每集群一行 | 单集群 `[id]` |
+| `machine` | 整机迁移 | 每「master + standby slave」机器组一行 | 该机器组承载的全部同机关联集群 |
+
+- `machine`（整机迁移）会按 `(master_host_id, slave_host_id)` 聚合：master 与 standby slave 机器组合完全一致的集群合并为一行；只提交一个代表集群时，底层自动补齐同机关联集群并继承该组的 `spec_id` / `count` / `labels`。
+- 同一机器组内 `spec_id` / `count` / `labels` 必须一致，否则报错。
 
 **调用示例**
 
 ```bash
+# 集群迁移：只迁移目标集群
 dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbha_migrate \
   body_param='{"infos": [{"cluster_domain": "ha1.db.com", "spec_id": 12, "count": 1}], "opera_object": "cluster"}' \
   --raw-query "对 ha1.db.com 做集群迁移"
+
+# 整机迁移：主机关联的所有集群一并迁移
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbha_migrate \
+  body_param='{"infos": [{"cluster_domain": "ha1.db.com", "spec_id": 12, "count": 1}], "opera_object": "machine"}' \
+  --raw-query "对 ha1.db.com 做整机迁移"
 ```
 
 ---
@@ -256,7 +325,6 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbha_migrat
 | `infos[].spider_role` | string | 是 | 接入层角色：`spider_master`=主接入层，`spider_slave`=从接入层 |
 | `infos[].target_spec_id` | int | 是 | 目标规格 ID |
 | `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
-| `is_safe` | bool | 否（默认 `true`） | 安全模式 |
 
 **输出字段**
 
@@ -312,7 +380,7 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_spider_conf_ch
 - 集群总分片数（`cluster_shard_num`）由工具从 db_meta 自动查询，固定不变；单机分片数 = 总分片数 / 机器组数，要求 `count` 能整除总分片数。
 - 目标规格按 remote（backend 存储类型）校验（存在 + 启用）。
 - `prev_cluster_spec_name` / `prev_machine_pair` / 变更前规格由工具自动填充。
-- 该工具**不支持** `is_safe` 参数（与 proxy/spider 升降配不同），无安全模式开关。
+- 该工具**不支持** `is_safe` 参数，安全模式固定开启（与 proxy/spider 升降配、主从迁移一致）。
 
 **调用示例**
 
@@ -320,4 +388,255 @@ dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_spider_conf_ch
 dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbcluster_node_rebalance \
   body_param='{"infos": [{"cluster_domain": "spider1.db.com", "spec_id": 12, "count": 2}]}' \
   --raw-query "对 spider1.db.com 做容量变更到 2 组机器"
+```
+
+---
+
+## `submit_bill_tendbcluster_fullbackup`：创建 TenDBCluster 全库备份单据
+
+**用途**：对一个或多个 TenDBCluster 集群发起全库备份，默认物理备份、RemoteDR（remote slave）节点、保存 1 个月。
+
+**operation_id**：`mysql_bill_submit_bill_tendbcluster_fullbackup`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `bk_biz_id` | int | 是 | 业务 ID |
+| `cluster_domains` | string[] | 是 | 集群域名列表（支持多个，需同为 TenDBCluster） |
+| `backup_type` | string | 否（默认 `physical`） | 备份类型：`physical`=物理备份，`logical`=逻辑备份 |
+| `backup_local` | string | 否（默认 `slave`） | 备份位置：`slave`=RemoteDR（remote slave），`master`=remote master |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的全库备份单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 支持一次传入多个集群，但必须同为 TenDBCluster 类型，混合类型直接报错，不产生单据。
+- `cluster_domains` 为空时显式报错，不产生单据。
+- 按 `bk_biz_id` + `cluster_domains` 匹配；未找到的集群显式报错，不产生单据。
+- 备份保存时间固定为 1 个月（`file_tag=DBFILE1M`）。
+- 单据 `details` 结构：`{"backup_type": <backup_type>, "file_tag": "DBFILE1M", "infos": [{"cluster_id": ..., "backup_local": <backup_local>}, ...]}`，并通过 `TenDBClusterFullBackUpDetailSerializer` 校验集群状态与备份位置。
+- **幂等防重**：在 5 分钟窗口内，同一 `creator` + `bk_biz_id` + 相同集群集合的未完结单据（含 `PENDING`/审批/待执行/执行中/失败待处理等状态）已存在时，直接复用该单据并返回其 `bill_id`，不会重复提单。
+
+**调用示例**（`dbm-mcp-cli`）
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbcluster_fullbackup \
+  body_param='{"bk_biz_id": 918, "cluster_domains": ["spider.test.mysql.db"]}' \
+  --raw-query "对 spider.test.mysql.db 做物理备份"
+```
+
+---
+
+## `submit_bill_spider_rebuild`：创建 TenDBCluster 接入层原地重建单据
+
+**用途**：对一批 TenDBCluster 集群的接入层（spider）实例做原地重建，按 `(cluster_id, spider_role)` 分组。
+
+**operation_id**：`mysql_bill_submit_bill_spider_rebuild`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `cluster_domains` | string[] | 是 | 集群域名列表（支持多个，需同为 TenDBCluster） |
+| `ips` | string[] | 是 | 待重建的 spider 实例 IP 列表 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的原地重建单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 仅支持接入层角色（`spider_master` / `spider_slave`），不支持 `spider_ctl` / `spider_mnt` 等非接入层角色，遇到即报错。
+- `ips` 为空时显式报错，不产生单据。
+- 每个 IP 必须能反查到 spider 实例；未找到的 IP 显式报错，不产生单据。
+- 反查所有 spider 实例承载集群的并集必须等于输入集群，不一致时显式报错（列出缺少/多余项），防止跨集群 IP 被静默丢弃。
+- 按 `(cluster_id, spider_role)` 分组生成 `infos`，每个集群的每个角色一行，`spider_ip_list` 为该角色下待重建的 spider 实例列表。
+- **幂等防重**：在 5 分钟窗口内，同一 `creator` + `bk_biz_id` + 相同 `(cluster_id, spider_role, ip 集合)` 的未完结单据已存在时，直接复用该单据并返回其 `bill_id`，不会重复提单。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_spider_rebuild \
+  body_param='{"cluster_domains": ["spider.test.mysql.db"], "ips": ["192.168.1.10"]}' \
+  --raw-query "对 spider.test.mysql.db 的 spider 实例 192.168.1.10 原地重建"
+```
+
+---
+
+## `submit_bill_tendbcluster_slave_rebuild`：创建 TenDBCluster slave 原地重建单据
+
+**用途**：对一批 TenDBCluster 集群的 remote slave 实例做原地重建，按实例（ip:port）展开。
+
+**operation_id**：`mysql_bill_submit_bill_tendbcluster_slave_rebuild`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `cluster_domains` | string[] | 是 | 集群域名列表（支持多个，需同为 TenDBCluster） |
+| `ips` | string[] | 是 | 待重建的 remote slave 实例 IP 列表 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的原地重建单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 每个 IP 必须能反查到 remote slave 实例；未找到的 IP 显式报错，不产生单据。
+- `ips` 为空时显式报错，不产生单据。
+- 一台 remote 机器上可能存在多个分片的 slave 实例（不同端口），按实例（ip:port）逐行展开。
+- 反查所有 slave 实例承载集群的并集必须等于输入集群，不一致时显式报错（列出缺少/多余项）。
+- 备份源固定为 `remote`，`force` 固定为 `false`（不对外暴露跳过检查开关）。
+- **幂等防重**：在 5 分钟窗口内，同一 `creator` + `bk_biz_id` + 相同 `(cluster_id, ip, port)` 集合的未完结单据已存在时，直接复用该单据并返回其 `bill_id`，不会重复提单。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbcluster_slave_rebuild \
+  body_param='{"cluster_domains": ["spider.test2.mysql.db"], "ips": ["192.168.1.11"]}' \
+  --raw-query "对 spider.test2.mysql.db 的 remote slave 实例 192.168.1.11 原地重建"
+```
+
+---
+
+## `submit_bill_tendbcluster_migrate`：创建 TenDBCluster 主从迁移单据
+
+**用途**：对一批 TenDBCluster 集群的 remote 主从（一主一从整组）发起主从迁移，迁移到目标规格的新机器组。
+
+**operation_id**：`mysql_bill_submit_bill_tendbcluster_migrate`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `infos` | object[] | 是 | 迁移信息列表，每行一对 remote 主从 |
+| `infos[].cluster_domain` | string | 是 | 集群域名 |
+| `infos[].old_master_ip` | string | 是 | 旧 remote master IP |
+| `infos[].old_slave_ip` | string | 是 | 旧 remote slave IP |
+| `infos[].spec_id` | int | 是 | 目标规格 ID |
+| `infos[].count` | int | 否（默认 `1`） | 机器组数（1组=1主+1从） |
+| `infos[].labels` | string[] | 否（默认 `[]`） | 资源标签 ID 列表 |
+| `backup_source` | string | 否（默认 `remote`） | 备份源 |
+| `need_checksum` | bool | 否（默认 `true`） | 执行前是否数据校验 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的主从迁移单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- 支持一次传入多行，但每行的 `cluster_domain` 不能重复（同一集群一行）。
+- `infos` 为空时显式报错，不产生单据。
+- 按 `cluster_domain` 匹配；未找到的集群显式报错，不产生单据。
+- `old_master_ip` / `old_slave_ip` 必须能反查到该集群的 remote master / slave 实例，否则显式报错。
+- 目标规格按 remote（backend）类型校验（存在 + 启用）。
+- `is_safe` 固定为 `true`（安全模式），不对外暴露开关。
+- `ip_source` 固定为 `resource_pool`（资源池自动分配新机器）。
+- **幂等防重**：在 5 分钟窗口内，同一 `creator` + `bk_biz_id` + 相同 `(cluster_id, old_master_ip, old_slave_ip)` 集合的未完结单据已存在时，直接复用该单据并返回其 `bill_id`，不会重复提单。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbcluster_migrate \
+  body_param='{"infos": [{"cluster_domain": "spider.test2.mysql.db", "old_master_ip": "192.168.1.12", "old_slave_ip": "192.168.1.11", "spec_id": 490}]}' \
+  --raw-query "对 spider.test2.mysql.db 的 remote 主从 192.168.1.12/192.168.1.11 做主从迁移"
+```
+
+---
+
+## `submit_bill_proxy_rebuild`：创建 TenDBHA proxy 原地重建单据
+
+**用途**：对一批 TenDBHA 集群的 proxy 实例做原地重建，按集群分组，每个集群一行。
+
+**operation_id**：`mysql_bill_submit_bill_proxy_rebuild`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `cluster_domains` | string[] | 是 | 集群域名列表（支持多个，需同为 TenDBHA） |
+| `ips` | string[] | 是 | 待重建的 proxy 实例 IP 列表 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的原地重建单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- `ips` 为空时显式报错，不产生单据。
+- 每个 IP 必须能反查到 proxy 实例；未找到的 IP 显式报错，不产生单据。
+- 反查所有 proxy 实例承载集群的并集必须等于输入集群，不一致时显式报错（列出缺少/多余项），防止跨集群 IP 被静默丢弃。
+- 按 `cluster_id` 分组生成 `infos`，每个集群一行，`rebuild_proxy_hosts` 为该集群下的 proxy 实例列表。
+- `is_safe` 固定为 `true`（安全模式），不对外暴露开关。
+- **幂等防重**：在 5 分钟窗口内，同一 `creator` + `bk_biz_id` + 相同 `(cluster_id, ip 集合)` 的未完结单据已存在时，直接复用该单据并返回其 `bill_id`，不会重复提单。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_proxy_rebuild \
+  body_param='{"cluster_domains": ["demo.mysql.db"], "ips": ["192.168.1.13"]}' \
+  --raw-query "对 demo.mysql.db 的 proxy 实例 192.168.1.13 原地重建"
+```
+
+---
+
+## `submit_bill_tendbha_slave_rebuild`：创建 TenDBHA 存储 slave 原地重建单据
+
+**用途**：对一批 TenDBHA 集群的存储 slave 实例做原地重建，在原机重建实例，不申请新资源、不涉及规格选择。
+
+**operation_id**：`mysql_bill_submit_bill_tendbha_slave_rebuild`
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `cluster_domains` | string[] | 是 | 集群域名列表（支持多个，需同为 TenDBHA） |
+| `ips` | string[] | 是 | 待重建的 slave 实例 IP 列表 |
+
+**输出字段**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `bills[]` | object[] | 生成的原地重建单据列表 |
+| `bills[].bill_id` | int | 单据 ID |
+| `bills[].bill_url` | string | 单据链接 |
+
+**行为约定**
+
+- `ips` 为空时显式报错，不产生单据。
+- 每个 IP 必须能反查到 slave 实例；未找到的 IP 显式报错，不产生单据。
+- 反查所有 slave 实例承载集群的并集必须等于输入集群，不一致时显式报错（列出缺少/多余项），防止跨集群 IP 被静默丢弃。
+- 每个 slave 实例（`ip:port`）单独一行，一行对应一个 slave 实例 + 所属集群；**原地重建不申请新资源**（无 `resource_spec` / `ip_source` 字段）。
+- `backup_source` 固定为 `remote`。
+- **幂等防重**：在 5 分钟窗口内，同一 `creator` + `bk_biz_id` + 相同 `(cluster_id, slave_ip, slave_port)` 的未完结单据已存在时，直接复用该单据并返回其 `bill_id`，不会重复提单。
+
+**调用示例**
+
+```bash
+dbm-mcp-cli call bkdbm-mcp-prod-mysql-bill.mysql_bill_submit_bill_tendbha_slave_rebuild \
+  body_param='{"cluster_domains": ["demo2.mysql.db"], "ips": ["192.168.1.14"]}' \
+  --raw-query "对 demo2.mysql.db 的 slave 实例 192.168.1.14 原地重建"
 ```

@@ -42,6 +42,7 @@ class BenchmarkHostConfig(AuditedModel):
     disk_quantity = models.IntegerField(_("磁盘数量"), help_text=_("该配置使用的磁盘数量，如 2、4、8、16"))
 
     class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"
         verbose_name = _("性能基准测试主机配置")
         verbose_name_plural = _("性能基准测试主机配置")
         unique_together = ("baseline_host", "baseline_disk", "os_version", "disk_quantity")
@@ -97,6 +98,7 @@ class TenDBSingleBenchmark(AuditedModel):
     cpu_usage_rate = models.FloatField(_("CPU使用率(%)"), null=True, blank=True, help_text=_("CPU使用率，百分比，0-100"))
 
     class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"
         verbose_name = _("TenDBSingle性能基准测试结果")
         verbose_name_plural = _("TenDBSingle性能基准测试结果")
         unique_together = ("host_config", "mysql_version", "concurrent_threads", "read_write_ratio")
@@ -186,6 +188,7 @@ class TenDBHABenchmark(AuditedModel):
     )
 
     class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"
         verbose_name = _("TenDBHA性能基准测试结果")
         verbose_name_plural = _("TenDBHA性能基准测试结果")
         unique_together = (
@@ -291,6 +294,7 @@ class TenDBClusterBenchmark(AuditedModel):
     )
 
     class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"
         verbose_name = _("TenDBCluster性能基准测试结果")
         verbose_name_plural = _("TenDBCluster性能基准测试结果")
         unique_together = (
