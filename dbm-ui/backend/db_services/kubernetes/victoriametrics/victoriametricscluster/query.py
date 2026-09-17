@@ -26,6 +26,7 @@ from backend.flow.utils.k8s_db.vm.consts import (
     VMINSERT_SERVICE_NAME,
     VMSELECT_SERVICE_NAME,
 )
+from backend.flow.utils.vm.consts import VMSTORAGE_NODE_START_PORT
 
 # CLB ID 标注键，按优先级排序
 CLB_ID_ANNOTATION_KEYS = [
@@ -45,7 +46,6 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
     cluster_types = [ClusterType.K8sVictoriametricsCluster]
     instance_roles = [InstanceRole.VM_INSERT, InstanceRole.VM_SELECT, InstanceRole.VM_STORAGE]
     fields = [
-        {"name": _("存储入口"), "key": "storage_entry"},
         *VictoriaMetricsBaseListRetrieveResource.fields,
     ]
 
@@ -90,8 +90,13 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
     @classmethod
     def _get_storage_entry(cls, cluster: Cluster) -> str:
         storage_instances = getattr(cluster, "storages", cluster.storageinstance_set.all())
+        vmstorage_instances = sorted(
+            [inst for inst in storage_instances if inst.instance_role == InstanceRole.VM_STORAGE.value],
+            key=lambda inst: inst.id,
+        )
         return "\n".join(
-            inst.ip_port for inst in storage_instances if inst.instance_role == InstanceRole.VM_STORAGE.value
+            f"{cluster.immute_domain}:{VMSTORAGE_NODE_START_PORT + index}"
+            for index, _inst in enumerate(vmstorage_instances)
         )
 
     @classmethod
