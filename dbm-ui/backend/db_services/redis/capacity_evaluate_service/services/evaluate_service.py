@@ -28,6 +28,13 @@ from .capacity_cal import CapacityCalculateService
 
 logger = logging.getLogger("root")
 
+# 容量评估 QPS 模型常量（MCP get_supported_qps 与 evaluate 共用，避免公式漂移）
+EVAL_QPS_MODEL = {
+    "proxy_qps": 20000,
+    "shard_qps_per_core": 60000,
+    "ssd_shard_qps_per_core": 6000,
+}
+
 
 class Response:
     """单个评估结果"""
@@ -112,11 +119,7 @@ class CapacityEvaluateService:
 
     def __init__(self):
         """初始化容量评估服务"""
-        self.model = {
-            "proxy_qps": 20000,
-            "shard_qps_per_core": 60000,
-            "ssd_shard_qps_per_core": 6000,
-        }
+        self.model = dict(EVAL_QPS_MODEL)
 
     @classmethod
     def evaluate_one(cls, action_info: dict, req: dict, bk_biz_id: int, cluster_id: int) -> Response:
@@ -125,11 +128,7 @@ class CapacityEvaluateService:
         capacity_info = {}
         try:
             capacity_info = cls._calculate_capacity(bk_biz_id, cluster_id)
-            model = {
-                "proxy_qps": 20000,
-                "shard_qps_per_core": 60000,
-                "ssd_shard_qps_per_core": 6000,
-            }
+            model = dict(EVAL_QPS_MODEL)
 
             resp = cls.evaluate_one_by_model(capacity_info, action_info, req, model, start_time)
             resp.time_elapsed_ms = cls._calculate_elapsed_time(start_time)
