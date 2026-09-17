@@ -56,7 +56,6 @@ class VmDBMeta(object):
             "bk_biz_id": self.ticket_data["bk_biz_id"],
             "cluster_type": self.ticket_data["cluster_type"],
             "immute_domain": self.ticket_data["domain"],
-            "vmselect_domain": self.ticket_data["vmselect_domain"],
             "major_version": self.ticket_data["major_version"],
             "phase": "online",
             "status": "normal",
