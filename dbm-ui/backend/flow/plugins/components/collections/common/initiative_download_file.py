@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import shlex
 
 from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
@@ -46,6 +47,17 @@ download_script_content = """
 """  # noqa
 
 
+def render_initiative_download_script(file_url: str, new_dbactor_md5sum: str, domain: str) -> str:
+    """渲染主动下载脚本。file_url 进 Job shell 前必须 shlex.quote，模板里不要再套引号。"""
+    jinja_env = Environment()
+    template = jinja_env.from_string(download_script_content)
+    return template.render(
+        file_url=shlex.quote(file_url),
+        new_dbactor_md5sum=new_dbactor_md5sum,
+        domain=domain,
+    )
+
+
 class InitiativeDownloadFile(BkShortJobService):
     def __get_exec_ips(self, kwargs, trans_data) -> list:
         """
@@ -65,14 +77,7 @@ class InitiativeDownloadFile(BkShortJobService):
         file_url = kwargs["file_url"]
         new_dbactor_md5sum = kwargs["md5sum"]
         domain = env.BKREPO_ENDPOINT_URL.replace("https://", "").replace("http://", "").rstrip("/")
-        # 脚本内容
-        jinja_env = Environment()
-        template = jinja_env.from_string(download_script_content)
-        script_content = template.render(
-            file_url=file_url,
-            new_dbactor_md5sum=new_dbactor_md5sum,
-            domain=domain,
-        )
+        script_content = render_initiative_download_script(file_url, new_dbactor_md5sum, domain)
 
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
