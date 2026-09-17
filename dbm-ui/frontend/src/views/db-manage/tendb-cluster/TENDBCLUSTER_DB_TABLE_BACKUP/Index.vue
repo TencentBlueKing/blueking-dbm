@@ -130,14 +130,15 @@
 
   const batchInputConfig = [
     {
-      case: 'tendbha.test.dba.db',
+      case: 'spider.test.dba.db',
       key: 'master_domain',
       label: t('目标集群'),
     },
     {
-      case: '192.168.10.2:20000',
+      case: 'RemoteDR',
       key: 'backup_local',
       label: t('备份位置'),
+      values: ['RemoteDR', '192.168.0.1:10000'],
     },
     {
       case: '*',
