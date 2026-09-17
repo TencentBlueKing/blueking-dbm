@@ -20,6 +20,7 @@ from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
 from ..exception import DataAPIException
+from .constants import ANTI_AFFINITY_LEVEL_ANTI_CAMPUS, RES_ASSIGN_SPLIT_CAMPUS, SUBZONE_ALL
 
 
 class _HCMApi(BaseApi):
@@ -136,6 +137,56 @@ class _HCMApi(BaseApi):
         resp = self.create_biz_recycle(params=params, use_param_user=True)
         return resp["info"][0]["order_id"]
 
+    @staticmethod
+    def get_region_by_city(city: str) -> str:
+        """subzone=SUBZONE_ALL（可用区全部）时，云地域由城市关联查询，取任意一个有效值
+
+        同一城市下的园区默认归属同一云地域，因此取任意一个非空值即可；若城市下没有任何配置了
+        云地域的园区，说明园区数据未配置完整，直接抛配置类错误
+        """
+        region = (
+            BKSubzone.objects.filter(bk_city__bk_idc_city_name=city)
+            .exclude(bk_cloud_region__isnull=True)
+            .exclude(bk_cloud_region="")
+            .values_list("bk_cloud_region", flat=True)
+            .first()
+        )
+        if not region:
+            raise DataAPIException(_("城市{}未找到对应的云地域").format(city))
+        return region
+
+    @classmethod
+    def _resolve_region_zone(cls, subzone: str, city: str = None) -> tuple:
+        """解析云地域/云可用区，返回 (region, zone)
+
+        - subzone 为具体园区：由园区记录反查 region/zone
+        - subzone 为 SUBZONE_ALL：海磊侧「可用区：全部」，zone 为 None（提单改传 zones=["all"] +
+          res_assign + anti_affinity_level），region 由城市关联查询得到
+        """
+        if subzone == SUBZONE_ALL:
+            if not city:
+                raise DataAPIException(_("subzone为{}时必须提供城市，用于关联查询云地域").format(subzone))
+            return cls.get_region_by_city(city), None
+        try:
+            bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
+        except BKSubzone.DoesNotExist:
+            raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
+        return bk_subzone.bk_cloud_region, bk_subzone.bk_cloud_zone
+
+    @staticmethod
+    def _fill_zone_info(spec: dict, zone):
+        """填充 spec 的可用区信息
+
+        指定园区时传 zone；subzone=SUBZONE_ALL 时传 zones=["all"]（可用区全部）+ res_assign +
+        anti_affinity_level=ANTI_CAMPUS（分 Campus 生产），资源分配交由海磊跨园区调度
+        """
+        if zone:
+            spec["zone"] = zone
+        else:
+            spec["zones"] = [SUBZONE_ALL]
+            spec["res_assign"] = RES_ASSIGN_SPLIT_CAMPUS
+            spec["anti_affinity_level"] = ANTI_AFFINITY_LEVEL_ANTI_CAMPUS
+
     def create_apply(
         self,
         bk_biz_id: str,
@@ -163,6 +214,14 @@ class _HCMApi(BaseApi):
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
+        # 查询云地域和云可用区（subzone=SUBZONE_ALL 时云地域由城市关联查询，提单改传 zones=["all"]）
+        region, zone = self._resolve_region_zone(subzone, city)
+
+        # 根据操作系统名称获取镜像ID
+        image_id = hcm_image_map.get(os_name.strip().lower())
+        if not image_id:
+            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
+
         # 查询cc的园区需要拿园区映射关系（HCM可能是虚拟园区，要拿映射的真实园区查询）TODO: 暂不需要约束CC园区
         # subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
         # subzones = subzone_map.get(subzone) or [subzone]
@@ -184,44 +243,35 @@ class _HCMApi(BaseApi):
         if not host:
             raise DataAPIException(_("未找到同地域同机型的机器"))
 
-        # 查询云可用区和云地域
-        try:
-            bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
-        except BKSubzone.DoesNotExist:
-            raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
-
-        # 根据操作系统名称获取镜像ID
-        image_id = hcm_image_map.get(os_name.strip().lower())
-        if not image_id:
-            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
-
         # 预期申请时间定位当前时间+3月(HCM规则?)
         expect_apply_time = str((datetime.now() + timedelta(days=91)).strftime("%Y-%m-%d %H:%M:%S"))
 
+        spec = {
+            "region": region,
+            # 按机型申请
+            "resource_mode": 0,
+            "device_type": device_types[device_index],
+            "image_id": image_id,
+            # 操作系统盘默认高性能云盘-50G
+            "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
+            "data_disk": [
+                {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"], "disk_num": 1}
+                for d in disk
+                if d["disk_type"] in HCM_DISK_CLASS_MAP
+            ],
+            # 计费时长固定为包年包月，36个月
+            "charge_type": "PREPAID",
+            "charge_months": 36,
+            "inherit_instance_id": host[0]["bk_cloud_inst_id"],
+        }
+        self._fill_zone_info(spec, zone)
         suborder_params = {
             # 资源类型：腾讯云虚拟机
             "resource_type": "QCLOUDCVM",
             "replicas": count,
-            "spec": {
-                "region": bk_subzone.bk_cloud_region,
-                "zone": bk_subzone.bk_cloud_zone,
-                # 按机型申请
-                "resource_mode": 0,
-                "device_type": device_types[device_index],
-                "image_id": image_id,
-                # 操作系统盘默认高性能云盘-50G
-                "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
-                "data_disk": [
-                    {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"], "disk_num": 1}
-                    for d in disk
-                    if d["disk_type"] in HCM_DISK_CLASS_MAP
-                ],
-                # 计费时长固定为包年包月，36个月
-                "charge_type": "PREPAID",
-                "charge_months": 36,
-                "inherit_instance_id": host[0]["bk_cloud_inst_id"],
-            },
+            "spec": spec,
         }
+
         apply_params = {
             "bk_biz_id": bk_biz_id,
             "bk_username": username,
@@ -241,6 +291,7 @@ class _HCMApi(BaseApi):
         ticket_id: int,
         username: str,
         subzone: str,
+        city: str,
         os_name: str,
         device_types: list,
         disk: list,
@@ -254,11 +305,8 @@ class _HCMApi(BaseApi):
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
-        # 查询云可用区和云地域
-        try:
-            bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
-        except BKSubzone.DoesNotExist:
-            raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
+        # 查询云地域和云可用区（subzone=SUBZONE_ALL 同 create_apply，云地域由城市关联查询）
+        region, zone = self._resolve_region_zone(subzone, city)
 
         # 根据操作系统名称获取镜像ID
         image_id = hcm_image_map.get(os_name.strip().lower())
@@ -267,8 +315,7 @@ class _HCMApi(BaseApi):
 
         # 组装修改需求参数，主要是修改机型
         suborder_spec_params = {
-            "region": bk_subzone.bk_cloud_region,
-            "zone": bk_subzone.bk_cloud_zone,
+            "region": region,
             "device_type": device_types[device_index],
             "image_id": image_id,
             # 操作系统盘默认高性能云盘-50G
@@ -279,6 +326,7 @@ class _HCMApi(BaseApi):
                 if d["disk_type"] in HCM_DISK_CLASS_MAP
             ],
         }
+        self._fill_zone_info(suborder_spec_params, zone)
         modify_apply_params = {
             "bk_biz_id": bk_biz_id,
             "suborder_id": suborder_id,

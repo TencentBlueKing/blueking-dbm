@@ -746,7 +746,7 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
     city = serializers.CharField(help_text=_("城市"))
-    subzone = serializers.CharField(help_text=_("园区名称"))
+    subzone = serializers.CharField(help_text=_("园区名称；传 '*' 表示海磊侧选择「可用区：全部，资源分布式方式：分 Campus（Camplus）生产」"))
     os_name = serializers.CharField(help_text=_("操作系统名称"))
     count = serializers.IntegerField(help_text=_("申请数量"))
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)

@@ -31,7 +31,20 @@ logger = logging.getLogger("root")
 
 class HcmResourceReplenishMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
-        description=str(_("创建海磊主机补货记录")),
+        description=str(
+            _(
+                """
+                创建海磊主机资源补货记录（异步提单，返回 record_id 用于轮询补货状态）
+                支持的参数（infos 数组内每一项）：
+                db_type 类型str 数据库类型，如 mysql
+                spec_id 类型int 规格ID
+                city 类型str 城市，如 上海
+                subzone 类型str 园区名称；传 '*' 表示海磊侧选择「可用区：全部，资源分布式方式：分 Campus（Camplus）生产」
+                os_name 类型str 操作系统名称
+                count 类型int 申请数量
+                """
+            )
+        ),
         request_slz=HcmResourceReplenishInputSerializer,
         response_slz=HcmResourceReplenishOutputSerializer,
         tags=[DBMMCPTags.WRITE],
