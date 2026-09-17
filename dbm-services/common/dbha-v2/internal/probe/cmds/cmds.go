@@ -196,13 +196,14 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Uptime collection: exit with a dedicated code on failure.
-	// TODO: report the collected uptime value in the health JSON output.
-	if _, err := machine.UptimeSeconds(); err != nil {
+	uptime, err := process.SystemUptime()
+	if err != nil {
 		fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
 		os.Exit(process.ExitCodeHealthUptimeFail)
 	}
 
 	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
+	baseHealth.Uptime = int64(uptime.Seconds())
 
 	probeHealth := &ProbeHealthInfo{
 		HealthInfo: baseHealth,

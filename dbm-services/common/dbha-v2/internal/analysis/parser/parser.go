@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+// Package parser defines the interfaces and types for parsing raw DB status
+// payloads into DB events.
 package parser
 
 import (
@@ -42,6 +44,9 @@ type Processer interface {
 type DBTyperWrapper struct {
 	DbTypeName haprobe.DbType
 	Value      json.RawMessage
+	BkCloudID  int
+	DbIp       string
+	DbPort     int
 }
 
 var (

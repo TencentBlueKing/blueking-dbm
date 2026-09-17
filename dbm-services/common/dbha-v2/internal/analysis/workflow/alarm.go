@@ -85,6 +85,37 @@ func (n *AlarmNotifier) TriggerWithDetectorResponse(procName string, status proc
 	}
 }
 
+// TriggerWithEvent sends a notification for the event before liveness double-check.
+func (n *AlarmNotifier) TriggerWithEvent(event *haprobe.DbEvent) {
+	if event == nil || event.Endpoint == nil {
+		logger.Warn("skip notification: nil event or endpoint")
+		return
+	}
+
+	target := instanceKey(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
+	monitorEvent := &monitor.EventData{
+		Name:      event.Name.String(),
+		Target:    target,
+		Timestamp: uint64(time.Now().UnixMilli()),
+	}
+
+	monitorEvent.Content.Content = event.Message
+
+	monitorEvent.Dimension.BkCloudId = event.BkCloudID
+	monitorEvent.Dimension.IP = event.Endpoint.Host
+	monitorEvent.Dimension.Port = event.Endpoint.Port
+	monitorEvent.Dimension.DbTypeName = event.DbTypeName
+	monitorEvent.Dimension.DbEventName = event.Name
+	monitorEvent.Dimension.DbEventNameReason = event.Reason.Str()
+
+	logger.Info("send a notification before double-check, db-inst: %s, event: %s, content: %s",
+		target, event.Name, event.Message)
+
+	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+		logger.Warn("failed to post the alarm event to BkMonitor, errmsg: %s", err)
+	}
+}
+
 // TriggerWithBizId posts an alarm event for a business ID.
 func (n *AlarmNotifier) TriggerWithBizId(bizId int, content string) {
 	target := fmt.Sprintf("BizId: %d", bizId)

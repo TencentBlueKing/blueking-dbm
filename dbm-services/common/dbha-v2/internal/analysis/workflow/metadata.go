@@ -212,6 +212,9 @@ func (r *MetadataReader) ExtractDbStatusData(dbStatus []*hamodel.DbhaDataStatus)
 			data.DbStatusVals = append(data.DbStatusVals, parser.DBTyperWrapper{
 				DbTypeName: dbStat.DbTypeName,
 				Value:      dbStat.Value.Data,
+				BkCloudID:  dbStat.BkCloudID,
+				DbIp:       dbStat.DbIp,
+				DbPort:     dbStat.DbPort,
 			})
 		}
 	}

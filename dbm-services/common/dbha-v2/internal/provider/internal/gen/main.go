@@ -43,6 +43,7 @@ const (
 	targetProbe aggregateTarget = iota
 	targetAnalysis
 	targetDesc
+	targetCredential
 )
 
 func main() {
@@ -81,6 +82,12 @@ func run() error {
 			dir:     "alldesc",
 			pkg:     "alldesc",
 			comment: "Blank-import all CapDesc provider packages (dbtypedesc only).",
+		},
+		{
+			target:  targetCredential,
+			dir:     "allcredential",
+			pkg:     "allcredential",
+			comment: "Blank-import all credential provider packages (dbtypedesc + credential).",
 		},
 	}
 
@@ -126,6 +133,10 @@ func collectImports(entries []provider.Entry, target aggregateTarget) []string {
 			case provider.CapMetrics:
 				if target == targetAnalysis {
 					add(e.BasePath + "/metrics")
+				}
+			case provider.CapCredential:
+				if target == targetCredential {
+					add(e.BasePath + "/credential")
 				}
 			}
 		}
