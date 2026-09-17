@@ -195,6 +195,23 @@
   const accounts = ref<PermissionRuleAccount[]>([]);
   const existDBs = ref<string[]>([]);
 
+  /**
+   * 判断单个访问 DB 是否为 % 或 * 单独使用（未指定具体 DB 范围）
+   */
+  const checkWildcardAlone = (db: string) => db === '%' || db === '*';
+
+  /**
+   * 判断单个访问 DB 的匹配范围是否包含系统库 mysql
+   * % 视为多字符通配符，_ 视为单字符通配符，忽略大小写整体匹配 mysql
+   */
+  const checkAccessDBContainMysql = (db: string) => {
+    if (!db) {
+      return false;
+    }
+    const pattern = new RegExp(`^${db.replace(/%/g, '.*').replace(/_/g, '.')}$`, 'i');
+    return pattern.test('mysql');
+  };
+
   const rules = {
     access_db: [
       {
@@ -218,12 +235,12 @@
         },
       },
       {
-        message: t('% 不能单独使用'),
+        message: t('% 和 * 不能单独使用_请指定具体 DB 范围'),
         required: true,
         trigger: 'blur',
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : /^(?!%$).+$/.test(item)));
+          return _.every(dbs, (item) => (!item ? true : !checkWildcardAlone(item)));
         },
       },
       {
@@ -240,6 +257,15 @@
               ? true
               : /^[a-zA-Z0-9%]([a-zA-Z0-9_%-])*[a-zA-Z0-9%]$/.test(item) && /^(?!stage_truncate).*/.test(item),
           );
+        },
+      },
+      {
+        message: t('访问 DB 不能包含系统库 mysql'),
+        required: true,
+        trigger: 'blur',
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/).map((item) => item.trim());
+          return _.every(dbs, (item) => (!item ? true : !checkAccessDBContainMysql(item)));
         },
       },
       {
