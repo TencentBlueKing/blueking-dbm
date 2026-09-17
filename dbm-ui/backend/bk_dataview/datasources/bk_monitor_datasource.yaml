@@ -48,7 +48,7 @@ datasources:
     url: ${DBM_STATSDB_URL}
     user: ${DBM_STATSDB_USER}
     jsonData:
-      database:
+      database: ${DBM_STATSDB_NAME}
       maxOpenConns: 100
       maxIdleConns: 100
       maxIdleConnsAuto: true

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
@@ -86,7 +87,7 @@ func (p *PhysicalDumper) initConfig(mysqlVerStr string, logBinDisabled bool) err
 }
 
 // buildArgs 生成 xtrabackup 的命令行参数
-func (p *PhysicalDumper) buildArgs() []string {
+func (p *PhysicalDumper) buildArgs() ([]string, error) {
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalBackup.DefaultsFile),
 		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
@@ -162,9 +163,13 @@ func (p *PhysicalDumper) buildArgs() []string {
 		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
 	}
 	if p.cnf.PhysicalBackup.ExtraOpt != "" {
-		args = append(args, p.cnf.PhysicalBackup.ExtraOpt)
+		extraArgs, err := shellwords.Parse(p.cnf.PhysicalBackup.ExtraOpt)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse PhysicalBackup.ExtraOpt: %s", p.cnf.PhysicalBackup.ExtraOpt)
+		}
+		args = append(args, extraArgs...)
 	}
-	return args
+	return args, nil
 }
 
 // Execute excute dumping backup with physical backup tool
@@ -176,7 +181,10 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	}
 
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
-	args := p.buildArgs()
+	args, err := p.buildArgs()
+	if err != nil {
+		return err
+	}
 	if p.cnf.BackupToRemote.EnableRemote {
 		if ncSender, err := checkNcSenderVersion(); err != nil {
 			return err

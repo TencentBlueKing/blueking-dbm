@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
@@ -54,12 +55,8 @@ func (l *LogicalDumper) initConfig(mysqlVerStr string, logBinDisabled bool) erro
 	return nil
 }
 
-// Execute excute dumping backup with logical backup tool
-func (l *LogicalDumper) Execute(ctx context.Context) error {
-	l.backupStartTime = time.Now()
-	defer func() {
-		l.backupEndTime = time.Now()
-	}()
+// buildArgs 生成 mydumper 的命令行参数
+func (l *LogicalDumper) buildArgs() ([]string, error) {
 	binPath := filepath.Join(l.dbbackupHome, "/bin/mydumper")
 	args := []string{
 		"-h", l.cnf.Public.MysqlHost,
@@ -123,7 +120,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		}...)
 	}
 	if tableFilter, err := l.cnf.LogicalBackup.BuildArgsTableFilterForMydumper(); err != nil {
-		return err
+		return nil, err
 	} else {
 		args = append(args, tableFilter...)
 	}
@@ -165,7 +162,25 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		}
 	}
 	if l.cnf.LogicalBackup.ExtraOpt != "" {
-		args = append(args, l.cnf.LogicalBackup.ExtraOpt)
+		extraArgs, err := shellwords.Parse(l.cnf.LogicalBackup.ExtraOpt)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse LogicalBackup.ExtraOpt: %s", l.cnf.LogicalBackup.ExtraOpt)
+		}
+		args = append(args, extraArgs...)
+	}
+	return args, nil
+}
+
+// Execute excute dumping backup with logical backup tool
+func (l *LogicalDumper) Execute(ctx context.Context) error {
+	l.backupStartTime = time.Now()
+	defer func() {
+		l.backupEndTime = time.Now()
+	}()
+	binPath := filepath.Join(l.dbbackupHome, "/bin/mydumper")
+	args, err := l.buildArgs()
+	if err != nil {
+		return err
 	}
 
 	var cmd *exec.Cmd
