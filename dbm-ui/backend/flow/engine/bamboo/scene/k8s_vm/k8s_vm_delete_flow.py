@@ -53,7 +53,7 @@ class K8sVmDeleteFlow(K8sVmBaseFlow):
             kwargs=asdict(act_kwargs),
         )
 
-        # 清理域名(按cluster_id级联清理vminsert/vmselect双域名)
+        # 清理域名(按cluster_id级联清理集群统一域名)
         dns_kwargs = DnsKwargs(bk_cloud_id=self.bk_cloud_id, dns_op_type=DnsOpType.CLUSTER_DELETE)
         vm_pipeline.add_act(
             act_name=_("删除域名"),
