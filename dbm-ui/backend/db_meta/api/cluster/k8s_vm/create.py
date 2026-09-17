@@ -22,7 +22,6 @@ def create(
     bk_biz_id: int,
     cluster_type: str,
     immute_domain: str,
-    vmselect_domain: str,
     major_version: str,
     phase: str,
     status: str,
@@ -48,16 +47,11 @@ def create(
         cluster.updater = creator
         cluster.save(update_fields=[*cluster_defaults, "updater", "update_at"])
 
+    # vminsert / vmselect / vmstorage 共用统一域名，仅以端口区分，因此只落一条入口记录
     ClusterEntry.objects.get_or_create(
         cluster=cluster,
         cluster_entry_type=ClusterEntryType.CLBDNS,
         entry=immute_domain,
         defaults={"creator": creator, "role": ClusterEntryRole.MASTER_ENTRY.value},
-    )
-    ClusterEntry.objects.get_or_create(
-        cluster=cluster,
-        cluster_entry_type=ClusterEntryType.CLBDNS,
-        entry=vmselect_domain,
-        defaults={"creator": creator, "role": ClusterEntryRole.SLAVE_ENTRY.value},
     )
     return cluster.simple_desc

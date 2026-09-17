@@ -32,8 +32,7 @@ class K8sVmApplyContext:
     region_code: Optional[str] = None
     region_name: Optional[str] = None
     vpc_id: Optional[str] = None
-    vminsert_domain: Optional[str] = None
-    vmselect_domain: Optional[str] = None
+    vm_domain: Optional[str] = None
     clb_detail: Optional[dict] = None
     cluster_id: Optional[int] = None
     namespace: Optional[str] = None

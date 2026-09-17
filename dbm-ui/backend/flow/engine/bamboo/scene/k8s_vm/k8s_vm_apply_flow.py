@@ -29,15 +29,9 @@ from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vmselect_s
 from backend.flow.plugins.components.collections.k8s_vm.get_k8s_vm_clb_detail import GetK8sVmClbDetailComponent
 from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_sync_ticket_id import K8sVmSyncTicketIdComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_db_meta import VmDBMetaComponent
+from backend.flow.plugins.components.collections.k8s_vm.vm_dns_manage import VmDnsManageComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_sync_cluster import VmSyncClusterComponent
-from backend.flow.plugins.components.collections.k8s_vm.vm_vminsert_dns_manage import VmVminsertDnsManageComponent
-from backend.flow.plugins.components.collections.k8s_vm.vm_vmselect_dns_manage import VmVmselectDnsManageComponent
-from backend.flow.utils.k8s_db.vm.consts import (
-    VMINSERT_DOMAIN_PREFIX,
-    VMINSERT_PORT,
-    VMSELECT_DOMAIN_PREFIX,
-    VMSELECT_PORT,
-)
+from backend.flow.utils.k8s_db.vm.consts import VM_DOMAIN_PREFIX
 from backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass import DnsKwargs, K8sVmActKwargs, K8sVmApplyContext
 
 logger = logging.getLogger("flow")
@@ -82,34 +76,18 @@ class K8sVmApplyFlow(K8sVmBaseFlow):
             kwargs=asdict(act_kwargs),
         )
 
-        # 添加vminsert域名（查询版集群无vminsert组件，跳过）
+        # 添加集群统一域名
         is_query_cluster = self.cluster_type == ClusterType.K8sVictoriametricsSelect.value
-        if not is_query_cluster:
-            vminsert_domain = "{}.{}.{}.db".format(VMINSERT_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
-            vminsert_dns_kwargs = DnsKwargs(
-                bk_cloud_id=self.bk_cloud_id,
-                dns_op_type=DnsOpType.CREATE,
-                domain_name=vminsert_domain,
-                dns_op_exec_port=VMINSERT_PORT,
-            )
-            vm_pipeline.add_act(
-                act_name=_("添加vminsert域名"),
-                act_component_code=VmVminsertDnsManageComponent.code,
-                kwargs={**asdict(act_kwargs), **asdict(vminsert_dns_kwargs)},
-            )
-
-        # 添加vmselect域名
-        vmselect_domain = "{}.{}.{}.db".format(VMSELECT_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
-        vmselect_dns_kwargs = DnsKwargs(
+        vm_domain = "{}.{}.{}.db".format(VM_DOMAIN_PREFIX, self.cluster_name, self.db_app_abbr)
+        vm_dns_kwargs = DnsKwargs(
             bk_cloud_id=self.bk_cloud_id,
             dns_op_type=DnsOpType.CREATE,
-            domain_name=vmselect_domain,
-            dns_op_exec_port=VMSELECT_PORT,
+            domain_name=vm_domain,
         )
         vm_pipeline.add_act(
-            act_name=_("添加vmselect域名"),
-            act_component_code=VmVmselectDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(vmselect_dns_kwargs)},
+            act_name=_("添加集群域名"),
+            act_component_code=VmDnsManageComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(vm_dns_kwargs)},
         )
 
         # 将集群创建和域名绑定等信息同步到dbm
