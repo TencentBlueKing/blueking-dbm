@@ -47,6 +47,7 @@ type ExecuteSqlAtLocal struct {
 	User             string `json:"user"`
 	Password         string `json:"password"`
 	ErrFile          string
+	InitCommand      string // 非空时追加 --init-command，例如 SET SESSION tc_admin=1
 }
 
 func (e ExecuteSqlAtLocal) requireWorkDir() error {
@@ -74,16 +75,20 @@ func (e ExecuteSqlAtLocal) CreateLoadSQLCommand() (command string) {
 	if !util.StrIsEmpty(e.Password) {
 		passwd = fmt.Sprintf("-p%s", e.Password)
 	}
+	initCmd := ""
+	if !util.StrIsEmpty(e.InitCommand) {
+		initCmd = fmt.Sprintf(" --init-command='%s' ", e.InitCommand)
+	}
 	// 如果socket不存在的话的,选择连接tcp的方式导入
 	if util.StrIsEmpty(e.Socket) {
 		return fmt.Sprintf(
-			`%s %s --safe_updates=0 -u %s %s -h%s -P %d  %s -vvv `,
-			mysqlclient, forceStr, e.User, passwd, e.Host, e.Port, connCharset,
+			`%s %s --safe_updates=0 -u %s %s -h%s -P %d  %s %s -vvv `,
+			mysqlclient, forceStr, e.User, passwd, e.Host, e.Port, connCharset, initCmd,
 		)
 	}
 	return fmt.Sprintf(
-		`%s %s --safe_updates=0 -u %s %s  --socket=%s %s -vvv `,
-		mysqlclient, forceStr, e.User, passwd, e.Socket, connCharset,
+		`%s %s --safe_updates=0 -u %s %s  --socket=%s %s %s -vvv `,
+		mysqlclient, forceStr, e.User, passwd, e.Socket, connCharset, initCmd,
 	)
 }
 
