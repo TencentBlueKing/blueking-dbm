@@ -11,10 +11,25 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceInnerRole
 from backend.flow.consts import MySQLBackupTypeEnum
 
 
 class SubmitBillMySQLFullBackupInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    backup_type = serializers.ChoiceField(choices=MySQLBackupTypeEnum.get_choices(), help_text=_("备份类型"))
+    cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("集群域名列表"), allow_empty=False)
+    backup_type = serializers.ChoiceField(
+        choices=MySQLBackupTypeEnum.get_choices(),
+        help_text=_("备份类型"),
+        default=MySQLBackupTypeEnum.PHYSICAL.value,
+        required=False,
+    )
+    backup_local = serializers.ChoiceField(
+        choices=[
+            (InstanceInnerRole.MASTER.value, _("主节点")),
+            (InstanceInnerRole.SLAVE.value, _("从节点")),
+        ],
+        help_text=_("备份位置"),
+        default=InstanceInnerRole.SLAVE.value,
+        required=False,
+    )

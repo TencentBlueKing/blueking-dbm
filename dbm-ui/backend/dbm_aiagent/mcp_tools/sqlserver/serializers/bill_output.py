@@ -8,18 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from django.db import models
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
 
-class TicketFlowAILog(models.Model):
-    ticket_id = models.BigIntegerField(_("单据ID"), default=0)
-    flow_obj_id = models.CharField(_("流程ID"), max_length=64, primary_key=True)
-    ai_summary = models.TextField(_("AI日志总结"), blank=True, null=True)
-    update_at = models.DateTimeField(_("更新时间"), auto_now=True)
+class SingleBillInfoSerializer(serializers.Serializer):
+    bill_id = serializers.IntegerField(help_text=_("单据 ID"))
+    bill_url = serializers.URLField(help_text=_("单据链接"))
 
-    class Meta:
-        app_label = "dbm_aiagent"
-        verbose_name = _("工单流程AI日志")
-        verbose_name_plural = _("工单流程AI日志")
+
+class SubmitBillOutputSerializer(serializers.Serializer):
+    bills = serializers.ListField(child=SingleBillInfoSerializer(), help_text=_("单据列表"))

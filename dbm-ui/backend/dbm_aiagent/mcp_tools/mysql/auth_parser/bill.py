@@ -97,3 +97,12 @@ def auth_parse_tendbcluster_node_rebalance(request, *args, **kwargs):
     - infos: 容量变更信息列表，每行包含 cluster_domain、spec_id、count、labels
     """
     return _auth_parse_infos_clusters(request, ClusterType.TenDBCluster)
+
+
+def auth_parse_tendbcluster_migrate(request, *args, **kwargs):
+    """
+    解析 TenDBCluster 主从迁移多行参数 - 获取集群列表鉴权
+    request 接收 params:
+    - infos: 迁移信息列表，每行包含 cluster_domain、old_master_ip、old_slave_ip、spec_id、count、labels
+    """
+    return _auth_parse_infos_clusters(request, ClusterType.TenDBCluster)

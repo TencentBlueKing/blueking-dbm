@@ -38,3 +38,6 @@ class McpCalleePlan(AuditedModel):
         default=McpCalleePlanStatus.REJECTED,
         help_text=_("审批状态"),
     )
+
+    class Meta(AuditedModel.Meta):
+        app_label = "dbm_aiagent"

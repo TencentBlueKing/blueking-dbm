@@ -21,6 +21,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.helper import validate_clusters
+from backend.dbm_aiagent.mcp_tools.mysql.impl.ticket_dedup import find_duplicate_ticket
 from backend.ticket.builders.tendbcluster.tendb_spider_conf_up_down import SpiderConfUpDownDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -32,7 +33,7 @@ SUPPORT_SPIDER_ROLES = [
 ]
 
 
-def bill_spider_conf_change(username: str, infos: List[dict], is_safe: bool = True):
+def bill_spider_conf_change(username: str, infos: List[dict]):
     """
     创建 TenDBCluster 接入层（spider）升降配单据，支持多行，每行一个集群：
     - cluster_domain: 集群域名
@@ -41,7 +42,7 @@ def bill_spider_conf_change(username: str, infos: List[dict], is_safe: bool = Tr
     - labels: 资源标签 ID 列表（可选）
 
     注意：升降配是整集群操作，同一集群只能出现一行（锁定单一 spider 角色）。
-    is_safe 为整单共用参数（安全模式，默认 True）。
+    is_safe 固定为 True（安全模式），不对外暴露开关。
     """
     if not infos:
         raise DBMMcpBaseException(msg=_("infos 不能为空"))
@@ -126,7 +127,7 @@ def bill_spider_conf_change(username: str, infos: List[dict], is_safe: bool = Tr
         "creator": username,
         "helpers": [],
         "details": {
-            "is_safe": is_safe,
+            "is_safe": True,
             "ip_source": IpSource.RESOURCE_POOL,
             "disable_manual_confirm": False,
             "infos": built_infos,
@@ -139,6 +140,35 @@ def bill_spider_conf_change(username: str, infos: List[dict], is_safe: bool = Tr
     slz.context["bk_biz_id"] = bk_biz_id
 
     slz.is_valid(raise_exception=True)
+
+    def _fingerprint(infos):
+        return tuple(
+            sorted(
+                (
+                    info["cluster_id"],
+                    info["switch_spider_role"],
+                    info["resource_spec"][info["switch_spider_role"]]["spec_id"],
+                    info["resource_spec"][info["switch_spider_role"]]["count"],
+                    tuple(sorted(info["resource_spec"][info["switch_spider_role"]].get("labels") or [])),
+                )
+                for info in infos
+            )
+        )
+
+    existing = find_duplicate_ticket(
+        ticket_type=TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN,
+        creator=username,
+        bk_biz_id=bk_biz_id,
+        target_fingerprint=_fingerprint(built_infos),
+        fingerprint_of=lambda tk: _fingerprint(tk.details.get("infos", [])),
+    )
+    if existing:
+        return [
+            {
+                "bill_id": existing.pk,
+                "bill_url": f"{env.BK_SAAS_HOST}/{bk_biz_id}/ticket-business-manage/{existing.pk}",
+            }
+        ]
 
     tk = Ticket.create_ticket(**ticket_param)
     return [{"bill_id": tk.pk, "bill_url": f"{env.BK_SAAS_HOST}/{bk_biz_id}/ticket-business-manage/{tk.pk}"}]
