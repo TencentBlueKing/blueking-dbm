@@ -143,6 +143,7 @@ class MySQLAlarm(AlarmCallback):
     # level: 告警级别列表（0-致命, 1-预警, 2-提醒）
     # cluster_type: 集群类型列表
     # ratelimit: 频率限制，格式 "次数 / 小时数"（可选，不配置则不限频）
+    # 注意这里不能出现 dbha切换成功告警 的，它需要触发自愈逻辑
     STRATEGY_HANDLERS = {
         "call_slowlog_ai_analysis": [
             {
@@ -193,6 +194,7 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "主机 CPU 负载",
                 "level": [0, 1],
                 "cluster_type": ["tendbha", "tendbsingle"],
+                "ratelimit": "1 / 8",
             },
             {
                 "keyword": "dbha二次探测失败",
@@ -265,11 +267,11 @@ class MySQLAlarm(AlarmCallback):
                 if cluster_type_list and cluster_type and cluster_type not in cluster_type_list:
                     continue
 
-                # 频率限制检查
+                # 频率限制检查（超限则跳过当前 handler，不影响其他 handler）
                 if not cls.check_rate_limit(
                     cluster_domain, handler_name, condition["keyword"], condition.get("ratelimit", "")
                 ):
-                    return
+                    break
 
                 handler = globals().get(handler_name)
                 if handler:
@@ -281,7 +283,8 @@ class MySQLAlarm(AlarmCallback):
                     )
                 else:
                     logger.warning(_("[MySQLAlarm] 未找到处理函数: {}").format(handler_name))
-                return
+                # 当前 handler 已匹配到一个 condition 并处理，跳出内层循环继续下一个 handler
+                break
 
 
 def _count_markdown_tables(text: str) -> int:

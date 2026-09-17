@@ -15,10 +15,12 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/update_monitor_config"
@@ -75,10 +77,20 @@ func Run(hardcode bool) error {
 							"instance_port": h.Port,
 						},
 					)
+					utils.SendMonitorMetrics(
+						"db_up", -1, map[string]interface{}{
+							"instance_host": h.Host,
+							"instance_port": h.Port,
+							"error_msg":     sanitizeConnErrMsg(err.Error()),
+						},
+					)
 				}
 			}
 			if !eventSent {
 				utils.SendMonitorEvent("db-up", err.Error(), nil) // 兜底
+				utils.SendMonitorMetrics("db_up", -1, map[string]interface{}{
+					"error_msg": sanitizeConnErrMsg(err.Error()),
+				})
 			}
 		}
 
@@ -261,4 +273,32 @@ func loadItems(hardcode bool) (iNames []string) {
 	config.Logger = config.Logger.With("items", strings.Join(iNames, ","))
 	slog.SetDefault(config.Logger)
 	return iNames
+}
+
+var reIP = regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b`)
+
+// sanitizeConnErrMsg 清洗连接错误信息用于上报监控维度
+// 有明确 MySQL 错误码的，使用 cmutil.MySQLError.Message 作为归类标签
+// 其他情况取最后一个冒号之后的内容，并将 IP 替换为 xx
+/*
+清洗效果：
+- `Error 1040: Too many connections` -> `Too many connections`
+- `Error 1045 (28000): Access denied for user 'yw'@'localhost' (using password: YES)` -> `Access denied`
+- `Error 1130: Host '1.1.1.1' is not allowed to connect...` -> `Host is not allowed to connect`
+- `dial tcp 1.1.1.1:20000: connect: connection refused` -> `connection refused`
+- `dial tcp 1.1.1.1:10000: i/o timeout` -> `i/o timeout`
+- `driver: bad connection` -> `bad connection`
+*/
+func sanitizeConnErrMsg(errMsg string) string {
+	myErr := cmutil.NewMySQLError(fmt.Errorf("%s", errMsg))
+	// Code > 1 表示解析到了明确的 MySQL 错误码，直接用 Message
+	if myErr.Code > 1 && myErr.Message != "Undocumented" {
+		return myErr.Message
+	}
+
+	// 非已知 MySQL Error，取最后一个冒号之后的内容
+	if idx := strings.LastIndex(errMsg, ":"); idx >= 0 {
+		errMsg = strings.TrimSpace(errMsg[idx+1:])
+	}
+	return reIP.ReplaceAllString(errMsg, "xx")
 }

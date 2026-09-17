@@ -11,6 +11,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/klauspost/compress v1.18.7
+	github.com/mattn/go-shellwords v1.0.15
 	github.com/melbahja/goph v1.4.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/samber/lo v1.51.0

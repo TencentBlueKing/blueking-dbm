@@ -27,15 +27,15 @@ var mysqlErrors = map[int]MySQLError{
 	1049: {
 		Code:     1049,
 		Message:  "Unknown database",
-		regexStr: regexp.MustCompile(`ERROR 1049 .*: Unknown database '(.+)'`)},
+		regexStr: regexp.MustCompile(`(?i)ERROR 1049 .*: Unknown database '(.+)'`)},
 	1054: {
 		Code:     1054,
 		Message:  "Unknown column",
-		regexStr: regexp.MustCompile(`ERROR 1054 .*: Unknown column '(.+)' in 'field list'`)},
+		regexStr: regexp.MustCompile(`(?i)ERROR 1054 .*: Unknown column '(.+)' in 'field list'`)},
 	1193: {
 		Code:     1193,
 		Message:  "Unknown system variable",
-		regexStr: regexp.MustCompile(`Error 1193 .*: Unknown system variable '(.+)'`),
+		regexStr: regexp.MustCompile(`(?i)Error 1193 .*: Unknown system variable '(.+)'`),
 	},
 	2002: {
 		Code:     2002,
@@ -45,7 +45,7 @@ var mysqlErrors = map[int]MySQLError{
 	2003: {
 		Code:     2003,
 		Message:  "Can't connect to MySQL server",
-		regexStr: regexp.MustCompile(`ERROR 2003 .*: Can't connect to MySQL server.*`),
+		regexStr: regexp.MustCompile(`(?i)ERROR 2003 .*: Can't connect to MySQL server.*`),
 	},
 	1062: {
 		Code:     1062,
@@ -56,6 +56,21 @@ var mysqlErrors = map[int]MySQLError{
 		Code:     1213,
 		Message:  "Deadlock found when trying to get lock",
 		regexStr: regexp.MustCompile(`(?i)Error 1213.*: Deadlock found when trying to get lock.*`),
+	},
+	1040: {
+		Code:     1040,
+		Message:  "Too many connections",
+		regexStr: regexp.MustCompile(`(?i)Error 1040.*: Too many connections`),
+	},
+	1045: {
+		Code:     1045,
+		Message:  "Access denied",
+		regexStr: regexp.MustCompile(`(?i)Error 1045.*: Access denied for user.*`),
+	},
+	1130: {
+		Code:     1130,
+		Message:  "Host is not allowed to connect",
+		regexStr: regexp.MustCompile(`(?i)Error 1130.*: Host .* is not allowed to connect to this MySQL server`),
 	},
 }
 var codeParser = regexp.MustCompile(`(?i)Error (\d+) .*`)
