@@ -23,6 +23,10 @@ import (
 
 // SpiderChecker create table checker
 func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult) {
+	return c.spiderCheckWithClusterEngines(spiderVersion, nil)
+}
+
+func (c CreateTableResult) spiderCheckWithClusterEngines(spiderVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
@@ -47,6 +51,7 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 	if !c.IsCreateTableLike {
 		c.shardKeyChecker(r)
 	}
+	parseEngineMismatch(r, c.GetEngine(), clusterDefaultEngines)
 	return r
 }
 
