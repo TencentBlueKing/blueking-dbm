@@ -22,29 +22,42 @@
  * SOFTWARE.
  */
 
-// Package dbtypedesc registers Redis cluster-type -> DbType mappings.
-package dbtypedesc
+package dbtype
 
 import (
-	"dbm-services/common/dbha-v2/pkg/dbtype"
+	"fmt"
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-func init() {
-	dbtype.Register(dbtype.Descriptor{
-		DbType: haprobe.DbTypeRedis,
-		ClusterTypes: []haprobe.DbmMetadataClusterType{
-			haprobe.DbmMetadataClusterTypeTwemproxyRedis,
-			haprobe.DbmMetadataClusterTypeRedis,
-			haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
-			haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
-			haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
-			haprobe.DbmMetadataClusterTypePredixyRedisCluster,
-		},
-	})
+var (
+	splitMu          sync.RWMutex
+	splitByClusterID = map[haprobe.DbType]bool{}
+)
 
-	// Redis endpoints must be grouped per cluster: probe credentials are
-	// resolved per (bk_cloud_id, cluster_id), so endpoints of different
-	// clusters on one IP must not be merged.
-	dbtype.RegisterSplitPolicy(haprobe.DbTypeRedis, true)
+// RegisterSplitPolicy marks whether endpoints of a DbType must be grouped per
+// cluster id. Probe credentials are resolved per (bk_cloud_id, cluster_id), so
+// a DbType whose credentials are cluster-scoped must not merge endpoints of
+// different clusters on one IP.
+//
+// It panics on an invalid DbType. An unregistered DbType defaults to false, so
+// existing behaviour (mysql and friends) is unchanged.
+func RegisterSplitPolicy(dt haprobe.DbType, split bool) {
+	if dt == haprobe.DbTypeNone || dt == haprobe.DbTypeUnknown {
+		panic(fmt.Sprintf("dbtype: refuse to register split policy for invalid DbType: %q", dt))
+	}
+
+	splitMu.Lock()
+	defer splitMu.Unlock()
+
+	splitByClusterID[dt] = split
+}
+
+// SplitByClusterOf reports whether endpoints of dt must be grouped per cluster id.
+func SplitByClusterOf(dt haprobe.DbType) bool {
+	splitMu.RLock()
+	defer splitMu.RUnlock()
+
+	return splitByClusterID[dt]
 }

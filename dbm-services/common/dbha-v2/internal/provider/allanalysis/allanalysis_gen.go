@@ -33,5 +33,6 @@ import (
 	_ "dbm-services/common/dbha-v2/internal/provider/mysql/switch"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/dbtypedesc"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/metrics"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/parse"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/switch"
 )

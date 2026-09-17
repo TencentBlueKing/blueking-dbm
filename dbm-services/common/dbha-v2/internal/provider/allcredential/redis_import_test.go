@@ -1,5 +1,3 @@
-//go:build linux
-
 /**
  * MIT License
  *
@@ -24,33 +22,31 @@
  * SOFTWARE.
  */
 
-package machine
+package allcredential_test
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
+	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/dbcred"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/allcredential"
 )
 
-// UptimeSeconds returns the machine uptime in seconds since last boot.
-// On Linux it reads the first field of /proc/uptime. It returns an error when
-// the uptime cannot be read or parsed.
-func UptimeSeconds() (int64, error) {
-	data, err := os.ReadFile("/proc/uptime")
-	if err != nil {
-		return 0, err
+func TestCredentialImportRegistersRedis(t *testing.T) {
+	if _, ok := dbcred.Lookup(haprobe.DbTypeRedis); !ok {
+		t.Error("allcredential must import redis/credential so dbcred.Lookup(redis) succeeds")
 	}
 
-	fields := strings.Fields(string(data))
-	if len(fields) == 0 {
-		return 0, fmt.Errorf("empty uptime output")
+	types := dbcred.RegisteredDbTypes()
+	found := false
+	for _, dt := range types {
+		if dt == haprobe.DbTypeRedis {
+			found = true
+			break
+		}
 	}
-
-	seconds, err := strconv.ParseFloat(fields[0], 64)
-	if err != nil {
-		return 0, err
+	if !found {
+		t.Errorf("RegisteredDbTypes() = %v, want it to contain redis", types)
 	}
-
-	return int64(seconds), nil
 }

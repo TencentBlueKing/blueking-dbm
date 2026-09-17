@@ -103,6 +103,11 @@ var DbEventNameList = []DbEventName{
 	DbEventNameUptimeFailure,
 }
 
+// NotifyEventNameList events notified before liveness double-check.
+var NotifyEventNameList = map[DbEventName]struct{}{
+	DbEventNameDetectRedisAuthFailureV1: {},
+}
+
 // DbEventNameReasonStr db event name reason
 type DbEventNameReasonStr string
 

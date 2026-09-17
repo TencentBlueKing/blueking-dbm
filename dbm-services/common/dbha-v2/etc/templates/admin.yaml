@@ -61,6 +61,12 @@ dbmApi:
     timeout: {{COMMON_DBM_API_TIMEOUT}}
     token: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_TOKEN}}"
 
+  - name: queryRedisPassword
+    api: "{{COMMON_DBM_API_QUERY_REDIS_PASSWORD_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_QUERY_REDIS_PASSWORD_TOKEN}}"
+
 storage:
   endpoint: "{{COMMON_STORAGE_TCP_ENDPOINT}}"
   user: "{{COMMON_STORAGE_USER}}"

@@ -200,10 +200,11 @@ type DetectorConfig struct {
 	// CheckProbeProcessCmd remote SSH command; only "cd <workdir> && ./bin/dbha-probe health -j" is allowed.
 	CheckProbeProcessCmd string `yaml:"checkProbeProcessCmd" mapstructure:"checkProbeProcessCmd"`
 	Ssh                  struct {
-		Port     int           `yaml:"port"       mapstructure:"port"`
-		User     string        `yaml:"user"       mapstructure:"user"`
-		Password string        `yaml:"password"   mapstructure:"password"`
-		Timeout  time.Duration `yaml:"timeout"    mapstructure:"timeout"`
+		Port      int           `yaml:"port"      mapstructure:"port"`
+		User      string        `yaml:"user"      mapstructure:"user"`
+		Password  string        `yaml:"password"  mapstructure:"password"`
+		Timeout   time.Duration `yaml:"timeout"   mapstructure:"timeout"`
+		MaxUptime int64         `yaml:"maxUptime" mapstructure:"maxUptime"`
 	} `yaml:"ssh" mapstructure:"ssh"`
 }
 

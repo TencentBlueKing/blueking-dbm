@@ -40,6 +40,10 @@ const (
 	// aggregate only: these are analysis-side (internal/analysis/apm) metrics.
 	// admin / receiver own separate apm packages and are unaffected.
 	CapMetrics Capability = "metrics"
+	// CapCredential maps to "<BasePath>/credential" and is injected into the
+	// credential aggregate only: admin resolves per-instance credentials while
+	// generating a probe config.
+	CapCredential Capability = "credential"
 )
 
 // Entry describes one DB provider and the capabilities it exposes.
@@ -72,6 +76,6 @@ var Entries = []Entry{
 	{
 		Name:     "redis",
 		BasePath: providerRoot + "/redis",
-		Caps:     []Capability{CapDesc, CapHarvest, CapSwitch, CapMetrics},
+		Caps:     []Capability{CapDesc, CapHarvest, CapSwitch, CapParse, CapMetrics, CapCredential},
 	},
 }
