@@ -35,10 +35,10 @@ import (
 
 // DbmAPIService DBM API 服务
 type DbmAPIService struct {
-	syncDataAPIURL   string // 内部直连地址（同步用），来自 DBM_SYNCDATA_API_URL
-	innerBkAppCode   string // 统一凭据，用于同步 Cookie 和鉴权 Header，来自 INNER_BK_APP_CODE
-	innerBkAppSecret string // 统一凭据，来自 INNER_BK_APP_SECRET
-	dbmAuthAPIURL    string // 鉴权地址（host:port/path），来自 DBM_AUTH_API_URL
+	syncDataAPIURL              string // 内部直连地址（同步用），来自 DBM_SYNCDATA_API_URL
+	innerBkAppCode              string // 统一凭据，用于同步 Cookie 和鉴权 Header，来自 INNER_BK_APP_CODE
+	innerBkAppSecret            string // 统一凭据，来自 INNER_BK_APP_SECRET
+	dbmIAMSimpleCheckAllowedURL string // IAM simple_check_allowed 完整接口地址，来自 DBM_IAM_SIMPLE_CHECK_ALLOWED_URL
 }
 
 var (
@@ -52,26 +52,27 @@ func InitDbmAPIService() {
 		syncDataAPIURL := env.GetString("DBM_SYNCDATA_API_URL", "localhost:8080")
 		innerBkAppCode := env.GetString("INNER_BK_APP_CODE", "")
 		innerBkAppSecret := env.GetString("INNER_BK_APP_SECRET", "")
-		dbmAuthAPIURL := env.GetString("DBM_AUTH_API_URL", "")
+		dbmIAMSimpleCheckAllowedURL := env.GetString("DBM_IAM_SIMPLE_CHECK_ALLOWED_URL", "")
 
 		if syncDataAPIURL == "" {
 			slog.Warn("DBM_SYNCDATA_API_URL 未配置，数据同步功能将不可用")
 		}
-		if dbmAuthAPIURL == "" {
-			slog.Warn("DBM_AUTH_API_URL 未配置，IAM 鉴权功能将不可用")
+		if dbmIAMSimpleCheckAllowedURL == "" {
+			slog.Warn("DBM_IAM_SIMPLE_CHECK_ALLOWED_URL 未配置，IAM 鉴权功能将不可用")
 		}
 		if innerBkAppCode == "" || innerBkAppSecret == "" {
 			slog.Warn("INNER_BK_APP_CODE / INNER_BK_APP_SECRET 未配置")
 		}
 
 		instance = &DbmAPIService{
-			syncDataAPIURL:   syncDataAPIURL,
-			innerBkAppCode:   innerBkAppCode,
-			innerBkAppSecret: innerBkAppSecret,
-			dbmAuthAPIURL:    dbmAuthAPIURL,
+			syncDataAPIURL:              syncDataAPIURL,
+			innerBkAppCode:              innerBkAppCode,
+			innerBkAppSecret:            innerBkAppSecret,
+			dbmIAMSimpleCheckAllowedURL: dbmIAMSimpleCheckAllowedURL,
 		}
 		slog.Info("DBM API服务初始化完成",
-			"syncDataAPIURL", syncDataAPIURL, "dbmAuthAPIURL", dbmAuthAPIURL)
+			"syncDataAPIURL", syncDataAPIURL,
+			"dbmIAMSimpleCheckAllowedURL", dbmIAMSimpleCheckAllowedURL)
 	})
 }
 

@@ -21,6 +21,6 @@ package config
 
 // ThirdAPIConfig third api config
 type ThirdAPIConfig struct {
-	SyncDataAPIURL string `env:"DBM_SYNCDATA_API_URL"`
-	DbmAuthAPIURL  string `env:"DBM_AUTH_API_URL"`
+	SyncDataAPIURL              string `env:"DBM_SYNCDATA_API_URL"`
+	DbmIAMSimpleCheckAllowedURL string `env:"DBM_IAM_SIMPLE_CHECK_ALLOWED_URL"`
 }

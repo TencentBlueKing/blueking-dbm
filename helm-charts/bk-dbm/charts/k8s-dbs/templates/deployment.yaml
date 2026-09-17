@@ -82,8 +82,8 @@ spec:
             value: "{{ .Values.server.dbmConfig.asyncToDbm }}"
           - name: DBM_SYNCDATA_API_URL
             value: "{{ .Values.server.dbmConfig.syncDataApiUrl }}"
-          - name: DBM_AUTH_API_URL
-            value: "{{ .Values.server.dbmConfig.dbmAuthApiUrl }}"
+          - name: DBM_IAM_SIMPLE_CHECK_ALLOWED_URL
+            value: "{{ .Values.server.dbmConfig.dbmIamSimpleCheckAllowedUrl }}"
           - name: K8S_DBS_IAM_EXEMPT_STORAGE_WHITELIST
             value: "{{ .Values.server.dbmConfig.iamExemptStorageWhitelist }}"
           - name: BKBASE_BIZ_API_URL
