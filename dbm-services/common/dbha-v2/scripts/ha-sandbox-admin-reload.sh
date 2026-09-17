@@ -283,6 +283,70 @@ assert_gauges_unchanged() {
   num_eq "${G_FAILURE:-}" "$prev_failure" || fail "$case_id failure changed, got: ${G_FAILURE:-}"
 }
 
+read_grpc_gauges() {
+  local blob="$1"
+  local tmp
+  tmp=$(mktemp)
+  printf '%s\n' "$blob" >"$tmp"
+  G_GRPC_HB_OK=$(prom_gauge "$tmp" dbha_v2_admin_grpc_requests_total 'method=Heartbeat,grpc_code=OK')
+  G_GRPC_GPC_OK=$(prom_gauge "$tmp" dbha_v2_admin_grpc_requests_total 'method=GetProbeConfig,grpc_code=OK')
+  G_GRPC_HB_ERR=$(prom_gauge "$tmp" dbha_v2_admin_grpc_request_errors_total method=Heartbeat)
+  G_GRPC_GPC_ERR=$(prom_gauge "$tmp" dbha_v2_admin_grpc_request_errors_total method=GetProbeConfig)
+  G_GRPC_HB_DUR=$(prom_gauge "$tmp" dbha_v2_admin_grpc_request_duration_ms_count method=Heartbeat)
+  G_GRPC_GPC_DUR=$(prom_gauge "$tmp" dbha_v2_admin_grpc_request_duration_ms_count method=GetProbeConfig)
+  G_GRPC_HB_REQSZ=$(prom_gauge "$tmp" dbha_v2_admin_grpc_request_size_bytes_count method=Heartbeat)
+  G_GRPC_GPC_REQSZ=$(prom_gauge "$tmp" dbha_v2_admin_grpc_request_size_bytes_count method=GetProbeConfig)
+  G_GRPC_HB_RESSZ=$(prom_gauge "$tmp" dbha_v2_admin_grpc_response_size_bytes_count method=Heartbeat)
+  G_GRPC_GPC_RESSZ=$(prom_gauge "$tmp" dbha_v2_admin_grpc_response_size_bytes_count method=GetProbeConfig)
+  G_GRPC_PROBE_FAIL=$(prom_gauge "$tmp" dbha_v2_admin_grpc_probe_config_result_total code=FAIL)
+  G_GRPC_PROBE_NODATA=$(prom_gauge "$tmp" dbha_v2_admin_grpc_probe_config_result_total code=NO_DATA)
+  G_GRPC_PROBE_SUCCESS=$(prom_gauge "$tmp" dbha_v2_admin_grpc_probe_config_result_total code=SUCCESS)
+  rm -f "$tmp"
+}
+
+grpc_probe_result_sum() {
+  awk -v a="${G_GRPC_PROBE_FAIL:-0}" -v b="${G_GRPC_PROBE_NODATA:-0}" -v c="${G_GRPC_PROBE_SUCCESS:-0}" \
+    'BEGIN { printf "%d", a + b + c }'
+}
+
+call_admin_grpc() {
+  local case_id="$1"
+  local out
+  out=$("$MOCK" --admin-grpc-addr 127.0.0.1:15051 2>&1) || fail "$case_id admin grpc client, out: $out"
+  echo "$out" | grep -q "admin grpc heartbeat, grpc_code: OK" || fail "$case_id heartbeat log, out: $out"
+  echo "$out" | grep -q "admin grpc get_probe_config, grpc_code: OK" || fail "$case_id get_probe_config log, out: $out"
+}
+
+assert_grpc_metrics_round() {
+  local case_id="$1"
+  local want_hb="$2"
+  local want_gpc="$3"
+  local want_result="$4"
+  local blob i
+  for i in $(seq 1 20); do
+    blob=$(scrape_metrics) || true
+    read_grpc_gauges "${blob:-}"
+    if num_eq "${G_GRPC_HB_OK:-0}" "$want_hb" && num_eq "${G_GRPC_GPC_OK:-0}" "$want_gpc"; then
+      break
+    fi
+    sleep 0.25
+  done
+  dump_metrics "$case_id"
+  num_eq "${G_GRPC_HB_OK:-}" "$want_hb" || fail "$case_id Heartbeat OK want $want_hb got ${G_GRPC_HB_OK:-}"
+  num_eq "${G_GRPC_GPC_OK:-}" "$want_gpc" || fail "$case_id GetProbeConfig OK want $want_gpc got ${G_GRPC_GPC_OK:-}"
+  num_eq "${G_GRPC_HB_DUR:-}" "$want_hb" || fail "$case_id Heartbeat duration_count want $want_hb got ${G_GRPC_HB_DUR:-}"
+  num_eq "${G_GRPC_GPC_DUR:-}" "$want_gpc" || fail "$case_id GetProbeConfig duration_count want $want_gpc got ${G_GRPC_GPC_DUR:-}"
+  num_eq "${G_GRPC_HB_REQSZ:-}" "$want_hb" || fail "$case_id Heartbeat req_size_count want $want_hb got ${G_GRPC_HB_REQSZ:-}"
+  num_eq "${G_GRPC_GPC_REQSZ:-}" "$want_gpc" || fail "$case_id GetProbeConfig req_size_count want $want_gpc got ${G_GRPC_GPC_REQSZ:-}"
+  num_eq "${G_GRPC_HB_RESSZ:-}" "$want_hb" || fail "$case_id Heartbeat resp_size_count want $want_hb got ${G_GRPC_HB_RESSZ:-}"
+  num_eq "${G_GRPC_GPC_RESSZ:-}" "$want_gpc" || fail "$case_id GetProbeConfig resp_size_count want $want_gpc got ${G_GRPC_GPC_RESSZ:-}"
+  num_eq "${G_GRPC_HB_ERR:-0}" 0 || fail "$case_id Heartbeat errors want 0 got ${G_GRPC_HB_ERR:-}"
+  num_eq "${G_GRPC_GPC_ERR:-0}" 0 || fail "$case_id GetProbeConfig errors want 0 got ${G_GRPC_GPC_ERR:-}"
+  local got_result
+  got_result=$(grpc_probe_result_sum)
+  num_eq "$got_result" "$want_result" || fail "$case_id probe_config_result sum want $want_result got $got_result"
+}
+
 echo "build admin" | tee -a "$RESULT"
 (cd "$DBHA_ROOT" && go build -o "$ADMIN" ./cmd/admin)
 
@@ -331,6 +395,10 @@ if tcp_ok 127.0.0.1 15051 && tcp_ok 127.0.0.1 18080; then
 else
   fail "H03 grpc and web listen"
 fi
+
+call_admin_grpc H19
+assert_grpc_metrics_round H19 1 1 1
+pass "H19 admin grpc metrics Heartbeat/GetProbeConfig OK:1 duration/size count:1 probe_result:1"
 
 skip_before=$(count_log "skip reload")
 reload_before=$(count_log "admin config snapshot reloaded")
@@ -387,6 +455,9 @@ if wait_log_gt "admin config snapshot reloaded" "$reload_before" && tcp_ok 127.0
   assert_reload_success_metrics H08 1 "$LAST_BEFORE_RELOAD"
   pass "H08 grpc same-addr params, slot_success: ${G_SLOT_OK}"
   LAST_BEFORE_RELOAD="$G_LAST"
+  call_admin_grpc H20
+  assert_grpc_metrics_round H20 2 2 2
+  pass "H20 grpc metrics after slot replace Heartbeat/GetProbeConfig OK:2"
 else
   fail "H08 grpc same-addr params"
 fi

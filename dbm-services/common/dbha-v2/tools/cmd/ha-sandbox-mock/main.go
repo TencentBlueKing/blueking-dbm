@@ -34,9 +34,10 @@ import (
 )
 
 type mockConfig struct {
-	etcdAddr  string
-	mysqlAddr string
-	httpAddr  string
+	etcdAddr      string
+	mysqlAddr     string
+	httpAddr      string
+	adminGRPCAddr string
 }
 
 func main() {
@@ -52,11 +53,17 @@ func parseFlags() mockConfig {
 	flag.StringVar(&cfg.etcdAddr, "etcd-addr", "127.0.0.1:12379", "etcd gRPC mock listen address")
 	flag.StringVar(&cfg.mysqlAddr, "mysql-addr", "127.0.0.1:23306", "MySQL protocol mock listen address")
 	flag.StringVar(&cfg.httpAddr, "http-addr", "127.0.0.1:18091", "HTTP health listen address")
+	flag.StringVar(&cfg.adminGRPCAddr, "admin-grpc-addr", "",
+		"if set, call Admin Heartbeat and GetProbeConfig then exit")
 	flag.Parse()
 	return cfg
 }
 
 func run(cfg mockConfig) error {
+	if cfg.adminGRPCAddr != "" {
+		return callAdminGRPC(cfg.adminGRPCAddr)
+	}
+
 	etcdSrv, etcdLn, err := startEtcdMock(cfg.etcdAddr)
 	if err != nil {
 		return err
