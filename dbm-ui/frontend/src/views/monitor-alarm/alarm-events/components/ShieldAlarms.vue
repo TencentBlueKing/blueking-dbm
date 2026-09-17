@@ -337,43 +337,27 @@
   });
 </script>
 
-<style lang="less">
-  .shiled-alarm-page {
-    .bk-modal-content {
-      padding: 20px 24px;
+<style lang="less" scoped>
+  .alarm-content-main {
+    padding: 8px 25px;
+    margin-top: 8px;
+    font-size: 12px;
+    background: #f5f7fa;
+    border-radius: 2px;
 
-      .bk-form-label {
-        font-weight: 700;
+    .alarm-item {
+      display: flex;
+      width: 100%;
+      padding: 6px 0;
+      line-height: 20px;
+
+      .item-title {
+        width: 60px;
       }
-    }
 
-    .alarm-content-main {
-      padding: 8px 25px;
-      margin-top: 8px;
-      font-size: 12px;
-      background: #f5f7fa;
-      border-radius: 2px;
-
-      .alarm-item {
-        display: flex;
-        width: 100%;
-        padding: 6px 0;
-        line-height: 20px;
-
-        .item-title {
-          width: 60px;
-        }
-
-        .item-content {
-          flex: 1;
-          flex-wrap: wrap;
-
-          .link-icon {
-            margin-left: 5px;
-            color: #3a84ff;
-            cursor: pointer;
-          }
-        }
+      .item-content {
+        flex: 1;
+        flex-wrap: wrap;
       }
     }
   }

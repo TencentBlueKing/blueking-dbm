@@ -11,11 +11,11 @@ import { DBTypeInfos, DBTypes } from '@common/const';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 import SingleSelect from '@components/db-table/components/SingleSelect.vue';
+import type { TableColumnFilter } from '@components/tdesign-ui/table';
 
 import { t } from '@/locales';
 
-// 这两项的值不能原样下发给接口：db_types 只接受数组，时间范围要拆成 start_time / end_time
-export const dbTypeSearchId = 'db_types';
+// 这一项的值不能原样下发给接口：时间范围要拆成 start_time / end_time
 export const timeRangeSearchId = 'time_range';
 
 const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
@@ -100,7 +100,7 @@ export const useQuickSearch = (options: { isGlobalPage: ComputedRef<boolean>; is
   const defaultStartTime = dayjs().subtract(7, 'day').format(dateFormatStr);
   const defaultEndTime = dayjs().format(dateFormatStr);
 
-  // 告警级别由页面左上角的筛选条负责，不重复放进快捷搜索
+  // 告警级别、DB 类型由页面上独立的筛选控件负责，不重复放进快捷搜索
   const baseSelectList = [
     {
       id: timeRangeSearchId,
@@ -177,20 +177,11 @@ export const useQuickSearch = (options: { isGlobalPage: ComputedRef<boolean>; is
     }));
   });
 
-  const quickSearchData = computed(
-    () =>
-      [
-        {
-          id: dbTypeSearchId,
-          list: dbList.value,
-          name: t('DB类型'),
-          type: 'multiple' as const,
-        },
-        // 业务页只看当前业务，不提供所属业务筛选
-        ...(options.isGlobalPage.value || options.isTodoPage.value
-          ? baseSelectList
-          : baseSelectList.filter((item) => item.id !== 'bk_biz_id')),
-      ] as QuickSearchProps['data'],
+  const quickSearchData = computed(() =>
+    // 业务页只看当前业务，不提供所属业务筛选
+    options.isGlobalPage.value || options.isTodoPage.value
+      ? baseSelectList
+      : baseSelectList.filter((item) => item.id !== 'bk_biz_id'),
   );
 
   const initTimeRange = () => {
@@ -214,13 +205,6 @@ export const useQuickSearch = (options: { isGlobalPage: ComputedRef<boolean>; is
       return result;
     }, {});
 
-    // 未从 URL 指定过滤条件时默认只看未恢复的告警
-    if (!route.query.limit && !route.query.status) {
-      Object.assign(initValue, {
-        status: 'ABNORMAL',
-      });
-    }
-
     Object.assign(initValue, {
       [timeRangeSearchId]: initTimeRange().join(','),
     });
@@ -241,6 +225,7 @@ export const useQuickSearch = (options: { isGlobalPage: ComputedRef<boolean>; is
   );
 
   return {
+    dbList,
     defaultEndTime,
     defaultStartTime,
     quickSearchData,
@@ -249,7 +234,7 @@ export const useQuickSearch = (options: { isGlobalPage: ComputedRef<boolean>; is
 };
 
 // 接口的 stage / status 都是 ChoiceField 只接受单个值，表头筛选保持与快捷搜索一致的单选
-export const columnFilterConfig = {
+export const columnFilterConfig: Record<'stage' | 'status', TableColumnFilter> = {
   stage: {
     component: markRaw(SingleSelect),
     popupProps: {
@@ -272,4 +257,4 @@ export const columnFilterConfig = {
     },
     showConfirmAndReset: true,
   },
-} as const;
+};

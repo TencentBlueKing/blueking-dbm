@@ -160,64 +160,28 @@
   );
 </script>
 
-<style lang="less">
-  .shiled-alarm-page {
-    .bk-modal-content {
-      padding: 20px 24px;
-
-      .bk-form-label {
-        font-weight: 700;
-      }
-    }
-
-    .alarm-content-main {
-      padding: 8px 25px;
-      margin-top: 8px;
-      font-size: 12px;
-      background: #f5f7fa;
-      border-radius: 2px;
-
-      .alarm-item {
-        display: flex;
-        width: 100%;
-        padding: 6px 0;
-        line-height: 20px;
-
-        .item-title {
-          width: 60px;
-        }
-
-        .item-content {
-          flex: 1;
-          flex-wrap: wrap;
-
-          .link-icon {
-            margin-left: 5px;
-            color: #3a84ff;
-            cursor: pointer;
-          }
-        }
-      }
-    }
-  }
-
-  .quick-input-main {
-    display: flex;
+<style lang="less" scoped>
+  .alarm-content-main {
+    padding: 8px 25px;
     margin-top: 8px;
     font-size: 12px;
-    align-items: center;
+    background: #f5f7fa;
+    border-radius: 2px;
 
-    .quick-choose-item {
-      margin-right: 4px;
-      cursor: pointer;
+    .alarm-item {
+      display: flex;
+      width: 100%;
+      padding: 6px 0;
+      line-height: 20px;
+
+      .item-title {
+        width: 60px;
+      }
+
+      .item-content {
+        flex: 1;
+        flex-wrap: wrap;
+      }
     }
-  }
-
-  .shield-date-subtitle {
-    position: absolute;
-    top: -32px;
-    left: 65px;
-    font-size: 12px;
-    color: #979ba5;
   }
 </style>

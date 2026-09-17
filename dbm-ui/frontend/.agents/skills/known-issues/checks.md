@@ -25,6 +25,15 @@
 - [选择器弹窗骨架已按 host-selector 对齐，别再发明第三套](doc/selector-dialog-skeleton.md) ——改
   `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
   的弹窗外壳 / PanelTab / 表格容器 / 取值语义，或新写「左表格 + 右结果预览」选择器
+- [组件目录必须 kebab-case](doc/component-dir-kebab-case.md) —— 本次新建或重命名带 `Index.vue` 的组件目录
+- [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
+  `.validate()`，且返回值被当布尔判断
+- [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md) —— `<BkPagination>` /
+  `<DbPagination>` 只写了 `v-bind="pagination"`
+- [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md) —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect`
+  传 `value` / 写选项 `value`
+- [语言包值里的字面花括号必须用 {'@'} 式转义](doc/locale-literal-brace.md) —— 往 `src/locales/*.json` 的值写 `{`
+  字面量，或页面报 `Invalid token in placeholder`
 
 ## B 类：只报告，改法未定
 
@@ -57,3 +66,5 @@
 - `<DbQuickSearch>` 传 `placeholder` → `eslint.config.mjs` 的 `vue/no-restricted-v-bind` /
   `vue/no-restricted-static-attribute`，报错信息指向
   [doc/db-quick-search-placeholder.md](doc/db-quick-search-placeholder.md)
+- import 路径含 `/PascalCase/` 目录段 → `eslint.config.mjs` 的 `no-restricted-imports`，报错信息指向
+  [doc/component-dir-kebab-case.md](doc/component-dir-kebab-case.md)

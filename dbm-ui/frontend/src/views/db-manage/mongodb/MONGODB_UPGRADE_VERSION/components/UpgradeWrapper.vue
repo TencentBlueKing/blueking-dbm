@@ -51,7 +51,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+  import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
   type Emits = (e: 'change') => void;
 
