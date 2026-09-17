@@ -42,4 +42,9 @@ func init() {
 			haprobe.DbmMetadataClusterTypePredixyRedisCluster,
 		},
 	})
+
+	// Redis endpoints must be grouped per cluster: probe credentials are
+	// resolved per (bk_cloud_id, cluster_id), so endpoints of different
+	// clusters on one IP must not be merged.
+	dbtype.RegisterSplitPolicy(haprobe.DbTypeRedis, true)
 }

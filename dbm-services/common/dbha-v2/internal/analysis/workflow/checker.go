@@ -54,6 +54,9 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 	// recheckInsts records instance keys already queued for SSH double-check in this scan.
 	recheckInsts := map[string]struct{}{}
 
+	// notifyEvents collects events to notify before double-check, deduplicated by instance via recheckInsts.
+	notifyEvents := []*haprobe.DbEvent{}
+
 	for _, event := range dbEvents {
 		key := instanceKey(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
 
@@ -73,11 +76,19 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 		}
 		recheckInsts[key] = struct{}{}
 
+		if _, ok := haprobe.NotifyEventNameList[event.Name]; ok {
+			notifyEvents = append(notifyEvents, event)
+		}
+
 		logger.Warn("recheck the db-inst: %s", key)
 		badInsts = append(badInsts, detector.DoubleCheckTask{
 			Meta:   meta,
 			DbType: event.DbTypeName,
 		})
+	}
+
+	for _, event := range notifyEvents {
+		c.detector.NotifyEvent(event)
 	}
 
 	c.detector.LivenessDoubleCheck(bizId, badInsts)

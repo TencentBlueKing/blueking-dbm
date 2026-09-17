@@ -34,6 +34,9 @@ type ProbeMetadataItem struct {
 	MachineType  string `json:"machine_type"`
 	InstanceRole string `json:"instance_role"`
 	AccessLayer  string `json:"access_layer"`
+	ClusterID    int    `json:"cluster_id,omitempty"` // password lookup key
+	User         string `json:"user,omitempty"`
+	Password     string `json:"password,omitempty"`
 }
 
 // GseConfig carries GSE reporter defaults from admin to probe (loaded from admin YAML).

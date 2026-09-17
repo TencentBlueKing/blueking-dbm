@@ -105,6 +105,7 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 		DiskWriteDirs: Cfg.ProbeHealth.DiskWriteDirs,
 	}
 	applyAllHarvesterPayload(&payload)
+	fillInstanceCredentials(ctx, bkCloudID, items)
 	return marshalProbeConfigPayload(payload)
 }
 
@@ -232,6 +233,7 @@ func convertFromDBHA(list []*hamodel.DbmMetadata) []probeconfig.ProbeMetadataIte
 			MachineType:  string(m.MachineType),
 			InstanceRole: string(m.InstanceRole),
 			AccessLayer:  string(m.AccessLayer),
+			ClusterID:    m.ClusterID,
 		})
 	}
 	return out
@@ -249,6 +251,7 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 			MachineType:  string(m.MachineType),
 			InstanceRole: string(m.InstanceRole),
 			AccessLayer:  string(m.AccessLayer),
+			ClusterID:    m.ClusterID,
 		})
 	}
 	return out
