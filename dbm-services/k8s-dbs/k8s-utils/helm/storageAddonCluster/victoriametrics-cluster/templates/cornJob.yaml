@@ -1,0 +1,79 @@
+{{- if eq .Values.topoName "cluster" }}
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-restart-vm-nodes
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "*/1 * * * *"   # 任务周期为1分钟
+  startingDeadlineSeconds: 60  # 容忍1分钟启动延迟
+  concurrencyPolicy: Forbid  # 禁止任务并发，避免重复执行
+  successfulJobsHistoryLimit: 3  # 保留最近3次成功记录
+  failedJobsHistoryLimit: 1      # 保留最近1次失败记录
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 60  # 完成后60秒自动删除Pod
+      #backoffLimit: 2  # 失败重试2次
+      template:
+        spec:
+          serviceAccountName: kb-{{ .Release.Name }}
+          restartPolicy: Never  # 失败时不重启容器
+          containers:
+            - name: restart-job
+              image: docker.io/apecloud/kubeblocks-tools:0.8.2
+              command: ["/bin/sh", "-c"]
+              env:
+                - name: KB_CLUSTER_NAME
+                  value: {{ .Release.Name }}
+                - name: KB_NAMESPACE
+                  value: {{ .Release.Namespace }}
+              args:
+                - |
+                  cluster_name="$(KB_CLUSTER_NAME)"
+                  namespace="$(KB_NAMESPACE)"
+
+                  # 获取当前vmstorage副本数
+                  current_replicas=$(kubectl get configmap "${cluster_name}-vmstorage-env" -n "$namespace" -o jsonpath='{.data.KB_COMP_REPLICAS}')
+                  echo "[INFO] (current_replicas: ${current_replicas})"
+
+                  # 获取上一次的vmstorage副本数
+                  pre_replicas=$(kubectl get configmap "${cluster_name}-vmstorage-state" -n "$namespace" -o jsonpath='{.data.vmstorage_replicas}')
+                  echo "[INFO] (pre_replicas: ${pre_replicas})"
+
+                  # 检查副本数是否发生变化
+                  if [[ "$current_replicas" != "$pre_replicas" ]]; then
+                    echo "[INFO] 检测到副本数变化: ${pre_replicas} -> ${current_replicas}"
+
+                    # 更新ConfigMap
+                    kubectl patch configmap "${cluster_name}-vmstorage-state" -n "$namespace" \
+                      --type merge \
+                      -p "{\"data\":{\"vmstorage_replicas\":\"$current_replicas\"}}"
+
+                    echo "[SUCCESS] 已更新 ${target_configmap}: vmstorage_replicas=${current_replicas}"
+
+                    # 重启组件
+                    echo "[INFO] 开始处理 vminsert 和 vmselect 节点重启"
+                    kubectl apply -f - <<EOF
+                    apiVersion: apps.kubeblocks.io/v1alpha1
+                    kind: OpsRequest
+                    metadata:
+                      name: vm-restart-${pre_replicas}-${current_replicas}
+                      namespace: ${namespace}
+                    spec:
+                      clusterName: ${cluster_name}
+                      type: Restart
+                      force: true
+                      enqueueOnForce: true
+                      ttlSecondsAfterUnsuccessfulCompletion: 600
+                      preConditionDeadlineSeconds: 10
+                      timeoutSeconds: 600
+                      restart:
+                        - componentName: vminsert
+                        - componentName: vmselect
+                  EOF
+                  else
+                    echo "[INFO] 副本数未变化 (当前值: ${current_replicas})"
+                  fi
+
+{{- end }}
