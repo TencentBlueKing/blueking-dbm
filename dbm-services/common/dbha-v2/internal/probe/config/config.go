@@ -116,14 +116,17 @@ type ReporterConfig struct {
 
 // DbEndpointConfig db instance endpoint config
 type DbEndpointConfig struct {
-	Proto        string                             `yaml:"proto"        mapstructure:"proto"`
-	ClusterType  haprobe.DbmMetadataClusterType     `yaml:"clusterType"  mapstructure:"clusterType"`
-	MachineType  haprobe.DbmMetadataMachineType     `yaml:"machineType"  mapstructure:"machineType"`
-	InstanceRole haprobe.DbmMetadataInstanceRole    `yaml:"instanceRole" mapstructure:"instanceRole"`
-	AccessLayer  haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer"  mapstructure:"accessLayer"`
-	Ip           string                             `yaml:"ip"           mapstructure:"ip"`
-	Ports        []string                           `yaml:"ports"        mapstructure:"ports"`
-	AdminPorts   []string                           `yaml:"adminPorts"   mapstructure:"adminPorts"`
+	Proto        string                             `yaml:"proto"               mapstructure:"proto"`
+	ClusterType  haprobe.DbmMetadataClusterType     `yaml:"clusterType"         mapstructure:"clusterType"`
+	MachineType  haprobe.DbmMetadataMachineType     `yaml:"machineType"         mapstructure:"machineType"`
+	InstanceRole haprobe.DbmMetadataInstanceRole    `yaml:"instanceRole"        mapstructure:"instanceRole"`
+	AccessLayer  haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer"         mapstructure:"accessLayer"`
+	Ip           string                             `yaml:"ip"                  mapstructure:"ip"`
+	Ports        []string                           `yaml:"ports"               mapstructure:"ports"`
+	AdminPorts   []string                           `yaml:"adminPorts"          mapstructure:"adminPorts"`
+	ClusterID    int                                `yaml:"clusterID,omitempty" mapstructure:"clusterID"`
+	User         string                             `yaml:"user,omitempty"      mapstructure:"user"`
+	Password     string                             `yaml:"password,omitempty"  mapstructure:"password"`
 }
 
 // RawHarvesterConfig is the common shape of a probe harvester YAML block.
@@ -190,7 +193,6 @@ func (h HarvesterConfig) HasEndpoints(name string) bool {
 	return b != nil && len(b.Endpoints) > 0
 }
 
-// LogConfig log configuration
 // HealthConfig health check configuration. DiskWriteDirs lists the directories the probe health
 // command writes a marker file into to verify the local disk is writable; empty means fall back to
 // the default dirs (DefaultDiskWriteDirs).
@@ -198,6 +200,7 @@ type HealthConfig struct {
 	DiskWriteDirs []string `yaml:"diskWriteDirs" mapstructure:"diskWriteDirs"`
 }
 
+// LogConfig log configuration.
 type LogConfig struct {
 	Path      string `yaml:"path"      mapstructure:"path"`
 	Level     string `yaml:"level"     mapstructure:"level"`

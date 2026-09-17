@@ -278,22 +278,33 @@ func marshalProbeYAML(cfg probeYAML) (string, error) {
 // endpointKey is the dedup / grouping key used by buildEndpointsFromMetadata to
 // fold metadata items sharing the same (ip, cluster_type, machine_type, instance_role, access_layer)
 // tuple into one DbEndpointConfig with merged Ports / AdminPorts.
+//
+// clusterID joins the key only for DbTypes that opt into per-cluster grouping
+// (dbtype.SplitByClusterOf), so credentials resolved per (bk_cloud_id, cluster_id)
+// are not merged across clusters. It stays zero for every other DbType.
 type endpointKey struct {
 	ip           string
 	clusterType  string
 	machineType  string
 	instanceRole string
 	accessLayer  string
+	clusterID    int
 }
 
 // newEndpointKey extracts the grouping key from a metadata item.
 func newEndpointKey(m probeconfig.ProbeMetadataItem) endpointKey {
+	clusterID := 0
+	if dt := dbtype.DbTypeOf(haprobe.DbmMetadataClusterType(m.ClusterType)); dt != haprobe.DbTypeNone &&
+		dbtype.SplitByClusterOf(dt) {
+		clusterID = m.ClusterID
+	}
 	return endpointKey{
 		ip:           m.IP,
 		clusterType:  m.ClusterType,
 		machineType:  m.MachineType,
 		instanceRole: m.InstanceRole,
 		accessLayer:  m.AccessLayer,
+		clusterID:    clusterID,
 	}
 }
 
@@ -303,6 +314,9 @@ func sortEndpointKeys(keys []endpointKey) {
 	sort.Slice(keys, func(i, j int) bool {
 		if keys[i].ip != keys[j].ip {
 			return keys[i].ip < keys[j].ip
+		}
+		if keys[i].clusterID != keys[j].clusterID {
+			return keys[i].clusterID < keys[j].clusterID
 		}
 		if keys[i].clusterType != keys[j].clusterType {
 			return keys[i].clusterType < keys[j].clusterType
@@ -340,10 +354,12 @@ func sortedPortStrings(byKey map[endpointKey][]int) map[endpointKey][]string {
 // only on the metadata contents and not on the order the items arrived in.
 func groupMetadataByEndpointKey(
 	list []probeconfig.ProbeMetadataItem,
-) ([]endpointKey, map[endpointKey][]string, map[endpointKey][]string) {
+) ([]endpointKey, map[endpointKey][]string, map[endpointKey][]string,
+	map[endpointKey]probeconfig.ProbeMetadataItem) {
 	keys := make(map[endpointKey]struct{})
 	portsByKey := make(map[endpointKey][]int)
 	adminPortsByKey := make(map[endpointKey][]int)
+	firstByKey := make(map[endpointKey]probeconfig.ProbeMetadataItem)
 
 	for _, m := range list {
 		k := newEndpointKey(m)
@@ -354,6 +370,12 @@ func groupMetadataByEndpointKey(
 		if m.AdminPort > 0 {
 			adminPortsByKey[k] = append(adminPortsByKey[k], m.AdminPort)
 		}
+
+		// Credentials are constant within a key (the lookup key is exactly the
+		// key's clusterID + machineType), so the first item is representative.
+		if _, ok := firstByKey[k]; !ok {
+			firstByKey[k] = m
+		}
 	}
 
 	ordered := make([]endpointKey, 0, len(keys))
@@ -361,7 +383,7 @@ func groupMetadataByEndpointKey(
 		ordered = append(ordered, k)
 	}
 	sortEndpointKeys(ordered)
-	return ordered, sortedPortStrings(portsByKey), sortedPortStrings(adminPortsByKey)
+	return ordered, sortedPortStrings(portsByKey), sortedPortStrings(adminPortsByKey), firstByKey
 }
 
 // buildEndpointsFromMetadata groups metadata into harvester blocks via provider
@@ -373,7 +395,7 @@ func groupMetadataByEndpointKey(
 // do not dual-start from a single endpoint. Empty port sets for a given PortKind are skipped.
 func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) map[string][]DbEndpointConfig {
 	out := map[string][]DbEndpointConfig{}
-	ordered, portsByKey, adminPortsByKey := groupMetadataByEndpointKey(list)
+	ordered, portsByKey, adminPortsByKey, firstByKey := groupMetadataByEndpointKey(list)
 
 	for _, k := range ordered {
 		ports := portsByKey[k]
@@ -397,6 +419,10 @@ func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) map[string
 			AdminPorts:   adminPorts,
 		}
 
+		// ClusterID comes from the key (zero unless the DbType splits by
+		// cluster); User / Password come from the representative item, which is
+		// empty for DbTypes without a dynamic credential provider.
+		first := firstByKey[k]
 		base := DbEndpointConfig{
 			Proto:        "tcp",
 			ClusterType:  attrs.ClusterType,
@@ -404,6 +430,9 @@ func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) map[string
 			InstanceRole: attrs.InstanceRole,
 			AccessLayer:  attrs.AccessLayer,
 			Ip:           attrs.Ip,
+			ClusterID:    k.clusterID,
+			User:         first.User,
+			Password:     first.Password,
 		}
 
 		for _, route := range dbtype.RouteEndpoint(dt, attrs) {
@@ -463,6 +492,9 @@ func sortEndpoints(endpoints []DbEndpointConfig) {
 	sort.Slice(endpoints, func(i, j int) bool {
 		if endpoints[i].Ip != endpoints[j].Ip {
 			return endpoints[i].Ip < endpoints[j].Ip
+		}
+		if endpoints[i].ClusterID != endpoints[j].ClusterID {
+			return endpoints[i].ClusterID < endpoints[j].ClusterID
 		}
 		if endpoints[i].ClusterType != endpoints[j].ClusterType {
 			return endpoints[i].ClusterType < endpoints[j].ClusterType

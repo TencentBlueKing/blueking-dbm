@@ -134,8 +134,8 @@ func (r *Redis) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 	c.clusterType = epoint.ClusterType
 	c.instanceRole = epoint.InstanceRole
 
-	c.user = r.cfg.User
-	c.password = r.cfg.Password
+	c.user = epoint.User
+	c.password = epoint.Password
 	c.timeout = r.cfg.Timeout
 
 	c.endpoint = &hanet.Endpoint{}

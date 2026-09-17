@@ -127,6 +127,7 @@ detector:
     user: "{{ANALYSIS_DETECTOR_SSH_USER}}"
     password: "{{ANALYSIS_DETECTOR_SSH_PASSWORD}}"
     timeout: {{ANALYSIS_DETECTOR_SSH_TIMEOUT}}
+    maxUptime: {{ANALYSIS_DETECTOR_SSH_MAX_UPTIME}}
 
 monitor:
   dataID: {{ANALYSIS_MONITOR_DATA_ID}}
