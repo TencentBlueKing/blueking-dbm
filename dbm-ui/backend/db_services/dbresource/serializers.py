@@ -15,7 +15,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
+from backend.components.exception import DataAPIException
 from backend.components.hcm.client import HCMApi
+from backend.components.hcm.constants import SUBZONE_ALL
 from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
@@ -746,7 +748,7 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
     city = serializers.CharField(help_text=_("城市"))
-    subzone = serializers.CharField(help_text=_("园区名称"))
+    subzone = serializers.CharField(help_text=_("园区名称；传 '*' 表示海磊侧选择「可用区：全部，资源分布式方式：分 Campus（Camplus）生产」"))
     os_name = serializers.CharField(help_text=_("操作系统名称"))
     count = serializers.IntegerField(help_text=_("申请数量"))
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
@@ -769,6 +771,13 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     def validate(self, attrs):
         if not env.HCM_APIGW_DOMAIN:
             raise serializers.ValidationError(_("没有合法海磊域名，不支持主机资源补货"))
+        # subzone="*"（可用区全部 + 分 Campus（Camplus）生产）时，提前校验城市能唯一定位云地域、
+        # 且存在实际可用区，避免提单后在流程深处才失败
+        if attrs["subzone"] == SUBZONE_ALL:
+            try:
+                HCMApi.get_region_zones_by_city(attrs["city"])
+            except DataAPIException as e:
+                raise serializers.ValidationError(str(e))
         return attrs
 
 
