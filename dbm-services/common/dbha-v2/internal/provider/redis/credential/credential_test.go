@@ -22,29 +22,38 @@
  * SOFTWARE.
  */
 
-// Package dbtypedesc registers Redis cluster-type -> DbType mappings.
-package dbtypedesc
+package credential
 
 import (
-	"dbm-services/common/dbha-v2/pkg/dbtype"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"context"
+	"testing"
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/dbcred"
 )
 
-func init() {
-	dbtype.Register(dbtype.Descriptor{
-		DbType: haprobe.DbTypeRedis,
-		ClusterTypes: []haprobe.DbmMetadataClusterType{
-			haprobe.DbmMetadataClusterTypeTwemproxyRedis,
-			haprobe.DbmMetadataClusterTypeRedis,
-			haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
-			haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
-			haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
-			haprobe.DbmMetadataClusterTypePredixyRedisCluster,
-		},
-	})
+func TestConfigure(t *testing.T) {
+	r := &resolver{}
 
-	// Redis endpoints must be grouped per cluster: probe credentials are
-	// resolved per (bk_cloud_id, cluster_id), so endpoints of different
-	// clusters on one IP must not be merged.
-	dbtype.RegisterSplitPolicy(haprobe.DbTypeRedis, true)
+	if err := r.Configure(func(name string) (dbcred.DbmApi, bool) {
+		if name != dbmApiNameQueryRedisPassword {
+			t.Fatalf("unexpected api name: %s", name)
+		}
+		return dbcred.DbmApi{Api: "http://127.0.0.1:1", Token: "t", Timeout: time.Second}, true
+	}); err != nil {
+		t.Fatalf("Configure failed, errmsg: %s", err)
+	}
+
+	if err := r.Configure(func(string) (dbcred.DbmApi, bool) {
+		return dbcred.DbmApi{}, false
+	}); err == nil {
+		t.Fatal("expected error when the api name is not configured")
+	}
+}
+
+func TestFillEmpty(t *testing.T) {
+	r := &resolver{}
+	if err := r.Fill(context.Background(), 0, nil); err != nil {
+		t.Fatalf("Fill empty must return nil, got: %v", err)
+	}
 }
