@@ -567,6 +567,7 @@ SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP = {
     ClusterType.TendisRedisCluster.value: ClusterType.TendisTwemproxyRedisInstance.value,
     # Redis 磁盘型
     ClusterType.TendisPredixyTendisplusCluster.value: ClusterType.TwemproxyTendisSSDInstance.value,
+    ClusterType.TendisPredixyTendisplusInstance.value: ClusterType.TwemproxyTendisSSDInstance.value,
     ClusterType.TendisTwemproxyTendisplusIns.value: ClusterType.TwemproxyTendisSSDInstance.value,
     ClusterType.TendisTendisSSDInstance.value: ClusterType.TwemproxyTendisSSDInstance.value,
     ClusterType.TendisTendisplusInsance.value: ClusterType.TwemproxyTendisSSDInstance.value,

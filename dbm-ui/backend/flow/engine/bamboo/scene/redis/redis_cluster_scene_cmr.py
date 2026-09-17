@@ -23,7 +23,7 @@ from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail
-from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
+from backend.db_services.redis.util import cal_proxy_servers, is_predixy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -102,14 +102,12 @@ class RedisClusterCMRSceneFlow(object):
         """将 get_cluster_info_by_cluster_id 返回值转换为 CMR 场景所需结构."""
         cluster_id = base_info["cluster_id"]
         cluster_detail = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
-        redis_master_set, redis_slave_set = cluster_detail["redis_master_set"], cluster_detail["redis_slave_set"]
-        if is_twemproxy_proxy_type(base_info["cluster_type"]):
-            servers = []
-            for set in redis_master_set:
-                ip_port, seg_range = str.split(set)
-                servers.append("{} {} {} {}".format(ip_port, base_info["cluster_name"], seg_range, 1))
-        else:
-            servers = redis_master_set + redis_slave_set
+        servers = cal_proxy_servers(
+            base_info["cluster_type"],
+            base_info["cluster_name"],
+            cluster_detail["redis_master_set"],
+            cluster_detail["redis_slave_set"],
+        )
 
         return {
             "immute_domain": base_info["immute_domain"],

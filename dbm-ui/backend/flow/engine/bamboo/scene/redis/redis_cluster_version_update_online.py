@@ -23,7 +23,11 @@ from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.redis.redis_dts.constants import REDIS_CONF_DEL_SLAVEOF
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
-from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
+from backend.db_services.redis.util import (
+    is_predixy_standalone_type,
+    is_redis_cluster_protocal,
+    is_twemproxy_proxy_type,
+)
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
     DEFAULT_MASTER_DIFF_TIME,
@@ -761,10 +765,16 @@ class RedisClusterVersionUpdateOnline(object):
 
         # 处理不同类型的集群升级
         cluster_type = cluster_meta_data["cluster_type"]
-        if is_redis_cluster_protocal(cluster_type) and ctx.pairs_to_switch:
-            self._handle_redis_cluster_upgrade(ctx)
-        elif is_twemproxy_proxy_type(cluster_type) and ctx.pairs_to_switch:
-            self._handle_twemproxy_cluster_upgrade(ctx)
+        if ctx.pairs_to_switch:
+            if is_redis_cluster_protocal(cluster_type):
+                # redis cluster协议: 走集群自身的 failover 协议
+                self._handle_redis_cluster_upgrade(ctx)
+            elif is_twemproxy_proxy_type(cluster_type) or is_predixy_standalone_type(cluster_type):
+                # 非cluster协议且有proxy: 通过修改proxy后端指向完成主从切换
+                self._handle_proxy_backend_switch_upgrade(ctx)
+            else:
+                # 未知类型不能只更新元数据(否则元数据与实例实际角色相反),直接失败
+                raise NotImplementedError("cluster_type:{} is not supported to switch".format(cluster_type))
 
         cc_update_acts, role_meta_acts = [], []
         # 构造元数据更新节点，由外层 Backend 数据更新收尾统一挂载到 dbmon 重装前
@@ -878,10 +888,10 @@ class RedisClusterVersionUpdateOnline(object):
             )
         ctx.pipeline.add_parallel_acts(acts_list=acts_list)
 
-    def _handle_twemproxy_cluster_upgrade(self, ctx: _ClusterUpgradeCtx):
-        """处理Twemproxy类型的集群升级"""
+    def _handle_proxy_backend_switch_upgrade(self, ctx: _ClusterUpgradeCtx):
+        """处理通过proxy后端切换完成升级的集群(twemproxy系 / predixy主从版)"""
         # 主从切换
-        self._add_twemproxy_switch_acts(ctx)
+        self._add_proxy_backend_switch_acts(ctx)
         # 清理slaveof配置
         self._add_slaveof_cleanup_acts(ctx)
         # 升级old_master
@@ -889,8 +899,8 @@ class RedisClusterVersionUpdateOnline(object):
         # old_master做new_slave
         self._add_master_to_slave_sync_acts(ctx)
 
-    def _add_twemproxy_switch_acts(self, ctx: _ClusterUpgradeCtx):
-        """添加Twemproxy主从切换动作"""
+    def _add_proxy_backend_switch_acts(self, ctx: _ClusterUpgradeCtx):
+        """添加主从切换动作(修改proxy后端指向)"""
         first_master_ip = ctx.first_master_ip
         ctx.act_kwargs.exec_ip = first_master_ip
         ctx.act_kwargs.cluster = {}
@@ -925,12 +935,14 @@ class RedisClusterVersionUpdateOnline(object):
         ctx.act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
             cluster_id=ctx.act_kwargs.cluster["cluster_id"]
         )
-        ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
-        ctx.pipeline.add_act(
-            act_name=_("{}-检查切换状态").format(first_master_ip),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(ctx.act_kwargs),
-        )
+        # 后端一致性检查是twemproxy专属能力(通过twemproxy admin端口拿backends),predixy没有该接口
+        if is_twemproxy_proxy_type(ctx.cluster_meta_data["cluster_type"]):
+            ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
+            ctx.pipeline.add_act(
+                act_name=_("{}-检查切换状态").format(first_master_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(ctx.act_kwargs),
+            )
 
     def _add_slaveof_cleanup_acts(self, ctx: _ClusterUpgradeCtx):
         """添加清理slaveof配置的动作"""

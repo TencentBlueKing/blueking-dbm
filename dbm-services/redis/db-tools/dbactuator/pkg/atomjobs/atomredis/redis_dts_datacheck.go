@@ -54,6 +54,19 @@ type RedisDtsDataCheckAndRpaireParams struct {
 	DstClusterPassword string `json:"dst_cluster_password" validate:"required"`
 	KeyWhiteRegex      string `json:"key_white_regex" validate:"required"`
 	KeyBlackRegex      string `json:"key_black_regex"`
+	// ConcurrentLimit 同机并发校验/修复的实例数,不传或<=0时使用默认值 DefaultDtsDataCheckConcurrentLimit
+	ConcurrentLimit int `json:"concurrent_limit"`
+}
+
+// DefaultDtsDataCheckConcurrentLimit 数据校验/修复默认并发度(同机同时校验/修复的实例数)
+const DefaultDtsDataCheckConcurrentLimit = 5
+
+// getConcurrentLimit 获取并发度,未传或非法值时使用默认值
+func (job *RedisDtsDataCheck) getConcurrentLimit() int {
+	if job.params.ConcurrentLimit <= 0 {
+		return DefaultDtsDataCheckConcurrentLimit
+	}
+	return job.params.ConcurrentLimit
 }
 
 // RedisDtsDataCheck dts 数据校验
@@ -131,10 +144,10 @@ func (job *RedisDtsDataCheck) Run() (err error) {
 		return
 	}
 
-	// 3. 并发提取与校验,并发度5
+	// 3. 并发提取与校验,并发度可配置(concurrent_limit),默认5
 	var wg sync.WaitGroup
 	taskList := make([]*RedisInsDtsDataCheckAndRepairTask, 0, len(job.params.SrcRedisPortSegmentList))
-	pool, err := ants.NewPoolWithFunc(5, func(i interface{}) {
+	pool, err := ants.NewPoolWithFunc(job.getConcurrentLimit(), func(i interface{}) {
 		defer wg.Done()
 		task := i.(*RedisInsDtsDataCheckAndRepairTask)
 		task.KeyPatternAndDataCheck()

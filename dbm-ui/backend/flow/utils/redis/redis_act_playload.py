@@ -39,6 +39,7 @@ from backend.db_services.redis.redis_dts.models.tb_tendis_dts_switch_backup impo
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail, get_redis_modules_detail
 from backend.db_services.redis.util import (
+    cal_proxy_servers,
     is_predixy_proxy_type,
     is_redis_instance_type,
     is_tendisplus_instance_type,
@@ -870,24 +871,11 @@ class RedisActPayload(object):
         )
 
         cluster_info = metaApi.cluster.nosqlcomm.other.get_cluster_detail(cluster_id=cluster.id)[0]
-        redis_master_set, redis_slave_set, servers = (
+        redis_master_set, redis_slave_set = (
             cluster_info["redis_master_set"],
             cluster_info["redis_slave_set"],
-            [],
         )
-        if is_twemproxy_proxy_type(cluster.cluster_type):
-            for set in redis_master_set:
-                ip_port, seg_range = str.split(set)
-                servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
-        elif cluster.cluster_type in [
-            ClusterType.TendisPredixyTendisplusCluster.value,
-            ClusterType.TendisPredixyTendisplusInstance.value,
-        ]:
-            # standalone主从模式：predixy只路由到master节点，使用StandaloneServerPool
-            servers = redis_master_set
-        else:
-            # cluster模式：predixy路由到所有节点(master+slave)，使用ClusterServerPool
-            servers = redis_master_set + redis_slave_set
+        servers = cal_proxy_servers(cluster.cluster_type, cluster.name, redis_master_set, redis_slave_set)
 
         # 从dbconfig中获取load_modules
         module_rows = get_cluster_redis_modules_detail(cluster_id=cluster.id)

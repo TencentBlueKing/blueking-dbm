@@ -32,6 +32,7 @@ from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_cluster_protocal,
     is_redis_instance_type,
+    is_seg_range_shard_type,
     is_tendisplus_instance_type,
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
@@ -243,13 +244,14 @@ def check_cluster_proxy_backends_consistent(cluster_id: int):
 
 def get_twemproxy_cluster_server_shards(bk_biz_id: int, cluster_id: int, other_to_master: dict) -> dict:
     """
-    获取twemproxy集群的server_shards
+    获取集群的server_shards(实例 -> seg_range 的映射),供dbmon上报shard_value使用
+    适用于所有按seg_range分片的集群类型: twemproxy系 + predixy主从版(TendisPredixyTendisplusInstance)
     :param bk_biz_id: 业务id
     :param cluster_id: 集群id
     :param other_to_master: other实例 到 master实例的映射关系,格式为{a.a.a.a:30000 : b.b.b.b:30000}
     """
     cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-    if not is_twemproxy_proxy_type(cluster.cluster_type):
+    if not is_seg_range_shard_type(cluster.cluster_type):
         return {}
     twemproxy_server_shards = defaultdict(dict)
     ipport_to_segment = {}

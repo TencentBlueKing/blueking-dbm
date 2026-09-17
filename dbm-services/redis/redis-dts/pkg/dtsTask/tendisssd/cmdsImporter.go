@@ -112,6 +112,19 @@ func (item *ImporterItem) ErrorAbleToBeIgnored(errData string) bool {
 	return item.IsWrongTypeErr(errData)
 }
 
+// removeSourceFileIfNeed 导入成功后删除本地sql文件,导完一个删一个,降低磁盘占用峰值
+// 日志文件(LogFile/ErrFile)不删除,方便事后排查
+func (item *ImporterItem) removeSourceFileIfNeed() {
+	if item.SQLFile == "" {
+		return
+	}
+	if err := os.Remove(item.SQLFile); err != nil && os.IsNotExist(err) == false {
+		item.Logger.Warn(fmt.Sprintf("导入成功后删除文件失败,file:%s,err:%v", item.SQLFile, err))
+		return
+	}
+	item.Logger.Info(fmt.Sprintf("导入成功,已删除本地文件:%s", item.SQLFile))
+}
+
 // RunTask 执行导入task
 func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 	supPipeImport := task.IsSupportPipeImport()
@@ -160,6 +173,7 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 			if item.ErrorAbleToBeIgnored(errStr) == true {
 				// 可忽略的错误
 				item.Err = nil
+				item.removeSourceFileIfNeed()
 				return
 			}
 			if retryAble && times <= maxRetryTimes {
@@ -187,6 +201,7 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 		errStr := strings.TrimSpace(string(errBytes))
 		if errStr != "" {
 			if item.ErrorAbleToBeIgnored(errStr) == true {
+				item.removeSourceFileIfNeed()
 				return
 			}
 			if retryAble == true && times <= maxRetryTimes {
@@ -199,6 +214,8 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 			item.Logger.Error(item.Err.Error())
 			return
 		}
+		// 导入成功
+		item.removeSourceFileIfNeed()
 		break
 	}
 }

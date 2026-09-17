@@ -133,6 +133,32 @@ class _NameServiceApi(BaseApi):
             max_retry_times=1,
         )
         # 传入参数
+        # {"region":"ap-guangzhou","loadbalancerid":"lb-xxxxxxxx"}
+        # 返回参数
+        # {"code": 0,
+        # "message": "ok",
+        # "data":{"totalcount":10,"abnormalcount":2,"abnormalips":["xxxx:8080","xxxx:8080"]}}
+        self.clb_describe_target_health = self.generate_data_api(
+            method="POST",
+            url="/api/nameservice/clb/describe_target_health",
+            description=_("查询clb后端主机健康状态"),
+            default_timeout=600,
+            max_retry_times=1,
+        )
+        # 传入参数
+        # {"region":"南京","loadbalancerid":"lb-xxx","snatpro":true}
+        # snatpro=true：开启跨地域绑定2.0（CLB V2，支持跨地域后端）
+        # snatpro=false：关闭跨地域绑定2.0（回退到V1）
+        # 返回参数
+        # {"code": 0, "message": "ok", "data":0}  code为 0 为成功，其他为失败
+        self.clb_upgrade_to_snat_pro = self.generate_data_api(
+            method="POST",
+            url="/api/nameservice/clb/upgrade_to_snat_pro",
+            description=_("升级clb到跨地域绑定2.0(SnatPro)"),
+            default_timeout=600,
+            max_retry_times=1,
+        )
+        # 传入参数
         # {"name":"polaris.xx.xx.xx.db",
         # "owners":"xxx1,xxx2",
         # "department":"xxx",

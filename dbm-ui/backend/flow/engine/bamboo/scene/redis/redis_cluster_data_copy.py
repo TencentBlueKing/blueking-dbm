@@ -325,6 +325,9 @@ class RedisClusterDataCopyFlow(object):
         if is_redis_instance_type(cluster_type):
             return "cache"
         elif is_tendisplus_instance_type(cluster_type):
+            # 如果是PredixyTendisplusInstance架构
+            if is_redis_cluster_protocal(cluster_type):
+                return "tendislite"
             return "tendisplus"
         elif is_tendisssd_instance_type(cluster_type):
             return "ssd"
@@ -349,10 +352,13 @@ class RedisClusterDataCopyFlow(object):
         install_param["cluster_password"] = src_cluster_info["cluster_password"]
         install_param["redis_password"] = src_cluster_info["redis_password"]
         install_param["redis_proxy_admin_password"] = src_cluster_info.get("redis_proxy_admin_password", "")
-        if is_twemproxy_proxy_type(info.get("target_cluster_type", src_cluster_info["cluster_type"])):
-            install_param["redis_databases"] = DEFAULT_REDIS_INSTANCE_DATABASES
-        elif is_redis_cluster_protocal(info.get("target_cluster_type", src_cluster_info["cluster_type"])):
+        dst_cluster_type = install_param["cluster_type"]
+        if is_redis_cluster_protocal(dst_cluster_type):
+            # redis cluster协议集群,只能有一个db
             install_param["redis_databases"] = DEFAULT_REDIS_CLUSTER_DATABASES
+        elif is_twemproxy_proxy_type(dst_cluster_type) or is_predixy_proxy_type(dst_cluster_type):
+            # 非redis cluster协议的proxy集群(如 PredixyTendisplusInstance),后端是主从实例,支持多db
+            install_param["redis_databases"] = DEFAULT_REDIS_INSTANCE_DATABASES
         else:
             install_param["redis_databases"] = src_cluster_info["redis_databases"]
         install_param["max_disk"] = info["max_disk"]
@@ -676,10 +682,18 @@ class RedisClusterDataCopyFlow(object):
         return precheck_template
 
     def __is_proxy_type_update(self, src_cluster_type: str, dst_cluster_type: str) -> bool:
+        """
+        proxy 配置模型是否发生变更
+        注意: 仅判断 proxy 程序是否相同(twemproxy/predixy)是不够的,
+        predixy 家族内部还需区分后端协议: redis cluster协议 与 主从(standalone)协议
+        对应 predixy.conf 中的 ClusterServerPool 与 StandaloneServerPool 两种不同的 ServerPool 段,
+        因此 PredixyTendisplusCluster <-> PredixyTendisplusInstance 这类互转仍属于 proxy 配置变更
+        """
         if is_twemproxy_proxy_type(src_cluster_type) and is_twemproxy_proxy_type(dst_cluster_type):
             return False
         if is_predixy_proxy_type(src_cluster_type) and is_predixy_proxy_type(dst_cluster_type):
-            return False
+            # predixy 程序相同,但后端协议不同时,proxy 配置仍需变更
+            return is_redis_cluster_protocal(src_cluster_type) != is_redis_cluster_protocal(dst_cluster_type)
         return True
 
     def __get_proxy_version_by_cluster_type(self, cluster_type: str) -> str:

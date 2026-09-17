@@ -78,6 +78,49 @@ def is_redis_cluster_protocal(cluster_type: str) -> bool:
     ]
 
 
+def is_predixy_standalone_type(cluster_type: str) -> bool:
+    """
+    是否是 predixy + 主从版(standalone) 类型
+    该类型后端是主从实例,非redis cluster协议,
+    predixy使用StandaloneServerPool,servers只包含master节点且带seg_range分片信息
+    """
+    return cluster_type in [
+        ClusterType.TendisPredixyTendisplusInstance,
+    ]
+
+
+def is_seg_range_shard_type(cluster_type: str) -> bool:
+    """
+    是否是按 seg_range 分片的集群类型
+    这类集群在 db_meta_nosqlstoragesetdtl 表中有分片(seg_range)记录,
+    proxy 依赖 seg_range 做 key 路由, dbmon 也依赖 seg_range 上报 shard_value
+    """
+    return is_twemproxy_proxy_type(cluster_type) or is_predixy_standalone_type(cluster_type)
+
+
+def cal_proxy_servers(cluster_type: str, cluster_name: str, redis_master_set: list, redis_slave_set: list) -> list:
+    """
+    计算proxy配置文件中的servers列表
+    @param cluster_type: 集群类型
+    @param cluster_name: 集群名,twemproxy的servers中需要
+    @param redis_master_set: master实例列表,分片类集群元素格式为 "ip:port seg_range",其余为 "ip:port"
+    @param redis_slave_set: slave实例列表,元素格式为 "ip:port"
+
+    - twemproxy: "ip:port cluster_name seg_range weight"
+    - predixy主从版(StandaloneServerPool): 只路由到master节点,元素格式为 "ip:port seg_range"
+    - predixy redis_cluster协议(ClusterServerPool): 路由到所有节点(master+slave)
+    """
+    if is_twemproxy_proxy_type(cluster_type):
+        servers = []
+        for master in redis_master_set:
+            ip_port, seg_range = str.split(master)
+            servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))
+        return servers
+    if is_predixy_standalone_type(cluster_type):
+        return list(redis_master_set)
+    return list(redis_master_set) + list(redis_slave_set)
+
+
 def is_have_proxy(cluster_type: str) -> bool:
     """
     是否有proxy

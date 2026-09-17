@@ -47,6 +47,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisC
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
 from backend.flow.engine.bamboo.scene.redis.redis_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
+from backend.flow.engine.bamboo.scene.redis.redis_predixy_tendisplus_ins_flow import PredixyTendisPlusInsApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -951,8 +952,16 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
         self.log_info("NewDstClusterInstallJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
         root_id = generate_root_id()
         if is_predixy_proxy_type(ticket_data["cluster_type"]):
-            flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
-            flow.deploy_predixy_cluster_flow()
+            if is_redis_cluster_protocal(ticket_data["cluster_type"]):
+                # predixy + redis cluster协议(TendisPredixyRedisCluster、TendisPredixyTendisplusCluster)
+                # 需要建立cluster meet关系并分配slots
+                flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
+                flow.deploy_predixy_cluster_flow()
+            else:
+                # predixy + tendisplus主从版(TendisPredixyTendisplusInstance)
+                # 后端是tendisplus主从实例,只需建立主从关系,不能做cluster meet
+                flow = PredixyTendisPlusInsApplyFlow(root_id=root_id, data=ticket_data)
+                flow.deploy_predixy_tendisplus_ins_flow()
         elif is_twemproxy_proxy_type(ticket_data["cluster_type"]):
             flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
             flow.deploy_twemproxy_cluster_flow()
