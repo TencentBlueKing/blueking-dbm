@@ -346,6 +346,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                         with_collect_sysinfo=False,
                         with_cc_standardize=True,
                         with_instance_standardize=False,
+                        with_probe=False,
                     )
                 )
                 surrounding_sub_pipeline.add_act(
