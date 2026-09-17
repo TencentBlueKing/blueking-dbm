@@ -222,9 +222,16 @@
     });
   };
 
-  watch(quickSearchValue, () => {
-    fetchData(quickSearchValue.value);
-  });
+  watch(
+    quickSearchValue,
+    () => {
+      fetchData(quickSearchValue.value);
+    },
+    {
+      // 搜索条件为空时 DbQuickSearch 首次回显的值与 quickSearchValue 相等，不会回写触发本 watch，首屏数据靠 immediate 拉取
+      immediate: true,
+    },
+  );
 
   watch(isShow, () => {
     if (!isShow.value) {

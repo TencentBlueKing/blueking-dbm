@@ -645,6 +645,10 @@
       ticketId.value = Number(route.params.ticketId);
       isShowDetail.value = true;
     }
+
+    // 搜索条件为空时 DbQuickSearch 首次回显的值与 quickSearchValue 相等，不会回写触发上面的 watch，首屏数据在这里拉取
+    isInited = true;
+    fetchData();
   });
 
   onBeforeUnmount(() => {

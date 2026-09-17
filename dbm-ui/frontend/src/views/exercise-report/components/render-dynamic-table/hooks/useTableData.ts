@@ -194,6 +194,9 @@ export const useTableData = (props: Props) => {
     );
   };
 
+  // 搜索条件为空时 DbQuickSearch 首次回显的值与 searchValue 相等，不会回写触发上面的 watch，首屏数据在这里拉取
+  fetchData();
+
   const handleFilterChange = (info: Record<string, string>, context: { trigger: string }) => {
     if (context.trigger === 'clear') {
       console.log('clear');
