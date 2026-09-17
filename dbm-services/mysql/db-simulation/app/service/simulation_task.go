@@ -199,6 +199,10 @@ type ReloadParam struct {
 // reloadRunningTaskFromdb 重载重启服务前运行的任务 加锁是避免多个服务同时启动，避免相同任务被重载
 // nolint
 func reloadRunningTaskFromdb(heartbeatInterval int) {
+	if model.DB == nil {
+		logger.Info("skip reload running task: db not initialized")
+		return
+	}
 	key := "simulation:reload:lock"
 	locker := redislock.New(rdb)
 	ctx := context.Background()

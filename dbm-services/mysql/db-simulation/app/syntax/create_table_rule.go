@@ -21,10 +21,14 @@ import (
 
 // Checker type create table checker
 func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
+	return c.checkWithClusterEngines(mysqlVersion, nil)
+}
+
+func (c CreateTableResult) checkWithClusterEngines(mysqlVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
-	r.Parse(R.CreateTableRule.SuggestEngine, c.GetEngine(), "")
+	parseCreateTableEngineRule(r, c.GetEngine(), clusterDefaultEngines)
 	r.Parse(R.CreateTableRule.SuggestBlobColumCount, c.BlobColumCount(), "")
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
 		r.ParseBuiltinRisk(func() (bool, string) {
@@ -53,21 +57,21 @@ func (c CreateTableResult) BlobColumCount() (blobColumCount int) {
 
 // GetValFromTbOptions  get table option
 func (c CreateTableResult) GetValFromTbOptions(key string) (val string) {
-	for _, tableOption := range c.TableOptions {
-		if tableOption.Key == key {
-			val, _ = tableOption.Value.(string)
-		}
-	}
+	val = optionStringValue(c.TableOptions, key)
 	logger.Info("%s:%s", key, val)
 	return val
 }
 
 // GetEngine get engine
 func (c CreateTableResult) GetEngine() (engine string) {
-	if v, ok := c.TableOptionMap["engine"]; ok {
-		return v.(string)
+	for k, v := range c.TableOptionMap {
+		if strings.EqualFold(k, "engine") {
+			if s, ok := v.(string); ok {
+				return s
+			}
+		}
 	}
-	return ""
+	return c.GetValFromTbOptions("engine")
 }
 
 // GetComment get sql comment
@@ -142,4 +146,138 @@ func (c CreateTableResult) JsonColumInvalidDefaultCheck() (bool, string) {
 		return false, ""
 	}
 	return true, fmt.Sprintf("json 列 %s 的默认值无效，不允许为 '' 或 'null'", strings.Join(invalidCols, ", "))
+}
+
+func optionStringValue(options []TableOption, key string) string {
+	for _, opt := range options {
+		if !strings.EqualFold(opt.Key, key) {
+			continue
+		}
+		if s, ok := opt.Value.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+// EngineMismatch reports whether SQL specified ENGINE is incompatible with
+// every selected cluster default. SQL is applied to all selected clusters, so
+// any distinct default that does not equal specified is a hit.
+// empty specified, empty defaults, or specified engine spider => no mismatch.
+// names are canonicalized (InnoDB, RocksDB, TokuDB, ...) so case does not matter.
+// duplicates and blank entries are ignored.
+func EngineMismatch(specified string, clusterDefaults []string) (hit bool, msg string) {
+	specified = canonicalStorageEngine(specified)
+	defaults := normalizeStorageEngines(clusterDefaults)
+	if specified == "" || len(defaults) == 0 {
+		return false, ""
+	}
+	if strings.EqualFold(specified, "spider") {
+		return false, ""
+	}
+	var conflicts []string
+	for _, clusterDefault := range defaults {
+		if specified == clusterDefault {
+			continue
+		}
+		conflicts = append(conflicts, clusterDefault)
+	}
+	if len(conflicts) == 0 {
+		return false, ""
+	}
+	return true, fmt.Sprintf("指定 ENGINE=%s，与集群默认存储引擎 %s 不一致", specified, strings.Join(conflicts, ", "))
+}
+
+func parseCreateTableEngineRule(r *CheckerResult, specified string, clusterDefaultEngines []string) {
+	if len(normalizeStorageEngines(clusterDefaultEngines)) > 0 {
+		parseEngineMismatch(r, specified, clusterDefaultEngines)
+		return
+	}
+	r.Parse(R.CreateTableRule.SuggestEngine, specified, "")
+}
+
+func parseEngineMismatch(r *CheckerResult, specified string, clusterDefaultEngines []string) {
+	if len(normalizeStorageEngines(clusterDefaultEngines)) == 0 {
+		return
+	}
+	r.ParseBuiltinRisk(func() (bool, string) {
+		return EngineMismatch(specified, clusterDefaultEngines)
+	})
+}
+
+// ResolveDefaultStorageEngines returns explicit engines when present.
+// Otherwise it picks known engine literals from three-part version tags
+// such as MySQL-5.7-RocksDB. Community and other non-engine suffixes are ignored.
+func ResolveDefaultStorageEngines(explicit, versionTags []string) []string {
+	if engines := normalizeStorageEngines(explicit); len(engines) > 0 {
+		return engines
+	}
+	return enginesFromVersionTags(versionTags)
+}
+
+func enginesFromVersionTags(versionTags []string) []string {
+	extracted := make([]string, 0, len(versionTags))
+	for _, tag := range versionTags {
+		tag = strings.TrimSpace(tag)
+		parts := strings.Split(tag, "-")
+		if len(parts) < 3 {
+			continue
+		}
+		last := strings.TrimSpace(parts[len(parts)-1])
+		if !isKnownStorageEngine(last) {
+			continue
+		}
+		extracted = append(extracted, last)
+	}
+	return normalizeStorageEngines(extracted)
+}
+
+func isKnownStorageEngine(name string) bool {
+	_, ok := knownStorageEngines[strings.ToLower(strings.TrimSpace(name))]
+	return ok
+}
+
+func canonicalStorageEngine(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+	key := strings.ToLower(name)
+	if canon, ok := knownStorageEngines[key]; ok {
+		return canon
+	}
+	return name
+}
+
+var knownStorageEngines = map[string]string{
+	"innodb":     "InnoDB",
+	"rocksdb":    "RocksDB",
+	"tokudb":     "TokuDB",
+	"myisam":     "MyISAM",
+	"memory":     "MEMORY",
+	"csv":        "CSV",
+	"archive":    "ARCHIVE",
+	"blackhole":  "BLACKHOLE",
+	"federated":  "FEDERATED",
+	"spider":     "SPIDER",
+	"ndb":        "NDB",
+	"ndbcluster": "ndbcluster",
+}
+
+func normalizeStorageEngines(engines []string) []string {
+	seen := make(map[string]struct{}, len(engines))
+	out := make([]string, 0, len(engines))
+	for _, engine := range engines {
+		canon := canonicalStorageEngine(engine)
+		if canon == "" {
+			continue
+		}
+		key := strings.ToLower(canon)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, canon)
+	}
+	return out
 }

@@ -18,6 +18,10 @@ import (
 
 // SpiderChecker syntax checker
 func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
+	return c.spiderCheckWithClusterEngines(mysqlVersion, nil)
+}
+
+func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
@@ -37,7 +41,7 @@ func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) 
 		}
 	}
 	r.ParseBuiltinBan(c.NotAllowedDefaultValCol)
-	return r.Merge(c.Checker(mysqlVersion))
+	return r.Merge(c.checkWithClusterEngines(mysqlVersion, clusterDefaultEngines))
 }
 
 // NotAllowedDefaultValCol 不允许存在默认值的字段

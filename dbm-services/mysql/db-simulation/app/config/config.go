@@ -168,6 +168,9 @@ func init() {
 	if err := loadConfig(); err != nil {
 		logger.Error("load config file failed:%s", err.Error())
 	}
+	if v := viper.GetString("LISTEN_ADDR"); v != "" {
+		GAppConfig.ListenAddr = v
+	}
 	GAppConfig.DbConf.SetDefaults()
 	for _, v := range GAppConfig.MirrorsAddress {
 		switch v.Version {

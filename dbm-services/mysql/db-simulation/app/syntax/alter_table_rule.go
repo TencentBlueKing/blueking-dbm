@@ -18,6 +18,10 @@ import (
 
 // Checker syntax checker
 func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
+	return c.checkWithClusterEngines(mysqlVersion, nil)
+}
+
+func (c AlterTableResult) checkWithClusterEngines(mysqlVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
@@ -42,7 +46,21 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	}
 	r.Parse(R.AlterTableRule.AddColumnMixed, c.GetAllAlterType(), "")
 	r.ParseBuiltinBan(c.JsonColumInvalidDefaultCheck)
+	parseEngineMismatch(r, c.SpecifiedEngine(), clusterDefaultEngines)
 	return
+}
+
+// SpecifiedEngine returns ENGINE from ALTER TABLE table_options, if any.
+func (c AlterTableResult) SpecifiedEngine() string {
+	for _, cmd := range c.AlterCommands {
+		if cmd.Type != AlterTypeTableOptions {
+			continue
+		}
+		if engine := optionStringValue(cmd.TableOptions, "engine"); engine != "" {
+			return engine
+		}
+	}
+	return ""
 }
 
 // HighRiskTypeVal 返回 HighRiskType 规则匹配用的 Val

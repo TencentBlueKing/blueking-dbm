@@ -109,6 +109,10 @@ func apiLogger(c *gin.Context) {
 		if platform == "" {
 			platform = ""
 		}
+		if model.DB == nil {
+			c.Next()
+			return
+		}
 		model.DB.Create(&model.TbRequestRecord{
 			RequestID:    rid,
 			Method:       c.Request.Method,
@@ -153,7 +157,7 @@ func returnResponseMiddleware(c *gin.Context) {
 	if err := json.Unmarshal(blw.body.Bytes(), &rp); err != nil {
 		return
 	}
-	if lo.IsNotEmpty(rp.RequestID) {
+	if lo.IsNotEmpty(rp.RequestID) && model.DB != nil {
 		if err := model.UpdateTbRequestLog(rp.RequestID, map[string]interface{}{
 			"response_body": blw.body.String(),
 			"response_code": statusCode,
