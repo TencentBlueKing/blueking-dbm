@@ -275,7 +275,7 @@ class TestGetBrokerBandwidthUtilization:
     @patch.object(mod, "BKMonitorV3Api")
     @patch.object(mod, "Cluster")
     def test_computes_utilization_per_broker(self, mock_cluster_cls, mock_bkmonitor):
-        cluster = MagicMock(immute_domain="kafka.test.db")
+        cluster = MagicMock(immute_domain="kafka.test.db", bk_biz_id=10001)
         broker1 = MagicMock()
         broker1.machine.ip = "127.0.0.1"
         broker2 = MagicMock()
@@ -292,10 +292,12 @@ class TestGetBrokerBandwidthUtilization:
             }
 
         promqls = []
+        query_params_list = []
 
         def _capture_and_return(series_list):
             def _fake_unify_query(query_params):
                 promqls.append(query_params["query_configs"][0]["promql"])
+                query_params_list.append(query_params)
                 return series_list.pop(0)
 
             return _fake_unify_query
@@ -320,6 +322,8 @@ class TestGetBrokerBandwidthUtilization:
         assert any("speed_sent_bit" in p for p in promqls)
         assert not any("bytes_recv" in p or "bytes_sent" in p for p in promqls)
         assert not any("rate(" in p for p in promqls)
+        assert len(query_params_list) == 3
+        assert all(params["bk_biz_id"] == 10001 for params in query_params_list)
 
     @patch.object(mod, "BKMonitorV3Api")
     @patch.object(mod, "Cluster")

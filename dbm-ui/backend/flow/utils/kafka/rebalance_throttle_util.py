@@ -293,6 +293,7 @@ def get_broker_bandwidth_utilization(cluster_id: int) -> List[Dict]:
 
     def _query_latest_by_ip(promql: str) -> Dict[str, float]:
         query_params = {
+            "bk_biz_id": cluster.bk_biz_id,
             "query_configs": [
                 {
                     "data_source_label": "prometheus",
