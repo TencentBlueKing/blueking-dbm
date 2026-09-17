@@ -126,11 +126,20 @@ class PartitionManagePermission(ResourceActionPermission):
         # 从获取到业务ID和集群类型后，决定动作和资源类型
         convert = ClusterType.cluster_type_to_db_type
         self.resource_meta = ResourceEnum.BUSINESS
-        if view.action in ["create", "update"]:
+        if view.action in ["create", "update", "dry_run", "execute_partition", "save_and_execute_v2"]:
             cluster = Cluster.objects.get(id=request.data["cluster_id"])
             bk_biz_id, db_type = cluster.bk_biz_id, convert(cluster.cluster_type)
             self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
             return [bk_biz_id]
+
+        elif view.action == "execute_partition_v2":
+            cluster_ids = [info.get("cluster_id") for info in request.data.get("partition_infos") or []]
+            clusters = list(Cluster.objects.filter(id__in=cluster_ids))
+            if not clusters:
+                raise ResourceInvalidError(_("未获取到分区操作关联的集群"))
+            db_type = convert(clusters[0].cluster_type)
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            return list({cluster.bk_biz_id for cluster in clusters})
 
         elif view.action == "clone_conf_v2":
             target_clusters = []
@@ -163,19 +172,14 @@ class PartitionManagePermission(ResourceActionPermission):
             self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
             return [bk_biz_id]
 
-        elif view.action in ["dry_run", "execute_partition", "query_log"]:
-
-            if view.action == "query_log":
-                config_id, cluster_type = int(request.query_params["config_id"]), request.query_params["cluster_type"]
-                params = {"limit": 1, "offset": 0, "ids": [config_id], "cluster_type": cluster_type}
-                cluster_id = DBPartitionApi.query_conf(params=params)["items"][0]["cluster_id"]
-            else:
-                cluster_id = request.data["cluster_id"]
+        elif view.action == "query_log":
+            config_id, cluster_type = int(request.query_params["config_id"]), request.query_params["cluster_type"]
+            params = {"limit": 1, "offset": 0, "ids": [config_id], "cluster_type": cluster_type}
+            cluster_id = DBPartitionApi.query_conf(params=params)["items"][0]["cluster_id"]
             cluster = Cluster.objects.get(id=cluster_id)
             db_type = convert(cluster.cluster_type)
             self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
-            bk_biz_id = request.data["bk_biz_id"]
-            return [bk_biz_id]
+            return [cluster.bk_biz_id]
 
 
 class ModifyClusterPasswordPermission(ResourceActionPermission):
