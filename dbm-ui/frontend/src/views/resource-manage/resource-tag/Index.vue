@@ -17,11 +17,11 @@
       <div
         v-if="!isBusiness"
         class="tag-manage-header-container">
-        <BkTag
+        <DbTag
           class="ml-8"
           theme="info">
           {{ t('全局') }}
-        </BkTag>
+        </DbTag>
         <span class="title-divider">|</span>
         <DbAppSelect
           :list="bizs"
@@ -33,11 +33,11 @@
       <div
         v-else
         class="tag-manage-header-container">
-        <BkTag
+        <DbTag
           class="ml-8"
           theme="info">
           {{ t('业务') }}
-        </BkTag>
+        </DbTag>
       </div>
     </Teleport>
     <div class="tags-management-container">

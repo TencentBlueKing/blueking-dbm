@@ -14,7 +14,7 @@
         label-width="0"
         property="value"
         :required="required">
-        <BkSelect
+        <DbSelect
           ref="selectRef"
           v-model="formData.value"
           allow-create
@@ -53,12 +53,12 @@
                 class="option-label">
                 {{ item.label }}
               </div>
-              <BkTag
+              <DbTag
                 v-if="item.isNew"
                 size="small"
                 theme="success">
                 NEW
-              </BkTag>
+              </DbTag>
             </div>
           </template>
           <template #extension>
@@ -86,7 +86,7 @@
               </div>
             </div>
           </template>
-        </BkSelect>
+        </DbSelect>
       </BkFormItem>
     </BkForm>
   </div>
@@ -123,9 +123,10 @@
 
 <script setup lang="ts" generic="T extends string | number">
   import BkForm from 'bkui-vue/lib/form';
-  import BkSelect from 'bkui-vue/lib/select';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import DbSelect from '@components/bkui-vue/select/Index.vue';
 
   type Emits = (e: 'change', value: T, isNew: boolean) => void;
 
@@ -147,7 +148,7 @@
   const { t } = useI18n();
 
   const formRef = ref<InstanceType<typeof BkForm>>();
-  const selectRef = ref<InstanceType<typeof BkSelect>>();
+  const selectRef = ref<InstanceType<typeof DbSelect>>();
   const inputRef = ref<InstanceType<typeof BkInput>>();
   const inputValue = ref('');
   const localList = ref<SelectOption<T>[]>([]);
@@ -270,7 +271,7 @@
         return;
       }
 
-      const optionEls = contentEl.querySelectorAll('.bk-select-option');
+      const optionEls = contentEl.querySelectorAll('.dbm-select-option');
       const targetOption = optionEls[index] as HTMLElement | undefined;
       targetOption?.scrollIntoView({ block: 'nearest' });
     });
@@ -285,7 +286,7 @@
       return;
     }
 
-    const optionEls = contentEl.querySelectorAll('.bk-select-option');
+    const optionEls = contentEl.querySelectorAll('.dbm-select-option');
     const targetOption = optionEls[index] as HTMLElement | undefined;
     targetOption?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
   };
@@ -299,7 +300,7 @@
       return;
     }
 
-    const optionEls = contentEl.querySelectorAll('.bk-select-option');
+    const optionEls = contentEl.querySelectorAll('.dbm-select-option');
     optionEls.forEach((option) => {
       option.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
     });
@@ -588,8 +589,8 @@
     }
 
     .create-validate-select {
-      .bk-select-trigger {
-        .angle-down {
+      .dbm-select-trigger {
+        .dbm-select-angle-down {
           display: none !important;
         }
       }
@@ -597,11 +598,11 @@
   }
 
   .create-validate-select-popover {
-    .bk-select-empty {
+    .dbm-select-empty {
       display: none !important;
     }
 
-    .bk-select-content {
+    .dbm-select-content {
       .create-validate-select-option-main {
         display: flex;
         width: 100%;
@@ -616,7 +617,7 @@
       }
     }
 
-    .bk-select-extension {
+    .dbm-select-extension {
       height: auto !important;
       border: none !important;
 

@@ -20,7 +20,7 @@
         <div
           v-else
           class="exclude-bizs-main">
-          <BkSelect
+          <DbSelect
             v-model="excludeBizs"
             allow-create
             class="exclude-biz-list"
@@ -51,7 +51,7 @@
       <div
         class="include-biz-list"
         :class="{ 'is-error': !!errorMessage }">
-        <BkSelect
+        <DbSelect
           v-if="modelValue === 'partial'"
           v-model="includeBizs"
           allow-create
@@ -262,7 +262,7 @@
         flex: 1;
 
         &.is-error {
-          :deep(.bk-select-tag) {
+          :deep(.dbm-select-tag) {
             background-color: #fff0f1 !important;
 
             .angle-down {
@@ -286,7 +286,7 @@
       }
     }
 
-    :deep(.bk-select-tag-wrapper) {
+    :deep(.dbm-select-tag-wrapper) {
       flex: 1;
     }
   }

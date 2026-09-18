@@ -10,11 +10,11 @@
           label="auto"
           style="flex: 1">
           {{ t('自动推荐方案') }}
-          <BkTag
+          <DbTag
             size="small"
             theme="success">
             {{ t('实验') }}
-          </BkTag>
+          </DbTag>
         </BkRadioButton>
         <BkRadioButton
           label="custom"
@@ -539,7 +539,7 @@
 
     .bk-form-item {
       .bk-form-content {
-        .bk-select,
+        .dbm-select,
         .dbm-input {
           width: 314px !important;
         }

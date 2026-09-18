@@ -15,11 +15,11 @@
   <div
     class="table-edit-tag"
     :class="{ ['is-error']: Boolean(errorMessage) }">
-    <BkTagInput
+    <DbTagInput
       v-model="localValue"
       allow-create
       :clearable="false"
-      has-delete-icon
+      multiple
       :placeholder="placeholder"
       @change="handleChange" />
     <div
@@ -83,19 +83,16 @@
     position: relative;
 
     &.is-error {
-      .bk-tag-input {
-        .bk-tag-input-trigger {
-          background: rgb(255 221 221 / 20%);
-
-          .placeholder {
-            line-height: 40px;
-          }
-        }
+      .db-tag-input-panel {
+        background: rgb(255 221 221 / 20%);
       }
     }
 
-    .bk-tag-input {
-      .bk-tag-input-trigger {
+    .db-tag-input {
+      height: 40px;
+
+      .db-tag-input-panel {
+        max-height: 40px;
         min-height: 40px;
         border-color: transparent;
         border-radius: 0;
@@ -104,20 +101,16 @@
           background-color: #fafbfd;
           border-color: #a3c5fd;
         }
+      }
 
-        &.active {
+      &.is-focus {
+        .db-tag-input-panel {
           border-color: #3a84ff;
         }
+      }
 
-        .tag-input {
-          background-color: transparent !important;
-        }
-
-        .placeholder {
-          top: 0;
-          height: 40px;
-          line-height: 40px;
-        }
+      .db-tag-input-input {
+        background-color: transparent !important;
       }
     }
 

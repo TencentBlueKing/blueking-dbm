@@ -54,12 +54,12 @@
                   v-if="isTreeNode(childrenItem)"
                   class="sub-group">
                   <div class="sub-group-name">
-                    <BkTag
+                    <DbTag
                       class="ml-8"
                       :theme="getTheme(childIndex)"
                       type="stroke">
                       {{ childrenItem.name }}
-                    </BkTag>
+                    </DbTag>
                   </div>
                   <div class="tool-list">
                     <MenuItem

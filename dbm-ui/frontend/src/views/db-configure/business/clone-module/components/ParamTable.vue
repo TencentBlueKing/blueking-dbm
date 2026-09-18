@@ -67,13 +67,13 @@
             :data-conf-name="row.conf_name"
             :data-description="row.description"
             type="bk-dbm-icon db-icon-attention" />
-          <BkTag
+          <DbTag
             v-if="row.diff_type === 'new'"
             class="ml-8"
             size="small"
             theme="success">
             NEW
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn
@@ -111,13 +111,13 @@
             ({{ t('源值') }}: {{ row.flag_encrypt === 1 ? '******' : (row.source_conf_value ?? '--') }})
           </span>
           <!-- 自定义标注 -->
-          <BkTag
+          <DbTag
             v-if="row.value_source === 'custom'"
             class="ml-8"
             size="small"
             theme="warning">
             {{ t('自定义') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn
@@ -127,7 +127,7 @@
         :width="300">
         <template #default="{ row }">
           <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
-            <BkTag>{{ row.value_type_sub }}</BkTag>
+            <DbTag>{{ row.value_type_sub }}</DbTag>
             <span class="ml-4">{{ row.value_allowed || '--' }}</span>
           </template>
           <span

@@ -14,11 +14,11 @@
 <template>
   <div>
     <Teleport to="#dbContentTitleAppend">
-      <BkTag
+      <DbTag
         class="ml-8 mr-8"
         theme="info">
         {{ t('全局') }}
-      </BkTag>
+      </DbTag>
       <AuthButton
         action-id="resource_pool_manage"
         class="w-88"

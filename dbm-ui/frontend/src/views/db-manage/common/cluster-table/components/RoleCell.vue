@@ -29,11 +29,11 @@
             </TextHighlight>
           </div>
           <template #append>
-            <BkTag
+            <DbTag
               v-if="rowItem.node.status === 'unavailable'"
               size="small">
               {{ t('不可用') }}
-            </BkTag>
+            </DbTag>
             <slot
               v-bind="{
                 data: rowItem.node as any,
@@ -232,7 +232,7 @@
     .is-unavailable {
       color: #c4c6cc;
 
-      .bk-tag {
+      .dbm-tag {
         height: 20px;
         padding: 0 4px;
         line-height: 20px;

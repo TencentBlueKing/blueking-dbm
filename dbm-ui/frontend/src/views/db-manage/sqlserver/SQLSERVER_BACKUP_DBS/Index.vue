@@ -71,7 +71,7 @@
           :label="t('备份位置')"
           property="backup_place"
           required>
-          <BkSelect
+          <DbSelect
             v-model="formData.backup_place"
             disabled
             :list="backupLocationList"

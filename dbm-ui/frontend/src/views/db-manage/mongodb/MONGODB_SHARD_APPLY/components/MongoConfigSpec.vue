@@ -100,17 +100,17 @@
             col-key="shard_num"
             :title="t('Shard数量')">
             <template #default="{ row: data }: { row: MongoConfigSpecRow }">
-              <BkSelect
+              <DbSelect
                 v-model="data.shard_num"
                 class="shard-node-spec"
                 :clearable="false"
                 @change="handleShardNumChange">
-                <BkOption
+                <DbOption
                   v-for="(choiceItem, choiceIndex) in data.shard_choices"
                   :key="choiceIndex"
                   :label="choiceItem.shard_num"
                   :value="choiceItem.shard_num" />
-              </BkSelect>
+              </DbSelect>
             </template>
           </TableColumn>
           <TableColumn
@@ -485,7 +485,7 @@
 
     :deep(.bk-form-item) {
       .bk-form-content {
-        .bk-select,
+        .dbm-select,
         .dbm-input {
           width: 314px !important;
         }

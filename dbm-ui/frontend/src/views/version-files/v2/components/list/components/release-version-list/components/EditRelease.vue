@@ -20,7 +20,7 @@
     <template #header>
       <div class="header-main">
         <span>{{ props.isEdit ? t('编辑发行版') : t('新增发行版') }}</span>
-        <BkTag theme="info">{{ tagLabel }}</BkTag>
+        <DbTag theme="info">{{ tagLabel }}</DbTag>
       </div>
     </template>
     <div class="content-main">
@@ -57,13 +57,13 @@
             <span>{{ t('存储引擎') }}</span>
             <span class="engine-tip">({{ t('发行版若无存储引擎要求，请选择无') }})</span>
           </template>
-          <BkSelect v-model="formModel.engine">
-            <BkOption
+          <DbSelect v-model="formModel.engine">
+            <DbOption
               v-for="item in engineList"
               :key="item.value"
               :label="item.label"
               :value="item.value" />
-          </BkSelect>
+          </DbSelect>
         </BkFormItem>
       </BkForm>
       <div class="operate-main">

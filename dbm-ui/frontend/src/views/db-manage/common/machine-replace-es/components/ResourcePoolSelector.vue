@@ -10,12 +10,12 @@
       property="spec_id"
       required
       :rules="specRules">
-      <BkSelect
+      <DbSelect
         :loading="isResourceSpecLoading"
         :model-value="modelValue.spec_id || undefined"
         :placeholder="t('请选择匹配规格')"
         @change="handleSpecChange">
-        <BkOption
+        <DbOption
           v-for="item in resourceSpecList?.results"
           :key="item.spec_id"
           :label="item.spec_name"
@@ -25,13 +25,13 @@
             placement="right">
             <div style="display: flex; width: 100%; align-items: center">
               <div>{{ item.spec_name }}</div>
-              <BkTag style="margin-left: auto">
+              <DbTag style="margin-left: auto">
                 {{ specCountMap[item.spec_id] }}
-              </BkTag>
+              </DbTag>
             </div>
           </SpecDetailPopover>
-        </BkOption>
-      </BkSelect>
+        </DbOption>
+      </DbSelect>
     </DbFormItem>
     <DbFormItem
       error-display-type="tooltips"

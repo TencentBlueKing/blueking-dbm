@@ -9,9 +9,9 @@
           <span class="cluster-name">{{ t('{集群名}') }}</span>
           <span>{{ bizName }}</span>
         </I18nT>
-        <BkTag v-if="isHaType">
+        <DbTag v-if="isHaType">
           {{ t('主') }}
-        </BkTag>
+        </DbTag>
       </span>
       <!-- 从域名（仅主从类型显示） -->
       <span v-if="isHaType">
@@ -20,7 +20,7 @@
           <span class="cluster-name">{{ t('{集群名}') }}</span>
           <span>{{ bizName }}</span>
         </I18nT>
-        <BkTag>{{ t('从') }}</BkTag>
+        <DbTag>{{ t('从') }}</DbTag>
       </span>
     </div>
   </div>

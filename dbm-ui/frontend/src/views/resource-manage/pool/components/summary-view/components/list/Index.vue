@@ -102,9 +102,10 @@
           </TableColumn>
         </PrimaryTable>
         <div class="table-footer">
-          <BkPagination
+          <DbPagination
             v-bind="pagination"
             :layout="['total', 'limit', 'list']"
+            :model-value="pagination.current"
             @change="handleChangePage"
             @limit-change="handeChangeLimit" />
         </div>
@@ -282,7 +283,7 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      .bk-pagination {
+      .dbm-pagination {
         width: 100%;
 
         & > .is-last {

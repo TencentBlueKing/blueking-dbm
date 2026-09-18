@@ -10,11 +10,11 @@
         :label="APPLY_SCHEME.AUTO"
         style="flex: 1">
         {{ t('自动推荐方案') }}
-        <BkTag
+        <DbTag
           size="small"
           theme="success">
           {{ t('实验') }}
-        </BkTag>
+        </DbTag>
       </BkRadioButton>
       <BkRadioButton
         :label="APPLY_SCHEME.CUSTOM"

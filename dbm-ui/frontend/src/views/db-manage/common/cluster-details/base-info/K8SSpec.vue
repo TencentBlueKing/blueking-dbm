@@ -12,7 +12,7 @@
         type="sync-pending" />
     </div>
     <template v-else>
-      <BkTag
+      <DbTag
         v-for="item in specData?.spec.componentList"
         :key="item.componentName">
         <span class="text-bold">{{
@@ -25,7 +25,7 @@
         /
         <span>{{ item.limit.memory }}</span>
         ）
-      </BkTag>
+      </DbTag>
     </template>
   </InfoItem>
 </template>

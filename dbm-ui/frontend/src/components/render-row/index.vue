@@ -25,12 +25,12 @@
         {{ text }} {{ index < data.length - 1 ? ' , ' : '' }}
       </span>
     </p>
-    <BkTag
+    <DbTag
       v-if="overflowData.length > 0"
       v-bk-tooltips="showAll ? data.join('\n') : overflowData.join('\n')"
       class="render-row-tag">
       {{ showAll ? t('共n个', [data.length]) : `+${overflowData.length}` }}
-    </BkTag>
+    </DbTag>
     <slot name="append" />
   </div>
 </template>
@@ -109,7 +109,7 @@
       padding: 0 4px;
       margin: 0;
 
-      :deep(.bk-tag-text) {
+      :deep(.dbm-tag-text) {
         height: 16px !important;
         line-height: 16px;
         transform: scale(0.83, 0.83);

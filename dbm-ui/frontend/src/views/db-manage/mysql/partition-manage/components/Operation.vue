@@ -22,18 +22,18 @@
           :label="t('目标集群')"
           property="cluster_id"
           required>
-          <BkSelect
+          <DbSelect
             :disabled="isEditMode"
             filterable
             :loading="isCluserListLoading"
             :model-value="formData.cluster_id || undefined"
             @change="handleClusterChange">
-            <BkOption
+            <DbOption
               v-for="item in clusterList"
               :id="item.id"
               :key="item.id"
               :name="item.immute_domain" />
-          </BkSelect>
+          </DbSelect>
         </DbFormItem>
         <DbFormItem
           :label="t('目标 DB')"
@@ -83,15 +83,15 @@
           :label="t('字段类型')"
           property="partition_column_type"
           required>
-          <BkSelect
+          <DbSelect
             v-model="formData.partition_column_type"
             :disabled="partitionColumnTypeDisabled">
-            <BkOption
+            <DbOption
               v-for="item in columnTypeSelectList"
               :id="item.id"
               :key="item.id"
               :name="item.name" />
-          </BkSelect>
+          </DbSelect>
         </DbFormItem>
         <DbFormItem
           :description="t('多少天为一个分区，例如 7 天为一个分区')"
@@ -124,11 +124,11 @@
         <div class="mt-20">
           <div style="font-weight: 600">
             {{ t('保存并执行')
-            }}<BkTag
+            }}<DbTag
               class="ml-8"
               theme="success">
               {{ t('推荐') }}
-            </BkTag>
+            </DbTag>
           </div>
           <ul>
             <li>{{ t('- 适用：调整分区间隔，过期时间') }}</li>
@@ -139,11 +139,11 @@
         <div class="mt-20 mb-8">
           <div style="font-weight: 600">
             {{ t('保存并重新初始化')
-            }}<BkTag
+            }}<DbTag
               class="ml-8"
               theme="danger">
               {{ t('谨慎') }}
-            </BkTag>
+            </DbTag>
           </div>
           <ul>
             <li>{{ t('- 适用：修改分区字段或需历史分区立即应用新的分区策略') }}</li>

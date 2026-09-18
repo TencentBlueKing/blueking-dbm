@@ -62,9 +62,10 @@
           </template>
         </EnhancedTable>
         <div class="table-footer">
-          <BkPagination
+          <DbPagination
             v-bind="pagination"
             :layout="['total', 'limit', 'list']"
+            :model-value="pagination.current"
             @change="handlePageValueChange"
             @limit-change="handlePageLimitChange" />
         </div>
@@ -80,7 +81,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { Alert as BkAlert, Button as BkButton, InfoBox, Popover as BkPopover, Tag as BkTag } from 'bkui-vue';
+  import { Alert as BkAlert, Button as BkButton, InfoBox, Popover as BkPopover } from 'bkui-vue';
   import { EnhancedTable } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
@@ -92,6 +93,7 @@
   import type { DBTypes } from '@common/const';
 
   import AuthTemplate from '@components/auth-component/component.vue';
+  import DbTag from '@components/bkui-vue/tag/Index.vue';
   import DbIcon from '@components/db-icon/index';
   import DbQuickSearch from '@components/db-quick-search/Index.vue';
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -202,12 +204,12 @@
               <span class='tree-line-vertical' />
               {/* 树形连接线：水平虚线 */}
               <span class='tree-line-horizontal' />
-              <BkTag
+              <DbTag
                 class='tree-child-tag'
                 size='small'
                 theme='warning'>
                 {t('子')}
-              </BkTag>
+              </DbTag>
               <AuthTemplate
                 actionId='biz_ticket_config_set'
                 disabled={!row.editable}
@@ -230,11 +232,11 @@
                   content={t('与父策略的审批设置一致，不再独立生效，可手动删除。')}
                   placement='top'
                   trigger='hover'>
-                  <BkTag
+                  <DbTag
                     class='ml-4'
                     size='small'>
                     {t('重复')}
-                  </BkTag>
+                  </DbTag>
                 </BkPopover>
               )}
             </span>
@@ -264,19 +266,19 @@
               )}
             </AuthTemplate>
             {row.isCustom && (
-              <BkTag
+              <DbTag
                 class='ml-4'
                 size='small'
                 theme='warning'>
                 {t('自定义')}
-              </BkTag>
+              </DbTag>
             )}
             {!row.editable && (
               <BkPopover
                 content={t('平台已锁定，不可更改设置')}
                 placement='top'
                 trigger='hover'>
-                <BkTag
+                <DbTag
                   class='ml-4'
                   size='small'
                   theme='info'>
@@ -285,7 +287,7 @@
                     type='bk-dbm-icon db-icon-lock-fill'
                   />
                   {t('平台锁定')}
-                </BkTag>
+                </DbTag>
               </BkPopover>
             )}
           </span>
@@ -302,20 +304,20 @@
           if (row.scopeType === 'tag') {
             return (
               <span class='scope-tag-cell'>
-                <BkTag
+                <DbTag
                   class='mr-4'
                   size='small'>
                   {t('按标签')}
-                </BkTag>
+                </DbTag>
                 <span class={{ 'is-tag-invalid': row.isTagInvalid, 'tag-display-text': true }}>{row.tagDisplay}</span>
                 {row.isTagInvalid && (
-                  <BkTag
+                  <DbTag
                     v-bk-tooltips={t('该标签已被删除')}
                     class='ml-4'
                     size='small'
                     theme='danger'>
                     {t('已失效')}
-                  </BkTag>
+                  </DbTag>
                 )}
               </span>
             );
@@ -323,11 +325,11 @@
           // 按集群子策略：展示集群列表 popover + 集群标识
           return (
             <span class='scope-cluster-cell'>
-              <BkTag
+              <DbTag
                 class='mr-4'
                 size='small'>
                 {t('按集群')}
-              </BkTag>
+              </DbTag>
               <ClusterPopover clusters={row.clusters} />
             </span>
           );
@@ -556,20 +558,20 @@
         const scopeContent =
           data.scopeType === 'tag' ? (
             <span class='scope-tag-cell'>
-              <BkTag
+              <DbTag
                 class='mr-8'
                 size='small'>
                 {t('按标签')}
-              </BkTag>
+              </DbTag>
               <span class={{ 'is-tag-invalid': data.isTagInvalid, 'tag-display-text': true }}>{data.tagDisplay}</span>
             </span>
           ) : (
             <span class='infobox-scope-text'>
-              <BkTag
+              <DbTag
                 class='infobox-cluster-tag'
                 size='small'>
                 {t('按集群')}
-              </BkTag>
+              </DbTag>
               <div class='infobox-cluster-list'>
                 {visibleClusterItems}
                 {clusterMore}
@@ -830,7 +832,7 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      :deep(.bk-pagination) {
+      :deep(.dbm-pagination) {
         width: 100%;
 
         & > .is-last {

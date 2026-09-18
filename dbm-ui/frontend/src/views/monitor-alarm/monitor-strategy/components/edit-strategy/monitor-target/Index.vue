@@ -34,19 +34,19 @@
         <div class="item-box-title">
           {{ item.isCustom ? customTitleMap[item.id] : item.title }}
         </div>
-        <BkSelect
+        <DbSelect
           v-model="item.method"
           class="method-select"
           :clearable="false"
           collapse-tags
           style="width: 100px"
           @change="handleChange">
-          <BkOption
+          <DbOption
             v-for="data in methodList"
             :key="data.id"
             :label="data.name"
             :value="data.id" />
-        </BkSelect>
+        </DbSelect>
         <div style="flex: 1">
           <BkInput
             v-if="isFuzzyInput(item.method)"

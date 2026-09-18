@@ -17,11 +17,11 @@
     class="version-file-operation-header">
     <div class="title-main">
       <span>{{ versionName || '--' }}</span>
-      <BkTag
+      <DbTag
         class="ml-12"
         radius="12px">
         {{ dbVersionListCount }}
-      </BkTag>
+      </DbTag>
     </div>
     <!-- 外层拦掉冒泡，避免点击操作项时把所在的系列折叠面板一起收起 -->
     <div

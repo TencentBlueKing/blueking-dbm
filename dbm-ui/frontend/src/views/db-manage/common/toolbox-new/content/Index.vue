@@ -22,13 +22,13 @@
           v-if="selectedValue"
           class="content-head">
           <span class="content-head-title">{{ navName }}</span>
-          <BkTag
+          <DbTag
             v-if="isFix"
             class="ml-4"
             size="small"
             theme="warning">
             {{ t('故障修复') }}
-          </BkTag>
+          </DbTag>
         </div>
         <RouterView :key="renderKey" />
       </ScrollFaker>
@@ -38,7 +38,7 @@
         <span class="header-title">{{ DBTypeInfos[dbType as DBTypes].name }} {{ t('工具箱') }}</span>
         <template v-if="selectedValue">
           <span class="title-divider">|</span>
-          <BkSelect
+          <DbSelect
             v-model="selectedValue"
             filterable
             @change="handleChange">
@@ -48,27 +48,27 @@
                 <DbIcon type="down-shape" />
               </div>
             </template>
-            <BkOptionGroup
+            <DbOptionGroup
               v-for="item in dataList"
               :key="item.id"
               collapsible
               :label="item.name">
-              <BkOption
+              <DbOption
                 v-for="childItem in item.children"
                 :id="childItem.id"
                 :key="childItem.id"
                 :name="childItem.name"
                 style="justify-content: space-between">
                 <div>{{ childItem.name }}</div>
-                <BkTag
+                <DbTag
                   v-if="childItem.isFix"
                   size="small"
                   theme="warning">
                   {{ t('故障修复') }}
-                </BkTag>
-              </BkOption>
-            </BkOptionGroup>
-          </BkSelect>
+                </DbTag>
+              </DbOption>
+            </DbOptionGroup>
+          </DbSelect>
         </template>
       </div>
     </Teleport>

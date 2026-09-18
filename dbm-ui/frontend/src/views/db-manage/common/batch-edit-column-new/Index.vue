@@ -123,14 +123,11 @@
   };
 
   const handleConfirm = () => {
-    // tag-input 组件内为200ms后失焦处理失焦的回调，这里将任务添加至失焦回调后，以获取最新值
-    setTimeout(() => {
-      Promise.resolve()
-        .then(() => props.confirmHandler())
-        .then(() => {
-          tippyInstance!.hide();
-        });
-    }, 210);
+    Promise.resolve()
+      .then(() => props.confirmHandler())
+      .then(() => {
+        tippyInstance!.hide();
+      });
   };
 
   const handleCancel = () => {

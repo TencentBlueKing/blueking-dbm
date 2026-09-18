@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     :all-option-id="STAR"
     :all-option-text="t('全部表（*）')"
     :clearable="!disabled"
@@ -29,20 +29,20 @@
     show-select-all
     @change="handleChange">
     <template #tag="{ selected }">
-      <BkTag
+      <DbTag
         v-for="item in selected"
         :key="item.value ?? item"
         closable
         @close="() => handleRemoveTag(item.value ?? item)">
         {{ item.value === STAR ? STAR : (item.label ?? item.value ?? item) }}
-      </BkTag>
+      </DbTag>
     </template>
-    <BkOption
+    <DbOption
       v-for="name in candidateTables"
       :key="name"
       :label="name"
       :value="name" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script lang="ts" setup>
@@ -133,7 +133,7 @@
   );
 
   const handleChange = (value: string[]) => {
-    // include 模式：选具体表时清空 *；选 * 时清空具体表（BkSelect show-all 已处理）
+    // include 模式：选具体表时清空 *；选 * 时清空具体表（DbSelect show-all 已处理）
     if (props.mode === 'include' && !props.multiDbLocked) {
       const hasStar = value.includes(STAR);
       const prevHasStar = modelValue.value.includes(STAR);

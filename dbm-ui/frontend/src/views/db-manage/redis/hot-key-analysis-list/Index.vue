@@ -90,7 +90,7 @@
             </div>
             <div v-if="data.ins_list.length > 6">
               <span>...</span>
-              <BkTag
+              <DbTag
                 v-bk-tooltips="{
                   content: data.ins_list.join('\n'),
                 }"
@@ -101,7 +101,7 @@
                   scope="global">
                   {{ data.ins_list.length }}
                 </I18nT>
-              </BkTag>
+              </DbTag>
             </div>
           </div>
           <template v-if="data.ins_list.length < 1"> -- </template>

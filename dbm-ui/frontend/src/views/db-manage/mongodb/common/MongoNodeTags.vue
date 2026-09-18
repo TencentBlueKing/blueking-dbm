@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <BkTag
+  <DbTag
     v-if="data.instance_role"
     class="ml-4"
     size="small">
     {{ data.instance_role }}
-  </BkTag>
-  <BkTag
+  </DbTag>
+  <DbTag
     v-if="displayState"
     class="ml-4"
     size="small">
     {{ displayState }}
-  </BkTag>
+  </DbTag>
 </template>
 <script setup lang="ts">
   import type { ClusterListNode } from '@services/types';

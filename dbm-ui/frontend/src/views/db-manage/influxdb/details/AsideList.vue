@@ -51,9 +51,8 @@
           @clear-search="handleClearSearch"
           @refresh="fetchList" />
       </div>
-      <BkPagination
+      <DbPagination
         v-model="pagination.current"
-        align="center"
         class="aside-pagination"
         :count="pagination.count"
         :limit="pagination.limit"
@@ -220,8 +219,13 @@
 
     .aside-pagination {
       padding: 4px 0;
+      justify-content: center;
 
-      :deep(.bk-pagination-limit) {
+      :deep(.is-last) {
+        margin-left: 0;
+      }
+
+      :deep(.dbm-pagination-limit) {
         display: none;
       }
     }
