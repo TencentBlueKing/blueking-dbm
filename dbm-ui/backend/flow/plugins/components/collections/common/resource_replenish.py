@@ -58,6 +58,7 @@ class HCMResourceReplenishService(BaseService):
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
                 count=apply_count,
                 device_index=device_index,
+                anti_affinity_level=kwargs.get("anti_affinity_level", ""),
             )
             return apply_id, device_index
         except Exception as e:
@@ -78,6 +79,8 @@ class HCMResourceReplenishService(BaseService):
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
                 count=apply_count,
                 device_index=device_index,
+                anti_affinity_level=kwargs.get("anti_affinity_level", ""),
+                city=kwargs["city"],
             )
             return device_index
         except Exception as e:
@@ -86,7 +89,7 @@ class HCMResourceReplenishService(BaseService):
 
     def __find_candidate_device(self, spec, kwargs, candidate_index):
         for index in range(candidate_index, min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM)):
-            capacity = HCMApi.get_cvm_device_capacity(spec.device_class[index], kwargs["subzone"])
+            capacity = HCMApi.get_cvm_device_capacity(spec.device_class[index], kwargs["subzone"], kwargs["city"])
             if capacity > 0:
                 return index
 
