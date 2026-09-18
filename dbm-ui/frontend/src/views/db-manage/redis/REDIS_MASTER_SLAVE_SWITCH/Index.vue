@@ -16,7 +16,7 @@
     <div class="redis-master-failover-page">
       <BkAlert
         closable
-        theme="info"
+        theme="warning"
         :title="
           t(
             '主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换',
@@ -155,6 +155,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   useTicketDetail<Redis.MasterSlaveSwitch>(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, {
     onSuccess(ticketDetail) {
@@ -290,6 +291,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">

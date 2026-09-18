@@ -302,4 +302,12 @@
   const handleTypeChange = () => {
     router.replace({ name: TicketTypes.REDIS_KEYS_DELETE });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

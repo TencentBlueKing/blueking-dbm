@@ -127,6 +127,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const currentTableRef = useTemplateRef('currentTable');
 
@@ -188,6 +189,14 @@
     Object.assign(formData, createDefaultFormData());
     currentTableRef.value!.resetTable();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

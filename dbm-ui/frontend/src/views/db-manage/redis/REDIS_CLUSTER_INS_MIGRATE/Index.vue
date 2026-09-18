@@ -146,6 +146,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const editableTableRef = useTemplateRef('editableTable');
   const instanceColumnRef = useTemplateRef<Array<InstanceType<typeof InstanceColumn>>>('instanceColumnRef');
@@ -327,4 +328,12 @@
   const handleReset = () => {
     Object.assign(formData, initFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

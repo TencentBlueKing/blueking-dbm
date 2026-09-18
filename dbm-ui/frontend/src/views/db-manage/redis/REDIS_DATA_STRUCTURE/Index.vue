@@ -182,6 +182,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   useTicketDetail<Redis.DataStructure>(TicketTypes.REDIS_DATA_STRUCTURE, {
@@ -303,7 +304,8 @@
             master_domain: item.master_domain,
           } as IDataRow['cluster'],
           count: item.count ? Number(item.count) : 1,
-          labels: ((item.labels as string)?.split(',').map((labelItem) => ({ value: labelItem })) || []) as IDataRow['labels'],
+          labels: ((item.labels as string)?.split(',').map((labelItem) => ({ value: labelItem })) ||
+            []) as IDataRow['labels'],
           master_instances: item.master_instances ? item.master_instances.split(',') : [],
           recovery_time_point: item.recovery_time_point || '',
           specId: item.specId || '',
@@ -355,6 +357,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">
