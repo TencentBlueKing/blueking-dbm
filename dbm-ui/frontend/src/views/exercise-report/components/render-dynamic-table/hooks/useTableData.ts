@@ -116,16 +116,27 @@ export const useTableData = (props: Props) => {
       pagination.count = result.count;
       tableName.value = result.name;
       const rawTitleList: typeof titleList.value = result.title;
-      if (result.count > 0 && !Object.keys(columnWidthMap.value).length) {
+      if (!Object.keys(columnWidthMap.value).length) {
         const titleMap = result.title.reduce<Record<string, ReportInfo['title'][number]>>(
           (results, item) => Object.assign(results, { [item.name]: item }),
           {},
         );
-        Object.entries(result.results[0]).forEach(([key, value]) => {
-          const width = calcTextWidth(value);
-          const isFixedWidth = ['link', 'log'].includes(titleMap[key]?.format);
-          columnWidthMap.value[key] = isFixedWidth ? 120 : width > 120 ? width : 120;
+        // 列宽先按标题估算：文字宽度 + 单元格左右 padding（32）+ 排序/筛选图标占位（各 24），让表头尽量完整显示
+        result.title.forEach((item) => {
+          const iconWidth = (item.ordering ? 24 : 0) + (item.filter ? 24 : 0);
+          const titleWidth = calcTextWidth(item.display_name) + 32 + iconWidth;
+          columnWidthMap.value[item.name] = titleWidth > 120 ? titleWidth : 120;
         });
+        if (result.count > 0) {
+          Object.entries(result.results[0]).forEach(([key, value]) => {
+            const isFixedWidth = ['link', 'log'].includes(titleMap[key]?.format);
+            const contentWidth = isFixedWidth ? 120 : calcTextWidth(value);
+            // 内容比标题还宽时按内容撑开
+            if (contentWidth > columnWidthMap.value[key]) {
+              columnWidthMap.value[key] = contentWidth;
+            }
+          });
+        }
       }
       rawTitleList.forEach((item) => {
         if (item.filter?.enums) {

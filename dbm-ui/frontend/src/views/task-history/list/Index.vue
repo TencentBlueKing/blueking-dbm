@@ -88,7 +88,8 @@
       <TableColumn
         col-key="ticket_type_search"
         :filter="tableFilter['ticket_type_search']"
-        :title="t('关联单据类型')">
+        :title="t('关联单据类型')"
+        :width="280">
         <template #default="{ row }: { row: TaskFlowModel }">
           {{ row.ticket_type_display || '--' }}
         </template>
@@ -116,7 +117,7 @@
         col-key="created_by__in"
         :filter="tableFilter['created_by__in']"
         :title="t('执行人')"
-        :width="120">
+        :width="180">
         <template #default="{ row }: { row: TaskFlowModel }">
           {{ row.created_by }}
         </template>

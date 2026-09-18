@@ -50,10 +50,10 @@
           ellipsis
           ellipsis-title
           :filter="item.filterList"
+          :min-width="columnWidthMap[item.name] || 120"
           resizable
           :sorter="item.ordering"
-          :title="item.display_name"
-          :width="columnWidthMap[item.name] || 120">
+          :title="item.display_name">
           <template #default="{ row }: { row: ReportInfo['results'][number] }">
             <DbStatus
               v-if="item.format === 'status' && item.name === 'state'"
