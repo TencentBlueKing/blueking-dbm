@@ -3,18 +3,18 @@
     :label="t('账号名')"
     property="user"
     required>
-    <BkSelect
+    <DbSelect
       v-model="user"
       :clearable="false"
       filterable
       :input-search="false"
       :loading="isLoading">
-      <BkOption
+      <DbOption
         v-for="item of accounts"
         :key="item.account.account_id"
         :label="item.account.user"
         :value="item.account.user" />
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 

@@ -220,9 +220,10 @@
           </template>
         </PrimaryTable>
         <div class="table-footer">
-          <BkPagination
+          <DbPagination
             v-bind="pagination"
             :layout="['total', 'limit', 'list']"
+            :model-value="pagination.current"
             @change="handlePageValueChange"
             @limit-change="handlePageLimitChange">
             <template
@@ -236,7 +237,7 @@
                 <span class="number">{{ selectedList.length }}</span>
               </I18nT>
             </template>
-          </BkPagination>
+          </DbPagination>
         </div>
       </div>
     </div>
@@ -625,7 +626,7 @@
         background: #fff;
         align-items: center;
 
-        .bk-pagination {
+        .dbm-pagination {
           width: 100%;
 
           & > .is-last {

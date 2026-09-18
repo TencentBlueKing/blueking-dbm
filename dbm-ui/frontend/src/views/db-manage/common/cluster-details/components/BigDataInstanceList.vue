@@ -41,12 +41,12 @@
         :title="t('实例')">
         <template #default="{ row }: { row: IColumnData }">
           {{ row.instance_address || '--' }}
-          <BkTag
+          <DbTag
             v-if="isMasterInstance(row)"
             class="cluster-specific-flag ml-4"
             size="small">
             {{ masterTagLabel }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <InstanceListFieldColumn

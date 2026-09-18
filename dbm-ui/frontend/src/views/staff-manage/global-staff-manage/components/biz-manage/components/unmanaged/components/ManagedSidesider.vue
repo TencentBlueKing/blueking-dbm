@@ -67,12 +67,12 @@
                 <template #title>
                   <div style="display: flex; align-items: center">
                     <span>{{ t('主 DBA') }}</span>
-                    <!-- <BkTag
+                    <!-- <DbTag
                               class="ml-4"
                               size="small"
                               :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
                               {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                            </BkTag> -->
+                            </DbTag> -->
                     <BatchEdit
                       class="ml-4"
                       :disabled="!hasEditRow"
@@ -135,12 +135,12 @@
                 <template #title>
                   <div style="display: flex; align-items: center">
                     <span>{{ t('备 DBA') }}</span>
-                    <!-- <BkTag
+                    <!-- <DbTag
                               class="ml-4"
                               size="small"
                               :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
                               {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                            </BkTag> -->
+                            </DbTag> -->
                     <BatchEdit
                       class="ml-4"
                       :disabled="!hasEditRow"
@@ -179,12 +179,12 @@
                 <template #title>
                   <div style="display: flex; align-items: center">
                     <span>{{ t('二线 DBA') }}</span>
-                    <!-- <BkTag
+                    <!-- <DbTag
                               class="ml-4"
                               size="small"
                               :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
                               {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                            </BkTag> -->
+                            </DbTag> -->
                     <BatchEdit
                       class="ml-4"
                       :disabled="!hasEditRow"

@@ -18,28 +18,28 @@
     property="cron"
     required
     :rules="timeDataRules">
-    <BkSelect
+    <DbSelect
       v-model="timeData.typeValue"
       :clearable="false">
-      <BkOption
+      <DbOption
         v-for="(item, index) in typeOptions"
         :key="index"
         :label="item.label"
         :value="item.value" />
-    </BkSelect>
-    <BkSelect
+    </DbSelect>
+    <DbSelect
       v-if="timeData.typeValue === 'week'"
       v-model="timeData.weekValue"
       class="group-item"
       :clearable="false"
       multiple>
-      <BkOption
+      <DbOption
         v-for="(item, index) in weekOptions"
         :key="index"
         :label="item.label"
         :value="item.value" />
-    </BkSelect>
-    <BkSelect
+    </DbSelect>
+    <DbSelect
       v-if="timeData.typeValue === 'month'"
       v-model="timeData.monthValue"
       class="group-item date-selector"
@@ -48,14 +48,14 @@
       :popover-options="{
         extCls: 'notification-setting-time-item-date-selector-popover',
       }">
-      <BkOption
+      <DbOption
         v-for="(item, index) in monthOptions"
         :key="index"
         :label="item.label"
         :value="item.value">
         {{ item.value }}
-      </BkOption>
-    </BkSelect>
+      </DbOption>
+    </DbSelect>
     <BkTimePicker
       v-model="timeData.timeValue"
       append-to-body
@@ -231,19 +231,19 @@
   }
 
   .notification-setting-time-item-date-selector-popover {
-    .bk-select-options {
+    .dbm-select-options {
       display: flex;
       flex-wrap: wrap;
       padding: 4px 12px !important;
     }
 
-    .bk-select-option {
+    .dbm-select-option {
       justify-content: center;
       width: calc(100% / 7);
       padding: 0 !important;
     }
 
-    .bk-select-selected-icon {
+    .dbm-select-checkbox {
       display: none !important;
     }
   }

@@ -1,7 +1,7 @@
 <template>
   <div class="operate-item">
     <div class="operate-item-inner">
-      <BkSelect
+      <DbSelect
         v-model="modelValue"
         :input-search="false"
         :list="list">
@@ -18,7 +18,7 @@
               type="bk-dbm-icon db-icon-down-big" />
           </div>
         </template>
-      </BkSelect>
+      </DbSelect>
     </div>
   </div>
 </template>

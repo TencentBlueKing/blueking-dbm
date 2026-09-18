@@ -97,7 +97,7 @@
             </div>
             <div v-if="row.source_addr_list.length > 6">
               <span>...</span>
-              <BkTag
+              <DbTag
                 v-bk-tooltips="{
                   content: row.source_addr_list.map((item) => item.addr).join('\n'),
                 }"
@@ -108,7 +108,7 @@
                   scope="global">
                   {{ row.source_addr_list.length }}
                 </I18nT>
-              </BkTag>
+              </DbTag>
             </div>
           </div>
           <template v-if="row.source_addr_list.length < 1"> -- </template>

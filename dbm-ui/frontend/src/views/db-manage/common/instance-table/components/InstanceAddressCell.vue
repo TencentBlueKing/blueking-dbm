@@ -13,13 +13,13 @@
         <slot
           name="append"
           v-bind="{ data: data }" />
-        <BkTag
+        <DbTag
           v-if="data.isNew"
           class="ml-4"
           size="small"
           theme="success">
           NEW
-        </BkTag>
+        </DbTag>
         <PopoverCopy @toogle-show="handlePopoverShow">
           <div @click="handleCopy(data.instance_address)">
             {{ t('复制实例') }}

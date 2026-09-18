@@ -23,7 +23,7 @@
         :model="selectedKey"
         property="tag_key"
         required>
-        <BkSelect
+        <DbSelect
           v-model="selectedKey"
           :clearable="false"
           :disabled="disabled"
@@ -31,27 +31,27 @@
           :placeholder="t('请选择标签键')"
           @change="handleKeyChange">
           <!-- 已保存但失效的键：置顶展示并标「已失效」，禁用选择 -->
-          <BkOption
+          <DbOption
             v-if="invalidSavedKey"
             disabled
             :label="`${invalidSavedKey}（${t('已失效')}）`"
             :value="invalidSavedKey">
             <span class="invalid-key-label">
               {{ invalidSavedKey }}
-              <BkTag
+              <DbTag
                 size="small"
                 theme="danger">
                 {{ t('已失效') }}
-              </BkTag>
+              </DbTag>
             </span>
-          </BkOption>
+          </DbOption>
           <!-- 有效键列表 -->
-          <BkOption
+          <DbOption
             v-for="key in validKeyList"
             :key="key"
             :label="key"
             :value="key" />
-        </BkSelect>
+        </DbSelect>
       </FormItemWithHint>
 
       <!-- 标签值（键选定后展示） -->
@@ -62,7 +62,7 @@
         property="tag_value"
         required
         :rules="tagRepeatRules">
-        <BkSelect
+        <DbSelect
           v-model="selectedValues"
           :all-option-id="TAG_ANY_VALUE"
           :all-option-text="t('任意值')"
@@ -72,33 +72,32 @@
           multiple
           multiple-mode="tag"
           :placeholder="t('请选择标签值')"
-          selected-style="checkbox"
           :show-all="!!selectedKey && !isKeyInvalid"
           show-select-all
           @change="handleTagValueChange">
           <template #tag="{ selected }">
-            <BkTag
+            <DbTag
               v-for="item in selected"
               :key="item.value ?? item"
               closable
               @close="() => handleRemoveValue(item.value ?? item)">
               {{ item.value === TAG_ANY_VALUE ? t('任意值') : (item.label ?? item.value ?? item) }}
-            </BkTag>
+            </DbTag>
           </template>
-          <BkOption
+          <DbOption
             v-for="value in valueOptions"
             :key="value"
             :disabled="isKeyInvalid"
             :label="value"
             :value="value" />
           <!-- 失效键时展示已保存值且禁用 -->
-          <BkOption
+          <DbOption
             v-for="value in invalidSavedValues"
             :key="`invalid-${value}`"
             disabled
             :label="value"
             :value="value" />
-        </BkSelect>
+        </DbSelect>
       </FormItemWithHint>
 
       <!-- 失效提示 -->

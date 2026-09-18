@@ -34,12 +34,11 @@
       <BkFormItem
         :label="t('标签')"
         property="tag">
-        <BkTagInput
+        <DbTagInput
           ref="inputRef"
           v-model="formModel.tags"
-          allow-auto-match
           allow-create
-          has-delete-icon />
+          multiple />
       </BkFormItem>
     </BkForm>
     <template #footer>

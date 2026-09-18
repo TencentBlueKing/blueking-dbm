@@ -23,7 +23,7 @@
       <div
         v-if="statusInfo.text"
         class="mission-detail-status-info">
-        <BkTag :theme="statusInfo.theme">
+        <DbTag :theme="statusInfo.theme">
           {{ statusInfo.text }}
           <span
             v-if="isTaskFailed"
@@ -35,7 +35,7 @@
             class="top-count is-todo">
             {{ todoNodesCount }}
           </span>
-        </BkTag>
+        </DbTag>
       </div>
       <BkPopConfirm
         v-if="isRevokable"
@@ -170,7 +170,7 @@
       align-items: center;
       margin-right: 8px;
 
-      .bk-tag-text {
+      .dbm-tag-text {
         display: inline-flex;
         align-items: center;
 

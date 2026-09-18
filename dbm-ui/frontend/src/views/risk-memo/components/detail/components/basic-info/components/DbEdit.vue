@@ -17,7 +17,7 @@
           @click="handleClickEdit" />
       </AuthTemplate>
     </div>
-    <BkSelect
+    <DbSelect
       v-else
       ref="editValueRef"
       v-model="localValue"

@@ -48,13 +48,13 @@
           {{ value === DEFAULT_TAG_ID ? t('通用无标签') : label }}
         </template>
         <template #allOptionIcon>
-          <BkTag
+          <DbTag
             class="mr-4"
             size="small"
             theme="info"
             type="filled">
             {{ t('享') }}
-          </BkTag>
+          </DbTag>
         </template>
       </BatchEditColumn>
       <span class="custom-required" />
@@ -78,13 +78,13 @@
         {{ value === DEFAULT_TAG_ID ? t('通用无标签') : tagLabel }}
       </template>
       <template #allOptionIcon>
-        <BkTag
+        <DbTag
           class="mr-4"
           size="small"
           theme="info"
           type="filled">
           {{ t('享') }}
-        </BkTag>
+        </DbTag>
       </template>
     </EditableSelect>
   </EditableColumn>

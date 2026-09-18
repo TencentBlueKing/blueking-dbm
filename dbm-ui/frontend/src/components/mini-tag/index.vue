@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkTag
+  <DbTag
     class="tag-box"
     :class="extCls"
     :theme="theme"
@@ -26,7 +26,7 @@
         :type="iconType" />
     </template>
     {{ content }}
-  </BkTag>
+  </DbTag>
 </template>
 
 <script setup lang="ts">

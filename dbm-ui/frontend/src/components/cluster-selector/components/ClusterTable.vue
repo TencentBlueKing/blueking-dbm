@@ -56,14 +56,14 @@
                 v-if="row.operations?.length"
                 class="ml-4"
                 :data="row.operations" />
-              <BkTag
+              <DbTag
                 v-if="row.isOffline"
                 class="ml-4"
                 size="small"
                 theme="warning"
                 type="stroke">
                 {{ t('已禁用') }}
-              </BkTag>
+              </DbTag>
             </template>
           </TextOverflowLayout>
         </template>

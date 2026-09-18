@@ -104,26 +104,26 @@
         :title="t('处理阶段')"
         :width="100">
         <template #default="{ row }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-if="row.is_shielded"
             theme="danger">
             {{ t('已屏蔽') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else-if="row.is_blocked"
             theme="warning">
             {{ t('已流控') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else-if="row.is_ack"
             theme="success">
             {{ t('已确认') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else
             theme="info">
             {{ t('已通知') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn
@@ -157,23 +157,23 @@
         :title="t('状态')"
         :width="100">
         <template #default="{ row }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-if="row.status === 'RECOVERED'"
             theme="success"
             type="filled">
             {{ t('已恢复') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else-if="row.status === 'ABNORMAL'"
             theme="danger"
             type="filled">
             {{ t('未恢复') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else
             type="filled">
             {{ t('已失效') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn

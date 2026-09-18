@@ -92,13 +92,13 @@
         type="textarea" />
       <div class="quick-input-main">
         <span>{{ t('快捷输入') }}：</span>
-        <BkTag
+        <DbTag
           v-for="(item, index) in quickReasonList"
           :key="index"
           class="quick-choose-item"
           @click="() => handleClickQuickReasonItem(item)">
           {{ item }}
-        </BkTag>
+        </DbTag>
       </div>
     </BkFormItem>
   </BkForm>

@@ -13,11 +13,11 @@
 <template>
   <div class="pool-container">
     <Teleport to="#dbContentTitleAppend">
-      <BkTag
+      <DbTag
         class="ml-8 mr-8"
         theme="info">
         {{ t('业务') }}
-      </BkTag>
+      </DbTag>
       <AuthButton
         action-id="resource_pool_manage"
         class="w-88"

@@ -28,18 +28,18 @@
         :label="t('账号名')"
         property="account_id"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.account_id"
           :clearable="false"
           filterable
           :input-search="false"
           :loading="getPermissionRulesLoading">
-          <BkOption
+          <DbOption
             v-for="item of accounts"
             :key="item.account_id"
             :label="item.user"
             :value="item.account_id" />
-        </BkSelect>
+        </DbSelect>
       </BkFormItem>
       <BkFormItem
         :label="t('访问DB')"

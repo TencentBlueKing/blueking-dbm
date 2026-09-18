@@ -15,7 +15,7 @@
   <div
     class="db-member-selector-wrapper"
     :class="{ 'is-focus': isFocous }">
-    <BkSelect
+    <DbSelect
       class="db-member-selector"
       :clearable="false"
       :collapse-tags="collapseTags"
@@ -27,12 +27,12 @@
       @blur="handleBlur"
       @change="handleChange"
       @focus="handleFocus">
-      <BkOption
+      <DbOption
         v-for="item of state.list"
         :key="item.username"
         :label="item.username"
         :value="item.username" />
-    </BkSelect>
+    </DbSelect>
     <DbIcon
       v-bk-tooltips="$t('复制')"
       type="copy db-member-selector-copy"

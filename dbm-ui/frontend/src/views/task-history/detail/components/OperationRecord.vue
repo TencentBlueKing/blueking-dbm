@@ -38,12 +38,12 @@
           :min-width="150"
           :title="t('操作类型')">
           <template #default="{ row: data }: { row: RowData }">
-            <BkTag
+            <DbTag
               :style="getOperateTag(data.operate_type).style"
               :theme="getOperateTag(data.operate_type).theme"
               type="stroke">
               {{ getOperateTag(data.operate_type).text }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
         <TableColumn

@@ -30,20 +30,20 @@
         <TextOverflowLayout>
           {{ item }}
           <template #append>
-            <BkTag
+            <DbTag
               v-if="isCurrentVersion(item)"
               class="ml-4"
               size="small"
               theme="info">
               {{ t('当前版本') }}
-            </BkTag>
-            <BkTag
+            </DbTag>
+            <DbTag
               v-if="index === 0"
               class="ml-4"
               size="small"
               theme="warning">
               {{ t('推荐') }}
-            </BkTag>
+            </DbTag>
           </template>
         </TextOverflowLayout>
       </BkOption>

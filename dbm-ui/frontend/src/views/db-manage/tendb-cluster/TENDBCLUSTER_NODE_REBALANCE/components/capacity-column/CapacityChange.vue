@@ -7,9 +7,9 @@
     <template #header>
       <span>
         {{ t('选择集群目标方案_n', { n: cluster.master_domain }) }}
-        <BkTag theme="info">
+        <DbTag theme="info">
           {{ t('存储层 RemoteDB/DR 同时变更') }}
-        </BkTag>
+        </DbTag>
       </span>
     </template>
     <div

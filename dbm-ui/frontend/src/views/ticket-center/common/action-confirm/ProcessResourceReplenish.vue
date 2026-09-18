@@ -9,12 +9,12 @@
     <template #content>
       <div>
         {{ t('操作：') }}
-        <BkTag
+        <DbTag
           class="mr-4"
           theme="success"
           type="stroke">
           {{ t('重试') }}
-        </BkTag>
+        </DbTag>
         <span>{{ t('重试后，单据将再次尝试申请资源') }}</span>
       </div>
     </template>

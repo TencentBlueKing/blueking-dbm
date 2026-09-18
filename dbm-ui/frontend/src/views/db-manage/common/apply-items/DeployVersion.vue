@@ -1,26 +1,26 @@
 <template>
   <div class="version-selector-wrapper">
-    <BkSelect
+    <DbSelect
       v-model="modelValue"
       class="item-input"
       filterable
       :input-search="false"
       :loading="loading"
       :placeholder="placeholder">
-      <BkOption
+      <DbOption
         v-for="(item, index) in dbVersionList"
         :key="item"
         :label="item"
         :value="item">
         <span>{{ item }}</span>
-        <BkTag
+        <DbTag
           v-if="index === 0"
           class="ml-5"
           theme="success">
           {{ t('推荐') }}
-        </BkTag>
-      </BkOption>
-    </BkSelect>
+        </DbTag>
+      </DbOption>
+    </DbSelect>
   </div>
 </template>
 

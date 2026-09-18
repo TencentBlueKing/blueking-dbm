@@ -31,28 +31,28 @@
         property="timeData"
         required
         :rules="timeDataRules">
-        <BkSelect
+        <DbSelect
           v-model="formData.timeData.typeValue"
           :clearable="false">
-          <BkOption
+          <DbOption
             v-for="(item, index) in typeOptions"
             :key="index"
             :label="item.label"
             :value="item.value" />
-        </BkSelect>
-        <BkSelect
+        </DbSelect>
+        <DbSelect
           v-if="typeValue === 'week'"
           v-model="formData.timeData.weekValue"
           class="group-item"
           :clearable="false"
           multiple>
-          <BkOption
+          <DbOption
             v-for="(item, index) in weekOptions"
             :key="index"
             :label="item.label"
             :value="item.value" />
-        </BkSelect>
-        <BkSelect
+        </DbSelect>
+        <DbSelect
           v-if="typeValue === 'month'"
           v-model="formData.timeData.monthValue"
           class="group-item date-selector"
@@ -61,14 +61,14 @@
           :popover-options="{
             extCls: 'password-randomization-date-selector-popover',
           }">
-          <BkOption
+          <DbOption
             v-for="(item, index) in monthOptions"
             :key="index"
             :label="item.label"
             :value="item.value">
             {{ item.value }}
-          </BkOption>
-        </BkSelect>
+          </DbOption>
+        </DbSelect>
         <BkTimePicker
           v-model="formData.timeData.timeValue"
           append-to-body
@@ -463,19 +463,19 @@
 
 <style lang="less">
   .password-randomization-date-selector-popover {
-    .bk-select-options {
+    .dbm-select-options {
       display: flex;
       flex-wrap: wrap;
       padding: 4px 12px !important;
     }
 
-    .bk-select-option {
+    .dbm-select-option {
       justify-content: center;
       width: calc(100% / 7);
       padding: 0 !important;
     }
 
-    .bk-select-selected-icon {
+    .dbm-select-checkbox {
       display: none !important;
     }
   }

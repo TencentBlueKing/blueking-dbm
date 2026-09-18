@@ -45,11 +45,11 @@
       <div class="toolbox-page-wrapper">
         <div class="toolbox-page-title">
           <span style="font-weight: bold">{{ toolboxTitle }}</span>
-          <BkTag
+          <DbTag
             class="ml-8"
             theme="info">
             {{ subTitle }}
-          </BkTag>
+          </DbTag>
         </div>
         <div
           :key="route.path"

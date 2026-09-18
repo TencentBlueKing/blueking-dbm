@@ -1,13 +1,11 @@
 <template>
-  <BkTagInput
+  <DbTagInput
     v-model="modelValue"
     v-bind="{ ...attrs, ...props }"
-    allow-auto-match
     allow-create
     clearable
-    has-delete-icon
-    :max-data="single ? 1 : -1"
-    :paste-fn="tagInputPasteFn" />
+    :multiple="!single"
+    :split-fn="tagInputSplitFn" />
 </template>
 <script setup lang="ts">
   import { batchSplitRegex } from '@common/regex';
@@ -21,5 +19,5 @@
 
   const attrs = useAttrs();
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 </script>

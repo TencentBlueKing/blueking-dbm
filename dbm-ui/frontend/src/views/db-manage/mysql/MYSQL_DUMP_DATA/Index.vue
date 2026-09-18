@@ -352,7 +352,7 @@
     max-width: 1136px;
 
     :deep(.bk-form-item) {
-      .bk-select,
+      .dbm-select,
       .bk-input,
       .bk-textarea {
         max-width: 560px;
