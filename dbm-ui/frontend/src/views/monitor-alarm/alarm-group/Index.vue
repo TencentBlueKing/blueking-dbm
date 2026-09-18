@@ -97,8 +97,8 @@
       <NoticeMethodColumn />
       <TableColumn
         col-key="usedCountTotal"
-        :title="t('关联策略')"
-        :width="100">
+        :min-width="100"
+        :title="t('关联策略')">
         <template #default="{ row }: { row: NoticGroupModel }">
           <BkPopover
             v-if="row.usedCountTotal >= 2"
@@ -163,8 +163,8 @@
       </TableColumn>
       <TableColumn
         col-key="updater"
-        :title="t('更新人')"
-        :width="180">
+        :min-width="180"
+        :title="t('更新人')">
         <template #default="{ row }: { row: NoticGroupModel }">
           <span>{{ row.updater || '--' }}</span>
         </template>
