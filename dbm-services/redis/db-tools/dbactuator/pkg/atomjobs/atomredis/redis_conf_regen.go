@@ -388,7 +388,8 @@ func (req confRegenRequest) renderTargetConf(oldDirectives confDirectives) (stri
 	confData = appendCarryOverDirectives(confData, req.OldConfData, oldDirectives)
 	confData = req.applyReplExpectationToConf(confData)
 	confData = req.alignMasterAuthWithPassword(confData)
-	return req.ensureMasterAuthForReplica(confData), nil
+	confData = req.ensureMasterAuthForReplica(confData)
+	return req.applyAppendonlyForReplica(confData), nil
 }
 
 // alignMasterAuthWithPassword 改密码时把 masterauth 一并挪到新密码上.
@@ -508,6 +509,47 @@ func (req confRegenRequest) ensureMasterAuthForReplica(confData string) string {
 	}
 	confData = stripConfDirectives(confData, []string{"masterauth"})
 	return appendConfDirective(confData, "masterauth", rawPass)
+}
+
+// applyAppendonlyForReplica 只在版本升级把 old_master 建成 new_slave 时开 AOF.
+//
+// dbconfig 只有 plat/app/cluster 一层, appendonly 默认是 master 口径 no.
+// 以前靠 replicaof 原子任务 CONFIG SET; 升级改成把 replicaof 写进配置文件之后,
+// 那次 SET 不再跑, 从库 conf 里就留下 no.
+//
+// 不能看到 replicaof 就写 yes: old_slave 升级时 conf 里本来就有 replicaof,
+// 但紧接着可能被切成 new_master, 这里写 yes 会让它带着 AOF 升主.
+// 用 Expect.wanted 区分 "sync_masters 指定的新拓扑"(new-slave) 和
+// "停机前快照"(old-slave 角色不变).
+//
+// 非 cache (Tendisplus/SSD) 不碰: CreateReplicaREL 本来就不会给它们改 appendonly.
+// libB2RedisModule 必须关 AOF, 再写 yes 会盖掉 BuildRedisConfTemplate 的 appendonly no.
+func (req confRegenRequest) applyAppendonlyForReplica(confData string) string {
+	if req.ClusterType != "" && !consts.IsRedisInstanceDbType(req.ClusterType) {
+		return confData
+	}
+	if confHasB2Module(confData) {
+		return confData
+	}
+	if !req.Expect.wanted || !req.Expect.isSlave() {
+		return confData
+	}
+	current := strings.ToLower(unquoteConfValue(parseRedisConfDirectives(confData).lastValue("appendonly")))
+	if confTruthy(current) {
+		return confData
+	}
+	req.Logger.Info("port(%d) conf sets appendonly yes so new slave persists via aof", req.Port)
+	confData = stripConfDirectives(confData, []string{"appendonly"})
+	return appendConfDirective(confData, "appendonly", "yes")
+}
+
+func confHasB2Module(confData string) bool {
+	for _, soPath := range parseRedisConfDirectives(confData)["loadmodule"] {
+		if strings.Contains(soPath, "libB2RedisModule") {
+			return true
+		}
+	}
+	return false
 }
 
 // unquoteConfValue 去掉 config rewrite 给字符串取值加的引号
