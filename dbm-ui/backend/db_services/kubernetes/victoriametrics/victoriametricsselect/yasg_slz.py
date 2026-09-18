@@ -22,7 +22,7 @@ paginated_resource_example = {
         {
             "id": 1,
             "cluster_name": "bk-dbm",
-            "query_entry": "vmselect.bk-dbm.blueking.db:8481",
+            "query_entry": "victoriametrics.bk-dbm.blueking.db:8481",
             "storage_nodes": ["victoriametrics.bk-dbm.4.db:8000"],
             "status": "normal",
             "tags": ["env:prod"],

@@ -54,14 +54,12 @@ class VictoriaMetricsBaseListRetrieveResource(KubernetesBaseListRetrieveResource
 
     @classmethod
     def _get_victoriametrics_entries(cls, cluster_info: Dict[str, Any]) -> Dict[str, str]:
-        write_entry = cluster_info.get("master_domain", "")
-        query_entry = cluster_info.get("slave_domain", "")
+        # 统一域名后 vminsert / vmselect 共用集群域名，仅以端口区分
+        domain = cluster_info.get("master_domain", "")
         for entry in cluster_info.get("cluster_entry", []):
             if entry.get("role") == ClusterEntryRole.MASTER_ENTRY.value:
-                write_entry = entry.get("entry") or write_entry
-            if entry.get("role") == ClusterEntryRole.SLAVE_ENTRY.value:
-                query_entry = entry.get("entry") or query_entry
+                domain = entry.get("entry") or domain
         return {
-            "write_entry": f"{write_entry}:{VMINSERT_PORT}",
-            "query_entry": f"{query_entry}:{VMSELECT_PORT}",
+            "write_entry": f"{domain}:{VMINSERT_PORT}",
+            "query_entry": f"{domain}:{VMSELECT_PORT}",
         }
