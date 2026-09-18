@@ -207,7 +207,11 @@
 
   watch(
     isShow,
-    () => {
+    (value) => {
+      if (value) {
+        // 清空上一次的账号名，使用本次入口账号回显
+        initUserName.value = '';
+      }
       rulesFormData.beforeChange = {
         access_db: props.ruleObj?.access_db || '',
         account_id: props.accountId ?? -1,
