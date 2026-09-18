@@ -22,9 +22,9 @@ paginated_resource_example = {
         {
             "id": 1,
             "cluster_name": "bk-dbm",
-            "write_entry": "vminsert.bk-dbm.blueking.db:8480",
-            "query_entry": "vmselect.bk-dbm.blueking.db:8481",
-            "storage_entry": "victoriametrics.bk-dbm.4.db:8000\nvictoriametrics.bk-dbm.4.db:8001",
+            "write_entry": "victoriametrics.bk-dbm.blueking.db:8480",
+            "query_entry": "victoriametrics.bk-dbm.blueking.db:8481",
+            "storage_entry": "victoriametrics.bk-dbm.blueking.db:8000\nvictoriametrics.bk-dbm.blueking.db:8001",
             "status": "normal",
             "tags": ["env:prod"],
             "major_version": "v1.115.0",
@@ -62,6 +62,7 @@ vmstorage_clb_response_example = {
     "podCount": 6,
     "serviceCount": 6,
     "noOp": False,
+    "storage_entry": "victoriametrics.bk-dbm.blueking.db:8000\nvictoriametrics.bk-dbm.blueking.db:8001",
 }
 
 
