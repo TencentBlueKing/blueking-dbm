@@ -182,6 +182,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   useTicketDetail<Redis.DataStructure>(TicketTypes.REDIS_DATA_STRUCTURE, {
@@ -358,6 +359,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">

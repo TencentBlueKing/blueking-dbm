@@ -20,69 +20,97 @@
       :placeholder="t('搜索工具名称')"
       type="search" />
     <ScrollFaker style="height: calc(100% - 64px)">
-      <BkCollapse
-        v-if="displayDataList.length > 0"
-        v-model="activeIndex"
-        header-icon-align="right"
-        use-block-theme>
-        <BkCollapsePanel
-          v-for="menuItem in displayDataList"
-          :key="menuItem.id"
-          :name="menuItem.id">
-          <div class="tool-group">
-            <DbIcon
-              class="tool-group-icon"
-              :type="menuItem.icon" />
-            <div class="tool-group-name ml-4">{{ menuItem.name }}</div>
-            <!-- <div
-              v-if="menuItem.id === 'favor'"
-              class="tool-group-desc">
-              {{ t('· 按收藏时间倒序 · 跨业务空间保留') }}
-            </div> -->
-            <!-- <div
-              v-if="menuItem.id === 'used'"
-              class="tool-group-desc">
-              {{ t('· 按使用时间倒序 · 跨业务空间保留') }}
-            </div> -->
-          </div>
-          <template #content>
-            <template v-if="hasChildGroups(menuItem)">
-              <template
-                v-for="(childrenItem, childIndex) in menuItem.children"
-                :key="childrenItem.id">
-                <div
-                  v-if="isTreeNode(childrenItem)"
-                  class="sub-group">
-                  <div class="sub-group-name">
-                    <BkTag
-                      class="ml-8"
-                      :theme="getTheme(childIndex)"
-                      type="stroke">
-                      {{ childrenItem.name }}
-                    </BkTag>
-                  </div>
-                  <div class="tool-list">
-                    <MenuItem
-                      v-for="subChildrenItem in getLeafChildren(childrenItem as ToolboxTreeNode)"
-                      :key="subChildrenItem.id"
-                      :data="subChildrenItem">
-                    </MenuItem>
-                  </div>
-                </div>
-              </template>
-            </template>
-            <div
-              v-else
-              class="tool-list">
-              <MenuItem
-                v-for="childrenItem in getLeafChildren(menuItem)"
-                :key="childrenItem.id"
-                :data="childrenItem">
-              </MenuItem>
+      <template v-if="fixedDataList.length > 0 || groupDataList.length > 0">
+        <BkCollapse
+          v-if="fixedDataList.length > 0"
+          v-model="fixedActiveIndex"
+          header-icon-align="right"
+          use-block-theme>
+          <BkCollapsePanel
+            v-for="menuItem in fixedDataList"
+            :key="menuItem.id"
+            :name="menuItem.id">
+            <div class="tool-group">
+              <DbIcon
+                class="tool-group-icon"
+                :type="menuItem.icon" />
+              <div class="tool-group-name ml-4">{{ menuItem.name }}</div>
             </div>
-          </template>
-        </BkCollapsePanel>
-      </BkCollapse>
+            <template #content>
+              <div class="tool-list">
+                <MenuItem
+                  v-for="childrenItem in getLeafChildren(menuItem)"
+                  :key="childrenItem.id"
+                  :data="childrenItem">
+                </MenuItem>
+              </div>
+            </template>
+          </BkCollapsePanel>
+        </BkCollapse>
+        <div
+          v-if="groupDataList.length > 0 && !searchKey"
+          class="group-directory-control ml-16">
+          <BkButton
+            text
+            theme="primary"
+            @click="handleToggleAll">
+            {{ isAllExpanded ? t('收起全部分组') : t('展开全部分组') }}
+          </BkButton>
+        </div>
+        <BkCollapse
+          v-if="groupDataList.length > 0"
+          v-model="groupActiveIndex"
+          header-icon-align="right"
+          use-block-theme>
+          <BkCollapsePanel
+            v-for="menuItem in groupDataList"
+            :key="menuItem.id"
+            :name="menuItem.id">
+            <div class="tool-group">
+              <DbIcon
+                class="tool-group-icon"
+                :type="menuItem.icon" />
+              <div class="tool-group-name ml-4">{{ menuItem.name }}</div>
+            </div>
+            <template #content>
+              <template v-if="hasChildGroups(menuItem)">
+                <template
+                  v-for="(childrenItem, childIndex) in menuItem.children"
+                  :key="childrenItem.id">
+                  <div
+                    v-if="isTreeNode(childrenItem)"
+                    class="sub-group">
+                    <div class="sub-group-name">
+                      <BkTag
+                        class="ml-8"
+                        :theme="getTheme(childIndex)"
+                        type="stroke">
+                        {{ childrenItem.name }}
+                      </BkTag>
+                    </div>
+                    <div class="tool-list">
+                      <MenuItem
+                        v-for="subChildrenItem in getLeafChildren(childrenItem)"
+                        :key="subChildrenItem.id"
+                        :data="subChildrenItem">
+                      </MenuItem>
+                    </div>
+                  </div>
+                </template>
+              </template>
+              <div
+                v-else
+                class="tool-list">
+                <MenuItem
+                  v-for="childrenItem in getLeafChildren(menuItem)"
+                  :key="childrenItem.id"
+                  :data="childrenItem">
+                </MenuItem>
+              </div>
+            </template>
+          </BkCollapsePanel>
+        </BkCollapse>
+      </template>
       <BkException
         v-else
         class="empty-exception"
@@ -94,7 +122,6 @@
 </template>
 <script setup lang="ts">
   import { storeToRefs } from 'pinia';
-  import type { UnwrapRef } from 'vue';
   import { useRoute } from 'vue-router';
 
   import { useDebouncedRef } from '@hooks';
@@ -103,10 +130,10 @@
 
   import { DBTypes, toolboxProfileKeyMap } from '@common/const';
 
-  import { t } from '@wangeditor/editor';
+  import { t } from '@locales/index';
 
   import type { ToolboxLeafNode, ToolboxTreeNode } from '../common/types';
-  import { isLeafNode, isTreeNode } from '../common/utils.ts';
+  import { getLeafChildren, hasChildGroups, isLeafNode, isTreeNode } from '../common/utils';
 
   import MenuItem from './components/MenuItem.vue';
 
@@ -121,8 +148,10 @@
   const { profile } = storeToRefs(profileStore);
 
   const searchKey = useDebouncedRef('');
-  const activeIndex = ref(['favor', 'used', ...props.menuList.map((item) => item.id)]);
-  const displayDataList = ref<Props['menuList']>([]);
+  /** 我的收藏 / 最近使用默认展开 */
+  const fixedActiveIndex = ref(['favor', 'used']);
+  /** 分组目录默认全部折叠 */
+  const groupActiveIndex = ref<string[]>([]);
 
   const dbType = route.meta.dbType as DBTypes;
   const profileFavorKey = toolboxProfileKeyMap[dbType]!.favor;
@@ -153,62 +182,63 @@
     {} as Record<string, ToolboxLeafNode>,
   );
 
-  const favorItem = computed(() => {
+  const favorItem = computed<ToolboxTreeNode>(() => {
     return {
       children: (profile.value[profileFavorKey] || [])
         .map((item: string) => menuMap[item])
-        .filter((item: string) => item),
+        .filter((item: ToolboxLeafNode) => item),
       icon: 'star-fill',
       id: 'favor',
       name: t('我的收藏'),
     };
   });
 
-  const usedItem = computed(() => {
+  const usedItem = computed<ToolboxTreeNode>(() => {
     return {
       children: (profile.value[profileUsedKey] || [])
         .map((item: string) => menuMap[item])
-        .filter((item: string) => item),
+        .filter((item: ToolboxLeafNode) => item),
       icon: 'zuijinshiyong',
       id: 'used',
       name: t('最近使用'),
     };
   });
 
-  const originDataList = computed(() =>
-    [favorItem.value, usedItem.value].concat(props.menuList).filter((item) => item.children.length > 0),
-  );
-
-  watch(
-    [searchKey, originDataList],
-    () => {
-      if (searchKey.value) {
-        displayDataList.value = originDataList.value.reduce<UnwrapRef<typeof originDataList>>((acc, menuItem) => {
-          if (hasChildGroups(menuItem)) {
-            const filterChildren = menuItem.children
-              .map((childrenItem: ToolboxTreeNode) => {
-                const filterList = (childrenItem.children as ToolboxLeafNode[]).filter(
-                  (subChildrenItem: ToolboxLeafNode) => subChildrenItem.name.includes(searchKey.value),
-                );
-                return { ...childrenItem, children: filterList };
-              })
-              .filter((childrenItem: ToolboxTreeNode) => childrenItem.children.length > 0);
-            return filterChildren.length > 0 ? acc.concat({ ...menuItem, children: filterChildren }) : acc;
-          } else {
-            const filterList = menuItem.children.filter((childrenItem: ToolboxLeafNode) =>
-              childrenItem.name.includes(searchKey.value),
+  /** 按工具名过滤，无命中项的分组整体隐藏 */
+  const filterBySearchKey = (menuList: ToolboxTreeNode[]): ToolboxTreeNode[] => {
+    return menuList.reduce<ToolboxTreeNode[]>((acc, menuItem) => {
+      if (hasChildGroups(menuItem)) {
+        const filterChildren = menuItem.children
+          .map((childrenItem) => {
+            const filterList = (childrenItem.children as ToolboxLeafNode[]).filter((subChildrenItem) =>
+              subChildrenItem.name.includes(searchKey.value),
             );
-            return filterList.length > 0 ? acc.concat({ ...menuItem, children: filterList }) : acc;
-          }
-        }, []);
-      } else {
-        displayDataList.value = originDataList.value;
+            return { ...childrenItem, children: filterList };
+          })
+          .filter((childrenItem) => childrenItem.children.length > 0);
+        return filterChildren.length > 0 ? acc.concat({ ...menuItem, children: filterChildren }) : acc;
       }
-    },
-    {
-      immediate: true,
-    },
-  );
+      const filterList = (menuItem.children as ToolboxLeafNode[]).filter((childrenItem) =>
+        childrenItem.name.includes(searchKey.value),
+      );
+      return filterList.length > 0 ? acc.concat({ ...menuItem, children: filterList }) : acc;
+    }, []);
+  };
+
+  const fixedDataList = computed(() => {
+    const menuList = [favorItem.value, usedItem.value].filter((item) => item.children.length > 0);
+    return searchKey.value ? filterBySearchKey(menuList) : menuList;
+  });
+
+  const groupDataList = computed(() => {
+    const menuList = props.menuList.filter((item) => item.children.length > 0);
+    return searchKey.value ? filterBySearchKey(menuList) : menuList;
+  });
+
+  // 有搜索词时自动展开命中分组并隐藏展开/收起控件，清空后恢复默认折叠
+  watch(searchKey, (value) => {
+    groupActiveIndex.value = value ? groupDataList.value.map((item) => item.id) : [];
+  });
 
   const getTheme = (index: number) => {
     const themeList = ['info', 'warning', 'danger', 'success'] as const;
@@ -216,14 +246,15 @@
     return themeList[themeIndex];
   };
 
-  /** 判断菜单项是否有子分组（二级树形结构） */
-  const hasChildGroups = (menuItem: ToolboxTreeNode): boolean => {
-    return menuItem.children.length > 0 && isTreeNode(menuItem.children[0]);
-  };
+  /** 全部分组均已展开 */
+  const isAllExpanded = computed(
+    () =>
+      groupDataList.value.length > 0 && groupDataList.value.every((item) => groupActiveIndex.value.includes(item.id)),
+  );
 
-  /** 获取树节点的子叶子节点列表 */
-  const getLeafChildren = (node: ToolboxTreeNode): ToolboxLeafNode[] => {
-    return node.children.filter((item): item is ToolboxLeafNode => isLeafNode(item));
+  /** 未全部展开时展开全部，已全部展开时收起全部 */
+  const handleToggleAll = () => {
+    groupActiveIndex.value = isAllExpanded.value ? [] : groupDataList.value.map((item) => item.id);
   };
 </script>
 <style lang="less">
@@ -319,6 +350,13 @@
         font-size: 12px;
         color: #979ba5;
       }
+    }
+
+    .group-directory-control {
+      display: flex;
+      margin-bottom: 16px;
+      font-size: 12px;
+      align-items: center;
     }
 
     .sub-group {

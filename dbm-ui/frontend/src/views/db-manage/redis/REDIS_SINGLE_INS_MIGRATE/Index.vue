@@ -70,6 +70,7 @@
   import RenderMasterSlaveHost from './components/master-slave-machine/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const currentTableRef = useTemplateRef('currentTable');
 
@@ -117,4 +118,12 @@
   const handleReset = () => {
     currentTableRef.value!.resetTable();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

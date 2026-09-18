@@ -12,7 +12,7 @@ export function createToolboxRoute(dbType: DBTypes) {
     component: () => import(`@views/db-manage/${dbToolbox}/${ticketType}/Index.vue`),
     meta: {
       fullscreen: true,
-      hideTitle: [DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType),
+      hideTitle: [DBTypes.MYSQL, DBTypes.REDIS, DBTypes.TENDBCLUSTER].includes(dbType),
       navName,
       ticketType,
       ...meta,
