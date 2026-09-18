@@ -127,7 +127,8 @@ func (u *ClearCrontabParam) StopDBHAProbe() (err error) {
 	logger.Info("开始停止 dbha 探针 [%s]", probeDir)
 
 	// 1) 优雅停止：失败只记录日志，让后续兜底逻辑接管，确保不残留进程
-	stopCmd := fmt.Sprintf(`cd %s && ./stop-probe.sh`, probeDir)
+	// 注意：stop-probe.sh 需在 mysql 用户空间执行（与其他组件一致，使用 su - mysql -c）。
+	stopCmd := fmt.Sprintf(`su - mysql -c "cd %s && ./stop-probe.sh"`, probeDir)
 	if output, execErr := osutil.ExecShellCommand(false, stopCmd); execErr != nil {
 		logger.Warn("graceful stop dbha probe failed, will fallback to kill -9: %s, output: %s",
 			execErr.Error(), output)
