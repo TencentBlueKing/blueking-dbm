@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import os
 import time
 from typing import List
 
@@ -28,6 +29,40 @@ from backend.flow.plugins.components.collections.common.base_service import BkJo
 logger = logging.getLogger("flow")
 
 
+def is_redis_tools_file(file_path: str, snap_pkg: str = "") -> bool:
+    name = os.path.basename(file_path or "")
+    if snap_pkg and name == snap_pkg:
+        return True
+    return name.startswith("dbtools")
+
+
+def apply_redis_tools_snapshot_to_file_list(file_list: List, snapshot: dict | None) -> List:
+    """file_list 里已有 dbtools 时换成单据快照 path；没有则不追加。"""
+    if not file_list or not isinstance(snapshot, dict):
+        return file_list
+    pkg = snapshot.get("pkg") or ""
+    path = snapshot.get("path") or ""
+    if not path:
+        return file_list
+
+    snap_repo = f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{path}"
+    if not any(is_redis_tools_file(item, pkg) for item in file_list):
+        return file_list
+
+    replaced = False
+    new_list = []
+    for item in file_list:
+        if is_redis_tools_file(item, pkg):
+            if not replaced:
+                new_list.append(snap_repo)
+                replaced = True
+            else:
+                logger.warning("drop extra dbtools entry from file_list: %s, keep snapshot %s", item, snap_repo)
+            continue
+        new_list.append(item)
+    return new_list
+
+
 class TransFileService(BkJobService):
     """
     下载介质文件包到目标机器
@@ -41,6 +76,7 @@ class TransFileService(BkJobService):
         """
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
+        global_data = data.get_one_of_inputs("global_data") or {}
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
@@ -69,9 +105,13 @@ class TransFileService(BkJobService):
         payload = copy.deepcopy(consts.BK_TRANSFER_REPO_PAYLOAD)
         payload["bk_scope_type"] = "biz_set"
         payload["bk_scope_id"] = env.JOB_BLUEKING_BIZ_ID
+        file_list = apply_redis_tools_snapshot_to_file_list(
+            kwargs.get("file_list") or [],
+            global_data.get("redis_tools_pkg"),
+        )
         payload["file_source_list"].append(
             {
-                "file_list": kwargs["file_list"],
+                "file_list": file_list,
                 "file_type": MediumFileTypeEnum.Repo.value,
                 "file_source_code": env.APP_CODE,
             }

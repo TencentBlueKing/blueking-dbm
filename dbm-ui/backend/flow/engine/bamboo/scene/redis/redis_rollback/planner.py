@@ -177,14 +177,33 @@ class RollbackPlanner:
         return plan
 
     def precheck(self, pack: bool = False) -> Dict[str, Any]:
-        """Validate every selected shard instead of stopping at the first failure."""
+        """Validate every selected shard instead of stopping at the first failure.
+
+        Never raises: business problems go into ``errors``, unexpected failures are logged.
+        """
         result: Dict[str, Any] = {"exist": False, "errors": [], "warnings": [], "shards": []}
         try:
-            batch_records, _recover_at, _identify = self._select_records(infer_select_mode(self.info))
+            self._run_precheck(result)
         except RollbackPlanError as exc:
-            result["errors"].append(str(getattr(exc, "message", exc)))
+            message = getattr(exc, "message", None) or _("回档预检失败")
+            result["errors"].append(str(message))
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("redis rollback precheck failed cluster_id=%s", self.cluster.id)
+            result["errors"].append(str(_("回档预检失败，请联系管理员")))
             return result
+        result["exist"] = not result["errors"] and all(shard["ok"] for shard in result["shards"])
+        if not result["exist"]:
+            shard_errors = [err for shard in result["shards"] for err in shard.get("errors") or []]
+            logger.warning(
+                "redis rollback precheck cluster_id=%s errors=%s shard_errors=%s",
+                self.cluster.id,
+                result["errors"],
+                shard_errors,
+            )
+        return result
 
+    def _run_precheck(self, result: Dict[str, Any]) -> None:
+        batch_records, _recover_at, _identify = self._select_records(infer_select_mode(self.info))
         selections = self._shard_selections_safe(result["errors"])
         if not selections:
             selections = [
@@ -192,7 +211,7 @@ class RollbackPlanner:
             ]
         if not selections:
             result["errors"].append(str(_("该批次没有可构造的分片")))
-            return result
+            return
 
         by_shard: Dict[str, List[dict]] = defaultdict(list)
         for record in batch_records:
@@ -222,14 +241,11 @@ class RollbackPlanner:
         if host_count and host_count > len(ok_shards):
             result["errors"].append(str(_("主机数量({})不能大于待构造分片数({})").format(host_count, len(ok_shards))))
 
-        result["exist"] = not result["errors"] and all(shard["ok"] for shard in result["shards"])
-        return result
-
     def _shard_selections_safe(self, errors: List[str]) -> List[dict]:
         try:
             return self._shard_selections()
         except RollbackPlanError as exc:
-            errors.append(str(getattr(exc, "message", exc)))
+            errors.append(str(getattr(exc, "message", None) or _("回档预检失败")))
             return []
 
     def _precheck_shard(
