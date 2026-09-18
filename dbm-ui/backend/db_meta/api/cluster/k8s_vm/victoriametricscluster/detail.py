@@ -52,9 +52,9 @@ def scan_cluster(
     query_entry = (
         cluster.clusterentry_set.filter(
             cluster_entry_type=ClusterEntryType.CLBDNS,
-            role=ClusterEntryRole.SLAVE_ENTRY.value,
+            role=ClusterEntryRole.MASTER_ENTRY.value,
         ).first()
-        or cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY.value).first()
+        or cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY.value).first()
     )
     graph = Graphic(
         node_id=f"{write_entry.entry}:{VMINSERT_PORT}" if write_entry else Graphic.generate_graphic_id(cluster)
