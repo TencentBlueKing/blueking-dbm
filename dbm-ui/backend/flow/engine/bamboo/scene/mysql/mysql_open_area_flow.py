@@ -26,6 +26,7 @@ from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import authorize_sub_flow_v2
+from backend.flow.plugins.components.collections.mysql.check_open_area_database import CheckOpenAreaDatabaseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.upload_file import UploadFileServiceComponent
@@ -88,6 +89,7 @@ class MysqlOpenAreaFlow(object):
 
         return {
             "cluster_id": cluster.id,
+            "immute_domain": cluster.immute_domain,
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_type": cluster.cluster_type,
             "ip": ip_port.split(":")[0],
@@ -206,6 +208,26 @@ class MysqlOpenAreaFlow(object):
 
         return cluster_ids
 
+    @staticmethod
+    def __get_open_area_check_kwargs(source_cluster: dict, target_clusters: list) -> dict:
+        """组装目标库冲突检查所需参数，同一目标集群内的目标库去重。"""
+        return {
+            "source_cluster_domain": source_cluster["immute_domain"],
+            "targets": [
+                {
+                    "target_cluster_domain": target_cluster["immute_domain"],
+                    "bk_cloud_id": target_cluster["bk_cloud_id"],
+                    "address": "{}:{}".format(target_cluster["ip"], target_cluster["port"]),
+                    "databases": list(
+                        dict.fromkeys(
+                            open_area_param["newdb"] for open_area_param in target_cluster["open_area_param"]
+                        )
+                    ),
+                }
+                for target_cluster in target_clusters
+            ],
+        }
+
     def mysql_open_area_flow(self):
         source_cluster_schema = self.__get_source_cluster(data_flag=False)
         target_clusters_schema = self.__get_target_cluster(data_flag=False)
@@ -215,6 +237,12 @@ class MysqlOpenAreaFlow(object):
         exec_ip_list = self.__get_exec_ip_list(source_cluster_schema, target_clusters_schema)
 
         pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
+
+        pipeline.add_act(
+            act_name=_("检查目标集群是否存在待开区库"),
+            act_component_code=CheckOpenAreaDatabaseComponent.code,
+            kwargs=self.__get_open_area_check_kwargs(source_cluster_schema, target_clusters_schema),
+        )
 
         pipeline.add_act(
             act_name=_("下发db-actuator介质"),
