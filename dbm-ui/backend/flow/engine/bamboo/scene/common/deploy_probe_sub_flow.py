@@ -169,7 +169,7 @@ def probe_restart_sub_flow(
     ips: List[str],
 ) -> SubProcess:
     """
-    探针重启子流程包含：停止探针 + 启动探针 + 检查探针健康状态。
+    探针重启子流程包含：停止探针 + 生成配置文件 + 启动探针 + 检查探针健康状态。
     当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
@@ -182,7 +182,8 @@ def probe_restart_sub_flow(
 
     sp = SubBuilder(root_id=root_id, data=data)
 
-    # 重启探针
+    # 重启探针，ADMIN_ENDPOINTS 由探针专属执行组件(ProbeExecuteShellScriptComponent)
+    # 在运行时动态查询并替换，避免部署流程较长导致编排期固化的端点过期
     restart_script = f"""#!/bin/bash
 set -e
 
@@ -203,7 +204,7 @@ ps -ef | grep dbha-probe
 
     sp.add_act(
         act_name=_("停止探针并再启动探针"),
-        act_component_code=ExecuteShellScriptComponent.code,
+        act_component_code=ProbeExecuteShellScriptComponent.code,
         kwargs={
             "bk_cloud_id": bk_cloud_id,
             "exec_ip": ips,
