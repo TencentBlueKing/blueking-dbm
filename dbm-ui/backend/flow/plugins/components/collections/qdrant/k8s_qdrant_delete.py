@@ -10,16 +10,22 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+from time import sleep
 from typing import List
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
+from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
+
+# 关闭删除保护后, dbs 侧需要一定时间来生效, 这里等待其生效后再发起删除
+DISABLE_DELETION_PROTECTION_WAIT_SECONDS = 5
 
 
 class DeleteK8sQdrantService(BaseService):
@@ -49,7 +55,23 @@ class DeleteK8sQdrantService(BaseService):
             "async_to_dbm": False,
             "bk_username": global_data["created_by"],
         }
-        KubernetesApi.delete_cluster(params, use_admin=True)
+
+        # 1. 调用 dbs 接口关闭删除保护
+        try:
+            KubernetesApi.partial_update_cluster({**params, "terminationPolicy": "Delete"}, use_admin=True)
+        except (ApiRequestError, ApiResultError) as e:
+            self.log_error(_("关闭集群[{}]删除保护失败: {}").format(cluster_detail["clusterName"], e))
+            return False
+
+        # 等待删除保护关闭生效
+        sleep(DISABLE_DELETION_PROTECTION_WAIT_SECONDS)
+
+        # 2. 调用 dbs 接口删除集群
+        try:
+            KubernetesApi.delete_cluster({**params}, use_admin=True)
+        except (ApiRequestError, ApiResultError) as e:
+            self.log_error(_("删除集群[{}]失败: {}").format(cluster_detail["clusterName"], e))
+            return False
 
         data.outputs["trans_data"] = trans_data
         return True
