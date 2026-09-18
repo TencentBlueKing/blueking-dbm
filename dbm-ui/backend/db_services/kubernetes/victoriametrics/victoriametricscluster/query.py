@@ -23,6 +23,7 @@ from backend.exceptions import AppBaseException
 from backend.flow.utils.k8s_db.vm.consts import (
     COMPONENT_VMINSERT,
     COMPONENT_VMSELECT,
+    COMPONENT_VMSTORAGE,
     VMINSERT_SERVICE_NAME,
     VMSELECT_SERVICE_NAME,
 )
@@ -88,15 +89,24 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
         return cluster_info
 
     @classmethod
-    def _get_storage_entry(cls, cluster: Cluster) -> str:
-        storage_instances = getattr(cluster, "storages", cluster.storageinstance_set.all())
-        vmstorage_instances = sorted(
-            [inst for inst in storage_instances if inst.instance_role == InstanceRole.VM_STORAGE.value],
-            key=lambda inst: inst.id,
+    def _get_storage_entry(cls, cluster: Cluster, context: dict = None) -> str:
+        """vmstorage 存储入口：统一域名 + 按实例序号从 8000 递增的端口"""
+        context = context or cls.get_cluster_context(cluster)
+        pods = (
+            KubernetesApi.component_pods(
+                {
+                    "k8sClusterName": context["k8s_cluster_name"],
+                    "clusterName": context["cluster_name"],
+                    "namespace": context["namespace"],
+                    "componentName": COMPONENT_VMSTORAGE,
+                },
+                use_admin=True,
+            )
+            or {}
         )
+        storage_count = len(pods.get("result") or [])
         return "\n".join(
-            f"{cluster.immute_domain}:{VMSTORAGE_NODE_START_PORT + index}"
-            for index, _inst in enumerate(vmstorage_instances)
+            f"{cluster.immute_domain}:{VMSTORAGE_NODE_START_PORT + index}" for index in range(storage_count)
         )
 
     @classmethod
@@ -160,17 +170,22 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
         cluster = cls.get_cluster(bk_biz_id, cluster_id)
         context = cls.get_cluster_context(cluster)
         load_balancer_id = cls.get_source_load_balancer(context)
-        return KubernetesApi.expose_instance(
-            {
-                "dbmClusterId": cluster_id,
-                "k8sClusterName": context["k8s_cluster_name"],
-                "clusterName": context["cluster_name"],
-                "namespace": context["namespace"],
-                "enable": enable,
-                "loadBalancerId": load_balancer_id,
-                "bk_username": bk_username,
-            }
+        result = (
+            KubernetesApi.expose_instance(
+                {
+                    "dbmClusterId": cluster_id,
+                    "k8sClusterName": context["k8s_cluster_name"],
+                    "clusterName": context["cluster_name"],
+                    "namespace": context["namespace"],
+                    "enable": enable,
+                    "loadBalancerId": load_balancer_id,
+                    "bk_username": bk_username,
+                }
+            )
+            or {}
         )
+        result["storage_entry"] = cls._get_storage_entry(cluster, context)
+        return result
 
     @classmethod
     def get_cluster(cls, bk_biz_id: int, cluster_id: int) -> Cluster:

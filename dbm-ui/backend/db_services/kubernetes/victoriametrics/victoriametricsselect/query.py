@@ -13,7 +13,6 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.kubernetes.victoriametrics.query import VictoriaMetricsBaseListRetrieveResource
-from backend.flow.utils.vm.consts import VMSTORAGE_NODE_START_PORT
 
 
 @register_resource_decorator()
@@ -27,19 +26,10 @@ class VictoriaMetricsSelectListRetrieveResource(VictoriaMetricsBaseListRetrieveR
     @classmethod
     def _to_cluster_representation(cls, cluster: Cluster, *args, **kwargs) -> dict:
         cluster_info = super()._to_cluster_representation(cluster, *args, **kwargs)
-        storage_nodes = []
-        vmstorage_instances = cluster.storageinstance_set.filter(instance_role=InstanceRole.VM_STORAGE.value).order_by(
-            "id"
-        )
-        for index, vmstorage in enumerate(vmstorage_instances):
-            entry = vmstorage.bind_entry.first()
-            if entry:
-                domain = entry.entry
-            else:
-                related_cluster = vmstorage.cluster.exclude(id=cluster.id).first() or cluster
-                domain = related_cluster.immute_domain
-            storage_nodes.append(f"{domain}:{VMSTORAGE_NODE_START_PORT + index}")
-        cluster_info["storage_nodes"] = storage_nodes
+        # 查询集群无 vminsert 组件，无写入口
+        cluster_info["write_entry"] = ""
+        # 外部 vmstorage 节点地址在部署时落库
+        cluster_info["storage_nodes"] = cluster.storage_nodes or []
         return cluster_info
 
     @classmethod

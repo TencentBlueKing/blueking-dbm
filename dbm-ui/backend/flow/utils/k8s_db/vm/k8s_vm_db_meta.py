@@ -14,6 +14,8 @@ from django.db.transaction import atomic
 from django.utils.translation import gettext as _
 
 from backend.db_meta import api
+from backend.db_meta.enums import ClusterType
+from backend.flow.utils.k8s_db.vm.consts import COMPONENT_VMSELECT
 
 logger = logging.getLogger("flow")
 
@@ -48,6 +50,16 @@ class VmDBMeta(object):
         api.cluster.k8s_vm.disable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
+    def _get_query_cluster_storage_nodes(self) -> list:
+        """解析查询集群 vmselect 组件挂载的外部 vmstorage 节点地址列表"""
+        for item in self.ticket_data.get("component_list") or []:
+            if item.get("component_name") != COMPONENT_VMSELECT:
+                continue
+            extra_args = (item.get("env") or {}).get("EXTRA_ARGS") or {}
+            storage_node = extra_args.get("storageNode") or ""
+            return [node.strip() for node in storage_node.split(",") if node.strip()]
+        return []
+
     def k8s_victoriametrics_apply(self) -> dict:
         # 部署VictoriaMetrics，更新cmdb
         cluster = {
@@ -62,6 +74,9 @@ class VmDBMeta(object):
             "region": self.ticket_data["region"],
             "creator": self.ticket_data["created_by"],
         }
+        # 查询集群：落库 vmselect 挂载的外部 vmstorage 节点地址
+        if self.ticket_data["cluster_type"] == ClusterType.K8sVictoriametricsSelect.value:
+            cluster["storage_nodes"] = self._get_query_cluster_storage_nodes()
 
         with atomic():
             return api.cluster.k8s_vm.create(**cluster)

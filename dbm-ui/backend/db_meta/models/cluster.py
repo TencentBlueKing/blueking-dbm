@@ -72,6 +72,7 @@ class Cluster(AuditedModel):
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
     tags = models.ManyToManyField(Tag, blank=True, help_text=_("标签（外键）"))
     zone_list = models.JSONField(default=list, help_text=_("指定机房列表，空列表代表随机"), blank=True, null=True)
+    storage_nodes = models.JSONField(default=list, help_text=_("外部存储节点列表"), blank=True, null=True)
 
     class Meta:
         unique_together = [("bk_biz_id", "immute_domain", "cluster_type", "db_module_id"), ("immute_domain",)]
