@@ -76,6 +76,7 @@
 
   import { useSqlImport } from '@stores';
 
+  import type { ClusterTypes } from '@common/const';
   import { DBTypes, TicketTypes } from '@common/const';
 
   import TicketPayload, {
@@ -88,7 +89,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       major_version: string;
       master_domain: string;
@@ -141,7 +142,7 @@
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     cluster: Object.assign(
       {
-        cluster_type: '',
+        cluster_type: '' as ClusterTypes,
         id: 0,
         major_version: '',
         master_domain: '',

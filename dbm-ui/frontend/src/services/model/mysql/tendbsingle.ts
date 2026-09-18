@@ -69,6 +69,7 @@ export default class Tendbsingle extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  default_storage_engine: string;
   disaster_tolerance_level: Affinity;
   id: number;
   machine_specs: MachineSpec[];
@@ -121,6 +122,7 @@ export default class Tendbsingle extends ClusterBase {
     this.creator = payload.creator || '';
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name || '';
+    this.default_storage_engine = payload.default_storage_engine || '';
     this.disaster_tolerance_level = payload.disaster_tolerance_level || '';
     this.id = payload.id || 0;
     this.master_domain = payload.master_domain || '';

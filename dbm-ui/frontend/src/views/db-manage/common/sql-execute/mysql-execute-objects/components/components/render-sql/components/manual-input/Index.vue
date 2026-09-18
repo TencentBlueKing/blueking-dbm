@@ -145,7 +145,7 @@
     };
   })(modelValue.value.length);
 
-  const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
+  const { dbType: currentDbType, grammarCheckHandle, clusterInfoList } = useSqlImport();
   const { t } = useI18n();
 
   const {
@@ -233,6 +233,9 @@
       params.append(`versions[${index}]`, version);
     });
     params.append('cluster_type', currentDbType);
+    if (clusterInfoList.length > 0) {
+      params.append('cluster_info', JSON.stringify(clusterInfoList));
+    }
     params.append(
       'execute_objects',
       JSON.stringify([
