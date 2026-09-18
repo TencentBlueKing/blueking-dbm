@@ -11,9 +11,14 @@
 package mysql
 
 import (
+	"database/sql"
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
 func TestCheckSQLFileNameLength(t *testing.T) {
@@ -135,5 +140,116 @@ func TestSQLFileExecResultJSONIncludesDBName(t *testing.T) {
 	}
 	if strings.Contains(got, `"Port"`) || strings.Contains(got, `"port"`) {
 		t.Fatalf("Port is json:\"-\" and should be omitted, got %s", got)
+	}
+}
+
+func TestExecuteSQLFileComp_PreCheckEmptySkips(t *testing.T) {
+	t.Parallel()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("(?i)show status like").WillReturnError(sql.ErrNoRows)
+
+	comp := newTcIsPrimaryComp(db, 26000)
+	if err := comp.checkTcIsPrimaryStatus(); err != nil {
+		t.Fatalf("empty status should skip, got %v", err)
+	}
+	if comp.needSessionTcAdmin {
+		t.Fatal("empty status should not set needSessionTcAdmin")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestExecuteSQLFileComp_PreCheckZeroFails(t *testing.T) {
+	t.Parallel()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("(?i)show status like").WillReturnRows(
+		sqlmock.NewRows([]string{"Variable_name", "Value"}).AddRow("Tc_is_primary", "0"),
+	)
+
+	comp := newTcIsPrimaryComp(db, 26000)
+	err = comp.checkTcIsPrimaryStatus()
+	if err == nil {
+		t.Fatal("expected error when Tc_is_primary=0")
+	}
+	if !strings.Contains(err.Error(), "tc_is_primary") && !strings.Contains(err.Error(), "Tc_is_primary") {
+		t.Fatalf("error should mention tc_is_primary, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "0") {
+		t.Fatalf("error should mention value 0, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "127.0.0.1") || !strings.Contains(err.Error(), "26000") {
+		t.Fatalf("error should mention host and port, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestExecuteSQLFileComp_PreCheckOtherFails(t *testing.T) {
+	t.Parallel()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("(?i)show status like").WillReturnRows(
+		sqlmock.NewRows([]string{"Variable_name", "Value"}).AddRow("Tc_is_primary", "2"),
+	)
+
+	comp := newTcIsPrimaryComp(db, 26000)
+	err = comp.checkTcIsPrimaryStatus()
+	if err == nil {
+		t.Fatal("expected error when Tc_is_primary is neither empty nor 1")
+	}
+	if !strings.Contains(err.Error(), "127.0.0.1") || !strings.Contains(err.Error(), "26000") {
+		t.Fatalf("error should mention host and port, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestExecuteSQLFileComp_PreCheckOnePasses(t *testing.T) {
+	t.Parallel()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	mock.ExpectQuery("(?i)show status like").WillReturnRows(
+		sqlmock.NewRows([]string{"Variable_name", "Value"}).AddRow("Tc_is_primary", "1"),
+	)
+
+	comp := newTcIsPrimaryComp(db, 26000)
+	if err := comp.checkTcIsPrimaryStatus(); err != nil {
+		t.Fatalf("Tc_is_primary=1 should pass, got %v", err)
+	}
+	if !comp.needSessionTcAdmin {
+		t.Fatal("Tc_is_primary=1 should set needSessionTcAdmin")
+	}
+	if sessionTcAdminInitCommand(comp.needSessionTcAdmin) != "SET SESSION tc_admin=1" {
+		t.Fatal("execute path should fill InitCommand after primary=1")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func newTcIsPrimaryComp(db *sql.DB, port int) *ExecuteSQLFileComp {
+	return &ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{Host: "127.0.0.1"},
+		ExecuteSQLFileRunTimeCtx: ExecuteSQLFileRunTimeCtx{
+			ports:   []int{port},
+			dbConns: map[Port]*native.DbWorker{port: {Db: db}},
+		},
 	}
 }

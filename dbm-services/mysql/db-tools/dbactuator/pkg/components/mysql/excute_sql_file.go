@@ -101,13 +101,14 @@ type SQLFileExecResult struct {
 
 // ExecuteSQLFileRunTimeCtx 运行时上下文
 type ExecuteSQLFileRunTimeCtx struct {
-	ports       []int
-	dbConns     map[Port]*native.DbWorker
-	vermap      map[Port]string // 当前实例的数据版本
-	charsetmap  map[Port]string // 当前实例的字符集
-	socketmap   map[Port]string // 当前实例的socket value
-	taskdir     string
-	execResults []SQLFileExecResult // 执行耗时记录
+	ports              []int
+	dbConns            map[Port]*native.DbWorker
+	vermap             map[Port]string // 当前实例的数据版本
+	charsetmap         map[Port]string // 当前实例的字符集
+	socketmap          map[Port]string // 当前实例的socket value
+	taskdir            string
+	execResults        []SQLFileExecResult // 执行耗时记录
+	needSessionTcAdmin bool                // PreCheck 确认本机 Tc_is_primary=1 后，导入会话打开 tc_admin
 }
 
 // Example TODO
@@ -155,7 +156,54 @@ func (e *ExecuteSQLFileComp) PreCheck() (err error) {
 			return err
 		}
 	}
+	if err = e.checkTcIsPrimaryStatus(); err != nil {
+		logger.Error("检查 tc_is_primary 失败:%s", err.Error())
+		return err
+	}
 	return
+}
+
+const sessionTcAdminSQL = "SET SESSION tc_admin=1"
+
+func sessionTcAdminInitCommand(needSessionTcAdmin bool) string {
+	if needSessionTcAdmin {
+		return sessionTcAdminSQL
+	}
+	return ""
+}
+
+func queryTcIsPrimary(dbConn *native.DbWorker) (found bool, val string, err error) {
+	var item native.MySQLGlobalVariableItem
+	err = dbConn.Queryxs(&item, "show status like 'tc_is_primary'")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, "", nil
+		}
+		return false, "", err
+	}
+	return true, strings.TrimSpace(item.Value), nil
+}
+
+func (e *ExecuteSQLFileComp) checkTcIsPrimaryStatus() (err error) {
+	e.needSessionTcAdmin = false
+	for _, port := range e.ports {
+		dbConn, ok := e.dbConns[port]
+		if !ok || dbConn == nil {
+			continue
+		}
+		found, val, qerr := queryTcIsPrimary(dbConn)
+		if qerr != nil {
+			return fmt.Errorf("查询 %s:%d tc_is_primary 失败: %w", e.Params.Host, port, qerr)
+		}
+		if !found {
+			continue
+		}
+		if val != "1" {
+			return fmt.Errorf("%s:%d 不是当前 tdbctl primary, Tc_is_primary=%s", e.Params.Host, port, val)
+		}
+		e.needSessionTcAdmin = true
+	}
+	return nil
 }
 
 func (e *ExecuteSQLFileComp) cleanHistorySQLDir() {
@@ -729,6 +777,7 @@ func (e *ExecuteSQLFileComp) executeOne(port int) (err error) {
 			WorkDir:          e.taskdir,
 			User:             e.GeneralParam.RuntimeAccountParam.AdminUser,
 			Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
+			InitCommand:      sessionTcAdminInitCommand(e.needSessionTcAdmin),
 		}
 		for _, sqlFile := range f.SQLFiles {
 			for _, dbName := range realexcutedbs {
