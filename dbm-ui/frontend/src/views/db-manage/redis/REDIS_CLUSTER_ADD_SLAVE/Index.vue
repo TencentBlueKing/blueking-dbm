@@ -17,7 +17,7 @@
       <BkAlert
         class="mb-16"
         closable
-        theme="info"
+        theme="warning"
         :title="
           t('重建从库：通过整机替换来实现从库实例的重建，即对应主机上的所有从库实例均会被重建，理论上不影响业务')
         " />
@@ -195,6 +195,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const batchInputConfig = [
     {
@@ -429,4 +430,12 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

@@ -13,236 +13,246 @@
 
 import { TicketTypes } from '@common/const';
 
+import type { ToolboxTreeNode } from '@views/db-manage/common/toolbox-new/common/types';
+
 import { t } from '@locales/index';
 
-export const toolboxMenuList = [
+export const toolboxMenuList: ToolboxTreeNode[] = [
   {
     children: [
       {
         bind: [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE],
         dbConsoleValue: 'redis.toolbox.keyExtract',
+        desc: t('提取或删除 Key'),
         id: TicketTypes.REDIS_KEYS_EXTRACT,
         name: t('Key 操作'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.backup',
-        id: TicketTypes.REDIS_BACKUP,
-        name: t('备份'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.purge',
-        id: TicketTypes.REDIS_PURGE,
-        name: t('清档'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.slaveRebuild',
-        id: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
-        name: t('重建从库'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
-        id: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
-        name: t('主从切换'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.dbReplace',
-        id: TicketTypes.REDIS_CLUSTER_CUTOFF,
-        name: t('整机替换'),
-        parentId: 'common-manage',
-      },
-      {
-        bind: [TicketTypes.REDIS_CLUSTER_INS_MIGRATE, TicketTypes.REDIS_SINGLE_INS_MIGRATE],
-        dbConsoleValue: 'redis.toolbox.migrate',
-        id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
-        name: t('迁移'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.versionUpgrade',
-        id: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
-        name: t('版本升级'),
-        parentId: 'common-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.installModule',
-        id: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
-        name: t('安装 Module'),
-        parentId: 'cluster-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.clusterReinstallDbmon',
-        id: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON,
-        name: t('集群标准化'),
-        parentId: 'cluster-manage',
-      },
-    ],
-    icon: 'db-icon-cluster',
-    id: 'common-manage',
-    name: t('通用维护'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'redis.toolbox.rollback',
-        id: TicketTypes.REDIS_DATA_STRUCTURE,
-        name: t('定点构造'),
-        parentId: 'common-struct',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.rollbackRecord',
-        id: 'RedisStructureInstance',
-        name: t('构造实例'),
-        parentId: 'common-struct',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.recoverFromInstance',
-        id: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
-        name: t('以构造实例恢复'),
-        parentId: 'common-struct',
-      },
-    ],
-    icon: 'db-icon-copy',
-    id: 'common-struct',
-    name: t('数据构造'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'redis.toolbox.dataCopy',
-        id: TicketTypes.REDIS_CLUSTER_DATA_COPY,
-        name: t('数据复制'),
-        parentId: 'common-dts',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.dataCopyRecord',
-        id: 'RedisDBDataCopyRecord',
-        name: t('数据复制记录'),
-        parentId: 'common-dts',
-      },
-    ],
-    icon: 'db-icon-data',
-    id: 'common-dts',
-    name: t('数据传输（DTS）'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'redis.toolbox.memoryAnalysis',
-        id: TicketTypes.REDIS_KEYSTAT,
-        name: t('内存分析'),
-        parentId: 'redis_data_query',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.memoryAnalysisList',
-        id: 'RedisMemoryAnalysisList',
-        name: t('内存分析报告'),
-        parentId: 'redis_data_query',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.hotKeyAnalysis',
-        id: TicketTypes.REDIS_HOT_KEY_ANALYSIS,
-        name: t('热 Key 分析'),
-        parentId: 'redis_data_query',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.hotKeyAnalysisList',
-        id: 'RedisHotKeyAnalysisList',
-        name: t('热 Key 分析报告'),
-        parentId: 'redis_data_query',
-      },
-    ],
-    icon: 'db-icon-search',
-    id: 'redis_analyse',
-    name: t('分析'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'redis.toolbox.queryAccessSource',
-        id: 'RedisQueryAccessSource',
-        name: t('查询访问来源'),
-        parentId: 'redis_data_query',
       },
       {
         dbConsoleValue: 'redis.toolbox.webconsole',
+        desc: t('连接集群执行只读指令'),
         id: 'RedisWebconsole',
         name: 'Webconsole',
-        parentId: 'redis_data_query',
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.queryAccessSource',
+        desc: t('查看 Key 客户端来源'),
+        id: 'RedisQueryAccessSource',
+        name: t('查询访问来源'),
       },
     ],
-    icon: 'db-icon-search',
-    id: 'redis_data_query',
+    icon: 'chaxunyubiangeng',
+    id: 'data-query',
     name: t('数据查询'),
   },
   {
     children: [
       {
-        dbConsoleValue: 'redis.toolbox.proxyScaleUp',
-        id: TicketTypes.REDIS_PROXY_SCALE_UP,
-        name: t('扩容接入层'),
-        parentId: 'cluster-manage',
+        dbConsoleValue: 'redis.toolbox.memoryAnalysis',
+        desc: t('分析内存占用'),
+        id: TicketTypes.REDIS_KEYSTAT,
+        name: t('内存分析'),
       },
       {
-        dbConsoleValue: 'redis.toolbox.proxyScaleDown',
-        id: TicketTypes.REDIS_PROXY_SCALE_DOWN,
-        name: t('缩容接入层'),
-        parentId: 'cluster-manage',
+        dbConsoleValue: 'redis.toolbox.memoryAnalysisList',
+        desc: t('查看内存分析结果'),
+        id: 'RedisMemoryAnalysisList',
+        name: t('内存分析报告'),
       },
       {
-        bind: [TicketTypes.REDIS_PROXY_KICKOFF, TicketTypes.REDIS_PROXY_FIX],
-        dbConsoleValue: 'redis.toolbox.proxyKickoff',
-        id: TicketTypes.REDIS_PROXY_KICKOFF,
-        name: t('Proxy 剔除和修复'),
-        parentId: 'common-manage',
+        dbConsoleValue: 'redis.toolbox.hotKeyAnalysis',
+        desc: t('分析热 Key'),
+        id: TicketTypes.REDIS_HOT_KEY_ANALYSIS,
+        name: t('热 Key 分析'),
       },
       {
-        dbConsoleValue: 'redis.toolbox.capacityChange',
-        id: TicketTypes.REDIS_SCALE_UPDOWN,
-        name: t('集群容量变更'),
-        parentId: 'cluster-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.clusterShardChange',
-        id: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
-        name: t('集群分片变更'),
-        parentId: 'cluster-manage',
-      },
-      {
-        bind: [TicketTypes.REDIS_SHARD_ADD, TicketTypes.REDIS_SHARD_REDUCE],
-        dbConsoleValue: 'redis.toolbox.shardAdd',
-        id: TicketTypes.REDIS_SHARD_ADD,
-        name: t('集群分片变更（Slot迁移）'),
-        parentId: 'cluster-manage',
-      },
-      {
-        dbConsoleValue: 'redis.toolbox.clusterTypeChange',
-        id: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
-        name: t('集群类型变更'),
-        parentId: 'cluster-manage',
+        dbConsoleValue: 'redis.toolbox.hotKeyAnalysisList',
+        desc: t('查看热Key分析结果'),
+        id: 'RedisHotKeyAnalysisList',
+        name: t('热 Key 分析报告'),
       },
     ],
-    icon: 'db-icon-cluster',
+    icon: 'shujujiance',
+    id: 'analyse',
+    name: t('诊断分析'),
+  },
+  {
+    children: [
+      {
+        dbConsoleValue: 'redis.toolbox.backup',
+        desc: t('备份集群数据'),
+        id: TicketTypes.REDIS_BACKUP,
+        name: t('备份'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.purge',
+        desc: t('清空所有数据'),
+        id: TicketTypes.REDIS_PURGE,
+        name: t('清档'),
+      },
+    ],
+    icon: 'baofen',
+    id: 'backup-and-purge',
+    name: t('备份与清档'),
+  },
+  {
+    children: [
+      {
+        children: [
+          {
+            dbConsoleValue: 'redis.toolbox.proxyScaleUp',
+            desc: t('增加 Proxy 节点'),
+            id: TicketTypes.REDIS_PROXY_SCALE_UP,
+            name: t('扩容接入层'),
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.proxyScaleDown',
+            desc: t('减少 Proxy 节点'),
+            id: TicketTypes.REDIS_PROXY_SCALE_DOWN,
+            name: t('缩容接入层'),
+          },
+          {
+            bind: [TicketTypes.REDIS_PROXY_KICKOFF, TicketTypes.REDIS_PROXY_FIX],
+            dbConsoleValue: 'redis.toolbox.proxyKickoff',
+            desc: t('剔除并修复异常 Proxy'),
+            id: TicketTypes.REDIS_PROXY_KICKOFF,
+            isFix: true,
+            name: t('Proxy 剔除和修复'),
+          },
+        ],
+        icon: '',
+        id: 'proxy',
+        name: t('接入层'),
+      },
+      {
+        children: [
+          {
+            dbConsoleValue: 'redis.toolbox.capacityChange',
+            desc: t('调整规格或容量'),
+            id: TicketTypes.REDIS_SCALE_UPDOWN,
+            name: t('集群容量变更'),
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.clusterShardChange',
+            desc: t('增减分片数'),
+            id: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
+            name: t('集群分片变更'),
+          },
+          {
+            bind: [TicketTypes.REDIS_SHARD_ADD, TicketTypes.REDIS_SHARD_REDUCE],
+            dbConsoleValue: 'redis.toolbox.shardAdd',
+            desc: t('通过增减分片数来搬迁Slot'),
+            id: TicketTypes.REDIS_SHARD_ADD,
+            name: t('集群分片变更（Slot 迁移）'),
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.clusterTypeChange',
+            desc: t('变更集群架构'),
+            id: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
+            name: t('集群类型变更'),
+          },
+        ],
+        icon: '',
+        id: 'cluster',
+        name: t('集群变更'),
+      },
+    ],
+    icon: 'cluster',
     id: 'cluster-manage',
     name: t('集群维护'),
   },
-];
-
-export const menuGroupList = [
   {
-    description: t('支持所有架构类型'),
+    children: [
+      {
+        dbConsoleValue: 'redis.toolbox.dbReplace',
+        desc: t('替换故障主机'),
+        id: TicketTypes.REDIS_CLUSTER_CUTOFF,
+        name: t('整机替换'),
+      },
+      {
+        bind: [TicketTypes.REDIS_CLUSTER_INS_MIGRATE, TicketTypes.REDIS_SINGLE_INS_MIGRATE],
+        dbConsoleValue: 'redis.toolbox.migrate',
+        desc: t('实例迁移到新主机'),
+        id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
+        name: t('迁移'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
+        desc: t('切换主从角色'),
+        id: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
+        name: t('主从切换'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.versionUpgrade',
+        desc: t('升级集群版本'),
+        id: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
+        name: t('版本升级'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.installModule',
+        desc: t('安装 Redis Module'),
+        id: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
+        name: t('安装 Module'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.clusterReinstallDbmon',
+        desc: t('标准化集群配置和周边工具'),
+        id: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON,
+        name: t('集群标准化'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.slaveRebuild',
+        desc: t('原地或新机重建'),
+        id: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
+        isFix: true,
+        name: t('重建从库'),
+      },
+    ],
+    icon: 'tongyong',
     id: 'common',
-    menuList: ['common-manage', 'common-struct', 'common-dts', 'redis_analyse', 'redis_data_query'],
-    name: t('通用维护'),
+    name: t('通用'),
   },
   {
-    description: t('仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型'),
-    id: 'cluster',
-    menuList: ['cluster-manage'],
-    name: t('集群'),
+    children: [
+      {
+        dbConsoleValue: 'redis.toolbox.rollbackRecord',
+        desc: t('恢复数据到新集群'),
+        id: 'RedisStructureInstance',
+        name: t('构造实例'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.rollback',
+        desc: t('恢复到指定时间点'),
+        id: TicketTypes.REDIS_DATA_STRUCTURE,
+        name: t('定点构造'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.recoverFromInstance',
+        desc: t('写回目标集群'),
+        id: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+        name: t('以构造实例恢复'),
+      },
+    ],
+    icon: 'data-recovery',
+    id: 'data-recovery',
+    name: t('数据恢复'),
+  },
+  {
+    children: [
+      {
+        dbConsoleValue: 'redis.toolbox.dataCopy',
+        desc: t('在集群间同步数据'),
+        id: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+        name: t('数据复制'),
+      },
+      {
+        dbConsoleValue: 'redis.toolbox.dataCopyRecord',
+        desc: t('查看任务记录'),
+        id: 'RedisDBDataCopyRecord',
+        name: t('数据复制记录'),
+      },
+    ],
+    icon: 'migration',
+    id: 'data-transfer',
+    name: t('数据传输'),
   },
 ];

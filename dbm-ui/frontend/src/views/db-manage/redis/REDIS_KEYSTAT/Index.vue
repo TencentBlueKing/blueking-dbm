@@ -111,6 +111,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const batchInputConfig = [
     {
@@ -282,4 +283,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

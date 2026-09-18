@@ -385,6 +385,14 @@
   const handleExport = (row: RedisHotKeyAnalysisModel) => {
     exportHotKeyAnalysis({ record_ids: `${row.id}` });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">
