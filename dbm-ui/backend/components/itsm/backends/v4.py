@@ -3,7 +3,7 @@
 import json
 
 from ..client import ItsmV4Api
-from ..constants import ItsmV4TicketStatus
+from ..constants import ItsmTicketStatus, ItsmV4TicketStatus
 from .base import BaseItsmBackend
 
 
@@ -58,10 +58,11 @@ class ItsmV4Backend(BaseItsmBackend):
         current_status = detail.get("status", "")
         if detail.get("approve_result") is False and current_status.lower() == ItsmV4TicketStatus.TERMINATION:
             # itsm v4版本的审批拒绝之后状态回显为termination,此处改成和旧版本一致finished
-            current_status = ItsmV4TicketStatus.FINISHED
+            current_status = ItsmTicketStatus.FINISHED
         elif detail.get("approve_result") is False and current_status.lower() == ItsmV4TicketStatus.FINISHED:
             # itsm v4版本的关闭单据操作之后状态回显为finished,此处改成和旧版本一致termination
-            current_status = ItsmV4TicketStatus.TERMINATION
+            current_status = ItsmTicketStatus.TERMINATED
+
         return {
             "update_at": detail.get("updated_at"),
             "current_status": current_status.upper(),
