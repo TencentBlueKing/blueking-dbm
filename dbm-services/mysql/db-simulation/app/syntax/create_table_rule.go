@@ -193,7 +193,7 @@ func parseCreateTableEngineRule(r *CheckerResult, specified string, clusterDefau
 		parseEngineMismatch(r, specified, clusterDefaultEngines)
 		return
 	}
-	r.Parse(R.CreateTableRule.SuggestEngine, specified, "")
+	r.Parse(R.CreateTableRule.SuggestEngine, strings.ToLower(specified), "")
 }
 
 func parseEngineMismatch(r *CheckerResult, specified string, clusterDefaultEngines []string) {

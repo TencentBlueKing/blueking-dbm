@@ -182,6 +182,19 @@ func TestCreateTableResult_Checker_EngineMismatch(t *testing.T) {
 	}
 }
 
+func TestCreateTableResult_Checker_InnoDBDoesNotSuggestInnoDB(t *testing.T) {
+	requireCreateTableCheckerRules(t)
+	for _, specified := range []string{"InnoDB", "innodb", "INNODB"} {
+		t.Run(specified, func(t *testing.T) {
+			c := newCreateTableWithEngine(specified)
+			cr := c.checkWithClusterEngines("5.7", nil)
+			require.NotNil(t, cr)
+			joined := strings.Join(cr.RiskWarns, "\n")
+			assert.NotContains(t, joined, "建议使用Innodb表")
+		})
+	}
+}
+
 func TestCreateTableResult_SpiderChecker_EngineMismatch(t *testing.T) {
 	mismatch := newCreateTableWithEngine("InnoDB")
 	mismatch.IsCreateTableLike = true
