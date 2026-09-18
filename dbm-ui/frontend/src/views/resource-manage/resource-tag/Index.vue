@@ -95,8 +95,8 @@
         </TableColumn>
         <TableColumn
           col-key="count"
-          :title="t('绑定的IP')"
-          :width="120">
+          :min-width="120"
+          :title="t('绑定的IP')">
           <template #default="{ row: data }: { row: ResourceTagModel }">
             <a
               v-if="bindIpMap.get(data.id)"
@@ -109,18 +109,18 @@
         </TableColumn>
         <TableColumn
           col-key="creator"
+          :min-width="180"
           sorter
-          :title="t('创建人')"
-          :width="160">
+          :title="t('创建人')">
           <template #default="{ row: data }: { row: ResourceTagModel }">
             {{ data.creator || '--' }}
           </template>
         </TableColumn>
         <TableColumn
           col-key="create_at"
+          :min-width="180"
           sorter
-          :title="t('创建时间')"
-          :width="180">
+          :title="t('创建时间')">
           <template #default="{ row: data }: { row: ResourceTagModel }">
             {{ data.createAtDisplay || '--' }}
           </template>

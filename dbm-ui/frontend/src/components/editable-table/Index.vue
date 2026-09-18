@@ -385,7 +385,7 @@
   .bk-editable-table {
     --table-scroll-z-index: 200;
     --table-fixed-wrapper-z-index: 300;
-    --table-border-color: #dcdee5;
+    --table-border-color: #c4c6cc;
     --column-head-backgroud-color: #f0f1f5;
     --column-head-hover-backgroud-color: #eaebf0;
     --column-background-color: #fff;

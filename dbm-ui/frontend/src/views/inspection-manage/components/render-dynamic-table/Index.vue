@@ -60,9 +60,9 @@
           :col-key="item.name"
           ellipsis
           ellipsis-title
+          :min-width="columnWidthMap[item.name] || 120"
           resizable
-          :title="item.display_name"
-          :width="columnWidthMap[item.name] || 120">
+          :title="item.display_name">
           <template #default="{ row }: { row: ReportInfo['results'][number] }">
             <template v-if="item.format === 'status'">
               <!-- 兼容旧状态，需要保留 -->
@@ -87,6 +87,9 @@
             </BkButton>
             <span v-else-if="item.name === 'create_at'">{{ utcDisplayTime(row[item.name]) }}</span>
             <span v-else-if="item.name === 'bk_biz_id'">{{ bizsMap[row[item.name]] || row[item.name] }}</span>
+            <TagBlock
+              v-else-if="Array.isArray(row[item.name])"
+              :data="row[item.name]" />
             <span v-else>{{ row[item.name] || '--' }}</span>
           </template>
         </TableColumn>
@@ -117,6 +120,7 @@
 
   import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import { calcTextWidth, random, utcDisplayTime } from '@utils';
 
@@ -219,11 +223,21 @@
           rawTitleList[failedDaysIndex],
         ];
       }
-      if (result.count > 0 && !Object.keys(columnWidthMap.value).length) {
-        Object.entries(result.results[0]).forEach(([key, value]) => {
-          const width = calcTextWidth(value);
-          columnWidthMap.value[key] = width > 120 ? width : 120;
+      if (!Object.keys(columnWidthMap.value).length) {
+        // 列宽先按标题估算：文字宽度 + 单元格左右 padding（32），让表头尽量完整显示
+        rawTitleList.forEach((item) => {
+          const titleWidth = calcTextWidth(item.display_name) + 32;
+          columnWidthMap.value[item.name] = titleWidth > 120 ? titleWidth : 120;
         });
+        if (result.count > 0) {
+          Object.entries(result.results[0]).forEach(([key, value]) => {
+            const contentWidth = calcTextWidth(value);
+            // 内容比标题还宽时按内容撑开
+            if (contentWidth > columnWidthMap.value[key]) {
+              columnWidthMap.value[key] = contentWidth;
+            }
+          });
+        }
       }
       titleList.value = rawTitleList;
       tableData.value = result.results.map((item) =>
@@ -293,7 +307,11 @@
 
   watch(
     () => props.searchParams,
-    () => {
+    (searchParams, prevSearchParams) => {
+      // 搜索条件是父组件的 computed，对象会被反复重建，内容没变时不重复请求
+      if (_.isEqual(searchParams, prevSearchParams)) {
+        return;
+      }
       fetchData();
     },
     {

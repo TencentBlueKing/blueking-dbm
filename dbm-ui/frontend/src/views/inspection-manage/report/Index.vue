@@ -183,7 +183,7 @@
       const routerQuery = _.cloneDeep(route.query) as Record<string, string>;
 
       searchParams.value = {};
-      ['bk_biz_id', 'cluster', 'dba', 'state'].forEach((item) => {
+      ['select_biz_id', 'cluster', 'dba', 'state'].forEach((item) => {
         if (routerQuery[item]) {
           searchValue.value[item] = routerQuery[item];
         }

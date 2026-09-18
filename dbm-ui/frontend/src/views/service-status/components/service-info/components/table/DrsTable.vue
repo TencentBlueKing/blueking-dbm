@@ -18,11 +18,16 @@
     </TableColumn>
     <TableColumn
       col-key="updater"
-      :title="t('更新人')">
+      :title="t('更新人')"
+      :width="180">
+      <template #default="{ row }: { row: DrsServiceStatusModel }">
+        {{ row.updater || '--' }}
+      </template>
     </TableColumn>
     <TableColumn
       col-key="updateAtDisplay"
-      :title="t('更新时间')">
+      :title="t('更新时间')"
+      :width="180">
     </TableColumn>
   </PrimaryTable>
 </template>
