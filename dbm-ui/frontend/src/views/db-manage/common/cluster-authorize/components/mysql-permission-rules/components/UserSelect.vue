@@ -6,6 +6,7 @@
     <DbSelect
       v-model="user"
       :clearable="false"
+      :disabled="disabled"
       filterable
       :input-search="false"
       :loading="isLoading">
@@ -14,12 +15,23 @@
         :key="item.account.account_id"
         :label="item.account.user"
         :value="item.account.user" />
+      <template #extension>
+        <div
+          class="default-display-main"
+          @click="handleCreateAccount">
+          <DbIcon
+            class="add-account-icon"
+            type="plus-circle" />
+          <span>{{ t('新建账号') }}</span>
+        </div>
+      </template>
     </DbSelect>
   </BkFormItem>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import type { RouteLocationRaw } from 'vue-router';
 
   import { getPermissionRules as getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { getPermissionRules as getMysqlPermissionRules } from '@services/source/mysqlPermissionAccount';
@@ -30,11 +42,14 @@
 
   interface Props {
     accountType: AccountTypes;
+    disabled?: boolean;
   }
 
   type Emits = (e: 'change', data: PermissionRule['rules']) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -43,6 +58,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const isLoading = ref(false);
   const accounts = ref<PermissionRule[]>([]);
@@ -80,4 +96,39 @@
   };
 
   fetchAccounts();
+
+  /**
+   * 新建账号 - 跳转到授权管理列表页并弹出新建账号弹窗
+   */
+  const routeNameMap: Record<AccountTypes, string> = {
+    [AccountTypes.MONGODB]: 'MongodbPermission',
+    [AccountTypes.MYSQL]: 'PermissionRules',
+    [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules',
+    [AccountTypes.TENDBCLUSTER]: 'spiderPermission',
+  };
+
+  const handleCreateAccount = () => {
+    const route: RouteLocationRaw = {
+      name: routeNameMap[props.accountType],
+      query: {
+        action: 'create_account',
+      },
+    };
+    const routeData = router.resolve(route);
+    window.open(routeData.href, '_blank');
+  };
 </script>
+<style lang="less">
+  .default-display-main {
+    margin-left: 10px;
+    font-family: MicrosoftYaHei, Arial, sans-serif;
+    color: #4d4f56;
+    cursor: pointer;
+
+    .add-account-icon {
+      margin-right: 5px;
+      font-size: 14px;
+      color: #979ba5;
+    }
+  }
+</style>

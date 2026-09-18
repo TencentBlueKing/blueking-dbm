@@ -273,6 +273,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import type { ClusterTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -465,7 +466,7 @@
     level_info: props.levelInfo,
     level_name: props.levelName as any,
     level_value: props.levelValue ?? globalBizsStore.currentBizId,
-    meta_cluster_type: props.namespace,
+    meta_cluster_type: props.namespace as ClusterTypes,
     version: props.version,
   }));
 
@@ -572,7 +573,7 @@
         fetchLevelConfig(fetchParams.value);
         fetchConfigNames({
           conf_type: props.confType,
-          meta_cluster_type: namespace,
+          meta_cluster_type: namespace as ClusterTypes,
           version: version,
         });
       }
