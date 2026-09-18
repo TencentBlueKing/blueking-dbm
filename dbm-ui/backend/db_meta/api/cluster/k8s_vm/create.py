@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from typing import List
+
 from django.db import transaction
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
@@ -27,6 +29,7 @@ def create(
     status: str,
     region: str,
     creator: str,
+    storage_nodes: List[str] = None,
 ) -> dict:
     cluster_defaults = {
         "name": name,
@@ -37,6 +40,7 @@ def create(
         "phase": phase,
         "status": status,
         "region": region,
+        "storage_nodes": storage_nodes or [],
     }
     cluster, created = Cluster.objects.get_or_create(
         immute_domain=immute_domain, defaults={**cluster_defaults, "creator": creator}

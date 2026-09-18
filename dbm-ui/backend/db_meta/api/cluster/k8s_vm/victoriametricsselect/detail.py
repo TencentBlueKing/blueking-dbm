@@ -13,9 +13,9 @@ from django.utils.translation import gettext as _
 
 from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
-from backend.db_meta.enums import ClusterEntryRole, InstanceRole
+from backend.db_meta.enums import ClusterEntryRole
 from backend.db_meta.models import Cluster
-from backend.flow.utils.k8s_db.vm.consts import COMPONENT_VMSELECT, VMSELECT_PORT
+from backend.flow.utils.k8s_db.vm.consts import COMPONENT_VMSELECT, COMPONENT_VMSTORAGE, VMSELECT_PORT
 
 
 def scan_cluster(
@@ -36,7 +36,7 @@ def scan_cluster(
             for item in resp.get("result", [])
         ]
 
-    query_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY.value).first()
+    query_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY.value).first()
     graph = Graphic(
         node_id=f"{query_entry.entry}:{VMSELECT_PORT}" if query_entry else Graphic.generate_graphic_id(cluster)
     )
@@ -52,8 +52,11 @@ def scan_cluster(
         graph.add_node(vmselect, to_group=vmselect_group)
 
     vmstorage_group = Group(node_id="external_vmstorage", group_name=_("外部 VMStorage"))
-    for vmstorage in cluster.storageinstance_set.filter(instance_role=InstanceRole.VM_STORAGE.value):
-        graph.add_node(vmstorage, to_group=vmstorage_group)
+    for storage_node in list(cluster.storage_nodes or []):
+        graph.add_node(
+            {"pod_name": storage_node, "component_name": COMPONENT_VMSTORAGE, "status": ""},
+            to_group=vmstorage_group,
+        )
 
     graph.add_line(source=entry_group, target=vmselect_group, label=LineLabel.Bind)
     graph.add_line(source=vmselect_group, target=vmstorage_group, label=LineLabel.Bind)
