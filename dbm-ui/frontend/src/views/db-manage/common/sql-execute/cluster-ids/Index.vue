@@ -55,6 +55,14 @@
               </template>
             </TableColumn>
             <TableColumn
+              col-key="default_storage_engine"
+              :title="t('默认存储引擎')"
+              :width="180">
+              <template #default="{ row }">
+                {{ row.default_storage_engine || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
               col-key="status"
               :title="t('状态')"
               :width="200">
@@ -96,6 +104,7 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single';
   import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
+  import { getDefaultStorageEngines } from '@services/source/mysql';
 
   import { ClusterTypes } from '@common/const';
 
@@ -105,10 +114,17 @@
   interface IClusterData {
     cluster_name: string;
     cluster_type: string;
+    default_storage_engine: string;
     id: number;
     major_version: string;
     master_domain: string;
     status: string;
+  }
+
+  interface IClusterInfo {
+    cluster_domain: string;
+    engine: string;
+    version: string;
   }
 
   interface Props {
@@ -126,6 +142,14 @@
   });
 
   const clusterVersionList = defineModel<string[]>('clusterVersionList', {
+    default: () => [],
+  });
+
+  const clusterStorageEngines = defineModel<Record<number, string>>('clusterStorageEngines', {
+    default: () => ({}),
+  });
+
+  const clusterInfoList = defineModel<IClusterInfo[]>('clusterInfoList', {
     default: () => [],
   });
 
@@ -160,10 +184,57 @@
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
   let isInnerChange = false;
+
+  const fetchStorageEngines = (clusters: IClusterData[]) => {
+    const clusterIds = clusters
+      .filter(
+        (item) =>
+          item.cluster_type === ClusterTypes.TENDBHA ||
+          item.cluster_type === ClusterTypes.TENDBSINGLE ||
+          item.cluster_type === ClusterTypes.TENDBCLUSTER,
+      )
+      .map((item) => item.id);
+    if (clusterIds.length === 0) {
+      return Promise.resolve();
+    }
+    return getDefaultStorageEngines({ cluster_ids: clusterIds }).then((engineData) => {
+      const engineMap = engineData.reduce(
+        (result, item) => {
+          Object.assign(result, {
+            [item.cluster_id]: item.default_storage_engine,
+          });
+          return result;
+        },
+        {} as Record<number, string>,
+      );
+      clusters.forEach((item) => {
+        if (engineMap[item.id] !== undefined) {
+          Object.assign(item, {
+            default_storage_engine: engineMap[item.id],
+          });
+        }
+      });
+    });
+  };
+
   const triggerChange = () => {
     isInnerChange = true;
     modelValue.value = targetClusterList.value.map((item) => item.id);
     clusterVersionList.value = _.uniq(targetClusterList.value.map((item) => item.major_version));
+    clusterStorageEngines.value = targetClusterList.value.reduce(
+      (result, item) => {
+        Object.assign(result, {
+          [item.id]: item.default_storage_engine || '',
+        });
+        return result;
+      },
+      {} as Record<number, string>,
+    );
+    clusterInfoList.value = targetClusterList.value.map((item) => ({
+      cluster_domain: item.master_domain,
+      engine: item.default_storage_engine || '',
+      version: item.major_version,
+    }));
   };
 
   const fetchClusterData = (clusterIds: number[]) => {
@@ -174,30 +245,46 @@
     })
       .then((data) => {
         targetClusterList.value = data;
-        clusterVersionList.value = _.uniq(data.map((item) => item.major_version));
-        clusterSelectorValue.value = data.reduce(
-          (result, item) => {
-            if (item.cluster_type === ClusterTypes.TENDBHA) {
-              result[ClusterTypes.TENDBHA].push(item as TendbhaModel);
-            } else if (item.cluster_type === ClusterTypes.TENDBSINGLE) {
-              result[ClusterTypes.TENDBSINGLE].push(item as TendbsingleModel);
-            } else if (item.cluster_type === ClusterTypes.TENDBCLUSTER) {
-              result[ClusterTypes.TENDBCLUSTER].push(item as TendbclusterModel);
-            } else if (item.cluster_type === ClusterTypes.SQLSERVER_HA) {
-              result[ClusterTypes.SQLSERVER_HA].push(item as SqlServerHaClusterModel);
-            } else if (item.cluster_type === ClusterTypes.SQLSERVER_SINGLE) {
-              result[ClusterTypes.SQLSERVER_SINGLE].push(item as SqlServerSingleClusterModel);
-            }
-            return result;
-          },
-          {
-            [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
-            [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
-            [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
-            [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
-            [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
-          },
-        );
+        return fetchStorageEngines(data).then(() => {
+          clusterVersionList.value = _.uniq(data.map((item) => item.major_version));
+          clusterStorageEngines.value = data.reduce(
+            (result, item) => {
+              Object.assign(result, {
+                [item.id]: item.default_storage_engine || '',
+              });
+              return result;
+            },
+            {} as Record<number, string>,
+          );
+          clusterInfoList.value = data.map((item) => ({
+            cluster_domain: item.master_domain,
+            engine: item.default_storage_engine || '',
+            version: item.major_version,
+          }));
+          clusterSelectorValue.value = data.reduce(
+            (result, item) => {
+              if (item.cluster_type === ClusterTypes.TENDBHA) {
+                result[ClusterTypes.TENDBHA].push(item as TendbhaModel);
+              } else if (item.cluster_type === ClusterTypes.TENDBSINGLE) {
+                result[ClusterTypes.TENDBSINGLE].push(item as TendbsingleModel);
+              } else if (item.cluster_type === ClusterTypes.TENDBCLUSTER) {
+                result[ClusterTypes.TENDBCLUSTER].push(item as TendbclusterModel);
+              } else if (item.cluster_type === ClusterTypes.SQLSERVER_HA) {
+                result[ClusterTypes.SQLSERVER_HA].push(item as SqlServerHaClusterModel);
+              } else if (item.cluster_type === ClusterTypes.SQLSERVER_SINGLE) {
+                result[ClusterTypes.SQLSERVER_SINGLE].push(item as SqlServerSingleClusterModel);
+              }
+              return result;
+            },
+            {
+              [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
+              [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
+              [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
+              [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
+              [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+            },
+          );
+        });
       })
       .finally(() => {
         isLoading.value = false;
@@ -242,10 +329,13 @@
   };
 
   const handelClusterChange = (selected: Record<string, SelectorRowDataType[]>) => {
-    targetClusterList.value = _.flatten(Object.values(selected));
+    const clusters = _.flatten(Object.values(selected));
+    targetClusterList.value = clusters;
     formItemRef.value.clearValidate();
     clusterSelectorValue.value = selected;
-    triggerChange();
+    fetchStorageEngines(clusters).finally(() => {
+      triggerChange();
+    });
   };
 </script>
 <style lang="less">

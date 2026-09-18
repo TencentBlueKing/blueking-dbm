@@ -141,7 +141,7 @@
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     cluster: Object.assign(
       {
-        cluster_type: '',
+        cluster_type: '' as ClusterTypes,
         id: 0,
         major_version: '',
         master_domain: '',

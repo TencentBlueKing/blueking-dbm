@@ -69,6 +69,7 @@ export default class Tendbha extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  default_storage_engine: string;
   disaster_tolerance_level: Affinity;
   dns_to_clb: boolean;
   id: number;
@@ -128,6 +129,7 @@ export default class Tendbha extends ClusterBase {
     this.creator = payload.creator || '';
     this.db_module_name = payload.db_module_name || '';
     this.db_module_id = payload.db_module_id || 0;
+    this.default_storage_engine = payload.default_storage_engine || '';
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id || 0;
