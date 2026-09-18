@@ -34,6 +34,12 @@ class ExecuteSQLObjectsSerializer(serializers.Serializer):
     sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
 
 
+class SQLGrammarCheckClusterInfoSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    version = serializers.CharField(help_text=_("版本"))
+    engine = serializers.CharField(help_text=_("默认存储引擎"), allow_blank=True)
+
+
 class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
     sql_filenames = serializers.ListField(help_text=_("sql文件名列表"), child=serializers.CharField(), required=False)
@@ -46,6 +52,8 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
     versions = serializers.ListField(help_text=_("版本列表"), child=serializers.CharField(), default=[], required=False)
     execute_objects = serializers.CharField(help_text=_("sql执行体信息"), required=False)
 
+    cluster_info = serializers.CharField(help_text=_("集群信息列表"), required=False)
+
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
 
@@ -56,6 +64,14 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
             if not serializer.is_valid():
                 raise serializers.ValidationError(serializer.errors)
         return execute_objects
+
+    def validate_cluster_info(self, value):
+        cluster_info = json.loads(value)
+        for cluster in cluster_info:
+            serializer = SQLGrammarCheckClusterInfoSerializer(data=cluster)
+            if not serializer.is_valid():
+                raise serializers.ValidationError(serializer.errors)
+        return cluster_info
 
     def validate(self, attrs):
         if not (attrs.get("sql_content") or attrs.get("sql_files") or attrs.get("sql_filenames")):
