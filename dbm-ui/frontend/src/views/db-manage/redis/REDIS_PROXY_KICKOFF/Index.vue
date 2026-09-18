@@ -16,6 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
+      theme="warning"
       :title="t('用于批量执行剔除异常 Proxy，或将剔除的 Proxy 加回集群')" />
     <DbForm
       class="toolbox-form mb-16"
@@ -263,4 +264,12 @@
       formData.tableData = [...(formData.tableData[0].proxy.bk_host_id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

@@ -51,6 +51,7 @@ const redisStructureInstanceRoute = {
   path: 'structure-instance/:page?',
   name: 'RedisStructureInstance',
   meta: {
+    hideTitle: true,
     navName: t('构造实例'),
   },
   component: () => import('@views/db-manage/redis/structure-instance/Index.vue'),
@@ -62,6 +63,7 @@ const redisDBDataCopyRecordRoute = {
   path: 'db-data-copy-record/:page?',
   name: 'RedisDBDataCopyRecord',
   meta: {
+    hideTitle: true,
     navName: t('数据复制记录'),
   },
   component: () => import('@views/db-manage/redis/db-data-copy-record/Index.vue'),
@@ -73,6 +75,7 @@ const redisWebconsoleRoute = {
   path: 'webconsole',
   name: 'RedisWebconsole',
   meta: {
+    hideTitle: true,
     navName: 'Webconsole',
   },
   component: () => import('@views/db-manage/redis/webconsole/Index.vue'),
@@ -82,6 +85,7 @@ const redisQueryAccessSourceRoute = {
   path: 'query-access-source',
   name: 'RedisQueryAccessSource',
   meta: {
+    hideTitle: true,
     navName: t('查询访问来源'),
   },
   component: () => import('@views/db-manage/redis/query-access-source/Index.vue'),
@@ -98,6 +102,7 @@ const redisHotKeyAnalysisListRoute = {
   path: 'hot-key-analysis-list',
   name: 'RedisHotKeyAnalysisList',
   meta: {
+    hideTitle: true,
     navName: t('热 Key 分析报告'),
   },
   component: () => import('@views/db-manage/redis/hot-key-analysis-list/Index.vue'),
@@ -107,6 +112,7 @@ const redisMemoryAnalysisListRoute = {
   path: 'memory-analysis-list',
   name: 'RedisMemoryAnalysisList',
   meta: {
+    hideTitle: true,
     navName: t('内存分析报告'),
   },
   component: () => import('@views/db-manage/redis/memory-analysis-list/Index.vue'),
@@ -147,22 +153,31 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.webconsole': redisWebconsoleRoute,
 };
 
-const toolboxRoutes = [
-  {
-    path: 'toolbox',
-    name: 'RedisToolbox',
-    meta: {
-      fullscreen: true,
-      navName: t('工具箱'),
-    },
-    redirect: {
-      name: '',
-    },
-    component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
-    children: [] as RouteRecordRaw[],
+const redisToolboxIndexRoute: RouteRecordRaw = {
+  path: 'index',
+  name: 'RedisToolboxIndex',
+  meta: {
+    fullscreen: false,
+    navName: t('Redis 工具箱'),
   },
-  createRouteItem(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, t('数据校验修复')),
-];
+  component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
+};
+
+const redisToolboxRouter = {
+  path: 'toolbox',
+  name: 'RedisToolbox',
+  meta: {
+    fullscreen: true,
+    navName: t('工具箱'),
+  },
+  redirect: {
+    name: 'RedisToolboxIndex',
+  },
+  component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
+  children: [] as RouteRecordRaw[],
+};
+
+const redisDataCopyCheckRepairRoute = createRouteItem(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, t('数据校验修复'));
 
 const redisInstanceListRoute = {
   path: 'instance-list',
@@ -285,20 +300,23 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
   // }
 
   if (controller.toolbox) {
+    const toolboxChildren: RouteRecordRaw[] = [redisToolboxIndexRoute];
+
     Object.entries(toolboxDbConsoleRouteMap).forEach(([key, routeItem]) => {
       const dbConsoleValue = key as ExtractedControllerDataKeys;
       if (!funControllerData[dbConsoleValue] || funControllerData[dbConsoleValue].is_enabled) {
-        toolboxRoutes[0].children!.push(routeItem);
-        if (routeItem.name === 'RedisCapacityChange') {
-          toolboxRoutes[0].redirect!.name = 'RedisCapacityChange';
-        }
+        toolboxChildren.push(routeItem);
       }
     });
 
-    if (!toolboxRoutes[0].redirect!.name) {
-      toolboxRoutes[0].redirect!.name = TicketTypes.REDIS_CLUSTER_ADD_SLAVE;
-    }
-    routes[0].children?.push(...toolboxRoutes);
+    routes[0].children?.push({
+      ...redisToolboxRouter,
+      redirect: {
+        name: toolboxChildren[0].name!,
+      },
+      children: toolboxChildren,
+    });
+    routes[0].children?.push(redisDataCopyCheckRepairRoute);
   }
 
   return routes;

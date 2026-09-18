@@ -123,6 +123,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
   useTicketDetail<Redis.Backup>(TicketTypes.REDIS_BACKUP, {
     onSuccess(ticketDetail) {
@@ -277,4 +278,12 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
