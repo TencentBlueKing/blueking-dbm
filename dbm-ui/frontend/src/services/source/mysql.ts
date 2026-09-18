@@ -23,3 +23,15 @@ import http from '../http';
 export function getMysqlResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }
+
+/**
+ * 批量查询集群默认存储引擎
+ */
+export function getDefaultStorageEngines(params: { cluster_ids: number[] }) {
+  return http.post<
+    {
+      cluster_id: number;
+      default_storage_engine: string;
+    }[]
+  >(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resources/default_storage_engines/`, params);
+}

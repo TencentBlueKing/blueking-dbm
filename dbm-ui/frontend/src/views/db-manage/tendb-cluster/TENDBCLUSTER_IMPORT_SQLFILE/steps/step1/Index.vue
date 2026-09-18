@@ -23,6 +23,7 @@
           :model="formData">
           <ClusterIds
             v-model="formData.cluster_ids"
+            v-model:cluster-info-list="clusterInfoList"
             v-model:cluster-version-list="clusterVersionList"
             :cluster-type-list="[ClusterTypes.TENDBCLUSTER]" />
           <ExecuteObjects
@@ -56,7 +57,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import { reactive, ref } from 'vue';
+  import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -65,6 +66,8 @@
   import { querySemanticData, semanticCheck } from '@services/source/mysqlSqlImport';
 
   import { useTicketDetail } from '@hooks';
+
+  import { useSqlImport } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -108,8 +111,18 @@
   const resetFormKey = ref(0);
   const uploadFilePath = ref('');
   const clusterVersionList = ref<string[]>([]);
+  const clusterInfoList = ref<{ cluster_domain: string; engine: string; version: string }[]>([]);
 
   const formData = reactive(createDefaultData());
+
+  const sqlImportStore = useSqlImport();
+  watch(
+    clusterInfoList,
+    (val) => {
+      sqlImportStore.updateClusterInfoList(val);
+    },
+    { deep: true },
+  );
 
   useTicketDetail<TendbCluster.ImportSqlFile>(TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, {
     onSuccess(ticketDetail) {

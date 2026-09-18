@@ -5751,6 +5751,7 @@
   "编辑发行版": "Edit Distribution",
   "发行版名称": "Distribution Name",
   "存储引擎": "Storage Engine",
+  "默认存储引擎": "Default Storage Engine",
   "请输入发行版名称，如：TXSQL，以英文字母开头，且只能包含英文字母、数字、连字符-": "Enter distribution name (e.g., TXSQL). Must start with an English letter and contain only letters, digits, and hyphens (-)",
   "以英文字母开头，且只能包含英文字母、数字、连字符-": "Must start with an English letter and contain only letters, digits, and hyphens (-)",
   "存在版本内容，无法删除": "Cannot delete because version content exists",

@@ -27,6 +27,7 @@ export interface DetailClusters {
     cluster_type_name: string;
     creator: string;
     db_module_id: number;
+    default_storage_engine: string;
     disaster_tolerance_level: string;
     id: number;
     immute_domain: string;

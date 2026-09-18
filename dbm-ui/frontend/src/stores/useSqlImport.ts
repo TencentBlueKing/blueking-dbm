@@ -20,10 +20,17 @@ import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserve
 
 import { DBTypes } from '@common/const';
 
+export interface IClusterInfo {
+  cluster_domain: string;
+  version: string;
+  engine: string;
+}
+
 export const useSqlImport = defineStore('useSqlImport', {
   state: () => ({
     dbType: '',
     uploadFilePath: '',
+    clusterInfoList: [] as IClusterInfo[],
   }),
   getters: {
     grammarCheckHandle: (state) => {
@@ -43,6 +50,9 @@ export const useSqlImport = defineStore('useSqlImport', {
     },
     updateUploadFilePath(uploadFilePath: string) {
       this.uploadFilePath = uploadFilePath;
+    },
+    updateClusterInfoList(clusterInfoList: IClusterInfo[]) {
+      this.clusterInfoList = clusterInfoList;
     },
   },
 });
