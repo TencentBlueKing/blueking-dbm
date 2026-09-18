@@ -52,12 +52,14 @@
         :filter-value="columnCheckedMap"
         :height="500"
         :max-height="tableMaxHeight"
+        resizable
         row-key="backup_id"
         @filter-change="handleFilterChange">
         <TableColumn
           col-key="backup_record"
-          :min-width="300"
-          :title="t('文件名')">
+          resizable
+          :title="t('文件名')"
+          :width="300">
           <template #title>
             <div class="ml-35">{{ t('备份记录') }}</div>
           </template>
@@ -74,20 +76,24 @@
         </TableColumn>
         <TableColumn
           col-key="backup_id"
-          :min-width="270"
-          :title="t('备份 ID')">
+          ellipsis
+          resizable
+          :title="t('备份 ID')"
+          :width="300">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row.backup_id }}
           </template>
         </TableColumn>
         <TableColumn
           col-key="backup_type_filter"
+          ellipsis
           :filter="{
             list: filterOption.backup_type_filter.list,
             showConfirmAndReset: true,
             type: 'multiple',
           }"
-          :min-width="120"
+          :min-width="100"
+          resizable
           :title="t('备份类型')">
           <template
             #default="{
@@ -105,12 +111,14 @@
         </TableColumn>
         <TableColumn
           col-key="backup_method"
+          ellipsis
           :filter="{
             list: filterOption.backup_method.list,
             showConfirmAndReset: true,
             type: 'multiple',
           }"
           :min-width="150"
+          resizable
           :title="t('备份范围')">
           <template #default="{ row }: { row: BackupLogRecordModel & { backup_method_label: string } }">
             <span
@@ -123,12 +131,14 @@
         </TableColumn>
         <TableColumn
           col-key="backup_tool"
+          ellipsis
           :filter="{
             list: filterOption.backup_tool.list,
             showConfirmAndReset: true,
             type: 'multiple',
           }"
-          :min-width="120"
+          :min-width="100"
+          resizable
           :title="t('备份工具')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row?.backup_tool || '--' }}
@@ -136,7 +146,9 @@
         </TableColumn>
         <TableColumn
           col-key="total_filesize"
-          :min-width="120"
+          ellipsis
+          :min-width="100"
+          resizable
           :title="t('备份大小')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ bytePretty(row?.total_filesize ?? 0) }}
@@ -144,7 +156,9 @@
         </TableColumn>
         <TableColumn
           col-key="bill_id"
-          :min-width="120"
+          ellipsis
+          :min-width="100"
+          resizable
           :title="t('关联单据')">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <RouterLink
