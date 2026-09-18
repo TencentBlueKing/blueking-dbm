@@ -74,4 +74,4 @@ class MongoDBReduceShardFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBReduceShardFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBReduceShardDetailSerializer
     inner_flow_builder = MongoDBReduceShardFlowParamBuilder
-    inner_flow_name = _("分片集群减少分片")
+    inner_flow_name = _("MongoDB 分片集群减少分片")
