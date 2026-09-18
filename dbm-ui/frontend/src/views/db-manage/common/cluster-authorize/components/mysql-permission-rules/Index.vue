@@ -5,6 +5,7 @@
   <UserSelect
     v-bind="props"
     v-model="user"
+    :disabled="disabled"
     @change="handleChange" />
   <DbSelect
     v-bind="props"
@@ -26,9 +27,12 @@
 
   interface Props {
     accountType: AccountTypes;
+    disabled?: boolean;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
 
   const user = defineModel<string>('user', {
     default: '',
