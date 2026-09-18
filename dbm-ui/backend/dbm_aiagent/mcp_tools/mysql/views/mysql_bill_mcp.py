@@ -33,6 +33,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.auth_parser.bill import (
     auth_parse_mysql_proxy_conf_change,
     auth_parse_mysql_tdbctl_upgrade_ticket,
     auth_parse_spider_conf_change,
+    auth_parse_tendbcluster_migrate,
     auth_parse_tendbcluster_node_rebalance,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
@@ -40,32 +41,44 @@ from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import asser
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_construct_rollback import bill_construct_rollback
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_db_table_backup import bill_db_table_backup
-from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_fullbackup import mysql_full_backup
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_backend_slave_replace import (
     bill_backend_slave_replace,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_proxy_conf_change import bill_proxy_conf_change
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_proxy_rebuild import bill_proxy_rebuild
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_proxy_replace import bill_proxy_replace
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_remote_replace import bill_remote_replace
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_spider_conf_change import (
     bill_spider_conf_change,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_spider_rebuild import bill_spider_rebuild
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_spider_replace import bill_spider_replace
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbcluster_master_slave_switch import (
     bill_tendbcluster_master_slave_switch,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbcluster_migrate import (
+    bill_tendbcluster_migrate,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbcluster_node_rebalance import (
     bill_tendbcluster_node_rebalance,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbcluster_slave_rebuild import (
+    bill_tendbcluster_slave_rebuild,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbha_master_slave_swtich import (
     bill_tendbha_master_slave_switch,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbha_migrate import bill_tendbha_migrate
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbha_slave_rebuild import (
+    bill_tendbha_slave_rebuild,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_destroy import bill_mysql_destroy
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_disable import bill_mysql_disable
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_fullbackup import mysql_full_backup
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_standardize import bill_mysql_standardize
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_rename_db import bill_rename_db
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_tdbctl_upgrade import bill_tdbctl_upgrade
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_tendbcluster_fullbackup import bill_tendbcluster_fullbackup
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBillOutputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_apply_priv_bill import (
     SubmitBillMySQLApplyPrivInputSerializer,
@@ -91,6 +104,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_machine_replace impor
     SubmitBillMySQLProxyConfChangeSerializer,
     SubmitBillSpiderConfChangeSerializer,
     SubmitBillTenDBClusterMachineReplaceSerializer,
+    SubmitBillTendbClusterMigrateSerializer,
     SubmitBillTendbClusterNodeRebalanceSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill import (
@@ -121,10 +135,11 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     def submit_bill_mysql_full_backup(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         backup_type = self.get_param("backup_type")
-        cluster_domain = self.get_param("cluster_domain")
+        backup_local = self.get_param("backup_local")
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
 
         assert_cluster_type(
-            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain),
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
             [ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
@@ -134,7 +149,46 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 
         return Response(
             mysql_full_backup(
-                username=username, bk_biz_id=bk_biz_id, backup_type=backup_type, cluster_domain=cluster_domain
+                username=username,
+                bk_biz_id=bk_biz_id,
+                backup_type=backup_type,
+                backup_local=backup_local,
+                cluster_domains=cluster_domains,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""创建 TenDBCluster 全库备份单据（默认 RemoteDR 物理备份，保存 1 个月）""")),
+        request_slz=SubmitBillMySQLFullBackupInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_tendbcluster_fullbackup(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        backup_type = self.get_param("backup_type")
+        backup_local = self.get_param("backup_local")
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
+
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
+            [ClusterType.TenDBCluster],
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(
+            bill_tendbcluster_fullbackup(
+                username=username,
+                bk_biz_id=bk_biz_id,
+                backup_type=backup_type,
+                backup_local=backup_local,
+                cluster_domains=cluster_domains,
             )
         )
 
@@ -350,7 +404,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""创建 TenDBHA proxy 升降配单据（支持多行，每行一个集群 + 目标规格 + 资源标签）""")),
+        description=str(_("""创建 TenDBHA proxy 升降配单据（支持多行，每行一个代表集群 + 目标规格 + 资源标签，同机关联集群自动合并）""")),
         request_slz=SubmitBillMySQLProxyConfChangeSerializer,
         response_slz=SubmitBillOutputSerializer,
         permission_classes=[McpTicketToolPermission],
@@ -365,10 +419,10 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         if not username:
             raise DBMMcpUsernameNotFoundException()
 
-        return Response(bill_proxy_conf_change(username=username, infos=infos, is_safe=self.get_param("is_safe")))
+        return Response(bill_proxy_conf_change(username=username, infos=infos))
 
     @mcp_tools_api_decorator(
-        description=str(_("""创建 TenDBHA 主从迁移单据（集群迁移/整机迁移，支持多行，每行一个集群 + 规格 + 数量 + 资源标签）""")),
+        description=str(_("""创建 TenDBHA 主从迁移单据（集群迁移/整机迁移，支持多行，每行一个集群或机器组 + 规格 + 数量 + 资源标签）""")),
         request_slz=SubmitBillMySQLMigrateClusterSerializer,
         response_slz=SubmitBillOutputSerializer,
         permission_classes=[McpTicketToolPermission],
@@ -391,7 +445,6 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
                 opera_object=opera_object,
                 backup_source=self.get_param("backup_source"),
                 need_checksum=self.get_param("need_checksum"),
-                is_safe=self.get_param("is_safe"),
             )
         )
 
@@ -416,6 +469,30 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         return Response(bill_proxy_replace(cluster_domains=cluster_domains, ips=ips))
 
     @mcp_tools_api_decorator(
+        description=str(_("""创建 TenDBHA proxy 原地重建单据""")),
+        request_slz=SubmitBillMySQLMachineReplaceSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_proxy_rebuild(self, request, *args, **kwargs):
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
+        ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(bill_proxy_rebuild(username=username, cluster_domains=cluster_domains, ips=ips))
+
+    @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBHA 存储 slave 新机替换单据""")),
         request_slz=SubmitBillMySQLMachineReplaceSerializer,
         response_slz=SubmitBillOutputSerializer,
@@ -434,6 +511,30 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         )
 
         return Response(bill_backend_slave_replace(cluster_domains=cluster_domains, ips=ips))
+
+    @mcp_tools_api_decorator(
+        description=str(_("""创建 TenDBHA 存储 slave 原地重建单据（在原机重建，不申请新资源）""")),
+        request_slz=SubmitBillMySQLMachineReplaceSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_tendbha_slave_rebuild(self, request, *args, **kwargs):
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
+        ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(bill_tendbha_slave_rebuild(username=username, cluster_domains=cluster_domains, ips=ips))
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBCluster spider 新机替换单据""")),
@@ -456,6 +557,31 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         return Response(bill_spider_replace(cluster_domain=cluster_domain, ips=ips))
 
     @mcp_tools_api_decorator(
+        description=str(_("""创建 TenDBCluster 接入层（spider）原地重建单据""")),
+        request_slz=SubmitBillMySQLMachineReplaceSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_spider_rebuild(self, request, *args, **kwargs):
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
+        ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
+            [ClusterType.TenDBCluster],
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(bill_spider_rebuild(username=username, cluster_domains=cluster_domains, ips=ips))
+
+    @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBCluster 接入层（spider）升降配单据（支持多行，每行一个集群 + 角色 + 目标规格 + 资源标签）""")),
         request_slz=SubmitBillSpiderConfChangeSerializer,
         response_slz=SubmitBillOutputSerializer,
@@ -471,7 +597,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         if not username:
             raise DBMMcpUsernameNotFoundException()
 
-        return Response(bill_spider_conf_change(username=username, infos=infos, is_safe=self.get_param("is_safe")))
+        return Response(bill_spider_conf_change(username=username, infos=infos))
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBCluster 集群容量变更单据（支持多行，每行一个集群 + 目标规格 + 机器组数 + 资源标签）""")),
@@ -499,6 +625,31 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
+        description=str(_("""创建 TenDBCluster 主从迁移单据（支持多行，每行一对 remote 主从 + 目标规格 + 机器组数 + 资源标签）""")),
+        request_slz=SubmitBillTendbClusterMigrateSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_tendbcluster_migrate,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_tendbcluster_migrate(self, request, *args, **kwargs):
+        infos = self.get_param("infos")
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(
+            bill_tendbcluster_migrate(
+                username=username,
+                infos=infos,
+                backup_source=self.get_param("backup_source"),
+                need_checksum=self.get_param("need_checksum"),
+            )
+        )
+
+    @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBCluster remote slave 新机替换单据""")),
         request_slz=SubmitBillTenDBClusterMachineReplaceSerializer,
         response_slz=SubmitBillOutputSerializer,
@@ -517,6 +668,31 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         )
 
         return Response(bill_remote_replace(cluster_domain=cluster_domain, ips=ips))
+
+    @mcp_tools_api_decorator(
+        description=str(_("""创建 TenDBCluster slave 原地重建单据""")),
+        request_slz=SubmitBillMySQLMachineReplaceSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_tendbcluster_slave_rebuild(self, request, *args, **kwargs):
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
+        ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
+            [ClusterType.TenDBCluster],
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(bill_tendbcluster_slave_rebuild(username=username, cluster_domains=cluster_domains, ips=ips))
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBHA 主从互切单据""")),

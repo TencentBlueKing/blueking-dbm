@@ -9,10 +9,12 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
+from backend.dbm_aiagent.mcp_tools.sqlserver.bill_commit import SQLServerBillCommitMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.sqlserver.views import SqlserverMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"", SqlserverMcpToolsViewSet, basename="mcp-sqlserver-query")
+routers.register(r"", SQLServerBillCommitMcpToolsViewSet, basename="mcp-sqlserver-bill")
 
 urlpatterns = routers.urls

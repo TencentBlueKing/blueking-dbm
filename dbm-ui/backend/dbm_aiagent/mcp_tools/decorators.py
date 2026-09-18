@@ -266,10 +266,14 @@ def bill_response_wrapper(func):
     def wrapper(*args, **kwargs):
         re = func(*args, **kwargs)
 
+        def _bill_url(ticket):
+            # 统一使用业务维度单据管理页链接，与 MCP_TOOLS.md 声明的格式保持一致
+            return f"{env.BK_SAAS_HOST}/{ticket.bk_biz_id}/ticket-business-manage/{ticket.pk}"
+
         if isinstance(re, Ticket):
-            return [{"bill_id": re.pk, "bill_url": re.url}]
+            return [{"bill_id": re.pk, "bill_url": _bill_url(re)}]
         elif isinstance(re, list) and all(isinstance(x, Ticket) for x in re):
-            return [{"bill_id": ele.pk, "bill_url": ele.url} for ele in re]
+            return [{"bill_id": ele.pk, "bill_url": _bill_url(ele)} for ele in re]
         else:
             raise Exception("unexpected exception in bill wrapper")
 

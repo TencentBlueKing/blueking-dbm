@@ -27,6 +27,7 @@ class DBMMcpTools(StrStructuredEnum):
     MYSQL_SENSITIVE = EnumField("mysql-sensitive", "mysql-sensitive")
     MYSQL_BACKUP = EnumField("mysql-backup", "mysql-backup")
     SQLSERVER_QUERY = EnumField("sqlserver-query", "sqlserver-query")
+    SQLSERVER_BILL = EnumField("sqlserver-bill", "sqlserver-bill")
     TICKET_OP = EnumField("ticket-op", "ticket-op")
     ALARM_QUERY = EnumField("alarm-query", "alarm-query")
     SQL_SYNTAX_CHECK = EnumField("sql-syntax-check", "sql-syntax-check")
