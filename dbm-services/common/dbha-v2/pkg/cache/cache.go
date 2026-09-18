@@ -22,12 +22,19 @@
  * SOFTWARE.
  */
 
+// Package cache provides an in-process TTL cache with optional LRU eviction.
 package cache
 
 import (
 	"container/heap"
+	"container/list"
 	"sync"
 	"time"
+)
+
+const (
+	cleanupInterval    = 100 * time.Millisecond
+	maxExpiredPerCycle = 256
 )
 
 // CacheValueConstraint cache value constraint
@@ -39,7 +46,10 @@ type cacheItem[T any] struct {
 	key        string
 	value      T
 	expiration int64
-	index      int
+	// index is the expiry-heap index. -1 means the item is not in the heap
+	// (zero/negative TTL, i.e. never expires).
+	index int
+	elem  *list.Element
 }
 
 // a min-heap that's ordered by expiration time
@@ -69,31 +79,50 @@ func (h *expiryHeap[T]) Pop() any {
 	return item
 }
 
-// HighPerformanceTTLCache high-performance TTL cache
+// HighPerformanceTTLCache is an in-process TTL cache.
+// Get promotes the key to the most-recently-used position. When maxEntries > 0
+// and the cache is full, the least-recently-used item is evicted.
 type HighPerformanceTTLCache[T CacheValueConstraint] struct {
-	items  map[string]*cacheItem[T]
-	expiry expiryHeap[T]
-	mu     sync.RWMutex
-	stop   chan struct{}
-	wg     sync.WaitGroup
+	items      map[string]*cacheItem[T]
+	expiry     expiryHeap[T]
+	lru        *list.List
+	maxEntries int
+	mu         sync.Mutex
+	stop       chan struct{}
+	closeOnce  sync.Once
+	wg         sync.WaitGroup
 }
 
-// NewHighPerformanceTTLCache creates high-performance TTL cache
+// NewHighPerformanceTTLCache creates an unbounded TTL cache.
 func NewHighPerformanceTTLCache[T CacheValueConstraint]() *HighPerformanceTTLCache[T] {
+	return NewHighPerformanceTTLCacheWithSize[T](0)
+}
+
+// NewHighPerformanceTTLCacheWithSize creates a TTL cache that evicts the
+// least-recently-used item when size exceeds maxEntries.
+// maxEntries <= 0 means unbounded (same as NewHighPerformanceTTLCache).
+func NewHighPerformanceTTLCacheWithSize[T CacheValueConstraint](maxEntries int) *HighPerformanceTTLCache[T] {
+	if maxEntries < 0 {
+		maxEntries = 0
+	}
 	cache := &HighPerformanceTTLCache[T]{
-		items:  make(map[string]*cacheItem[T]),
-		expiry: make(expiryHeap[T], 0),
-		stop:   make(chan struct{}),
+		items:      make(map[string]*cacheItem[T]),
+		expiry:     make(expiryHeap[T], 0),
+		lru:        list.New(),
+		maxEntries: maxEntries,
+		stop:       make(chan struct{}),
 	}
 
-	// start cleanup worker
 	cache.wg.Add(1)
 	go cache.cleanupWorker()
 
 	return cache
 }
 
-// Set sets cache
+// Set sets cache. ttl <= 0 means the item never expires (it can still be
+// evicted by LRU when the cache has a size limit). Set reclaims timed-out
+// entries only when the cache is over its size limit; otherwise stale entries
+// are left to the background cleaner, Get or Size.
 func (c *HighPerformanceTTLCache[T]) Set(key string, value T, ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -103,40 +132,47 @@ func (c *HighPerformanceTTLCache[T]) Set(key string, value T, ttl time.Duration)
 		expiration = time.Now().Add(ttl).UnixNano()
 	}
 
-	// if key already exists, remove it from heap
-	if item, exists := c.items[key]; exists {
-		heap.Remove(&c.expiry, item.index)
+	if old, exists := c.items[key]; exists {
+		c.removeItemLocked(old)
 	}
 
-	// create new cache item
 	item := &cacheItem[T]{
 		key:        key,
 		value:      value,
 		expiration: expiration,
+		index:      -1,
 	}
-
 	c.items[key] = item
+	item.elem = c.lru.PushFront(item)
 	if expiration > 0 {
 		heap.Push(&c.expiry, item)
 	}
+
+	c.evictIfNeededLocked()
 }
 
-// Get get cache by a key
+// Get get cache by a key. A hit moves the key to the most-recently-used position
+// but does not extend the deadline: entries expire after write, not after access,
+// so a frequently read key still refreshes from its source once the TTL elapses.
+// The returned value is a copy of the stored T; if T holds a reference
+// (slice, map, pointer), the caller shares that reference with the cache.
 func (c *HighPerformanceTTLCache[T]) Get(key string) (T, bool) {
-	c.mu.RLock()
-	item, exists := c.items[key]
-	c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
+	item, exists := c.items[key]
 	if !exists {
 		return *new(T), false
 	}
 
-	// check if expired
 	if item.expiration > 0 && time.Now().UnixNano() > item.expiration {
-		c.Delete(key)
+		c.removeItemLocked(item)
 		return *new(T), false
 	}
 
+	if item.elem != nil {
+		c.lru.MoveToFront(item.elem)
+	}
 	return item.value, true
 }
 
@@ -146,17 +182,18 @@ func (c *HighPerformanceTTLCache[T]) Delete(key string) {
 	defer c.mu.Unlock()
 
 	if item, exists := c.items[key]; exists {
-		if item.index >= 0 {
-			heap.Remove(&c.expiry, item.index)
-		}
-		delete(c.items, key)
+		c.removeItemLocked(item)
 	}
 }
 
-// Size get the cache size
+// Size returns the number of entries that have not expired. Timed-out entries
+// are reclaimed before counting, so the result never depends on how far the
+// background cleaner has progressed. Each entry is reclaimed at most once, so
+// the amortized cost stays the same as letting the cleaner do it.
 func (c *HighPerformanceTTLCache[T]) Size() int {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.purgeExpiredLocked(time.Now().UnixNano(), 0)
 	return len(c.items)
 }
 
@@ -164,46 +201,109 @@ func (c *HighPerformanceTTLCache[T]) Size() int {
 func (c *HighPerformanceTTLCache[T]) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	for _, item := range c.items {
+		item.index = -1
+		item.elem = nil
+	}
 	c.items = make(map[string]*cacheItem[T])
 	c.expiry = make(expiryHeap[T], 0)
+	c.lru.Init()
 }
 
-// Close close cache
+// Close stops the background cleanup worker. It is safe to call more than once.
+// Get/Set/Delete/Size remain usable after Close: expired keys are still
+// reclaimed lazily by Get, by Size, and by eviction once the cache is full.
 func (c *HighPerformanceTTLCache[T]) Close() {
-	close(c.stop)
-	c.wg.Wait()
+	c.closeOnce.Do(func() {
+		close(c.stop)
+		c.wg.Wait()
+	})
 }
 
-// cleanupWorker cleanup worker goroutine
+func (c *HighPerformanceTTLCache[T]) removeFromHeapLocked(item *cacheItem[T]) {
+	if item.index >= 0 {
+		heap.Remove(&c.expiry, item.index)
+		item.index = -1
+	}
+}
+
+func (c *HighPerformanceTTLCache[T]) removeItemLocked(item *cacheItem[T]) {
+	c.removeFromHeapLocked(item)
+	if item.elem != nil {
+		c.lru.Remove(item.elem)
+		item.elem = nil
+	}
+	delete(c.items, item.key)
+}
+
+// evictIfNeededLocked brings the cache back under maxEntries. It reclaims a
+// timed-out entry in preference to a live one, so a cold but valid key is never
+// dropped while an expired entry still holds a slot. Only as many entries as
+// the overflow requires are touched, which keeps Set off the full-purge path.
+func (c *HighPerformanceTTLCache[T]) evictIfNeededLocked() {
+	if c.maxEntries <= 0 {
+		return
+	}
+	now := time.Now().UnixNano()
+	for len(c.items) > c.maxEntries {
+		// The heap head is the earliest deadline, so whenever any entry is
+		// expired this one is too, including the LRU tail.
+		if c.expiry.Len() > 0 && c.expiry[0].expiration <= now {
+			c.removeItemLocked(c.expiry[0])
+			continue
+		}
+		back := c.lru.Back()
+		if back == nil {
+			return
+		}
+		item, ok := back.Value.(*cacheItem[T])
+		if !ok {
+			return
+		}
+		c.removeItemLocked(item)
+	}
+}
+
 func (c *HighPerformanceTTLCache[T]) cleanupWorker() {
 	defer c.wg.Done()
+
+	ticker := time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-c.stop:
 			return
-
-		default:
-			c.cleanupExpired()
-			// check every 100ms
-			time.Sleep(100 * time.Millisecond)
+		case <-ticker.C:
+			c.cleanupExpired(maxExpiredPerCycle)
 		}
 	}
 }
 
-func (c *HighPerformanceTTLCache[T]) cleanupExpired() {
-	now := time.Now().UnixNano()
+func (c *HighPerformanceTTLCache[T]) cleanupExpired(limit int) {
+	if limit <= 0 {
+		return
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.purgeExpiredLocked(time.Now().UnixNano(), limit)
+}
 
+// purgeExpiredLocked removes timed-out entries from the heap head.
+// limit <= 0 means purge every expired entry; limit > 0 caps the batch
+// so the background worker does not hold the mutex for too long.
+func (c *HighPerformanceTTLCache[T]) purgeExpiredLocked(now int64, limit int) {
+	n := 0
 	for c.expiry.Len() > 0 {
+		if limit > 0 && n >= limit {
+			return
+		}
 		item := c.expiry[0]
 		if item.expiration > now {
-			break
+			return
 		}
-
-		heap.Pop(&c.expiry)
-		delete(c.items, item.key)
+		c.removeItemLocked(item)
+		n++
 	}
 }
