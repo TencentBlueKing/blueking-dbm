@@ -29,7 +29,6 @@ from backend.utils.time import str2datetime
 
 from . import constants
 from .batches import BackupBatchService
-from .exceptions import RollbackPlanError
 from .handlers import DataStructureHandler
 from .models import TbTendisRollbackTasks
 from .serializers import (
@@ -186,10 +185,4 @@ class BackupBatchViewSet(SystemViewSet):
     def precheck(self, request, bk_biz_id, **kwargs):
         data = self.validated_data
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=data["cluster_id"])
-        try:
-            return Response(RollbackPlanner(cluster, data).precheck())
-        except RollbackPlanError as exc:
-            message = str(exc.message) if hasattr(exc, "message") else str(exc)
-        except Exception as exc:  # pylint: disable=broad-except
-            message = str(exc)
-        return Response({"exist": False, "errors": [message], "warnings": [], "shards": []})
+        return Response(RollbackPlanner(cluster, data).precheck())

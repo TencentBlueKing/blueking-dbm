@@ -21,7 +21,7 @@ from django.forms.models import model_to_dict
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum, DBType
 from backend.constants import DOMAIN_PATTERN
 from backend.db_meta.constants import AppManagedStatus
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
@@ -35,6 +35,7 @@ from backend.db_meta.models import (
     Spec,
     StorageInstance,
 )
+from backend.db_package.models import Package
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -42,6 +43,7 @@ from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.db_services.sqlserver.handlers import RemoteSqlserverServiceHandler
+from backend.flow.consts import MediumEnum
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
@@ -699,7 +701,20 @@ class BaseTicketFlowBuilderPatchMixin(object):
 
 
 class RedisTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
-    pass
+    def patch_ticket_detail(self):
+        self._patch_redis_tools_pkg()
+        super().patch_ticket_detail()
+
+    def _patch_redis_tools_pkg(self):
+        """提单时冻结 RedisTools，后续下发/Check 都用这份，不跟页面 latest"""
+        tools = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
+        )
+        self.ticket.details["redis_tools_pkg"] = {
+            "pkg": tools.name,
+            "pkg_md5": tools.md5,  # 这样避免单据中md5与下发的md5不一致
+            "path": tools.path,
+        }
 
 
 class BigDataTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):

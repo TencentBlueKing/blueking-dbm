@@ -12,6 +12,7 @@ import copy
 import json
 import logging.config
 import time
+from types import SimpleNamespace
 from typing import Any, Dict, List, Tuple
 
 from django.conf import settings
@@ -107,6 +108,16 @@ cache_cluster_type_list = [
 ]
 
 
+def resolve_redis_tools_pkg(ticket_data: dict | None):
+    """单据冻结的 RedisTools 优先；无快照时再查 latest。"""
+    snapshot = (ticket_data or {}).get("redis_tools_pkg") or {}
+    pkg = snapshot.get("pkg")
+    pkg_md5 = snapshot.get("pkg_md5")
+    if pkg and pkg_md5:
+        return SimpleNamespace(name=pkg, md5=pkg_md5, path=snapshot.get("path") or "")
+    return Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis)
+
+
 def query_cluster_dbconf_map(
     bk_biz_id: int,
     level_name: str,
@@ -151,9 +162,7 @@ class RedisActPayload(object):
         self.ticket_data = ticket_data
         self.cluster = cluster
         self.bk_biz_id = str(self.ticket_data["bk_biz_id"])
-        self.tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
+        self.tools_pkg = resolve_redis_tools_pkg(self.ticket_data)
         self.redis_modules_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
         )
@@ -1104,17 +1113,14 @@ class RedisActPayload(object):
         """
         提取keys
         """
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
         ip = kwargs["ip"]
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Tendis.value + "_" + RedisActuatorActionEnum.KEYS_PATTERN.value,
             "payload": {
-                "pkg": tools_pkg.name,
-                "pkg_md5": tools_pkg.md5,
+                "pkg": self.tools_pkg.name,
+                "pkg_md5": self.tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "path": self.cluster["path"],
                 "domain": self.cluster["domain_name"],
@@ -1130,17 +1136,14 @@ class RedisActPayload(object):
         """
         按正则删除keys
         """
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
         ip = kwargs["ip"]
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Tendis.value + "_" + RedisActuatorActionEnum.KEYS_DELETE_REGEX.value,
             "payload": {
-                "pkg": tools_pkg.name,
-                "pkg_md5": tools_pkg.md5,
+                "pkg": self.tools_pkg.name,
+                "pkg_md5": self.tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "fileserver": self.__get_fileserver(),
                 "path": self.cluster["path"],
@@ -1160,9 +1163,6 @@ class RedisActPayload(object):
         """
         按文件方式删除keys
         """
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
         proxy_config = self.__get_cluster_config(
             self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
         )
@@ -1171,8 +1171,8 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Tendis.value + "_" + RedisActuatorActionEnum.KEYS_DELETE_FILES.value,
             "payload": {
-                "pkg": tools_pkg.name,
-                "pkg_md5": tools_pkg.md5,
+                "pkg": self.tools_pkg.name,
+                "pkg_md5": self.tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "fileserver": self.__get_fileserver(),
                 "path": self.cluster["path"],
@@ -1351,7 +1351,7 @@ class RedisActPayload(object):
 
     @staticmethod
     def get_bkdbmon_payload_header(
-        bk_biz_id: str, namespace: str = None, cluster_domain: str = None
+        bk_biz_id: str, namespace: str = None, cluster_domain: str = None, tools_pkg=None
     ) -> Dict[str, Any]:
         # namespace 优先使用具体的集群架构类型(cluster_type)对应的dbconfig命名空间，
         # 各架构下均已拆分出独立的 config(binlogbackup/fullbackup/heartbeat/monitor/keymod/maxmemory_set)。
@@ -1362,9 +1362,10 @@ class RedisActPayload(object):
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
+        if tools_pkg is None:
+            tools_pkg = Package.get_latest_package(
+                version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
+            )
         fullbackup_config = RedisActPayload.get_common_config(
             bk_biz_id=bk_biz_id,
             namespace=namespace,
@@ -1456,6 +1457,7 @@ class RedisActPayload(object):
             str(self.bk_biz_id),
             namespace=namespace,
             cluster_domain=cluster.immute_domain if cluster else None,
+            tools_pkg=self.tools_pkg,
         )
         if cluster:
             payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
@@ -1521,7 +1523,10 @@ class RedisActPayload(object):
         except Cluster.DoesNotExist:
             raise Exception("redis cluster {} does not exist".format(params["cluster_domain"]))
         payload = self.get_bkdbmon_payload_header(
-            str(cluster.bk_biz_id), namespace=cluster.cluster_type, cluster_domain=cluster.immute_domain
+            str(cluster.bk_biz_id),
+            namespace=cluster.cluster_type,
+            cluster_domain=cluster.immute_domain,
+            tools_pkg=self.tools_pkg,
         )
         payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
         payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
@@ -1562,11 +1567,14 @@ class RedisActPayload(object):
         # 单实例下架的时候，如果全下架完了的话，这个地方的cluster是没有了的
         if cluster is None:
             payload = self.get_bkdbmon_payload_header(
-                str(kwargs["params"]["bk_biz_id"]), namespace=NameSpaceEnum.RedisCommon
+                str(kwargs["params"]["bk_biz_id"]), namespace=NameSpaceEnum.RedisCommon, tools_pkg=self.tools_pkg
             )
         else:
             payload = self.get_bkdbmon_payload_header(
-                str(cluster.bk_biz_id), namespace=cluster.cluster_type, cluster_domain=cluster.immute_domain
+                str(cluster.bk_biz_id),
+                namespace=cluster.cluster_type,
+                cluster_domain=cluster.immute_domain,
+                tools_pkg=self.tools_pkg,
             )
             payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=bk_cloud_id)
             payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids(list(cluster_ids))
@@ -1978,17 +1986,14 @@ class RedisActPayload(object):
         """
         redis dts数据校验
         """
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
         ip = kwargs["ip"]
         current_src_ip = kwargs["params"]["current_src_ip"] if kwargs["params"].get("current_src_ip") else ip
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DTS_DATACHECK.value,
             "payload": {
-                "pkg": tools_pkg.name,
-                "pkg_md5": tools_pkg.md5,
+                "pkg": self.tools_pkg.name,
+                "pkg_md5": self.tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "dts_copy_type": self.cluster["dts_copy_type"],
                 "src_redis_ip": current_src_ip,
@@ -2008,17 +2013,14 @@ class RedisActPayload(object):
         """
         redis dts数据修复
         """
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
         ip = kwargs["ip"]
         current_src_ip = kwargs["params"]["current_src_ip"] if kwargs["params"].get("current_src_ip") else ip
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DTS_DATAREPAIR.value,
             "payload": {
-                "pkg": tools_pkg.name,
-                "pkg_md5": tools_pkg.md5,
+                "pkg": self.tools_pkg.name,
+                "pkg_md5": self.tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "dts_copy_type": self.cluster["dts_copy_type"],
                 "src_redis_ip": current_src_ip,
