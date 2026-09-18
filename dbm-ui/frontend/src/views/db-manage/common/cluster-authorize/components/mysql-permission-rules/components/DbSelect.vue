@@ -19,15 +19,14 @@
         :label="item.access_db"
         :value="item.access_db" />
       <template #extension>
-        <BkButton
-          class="to-create-rules"
-          text
+        <div
+          class="default-display-main"
           @click="handleToCreateRules">
           <DbIcon
-            class="mr-4"
+            class="add-account-icon"
             type="plus-circle" />
-          {{ t('跳转新建规则') }}
-        </BkButton>
+          <span>{{ t('跳转新建规则') }}</span>
+        </div>
       </template>
     </BkSelect>
   </BkFormItem>
@@ -76,3 +75,16 @@
     window.open(url.href, '_blank');
   };
 </script>
+<style lang="less">
+  .default-display-main {
+    font-family: MicrosoftYaHei, Arial, sans-serif;
+    color: #4d4f56;
+    cursor: pointer;
+
+    .add-account-icon {
+      margin-right: 5px;
+      font-size: 14px;
+      color: #979ba5;
+    }
+  }
+</style>
