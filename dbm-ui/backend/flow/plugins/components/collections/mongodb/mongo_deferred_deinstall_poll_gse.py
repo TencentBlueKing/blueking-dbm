@@ -17,7 +17,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_triage import _probe_gse_alive
+from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_triage import _probe_gse_alive_once
 
 logger = logging.getLogger("flow")
 
@@ -39,7 +39,7 @@ class MongoDeferredDeinstallPollGse(BaseService):
         data.outputs.poll_rounds = 0
         ip = kwargs["ip"]
         bk_cloud_id = kwargs["bk_cloud_id"]
-        if _probe_gse_alive(ip, bk_cloud_id) is True:
+        if _probe_gse_alive_once(ip, bk_cloud_id) is True:
             self.log_info("gse already alive ip={} bk_cloud_id={}".format(ip, bk_cloud_id))
             data.outputs.gse_alive = 1
             return True
@@ -72,7 +72,7 @@ class MongoDeferredDeinstallPollGse(BaseService):
                 self.finish_schedule()
                 return False
 
-        alive = _probe_gse_alive(ip, bk_cloud_id)
+        alive = _probe_gse_alive_once(ip, bk_cloud_id)
         self.log_info("gse poll round={} ip={} alive={}".format(rounds, ip, alive))
         if alive is True:
             data.outputs.gse_alive = 1
