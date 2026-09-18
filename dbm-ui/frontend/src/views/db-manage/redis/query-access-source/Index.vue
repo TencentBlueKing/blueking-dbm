@@ -49,6 +49,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
   const formRef = useTemplateRef('formRef');
   const resultRef = useTemplateRef('resultRef');
@@ -98,6 +99,14 @@
     if (route.query.domain) {
       formRef.value!.validate();
     }
+  });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
   });
 </script>
 <style lang="less">

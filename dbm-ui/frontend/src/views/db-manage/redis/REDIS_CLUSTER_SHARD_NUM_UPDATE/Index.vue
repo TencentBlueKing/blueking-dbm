@@ -247,6 +247,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   useTicketDetail<Redis.ResourcePool.ClusterShardNumUpdate>(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, {
     onSuccess(ticketDetail) {
@@ -455,6 +456,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

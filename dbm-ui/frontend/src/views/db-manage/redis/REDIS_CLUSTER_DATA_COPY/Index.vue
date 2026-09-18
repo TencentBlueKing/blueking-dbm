@@ -188,6 +188,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
   useTicketDetail<Redis.ClusterDataCopy>(TicketTypes.REDIS_CLUSTER_DATA_COPY, {
     onSuccess(ticketDetail) {
@@ -304,6 +305,14 @@
         });
       }
     });
+  });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
   });
 </script>
 

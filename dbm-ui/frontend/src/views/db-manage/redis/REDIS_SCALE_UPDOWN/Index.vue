@@ -114,6 +114,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data: Partial<RowData> = {}) => ({
@@ -341,4 +342,12 @@
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
