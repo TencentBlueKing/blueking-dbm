@@ -142,6 +142,29 @@ class McpIsDbaPermission(permissions.BasePermission):
         return DBAdministrator.is_dba(username)
 
 
+class McpBizManageOrDbaPermission(permissions.BasePermission):
+    """
+    有 bk_biz_id：校验业务 DB_MANAGE；
+    无 bk_biz_id：要求调用方为 DBA（可跨业务查询）。
+    """
+
+    def has_permission(self, request, view):
+        data = request.query_params if request.method == "GET" else request.data
+        bk_biz_id = data.get("bk_biz_id") if data is not None else None
+        if bk_biz_id in (None, ""):
+            return McpIsDbaPermission().has_permission(request, view)
+
+        from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
+
+        perm = McpDBManagePermission()
+        # 装饰器会把 mcp_auth_parser 挂到本 permission 上；业务路径显式使用 auth_parse_bizs
+        setattr(perm, "mcp_auth_parser", getattr(self, "mcp_auth_parser", None) or auth_parse_bizs)
+        return perm.has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+
 class McpSkipPermission(permissions.BasePermission):
     """
     跳过权限校验

@@ -301,6 +301,15 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "redis-capacity",
+        "description": """Redis 容量评估（MIP Action 查询/重评、容量分析、集群规格与可支持 QPS）""",
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["redis-capacity"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
         "name": "redis-job",
         "description": """Redis Job platform operation services""",
         "target_app_codes": [env.APP_CODE, "ai-dbm"],

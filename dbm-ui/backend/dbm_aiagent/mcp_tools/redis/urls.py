@@ -7,10 +7,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.redis.views.job import RedisJobMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.metrics import RedisMetricsMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.redis.views.mip_action import MipActionMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_alarm import RedisQueryALARMMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_log import RedisQueryLogMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_meta import RedisQueryMetaMcpToolsViewSet
@@ -37,6 +39,8 @@ routers.register(r"", RedisQueryALARMMcpToolsViewSet, basename="mcp-redis-query-
 routers.register(r"", RedisMetricsMcpToolsViewSet, basename="mcp-redis-query-metric")
 # 与 db_report 中 Redis 巡检报告相关的查询
 routers.register(r"", RedisReportsMcpToolsViewSet, basename="mcp-redis-reports")
+# Redis 容量评估（MIP Action 查询/重评、容量分析、集群规格与可支持 QPS）
+routers.register(r"", MipActionMcpToolsViewSet, basename="mcp-redis-capacity")
 
 # 与 告警 相关的 2do
 # 与 其他组件----
