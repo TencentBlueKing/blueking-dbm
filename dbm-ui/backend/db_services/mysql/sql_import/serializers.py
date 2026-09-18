@@ -46,6 +46,10 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
     versions = serializers.ListField(help_text=_("版本列表"), child=serializers.CharField(), default=[], required=False)
     execute_objects = serializers.CharField(help_text=_("sql执行体信息"), required=False)
 
+    default_storage_engine = serializers.ListField(
+        help_text=_("默认存储引擎列表"), child=serializers.CharField(), default=[], required=False
+    )
+
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
 
