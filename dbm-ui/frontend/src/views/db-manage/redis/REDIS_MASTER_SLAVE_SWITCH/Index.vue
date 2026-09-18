@@ -155,6 +155,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   useTicketDetail<Redis.MasterSlaveSwitch>(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, {
     onSuccess(ticketDetail) {
@@ -290,6 +291,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">

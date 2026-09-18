@@ -326,4 +326,12 @@
   const handleTypeChange = () => {
     router.replace({ name: TicketTypes.REDIS_KEYS_EXTRACT });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>

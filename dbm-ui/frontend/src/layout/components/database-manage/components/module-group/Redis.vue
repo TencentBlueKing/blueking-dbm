@@ -54,16 +54,6 @@
           </template>
         </DbMenuItem>
       </DbSubmenu>
-      <div
-        v-if="Object.keys(toolboxFavorMap).length > 0"
-        class="split-line" />
-      <ToolboxMenu
-        v-for="toolboxGroupId in toolboxMenuSortList"
-        :id="toolboxGroupId"
-        :key="toolboxGroupId"
-        v-db-console="'redis.toolbox'"
-        :favor-map="toolboxFavorMap"
-        :toolbox-menu-config="toolboxMenuList" />
       <FunController
         controller-id="toolbox"
         module-id="redis">
@@ -82,15 +72,11 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { menuGroupList, toolboxMenuList } from '@views/db-manage/redis/toolbox/toolboxMenuList';
-
   import DbMenuItem from '../../../menu/Item.vue';
   import DbSubmenu from '../../../menu/Submenu.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
-  import ToolboxMenu from './components/ToolboxMenu.vue';
-  import { useToolboxFavor } from './hooks/useToolboxFavor';
 
   interface Props {
     isError: boolean;
@@ -99,6 +85,4 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { toolboxFavorMap, toolboxMenuSortList } = useToolboxFavor(DBTypes.REDIS, toolboxMenuList, menuGroupList);
 </script>

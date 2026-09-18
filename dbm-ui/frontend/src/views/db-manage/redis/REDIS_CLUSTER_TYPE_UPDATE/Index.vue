@@ -258,6 +258,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   // 单据克隆
   useTicketDetail<Redis.ResourcePool.ClusterTypeUpdate>(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, {
@@ -433,6 +434,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

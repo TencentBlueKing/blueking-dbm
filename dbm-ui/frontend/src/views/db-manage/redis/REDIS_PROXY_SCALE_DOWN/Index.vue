@@ -74,6 +74,7 @@
   import HostShrink from './components/host-shrink/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const tableMap = {
@@ -137,4 +138,12 @@
     Object.assign(formData, defaultData());
     tableRef.value?.reset();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
