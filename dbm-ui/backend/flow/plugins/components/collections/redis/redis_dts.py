@@ -889,6 +889,8 @@ class RedisDtsExecuteService(BaseService):
                 }
             ],
         }
+        if global_data.get("redis_tools_pkg"):
+            ticket_data["redis_tools_pkg"] = global_data["redis_tools_pkg"]
         self.log_info(f"new_data_check_repair_job ticket_data:{ticket_data}")
         root_id = generate_root_id()
         flow = RedisClusterDataCheckRepairFlow(root_id=root_id, data=ticket_data)

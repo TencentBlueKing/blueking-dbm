@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.constants import SWITCHED_SHARD_VALUE
@@ -316,3 +316,30 @@ def test_precheck_reports_overlap():
 
     assert result["exist"] is False
     assert any("重叠" in err for err in result["errors"])
+
+
+def test_precheck_returns_business_error_without_raising():
+    planner = _planner(backup_identify="MISSING")
+    planner.locator.locate_full_by_identify = MagicMock(return_value=[])
+
+    result = planner.precheck()
+
+    assert result["exist"] is False
+    assert result["shards"] == []
+    assert any("backup_identify" in err for err in result["errors"])
+
+
+def test_precheck_swallows_unexpected_error_and_logs():
+    secret = "SECRET_PATH_/data/mysql/xxx.sql"
+    planner = _planner(backup_identify="SCHEDULED-1")
+    planner.locator.locate_full_by_identify = MagicMock(side_effect=RuntimeError(secret))
+
+    with patch("backend.flow.engine.bamboo.scene.redis.redis_rollback.planner.logger") as log:
+        result = planner.precheck()
+
+    assert result["exist"] is False
+    assert result["shards"] == []
+    assert len(result["errors"]) == 1
+    assert secret not in result["errors"][0]
+    assert "回档预检失败" in result["errors"][0]
+    log.exception.assert_called_once()
