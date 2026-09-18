@@ -227,7 +227,7 @@
           col-key="creator__in"
           :filter="tableFilter['creator__in']"
           :title="t('申请人')"
-          width="150">
+          width="180">
           <template #default="{ row }: { row: IRowData }">
             {{ row.creator || '--' }}
           </template>

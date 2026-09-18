@@ -444,7 +444,7 @@
       },
       colKey: 'row-operation',
       title: t('操作'),
-      width: 160,
+      width: 200,
     },
   ]);
 

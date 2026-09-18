@@ -288,7 +288,7 @@
               <TableColumn
                 col-key="updater"
                 :title="t('更新人')"
-                :width="150">
+                :width="180">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
                   {{ row.updater || '--' }}
                 </template>
