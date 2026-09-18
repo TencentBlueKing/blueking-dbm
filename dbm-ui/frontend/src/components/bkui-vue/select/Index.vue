@@ -358,8 +358,11 @@
 
   interface Exposes {
     blur: () => void;
+    contentRef: HTMLElement | null;
     focus: () => void;
     hidePopover: () => void;
+    isFocus: boolean;
+    isPopoverShow: boolean;
     showPopover: () => void;
   }
 
@@ -1195,12 +1198,15 @@
     }
   });
 
-  defineExpose<Exposes>({
+  defineExpose({
     blur: blurInput,
+    contentRef,
     focus: focusInput,
     hidePopover,
+    isFocus,
+    isPopoverShow,
     showPopover,
-  });
+  } as unknown as Exposes);
 </script>
 
 <style lang="less">

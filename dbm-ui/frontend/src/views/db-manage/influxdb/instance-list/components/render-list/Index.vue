@@ -179,19 +179,19 @@
                 :key="index"
                 class="cluster-tag ml-4"
                 :data="item" />
-              <BkTag
+              <DbTag
                 v-if="!data.isOnline && !data.isStarting"
                 class="ml-4"
                 size="small">
                 {{ t('已禁用') }}
-              </BkTag>
-              <BkTag
+              </DbTag>
+              <DbTag
                 v-if="data.isNew"
                 class="ml-4"
                 size="small"
                 theme="success">
                 NEW
-              </BkTag>
+              </DbTag>
               <DbIcon
                 v-bk-tooltips="t('复制实例')"
                 class="mt-4"

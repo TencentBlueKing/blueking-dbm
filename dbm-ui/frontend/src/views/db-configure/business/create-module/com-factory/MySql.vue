@@ -55,7 +55,7 @@
           :label="t('数据库信息')"
           required>
           <div class="db-config-row">
-            <BkTag
+            <DbTag
               class="db-type-tag"
               theme="info"
               type="stroke">
@@ -63,7 +63,7 @@
                 <i class="db-icon-mysql mr-5" />
               </template>
               {{ clusterTypeInfos[clusterType]?.name }}
-            </BkTag>
+            </DbTag>
             <FormItemWithHint
               class="version-form-item"
               property="db_version"
@@ -81,7 +81,7 @@
               property="charset"
               required
               :show-label="false">
-              <BkSelect
+              <DbSelect
                 v-model="formData.charset"
                 class="charset-select-inline"
                 :clearable="false"
@@ -90,12 +90,12 @@
                 :placeholder="t('请选择字符集')"
                 :prefix="t('字符集')"
                 @change="handleValidate">
-                <BkOption
+                <DbOption
                   v-for="(item, index) of characterSets"
                   :key="index"
                   :label="item"
                   :value="item" />
-              </BkSelect>
+              </DbSelect>
             </FormItemWithHint>
           </div>
         </BkFormItem>

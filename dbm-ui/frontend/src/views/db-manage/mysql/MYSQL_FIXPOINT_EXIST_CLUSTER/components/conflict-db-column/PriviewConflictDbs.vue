@@ -17,19 +17,19 @@
     :width="900">
     <template #header>
       <span>{{ t('受影响的 DB') }}</span>
-      <BkTag class="ml-10">{{ t('源集群：') }}{{ rowData.cluster.master_domain }}</BkTag>
-      <BkTag
+      <DbTag class="ml-10">{{ t('源集群：') }}{{ rowData.cluster.master_domain }}</DbTag>
+      <DbTag
         v-for="item in rowData.databases"
         :key="item"
         class="ml-4">
         {{ t('源 DB：') }}{{ item }}
-      </BkTag>
-      <BkTag
+      </DbTag>
+      <DbTag
         v-for="item in rowData.databases"
         :key="item"
         class="ml-4">
         {{ t('源表：') }}{{ item }}
-      </BkTag>
+      </DbTag>
     </template>
     <div class="priview-conflict-dbs">
       <BkAlert

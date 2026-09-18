@@ -79,7 +79,7 @@
                 class="mr-8"
                 :model-value="ruleCheckedMap[item.rule_id]"
                 @change="(value: boolean) => handleDbChange(value, item.rule_id)" />
-              <BkTag>{{ item.access_db }}</BkTag>
+              <DbTag>{{ item.access_db }}</DbTag>
             </p>
           </template>
         </TableColumn>

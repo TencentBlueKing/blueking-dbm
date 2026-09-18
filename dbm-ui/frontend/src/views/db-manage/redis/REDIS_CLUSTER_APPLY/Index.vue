@@ -251,7 +251,7 @@
                     content: t('请确保Master和Slave的机器数量至少1台且机器数要相等'),
                   }"
                   class="item-input">
-                  <BkSelect
+                  <DbSelect
                     v-model="formData.details.cap_key"
                     class="item-input"
                     :clearable="false"
@@ -259,12 +259,12 @@
                     filterable
                     :input-search="false"
                     :loading="state.isLoadCapSpecs">
-                    <BkOption
+                    <DbOption
                       v-for="item of state.capSpecs"
                       :key="item.cap_key"
                       :label="getDispalyCapSpecs(item)"
                       :value="item.cap_key" />
-                  </BkSelect>
+                  </DbSelect>
                 </div>
                 <p
                   v-if="isManualInput"
@@ -1108,7 +1108,7 @@
         .bk-form-content {
           margin-left: 120px !important;
 
-          .bk-select,
+          .dbm-select,
           .dbm-input {
             width: 314px !important;
           }

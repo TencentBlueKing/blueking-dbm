@@ -37,13 +37,13 @@
           :label="t('云区域')"
           property="bk_cloud_id"
           required>
-          <BkSelect
+          <DbSelect
             v-model="formData.bk_cloud_id"
             filterable
             :input-search="false"
             :loading="cloudLoading"
             :placeholder="t('请选择云区域')">
-            <BkOption
+            <DbOption
               v-for="item in cloudList"
               :key="item.bk_cloud_id"
               :disabled="existingCloudIds.includes(item.bk_cloud_id)"
@@ -52,18 +52,18 @@
               <template #default>
                 <div class="cloud-option">
                   <span>{{ item.bk_cloud_name }}[{{ item.bk_cloud_id }}]</span>
-                  <BkTag
+                  <DbTag
                     v-if="existingCloudIds.includes(item.bk_cloud_id)"
                     class="ml-auto"
                     size="small"
                     theme=""
                     type="filled">
                     {{ t('已配置') }}
-                  </BkTag>
+                  </DbTag>
                 </div>
               </template>
-            </BkOption>
-          </BkSelect>
+            </DbOption>
+          </DbSelect>
         </BkFormItem>
         <hr class="form-divider" />
       </template>
@@ -71,16 +71,16 @@
         :label="t('存储类型')"
         property="storage_type"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.storage_type"
           :clearable="false"
           :placeholder="t('请选择存储类型')">
-          <BkOption
+          <DbOption
             v-for="item in storageTypeOptions"
             :key="item"
             :label="item"
             :value="item" />
-        </BkSelect>
+        </DbSelect>
       </BkFormItem>
       <BkFormItem
         label="Region"

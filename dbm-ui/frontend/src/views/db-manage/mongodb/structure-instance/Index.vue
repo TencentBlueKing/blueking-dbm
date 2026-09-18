@@ -153,11 +153,11 @@
           :title="t('构造DB名')">
           <template #default="{ row: data }: { row: MongodbRollbackRecordModel }">
             <template v-if="data.ns_filter.db_patterns.length > 0">
-              <BkTag
+              <DbTag
                 v-for="item in data.ns_filter.db_patterns"
                 :key="item">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else>--</span>
           </template>
@@ -168,11 +168,11 @@
           :title="t('忽略DB名')">
           <template #default="{ row: data }: { row: MongodbRollbackRecordModel }">
             <template v-if="data.ns_filter.ignore_dbs.length > 0">
-              <BkTag
+              <DbTag
                 v-for="item in data.ns_filter.ignore_dbs"
                 :key="item">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else>--</span>
           </template>
@@ -183,11 +183,11 @@
           :title="t('构造表名')">
           <template #default="{ row: data }: { row: MongodbRollbackRecordModel }">
             <template v-if="data.ns_filter.table_patterns.length > 0">
-              <BkTag
+              <DbTag
                 v-for="item in data.ns_filter.table_patterns"
                 :key="item">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else>--</span>
           </template>
@@ -198,11 +198,11 @@
           :title="t('忽略表名')">
           <template #default="{ row: data }: { row: MongodbRollbackRecordModel }">
             <template v-if="data.ns_filter.ignore_tables.length > 0">
-              <BkTag
+              <DbTag
                 v-for="item in data.ns_filter.ignore_tables"
                 :key="item">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else>--</span>
           </template>

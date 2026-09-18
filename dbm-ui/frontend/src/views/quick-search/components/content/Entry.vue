@@ -48,30 +48,30 @@
                     :text="rowData.entry" />
                 </BkButton>
                 <template #append>
-                  <BkTag
+                  <DbTag
                     v-if="rowData.cluster_entry_type === 'clb'"
                     class="redis-cluster-clb"
                     size="small">
                     CLB
-                  </BkTag>
-                  <BkTag
+                  </DbTag>
+                  <DbTag
                     v-if="rowData.cluster_entry_type === 'polaris'"
                     class="redis-cluster-polary"
                     size="small">
                     {{ t('北极星') }}
-                  </BkTag>
-                  <BkTag
+                  </DbTag>
+                  <DbTag
                     v-if="rowData.role === 'master_entry'"
                     size="small"
                     theme="info">
                     {{ t('主') }}
-                  </BkTag>
-                  <BkTag
+                  </DbTag>
+                  <DbTag
                     v-if="rowData.role === 'slave_entry'"
                     size="small"
                     theme="success">
                     {{ t('从') }}
-                  </BkTag>
+                  </DbTag>
                   <BkButton
                     class="copy-btn ml-4"
                     text
@@ -148,7 +148,7 @@
           </TableColumn>
         </PrimaryTable>
         <div class="table-footer mb-8">
-          <BkPagination
+          <DbPagination
             v-bind="pagination[index]"
             :layout="['total', 'limit', 'list']"
             :model-value="pagination[index].current"
@@ -362,7 +362,7 @@
       display: flex;
       align-items: center;
 
-      .bk-pagination {
+      .dbm-pagination {
         width: 100%;
 
         & > .is-last {

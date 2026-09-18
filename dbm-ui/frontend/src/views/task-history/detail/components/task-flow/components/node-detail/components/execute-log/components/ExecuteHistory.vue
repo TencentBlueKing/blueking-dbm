@@ -29,12 +29,12 @@
       @click="handleToggle">
       <div class="retry-selector-display">
         {{ state.active.started_time }}
-        <BkTag
+        <DbTag
           v-if="isLatest"
           theme="info"
           type="filled">
           {{ t('最新') }}
-        </BkTag>
+        </DbTag>
       </div>
       <DbIcon
         class="retry-selector-icon"
@@ -120,11 +120,11 @@
           <div class='started-time-column'>
             <span>{data.started_time}</span>
             {state.latestVersion === data.version ? (
-              <bk-tag
+              <db-tag
                 class='ml-8'
                 theme='info'>
                 {t('最新')}
-              </bk-tag>
+              </db-tag>
             ) : null}
           </div>
         );
@@ -258,7 +258,7 @@
         cursor: not-allowed;
       }
 
-      .bk-tag {
+      .dbm-tag {
         height: 16px;
         padding: 0 4px;
         line-height: 16px;

@@ -317,12 +317,12 @@
           :selected-list="selectedList"
           @go-detail="handleToDetails">
           <template #nodeTag="{ data }">
-            <BkTag
+            <DbTag
               v-if="clusterPrimaryMap[data.ip]"
               class="is-primary"
               size="small">
               Primary
-            </BkTag>
+            </DbTag>
           </template>
         </RoleColumn>
         <RoleColumn

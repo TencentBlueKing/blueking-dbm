@@ -78,13 +78,13 @@
                       :class="{ 'row-expand-icon-expanded': expandedRowMap[row.id] }"
                       type="right-shape"
                       @click="() => handleExpandChange(row.id)" />
-                    <BkTag
+                    <DbTag
                       v-if="row.isChild"
                       size="small"
                       style="font-weight: bolder"
                       theme="warning">
                       {{ t('子') }}
-                    </BkTag>
+                    </DbTag>
                   </div>
                   <div class="row-expand-line-box">
                     <div
@@ -132,7 +132,7 @@
                       </AuthButton>
                       <template #append>
                         <div class="ml-4" />
-                        <BkTag
+                        <DbTag
                           v-if="row.event_count > 0"
                           v-bk-tooltips="{
                             content: t('当前有n个未恢复事件', { n: row.event_count }),
@@ -143,36 +143,36 @@
                           @click="() => handleGoMonitorPage(row.event_url)">
                           <DbIcon type="alert" />
                           {{ row.event_count }}
-                        </BkTag>
-                        <!-- <BkTag
+                        </DbTag>
+                        <!-- <DbTag
                           v-if="row.isInner"
                           size="small">
                           {{ t('内置') }}
-                        </BkTag> -->
-                        <BkTag
+                        </DbTag> -->
+                        <DbTag
                           v-if="row.isCustom"
                           size="small"
                           theme="warning">
                           {{ t('自定义') }}
-                        </BkTag>
-                        <!-- <BkTag
+                        </DbTag>
+                        <!-- <DbTag
                           v-if="row.isPolicyTypePromQL"
                           size="small"
                           style="color: #531dab; background: #f9f0ff">
                           PromQL
-                        </BkTag> -->
-                        <!-- <BkTag
+                        </DbTag> -->
+                        <!-- <DbTag
                           v-if="row.isPolicyTypeMulti"
                           size="small"
                           theme="success">
                           {{ t('多指标') }}
-                        </BkTag> -->
-                        <BkTag
+                        </DbTag> -->
+                        <DbTag
                           v-if="!row.is_enabled"
                           class="ml-4"
                           size="small">
                           {{ t('已停用') }}
-                        </BkTag>
+                        </DbTag>
                       </template>
                     </TextOverflowLayout>
                   </div>
@@ -265,11 +265,11 @@
                 :width="220">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
                   <template v-if="row.timeRangesDisplay">
-                    <BkTag
+                    <DbTag
                       v-if="row.timeRangesDisplay.length === 0"
                       theme="info">
                       {{ t('全天') }}
-                    </BkTag>
+                    </DbTag>
                     <TagBlock
                       v-else
                       :data="row.timeRangesDisplay" />

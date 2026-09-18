@@ -8,11 +8,11 @@
       style="height: 100%">
       <div class="title-operate-main">
         <div class="title">{{ riskMemoDetail?.name || '--' }}</div>
-        <BkTag
+        <DbTag
           class="status"
           :theme="!isRiskDone ? 'success' : ''">
           {{ statusTextDisplay }}
-        </BkTag>
+        </DbTag>
         <AuthButton
           v-if="!isRiskDone"
           action-id="risk_memo_manage"
@@ -135,7 +135,7 @@
           <div class="info-title mt-24 mb-16">
             <span>{{ t('跟进记录') }}</span>
             <span>（{{ recordCount }}）</span>
-            <BkTag
+            <DbTag
               class="time-sort"
               @click="handleClickSort">
               <span class="mr-6">{{ isDescending ? t('时间倒序') : t('时间正序') }}</span>
@@ -145,7 +145,7 @@
               <DbIcon
                 v-else
                 type="sortdownjiangxu" />
-            </BkTag>
+            </DbTag>
           </div>
           <FollowUpRecordItem
             v-for="(item, index) in recordList"

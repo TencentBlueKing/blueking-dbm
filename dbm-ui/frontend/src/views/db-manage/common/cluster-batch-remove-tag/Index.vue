@@ -102,19 +102,19 @@
                 style="font-size: 18px"
                 type="close"
                 @click="() => handleRemoveCluster(index)" />
-              <BkTag
+              <DbTag
                 v-if="noPermissionIds.includes(item.id)"
                 class="status-icon"
                 size="small">
                 {{ t('跳过') }}
-              </BkTag>
-              <BkTag
+              </DbTag>
+              <DbTag
                 v-else
                 class="status-icon"
                 size="small"
                 theme="danger">
                 {{ t('移除') }}
-              </BkTag>
+              </DbTag>
             </div>
           </div>
         </div>

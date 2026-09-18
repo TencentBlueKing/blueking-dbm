@@ -17,14 +17,13 @@
     class="subscribe-tag-input"
     :class="{ 'is-error': Boolean(errorMessage) }"
     @click="handleShowTips">
-    <BkTagInput
+    <DbTagInput
       v-model="localValue"
-      allow-auto-match
       allow-create
       clearable
-      has-delete-icon
-      :paste-fn="tagInputPasteFn"
+      multiple
       :placeholder="t('请输入表名，支持通配符')"
+      :split-fn="tagInputSplitFn"
       @change="handleTagValueChange" />
     <div
       v-if="errorMessage"
@@ -76,7 +75,7 @@
 
   const { message: errorMessage, validator } = useValidtor(rules);
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 
   const handleTagValueChange = (value: string[]) => {
     nextTick(() => {
@@ -131,7 +130,7 @@
     position: relative;
 
     &.is-error {
-      :deep(.bk-tag-input-trigger) {
+      :deep(.db-tag-input-panel) {
         background: #fff0f1;
       }
     }

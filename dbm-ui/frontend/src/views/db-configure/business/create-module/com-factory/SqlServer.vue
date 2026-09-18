@@ -58,7 +58,7 @@
           :label="t('数据库信息')"
           required>
           <div class="db-config-row">
-            <BkTag
+            <DbTag
               class="db-type-tag"
               theme="info"
               type="stroke">
@@ -68,7 +68,7 @@
                   type="sqlserver" />
               </template>
               {{ clusterTypeInfos[clusterType]?.name }}
-            </BkTag>
+            </DbTag>
             <FormItemWithHint
               class="custom-form-item version-select-inline"
               property="version"
@@ -89,19 +89,19 @@
               property="character_set"
               required
               :show-label="false">
-              <BkSelect
+              <DbSelect
                 v-model="formData.character_set"
                 :clearable="false"
                 filterable
                 :placeholder="t('请选择')"
                 :prefix="t('字符集')"
                 @change="handleValidate">
-                <BkOption
+                <DbOption
                   v-for="(item, index) of characterSets"
                   :key="index"
                   :label="item"
                   :value="item" />
-              </BkSelect>
+              </DbSelect>
             </FormItemWithHint>
           </div>
         </BkFormItem>
@@ -115,18 +115,18 @@
               property="operatingSystemVersion"
               required
               :show-label="false">
-              <BkSelect
+              <DbSelect
                 v-model="formData.operatingSystemVersion"
                 filterable
                 multiple
                 :placeholder="t('请选择（可多选）')"
                 :prefix="t('操作系统版本')">
-                <BkOption
+                <DbOption
                   v-for="item in operatingSystemVersionList"
                   :key="item"
                   :label="item"
                   :value="item" />
-              </BkSelect>
+              </DbSelect>
             </FormItemWithHint>
             <FormItemWithHint
               class="custom-form-item memory-allocation-ratio-input"

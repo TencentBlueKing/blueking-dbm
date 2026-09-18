@@ -3,49 +3,48 @@
     ref="rootRef"
     class="staff-manage-tag">
     <template v-if="tagList && tagList.length">
-      <BkTag
+      <DbTag
         v-for="item in renderData"
         :key="item.value"
         :theme="item.theme">
         <BkOverflowTitle type="tips">
           {{ item.label }}
         </BkOverflowTitle>
-      </BkTag>
-      <BkTag
+      </DbTag>
+      <DbTag
         v-if="moreTagCount > 0"
         key="more"
         ref="moreRef">
         +{{ moreTagCount }}
-      </BkTag>
+      </DbTag>
     </template>
     <span v-else>--</span>
     <div
       v-if="isCalcRenderTagNum"
       ref="tagList"
       style="position: absolute; word-break: keep-all; white-space: nowrap; visibility: hidden">
-      <BkTag
+      <DbTag
         v-for="item in tagList"
         :key="item.value"
         :theme="item.theme">
         {{ item.label }}
-      </BkTag>
+      </DbTag>
     </div>
     <div style="display: none">
       <div
         ref="tipsPanel"
         class="staff-manage-tag-more-panel">
-        <BkTag
+        <DbTag
           v-for="item in tagList.slice(renderData.length)"
           :key="item.value"
           :theme="item.theme">
           {{ item.label }}
-        </BkTag>
+        </DbTag>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import BkTag from 'bkui-vue/lib/tag';
   import { throttle } from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue';
@@ -102,7 +101,7 @@
         let renderTagCount = 0;
         const tipsTagPlaceholderWidth = 45;
 
-        const allTagEleList = Array.from(tagListRef.value!.querySelectorAll('.bk-tag'));
+        const allTagEleList = Array.from(tagListRef.value!.querySelectorAll('.dbm-tag'));
         if (tagListRef.value!.getBoundingClientRect().width <= maxWidth) {
           renderTagNum.value = tagList.value.length;
         } else {
@@ -224,12 +223,12 @@
       }
     }
 
-    .bk-tag {
+    .dbm-tag {
       max-width: calc(100% - 40px);
       margin-right: 0;
       margin-left: 0;
 
-      & ~ .bk-tag {
+      & ~ .dbm-tag {
         margin-left: 6px;
       }
     }
@@ -250,7 +249,7 @@
   .staff-manage-tag-more-panel {
     margin-top: -8px;
 
-    .bk-tag {
+    .dbm-tag {
       margin-top: 8px;
     }
   }

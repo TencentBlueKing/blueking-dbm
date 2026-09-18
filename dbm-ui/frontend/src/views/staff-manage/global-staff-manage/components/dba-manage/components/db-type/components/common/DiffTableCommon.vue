@@ -64,12 +64,12 @@
                   {{ `${item}（${userDataMap[item]}）` }}
                 </div>
               </div>
-              <BkTag
+              <DbTag
                 v-if="!row.isChanged"
                 class="ml-4"
                 size="small">
                 {{ t('无变化') }}
-              </BkTag>
+              </DbTag>
             </div>
             <span v-else>--</span>
           </template>

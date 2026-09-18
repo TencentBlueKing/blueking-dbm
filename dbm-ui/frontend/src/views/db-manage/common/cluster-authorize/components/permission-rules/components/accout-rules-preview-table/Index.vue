@@ -74,12 +74,12 @@
             )}
             <div class='user-name'>{data.account.user}</div>
             {data.isNew && (
-              <bk-tag
+              <db-tag
                 class='ml-4'
                 size='small'
                 theme='success'>
                 NEW
-              </bk-tag>
+              </db-tag>
             )}
           </div>
         );
@@ -107,7 +107,7 @@
 
         return renderList(data).map((rule) => (
           <div class='mongo-permission-cell access-db'>
-            <bk-tag>{rule.access_db}</bk-tag>
+            <db-tag>{rule.access_db}</db-tag>
           </div>
         ));
       },

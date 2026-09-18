@@ -67,29 +67,29 @@
     type="daterange" />
   <div class="cycle-time-select-box">
     <div class="select-item">
-      <BkSelect
+      <DbSelect
         v-model="dateSelect.date"
         :clearable="false">
-        <BkOption
+        <DbOption
           v-for="(item, index) in dateList"
           :key="index"
           :label="item.label"
           :value="item.value" />
-      </BkSelect>
+      </DbSelect>
     </div>
     <div
       v-if="dateSelect.date === 'weekly'"
       class="select-item">
-      <BkSelect
+      <DbSelect
         v-model="dateSelect.weekday"
         :clearable="false"
         multiple>
-        <BkOption
+        <DbOption
           v-for="(item, index) in weekdayList"
           :key="index"
           :label="item.label"
           :value="item.value" />
-      </BkSelect>
+      </DbSelect>
     </div>
     <div class="select-item">
       <div
@@ -264,7 +264,7 @@
       cell: (_, { row }) => (
         <div class='peoples'>
           {row.peoples.map((item: string) => (
-            <bk-tag>{item}</bk-tag>
+            <db-tag>{item}</db-tag>
           ))}
         </div>
       ),

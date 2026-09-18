@@ -19,7 +19,7 @@
               style="font-weight: normal">
               {{ title }} <span class="required" />
             </div>
-            <BkSelect
+            <DbSelect
               v-if="type === 'select'"
               :clearable="false"
               :disabled="disabled"
@@ -43,21 +43,21 @@
               <template
                 v-for="item in dataList"
                 :key="item.label">
-                <BkOptionGroup
+                <DbOptionGroup
                   v-if="'children' in item"
                   :label="item.label">
-                  <BkOption
+                  <DbOption
                     v-for="child in item.children"
                     :key="child.value"
                     :label="child.label"
                     :value="child.value" />
-                </BkOptionGroup>
-                <BkOption
+                </DbOptionGroup>
+                <DbOption
                   v-else
                   :label="item.label"
                   :value="item.value" />
               </template>
-            </BkSelect>
+            </DbSelect>
             <BkInput
               v-else-if="type === 'textarea'"
               v-bind="{ ...attrs, ...props }"
@@ -80,16 +80,14 @@
               :model-value="localValue"
               type="number"
               @change="handleChange" />
-            <BkTagInput
+            <DbTagInput
               v-else-if="type === 'taginput'"
               v-bind="{ ...attrs, ...props }"
-              allow-auto-match
               allow-create
               :disabled="disabled"
-              has-delete-icon
-              :max-data="single ? 1 : -1"
               :model-value="localValue"
-              :paste-fn="tagInputPasteFn"
+              :multiple="!single"
+              :split-fn="tagInputSplitFn"
               @change="handleChange" />
             <BkDatePicker
               v-else-if="type === 'datetime'"
@@ -169,14 +167,14 @@
 
   const disabled = computed(() => props.disableFn());
 
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
+
   watch(
     () => props.dataList,
     () => {
       localValue.value = '';
     },
   );
-
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   const handleChange = (value: UnwrapRef<typeof localValue>) => {
     localValue.value = value;
@@ -195,14 +193,7 @@
       }
     }
 
-    if (props.type === 'taginput') {
-      // 组件内为200ms后失焦处理失焦的回调，这里将任务添加至失焦回调后，以获取最新值
-      setTimeout(() => {
-        handleConfirmChange();
-      }, 210);
-    } else {
-      handleConfirmChange();
-    }
+    handleConfirmChange();
   };
 
   const handleConfirmChange = () => {

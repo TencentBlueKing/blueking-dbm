@@ -211,7 +211,7 @@
 
     .bk-form-item {
       .bk-form-content {
-        .bk-select,
+        .dbm-select,
         .dbm-input {
           width: 314px !important;
         }

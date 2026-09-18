@@ -3,38 +3,39 @@
   <div
     v-else
     class="backup-db-tags">
-    <BkTag
+    <DbTag
       v-for="name in visibleList"
       :key="name"
       :theme="theme">
       {{ name }}
-    </BkTag>
-    <BkTag
+    </DbTag>
+    <DbTag
       v-if="overflowCount > 0"
       key="more"
       ref="moreRef"
       :theme="theme">
       +{{ overflowCount }}
-    </BkTag>
+    </DbTag>
     <div style="display: none">
       <div
         ref="tippyPanelRef"
         class="backup-db-tippy-panel">
-        <BkTag
+        <DbTag
           v-for="name in overflowList"
           :key="name"
           :theme="theme">
           {{ name }}
-        </BkTag>
+        </DbTag>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import BkTag from 'bkui-vue/lib/tag';
   import { type Instance, type SingleTarget } from 'tippy.js';
 
   import { dbTippy } from '@common/tippy';
+
+  import DbTag from '@components/bkui-vue/tag/Index.vue';
 
   const props = defineProps<{
     list: string[];
@@ -47,7 +48,7 @@
   const visibleList = computed(() => props.list.slice(0, MAX_VISIBLE));
   const overflowList = computed(() => props.list.slice(MAX_VISIBLE));
 
-  const moreRef = ref<InstanceType<typeof BkTag>>();
+  const moreRef = ref<InstanceType<typeof DbTag>>();
   const tippyPanelRef = ref<HTMLElement>();
 
   let tippyInst: Instance | undefined;
@@ -95,7 +96,7 @@
   .backup-db-tippy-panel {
     margin-top: -8px;
 
-    .bk-tag {
+    .dbm-tag {
       margin-top: 8px;
     }
   }

@@ -50,14 +50,14 @@
           <BkInput
             v-if="!isUseExistedSubscribe"
             v-model="formModel.name" />
-          <BkSelect
+          <DbSelect
             v-else
             v-model="formModel.name"
             :clearable="false"
             filterable
             :input-search="false"
             @change="(id: number) => handleSelectSubscribeName(id)">
-            <BkOption
+            <DbOption
               v-for="(item, index) in subscribeNameList"
               :key="index"
               :label="item.label"
@@ -71,7 +71,7 @@
                 {{ t('新建订阅规则') }}
               </BkButton>
             </template>
-          </BkSelect>
+          </DbSelect>
         </BkFormItem>
         <BkFormItem
           v-if="!isUseExistedSubscribe"

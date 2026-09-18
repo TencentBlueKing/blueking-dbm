@@ -12,28 +12,28 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="localValue"
     :clearable="false"
     :disabled="!!versionSeriesId"
     filterable
     :placeholder="t('请选择xx', [t('系列')])"
     @change="handleValueChange">
-    <BkOption
+    <DbOption
       v-for="system in seriesList"
       :key="system.value"
       :label="system.label"
       :value="system.value">
       <span class="mr-3">{{ system.label }}</span>
-      <BkTag
+      <DbTag
         v-if="system.isNew"
         size="small"
         style="background: #f8b64f"
         theme="warning"
         type="filled">
         New
-      </BkTag>
-    </BkOption>
+      </DbTag>
+    </DbOption>
     <template #extension>
       <EditSeries
         :distribution-id="distributionId"
@@ -47,7 +47,7 @@
         </div>
       </EditSeries>
     </template>
-  </BkSelect>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

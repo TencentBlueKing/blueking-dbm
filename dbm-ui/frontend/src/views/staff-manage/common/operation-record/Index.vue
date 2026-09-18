@@ -44,16 +44,16 @@
         :title="t('操作类型')"
         width="120">
         <template #default="{ row }: { row: DBAdminOperationRecordModel }">
-          <BkTag
+          <DbTag
             v-if="row.operate_type === DBAOperateTypes.DEFAULT_DBA_CHANGE"
             class="custom-tag">
             {{ dbaOperateTypesInfo[row.operate_type].text }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else
             :theme="dbaOperateTypesInfo[row.operate_type].theme">
             {{ dbaOperateTypesInfo[row.operate_type].text }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn

@@ -4,20 +4,20 @@
     property="range"
     required>
     <div class="strategy-shield-main">
-      <BkSelect
+      <DbSelect
         v-model="dbValue"
         class="db-select"
         :clearable="false"
         :disabled="disabled"
         :filterable="false"
         @change="handleDbTypeChange">
-        <BkOption
+        <DbOption
           v-for="item in dbList"
           :key="item.value"
           :label="item.label"
           :value="item.value" />
-      </BkSelect>
-      <BkSelect
+      </DbSelect>
+      <DbSelect
         v-model="strategyValue"
         class="strategy-select"
         collapse-tags
@@ -28,12 +28,12 @@
         :remote-method="remoteMethod"
         :scroll-loading="scrollLoading"
         @scroll-end="handleScrollEnd">
-        <BkOption
+        <DbOption
           v-for="item in strategyList"
           :key="item.id"
           :label="item.name"
           :value="item.id" />
-      </BkSelect>
+      </DbSelect>
     </div>
   </BkFormItem>
   <DimensionShield
@@ -251,7 +251,7 @@
     .strategy-select {
       flex: 1;
 
-      :deep(.bk-select-tag) {
+      :deep(.dbm-select-tag) {
         border-bottom-left-radius: 0;
         border-top-left-radius: 0;
       }

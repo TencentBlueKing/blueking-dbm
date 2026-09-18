@@ -49,24 +49,24 @@
                 <MongoNodeTags
                   v-if="isMongoCluster"
                   :data="rowItem.node" />
-                <BkTag
+                <DbTag
                   v-if="!isMongoCluster && rowItem.node.isStandBy"
                   class="cluster-specific-flag ml-4"
                   size="small">
                   Standby
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-if="!isMongoCluster && isMasterNode(rowItem.node)"
                   class="cluster-specific-flag ml-4"
                   size="small">
                   {{ masterTagLabel }}
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-if="rowItem.node.status === 'unavailable'"
                   class="ml-4"
                   size="small">
                   {{ t('不可用') }}
-                </BkTag>
+                </DbTag>
               </div>
             </template>
             <span v-if="clusterRoleNodeGroup[groupName].length < 1">--</span>

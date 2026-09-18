@@ -11,7 +11,7 @@
     <span v-if="type === 'text'">
       {{ tagInfo?.text || '--' }}
     </span>
-    <BkTag
+    <DbTag
       v-else-if="tagInfo && tagInfo.status === ClusterLoad.HIGH"
       v-bk-tooltips="loadReasonTips"
       class="cluster-load-tag ml-4"
@@ -24,12 +24,11 @@
         <DbIcon :type="tagInfo.icon" />
       </template>
       {{ tagInfo.tagText }}
-    </BkTag>
+    </DbTag>
   </template>
 </template>
 
 <script setup lang="ts">
-  import BkTag from 'bkui-vue/lib/tag';
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -39,12 +38,14 @@
 
   import { ClusterLoad, clusterRedisTypeList, ClusterTypes } from '@common/const';
 
+  import DbTag from '@components/bkui-vue/tag/Index.vue';
+
   interface Props {
     clusterId?: number;
     clusterType: ClusterTypes;
     domain: string;
     // eslint-disable-next-line vue/require-default-prop
-    size?: ComponentProps<typeof BkTag>['size'];
+    size?: ComponentProps<typeof DbTag>['size'];
     type?: 'tag' | 'text';
   }
 

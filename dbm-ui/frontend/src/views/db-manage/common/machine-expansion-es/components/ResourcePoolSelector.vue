@@ -7,11 +7,11 @@
             {{ t('xx节点规格', { name: data.label.toLocaleLowerCase() }) }}
             <span class="required-flag">*</span>
           </div>
-          <BkSelect
+          <DbSelect
             :loading="isResourceSpecLoading"
             :model-value="specId"
             @change="handleSpecChange">
-            <BkOption
+            <DbOption
               v-for="item in resourceSpecList?.results"
               :key="item.spec_id"
               :label="item.spec_name"
@@ -21,11 +21,11 @@
                 placement="right">
                 <div style="display: flex; width: 100%; align-items: center">
                   <div>{{ item.spec_name }}</div>
-                  <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
+                  <DbTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</DbTag>
                 </div>
               </SpecDetailPopover>
-            </BkOption>
-          </BkSelect>
+            </DbOption>
+          </DbSelect>
         </div>
         <div class="form-block-item">
           <div class="form-block-title">

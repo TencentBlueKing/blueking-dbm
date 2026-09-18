@@ -28,12 +28,12 @@
       </div>
     </td>
     <td>
-      <BkSelect
+      <DbSelect
         v-model="permitOsType"
         :clearable="false"
         ext-cls="version-files-version-row-select"
         @change="() => emits('osTypeChange')">
-        <BkOption
+        <DbOption
           v-for="osType in osTypeList"
           :key="osType.value"
           v-bk-tooltips="{
@@ -43,10 +43,10 @@
           :disabled="occupiedOsVersions[osType.value]?.has('all')"
           :label="osType.label"
           :value="osType.value" />
-      </BkSelect>
+      </DbSelect>
     </td>
     <td>
-      <BkSelect
+      <DbSelect
         v-model="permitOs"
         all-option-id="all"
         class="version-permit-os-select"
@@ -108,7 +108,7 @@
             </div>
           </div>
         </template>
-        <BkOption
+        <DbOption
           v-for="version in osVersionList"
           :key="version.value"
           v-bk-tooltips="{
@@ -118,7 +118,7 @@
           :disabled="occupiedOsVersions[permitOsType]?.has(version.value)"
           :label="version.label"
           :value="version.value" />
-      </BkSelect>
+      </DbSelect>
     </td>
     <td>
       <DbIcon

@@ -528,10 +528,10 @@
         color: #979ba5;
       }
 
-      .bk-tag {
+      .dbm-tag {
         background-color: #e1ecff;
 
-        .bk-tag-text {
+        .dbm-tag-text {
           color: #1768ef;
         }
       }

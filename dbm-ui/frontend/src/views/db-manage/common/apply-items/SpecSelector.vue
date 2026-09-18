@@ -1,13 +1,13 @@
 <template>
   <div class="spec-selector-wrapper">
-    <BkSelect
+    <DbSelect
       class="spec-selector"
       :clearable="clearable"
       filterable
       :loading="loading"
       :model-value="modelValue"
       @change="handleChange">
-      <BkOption
+      <DbOption
         v-for="item in list"
         :key="item.spec_id"
         :label="item.spec_name"
@@ -24,8 +24,8 @@
             </span>
           </div>
         </SpecDetailPopover>
-      </BkOption>
-    </BkSelect>
+      </DbOption>
+    </DbSelect>
     <DbIcon
       v-if="showRefreshIcon"
       v-bk-tooltips="t('刷新获取最新资源规格')"
@@ -193,7 +193,7 @@
   });
 </script>
 <style lang="less">
-  .bk-select-option {
+  .dbm-select-option {
     > span {
       display: block;
       width: 100%;

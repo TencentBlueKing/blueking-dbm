@@ -21,35 +21,35 @@
             style="width: 320px; flex-shrink: 0"
             :value="metricMap[item.metric_id] || item.metric_field || item.metric_id" />
           <span class="metric-label-text">{{ t('汇聚方法') }}</span>
-          <BkSelect
+          <DbSelect
             v-model="item.agg_method"
             behavior="simplicity"
             class="sf-select"
             :clearable="false"
             :disabled="isMultiple"
             @change="handleChange">
-            <BkOption
+            <DbOption
               v-for="methodItem in METHOD_LIST"
               :key="methodItem.id"
               :value="methodItem.name">
               {{ methodItem.name }}
-            </BkOption>
-          </BkSelect>
+            </DbOption>
+          </DbSelect>
           <span class="metric-label-text">{{ t('汇聚周期') }}</span>
-          <BkSelect
+          <DbSelect
             v-model="item.interval"
             behavior="simplicity"
             class="sf-select"
             :clearable="false"
             @change="handleChange">
-            <BkOption
+            <DbOption
               v-for="timeItem in timeList"
               :key="timeItem.seconds"
               :name="timeItem.name"
               :value="timeItem.seconds">
               {{ timeItem.name }}
-            </BkOption>
-          </BkSelect>
+            </DbOption>
+          </DbSelect>
         </div>
         <!-- <div class="metric-desc">
           {{ metricMap[item.metric_id] || item.metric_field || item.metric_id }}

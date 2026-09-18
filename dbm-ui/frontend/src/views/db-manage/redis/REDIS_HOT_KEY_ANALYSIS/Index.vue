@@ -62,7 +62,7 @@
         :label="t('分析时长')"
         property="analysis_time"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.analysis_time"
           :clearable="false"
           :list="timeSelectList"

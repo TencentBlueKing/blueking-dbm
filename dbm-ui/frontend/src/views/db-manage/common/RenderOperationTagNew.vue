@@ -16,11 +16,11 @@
     v-if="isRender"
     class="render-cluster-opration-tag">
     <span ref="rootRef">
-      <BkTag
+      <DbTag
         size="small"
         :style="iconStyle">
         {{ data.icon }}
-      </BkTag>
+      </DbTag>
     </span>
     <I18nT
       ref="popRef"

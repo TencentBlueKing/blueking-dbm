@@ -40,12 +40,10 @@
       <BkFormItem
         :label="t('访问 DB')"
         property="dbs">
-        <BkTagInput
+        <DbTagInput
           v-model="formData.dbs"
-          allow-auto-match
           allow-create
-          collapse-tags
-          has-delete-icon
+          multiple
           :placeholder="t('请输入DB，支持%')" />
       </BkFormItem>
     </BkForm>

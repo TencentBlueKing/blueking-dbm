@@ -154,6 +154,8 @@
     /** 是否多选。开启时候选项展示为 checkbox 并支持全选；关闭时为单选 */
     multiple?: boolean;
     placeholder?: string;
+    /** 自定义批量拆分规则，作用于粘贴 / 回车 / 失焦提交；不传按内置分隔符拆 */
+    splitFn?: (value: string) => string[];
     /** 值变化 / 失焦时是否触发所在表单项的校验 */
     withValidate?: boolean;
   }
@@ -173,6 +175,7 @@
     mode: undefined,
     multiple: false,
     placeholder: '',
+    splitFn: undefined,
     withValidate: true,
   });
 
@@ -231,7 +234,8 @@
   // 候选值展示名映射
   const candidateNameMap = computed(() => new Map(candidateList.value.map((item) => [item.id, item.name])));
 
-  // 关键词包含匹配（不区分大小写，id / 展示名任一命中即可）；多个分隔词按 OR 匹配，无关键词展示全部候选
+  // 关键词包含匹配（不区分大小写，id / 展示名任一命中即可）；多个分隔词按 OR 匹配，无关键词展示全部候选。
+  // 这里是搜索语义，固定按内置分隔符拆，不跟随 splitFn
   const filteredList = computed(() => {
     const keywords = inputValue.value
       .split(SEPARATOR_REGEX)
@@ -408,10 +412,9 @@
     return matched ? matched.id : null;
   };
 
-  // 拆分批量文本：按分隔符拆分 → 每段去首尾空格 → 丢弃空段
+  // 拆分批量文本：按场景规则拆分 → 每段去首尾空格 → 丢弃空段。自定义 splitFn 的结果同样走后两步，保证不会产出空标签
   const splitBatchText = (text: string) =>
-    text
-      .split(SEPARATOR_REGEX)
+    (props.splitFn ? props.splitFn(text) : text.split(SEPARATOR_REGEX))
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
 
@@ -705,6 +708,10 @@
       tippyInstance.destroy();
       tippyInstance = undefined;
     }
+  });
+
+  defineExpose({
+    focusInputTrigger: handleTriggerClick,
   });
 </script>
 

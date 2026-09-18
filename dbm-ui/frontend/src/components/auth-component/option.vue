@@ -1,5 +1,5 @@
 <template>
-  <BkOption
+  <DbOption
     v-if="isShowRaw"
     v-bind="attrs">
     <template v-if="slots.default">
@@ -8,8 +8,8 @@
     <template v-else>
       {{ attrs.label || attrs.name }}
     </template>
-  </BkOption>
-  <BkOption
+  </DbOption>
+  <DbOption
     v-else
     v-cursor
     class="auth-option-disabled"
@@ -24,7 +24,7 @@
         {{ attrs.label || attrs.name }}
       </template>
     </div>
-  </BkOption>
+  </DbOption>
 </template>
 <script setup lang="ts">
   import { useAttrs, useSlots } from 'vue';

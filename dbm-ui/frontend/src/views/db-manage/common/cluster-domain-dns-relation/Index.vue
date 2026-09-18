@@ -41,39 +41,39 @@
             <template #default="{ row: rowData }: { row: ClusterEntryInfo }">
               {{ rowData.cluster_entry_type }}
               <template v-if="['master_entry', 'proxy_entry'].includes(rowData.role)">
-                <BkTag
+                <DbTag
                   v-if="rowData.cluster_entry_type === 'polaris'"
                   class="entry-polary-tag"
                   size="small"
                   theme="success">
                   {{ t('北极星') }}
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-else-if="['clb', 'clbDns'].includes(rowData.cluster_entry_type)"
                   class="entry-clb-tag"
                   size="small"
                   theme="success">
                   CLB
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-else
                   size="small"
                   theme="info">
                   {{ t('主') }}
-                </BkTag>
+                </DbTag>
               </template>
-              <BkTag
+              <DbTag
                 v-if="rowData.role === 'slave_entry'"
                 size="small"
                 theme="success">
                 {{ t('从') }}
-              </BkTag>
-              <BkTag
+              </DbTag>
+              <DbTag
                 v-if="rowData.role === 'node_entry'"
                 size="small"
                 theme="success">
                 Nodes
-              </BkTag>
+              </DbTag>
               {{ rowData.entry }}
             </template>
           </TableColumn>

@@ -22,9 +22,9 @@
         【
         <span class="name">{{ data.nameDisplay }}</span>
         】
-        <BkTag theme="info">
+        <DbTag theme="info">
           {{ t('业务') }}
-        </BkTag>
+        </DbTag>
       </div>
     </template>
     <div class="monitor-strategy-box">
@@ -128,7 +128,7 @@
             :label="t('告警组')"
             property="notifyTarget"
             required>
-            <BkSelect
+            <DbSelect
               v-model="formModel.notifyTarget"
               class="notify-select"
               collapse-tags
@@ -137,7 +137,7 @@
               multiple-mode="tag"
               @clear="handleNotifyTargetClear">
               <template #tag="{ selected }">
-                <BkTag
+                <DbTag
                   v-for="item in selected"
                   :key="item"
                   v-bk-tooltips="{
@@ -152,15 +152,15 @@
                       type="yonghuzu" />
                   </template>
                   {{ alarmGroupNameMap[item.value] }}
-                </BkTag>
+                </DbTag>
               </template>
-              <BkOption
+              <DbOption
                 v-for="item in alarmGroupList"
                 :key="item.value"
                 :disabled="item.value === bizDefaultGroupId"
                 :label="item.label"
                 :value="item.value" />
-            </BkSelect>
+            </DbSelect>
           </DbFormItem>
           <VoiceNotice
             v-if="formModel.notifyTarget.length > 1"

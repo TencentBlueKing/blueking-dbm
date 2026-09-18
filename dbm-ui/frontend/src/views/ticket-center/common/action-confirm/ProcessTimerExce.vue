@@ -9,12 +9,12 @@
     <template #content>
       <div>
         {{ t('操作：') }}
-        <BkTag
+        <DbTag
           class="mr-4"
           theme="success"
           type="stroke">
           {{ t('立即执行') }}
-        </BkTag>
+        </DbTag>
         <span>{{ t('确定后，单据将跳过定时步骤立即进入下一步骤') }}</span>
       </div>
     </template>

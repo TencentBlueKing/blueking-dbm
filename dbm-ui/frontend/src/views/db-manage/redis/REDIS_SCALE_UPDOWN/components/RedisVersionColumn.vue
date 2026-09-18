@@ -25,13 +25,13 @@
       <template #option="{ item }">
         <div>
           {{ item.label }}
-          <BkTag
+          <DbTag
             v-if="item.value === cluster.major_version"
             class="ml-4"
             size="small"
             theme="info">
             {{ t('当前版本') }}
-          </BkTag>
+          </DbTag>
         </div>
       </template>
     </EditableSelect>

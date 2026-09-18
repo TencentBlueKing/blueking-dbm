@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     class="db-day-quick-select"
     :clearable="clearable"
     :filterable="false"
     :placeholder="t('请选择时间范围')">
-    <BkOption
+    <DbOption
       v-for="item in selectOptionList"
       :id="item.value"
       :key="item.value"
       :name="item.label" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script setup lang="ts">

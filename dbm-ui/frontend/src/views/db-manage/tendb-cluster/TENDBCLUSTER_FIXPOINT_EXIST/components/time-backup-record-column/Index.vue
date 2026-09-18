@@ -78,13 +78,13 @@
         <div class="content-label">{{ t('备份类型 ：') }}</div>
         <div class="content-value">
           <span v-if="backupRecord.backup_type_list?.length < 1">--</span>
-          <BkTag
+          <DbTag
             v-for="item in backupRecord.backup_type_list"
             v-else
             :key="item"
             :theme="backupTypeMap[item].theme">
             {{ backupTypeMap[item].label }}
-          </BkTag>
+          </DbTag>
         </div>
         <div class="content-label">{{ t('备份范围 ：') }}</div>
         <div class="content-value">

@@ -139,12 +139,12 @@
               :width="250">
               <template #title>
                 <span>{{ t('主 DBA') }}</span>
-                <!-- <BkTag
+                <!-- <DbTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                </BkTag> -->
+                </DbTag> -->
               </template>
               <template #default="{ row, rowIndex }: { row: BizDbaModel; rowIndex: number }">
                 <BkFormItem
@@ -202,12 +202,12 @@
               :width="250">
               <template #title>
                 <span>{{ t('备 DBA') }}</span>
-                <!-- <BkTag
+                <!-- <DbTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                </BkTag> -->
+                </DbTag> -->
               </template>
               <template #default="{ row, rowIndex }: { row: BizDbaModel; rowIndex: number }">
                 <BkFormItem
@@ -247,12 +247,12 @@
               :min-width="300">
               <template #title>
                 <span>{{ t('二线 DBA') }}</span>
-                <!-- <BkTag
+                <!-- <DbTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                </BkTag> -->
+                </DbTag> -->
               </template>
               <template #default="{ row }: { row: BizDbaModel }">
                 <BkFormItem v-if="row.is_edit">
@@ -290,19 +290,19 @@
               :title="t('状态')"
               width="100">
               <template #default="{ row }: { row: BizDbaModel }">
-                <BkTag
+                <DbTag
                   v-if="row.isAssigned"
                   theme="success">
                   {{ t('已分配') }}
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-else-if="!defaultUserData"
                   theme="danger">
                   {{ t('默认配置缺失') }}
-                </BkTag>
-                <BkTag v-else>
+                </DbTag>
+                <DbTag v-else>
                   {{ t('待分配') }}
-                </BkTag>
+                </DbTag>
               </template>
             </TableColumn>
             <TableColumn
@@ -362,12 +362,13 @@
             </TableColumn>
           </PrimaryTable>
           <div class="table-footer">
-            <BkPagination
+            <DbPagination
               v-bind="pagination"
               :layout="['total', 'limit', 'list']"
+              :model-value="pagination.current"
               @change="handlePageValueChange"
               @limit-change="handlePageLimitChange">
-            </BkPagination>
+            </DbPagination>
           </div>
         </BkForm>
       </BkLoading>
@@ -854,7 +855,7 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      .bk-pagination {
+      .dbm-pagination {
         width: 100%;
 
         // & > .is-last {

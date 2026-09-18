@@ -50,11 +50,11 @@
       :title="t('构造 DB 名')">
       <template #default="{ row }: { row: FixpointLogModel }">
         <template v-if="row.databases.length > 0">
-          <BkTag
+          <DbTag
             v-for="item in row.databases"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
         <span v-else>--</span>
       </template>
@@ -65,11 +65,11 @@
       :title="t('忽略 DB 名')">
       <template #default="{ row }: { row: FixpointLogModel }">
         <template v-if="row.databases_ignore.length > 0">
-          <BkTag
+          <DbTag
             v-for="item in row.databases_ignore"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
         <span v-else>--</span>
       </template>
@@ -80,11 +80,11 @@
       :title="t('构造表名')">
       <template #default="{ row }: { row: FixpointLogModel }">
         <template v-if="row.tables.length > 0">
-          <BkTag
+          <DbTag
             v-for="item in row.tables"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
         <span v-else>--</span>
       </template>
@@ -95,11 +95,11 @@
       :title="t('忽略表名')">
       <template #default="{ row }: { row: FixpointLogModel }">
         <template v-if="row.tables_ignore.length > 0">
-          <BkTag
+          <DbTag
             v-for="item in row.tables_ignore"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
         <span v-else>--</span>
       </template>

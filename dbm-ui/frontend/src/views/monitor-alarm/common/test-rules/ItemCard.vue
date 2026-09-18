@@ -22,7 +22,7 @@
           class="level-dot"
           :class="[levelClass]"
           :style="{ backgroundColor: levelColor }" /> -->
-        <BkSelect
+        <DbSelect
           v-model="localLevel"
           behavior="simplicity"
           class="level-select"
@@ -38,7 +38,7 @@
                 :type="currentOptionLevelInfo.icon" />
             </div>
           </template>
-          <BkOption
+          <DbOption
             v-for="option in availableLevelOptions"
             :key="option.value"
             :disabled="option.disabled"
@@ -56,8 +56,8 @@
                 :type="option.icon" />
               {{ option.label }}
             </div>
-          </BkOption>
-        </BkSelect>
+          </DbOption>
+        </DbSelect>
       </div>
       <div class="form-row">
         <span class="form-label">{{ t('告警条件') }}</span>
@@ -77,7 +77,7 @@
                 {{ condition.conditionRelation }}
               </div>
             </template>
-            <BkSelect
+            <DbSelect
               v-model="condition.operator"
               class="operator-select"
               :clearable="false"
@@ -90,12 +90,12 @@
                   {{ selected?.[0]?.label }}
                 </div>
               </template>
-              <BkOption
+              <DbOption
                 v-for="op in operatorOptions"
                 :key="op.value"
                 :label="op.label"
                 :value="op.value" />
-            </BkSelect>
+            </DbSelect>
             <BkInput
               v-model="condition.value"
               behavior="simplicity"

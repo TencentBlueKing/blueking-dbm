@@ -29,13 +29,13 @@
             class="option-name">
             {{ item.label }}
           </div>
-          <BkTag
+          <DbTag
             v-if="item.value === suggestVersion"
             class="ml-4"
             size="small"
             theme="info">
             {{ t('推荐') }}
-          </BkTag>
+          </DbTag>
         </div>
       </template>
     </EditableSelect>

@@ -1,21 +1,21 @@
 <template>
   <div class="notice-interval">
     <div class="notice-interval-row">
-      <BkSelect
+      <DbSelect
         v-model="mode"
         behavior="simplicity"
         class="interval-select"
         :clearable="false"
         @change="handleChange">
-        <BkOption
+        <DbOption
           key="standard"
           :label="t('固定')"
           value="standard" />
-        <BkOption
+        <DbOption
           key="increasing"
           :label="t('递增')"
           value="increasing" />
-      </BkSelect>
+      </DbSelect>
       <span class="interval-text">{{ t('间隔') }}</span>
       <BkInput
         v-model="interval"

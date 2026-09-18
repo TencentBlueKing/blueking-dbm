@@ -13,11 +13,11 @@
 
 <template>
   <Teleport to="#dbContentTitleAppend">
-    <BkTag
+    <DbTag
       class="ml-8"
       theme="info">
       {{ t('全局') }}
-    </BkTag>
+    </DbTag>
   </Teleport>
   <DbTab v-model="activeTab" />
   <List :db-type="activeTab" />

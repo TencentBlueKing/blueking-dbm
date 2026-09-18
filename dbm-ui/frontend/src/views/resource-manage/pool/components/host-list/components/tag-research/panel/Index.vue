@@ -4,7 +4,7 @@
       class="funnel-icon"
       type="funnel" />
     <span>{{ t('标签搜索项：') }}</span>
-    <BkTag
+    <DbTag
       v-for="item in modelValue"
       :key="item.id"
       closable
@@ -13,7 +13,7 @@
         class="mr-2"
         type="tag-3" />
       <span>{{ item.value.value }}</span>
-    </BkTag>
+    </DbTag>
   </div>
 </template>
 

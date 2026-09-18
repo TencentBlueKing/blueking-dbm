@@ -11,17 +11,17 @@
         class="connect-select mb-16"
         keypath="同级别的各算法之间是{0}的关系"
         tag="div">
-        <BkSelect
+        <DbSelect
           v-model="modelValue"
           class="ml-4 mr-4"
           :clearable="false"
           style="width: 80px">
-          <BkOption
+          <DbOption
             v-for="opt in algorithmRelationship"
             :id="opt.id"
             :key="opt.id"
             :name="opt.name" />
-        </BkSelect>
+        </DbSelect>
       </I18nT> -->
       <div
         v-for="(rule, index) in localRules"

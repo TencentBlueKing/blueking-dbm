@@ -22,9 +22,9 @@
     <template #header>
       <span>
         {{ titleMap[pageType] }}
-        <BkTag theme="info">
+        <DbTag theme="info">
           {{ t('平台') }}
-        </BkTag>
+        </DbTag>
       </span>
     </template>
     <div class="rotation-edit-rule">

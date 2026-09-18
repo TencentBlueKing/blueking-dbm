@@ -62,7 +62,7 @@
             content: t('不支持修改'),
             disabled: !isEdit,
           }"> -->
-        <BkTag
+        <DbTag
           v-for="(item, index) in modelValue"
           :key="`${item}-${index}`"
           closable
@@ -73,7 +73,7 @@
               ? `${item}（${deviceListMap[item]?.cpu}${t('核')}${deviceListMap[item]?.mem}G）`
               : `${item}`
           }}
-        </BkTag>
+        </DbTag>
         <!-- </div> -->
       </BkFormItem>
     </div>

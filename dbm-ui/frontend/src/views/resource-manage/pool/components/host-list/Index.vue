@@ -197,41 +197,41 @@
               <div class="resource-owner-tips">
                 <strong>{{ t('所属业务') }}：</strong>
                 <div class="resource-owner-tips-values mb-10">
-                  <BkTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
+                  <DbTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
                     {{ row.forBizDisplay }}
-                  </BkTag>
+                  </DbTag>
                 </div>
                 <strong>{{ t('所属DB') }}</strong>
                 <div class="resource-owner-tips-values mb-10">
-                  <BkTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
+                  <DbTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
                     {{ row.resourceTypeDisplay }}
-                  </BkTag>
+                  </DbTag>
                 </div>
                 <template v-if="row.labels.length > 0">
                   <strong>{{ t('资源标签') }}</strong>
                   <div class="resource-owner-tips-values mb-10">
-                    <BkTag
+                    <DbTag
                       v-for="item in row.labels"
                       :key="item.name">
                       {{ item.name }}
-                    </BkTag>
+                    </DbTag>
                   </div>
                 </template>
               </div>
             </template>
             <div class="resource-owner-wrapper">
               <div class="resource-owner">
-                <BkTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
+                <DbTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
                   {{ t('所属业务') }} : {{ row.forBizDisplay }}
-                </BkTag>
-                <BkTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
+                </DbTag>
+                <DbTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
                   {{ t('所属DB') }} : {{ row.resourceTypeDisplay }}
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-for="item in row.labels"
                   :key="item.name">
                   {{ item.name }}
-                </BkTag>
+                </DbTag>
               </div>
               <AuthButton
                 v-if="props.type !== ResourcePool.public"

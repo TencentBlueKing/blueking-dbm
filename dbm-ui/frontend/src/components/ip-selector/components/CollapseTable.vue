@@ -63,7 +63,7 @@
           row-key="id">
           <slot />
         </PrimaryTable>
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           :model-value="pagination.current"
@@ -181,13 +181,13 @@
         background-color: #f5f7fa !important;
       }
 
-      :deep(.bk-pagination-small-list) {
+      :deep(.dbm-pagination-small-list) {
         order: 3;
         flex: 1;
         justify-content: flex-end;
       }
 
-      :deep(.bk-pagination-limit-select) {
+      :deep(.dbm-pagination-limit-select) {
         .bk-input {
           border-color: #f0f1f5;
         }

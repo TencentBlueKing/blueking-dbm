@@ -101,11 +101,11 @@
             }: {
               row: BackupLogRecordModel & { backup_type_display: { label: string; theme: 'warning' | 'info' } };
             }">
-            <BkTag
+            <DbTag
               v-if="row?.backup_type_display?.theme"
               :theme="row.backup_type_display.theme">
               {{ row.backup_type_display.label }}
-            </BkTag>
+            </DbTag>
             <span v-else>--</span>
           </template>
         </TableColumn>
@@ -179,7 +179,7 @@
       <div
         v-if="pagination.count > 0"
         class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           :model-value="pagination.current"

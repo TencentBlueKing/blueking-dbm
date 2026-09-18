@@ -37,16 +37,16 @@
           :label="t('目标版本')"
           property="newVersion"
           required>
-          <BkSelect
+          <DbSelect
             v-model="formData.newVersion"
             :loading="isVersionLoading"
             :placeholder="t('请选择目标版本')">
-            <BkOption
+            <DbOption
               v-for="version in versionList"
               :key="version"
               :label="version"
               :value="version" />
-          </BkSelect>
+          </DbSelect>
         </BkFormItem>
       </BkForm>
       <div class="upgrade-hint">

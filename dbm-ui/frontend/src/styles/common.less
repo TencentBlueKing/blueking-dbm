@@ -249,7 +249,8 @@
 .bk-table,
 .bk-form-label,
 .bk-checkbox,
-.bk-select {
+.bk-select,
+.dbm-select {
   font-size: @font-size-mini;
 }
 
@@ -491,9 +492,11 @@
   }
 }
 
-// 处理tag粘在一起的问题
-.bk-tag {
-  & ~ .bk-tag {
+// 处理tag粘在一起的问题（.bk-tag 留给 editable-table 仍在用的 bkui Tag）
+.bk-tag,
+.dbm-tag {
+  & ~ .bk-tag,
+  & ~ .dbm-tag {
     margin-left: 4px;
   }
 }

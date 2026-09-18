@@ -153,13 +153,13 @@
               {{ row.spec_name }}
             </AuthButton>
             <template #append>
-              <BkTag
+              <DbTag
                 v-if="row.isRecentSeconds"
                 class="ml-4"
                 size="small"
                 theme="success">
                 NEW
-              </BkTag>
+              </DbTag>
             </template>
           </TextOverflowLayout>
         </template>
@@ -347,11 +347,11 @@
       <template v-else>
         {{ t('新增规格') }}
       </template>
-      <BkTag
+      <DbTag
         class="ml-4"
         theme="info">
         {{ dbTypeLabel }}
-      </BkTag>
+      </DbTag>
     </template>
     <SpecOperaion
       :key="specOperationData?.spec_id"
@@ -661,12 +661,12 @@
     }
 
     :deep(.machine-info) {
-      .bk-tag {
+      .dbm-tag {
         &:hover {
           background-color: #f0f1f5;
         }
 
-        &.bk-tag-info {
+        &.is-info {
           background-color: #edf4ff;
         }
       }

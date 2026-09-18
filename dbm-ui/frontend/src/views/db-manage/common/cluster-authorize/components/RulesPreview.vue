@@ -43,9 +43,9 @@
             </p>
           </div>
           <div v-if="rowData.ips.length > 10">
-            <BkTag size="small">
+            <DbTag size="small">
               {{ t('共n个', [rowData.ips.length]) }}
-            </BkTag>
+            </DbTag>
             <BkButton
               class="more-btn"
               text
@@ -88,15 +88,15 @@
               v-for="item in showAllDb ? rowData.accessDbs : rowData.accessDbs.slice(0, 10)"
               :key="item"
               class="mb-6">
-              <BkTag>
+              <DbTag>
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </p>
           </div>
           <div v-if="rowData.accessDbs.length > 10">
-            <BkTag size="small">
+            <DbTag size="small">
               {{ t('共n个', [rowData.accessDbs.length]) }}
-            </BkTag>
+            </DbTag>
             <BkButton
               class="more-btn"
               text

@@ -40,16 +40,16 @@
               v-if="!item.cluster.id"
               :placeholder="t('自动生成')" />
             <EditableBlock v-else>
-              <BkTag
+              <DbTag
                 v-if="item.cluster.cluster_type === ClusterTypes.MONGO_REPLICA_SET"
                 theme="info">
                 {{ t('副本集') }}
-              </BkTag>
-              <BkTag
+              </DbTag>
+              <DbTag
                 v-else-if="item.cluster.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER"
                 theme="success">
                 {{ t('分片集群') }}
-              </BkTag>
+              </DbTag>
               <span v-else>--</span>
             </EditableBlock>
           </EditableColumn>

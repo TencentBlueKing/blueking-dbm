@@ -16,7 +16,7 @@
     :label="t('分组名')"
     property="details.group_id"
     required>
-    <BkSelect
+    <DbSelect
       class="item-input"
       :clearable="false"
       filterable
@@ -25,7 +25,7 @@
       :model-value="localGroupId"
       @change="handleChangeId"
       @toggle="handleToggleSelector">
-      <BkOption
+      <DbOption
         v-for="item in groupList"
         :key="item.id"
         :label="item.name"
@@ -83,7 +83,7 @@
           </BkForm>
         </div>
       </template>
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 

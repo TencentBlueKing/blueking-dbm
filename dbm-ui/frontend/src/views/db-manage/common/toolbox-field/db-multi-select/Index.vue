@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     :clearable="!disabled"
     :disabled="disabled"
     filterable
@@ -23,12 +23,12 @@
     multiple-mode="tag"
     :placeholder="placeholder"
     @change="handleChange">
-    <BkOption
+    <DbOption
       v-for="option in options"
       :key="option.value"
       :label="option.label"
       :value="option.value" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script lang="ts" setup>

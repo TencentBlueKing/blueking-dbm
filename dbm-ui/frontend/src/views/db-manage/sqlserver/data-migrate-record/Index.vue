@@ -35,11 +35,11 @@
           :title="t('迁移 DB')"
           :width="180">
           <template #default="{ row: rowData }: { row: MigrateRecordModel }">
-            <BkTag
+            <DbTag
               v-for="item in rowData.tagetDb"
               :key="item">
               {{ item }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
         <TableColumn
@@ -47,11 +47,11 @@
           :title="t('忽略 DB')"
           :width="180">
           <template #default="{ row: rowData }: { row: MigrateRecordModel }">
-            <BkTag
+            <DbTag
               v-for="item in rowData.ignore_db_list"
               :key="item">
               {{ item }}
-            </BkTag>
+            </DbTag>
             <span v-if="rowData.ignore_db_list.length < 1">--</span>
           </template>
         </TableColumn>

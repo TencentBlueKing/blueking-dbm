@@ -41,7 +41,7 @@
         <div
           v-if="pagination.count >= 10"
           class="table-footer">
-          <BkPagination
+          <DbPagination
             v-bind="pagination"
             :model-value="pagination.current"
             @change="handleChangePage"

@@ -13,7 +13,7 @@
 
 <template>
   <!-- 下拉单选 (ENUM) -->
-  <BkSelect
+  <DbSelect
     v-if="typeSub === ConstraintType.ENUM"
     ref="enumSelectRef"
     :clearable="false"
@@ -21,15 +21,15 @@
     :model-value="modelValue"
     :style="{ flex: 1 }"
     @change="handleChange">
-    <BkOption
+    <DbOption
       v-for="opt in options"
       :key="opt"
       :label="opt"
       :value="opt" />
-  </BkSelect>
+  </DbSelect>
 
   <!-- 下拉多选 (ENUMS) -->
-  <BkSelect
+  <DbSelect
     v-else-if="typeSub === ConstraintType.ENUMS"
     ref="enumSMultipleSelectRef"
     :clearable="false"
@@ -38,12 +38,12 @@
     multiple
     :style="{ flex: 1 }"
     @change="handleEnumSChange">
-    <BkOption
+    <DbOption
       v-for="opt in options"
       :key="opt"
       :label="opt"
       :value="opt" />
-  </BkSelect>
+  </DbSelect>
 
   <!-- 数字输入框 (RANGE) -->
   <BkInput

@@ -1,12 +1,11 @@
 <template>
   <div class="tag-value-input-main">
-    <BkTagInput
-      allow-auto-match
+    <DbTagInput
       allow-create
       class="value-input"
       :class="{ 'is-not-valid': !isValueVerifyPass }"
-      has-delete-icon
       :model-value="modelValue"
+      multiple
       :placeholder="t('请输入标签值（多个标签值以逗号、分号、竖线分割，回车完成输入）')"
       @change="checkInputValue" />
     <DbIcon
@@ -85,12 +84,12 @@
     position: relative;
 
     .is-not-valid {
-      :deep(.bk-tag-input-trigger) {
+      :deep(.db-tag-input-panel) {
         border-color: #ea3636;
+      }
 
-        .clear-icon {
-          display: none !important;
-        }
+      :deep(.db-tag-input-clear) {
+        display: none !important;
       }
     }
 

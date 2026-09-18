@@ -62,21 +62,21 @@
         :min-width="160"
         :title="t('屏蔽类型')">
         <template #default="{ row }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-if="row.category === 'alert'"
             theme="info">
             {{ t('基于事件屏蔽') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else-if="row.category === 'dimension'"
             theme="danger">
             {{ t('基于维度屏蔽') }}
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-else
             theme="success">
             {{ t('基于策略屏蔽') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn

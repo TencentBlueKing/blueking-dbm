@@ -213,7 +213,7 @@
             </template>
           </PrimaryTable>
           <div class="table-footer">
-            <BkPagination
+            <DbPagination
               v-bind="pagination"
               :layout="['total', 'limit', 'list']"
               :model-value="pagination.current"

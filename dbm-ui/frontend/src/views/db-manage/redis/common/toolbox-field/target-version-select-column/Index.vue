@@ -28,13 +28,13 @@
         <div class="edit-spec-column-spec-item">
           <span class="text-overflow">
             {{ item.label }}
-            <BkTag
+            <DbTag
               v-if="isCurrentVersion(item.label)"
               class="ml-4"
               size="small"
               theme="info">
               {{ t('当前版本') }}
-            </BkTag>
+            </DbTag>
           </span>
         </div>
       </BkOption>

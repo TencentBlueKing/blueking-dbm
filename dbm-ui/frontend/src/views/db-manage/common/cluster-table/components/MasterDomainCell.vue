@@ -26,21 +26,21 @@
           class="ml-4"
           :data="data.operations"
           @toogle-show="handlePopoverShow" />
-        <BkTag
+        <DbTag
           v-if="data.isOffline"
           class="ml-4"
           size="small"
           theme="warning"
           type="stroke">
           {{ t('已禁用') }}
-        </BkTag>
-        <BkTag
+        </DbTag>
+        <DbTag
           v-if="data.isNew"
           class="ml-4"
           size="small"
           theme="success">
           NEW
-        </BkTag>
+        </DbTag>
         <div
           v-if="isSubscribed"
           v-bk-tooltips="t('查看告警订阅内容')"

@@ -139,7 +139,7 @@
       <div
         v-if="pagination.count > 0"
         class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           :model-value="pagination.current"

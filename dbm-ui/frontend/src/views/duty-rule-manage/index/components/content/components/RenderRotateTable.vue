@@ -47,11 +47,11 @@
       :title="t('轮值人员')">
       <template #default="{ row: rowData }: { row: RowData }">
         <div class="peoples">
-          <BkTag
+          <DbTag
             v-for="item in rowData.peoples"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </div>
       </template>
     </TableColumn>

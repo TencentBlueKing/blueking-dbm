@@ -55,12 +55,12 @@
           :is-filter="isSearching"
           :selected-list="selectedList">
           <template #append="{ data }: { data: TendbhaInstanceModel }">
-            <BkTag
+            <DbTag
               v-if="data.role === 'backend_slave' && data.is_stand_by"
               class="cluster-specific-flag ml-4"
               size="small">
               Standby
-            </BkTag>
+            </DbTag>
           </template>
         </InstanceAddressColumn>
       </template>

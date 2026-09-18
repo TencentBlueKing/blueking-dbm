@@ -69,12 +69,12 @@
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('主 DBA') }}</span>
-                <!-- <BkTag
+                <!-- <DbTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                </BkTag> -->
+                </DbTag> -->
                 <BatchEdit
                   v-if="isBatchEdit"
                   class="ml-4"
@@ -143,12 +143,12 @@
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('备 DBA') }}</span>
-                <!-- <BkTag
+                <!-- <DbTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                </BkTag> -->
+                </DbTag> -->
                 <BatchEdit
                   v-if="isBatchEdit"
                   class="ml-4"
@@ -200,12 +200,12 @@
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('二线 DBA') }}</span>
-                <!-- <BkTag
+                <!-- <DbTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                </BkTag> -->
+                </DbTag> -->
                 <BatchEdit
                   v-if="isBatchEdit"
                   class="ml-4"
@@ -246,22 +246,22 @@
             :title="t('状态')"
             width="100">
             <template #default="{ row }: { row: IRowData }">
-              <BkTag
+              <DbTag
                 v-if="row.users.length"
                 theme="success">
                 {{ t('已分配') }}
-              </BkTag>
+              </DbTag>
               <template v-else>
-                <BkTag
+                <DbTag
                   v-if="defaultAdminsDataMap[row.db_type as DBTypes].users.length > 0"
                   theme="warning">
                   {{ t('待分配') }}
-                </BkTag>
-                <BkTag
+                </DbTag>
+                <DbTag
                   v-else
                   theme="danger">
                   {{ t('默认配置缺失') }}
-                </BkTag>
+                </DbTag>
               </template>
             </template>
           </TableColumn>

@@ -58,9 +58,9 @@
           class="apply-collapse">
           <template #title>
             {{ item.name }}
-            <BkTag class="apply-collapse-count">
+            <DbTag class="apply-collapse-count">
               {{ item.children.length }}
-            </BkTag>
+            </DbTag>
           </template>
           <div class="apply-collapse-content">
             <div
