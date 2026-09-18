@@ -3,16 +3,16 @@
     :label="t('字符集')"
     property="charset"
     required>
-    <BkSelect
+    <DbSelect
       v-model="modelValue"
       style="width: 360px">
-      <BkOption
+      <DbOption
         v-for="item in charsetList"
         :key="item"
         :value="item">
         {{ item }}
-      </BkOption>
-    </BkSelect>
+      </DbOption>
+    </DbSelect>
   </BkFormItem>
 </template>
 <script setup lang="ts">
@@ -38,7 +38,5 @@
   const mysqlCharsetList = ['default', 'utf8mb4', 'utf8', 'latin1', 'gbk', 'gb2312'];
   const sqlserverCharsetList = ['GBK'];
 
-  const charsetList = computed(() =>
-    props.dbType === DBTypes.SQLSERVER ? sqlserverCharsetList : mysqlCharsetList,
-  );
+  const charsetList = computed(() => (props.dbType === DBTypes.SQLSERVER ? sqlserverCharsetList : mysqlCharsetList));
 </script>

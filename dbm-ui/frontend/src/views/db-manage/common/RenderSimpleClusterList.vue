@@ -38,11 +38,10 @@
         </span>
       </div>
     </BkLoading>
-    <BkPagination
+    <DbPagination
       v-if="tableData.length > 0"
       v-model="current"
-      align="center"
-      class="mt-16"
+      class="mt-16 cluster-list-pagination"
       :count="count"
       :limit="10"
       :show-limit="false"
@@ -192,6 +191,14 @@
           background: #fff;
           content: '';
         }
+      }
+    }
+
+    .cluster-list-pagination {
+      justify-content: center;
+
+      .is-last {
+        margin-left: 0;
       }
     }
   }

@@ -578,7 +578,7 @@
       height: 570px;
       padding: 0 24px;
 
-      :deep(.bk-pagination-small-list) {
+      :deep(.dbm-pagination-small-list) {
         order: 3;
         flex: 1;
         justify-content: flex-end;

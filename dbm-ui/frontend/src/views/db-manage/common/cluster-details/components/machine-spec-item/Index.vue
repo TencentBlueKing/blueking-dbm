@@ -10,16 +10,15 @@
       :class="{ 'machine-spec-item-unbound': isUnbound, 'machine-spec-item-disabled': isDisabled }">
       × {{ spec.count }}
     </span>
-    <BkTag
+    <DbTag
       v-if="isDisabled"
       class="ml-4"
       size="small">
       {{ t('已停用') }}
-    </BkTag>
+    </DbTag>
   </span>
 </template>
 <script setup lang="ts">
-  import BkTag from 'bkui-vue/lib/tag';
   import { useI18n } from 'vue-i18n';
 
   import type { MachineSpec } from '@services/types';

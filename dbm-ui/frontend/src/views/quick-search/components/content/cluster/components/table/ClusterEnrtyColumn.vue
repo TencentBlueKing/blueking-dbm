@@ -14,30 +14,30 @@
             high-light-color="#FF9C01"
             :keyword="keyword"
             :text="entryItem.entry" />
-          <BkTag
+          <DbTag
             v-if="['clb', 'clbDns'].includes(entryItem.cluster_entry_type)"
             class="redis-cluster-clb"
             size="small">
             CLB
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-if="entryItem.cluster_entry_type === 'polaris'"
             class="redis-cluster-polary"
             size="small">
             {{ t('北极星') }}
-          </BkTag>
-          <!-- <BkTag
+          </DbTag>
+          <!-- <DbTag
             v-if="entryItem.role === 'master_entry'"
             size="small"
             theme="info">
             {{ t('主') }}
-          </BkTag> -->
-          <BkTag
+          </DbTag> -->
+          <DbTag
             v-if="entryItem.role === 'slave_entry'"
             size="small"
             theme="success">
             {{ t('从') }}
-          </BkTag>
+          </DbTag>
         </div>
         <BkButton
           v-if="rowData.dispalyEntryList.length > 3"

@@ -16,9 +16,9 @@
     v-if="renderData"
     class="render-action-tag">
     <span ref="rootRef">
-      <BkTag :theme="renderData.theme">
+      <DbTag :theme="renderData.theme">
         {{ renderData.text }}
-      </BkTag>
+      </DbTag>
     </span>
     <I18nT
       ref="popRef"

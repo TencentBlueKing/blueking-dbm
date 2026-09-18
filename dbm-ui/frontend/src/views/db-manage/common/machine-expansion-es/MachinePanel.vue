@@ -15,11 +15,11 @@
   <div class="es-cluster-expansion-node-box">
     <div class="header-box">
       <span class="header-label">{{ data.label }}</span>
-      <BkTag
+      <DbTag
         class="ml-8"
         theme="info">
         {{ data.tagText }}
-      </BkTag>
+      </DbTag>
     </div>
     <BkForm form-type="vertical">
       <BkFormItem>

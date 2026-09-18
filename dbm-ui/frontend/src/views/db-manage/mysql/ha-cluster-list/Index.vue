@@ -270,12 +270,12 @@
           :selected-list="selectedList"
           @go-detail="handleToDetails">
           <template #nodeTag="{ data }">
-            <BkTag
+            <DbTag
               v-if="data.is_stand_by"
               class="is-stand-by"
               size="small">
               Standby
-            </BkTag>
+            </DbTag>
           </template>
         </RoleColumn>
       </template>

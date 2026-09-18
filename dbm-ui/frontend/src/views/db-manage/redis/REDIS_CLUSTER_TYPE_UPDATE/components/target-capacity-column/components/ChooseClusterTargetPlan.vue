@@ -51,17 +51,17 @@
           <div class="panel-title">{{ t('资源标签') }}：</div>
           <div class="panel-content">
             <template v-if="specInfo.labels.length">
-              <BkTag
+              <DbTag
                 v-for="labelItem in specInfo.labels"
                 :key="labelItem.id">
                 {{ labelItem.value }}
-              </BkTag>
+              </DbTag>
             </template>
-            <BkTag
+            <DbTag
               v-else
               theme="success">
               {{ t('通用无标签') }}
-            </BkTag>
+            </DbTag>
           </div>
         </div>
       </div>

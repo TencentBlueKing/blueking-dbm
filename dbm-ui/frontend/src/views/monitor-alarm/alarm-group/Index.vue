@@ -47,19 +47,19 @@
         <template #default="{ row }: { row: NoticGroupModel }">
           <TextOverflowLayout>
             <template #append>
-              <BkTag
+              <DbTag
                 v-if="row.is_built_in"
                 class="ml-4"
                 size="small">
                 {{ t('内置') }}
-              </BkTag>
-              <BkTag
+              </DbTag>
+              <DbTag
                 v-if="row.isNew"
                 class="ml-4"
                 size="small"
                 theme="success">
                 NEW
-              </BkTag>
+              </DbTag>
             </template>
             <template #default>
               <BkButton
@@ -128,11 +128,11 @@
                     @click="toRelatedPolicy(row.id, dbType)">
                     {{ DBTypeInfos[dbType as DBTypes].name }}
                   </BkButton>
-                  <BkTag
+                  <DbTag
                     radius="50%"
                     size="small">
                     {{ count }}
-                  </BkTag>
+                  </DbTag>
                 </div>
               </div>
             </template>

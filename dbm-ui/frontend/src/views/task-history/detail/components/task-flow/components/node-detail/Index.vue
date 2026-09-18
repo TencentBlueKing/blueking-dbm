@@ -32,33 +32,33 @@
             {{ nodeData.name }}
           </span>
           <div class="log-header-info">
-            <BkTag
+            <DbTag
               class="ml-5 mr-5"
               :theme="statusInfo.theme">
               {{ statusInfo.text }}
-            </BkTag>
+            </DbTag>
             <div
               v-if="STATUS_FAILED && nodeData.retry > 0"
               class="retry-display">
               <span class="display-text">{{ t('重试') }}</span>
               <span class="display-count">{{ nodeData.retry }}</span>
             </div>
-            <BkTag
+            <DbTag
               v-if="nodeData.error_ignorable || nodeData.skip"
               class="ml-4 mr-4"
               style="background: #7cb560"
               theme="success"
               type="filled">
               {{ nodeData.error_ignorable ? t('失败自动跳过') : t('失败手动跳过') }}
-            </BkTag>
-            <BkTag>
+            </DbTag>
+            <DbTag>
               {{ t('耗时') }}
               <span class="mr-4">:</span>
               <CostTimer
                 :is-timing="STATUS_RUNNING"
                 :start-time="nodeData.started_at"
                 :value="costTime" />
-            </BkTag>
+            </DbTag>
           </div>
         </div>
         <template v-if="STATUS_FAILED">

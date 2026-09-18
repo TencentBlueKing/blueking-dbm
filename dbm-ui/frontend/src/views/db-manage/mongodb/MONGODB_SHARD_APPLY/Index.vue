@@ -45,18 +45,18 @@
             :label="t('MongoDB版本')"
             property="details.db_version"
             required>
-            <BkSelect
+            <DbSelect
               v-model="formData.details.db_version"
               class="item-input"
               filterable
               :input-search="false"
               :loading="getVersionsLoading">
-              <BkOption
+              <DbOption
                 v-for="versionItem in versionList || []"
                 :key="versionItem"
                 :label="versionItem"
                 :value="versionItem" />
-            </BkSelect>
+            </DbSelect>
           </BkFormItem>
           <BkFormItem
             :label="t('访问端口')"
@@ -644,7 +644,7 @@
         .bk-form-content {
           margin-left: 120px !important;
 
-          .bk-select,
+          .dbm-select,
           .dbm-input {
             width: 314px !important;
           }

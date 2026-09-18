@@ -22,12 +22,12 @@
     <template #header>
       <div class="header-box">
         <span style="margin-right: 7px">{{ t('【数据复制】传输详情') }}</span>
-        <BkTag> {{ t('源集群') }}：{{ data?.src_cluster }} </BkTag>
+        <DbTag> {{ t('源集群') }}：{{ data?.src_cluster }} </DbTag>
         <DbIcon
           style="margin-right: 6px; color: #979ba5"
           svg
           type="arrow-right" />
-        <BkTag> {{ t('目标集群') }}：{{ data?.dst_cluster }} </BkTag>
+        <DbTag> {{ t('目标集群') }}：{{ data?.dst_cluster }} </DbTag>
       </div>
     </template>
     <div class="main-box">
@@ -81,11 +81,11 @@
                     <span v-if="whiteRegexs.length === 0">--</span>
                     <template v-else>
                       <KeyTags :data="whiteRegexs" />
-                      <!-- <BkTag
+                      <!-- <DbTag
                         v-for="(tag, index) in whiteRegexs"
                         :key="index">
                         {{ tag }}
-                      </BkTag> -->
+                      </DbTag> -->
                     </template>
                   </div>
                 </div>
@@ -95,11 +95,11 @@
                     <span v-if="blackRegexs.length === 0">--</span>
                     <template v-else>
                       <KeyTags :data="blackRegexs" />
-                      <!-- <BkTag
+                      <!-- <DbTag
                         v-for="(tag, index) in blackRegexs"
                         :key="index">
                         {{ tag }}
-                      </BkTag> -->
+                      </DbTag> -->
                     </template>
                   </div>
                 </div>
@@ -519,7 +519,7 @@
           color: @title-color;
           flex: 1;
 
-          :deep(.bk-tag) {
+          :deep(.dbm-tag) {
             &:hover {
               background-color: #f0f1f5;
             }

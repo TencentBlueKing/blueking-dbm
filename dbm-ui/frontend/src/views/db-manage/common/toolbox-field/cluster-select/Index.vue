@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     filterable
     :loading="loading"
     :model-value="modelValue"
     :placeholder="placeholder"
     @change="handleChange">
-    <BkOption
+    <DbOption
       v-for="cluster in clusterList"
       :key="cluster.id"
       :label="cluster.master_domain"
       :value="cluster.id" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script lang="ts" setup>

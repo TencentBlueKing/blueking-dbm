@@ -17,7 +17,7 @@
       :loading="isLoading"
       style="height: 100%">
       <!-- <div class="content-top">
-        <BkSelect
+        <DbSelect
           v-model="formData.time"
           :list="timeList"
           :popover-min-width="200"
@@ -30,7 +30,7 @@
               <div>{{ selected?.[0]?.label || '' }}</div>
             </div>
           </template>
-        </BkSelect>
+        </DbSelect>
         <BkInput
           v-model="formData.searchKey"
           class="search-input ml-12"
@@ -315,7 +315,7 @@
       box-shadow: 0 2px 4px 0 #00000029;
       align-items: center;
 
-      .bk-select-trigger {
+      .dbm-select-trigger {
         &:hover {
           background-color: #fff3;
         }

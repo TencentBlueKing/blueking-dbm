@@ -17,7 +17,7 @@
     :width="960">
     <template #header>
       <span>{{ t('恢复后库名') }}</span>
-      <BkTag class="ml-8">{{ data.srcCluster.master_domain }}</BkTag>
+      <DbTag class="ml-8">{{ data.srcCluster.master_domain }}</DbTag>
     </template>
     <div class="edit-name-box">
       <ClusterDb

@@ -140,9 +140,9 @@
           :min-width="150"
           :title="t('评估结果')">
           <template #default="{ row }">
-            <BkTag :theme="suggestionMap[row.suggestion]">
+            <DbTag :theme="suggestionMap[row.suggestion]">
               {{ row.suggestion }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
       </PrimaryTable>

@@ -62,18 +62,18 @@
                   </AuthButton>
                   <!-- <template #append>
                     <div class="ml-4"></div>
-                    <BkTag
+                    <DbTag
                       v-if="row.isPolicyTypePromQL"
                       size="small"
                       style="color: #531dab; background: #f9f0ff">
                       PromQL
-                    </BkTag>
-                    <BkTag
+                    </DbTag>
+                    <DbTag
                       v-if="row.isPolicyTypeMulti"
                       size="small"
                       theme="success">
                       {{ t('多指标') }}
-                    </BkTag>
+                    </DbTag>
                   </template> -->
                 </TextOverflowLayout>
               </template>
@@ -134,11 +134,11 @@
               :width="220">
               <template #default="{ row }: { row: MonitorPolicyModel }">
                 <template v-if="row.timeRangesDisplay">
-                  <BkTag
+                  <DbTag
                     v-if="row.timeRangesDisplay.length === 0"
                     theme="info">
                     {{ t('全天') }}
-                  </BkTag>
+                  </DbTag>
                   <TagBlock
                     v-else
                     :data="row.timeRangesDisplay" />

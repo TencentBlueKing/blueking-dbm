@@ -28,12 +28,12 @@
       </TextOverflowLayout>
       <div>
         <span style="color: #979ba5">{{ row.node }}</span>
-        <!-- <BkTag
+        <!-- <DbTag
           class="ml-4"
           size="small"
           theme="info">
           Leader
-        </BkTag> -->
+        </DbTag> -->
       </div>
     </template>
   </TableColumn>

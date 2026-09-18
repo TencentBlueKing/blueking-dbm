@@ -13,7 +13,7 @@
       </template>
     </PrimaryTable>
     <div class="table-footer">
-      <BkPagination
+      <DbPagination
         v-bind="pagination"
         :model-value="pagination.current"
         @change="handleTableValueChange"
@@ -81,9 +81,9 @@
             cell: (_, { row }) => (
               <>
                 {props.options?.is_master ? (
-                  <bk-tag theme='info'>{t('主')}</bk-tag>
+                  <db-tag theme='info'>{t('主')}</db-tag>
                 ) : (
-                  <bk-tag theme='success'>{t('从')}</bk-tag>
+                  <db-tag theme='success'>{t('从')}</db-tag>
                 )}
                 <span class='ml-4'>{(row as TableItem).immute_domain}</span>
               </>
@@ -103,7 +103,7 @@
             width: 240,
           },
           {
-            cell: (_, { row }) => <bk-tag>{(row as TableItem).match_db}</bk-tag>,
+            cell: (_, { row }) => <db-tag>{(row as TableItem).match_db}</db-tag>,
             colKey: 'match_db',
             title: t('匹配中的 DB'),
             width: 240,
@@ -118,12 +118,12 @@
                   {index !== 0 && <span>，</span>}
                   <span>{privItem}</span>
                   {isSensitivePriv(props.options?.account_type || AccountTypes.MYSQL, privItem) && (
-                    <bk-tag
+                    <db-tag
                       class='ml-4'
                       size='small'
                       theme='warning'>
                       {t('敏感')}
-                    </bk-tag>
+                    </db-tag>
                   )}
                 </>
               ));
@@ -150,7 +150,7 @@
 
     if (props.options?.dbs) {
       domainColumns[1]!.children!.push({
-        cell: (_, { row }) => (row as TableItem).db.map((dbItem) => <bk-tag>{dbItem}</bk-tag>),
+        cell: (_, { row }) => (row as TableItem).db.map((dbItem) => <db-tag>{dbItem}</db-tag>),
         colKey: 'db',
         title: t('访问的 DB'),
         width: 240,

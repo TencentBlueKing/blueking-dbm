@@ -65,13 +65,13 @@
           }"
           class="spec-column-option">
           {{ item.spec_name }}
-          <BkTag
+          <DbTag
             v-if="showTag && item.isCurrent"
             class="ml-4"
             size="small"
             theme="success">
             {{ t('当前规格') }}
-          </BkTag>
+          </DbTag>
         </div>
       </template>
     </EditableSelect>

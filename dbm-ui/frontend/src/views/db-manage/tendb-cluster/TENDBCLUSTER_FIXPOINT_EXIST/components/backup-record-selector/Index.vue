@@ -102,7 +102,7 @@
               v-for="item in row.backup_type_list"
               :key="item"
               class="backup-type-tag-block">
-              <BkTag :theme="backupTypeMap[item].theme">{{ backupTypeMap[item].label }}</BkTag>
+              <DbTag :theme="backupTypeMap[item].theme">{{ backupTypeMap[item].label }}</DbTag>
             </p>
           </template>
         </TableColumn>
@@ -181,7 +181,7 @@
       <div
         v-if="pagination.count > 0"
         class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           :model-value="pagination.current"

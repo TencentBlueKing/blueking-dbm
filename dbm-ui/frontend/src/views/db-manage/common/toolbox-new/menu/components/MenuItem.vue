@@ -6,13 +6,13 @@
     <div class="toolbox-menu-item-content">
       <div class="tool-item-name">
         {{ data.name }}
-        <BkTag
+        <DbTag
           v-if="data.isFix"
           class="tool-item-tag ml-4"
           size="small"
           theme="warning">
           {{ t('故障修复') }}
-        </BkTag>
+        </DbTag>
       </div>
       <BkOverflowTitle
         class="tool-item-desc"

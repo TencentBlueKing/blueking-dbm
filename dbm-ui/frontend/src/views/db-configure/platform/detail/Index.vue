@@ -58,12 +58,12 @@
                     :data-conf-name="row.conf_name"
                     :data-description="row.description"
                     type="bk-dbm-icon db-icon-attention" />
-                  <BkTag
+                  <DbTag
                     v-if="getCreateFrom(row) !== ''"
                     class="ml-4"
                     theme="warning">
                     {{ t('平台自定义') }}
-                  </BkTag>
+                  </DbTag>
                 </template>
               </TableColumn>
               <TableColumn
@@ -99,7 +99,7 @@
                 :width="220">
                 <template #default="{ row }">
                   <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
-                    <BkTag>{{ row.value_type_sub }}</BkTag>
+                    <DbTag>{{ row.value_type_sub }}</DbTag>
                     <span class="ml-4">{{ row.value_allowed || '--' }}</span>
                   </template>
                   <span
@@ -115,9 +115,9 @@
                 :title="t('数据类型')"
                 :width="100">
                 <template #default="{ row }">
-                  <BkTag v-if="row.value_type">
+                  <DbTag v-if="row.value_type">
                     {{ row.value_type }}
-                  </BkTag>
+                  </DbTag>
                   <span v-else>--</span>
                 </template>
               </TableColumn>
@@ -233,9 +233,9 @@
       <span class="config-detail-nav-title">
         {{ currentConfItem?.name }}
       </span>
-      <BkTag theme="info">
+      <DbTag theme="info">
         {{ clusterTypeInfos[clusterType]?.name || clusterType }}
-      </BkTag>
+      </DbTag>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
         <span>

@@ -4,7 +4,7 @@
     property="access_dbs"
     required
     :rules="rules">
-    <BkSelect
+    <DbSelect
       v-model="accessDbs"
       :clearable="false"
       collapse-tags
@@ -13,7 +13,7 @@
       multiple
       multiple-mode="tag"
       show-select-all>
-      <BkOption
+      <DbOption
         v-for="item of accountRules"
         :key="item.rule_id"
         :label="item.access_db"
@@ -29,7 +29,7 @@
           {{ t('跳转新建规则') }}
         </BkButton>
       </template>
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 
@@ -44,6 +44,10 @@
     accountRules: PermissionRule['rules'];
     accountType: AccountTypes;
   }
+
+  defineOptions({
+    name: 'MysqlPermissionAccessDbSelect',
+  });
 
   const props = defineProps<Props>();
 

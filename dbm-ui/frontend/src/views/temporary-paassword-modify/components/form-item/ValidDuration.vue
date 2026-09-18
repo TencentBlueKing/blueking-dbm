@@ -11,16 +11,16 @@
         :precision="0"
         style="width: 300px"
         type="number" />
-      <BkSelect
+      <DbSelect
         v-model="validDurationType"
         :clearable="false"
         style="width: 88px">
-        <BkOption
+        <DbOption
           v-for="item in validDurationList"
           :key="item.value"
           :label="item.label"
           :value="item.value" />
-      </BkSelect>
+      </DbSelect>
     </BkComposeFormItem>
     <div class="anticipated-effective-time">{{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}</div>
   </BkFormItem>
@@ -28,6 +28,10 @@
 <script setup lang="ts">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
+
+  const modelValue = defineModel<number>();
+
+  const validDurationType = defineModel<string>('validDurationType');
 
   const { t } = useI18n();
 
@@ -46,9 +50,6 @@
       value: VALID_DURATION_TYPE.HOUR,
     },
   ];
-
-  const modelValue = defineModel<number>();
-  const validDurationType = defineModel<string>('validDurationType');
 
   const anticipatedEffectiveTime = computed(() => {
     const currentDate = dayjs();

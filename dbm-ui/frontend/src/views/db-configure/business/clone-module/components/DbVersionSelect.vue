@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     :clearable="false"
     filterable
@@ -20,20 +20,20 @@
     :placeholder="placeholder"
     :prefix="prefix"
     @change="(val: string | number) => emit('change', val)">
-    <BkOption
+    <DbOption
       v-for="item of versionList"
       :key="item"
       :label="item"
       :value="item">
       <span>{{ item }}</span>
-      <BkTag
+      <DbTag
         v-if="sourceVersion && item === sourceVersion"
         class="ml-5"
         theme="info">
         {{ t('源版本') }}
-      </BkTag>
-    </BkOption>
-  </BkSelect>
+      </DbTag>
+    </DbOption>
+  </DbSelect>
 </template>
 
 <script setup lang="ts">

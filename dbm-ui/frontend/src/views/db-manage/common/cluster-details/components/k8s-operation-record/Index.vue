@@ -53,7 +53,7 @@
         :title="t('操作类型')"
         :width="100">
         <template #default="{ row }: { row: KubernetesOperationLogModel }">
-          <BkTag theme="info">{{ row.requestTypeAlias }}</BkTag>
+          <DbTag theme="info">{{ row.requestTypeAlias }}</DbTag>
         </template>
       </TableColumn>
       <TableColumn

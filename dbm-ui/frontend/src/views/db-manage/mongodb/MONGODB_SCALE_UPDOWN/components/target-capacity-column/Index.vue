@@ -83,9 +83,9 @@
     <template #header>
       <span>
         {{ t('MongoDB 集群容量变更【xxx】', [cluster.master_domain]) }}
-        <BkTag theme="info">
+        <DbTag theme="info">
           {{ t('存储层') }}
-        </BkTag>
+        </DbTag>
       </span>
     </template>
     <SpecPlan

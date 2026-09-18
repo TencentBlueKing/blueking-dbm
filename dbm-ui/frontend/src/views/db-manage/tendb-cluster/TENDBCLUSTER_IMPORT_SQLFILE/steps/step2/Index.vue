@@ -28,11 +28,11 @@
           :title="t('变更的 DB')"
           :width="200">
           <template #default="{ row: data }: { row: RowData }">
-            <BkTag
+            <DbTag
               v-for="(tag, index) in data.dbnames"
               :key="index">
               {{ tag }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
         <TableColumn
@@ -41,11 +41,11 @@
           :width="200">
           <template #default="{ row: data }: { row: RowData }">
             <template v-if="data.ignore_dbnames.length > 0">
-              <BkTag
+              <DbTag
                 v-for="(tag, index) in data.ignore_dbnames"
                 :key="index">
                 {{ tag }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else>--</span>
           </template>

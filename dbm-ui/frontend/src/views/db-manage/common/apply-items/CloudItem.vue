@@ -16,7 +16,7 @@
     :label="t('管控区域')"
     property="details.bk_cloud_id"
     required>
-    <BkSelect
+    <DbSelect
       :allow-empty-values="[0]"
       class="item-input"
       :clearable="false"
@@ -25,12 +25,12 @@
       :loading="isLoading"
       :model-value="modelValue"
       @change="handleChange">
-      <BkOption
+      <DbOption
         v-for="item in cloudList"
         :key="item.bk_cloud_id"
         :label="`${item.bk_cloud_name}[${item.bk_cloud_id}]`"
         :value="item.bk_cloud_id" />
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 

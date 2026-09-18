@@ -15,12 +15,12 @@
   <div class="render-cluster-role">
     <template v-if="data.length < 1"> -- </template>
     <template v-else>
-      <BkTag
+      <DbTag
         v-for="item in data"
         :key="item"
         class="mr-4">
         {{ item }}
-      </BkTag>
+      </DbTag>
     </template>
   </div>
 </template>

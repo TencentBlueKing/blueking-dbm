@@ -44,7 +44,7 @@
             keypath="共n个版本"
             tag="span">
             <template #n>
-              <BkTag radius="12px">{{ dbVersionListCount }}</BkTag>
+              <DbTag radius="12px">{{ dbVersionListCount }}</DbTag>
             </template>
           </I18nT>
         </div>

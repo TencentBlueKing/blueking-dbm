@@ -77,11 +77,11 @@
         </div>
         <div class="content-label">{{ t('备份类型 ：') }}</div>
         <div class="content-value">
-          <BkTag
+          <DbTag
             v-if="backupTypeMap[backupRecord.backup_type]"
             :theme="backupTypeMap[backupRecord.backup_type].theme">
             {{ backupTypeMap[backupRecord.backup_type].label }}
-          </BkTag>
+          </DbTag>
           <span v-else>--</span>
         </div>
         <div class="content-label">{{ t('备份范围 ：') }}</div>

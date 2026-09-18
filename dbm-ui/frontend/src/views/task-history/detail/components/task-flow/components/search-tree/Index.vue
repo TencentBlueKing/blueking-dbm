@@ -15,7 +15,7 @@
   <div class="search-tree-main">
     <div class="status-select-main">
       <div class="select-title">{{ t('节点状态') }}</div>
-      <BkSelect
+      <DbSelect
         v-model="statusValue"
         class="select-box"
         :clearable="false"
@@ -23,7 +23,7 @@
         :input-search="false"
         @change="handleSelectChange"
         @toggle="handleSelectToggle">
-        <BkOption
+        <DbOption
           v-for="(item, index) in statusList"
           :key="index"
           :label="item.label"
@@ -32,7 +32,7 @@
             :class="item.value === 'ALL' ? 'mr-4' : 'mr-8'"
             :data="item.value" />
           <span>{{ item.label }}</span>
-        </BkOption>
+        </DbOption>
         <template #trigger>
           <div
             class="select-result-display"
@@ -50,7 +50,7 @@
               type="down-big" />
           </div>
         </template>
-      </BkSelect>
+      </DbSelect>
     </div>
     <BkInput
       v-model="treeSearch"
@@ -482,7 +482,7 @@
         justify-content: center;
       }
 
-      .bk-select {
+      .dbm-select {
         overflow: hidden;
         cursor: pointer;
         flex: 1;

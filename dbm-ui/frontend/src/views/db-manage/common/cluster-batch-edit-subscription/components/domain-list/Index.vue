@@ -71,13 +71,13 @@
               class="domain-display text-overflow">
               {{ item.clusterDomian }}
             </div>
-            <BkTag
+            <DbTag
               v-if="showUpdate"
               class="status-tag"
               size="small"
               :theme="getTheme(item)">
               {{ getTagText(item) }}
-            </BkTag>
+            </DbTag>
             <DbIcon
               class="copy-icon"
               type="copy"

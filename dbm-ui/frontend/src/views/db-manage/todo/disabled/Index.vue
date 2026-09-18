@@ -111,7 +111,7 @@
               :title="t('架构类型')"
               :width="200">
               <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
-                <BkTag
+                <DbTag
                   :theme="
                     [
                       ClusterTypes.TENDBSINGLE,
@@ -123,7 +123,7 @@
                       : 'info'
                   ">
                   {{ row.clusterTypesDisplay }}
-                </BkTag>
+                </DbTag>
               </template>
             </TableColumn>
             <TableColumn

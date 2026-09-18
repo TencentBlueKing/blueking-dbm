@@ -9,12 +9,12 @@
     <template #content>
       <div>
         {{ t('操作：') }}
-        <BkTag
+        <DbTag
           class="mr-4"
           theme="success"
           type="stroke">
           {{ t('通过') }}
-        </BkTag>
+        </DbTag>
         <span>{{ t('通过后，单据将进入下一步骤') }}</span>
       </div>
       <BkForm

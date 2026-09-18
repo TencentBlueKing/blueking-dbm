@@ -24,9 +24,9 @@
         【
         <span class="name">{{ data.name }}</span>
         】
-        <BkTag theme="info">
+        <DbTag theme="info">
           {{ t('平台配置') }}
-        </BkTag>
+        </DbTag>
       </div>
     </template>
     <div class="edit-strategy-main-box">
@@ -105,7 +105,7 @@
           <BkFormItem
             :label="t('默认通知对象')"
             required>
-            <BkSelect
+            <DbSelect
               v-model="nofityTarget"
               class="notify-select"
               disabled
@@ -121,7 +121,7 @@
                     type="close" />
                 </div>
               </template>
-            </BkSelect>
+            </DbSelect>
           </BkFormItem>
           <BkFormItem
             :label="t('通知间隔')"

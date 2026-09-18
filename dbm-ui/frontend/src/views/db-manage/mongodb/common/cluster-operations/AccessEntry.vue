@@ -35,13 +35,13 @@
           class="mongo-access-entry-item">
           <div class="mongo-access-entry-item-label">
             {{ item.label }}
-            <BkTag
+            <DbTag
               v-if="item.tag"
               class="ml-4"
               size="small"
               theme="info">
               {{ item.tag }}
-            </BkTag>
+            </DbTag>
             ：
           </div>
           <div class="mongo-access-entry-item-value">

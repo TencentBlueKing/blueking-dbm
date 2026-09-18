@@ -27,13 +27,13 @@
       multiple-mode="tag">
       <template #option="{ item }">
         {{ item.label }}
-        <BkTag
+        <DbTag
           v-if="item.disabled"
           class="ml-4"
           size="small"
           theme="success">
           {{ t('已安装') }}
-        </BkTag>
+        </DbTag>
       </template>
     </EditableSelect>
   </EditableColumn>

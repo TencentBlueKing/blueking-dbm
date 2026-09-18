@@ -2,7 +2,7 @@
   <div class="time-range-picker">
     <div class="time-range-container">
       <template v-if="disabled">
-        <BkTag
+        <DbTag
           v-for="(item, index) in localValue"
           :key="index"
           class="time-tag"
@@ -15,7 +15,7 @@
             <span>-</span>
             <span>{{ handleFormatTime(item[1]) }}</span>
           </span>
-        </BkTag>
+        </DbTag>
       </template>
       <template v-else>
         <TimePickerPopover

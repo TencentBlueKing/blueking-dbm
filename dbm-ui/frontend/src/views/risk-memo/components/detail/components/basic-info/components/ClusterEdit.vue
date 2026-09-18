@@ -6,7 +6,7 @@
       v-if="!isEdit"
       class="display-mian"
       :class="{ 'is-effect-all': isEffectAll }">
-      <BkTag v-if="isEffectAll">{{ t('全部') }}</BkTag>
+      <DbTag v-if="isEffectAll">{{ t('全部') }}</DbTag>
       <div
         v-else
         class="value-display">
@@ -23,7 +23,7 @@
           @click="handleClickEdit" />
       </AuthTemplate>
     </div>
-    <BkSelect
+    <DbSelect
       v-else
       ref="editValueRef"
       v-model="localValue"
@@ -167,7 +167,7 @@
     align-items: center;
 
     &.is-error {
-      .bk-select-tag {
+      .dbm-select-tag {
         border-color: #ea3636 !important;
       }
 

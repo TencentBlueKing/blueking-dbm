@@ -42,12 +42,12 @@
               :title="t('克隆表数据')">
               <template #default="{ row }:{ row: OpenareaTemplateModel['config_rules'][0] }">
                 <span v-if="!row.data_tblist.length">--</span>
-                <BkTag
+                <DbTag
                   v-for="item in row.data_tblist"
                   v-else
                   :key="item">
                   {{ item }}
-                </BkTag>
+                </DbTag>
               </template>
             </TableColumn>
             <TableColumn
@@ -85,11 +85,11 @@
                 :title="t('访问DB')"
                 :width="300">
                 <template #default="{ row }: { row: MysqlPermissionAccountModel }">
-                  <BkTag
+                  <DbTag
                     v-for="item in rowFlodMap[row.account.user] ? row.rules.slice(0, 1) : row.rules"
                     :key="item.access_db">
                     {{ item.access_db }}
-                  </BkTag>
+                  </DbTag>
                 </template>
               </TableColumn>
               <TableColumn

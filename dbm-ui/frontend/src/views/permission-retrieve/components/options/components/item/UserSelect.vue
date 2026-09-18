@@ -13,7 +13,7 @@
 
 <template>
   <div class="permission-retrieve-user-select">
-    <BkSelect
+    <DbSelect
       v-model="modelValue"
       allow-create
       class="permission-user-select"
@@ -23,13 +23,13 @@
       multiple
       multiple-mode="tag"
       :placeholder="t('请选择或直接输入账号，Enter完成输入')">
-      <BkOption
+      <DbOption
         v-for="item in userOptionList"
         :id="item.value"
         :key="item.value"
         :name="item.label" />
       <template #tag="{ selected }">
-        <BkTag
+        <DbTag
           v-for="item in selected"
           :key="item.value"
           closable
@@ -38,9 +38,9 @@
           "
           @close="(event: Event) => handleUserClose(item.value)">
           {{ item.value }}
-        </BkTag>
+        </DbTag>
       </template>
-    </BkSelect>
+    </DbSelect>
     <span
       v-bk-tooltips.top="t('刷新获取最新账号')"
       class="ml-8">
@@ -143,7 +143,7 @@
     .permission-user-select {
       flex: 1;
 
-      :deep(.bk-select-tag-wrapper) {
+      :deep(.dbm-select-tag-wrapper) {
         flex: 1;
       }
     }

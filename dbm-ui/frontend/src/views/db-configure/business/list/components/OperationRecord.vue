@@ -53,9 +53,9 @@
         :title="t('配置类型')"
         :width="120">
         <template #default="{ row }">
-          <BkTag>
+          <DbTag>
             {{ row.conf_type_lc }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <!-- 4. 配置文件 -->
@@ -74,9 +74,9 @@
         :title="t('操作类型')"
         :width="120">
         <template #default="{ row }">
-          <BkTag :theme="operateTypeThemeMap[row.op_type]?.theme || ''">
+          <DbTag :theme="operateTypeThemeMap[row.op_type]?.theme || ''">
             {{ operateTypeThemeMap[row.op_type]?.text || '--' }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <!-- 6. 操作参数 -->

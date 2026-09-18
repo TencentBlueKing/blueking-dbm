@@ -66,11 +66,11 @@
           <RenderRow
             :data="data.ips"
             :style="{ maxWidth: `calc(100% - ${data.is_global && !isPlatformManage ? '80px' : '20px'})` }" />
-          <BkTag
+          <DbTag
             v-if="data.is_global && !isPlatformManage"
             class="ml-4">
             {{ t('全局') }}
-          </BkTag>
+          </DbTag>
           <DbIcon
             v-bk-tooltips="t('复制')"
             class="copy-btn"

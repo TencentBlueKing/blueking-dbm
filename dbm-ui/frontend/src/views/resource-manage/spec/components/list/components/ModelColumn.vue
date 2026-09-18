@@ -15,22 +15,22 @@
             <template v-if="row.cpu.min > 0 && row.device_class.length === 0">
               <strong>CPU: </strong>
               <div class="resource-machine-info-values mb-10">
-                <BkTag> {{ `${row.cpu.min} ~ ${row.cpu.max}` }} {{ t('核') }} </BkTag>
+                <DbTag> {{ `${row.cpu.min} ~ ${row.cpu.max}` }} {{ t('核') }} </DbTag>
               </div>
               <strong>{{ t('内存') }}: </strong>
               <div class="resource-machine-info-values mb-10">
-                <BkTag>{{ `${row.mem.min} ~ ${row.mem.max}` }} G</BkTag>
+                <DbTag>{{ `${row.mem.min} ~ ${row.mem.max}` }} G</DbTag>
               </div>
             </template>
             <template v-if="row.device_class.length > 0">
               <strong>{{ t('机型') }}: </strong>
               <div class="resource-machine-info-values mb-10">
-                <BkTag
+                <DbTag
                   v-for="(item, index) in row.device_class"
                   :key="index"
                   class="mb-4">
                   {{ item }}
-                </BkTag>
+                </DbTag>
               </div>
             </template>
             <strong>{{ t('数据盘') }}: </strong>
@@ -39,11 +39,11 @@
                 <p
                   v-for="(item, index) in row.storage_spec"
                   :key="index">
-                  <BkTag class="mb-4">
+                  <DbTag class="mb-4">
                     {{
                       `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${t('最大容量')}: ${item.max} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
                     }}
-                  </BkTag>
+                  </DbTag>
                 </p>
               </template>
               <span v-else>--</span>
@@ -52,28 +52,28 @@
         </template>
         <div class="machine-info text-overflow">
           <template v-if="row.cpu.min > 0 && row.device_class.length === 0">
-            <BkTag class="machine-info-cpu"> CPU = {{ `${row.cpu.min} ~ ${row.cpu.max}` }} {{ t('核') }} </BkTag>
-            <BkTag
+            <DbTag class="machine-info-cpu"> CPU = {{ `${row.cpu.min} ~ ${row.cpu.max}` }} {{ t('核') }} </DbTag>
+            <DbTag
               class="machine-info-condition"
               theme="info">
               AND
-            </BkTag>
-            <BkTag class="machine-info-mem"> {{ t('内存') }} = {{ `${row.mem.min} ~ ${row.mem.max}` }} G </BkTag>
-            <BkTag
+            </DbTag>
+            <DbTag class="machine-info-mem"> {{ t('内存') }} = {{ `${row.mem.min} ~ ${row.mem.max}` }} G </DbTag>
+            <DbTag
               class="machine-info-condition"
               theme="info">
               AND
-            </BkTag>
+            </DbTag>
           </template>
           <template v-if="row.device_class.length > 0">
-            <BkTag class="machine-info-device"> {{ t('机型') }} = {{ row.device_class.join(',') }} </BkTag>
-            <BkTag
+            <DbTag class="machine-info-device"> {{ t('机型') }} = {{ row.device_class.join(',') }} </DbTag>
+            <DbTag
               class="machine-info-condition"
               theme="info">
               AND
-            </BkTag>
+            </DbTag>
           </template>
-          <BkTag class="machine-info-storage">
+          <DbTag class="machine-info-storage">
             {{ t('数据盘') }} =
             <template v-if="row.storage_spec.length > 0">
               <span
@@ -85,7 +85,7 @@
               </span>
             </template>
             <span v-else>--</span>
-          </BkTag>
+          </DbTag>
         </div>
       </BkPopover>
     </template>

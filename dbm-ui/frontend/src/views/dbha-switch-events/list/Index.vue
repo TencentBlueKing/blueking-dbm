@@ -60,11 +60,11 @@
         </span>
         <div class="infos">
           <template v-if="logState.data.result_info?.text">
-            <BkTag
+            <DbTag
               class="mg-0"
               :theme="logState.data.result_info.theme">
               {{ logState.data.result_info.text }}
-            </BkTag>
+            </DbTag>
           </template>
           <span>
             {{ t('总耗时') }}:

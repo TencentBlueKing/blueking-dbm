@@ -27,7 +27,7 @@
         :label="t('业务影响')"
         property="effectBizs"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.effectBizs"
           filterable
           :list="effectBizLabels"
@@ -39,7 +39,7 @@
         :label="isSpecial ? t('涉及 DB') : t('影响 DB')"
         property="effectDb"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.effectDb"
           filterable
           :list="dbList"
@@ -50,7 +50,7 @@
         :label="isSpecial ? t('涉及集群') : t('影响集群')"
         property="effectClusters">
         <div style="display: flex">
-          <BkSelect
+          <DbSelect
             v-model="formData.effectClusters"
             :disabled="isSelectAllCluster"
             filterable

@@ -67,13 +67,13 @@
             class="domain-name">
             {{ item.master_domain }}
           </span>
-          <!-- <BkTag
+          <!-- <DbTag
             v-if="showUpdate"
             class="status-tag"
             size="small"
             theme="danger">
             {{ t('删除') }}
-          </BkTag> -->
+          </DbTag> -->
         </div>
       </div>
     </div>

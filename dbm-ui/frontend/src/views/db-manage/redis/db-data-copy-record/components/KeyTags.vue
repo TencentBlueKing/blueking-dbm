@@ -21,7 +21,7 @@
       :key="index"
       class="tag-item">
       <!-- {{ item }} -->
-      <BkTag>{{ item }}</BkTag>
+      <DbTag>{{ item }}</DbTag>
     </div>
     <BkPopover
       v-if="maxRow > 0 && overflowNum > 0"
@@ -36,7 +36,7 @@
           {{ item }}
         </div>
       </template>
-      <BkTag> +{{ overflowNum }} </BkTag>
+      <DbTag> +{{ overflowNum }} </DbTag>
     </BkPopover>
   </div>
 </template>

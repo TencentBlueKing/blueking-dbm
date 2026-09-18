@@ -193,12 +193,12 @@
           :selected-list="selectedList"
           @go-detail="handleToDetails">
           <template #nodeTag="{ data }">
-            <BkTag
+            <DbTag
               v-if="data.is_master"
               class="is-primary"
               size="small">
               Master
-            </BkTag>
+            </DbTag>
           </template>
         </RoleColumn>
         <RoleColumn

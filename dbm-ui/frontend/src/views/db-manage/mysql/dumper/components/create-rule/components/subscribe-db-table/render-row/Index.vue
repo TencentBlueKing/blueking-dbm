@@ -88,7 +88,7 @@
     }
 
     :deep(.render-db-name-scroll) {
-      .bk-tag-input {
+      .db-tag-input {
         top: 0;
       }
 
@@ -97,18 +97,9 @@
       }
     }
 
-    :deep(.bk-tag-input-trigger) {
+    :deep(.db-tag-input-panel) {
       min-height: 32px;
       border-color: #c4c6cc;
-
-      .placeholder {
-        height: 32px !important;
-        line-height: 32px !important;
-      }
-
-      .tag-list {
-        height: 30px;
-      }
     }
 
     .operate-column {

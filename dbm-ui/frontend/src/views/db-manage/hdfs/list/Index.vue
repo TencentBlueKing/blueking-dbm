@@ -195,12 +195,12 @@
           :selected-list="selectedList"
           @go-detail="handleToDetails">
           <template #nodeTag="{ data }">
-            <BkTag
+            <DbTag
               v-if="data.is_active"
               class="is-primary"
               size="small">
               Active
-            </BkTag>
+            </DbTag>
           </template>
         </RoleColumn>
         <RoleColumn

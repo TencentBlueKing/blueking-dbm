@@ -71,7 +71,7 @@
       row-key="index"
       stripe />
     <div class="table-footer">
-      <BkPagination
+      <DbPagination
         v-bind="pagination"
         :model-value="pagination.current"
         @change="handlePageValueChange"

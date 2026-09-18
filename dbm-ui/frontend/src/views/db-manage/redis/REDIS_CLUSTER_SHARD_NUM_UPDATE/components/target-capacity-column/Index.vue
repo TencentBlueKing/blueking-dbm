@@ -47,17 +47,17 @@
           <div class="item-title">{{ t('资源标签') }}：</div>
           <div class="item-content">
             <template v-if="modelValue.proxy.labels.length">
-              <BkTag
+              <DbTag
                 v-for="labelItem in modelValue.proxy.labels"
                 :key="labelItem.id">
                 {{ labelItem.value }}
-              </BkTag>
+              </DbTag>
             </template>
-            <BkTag
+            <DbTag
               v-else
               theme="success">
               {{ t('通用无标签') }}
-            </BkTag>
+            </DbTag>
           </div>
         </div>
         <div class="info-item">
@@ -93,17 +93,17 @@
           <div class="item-title">{{ t('资源标签') }}：</div>
           <div class="item-content">
             <template v-if="modelValue.backend_group.labels.length">
-              <BkTag
+              <DbTag
                 v-for="labelItem in modelValue.backend_group.labels"
                 :key="labelItem.id">
                 {{ labelItem.value }}
-              </BkTag>
+              </DbTag>
             </template>
-            <BkTag
+            <DbTag
               v-else
               theme="success">
               {{ t('通用无标签') }}
-            </BkTag>
+            </DbTag>
           </div>
         </div>
         <div class="info-item">

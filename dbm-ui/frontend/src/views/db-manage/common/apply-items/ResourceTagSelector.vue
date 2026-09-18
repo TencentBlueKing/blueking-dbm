@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="ids"
     :all-option-id="DEFAULT_TAG_ID"
     :all-option-text="t('通用无标签')"
@@ -33,19 +33,18 @@
       {{ value === DEFAULT_TAG_ID ? t('通用无标签') : tagLabel }}
     </template>
     <template #allOptionIcon>
-      <BkTag
+      <DbTag
         class="mr-4"
         size="small"
         theme="info"
         type="filled">
         {{ t('享') }}
-      </BkTag>
+      </DbTag>
     </template>
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script lang="ts" setup>
-  import BkSelect from 'bkui-vue/lib/select';
   import type { UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -53,6 +52,8 @@
 
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
   import { listTag } from '@services/source/tag';
+
+  import DbSelect from '@components/bkui-vue/select/Index.vue';
 
   interface Props {
     bizId?: number;
@@ -86,7 +87,7 @@
   const ids = ref<number[]>([]);
   const tagList = ref<ResourceTagModel[]>([]);
   const tagMap = ref<Record<string, any>>({});
-  const tagTheme = ref<ComponentProps<typeof BkSelect>['tagTheme']>('');
+  const tagTheme = ref<ComponentProps<typeof DbSelect>['tagTheme']>('');
 
   const { loading, run: runListTag } = useRequest(listTag, {
     manual: true,

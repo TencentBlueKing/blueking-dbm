@@ -75,13 +75,13 @@
               @mouseenter="handleCellMouseEnter($event, row)">
               {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
             </span>
-            <BkTag
+            <DbTag
               v-if="isCustomRow(row)"
               class="value-cell-tag"
               size="small"
               theme="warning">
               {{ t('自定义') }}
-            </BkTag>
+            </DbTag>
           </span>
         </template>
       </TableColumn>
@@ -92,7 +92,7 @@
         :width="300">
         <template #default="{ row }">
           <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
-            <BkTag>{{ row.value_type_sub }}</BkTag>
+            <DbTag>{{ row.value_type_sub }}</DbTag>
             <span class="ml-4">{{ row.value_allowed || '--' }}</span>
           </template>
           <span

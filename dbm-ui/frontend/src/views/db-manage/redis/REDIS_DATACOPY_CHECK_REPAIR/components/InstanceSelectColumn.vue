@@ -48,7 +48,7 @@
         <div
           v-if="!isSelectAll && localValue.length > 1"
           class="more-box">
-          <BkTag> +{{ localValue.length - 1 }} </BkTag>
+          <DbTag> +{{ localValue.length - 1 }} </DbTag>
         </div>
       </div>
     </BkPopover>
@@ -146,7 +146,7 @@
       top: 0;
       right: 3px;
 
-      .bk-tag {
+      .dbm-tag {
         padding: 0 4px;
       }
     }

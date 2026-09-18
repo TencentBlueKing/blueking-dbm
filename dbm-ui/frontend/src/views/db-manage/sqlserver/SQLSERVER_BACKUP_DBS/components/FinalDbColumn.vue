@@ -23,7 +23,7 @@
     :width="900">
     <template #header>
       <span>{{ t('预览 DB 结果列表') }}</span>
-      <BkTag class="ml-8">{{ cluster.master_domain }}</BkTag>
+      <DbTag class="ml-8">{{ cluster.master_domain }}</DbTag>
     </template>
     <BkLoading :loading="isLoading">
       <EditableTable :model="model">
