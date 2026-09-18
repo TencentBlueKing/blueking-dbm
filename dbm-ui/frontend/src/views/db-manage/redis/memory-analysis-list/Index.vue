@@ -304,6 +304,14 @@
   onMounted(() => {
     fetchTableData();
   });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">

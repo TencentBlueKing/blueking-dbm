@@ -530,6 +530,14 @@
   // const handleClickCancelRecopy = () => {
   //   showRecopyDialog.value = false;
   // };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>
