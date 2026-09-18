@@ -54,34 +54,113 @@ class TestInstantFetchMetricConditionBuild:
         assert 'shard="rs0"' in promql
 
 
-class TestFetchLatestChangesClusterFilter:
-    def test_promql_includes_cluster_domain(self, sync_instance_status_module):
-        captured = {"promql": ""}
+class TestChoosePeerReportedState:
+    def test_abnormal_prefers_down(self, sync_instance_status_module):
+        chosen = sync_instance_status_module._choose_peer_reported_state(
+            {"127.0.0.1:27001": 8, "127.0.0.2:27001": 6},
+            peer_min=2,
+        )
+        assert chosen == MongoDBStorageInstanceStatus.DOWN.value
 
-        def _mock_unify_query(params, use_admin=True):
-            captured["promql"] = params["query_configs"][0]["promql"]
-            return {"series": []}
-
-        with patch.object(sync_instance_status_module.BKMonitorV3Api, "unify_query", side_effect=_mock_unify_query):
-            sync_instance_status_module.SyncStorageInstanceStatusTask().fetch_latest_changes(
-                minutes=4, cluster_domain="mongo.example.db"
+    def test_abnormal_requires_peer_min(self, sync_instance_status_module):
+        assert (
+            sync_instance_status_module._choose_peer_reported_state(
+                {"127.0.0.1:27001": 8},
+                peer_min=2,
             )
+            is None
+        )
 
-        assert 'cluster_domain="mongo.example.db"' in captured["promql"]
-        assert "instance_role!='backup'" in captured["promql"]
+    def test_healthy_majority(self, sync_instance_status_module):
+        chosen = sync_instance_status_module._choose_peer_reported_state(
+            {"127.0.0.1:27001": 1, "127.0.0.2:27001": 1, "127.0.0.3:27001": 2},
+            peer_min=2,
+        )
+        assert chosen == MongoDBStorageInstanceStatus.PRIMARY.value
 
-    def test_promql_without_cluster_domain(self, sync_instance_status_module):
-        captured = {"promql": ""}
 
-        def _mock_unify_query(params, use_admin=True):
-            captured["promql"] = params["query_configs"][0]["promql"]
-            return {"series": []}
+class TestAggregatePeerTargets:
+    def test_dead_secondary_aggregated(self, sync_instance_status_module):
+        obs = [
+            SimpleNamespace(
+                name="127.0.0.3:27001",
+                reporter="127.0.0.1:27001",
+                state=8,
+                cluster_domain="m1.example.db",
+                shard="rs0",
+                set_name="rs0",
+            ),
+            SimpleNamespace(
+                name="127.0.0.3:27001",
+                reporter="127.0.0.2:27001",
+                state=8,
+                cluster_domain="m1.example.db",
+                shard="rs0",
+                set_name="rs0",
+            ),
+        ]
+        targets = sync_instance_status_module._aggregate_peer_targets(obs)
+        assert len(targets) == 1
+        assert targets[0]["ip"] == "127.0.0.3"
+        assert targets[0]["port"] == 27001
+        assert targets[0]["state_code"] == MongoDBStorageInstanceStatus.DOWN.value
+        assert targets[0]["cluster_domain"] == "m1.example.db"
+        assert targets[0]["shard"] == "rs0"
 
-        with patch.object(sync_instance_status_module.BKMonitorV3Api, "unify_query", side_effect=_mock_unify_query):
-            sync_instance_status_module.SyncStorageInstanceStatusTask().fetch_latest_changes(minutes=4)
 
-        assert "cluster_domain=" not in captured["promql"]
-        assert "{instance_role!='backup'}[4m]" in captured["promql"]
+class TestFetchPeerMemberTargets:
+    def test_filters_by_cluster_domain(self, sync_instance_status_module):
+        obs = [
+            SimpleNamespace(
+                name="127.0.0.3:27001",
+                reporter="127.0.0.1:27001",
+                state=8,
+                cluster_domain="m1.keep.db",
+                shard="rs0",
+                set_name="rs0",
+            ),
+            SimpleNamespace(
+                name="127.0.0.3:27001",
+                reporter="127.0.0.2:27001",
+                state=8,
+                cluster_domain="m1.keep.db",
+                shard="rs0",
+                set_name="rs0",
+            ),
+            SimpleNamespace(
+                name="127.0.0.9:27001",
+                reporter="127.0.0.1:27001",
+                state=8,
+                cluster_domain="m1.drop.db",
+                shard="rs0",
+                set_name="rs0",
+            ),
+            SimpleNamespace(
+                name="127.0.0.9:27001",
+                reporter="127.0.0.2:27001",
+                state=8,
+                cluster_domain="m1.drop.db",
+                shard="rs0",
+                set_name="rs0",
+            ),
+        ]
+        with patch(
+            "backend.db_services.mongodb.autofix.metrics.query_peer_member_states",
+            return_value=obs,
+        ):
+            targets = sync_instance_status_module.SyncStorageInstanceStatusTask().fetch_peer_member_targets(
+                cluster_domain="m1.keep.db"
+            )
+        assert len(targets) == 1
+        assert targets[0]["cluster_domain"] == "m1.keep.db"
+
+    def test_unavailable_metrics_returns_empty(self, sync_instance_status_module):
+        with patch(
+            "backend.db_services.mongodb.autofix.metrics.query_peer_member_states",
+            return_value=None,
+        ):
+            targets = sync_instance_status_module.SyncStorageInstanceStatusTask().fetch_peer_member_targets()
+        assert targets == []
 
 
 class TestSyncStorageInstanceStatusTaskStart:
@@ -95,8 +174,10 @@ class TestSyncStorageInstanceStatusTaskStart:
     def test_acquire_lock_false_skips_redis_lock(self, sync_instance_status_module):
         task = sync_instance_status_module.SyncStorageInstanceStatusTask()
         with patch.object(sync_instance_status_module.RedisConn, "set") as redis_set, patch.object(
-            task, "fetch_latest_changes", return_value=[]
-        ), patch.object(task, "_list_shard_keys_for_scope", return_value=[]), patch.object(
+            task, "fetch_peer_member_targets", return_value=[]
+        ), patch.object(task, "apply_peer_member_updates", return_value=0), patch.object(
+            task, "_list_shard_keys_for_scope", return_value=[]
+        ), patch.object(
             task, "check_and_update_shards"
         ), patch.object(
             task, "fetch_changed_instance_list", return_value=[]

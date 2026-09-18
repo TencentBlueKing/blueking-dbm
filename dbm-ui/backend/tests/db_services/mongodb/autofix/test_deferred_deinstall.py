@@ -66,7 +66,7 @@ def test_poll_gse_finishes_when_already_alive():
     data.get_one_of_inputs.return_value = {"ip": "127.0.0.1", "bk_cloud_id": 0, "poll_interval_sec": 300}
 
     with patch(
-        "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_poll_gse._probe_gse_alive",
+        "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_poll_gse._probe_gse_alive_once",
         return_value=True,
     ):
         assert svc._execute(data, None) is True
