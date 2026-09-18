@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from django.utils import timezone
 from pipeline.component_framework.component import Component
@@ -51,70 +51,174 @@ logger = logging.getLogger("flow")
 JOB_POLL_INTERVAL = 2
 JOB_POLL_MAX_RETRIES = 15
 GSE_SCRIPT_TIMEOUT = 30
+GSE_PROBE_ATTEMPTS = 3
+GSE_PROBE_INTERVAL_SEC = 60
 
 
-def _probe_gse_alive(ip: str, bk_cloud_id: int) -> Optional[bool]:
+def _probe_log(log_fn: Optional[Callable[[str], None]], msg: str) -> None:
+    if log_fn:
+        log_fn(msg)
+    else:
+        logger.info(msg)
+
+
+def _now_str() -> str:
+    return timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _parse_drs_is_master_ok(rpc_results) -> Optional[float]:
     """
-    GSE/Job bash: echo + hostname.
+    从 DRS mongodb_rpc 载荷中解析 isMaster.ok。
+    允许纯数字，或夹杂 connect/disconnect 行时取最后一个可解析数字。
+    """
+    if rpc_results is None:
+        return None
+    if isinstance(rpc_results, bool):
+        return 1.0 if rpc_results else 0.0
+    if isinstance(rpc_results, (int, float)):
+        return float(rpc_results)
+    text = str(rpc_results).strip()
+    if not text:
+        return None
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        pass
+    last_ok = None
+    for line in text.splitlines():
+        token = line.strip().rstrip(";")
+        if not token:
+            continue
+        lowered = token.lower()
+        if lowered.startswith("connect to server") or lowered.startswith("disconnect"):
+            continue
+        try:
+            last_ok = float(token)
+        except (TypeError, ValueError):
+            continue
+    return last_ok
+
+
+def _probe_gse_alive_once(
+    ip: str,
+    bk_cloud_id: int,
+    log_fn: Optional[Callable[[str], None]] = None,
+    attempt: int = 1,
+    script: str = "echo autofix_pre_alive; hostname",
+    task_name_prefix: str = "mongo_autofix_pre_gse",
+) -> Optional[bool]:
+    """
+    单次 GSE/Job bash: echo + hostname。
     True: 作业结束且成功；False: 作业结束且失败；None: 平台探测不确定（勿当死机）。
     """
-    script = "echo autofix_pre_alive; hostname"
-    body = {
-        **mongodb_fast_execute_script_common_kwargs,
-        "timeout": GSE_SCRIPT_TIMEOUT,
-        "bk_scope_type": "biz_set",
-        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
-        "task_name": f"mongo_autofix_pre_gse_{ip}",
-        "script_content": base64_encode(script),
-        "script_language": 1,
-        "target_server": {"ip_list": [{"ip": ip, "bk_cloud_id": bk_cloud_id}]},
-    }
+    started = time.monotonic()
+    _probe_log(
+        log_fn,
+        "mongo autofix pre gse once start ip={} attempt={}/{} at={}".format(
+            ip, attempt, GSE_PROBE_ATTEMPTS, _now_str()
+        ),
+    )
+    result: Optional[bool] = None
     try:
-        resp = JobApi.fast_execute_script(body, raw=True, use_admin=True)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("mongo autofix pre gse issue fail ip=%s err=%s", ip, exc)
-        return None
-
-    if not resp.get("result") or not resp.get("data"):
-        logger.warning("mongo autofix pre gse issue bad resp ip=%s resp=%s", ip, resp)
-        return None
-
-    job_instance_id = resp["data"]["job_instance_id"]
-    bk_biz_id = resp["data"].get("bk_biz_id") or env.JOB_BLUEKING_BIZ_ID
-    for _i in range(JOB_POLL_MAX_RETRIES):
+        body = {
+            **mongodb_fast_execute_script_common_kwargs,
+            "timeout": GSE_SCRIPT_TIMEOUT,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": f"{task_name_prefix}_{ip}",
+            "script_content": base64_encode(script),
+            "script_language": 1,
+            "target_server": {"ip_list": [{"ip": ip, "bk_cloud_id": bk_cloud_id}]},
+        }
         try:
-            status_resp = JobApi.get_job_instance_status(
-                {
-                    "bk_scope_type": "biz_set",
-                    "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
-                    "bk_biz_id": bk_biz_id,
-                    "job_instance_id": job_instance_id,
-                    "return_ip_result": True,
-                },
-                raw=True,
-                use_admin=True,
-            )
+            resp = JobApi.fast_execute_script(body, raw=True, use_admin=True)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("mongo autofix pre gse poll fail ip=%s err=%s", ip, exc)
+            logger.warning("mongo autofix pre gse issue fail ip=%s err=%s", ip, exc)
             return None
 
-        data = (status_resp or {}).get("data") or {}
-        if data.get("finished"):
-            # job status: 3 success, others fail
-            job_status = (data.get("job_instance") or {}).get("status")
-            return job_status == 3
-        time.sleep(JOB_POLL_INTERVAL)
+        if not resp.get("result") or not resp.get("data"):
+            logger.warning("mongo autofix pre gse issue bad resp ip=%s resp=%s", ip, resp)
+            return None
 
-    logger.warning("mongo autofix pre gse timeout ip=%s job=%s", ip, job_instance_id)
-    return None
+        job_instance_id = resp["data"]["job_instance_id"]
+        bk_biz_id = resp["data"].get("bk_biz_id") or env.JOB_BLUEKING_BIZ_ID
+        for _i in range(JOB_POLL_MAX_RETRIES):
+            try:
+                status_resp = JobApi.get_job_instance_status(
+                    {
+                        "bk_scope_type": "biz_set",
+                        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+                        "bk_biz_id": bk_biz_id,
+                        "job_instance_id": job_instance_id,
+                        "return_ip_result": True,
+                    },
+                    raw=True,
+                    use_admin=True,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("mongo autofix pre gse poll fail ip=%s err=%s", ip, exc)
+                return None
+
+            data = (status_resp or {}).get("data") or {}
+            if data.get("finished"):
+                # job status: 3 success, others fail
+                job_status = (data.get("job_instance") or {}).get("status")
+                result = job_status == 3
+                return result
+            time.sleep(JOB_POLL_INTERVAL)
+
+        logger.warning("mongo autofix pre gse timeout ip=%s job=%s", ip, job_instance_id)
+        return None
+    finally:
+        _probe_log(
+            log_fn,
+            "mongo autofix pre gse once end ip={} attempt={}/{} result={} at={} elapsed_sec={:.1f}".format(
+                ip, attempt, GSE_PROBE_ATTEMPTS, result, _now_str(), time.monotonic() - started
+            ),
+        )
 
 
-def _probe_datadir_writable(ip: str, bk_cloud_id: int) -> Optional[bool]:
+def _probe_gse_alive(ip: str, bk_cloud_id: int, log_fn: Optional[Callable[[str], None]] = None) -> Optional[bool]:
+    """
+    连续探测 GSE/Job 可达性：最多 GSE_PROBE_ATTEMPTS 次，每次间隔 GSE_PROBE_INTERVAL_SEC 秒。
+    任一次得到明确 True/False 即返回；三次皆不确定则返回 None。
+    """
+    started = time.monotonic()
+    _probe_log(log_fn, "mongo autofix pre gse start ip={} at={}".format(ip, _now_str()))
+    last: Optional[bool] = None
+    try:
+        for attempt in range(1, GSE_PROBE_ATTEMPTS + 1):
+            last = _probe_gse_alive_once(ip, bk_cloud_id, log_fn=log_fn, attempt=attempt)
+            if last is not None:
+                return last
+            if attempt < GSE_PROBE_ATTEMPTS:
+                _probe_log(
+                    log_fn,
+                    "mongo autofix pre gse wait {}s before next attempt ip={}".format(GSE_PROBE_INTERVAL_SEC, ip),
+                )
+                time.sleep(GSE_PROBE_INTERVAL_SEC)
+        return last
+    finally:
+        _probe_log(
+            log_fn,
+            "mongo autofix pre gse end ip={} result={} at={} elapsed_sec={:.1f}".format(
+                ip, last, _now_str(), time.monotonic() - started
+            ),
+        )
+
+
+def _probe_datadir_writable(
+    ip: str, bk_cloud_id: int, log_fn: Optional[Callable[[str], None]] = None
+) -> Optional[bool]:
     """
     Optional: try write under common mongo data mounts.
     Returns False if write fails while GSE is up; None if probe inconclusive/skipped.
     """
-    script = r"""
+    started = time.monotonic()
+    _probe_log(log_fn, "mongo autofix pre datadir start ip={} at={}".format(ip, _now_str()))
+    result: Optional[bool] = None
+    try:
+        script = r"""
 set -e
 ok=0
 for d in /data1/mongodb /data/mongodb /data1 /data; do
@@ -134,73 +238,102 @@ fi
 echo DATADIR_WRITABLE_FAIL
 exit 2
 """
-    body = {
-        **mongodb_fast_execute_script_common_kwargs,
-        "timeout": GSE_SCRIPT_TIMEOUT,
-        "bk_scope_type": "biz_set",
-        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
-        "task_name": f"mongo_autofix_pre_datadir_{ip}",
-        "script_content": base64_encode(script),
-        "script_language": 1,
-        "target_server": {"ip_list": [{"ip": ip, "bk_cloud_id": bk_cloud_id}]},
-    }
-    try:
-        resp = JobApi.fast_execute_script(body, raw=True, use_admin=True)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("mongo autofix pre datadir probe issue fail ip=%s err=%s", ip, exc)
-        return None
-
-    if not resp.get("result") or not resp.get("data"):
-        return None
-
-    job_instance_id = resp["data"]["job_instance_id"]
-    bk_biz_id = resp["data"].get("bk_biz_id") or env.JOB_BLUEKING_BIZ_ID
-    for _i in range(JOB_POLL_MAX_RETRIES):
+        body = {
+            **mongodb_fast_execute_script_common_kwargs,
+            "timeout": GSE_SCRIPT_TIMEOUT,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": f"mongo_autofix_pre_datadir_{ip}",
+            "script_content": base64_encode(script),
+            "script_language": 1,
+            "target_server": {"ip_list": [{"ip": ip, "bk_cloud_id": bk_cloud_id}]},
+        }
         try:
-            status_resp = JobApi.get_job_instance_status(
-                {
-                    "bk_scope_type": "biz_set",
-                    "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
-                    "bk_biz_id": bk_biz_id,
-                    "job_instance_id": job_instance_id,
-                    "return_ip_result": True,
-                },
-                raw=True,
-                use_admin=True,
-            )
+            resp = JobApi.fast_execute_script(body, raw=True, use_admin=True)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("mongo autofix pre datadir poll fail ip=%s err=%s", ip, exc)
+            logger.warning("mongo autofix pre datadir probe issue fail ip=%s err=%s", ip, exc)
             return None
 
-        data = (status_resp or {}).get("data") or {}
-        if data.get("finished"):
-            job_status = (data.get("job_instance") or {}).get("status")
-            if job_status == 3:
-                return True
-            # exit 2 / fail => not writable
-            return False
-        time.sleep(JOB_POLL_INTERVAL)
-    return None
+        if not resp.get("result") or not resp.get("data"):
+            return None
+
+        job_instance_id = resp["data"]["job_instance_id"]
+        bk_biz_id = resp["data"].get("bk_biz_id") or env.JOB_BLUEKING_BIZ_ID
+        for _i in range(JOB_POLL_MAX_RETRIES):
+            try:
+                status_resp = JobApi.get_job_instance_status(
+                    {
+                        "bk_scope_type": "biz_set",
+                        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+                        "bk_biz_id": bk_biz_id,
+                        "job_instance_id": job_instance_id,
+                        "return_ip_result": True,
+                    },
+                    raw=True,
+                    use_admin=True,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("mongo autofix pre datadir poll fail ip=%s err=%s", ip, exc)
+                return None
+
+            data = (status_resp or {}).get("data") or {}
+            if data.get("finished"):
+                job_status = (data.get("job_instance") or {}).get("status")
+                if job_status == 3:
+                    result = True
+                    return result
+                # exit 2 / fail => not writable
+                result = False
+                return result
+            time.sleep(JOB_POLL_INTERVAL)
+        return None
+    finally:
+        _probe_log(
+            log_fn,
+            "mongo autofix pre datadir end ip={} result={} at={} elapsed_sec={:.1f}".format(
+                ip, result, _now_str(), time.monotonic() - started
+            ),
+        )
 
 
-def _probe_drs_login(cluster_id: int, ip: str, ports: List[int]) -> Tuple[bool, bool]:
+def _probe_drs_login(
+    cluster_id: int, ip: str, ports: List[int], log_fn: Optional[Callable[[str], None]] = None
+) -> Tuple[bool, bool]:
     """
-    DRS direct login on fault ip:port.
-    Returns (drs_ok, drs_auth_error). Any non-auth failure => drs_ok=False.
+    DRS direct login on fault ip:port，执行 db.isMaster().ok。
+    Returns (drs_ok, drs_auth_error). ok==1 为成功；其它/异常 => drs_ok=False。
     """
-    if not ports:
-        return False, False
-
+    started = time.monotonic()
+    _probe_log(
+        log_fn,
+        "mongo autofix pre drs start ip={} ports={} at={}".format(ip, ports, _now_str()),
+    )
     auth_error = False
     all_ok = True
+    if not ports:
+        _probe_log(
+            log_fn,
+            "mongo autofix pre drs end ip={} drs_ok=False auth_err=False at={} "
+            "elapsed_sec={:.1f} reason=empty_ports".format(ip, _now_str(), time.monotonic() - started),
+        )
+        return False, False
+
     session = f"autofix_pre:{datetime.now(timezone.utc).replace(microsecond=0)}"
     for port in ports:
         addr = f"{ip}:{port}"
         try:
             param = MongoUtil.get_mongodb_DRS_args_direct(
-                cluster_id=cluster_id, addr=addr, session=session, command="ping", timeout=15
+                cluster_id=cluster_id,
+                addr=addr,
+                session=session,
+                command="db.isMaster().ok",
+                timeout=15,
             )
-            DRSApi.mongodb_rpc(param)
+            rpc_results = DRSApi.mongodb_rpc(param)
+            ok_val = _parse_drs_is_master_ok(rpc_results)
+            if ok_val != 1:
+                logger.warning("mongo autofix pre drs isMaster.ok fail addr=%s result=%s", addr, rpc_results)
+                all_ok = False
         except Exception as exc:  # noqa: BLE001
             msg = str(getattr(exc, "message", "") or exc)
             logger.warning("mongo autofix pre drs fail addr=%s err=%s", addr, msg)
@@ -208,8 +341,17 @@ def _probe_drs_login(cluster_id: int, ip: str, ports: List[int]) -> Tuple[bool, 
                 auth_error = True
             all_ok = False
     if auth_error:
-        return False, True
-    return all_ok, False
+        all_ok = False
+        auth_err = True
+    else:
+        auth_err = False
+    _probe_log(
+        log_fn,
+        "mongo autofix pre drs end ip={} drs_ok={} auth_err={} at={} elapsed_sec={:.1f}".format(
+            ip, all_ok, auth_err, _now_str(), time.monotonic() - started
+        ),
+    )
+    return all_ok, auth_err
 
 
 def _mark_instances_unavailable(ip: str, ports: List[int], bk_host_id: int = 0) -> None:
@@ -302,15 +444,15 @@ class MongoAutofixPreTriageService(BaseService):
         if disk_rw_ok is None:
             disk_rw_ok = -1
 
-        gse_alive = _probe_gse_alive(ip, bk_cloud_id)
+        gse_alive = _probe_gse_alive(ip, bk_cloud_id, log_fn=self.log_info)
         datadir_writable = None
         if gse_alive is True:
-            datadir_writable = _probe_datadir_writable(ip, bk_cloud_id)
+            datadir_writable = _probe_datadir_writable(ip, bk_cloud_id, log_fn=self.log_info)
 
         drs_ok, drs_auth_error = False, False
         # 明确死机不再探 DRS；探测不确定时仍探 DRS，避免 Job 抖动误替换
         if disk_rw_ok != 0 and gse_alive is not False and datadir_writable is not False:
-            drs_ok, drs_auth_error = _probe_drs_login(cluster_id, ip, ports)
+            drs_ok, drs_auth_error = _probe_drs_login(cluster_id, ip, ports, log_fn=self.log_info)
 
         action, confirm_result = decide_autofix_action(
             disk_rw_ok=disk_rw_ok,

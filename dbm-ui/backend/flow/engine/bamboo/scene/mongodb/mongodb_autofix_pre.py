@@ -15,6 +15,10 @@ from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_triage import MongoAutofixPreTriageComponent
+from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_wait_machine import (
+    MongoAutofixPreWaitMachineComponent,
+    wait_machine_act_name,
+)
 
 logger = logging.getLogger("flow")
 
@@ -28,9 +32,21 @@ class MongoAutofixPreFlow(object):
 
     def run(self):
         pipeline = Builder(root_id=self.root_id, data=self.data)
+        infos = self.data.get("infos") or []
+        if infos:
+            pipeline.add_parallel_acts(
+                acts_list=[
+                    {
+                        "act_name": wait_machine_act_name(info),
+                        "act_component_code": MongoAutofixPreWaitMachineComponent.code,
+                        "kwargs": info,
+                    }
+                    for info in infos
+                ]
+            )
         pipeline.add_act(
             act_name=_("MongoDB 自愈预确认分叉"),
             act_component_code=MongoAutofixPreTriageComponent.code,
-            kwargs={"infos": self.data.get("infos") or []},
+            kwargs={"infos": infos},
         )
         pipeline.run_pipeline()

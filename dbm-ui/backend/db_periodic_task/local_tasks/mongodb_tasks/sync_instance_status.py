@@ -17,6 +17,7 @@ import traceback
 import uuid
 from collections import defaultdict
 from datetime import timedelta
+from typing import Optional
 
 from django.db.models import Q
 from django.utils import timezone
@@ -45,12 +46,21 @@ DEFAULT_FETCH_METRIC_BATCH_SIZE = 50
 SHARD_METRIC_BATCH_SIZE = 30
 EXT_IP_PORT_QUERY_BATCH_SIZE = 200
 EXT_BULK_UPDATE_FIELDS = ["update_at", "state_code", "state", "shard_name"]
+# 旁观者人数门槛：与自愈 discover 默认一致，避免单旁观者抖动误更新
+PEER_MIN_COUNT = 2
 ABNORMAL_STATE_CODES = frozenset(
     {
         MongoDBStorageInstanceStatus.DOWN.value,
         MongoDBStorageInstanceStatus.FATAL.value,
         MongoDBStorageInstanceStatus.UNKNOWN.value,
         MongoDBStorageInstanceStatus.REMOVED.value,
+    }
+)
+# 旁观者视角用于「发现」的异常态（与 autofix PEER_ABNORMAL_STATES 对齐）
+PEER_DISCOVER_ABNORMAL_STATES = frozenset(
+    {
+        MongoDBStorageInstanceStatus.UNKNOWN.value,
+        MongoDBStorageInstanceStatus.DOWN.value,
     }
 )
 
@@ -132,6 +142,79 @@ def _chunk_list(items: list, chunk_size: int) -> list[list]:
     if chunk_size <= 0:
         return [items]
     return [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
+
+
+def _choose_peer_reported_state(state_by_reporter: dict[str, int], peer_min: int = PEER_MIN_COUNT) -> Optional[int]:
+    """
+    仅当异常旁观者（UNKNOWN/DOWN）达 peer_min 时选择目标状态。
+    优先 DOWN，否则 UNKNOWN。健康态众数不用于发现，避免全量刷新与选举抖动误写。
+    """
+    if not state_by_reporter:
+        return None
+    abnormal_reporters = {
+        reporter: state for reporter, state in state_by_reporter.items() if state in PEER_DISCOVER_ABNORMAL_STATES
+    }
+    if len(abnormal_reporters) < peer_min:
+        return None
+    if any(state == MongoDBStorageInstanceStatus.DOWN.value for state in abnormal_reporters.values()):
+        return MongoDBStorageInstanceStatus.DOWN.value
+    return MongoDBStorageInstanceStatus.UNKNOWN.value
+
+
+def _aggregate_peer_targets(observations) -> list[dict]:
+    """
+    将旁观者 member_state 观测聚合成待同步目标列表。
+    每项: name/ip/port/cluster_domain/shard/state_code/peer_count
+    """
+    by_name: dict[str, dict] = {}
+    for obs in observations or []:
+        name = (obs.name or "").strip()
+        reporter = (obs.reporter or "").strip()
+        if not name or not reporter or ":" not in name:
+            continue
+        bucket = by_name.get(name)
+        if bucket is None:
+            ip, port_str = name.rsplit(":", 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                continue
+            bucket = {
+                "name": name,
+                "ip": ip,
+                "port": port,
+                "cluster_domain": (obs.cluster_domain or "").strip(),
+                "shard": (obs.shard or obs.set_name or "").strip(),
+                "state_by_reporter": {},
+            }
+            by_name[name] = bucket
+        bucket["state_by_reporter"][reporter] = int(obs.state)
+        if not bucket["cluster_domain"] and obs.cluster_domain:
+            bucket["cluster_domain"] = obs.cluster_domain.strip()
+        if not bucket["shard"]:
+            shard = (obs.shard or obs.set_name or "").strip()
+            if shard:
+                bucket["shard"] = shard
+
+    targets = []
+    for bucket in by_name.values():
+        chosen = _choose_peer_reported_state(bucket["state_by_reporter"])
+        if chosen is None:
+            continue
+        status = MongoDBStorageInstanceStatus.get_status_by_value(chosen)
+        targets.append(
+            {
+                "name": bucket["name"],
+                "ip": bucket["ip"],
+                "port": bucket["port"],
+                "cluster_domain": bucket["cluster_domain"],
+                "shard": bucket["shard"],
+                "state_code": chosen,
+                "state": status.name,
+                "peer_count": len(bucket["state_by_reporter"]),
+            }
+        )
+    return targets
 
 
 def _load_ext_map_by_ip_ports(ip_ports: list[tuple[str, int]]) -> dict[str, MongoDBStorageInstanceExt]:
@@ -225,9 +308,10 @@ class SyncStorageInstanceStatusTask:
     """和巡检任务类似，但执行的频率更高，每2分钟执行一次，要注意不要重复执行"""
     """ # step0: 获得锁，防止重复执行
         # step1: 填充Ext表, 优先级为100.
-        # step2: 根据changes(mongodb_mystate)，查到最近2分钟有变化的instance，优先更新
-        # step2: 最近更新时间大于5分钟的PRIMARY，检查并更新.
-        # step3: 更新的记录写到mongodb巡检表. """
+        # step2: 旁观者异常圈定 shard，用 my_state 刷新存活节点
+        # step3: 最近更新时间较旧的非 SECONDARY，检查并更新.
+        # step4: 异常旁观者 overlay DOWN/UNKNOWN（在 my_state 之后，避免陈旧值覆盖）
+        # step5: 更新的记录写到mongodb巡检表. """
 
     check_type: str
 
@@ -304,25 +388,26 @@ class SyncStorageInstanceStatusTask:
                     f"lock_key={SYNC_INSTANCE_STATUS_LOCK_KEY}, lock_value={lock_value[:8]}"
                 )
 
-            # step2: 从changes中查询最近有变化的instance，检查并更新.
+            # step2: 旁观者异常圈定 shard，先用 my_state 刷新存活节点
+            peer_targets: list[dict] = []
             try:
-                # 每2分钟执行一次，这里查询4分钟内的变化.避免漏掉.
-                instance_list = self.fetch_latest_changes(
-                    minutes=4, cluster_domain=cluster_domain, bk_biz_id=bk_biz_id
+                peer_targets = self.fetch_peer_member_targets(
+                    minutes=5, cluster_domain=cluster_domain, bk_biz_id=bk_biz_id
                 )
-                dev_debug(f"SyncStorageInstanceStatusTask fetch_latest_changes: {len(instance_list)} instances")
-                # 状态变化 会在同一个shard的多个instance上同时变化，需要合并.
-                # 所以这里以shard为单位，查询并合并状态变化.
-                # 获得所有的cluster_domain和shard的组合
+                dev_debug(f"SyncStorageInstanceStatusTask fetch_peer_member_targets: {len(peer_targets)} targets")
                 shard_list = list(
-                    set([instance["cluster_domain"] + ":" + instance["shard"] for instance in instance_list])
+                    {
+                        f"{t['cluster_domain']}:{t['shard']}"
+                        for t in peer_targets
+                        if t.get("cluster_domain") and t.get("shard")
+                    }
                 )
-                # 限定范围手工执行：即使近期无 changes，也按作用域拉全量指标刷新
+                # 限定范围手工执行：即使无旁观者异常，也按作用域拉全量指标刷新
                 if scoped and not shard_list:
                     shard_list = self._list_shard_keys_for_scope(cluster_domain=cluster_domain, bk_biz_id=bk_biz_id)
                 self.check_and_update_shards(shard_list, record_batch_ops, report_day)
             except Exception as e:
-                logger.error(f"fetch_latest_changes error: {e}")
+                logger.error(f"fetch_peer_member_targets error: {e}")
 
             if lock_value and not _renew_lock(SYNC_INSTANCE_STATUS_LOCK_KEY, lock_value):
                 logger.warning(
@@ -346,6 +431,12 @@ class SyncStorageInstanceStatusTask:
             except Exception as e:
                 traceback.print_exc()
                 logger.error(f"fetch_changed_instance_list error: {e}")
+
+            # step4: 异常旁观者 overlay 放在所有 my_state 刷新之后，避免陈旧 SECONDARY 覆盖 DOWN
+            try:
+                self.apply_peer_member_updates(peer_targets, record_batch_ops, report_day)
+            except Exception as e:
+                logger.error(f"apply_peer_member_updates error: {e}")
 
             record_batch_ops.bulk_create()
         finally:
@@ -658,75 +749,90 @@ class SyncStorageInstanceStatusTask:
             except Exception as e:
                 logger.error(f"fill_ext_table error: {e} for instance {instance.machine.ip}:{instance.port}")
 
-    def fetch_latest_changes(
-        self, minutes: int = 4, cluster_domain: str | None = None, bk_biz_id: int | None = None
+    def fetch_peer_member_targets(
+        self, minutes: int = 5, cluster_domain: str | None = None, bk_biz_id: int | None = None
     ) -> list[dict]:
         """
-        获取最近minutes分钟有变化的instance
-        changes(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state[4m]) > 0
-        backup instance 的changes 不计算在内
-        return list of instance
+        用旁观者 member_state 发现需 overlay 的异常目标（取代 changes(my_state)）。
+        仅 UNKNOWN/DOWN 达 peer_min 的成员进入结果，用于圈定 shard 并在 my_state 刷新后回写。
         """
+        from backend.db_services.mongodb.autofix.metrics import query_peer_member_states
+
         allowed_domains = None
         if bk_biz_id is not None:
             allowed_domains = set(self._mongo_cluster_domains(bk_biz_id=bk_biz_id))
             if not allowed_domains:
                 return []
 
-        end_time = datetime.datetime.now(timezone.utc)
-        start_time = end_time - datetime.timedelta(minutes=minutes)
-        label_filters = ["instance_role!='backup'"]
+        observations = query_peer_member_states(minutes=minutes)
+        if observations is None:
+            logger.error("fetch_peer_member_targets: member_state metrics unavailable")
+            return []
+
         if cluster_domain:
-            # PromQL label matcher; cluster_domain 来自命令行/元数据，不含引号
-            safe_domain = cluster_domain.replace("\\", "\\\\").replace('"', '\\"')
-            label_filters.append(f'cluster_domain="{safe_domain}"')
-        label_selector = "{" + ",".join(label_filters) + "}"
-        query_template = {
-            "changes": (
-                "changes("
-                "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state"
-                f"{label_selector}[{minutes}m]"
-                ") > 0"
-            ),
-        }
-        params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-        params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
-        params["start_time"] = int(start_time.timestamp())
-        params["end_time"] = int(end_time.timestamp())
-        params["query_configs"][0]["promql"] = query_template["changes"]
-        dev_debug("params: {}".format(params["query_configs"][0]["promql"]))
-        out = BKMonitorV3Api.unify_query(params, use_admin=True)
-        series = out["series"]
-        instance_list: list[dict] = []
-        for item in series:
-            value = _extract_datapoint_value(item)
-            if value is None:
-                logger.warning(f"fetch_latest_changes: empty datapoints, skip item: {item.get('dimensions', {})}")
+            observations = [o for o in observations if (o.cluster_domain or "") == cluster_domain]
+        if allowed_domains is not None:
+            observations = [o for o in observations if (o.cluster_domain or "") in allowed_domains]
+
+        targets = _aggregate_peer_targets(observations)
+        dev_debug(f"fetch_peer_member_targets aggregated={len(targets)} observations={len(observations)}")
+        return targets
+
+    def apply_peer_member_updates(self, targets: list[dict], record_batch_ops: RecordBatchOps, report_day: int) -> int:
+        """按旁观者异常聚合结果回写 Ext（在 my_state 刷新之后，覆盖死节点的陈旧 SECONDARY）。"""
+        if not targets:
+            return 0
+        ip_ports = [(t["ip"], t["port"]) for t in targets]
+        ext_map = _load_ext_map_by_ip_ports(ip_ports)
+        now = timezone.now()
+        ext_updates = []
+        for target in targets:
+            addr_key = _instance_addr_key(target["ip"], target["port"])
+            ext = ext_map.get(addr_key)
+            if ext is None:
+                logger.warning("apply_peer_member_updates: missing Ext for %s, skip", addr_key)
                 continue
-            dims = item["dimensions"]
-            shard = (dims.get("shard") or "").strip()
-            if not shard:
-                logger.warning(f"fetch_latest_changes: missing or empty shard in dimensions, skip item: {dims}")
+            new_state_code = int(target["state_code"])
+            if ext.state_code == new_state_code:
                 continue
-            domain = dims["cluster_domain"]
-            if cluster_domain and domain != cluster_domain:
-                continue
-            if allowed_domains is not None and domain not in allowed_domains:
-                continue
-            instance = dims["instance"]
-            ip_port = dims["bk_target_ip"] + ":" + str(dims["instance_port"])
-            new_row = {
-                "instance": instance,
-                "ip_port": ip_port,
-                "instance_role": dims["instance_role"],
-                "instance_port": dims["instance_port"],
-                "bk_target_ip": dims["bk_target_ip"],
-                "cluster_domain": domain,
-                "shard": shard,
-                "value": value,
-            }
-            instance_list.append(new_row)
-        return instance_list
+            old_state = ext.state
+            old_state_code = ext.state_code
+            new_state = target["state"]
+            new_shard = target.get("shard") or ext.shard_name or ""
+            report = _make_change_report(
+                ext,
+                report_day=report_day,
+                sub_type=self.check_type,
+                shard=new_shard,
+                old_state=old_state,
+                old_state_code=old_state_code,
+                new_state=new_state,
+                new_state_code=new_state_code,
+            )
+            if report is not None:
+                record_batch_ops.append(report)
+            ext.update_at = now
+            ext.state_code = new_state_code
+            ext.state = new_state
+            if new_shard:
+                ext.shard_name = new_shard
+            ext_updates.append(ext)
+            logger.info(
+                "apply_peer_member_updates %s %s(%s) -> %s(%s) peers=%s",
+                addr_key,
+                old_state,
+                old_state_code,
+                new_state,
+                new_state_code,
+                target.get("peer_count"),
+            )
+        return _bulk_update_ext_records(ext_updates)
+
+    def fetch_latest_changes(
+        self, minutes: int = 5, cluster_domain: str | None = None, bk_biz_id: int | None = None
+    ) -> list[dict]:
+        """兼容旧名：转发到 fetch_peer_member_targets。"""
+        return self.fetch_peer_member_targets(minutes=minutes, cluster_domain=cluster_domain, bk_biz_id=bk_biz_id)
 
 
 def _instant_fetch_metric(
