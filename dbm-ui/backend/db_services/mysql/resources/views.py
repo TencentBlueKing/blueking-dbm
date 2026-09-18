@@ -12,7 +12,8 @@ from collections import defaultdict
 
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
-from rest_framework import status
+from rest_framework import serializers, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -24,7 +25,12 @@ from backend.db_services.dbbase.resources.serializers import SearchResourceTreeS
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.mysql.resources import constants
+from backend.db_services.mysql.resources.query import MysqlListRetrieveResource
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+
+
+class ListDefaultStorageEngineSLZ(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), allow_empty=False)
 
 
 @method_decorator(
@@ -32,7 +38,21 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
     decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),
 )
 class ListResourceViewSet(BaseListResourceViewSet):
-    pass
+    @common_swagger_auto_schema(
+        operation_summary=_("获取默认存储引擎"),
+        request_body=ListDefaultStorageEngineSLZ(),
+        responses={status.HTTP_200_OK: serializers.Serializer()},
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["POST"], detail=False, url_path="default_storage_engines")
+    def list_default_storage_engines(self, request, bk_biz_id):
+        validated_data = self.params_validate(ListDefaultStorageEngineSLZ)
+        return Response(
+            MysqlListRetrieveResource.list_default_storage_engines(
+                bk_biz_id=bk_biz_id,
+                cluster_ids=validated_data["cluster_ids"],
+            )
+        )
 
 
 class ResourceTreeViewSet(SystemViewSet):

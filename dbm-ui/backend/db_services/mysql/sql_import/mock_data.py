@@ -10,7 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-SQL_GRAMMAR_CHECK_REQUEST_DATA = {"sql_content": "select * from user where user.id = 1", "sql_file": None}
+SQL_GRAMMAR_CHECK_REQUEST_DATA = {
+    "sql_content": "select * from user where user.id = 1",
+    "sql_file": None,
+    "versions": ["MySQL-5.7"],
+    "cluster_info": [{"cluster_domain": "test.mysql.db", "version": "MySQL-5.7", "engine": "InnoDB"}],
+}
 SQL_GRAMMAR_CHECK_RESPONSE_DATA = {
     "struct_update_202110102.sql": {
         "syntax_fails": None,

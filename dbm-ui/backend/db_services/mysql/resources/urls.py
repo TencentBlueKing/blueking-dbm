@@ -18,13 +18,13 @@ from .views import ListResourceViewSet, ResourceTreeViewSet
 
 router = DefaultRouter(trailing_slash=True)
 
+router.register(r"resources", ListResourceViewSet, basename="resource")
 router.register(r"tendbha_resources", DBHAViewSet, basename="tendbha_resource")
 router.register(r"tendbsingle_resources", DBSingleViewSet, basename="tendbsingle_resource")
 router.register(r"spider_resources", SpiderViewSet, basename="spider_resource")
 
 urlpatterns = [
     # 提供资源(集群)通用属性的查询, 如集群名, 集群创建者等
-    path("resources/", ListResourceViewSet.as_view({"get": "list"})),
     path("resource_tree/", ResourceTreeViewSet.as_view({"get": "get_resource_tree"})),
 ]
 
