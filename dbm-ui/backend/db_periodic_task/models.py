@@ -263,8 +263,16 @@ class TaskStatus:
     RECOVER_SUCCESS = "recover_success"
     # 演练恢复失败
     RECOVER_FAILED = "recover_failed"
+    # binlog 查询或下载失败
+    BINLOG_PREPARE_FAILED = "binlog_prepare_failed"
+    # binlog apply 失败
+    BINLOG_APPLY_FAILED = "binlog_apply_failed"
     # 资源归还成功
     RESOURCE_RETURN_SUCCESS = "resource_return_success"
+
+    @classmethod
+    def exercise_failed_statuses(cls):
+        return [cls.RECOVER_FAILED, cls.BINLOG_PREPARE_FAILED, cls.BINLOG_APPLY_FAILED]
 
 
 class TaskPhase:
@@ -411,13 +419,13 @@ class MySQLBackupRecoverTask(BaseReportABS):
     def get_recent_2days_failed_cluster_ids(cls):
         """
         获取最近2天内失败的演练集群ID列表
-        失败指的是task_status为RECOVER_FAILED状态的任务
+        失败指的是task_status为RECOVER_FAILED、BINLOG_PREPARE_FAILED或BINLOG_APPLY_FAILED状态的任务
         """
         try:
             recent_time = timezone.now() - timedelta(days=2)
             return list(
                 MySQLBackupRecoverTask.objects.filter(
-                    create_at__gte=recent_time, task_status=TaskStatus.RECOVER_FAILED
+                    create_at__gte=recent_time, task_status__in=TaskStatus.exercise_failed_statuses()
                 )
                 .values_list("cluster_id", flat=True)
                 .distinct()

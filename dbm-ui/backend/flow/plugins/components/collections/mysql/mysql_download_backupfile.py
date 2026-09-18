@@ -17,6 +17,18 @@ from backend.components.mysql_backup.client import MysqlBackupApi
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 
 
+def download_bill_state(result_response):
+    """备份下载单据的终态。True 成功，False 失败，None 仍在下载。"""
+    if not result_response or "total" not in result_response:
+        return False
+    total = result_response["total"]
+    if total["todo"] == 0 and total["doing"] == 0 and total["fail"] == 0:
+        return True
+    if total["fail"] > 0:
+        return False
+    return None
+
+
 class MySQLDownloadBackupfile(BkJobService):
     """
     MySQL下载备份文件
@@ -24,6 +36,25 @@ class MySQLDownloadBackupfile(BkJobService):
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(120)
+    # backupapi/recover 按这个大小切 task_ids。回档下载和演练下载共用。
+    DOWNLOAD_TASK_BATCH_SIZE = 500
+
+    def poll_download_bill(self, bill_id, bk_cloud_id):
+        """查一张下载单据。不结束本节点，调用方决定何时 finish_schedule。"""
+        result_response = MysqlBackupApi.download_result({"bill_id": bill_id, "bk_cloud_id": bk_cloud_id})
+        state = download_bill_state(result_response)
+        if state is True:
+            self.log_info(_("{} 下载成功").format(bill_id))
+        elif state is False:
+            if result_response is not None and "total" in result_response:
+                self.log_error(_("{} 下载失败").format(bill_id))
+                self.log_error(str(result_response))
+            else:
+                self.log_error("result response fail")
+        else:
+            total = result_response["total"]
+            self.log_info(_("{} 下载中: todo {} doing {}").format(bill_id, total["todo"], total["doing"]))
+        return state
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -51,39 +82,15 @@ class MySQLDownloadBackupfile(BkJobService):
             return False
 
     def _schedule(self, data, parent_data, callback_data=None):
-        # 定义异步扫描
         kwargs = data.get_one_of_inputs("kwargs")
         self.log_debug(kwargs)
         backup_bill_id = data.get_one_of_outputs("backup_bill_id")
         self.log_info(_("下载单据ID {}").format(backup_bill_id))
-        result_response = MysqlBackupApi.download_result(
-            {"bill_id": backup_bill_id, "bk_cloud_id": kwargs["bk_cloud_id"]}
-        )
-        # 如何判断
-        if result_response is not None and "total" in result_response:
-            if (
-                result_response["total"]["todo"] == 0
-                and result_response["total"]["doing"] == 0
-                and result_response["total"]["fail"] == 0
-            ):
-                self.log_info(_("{} 下载成功").format(backup_bill_id))
-                self.finish_schedule()
-                return True
-            elif result_response["total"]["fail"] > 0:
-                self.log_error(_("{} 下载失败").format(backup_bill_id))
-                self.log_error(str(result_response))
-                self.finish_schedule()
-                return False
-            else:
-                self.log_info(
-                    _("{} 下载中: todo {} doing {}").format(
-                        backup_bill_id, result_response["total"]["todo"], result_response["total"]["doing"]
-                    )
-                )
-        else:
-            self.log_error("result response fail")
-            self.finish_schedule()
-            return False
+        state = self.poll_download_bill(backup_bill_id, kwargs["bk_cloud_id"])
+        if state is None:
+            return None
+        self.finish_schedule()
+        return state
 
 
 class MySQLDownloadBackupfileComponent(Component):

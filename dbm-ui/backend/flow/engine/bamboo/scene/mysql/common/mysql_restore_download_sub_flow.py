@@ -18,6 +18,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
+    MySQLDownloadBackupfile,
     MySQLDownloadBackupfileComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -76,7 +77,8 @@ def mysql_restore_download_sub_flow(
         kwargs=asdict(exec_act_kwargs),
     )
     # 分批次下载备份文件
-    task_ids_split = [task_ids[i : i + 500] for i in range(0, len(task_ids), 500)]
+    batch_size = MySQLDownloadBackupfile.DOWNLOAD_TASK_BATCH_SIZE
+    task_ids_split = [task_ids[i : i + batch_size] for i in range(0, len(task_ids), batch_size)]
     batch_num = 0
     if source_ip is None:
         # 从远程下载备份文件

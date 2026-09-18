@@ -13,7 +13,9 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskStatus
+from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase
+from backend.db_report.enums import ReportStateType
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_default
 from backend.dbm_aiagent.mcp_tools.common.impl.taskflow_error_log import get_taskflow_error_logs
 from backend.dbm_aiagent.mcp_tools.common.impl.taskflow_running_nodes import get_running_nodes_with_duration
@@ -110,7 +112,9 @@ class TaskflowQueryMcpToolsViewSet(McpToolsViewSet):
                 MySQLBackupRecoverTask.objects.filter(
                     create_at__gte=start_time,
                     create_at__lte=end_time,
-                    task_status__in=[TaskStatus.RECOVER_FAILED, TaskStatus.COMMIT_FAILED],
+                    phase=TaskPhase.DONE,
+                    state=ReportStateType.ABNORMAL.value,
+                    cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster],
                 )
                 .exclude(task_id="")
                 .values_list("task_id", flat=True)

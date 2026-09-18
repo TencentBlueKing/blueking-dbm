@@ -55,6 +55,10 @@ class MySQLRollbackExerciseContext:
     time_zone_info: dict = field(default_factory=dict)  # 新机器的时区设置信息
     system_info: dict = field(default_factory=dict)
     alarm_shield_id: int = None
+    binlog_task_ids: list = field(default_factory=list)
+    binlog_files_list: list = field(default_factory=list)
+    binlog_start_file: str = ""
+    binlog_start_pos: int = 0
 
     @staticmethod
     def get_time_zone_var_name() -> str:

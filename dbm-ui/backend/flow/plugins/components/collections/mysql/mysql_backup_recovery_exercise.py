@@ -31,7 +31,7 @@ class MySQLBackupRecoverTaskMetaSvr(BaseService):
         # 根据task_id 更新task_status
         tsk = MySQLBackupRecoverTask.objects.get(task_id=kwargs["task_id"])
         # 如果已经失败了，就不在更改状态
-        if tsk.task_status == TaskStatus.RECOVER_FAILED:
+        if tsk.task_status in TaskStatus.exercise_failed_statuses():
             result = True
             data.outputs.ext_result = result
             return result
@@ -44,7 +44,7 @@ class MySQLBackupRecoverTaskMetaSvr(BaseService):
             tsk.recover_end_time = timezone.now()
             tsk.state = ReportStateType.NORMAL.value
             tsk.save(update_fields=["task_status", "state", "recover_end_time"])
-        elif kwargs["task_status"] == TaskStatus.RECOVER_FAILED:
+        elif kwargs["task_status"] in TaskStatus.exercise_failed_statuses():
             # 备份恢复失败时，设置 state 为 abnormal，且后续不再改变
             update_fields_list = ["task_status"]
             tsk.state = ReportStateType.ABNORMAL.value
