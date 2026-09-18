@@ -17,9 +17,9 @@ from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin
 from backend.db_services.dbbase.resources.register import register_resource_decorator
+from backend.db_services.mysql.resources.query import MysqlListRetrieveResource
 
 
 class TenDBSingleExportQueryResourceMixin(CommonExportQueryResourceMixin):
@@ -45,7 +45,7 @@ class TenDBSingleExportQueryResourceMixin(CommonExportQueryResourceMixin):
 
 
 @register_resource_decorator()
-class ListRetrieveResource(query.ListRetrieveResource, TenDBSingleExportQueryResourceMixin):
+class ListRetrieveResource(MysqlListRetrieveResource, TenDBSingleExportQueryResourceMixin):
     """查看 mysql 单点部署的资源"""
 
     cluster_types = [ClusterType.TenDBSingle]
