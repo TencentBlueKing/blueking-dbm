@@ -158,6 +158,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
   useTicketDetail<Redis.ClusterRollbackDataCopy>(TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY, {
     onSuccess(ticketDetail) {
@@ -312,6 +313,14 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less">

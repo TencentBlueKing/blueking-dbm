@@ -176,6 +176,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
   // 单据克隆
   useTicketDetail<Redis.DatacopyCheckRepair>(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, {
@@ -317,6 +318,14 @@
         ];
       }
     });
+  });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
   });
 </script>
 

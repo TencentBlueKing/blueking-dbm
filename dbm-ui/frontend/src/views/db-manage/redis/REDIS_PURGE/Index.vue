@@ -123,6 +123,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
   const tableKey = ref(random());
 
@@ -281,4 +282,12 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'RedisToolboxIndex',
+      });
+    },
+  });
 </script>
