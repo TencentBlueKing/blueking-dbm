@@ -31,6 +31,12 @@ from backend.flow.plugins.components.collections.mongodb.add_relationship_to_met
     ExecAddRelationshipOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.mongodb_apply_summary import (
+    MongoReplicaSetApplySummaryComponent,
+    MongoShardApplySummaryComponent,
+    add_mongodb_apply_summary_output_act,
+    add_mongodb_batch_apply_summary_output_act,
+)
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.calculate_cluster import calculate_cluster
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -152,6 +158,22 @@ class MongoDBInstallFlow(object):
         # 安装dbmon
         self.install_dbmon(data=self.data, pipeline=pipeline)
 
+        # 写入副本集信息摘要(地区/域名/端口)，供前端「执行摘要」展示
+        summary_items = [
+            {
+                "bk_biz_id": self.data["bk_biz_id"],
+                "domain_name": replicaset_info["nodes"][0]["domain"],
+                "region": self.data.get("city") or "",
+                "port": replicaset_info["port"],
+            }
+            for replicaset_info in self.data["sets"]
+        ]
+        add_mongodb_batch_apply_summary_output_act(
+            pipeline=pipeline,
+            items=summary_items,
+            component_code=MongoReplicaSetApplySummaryComponent.code,
+        )
+
         # 运行流程
         pipeline.run_pipeline()
 
@@ -253,6 +275,16 @@ class MongoDBInstallFlow(object):
 
         # 安装dbmon
         self.install_dbmon(data=self.data, pipeline=pipeline)
+
+        # 写入分片集群信息摘要(地区/域名/端口)，供前端「执行摘要」展示
+        add_mongodb_apply_summary_output_act(
+            pipeline=pipeline,
+            bk_biz_id=self.data["bk_biz_id"],
+            domain_name=self.data["mongos"]["domain"],
+            region=self.data.get("city") or "",
+            port=self.data["mongos"]["port"],
+            component_code=MongoShardApplySummaryComponent.code,
+        )
 
         # 运行流程
         pipeline.run_pipeline()
