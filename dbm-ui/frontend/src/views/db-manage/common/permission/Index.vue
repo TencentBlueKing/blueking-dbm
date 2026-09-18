@@ -79,6 +79,7 @@
       :access-dbs="authorizeState.dbs"
       :account-type="accountType"
       :cluster-types="configMap[accountType].clusterTypes"
+      disabled
       :rules="authorizeState.rules"
       :user="authorizeState.user" />
   </PermissionCatch>
@@ -631,6 +632,14 @@
   const handleShowAccountDialog = () => {
     accountDialog.isShow = true;
   };
+
+  // 通过 URL query 参数自动打开新建账号弹窗
+  const route = useRoute();
+  if (route.query.action === 'create_account') {
+    nextTick(() => {
+      accountDialog.isShow = true;
+    });
+  }
 
   /**
    * 浏览账号信息

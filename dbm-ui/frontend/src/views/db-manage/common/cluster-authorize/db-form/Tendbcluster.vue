@@ -17,7 +17,8 @@
       v-model:access-dbs="formData.access_dbs"
       v-model:rules="formData.rules"
       v-model:user="formData.user"
-      :account-type="accountType" />
+      :account-type="accountType"
+      :disabled="disabled" />
   </DbForm>
 </template>
 
@@ -33,6 +34,7 @@
   interface Props {
     accessDbs?: string[];
     clusterTypes?: string[];
+    disabled?: boolean;
     selected?: {
       cluster_name: string;
       cluster_type: string;

@@ -56,6 +56,7 @@
     accessDbs?: string[];
     accountType: AccountTypes;
     clusterTypes?: string[];
+    disabled?: boolean;
     rules?: PermissionRule['rules'];
     selected?: {
       cluster_name: string;
