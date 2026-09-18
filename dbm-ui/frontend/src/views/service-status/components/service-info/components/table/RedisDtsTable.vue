@@ -22,7 +22,8 @@
     </TableColumn>
     <TableColumn
       col-key="updateAtDisplay"
-      :title="t('更新时间')">
+      :title="t('更新时间')"
+      :width="180">
     </TableColumn>
   </PrimaryTable>
 </template>

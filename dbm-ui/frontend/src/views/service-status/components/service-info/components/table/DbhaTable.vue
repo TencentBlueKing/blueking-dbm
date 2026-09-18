@@ -34,11 +34,13 @@
     </TableColumn>
     <TableColumn
       col-key="startTimeDisplay"
-      :title="t('启动时间')">
+      :title="t('启动时间')"
+      :width="180">
     </TableColumn>
     <TableColumn
       col-key="lastTimeDisplay"
-      :title="t('上次更新时间')">
+      :title="t('上次更新时间')"
+      :width="180">
     </TableColumn>
     <TableColumn
       col-key="report_interval"

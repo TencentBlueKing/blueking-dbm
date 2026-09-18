@@ -169,7 +169,7 @@
           <TableColumn
             col-key="updater"
             :title="t('更新人')"
-            :width="120">
+            :width="180">
           </TableColumn>
           <TableColumn
             col-key="is_enabled"
