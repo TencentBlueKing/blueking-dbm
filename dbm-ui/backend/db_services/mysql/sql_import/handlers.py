@@ -120,6 +120,7 @@ class SQLHandler(object):
         sql_filenames: List[str] = None,
         sql_files: List[InMemoryUploadedFile] = None,
         versions: list = None,
+        default_storage_engine: list = None,
         execute_objects: List[Dict[str, Union[int, List[str]]]] = None,
     ) -> Optional[Dict]:
         """
@@ -144,6 +145,7 @@ class SQLHandler(object):
 
         # 获取检查信息
         versions = versions or []
+        default_storage_engine = default_storage_engine or []
 
         if execute_objects:
             # 补充execute_objects协议
@@ -159,6 +161,7 @@ class SQLHandler(object):
                 "files": file_name_list,
                 "cluster_type": self.cluster_type,
                 "versions": versions,
+                "default_storage_engine": default_storage_engine,
                 "execute_objects": execute_objects,
                 "bk_biz_id": self.bk_biz_id,
             }

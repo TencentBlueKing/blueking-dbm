@@ -62,6 +62,7 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBHAExportQueryResource
     storage_spec_role = InstanceRole.BACKEND_MASTER
 
     fields = [
+        {"name": _("默认存储引擎"), "key": "default_storage_engine"},
         {"name": _("集群名"), "key": "cluster_name"},
         {"name": _("主域名"), "key": "master_domain"},
         {"name": _("从域名"), "key": "slave_domain"},
