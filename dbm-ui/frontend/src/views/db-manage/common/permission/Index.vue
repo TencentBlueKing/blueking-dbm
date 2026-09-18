@@ -71,6 +71,7 @@
       :account-id="ruleState.accountId"
       :account-type="accountType"
       :rule-obj="ruleState.rowData"
+      :user-name="ruleState.userName"
       @success="fetchData" />
     <!-- 集群授权 -->
     <ClusterAuthorize
@@ -289,6 +290,7 @@
     accountId: -1,
     isShow: false,
     rowData: {} as PermissionRuleInfo,
+    userName: '',
   });
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
@@ -703,6 +705,7 @@
     e.stopPropagation();
     ruleState.rowData = {} as PermissionRuleInfo;
     ruleState.accountId = row.account.account_id;
+    ruleState.userName = row.account.user;
     ruleState.isShow = true;
   };
 
@@ -712,6 +715,7 @@
   const handleShowEditRule = (e: PointerEvent, row: PermissionRule, index: number) => {
     e.stopPropagation();
     ruleState.accountId = row.account.account_id;
+    ruleState.userName = row.account.user;
     ruleState.rowData = row.rules[index];
     ruleState.isShow = true;
   };

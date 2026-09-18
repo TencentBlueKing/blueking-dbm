@@ -26,7 +26,8 @@
       :account-type="accountType"
       :is-edit="isEdit"
       :rule-settings-config="configMap[accountType]"
-      :rules-form-data="rulesFormData" />
+      :rules-form-data="rulesFormData"
+      :user-name="selectedUserName" />
     <PreviewDiff
       v-else
       ref="previewDiffRef"
@@ -101,6 +102,8 @@
     accountId?: number;
     accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
     ruleObj?: PermissionRuleInfo;
+    /** 编辑 / 从行入口进入时已知的账号名，用于懒加载下的回显兜底 */
+    userName?: string;
   }
 
   type Emits = (e: 'success') => void;
@@ -109,6 +112,7 @@
     accountId: -1,
     accountType: AccountTypes.MYSQL,
     ruleObj: undefined,
+    userName: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -144,7 +148,10 @@
     afterChange: initFormData(),
     beforeChange: initFormData(),
   });
-  let userName = '';
+  // 编辑 / 行入口进入时已知的账号名，作为 RuleSettings 懒加载回显的种子数据
+  const initUserName = ref('');
+
+  const selectedUserName = computed(() => initUserName.value || props.userName);
 
   const isEdit = computed(() => !!props.ruleObj?.account_id);
   const isFirstStep = computed(() => currentStep.value === 1);
@@ -200,7 +207,11 @@
 
   watch(
     isShow,
-    () => {
+    (value) => {
+      if (value) {
+        // 清空上一次的账号名，使用本次入口账号回显
+        initUserName.value = '';
+      }
       rulesFormData.beforeChange = {
         access_db: props.ruleObj?.access_db || '',
         account_id: props.accountId ?? -1,
@@ -244,7 +255,7 @@
     if (isFirstStep.value) {
       const ruleSettingResult = await ruleSettingsRef.value!.getValue();
       accountRule = ruleSettingResult.accountRule;
-      userName = ruleSettingResult.userName;
+      initUserName.value = ruleSettingResult.userName;
     } else {
       accountRule = _.cloneDeep(rulesFormData.afterChange);
     }
@@ -265,7 +276,7 @@
   const handleGoPreviewDiff = async () => {
     const ruleSettingResult = await ruleSettingsRef.value!.getValue();
     rulesFormData.afterChange = ruleSettingResult.accountRule;
-    userName = ruleSettingResult.userName;
+    initUserName.value = ruleSettingResult.userName;
     currentStep.value = 2;
   };
 
@@ -286,7 +297,7 @@
             details: {
               action: 'change',
               last_account_rules: {
-                userName,
+                userName: selectedUserName.value,
                 ...rulesFormData.beforeChange,
               },
               ...params,
