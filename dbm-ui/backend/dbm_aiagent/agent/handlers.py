@@ -19,6 +19,7 @@ from aidev_bkplugin.services.agent_builder import AgentBuilder
 from aidev_bkplugin.services.agent_execution import AgentExecutor
 from aidev_bkplugin.services.agent_helpers import AgentHelper
 from aidev_bkplugin.services.agent_session import SessionManager
+from django.conf import settings
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext_lazy as _
 
@@ -137,7 +138,7 @@ class AgentHandler:
             session_code=session_code,
             executor=username,
             caller_executor=username,
-            caller_bk_app_code="bk-dbm",
+            caller_bk_app_code=settings.APP_CODE,
             caller_trace_context=trace_headers() or None,
         )
         # 模型覆盖挂在 resource manager 上，agent 装配时经 get_agent_config 生效
