@@ -15,6 +15,7 @@ import uuid
 
 from aidev_agent.pydantic_models import ExecuteKwargs
 from aidev_bkplugin.services.agent_builder import AgentBuilder
+from aidev_bkplugin.services.agent_execution import AgentExecutor
 from aidev_bkplugin.services.agent_helpers import AgentHelper
 from aidev_bkplugin.services.agent_session import SessionManager
 from django.http import StreamingHttpResponse
@@ -115,7 +116,14 @@ class AgentHandler:
         :param model: 指定本次对话使用的 LLM，为空时使用智能体发布时配置的模型
         :return: 非流式返回 dict（含 choices/model/id/reference_doc）；流式返回事件生成器
         """
-        execute_kwargs = ExecuteKwargs(stream=stream, invoke_timeout=timeout)
+        execute_kwargs = ExecuteKwargs(
+            stream=stream,
+            invoke_timeout=timeout,
+            session_code=session_code,
+            executor=username,
+            caller_executor=username,
+            caller_bk_app_code="bk-dbm",
+        )
         # 模型覆盖挂在 resource manager 上，agent 装配时经 get_agent_config 生效
         rm = cls.__build_resource_manager(agent_code, username, model)
         sm = cls.__build_session_manager(agent_code, username)
@@ -125,8 +133,8 @@ class AgentHandler:
             username=username,
             agent_code=rm.get_agent_code(),
         ).by_session_code(session_code, version=execute_kwargs.version)
-        result = agent_instance.execute(execute_kwargs)
-        return result
+        # 非流式 ainvoke 不走 AG-UI 事件落库，必须经 execute_with_save 回写 assistant
+        return AgentExecutor(sm).execute_with_save(agent_instance, execute_kwargs, session_code)
 
     @classmethod
     def ask_agent_with_content(
