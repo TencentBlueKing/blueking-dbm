@@ -14,6 +14,7 @@ import re
 import uuid
 
 from aidev_agent.pydantic_models import ExecuteKwargs
+from aidev_agent.utils.tracing import get_current_trace_id, trace_headers
 from aidev_bkplugin.services.agent_builder import AgentBuilder
 from aidev_bkplugin.services.agent_execution import AgentExecutor
 from aidev_bkplugin.services.agent_helpers import AgentHelper
@@ -43,6 +44,20 @@ class AgentHandler:
         :return: uuid4 字符串，作为 aidev 平台会话的唯一标识
         """
         return str(uuid.uuid4())
+
+    @staticmethod
+    def __current_trace_id() -> str:
+        """读取当前 OTel trace id；无有效 span 时返回空串。"""
+        return get_current_trace_id() or ""
+
+    @classmethod
+    def __with_trace_id(cls, property_data: dict | None = None) -> dict:
+        """把当前 trace_id 写入 session content property；平台只在创建时接收该字段。"""
+        data = dict(property_data or {})
+        trace_id = cls.__current_trace_id()
+        if trace_id:
+            data["trace_id"] = trace_id
+        return data
 
     @staticmethod
     def __build_resource_manager(agent_code, username, model: str = "") -> DBMAgentResourceManager:
@@ -123,10 +138,13 @@ class AgentHandler:
             executor=username,
             caller_executor=username,
             caller_bk_app_code="bk-dbm",
+            caller_trace_context=trace_headers() or None,
         )
         # 模型覆盖挂在 resource manager 上，agent 装配时经 get_agent_config 生效
         rm = cls.__build_resource_manager(agent_code, username, model)
         sm = cls.__build_session_manager(agent_code, username)
+        # SessionManager 只在构造时快照 trace_id；显式回填保证与 user content 同一条
+        sm.trace_id = sm.trace_id or cls.__current_trace_id()
         agent_instance = AgentBuilder(
             resource_manager=rm,
             session_manager=sm,
@@ -168,11 +186,15 @@ class AgentHandler:
         # 创建会话内容
         # 主智能体直接询问，子智能体走快捷指令切换询问
         content_params = {"session_code": session_code, "role": "user", "content": content}
+        content_property = {}
         if agent_code != DBMAgentCode.DBM:
             # 特殊：为了统计工时，这里加上command名称
             rendered_content = f"comment：{agent_code}\n" + content
             content_property = {"extra": {"command": agent_code, "rendered_content": rendered_content}}
-            content_params.update(property=content_property, content=str(DBMAgentCode.get_choice_label(agent_code)))
+            content_params["content"] = str(DBMAgentCode.get_choice_label(agent_code))
+        content_property = cls.__with_trace_id(content_property)
+        if content_property:
+            content_params["property"] = content_property
         client = cls.__build_client(agent_code, username)
         resp = client.api.create_chat_session_content(json=content_params, headers={"X-BKAIDEV-USER": username})
 
@@ -263,7 +285,9 @@ class AgentHandler:
         rendered_content = CommandProcessor.process_command(command_data)
         # 创建会话内容。特殊：为了统计工时，这里加上command名称
         rendered_content = f"comment：{command}\n" + rendered_content
-        content_property = {"extra": {"command": command, "rendered_content": rendered_content, "context": context}}
+        content_property = cls.__with_trace_id(
+            {"extra": {"command": command, "rendered_content": rendered_content, "context": context}}
+        )
         content_params = {
             "session_code": session_code,
             "role": "user",
