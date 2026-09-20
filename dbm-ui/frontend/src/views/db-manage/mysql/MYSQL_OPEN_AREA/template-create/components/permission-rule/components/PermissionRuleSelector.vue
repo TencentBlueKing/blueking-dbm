@@ -314,8 +314,8 @@
     }
 
     .inner-row {
-      height: 28px;
       display: flex;
+      height: 28px;
       align-items: center;
     }
 
