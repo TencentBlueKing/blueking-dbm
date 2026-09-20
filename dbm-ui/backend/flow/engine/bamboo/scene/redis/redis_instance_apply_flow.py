@@ -42,6 +42,7 @@ from backend.flow.plugins.components.collections.redis.trans_flies import TransF
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_databases import validate_apply_databases
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode
 from backend.flow.utils.redis.redis_util import add_batch_summary_output_act
@@ -292,8 +293,12 @@ class RedisInstanceApplyFlow(object):
             master_servers = []
             slave_servers = []
             for rule in info["ip_install_dict"][master_ip]:
-                if rule["databases"] < 2 or rule["databases"] > 16:
-                    raise Exception("databases must in [2,16] ")
+                try:
+                    rule["databases"] = validate_apply_databases(
+                        rule["databases"], self.data["cluster_type"], db_version
+                    )
+                except ValueError as exc:
+                    raise Exception(str(exc))
                 act_kwargs.exec_ip = master_ip
                 act_kwargs.cluster["exec_ip"] = master_ip
                 #  集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取

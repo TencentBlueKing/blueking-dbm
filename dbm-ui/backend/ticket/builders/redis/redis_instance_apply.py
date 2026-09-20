@@ -19,6 +19,7 @@ from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
+from backend.flow.utils.redis.redis_databases import validate_apply_databases
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
@@ -69,6 +70,12 @@ class RedisInstanceApplyDetailSerializer(RedisBaseOperateDetailSerializer):
         bk_biz_id, ticket_type = self.context["bk_biz_id"], self.context["ticket_type"]
         for info in attrs["infos"]:
             CommonValidate.validate_duplicate_cluster_name(bk_biz_id, ticket_type, info["cluster_name"])
+            try:
+                info["databases"] = validate_apply_databases(
+                    info.get("databases"), attrs.get("cluster_type"), attrs.get("db_version")
+                )
+            except ValueError as exc:
+                raise serializers.ValidationError(str(exc))
 
         # 新部署机器组数要整除集群数
         if not attrs["append_apply"]:
