@@ -26,6 +26,7 @@ type TemplateData struct {
 	NodeId                           int
 	ProcessRoles                     string
 	UpperProcessRoles                string
+	Username                         string
 }
 
 // renderTemplate replaces known placeholders in value using a fixed whitelist.
@@ -47,6 +48,7 @@ func renderTemplate(value string, data TemplateData) (string, error) {
 		"{{.ControllerQuorumBootstrapServers}}", data.ControllerQuorumBootstrapServers,
 		"{{.ProcessRoles}}", data.ProcessRoles,
 		"{{.UpperProcessRoles}}", data.UpperProcessRoles,
+		"{{.Username}}", data.Username,
 	)
 	return r.Replace(value), nil
 }

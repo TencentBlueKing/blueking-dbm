@@ -364,29 +364,30 @@ class KafkaReplaceFlow(object):
         # 判断是否替换broker节点
         if self.data["new_nodes"].get("broker"):
             old_broker_ips = {b["ip"] for b in self.data["old_nodes"]["broker"]}
-            is_full_replace = len(old_broker_ips) == len(self.data["broker_ip"])
-
-            if not is_full_replace:
-                # 部分替换：检查未被替换的现有broker配置项，过滤掉缺失的配置避免新旧broker不一致
-                existing_broker_ip = next(ip for ip in self.data["broker_ip"] if ip not in old_broker_ips)
-                # 下发kafka介质到现有broker（执行check_broker_configs所需）
-                act_kwargs.exec_ip = [{"ip": existing_broker_ip, "bk_cloud_id": self.data["bk_cloud_id"]}]
-                kafka_pipeline.add_act(
-                    act_name=_("下发kafka介质到现有broker"),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
-                act_kwargs.exec_ip = [{"ip": existing_broker_ip, "bk_cloud_id": self.data["bk_cloud_id"]}]
-                act_kwargs.template = act_payload.get_check_broker_configs_payload(
-                    host=existing_broker_ip,
-                    configs_to_check=list(self.data["kafka_config"].keys()),
-                )
-                kafka_pipeline.add_act(
-                    act_name=_("检查现有broker配置项"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                    write_payload_var=ApplyContext.get_existing_broker_configs_var_name(),
-                )
+            # 检查未被替换的现有broker配置项，过滤掉缺失的配置避免新旧broker配置漂移。
+            # 全量替换时找不到未被替换的broker，此时旧broker在这一步还未下架，直接取其中一个即可。
+            existing_broker_ip = next(
+                (ip for ip in self.data["broker_ip"] if ip not in old_broker_ips),
+                next(iter(old_broker_ips)),
+            )
+            # 下发kafka介质到现有broker（执行check_broker_configs所需）
+            act_kwargs.exec_ip = [{"ip": existing_broker_ip, "bk_cloud_id": self.data["bk_cloud_id"]}]
+            kafka_pipeline.add_act(
+                act_name=_("下发kafka介质到现有broker"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+            act_kwargs.exec_ip = [{"ip": existing_broker_ip, "bk_cloud_id": self.data["bk_cloud_id"]}]
+            act_kwargs.template = act_payload.get_check_broker_configs_payload(
+                host=existing_broker_ip,
+                configs_to_check=list(self.data["kafka_config"].keys()),
+            )
+            kafka_pipeline.add_act(
+                act_name=_("检查现有broker配置项"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+                write_payload_var=ApplyContext.get_existing_broker_configs_var_name(),
+            )
 
             # 安装broker
             broker_act_list = []
@@ -402,8 +403,7 @@ class KafkaReplaceFlow(object):
                 )
                 ip = broker["ip"]
                 broker_kwargs = asdict(act_kwargs)
-                if not is_full_replace:
-                    broker_kwargs["filter_kafka_config_by_check"] = True
+                broker_kwargs["filter_kafka_config_by_check"] = True
                 broker_act = {
                     "act_name": _("安装broker-{}").format(ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,

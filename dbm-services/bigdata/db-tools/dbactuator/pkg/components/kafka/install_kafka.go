@@ -24,6 +24,103 @@ import (
 	"github.com/pkg/errors"
 )
 
+// aclConfigKeys lists the ACL-related kafka config keys that must be removed on a no_security
+// cluster: with authentication disabled every connection is ANONYMOUS, so leaving these configured
+// triggers ACL's deny-by-default and rejects all traffic. Kept as a named list so it can be reused
+// without retyping the three keys.
+var aclConfigKeys = []string{"authorizer.class.name", "super.users", "allow.everyone.if.no.acl.found"}
+
+// deleteConfigLines removes every "key=value" line (leading whitespace allowed) for each of keys
+// from filePath. Implemented as a plain line filter rather than shell/sed so that keys containing
+// regex metacharacters (all of ours contain ".") can't be mis-escaped, and so matches are anchored
+// to the start of the line instead of matching any line containing "key=" as a substring.
+func deleteConfigLines(filePath string, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("read %s failed: %w", filePath, err)
+	}
+	prefixes := make([]string, len(keys))
+	for i, key := range keys {
+		prefixes[i] = key + "="
+	}
+	lines := strings.Split(string(content), "\n")
+	kept := make([]string, 0, len(lines))
+	for _, line := range lines {
+		trimmed := strings.TrimLeft(line, " \t")
+		drop := false
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(trimmed, prefix) {
+				drop = true
+				break
+			}
+		}
+		if !drop {
+			kept = append(kept, line)
+		}
+	}
+	if err := os.WriteFile(filePath, []byte(strings.Join(kept, "\n")), 0644); err != nil {
+		return fmt.Errorf("write %s failed: %w", filePath, err)
+	}
+	return nil
+}
+
+// appendSuperUser appends an extra principal to the rendered super.users line in filePath. Used to
+// grant the controller-only listener's ANONYMOUS principal super-user trust — that listener
+// (CONTROLLER://ip:port) is hardcoded PLAINTEXT regardless of security mode, and it's the identity
+// every broker-forwarded Envelope request carries there — without granting that same trust on
+// broker listeners, where ANONYMOUS means an unauthenticated, untrusted client.
+func appendSuperUser(filePath, principal string) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("read %s failed: %w", filePath, err)
+	}
+	lines := strings.Split(string(content), "\n")
+	found := false
+	for i, line := range lines {
+		if !strings.HasPrefix(strings.TrimLeft(line, " \t"), "super.users=") {
+			continue
+		}
+		found = true
+		value := strings.SplitN(line, "=", 2)[1]
+		for _, existing := range strings.Split(value, ";") {
+			if existing == principal {
+				// already present (e.g. a hand-edited dbconfig template) — nothing to do
+				return nil
+			}
+		}
+		lines[i] = line + ";" + principal
+		break
+	}
+	if !found {
+		return fmt.Errorf("super.users line not found in %s", filePath)
+	}
+	if err := os.WriteFile(filePath, []byte(strings.Join(lines, "\n")), 0644); err != nil {
+		return fmt.Errorf("write %s failed: %w", filePath, err)
+	}
+	return nil
+}
+
+// configHasKey reports whether filePath contains a top-level "key=" line (leading whitespace
+// allowed, anchored to the start of the line so it can't match a comment or a longer key that
+// merely contains this one as a substring). Used to detect whether a rendered config came from a
+// dbconfig template old enough to predate a given config key entirely.
+func configHasKey(filePath, key string) (bool, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return false, fmt.Errorf("read %s failed: %w", filePath, err)
+	}
+	prefix := key + "="
+	for _, line := range strings.Split(string(content), "\n") {
+		if strings.HasPrefix(strings.TrimLeft(line, " \t"), prefix) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // InstallKafkaComp TODO
 type InstallKafkaComp struct {
 	GeneralParam *components.GeneralParam
@@ -658,18 +755,50 @@ func (i *InstallKafkaComp) InstallBroker() error {
 			NodeId:                           nodeID,
 			ProcessRoles:                     processRoles,
 			UpperProcessRoles:                strings.ToUpper(processRoles),
+			Username:                         username,
 		}
 		if err := kafkautil.CreateServerPropertiesFile(brokerConfig, templateData, cst.KafkaTmpConfig); err != nil {
 			return err
 		}
 		if processRoles == cst.KafkaRoleController {
+			// controller节点只有一个listener（CONTROLLER://ip:port），且
+			// listener.security.protocol.map里固定是PLAINTEXT，不随no_security渲染，所以这里的
+			// sasl/inter-broker配置删除跟ACL无关，是controller-only节点一直以来都需要的处理，
+			// 必须无条件执行——不能挂在下面的authorizer.class.name判断里，否则老dbconfig（没有
+			// authorizer.class.name）渲染出来的controller会残留这些不适用的broker配置。
 			logger.Info("controller mode, 去掉sasl配置")
-			extraCmd = fmt.Sprintf(`sed -i -e "/sasl.enabled.mechanisms=/d" \
-			-e "/sasl.mechanism.inter.broker.protocol=/d" \
-			-e "/inter.broker.listener.name=/d" %s`, cst.KafkaTmpConfig)
-			if _, err := osutil.ExecShellCommandJ(false, extraCmd); err != nil {
-				logger.Error("[%s] execute failed, %v", extraCmd, err)
+			if err := deleteConfigLines(cst.KafkaTmpConfig, []string{
+				"sasl.enabled.mechanisms",
+				"sasl.mechanism.inter.broker.protocol",
+				"inter.broker.listener.name",
+			}); err != nil {
+				logger.Error("%v", err)
 				return err
+			}
+
+			// authorizer.class.name完全不存在，说明这份配置来自ACL功能上线之前的dbconfig模板
+			// （这个集群还没启用ACL）。这个检查是为了让dbactuator新版本兼容老python/dbconfig：
+			// 二者独立发布时，dbactuator先上线的这段时间里，老单据（包括老单据的重试）渲染出来的
+			// 配置不会有下面用到的super.users这一行，如果无条件执行会直接报错装不起来。
+			hasAuthorizer, err := configHasKey(cst.KafkaTmpConfig, "authorizer.class.name")
+			if err != nil {
+				logger.Error("%v", err)
+				return err
+			}
+			if !hasAuthorizer {
+				logger.Info("authorizer.class.name not found, skip appending ANONYMOUS to super.users (pre-ACL dbconfig)")
+			} else {
+				// broker把客户端请求通过Envelope转发给controller时，controller在这条连接上看到的
+				// 身份是ANONYMOUS，而不是原始客户端。Kafka官方要求controller也必须配置authorizer
+				// （集群级管理请求、ACL管理请求都是controller侧校验的），所以不能像no_security那样
+				// 把ACL配置整体删掉——只把ANONYMOUS单独加入controller自己的super.users，放行broker
+				// 转发的Envelope请求；broker自己的super.users不受影响，broker listener上的ANONYMOUS
+				// 仍然是不可信身份，正常走ACL校验。
+				logger.Info("放行controller listener上的ANONYMOUS转发身份")
+				if err := appendSuperUser(cst.KafkaTmpConfig, "User:ANONYMOUS"); err != nil {
+					logger.Error("%v", err)
+					return err
+				}
 			}
 		}
 		// copy to server.properties
@@ -683,11 +812,19 @@ func (i *InstallKafkaComp) InstallBroker() error {
 
 	//  not enabled security
 	if noSecurity == 1 {
-		// remove sasl config
-		extraCmd := fmt.Sprintf(`sed -i -e "/sasl.enabled.mechanisms=/d" \
-		-e "/sasl.mechanism.inter.broker.protocol=/d" \
-		-e "/security.inter.broker.protocol=/d" \
-		-e "s/SASL_PLAINTEXT/PLAINTEXT/g" %s`, kafkaLink+"/config/server.properties")
+		// remove sasl config, and authorizer.class.name/super.users/allow.everyone.if.no.acl.found
+		// so ACL is never half-configured on a cluster with authentication disabled
+		serverPropertiesFile := kafkaLink + "/config/server.properties"
+		keys := append([]string{
+			"sasl.enabled.mechanisms",
+			"sasl.mechanism.inter.broker.protocol",
+			"security.inter.broker.protocol",
+		}, aclConfigKeys...)
+		if err := deleteConfigLines(serverPropertiesFile, keys); err != nil {
+			logger.Error("%v", err)
+			return err
+		}
+		extraCmd := fmt.Sprintf(`sed -i "s/SASL_PLAINTEXT/PLAINTEXT/g" %s`, serverPropertiesFile)
 		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 			logger.Error("%s execute failed, %v", extraCmd, err)
 			return err
