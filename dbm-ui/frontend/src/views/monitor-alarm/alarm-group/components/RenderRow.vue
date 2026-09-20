@@ -27,7 +27,12 @@
             class="render-row-icon"
             :type="getIconType(item.type)" />
         </template>
-        {{ item.display_name }}
+        <bk-user-display-name
+          v-if="item.type === 'user'"
+          :user-id="item.id" />
+        <template v-else>
+          {{ item.display_name }}
+        </template>
       </DbTag>
       <DbTag class="overflow-collapse-tag"> +{{ overflowData.length }} </DbTag>
     </p>
@@ -45,7 +50,12 @@
             class="render-row-icon"
             :type="getIconType(item.type)" />
         </template>
-        {{ item.display_name }}
+        <bk-user-display-name
+          v-if="item.type === 'user'"
+          :user-id="item.id" />
+        <template v-else>
+          {{ item.display_name }}
+        </template>
       </DbTag>
       <BkPopover
         v-if="overflowData.length > 0"
@@ -67,7 +77,12 @@
                 class="render-row-icon"
                 :type="getIconType(item.type)" />
             </template>
-            {{ item.display_name }}
+            <bk-user-display-name
+              v-if="item.type === 'user'"
+              :user-id="item.id" />
+            <template v-else>
+              {{ item.display_name }}
+            </template>
           </DbTag>
         </template>
       </BkPopover>
@@ -139,6 +154,18 @@
   });
 
   watch(() => props.data, findOverflowIndex, { immediate: true });
+
+  // bk-user-display-name 的人名是异步回填的，回填前 tag 宽度偏小，折叠位置要等文本落地后重新计算
+  let textObserver: MutationObserver | undefined;
+
+  onMounted(() => {
+    textObserver = new MutationObserver(debounce(findOverflowIndex, 300));
+    textObserver.observe(textRef.value!, { characterData: true, childList: true, subtree: true });
+  });
+
+  onBeforeUnmount(() => {
+    textObserver?.disconnect();
+  });
 
   const getIconType = (type: string) => (type === 'group' ? 'yonghuzu' : 'dba-config');
 </script>

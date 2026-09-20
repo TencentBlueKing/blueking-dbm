@@ -32,7 +32,9 @@
         </div>
         <div class="item">
           <div class="title">{{ t('执行人') }}：</div>
-          <div class="content">{{ baseInfo.created_by }}</div>
+          <div class="content">
+            <bk-user-display-name :user-id="baseInfo.created_by" />
+          </div>
         </div>
         <div class="item">
           <div class="title">{{ t('关联单据') }}：</div>

@@ -208,9 +208,7 @@
           :title="t('当前处理人')"
           width="160">
           <template #default="{ row }: { row: IRowData }">
-            <TagBlock
-              copyenable
-              :data="row.todo_operators" />
+            <UserNameList :data="row.todo_operators" />
           </template>
         </TableColumn>
         <TableColumn
@@ -218,9 +216,7 @@
           :title="t('当前协助人')"
           width="250">
           <template #default="{ row }: { row: IRowData }">
-            <TagBlock
-              copyenable
-              :data="row.todo_helpers" />
+            <UserNameList :data="row.todo_helpers" />
           </template>
         </TableColumn>
         <TableColumn
@@ -229,7 +225,7 @@
           :title="t('申请人')"
           width="180">
           <template #default="{ row }: { row: IRowData }">
-            {{ row.creator || '--' }}
+            <bk-user-display-name :user-id="row.creator" />
           </template>
         </TableColumn>
         <TableColumn
@@ -318,10 +314,10 @@
   import { useUserProfile } from '@stores';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import TagBlock from '@components/tag-block/Index.vue';
   import type { BkUiSettingsChangePayload } from '@components/tdesign-ui/table';
   import TicketDetail from '@components/ticket-detail/index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
+  import UserNameList from '@components/user-name-list/Index.vue';
 
   import { getBusinessHref, getOffset, transfromDataToQuery } from '@utils';
 

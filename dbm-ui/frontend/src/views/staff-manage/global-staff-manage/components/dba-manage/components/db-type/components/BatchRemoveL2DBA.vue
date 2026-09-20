@@ -28,8 +28,7 @@
           ref="diffTable"
           class="mt-24"
           :data="diffData"
-          :is-form-empty="isFormEmpty"
-          :user-data-map="userDataMap" />
+          :is-form-empty="isFormEmpty" />
       </div>
     </template>
     <template #footer>
@@ -70,7 +69,6 @@
   export interface Props {
     dbType: string;
     selected: BizDbaModel[];
-    userDataMap: Record<string, string>;
   }
 
   export type Emits = (e: 'success') => void;

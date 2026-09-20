@@ -49,7 +49,11 @@
       :title="t('源集群')" />
     <TableColumn
       col-key="updater"
-      :title="t('更新人')" />
+      :title="t('更新人')">
+      <template #default="{ row: data }: { row: OpenareaTemplateModel }">
+        <bk-user-display-name :user-id="data.updater" />
+      </template>
+    </TableColumn>
     <TableColumn
       col-key="update_at"
       sorter

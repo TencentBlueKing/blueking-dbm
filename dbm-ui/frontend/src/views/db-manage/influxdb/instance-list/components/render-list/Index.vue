@@ -230,6 +230,9 @@
         col-key="creator"
         :title="t('创建人')"
         :width="100">
+        <template #default="{ row: data }: { row: InfluxDBInstanceModel }">
+          <bk-user-display-name :user-id="data.creator" />
+        </template>
       </TableColumn>
       <TableColumn
         col-key="create_at"

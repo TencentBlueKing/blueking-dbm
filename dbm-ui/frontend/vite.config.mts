@@ -111,6 +111,12 @@ export default defineConfig(({ mode }) => {
         script: {
           defineModel: true,
         },
+        template: {
+          compilerOptions: {
+            // @blueking/bk-user-display-name 是原生自定义元素，交给浏览器渲染，不走 Vue 组件解析
+            isCustomElement: (tag) => tag === 'bk-user-display-name',
+          },
+        },
       }),
       AutoImport({
         eslintrc: {
