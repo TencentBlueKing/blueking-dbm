@@ -27,7 +27,11 @@ class TendbOpenAreaConfigListFilter(filters.FilterSet):
         fields = ["config_name", "bk_biz_id"]
 
     def filter_cluster_type(self, queryset, name, value):
-        return queryset.filter(cluster_type__in=value.split(","))
+        # 兼容两种传参形式: cluster_type=tendbha&cluster_type=tendbsingle / cluster_type=tendbha,tendbsingle
+        # 注: django-filter 表单清洗后 value 仅为重复参数的最后一个值, 故需通过 getlist 获取完整列表
+        values = self.request.query_params.getlist("cluster_type") if self.request else [value]
+        cluster_types = {cluster_type for item in values for cluster_type in item.split(",") if cluster_type}
+        return queryset.filter(cluster_type__in=cluster_types)
 
     def order_by_desc(self, queryset, name, value):
         return queryset.order_by(value)
