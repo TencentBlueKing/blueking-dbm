@@ -40,6 +40,7 @@
     align-items: center;
     margin-bottom: 15px;
     font-size: 12px;
+
     .funnel-icon {
       margin-right: 9.5px;
     }

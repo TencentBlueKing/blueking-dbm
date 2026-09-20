@@ -180,11 +180,11 @@
     }
 
     &::before {
-      content: '';
       display: inline-block;
       width: 1px;
       height: 14px;
       background: #dcdee5;
+      content: '';
     }
   }
 

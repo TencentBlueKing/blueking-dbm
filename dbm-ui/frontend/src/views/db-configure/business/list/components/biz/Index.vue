@@ -129,7 +129,7 @@
   .biz-content {
     background-color: #fff;
     border-radius: 2px;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;

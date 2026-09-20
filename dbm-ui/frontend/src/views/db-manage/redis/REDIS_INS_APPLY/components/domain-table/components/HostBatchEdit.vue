@@ -194,7 +194,7 @@
       color: @default-color;
 
       .batch-edit-domain-name {
-        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
 
       .batch-edit-domain-underline {

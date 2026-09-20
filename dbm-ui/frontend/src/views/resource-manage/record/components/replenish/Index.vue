@@ -279,9 +279,9 @@
 <style lang="less">
   .replenish-record-page {
     .bk-radio-button-label {
+      display: flex;
       font-size: 12px;
       line-height: 20px;
-      display: flex;
       align-items: center;
     }
 
@@ -302,11 +302,11 @@
     }
 
     .jump-link {
+      display: flex;
       font-size: 13px;
       color: #3a84ff;
-      cursor: pointer;
       text-decoration: none;
-      display: flex;
+      cursor: pointer;
       align-items: center;
       gap: 4px;
 
@@ -320,18 +320,18 @@
     }
 
     .replenish-record-list {
-      font-family: MicrosoftYaHei;
+      font-family: MicrosoftYaHei, sans-serif;
       background: #fff;
-      box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+      box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
       .bold-number {
-        font-family: MicrosoftYaHei-Bold;
-        font-weight: 700;
+        margin: 0 2px;
+        font-family: MicrosoftYaHei-Bold, sans-serif;
         font-size: 12px;
-        color: #4d4f56;
-        letter-spacing: 0;
+        font-weight: 700;
         line-height: 20px;
-        margin: 0px 2px;
+        letter-spacing: 0;
+        color: #4d4f56;
       }
 
       .green-number {
@@ -343,11 +343,11 @@
       }
 
       .table-footer {
-        padding: 14px 16px;
         position: relative;
         z-index: 1;
         display: flex;
         height: 60px;
+        padding: 14px 16px;
         padding: 0 16px;
         margin-top: -1px;
         background: #fff;

@@ -36,8 +36,8 @@
       }
 
       .bk-card-head {
-        border-bottom: none;
         height: 44px;
+        border-bottom: none;
       }
 
       .bk-card-head-left {

@@ -241,11 +241,11 @@
 </script>
 <style lang="less" scoped>
   .sql-execute-editor {
-    display: flex;
-    flex-direction: column;
     z-index: 0;
+    display: flex;
     height: 100%;
     overflow: hidden;
+    flex-direction: column;
 
     &.is-full-screen {
       height: 100vh;
@@ -284,31 +284,31 @@
 
     /* ===== 3. 底部检查结果面板 — 向上弹出/收起 ===== */
     .editor-result-panel {
-      flex-shrink: 0;
-      border-top: 1px solid #2d2d2d;
       max-height: 280px;
       overflow: hidden;
       background: #252526;
+      border-top: 1px solid #2d2d2d;
+      flex-shrink: 0;
     }
   }
 </style>
 <style lang="less">
   /* === 错误行：红色行号 + 红色波浪下划线 === */
   .editor-line-no-error {
-    color: #ff5757 !important;
     font-weight: 600;
+    color: #ff5757 !important;
   }
 
   .editor-line-error {
     // 红色波浪下划线（通过 inlineClassName 或 text-decoration 实现）
     &::after {
-      content: '';
       position: absolute;
-      left: 0;
       right: 0;
       bottom: 0;
+      left: 0;
       height: 2px;
       background: repeating-linear-gradient(-45deg, transparent, transparent 3px, #f48771 3px, #f48771 4px);
+      content: '';
     }
   }
 
@@ -319,26 +319,27 @@
 
   /* === 点击高亮行：黄色背景 + 左侧竖线 + 闪动动画 === */
   .editor-line-highlight {
-    background-color: rgba(255, 220, 100, 0.18) !important;
+    background-color: rgb(255 220 100 / 18%) !important;
     box-shadow: inset 3px 0 0 0 #ffd54f;
-
     animation: lineFlash 1.2s ease-out;
   }
 
   .editor-line-no-highlight {
-    color: #ffd54f !important;
     font-weight: 600;
+    color: #ffd54f !important;
   }
 
   @keyframes lineFlash {
     0% {
-      background-color: rgba(255, 220, 100, 0.55);
+      background-color: rgb(255 220 100 / 55%);
     }
+
     40% {
-      background-color: rgba(255, 220, 100, 0.55);
+      background-color: rgb(255 220 100 / 55%);
     }
+
     100% {
-      background-color: rgba(255, 220, 100, 0.18);
+      background-color: rgb(255 220 100 / 18%);
     }
   }
 </style>

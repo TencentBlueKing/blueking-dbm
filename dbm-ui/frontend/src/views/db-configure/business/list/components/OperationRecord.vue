@@ -539,13 +539,13 @@
 
 <style lang="less" scoped>
   .config-change-value {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
     position: relative;
+    display: inline-flex;
     max-width: 100%;
     overflow: hidden;
     vertical-align: middle;
+    align-items: center;
+    gap: 8px;
 
     &.is-add {
       color: #2caf5e;
@@ -574,18 +574,18 @@
     }
 
     &-icon {
-      color: #979ba5;
       display: flex;
-      flex-shrink: 0;
       width: 14px;
       height: 14px;
       padding: 2px;
+      color: #979ba5;
+      background: var(--neutral-8, #f0f1f5);
+      border-radius: 999px;
+      flex-shrink: 0;
       justify-content: center;
       align-items: center;
       gap: 10px;
       aspect-ratio: 1 / 1;
-      border-radius: 999px;
-      background: var(--neutral-8, #f0f1f5);
     }
 
     &-after {
@@ -602,7 +602,7 @@
     font-size: 12px;
     line-height: 22px;
     color: #63656e;
-    word-break: break-word;
+    overflow-wrap: break-word;
 
     .change-title {
       margin-bottom: 4px;
@@ -616,7 +616,7 @@
       font-size: 12px;
       line-height: 22px;
       color: #63656e;
-      word-break: break-word;
+      overflow-wrap: break-word;
     }
   }
 </style>

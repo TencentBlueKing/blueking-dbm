@@ -325,8 +325,8 @@
 <style lang="less">
   .readonly-host-textarea {
     .bk-editable-textarea-prepend-wrapper {
-      padding-left: 0;
       display: initial;
+      padding-left: 0;
       user-select: text;
     }
 
@@ -365,12 +365,12 @@
     justify-content: end;
 
     .origin-readonly-host-info {
-      margin: 0 0 0 8px;
-      white-space: nowrap;
-      text-align: end;
-      font-size: 12px;
       padding: 0 8px;
+      margin: 0 0 0 8px;
+      font-size: 12px;
       color: #979ba5;
+      text-align: end;
+      white-space: nowrap;
       background: #fafbfd;
     }
 
