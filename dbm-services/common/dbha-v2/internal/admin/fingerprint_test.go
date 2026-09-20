@@ -36,7 +36,6 @@ var (
 	snapshotOnlyFields = []string{
 		"Discovery.ServiceTimerInterval",
 		"Discovery.ServiceUpdateTimeout",
-		"DbmApis",
 		"ProbeGse",
 		"ProbeMysql",
 		"ProbeRedis",
@@ -45,7 +44,7 @@ var (
 		"ProbeMetadata",
 		"ProbeHealth",
 	}
-	pushFields       = []string{"Log.Level"}
+	pushFields       = []string{"Log.Level", "DbmApis"}
 	restartFields    = []string{"Log.Path", "Log.FileCount", "Log.FileSize"}
 	frozenIdentities = []string{"Name", "Version", "PidFile"}
 )
