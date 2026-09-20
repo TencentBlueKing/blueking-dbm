@@ -316,7 +316,7 @@
   }
 
   .module-conf-tab {
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
@@ -325,10 +325,10 @@
   }
 
   .module-operation-record {
-    background: #fff;
-    margin-top: 16px;
     padding-top: 16px;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    margin-top: 16px;
+    background: #fff;
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
   }
 </style>
 

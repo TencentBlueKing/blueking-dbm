@@ -564,8 +564,8 @@
       left: 0;
       width: 1px;
       height: 16px;
-      content: '';
       background: #dcdee5;
+      content: '';
       transform: translateY(-50%);
     }
   }
@@ -594,13 +594,13 @@
       border-radius: 2px;
 
       &.is-changed {
-        border: 1px solid var(--Warning-2, #f59500);
         background: var(--Warning-7, #fdf4e8);
+        border: 1px solid var(--Warning-2, #f59500);
       }
 
       &.is-unchanged {
-        border: 1px solid #dcdee5;
         background: #fff;
+        border: 1px solid #dcdee5;
       }
     }
 
@@ -611,8 +611,8 @@
 
   .detail-compare-table {
     width: 100%;
-    border-collapse: collapse;
     font-size: 12px;
+    border-collapse: collapse;
 
     th,
     td {

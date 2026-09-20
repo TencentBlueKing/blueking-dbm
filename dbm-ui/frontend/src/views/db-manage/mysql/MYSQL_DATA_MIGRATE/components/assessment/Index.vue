@@ -360,20 +360,20 @@
 <style lang="less">
   .assessment-result {
     .assessment-result-title {
-      font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
+      font-family: MicrosoftYaHei-Bold, sans-serif;
       font-size: 14px;
-      color: #313238;
-      letter-spacing: 0;
+      font-weight: 700;
       line-height: 22px;
+      letter-spacing: 0;
+      color: #313238;
     }
 
     .assessment-loading-wrapper {
       display: flex;
+      width: 100%;
+      min-height: 400px;
       align-items: center;
       justify-content: center;
-      min-height: 400px;
-      width: 100%;
 
       .bk-loading-indicator {
         align-items: center;
@@ -410,17 +410,17 @@
 
   .used-percent-future-pop-wrapper {
     padding: 10px;
-    font-family: MicrosoftYaHei;
+    font-family: MicrosoftYaHei, sans-serif;
     font-size: 12px;
-    color: #4d4f56;
-    letter-spacing: 0;
     line-height: 24px;
+    letter-spacing: 0;
+    color: #4d4f56;
 
     .used-percent-future-title {
-      font-weight: 700;
-      color: #313238;
-      line-height: 20px;
       margin-bottom: 8px;
+      font-weight: 700;
+      line-height: 20px;
+      color: #313238;
     }
 
     ul {
@@ -428,22 +428,22 @@
     }
 
     li {
-      // 移除默认的列表样式
-      list-style: none;
       position: relative;
       padding-left: 12px; // 为小点留出空间
+      // 移除默认的列表样式
+      list-style: none;
 
       // 使用伪元素创建小尺寸的点
       &::before {
-        content: '';
         position: absolute;
-        left: 0;
         top: 50%;
-        transform: translateY(-50%);
+        left: 0;
         width: 4px; // 点的宽度
         height: 4px; // 点的高度
         background: #63656e; // 点的颜色
         border-radius: 50%; // 圆形
+        content: '';
+        transform: translateY(-50%);
       }
     }
   }
