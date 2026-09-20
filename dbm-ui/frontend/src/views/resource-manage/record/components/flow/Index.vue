@@ -39,6 +39,9 @@
         :filter="columnFilter?.updater"
         :title="t('操作人')"
         :width="120">
+        <template #default="{ row }: { row: MachineEventModel }">
+          <bk-user-display-name :user-id="row.updater" />
+        </template>
       </TableColumn>
       <TableColumn
         col-key="create_at"

@@ -87,6 +87,9 @@
         col-key="updater"
         :title="t('更新人')"
         :width="120">
+        <template #default="{ row: data }: { row: IpWhiteModel }">
+          <bk-user-display-name :user-id="data.updater" />
+        </template>
       </TableColumn>
       <TableColumn
         col-key="update_at"

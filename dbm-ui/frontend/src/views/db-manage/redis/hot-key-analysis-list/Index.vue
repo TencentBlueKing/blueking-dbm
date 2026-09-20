@@ -148,7 +148,11 @@
       <TableColumn
         col-key="creator"
         :title="t('创建人')"
-        :width="150"></TableColumn>
+        :width="150">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
+          <bk-user-display-name :user-id="data.creator" />
+        </template>
+      </TableColumn>
       <TableColumn
         col-key="ticket_id"
         :title="t('关联单据')"

@@ -63,7 +63,7 @@
           col-key="creator"
           :title="t('申请人')">
           <template #default="{ row }: { row: TicketModel }">
-            {{ row.creator || '--' }}
+            <bk-user-display-name :user-id="row.creator" />
           </template>
         </TableColumn>
         <TableColumn

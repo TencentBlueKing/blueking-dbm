@@ -132,6 +132,9 @@
         :filter="tableFilter?.['creator']"
         :title="t('创建人')"
         :width="150">
+        <template #default="{ row }: { row : RedisKeystatAnalysisModel }">
+          <bk-user-display-name :user-id="row.creator" />
+        </template>
       </TableColumn>
       <TableColumn
         col-key="ticket_id"

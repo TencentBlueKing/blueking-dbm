@@ -56,7 +56,9 @@
           </div>
           <div class="info-item">
             {{ t('申请人：') }}
-            <span class="value">{{ ticketData.creator }}</span>
+            <span class="value">
+              <bk-user-display-name :user-id="ticketData.creator" />
+            </span>
           </div>
           <div class="info-item">
             {{ t('申请时间：') }}

@@ -110,14 +110,14 @@
             col-key="operator"
             :title="t('主要负责人')">
             <template #default="{ row: data }: { row: RowData }">
-              {{ data.operator || '--' }}
+              <bk-user-display-name :user-id="data.operator" />
             </template>
           </TableColumn>
           <TableColumn
             col-key="bak_operator"
             :title="t('备份负责人')">
             <template #default="{ row: data }: { row: RowData }">
-              {{ data.bak_operator || '--' }}
+              <bk-user-display-name :user-id="data.bak_operator" />
             </template>
           </TableColumn>
         </PrimaryTable>

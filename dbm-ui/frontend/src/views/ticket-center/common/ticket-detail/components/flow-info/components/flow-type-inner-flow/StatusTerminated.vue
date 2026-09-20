@@ -6,7 +6,7 @@
       <I18nT
         keypath="n 已处理_c_耗时 t"
         scope="global">
-        <span>{{ ticketDetail.updater }}</span>
+        <bk-user-display-name :user-id="ticketDetail.updater" />
         <span style="color: #ea3636">{{ t('人工终止') }}</span>
         <CostTimer
           :is-timing="false"

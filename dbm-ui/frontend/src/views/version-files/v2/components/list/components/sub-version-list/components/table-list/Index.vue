@@ -151,7 +151,9 @@
       resizable
       :title="t('更新人')"
       :width="120">
-      <template #default="{ row }: { row: VersionRow }"> {{ row.updater || '--' }} </template>
+      <template #default="{ row }: { row: VersionRow }">
+        <bk-user-display-name :user-id="row.updater" />
+      </template>
     </TableColumn>
     <TableColumn
       col-key="update_at"

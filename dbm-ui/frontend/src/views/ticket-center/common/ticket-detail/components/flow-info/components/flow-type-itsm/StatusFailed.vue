@@ -6,7 +6,7 @@
       <I18nT
         keypath="n 已处理_c_耗时 t"
         scope="global">
-        <span>{{ data.summary.operator }}</span>
+        <bk-user-display-name :user-id="data.summary.operator" />
         <span style="color: #ea3636">{{ t('已撤销') }}</span>
         <CostTimer
           :is-timing="false"
