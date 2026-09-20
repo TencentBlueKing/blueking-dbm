@@ -314,11 +314,9 @@ func (c *MachineResourceGetterInputParam) matchSpec(db *gorm.DB) {
 	c.Mem.MatchMem(db)
 }
 func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
-	statuses := c.Status
-	if len(statuses) == 0 {
-		statuses = []string{model.Unused}
+	if len(c.Status) > 0 {
+		db.Where("status in (?) ", c.Status)
 	}
-	db.Where("status in (?) ", statuses)
 	if len(c.Hosts) > 0 {
 		db.Where("ip in (?)", c.Hosts)
 	}
