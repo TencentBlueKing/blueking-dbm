@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Cluster, Machine, MysqlDtsCluster, Spec
 from backend.db_meta.models.mysql_dts import MysqlDtsInfo
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
@@ -49,6 +50,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.exceptions import TicketResourceApplyException
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
@@ -294,10 +296,12 @@ class TaskSpecSerializer(serializers.Serializer):
 
 
 class DtsResourceSpecRoleSerializer(serializers.Serializer):
-    """资源池申请规格（按角色 master/worker）：spec_id + 数量 + 标签，不依赖城市匹配。
+    """资源池申请规格（按角色 worker）：spec_id + 数量 + 标签，不依赖城市匹配。
 
     申请参数透传给资源池（flow_manager.resource.ResourceApplyFlow.fetch_apply_params），
     标签用于从资源池精确匹配目标机器；位置匹配 location_spec 可选，联调按标签匹配时无需填城市。
+
+    master 为管控节点，规格固定 2c4G(后端按 cpu/mem 范围申请)
     """
 
     spec_id = serializers.IntegerField(help_text=_("规格ID（资源池机型规格，必填）"))
@@ -412,76 +416,143 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
 
 _DTS_DEPLOY_ROLES = ("master", "worker")
 
-
-def _iter_dts_deploys(attrs: dict) -> list:
-    """收集单据中的 deploy（单行 dts_resource.deploy 或 infos[].dts_resource.deploy）。"""
-    deploys = []
-    infos = attrs.get("infos") or []
-    if infos:
-        for row in infos:
-            deploy = (row.get("dts_resource") or {}).get("deploy")
-            if deploy:
-                deploys.append(deploy)
-    else:
-        deploy = (attrs.get("dts_resource") or {}).get("deploy")
-        if deploy:
-            deploys.append(deploy)
-    return deploys
+# DTS master 仅作管控节点，规格固定 2c4G，与 worker（数据同步执行节点）解耦，无需前端选择规格
+DTS_MASTER_SPEC_NAME = _("DTS_master_2核_4G")
+DTS_MASTER_DEFAULT_CPU = {"min": 2, "max": 2}
+DTS_MASTER_DEFAULT_MEM = {"min": 4, "max": 4}  # 单位 GB，规格库按 GB 存储
+DTS_MASTER_DEFAULT_COUNT = 1
+# master 沿用 worker 的匹配参数，保证两者落在同一资源池/地域
+_DTS_MASTER_INHERIT_FIELDS = ("labels", "label_names")
 
 
-def _resolve_resource_spec(details: dict) -> dict:
-    """取整单 resource_spec：仅从 infos 行内取（多行需一致，共用一套 deploy 集群）。"""
-    specs = []
-    for row in details.get("infos") or []:
-        rs = (row or {}).get("resource_spec")
-        if rs:
-            specs.append(rs)
-    if not specs:
-        return {}
-    first = specs[0]
-    for rs in specs[1:]:
-        if rs != first:
-            raise serializers.ValidationError(gettext_runtime("多行 infos 的 resource_spec 需一致（共用一套 deploy 集群）"))
-    return first
+def _get_dts_master_spec_id() -> int:
+    """获取 DTS master 管控节点规格（2c4G），规格库不存在时自动创建。
 
-
-def _resolve_specs_map(details: dict) -> dict:
-    """将 resource_spec 引用的 spec_id 批量映射为规格详情，供详情接口/流程消费。
-
-    返回 {spec_id: Spec.get_spec_info()}；无资源池申请规格时返回空 dict。
+    master 只需向资源池表达 cpu/mem 诉求，故按固定规格承载：
+    该规格不启用（enable=False），不出现在前端规格列表中，也不影响任何按规格ID申请的单据。
     """
-    resource_spec = _resolve_resource_spec(details)
-    spec_ids = []
-    for role_spec in resource_spec.values():
-        if not isinstance(role_spec, dict):
+    spec, created = Spec.objects.get_or_create(
+        spec_name=DTS_MASTER_SPEC_NAME,
+        spec_cluster_type=SpecClusterType.MySQL.value,
+        spec_machine_type=SpecMachineType.BACKEND.value,
+        defaults={
+            "cpu": dict(DTS_MASTER_DEFAULT_CPU),
+            "mem": dict(DTS_MASTER_DEFAULT_MEM),
+            "device_class": [],
+            "storage_spec": [],
+            "enable": False,
+            "desc": _("DTS 迁移 master 管控节点固定规格（2核4G），由单据自动创建，不参与前端规格选择"),
+        },
+    )
+    if created:
+        logger.info(_("已自动创建 DTS master 默认规格: %s(spec_id=%s)") % (DTS_MASTER_SPEC_NAME, spec.spec_id))
+    return spec.spec_id
+
+
+def _ensure_master_resource_spec(details: dict) -> None:
+    """补齐行内 master 申请规格：固定 2c4G，规格详情展示即为 2c4G。
+
+    - 申请：spec_id 指向 DTS master 固定规格（2核4G），规格库不存在时自动创建
+    - 匹配：labels/label_names 沿用 worker，location_spec 由 _patch_resource_location_spec 统一填充
+
+    master 规格固定，无条件覆盖：提单页的规格列是 dts-worker 规格，前端会将其同时填入
+    master/worker，若沿用前端传入值则 master 会按 worker 的规格申请。
+    """
+    for row in details.get("infos") or []:
+        if not ((row or {}).get("dts_resource") or {}).get("deploy"):
             continue
-        spec_id = role_spec.get("spec_id")
-        if spec_id:
-            spec_ids.append(int(spec_id))
-    spec_ids = sorted(set(spec_ids))
-    if not spec_ids:
-        return {}
-    return {spec.spec_id: spec.get_spec_info() for spec in Spec.objects.filter(spec_id__in=spec_ids)}
+        row.setdefault("resource_spec", {})
+        row_resource_spec = row["resource_spec"]
+        worker_spec = row_resource_spec.get("worker") or {}
+        master_spec = row_resource_spec.get("master")
+        if not isinstance(master_spec, dict):
+            master_spec = {}
+            row_resource_spec["master"] = master_spec
+        if not master_spec.get("count"):
+            master_spec["count"] = DTS_MASTER_DEFAULT_COUNT
+        # 申请与展示统一：spec_id 指向 DTS master 固定规格（2c4G）
+        master_spec["spec_id"] = _get_dts_master_spec_id()
+        for field in _DTS_MASTER_INHERIT_FIELDS:
+            if worker_spec.get(field):
+                master_spec[field] = worker_spec[field]
+
+
+def _patch_resource_location_spec(details: dict) -> None:
+    """资源申请地域默认取源集群地域：前端未显式传 city 时，按行以各自源集群地域填充。
+
+    infos 行仅支持 one_to_one 拓扑（_validate_infos_one_to_one 强制），
+    资源池部署模式的 resource_spec 也仅存在于 infos 行内，故只解析该结构。
+    region 为空或 default（随机）的行不填充，保持按标签匹配的既有行为；
+    填充后的 location_spec 随行内 resource_spec 按行透传给资源池
+    （flow_manager.resource.fetch_apply_params → Spec.get_group_apply_params）。
+    """
+    infos = details.get("infos") or []
+    if not infos:
+        return
+    row_cluster_ids = []
+    for row in infos:
+        source = (((row or {}).get("migrate") or {}).get("one_to_one") or {}).get("source") or {}
+        cluster_id = source.get("cluster_id")
+        row_cluster_ids.append(int(cluster_id) if cluster_id else 0)
+    valid_ids = [cluster_id for cluster_id in row_cluster_ids if cluster_id and cluster_id != "0"]
+    region_map: dict = {}
+    if valid_ids:
+        region_map = dict(Cluster.objects.filter(id__in=valid_ids).values_list("id", "region"))
+    for row, cluster_id in zip(infos, row_cluster_ids):
+        region = region_map.get(cluster_id) or ""
+        if not region or region == "default":
+            continue
+        for role_spec in ((row or {}).get("resource_spec") or {}).values():
+            if not isinstance(role_spec, dict):
+                continue
+            location_spec = role_spec.get("location_spec")
+            if location_spec is None:
+                role_spec["location_spec"] = {"city": region}
+            elif isinstance(location_spec, dict) and not location_spec.get("city"):
+                location_spec["city"] = region
 
 
 def _validate_resource_pool_deploy(attrs: dict) -> None:
     """校验 deploy 本单部署：master/worker 主机由资源申请回填，不可手动传入。
 
     生效：存在 deploy（顶层 dts_resource.deploy 或 infos[].dts_resource.deploy）。
-    合法反例：deploy.master_hosts/worker_hosts 为空，由 resource_spec 描述申请规格。
+    规格/标签按行独立：有 deploy 的行必须提供本行 resource_spec.worker（含 spec_id）；
+    master 规格固定 2c4G，由 _ensure_master_resource_spec 补齐，可缺省。
+    反向校验：无 deploy 的行（复用已有 DTS 集群）禁止携带 resource_spec，
+    否则按行申请的机器无人回填使用，造成资源泄漏。
     """
-    resource_spec = _resolve_resource_spec(attrs)
-    deploys = _iter_dts_deploys(attrs)
-    for deploy in deploys:
+    infos = attrs.get("infos") or []
+    if not infos:
+        # 顶层单行结构没有 resource_spec 落点（仅存在于 infos 行内），资源池模式不支持
+        if (attrs.get("dts_resource") or {}).get("deploy"):
+            raise serializers.ValidationError(gettext_runtime("资源池模式下 deploy 部署必须通过多行 infos 提供行内 resource_spec"))
+        return
+    for idx, row in enumerate(infos):
+        deploy = ((row or {}).get("dts_resource") or {}).get("deploy")
+        row_resource_spec = row.get("resource_spec") or {}
+        if not deploy:
+            # 无 deploy（复用 dts_cluster_id）的行误传 resource_spec：申请的机器会静默占用资源池且无人使用
+            if row_resource_spec:
+                raise serializers.ValidationError(
+                    gettext_runtime("infos[{}] 未提供 dts_resource.deploy，请勿传 resource_spec（申请的机器将无人使用）").format(idx)
+                )
+            continue
         for role in _DTS_DEPLOY_ROLES:
             if deploy.get(f"{role}_hosts"):
                 raise serializers.ValidationError(
                     gettext_runtime("资源池模式下 {} 主机由资源申请回填，请勿在 deploy.{}_hosts 中传入").format(role, role)
                 )
-        for role in _DTS_DEPLOY_ROLES:
-            if not resource_spec.get(role):
+            if role == "master":
+                # master 规格固定 2c4G，由后端按 cpu/mem 范围申请，可缺省
+                continue
+            if not row_resource_spec.get(role):
                 raise serializers.ValidationError(
                     gettext_runtime("资源池模式下 deploy 部署必须提供 resource_spec.{} 申请规格").format(role)
+                )
+            # worker 规格同时用于 master 的规格回填展示，必须显式提供
+            if not (row_resource_spec[role] or {}).get("spec_id"):
+                raise serializers.ValidationError(
+                    gettext_runtime("资源池模式下 deploy 部署必须提供 resource_spec.worker.spec_id 申请规格")
                 )
 
 
@@ -1148,8 +1219,7 @@ class DtsMigrateFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["ticket_id"] = self.ticket.id
         if self.migrate_type:
             self.ticket_data["migrate_type"] = self.migrate_type
-        # 行内 resource_spec 提升到顶层，供 inner flow 的 patch_resource_spec 读取
-        self.ticket_data["resource_spec"] = _resolve_resource_spec(self.ticket_data)
+        # 行内 resource_spec 保持原位：批量资源申请（ResourceBatchApplyFlow）按行读取并回填
 
 
 class DtsMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
@@ -1163,45 +1233,54 @@ class DtsMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
     def patch_ticket_detail(self):
         _patch_migrate_task_names(self.ticket)
         _patch_migrate_deploy_cluster_names(self.ticket)
-        # 预置资源申请回写的 nodes 结构到 ticket.details 顶层（与 resource_spec 的 master/worker 角色对齐）。
-        # 放在 patch_ticket_detail 而非 ResourceApplyParamBuilder.format：两者都在建单事务内，
-        # 但 patch_ticket_detail 更早、且不依赖资源申请是否执行/是否失败回滚，确保建单后 details 始终含 nodes 占位；
-        # 资源申请成功后由 flow_manager.resource.ResourceApplyFlow.update_details(nodes=node_infos) 用真实机器覆盖。
-        self.ticket.details.setdefault("nodes", {role: [] for role in _DTS_DEPLOY_ROLES})
-        # 规格映射：resource_spec 里的 spec_id → Spec 详情，写入 details 顶层供详情接口返回
-        self.ticket.details["specs"] = _resolve_specs_map(self.ticket.details)
+        # master 规格缺省时按默认 2c4G 补齐（申请走 cpu/mem 范围，回填沿用 worker 规格）
+        _ensure_master_resource_spec(self.ticket.details)
+        # 资源申请地域默认取源集群地域：前端未显式传 city 时按行以各自源集群填充，随 resource_spec 透传给资源池
+        _patch_resource_location_spec(self.ticket.details)
         super().patch_ticket_detail()
 
 
 class DtsMigrateResourceParamBuilder(builders.ResourceApplyParamBuilder):
-    """三种 DTS 迁移单据共用资源申请。
+    """三种 DTS 迁移单据共用批量资源申请（ResourceBatchApplyFlow，按行申请）。
 
-    资源池模式下：deploy 本单部署 Master/Worker 主机由资源申请回填，
-    调用方仅传 resource_spec；申请完成后在 post_callback 把申请到的 IP 写回
+    资源池模式下：每行 infos 独立申请 Master/Worker 执行机（规格/标签/地域按行），
+    申请完成后在 post_callback 把各行申请到的 IP 回填到对应行的
     dts_resource.deploy.master_hosts / worker_hosts（即 dtshost 参数）。
     """
 
-    def format(self):
-        # 资源申请 Flow 需要顶层 bk_cloud_id，fetch_apply_params 强制取值，必须写入（缺省 0=直连区域）
-        deploys = _iter_dts_deploys(self.ticket_data)
-        bk_cloud_id = 0
-        for deploy in deploys:
-            bk_cloud_id = int(deploy.get("bk_cloud_id") or 0)
-            if bk_cloud_id:
-                break
-        self.ticket_data["bk_cloud_id"] = bk_cloud_id
-        # 行内 resource_spec 提升到顶层，供 flow_manager.resource.fetch_apply_params 读取
-        # （ticket_data 是 details 的深拷贝，不影响原始 details 结构）
-        self.ticket_data["resource_spec"] = _resolve_resource_spec(self.ticket_data)
-        # Flow 参数（self.ticket_data 是 details 的深拷贝）预置 nodes 占位；
-        # 真实机器由 flow_manager.resource.ResourceApplyFlow 申请成功后写回 details.nodes
-        self.ticket_data.setdefault("nodes", {role: [] for role in _DTS_DEPLOY_ROLES})
+    # 复用已有 DTS 集群（dts_cluster_id）的行无 resource_spec，跳过其申请而非整单报错
+    allow_resource_empty = True
 
-    @classmethod
-    def _collect_hosts(cls, nodes: dict, role: str) -> list:
-        """从资源申请回写的 ticket.details['nodes'][role] 提取 {ip, bk_cloud_id}。"""
+    def validate_spec(self):
+        """按行校验：有 deploy 的行必须提供合法 spec_id/count（allow_resource_empty 使基类跳过校验）。
+
+        master 规格固定 2c4G 由 _ensure_master_resource_spec 补齐，不校验其 spec_id。
+        """
+        for row in self.ticket_data.get("infos") or []:
+            if not (row.get("dts_resource") or {}).get("deploy"):
+                continue
+            for role, role_spec in (row.get("resource_spec") or {}).items():
+                if not role_spec or role == "master":
+                    continue
+                if not role_spec.get("spec_id"):
+                    raise TicketResourceApplyException(gettext_runtime("申请资源的规格id不能为0或为空"))
+                if not role_spec.get("count"):
+                    raise TicketResourceApplyException(gettext_runtime("申请资源的数量不能为0或为空"))
+
+    def format(self):
+        # master 缺省规格在此兜底补齐（历史单据或未走 patch_ticket_detail 的场景），幂等
+        _ensure_master_resource_spec(self.ticket_data)
+        # ResourceBatchApplyFlow.fetch_apply_params 按行调用基类 fetch_apply_params，
+        # 基类强制读取行内 bk_cloud_id（缺省 0=直连区域），从本行 deploy 提取写入
+        for row in self.ticket_data.get("infos") or []:
+            deploy = (row.get("dts_resource") or {}).get("deploy") or {}
+            row["bk_cloud_id"] = int(deploy.get("bk_cloud_id") or 0)
+
+    @staticmethod
+    def _collect_hosts(nodes) -> list:
+        """从资源申请回写的主机列表提取 {ip, bk_cloud_id}。"""
         hosts = []
-        for node in (nodes or {}).get(role) or []:
+        for node in nodes or []:
             ip = node.get("ip")
             if not ip:
                 continue
@@ -1209,42 +1288,43 @@ class DtsMigrateResourceParamBuilder(builders.ResourceApplyParamBuilder):
         return hosts
 
     @classmethod
-    def _fill_deploy_hosts(cls, details: dict, master_hosts: list, worker_hosts: list) -> bool:
-        """把申请到的 IP 回填进 details 中所有含 deploy 的 dts_resource.deploy。
+    def _fill_row_deploy_hosts(cls, infos: list, nodes: dict | None = None) -> bool:
+        """按行把申请主机回填到 deploy.{master,worker}_hosts。
 
-        单行单 deploy 或多行 infos 每行各一个 deploy 均覆盖。返回是否发生回填。
+        数据源二选一：
+        - `ticket_data.infos[i].master/worker`：ResourceBatchApplyFlow.write_node_infos 就地写入
+        - 顶层 `nodes["{idx}_{role}"]`：ResourceBatchApplyFlow.update_details 写入 ticket.details
         """
         changed = False
-        infos = details.get("infos") or []
-        if infos:
-            for row in infos:
-                deploy = (row.get("dts_resource") or {}).get("deploy")
-                if deploy:
-                    deploy["master_hosts"] = master_hosts
-                    deploy["worker_hosts"] = worker_hosts
-                    changed = True
-        else:
-            deploy = (details.get("dts_resource") or {}).get("deploy")
-            if deploy:
-                deploy["master_hosts"] = master_hosts
-                deploy["worker_hosts"] = worker_hosts
-                changed = True
+        for idx, row in enumerate(infos):
+            deploy = (row.get("dts_resource") or {}).get("deploy")
+            if not deploy:
+                continue
+            if nodes is not None:
+                master_hosts = cls._collect_hosts(nodes.get(f"{idx}_master"))
+                worker_hosts = cls._collect_hosts(nodes.get(f"{idx}_worker"))
+            else:
+                master_hosts = cls._collect_hosts(row.get("master"))
+                worker_hosts = cls._collect_hosts(row.get("worker"))
+            if not master_hosts or not worker_hosts:
+                continue
+            deploy["master_hosts"] = master_hosts
+            deploy["worker_hosts"] = worker_hosts
+            changed = True
         return changed
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
-        # 资源申请 Flow 把申请到的主机写回 inner flow 的 ticket_data 快照 nodes[role]
-        nodes = ticket_data.get("nodes") or {}
-        master_hosts = self._collect_hosts(nodes, "master")
-        worker_hosts = self._collect_hosts(nodes, "worker")
-        if not master_hosts or not worker_hosts:
-            logger.warning(gettext_runtime("DTS 迁移资源申请回填失败: master={}, worker={}").format(master_hosts, worker_hosts))
-            return
-        self._fill_deploy_hosts(ticket_data, master_hosts, worker_hosts)
-        # 同步回写整个 ticket.details，保证后续查询/重建 plan 一致
-        self._fill_deploy_hosts(self.ticket.details, master_hosts, worker_hosts)
+        # ResourceBatchApplyFlow 已把主机按行写入 ticket_data.infos[i].master/worker
+        self._fill_row_deploy_hosts(ticket_data.get("infos") or [])
         next_flow.save(update_fields=["details"])
+        # 同步回写 ticket.details（数据源为顶层 nodes["{idx}_{role}"]）
+        if not self._fill_row_deploy_hosts(
+            self.ticket.details.get("infos") or [], self.ticket.details.get("nodes") or {}
+        ):
+            logger.warning(gettext_runtime("DTS 迁移资源申请回填失败: 未获取到各行 master/worker 主机"))
+            return
         self.ticket.save(update_fields=["details"])
 
 
@@ -1258,7 +1338,7 @@ class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlToMysqlMigrateDetailSerializer
     inner_flow_builder = MysqlToMysqlMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 数据迁移")
-    resource_apply_builder = DtsMigrateResourceParamBuilder
+    resource_batch_apply_builder = DtsMigrateResourceParamBuilder
 
 
 class MysqlHaToClusterMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
@@ -1280,7 +1360,7 @@ class MysqlHaToClusterMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlHaToClusterMigrateDetailSerializer
     inner_flow_builder = MysqlHaToClusterMigrateFlowParamBuilder
     inner_flow_name = _("MySQL HA到Cluster数据迁移")
-    resource_apply_builder = DtsMigrateResourceParamBuilder
+    resource_batch_apply_builder = DtsMigrateResourceParamBuilder
 
 
 class MysqlRenameMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
@@ -1293,4 +1373,4 @@ class MysqlRenameMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlRenameMigrateDetailSerializer
     inner_flow_builder = MysqlRenameMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 重命名迁移")
-    resource_apply_builder = DtsMigrateResourceParamBuilder
+    resource_batch_apply_builder = DtsMigrateResourceParamBuilder
