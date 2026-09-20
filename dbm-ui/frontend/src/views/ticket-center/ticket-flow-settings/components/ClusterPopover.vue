@@ -68,11 +68,11 @@
     }
 
     .cluster-more {
-      flex-shrink: 0;
       margin-left: 4px;
       color: #3a84ff;
-      cursor: pointer;
       white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
     }
   }
 
@@ -82,18 +82,18 @@
 
     .cluster-item {
       padding: 4px 8px;
-      line-height: 20px;
       font-size: 12px;
+      line-height: 20px;
 
       &::before {
-        content: '';
         display: inline-block;
         width: 6px;
         height: 6px;
         margin-right: 8px;
-        border-radius: 50%;
-        background: #c4c6cc;
         vertical-align: middle;
+        background: #c4c6cc;
+        border-radius: 50%;
+        content: '';
       }
     }
   }

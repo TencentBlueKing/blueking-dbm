@@ -145,10 +145,10 @@
 
         .item-title {
           min-width: 56px;
+          margin-top: 2px;
           font-size: 12px;
           color: #4d4f56;
           text-align: right;
-          margin-top: 2px;
         }
 
         .colon-sign {
@@ -170,10 +170,10 @@
 
       .item-title {
         min-width: 56px;
+        margin-top: 2px;
         font-size: 12px;
         color: #4d4f56;
         text-align: right;
-        margin-top: 2px;
       }
 
       .colon-sign {

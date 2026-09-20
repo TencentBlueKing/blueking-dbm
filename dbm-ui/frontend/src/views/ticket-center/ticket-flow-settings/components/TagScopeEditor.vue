@@ -303,7 +303,7 @@
 
 <style lang="less" scoped>
   .tag-scope-editor {
-    padding: 16px 16px 32px 16px;
+    padding: 16px 16px 32px;
     background: #f5f7fa;
 
     .invalid-key-label {

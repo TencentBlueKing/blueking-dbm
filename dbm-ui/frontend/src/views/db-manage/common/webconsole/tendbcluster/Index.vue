@@ -217,13 +217,13 @@
 </script>
 <style lang="less">
   .tendbcluster-webconsole {
+    display: flex;
+    height: calc(100% - 24px);
     font-size: 12px;
     color: #c4c6cc;
     background: #1a1a1a;
-    height: calc(100% - 24px);
-    display: flex;
-    flex-direction: column;
     transform: translate(0, 0);
+    flex-direction: column;
 
     .top-main {
       display: flex;
@@ -251,15 +251,15 @@
       height: 100%;
 
       .content-top {
+        position: absolute;
+        z-index: 10;
         display: flex;
+        width: 100%;
         height: 32px;
         background: #242424;
         box-shadow: 0 2px 4px 0 #00000029;
         align-items: center;
         justify-content: space-between;
-        position: absolute;
-        width: 100%;
-        z-index: 10;
 
         .content-top-start {
           display: flex;
@@ -276,8 +276,8 @@
 
       .console-panel-main {
         position: absolute;
-        z-index: 1;
         top: 32px;
+        z-index: 1;
         height: calc(100% - 32px);
       }
 

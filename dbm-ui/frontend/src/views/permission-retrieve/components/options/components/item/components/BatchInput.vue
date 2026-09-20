@@ -90,14 +90,14 @@
     display: flex;
 
     .input-box {
+      position: relative;
       height: 32px;
       flex: 1;
-      position: relative;
 
       :deep(.bk-textarea) {
-        border-radius: 2px 0 0 2px;
         position: absolute;
         z-index: 10;
+        border-radius: 2px 0 0 2px;
 
         textarea {
           height: 30px !important;
@@ -113,8 +113,8 @@
 
         .bk-textarea--clear-icon {
           position: absolute;
-          right: 2px;
           top: 8px;
+          right: 2px;
         }
       }
     }

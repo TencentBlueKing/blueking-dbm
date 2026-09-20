@@ -160,17 +160,17 @@
   .upgrade-domain {
     width: 100%;
     height: 32px;
-    line-height: 32px;
-    color: #313238;
     font-size: 13px;
     font-weight: 600;
+    line-height: 32px;
+    color: #313238;
     word-break: break-all;
   }
 
   .upgrade-hint {
     margin-top: 12px;
     font-size: 12px;
-    color: #979ba5;
     line-height: 20px;
+    color: #979ba5;
   }
 </style>

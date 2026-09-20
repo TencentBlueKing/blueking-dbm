@@ -130,12 +130,12 @@
     margin: 18px 24px;
 
     .db-list-title {
-      font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
+      font-family: MicrosoftYaHei-Bold, sans-serif;
       font-size: 14px;
-      color: #313238;
-      letter-spacing: 0;
+      font-weight: 700;
       line-height: 22px;
+      letter-spacing: 0;
+      color: #313238;
     }
   }
 </style>

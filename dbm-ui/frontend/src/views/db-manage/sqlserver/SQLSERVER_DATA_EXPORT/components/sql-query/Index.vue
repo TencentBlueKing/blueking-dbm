@@ -148,8 +148,8 @@
 </script>
 <style lang="less">
   .sqlserver-data-export-editor {
-    height: 500px;
     position: relative;
+    height: 500px;
 
     .editor-resize-wrapper {
       height: 100%;

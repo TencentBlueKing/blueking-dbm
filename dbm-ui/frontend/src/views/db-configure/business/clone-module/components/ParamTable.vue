@@ -361,25 +361,25 @@
 
   .filter-pill {
     display: inline-flex;
-    align-items: center;
-    gap: 6px;
     padding: 4px 12px;
-    border-radius: 14px;
-    border: 1px solid transparent;
-    background: #f5f7fa;
-    color: #63656e;
     font-size: 13px;
     line-height: 20px;
+    color: #63656e;
     cursor: pointer;
-    user-select: none;
+    background: #f5f7fa;
+    border: 1px solid transparent;
+    border-radius: 14px;
     transition:
       background 0.15s,
       border-color 0.15s,
       color 0.15s;
+    user-select: none;
+    align-items: center;
+    gap: 6px;
 
     &:hover {
-      background: #ebeef5;
       color: #313238;
+      background: #ebeef5;
     }
 
     &.chip-default {
@@ -388,9 +388,9 @@
       }
 
       &.active {
-        border-color: #3a84ff;
-        background: #e1ecff;
         color: #1768ef;
+        background: #e1ecff;
+        border-color: #3a84ff;
       }
     }
 
@@ -400,27 +400,27 @@
       }
 
       &.active {
-        border-color: #e5a829;
-        background: #fff4d6;
         color: #b8801f;
+        background: #fff4d6;
+        border-color: #e5a829;
       }
     }
 
     &.chip-deprecated {
-      background: #fff4ec;
       color: #d97706;
+      background: #fff4ec;
 
       &:hover {
-        background: #ffe0c2;
         color: #b45309;
+        background: #ffe0c2;
       }
 
       &::after {
-        content: '\203A';
+        margin-left: 2px;
         font-size: 14px;
         line-height: 1;
-        opacity: 0.7;
-        margin-left: 2px;
+        content: '\203A';
+        opacity: 70%;
       }
 
       .pill-count {
@@ -431,16 +431,16 @@
 
   .pill-count {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
     height: 18px;
+    min-width: 18px;
     padding: 0 6px;
     font-size: 12px;
     font-weight: 700;
     line-height: 18px;
     color: #fff;
     border-radius: 9px;
+    align-items: center;
+    justify-content: center;
   }
 
   .pill-count.custom {
@@ -466,14 +466,14 @@
     margin-left: 4px;
     font-size: 12px;
     line-height: 18px;
-    white-space: nowrap;
     color: #979ba5;
+    white-space: nowrap;
   }
 
   .param-desc-icon {
     font-size: 14px;
-    cursor: pointer;
     color: #c4c6cc;
+    cursor: pointer;
 
     &:hover {
       color: #3a84ff;
@@ -488,7 +488,7 @@
 <style lang="less">
   .param-table-value-tooltip {
     max-width: 400px;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .description-tippy-content {
@@ -507,7 +507,7 @@
       font-size: 12px;
       line-height: 22px;
       color: #63656e;
-      word-break: break-word;
+      overflow-wrap: break-word;
     }
   }
 </style>

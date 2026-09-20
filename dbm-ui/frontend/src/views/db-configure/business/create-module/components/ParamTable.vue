@@ -830,22 +830,22 @@
 
   .inline-edit-cell-confirm {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 26px;
     height: 26px;
+    min-width: 26px;
     padding: 0;
     font-size: 16px;
+    align-items: center;
+    justify-content: center;
   }
 
   .inline-edit-cell-cancel {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 26px;
     height: 26px;
+    min-width: 26px;
     padding: 0;
     font-size: 16px;
+    align-items: center;
+    justify-content: center;
   }
 
   .value-cell {
@@ -878,8 +878,8 @@
   .value-cell-edit {
     display: none;
     font-size: 14px;
-    cursor: pointer;
     color: #63656e;
+    cursor: pointer;
   }
 
   .value-cell-edit:hover {
@@ -927,8 +927,8 @@
 
   .param-desc-icon {
     font-size: 14px;
-    cursor: pointer;
     color: #c4c6cc;
+    cursor: pointer;
 
     &:hover {
       color: #3a84ff;
@@ -939,7 +939,7 @@
 <style lang="less">
   .param-table-value-tooltip {
     max-width: 400px;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .description-tippy-content {
@@ -958,7 +958,7 @@
       font-size: 12px;
       line-height: 22px;
       color: #63656e;
-      word-break: break-word;
+      overflow-wrap: break-word;
     }
   }
 </style>
