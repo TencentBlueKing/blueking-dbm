@@ -20,7 +20,7 @@
           @click="handleClickEdit" />
       </AuthTemplate>
     </div>
-    <BkSelect
+    <DbSelect
       v-else
       ref="editValueRef"
       v-model="localValue"
@@ -131,7 +131,7 @@
     align-items: center;
 
     &.is-error {
-      .bk-select-tag {
+      .dbm-select-tag {
         border-color: #ea3636 !important;
       }
 
@@ -148,7 +148,7 @@
         max-width: calc(100% - 120px);
         overflow: hidden;
 
-        .bk-tag {
+        .dbm-tag {
           max-width: none;
           padding: 1px 8px;
         }

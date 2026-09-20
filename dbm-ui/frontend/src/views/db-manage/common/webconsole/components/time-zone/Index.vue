@@ -1,13 +1,13 @@
 <template>
   <div class="operate-item">
     <div class="operate-item-inner">
-      <Select
+      <DbSelect
         v-model="localValue"
         :filter-option="handleSearch"
-        :input-search="false"
-        :search-placeholder="t('请输入搜索（国家，城市，简称）')"
-        :popover-min-width="400"
         filterable
+        :input-search="false"
+        :popover-min-width="400"
+        :search-placeholder="t('请输入搜索（国家，城市，简称）')"
         @change="handleChange">
         <template #trigger>
           <div
@@ -32,7 +32,7 @@
         </template>
         <template v-for="group in timezoneData">
           <template v-if="group.label.length < 1">
-            <Option
+            <DbOption
               v-for="item in group.options"
               v-bind="item"
               :id="item.label"
@@ -51,14 +51,14 @@
                 </span>
                 <span class="option-utc">{{ item.utc }}</span>
               </div>
-            </Option>
+            </DbOption>
           </template>
           <template v-else>
-            <Group
+            <DbOptionGroup
               v-if="group.options.length"
               :key="group.label"
               :label="group.label">
-              <Option
+              <DbOption
                 v-for="item in group.options"
                 v-bind="item"
                 :id="item.label"
@@ -77,20 +77,21 @@
                   </span>
                   <span class="option-utc">{{ item.utc }}</span>
                 </div>
-              </Option>
-            </Group>
+              </DbOption>
+            </DbOptionGroup>
           </template>
         </template>
-      </Select>
+      </DbSelect>
     </div>
   </div>
 </template>
 <script lang="ts" setup>
-  import { Select } from 'bkui-vue';
-  import { useI18n } from 'vue-i18n';
   import dayjs from 'dayjs';
-  import timezoneList from './list';
+  import { useI18n } from 'vue-i18n';
+
   import { encodeRegexp } from '@utils';
+
+  import timezoneList from './list';
 
   interface TimezoneItem {
     abbreviation: string;
@@ -108,8 +109,6 @@
   const modelValue = defineModel<string>({
     required: true,
   });
-
-  const { Group, Option } = Select;
 
   const { t } = useI18n();
 

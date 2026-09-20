@@ -27,11 +27,11 @@
       <div class="db-manage-toolbox-page">
         <div class="toolbox-page-title">
           <span style="font-weight: bold">{{ toolName }}</span>
-          <BkTag
+          <DbTag
             class="ml-8"
             theme="info">
             {{ dbType }}
-          </BkTag>
+          </DbTag>
         </div>
         <div
           ref="contentWrapper"

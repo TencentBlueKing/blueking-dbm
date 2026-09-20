@@ -104,15 +104,15 @@
             :label="t('校验与修复频率设置')"
             property="data_check_repair_execution_frequency"
             required>
-            <BkSelect
+            <DbSelect
               v-model="formData.data_check_repair_execution_frequency"
               class="select-box">
-              <BkOption
+              <DbOption
                 v-for="(item, index) in repairAndVerifyFrequencyList"
                 :key="index"
                 :label="item.label"
                 :value="item.value" />
-            </BkSelect>
+            </DbSelect>
           </BkFormItem>
         </template>
         <TicketPayload v-model="formData.payload" />

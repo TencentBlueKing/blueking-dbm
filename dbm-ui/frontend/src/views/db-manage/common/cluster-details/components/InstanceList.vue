@@ -32,18 +32,18 @@
         :title="t('实例')">
         <template #default="{ row }: { row: IColumnData }">
           {{ row.instance_address || '--' }}
-          <BkTag
+          <DbTag
             v-if="standBdyTagMap[row.instance_address]"
             class="cluster-specific-flag ml-4"
             size="small">
             Standby
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-if="primaryTagMap[row.instance_address]"
             class="cluster-specific-flag ml-4"
             size="small">
             Primary
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <InstanceListFieldColumn

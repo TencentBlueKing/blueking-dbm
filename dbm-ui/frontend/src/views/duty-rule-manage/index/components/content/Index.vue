@@ -62,9 +62,9 @@
             :title="t('状态')"
             :width="120">
             <template #default="{ row }: { row: DutyRuleModel }">
-              <BkTag :theme="getStatusInfo(row).theme">
+              <DbTag :theme="getStatusInfo(row).theme">
                 {{ getStatusInfo(row).label }}
-              </BkTag>
+              </DbTag>
             </template>
           </TableColumn>
           <TableColumn
@@ -92,15 +92,15 @@
                     :request-handler="(value: number) => handlePriorityChange(row, value)" />
                 </AuthTemplate>
                 <template v-else>
-                  <BkTag
+                  <DbTag
                     v-if="getPriorityTheme(row)"
                     :theme="getPriorityTheme(row)"
                     type="filled">
                     {{ row.priority }}
-                  </BkTag>
-                  <BkTag v-else>
+                  </DbTag>
+                  <DbTag v-else>
                     {{ row.priority }}
-                  </BkTag>
+                  </DbTag>
                   <AuthTemplate
                     action-id="duty_rule_manage"
                     :permission="row.permission.duty_rule_manage"

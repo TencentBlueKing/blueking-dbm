@@ -146,19 +146,19 @@
             @click="handleEdit(row)">
             {{ row.id }}
           </AuthButton>
-          <BkTag
+          <DbTag
             v-if="row.isNew"
             class="ml-4"
             size="small"
             theme="success">
             NEW
-          </BkTag>
-          <BkTag
+          </DbTag>
+          <DbTag
             v-if="row.isOffline"
             class="ml-4"
             size="small">
             {{ t('已禁用') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn
@@ -175,7 +175,7 @@
         :width="120">
         <template #default="{ row }: { row: PartitionModel }">
           <span v-if="!row.dblike">--</span>
-          <BkTag>{{ row.dblike }}</BkTag>
+          <DbTag>{{ row.dblike }}</DbTag>
         </template>
       </TableColumn>
       <TableColumn
@@ -184,7 +184,7 @@
         :width="160">
         <template #default="{ row }: { row: PartitionModel }">
           <span v-if="!row.tblike">--</span>
-          <BkTag>{{ row.tblike }}</BkTag>
+          <DbTag>{{ row.tblike }}</DbTag>
         </template>
       </TableColumn>
       <TableColumn

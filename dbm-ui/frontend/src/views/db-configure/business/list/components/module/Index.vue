@@ -24,9 +24,9 @@
         :title="treeNode?.name">
         <template #desc>
           <div class="module-header-actions">
-            <BkTag theme="info">
+            <DbTag theme="info">
               {{ t('模块配置') }}
-            </BkTag>
+            </DbTag>
             <AuthTemplate
               action-id="dbconfig_edit"
               class="module-header-actions"

@@ -100,19 +100,19 @@
                 style="font-size: 14px"
                 type="copy"
                 @click="() => execCopy(item.masterDomain)" />
-              <BkTag
+              <DbTag
                 v-if="filterClusterIds.includes(item.id)"
                 class="status-icon"
                 size="small">
                 {{ t('跳过') }}
-              </BkTag>
-              <BkTag
+              </DbTag>
+              <DbTag
                 v-else
                 class="status-icon"
                 size="small"
                 theme="success">
                 {{ t('添加') }}
-              </BkTag>
+              </DbTag>
 
               <!-- <DbIcon
                   class="operate-icon ml-6"

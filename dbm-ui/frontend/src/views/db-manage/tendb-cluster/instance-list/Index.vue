@@ -56,12 +56,12 @@
           :is-filter="isSearching"
           :selected-list="selectedList">
           <template #append="{ data }: { data: TendbclusterInstanceModel }">
-            <BkTag
+            <DbTag
               v-if="clusterPrimaryMap[data.ip]"
               class="cluster-specific-flag ml-4"
               size="small">
               Primary
-            </BkTag>
+            </DbTag>
           </template>
         </InstanceAddressColumn>
       </template>

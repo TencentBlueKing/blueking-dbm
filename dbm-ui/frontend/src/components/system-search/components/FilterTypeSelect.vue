@@ -1,5 +1,5 @@
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     :filterable="false"
     @change="handleChooseType"
@@ -22,7 +22,7 @@
         </span>
       </div>
     </template>
-    <BkOption
+    <DbOption
       v-for="item in dropdownList"
       :id="item.value"
       :key="item.value"
@@ -33,7 +33,7 @@
       }"
       :name="item.label"
       @click.stop />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script setup lang="ts">

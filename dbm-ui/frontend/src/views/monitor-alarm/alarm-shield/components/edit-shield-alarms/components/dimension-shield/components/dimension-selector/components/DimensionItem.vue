@@ -30,19 +30,19 @@
           v-if="!isSingle"
           class="left-bar" />
         <div class="title-box">
-          <BkSelect
+          <DbSelect
             v-model="titleValue"
             class="title-select"
             :clearable="false"
             :disabled="isFixed || disabled"
             :filterable="false"
             @change="handleTypeChange">
-            <BkOption
+            <DbOption
               v-for="item in titleList"
               :key="item.value"
               :label="item.label"
               :value="item.value" />
-          </BkSelect>
+          </DbSelect>
         </div>
         <BkDropdown
           :disabled="isFixed || disabled"
@@ -67,7 +67,7 @@
           </template>
         </BkDropdown>
         <div class="content">
-          <BkSelect
+          <DbSelect
             v-model="contentValue"
             allow-create
             collapse-tags
@@ -78,7 +78,7 @@
             multiple
             multiple-mode="tag"
             @change="handleContentChange">
-          </BkSelect>
+          </DbSelect>
         </div>
         <div class="operate-box">
           <i
@@ -455,12 +455,12 @@
         .content {
           flex: 1;
 
-          :deep(.bk-select-tag-wrapper) {
+          :deep(.dbm-select-tag-wrapper) {
             gap: 4px;
           }
 
           .is-focus {
-            :deep(.bk-select-tag) {
+            :deep(.dbm-select-tag) {
               border-left-color: #3a84ff;
 
               &:hover {
@@ -473,7 +473,7 @@
             outline: none;
           }
 
-          :deep(.bk-select-tag) {
+          :deep(.dbm-select-tag) {
             width: 100%;
             min-height: 32px;
             overflow: hidden;
@@ -484,7 +484,7 @@
               border-left-color: #a4a2a2;
             }
 
-            .bk-select-tag-wrapper {
+            .dbm-select-tag-wrapper {
               height: auto;
               max-height: 100px;
               overflow-y: auto;

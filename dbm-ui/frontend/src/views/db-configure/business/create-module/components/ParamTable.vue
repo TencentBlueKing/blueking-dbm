@@ -74,17 +74,17 @@
         :width="300">
         <template #default="{ row, rowIndex }">
           <template v-if="rowIndex === 0 && isAddingRow">
-            <BkSelect
+            <DbSelect
               v-model="newRow.conf_name"
               :clearable="false"
               filterable
               :placeholder="t('请选择参数')">
-              <BkOption
+              <DbOption
                 v-for="param of availableParams"
                 :key="param.conf_name"
                 :label="param.conf_name"
                 :value="param.conf_name" />
-            </BkSelect>
+            </DbSelect>
           </template>
           <template v-else>
             {{ row.conf_name }}
@@ -94,13 +94,13 @@
               :data-conf-name="row.conf_name"
               :data-description="row.description"
               type="bk-dbm-icon db-icon-attention" />
-            <BkTag
+            <DbTag
               v-if="row.op_type === 'add'"
               class="ml-8"
               size="small"
               theme="success">
               NEW
-            </BkTag>
+            </DbTag>
           </template>
         </template>
       </TableColumn>
@@ -193,7 +193,7 @@
           <!-- 新增行 -->
           <template v-if="rowIndex === 0 && isAddingRow">
             <template v-if="selectedParamInfo?.value_type_sub && selectedParamInfo?.value_type_sub !== 'STRING'">
-              <BkTag>{{ selectedParamInfo.value_type_sub }}</BkTag>
+              <DbTag>{{ selectedParamInfo.value_type_sub }}</DbTag>
               <span class="ml-4">{{ selectedParamInfo.value_allowed || '--' }}</span>
             </template>
             <span
@@ -205,7 +205,7 @@
           <!-- 普通行 -->
           <template v-else>
             <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
-              <BkTag>{{ row.value_type_sub }}</BkTag>
+              <DbTag>{{ row.value_type_sub }}</DbTag>
               <span class="ml-4">{{ row.value_allowed || '--' }}</span>
             </template>
             <span

@@ -53,17 +53,17 @@
         <span v-if="!updateMode">--</span>
         <template v-else>
           <template v-if="diffState.target.labels.length">
-            <BkTag
+            <DbTag
               v-for="labelItem in diffState.target.labels"
               :key="labelItem.id">
               {{ labelItem.value }}
-            </BkTag>
+            </DbTag>
           </template>
-          <BkTag
+          <DbTag
             v-else
             theme="success">
             {{ t('通用无标签') }}
-          </BkTag>
+          </DbTag>
         </template>
       </template>
     </DiffInfoItem>

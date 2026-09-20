@@ -25,17 +25,17 @@
           <span v-if="!originData">--</span>
           <template v-else>
             <template v-if="data.labels.length">
-              <BkTag
+              <DbTag
                 v-for="labelItem in data.labels"
                 :key="labelItem.id">
                 {{ labelItem.value }}
-              </BkTag>
+              </DbTag>
             </template>
-            <BkTag
+            <DbTag
               v-else
               theme="success">
               {{ t('通用无标签') }}
-            </BkTag>
+            </DbTag>
           </template>
         </div>
       </div>

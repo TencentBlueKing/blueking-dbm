@@ -5,11 +5,11 @@
     <BkRadio
       label="TERMINATE"
       style="margin-left: 0">
-      <BkTag
+      <DbTag
         theme="danger"
         type="stroke">
         {{ t('终止单据') }}
-      </BkTag>
+      </DbTag>
       <span class="ml-4">{{ t('终止后，单据将作废处理') }}</span>
     </BkRadio>
   </BkRadioGroup>

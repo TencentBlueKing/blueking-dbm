@@ -18,7 +18,7 @@
     <p
       ref="textRef"
       class="render-row-wrapper">
-      <BkTag
+      <DbTag
         v-for="item in data"
         :key="item.id"
         class="render-row-item">
@@ -28,11 +28,11 @@
             :type="getIconType(item.type)" />
         </template>
         {{ item.display_name }}
-      </BkTag>
-      <BkTag class="overflow-collapse-tag"> +{{ overflowData.length }} </BkTag>
+      </DbTag>
+      <DbTag class="overflow-collapse-tag"> +{{ overflowData.length }} </DbTag>
     </p>
     <p class="visible-content">
-      <BkTag
+      <DbTag
         v-for="item in visibleData"
         :key="item.id"
         v-bk-tooltips="{
@@ -46,15 +46,15 @@
             :type="getIconType(item.type)" />
         </template>
         {{ item.display_name }}
-      </BkTag>
+      </DbTag>
       <BkPopover
         v-if="overflowData.length > 0"
         placement="top"
         theme="light"
         width="400">
-        <BkTag class="overflow-collapse-tag"> +{{ overflowData.length }} </BkTag>
+        <DbTag class="overflow-collapse-tag"> +{{ overflowData.length }} </DbTag>
         <template #content>
-          <BkTag
+          <DbTag
             v-for="item in overflowData"
             :key="item.id"
             v-bk-tooltips="{
@@ -68,7 +68,7 @@
                 :type="getIconType(item.type)" />
             </template>
             {{ item.display_name }}
-          </BkTag>
+          </DbTag>
         </template>
       </BkPopover>
     </p>

@@ -18,7 +18,7 @@
     :width="800"
     @closed="handleClose">
     <template #header>
-      {{ t('选择集群容量变更部署方案') }}【{{ cluster.master_domain }}】<BkTag theme="info">{{ t('存储层') }}</BkTag>
+      {{ t('选择集群容量变更部署方案') }}【{{ cluster.master_domain }}】<DbTag theme="info">{{ t('存储层') }}</DbTag>
     </template>
     <div class="redis-deploy-plan">
       <PreviewResult

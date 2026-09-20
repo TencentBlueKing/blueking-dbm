@@ -1,12 +1,12 @@
 <template>
-  <BkTag
+  <DbTag
     v-for="(item, index) in tagList"
     :key="item.value"
     :closable="closeable"
     :theme="item.theme"
     @close="() => handleClose(index)">
     {{ item.label }}
-  </BkTag>
+  </DbTag>
 </template>
 
 <script setup lang="ts">

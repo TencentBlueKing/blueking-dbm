@@ -4,7 +4,7 @@
       <div class="filter-title">
         {{ t('业务') }}
       </div>
-      <BkSelect
+      <DbSelect
         v-model="modelValue.bk_biz_ids"
         behavior="simplicity"
         filterable
@@ -17,12 +17,12 @@
         }"
         show-select-all
         size="small">
-        <BkOption
+        <DbOption
           v-for="bizItem in bizList"
           :id="bizItem.bk_biz_id"
           :key="bizItem.bk_biz_id"
           :name="bizItem.display_name" />
-      </BkSelect>
+      </DbSelect>
     </div>
     <div class="filter-item">
       <div class="filter-title">
@@ -44,7 +44,7 @@
           </BkCheckbox>
         </BkCheckboxGroup>
       </template>
-      <BkSelect
+      <DbSelect
         v-else
         v-model="modelValue.db_types"
         behavior="simplicity"
@@ -57,12 +57,12 @@
         }"
         show-select-all
         size="small">
-        <BkOption
+        <DbOption
           v-for="dbItem in dbList"
           :id="dbItem.id"
           :key="dbItem.id"
           :name="dbItem.name" />
-      </BkSelect>
+      </DbSelect>
     </div>
     <div class="filter-item">
       <div class="filter-title">

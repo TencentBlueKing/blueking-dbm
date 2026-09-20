@@ -1,5 +1,5 @@
 <template>
-  <Select
+  <DbSelect
     :clearable="false"
     :filter-option="handleSearch"
     filterable
@@ -36,7 +36,7 @@
     </template>
     <template v-for="group in timezoneData">
       <template v-if="group.label.length < 1">
-        <Option
+        <DbOption
           v-for="item in group.options"
           v-bind="item"
           :id="item.label"
@@ -55,14 +55,14 @@
             </span>
             <span class="option-utc">{{ item.utc }}</span>
           </div>
-        </Option>
+        </DbOption>
       </template>
       <template v-else>
-        <Group
+        <DbOptionGroup
           v-if="group.options.length"
           :key="group.label"
           :label="group.label">
-          <Option
+          <DbOption
             v-for="item in group.options"
             v-bind="item"
             :id="item.label"
@@ -81,14 +81,13 @@
               </span>
               <span class="option-utc">{{ item.utc }}</span>
             </div>
-          </Option>
-        </Group>
+          </DbOption>
+        </DbOptionGroup>
       </template>
     </template>
-  </Select>
+  </DbSelect>
 </template>
 <script setup lang="ts">
-  import { Select } from 'bkui-vue';
   import dayjs from 'dayjs';
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -113,8 +112,6 @@
   }
 
   const emits = defineEmits<Emits>();
-
-  const { Group, Option } = Select;
 
   const timezoneList = [
     {

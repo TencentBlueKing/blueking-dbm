@@ -49,7 +49,7 @@
         </template>
       </PrimaryTable>
       <div class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           :model-value="pagination.current"
@@ -233,12 +233,12 @@
         )}
         <div class='name'>{data.prod_cluster}</div>
         {(data.isDestroyed || data.isDestroying) && (
-          <bk-tag
+          <db-tag
             class='tag-tip'
             style={{ color: data.isDestroyed ? '#63656E' : '#EA3536' }}
             theme={data.isDestroyed ? undefined : 'danger'}>
             {tipText}
-          </bk-tag>
+          </db-tag>
         )}
       </div>
     );
@@ -264,7 +264,7 @@
                 {data.prod_instance_range.toString()}{' '}
                 {showTag && (
                   <div class='tag-box'>
-                    <bk-tag>{`+${len - 1}`}</bk-tag>
+                    <db-tag>{`+${len - 1}`}</db-tag>
                   </div>
                 )}
               </div>
@@ -563,7 +563,7 @@
         top: 0;
         right: -10px;
 
-        .bk-tag {
+        .dbm-tag {
           padding: 0 6px;
           font-size: 12px;
           transform: scale(0.83, 0.83);
@@ -590,7 +590,7 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      :deep(.bk-pagination) {
+      :deep(.dbm-pagination) {
         width: 100%;
 
         & > .is-last {

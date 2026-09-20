@@ -32,9 +32,9 @@
     <BkPopover
       placement="top"
       theme="light">
-      <BkTag>
+      <DbTag>
         <I18nT keypath="共n个">{{ data.slaveEntryList.length }}</I18nT>
-      </BkTag>
+      </DbTag>
       <template #content>
         <div style="max-height: 280px; overflow: scroll">
           <div

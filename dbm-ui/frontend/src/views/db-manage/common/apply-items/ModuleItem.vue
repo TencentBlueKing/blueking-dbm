@@ -7,7 +7,7 @@
     property="details.db_module_id"
     required
     :rules="rules">
-    <BkSelect
+    <DbSelect
       v-model="modelValue"
       class="item-input"
       :clearable="false"
@@ -16,7 +16,7 @@
       :loading="moduleLoading"
       :no-data-text="t('当前业务下暂无可用模块，请联系 DBA 创建')"
       style="display: inline-block">
-      <BkOption
+      <DbOption
         v-for="item in sortedModuleList"
         :id="item.db_module_id"
         :key="item.db_module_id"
@@ -29,7 +29,7 @@
             {{ getBaseInfo(item) }}
           </span>
         </div>
-      </BkOption>
+      </DbOption>
       <template
         v-if="hasEditPermission && bizId && clusterType !== ClusterTypes.RIAK"
         #extension>
@@ -52,7 +52,7 @@
           </BkButton>
         </div>
       </template>
-    </BkSelect>
+    </DbSelect>
     <BkButton
       v-if="bizId"
       v-bk-tooltips.top="t('刷新获取最新DB模块名')"

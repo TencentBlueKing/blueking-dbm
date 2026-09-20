@@ -51,7 +51,7 @@
     <template #default>
       <div class="redis-hot-key-analysis-detail-content">
         <div class="filter-box">
-          <BkSelect
+          <DbSelect
             v-model="selectedInstanceList"
             collapse-tags
             filterable
@@ -59,12 +59,12 @@
             multiple-mode="tag"
             style="width: 400px"
             @change="() => fetchData()">
-            <BkOption
+            <DbOption
               v-for="item in instanceList"
               :id="item"
               :key="item"
               :name="item" />
-          </BkSelect>
+          </DbSelect>
           <BkInput
             v-model="serachKey"
             class="ml-8"

@@ -57,13 +57,13 @@
           :min-width="200"
           :title="t('补货数量')">
           <template #default="{ row }: { row: IRowData }">
-            <BkTag
+            <DbTag
               v-for="[db, value] in Object.entries(row.details).slice(0, MAX_DISPLAY_NUM)"
               :key="db"
               class="mr-4">
               {{ dbNameMap[db] }} : {{ value }}
-            </BkTag>
-            <BkTag
+            </DbTag>
+            <DbTag
               v-if="Object.keys(row.details).length > MAX_DISPLAY_NUM"
               v-bk-tooltips="{
                 content: Object.entries(row.details)
@@ -74,7 +74,7 @@
               }"
               class="mr-4">
               {{ `+${Object.keys(row.details).length - MAX_DISPLAY_NUM}` }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
         <TableColumn
@@ -139,9 +139,10 @@
         </TableColumn>
       </PrimaryTable>
       <div class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
           @change="handlePageValueChange"
           @limit-change="handlePageLimitChange" />
       </div>
@@ -353,7 +354,7 @@
         border-top: 1px solid var(--td-component-border);
         align-items: center;
 
-        .bk-pagination {
+        .dbm-pagination {
           width: 100%;
 
           & > .is-last {

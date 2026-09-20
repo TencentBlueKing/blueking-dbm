@@ -41,11 +41,10 @@
             <div
               ref="root"
               @click="handleShowTips">
-              <BkTagInput
+              <DbTagInput
                 v-model="formData.topics"
                 allow-create
-                collapse-tags
-                has-delete-icon />
+                multiple />
             </div>
           </BkFormItem>
           <BkFormItem
