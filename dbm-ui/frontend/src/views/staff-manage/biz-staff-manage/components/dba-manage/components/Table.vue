@@ -280,7 +280,7 @@
             :title="t('更新人')"
             :width="120">
             <template #default="{ row }: { row: IRowData }">
-              {{ row.updater || '--' }}
+              <bk-user-display-name :user-id="row.updater" />
             </template>
           </TableColumn>
           <TableColumn

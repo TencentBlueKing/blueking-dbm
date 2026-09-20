@@ -32,7 +32,9 @@
           <td>{{ t('单据类型') }}:</td>
           <td>{{ localTicketData.ticket_type_display }}</td>
           <td>{{ t('申请人') }}:</td>
-          <td>{{ localTicketData.creator }}</td>
+          <td>
+            <bk-user-display-name :user-id="localTicketData.creator" />
+          </td>
         </tr>
         <tr>
           <td>{{ t('申请时间') }}:</td>

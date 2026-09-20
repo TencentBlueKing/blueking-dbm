@@ -502,6 +502,11 @@
     "@types/ua-parser-js" "^0.7.36"
     ua-parser-js "1.0.32"
 
+"@blueking/bk-user-display-name@1.0.3-beta.7":
+  version "1.0.3-beta.7"
+  resolved "https://mirrors.tencent.com/npm/@blueking/bk-user-display-name/-/bk-user-display-name-1.0.3-beta.7.tgz#84b66a332b9c7ee7010f84232a2c7cd47b23fdf4"
+  integrity sha512-WdVIhyWW5N9tjR7kTKBwvqERjfMGcA1wfoX5n6n4XT7sBEtM2u1fVmeFHYed4LuQwCwZVZrtUFnQlUNEWlP+3w==
+
 "@blueking/bk-user-selector@0.1.15":
   version "0.1.15"
   resolved "https://mirrors.tencent.com/npm/@blueking/bk-user-selector/-/bk-user-selector-0.1.15.tgz#03a42c6e1e7caa16fca69e876555787c522d16b6"

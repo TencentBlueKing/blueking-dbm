@@ -170,6 +170,9 @@
           col-key="operator"
           :title="t('修改人')"
           :width="120">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <bk-user-display-name :user-id="data.operator" />
+          </template>
         </TableColumn>
         <TableColumn
           col-key="update_time"

@@ -318,7 +318,7 @@
               :title="t('更新人')"
               :width="120">
               <template #default="{ row }: { row: BizDbaModel }">
-                {{ row.updater || '--' }}
+                <bk-user-display-name :user-id="row.updater" />
               </template>
             </TableColumn>
             <TableColumn
@@ -377,25 +377,21 @@
       v-model="isBatchUpdateShow"
       :db-type="activeTab"
       :selected="selected"
-      :user-data-map="userDataMap"
       @success="handleClose" />
     <BatchReplace
       v-model="isBatchReplaceShow"
       :db-type="activeTab"
       :selected="selected"
-      :user-data-map="userDataMap"
       @success="handleClose" />
     <BatchAppendL2DBA
       v-model="isBatchAppendL2DBAShow"
       :db-type="activeTab"
       :selected="selected"
-      :user-data-map="userDataMap"
       @success="handleClose" />
     <BatchRemoveL2DBA
       v-model="isBatchRemoveL2DBAShow"
       :db-type="activeTab"
       :selected="selected"
-      :user-data-map="userDataMap"
       @success="handleClose" />
   </div>
 </template>

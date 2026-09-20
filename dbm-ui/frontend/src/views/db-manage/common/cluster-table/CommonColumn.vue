@@ -66,7 +66,7 @@
     :title="t('创建人')"
     :width="140">
     <template #default="{ row }: { row: IRowData }">
-      {{ row.creator || '--' }}
+      <bk-user-display-name :user-id="row.creator" />
     </template>
   </TableColumn>
   <TableColumn

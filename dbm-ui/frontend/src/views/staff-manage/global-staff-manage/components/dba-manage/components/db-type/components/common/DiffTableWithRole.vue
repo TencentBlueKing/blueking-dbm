@@ -50,7 +50,7 @@
             <div
               v-for="(item, index) in row.before"
               :key="index">
-              {{ `${item}（${userDataMap[item]}）` }}
+              <bk-user-display-name :user-id="item" />
             </div>
           </div>
           <span v-else>--</span>
@@ -73,7 +73,7 @@
                 <div
                   v-for="(item, index) in row.after"
                   :key="index">
-                  {{ `${item}（${userDataMap[item]}）` }}
+                  <bk-user-display-name :user-id="item" />
                 </div>
               </div>
               <DbTag
@@ -109,7 +109,6 @@
   interface Props {
     data: IDataRow[];
     isFormEmpty: boolean;
-    userDataMap: Record<string, string>;
   }
 
   defineProps<Props>();

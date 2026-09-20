@@ -166,7 +166,7 @@
         :min-width="180"
         :title="t('更新人')">
         <template #default="{ row }: { row: NoticGroupModel }">
-          <span>{{ row.updater || '--' }}</span>
+          <bk-user-display-name :user-id="row.updater" />
         </template>
       </TableColumn>
       <TableColumn

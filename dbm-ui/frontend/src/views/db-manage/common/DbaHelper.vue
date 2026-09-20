@@ -11,7 +11,7 @@
           svg
           type="qw" />
         <span class="pl-4">
-          {{ userDBAList[0] }}
+          <bk-user-display-name :user-id="userDBAList[0]" />
         </span>
       </a>
       <template v-if="userDBAList[1]">
@@ -23,7 +23,7 @@
             svg
             type="qw" />
           <span class="pl-4">
-            {{ userDBAList[1] }}
+            <bk-user-display-name :user-id="userDBAList[1]" />
           </span>
         </a>
       </template>

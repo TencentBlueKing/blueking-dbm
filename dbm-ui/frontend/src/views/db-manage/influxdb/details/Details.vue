@@ -50,7 +50,12 @@
                     <span
                       v-overflow-tips
                       class="base-info-value text-overflow">
-                      {{ getInfoValue(config.key) || '--' }}
+                      <bk-user-display-name
+                        v-if="config.key === 'creator'"
+                        :user-id="String(getInfoValue(config.key) ?? '')" />
+                      <template v-else>
+                        {{ getInfoValue(config.key) || '--' }}
+                      </template>
                     </span>
                   </div>
                 </li>

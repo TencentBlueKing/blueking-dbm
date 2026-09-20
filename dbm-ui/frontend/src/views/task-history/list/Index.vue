@@ -119,7 +119,7 @@
         :title="t('执行人')"
         :width="180">
         <template #default="{ row }: { row: TaskFlowModel }">
-          {{ row.created_by }}
+          <bk-user-display-name :user-id="row.created_by" />
         </template>
       </TableColumn>
       <TableColumn

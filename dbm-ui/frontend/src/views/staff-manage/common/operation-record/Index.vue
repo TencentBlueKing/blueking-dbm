@@ -18,7 +18,11 @@
         col-key="creator"
         :filter="columnFilter?.creator"
         :title="t('操作人')"
-        width="110" />
+        width="110">
+        <template #default="{ row }: { row: DBAdminOperationRecordModel }">
+          <bk-user-display-name :user-id="row.creator" />
+        </template>
+      </TableColumn>
       <TableColumn
         col-key="create_at"
         :filter="columnFilter?.create_at"

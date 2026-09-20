@@ -174,7 +174,7 @@
         :title="t('转入人')"
         :width="120">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
-          {{ row.updater || '--' }}
+          <bk-user-display-name :user-id="row.updater" />
         </template>
       </TableColumn>
       <TableColumn

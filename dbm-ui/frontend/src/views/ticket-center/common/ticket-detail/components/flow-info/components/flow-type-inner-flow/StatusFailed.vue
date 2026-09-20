@@ -8,13 +8,13 @@
           keypath="m_处理人_p"
           scope="global">
           <span style="color: #ea3636">{{ t('执行失败') }}</span>
-          {{ ticketDetail.todo_operators.join(',') }}
+          <bk-user-display-name :user-id="ticketDetail.todo_operators.join(',')" />
         </I18nT>
         <I18nT
           v-if="ticketDetail.todo_helpers.length > 0"
           keypath="_协助人_p"
           scope="global">
-          {{ ticketDetail.todo_helpers.join(',') }}
+          <bk-user-display-name :user-id="ticketDetail.todo_helpers.join(',')" />
         </I18nT>
         <I18nT
           keypath="_耗时_t"

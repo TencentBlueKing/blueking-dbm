@@ -3,13 +3,13 @@
     <I18nT
       keypath="处理人_p"
       scope="global">
-      {{ data.operators.join(',') }}
+      <bk-user-display-name :user-id="data.operators.join(',')" />
     </I18nT>
     <I18nT
       v-if="ticketData.todo_helpers.length > 0"
       keypath="_协助人_p"
       scope="global">
-      {{ ticketData.todo_helpers.join(',') }}
+      <bk-user-display-name :user-id="ticketData.todo_helpers.join(',')" />
     </I18nT>
     <I18nT
       keypath="_耗时_t"

@@ -25,7 +25,7 @@
       {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
     </InfoItem>
     <InfoItem :label="t('创建人')">
-      {{ data.creator }}
+      <bk-user-display-name :user-id="data.creator" />
     </InfoItem>
     <InfoItem :label="t('部署时间')">
       {{ data.createAtDisplay }}

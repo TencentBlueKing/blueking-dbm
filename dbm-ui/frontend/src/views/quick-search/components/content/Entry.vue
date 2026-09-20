@@ -143,7 +143,7 @@
             sorter
             :title="t('主 DBA')">
             <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
-              {{ rowData.dba || '--' }}
+              <bk-user-display-name :user-id="rowData.dba" />
             </template>
           </TableColumn>
         </PrimaryTable>
