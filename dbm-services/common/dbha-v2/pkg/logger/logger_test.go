@@ -118,6 +118,22 @@ func TestSetLoggerAndLog(t *testing.T) {
 	if Log() != mock {
 		t.Fatal("Log() should return the set logger")
 	}
+
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 50; i++ {
+			SetLogger(mock)
+			_ = Log()
+			Info("concurrent")
+		}
+		close(done)
+	}()
+	for i := 0; i < 50; i++ {
+		SetLogger(mock)
+		Info("concurrent")
+	}
+	<-done
+	SetLogger(mock)
 }
 
 func TestDebug(t *testing.T) {

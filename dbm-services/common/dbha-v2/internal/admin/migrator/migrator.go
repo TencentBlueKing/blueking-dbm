@@ -46,6 +46,9 @@ const (
 	MigrateTypeStrategy = "strategy"
 	// MigrateTypeAll execute all migrations
 	MigrateTypeAll = "all"
+
+	// CreateDbIfNotExistSql creates the storage database with utf8mb4 if missing.
+	CreateDbIfNotExistSql = "CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 )
 
 // defaultGlobalStrategies defines the default global strategy list
@@ -120,10 +123,6 @@ var tables = []any{
 	&hamodel.DbSwitchingSnapshotLog{},
 	&hamodel.DbSwitchingStrategy{},
 }
-
-const (
-	CreateDbIfNotExistSql string = "CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-)
 
 // Migrator implements database migration
 type Migrator struct {
