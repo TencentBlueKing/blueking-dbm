@@ -105,17 +105,8 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	logger.Debug("admin startup config, log_path: %s, log_level: %s", next.Log.Path, next.Log.Level)
 
-	dbcred.ConfigureAll(func(name string) (dbcred.DbmApi, bool) {
-		for i := range config.Cfg.DbmApis {
-			if config.Cfg.DbmApis[i].Name == name {
-				a := config.Cfg.DbmApis[i]
-				return dbcred.DbmApi{
-					Api: a.Api, Token: a.Token, Method: a.Method, Timeout: a.Timeout,
-				}, true
-			}
-		}
-		return dbcred.DbmApi{}, false
-	})
+	// Must run after config.Apply so LookupDbmApi reads a non-empty snapshot.
+	dbcred.ConfigureAll(config.LookupDbmApi)
 	if len(dbcred.RegisteredDbTypes()) == 0 {
 		return gerrors.Newf(gerrors.Failure,
 			"no credential providers registered; blank-import provider/allcredential")

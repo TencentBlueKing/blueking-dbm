@@ -29,11 +29,14 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/slot"
+	"dbm-services/common/dbha-v2/pkg/dbcred"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 type fakeSlot struct {
@@ -87,6 +90,125 @@ func TestStartSlotsClosesBuiltResourcesInReverseOnFailure(t *testing.T) {
 	if !equalStrings(events, want) {
 		t.Fatalf("events: %v, want: %v", events, want)
 	}
+}
+
+func TestReloadPushesDbmApisWithoutTouchingOutcome(t *testing.T) {
+	saved := config.Snapshot()
+	t.Cleanup(func() { config.Apply(saved) })
+
+	watcher := &dbcredConfigureWatcher{}
+	dbcred.Register(haprobe.DbTypePulsar, watcher)
+	t.Cleanup(func() {
+		// Registry has no unregister; leave the no-op watcher in place for this process.
+	})
+
+	current := validReloadConfig()
+	current.DbmApis = nil
+	config.Apply(current)
+
+	path := writeReloadConfig(t, `
+discovery:
+  endpoint: "127.0.0.1:2379"
+storage:
+  endpoint: "127.0.0.1:3306"
+apm:
+  listenAddress: "127.0.0.1:19090"
+grpc:
+  listenAddress: "127.0.0.1:15051"
+web:
+  listenAddress: "127.0.0.1:18080"
+log:
+  level: info
+dbmApi:
+  - name: redis_password
+    api: "http://127.0.0.1:8000/pass"
+    token: "tok"
+    method: POST
+    timeout: 1s
+`)
+
+	service := &Service{
+		configPath: path,
+		shutdown:   make(chan struct{}),
+	}
+	lastReloadOutcome = reloadOutcome{}
+	service.reloadOnce()
+
+	if watcher.calls() != 1 {
+		t.Fatalf("ConfigureAll calls: %d, want 1 after DbmApis change", watcher.calls())
+	}
+	if watcher.lastAPI() != "http://127.0.0.1:8000/pass" {
+		t.Fatalf("configured api: %s", watcher.lastAPI())
+	}
+	if lastReloadOutcome.failed {
+		t.Fatal("ConfigureAll must not flip reload outcome to failed")
+	}
+
+	// Change an unrelated field so reload proceeds past the DeepEqual early-return,
+	// but keep DbmApis identical so ConfigureAll is skipped by DbmApisEqual.
+	watcher.reset()
+	path2 := writeReloadConfig(t, `
+discovery:
+  endpoint: "127.0.0.1:2379"
+storage:
+  endpoint: "127.0.0.1:3306"
+apm:
+  listenAddress: "127.0.0.1:19090"
+grpc:
+  listenAddress: "127.0.0.1:15051"
+web:
+  listenAddress: "127.0.0.1:18080"
+log:
+  level: debug
+dbmApi:
+  - name: redis_password
+    api: "http://127.0.0.1:8000/pass"
+    token: "tok"
+    method: POST
+    timeout: 1s
+`)
+	service.configPath = path2
+	service.reloadOnce()
+	if watcher.calls() != 0 {
+		t.Fatalf("unchanged DbmApis should skip ConfigureAll, calls: %d", watcher.calls())
+	}
+}
+
+type dbcredConfigureWatcher struct {
+	mu      sync.Mutex
+	n       int
+	seenAPI string
+}
+
+func (w *dbcredConfigureWatcher) Fill(context.Context, int, []*dbcred.Item) error { return nil }
+
+func (w *dbcredConfigureWatcher) Configure(lookup dbcred.ConfigLookup) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.n++
+	if api, ok := lookup("redis_password"); ok {
+		w.seenAPI = api.Api
+	}
+	return nil
+}
+
+func (w *dbcredConfigureWatcher) reset() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.n = 0
+	w.seenAPI = ""
+}
+
+func (w *dbcredConfigureWatcher) calls() int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.n
+}
+
+func (w *dbcredConfigureWatcher) lastAPI() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.seenAPI
 }
 
 func TestReloadAppliesSnapshotWhenSlotFails(t *testing.T) {
