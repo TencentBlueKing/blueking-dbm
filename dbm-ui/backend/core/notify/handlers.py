@@ -35,12 +35,23 @@ from backend.core.notify.template import (
 from backend.db_meta.models import AppCache
 from backend.env import DEFAULT_USERNAME
 from backend.exceptions import ApiResultError
-from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import TicketModifyType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.models import Flow, Ticket
 from backend.ticket.todos import TodoActionType
 from backend.utils.cache import func_cache_decorator
 
 logger = logging.getLogger("root")
+
+# 改单通知模板：通知提单人内容已被修改
+MODIFY_TEMPLATE = _(
+    """\
+    申请人:  {{creator}}
+    改单人:  {{operator}}
+    改单模式: {{mode}}
+    改单说明: {{remark}}
+    查看详情: {{detail_address}}\
+    """
+)
 
 # 企微机器人消息单条最大字符数限制 2048
 MSG_MAX_LENGTH = 1600
@@ -616,6 +627,51 @@ class NotifyAdapter:
             except (ApiResultError, Exception) as e:
                 logger.error(_("[{}]消息发送失败，错误信息: {}").format(MsgType.get_choice_label(msg_type), e))
 
+    def render_modify_msg_template(self, operator: str, mode: str, remark: str):
+        """渲染改单通知标题与内容"""
+        title = _("「DBM」：您的{ticket_type}单据「{ticket_id}」{mode}").format(
+            ticket_type=TicketType.get_choice_label(self.ticket.ticket_type),
+            ticket_id=self.ticket.id,
+            mode=TicketModifyType.get_choice_label(mode),
+        )
+        payload = {
+            "creator": self.ticket.creator,
+            "operator": operator,
+            "mode": TicketModifyType.get_choice_label(mode),
+            "remark": remark or _("无"),
+            "detail_address": self.ticket.url,
+        }
+        content = textwrap.dedent(Environment().from_string(MODIFY_TEMPLATE).render(payload))
+        return title, content
+
+    def send_modify_msg(self, operator: str, mode: str, remark: str):
+        """改单通知：通知提单人内容已被修改"""
+        title, content = self.render_modify_msg_template(operator, mode, remark)
+        receivers = [self.ticket.creator]
+
+        # 通知渠道：优先单据配置 -> 业务配置 -> 默认 rtx
+        if self.phase in self.ticket.msg_config:
+            send_msg_config = self.ticket.msg_config[self.phase]
+        else:
+            biz_notify_config = BizSettings.get_setting_value(self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG)
+            send_msg_config = biz_notify_config.get(self.phase)
+        if not send_msg_config:
+            send_msg_config = {"rtx": True}
+
+        send_msg_types = [msg_type for msg_type in send_msg_config if send_msg_config.get(msg_type)]
+        for msg_type in send_msg_types:
+            notify_class, context = self.get_notify_class(msg_type)
+            if msg_type not in notify_class.get_msg_type():
+                logger.warning(_("通知类{}不支持该类型{}的消息发送").format(notify_class, msg_type))
+                continue
+            # 群机器人通知，接受者为群ID
+            if msg_type == MsgType.WECOM_ROBOT:
+                receivers = send_msg_config.get(MsgType.WECOM_ROBOT.value, [])
+            try:
+                notify_class(title, content, receivers).send_msg(msg_type, context=context)
+            except (ApiResultError, Exception) as e:
+                logger.error(_("[{}]改单消息发送失败，错误信息: {}").format(MsgType.get_choice_label(msg_type), e))
+
     def send_msg_of_ai_task_guardian(self, ai_result: str):
         """
         定义AI单据值守推送消息的逻辑
@@ -727,3 +783,9 @@ def send_msg_for_ai_task_guardian(ticket_id: int, ai_result: str, deadline: int 
     # 可异步发送消息，非阻塞路径默认不抛出异常
     # AI单据值守消息通道专属
     NotifyAdapter(ticket_id, deadline).send_msg_of_ai_task_guardian(ai_result=ai_result)
+
+
+@shared_task
+def send_modify_notify(ticket_id: int, operator: str, mode: str, remark: str):
+    # 改单通知：代为修改/调整申请后通知提单人
+    NotifyAdapter(ticket_id).send_modify_msg(operator, mode, remark)

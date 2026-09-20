@@ -39,6 +39,7 @@ from backend.ticket.constants import (
     FlowType,
     FlowTypeConfig,
     TicketFlowStatus,
+    TicketModifyType,
     TicketStatus,
     TicketType,
     TodoStatus,
@@ -125,11 +126,63 @@ class Flow(models.Model):
         return controller_func
 
 
+def sort_flows_by_next_flow(flows):
+    """按 context.next_flow 指针在内存中排序流程。
+
+    - 存量数据未写入 next_flow，退化为按 id 排序(与建单顺序一致，即原 last-first 语义)
+    - 改单在中间插入流程时会为整单流程补充 next_flow，形成完整单链表
+    """
+    flows = list(flows)
+    if not flows:
+        return flows
+
+    next_flow_key = FlowContext.NEXT_FLOW.value
+    # 没有任何节点写入 next_flow，视为存量数据，按 id 排序
+    if not any(f.context.get(next_flow_key) for f in flows):
+        return sorted(flows, key=lambda f: f.id)
+
+    by_id = {f.id: f for f in flows}
+    # 头节点：未被任何其它节点指向的节点
+    pointed = {f.context.get(next_flow_key) for f in flows if f.context.get(next_flow_key)}
+    heads = [f for f in flows if f.id not in pointed]
+
+    ordered = []
+    visited = set()
+    node = heads[0] if heads else flows[0]
+    while node is not None and node.id not in visited:
+        visited.add(node.id)
+        ordered.append(node)
+        node = by_id.get(node.context.get(next_flow_key))
+
+    # 兜底：链表断裂/多链时，把遗漏节点按 id 补在尾部
+    ordered.extend(sorted((f for f in flows if f.id not in visited), key=lambda f: f.id))
+    return ordered
+
+
 class FlowSummary(models.Model):
     """流程运行时摘要/交付结果"""
 
     flow = models.OneToOneField(Flow, on_delete=models.PROTECT, unique=True)
     summary = models.JSONField(_("流程摘要"), default=list, blank=True, null=True)
+
+
+class TicketSnapshot(AuditedModel):
+    """
+    单据改单快照
+    - 与 ticket/flow 仅做逻辑关联(存 ticket_id/flow_id)，不建外键，避免大表外键约束
+    - details 存的是前端传入、尚未经过单据初始化(patch_ticket_detail)的原始详情
+    """
+
+    ticket_id = models.IntegerField(_("关联工单ID"), db_index=True)
+    flow_id = models.IntegerField(_("关联流程节点ID"), default=0)
+    mode = models.CharField(_("改单模式"), choices=TicketModifyType.get_choices(), max_length=LEN_SHORT)
+    operator = models.CharField(_("操作人"), max_length=LEN_NORMAL, default="")
+    remark = models.CharField(_("说明"), max_length=LEN_L_LONG, default="")
+    details = models.JSONField(_("改单详情(前端传入未初始化的详情)"), default=dict)
+    change_count = models.IntegerField(_("差异字段数"), default=0)
+
+    class Meta:
+        verbose_name_plural = verbose_name = _("单据改单快照(TicketSnapshot)")
 
 
 class Ticket(AuditedModel):
@@ -232,14 +285,21 @@ class Ticket(AuditedModel):
     def update_flow_details(self, **kwargs):
         self.current_flow().update_details(**kwargs)
 
+    def ordered_flows(self, flows=None):
+        """返回按 next_flow 排序后的流程列表(内存排序，无标记时按 id 排序)"""
+        if flows is None:
+            flows = self.flows.all()
+        return sort_flows_by_next_flow(flows)
+
     def current_flow(self) -> Flow:
         """
         当前的流程
-         1. 取 TicketFlow 中最后一个 flow_obj_id 非空的流程
-         2. 若 TicketFlow 中都流程都为空，则代表整个单据未开始，取第一个流程
+         1. 取 TicketFlow 中最后一个非 PENDING 的流程
+         2. 若 TicketFlow 中流程都为空，则代表整个单据未开始，取第一个流程
         """
-        if Flow.objects.filter(ticket=self).exclude(status=TicketFlowStatus.PENDING).exists():
-            return Flow.objects.filter(ticket=self).exclude(status=TicketFlowStatus.PENDING).last()
+        flows = self.ordered_flows()
+        if any(f.status != TicketFlowStatus.PENDING for f in flows):
+            return next(f for f in reversed(flows) if f.status != TicketFlowStatus.PENDING)
         # 初始化时，当前节点和下一个节点为同一个
         return self.next_flow()
 
@@ -247,13 +307,13 @@ class Ticket(AuditedModel):
         """
         下一个流程，即 TicketFlow 中第一个为PENDING的流程
         """
-        next_flows = Flow.objects.filter(ticket=self, status=TicketFlowStatus.PENDING)
+        next_flows = [f for f in self.ordered_flows() if f.status == TicketFlowStatus.PENDING]
 
         # 支持跳过人工审批和确认环节
         if env.ITSM_FLOW_SKIP:
-            next_flows = next_flows.exclude(flow_type__in=[FlowType.BK_ITSM, FlowType.PAUSE])
+            next_flows = [f for f in next_flows if f.flow_type not in [FlowType.BK_ITSM, FlowType.PAUSE]]
 
-        return next_flows.first()
+        return next_flows[0] if next_flows else None
 
     def add_related_ticket(self, related_ticket: Union[int, "Ticket"], desc: str = "", done: bool = False):
         """
