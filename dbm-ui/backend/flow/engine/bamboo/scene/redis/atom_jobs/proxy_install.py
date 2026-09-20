@@ -19,6 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache, Cluster
+from backend.db_services.redis.autofix.probe_ctl import is_probe_deploy_biz_enabled
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail
 from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -206,8 +207,8 @@ def ProxyBatchInstallAtomJob(
         )
 
     # 部署 dbha-v2 探针（下发介质包 + 解压 + 生成配置并启动），此时实例元数据已写入
-    # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
-    if env.ENABLE_DBHA_V2:
+    # 当 env.ENABLE_DBHA_V2 = False 或业务不在 probe_deploy_bizs 白名单内时禁用
+    if env.ENABLE_DBHA_V2 and is_probe_deploy_biz_enabled(ticket_data.get("bk_biz_id")):
         sub_pipeline.add_sub_pipeline(
             sub_flow=deploy_probe_sub_flow(
                 root_id=root_id,
