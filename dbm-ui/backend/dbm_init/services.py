@@ -38,7 +38,7 @@ from backend.db_services.cmdb.biz import get_or_create_pending_module, get_or_cr
 from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.exceptions import ApiError
-from backend.iam_app.dataclass import generate_iam_migration_json
+from backend.iam_app.dataclass import generate_iam_migration_json, migrate_iamv4_model
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -492,6 +492,15 @@ class Services:
     @classmethod
     def auto_create_iam_migrations(cls):
         """自动注册iam"""
+        # V4 模型迁移
+        if env.ENABLE_IAM_V4:
+            try:
+                migrate_iamv4_model(dry_run=False)
+            except Exception as e:
+                logger.info("dbm生成iam模型异常: %s" % str(e))
+            return
+
+        # V3 模型迁移
         try:
             generate_iam_migration_json(json_name="initial.json")
             call_command("iam_makemigrations", "initial.json")
