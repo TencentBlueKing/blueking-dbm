@@ -16,19 +16,19 @@
     :label="t('版本')"
     property="details.db_version"
     required>
-    <BkSelect
+    <DbSelect
       v-model="modelValue"
       class="item-input"
       :clearable="false"
       filterable
       :input-search="false"
       :loading="isLoading">
-      <BkOption
+      <DbOption
         v-for="item in versionList"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 

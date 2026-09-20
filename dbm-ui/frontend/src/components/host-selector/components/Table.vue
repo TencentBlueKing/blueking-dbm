@@ -130,12 +130,12 @@
             :data="row.spec_config">
             <span class="host-list-spec-name">
               <span :class="{ 'host-list-spec-disabled': !row.spec_enable }">{{ row.spec_name }}</span>
-              <BkTag
+              <DbTag
                 v-if="!row.spec_enable"
                 class="ml-4"
                 size="small">
                 {{ t('已停用') }}
-              </BkTag>
+              </DbTag>
             </span>
           </SpecDetailPopover>
           <span

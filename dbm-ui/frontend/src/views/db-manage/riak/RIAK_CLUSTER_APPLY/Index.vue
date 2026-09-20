@@ -53,18 +53,18 @@
           :label="t('Riak版本')"
           property="details.db_version"
           required>
-          <BkSelect
+          <DbSelect
             v-model="formData.details.db_version"
             class="item-input"
             disabled
             :input-search="false"
             style="width: 185px">
-            <BkOption
+            <DbOption
               v-for="item in dbVersionList"
               :key="item"
               :label="item"
               :value="item" />
-          </BkSelect>
+          </DbSelect>
         </BkFormItem>
         <!-- <BkFormItem
           :label="t('访问端口')"

@@ -151,7 +151,7 @@
                 onChange={() => handleChange(index, ruleIndex)}
               />
             </span>
-            <bk-tag>{rule.access_db}</bk-tag>
+            <db-tag>{rule.access_db}</db-tag>
           </div>
         ));
       },

@@ -46,9 +46,9 @@
       <span class="config-detail-nav-title">
         {{ configTypeName }}
       </span>
-      <BkTag theme="info">
+      <DbTag theme="info">
         {{ clusterTypeInfos[clusterType]?.name || clusterType }}
-      </BkTag>
+      </DbTag>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
         <span>

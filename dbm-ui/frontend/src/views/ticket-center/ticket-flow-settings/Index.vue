@@ -13,11 +13,11 @@
 
 <template>
   <Teleport to="#dbContentTitleAppend">
-    <BkTag
+    <DbTag
       class="ml-8"
       theme="info">
       {{ t('业务') }}
-    </BkTag>
+    </DbTag>
   </Teleport>
   <div class="ticket-flow-settings">
     <div class="tab-header">

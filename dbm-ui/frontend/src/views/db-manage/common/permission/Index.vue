@@ -352,12 +352,12 @@
             append: () => (
               <>
                 {isNewUser(data as PermissionRule) && (
-                  <bk-tag
+                  <db-tag
                     class='ml-4'
                     size='small'
                     theme='success'>
                     NEW
-                  </bk-tag>
+                  </db-tag>
                 )}
                 <auth-button
                   action-id={configMap[props.accountType].addRuleAction}
@@ -419,7 +419,7 @@
         }
         return getRenderList(data as PermissionRule).map((rule) => (
           <div class='cell-row'>
-            <bk-tag>{rule.access_db || '--'}</bk-tag>
+            <db-tag>{rule.access_db || '--'}</db-tag>
             {rule.priv_ticket && <RenderActionTag data={rule.priv_ticket} />}
           </div>
         ));
@@ -446,12 +446,12 @@
                   {index !== 0 && <span>， </span>}
                   {item}
                   {ddlSensitiveWordsMap.value[item] && (
-                    <bk-tag
+                    <db-tag
                       class='ml-4'
                       size='small'
                       theme='warning'>
                       {t('敏感')}
-                    </bk-tag>
+                    </db-tag>
                   )}
                 </span>
               ))}

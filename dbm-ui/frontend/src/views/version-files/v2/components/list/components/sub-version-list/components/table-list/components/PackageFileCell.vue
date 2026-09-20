@@ -24,24 +24,24 @@
         {{ item.name }}
       </div>
       <div class="package-file-tags">
-        <BkTag
+        <DbTag
           v-if="item.permit_os?.length === 1"
           theme="info">
           {{ item.permit_os[0] }}
-        </BkTag>
-        <BkTag
+        </DbTag>
+        <DbTag
           v-else-if="!item.permit_os?.length && item.permit_os_type === 'Windows'"
           theme="info">
           {{ `Windows ${t('全部')}` }}
-        </BkTag>
-        <BkTag
+        </DbTag>
+        <DbTag
           v-else-if="item.permit_os?.length >= 2"
           v-bk-tooltips="{
             content: item.permit_os?.join('\n'),
           }"
           theme="info">
           {{ `${item.permit_os_type} x ${item.permit_os?.length}` }}
-        </BkTag>
+        </DbTag>
         <span v-else></span>
         <BkButton
           v-if="data.packages.length > 1 && index === 0"
@@ -92,7 +92,7 @@
     }
 
     .package-file-tags {
-      .bk-tag {
+      .dbm-tag {
         cursor: pointer;
       }
     }

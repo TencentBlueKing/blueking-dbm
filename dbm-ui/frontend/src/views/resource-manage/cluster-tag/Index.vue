@@ -197,7 +197,7 @@
                   </div>
                   <div class="value-main">
                     <span v-if="isCollapsed(data.key)">{{ data.key }}</span>
-                    <BkTag v-else>{{ `${data.key} : ${data.value}` }}</BkTag>
+                    <DbTag v-else>{{ `${data.key} : ${data.value}` }}</DbTag>
                   </div>
                 </div>
                 <div>{{ t('删除操作无法撤回，请谨慎操作！') }}</div>

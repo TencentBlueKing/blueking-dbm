@@ -35,7 +35,7 @@
         :label="t('告警组')"
         property="notifyGroups"
         required>
-        <BkSelect
+        <DbSelect
           v-model="formData.notifyGroups"
           class="notify-select"
           filterable
@@ -46,7 +46,7 @@
           @change="handleChange"
           @clear="handleClear">
           <template #tag="{ selected: selectedTags }">
-            <BkTag
+            <DbTag
               v-for="item in selectedTags"
               :key="item.value"
               v-bk-tooltips="{
@@ -61,15 +61,15 @@
                   type="yonghuzu" />
               </template>
               {{ alarmGroupNameMap[item.value] }}
-            </BkTag>
+            </DbTag>
           </template>
-          <BkOption
+          <DbOption
             v-for="item in alarmGroupSelectList"
             :key="item.value"
             :disabled="item.value === bizDefaultGroupId"
             :label="item.label"
             :value="item.value" />
-        </BkSelect>
+        </DbSelect>
       </BkFormItem>
       <BkAlert
         v-if="isSkippedAlertShow"

@@ -70,7 +70,7 @@
               :model="addParamForm.value_type"
               property="value_type"
               required>
-              <BkSelect
+              <DbSelect
                 v-model="addParamForm.value_type"
                 :clearable="false"
                 :placeholder="t('请选择数据类型')"
@@ -80,19 +80,19 @@
                     markDirty();
                   }
                 ">
-                <BkOption
+                <DbOption
                   v-for="opt in valueTypeOptions"
                   :key="opt.value"
                   :label="opt.label"
                   :value="opt.value" />
-              </BkSelect>
+              </DbSelect>
             </FormItemWithHint>
             <FormItemWithHint
               :label="t('约束类型')"
               :model="addParamForm.value_type_sub"
               property="value_type_sub"
               required>
-              <BkSelect
+              <DbSelect
                 v-model="addParamForm.value_type_sub"
                 :clearable="false"
                 :disabled="!addParamForm.value_type"
@@ -103,12 +103,12 @@
                     markDirty();
                   }
                 ">
-                <BkOption
+                <DbOption
                   v-for="opt in valueTypeSubOptions"
                   :key="opt.value"
                   :label="opt.label"
                   :value="opt.value" />
-              </BkSelect>
+              </DbSelect>
             </FormItemWithHint>
           </div>
           <!-- 允许值 -->

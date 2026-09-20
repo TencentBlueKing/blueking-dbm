@@ -105,7 +105,7 @@
             :disabled="nodataConfigItemDisabled"
             :show-control="false"
             type="number" />
-          <BkTagInput
+          <DbTagInput
             v-if="isAggDimensionInput"
             v-model="modelValue.noDataConfig.agg_dimension"
             v-bk-tooltips="{
@@ -115,12 +115,10 @@
             }"
             allow-create
             class="small-select"
-            collapse-tags
             :disabled="nodataConfigItemDisabled"
-            has-delete-icon
-            :placeholder="t('输入')"
-            trigger="focus" />
-          <BkSelect
+            multiple
+            :placeholder="t('输入')" />
+          <DbSelect
             v-else
             v-model="modelValue.noDataConfig.agg_dimension"
             v-bk-tooltips="{
@@ -138,7 +136,7 @@
             multiple
             multiple-mode="tag"
             show-select-all>
-            <BkOption
+            <DbOption
               v-for="item in aggDimensionList"
               :id="item.id"
               :key="item.id"
@@ -147,8 +145,8 @@
                 placement: 'right',
               }"
               :name="item.name" />
-          </BkSelect>
-          <BkSelect
+          </DbSelect>
+          <DbSelect
             v-model="modelValue.noDataConfig.level"
             v-bk-tooltips="{
               content: t('先打开无数据功能'),
@@ -160,12 +158,12 @@
             :clearable="false"
             :disabled="nodataConfigItemDisabled || loading"
             style="width: 72px">
-            <BkOption
+            <DbOption
               v-for="(item, index) in levelList"
               :id="item.level"
               :key="index"
               :name="item.label" />
-          </BkSelect>
+          </DbSelect>
         </I18nT>
       </BkFormItem>
       <BkFormItem
@@ -418,12 +416,12 @@
         }
       }
 
-      .bk-select .bk-select-trigger .bk-select-tag.is-disabled {
+      .dbm-select .dbm-select-trigger .dbm-select-tag.is-disabled {
         border-color: transparent;
         border-bottom-color: #dcdee5;
       }
 
-      .bk-select.is-focus:not(.is-disabled).simplicity .bk-select-trigger .bk-select-tag {
+      .dbm-select.is-focus:not(.is-disabled).is-simplicity .dbm-select-trigger .dbm-select-tag {
         background-color: #fff;
         border-color: #3a84ff;
       }

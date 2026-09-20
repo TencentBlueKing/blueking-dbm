@@ -31,13 +31,13 @@
         class="ml-4"
         :data="data.operations"
         size="big" />
-      <BkTag
+      <DbTag
         v-if="data.isOffline"
         class="ml-4"
         theme="warning"
         type="stroke">
         {{ t('已禁用') }}
-      </BkTag>
+      </DbTag>
       <slot />
       <BkDropdown
         class="ml-4 mr-20"

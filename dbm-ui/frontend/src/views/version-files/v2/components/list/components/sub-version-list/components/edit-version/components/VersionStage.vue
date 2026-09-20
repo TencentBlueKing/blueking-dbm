@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="localValue"
     @change="handleValueChange"
     @toggle="handleStageToggle">
@@ -21,12 +21,12 @@
         class="version-stage-trigger"
         :class="{ 'is-active': isShowPanel }">
         <div class="display-main">
-          <BkTag
+          <DbTag
             v-if="displayValue"
             :stop-propagation="false"
             :theme="displayValue?.theme">
             {{ displayValue?.label }}
-          </BkTag>
+          </DbTag>
           <span
             v-else
             class="placeholder">
@@ -40,18 +40,18 @@
         </div>
       </div>
     </template>
-    <BkOption
+    <DbOption
       v-for="stage in versionStageList"
       :key="stage.value"
       :label="stage.label"
       :value="stage.value">
-      <BkTag
+      <DbTag
         :stop-propagation="false"
         :theme="stage.theme">
         {{ stage.label }}
-      </BkTag>
-    </BkOption>
-  </BkSelect>
+      </DbTag>
+    </DbOption>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

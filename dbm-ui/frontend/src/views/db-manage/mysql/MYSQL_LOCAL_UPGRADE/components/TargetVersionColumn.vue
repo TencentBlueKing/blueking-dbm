@@ -91,13 +91,13 @@
                     class="option-name">
                     {{ item.name }}
                   </div>
-                  <BkTag
+                  <DbTag
                     v-if="index === 0"
                     class="ml-4"
                     size="small"
                     theme="info">
                     {{ t('推荐') }}
-                  </BkTag>
+                  </DbTag>
                 </div>
               </template>
             </InnerSelect>

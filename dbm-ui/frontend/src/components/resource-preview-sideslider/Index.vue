@@ -37,18 +37,18 @@
           <div class="sub-title-value">{{ specInfo?.spec_name || '--' }}</div>
           <div class="sub-title-label">{{ t('资源标签') }}:</div>
           <div class="sub-title-value">
-            <BkTag
+            <DbTag
               v-if="noLimitTag"
               theme="success">
               {{ t('通用无标签') }}
-            </BkTag>
+            </DbTag>
             <template v-else>
-              <BkTag
+              <DbTag
                 v-for="item in filterTagList.slice(0, MAX_TAG_NUM)"
                 :key="item.id">
                 {{ item.value }}
-              </BkTag>
-              <BkTag v-if="filterTagList.length > MAX_TAG_NUM"> +{{ filterTagList.slice(MAX_TAG_NUM).length }} </BkTag>
+              </DbTag>
+              <DbTag v-if="filterTagList.length > MAX_TAG_NUM"> +{{ filterTagList.slice(MAX_TAG_NUM).length }} </DbTag>
             </template>
           </div>
         </div>

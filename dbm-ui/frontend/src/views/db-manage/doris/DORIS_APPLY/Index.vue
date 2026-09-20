@@ -1077,7 +1077,7 @@
         .bk-form-content {
           margin-left: 120px !important;
 
-          .bk-select,
+          .dbm-select,
           .dbm-input {
             width: 314px !important;
           }

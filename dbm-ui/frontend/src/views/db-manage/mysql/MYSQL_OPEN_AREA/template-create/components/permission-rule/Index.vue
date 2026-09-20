@@ -59,7 +59,7 @@
               v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
               :key="item.rule_id"
               class="inner-row">
-              <BkTag>{{ item.access_db }}</BkTag>
+              <DbTag>{{ item.access_db }}</DbTag>
             </p>
           </template>
         </TableColumn>

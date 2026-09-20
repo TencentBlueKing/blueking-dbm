@@ -69,13 +69,13 @@
                       @click="() => handleSetDefaultVersion(data)">
                       {{ t('设为默认版本') }}
                     </BkButton>
-                    <BkTag
+                    <DbTag
                       v-else
                       class="ml-5"
                       size="small"
                       theme="info">
                       {{ t('默认') }}
-                    </BkTag>
+                    </DbTag>
                   </template>
                 </TextOverflowLayout>
               </template>
@@ -181,7 +181,7 @@
             </template>
           </PrimaryTable>
           <div class="table-footer">
-            <BkPagination
+            <DbPagination
               v-bind="state.pagination"
               :layout="['total', 'limit', 'list']"
               :model-value="state.pagination.current"
@@ -216,18 +216,18 @@
             :placeholder="t('请输入')" />
         </template>
         <template v-else>
-          <BkSelect
+          <DbSelect
             v-model="createFileState.formdata.version"
             :clearable="false"
             filterable
             :input-search="false"
             :loading="createFileState.isLoadVersions">
-            <BkOption
+            <DbOption
               v-for="version of createFileState.versions"
               :key="version"
               :label="version"
               :value="version" />
-          </BkSelect>
+          </DbSelect>
         </template>
       </BkFormItem>
       <BkFormItem
@@ -717,7 +717,7 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      .bk-pagination {
+      .dbm-pagination {
         width: 100%;
 
         & > .is-last {

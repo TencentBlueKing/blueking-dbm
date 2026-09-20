@@ -71,11 +71,11 @@
           </AuthButton>
           <template #append>
             <span class="tags-main">
-              <BkTag
+              <DbTag
                 size="small"
                 :theme="versionStageMap[row.phase]?.theme">
                 {{ versionStageMap[row.phase]?.label }}
-              </BkTag>
+              </DbTag>
               <DbIcon
                 v-if="row.description"
                 v-bk-tooltips="{

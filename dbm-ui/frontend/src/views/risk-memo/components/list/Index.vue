@@ -59,7 +59,7 @@
         </BkException>
       </template>
     </div>
-    <BkPagination
+    <DbPagination
       v-model="pagination.current"
       class="pagination-main"
       :count="pagination.count"
@@ -344,7 +344,7 @@
       margin-top: 16px;
       justify-content: center;
 
-      .bk-pagination-limit {
+      .dbm-pagination-limit {
         display: none;
       }
     }

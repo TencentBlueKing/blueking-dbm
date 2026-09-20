@@ -166,7 +166,7 @@
               </div>
               <div v-if="row.related_object.objects.length > 6">
                 <span>...</span>
-                <BkTag
+                <DbTag
                   v-bk-tooltips="{
                     content: row.related_object.objects.join('\n'),
                   }"
@@ -177,7 +177,7 @@
                     scope="global">
                     {{ row.related_object.objects.length }}
                   </I18nT>
-                </BkTag>
+                </DbTag>
               </div>
             </div>
             <template v-if="row.related_object.objects.length < 1"> -- </template>

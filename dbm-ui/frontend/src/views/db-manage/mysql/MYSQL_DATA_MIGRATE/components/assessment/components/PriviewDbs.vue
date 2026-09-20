@@ -18,7 +18,7 @@
     @close="handleClose">
     <template #header>
       <span>{{ t('最终DB') }}</span>
-      <BkTag class="ml-10">{{ t('源集群：') }}{{ data.source }}</BkTag>
+      <DbTag class="ml-10">{{ t('源集群：') }}{{ data.source }}</DbTag>
     </template>
     <div class="merge-disk-space-priview-dbs">
       <PrimaryTable
@@ -30,11 +30,11 @@
           :min-width="200"
           :title="t('克隆 DB 名')">
           <template #default="{ row }: { row: MysqlMergeDiskSpaceModel }">
-            <BkTag
+            <DbTag
               v-for="dbname in row.clone_db_list"
               :key="dbname">
               {{ dbname }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
         <TableColumn
@@ -42,11 +42,11 @@
           :min-width="200"
           :title="t('忽略 DB')">
           <template #default="{ row }: { row: MysqlMergeDiskSpaceModel }">
-            <BkTag
+            <DbTag
               v-for="dbname in row.ignore_db_list"
               :key="dbname">
               {{ dbname }}
-            </BkTag>
+            </DbTag>
           </template>
         </TableColumn>
       </PrimaryTable>

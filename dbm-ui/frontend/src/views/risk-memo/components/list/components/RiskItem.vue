@@ -8,17 +8,17 @@
         class="title">
         {{ data.name }}
       </div>
-      <BkTag
+      <DbTag
         v-if="isFinished"
         size="small">
         {{ isSpecial ? t('已失效') : t('已结项') }}
-      </BkTag>
-      <BkTag
+      </DbTag>
+      <DbTag
         v-else
         size="small"
         theme="success">
         {{ t('进行中') }}
-      </BkTag>
+      </DbTag>
     </div>
     <div class="tag-list">
       <div class="db-tag">{{ dbIdNameMap[data.db_type] || '--' }}</div>
@@ -158,7 +158,7 @@
     &.is-finished {
       color: #c4c6cc;
 
-      .bk-tag-text,
+      .dbm-tag-text,
       .time-display {
         color: #c4c6cc;
       }
@@ -206,7 +206,7 @@
         flex: 1;
         overflow: hidden;
 
-        .bk-tag {
+        .dbm-tag {
           margin-left: 4px;
         }
       }

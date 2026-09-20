@@ -16,19 +16,19 @@
     :label="t('BCS 集群')"
     property="details.k8s_cluster_name"
     required>
-    <BkSelect
+    <DbSelect
       v-model="modelValue"
       class="item-input"
       :clearable="false"
       filterable
       :input-search="false"
       :loading="isLoading">
-      <BkOption
+      <DbOption
         v-for="item in bcsClusterList"
         :key="item.clusterName"
         :label="item.clusterName"
         :value="item.clusterName" />
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 

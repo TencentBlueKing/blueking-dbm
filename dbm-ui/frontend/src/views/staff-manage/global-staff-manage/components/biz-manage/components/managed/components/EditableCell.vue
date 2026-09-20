@@ -13,7 +13,7 @@
 
 <template>
   <div class="tag-box">
-    <BkSelect
+    <DbSelect
       v-if="editId === data.bk_biz_id"
       ref="selectRef"
       v-bind="$attrs"
@@ -35,14 +35,14 @@
           :list="selected"
           @close="handleTagClose" />
       </template>
-      <BkOption
+      <DbOption
         v-for="item in tagList"
         :key="item.id"
         :label="item.value"
         :value="item.id">
         {{ item.value }}
-      </BkOption>
-    </BkSelect>
+      </DbOption>
+    </DbSelect>
     <span
       v-else
       class="tag-content">

@@ -17,15 +17,12 @@
     class="subscribe-tag-input"
     :class="{ 'is-error': Boolean(errorMessage) }"
     @click="handleShowTips">
-    <BkTagInput
+    <DbTagInput
       v-model="localValue"
-      allow-auto-match
       allow-create
       clearable
-      has-delete-icon
-      :max-data="1"
-      :paste-fn="tagInputPasteFn"
       :placeholder="t('请输入单个库名，可以包含通配符 %')"
+      :split-fn="tagInputSplitFn"
       @change="handleTagValueChange" />
     <div
       v-if="errorMessage"
@@ -77,7 +74,7 @@
 
   const { message: errorMessage, validator } = useValidtor(rules);
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 
   const handleTagValueChange = (value: string[]) => {
     nextTick(() => {
@@ -132,7 +129,7 @@
     position: relative;
 
     &.is-error {
-      :deep(.bk-tag-input-trigger) {
+      :deep(.db-tag-input-panel) {
         background: #fff0f1;
       }
     }

@@ -3,14 +3,14 @@
     :label="t('账号名')"
     property="user"
     required>
-    <BkSelect
+    <DbSelect
       v-model="user"
       :clearable="false"
       :disabled="disabled"
       filterable
       :input-search="false"
       :loading="isLoading">
-      <BkOption
+      <DbOption
         v-for="item of accounts"
         :key="item.account.account_id"
         :label="item.account.user"
@@ -25,7 +25,7 @@
           <span>{{ t('新建账号') }}</span>
         </div>
       </template>
-    </BkSelect>
+    </DbSelect>
   </BkFormItem>
 </template>
 
@@ -120,10 +120,10 @@
 </script>
 <style lang="less">
   .default-display-main {
+    margin-left: 10px;
     font-family: MicrosoftYaHei, Arial, sans-serif;
     color: #4d4f56;
     cursor: pointer;
-    margin-left: 10px;
 
     .add-account-icon {
       margin-right: 5px;
