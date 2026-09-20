@@ -46,11 +46,6 @@ import (
 
 var processAPMInit sync.Once
 
-// Name returns the process name from the current executable (same as Makefile binary name).
-func Name() string {
-	return "admin"
-}
-
 // Service is the admin service. It references AdminGrpcService and manages its lifecycle;
 // gRPC API is served by AdminGrpcService.
 type Service struct {
@@ -73,6 +68,11 @@ type Service struct {
 	webSlot          *slot.Slot[hanet.GinHTTPServer]
 	grpcSlot         *grpcSlot
 	slots            []slot.Ops
+}
+
+// Name returns the process name from the current executable (same as Makefile binary name).
+func Name() string {
+	return "admin"
 }
 
 // Run run admin service

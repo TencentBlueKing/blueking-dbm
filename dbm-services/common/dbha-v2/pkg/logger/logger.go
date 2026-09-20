@@ -22,11 +22,13 @@
  * SOFTWARE.
  */
 
+// Package logger provides the process-wide logging facade for dbha-v2.
 package logger
 
 import (
 	"log"
 	"os"
+	"sync/atomic"
 
 	dbmlogger "dbm-services/common/go-pubpkg/logger"
 
@@ -34,7 +36,7 @@ import (
 )
 
 // Logger is a universal logging interface that can be
-// flexibly replaced with other logging libraies
+// flexibly replaced with other logging libraries
 // without interfering with the operational logic
 // of business code.
 type Logger interface {
@@ -47,109 +49,146 @@ type Logger interface {
 	Fatal(format string, args ...any)
 }
 
+// Level is the minimum enabled log severity.
 type Level string
 
+// String returns the canonical level name.
 func (l Level) String() string {
 	return string(l)
 }
 
-var (
+const (
+	// DebugLevel enables debug and above.
 	DebugLevel Level = "debug"
-	InfoLevel  Level = "info"
-	WarnLevel  Level = "warn"
+	// InfoLevel enables info and above.
+	InfoLevel Level = "info"
+	// WarnLevel enables warn and above.
+	WarnLevel Level = "warn"
+	// ErrorLevel enables error and above.
 	ErrorLevel Level = "error"
+	// FatalLevel enables fatal only.
 	FatalLevel Level = "fatal"
 )
 
-// Config logger config
+// Config describes file rotation and the minimum level for constructed loggers.
 type Config struct {
-	FileName   string
-	LogLevel   Level
-	MaxSizeMB  int
-	MaxBackups int
-	MaxAge     int
+	FileName   string // destination log file path
+	LogLevel   Level  // minimum enabled severity
+	MaxSizeMB  int    // rotate after this size in megabytes
+	MaxBackups int    // max retained rotated files
+	MaxAge     int    // max days to keep a rotated file
 }
 
-var dblog Logger
+type loggerHolder struct {
+	l Logger
+}
 
+var dblog atomic.Value
+
+func currentLogger() Logger {
+	v := dblog.Load()
+	if v == nil {
+		return nil
+	}
+	h, ok := v.(*loggerHolder)
+	if !ok || h == nil {
+		return nil
+	}
+	return h.l
+}
+
+func fallbackPrint(format string, args ...any) {
+	log.Printf(format, args...)
+}
+
+func fallbackFatal(format string, args ...any) {
+	log.Fatalf(format, args...)
+}
+
+// SetLogger installs the process-wide logger. Passing nil restores stdlib fallback.
 func SetLogger(log Logger) {
-	dblog = log
+	dblog.Store(&loggerHolder{l: log})
 }
 
+// Log returns the process-wide logger, or nil when unset.
 func Log() Logger {
-	return dblog
+	return currentLogger()
 }
 
+// Debug writes a debug message through the process-wide logger.
 func Debug(format string, args ...any) {
-	if dblog == nil {
-		log.Printf(format, args...)
+	if l := currentLogger(); l != nil {
+		l.Debug(format, args...)
 		return
 	}
-
-	dblog.Debug(format, args...)
+	fallbackPrint(format, args...)
 }
 
+// Debugf is equivalent to Debug; kept for existing call sites.
 func Debugf(format string, args ...any) {
 	Debug(format, args...)
 }
 
+// Info writes an info message through the process-wide logger.
 func Info(format string, args ...any) {
-	if dblog == nil {
-		log.Printf(format, args...)
+	if l := currentLogger(); l != nil {
+		l.Info(format, args...)
 		return
 	}
-
-	dblog.Info(format, args...)
+	fallbackPrint(format, args...)
 }
 
+// Infof is equivalent to Info; kept for existing call sites.
 func Infof(format string, args ...any) {
 	Info(format, args...)
 }
 
+// Warn writes a warning through the process-wide logger.
 func Warn(format string, args ...any) {
-	if dblog == nil {
-		log.Printf(format, args...)
+	if l := currentLogger(); l != nil {
+		l.Warn(format, args...)
 		return
 	}
-
-	dblog.Warn(format, args...)
+	fallbackPrint(format, args...)
 }
 
+// Warnf is equivalent to Warn; kept for existing call sites.
 func Warnf(format string, args ...any) {
 	Warn(format, args...)
 }
 
+// Error writes an error message through the process-wide logger.
 func Error(format string, args ...any) {
-	if dblog == nil {
-		log.Printf(format, args...)
+	if l := currentLogger(); l != nil {
+		l.Error(format, args...)
 		return
 	}
-
-	dblog.Error(format, args...)
+	fallbackPrint(format, args...)
 }
 
+// Errorf is equivalent to Error; kept for existing call sites.
 func Errorf(format string, args ...any) {
 	Error(format, args...)
 }
 
+// Fatal writes a fatal message through the process-wide logger, then exits.
 func Fatal(format string, args ...any) {
-	if dblog == nil {
-		log.Fatalf(format, args...)
+	if l := currentLogger(); l != nil {
+		l.Fatal(format, args...)
 		return
 	}
-
-	dblog.Fatal(format, args...)
+	fallbackFatal(format, args...)
 }
 
+// Fatalf is equivalent to Fatal; kept for existing call sites.
 func Fatalf(format string, args ...any) {
 	Fatal(format, args...)
 }
 
 func init() {
-	// NOTE: Hack for dbm-services/common/go-pubpkg/trace.
-	//       The func trace/init will be called and print some info log.
-	//       To avoid this, we need to init the dbm logger first.
+	// NOTE: go-pubpkg/trace prints at info during its package init.
+	// Install an ErrorLevel dbm logger first so that noise is suppressed.
 	hackerLogger := dbmlogger.New(os.Stderr, false, dbmlogger.ErrorLevel)
 	dbmlogger.ResetDefault(hackerLogger)
-	defer dbmlogger.Sync()
+	dbmlogger.Sync()
 }
