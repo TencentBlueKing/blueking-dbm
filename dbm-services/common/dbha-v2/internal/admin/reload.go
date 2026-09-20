@@ -50,6 +50,22 @@ type reloadOutcome struct {
 	failureNames []string
 }
 
+type slotSkipReason string
+
+func (r slotSkipReason) String() string { return string(r) }
+
+const (
+	slotSkipReasonShutdown        slotSkipReason = "shutdown"
+	slotSkipReasonBudgetExhausted slotSkipReason = "total budget exhausted"
+	slotSkipReasonSkipped         slotSkipReason = "skipped"
+)
+
+type logFileFP struct {
+	Path      string
+	FileCount int
+	FileSize  int
+}
+
 // lastReloadOutcome is the most recent reloadOnce result; tests assert it instead of scraping gauges.
 var lastReloadOutcome reloadOutcome
 
@@ -191,19 +207,19 @@ func anySlotNeedsRebuild(slots []slot.Ops, next config.Configuration) bool {
 	return false
 }
 
-func skipReason(shuttingDown bool, totalErr error) string {
+func skipReason(shuttingDown bool, totalErr error) slotSkipReason {
 	if shuttingDown {
-		return "shutdown"
+		return slotSkipReasonShutdown
 	}
 
 	if totalErr != nil {
-		return "total budget exhausted"
+		return slotSkipReasonBudgetExhausted
 	}
 
-	return "skipped"
+	return slotSkipReasonSkipped
 }
 
-func skipRemainingSlots(slots []slot.Ops, next config.Configuration, outcome *reloadOutcome, reason string) {
+func skipRemainingSlots(slots []slot.Ops, next config.Configuration, outcome *reloadOutcome, reason slotSkipReason) {
 	for _, resourceSlot := range slots {
 		if !resourceSlot.NeedsRebuild(next) {
 			continue
@@ -220,12 +236,6 @@ func joinSlotNames(names []string) string {
 		return "-"
 	}
 	return strings.Join(names, ",")
-}
-
-type logFileFP struct {
-	Path      string
-	FileCount int
-	FileSize  int
 }
 
 func warnRestartRequiredLogFiles(oldCfg, next config.Configuration) {
