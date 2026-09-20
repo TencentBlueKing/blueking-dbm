@@ -62,8 +62,10 @@ class RedisKeystatFlow(object):
 
     @staticmethod
     def __get_nginx_ip(bk_cloud_id: int) -> str:
-        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address
-        return nginx_ip
+        nginx = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
+        if not nginx or not nginx.internal_address:
+            raise Exception(_("未配置云区域{}的 nginx 代理(DBCloudProxy)，无法编排 Redis 内存分析").format(bk_cloud_id))
+        return nginx.internal_address
 
     @staticmethod
     def __get_token(bk_cloud_id: int) -> str:
