@@ -231,6 +231,7 @@
     .header-title {
       font-size: 16px;
       color: #313238;
+      white-space: nowrap;
     }
 
     .title-divider {

@@ -140,7 +140,7 @@
   const searchKey = useDebouncedRef(route.query.config_name as string);
   const tableRef = ref();
   const baseParams = {
-    cluster_type: clusterTypesByDBType[DBTypes.MYSQL],
+    cluster_type: clusterTypesByDBType[DBTypes.MYSQL].join(','),
   };
 
   useTicketDetail<Mysql.OpenArea>(TicketTypes.MYSQL_OPEN_AREA, {
