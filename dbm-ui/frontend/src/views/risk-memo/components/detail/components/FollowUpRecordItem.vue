@@ -21,7 +21,7 @@
           class="main-title"
           :class="{ 'is-start-end': data.isStart || data.isEnd }">
           <div class="title-display">
-            <span>{{ data.creator }}</span>
+            <bk-user-display-name :user-id="data.creator" />
             <span class="ml-4">{{ titleStatusDisplay }}</span>
           </div>
           <div
@@ -67,7 +67,7 @@
             <I18nT
               keypath="people于date修改了跟进内容"
               tag="span">
-              <span>{{ data.updater }}</span>
+              <bk-user-display-name :user-id="data.updater" />
               <span>{{ utcDisplayTime(data.update_at) }}</span>
             </I18nT>
             <span class="ml-4 mr-4">)</span>

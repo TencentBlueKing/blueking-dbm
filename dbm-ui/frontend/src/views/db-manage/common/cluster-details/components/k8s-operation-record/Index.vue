@@ -44,7 +44,7 @@
         :title="t('操作人')"
         :width="150">
         <template #default="{ row }: { row: KubernetesOperationLogModel }">
-          {{ row.createdBy || '--' }}
+          <bk-user-display-name :user-id="row.createdBy" />
         </template>
       </TableColumn>
       <TableColumn

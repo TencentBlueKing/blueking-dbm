@@ -49,7 +49,11 @@
         <TableColumn
           col-key="operator"
           :min-width="120"
-          :title="t('操作人')" />
+          :title="t('操作人')">
+          <template #default="{ row: data }: { row: RowData }">
+            <bk-user-display-name :user-id="data.operator" />
+          </template>
+        </TableColumn>
         <TableColumn
           col-key="operate_date"
           :min-width="120"

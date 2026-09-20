@@ -70,7 +70,7 @@
           <div
             v-overflow-tips
             class="value">
-            {{ riskMemoDetail?.creator || '--' }}
+            <bk-user-display-name :user-id="riskMemoDetail?.creator ?? ''" />
           </div>
         </div>
         <div class="info-item">

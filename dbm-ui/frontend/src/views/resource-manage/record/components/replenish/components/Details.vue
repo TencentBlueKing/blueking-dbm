@@ -38,7 +38,9 @@
           </div>
           <div class="summary-item">
             <span class="summary-label">{{ t('申请人') }}：</span>
-            <span class="summary-value">{{ summaryInfo.creator || '--' }}</span>
+            <span class="summary-value">
+              <bk-user-display-name :user-id="summaryInfo.creator" />
+            </span>
           </div>
           <div class="summary-item">
             <span class="summary-label">{{ t('申请时间') }}：</span>
