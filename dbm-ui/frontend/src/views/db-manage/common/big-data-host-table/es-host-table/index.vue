@@ -99,11 +99,11 @@
                     {{ t('每台主机实例数') }}
                     <i
                       class="db-icon-bulk-edit"
-                      style="color: #3a84ff; margin-left: 5px" />
+                      style=" margin-left: 5px;color: #3a84ff" />
                   </span>
                   <template #content>
                     <div>
-                      <div style="font-size: 16px; color: #313238; line-height: 24px">
+                      <div style="font-size: 16px; line-height: 24px; color: #313238">
                         {{ t('批量设置每台主机节点数') }}
                       </div>
                       <BkInput

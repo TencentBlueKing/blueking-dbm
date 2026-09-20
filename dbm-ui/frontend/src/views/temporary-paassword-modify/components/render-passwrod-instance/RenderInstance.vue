@@ -404,8 +404,8 @@
     :deep(.row-copy-icon),
     :deep(.row-view-icon),
     :deep(.header-view-icon) {
-      cursor: pointer;
       color: #979ba5;
+      cursor: pointer;
 
       &:hover {
         color: #3a84ff;

@@ -69,16 +69,16 @@
 
 <style lang="less" scoped>
   .demand-json-block {
-    background: #f5f7fa;
-    border-radius: 2px;
+    max-height: 400px;
     padding: 10px 14px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    margin: 0;
+    overflow: auto;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
     font-size: 12px;
     line-height: 1.8;
     color: #313238;
     white-space: pre;
-    overflow: auto;
-    max-height: 400px;
-    margin: 0;
+    background: #f5f7fa;
+    border-radius: 2px;
   }
 </style>

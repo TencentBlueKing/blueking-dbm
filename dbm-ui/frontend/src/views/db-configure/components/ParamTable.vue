@@ -1241,7 +1241,7 @@
 <style lang="less">
   .param-table-value-tooltip {
     max-width: 400px;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .description-tippy-content {
@@ -1260,7 +1260,7 @@
       font-size: 12px;
       line-height: 22px;
       color: #63656e;
-      word-break: break-word;
+      overflow-wrap: break-word;
     }
   }
 

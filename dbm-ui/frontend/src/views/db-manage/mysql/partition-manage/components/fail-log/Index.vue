@@ -152,17 +152,17 @@
   .partition-fail-log-sideslider {
     .sub-title {
       display: inline-flex;
-      align-items: center;
       height: 22px;
-      margin-left: 8px;
       padding-left: 8px;
-      border-left: 1px solid #dcdee5;
-      color: #979ba5;
-      font-family: 'Microsoft YaHei';
+      margin-left: 8px;
+      font-family: 'Microsoft YaHei', sans-serif;
       font-size: 14px;
       font-style: normal;
       font-weight: 400;
       line-height: 22px;
+      color: #979ba5;
+      border-left: 1px solid #dcdee5;
+      align-items: center;
     }
 
     .sub-title-item {

@@ -791,30 +791,30 @@
     .header-desc {
       position: relative;
       display: inline-flex;
-      align-items: center;
       padding-left: 12px;
       margin-left: 8px;
       font-family: MicrosoftYaHei, sans-serif;
       font-size: 13px;
+      font-weight: 400;
       line-height: 22px;
       letter-spacing: 0;
       color: #979ba5;
-      font-weight: 400;
+      align-items: center;
 
       &::before {
-        content: '';
         position: absolute;
-        left: 0;
         top: 50%;
-        transform: translateY(-50%);
+        left: 0;
         width: 1px;
         height: 14px;
         background: #dcdee5;
+        content: '';
+        transform: translateY(-50%);
       }
     }
 
     .replenish-record-details {
-      padding: 16px 24px 16px;
+      padding: 16px 24px;
     }
 
     .slide-summary {
@@ -849,19 +849,19 @@
           color: #63656e;
 
           .db-count-value {
+            margin-left: 2px;
             font-weight: 700;
             color: #313238;
-            margin-left: 2px;
           }
         }
       }
     }
 
     .related-tickets-title {
+      margin-bottom: 16px;
       font-size: 14px;
       font-weight: 700;
       color: #313238;
-      margin-bottom: 16px;
     }
 
     .slide-toolbar {
@@ -878,9 +878,9 @@
     }
 
     .bold-number {
-      font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
+      font-family: MicrosoftYaHei-Bold, sans-serif;
       font-size: 12px;
+      font-weight: 700;
       color: #313238;
 
       &.red-number {
@@ -893,9 +893,9 @@
     }
 
     .delivery-number {
-      font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
+      font-family: MicrosoftYaHei-Bold, sans-serif;
       font-size: 12px;
+      font-weight: 700;
       color: #ea3636;
     }
 
@@ -929,8 +929,8 @@
         font-size: 12px;
         font-weight: 500;
         color: #313238;
-        background: #f5f7fa;
         white-space: nowrap;
+        background: #f5f7fa;
       }
 
       .bk-table-body td {

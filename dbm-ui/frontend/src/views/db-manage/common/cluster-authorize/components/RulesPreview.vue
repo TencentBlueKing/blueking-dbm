@@ -267,7 +267,6 @@
         .cell-privilege-value {
           max-width: 350px;
           margin-left: 6px;
-          word-wrap: break-word;
           overflow-wrap: break-word;
           white-space: normal;
         }

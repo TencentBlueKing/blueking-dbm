@@ -133,13 +133,13 @@
     padding: 20px 24px;
 
     :deep(.bk-tab-content) {
-      background: #fff;
       padding-bottom: 0;
+      background: #fff;
     }
   }
 
   .platform-config-tab {
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
     border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
   }
 </style>

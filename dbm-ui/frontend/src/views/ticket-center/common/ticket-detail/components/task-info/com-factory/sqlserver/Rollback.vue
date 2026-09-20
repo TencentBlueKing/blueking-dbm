@@ -197,10 +197,10 @@
 <style lang="less" scoped>
   .content-block {
     display: grid;
-    grid-template-columns: 0fr 1fr;
+    padding: 8px 10px;
     font-family: MicrosoftYaHei, sans-serif;
     line-height: 24px;
-    padding: 8px 10px;
+    grid-template-columns: 0fr 1fr;
 
     .content-label {
       width: 80px;

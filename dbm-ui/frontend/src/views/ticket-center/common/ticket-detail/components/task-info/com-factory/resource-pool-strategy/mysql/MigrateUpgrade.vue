@@ -153,10 +153,10 @@
     line-height: 28px;
 
     .readonly-host-info {
-      white-space: nowrap;
-      text-align: end;
-      font-size: 12px;
       padding: 0 8px;
+      font-size: 12px;
+      text-align: end;
+      white-space: nowrap;
     }
 
     .origin-readonly-host-info {

@@ -89,11 +89,13 @@
         width: 72px;
       }
     }
+
     .main-title {
-      font-weight: 700;
       font-size: 12px;
+      font-weight: 700;
       color: #63656e;
     }
+
     .edit-title {
       margin-bottom: 6px;
     }

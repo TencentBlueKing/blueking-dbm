@@ -206,8 +206,8 @@
     }
 
     .bk-tab-header-item {
-      border: none !important;
       background: transparent !important;
+      border: none !important;
 
       &::before,
       &::after {

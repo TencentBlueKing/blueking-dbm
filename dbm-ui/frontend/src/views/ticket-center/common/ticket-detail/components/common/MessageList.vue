@@ -209,21 +209,21 @@
     }
 
     .summary-success-text {
-      color: #3fc06d;
       font-weight: 600;
+      color: #3fc06d;
     }
 
     /* ===== 汇总栏（可点击展开/收起，固定高度不随列表变化）===== */
     .check-summary {
-      height: 48px;
       display: flex;
+      height: 48px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      user-select: none;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
-      padding: 10px 16px;
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.15s;
 
       &:hover {
         background: rgb(255 255 255 / 6%);
@@ -234,7 +234,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      color: #cccccc;
+      color: #ccc;
     }
 
     .summary-label {
@@ -244,14 +244,14 @@
 
     .summary-count-error {
       margin-left: 2px;
-      color: #ff6b6b;
       font-weight: 600;
+      color: #ff6b6b;
     }
 
     .summary-count-warn {
       margin-left: 2px;
-      color: #ffb648;
       font-weight: 600;
+      color: #ffb648;
     }
 
     .summary-divider {
@@ -261,17 +261,17 @@
 
     .summary-toggle {
       display: flex;
+      font-size: 12px;
+      color: #9d9d9d;
       align-items: center;
       gap: 4px;
-      color: #9d9d9d;
-      font-size: 12px;
       flex-shrink: 0;
     }
 
     .toggle-arrow {
       font-size: 12px;
-      transition: transform 0.2s ease;
       color: #9d9d9d;
+      transition: transform 0.2s ease;
     }
 
     .is-collapsed .toggle-arrow {
@@ -280,11 +280,11 @@
 
     /* ===== 列表区域：flex 填充，>5 条限高内滚动 ===== */
     .check-list-wrapper {
-      flex: 1;
       min-height: 0;
+      padding: 6px 0;
       overflow-y: auto;
       border-top: 1px solid #2d2d2d;
-      padding: 6px 0;
+      flex: 1;
 
       // 自定义滚动条
       &::-webkit-scrollbar {
@@ -296,11 +296,11 @@
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255 / 16%);
+        background: rgb(255 255 255 / 16%);
         border-radius: 2px;
 
         &:hover {
-          background: rgba(255, 255, 255 / 24%);
+          background: rgb(255 255 255 / 24%);
         }
       }
 
@@ -320,11 +320,11 @@
           border-left-color: #3a84ff;
 
           .item-line {
-            color: #cccccc;
+            color: #ccc;
           }
 
           .item-message {
-            color: #ffffff;
+            color: #fff;
           }
         }
 
@@ -353,33 +353,33 @@
 
         // 分类标签 — 中性灰色
         .item-tag {
-          flex-shrink: 0;
-          margin-right: 8px;
           padding: 1px 6px;
+          margin-right: 8px;
           font-size: 11px;
           line-height: 18px;
-          white-space: nowrap;
           color: #9d9d9d;
-          background: rgba(255, 255, 255 / 8%);
+          white-space: nowrap;
+          background: rgb(255 255 255 / 8%);
           border-radius: 2px;
+          flex-shrink: 0;
         }
 
         // 详情文本
         .item-message {
-          flex: 1;
           min-width: 0;
           overflow: hidden;
+          color: #d4d4d4;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: #d4d4d4;
+          flex: 1;
         }
 
         // 行号
         .item-line {
-          flex-shrink: 0;
           margin-left: 6px;
-          color: #6a6a6a;
           font-size: 11.5px;
+          color: #6a6a6a;
+          flex-shrink: 0;
         }
       }
     }

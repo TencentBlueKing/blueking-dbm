@@ -629,8 +629,8 @@
     padding: 24px;
 
     .form-section {
-      margin-bottom: 24px;
       padding: 16px 20px;
+      margin-bottom: 24px;
       background: #fafbfd;
       border-radius: 2px;
     }
@@ -651,8 +651,8 @@
 
     .form-section-title-tips {
       margin-left: 4px;
-      font-weight: normal;
       font-size: 12px;
+      font-weight: normal;
       color: #979ba5;
     }
 
@@ -666,10 +666,10 @@
     }
 
     .form-item-tips {
+      position: absolute;
       font-size: 12px;
       line-height: 20px;
       color: #979ba5;
-      position: absolute;
     }
 
     .default-value-row {
@@ -693,9 +693,9 @@
     }
 
     .checkbox-desc {
+      margin-left: 4px;
       font-size: 12px;
       color: #979ba5;
-      margin-left: 4px;
     }
   }
 
@@ -713,8 +713,8 @@
       left: 0;
       width: 1px;
       height: 14px;
-      content: '';
       background: #dcdee5;
+      content: '';
       transform: translateY(-50%);
     }
   }
