@@ -144,7 +144,7 @@
               :title="t('更新人')"
               :width="120">
               <template #default="{ row: data }: { row: VersionFileModel }">
-                {{ data.updater || '--' }}
+                <bk-user-display-name :user-id="data.updater" />
               </template>
             </TableColumn>
             <TableColumn

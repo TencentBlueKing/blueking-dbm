@@ -48,7 +48,11 @@
       </TableColumn>
       <TableColumn
         col-key="creator"
-        :title="t('操作人')" />
+        :title="t('操作人')">
+        <template #default="{ row }">
+          <bk-user-display-name :user-id="row.creator" />
+        </template>
+      </TableColumn>
       <TableColumn
         col-key="ticket_id"
         :title="t('单据链接')">

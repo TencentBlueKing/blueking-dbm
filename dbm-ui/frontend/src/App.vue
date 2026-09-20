@@ -32,6 +32,9 @@
       <BkLoginUserinfo
         style="position: relative; z-index: 999"
         :userinfo="userinfo">
+        <template #default>
+          <bk-user-display-name :user-id="userinfo.name" />
+        </template>
         <template #action>
           <ActionItem
             v-if="systemEnvironStore.urls.BK_IAM_URL"

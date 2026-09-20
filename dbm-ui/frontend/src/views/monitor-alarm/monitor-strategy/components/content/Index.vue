@@ -290,7 +290,7 @@
                 :title="t('更新人')"
                 :width="180">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
-                  {{ row.updater || '--' }}
+                  <bk-user-display-name :user-id="row.updater" />
                 </template>
               </TableColumn>
               <TableColumn

@@ -44,7 +44,7 @@
         :title="t('操作人')"
         :width="120">
         <template #default="{ row }">
-          {{ row.op_user || '--' }}
+          <bk-user-display-name :user-id="row.op_user" />
         </template>
       </TableColumn>
       <!-- 3. 配置类型 -->

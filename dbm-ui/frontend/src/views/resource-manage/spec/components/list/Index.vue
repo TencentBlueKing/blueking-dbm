@@ -275,7 +275,7 @@
         :title="t('更新人')"
         :width="250">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          {{ row.updater || '--' }}
+          <bk-user-display-name :user-id="row.updater" />
         </template>
       </TableColumn>
       <TableColumn

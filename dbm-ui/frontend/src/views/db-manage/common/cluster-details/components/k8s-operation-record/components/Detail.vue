@@ -51,7 +51,7 @@
         </div>
         <div class="info-item">
           <span class="info-label">{{ t('操作人') }}：</span>
-          <span>{{ data.createdBy }}</span>
+          <bk-user-display-name :user-id="data.createdBy" />
         </div>
         <div class="info-item">
           <span class="info-label">{{ t('操作时间') }}：</span>

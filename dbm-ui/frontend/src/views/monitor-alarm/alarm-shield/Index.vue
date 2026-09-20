@@ -108,7 +108,7 @@
         :min-width="160"
         :title="t('更新人')">
         <template #default="{ row }: { row: RowData }">
-          <span>{{ row.update_user }}</span>
+          <bk-user-display-name :user-id="row.update_user" />
         </template>
       </TableColumn>
       <TableColumn
