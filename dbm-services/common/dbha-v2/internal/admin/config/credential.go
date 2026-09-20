@@ -26,6 +26,7 @@ package config
 
 import (
 	"context"
+	"reflect"
 
 	"dbm-services/common/dbha-v2/pkg/dbcred"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
@@ -33,6 +34,31 @@ import (
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
+
+// LookupDbmApi resolves a named DBM API entry from the active config snapshot.
+// Used by dbcred.ConfigureAll at startup and after SIGHUP when DbmApis change.
+func LookupDbmApi(name string) (dbcred.DbmApi, bool) {
+	cfg := Snapshot()
+	for i := range cfg.DbmApis {
+		if cfg.DbmApis[i].Name == name {
+			a := cfg.DbmApis[i]
+			return dbcred.DbmApi{
+				Api: a.Api, Token: a.Token, Method: a.Method, Timeout: a.Timeout,
+			}, true
+		}
+	}
+	return dbcred.DbmApi{}, false
+}
+
+// DbmApisEqual reports whether two DbmApis slices are semantically equal.
+// Treats nil and empty slices as equal so the first Parse after Unmarshal does
+// not spuriously look like a change (nil vs []DbmApi{}).
+func DbmApisEqual(a, b []DbmApi) bool {
+	if len(a) == 0 && len(b) == 0 {
+		return true
+	}
+	return reflect.DeepEqual(a, b)
+}
 
 // credGroup groups the items of one DbType together with the resolver that
 // resolves their credentials and the indexes back into the original slice.
