@@ -413,14 +413,9 @@
               },
               "key": "terminate",
               "name": "终止",
-              "enable": true,
+              "enable": false,
               "meta": {
-                "button_permission": [
-                  {
-                    "type": "permission",
-                    "value": []
-                  }
-                ],
+                "button_permission": null,
                 "urging_time": null
               },
               "extra": {}
@@ -448,10 +443,18 @@
               },
               "key": "urging",
               "name": "催办",
-              "enable": false,
+              "enable": true,
               "meta": {
-                "button_permission": null,
-                "urging_time": null
+                "button_permission": [
+                  {
+                    "type": "permission",
+                    "value": []
+                  }
+                ],
+                "urging_time": {
+                  "unit": "m",
+                  "value": 30
+                }
               },
               "extra": {}
             },
@@ -463,14 +466,9 @@
               },
               "key": "copyTicket",
               "name": "复制提单",
-              "enable": true,
+              "enable": false,
               "meta": {
-                "button_permission": [
-                  {
-                    "type": "view",
-                    "value": []
-                  }
-                ],
+                "button_permission": null,
                 "urging_time": null
               },
               "extra": {}
@@ -479,7 +477,7 @@
         }
       },
       "version": {
-        "key": "20260916064200010301",
+        "key": "20260917030700011401",
         "workflow_key": "$Workflow20260810065000003601",
         "desc": null,
         "workflows": {
@@ -1019,13 +1017,10 @@
                 "button_code": "withdraw",
                 "key": "withdraw",
                 "name": "撤回",
-                "enable": true,
+                "enable": false,
                 "extra": {},
                 "meta": {
-                  "can_withdraw_activity": [
-                    "activityobject_20260810145113_1",
-                    "activityobject_20260810145116_1"
-                  ]
+                  "can_withdraw_activity": []
                 }
               },
               {
@@ -1468,7 +1463,7 @@
                     "tips": "请输入",
                     "type": "link",
                     "class": [],
-                    "state": "default",
+                    "state": "readonly",
                     "title": {
                       "value": "需求详情",
                       "isHide": false
