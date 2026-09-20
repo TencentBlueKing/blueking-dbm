@@ -19,6 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_services.redis.autofix.probe_ctl import is_probe_deploy_biz_enabled
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_upgrade_sub_flow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -98,8 +99,8 @@ class RedisDbmonSceneFlow(object):
         # ### 部署DBMON ########################################################################## 完毕 ###
 
         # 探针升级（停止旧探针 + 下发最新介质包 + 生成配置并启动）
-        # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
-        if env.ENABLE_DBHA_V2:
+        # 当 env.ENABLE_DBHA_V2 = False 或业务不在 probe_deploy_bizs 白名单内时禁用
+        if env.ENABLE_DBHA_V2 and is_probe_deploy_biz_enabled(self.data.get("bk_biz_id")):
             redis_pipeline.add_sub_pipeline(
                 sub_flow=probe_upgrade_sub_flow(
                     root_id=self.root_id,
@@ -208,8 +209,8 @@ class RedisDbmonSceneFlow(object):
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 探针升级（停止旧探针 + 下发最新介质包 + 生成配置并启动）
-        # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
-        if env.ENABLE_DBHA_V2:
+        # 当 env.ENABLE_DBHA_V2 = False 或业务不在 probe_deploy_bizs 白名单内时禁用
+        if env.ENABLE_DBHA_V2 and is_probe_deploy_biz_enabled(self.data.get("bk_biz_id")):
             probe_ips = set()
             for c in clusters:
                 probe_ips.update(c.proxyinstance_set.values_list("machine__ip", flat=True))

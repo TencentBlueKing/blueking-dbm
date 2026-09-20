@@ -31,6 +31,7 @@ class AutofixItem(StrStructuredEnum):
     REDIS_HELPERS = EnumField("redis_helpers", _("Redis自愈协助人列表"))
     IGNORE_APPS = EnumField("ignore_apps", _("忽略自愈的APP列表"))
     IGNORE_DOMAINS = EnumField("ignore_domains", _("忽略自愈的集群列表"))
+    PROBE_DEPLOY_BIZS = EnumField("probe_deploy_bizs", _("探针部署业务白名单: ALL 表示所有业务, 否则为 bk_biz_id 的 json 数组"))
 
 
 class AutofixStatus(StrStructuredEnum):
