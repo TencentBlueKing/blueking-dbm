@@ -73,7 +73,11 @@
       <TableColumn
         col-key="operator"
         :title="t('主要负责人')"
-        :width="150" />
+        :width="150">
+        <template #default="{ row }: { row: HostInfo }">
+          <bk-user-display-name :user-id="row.operator" />
+        </template>
+      </TableColumn>
       <TableColumn
         col-key="bk_idc_city_name"
         :title="t('地域')">

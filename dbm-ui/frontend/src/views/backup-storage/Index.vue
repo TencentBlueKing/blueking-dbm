@@ -88,7 +88,7 @@
             :min-width="100"
             :title="t('更新人')">
             <template #default="{ row }: { row: BackupConfigRow }">
-              {{ row.updated_by || '--' }}
+              <bk-user-display-name :user-id="row.updated_by" />
             </template>
           </TableColumn>
           <TableColumn

@@ -329,7 +329,11 @@
       <TableColumn
         col-key="operator"
         :title="t('转入人')"
-        :width="120" />
+        :width="120">
+        <template #default="{ row }: { row: DbResourceModel }">
+          <bk-user-display-name :user-id="row.operator" />
+        </template>
+      </TableColumn>
     </DbTable>
     <BatchSetting
       v-model:is-show="isShowBatchSetting"

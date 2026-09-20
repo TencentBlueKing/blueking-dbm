@@ -408,7 +408,8 @@ export default defineConfigWithVueTs(
         'PascalCase',
         {
           registeredComponentsOnly: false,
-          ignores: [],
+          // 原生自定义元素，标签名必须保持 kebab-case
+          ignores: ['bk-user-display-name'],
         },
       ],
       'vue/no-setup-props-reactivity-loss': 'off',

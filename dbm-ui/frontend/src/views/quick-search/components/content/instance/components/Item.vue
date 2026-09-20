@@ -115,7 +115,7 @@
           sortable
           :title="t('主 DBA')">
           <template #default="{ row }: { row: QuickSearchInstanceModel }">
-            {{ row.dba || '--' }}
+            <bk-user-display-name :user-id="row.dba" />
           </template>
         </TableColumn>
         <template #empty>

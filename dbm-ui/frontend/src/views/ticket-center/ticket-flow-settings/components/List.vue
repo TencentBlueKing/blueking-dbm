@@ -372,7 +372,7 @@
       width: 180,
     },
     {
-      cell: (_h: any, { row }: { row: TableRow }) => row.updater,
+      cell: (_h: any, { row }: { row: TableRow }) => <bk-user-display-name user-id={row.updater} />,
       colKey: 'updater',
       title: t('更新人'),
       width: 100,

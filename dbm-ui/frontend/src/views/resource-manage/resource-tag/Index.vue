@@ -113,7 +113,7 @@
           sorter
           :title="t('创建人')">
           <template #default="{ row: data }: { row: ResourceTagModel }">
-            {{ data.creator || '--' }}
+            <bk-user-display-name :user-id="data.creator" />
           </template>
         </TableColumn>
         <TableColumn

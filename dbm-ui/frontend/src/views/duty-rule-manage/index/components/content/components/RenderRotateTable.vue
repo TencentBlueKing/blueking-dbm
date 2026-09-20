@@ -46,13 +46,7 @@
       col-key="peoples"
       :title="t('轮值人员')">
       <template #default="{ row: rowData }: { row: RowData }">
-        <div class="peoples">
-          <DbTag
-            v-for="item in rowData.peoples"
-            :key="item">
-            {{ item }}
-          </DbTag>
-        </div>
+        <bk-user-display-name :user-id="rowData.peoples.join(',')" />
       </template>
     </TableColumn>
   </PrimaryTable>

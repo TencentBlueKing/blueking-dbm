@@ -20,8 +20,9 @@ import tz from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import duration from 'dayjs/plugin/duration';
 import { createPinia } from 'pinia';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 
-import { useFunController, useGlobalBizs, useSystemEnviron } from '@stores';
+import { useFunController, useGlobalBizs, useSystemEnviron, useUserProfile } from '@stores';
 
 import { setGlobalComps } from '@common/importComps';
 
@@ -76,6 +77,8 @@ window.BKApp = app;
 const { fetchFunController } = useFunController();
 const { fetchBizs } = useGlobalBizs();
 const systemEnvironStore = useSystemEnviron();
+// fetchBizs 内部会先 await fetchProfile，租户 ID 在下面的 then 里才可用
+const userProfileStore = useUserProfile();
 
 Promise.all([fetchFunController(), fetchBizs(), systemEnvironStore.fetchSystemEnviron()]).then(() => {
   app.use(getRouter());
@@ -92,6 +95,20 @@ Promise.all([fetchFunController(), fetchBizs(), systemEnvironStore.fetchSystemEn
       url: reportUrl, // 上报地址
     });
   }
+  // 包产物是带 __esModule 标记的 CJS，默认导出在不同打包器下可能是 class 本身，也可能是整个 exports 对象
+  const BkUserDisplayNameClass =
+    (BkUserDisplayName as { default?: typeof BkUserDisplayName } & typeof BkUserDisplayName).default ??
+    BkUserDisplayName;
+  BkUserDisplayNameClass.configure({
+    // 必填，网关地址
+    apiBaseUrl: urls.USER_MANAGE_FRONTEND_APIGW_DOMAIN,
+    // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一用户查询有效
+    cacheDuration: 1000 * 60 * 5,
+    // 可选，当输入为空时，显示的文本，默认为 '--'
+    emptyText: '--',
+    // 必填，租户 ID，为空时组件库回退成直接展示用户名
+    tenantId: userProfileStore.tenantId,
+  });
 
   app.mount('#app');
 });

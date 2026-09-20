@@ -48,7 +48,7 @@
       col-key="updated_by"
       :title="t('更新人')">
       <template #default="{ row }">
-        {{ row.updated_by || '--' }}
+        <bk-user-display-name :user-id="row.updated_by" />
       </template>
     </TableColumn>
     <TableColumn

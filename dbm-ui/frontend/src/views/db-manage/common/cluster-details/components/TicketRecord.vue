@@ -77,7 +77,7 @@
         :min-width="150"
         :title="t('提单人')">
         <template #default="{ row }: { row: IRowData }">
-          {{ row.creator || '--' }}
+          <bk-user-display-name :user-id="row.creator" />
         </template>
       </TableColumn>
       <TableColumn

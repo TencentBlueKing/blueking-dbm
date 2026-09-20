@@ -261,13 +261,7 @@
       width: 200,
     },
     {
-      cell: (_, { row }) => (
-        <div class='peoples'>
-          {row.peoples.map((item: string) => (
-            <db-tag>{item}</db-tag>
-          ))}
-        </div>
-      ),
+      cell: (_, { row }) => <bk-user-display-name user-id={row.peoples.join(',')} />,
       colKey: 'peoples',
       title: t('轮值人员'),
       width: 528,
@@ -512,13 +506,6 @@
       font-size: 12px;
       font-weight: 700;
       color: #63656e;
-    }
-
-    .table-box {
-      :deep(.peoples) {
-        display: flex;
-        flex-wrap: wrap;
-      }
     }
 
     .more-tip {

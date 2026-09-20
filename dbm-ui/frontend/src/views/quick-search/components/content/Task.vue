@@ -82,7 +82,7 @@
           col-key="created_by"
           :title="t('执行人')">
           <template #default="{ row }: { row: TaskFlowModel }">
-            {{ row.created_by || '--' }}
+            <bk-user-display-name :user-id="row.created_by" />
           </template>
         </TableColumn>
         <TableColumn

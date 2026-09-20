@@ -4,7 +4,7 @@
       v-if="data.context.action === 'SKIP'"
       keypath="U_已处理_A"
       scope="global">
-      <span>{{ data.done_by }}</span>
+      <bk-user-display-name :user-id="data.done_by" />
       <span style="color: #f59500">{{ t('立即执行') }}</span>
     </I18nT>
     <div

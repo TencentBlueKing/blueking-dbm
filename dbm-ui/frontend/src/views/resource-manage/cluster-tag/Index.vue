@@ -141,6 +141,9 @@
         ellipsis
         :title="t('创建人')"
         :width="160">
+        <template #default="{ row: data }">
+          <bk-user-display-name :user-id="data.creator" />
+        </template>
       </TableColumn>
       <TableColumn
         col-key="createAtDisplay"

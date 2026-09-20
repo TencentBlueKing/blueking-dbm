@@ -15,7 +15,12 @@
           class="details-item">
           <div class="details-label">{{ column.label }}：</div>
           <div class="details-value">
-            {{ column.value ?? props.data.account[column.key] }}
+            <bk-user-display-name
+              v-if="column.key === 'creator'"
+              :user-id="String(column.value ?? props.data.account[column.key] ?? '')" />
+            <template v-else>
+              {{ column.value ?? props.data.account[column.key] }}
+            </template>
           </div>
         </div>
         <div

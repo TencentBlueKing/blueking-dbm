@@ -52,7 +52,7 @@
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
         <span>
-          {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} /
+          {{ t('最近更新') }}：<bk-user-display-name :user-id="detailData?.updated_by ?? ''" /> /
           {{ detailData?.updated_at ? utcDisplayTime(detailData.updated_at) : '--' }}
         </span>
         <span>{{ t('描述') }}：{{ detailData?.description || '--' }}</span>

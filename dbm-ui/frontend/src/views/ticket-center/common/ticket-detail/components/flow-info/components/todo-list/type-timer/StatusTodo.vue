@@ -12,7 +12,7 @@
       <I18nT
         keypath="U_已处理_A"
         scope="global">
-        <span>{{ data.done_by }}</span>
+        <bk-user-display-name :user-id="data.done_by" />
         <span style="color: #f59500">{{ t('修改定时') }}</span>
       </I18nT>
       <span>，</span>
@@ -27,7 +27,7 @@
       v-if="data.context.action === 'SKIP'"
       keypath="U_已处理_A"
       scope="global">
-      <span>{{ data.done_by }}</span>
+      <bk-user-display-name :user-id="data.done_by" />
       <span style="color: #f59500">{{ t('立即执行') }}</span>
     </I18nT>
   </div>
@@ -45,13 +45,13 @@
     <I18nT
       keypath="处理人_p"
       scope="global">
-      {{ data.operators.join(',') }}
+      <bk-user-display-name :user-id="data.operators.join(',')" />
     </I18nT>
     <I18nT
       v-if="ticketData.todo_helpers.length > 0"
       keypath="_协助人_p"
       scope="global">
-      {{ ticketData.todo_helpers.join(',') }}
+      <bk-user-display-name :user-id="ticketData.todo_helpers.join(',')" />
     </I18nT>
     <I18nT
       keypath="_耗时_t"
