@@ -1,4 +1,4 @@
-﻿<!--
+<!--
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -73,6 +73,8 @@
             @batch-edit="handleBatchEdit" />
           <AvailableResourceColumn
             :params="{
+              city: item.source_cluster.region,
+              subzones: item.source_cluster.cluster_subzones.join(','),
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.spec_id,
