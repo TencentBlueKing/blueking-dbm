@@ -30,6 +30,21 @@ from backend.flow.utils.redis.redis_script_template import make_script_common_kw
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
+SENSITIVE_PLACEHOLDER = "******"
+sensitive_key_cpl = re.compile(r"password|passwd|pwd|token|secret", re.IGNORECASE)
+
+
+def redact_sensitive(value):
+    """拷贝后把任意深度的密码/token 类键换成占位符，供打印 payload 到 flow 日志时使用。"""
+    if isinstance(value, dict):
+        return {
+            key: SENSITIVE_PLACEHOLDER if sensitive_key_cpl.search(str(key)) else redact_sensitive(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_sensitive(item) for item in value]
+    return value
+
 
 class _RedisExecJobComponent2Service(BkJobService):
     """
@@ -84,11 +99,11 @@ class _RedisExecJobComponent2Service(BkJobService):
         if kwargs.get("payload_func"):
             payload_func = kwargs.get("payload_func")
             self.log_info("payload_func {}".format(payload_func))
-            self.log_info("db_act_template {}".format(db_act_template))
+            self.log_info("db_act_template {}".format(redact_sensitive(db_act_template)))
             module = importlib.import_module(payload_func["module"])
             func = getattr(module, payload_func["function"])
             db_act_template = func(db_act_template, trans_data)
-            self.log_info("db_act_template {}".format(db_act_template))
+            self.log_info("db_act_template {}".format(redact_sensitive(db_act_template)))
 
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id
