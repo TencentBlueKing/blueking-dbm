@@ -33,6 +33,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/slot"
+	"dbm-services/common/dbha-v2/pkg/dbcred"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/safe"
 )
@@ -139,6 +140,12 @@ func (s *Service) reloadOnce() {
 
 	warnRestartRequiredLogFiles(current, next)
 	config.Apply(next)
+
+	// Push DbmApis into credential resolvers after Apply so LookupDbmApi sees
+	// the new snapshot. ConfigureAll is "Warn continue": never touch outcome.
+	if !config.DbmApisEqual(current.DbmApis, next.DbmApis) {
+		dbcred.ConfigureAll(config.LookupDbmApi)
+	}
 
 	if s.runtimeLogger != nil {
 		s.runtimeLogger.SetLevel(logger.Level(next.Log.Level))
