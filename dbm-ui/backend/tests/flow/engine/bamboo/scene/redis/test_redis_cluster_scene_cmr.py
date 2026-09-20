@@ -124,6 +124,7 @@ def patch_cmr_scene(monkeypatch):
     monkeypatch.setattr(cmr_mod, "SubBuilder", _RecorderBuilder)
     monkeypatch.setattr(cmr_mod, "RedisClusterSlaveReplaceJob", _fake_replace_job)
     monkeypatch.setattr(cmr_mod, "RedisClusterMasterReplaceJob", _fake_replace_job)
+    monkeypatch.setattr(cmr_mod.RedisClusterCMRSceneFlow, "proxy_replacement", lambda *args, **kwargs: None)
     monkeypatch.setattr(cmr_mod, "ClusterPredixyConfigServersRewriteAtomJob", lambda *args, **kwargs: None)
     monkeypatch.setattr(cmr_mod, "Cluster", SimpleNamespace(objects=_FakeClusterObjects()))
     monkeypatch.setattr(cmr_mod.RedisClusterCMRSceneFlow, "proxy_replacement", lambda *args, **kwargs: None)

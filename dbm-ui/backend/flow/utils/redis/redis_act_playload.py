@@ -108,8 +108,30 @@ cache_cluster_type_list = [
 ]
 
 
+def snapshot_redis_tools_pkg() -> dict:
+    """查当前 latest RedisTools，返回可写入 global_data 的快照。"""
+    tools = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis)
+    return {"pkg": tools.name, "pkg_md5": tools.md5, "path": tools.path}
+
+
+def ensure_redis_tools_pkg_snapshot(ticket_data: dict | None) -> dict | None:
+    """流程启动时冻结 RedisTools；已有快照（父流程传入）则不覆盖。
+
+    只有会跑 dbtools 强校验 md5 的 actuator 原子任务（redis_dts_datacheck/datarepair、
+    redis_keyspattern、redis_keysdelete_files）的流程才需要调用；其余流程走
+    DbToolsMediaPkg.Install()，md5 不一致不会失败，冻结没有意义。
+    """
+    if ticket_data is None:
+        return ticket_data
+    snap = ticket_data.get("redis_tools_pkg") or {}
+    if snap.get("pkg") and snap.get("pkg_md5"):
+        return ticket_data
+    ticket_data["redis_tools_pkg"] = snapshot_redis_tools_pkg()
+    return ticket_data
+
+
 def resolve_redis_tools_pkg(ticket_data: dict | None):
-    """单据冻结的 RedisTools 优先；无快照时再查 latest。"""
+    """流程冻结的 RedisTools 优先；无快照时再查 latest。"""
     snapshot = (ticket_data or {}).get("redis_tools_pkg") or {}
     pkg = snapshot.get("pkg")
     pkg_md5 = snapshot.get("pkg_md5")

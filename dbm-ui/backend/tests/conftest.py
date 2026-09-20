@@ -80,6 +80,15 @@ def __init_package(django_db_setup, django_db_blocker):
         packages = [
             {"name": "pk-1", "pkg_type": PackageType.MySQL, "db_type": DBType.MySQL, **fake_pkg_info},
             {"name": "pk-2", "pkg_type": PackageType.MySQLProxy, "db_type": DBType.MySQL, **fake_pkg_info},
+            {
+                "name": "dbtools.tgz",
+                "pkg_type": PackageType.RedisTools,
+                "db_type": DBType.Redis,
+                "version": "latest",
+                "path": "redis/dbtools/dbtools.tgz",
+                "size": 0,
+                "md5": "md5",
+            },
         ]
         Package.objects.bulk_create([Package(**data) for data in packages])
         # GetFileList.mysql_install_package 走 V2 备份包查询，旧 Package 行没有 db_version 会返回 None
