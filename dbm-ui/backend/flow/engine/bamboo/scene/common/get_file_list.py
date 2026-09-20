@@ -92,15 +92,13 @@ class GetFileList(object):
             # 下发备份程序的介质包
             if db_backup_pkg_type:
                 # 如果直接传db_backup_pkg_type，则以它为准
-                db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+                db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=db_backup_pkg_type)
                 pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}")
                 return pkg_list
 
             elif env.MYSQL_BACKUP_PKG_MAP_ENABLE:
                 # 内部环境，追加内部版本介质包
-                txsql_db_backup_pkg = Package.get_latest_package(
-                    version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackupTXSQL
-                )
+                txsql_db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=MediumEnum.DbBackupTXSQL)
                 pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{txsql_db_backup_pkg.path}")
             else:
                 pass
@@ -121,7 +119,7 @@ class GetFileList(object):
             db_backup_pkg_type = MediumEnum.DbBackup
 
         mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=db_backup_pkg_type)
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
         rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
@@ -149,7 +147,7 @@ class GetFileList(object):
             db_backup_pkg_type = MediumEnum.DbBackup
 
         mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=db_backup_pkg_type)
         mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_pkg.path}",
@@ -211,7 +209,7 @@ class GetFileList(object):
             db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
         else:
             db_backup_pkg_type = MediumEnum.DbBackup
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=db_backup_pkg_type)
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
         rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
@@ -664,7 +662,7 @@ class GetFileList(object):
         """
         spider 安装周边程序所需要下载介质包列表
         """
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=MediumEnum.DbBackup)
         mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
         dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
         return [
