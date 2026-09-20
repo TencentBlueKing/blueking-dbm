@@ -28,7 +28,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 )
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
-from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload, ensure_redis_tools_pkg_snapshot
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDeleteKeyContext
 
 logger = logging.getLogger("flow")
@@ -46,6 +46,7 @@ class RedisKeysDeleteFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        ensure_redis_tools_pkg_snapshot(self.data)
 
     @staticmethod
     def __get_slave_instance_ip_ports(bk_biz_id: int, cluster_id: int) -> dict:

@@ -1152,6 +1152,8 @@ class NewDtsOnlineSwitchJobAndWatchStatus(BaseService):
                 }
             ],
         }
+        if global_data.get("redis_tools_pkg"):
+            ticket_data["redis_tools_pkg"] = global_data["redis_tools_pkg"]
         self.log_info(f"new_dts_online_switch_job ticket_data:{ticket_data}")
         from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
 

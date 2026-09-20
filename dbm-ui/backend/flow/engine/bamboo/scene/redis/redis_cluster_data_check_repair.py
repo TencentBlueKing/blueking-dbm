@@ -29,7 +29,7 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_script impo
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import IfTimingAfterNowKwargs
-from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload, ensure_redis_tools_pkg_snapshot
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
 logger = logging.getLogger("flow")
@@ -43,6 +43,7 @@ class RedisClusterDataCheckRepairFlow(object):
     def __init__(self, root_id, data):
         self.root_id = root_id
         self.data = data
+        ensure_redis_tools_pkg_snapshot(self.data)
 
     def redis_cluster_data_check_repair_flow(self):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)

@@ -53,6 +53,3 @@ class RedisClusterRenameDomainFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_name = _("集群域名重命名")
     default_need_itsm = False
     default_need_manual_confirm = False
-
-    def patch_ticket_detail(self):
-        super().patch_ticket_detail()

@@ -84,7 +84,7 @@ from backend.flow.plugins.components.collections.redis.redis_dts import (
     RedisDtsDisconnectSyncComponent,
 )
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
-from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload, ensure_redis_tools_pkg_snapshot
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext, RedisDtsOnlineSwitchContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
@@ -107,6 +107,7 @@ class RedisClusterDataCopyFlow(object):
     def __init__(self, root_id, data):
         self.root_id = root_id
         self.data = data
+        ensure_redis_tools_pkg_snapshot(self.data)
         self.cluster_cache = {}
 
     def redis_cluster_data_copy_flow(self):

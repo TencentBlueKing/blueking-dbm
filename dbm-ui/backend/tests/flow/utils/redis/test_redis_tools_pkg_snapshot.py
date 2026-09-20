@@ -4,8 +4,11 @@ from types import SimpleNamespace
 from backend.flow.consts import MediumEnum
 from backend.flow.plugins.components.collections.redis.trans_flies import apply_redis_tools_snapshot_to_file_list
 from backend.flow.utils.redis import redis_act_playload as payload_mod
-from backend.flow.utils.redis.redis_act_playload import RedisActPayload, resolve_redis_tools_pkg
-from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin
+from backend.flow.utils.redis.redis_act_playload import (
+    RedisActPayload,
+    ensure_redis_tools_pkg_snapshot,
+    resolve_redis_tools_pkg,
+)
 
 SNAPSHOT_A = {
     "pkg": "dbtools-A.tgz",
@@ -14,22 +17,6 @@ SNAPSHOT_A = {
 }
 LATEST_B = SimpleNamespace(name="dbtools-B.tgz", md5="md5B", path="redis/dbtools/dbtools-B.tgz")
 SRC_IP = "1.1.1.1"
-
-
-class DummyRedisBuilder(RedisTicketFlowBuilderPatchMixin):
-    need_patch_cluster_details = False
-    need_patch_spec_details = False
-    need_patch_instance_details = False
-    need_patch_recycle_host_details = False
-    need_patch_recycle_cluster_details = False
-    need_patch_machine_details = False
-
-    def __init__(self):
-        self.saved = False
-        self.ticket = SimpleNamespace(details={}, save=self._save)
-
-    def _save(self, **kwargs):
-        self.saved = True
 
 
 def _latest_pkg_factory(redis_tools=LATEST_B, others=None):
@@ -65,19 +52,35 @@ def _payload_builder(tools_pkg, cluster=None):
     return builder
 
 
-def test_mixin_writes_pkg_md5_path(monkeypatch):
-    monkeypatch.setattr(
-        "backend.ticket.builders.common.base.Package.get_latest_package",
-        lambda **kwargs: SimpleNamespace(name="dbtools-A.tgz", md5="md5A", path="redis/dbtools/dbtools-A.tgz"),
-    )
-    builder = DummyRedisBuilder()
-    builder.patch_ticket_detail()
+def test_ensure_writes_pkg_md5_path(monkeypatch):
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    data = {"bk_biz_id": 100}
+    ensure_redis_tools_pkg_snapshot(data)
+    assert data["redis_tools_pkg"] == {
+        "pkg": "dbtools-B.tgz",
+        "pkg_md5": "md5B",
+        "path": "redis/dbtools/dbtools-B.tgz",
+    }
 
-    snap = builder.ticket.details["redis_tools_pkg"]
-    assert snap["pkg"] == "dbtools-A.tgz"
-    assert snap["pkg_md5"] == "md5A"
-    assert snap["path"] == "redis/dbtools/dbtools-A.tgz"
-    assert builder.saved
+
+def test_ensure_keeps_existing_snapshot(monkeypatch):
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    data = {"redis_tools_pkg": SNAPSHOT_A}
+    ensure_redis_tools_pkg_snapshot(data)
+    assert data["redis_tools_pkg"] == SNAPSHOT_A
+
+
+def test_ensure_none_is_noop():
+    assert ensure_redis_tools_pkg_snapshot(None) is None
+
+
+def test_keys_extract_flow_freezes_on_init(monkeypatch):
+    from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
+
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    data = {"bk_biz_id": 100, "rules": []}
+    RedisKeysExtractFlow(root_id="r", data=data)
+    assert data["redis_tools_pkg"]["pkg"] == "dbtools-B.tgz"
 
 
 def test_resolve_prefers_ticket_snapshot_over_latest(monkeypatch):
@@ -233,4 +236,62 @@ def test_spawn_check_repair_inherits_parent_snapshot(monkeypatch):
         "redis_tools_pkg": SNAPSHOT_A,
     }
     svc._RedisDtsExecuteService__new_data_check_repair_job(global_data, dts_job)
+    assert captured["ticket_data"]["redis_tools_pkg"] == SNAPSHOT_A
+
+
+def test_spawn_online_switch_inherits_parent_snapshot(monkeypatch):
+    from backend.flow.engine.bamboo.scene.redis import redis_cluster_data_copy as datacopy_mod
+    from backend.flow.plugins.components.collections.redis import redis_dts as dts_mod
+
+    captured = {}
+
+    class FakeFlow:
+        def __init__(self, root_id, data):
+            captured["ticket_data"] = data
+
+        def online_switch_flow(self):
+            return None
+
+    job_row = SimpleNamespace(
+        online_switch_flow_id="",
+        online_switch_type="user_confirm",
+        bill_id=1,
+        src_cluster="src.test.db",
+        dst_cluster="dst.test.db",
+        save=lambda **kwargs: None,
+    )
+    monkeypatch.setattr(datacopy_mod, "RedisClusterDataCopyFlow", FakeFlow)
+    monkeypatch.setattr(dts_mod, "generate_root_id", lambda: "root")
+    monkeypatch.setattr(dts_mod.TbTendisDTSJob, "objects", SimpleNamespace(get=lambda **kwargs: job_row))
+
+    class FakeData:
+        def __init__(self, inputs):
+            self._inputs = inputs
+            self.outputs = {}
+
+        def get_one_of_inputs(self, key):
+            return self._inputs.get(key)
+
+    data = FakeData(
+        {
+            "kwargs": {
+                "cluster": {
+                    "src": {"cluster_addr": "src.test.db"},
+                    "dst": {"cluster_addr": "dst.test.db"},
+                },
+                "set_trans_data_dataclass": "RedisDtsContext",
+            },
+            "global_data": {
+                "uid": 1,
+                "bk_biz_id": 100,
+                "created_by": "tester",
+                "redis_tools_pkg": SNAPSHOT_A,
+            },
+            "trans_data": SimpleNamespace(),
+        }
+    )
+
+    svc = object.__new__(dts_mod.NewDtsOnlineSwitchJobAndWatchStatus)
+    svc.log_info = lambda *args, **kwargs: None
+    assert svc._execute(data, {}) is True
     assert captured["ticket_data"]["redis_tools_pkg"] == SNAPSHOT_A
