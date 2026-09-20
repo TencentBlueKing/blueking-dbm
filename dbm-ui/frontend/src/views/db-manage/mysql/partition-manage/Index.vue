@@ -233,7 +233,7 @@
             v-if="row.status === PartitionModel.STATUS_FAILED"
             v-bk-tooltips="t('查看失败日志')"
             class="ml-4"
-            style="vertical-align: middle; cursor: pointer; color: #3a84ff"
+            style=" color: #3a84ff;vertical-align: middle; cursor: pointer"
             type="bk-dbm-icon db-icon-form"
             @click="handleShowFailLog(row)" />
         </template>

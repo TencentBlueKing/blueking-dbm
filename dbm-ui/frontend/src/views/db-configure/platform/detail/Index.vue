@@ -651,7 +651,7 @@
       padding: 24px 24px 0;
       background: #fff;
       border-radius: 2px;
-      box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+      box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
     }
   }
 
@@ -673,11 +673,11 @@
     }
 
     &::before {
-      content: '';
       display: inline-block;
       width: 1px;
       height: 14px;
       background: #dcdee5;
+      content: '';
     }
   }
 
@@ -698,8 +698,8 @@
 
   .param-desc-icon {
     font-size: 14px;
-    cursor: pointer;
     color: #c4c6cc;
+    cursor: pointer;
 
     &:hover {
       color: #3a84ff;
@@ -724,15 +724,15 @@
       font-size: 12px;
       line-height: 22px;
       color: #63656e;
-      word-break: break-word;
+      overflow-wrap: break-word;
     }
   }
 
   .restore-param-content {
-    background: #f5f7fa;
-    color: #63656e;
-    text-align: left;
     padding: 12px 14px;
     line-height: 1.6;
+    color: #63656e;
+    text-align: left;
+    background: #f5f7fa;
   }
 </style>

@@ -143,13 +143,13 @@
 </script>
 <style lang="less">
   .mongodb-webconsole {
+    display: flex;
+    height: calc(100% - 24px);
     font-size: 12px;
     color: #c4c6cc;
     background: #1a1a1a;
-    height: calc(100% - 24px);
-    display: flex;
-    flex-direction: column;
     transform: translate(0, 0);
+    flex-direction: column;
 
     .top-main {
       display: flex;

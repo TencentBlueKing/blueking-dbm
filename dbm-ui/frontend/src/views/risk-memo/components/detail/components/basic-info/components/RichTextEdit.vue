@@ -134,8 +134,8 @@
 
     &.is-only-view {
       .db-editor-main {
-        background: #f5f7fa;
         padding: 16px;
+        background: #f5f7fa;
         border-radius: 8px;
       }
     }
