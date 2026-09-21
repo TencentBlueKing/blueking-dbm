@@ -91,12 +91,6 @@ class _IAMV4Api(BaseApi):
             url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/auth-token/",
             description=_("获取系统AuthToken"),
         )
-        # IAM侧路径拼写为 rabc 而非 rbac，需照此调用
-        self.share_retrieve_system = self.generate_data_api(
-            method="GET",
-            url=f"/api/v1/open/rabc/share/model/systems/{env.BK_IAM_SYSTEM_ID}/",
-            description=_("查询系统详情"),
-        )
         self.batch_create_resource_type = self.generate_data_api(
             method="POST",
             url=f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}/resource-types/",
