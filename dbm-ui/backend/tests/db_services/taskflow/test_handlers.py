@@ -295,6 +295,8 @@ class TestTaskFlowHandler:
             query_string="test query",
             start_time="2023-01-01 00:00:00",
             end_time="2023-01-01 23:59:59",
+            offset=0,
+            limit=10000,
         )
 
         assert len(result) == 1
