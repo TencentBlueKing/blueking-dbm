@@ -72,7 +72,7 @@ func frameworkMetrics() []interface{} {
 		DbmMetadataUpdatedCount,
 		DbhaDataStatusUpdatedCount,
 		DbhaDataStatusUpdatedIPCount,
-		DbhaDataStatusDeployedIPCount,
+		DbhaDataStatusActiveIPCount,
 	}
 }
 

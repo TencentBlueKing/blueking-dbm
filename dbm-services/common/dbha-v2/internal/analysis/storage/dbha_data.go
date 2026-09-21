@@ -309,9 +309,9 @@ func (ha *DbhaData) CountDbhaDataStatusUpdatedWithin(ctx context.Context,
 	return result, nil
 }
 
-// CountDbhaDataStatusDeployedIPWithin counts the IPs reporting DbhaDataStatus within the given
+// CountDbhaDataStatusActiveIPWithin counts the IPs reporting DbhaDataStatus within the given
 // duration, grouped by db_type only, de-duplicated by (bk_cloud_id, db_ip).
-func (ha *DbhaData) CountDbhaDataStatusDeployedIPWithin(ctx context.Context,
+func (ha *DbhaData) CountDbhaDataStatusActiveIPWithin(ctx context.Context,
 	offsetDuration time.Duration) ([]*DbTypeUpdatedCount, error) {
 
 	lastUpdateTime := time.Now().Local().Add(-offsetDuration)
