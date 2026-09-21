@@ -94,7 +94,7 @@ var (
 	DbmMetadataUpdatedCount        *haapm.HaGauge
 	DbhaDataStatusUpdatedCount     *haapm.HaGauge
 	DbhaDataStatusUpdatedIPCount   *haapm.HaGauge
-	DbhaDataStatusDeployedIPCount  *haapm.HaGauge
+	DbhaDataStatusActiveIPCount    *haapm.HaGauge
 )
 
 func init() {
@@ -333,10 +333,11 @@ func initDbTableUpdatedMetrics() {
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType, MetricLabelHarvestType,
 	)
 
-	// DbhaDataStatus IPs updated within the latest statistics window, grouped by db_type only.
-	DbhaDataStatusDeployedIPCount = haapm.NewHaGauge(
-		"dbha_data_status_deployed_ip_count",
-		"Number of deployed IPs (distinct cloud/ip) reporting within the latest statistics window, by db_type",
+	// Alive probe IP count within the latest statistics window, by db_type.
+	DbhaDataStatusActiveIPCount = haapm.NewHaGauge(
+		"dbha_data_status_active_ip_count",
+		"Number of IPs (distinct cloud/ip) that reported within the latest statistics window, by db_type: "+
+			"active (reporting) IPs, not an installed count",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
 	)
 }
