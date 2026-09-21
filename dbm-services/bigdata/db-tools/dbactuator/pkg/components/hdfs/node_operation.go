@@ -3,6 +3,8 @@ package hdfs
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
+	"time"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
@@ -171,6 +173,48 @@ func SupervisorCommand(command string, component string) error {
 		return err
 	}
 	return nil
+}
+
+const (
+	// CheckStartRetryTimes 校验组件是否被拉起的最大检查次数
+	CheckStartRetryTimes = 3
+	// CheckStartWaitTime 每次校验之间的等待时间
+	CheckStartWaitTime = 5 * time.Second
+)
+
+// CheckComponentStart 校验 supervisor 是否已将指定组件拉起，component 取 const.go 中的组件枚举。
+// supervisorctl update 后组件可能仍处于 STARTING，故轮询 CheckStartRetryTimes 次，间隔 CheckStartWaitTime。
+// 注意：组件非 RUNNING 时 supervisorctl status 退出码非 0，因此不能只看 err，必须解析输出内容。
+func CheckComponentStart(component string) error {
+	execCommand := fmt.Sprintf("supervisorctl status %s", component)
+	lastStatus := ""
+	for i := 1; i <= CheckStartRetryTimes; i++ {
+		out, err := osutil.ExecShellCommand(false, execCommand)
+		lastStatus = strings.TrimSpace(out)
+		if isComponentRunning(lastStatus, component) {
+			logger.Info("component %s is running, status [%s]", component, lastStatus)
+			return nil
+		}
+		logger.Warn("component %s is not running, check %d/%d, status [%s], %v",
+			component, i, CheckStartRetryTimes, lastStatus, err)
+		if i < CheckStartRetryTimes {
+			time.Sleep(CheckStartWaitTime)
+		}
+	}
+	return fmt.Errorf("component %s is not running after %d checks, last status [%s]",
+		component, CheckStartRetryTimes, lastStatus)
+}
+
+// isComponentRunning 解析 supervisorctl status 输出，格式为 `<component> <state> <desc...>`。
+// 严格匹配组件名与状态两列，避免 desc 中出现 RUNNING 字面量或其他组件的状态行被误判。
+func isComponentRunning(status string, component string) bool {
+	for _, line := range strings.Split(status, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == component && fields[1] == SupervisorStateRunning {
+			return true
+		}
+	}
+	return false
 }
 
 // SupervisorUpdateHdfsConfig TODO

@@ -89,6 +89,11 @@ func (i *InstallZookeeperService) InstallZookeeper() (err error) {
 	return SupervisorUpdateZooKeeperConfig(i.SupervisorConfDir)
 }
 
+// CheckZooKeeperStart 校验 supervisor 是否已拉起 zookeeper
+func (i *InstallZookeeperService) CheckZooKeeperStart() error {
+	return CheckComponentStart(ZooKeeper)
+}
+
 // UpdateZooKeeperConfigParams TODO
 type UpdateZooKeeperConfigParams struct {
 	Host   string `json:"host" validate:"required,ip"`

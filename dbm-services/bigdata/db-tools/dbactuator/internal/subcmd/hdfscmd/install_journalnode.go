@@ -88,6 +88,10 @@ func (d *InstallJournalNodeAct) Run() (err error) {
 			FunName: "启动JournalNode",
 			Func:    d.Service.InstallJournalNode,
 		},
+		{
+			FunName: "校验JournalNode拉起",
+			Func:    d.Service.CheckJournalNodeStart,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

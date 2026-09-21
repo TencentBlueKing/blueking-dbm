@@ -87,6 +87,10 @@ func (d *InstallZookeeperAct) Run() (err error) {
 			FunName: "安装ZooKeeper",
 			Func:    d.Service.InstallZookeeper,
 		},
+		{
+			FunName: "校验ZooKeeper拉起",
+			Func:    d.Service.CheckZooKeeperStart,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

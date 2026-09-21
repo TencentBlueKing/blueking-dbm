@@ -88,6 +88,10 @@ func (d *InstallDataNodeAct) Run() (err error) {
 			FunName: "安装DataNode",
 			Func:    d.Service.InstallDataNode,
 		},
+		{
+			FunName: "校验DataNode拉起",
+			Func:    d.Service.CheckDataNodeStart,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

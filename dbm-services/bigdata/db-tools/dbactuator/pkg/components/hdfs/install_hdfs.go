@@ -278,6 +278,29 @@ func (i *InstallHdfsService) InstallDataNode() (err error) {
 	return i.SupervisorUpdateConfig(DataNode)
 }
 
+// 以下为各 install 子命令的部署后检查入口。
+// InstallHdfsParams 不带组件入参，故由各入口写死自身安装的组件枚举，避免共用一个方法时静默检查到别的组件。
+
+// CheckJournalNodeStart 校验 supervisor 是否已拉起 journalnode
+func (i *InstallHdfsService) CheckJournalNodeStart() error {
+	return CheckComponentStart(JournalNode)
+}
+
+// CheckNameNodeStart 校验 supervisor 是否已拉起 namenode
+func (i *InstallHdfsService) CheckNameNodeStart() error {
+	return CheckComponentStart(NameNode)
+}
+
+// CheckZKFCStart 校验 supervisor 是否已拉起 zkfc
+func (i *InstallHdfsService) CheckZKFCStart() error {
+	return CheckComponentStart(ZKFC)
+}
+
+// CheckDataNodeStart 校验 supervisor 是否已拉起 datanode
+func (i *InstallHdfsService) CheckDataNodeStart() error {
+	return CheckComponentStart(DataNode)
+}
+
 // ServiceCommand TODO
 func ServiceCommand(service string, command string) error {
 	execCommand := fmt.Sprintf("service %s %s", service, command)
