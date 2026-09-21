@@ -4,6 +4,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/hdfsutil"
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -117,9 +118,9 @@ func (c *CheckDecommissionService) CheckDatanodeDecommission() (err error) {
 
 // checkDatanodeDecommissionOnce 单次检查 DataNode 节点退役进度。
 // 返回值：
-//   - done == true 表示 data_node_hosts 中所有节点均已退役完成（AdminState=Decommissioned 或已从 liveNodes 中消失）；
+//   - done == true 表示 data_node_hosts 中所有节点均已退役完成（AdminState=Decommissioned 或已进入 deadNodes）；
 //   - done == false && err == nil 表示仍有节点处于退役中，调用方应继续重试；
-//   - err != nil 表示请求/解析等异常，调用方应中止重试并返回错误。
+//   - err != nil 表示请求/解析异常或节点状态无法确认，重试也不会自愈，调用方应中止重试并返回错误。
 func (c *CheckDecommissionService) checkDatanodeDecommissionOnce() (done bool, err error) {
 	// 获取当前 Active NameNode 域名，用于直连 NN Web 接口查询 DataNode 退役进度
 	visitHost, err := hdfsutil.GetActiveNNWithoutClusterName()
@@ -162,7 +163,7 @@ func (c *CheckDecommissionService) checkDatanodeDecommissionOnce() (done bool, e
 	logger.Info("check decommission progress of %d datanodes", len(dnHostArr))
 	result := true
 	for _, dnHost := range dnHostArr {
-		if value, ok := liveNodeMap[dnHost]; ok {
+		if value, ok := findDataNode(liveNodeMap, dnHost); ok {
 			if value.AdminState == DataNodeStateDecommissioned {
 				logger.Info("datanode %s is in liveNodes, adminState is %s, decommission finished",
 					dnHost, value.AdminState)
@@ -171,10 +172,14 @@ func (c *CheckDecommissionService) checkDatanodeDecommissionOnce() (done bool, e
 					dnHost, value.AdminState)
 				result = false
 			}
-		} else if _, ok := deadNodeMap[dnHost]; ok {
+		} else if _, ok := findDataNode(deadNodeMap, dnHost); ok {
 			logger.Info("datanode %s is in deadNodes, decommission finished", dnHost)
 		} else {
-			logger.Info("datanode %s is in neither liveNodes nor deadNodes, decommission finished", dnHost)
+			// 检查时节点仍在 dfs.hosts 内，NameNode 必然把它归入 liveNodes 或 deadNodes。
+			// 两处都查不到说明主机标识与 NameNode 上报的不一致，此时无法确认退役进度，
+			// 不能当作退役完成放行后续的剔除与数据清理步骤。
+			logger.Error("datanode %s is in neither liveNodes nor deadNodes, can not confirm decommission state", dnHost)
+			return false, errors.Errorf("datanode %s is in neither liveNodes nor deadNodes", dnHost)
 		}
 	}
 	return result, nil
@@ -182,6 +187,44 @@ func (c *CheckDecommissionService) checkDatanodeDecommissionOnce() (done bool, e
 
 // DataNodeMap TODO
 type DataNodeMap map[string]DataNodeStruct
+
+// findDataNode matches both the current hostname parameter and the future IP parameter.
+// NameNode JMX map keys and xferaddr values may include the DataNode transfer port.
+func findDataNode(nodes DataNodeMap, target string) (DataNodeStruct, bool) {
+	for _, candidate := range dataNodeHostCandidates(target) {
+		for nodeName, node := range nodes {
+			if strings.EqualFold(normalizeDataNodeHost(nodeName), candidate) ||
+				strings.EqualFold(normalizeDataNodeHost(node.TransferAddr), candidate) {
+				return node, true
+			}
+		}
+	}
+	return DataNodeStruct{}, false
+}
+
+// dataNodeHostCandidates returns the original node address first, followed by the
+// legacy dn-<IPv4> hostname used by the current HDFS deployment protocol.
+func dataNodeHostCandidates(target string) []string {
+	targetHost := normalizeDataNodeHost(target)
+	if targetHost == "" {
+		return nil
+	}
+	candidates := []string{targetHost}
+	if ip := net.ParseIP(targetHost); ip != nil && ip.To4() != nil {
+		candidates = append(candidates, "dn-"+strings.ReplaceAll(ip.To4().String(), ".", "-"))
+	}
+	return candidates
+}
+
+// normalizeDataNodeHost removes an optional transfer port while preserving hostnames,
+// IPv4 addresses, and bracketed or unbracketed IPv6 addresses.
+func normalizeDataNodeHost(address string) string {
+	address = strings.TrimSpace(address)
+	if host, _, err := net.SplitHostPort(address); err == nil {
+		return strings.Trim(host, "[]")
+	}
+	return strings.Trim(address, "[]")
+}
 
 // DataNodeStruct TODO
 type DataNodeStruct struct {

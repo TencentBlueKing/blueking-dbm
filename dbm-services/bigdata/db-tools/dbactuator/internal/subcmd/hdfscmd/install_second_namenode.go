@@ -88,6 +88,10 @@ func (d *InstallNn2Act) Run() (err error) {
 			FunName: "安装NN2",
 			Func:    d.Service.InstallNn2,
 		},
+		{
+			FunName: "校验NameNode拉起",
+			Func:    d.Service.CheckNameNodeStart,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

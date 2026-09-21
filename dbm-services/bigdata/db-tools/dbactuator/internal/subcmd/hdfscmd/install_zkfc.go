@@ -88,6 +88,10 @@ func (d *InstallZKFCAct) Run() (err error) {
 			FunName: "启动ZKFC",
 			Func:    d.Service.InstallZKFC,
 		},
+		{
+			FunName: "校验ZKFC拉起",
+			Func:    d.Service.CheckZKFCStart,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

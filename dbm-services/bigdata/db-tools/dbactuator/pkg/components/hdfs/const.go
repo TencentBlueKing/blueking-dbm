@@ -49,6 +49,8 @@ const (
 	Start = "start"
 	// Restart TODO
 	Restart = "restart"
+	// SupervisorStateRunning supervisorctl status 中表示组件已正常拉起的状态
+	SupervisorStateRunning = "RUNNING"
 )
 
 const (
