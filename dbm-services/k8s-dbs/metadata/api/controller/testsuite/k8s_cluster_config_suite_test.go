@@ -212,11 +212,13 @@ func (suite *K8sClusterConfigControllerTestSuite) TestGetRegionsByVisibility() {
 		  "k8sClusterList": [
 			{
 			  "clusterName": "test-k8s-cluster",
-			  "clusterAlias": ""
+			  "clusterAlias": "",
+			  "bkBizId": 0
 			},
 			{
 			  "clusterName": "test-k8s-cluster",
-			  "clusterAlias": ""
+			  "clusterAlias": "",
+			  "bkBizId": 0
 			}
 		  ]
 		}
@@ -227,4 +229,18 @@ func (suite *K8sClusterConfigControllerTestSuite) TestGetRegionsByVisibility() {
 	}
 	`
 	assert.JSONEq(t, expected, w.Body.String())
+}
+
+func (suite *K8sClusterConfigControllerTestSuite) TestGetRegionsByVisibilityBkBizIDZero() {
+	t := suite.T()
+
+	request, _ := http.NewRequest("GET", "/metadata/k8s_cluster_config/regions?isPublic=true&bkBizId=0", nil)
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, request)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, false, resp["result"])
+	assert.Contains(t, resp["message"], "bkBizId 必须为正整数")
 }

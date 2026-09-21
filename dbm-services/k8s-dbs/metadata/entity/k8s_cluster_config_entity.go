@@ -34,6 +34,7 @@ type K8sClusterConfigEntity struct {
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	*RegionEntity `json:",inline"`
+	BkBizID       int                    `json:"bkBizId"`
 	Active        bool                   `json:"active"`
 	Description   string                 `json:"description"`
 	CreatedBy     string                 `json:"createdBy"`
@@ -51,4 +52,5 @@ type RegionEntity struct {
 	RegionCode   string `json:"regionCode"`
 	VpcID        string `json:"vpcID"`
 	Provider     string `json:"provider"`
+	BkBizID      int    `json:"bkBizId"`
 }

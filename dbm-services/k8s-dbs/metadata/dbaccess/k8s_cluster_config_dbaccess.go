@@ -80,10 +80,14 @@ func (k *K8sClusterConfigDbAccessImpl) FindRegionsByParams(params *metaentity.Re
 	error,
 ) {
 	var regions []*models.RegionModel
-	if err := k.db.Model(&models.K8sClusterConfigModel{}).
-		Select("cluster_name, cluster_alias, is_public, region_name, region_code, vpc_id, provider").
-		Where(params).
-		Find(&regions).Limit(commconst.MaxFetchSize).Error; err != nil {
+	query := k.db.Model(&models.K8sClusterConfigModel{}).
+		Select("cluster_name, cluster_alias, is_public, region_name, region_code, vpc_id, provider, bk_biz_id").
+		Where("is_public = ?", params.IsPublic)
+	// bk_biz_id 为 0 时表示不按业务过滤（兼容历史调用，仅按可见性筛选）
+	if params.BkBizID != 0 {
+		query = query.Where("bk_biz_id = ?", params.BkBizID)
+	}
+	if err := query.Find(&regions).Limit(commconst.MaxFetchSize).Error; err != nil {
 		return nil, errors.Wrapf(err, "failed to find regions with params %+v", params)
 	}
 	return regions, nil

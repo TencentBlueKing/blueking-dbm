@@ -51,7 +51,7 @@ func (m *mockK8sClusterConfigProvider) FindConfigByName(_ string) (*metaentity.K
 func (m *mockK8sClusterConfigProvider) UpdateConfig(_ *metaentity.K8sClusterConfigEntity) (uint64, error) {
 	return 0, nil
 }
-func (m *mockK8sClusterConfigProvider) GetRegionsByVisibility(_ bool) ([]*metaentity.RegionEntity, error) {
+func (m *mockK8sClusterConfigProvider) GetRegionsByVisibility(_ bool, _ int) ([]*metaentity.RegionEntity, error) {
 	return nil, nil
 }
 func (m *mockK8sClusterConfigProvider) ListConfigsByLimit(_ int) ([]*metaentity.K8sClusterConfigEntity, error) {
