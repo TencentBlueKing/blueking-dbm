@@ -172,6 +172,8 @@
       'MongoDBManage',
       'SqlServerManage',
       'DorisManage',
+      'QdrantManage',
+      'SurrealDBManage',
       'OracleManage',
       'taskHistory',
       'DatabaseWhitelist',
