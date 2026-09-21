@@ -28,6 +28,7 @@ type K8sClusterConfigResponse struct {
 	RegionCode  string `json:"regionCode"`
 	VpcID       string `json:"vpcID"`
 	Provider    string `json:"provider"`
+	BkBizID     int    `json:"bkBizId"`
 	Description string `json:"description"`
 }
 
@@ -44,4 +45,5 @@ type K8sClusterResp struct {
 	ClusterName  string `json:"clusterName"`
 	ClusterAlias string `json:"clusterAlias"`
 	VpcID        string `json:"vpcID"`
+	BkBizID      int    `json:"bkBizId"`
 }

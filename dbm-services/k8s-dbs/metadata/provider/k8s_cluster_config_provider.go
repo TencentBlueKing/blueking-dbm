@@ -37,7 +37,7 @@ type K8sClusterConfigProvider interface {
 	FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error)
 	FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error)
 	UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error)
-	GetRegionsByVisibility(public bool) ([]*metaentity.RegionEntity, error)
+	GetRegionsByVisibility(isPublic bool, bkBizID int) ([]*metaentity.RegionEntity, error)
 	ListConfigsByLimit(limit int) ([]*metaentity.K8sClusterConfigEntity, error)
 }
 
@@ -76,10 +76,14 @@ func (k *K8sClusterConfigProviderImpl) ListConfigsByLimit(limit int) ([]*metaent
 	return configEntities, nil
 }
 
-// GetRegionsByVisibility 根据可访问性（公有/私有）筛选并返回符合条件的区域列表。
-func (k *K8sClusterConfigProviderImpl) GetRegionsByVisibility(isPublic bool) ([]*metaentity.RegionEntity, error) {
+// GetRegionsByVisibility 根据可访问性（公有/私有）以及业务 ID 筛选并返回符合条件的区域列表。
+func (k *K8sClusterConfigProviderImpl) GetRegionsByVisibility(
+	isPublic bool,
+	bkBizID int,
+) ([]*metaentity.RegionEntity, error) {
 	params := &metaentity.RegionQueryParams{
 		IsPublic: isPublic,
+		BkBizID:  bkBizID,
 	}
 	regionModels, err := k.dbAccess.FindRegionsByParams(params)
 	if err != nil {

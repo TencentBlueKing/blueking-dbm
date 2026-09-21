@@ -66,9 +66,8 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 	api.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
-// GetRegionsByVisibility 按照k8s集群可见性来获取集群区域列表
+// GetRegionsByVisibility 按照k8s集群可见性和业务来获取集群区域列表
 func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
-	// TODO 待优化合并成 search by params
 	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigDetailByVis)
 	isPublicStr := ctx.Query("isPublic")
 	isPublic, err := strconv.ParseBool(isPublicStr)
@@ -76,7 +75,21 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	regions, err := k.configProvider.GetRegionsByVisibility(isPublic)
+	// bkBizId 为可选参数：不传表示不按业务过滤；传了则必须为正整数（≤0 视为非法，避免误拿到全部业务集群）
+	bkBizID := 0
+	if bkBizIDStr := ctx.Query("bkBizId"); bkBizIDStr != "" {
+		bkBizID, err = strconv.Atoi(bkBizIDStr)
+		if err != nil {
+			api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+			return
+		}
+		if bkBizID <= 0 {
+			api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterValueError,
+				fmt.Errorf("bkBizId 必须为正整数")))
+			return
+		}
+	}
+	regions, err := k.configProvider.GetRegionsByVisibility(isPublic, bkBizID)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
@@ -98,6 +111,7 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 				ClusterName:  region.ClusterName,
 				ClusterAlias: region.ClusterAlias,
 				VpcID:        region.VpcID,
+				BkBizID:      region.BkBizID,
 			})
 	}
 	// 转换为切片返回

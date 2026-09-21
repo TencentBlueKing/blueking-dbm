@@ -41,6 +41,7 @@ type K8sClusterConfigModel struct {
 	RegionCode   string                 `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
 	VpcID        string                 `gorm:"column:vpc_id;type:varchar(32);" json:"vpcID"`
 	Provider     string                 `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
+	BkBizID      int                    `gorm:"column:bk_biz_id;type:int(11)" json:"bkBizId"`
 	Active       bool                   `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
 	Description  string                 `gorm:"size:100;column:description" json:"description"`
 	CreatedBy    string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`
@@ -58,6 +59,7 @@ type RegionModel struct {
 	RegionCode   string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
 	VpcID        string `gorm:"column:vpc_id;type:varchar(32);" json:"vpcID"`
 	Provider     string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
+	BkBizID      int    `gorm:"column:bk_biz_id;type:int(11)" json:"bkBizId"`
 }
 
 // TableName 获取 model 对应的数据库表名

@@ -65,6 +65,7 @@ var regionQueryParamsSample = &entitys.RegionQueryParams{
 	RegionName: "us-west-1",
 	RegionCode: "usw1",
 	Provider:   "aws",
+	BkBizID:    0,
 }
 
 type K8sClusterConfigDbAccessTestSuite struct {

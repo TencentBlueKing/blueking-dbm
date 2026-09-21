@@ -39,6 +39,7 @@ type K8sClusterConfigRequest struct {
 	RegionCode              string `json:"regionCode"`
 	VpcID                   string `json:"vpcID"`
 	Provider                string `json:"provider"`
+	BkBizID                 int    `json:"bkBizId"`
 	Active                  bool   `json:"active"`
 	Description             string `json:"description" binding:"required"`
 	commentity.BKAdditional `json:",inline"`

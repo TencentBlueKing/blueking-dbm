@@ -209,7 +209,7 @@ func (suite *K8sClusterConfigProviderTestSuite) TestUpdateConfig() {
 
 func (suite *K8sClusterConfigProviderTestSuite) TestGetRegionsByVisibility() {
 	t := suite.T()
-	entity, err := suite.clusterConfigProvider.GetRegionsByVisibility(true)
+	entity, err := suite.clusterConfigProvider.GetRegionsByVisibility(true, 0)
 	assert.NoError(t, err)
 	assert.NotNil(t, entity)
 }

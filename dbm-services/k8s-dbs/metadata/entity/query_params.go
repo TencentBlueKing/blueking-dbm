@@ -123,6 +123,7 @@ type ClusterReleaseQueryParams struct {
 // RegionQueryParams region 元数据查询参数
 type RegionQueryParams struct {
 	IsPublic   bool   `gorm:"type:tinyint(1);not null;default:1;column:is_public" json:"isPublic"`
+	BkBizID    int    `gorm:"column:bk_biz_id;type:int(11)" json:"bkBizId"`
 	RegionName string `gorm:"column:region_name;type:varchar(32);not null" json:"regionName"`
 	RegionCode string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
 	Provider   string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
