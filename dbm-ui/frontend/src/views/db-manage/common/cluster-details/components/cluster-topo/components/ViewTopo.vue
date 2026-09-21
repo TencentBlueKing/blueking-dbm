@@ -79,6 +79,7 @@
               v-if="instState.nodeData?.url && showMore"
               class="node-details-link"
               :href="instState.nodeData.url"
+              rel="noopener noreferrer"
               target="_blank">
               {{ t('更多详情') }}
               <i class="db-icon-link" />

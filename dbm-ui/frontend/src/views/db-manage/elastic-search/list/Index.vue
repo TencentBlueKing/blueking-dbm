@@ -60,6 +60,7 @@
               <div v-db-console="'es.clusterManage.manage'">
                 <a
                   :href="data.access_url"
+                  rel="noopener noreferrer"
                   target="_blank">
                   Kibana
                 </a>

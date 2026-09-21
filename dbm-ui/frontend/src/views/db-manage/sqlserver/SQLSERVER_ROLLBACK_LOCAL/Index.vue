@@ -380,7 +380,7 @@
   defineExpose({
     routerBack() {
       router.push({
-        name: 'SqlserverToolboxIndex',
+        name: 'sqlserverToolbox',
       });
     },
   });

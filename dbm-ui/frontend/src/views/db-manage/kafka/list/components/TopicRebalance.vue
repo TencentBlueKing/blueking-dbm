@@ -103,7 +103,7 @@
           </template>
           <PrimaryTable
             bordered
-            :data="isFilter ? checkedInstances : formData.instance_list"
+            :data="displayInstanceList"
             :loading="loading"
             row-key="bk_host_id">
             <TableColumn
@@ -111,16 +111,15 @@
               :width="51">
               <template #header>
                 <BkCheckbox
-                  v-model="isAllSelected"
                   class="instance-list-checkbox"
+                  :model-value="isAllSelected"
                   @change="handleSelectAll" />
               </template>
               <template #default="{ row }: { row: RowData }">
                 <BkCheckbox
                   v-model="row.checked"
                   class="instance-list-checkbox"
-                  :disabled="row.agentStatus !== 1"
-                  @change="handleSelect" />
+                  :disabled="row.agentStatus !== 1" />
               </template>
             </TableColumn>
             <TableColumn
@@ -184,7 +183,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import { utcDisplayTime } from '@utils';
+  import { messageWarn, utcDisplayTime } from '@utils';
 
   interface RowData extends Pick<
     KafkaInstanceModel,
@@ -218,9 +217,15 @@
   });
   const isFilter = ref(false);
   const searchValue = ref('');
-  const isAllSelected = ref(true);
   const checkNum = computed(() => formData.instance_list.filter((item) => item.checked).length);
-  const checkedInstances = computed(() => formData.instance_list.filter((item) => item.checked));
+  // 「仅显示已选」与搜索都只影响展示，instance_list 始终保持全量，提交从中取勾选项
+  const displayInstanceList = computed(() => {
+    const list = isFilter.value ? formData.instance_list.filter((item) => item.checked) : formData.instance_list;
+    return searchValue.value ? list.filter((item) => item.instance_address.includes(searchValue.value)) : list;
+  });
+  const isAllSelected = computed(
+    () => displayInstanceList.value.length > 0 && displayInstanceList.value.every((item) => item.checked),
+  );
 
   const { loading, run: getInstanceList } = useRequest(getKafkaInstanceList, {
     manual: true,
@@ -259,6 +264,8 @@
     isShow,
     () => {
       if (isShow.value) {
+        searchValue.value = '';
+        isFilter.value = false;
         getInstanceList({
           cluster_id: props.data?.id,
           extra: 1,
@@ -272,28 +279,14 @@
     },
   );
 
-  watch(searchValue, (value) => {
-    if (value) {
-      formData.instance_list = formData.instance_list.filter((item) => item.instance_address.includes(value));
-    } else {
-      getInstanceList({
-        cluster_id: props.data?.id,
-        extra: 1,
-        limit: -1,
-        role: 'broker',
-      });
-    }
-  });
-
-  const handleSelect = () => {
-    isAllSelected.value = formData.instance_list.every((item) => item.checked);
-  };
-
   const handleSelectAll = (checked: boolean) => {
-    formData.instance_list.forEach((row) => {
-      Object.assign(row, {
-        checked,
-      });
+    displayInstanceList.value.forEach((row) => {
+      // Agent 异常的行不可勾选，全选不改动其状态
+      if (row.agentStatus === 1) {
+        Object.assign(row, {
+          checked,
+        });
+      }
     });
   };
 
@@ -302,35 +295,37 @@
   };
 
   const handleConfirm = () => {
-    const valid = formRef.value?.validate();
-    if (!valid) {
-      return;
-    }
-    const selectedInstances = formData.instance_list.filter((item) => item.checked);
-    createTicketRun({
-      details: {
-        cluster_id: props.data.id,
-        instance_info: selectedInstances.map((item) => ({
-          agent_status: item.agentStatus,
-          create_at: item.createAt,
-          intance_address: item.instance_address,
-        })),
-        instance_list: selectedInstances.map((item) => ({
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          ip: item.ip,
-          port: item.port,
-        })),
-        throttle_rate: formData.throttle_rate,
-        topics: formData.topics,
-      },
+    formRef.value?.validate().then(() => {
+      const selectedInstances = formData.instance_list.filter((item) => item.checked);
+      if (selectedInstances.length === 0) {
+        messageWarn(t('请选择 Broker 实例'));
+        return;
+      }
+      createTicketRun({
+        details: {
+          cluster_id: props.data.id,
+          instance_info: selectedInstances.map((item) => ({
+            agent_status: item.agentStatus,
+            create_at: item.createAt,
+            intance_address: item.instance_address,
+          })),
+          instance_list: selectedInstances.map((item) => ({
+            bk_cloud_id: item.bk_cloud_id,
+            bk_host_id: item.bk_host_id,
+            ip: item.ip,
+            port: item.port,
+          })),
+          throttle_rate: formData.throttle_rate,
+          topics: formData.topics,
+        },
+      });
     });
   };
 
   const handleCancel = () => {
     Object.assign(formData, {
       instance_list: [],
-      throttle_rate: 500000,
+      throttle_rate: 50000000,
       topics: ['*'],
     });
     isShow.value = false;
