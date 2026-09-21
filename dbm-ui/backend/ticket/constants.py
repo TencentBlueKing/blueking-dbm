@@ -270,7 +270,7 @@ class TicketType(StrStructuredEnum):
     MYSQL_HA_RENAME_DATABASE = TicketEnumField("MYSQL_HA_RENAME_DATABASE", _("MySQL 高可用DB重命名"), _("集群维护"))
     MYSQL_HA_TRUNCATE_DATA = TicketEnumField("MYSQL_HA_TRUNCATE_DATA", _("MySQL 高可用清档"), _("数据处理"))
     MYSQL_HA_DB_TABLE_BACKUP = TicketEnumField("MYSQL_HA_DB_TABLE_BACKUP", _("MySQL 库表备份"), _("备份"), register_iam=True)
-    MYSQL_DTS_CHECKSUM = TicketEnumField("MYSQL_DTS_CHECKSUM", _("MySQL DTS 数据校验"), _("数据处理"), register_iam=True)
+    MYSQL_DTS_CHECKSUM = TicketEnumField("MYSQL_DTS_CHECKSUM", _("MySQL DTS 数据校验"), _("数据处理"))
     MYSQL_CHECKSUM = TicketEnumField("MYSQL_CHECKSUM", _("MySQL 数据校验修复"), _("数据处理"))
     MYSQL_CHECKSUM_CRON = TicketEnumField("MYSQL_CHECKSUM_CRON", _("MySQL 数据校验定时任务"))
     MYSQL_PARTITION = TicketEnumField("MYSQL_PARTITION", _("MySQL 分区"), _("分区管理"))
