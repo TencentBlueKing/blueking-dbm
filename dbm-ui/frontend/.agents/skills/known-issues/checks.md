@@ -26,19 +26,11 @@
   `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
   的弹窗外壳 / PanelTab / 表格容器 / 取值语义，或新写「左表格 + 右结果预览」选择器
 - [组件目录必须 kebab-case](doc/component-dir-kebab-case.md) —— 本次新建或重命名带 `Index.vue` 的组件目录
-- [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
-  `.validate()`，且返回值被当布尔判断
-- [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md) —— `<BkPagination>` /
-  `<DbPagination>` 只写了 `v-bind="pagination"`
-- [筛选值全链路只能是逗号分隔字符串](doc/filter-value-encoding.md) —— 搜索栏与表格列筛选之间传值，或给 `MultipleSelect`
-  传 `value` / 写选项 `value`
-- [语言包值里的字面花括号必须用 {'@'} 式转义](doc/locale-literal-brace.md) —— 往 `src/locales/*.json` 的值写 `{`
-  字面量，或页面报 `Invalid token in placeholder`
+- [表格列宽优先 min-width，取值落在约定档位](doc/table-column-width.md) —— 本次新增或改了
+  `TableColumn` 的 `width` / `min-width`（不含 `EditableColumn`）
 
 ## B 类：只报告，改法未定
 
-- `views/db-manage/common/{cluster,instance}-table/**`、任何新增表格列——
-  [新增表格列不要再造一个宽度取值](doc/table-column-width.md)
 - 任何写 `shortcuts: [` 的地方—— [时间范围快捷选项同目录共用一份常量](doc/datetime-range-shortcuts.md)
 - 做拖拽改宽度的面板、侧栏、弹窗——
   [可拖拽改宽度不要用 `table-detail-dialog/hooks/use-resize.ts`](doc/resize-panel-width.md)
