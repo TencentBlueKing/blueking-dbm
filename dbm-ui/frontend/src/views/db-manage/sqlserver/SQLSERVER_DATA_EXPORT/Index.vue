@@ -194,22 +194,20 @@
     grammarCheckResult.value = checkResult;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     formData.sql_file = sqlQueryRef.value!.getValue();
-    const result = await formRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        cluster_ids: formData.cluster_list.map((item) => item.id),
-        execute_objects: formData.execute_objects.map((item) => ({
-          dbnames: item.dbnames,
-          ignore_dbnames: item.ignore_dbnames,
-          sql_files: [formData.sql_file],
-        })),
-        select_role: formData.role,
-      },
+    formRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          cluster_ids: formData.cluster_list.map((item) => item.id),
+          execute_objects: formData.execute_objects.map((item) => ({
+            dbnames: item.dbnames,
+            ignore_dbnames: item.ignore_dbnames,
+            sql_files: [formData.sql_file],
+          })),
+          select_role: formData.role,
+        },
+      });
     });
   };
 </script>
