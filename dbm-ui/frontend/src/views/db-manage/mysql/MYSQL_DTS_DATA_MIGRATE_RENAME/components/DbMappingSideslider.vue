@@ -199,13 +199,11 @@
     }, 200);
   };
 
-  const handleConfirm = async () => {
-    const result = await mappingTableRef.value?.validate();
-    if (!result) {
-      return;
-    }
-    emits('confirm', _.cloneDeep(mappingData));
-    emits('update:isShow', false);
+  const handleConfirm = () => {
+    mappingTableRef.value?.validate().then(() => {
+      emits('confirm', _.cloneDeep(mappingData));
+      emits('update:isShow', false);
+    });
   };
 
   const handleClose = () => {

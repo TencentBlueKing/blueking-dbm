@@ -59,6 +59,7 @@
               <div v-db-console="'kafka.clusterManage.manage'">
                 <a
                   :href="data.access_url"
+                  rel="noopener noreferrer"
                   target="_blank">
                   {{ t('控制台') }}
                 </a>
