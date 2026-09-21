@@ -71,6 +71,8 @@ func frameworkMetrics() []interface{} {
 		DbmMetadataSaveTimeConsumingMs,
 		DbmMetadataUpdatedCount,
 		DbhaDataStatusUpdatedCount,
+		DbhaDataStatusUpdatedIPCount,
+		DbhaDataStatusDeployedIPCount,
 	}
 }
 

@@ -226,10 +226,20 @@ func (ha *DbhaData) ReadBlackWhiteList(
 	return blackWhiteList, nil
 }
 
-// DbTypeUpdatedCount represents the count of rows grouped by db_type.
+// DbTypeUpdatedCount represents a count grouped by db_type. Depending on the query the
+// count is either a row count or a de-duplicated IP count.
 type DbTypeUpdatedCount struct {
 	DbType haprobe.DbType `gorm:"column:db_type"`
 	Count  int64          `gorm:"column:cnt"`
+}
+
+// DbTypeHarvestStatusCount holds the instance count and the IP count of one
+// (db_type, harvest_type) group, both produced by a single scan.
+type DbTypeHarvestStatusCount struct {
+	DbType        haprobe.DbType      `gorm:"column:db_type"`
+	HarvestType   haprobe.HarvestType `gorm:"column:harvest_type"`
+	InstanceCount int64               `gorm:"column:instance_cnt"`
+	IPCount       int64               `gorm:"column:ip_cnt"`
 }
 
 // CountDbmMetadataUpdatedWithin counts the DbmMetadata rows updated within the given duration.
@@ -272,8 +282,36 @@ func (ha *DbhaData) CountDbmMetadataUpdatedWithin(ctx context.Context,
 	return result, nil
 }
 
-// CountDbhaDataStatusUpdatedWithin counts the DbhaDataStatus rows updated within the given duration.
+// CountDbhaDataStatusUpdatedWithin counts the DbhaDataStatus instances and IPs updated within
+// the given duration, grouped by db_type and harvest_type, in a single scan. Instances are
+// de-duplicated by (bk_cloud_id, db_ip, db_port) and IPs by (bk_cloud_id, db_ip).
 func (ha *DbhaData) CountDbhaDataStatusUpdatedWithin(ctx context.Context,
+	offsetDuration time.Duration) ([]*DbTypeHarvestStatusCount, error) {
+
+	lastUpdateTime := time.Now().Local().Add(-offsetDuration)
+
+	var result []*DbTypeHarvestStatusCount
+
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbhaDataStatus{}).
+		Select(fmt.Sprintf("%s AS db_type, %s AS harvest_type, "+
+			"COUNT(DISTINCT %s, %s, %s) AS instance_cnt, COUNT(DISTINCT %s, %s) AS ip_cnt",
+			hamodel.DbhaStatusFieldDbTypeName, hamodel.DbhaStatusFieldHarvestType,
+			hamodel.DbhaStatusFieldBkCloudID, hamodel.DbhaStatusFieldDbIp, hamodel.DbhaStatusFieldDbPort,
+			hamodel.DbhaStatusFieldBkCloudID, hamodel.DbhaStatusFieldDbIp,
+		)).
+		Where(fmt.Sprintf("%s > ?", hamodel.DbhaStatusFieldUpdatedAt), lastUpdateTime).
+		Group(fmt.Sprintf("%s, %s", hamodel.DbhaStatusFieldDbTypeName, hamodel.DbhaStatusFieldHarvestType)).
+		Scan(&result).Error
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return result, nil
+}
+
+// CountDbhaDataStatusDeployedIPWithin counts the IPs reporting DbhaDataStatus within the given
+// duration, grouped by db_type only, de-duplicated by (bk_cloud_id, db_ip).
+func (ha *DbhaData) CountDbhaDataStatusDeployedIPWithin(ctx context.Context,
 	offsetDuration time.Duration) ([]*DbTypeUpdatedCount, error) {
 
 	lastUpdateTime := time.Now().Local().Add(-offsetDuration)
@@ -281,8 +319,9 @@ func (ha *DbhaData) CountDbhaDataStatusUpdatedWithin(ctx context.Context,
 	var result []*DbTypeUpdatedCount
 
 	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbhaDataStatus{}).
-		Select(fmt.Sprintf("%s AS db_type, COUNT(*) AS cnt",
+		Select(fmt.Sprintf("%s AS db_type, COUNT(DISTINCT %s, %s) AS cnt",
 			hamodel.DbhaStatusFieldDbTypeName,
+			hamodel.DbhaStatusFieldBkCloudID, hamodel.DbhaStatusFieldDbIp,
 		)).
 		Where(fmt.Sprintf("%s > ?", hamodel.DbhaStatusFieldUpdatedAt), lastUpdateTime).
 		Group(hamodel.DbhaStatusFieldDbTypeName).

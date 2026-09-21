@@ -222,11 +222,14 @@ func (w *Workflow) Run(ctx context.Context) error {
 	return nil
 }
 
-// runDbTableStatsLoop periodically counts rows updated within dbTableStatsInterval
-// in the DbmMetadata and DbhaDataStatus tables, grouped by db_type,
-// and reports them as gauges. It exits on workflow quit or ctx cancellation.
+// runDbTableStatsLoop periodically reports statistics collected within dbTableStatsInterval as
+// gauges: DbmMetadata rows by db_type, and DbhaDataStatus instances and IPs by db_type.
+// It exits on quit or ctx cancellation.
 func (w *Workflow) runDbTableStatsLoop(ctx context.Context) {
 	defer w.wg.Done()
+
+	// Report once first, then enter the interval loop.
+	w.reportDbTableUpdatedStats(ctx)
 
 	timer := time.NewTimer(dbTableStatsInterval)
 	defer timer.Stop()
@@ -816,14 +819,20 @@ func instanceEventKey(bkCloudID int, ip string, port int, eventName haprobe.DbEv
 	return fmt.Sprintf("%d:%s:%d:%s", bkCloudID, ip, port, eventName)
 }
 
-// reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for
-// rows updated within the last dbTableStatsInterval, grouped by db_type,
-// and reports each group's count to the corresponding gauge metric.
+// reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for rows
+// updated within the last dbTableStatsInterval and reports each group's count to the
+// corresponding gauge metric.
 func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
+	w.reportMetadataUpdatedStats(ctx)
+	w.reportStatusUpdatedStats(ctx)
+	w.reportStatusIPDeployedStats(ctx)
+}
+
+// reportMetadataUpdatedStats reports DbmMetadata rows updated within the latest window, by db_type.
+func (w *Workflow) reportMetadataUpdatedStats(ctx context.Context) {
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	defer cancel()
 
-	// DbmMetadata
 	metaCounts, err := w.hadata.CountDbmMetadataUpdatedWithin(qCtx, dbTableStatsInterval)
 	if err != nil {
 		logger.Warn("failed to count DbmMetadata updated rows, errmsg: %s", err)
@@ -832,36 +841,88 @@ func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
 	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
 	apm.DbmMetadataUpdatedCount.Clear()
 	for _, item := range metaCounts {
-		if item.DbType == haprobe.DbTypeNone {
-			item.DbType = haprobe.DbTypeUnknown
-		}
 		if e := apm.DbmMetadataUpdatedCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        item.DbType.String(),
+			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
 		}, float64(item.Count)); e != nil {
 			logger.Warn("failed to report dbm_metadata_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
 		}
 	}
+}
 
-	// DbhaDataStatus
-	statusCounts, err := w.hadata.CountDbhaDataStatusUpdatedWithin(qCtx, dbTableStatsInterval)
+// reportStatusUpdatedStats reports distinct DbhaDataStatus instances and IPs updated within
+// the latest window, by db_type and harvest_type. Both counts come from a single scan.
+func (w *Workflow) reportStatusUpdatedStats(ctx context.Context) {
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	counts, err := w.hadata.CountDbhaDataStatusUpdatedWithin(qCtx, dbTableStatsInterval)
 	if err != nil {
-		logger.Warn("failed to count DbhaDataStatus updated rows, errmsg: %s", err)
+		logger.Warn("failed to count DbhaDataStatus updated instances and ips, errmsg: %s", err)
 		return
 	}
 	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
 	apm.DbhaDataStatusUpdatedCount.Clear()
-	for _, item := range statusCounts {
-		if item.DbType == haprobe.DbTypeNone {
-			item.DbType = haprobe.DbTypeUnknown
-		}
-		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(map[string]string{
+	apm.DbhaDataStatusUpdatedIPCount.Clear()
+	for _, item := range counts {
+		// Both gauges share the same label set, so one map serves both.
+		labels := map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        item.DbType.String(),
-		}, float64(item.Count)); e != nil {
-			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
+			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+			apm.MetricLabelHarvestType:   string(normalizeHarvestType(item.HarvestType)),
+		}
+		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(labels,
+			float64(item.InstanceCount)); e != nil {
+			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, harvestType: %s, errmsg: %s",
+				item.DbType, item.HarvestType, e)
+		}
+		if e := apm.DbhaDataStatusUpdatedIPCount.SetWithLabels(labels,
+			float64(item.IPCount)); e != nil {
+			logger.Warn("failed to report dbha_data_status_updated_ip_count, dbType: %s, harvestType: %s, errmsg: %s",
+				item.DbType, item.HarvestType, e)
 		}
 	}
+}
+
+// reportStatusIPDeployedStats reports distinct deployed IPs that reported DbhaDataStatus
+// within the latest window, by db_type.
+func (w *Workflow) reportStatusIPDeployedStats(ctx context.Context) {
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	ipCounts, err := w.hadata.CountDbhaDataStatusDeployedIPWithin(qCtx, dbTableStatsInterval)
+	if err != nil {
+		logger.Warn("failed to count DbhaDataStatus deployed ips, errmsg: %s", err)
+		return
+	}
+	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
+	apm.DbhaDataStatusDeployedIPCount.Clear()
+	for _, item := range ipCounts {
+		if e := apm.DbhaDataStatusDeployedIPCount.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+		}, float64(item.Count)); e != nil {
+			logger.Warn("failed to report dbha_data_status_deployed_ip_count, dbType: %s, errmsg: %s", item.DbType, e)
+		}
+	}
+}
+
+// normalizeDbType maps an empty db_type to DbTypeUnknown so that metrics never expose an empty label.
+func normalizeDbType(dbType haprobe.DbType) haprobe.DbType {
+	if dbType == haprobe.DbTypeNone {
+		return haprobe.DbTypeUnknown
+	}
+	return dbType
+}
+
+// normalizeHarvestType maps a missing harvest_type to the default collection group, matching
+// how legacy reports that carry no harvest_type are stored.
+func normalizeHarvestType(harvestType haprobe.HarvestType) haprobe.HarvestType {
+	if harvestType == "" {
+		return haprobe.HarvestTypeDefault
+	}
+	return harvestType
 }
