@@ -150,8 +150,10 @@
   const searchKey = useDebouncedRef('');
   /** 我的收藏 / 最近使用默认展开 */
   const fixedActiveIndex = ref(['favor', 'used']);
-  /** 分组目录默认全部折叠 */
-  const groupActiveIndex = ref<string[]>([]);
+  /** 分组目录默认全部展开 */
+  const groupActiveIndex = ref<string[]>(
+    props.menuList.filter((item) => item.children.length > 0).map((item) => item.id),
+  );
 
   const dbType = route.meta.dbType as DBTypes;
   const profileFavorKey = toolboxProfileKeyMap[dbType]!.favor;
@@ -235,9 +237,9 @@
     return searchKey.value ? filterBySearchKey(menuList) : menuList;
   });
 
-  // 有搜索词时自动展开命中分组并隐藏展开/收起控件，清空后恢复默认折叠
-  watch(searchKey, (value) => {
-    groupActiveIndex.value = value ? groupDataList.value.map((item) => item.id) : [];
+  // 有搜索词时自动展开命中分组并隐藏展开/收起控件，清空后恢复默认的全部展开
+  watch(searchKey, () => {
+    groupActiveIndex.value = groupDataList.value.map((item) => item.id);
   });
 
   const getTheme = (index: number) => {

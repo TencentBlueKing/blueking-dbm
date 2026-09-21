@@ -179,6 +179,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
         desc: t('切换主从角色'),
         id: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
+        isFix: true,
         name: t('主从切换'),
       },
       {

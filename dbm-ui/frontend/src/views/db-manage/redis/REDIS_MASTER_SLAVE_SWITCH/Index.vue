@@ -16,7 +16,7 @@
     <div class="redis-master-failover-page">
       <BkAlert
         closable
-        theme="info"
+        theme="warning"
         :title="
           t(
             '主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换',
