@@ -21,6 +21,8 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.util import get_cluster_info_by_id
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
@@ -38,6 +40,8 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
             "cluster_domain": "cache.test.testapp.db",
             "target_ips" (optional): {"1.1.1.1", "2.2.2.2"}
             "target_version" (optional): "twemproxy-0.4.1-v29"
+            "alarm_shield" (optional): {"act_name": str, "kwargs": dict}
+            "disable_alarm_shield" (optional): {"act_name": str, "kwargs": dict}
         }
     """
     cluster_ips_set = set()
@@ -72,6 +76,13 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
     sub_pipeline.add_act(
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
     )
+    alarm_shield = param.get("alarm_shield")
+    if alarm_shield:
+        sub_pipeline.add_act(
+            act_name=alarm_shield["act_name"],
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs=alarm_shield["kwargs"],
+        )
 
     act_kwargs.exec_ip = list(cluster_ips_set)
     sub_pipeline.add_act(act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs))
@@ -96,4 +107,11 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
         )
     if acts_list:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    disable_alarm_shield = param.get("disable_alarm_shield")
+    if disable_alarm_shield:
+        sub_pipeline.add_act(
+            act_name=disable_alarm_shield["act_name"],
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs=disable_alarm_shield["kwargs"],
+        )
     return sub_pipeline.build_sub_process(sub_name=_("目标版本-{}").format(proxy_pkg_prefix))
