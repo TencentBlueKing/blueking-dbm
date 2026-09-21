@@ -33,7 +33,7 @@
             <span style="padding-left: 5px">
               <span v-if="searchKey">{{ t('已筛选') }}</span>
               <span v-else>{{ t('共') }}</span>
-              <span class="ip-num">{{ props.data.length }}</span>
+              <span class="ip-num">{{ serachList.length }}</span>
               {{ t('台') }}
             </span>
           </div>
@@ -99,7 +99,7 @@
                     {{ t('每台主机实例数') }}
                     <i
                       class="db-icon-bulk-edit"
-                      style=" margin-left: 5px;color: #3a84ff" />
+                      style="margin-left: 5px; color: #3a84ff" />
                   </span>
                   <template #content>
                     <div>

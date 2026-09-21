@@ -272,63 +272,60 @@
     where: string;
   }>(TicketTypes.TENDBCLUSTER_DUMP_DATA);
 
-  const handleSubmit = async () => {
-    const result = await formRef.value?.validate();
-    if (!result) {
-      return;
-    }
+  const handleSubmit = () => {
+    formRef.value?.validate().then(() => {
+      if (!formData.clusterId) {
+        alert(t('请先选择源集群'));
+        return;
+      }
 
-    if (!formData.clusterId) {
-      alert(t('请先选择源集群'));
-      return;
-    }
+      if (formData.databases.length === 0) {
+        alert(t('请至少选择 1 个目标 DB'));
+        return;
+      }
 
-    if (formData.databases.length === 0) {
-      alert(t('请至少选择 1 个目标 DB'));
-      return;
-    }
+      if (formData.tables.length === 0) {
+        alert(t('请选择目标表名'));
+        return;
+      }
 
-    if (formData.tables.length === 0) {
-      alert(t('请选择目标表名'));
-      return;
-    }
+      // 多库时目标表必须为 *
+      if (isMultiDb.value && !(formData.tables.length === 1 && formData.tables[0] === '*')) {
+        alert(t('多个目标库时，目标表名只能为 *'));
+        return;
+      }
 
-    // 多库时目标表必须为 *
-    if (isMultiDb.value && !(formData.tables.length === 1 && formData.tables[0] === '*')) {
-      alert(t('多个目标库时，目标表名只能为 *'));
-      return;
-    }
+      // 忽略表不支持 *
+      if (formData.tablesIgnore.includes('*')) {
+        alert(t('忽略表名不支持 *'));
+        return;
+      }
 
-    // 忽略表不支持 *
-    if (formData.tablesIgnore.includes('*')) {
-      alert(t('忽略表名不支持 *'));
-      return;
-    }
+      // 条件导出不支持仅表结构
+      if (formData.exportScope === 'row' && formData.exportType === 'schema') {
+        alert(t('条件导出不支持仅导出表结构'));
+        return;
+      }
 
-    // 条件导出不支持仅表结构
-    if (formData.exportScope === 'row' && formData.exportType === 'schema') {
-      alert(t('条件导出不支持仅导出表结构'));
-      return;
-    }
+      // 条件导出 where 必填
+      if (formData.exportScope === 'row' && !formData.where.trim()) {
+        alert(t('请填写 where 条件'));
+        return;
+      }
 
-    // 条件导出 where 必填
-    if (formData.exportScope === 'row' && !formData.where.trim()) {
-      alert(t('请填写 where 条件'));
-      return;
-    }
-
-    createTicketRun({
-      details: {
-        charset: 'default',
-        cluster_id: formData.clusterId,
-        databases: formData.databases,
-        dump_data: formData.exportType === 'all' || formData.exportType === 'data',
-        dump_schema: formData.exportType === 'all' || formData.exportType === 'schema',
-        tables: formData.tables,
-        tables_ignore: isAllTablesMode.value ? formData.tablesIgnore : [],
-        where: formData.exportScope === 'row' ? formData.where : '',
-      },
-      ...formData.payload,
+      createTicketRun({
+        details: {
+          charset: 'default',
+          cluster_id: formData.clusterId,
+          databases: formData.databases,
+          dump_data: formData.exportType === 'all' || formData.exportType === 'data',
+          dump_schema: formData.exportType === 'all' || formData.exportType === 'schema',
+          tables: formData.tables,
+          tables_ignore: isAllTablesMode.value ? formData.tablesIgnore : [],
+          where: formData.exportScope === 'row' ? formData.where : '',
+        },
+        ...formData.payload,
+      });
     });
   };
 
