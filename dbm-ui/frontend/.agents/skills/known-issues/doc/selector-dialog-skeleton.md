@@ -23,7 +23,7 @@
     `cluster-selector` 的 13 个 tab 还带 `customColums`、`disabledRowConfig`、`submitTips` 插槽。
     合并只会把这些差异变成一堆开关
   - 不要顺手摘掉 `cluster-selector` / 两个 resource-selector 的 `parse-url`。它决定弹窗打开时是否用 URL
-    query 回填搜索条件，可能被直达链接依赖（见 `.agents/rules/direct-link.mdc`）
+    query 回填搜索条件，可能被直达链接依赖（见 `dbm-frontend-developer` 的 `references/direct-link.md`）
   - Tab 条不要求抽成 `PanelTab.vue`。`cluster-selector` 的 tab 内联在 `Index.vue` 且包了 BkPopover
     说明气泡，样式一致即可（BkPopover 默认不加包裹元素，`flex: 1` 仍落在 `.tabs-item` 上）
 - **存量**：固定六份，见上方命中清单。同形但不在这组的另外两处（mongo-host-selector、
