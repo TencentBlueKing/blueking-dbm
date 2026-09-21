@@ -34,56 +34,27 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 
 ## 仓库分层
 
-- `src/` 源码
-- `public/` 静态资源，构建后原样输出
-- `lib/` 内部库（别名 `@lib/*`）
-- `openspec/` 变更提案与规格（未纳入 git）
+`src/` 源码，`public/` 静态资源（构建后原样输出），`lib/` 内部库（别名 `@lib/*`），`openspec/`
+变更提案与规格（未纳入 git）。
 
-## src 分层
-
-| 目录          | 职责                                                         |
-| ------------- | ------------------------------------------------------------ |
-| `views/`      | 页面，每个功能一个文件夹                                     |
-| `components/` | 跨业务可复用 UI                                              |
-| `services/`   | API、数据模型                                                |
-| `stores/`     | Pinia                                                        |
-| `hooks/`      | 全局 composable                                              |
-| `router/`     | 路由入口，`registerModule` / `registerBusinessModule`        |
-| `utils/`      | 通用工具                                                     |
-| `common/`     | 常量、正则、缓存（`TicketTypes`、`DBTypes`、`ClusterTypes`） |
-| `layout/`     | 导航壳                                                       |
-| `locales/`    | i18n                                                         |
-| `styles/`     | 全局样式                                                     |
-| `types/`      | 全局 TypeScript 类型声明                                     |
-| `images/`     | 图片资源                                                     |
-| `directives/` | 自定义指令                                                   |
-| `helper/`     | 本地缓存、校验器                                             |
-
-组件命名：目录 kebab-case，入口固定 `Index.vue`，仅本组件使用的子文件放同级 `components/`。
-
-页面按业务拆在 `src/views/` 下，各自有 `routes.ts`，由 `src/router/index.ts`
-聚合。常见模块：`db-manage`、`ticket-center`、`resource-manage`、`monitor-alarm`、`service-apply`、`password-manage`、`db-configure`。
+**`src/` 各目录职责、组件命名、页面怎么拆**见 `dbm-frontend-developer` 的 `references/architecture.md`。
 
 ## 项目独有约定
 
 只列工具查不出来的。导入顺序、模板属性顺序、缩进格式由 ESLint / Prettier / Stylelint 强制，写错跑一次 `--fix`
 就会自动修，不必手工记忆。
 
+下面六条是写每一行代码都会用到的，漏了直接产出错误代码，所以常驻此处：
+
 - **vue / vue-router 的 API 已 auto-import**：`ref`、`computed`、`watch`、`useRouter`、`useRoute` 等不要显式 import
-- `<script setup>` 与 `<style>` 的内容整体缩进一级（`vueIndentScriptAndStyle`）
-- script setup 宏顺序：`defineOptions` → `defineProps` → `defineEmits` → `defineSlots` → `defineModel` → `defineExpose`
-- Props 用 `interface` + `withDefaults`；Emits 用类型别名，如 `type Emits = (e: 'change', value: string) => void`
 - 文案一律走 `t()`（`useI18n`），语言包在 `src/locales/`
-- 基础组件优先用 `src/components/bkui-vue/` 下的本地实现（如 `DbInput`，在 `src/common/importComps.ts`
-  全局注册）；该目录没有的组件再用 bkui-vue 包（`main.ts`
-  已全局注册）；element-plus 仅存量日期类组件在用，新代码不要再引入
-- Pinia 沿用 options 风格（`state` / `getters` / `actions`），现有 store 都是这个写法
-- 类名写完整的嵌套类名，禁止 `&_name`、`&-name`、`--name`
-- 路径别名优先于相对路径（`@services/*`、`@components/*`、`@views/*`、`@common/*`、`@utils`、`@hooks`、`@stores`
-  等），完整清单见 `tsconfig.json`
 - 不用 `any`，用具体类型或 `unknown`
+- 路径别名优先于相对路径（`@services/*`、`@components/*`、`@views/*` 等），完整清单见 `tsconfig.json`
 - 新建 `.vue` / `.ts` 文件要带 MIT 版权头，照抄同目录已有文件的头部
-- 技术栈版本不在文档里维护，以 `package.json` 为准
+- 类名写完整的嵌套类名，禁止 `&_name`、`&-name`、`--name`
+
+**完整清单**（script setup 宏顺序、Props / Emits 写法、组件选型优先级、Pinia 风格、缩进等）见
+`dbm-frontend-developer` 的 `references/code-conventions.md`，**改 `src/` 下任何文件前读**。
 
 ## 工作方式
 
@@ -123,23 +94,23 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 `.agents/skills/known-issues/SKILL.md`，此处不重复。**扫完必须在回复里写一行 `known-issues: 已扫，命中 N 条`**，N
 为 0 也要写——这是漏扫的唯一可观测信号，所以只能写在这里，写进 skill 就失效了。
 
-## 规则与技能索引
+## 技能索引
 
-`.agents/rules/` 不会被工具自动附加，agent 按下表「什么时候读」主动加载：
+`.agents/skills/` 按各 `SKILL.md` 的 description 触发。DBM 前端相关的六个按职责划分，互不重叠：
 
-| 文件                     | 什么时候读                                                   |
-| ------------------------ | ------------------------------------------------------------ |
-| `db-manage.mdc`          | 改 `db-manage/**`：集群/实例列表、集群详情、工具箱提单、路由 |
-| `direct-link.mdc`        | 新增或修改直达链接（URL 带 `?open=` 参数自动执行动作）入口   |
-| `layout.mdc`             | 改 `src/layout/**`，或新增页面要挂菜单入口                   |
-| `search-filter-sync.mdc` | 页面同时有 `DbQuickSearch` 搜索栏和表格列筛选                |
-| `services.mdc`           | 改 `services/**`，或新增接口                                 |
-| `ticket-detail.mdc`      | 改 `ticket-center/**`，或新增单据详情组件与 details 类型     |
-| `toolbox-code.mdc`       | 新增或修改工具箱提单页                                       |
+| skill | 职责 | 什么时候读 |
+| ------------------------ | ---------------- | ------------------------------------------------------------ |
+| `dbm-frontend-developer` | 架构与代码逻辑   | **改 `src/` 下任何前端代码前**（编码约定全清单、src 分层）；改 `services/**` 或新增接口；改 `src/layout/**`、`src/router/**` 或新增页面要挂菜单入口；做 URL 带 `?open=` 的直达链接；页面同时有 `DbQuickSearch` 搜索栏和表格列筛选 |
+| `dbm-designer`          | 设计             | 新建或修改页面、组件、样式前；查布局、留白、令牌、组件选型、视觉与交互反馈 |
+| `dbm-db-developer`       | 场景：db 模块    | 接入新 DB、改 `db-manage/common/**` 或某个 DB 的集群列表 / 详情 / 实例列表、改 DB 类型登记前；判断需求是全部 DB / 一类 / 某一个时 |
+| `dbm-ticket-developer`   | 场景：单据模块   | 新增或修改任何单据类型、改 `ticket-center/**` 或 `services/model/ticket/**` 前 |
+| `dbm-toolbox-developer`  | 场景：工具箱模块 | 改 `db-manage/{db}/{TICKET_TYPE}/**`（申请页除外）、工具箱路由与菜单、`dba-manage` 前 |
+| `dbm-reviewer`           | 审查             | 用户要求 code review、提交前检查时 |
 
-`.agents/skills/` 按各 `SKILL.md` 的 description 触发，其中 `dbm-frontend-design`
-覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`known-issues`
-存已固化的检查项，改 `src/` 下文件前必读（见上「工作方式」）。
+边界判据：约定换个业务模块照样成立 → `dbm-frontend-developer`；只定「长什么样、怎么反馈」→
+`dbm-designer`；只对某一个模块成立 → 对应的场景 skill；只管「怎么查、怎么报」→ `dbm-reviewer`。
+
+此外 `known-issues` 存已固化的检查项，改 `src/` 下文件前必读（见上「工作方式」）。
 
 ## 不要碰
 

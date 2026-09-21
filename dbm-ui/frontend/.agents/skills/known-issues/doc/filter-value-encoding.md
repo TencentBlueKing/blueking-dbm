@@ -7,7 +7,7 @@
   `props.value.split(',')`，传数组会抛错；选项 `value` 是布尔时，面板内部 `split`
   出来的是字符串数组，与选项值匹配不上，勾选态回显不出来
 - **改成**：选项 `value` 一律字符串；表格 `@change` 回来的值在入口处归一
-  `Array.isArray(v) ? v.join(',') : v`。完整规范见 `.agents/rules/search-filter-sync.mdc` 的「值形态」一节
+  `Array.isArray(v) ? v.join(',') : v`。完整规范见 `dbm-frontend-developer` 的 `references/search-filter-sync.md` 的「值形态」一节
 - **不要**在 `MultipleSelect` 内部加 `Array.isArray` 兜底：兜底之后调用方就没有统一形态的压力了，
   而回显不出来的那半个问题（布尔选项值）兜底也解决不了
 - **存量**：`version-files/v2` 已修。`db-manage`、`resource-manage` 等模块用同一套 `db-table` +
