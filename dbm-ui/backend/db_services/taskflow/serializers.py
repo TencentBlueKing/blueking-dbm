@@ -113,6 +113,8 @@ class VersionSerializer(NodeSerializer):
     version_id = serializers.CharField(help_text=_("版本ID"))
     download = serializers.BooleanField(help_text=_("是否下载日志"), default=False)
     labels = serializers.CharField(help_text=_("标签过滤,逗号分割"), required=False)
+    offset = serializers.IntegerField(help_text=_("分页起始位置,从0开始"), required=False, min_value=0, default=0)
+    limit = serializers.IntegerField(help_text=_("分页大小,0表示不分页"), required=False, min_value=0, default=0)
 
 
 class BatchDownloadSerializer(serializers.Serializer):
