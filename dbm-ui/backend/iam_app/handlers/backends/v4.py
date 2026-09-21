@@ -232,5 +232,5 @@ class IAMV4Backend(IAMBackend):
 
     def get_system_info(self):
         params = {"fields": "system_info,resource_types,actions"}
-        data = self.call_with_retry(IAMV4Api.share_retrieve_system, params=params, default={})
+        data = self.call_with_retry(IAMV4Api.retrieve_system, params=params, default={})
         return data
