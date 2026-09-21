@@ -16,10 +16,25 @@ from django.conf import settings
 from django.http import Http404, JsonResponse
 from django.utils.translation import gettext as _
 from rest_framework import exceptions, status
+from rest_framework.request import Request
 
 from backend.exceptions import AppBaseException, ErrorCode
 
 logger = logging.getLogger("root")
+
+
+def build_page_url(request: Request, offset: int, **query_updates) -> str:
+    """
+    基于当前请求构建指定分页偏移量的完整URL，常用于无法使用DRF分页器(数据源非queryset)的next/previous链接
+    :param request: DRF请求对象
+    :param offset: 分页偏移量
+    :param query_updates: 额外需要覆盖的查询参数
+    """
+    query_params = request.query_params.copy()
+    # 注意: QueryDict的update是追加语义，这里通过__setitem__覆盖同名参数
+    for key, value in {**query_updates, "offset": offset}.items():
+        query_params[key] = value
+    return request.build_absolute_uri(f"{request.path}?{query_params.urlencode()}")
 
 
 def drf_exception_handler(exc, context):
