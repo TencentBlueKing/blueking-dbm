@@ -75,10 +75,16 @@ const surrealdbClusterTypePageMap = {
   [ClusterTypes.K8S_SURREALDB_SINGLE]: 'SurrealdbSingleDetail',
 };
 
+// qdrant
+const qdrantClusterTypePageMap = {
+  [ClusterTypes.K8S_QDRANT_HA]: 'QdrantHaDetail',
+};
+
 export const clusterTypeListPageMap: Record<string, string> = {
   ...redisClusterTypePageMap,
   ...mysqlClusterTypePageMap,
   ...oracleClusterTypePageMap,
+  ...qdrantClusterTypePageMap,
   ...surrealdbClusterTypePageMap,
   ...pulsarClusterTypePageMap,
   ...riakClusterTypePageMap,
