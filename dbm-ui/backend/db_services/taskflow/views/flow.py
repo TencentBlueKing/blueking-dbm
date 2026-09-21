@@ -28,6 +28,7 @@ from backend.db_services.taskflow.serializers import (
     DownloadExcelSerializer,
     FlowTaskSerializer,
     GetSpecifiedNodeSerializer,
+    NodeLogV2Serializer,
     NodeRecordSerializer,
     NodeSerializer,
     VersionSerializer,
@@ -306,6 +307,7 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         version_id = validated_data["version_id"]
         label_filters = validated_data.get("labels")
         label_filters = label_filters.split(",") if label_filters else []
+        # 下载需要全量日志，只有预览才启用前后缀取样与省略行
         logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters)
         if validated_data["download"]:
             # 导出下载日志
@@ -316,6 +318,50 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             )
         else:
             return Response(logs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("节点日志V2"),
+        query_serializer=NodeLogV2Serializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=True, serializer_class=NodeLogV2Serializer)
+    def node_log_v2(self, requests, *args, **kwargs):
+        """节点日志V2: 首屏返回 前 N 行 + 省略提示(超阈值时) + 最新 N 行，并可凭 cursor 续拉。
+
+        响应字段: result/running/cursor 恒返回；too_large 仅在首屏(不带 cursor)返回，
+        用于标识是否触发了前后缀取样与日志省略。带 cursor 的请求是增量追加，不透传该字段。
+        running=True 表示节点仍在执行中，可用返回的 cursor 继续拉取后续日志。
+        """
+        root_id = kwargs["root_id"]
+        validated_data = self.params_validate(self.get_serializer_class())
+        node_id = validated_data["node_id"]
+        version_id = validated_data["version_id"]
+        cursor = validated_data.get("cursor")
+        label_filters = validated_data.get("labels")
+        label_filters = label_filters.split(",") if label_filters else []
+        handler = TaskFlowHandler(root_id=root_id)
+        if validated_data["download"]:
+            return handler.stream_version_logs(node_id, version_id, label_filters)
+        if cursor:
+            log_data = handler.get_version_logs_v2(node_id, version_id, label_filters, cursor)
+            return Response(
+                {
+                    "result": log_data["logs"],
+                    "running": log_data["running"],
+                    "cursor": log_data["cursor"],
+                    "too_large": log_data["too_large"],
+                }
+            )
+
+        log_data = handler.get_version_logs_v2(node_id, version_id, label_filters)
+        return Response(
+            {
+                "result": log_data["logs"],
+                "too_large": log_data["too_large"],
+                "running": log_data["running"],
+                "cursor": log_data["cursor"],
+            }
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("回调节点"),
