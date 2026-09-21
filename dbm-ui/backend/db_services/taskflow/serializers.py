@@ -119,3 +119,14 @@ class BatchDownloadSerializer(serializers.Serializer):
     full_paths = serializers.ListField(
         help_text=_("文件路径列表"), child=serializers.CharField(help_text="full_path"), min_length=1
     )
+
+
+class NodeLogV2Serializer(NodeSerializer):
+    """节点日志V2接口(node_log_v2)的查询参数: 基于 search_after 拉取，无需 offset/limit"""
+
+    version_id = serializers.CharField(help_text=_("版本ID"))
+    download = serializers.BooleanField(help_text=_("是否下载日志"), default=False)
+    labels = serializers.CharField(help_text=_("标签过滤,逗号分割"), required=False)
+    cursor = serializers.ListField(
+        child=serializers.IntegerField(), help_text=_("增量拉取游标,传入后只返回该游标之后的最新日志(执行中时用于追加后续日志)"), required=False
+    )
