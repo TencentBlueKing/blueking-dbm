@@ -240,16 +240,14 @@
     isShow.value = false;
   };
 
-  const handleConfirm = async () => {
-    const result = await formRef.value.validate();
-    if (!result) {
-      return;
-    }
-    emits('change', {
-      targetInfo,
-      updateInfo,
+  const handleConfirm = () => {
+    formRef.value.validate().then(() => {
+      emits('change', {
+        targetInfo,
+        updateInfo,
+      });
+      isShow.value = false;
     });
-    isShow.value = false;
   };
 </script>
 <style lang="less">

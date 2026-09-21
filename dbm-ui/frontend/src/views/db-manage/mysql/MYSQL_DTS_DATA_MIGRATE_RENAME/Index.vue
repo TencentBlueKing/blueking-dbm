@@ -378,54 +378,52 @@
     };
   }>(TicketTypes.MYSQL_DTS_DATA_MIGRATE_RENAME);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          dts_resource: {
-            deploy: {},
-          },
-          migrate: {
-            one_to_one: {
-              source: {
-                cluster_id: item.source_cluster.id,
-                sync_scope: {
-                  table_routes: item.db_mapping.map((m) => ({
-                    source_db: m.source_db,
-                    target_db: m.target_db,
-                  })),
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            dts_resource: {
+              deploy: {},
+            },
+            migrate: {
+              one_to_one: {
+                source: {
+                  cluster_id: item.source_cluster.id,
+                  sync_scope: {
+                    table_routes: item.db_mapping.map((m) => ({
+                      source_db: m.source_db,
+                      target_db: m.target_db,
+                    })),
+                  },
+                },
+                target: {
+                  cluster_id: item.target_cluster.id,
                 },
               },
-              target: {
-                cluster_id: item.target_cluster.id,
+              topology: 'one_to_one' as const,
+            },
+            resource_spec: {
+              master: {
+                count: 1,
+                label_names: item.labels.map((label) => label.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.spec_id,
+              },
+              worker: {
+                count: 1,
+                label_names: item.labels.map((label) => label.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.spec_id,
               },
             },
-            topology: 'one_to_one' as const,
+          })),
+          task: {
+            on_duplicate: formData.conflictHandle,
           },
-          resource_spec: {
-            master: {
-              count: 1,
-              label_names: item.labels.map((label) => label.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.spec_id,
-            },
-            worker: {
-              count: 1,
-              label_names: item.labels.map((label) => label.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.spec_id,
-            },
-          },
-        })),
-        task: {
-          on_duplicate: formData.conflictHandle,
         },
-      },
-      ...formData.payload,
+        ...formData.payload,
+      });
     });
   };
 

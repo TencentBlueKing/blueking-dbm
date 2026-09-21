@@ -11,13 +11,12 @@
   `Promise.resolve(false)`）
 - **不要**逐处加 `.catch(() => {})` 去消未捕获 rejection：reject 值是 `false` 与 Error 混杂，静默 catch
   会把 validator 自己抛的真实异常一起吞掉
-- **存量**：`EditableTable` 侧调用点已统一；`DbForm` 侧 5 处未改（命中命令的输出里另有 2 行是注释掉的旧代码，不算）
-  - `src/views/db-manage/mysql/MYSQL_DUMP_DATA/Index.vue`
-  - `src/views/db-manage/tendb-cluster/TENDBCLUSTER_DUMP_DATA/Index.vue`
-  - `src/views/db-manage/sqlserver/SQLSERVER_DATA_EXPORT/Index.vue`
-  - `src/views/db-manage/redis/REDIS_SCALE_UPDOWN/components/target-capacity-column/cluster-deploy-plan/Index.vue`
-  - `src/views/db-manage/common/cluster-batch-add-tag/components/tag-operation/components/key-value-mode/components/KeyValuePair.vue`
-- **核实**：2026-09-10
+- **存量**：`src/views/db-manage` 下已清零（命中命令的输出里剩下的行，要么是注释掉的旧代码，要么是下面这类真布尔转发点）
+- **不是命中**：`CreateValidateSelect.vue` 自己 `try / catch` 后 `return true / false`，暴露的是货真价实的
+  `Promise<boolean>`。调它的 `KeyValuePair.vue` 用 `Promise.all([...]).every((item) => item)` 判断是**对的**，不要改。
+  判定方法：顺着 ref 找到组件的 `defineExpose`，确认 `validate` 是直接转发 `DbForm` / `EditableTable`，还是包了一层
+  `catch`
+- **核实**：2026-09-21
 
 ## 补充
 

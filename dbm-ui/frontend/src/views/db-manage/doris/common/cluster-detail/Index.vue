@@ -24,6 +24,7 @@
           v-db-console="'doris.clusterManage.manage'"
           class="ml-4"
           :href="data.access_url"
+          rel="noopener noreferrer"
           target="_blank">
           <BkButton size="small"> WebUI </BkButton>
         </a>
