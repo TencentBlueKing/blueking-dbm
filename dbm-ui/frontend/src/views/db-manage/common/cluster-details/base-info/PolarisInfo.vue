@@ -7,8 +7,9 @@
     {{ polarisEntry.target_details[0]?.polaris_name }}
     <a
       v-if="polarisEntry.target_details[0].url"
-      target="_blank"
-      :url="polarisEntry.target_details[0].url">
+      :href="polarisEntry.target_details[0].url"
+      rel="noopener noreferrer"
+      target="_blank">
       <DbIcon type="link" />
     </a>
   </InfoItem>
