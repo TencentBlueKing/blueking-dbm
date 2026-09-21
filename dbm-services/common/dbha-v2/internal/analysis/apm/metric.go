@@ -38,6 +38,7 @@ const (
 	MetricLabelMethod      = "method"
 	MetricLabelStatusCode  = "status_code"
 	MetricLabelBizID       = "biz_id"
+	MetricLabelHarvestType = "harvest_type"
 
 	MetricServerName                 = "analysis"
 	MetricApiNameQueryMetadata       = "query_metadata"
@@ -92,6 +93,8 @@ var (
 	DbmMetadataSaveTimeConsumingMs *haapm.HaHistogram
 	DbmMetadataUpdatedCount        *haapm.HaGauge
 	DbhaDataStatusUpdatedCount     *haapm.HaGauge
+	DbhaDataStatusUpdatedIPCount   *haapm.HaGauge
+	DbhaDataStatusDeployedIPCount  *haapm.HaGauge
 )
 
 func init() {
@@ -312,10 +315,28 @@ func initDbTableUpdatedMetrics() {
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
 	)
 
-	// DbhaDataStatus rows updated within the latest statistics window, grouped by db_type.
+	// DbhaDataStatus instances updated within the latest statistics window, grouped by
+	// db_type and harvest_type. One instance keeps one row per collection group, so rows
+	// are de-duplicated by (bk_cloud_id, db_ip, db_port).
 	DbhaDataStatusUpdatedCount = haapm.NewHaGauge(
 		"dbha_data_status_updated_count",
-		"Number of DbhaDataStatus rows updated within the latest statistics window, by db_type",
+		"Number of DbhaDataStatus instances (distinct cloud/ip/port) updated within the latest statistics window, "+
+			"by db_type and harvest_type",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType, MetricLabelHarvestType,
+	)
+
+	// DbhaDataStatus IPs updated within the latest statistics window, grouped by db_type and harvest_type.
+	DbhaDataStatusUpdatedIPCount = haapm.NewHaGauge(
+		"dbha_data_status_updated_ip_count",
+		"Number of IPs (distinct cloud/ip) with DbhaDataStatus updated within the latest statistics window, "+
+			"by db_type and harvest_type",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType, MetricLabelHarvestType,
+	)
+
+	// DbhaDataStatus IPs updated within the latest statistics window, grouped by db_type only.
+	DbhaDataStatusDeployedIPCount = haapm.NewHaGauge(
+		"dbha_data_status_deployed_ip_count",
+		"Number of deployed IPs (distinct cloud/ip) reporting within the latest statistics window, by db_type",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
 	)
 }
