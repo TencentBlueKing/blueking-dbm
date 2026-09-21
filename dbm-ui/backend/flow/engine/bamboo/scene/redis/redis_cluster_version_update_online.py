@@ -657,8 +657,7 @@ class RedisClusterVersionUpdateOnline(object):
                     "remark": _("Redis集群版本升级完成后自动提交备份单据"),
                 },
             )
-
-        redis_pipeline.run_pipeline()
+        redis_pipeline.run_pipeline(init_trans_data_class=CommonContext())
 
     def _create_proxy_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
         """创建代理升级子流水线"""
@@ -675,14 +674,16 @@ class RedisClusterVersionUpdateOnline(object):
                     "cluster_domain": cluster_meta_data["immute_domain"],
                     "target_ips": ips,
                     "target_version": version,
+                    "alarm_shield": self._build_alarm_shield_spec(act_kwargs, ips, cluster_meta_data),
+                    "disable_alarm_shield": (
+                        self._build_disable_alarm_shield_spec(act_kwargs, cluster_meta_data) if ips else None
+                    ),
                 },
             )
             version_pipelines.append(sub_process)
 
         cluster_process_builder = SubBuilder(root_id=self.root_id, data=self.data)
         if version_pipelines:
-            proxy_ips = {ip for ips in version_pairs.values() for ip in ips}
-            self._add_alarm_shield_act(cluster_process_builder, act_kwargs, proxy_ips, cluster_meta_data)
             cluster_process_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
             self._add_data_update_tail_sub_pipeline(
                 cluster_process_builder,
@@ -691,7 +692,6 @@ class RedisClusterVersionUpdateOnline(object):
                 ],
                 sub_name=_("Proxy数据更新收尾"),
             )
-            self._add_disable_alarm_shield_act(cluster_process_builder, act_kwargs, cluster_meta_data)
         return cluster_process_builder.build_sub_process(_("集群{}-Proxy升级").format(cluster_meta_data["cluster_name"]))
 
     def _create_storage_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
@@ -824,18 +824,17 @@ class RedisClusterVersionUpdateOnline(object):
             kwargs=asdict(ctx.act_kwargs),
         )
 
-    def _add_alarm_shield_act(
+    def _build_alarm_shield_spec(
         self,
-        pipeline,
         act_kwargs: ActKwargs,
         ips,
         cluster_meta_data: Dict,
         cluster_ids: Optional[List[int]] = None,
-    ):
-        """版本升级开始前屏蔽目标 IP 告警, 覆盖重启与主从切换窗口."""
+    ) -> Optional[Dict]:
+        """构造屏蔽告警 act 的 name/kwargs; 没有 IP 时返回 None."""
         ip_list = sorted({ip for ip in ips if ip})
         if not ip_list:
-            return
+            return None
         immute_domain = cluster_meta_data.get("immute_domain")
         bk_biz_id = cluster_meta_data.get("bk_biz_id") or self.data.get("bk_biz_id")
         dimensions = [
@@ -845,24 +844,49 @@ class RedisClusterVersionUpdateOnline(object):
         # 多集群主从版同机升级不按单一域名维度屏蔽
         if immute_domain and not (cluster_ids and len(cluster_ids) > 1):
             dimensions.insert(1, {"name": "cluster_domain", "values": [immute_domain]})
-        pipeline.add_act(
-            act_name=_("屏蔽集群告警-{}").format(immute_domain or ",".join(ip_list)),
-            act_component_code=AddAlarmShieldComponent.code,
-            kwargs={
+        return {
+            "act_name": _("屏蔽集群告警-{}").format(immute_domain or ",".join(ip_list)),
+            "kwargs": {
                 **asdict(act_kwargs),
                 "description": _("Redis版本升级-屏蔽告警-{}").format(immute_domain or ""),
                 "dimensions": dimensions,
                 "duration_seconds": _VERSION_UPDATE_ALARM_SHIELD_SECONDS,
             },
+        }
+
+    def _add_alarm_shield_act(
+        self,
+        pipeline,
+        act_kwargs: ActKwargs,
+        ips,
+        cluster_meta_data: Dict,
+        cluster_ids: Optional[List[int]] = None,
+    ):
+        """版本升级开始前屏蔽目标 IP 告警, 覆盖重启与主从切换窗口."""
+        spec = self._build_alarm_shield_spec(act_kwargs, ips, cluster_meta_data, cluster_ids)
+        if not spec:
+            return
+        pipeline.add_act(
+            act_name=spec["act_name"],
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs=spec["kwargs"],
         )
+
+    @staticmethod
+    def _build_disable_alarm_shield_spec(act_kwargs: ActKwargs, cluster_meta_data: Dict) -> Dict:
+        return {
+            "act_name": _("解除集群告警屏蔽-{}").format(cluster_meta_data.get("immute_domain") or ""),
+            "kwargs": asdict(act_kwargs),
+        }
 
     @staticmethod
     def _add_disable_alarm_shield_act(pipeline, act_kwargs: ActKwargs, cluster_meta_data: Dict):
         """升级完成后解除告警屏蔽 (组件内部会再保留约 15 分钟缓冲)."""
+        spec = RedisClusterVersionUpdateOnline._build_disable_alarm_shield_spec(act_kwargs, cluster_meta_data)
         pipeline.add_act(
-            act_name=_("解除集群告警屏蔽-{}").format(cluster_meta_data.get("immute_domain") or ""),
+            act_name=spec["act_name"],
             act_component_code=DisableAlarmShieldComponent.code,
-            kwargs=asdict(act_kwargs),
+            kwargs=spec["kwargs"],
         )
 
     @staticmethod

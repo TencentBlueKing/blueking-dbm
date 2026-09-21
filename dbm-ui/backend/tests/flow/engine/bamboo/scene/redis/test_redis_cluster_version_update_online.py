@@ -91,6 +91,7 @@ class _FakeGetFileList:
 
 class _RecorderBuilder:
     created = []
+    proxy_atom_params = []
 
     def __init__(self, *args, **kwargs):
         self.acts = []
@@ -99,6 +100,7 @@ class _RecorderBuilder:
         self.parallel_sub_pipelines = []
         self.sub_name = None
         self.ran = False
+        self.run_pipeline_kwargs = {}
         _RecorderBuilder.created.append(self)
 
     def add_act(self, act_name, act_component_code, kwargs, **extra):
@@ -126,6 +128,7 @@ class _RecorderBuilder:
 
     def run_pipeline(self, *args, **kwargs):
         self.ran = True
+        self.run_pipeline_kwargs = kwargs
 
 
 def _new_flow(data=None):
@@ -206,11 +209,16 @@ def _flatten_act_names():
 
 def _install_recorder_build_stubs(monkeypatch, meta_by_id, host_ports=None):
     _RecorderBuilder.created = []
+    _RecorderBuilder.proxy_atom_params = []
     host_ports = host_ports or {}
+
+    def _fake_proxy_atom(_root_id, _ticket_data, _act_kwargs, param):
+        _RecorderBuilder.proxy_atom_params.append(param)
+        return {"atom": "proxy"}
 
     monkeypatch.setattr(mod, "Builder", _RecorderBuilder)
     monkeypatch.setattr(mod, "SubBuilder", _RecorderBuilder)
-    monkeypatch.setattr(mod, "ClusterProxysUpgradeAtomJob", lambda *args, **kwargs: {"atom": "proxy"})
+    monkeypatch.setattr(mod, "ClusterProxysUpgradeAtomJob", _fake_proxy_atom)
     monkeypatch.setattr(mod, "RedisMakeSyncAtomJob", lambda *args, **kwargs: {"atom": "sync"})
     _FakeGetFileList.calls = []
     monkeypatch.setattr(mod, "GetFileList", _FakeGetFileList)
@@ -638,8 +646,14 @@ def test_proxy_upgrade_flow_builds_for_proxy_supported_cluster_types(monkeypatch
     assert _RecorderBuilder.created[0].parallel_sub_pipelines
     names = _flatten_act_names()
     assert any("update_proxy" in name for name in names)
-    assert any(name.startswith("屏蔽集群告警-") for name in names)
-    assert any(name.startswith("解除集群告警屏蔽-") for name in names)
+    assert _RecorderBuilder.proxy_atom_params
+    shield = _RecorderBuilder.proxy_atom_params[0]["alarm_shield"]
+    unshield = _RecorderBuilder.proxy_atom_params[0]["disable_alarm_shield"]
+    assert shield["act_name"].startswith("屏蔽集群告警-")
+    assert unshield["act_name"].startswith("解除集群告警屏蔽-")
+    dims = {item["name"]: item["values"] for item in shield["kwargs"]["dimensions"]}
+    assert set(dims["bk_target_ip"]) == {"2.2.2.2", "2.2.2.3"}
+    assert dims["cluster_domain"] == ["cache-1.test.db"]
 
 
 @pytest.mark.parametrize(
@@ -786,6 +800,7 @@ def _run_backend_flow(monkeypatch, cluster_type, ips):
 def test_backend_subflow_shields_alarm_before_upgrade_and_keeps_dbmon_reinstall(monkeypatch):
     _run_backend_flow(monkeypatch, ClusterType.TendisTwemproxyRedisInstance, ["1.1.1.1", "1.1.1.2"])
 
+    assert isinstance(_RecorderBuilder.created[0].run_pipeline_kwargs.get("init_trans_data_class"), mod.CommonContext)
     backend_builder = next(b for b in _RecorderBuilder.created if b.sub_name and "Backend升级" in (b.sub_name or ""))
     act_names = [act["act_name"] for act in backend_builder.acts]
     assert act_names[0] == "初始化配置"
