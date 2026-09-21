@@ -13,8 +13,10 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_meta.models.machine import Machine
 from backend.db_meta.models.spec import Spec
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
@@ -40,6 +42,10 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.list_machine_info import (
     ListMachineInfoOutputSerializer,
     MachineInfoSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.common.serializers.list_spec import (
+    ListSpecInputSerializer,
+    ListSpecOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpUsernameNotFoundException
@@ -47,6 +53,18 @@ from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
+
+
+def _storage_capacity_range_contains(storage_spec, value):
+    """判断规格 /data 单盘容量范围 [min, max] 是否包含指定容量"""
+    if not isinstance(storage_spec, list):
+        return False
+    data_disk = next((disk for disk in storage_spec if disk.get("mount_point") == "/data"), None)
+    if data_disk is None:
+        return False
+    min_val = int(data_disk.get("min") or 0)
+    max_val = int(data_disk.get("max") or 0)
+    return min_val <= value <= max_val
 
 
 class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
@@ -185,3 +203,63 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
             item["spec_config"] = spec_map.get(item["spec_id"], item["spec_config"])
 
         return Response({"machines": data, "not_found_ips": not_found_ips, "ambiguous_ips": ambiguous_ips})
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _("获取已启用的资源规格，支持按组件类型、机器类型、规格名称及 CPU/内存/磁盘范围过滤；" "其中 storage 参数仅按 /data 单盘容量范围匹配，不含 /data 挂载点的规格不会被匹配到")
+        ),
+        request_slz=ListSpecInputSerializer,
+        response_slz=ListSpecOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.DBMETA_QUERY],
+        name_prefix="dbmeta_query",
+    )
+    def list_spec(self, request, *args, **kwargs):
+        spec_cluster_type = self.get_param("spec_cluster_type")
+        spec_machine_type = self.get_param("spec_machine_type")
+        spec_name = self.get_param("spec_name")
+        cpu = self.get_param("cpu")
+        mem = self.get_param("mem")
+        storage = self.get_param("storage")
+
+        queryset = Spec.objects.filter(enable=True)
+
+        if spec_cluster_type:
+            queryset = queryset.filter(spec_cluster_type=spec_cluster_type)
+        if spec_machine_type:
+            queryset = queryset.filter(spec_machine_type=spec_machine_type)
+        if spec_name:
+            queryset = queryset.filter(spec_name__icontains=spec_name)
+
+        # CPU / 内存：按 JSON 字段的 [min, max] 范围包含匹配
+        if cpu is not None:
+            queryset = queryset.filter(cpu__min__lte=cpu, cpu__max__gte=cpu)
+        if mem is not None:
+            queryset = queryset.filter(mem__min__lte=mem, mem__max__gte=mem)
+
+        specs = list(queryset.order_by("spec_id"))
+
+        # 磁盘：storage_spec 为数组，ORM 无法直接做嵌套范围查询，转 Python 层过滤
+        if storage is not None:
+            specs = [spec for spec in specs if _storage_capacity_range_contains(spec.storage_spec, storage)]
+
+        cluster_type_name_map = {value: str(label) for value, label in DBType.get_choices()}
+        machine_type_name_map = {value: str(label) for value, label in SpecMachineType.get_choices()}
+
+        data = [
+            {
+                "spec_id": spec.spec_id,
+                "spec_name": spec.spec_name,
+                "spec_cluster_type": spec.spec_cluster_type,
+                "spec_machine_type": spec.spec_machine_type,
+                "spec_cluster_type_name": cluster_type_name_map.get(spec.spec_cluster_type, ""),
+                "spec_machine_type_name": machine_type_name_map.get(spec.spec_machine_type, ""),
+                "cpu": spec.cpu,
+                "mem": spec.mem,
+                "storage_spec": spec.storage_spec,
+                "biz_scope": spec.biz_scope,
+            }
+            for spec in specs
+        ]
+
+        return Response({"specs": data})
