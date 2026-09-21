@@ -222,7 +222,7 @@ var statsTestConfig = struct {
 	Port:   getEnvAsIntWithDefault("DB_TEST_PORT", 3306),
 	User:   getEnvWithDefault("DB_TEST_USER", "test_user"),
 	Passwd: getEnvWithDefault("DB_TEST_PASSWD", "test_password"),
-	DBName: getEnvWithDefault("DB_TEST_DB", "dbha_data"),
+	DBName: getEnvWithDefault("DB_TEST_DB", "test_dbha_data"),
 }
 
 // Helper function to get environment variable with default value
@@ -243,8 +243,13 @@ func getEnvAsIntWithDefault(key string, defaultValue int) int {
 	return defaultValue
 }
 
-// newStatsTestDb opens a real MySQL server and rebuilds the DbhaDataStatus table in it so the
-// statistics queries run against a known fixture.
+// statsFixtureMachinePrefix marks every row inserted by these tests so they can delete only
+// their own rows, leaving the table structure and anyone else's rows untouched.
+const statsFixtureMachinePrefix = "dbha_stats_test_"
+
+// newStatsTestDb opens the DbhaDataStatus table in a real MySQL server so the statistics
+// queries run against a known fixture. The table is never dropped: only rows carrying the
+// fixture machine_id prefix are removed, before and after the test.
 func newStatsTestDb(t *testing.T) (*DbhaData, *gorm.DB) {
 	t.Helper()
 
@@ -275,20 +280,32 @@ func newStatsTestDb(t *testing.T) (*DbhaData, *gorm.DB) {
 		t.Skipf("no MySQL available, skipping statistics query test: %v", err)
 	}
 
-	if err := gdb.Migrator().DropTable(&hamodel.DbhaDataStatus{}); err != nil {
-		t.Fatalf("failed to drop test table: %v", err)
-	}
 	if err := gdb.AutoMigrate(&hamodel.DbhaDataStatus{}); err != nil {
 		t.Fatalf("failed to auto migrate DbhaDataStatus: %v", err)
 	}
 
+	// Drop rows left by an earlier run so the counts below see only this run's fixture.
+	if err := deleteFixtureRows(gdb); err != nil {
+		t.Fatalf("failed to delete leftover fixture rows: %v", err)
+	}
+
 	t.Cleanup(func() {
+		if err := deleteFixtureRows(gdb); err != nil {
+			t.Errorf("failed to delete fixture rows: %v", err)
+		}
 		if sqlDB, e := gdb.DB(); e == nil {
 			_ = sqlDB.Close()
 		}
 	})
 
 	return &DbhaData{DB: hamysql.WithGormDB(gdb, nil)}, gdb
+}
+
+// deleteFixtureRows removes only the rows these tests inserted, identified by the fixture
+// machine_id prefix. The table itself and rows written by anyone else are left untouched.
+func deleteFixtureRows(gdb *gorm.DB) error {
+	return gdb.Where(fmt.Sprintf("%s LIKE ?", hamodel.DbhaStatusFieldMachineID),
+		statsFixtureMachinePrefix+"%").Delete(&hamodel.DbhaDataStatus{}).Error
 }
 
 // statusRow is one DbhaDataStatus fixture row. stale marks rows kept outside the window.
@@ -346,7 +363,7 @@ func insertStatusRows(t *testing.T, gdb *gorm.DB, rows []statusRow, staleAt time
 			updatedAt = staleAt
 		}
 		record := &hamodel.DbhaDataStatus{
-			MachineID:   r.machineID,
+			MachineID:   statsFixtureMachinePrefix + r.machineID,
 			BkCloudID:   r.bkCloudID,
 			DbIp:        r.ip,
 			DbPort:      r.port,
@@ -406,15 +423,15 @@ func TestCountDbhaDataStatusUpdatedWithin(t *testing.T) {
 	}
 }
 
-func TestCountDbhaDataStatusDeployedIPWithin(t *testing.T) {
+func TestCountDbhaDataStatusActiveIPWithin(t *testing.T) {
 	ha, gdb := newStatsTestDb(t)
 	window := 5 * time.Minute
 
 	insertStatusRows(t, gdb, statsFixtureRows(), time.Now().Local().Add(-2*window))
 
-	got, err := ha.CountDbhaDataStatusDeployedIPWithin(context.Background(), window)
+	got, err := ha.CountDbhaDataStatusActiveIPWithin(context.Background(), window)
 	if err != nil {
-		t.Fatalf("CountDbhaDataStatusDeployedIPWithin failed: %v", err)
+		t.Fatalf("CountDbhaDataStatusActiveIPWithin failed: %v", err)
 	}
 
 	// harvest_type is not part of the grouping, so an IP reporting several collection groups
@@ -436,7 +453,7 @@ func TestCountDbhaDataStatusDeployedIPWithin(t *testing.T) {
 		if gotCount, ok := gotGroups[key]; !ok {
 			t.Errorf("missing group %s, got: %v", key, gotGroups)
 		} else if gotCount != wantCount {
-			t.Errorf("%s deployed ip count mismatch, got: %d, want: %d", key, gotCount, wantCount)
+			t.Errorf("%s active ip count mismatch, got: %d, want: %d", key, gotCount, wantCount)
 		}
 	}
 }

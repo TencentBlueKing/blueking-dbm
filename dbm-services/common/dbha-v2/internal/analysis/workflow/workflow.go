@@ -825,7 +825,7 @@ func instanceEventKey(bkCloudID int, ip string, port int, eventName haprobe.DbEv
 func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
 	w.reportMetadataUpdatedStats(ctx)
 	w.reportStatusUpdatedStats(ctx)
-	w.reportStatusIPDeployedStats(ctx)
+	w.reportStatusIPActiveStats(ctx)
 }
 
 // reportMetadataUpdatedStats reports DbmMetadata rows updated within the latest window, by db_type.
@@ -886,26 +886,26 @@ func (w *Workflow) reportStatusUpdatedStats(ctx context.Context) {
 	}
 }
 
-// reportStatusIPDeployedStats reports distinct deployed IPs that reported DbhaDataStatus
-// within the latest window, by db_type.
-func (w *Workflow) reportStatusIPDeployedStats(ctx context.Context) {
+// reportStatusIPActiveStats reports distinct IPs that reported DbhaDataStatus within the
+// latest window, by db_type: an active count, not an installed inventory count.
+func (w *Workflow) reportStatusIPActiveStats(ctx context.Context) {
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	defer cancel()
 
-	ipCounts, err := w.hadata.CountDbhaDataStatusDeployedIPWithin(qCtx, dbTableStatsInterval)
+	ipCounts, err := w.hadata.CountDbhaDataStatusActiveIPWithin(qCtx, dbTableStatsInterval)
 	if err != nil {
-		logger.Warn("failed to count DbhaDataStatus deployed ips, errmsg: %s", err)
+		logger.Warn("failed to count DbhaDataStatus active ips, errmsg: %s", err)
 		return
 	}
 	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
-	apm.DbhaDataStatusDeployedIPCount.Clear()
+	apm.DbhaDataStatusActiveIPCount.Clear()
 	for _, item := range ipCounts {
-		if e := apm.DbhaDataStatusDeployedIPCount.SetWithLabels(map[string]string{
+		if e := apm.DbhaDataStatusActiveIPCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
 			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
 		}, float64(item.Count)); e != nil {
-			logger.Warn("failed to report dbha_data_status_deployed_ip_count, dbType: %s, errmsg: %s", item.DbType, e)
+			logger.Warn("failed to report dbha_data_status_active_ip_count, dbType: %s, errmsg: %s", item.DbType, e)
 		}
 	}
 }
