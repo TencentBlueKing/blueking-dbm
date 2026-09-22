@@ -58,11 +58,13 @@
       'is-simplicity': behavior === 'simplicity',
       'is-small': size === 'small',
     }">
-    <div
-      v-if="$slots.prefix || prefix"
-      class="dbm-input-prefix-area">
-      <slot name="prefix">{{ prefix }}</slot>
-    </div>
+    <slot name="prefix">
+      <div
+        v-if="prefix"
+        class="dbm-input-prefix-area">
+        {{ prefix }}
+      </div>
+    </slot>
     <input
       ref="inputRef"
       class="dbm-input-text"
@@ -129,11 +131,13 @@
         <DownSmall />
       </span>
     </div>
-    <div
-      v-if="$slots.suffix || suffix"
-      class="dbm-input-suffix-area">
-      <slot name="suffix">{{ suffix }}</slot>
-    </div>
+    <slot name="suffix">
+      <div
+        v-if="suffix"
+        class="dbm-input-suffix-area">
+        {{ suffix }}
+      </div>
+    </slot>
   </div>
 </template>
 

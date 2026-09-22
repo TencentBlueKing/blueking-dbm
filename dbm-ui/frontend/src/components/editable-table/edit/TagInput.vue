@@ -13,15 +13,15 @@
 
 <template>
   <!-- prettier-ignore -->
-  <BkTagInput
+  <DbTagInput
     v-model="(modelValue as string[])"
-    allow-auto-match
     allow-create
     class="bk-editable-tag-input"
     clearable
-    :copyable="false"
-    has-delete-icon
-    v-bind="{ ...attrs, ...props }"
+    :collapse-tags="false"
+    v-bind="attrs"
+    :multiple="!single"
+    :placeholder="placeholder"
     @blur="handleBlur"
     @change="handleChange"
     @focus="handleFocus" />
@@ -32,10 +32,9 @@
 
   import useColumn from '../useColumn';
 
-  /* eslint-disable vue/no-unused-properties */
   export interface Props {
-    maxData?: number;
     placeholder?: string;
+    single?: boolean;
   }
 
   export interface Emits<T> {
@@ -43,7 +42,7 @@
     (e: 'change', value: T): void;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
   const emits = defineEmits<Emits<T>>();
 
   const modelValue = defineModel<T>();
@@ -76,14 +75,44 @@
 </script>
 <style lang="less">
   .bk-editable-table-body-column {
+    // 边框统一由表格的 td::before 画，组件自身在默认 / hover / 聚焦三态给面板加的边框都要抹掉，否则会错开 1px 叠成双框
+    .bk-editable-tag-input {
+      &.db-tag-input {
+        .db-tag-input-panel {
+          min-height: 40px;
+          background: transparent;
+          border-color: transparent;
+          border-radius: 0;
+          align-items: center;
+        }
+
+        &:hover {
+          .db-tag-input-panel {
+            border-color: transparent;
+          }
+        }
+
+        &.is-focus {
+          .db-tag-input-panel {
+            border-color: transparent;
+          }
+        }
+
+        // 组件按 32px 行高定位清空按钮，这里行高是 40px，跟着首行标签重新居中
+        .db-tag-input-clear {
+          top: 20px;
+        }
+      }
+    }
+
     &.is-readonly,
     &.is-disabled {
       .bk-editable-tag-input {
-        &.bk-tag-input {
+        &.db-tag-input {
           pointer-events: none;
 
-          .clear-icon,
-          .remove-tag {
+          .db-tag-input-clear,
+          .dbm-tag-close {
             display: none !important;
           }
 
@@ -96,37 +125,10 @@
 
     &.is-error {
       .bk-editable-tag-input {
-        .bk-tag-input {
-          .bk-tag-input-trigger {
+        &.db-tag-input {
+          .db-tag-input-panel {
             background: #fff0f1;
           }
-        }
-      }
-    }
-  }
-
-  .bk-editable-tag-input {
-    &.bk-tag-input {
-      width: 100%;
-
-      .bk-tag-input-trigger {
-        min-height: 40px;
-        background: transparent;
-        border: none;
-        border-radius: 0;
-
-        .placeholder {
-          top: 50%;
-          height: auto;
-          transform: translateY(-50%);
-        }
-
-        .tag-input {
-          background: transparent;
-        }
-
-        .tag-list {
-          max-height: unset !important;
         }
       }
     }
