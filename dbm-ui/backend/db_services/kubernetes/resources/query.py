@@ -14,10 +14,11 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from backend.components.kubernetes.client import KubernetesApi
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin, ResourceList
-from backend.db_services.kubernetes.utils import offset_to_page
+from backend.db_services.kubernetes.utils import offset_to_page, parse_deploy_params
 from backend.ticket.constants import TicketType
 
 
@@ -50,6 +51,12 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
 
     cluster_types = []
     instance_roles = []
+    # 支持部署模式(共享集群/独占集群)下发的集群类型，不在白名单内的集群类型(如VM)不下发 isPublic/bkBizId
+    deploy_mode_cluster_types = [
+        ClusterType.K8sQdrantHa,
+        ClusterType.K8sSurrealdbHa,
+        ClusterType.K8sSurrealdbSingle,
+    ]
     fields = [
         {"name": _("集群名"), "key": "cluster_name"},
         {"name": _("集群别名"), "key": "cluster_alias"},
@@ -110,6 +117,25 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
             ]
 
         return graph
+
+    @classmethod
+    def support_deploy_mode(cls) -> bool:
+        """当前集群类型是否支持部署模式(共享集群/独占集群)参数下发"""
+        return bool(set(cls.cluster_types) & set(cls.deploy_mode_cluster_types))
+
+    @classmethod
+    def get_deploy_params(cls, query_params: Dict, bk_biz_id: int = None) -> Dict:
+        """提取需要下发到k8s接口的部署模式参数(共享集群/独占集群)
+
+        isPublic: 是否共享集群(True-共享集群/公共集群，False-独占集群)，默认共享集群
+        bkBizId: 独占集群所属的业务ID，未显式传入时取当前业务ID
+        仅对 deploy_mode_cluster_types 白名单内的集群类型下发，其余(如VM)返回空
+        @param query_params: 视图层下发到k8s的查询参数
+        @param bk_biz_id: 业务ID
+        """
+        if not cls.support_deploy_mode():
+            return {}
+        return parse_deploy_params(query_params, bk_biz_id)
 
     @classmethod
     def _list_clusters(
@@ -347,6 +373,16 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
     def get_component_spec(cls, query_params):
         res = KubernetesApi.cluster_describe(query_params, use_admin=True)
         return res
+
+    @classmethod
+    def get_regions(cls, query_params: Dict = None, bk_biz_id: int = None) -> list:
+        """获取可用区域(BCS集群)列表
+
+        支持按部署模式过滤：isPublic=true(默认) 返回共享集群的可用区域，
+        isPublic=false 时按 bkBizId 返回独占集群的可用区域
+        """
+        deploy_params = cls.get_deploy_params(query_params or {}, bk_biz_id)
+        return KubernetesApi.bcs_regions(params=deploy_params, use_admin=True)
 
     @classmethod
     def update_cluster_meta(

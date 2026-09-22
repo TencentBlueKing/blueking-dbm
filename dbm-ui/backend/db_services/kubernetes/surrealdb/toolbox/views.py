@@ -28,7 +28,7 @@ from backend.db_services.kubernetes.surrealdb.toolbox.serializers import (
     KubernetesRestartSerializer,
     KubernetesVscalingSerializer,
 )
-from backend.db_services.kubernetes.utils import offset_to_page
+from backend.db_services.kubernetes.utils import get_deploy_params_from_request, offset_to_page
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
@@ -187,6 +187,7 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         """获取区域列表
 
         调用 Kubernetes API 获取可用的区域列表
+        isPublic=true(默认) 返回共享集群的可用区域；isPublic=false 时按 bkBizId 返回独占集群的可用区域
         """
-        regions = KubernetesApi.get_regions(use_admin=True)
-        return Response(regions)
+        deploy_params = get_deploy_params_from_request(request)
+        return Response(KubernetesApi.bcs_regions(params=deploy_params, use_admin=True))
