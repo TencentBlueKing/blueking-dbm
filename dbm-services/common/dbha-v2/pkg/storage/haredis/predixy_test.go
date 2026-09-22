@@ -22,26 +22,54 @@
  * SOFTWARE.
  */
 
-package handler
+package haredis
 
-import (
-	"testing"
+import "testing"
 
-	"github.com/stretchr/testify/assert"
-)
+func TestParsePredixyInfoServers(t *testing.T) {
+	raw := `# Servers
+Server:127.0.0.1:30000
+Role:master
+Group:0
+DC:0
+CurrentIsFail:0
+Connections:1
 
-func TestBuildProcesslistSQL(t *testing.T) {
-	t.Parallel()
+Server:127.0.0.2:30000
+Role:slave
+Group:0
+DC:0
+CurrentIsFail:1
+Connections:0
+`
+	servers := ParsePredixyInfoServers(raw)
+	if len(servers) != 2 {
+		t.Fatalf("expected 2 servers, got %d", len(servers))
+	}
+	if servers[0].Server != "127.0.0.1:30000" || servers[0].CurrentIsFail != 0 {
+		t.Fatalf("unexpected first server: %+v", servers[0])
+	}
+	if servers[1].Server != "127.0.0.2:30000" || servers[1].CurrentIsFail != 1 {
+		t.Fatalf("unexpected second server: %+v", servers[1])
+	}
 
-	assert.Equal(t, "SELECT * FROM information_schema.processlist", buildProcesslistSQL(""))
-	assert.Equal(t,
-		"SELECT * FROM information_schema.processlist WHERE command != 'Sleep'",
-		buildProcesslistSQL("command != 'Sleep'"))
-}
+	md5a := servers.MD5String()
+	reordered := ParsePredixyInfoServers(`# Servers
+Server:127.0.0.2:30000
+Role:slave
+Group:0
+DC:0
+CurrentIsFail:1
+Connections:0
 
-func TestQueryNodesProcesslistEmpty(t *testing.T) {
-	t.Parallel()
-
-	hdl := &MysqlBaseHandler{}
-	assert.Equal(t, []InstanceSessionInfo{}, hdl.queryNodesProcesslist(nil, ""))
+Server:127.0.0.1:30000
+Role:master
+Group:0
+DC:0
+CurrentIsFail:0
+Connections:1
+`)
+	if reordered.MD5String() != md5a {
+		t.Fatalf("md5 should be stable regardless of order")
+	}
 }
