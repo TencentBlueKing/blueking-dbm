@@ -246,11 +246,13 @@ def create_bklog_collector(startswith: str = ""):
             try:
                 # 分片数不更新，因为每个环境配置需求可能不同
                 collector_config_id = collectors_name__info_map[collector_name]["collector_config_id"]
-                shards_num = collectors_name__info_map[collector_name]["storage_shards_nums"]
+                shards_num = collectors_name__info_map[collector_name].get("storage_shards_nums")
             except KeyError:
                 logger.error(_("采集项{collector_name}被创建后删除，暂无法自动重建，请联系管理员处理。").format(collector_name=collector_name))
                 continue
-            bklog_params.update({"collector_config_id": collector_config_id, "es_shards": shards_num})
+            # 日志平台 fast_update 不允许 es_shards 为 null；现网分片为空时回退模板值，再没有则默认 3
+            es_shards = shards_num or bklog_params.get("es_shards") or 3
+            bklog_params.update({"collector_config_id": collector_config_id, "es_shards": es_shards})
             logger.info(_("采集项{collector_name}已创建, 对采集项进行更新...").format(collector_name=collector_name))
             try:
                 BKLogApi.fast_update(params=bklog_params, use_admin=True)
