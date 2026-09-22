@@ -52,7 +52,7 @@
     <TicketInfoTableColumn
       col-key="resource_spec"
       :min-width="140"
-      :title="t('DTS 规格')">
+      :title="t('dts-worker 规格')">
       <template #default="{ row }: { row: RowData }">
         {{ row.spec_name || '--' }}
       </template>
@@ -140,7 +140,7 @@
       label_names: item.resource_spec?.master?.label_names || [],
       source_cluster: item.migrate.one_to_one.source.cluster_id,
       source_cluster_domain: details.clusters?.[item.migrate.one_to_one.source.cluster_id]?.immute_domain || '--',
-      spec_name: details.specs?.[item.resource_spec?.master?.spec_id]?.name || '',
+      spec_name: details.specs?.[item.resource_spec?.worker?.spec_id]?.name || '',
       target_cluster: item.migrate.one_to_one.target.cluster_id,
       target_cluster_domain: details.clusters?.[item.migrate.one_to_one.target.cluster_id]?.immute_domain || '--',
     }));
