@@ -941,10 +941,8 @@ def _prepare_cluster_data(num: int):
     """准备集群选择所需的基础数据"""
     exclude_biz_ids = MySQLBackupRecoverTask.get_all_practiced_biz_ids()
     exclude_cluster_id = MySQLBackupRecoverTask.get_all_practiced_cluster_ids()
-    recent_task_cluster_ids = MySQLBackupRecoverTask.get_recent_24h_task_cluster_ids()
     running_task_cluster_ids = MySQLBackupRecoverTask.get_running_task_cluster_ids()
 
-    exclude_cluster_id.extend(recent_task_cluster_ids)
     exclude_cluster_id.extend(running_task_cluster_ids)
 
     logger.info(_("并发控制: 排除正在执行的任务集群 {} 个").format(len(running_task_cluster_ids)))
@@ -1000,20 +998,22 @@ def _prepare_cluster_data(num: int):
 
 def _get_ignore_configs():
     """
-    获取需要忽略的业务ID和集群ID配置
-    包括：忽略配置、最近2天失败的集群、正在运行任务的集群
+    获取需要忽略的业务ID和集群ID配置。
+
+    未演练收集和兜底收集都用这份名单。当天已建过任务的集群在两条路上都排除，
+    保证同一集群每个自然日只演练一次。
 
     Returns:
         tuple: (ignored_biz_ids, ignored_cluster_ids)
-            ignored_biz_ids: 需要忽略的业务ID列表
-            ignored_cluster_ids: 需要忽略的集群ID列表（已包含失败和运行中的集群）
     """
     ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
     ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
     failed_cluster_ids = MySQLBackupRecoverTask.get_recent_2days_failed_cluster_ids()
     running_task_cluster_ids = MySQLBackupRecoverTask.get_running_task_cluster_ids()
+    today_task_cluster_ids = MySQLBackupRecoverTask.get_today_task_cluster_ids()
     ignored_cluster_ids.extend(failed_cluster_ids)
     ignored_cluster_ids.extend(running_task_cluster_ids)
+    ignored_cluster_ids.extend(today_task_cluster_ids)
     return ignored_biz_ids, ignored_cluster_ids
 
 
