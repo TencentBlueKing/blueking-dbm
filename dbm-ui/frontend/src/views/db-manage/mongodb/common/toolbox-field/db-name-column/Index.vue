@@ -24,13 +24,11 @@
     </template>
     <EditableTagInput
       v-model="modelValue"
-      allow-auto-match
       allow-create
       clearable
-      has-delete-icon
-      :max-data="single ? 1 : -1"
-      :paste-fn="tagInputPasteFn"
       :placeholder="t('请输入DB 名称，支持通配符“*”')"
+      :single="single"
+      :split-fn="tagInputSplitFn"
       @change="handleChange" />
     <template #tips>
       <div class="mongo-db-name-tips">
@@ -154,7 +152,7 @@
 
   const isShowBatchEdit = ref(false);
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 
   const disabledMethod = () => (!props.clusterId ? t('请先输入合法的集群域名') : false);
 
