@@ -139,13 +139,7 @@ func hardcodeRun(iNames []string) error {
 func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error {
 	slog.Info("main loop items-run")
 
-	randSleepN := rand.Intn(5)
-	slog.Info(
-		"run monitor items",
-		slog.Int("randSleepN", randSleepN),
-	)
-	// 每次整体随机休眠 [0:5), 多实例场景时稍微错开
-	time.Sleep(time.Duration(randSleepN) * time.Second)
+	randSleep()
 
 	for _, iName := range iNames {
 		itemLogger := slog.New(config.Logger.Handler())
@@ -214,6 +208,22 @@ func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error
 
 	slog.Info("main loop items-run finish")
 	return nil
+}
+
+// randSleep 每次整体随机休眠 [0:5), 多实例场景时稍微错开
+// 手动执行时可以用 --no-delay 跳过, 避免排查问题时白等
+func randSleep() {
+	if viper.GetBool("run-no-delay") {
+		// slog.Info("run monitor items skip random sleep")
+		return
+	}
+
+	randSleepN := rand.Intn(5)
+	slog.Info(
+		"run monitor items",
+		slog.Int("randSleepN", randSleepN),
+	)
+	time.Sleep(time.Duration(randSleepN) * time.Second)
 }
 
 func getLocker(iNames []string) (*flock.Flock, error) {

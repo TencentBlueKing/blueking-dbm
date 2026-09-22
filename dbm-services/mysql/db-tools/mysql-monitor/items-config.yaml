@@ -224,7 +224,7 @@
   role:
   - spider_master
 - name: scene-snapshot
-  enable: false
+  enable: true
   schedule: '@every 1m'
   machine_type:
   - spider
@@ -232,6 +232,16 @@
   - backend
   - single
   role: []
+  options:
+    snapshot_on_demand: true
+    snapshot_keep_days: 2
+    snapshot_long_query_time: 30
+    snapshot_long_query_exclude_user: []
+    snapshot_threads_running: 50
+    snapshot_free_connections: 10
+    query_kill_enable: false
+    query_kill_max_per_round: 0
+    query_kill_rules: []
 - name: mysql-timezone-change
   enable: true
   schedule: '@every 5m'

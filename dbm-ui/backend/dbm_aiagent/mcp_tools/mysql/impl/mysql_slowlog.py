@@ -245,6 +245,7 @@ def _resolve_tendbha_client_host(item: Dict) -> None:
             MysqlProxyConnlog.objects.filter(
                 conn_user=conn_user,
                 proxy_ip__in=proxy_ips,
+                cluster_domain=item.get("cluster_domain", ""),
                 session_id__in=session_id_list,
             )
             .values_list("client_ip", flat=True)

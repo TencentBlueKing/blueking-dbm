@@ -107,6 +107,10 @@ func parseConnLogLineV2(line string) *ConnLogEntry {
 	if err != nil {
 		return nil
 	}
+	// 上游用 int32 处理 session_id，超过 int32 最大值时会溢出为负数，这里转回原始的 uint32 值
+	if threadID < 0 {
+		threadID = int64(uint32(int32(threadID)))
+	}
 
 	return &ConnLogEntry{
 		ConnTime:   connTime,
