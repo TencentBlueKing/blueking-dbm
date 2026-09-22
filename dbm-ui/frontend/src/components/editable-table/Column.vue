@@ -805,6 +805,7 @@
   .bk-editable-table-field-cell {
     position: relative;
     display: flex;
+    height: 100%;
     min-height: 40px;
     font-size: 12px;
     line-height: 20px;
