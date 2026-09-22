@@ -60,7 +60,6 @@ class SQLHandler(object):
         sql_filenames: List[str] = None,
         sql_files: List[InMemoryUploadedFile] = None,
         versions: list = None,
-        default_storage_engine: list = None,
     ) -> Optional[Dict]:
         """
         sql 语法检查
