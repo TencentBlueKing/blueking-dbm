@@ -73,25 +73,38 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 func recordGRPCMetrics(method string, req, reply any, err error, elapsed time.Duration) {
 	grpcCode := grpcCodeLabel(err)
 	methodLabels := map[string]string{MetricLabelMethod: method}
-	if recErr := GRPCRequestsTotal.IncWithLabels(map[string]string{
+	requestLabels := map[string]string{
 		MetricLabelMethod: method, MetricLabelGRPCCode: grpcCode,
-	}); recErr != nil {
+	}
+
+	if recErr := GRPCRequestsTotal.IncWithLabels(requestLabels); recErr != nil {
 		logger.Warn("failed to record grpc_requests_total, errmsg: %s", recErr)
 	}
-	if recErr := GRPCRequestDurationMs.ObserveWithLabels(methodLabels, float64(elapsed.Milliseconds())); recErr != nil {
+
+	if recErr := GRPCRequestDurationMs.ObserveWithLabels(
+		methodLabels, float64(elapsed.Milliseconds()),
+	); recErr != nil {
 		logger.Warn("failed to record grpc_request_duration_ms, errmsg: %s", recErr)
 	}
-	if recErr := GRPCRequestSizeBytes.ObserveWithLabels(methodLabels, protoMessageSize(req)); recErr != nil {
+
+	if recErr := GRPCRequestSizeBytes.ObserveWithLabels(
+		methodLabels, protoMessageSize(req),
+	); recErr != nil {
 		logger.Warn("failed to record grpc_request_size_bytes, errmsg: %s", recErr)
 	}
-	if recErr := GRPCResponseSizeBytes.ObserveWithLabels(methodLabels, protoMessageSize(reply)); recErr != nil {
+
+	if recErr := GRPCResponseSizeBytes.ObserveWithLabels(
+		methodLabels, protoMessageSize(reply),
+	); recErr != nil {
 		logger.Warn("failed to record grpc_response_size_bytes, errmsg: %s", recErr)
 	}
+
 	if grpcCode != codes.OK.String() {
 		if recErr := GRPCRequestErrorsTotal.IncWithLabels(methodLabels); recErr != nil {
 			logger.Warn("failed to record grpc_request_errors_total, errmsg: %s", recErr)
 		}
 	}
+
 	recordProbeConfigResult(err, reply)
 }
 

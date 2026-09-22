@@ -257,21 +257,26 @@ func warnRestartRequiredLogFiles(oldCfg, next config.Configuration) {
 func reportReloadMetrics(started time.Time, outcome reloadOutcome) {
 	success := 1.0
 	failure := 0.0
+
 	if outcome.failed {
 		success = 0
 		failure = 1
 	}
+
 	_ = apm.ConfigReloadSuccess.Set(success)
 	_ = apm.ConfigReloadFailure.Set(failure)
 	_ = apm.ConfigReloadDurationMs.Set(float64(time.Since(started).Milliseconds()))
+
 	_ = apm.ConfigReloadSlotCount.SetWithLabels(
 		map[string]string{apm.MetricLabelResult: "success"},
 		float64(outcome.slotSuccess),
 	)
+
 	_ = apm.ConfigReloadSlotCount.SetWithLabels(
 		map[string]string{apm.MetricLabelResult: "failure"},
 		float64(outcome.slotFailure),
 	)
+
 	if !outcome.failed {
 		_ = apm.ConfigReloadLastSuccessUnix.Set(float64(time.Now().Unix()))
 	}
