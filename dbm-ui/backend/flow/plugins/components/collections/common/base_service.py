@@ -12,6 +12,7 @@ import copy
 import json
 import logging
 import re
+import time
 from abc import ABCMeta
 from typing import Any, Dict, List, Optional, Union
 
@@ -248,6 +249,10 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 class BkJobService(BaseService, metaclass=ABCMeta):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
+    # 任务未结束时的“正在执行”日志：1 小时内每 60s 一条，超过 1 小时后每 5 分钟一条
+    JOB_RUNNING_LOG_INTERVAL = 60
+    JOB_RUNNING_LOG_LONG_INTERVAL = 300
+    JOB_RUNNING_LOG_LONG_AFTER = 3600
     # 仅针对失败IP重试
     only_failed_retry = False
 
@@ -373,6 +378,26 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         else:
             return super().execute(data, parent_data)
 
+    def _maybe_log_job_running(self, data, kwargs: dict, node_name: str):
+        """未结束时打印「任务正在执行」：1 小时内每 60s 一条，之后每 5 分钟。
+
+        节流时间戳写在 kwargs 并回写 inputs。outputs 跨 schedule 不会带回，不能用来记上次打印时间。
+        """
+        now_ts = int(time.time())
+        start_key = f"{node_name}_job_running_start_ts"
+        last_key = f"{node_name}_job_running_last_log_ts"
+        start_ts = kwargs.setdefault(start_key, now_ts)
+        last_log_ts = kwargs.get(last_key) or 0
+        interval = (
+            self.JOB_RUNNING_LOG_LONG_INTERVAL
+            if now_ts - start_ts >= self.JOB_RUNNING_LOG_LONG_AFTER
+            else self.JOB_RUNNING_LOG_INTERVAL
+        )
+        if now_ts - last_log_ts >= interval:
+            self.log_info(_("[{}] 任务正在执行🤔").format(node_name))
+            kwargs[last_key] = now_ts
+        data.inputs.kwargs = kwargs
+
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         ext_result = data.get_one_of_outputs("ext_result")
         exec_ips = data.get_one_of_outputs("exec_ips")
@@ -419,7 +444,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         # 7.等待用户; 8.手动结束; 9.状态异常; 10.步骤强制终止中; 11.步骤强制终止成功; 12.步骤强制终止失败
         # """
         if not (resp["result"] and resp["data"]["finished"]):
-            self.log_info(_("[{}] 任务正在执行🤔").format(node_name))
+            self._maybe_log_job_running(data, kwargs, node_name)
             return True
 
         # 获取job的状态
