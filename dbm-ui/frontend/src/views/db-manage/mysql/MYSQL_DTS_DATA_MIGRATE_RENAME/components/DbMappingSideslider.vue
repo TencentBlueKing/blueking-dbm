@@ -46,7 +46,7 @@
               v-model="item.source_db"
               filterable
               :placeholder="t('请选择源库')">
-              <BkOption
+              <DbOption
                 v-for="db in dbList"
                 :key="db"
                 :label="db"

@@ -93,11 +93,7 @@
     </EditableBlock>
     <EditableSelect
       v-else
-      :popover-options="{
-        boundary: 'parent',
-        trigger: 'manual',
-        isShow: false,
-      }"
+      trigger="manual"
       @click="handleShowSelector" />
   </EditableColumn>
   <BackupRecordSelector

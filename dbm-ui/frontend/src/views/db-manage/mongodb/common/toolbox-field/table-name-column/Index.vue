@@ -23,14 +23,12 @@
     </template>
     <EditableTagInput
       v-model="modelValue"
-      allow-auto-match
       allow-create
       clearable
       :disabled="disabled"
-      has-delete-icon
-      :max-data="single ? 1 : -1"
-      :paste-fn="tagInputPasteFn"
       :placeholder="t('请输入表名，支持通配符“*”')"
+      :single="single"
+      :split-fn="tagInputSplitFn"
       @change="handleChange" />
     <template #tips>
       <div class="mongo-table-name-tips">
@@ -118,7 +116,7 @@
 
   const isShowBatchEdit = ref(false);
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 
   const handleBatchEditShow = () => {
     isShowBatchEdit.value = true;

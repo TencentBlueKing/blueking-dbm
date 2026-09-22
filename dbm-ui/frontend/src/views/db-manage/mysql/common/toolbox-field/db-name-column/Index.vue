@@ -34,14 +34,12 @@
     </template>
     <EditableTagInput
       v-model="modelValue"
-      allow-auto-match
       allow-create
       clearable
       :disabled="disabled"
-      has-delete-icon
-      :max-data="single ? 1 : -1"
-      :paste-fn="tagInputPasteFn"
-      :placeholder="required ? t('请输入 DB 名') : t('请输入要忽略的 DB 名')" />
+      :placeholder="required ? t('请输入 DB 名') : t('请输入要忽略的 DB 名')"
+      :single="single"
+      :split-fn="tagInputSplitFn" />
     <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
@@ -297,7 +295,7 @@
     return props.clusterId ? false : t('请输入合法的集群域名');
   };
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 
   const handleBatchEditConfirm = () => {
     emits('batch-edit', batchEditValue.value, props.field);

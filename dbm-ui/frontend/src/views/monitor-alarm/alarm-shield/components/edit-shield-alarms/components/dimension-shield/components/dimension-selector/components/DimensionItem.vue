@@ -491,28 +491,6 @@
               gap: 4px;
             }
           }
-
-          .content-custom {
-            display: flex;
-            width: 100%;
-
-            .condition {
-              width: 60px;
-              height: 32px;
-              line-height: 32px;
-              text-align: center;
-              border: 1px solid #c4c6cc;
-              border-right: none;
-            }
-
-            .bk-tag-input {
-              flex: 1;
-
-              :deep(.bk-tag-input-trigger) {
-                border-radius: 0;
-              }
-            }
-          }
         }
 
         .operate-box {

@@ -851,17 +851,13 @@
   const previewData = computed(() => {
     const { charset, dbVersion } = moduleLevelConfig.value;
     return tableData.value.map(({ key }: { key: string }) => {
-      const strategy = getDomainStrategy(isSingleType ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA);
-      const domainInfo = strategy(
-        {
-          clusterName: key,
-          dbAppAbbr: formData.details.db_app_abbr,
-          moduleName: moduleAliasName.value,
-        },
-        {
-          bizId: formData.bk_biz_id,
-        },
-      );
+      const strategy = getDomainStrategy(clusterType);
+      const domainInfo = strategy({
+        clusterName: key,
+        clusterType,
+        dbAppAbbr: formData.details.db_app_abbr,
+        moduleName: moduleAliasName.value,
+      });
       return {
         charset,
         deployStructure: clusterTypeInfos[clusterType].name,

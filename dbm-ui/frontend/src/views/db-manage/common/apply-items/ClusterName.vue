@@ -115,20 +115,13 @@
 
   const clusterNamePreview = computed(() => {
     const strategy = getDomainStrategy(props.clusterType);
-    const isModuleRelatedClusterTypes = dbModuleClusterTypes.includes(props.clusterType);
 
-    return strategy(
-      {
-        clusterName: modelValue.value,
-        dbAppAbbr: props.dbAppAbbr,
-        moduleName: props.dbModuleName,
-      },
-      isModuleRelatedClusterTypes
-        ? {
-            bizId: props.bizId,
-          }
-        : undefined,
-    );
+    return strategy({
+      clusterName: modelValue.value,
+      clusterType: props.clusterType,
+      dbAppAbbr: props.dbAppAbbr,
+      moduleName: props.dbModuleName ?? '',
+    });
   });
 </script>
 

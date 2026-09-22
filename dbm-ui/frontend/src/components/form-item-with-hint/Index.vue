@@ -115,14 +115,8 @@
   .form-item-with-hint {
     position: relative;
 
-    /* bkui 的 .is-error .bk-tag-input 红框无效：bk-tag-input 外层无 border，
-       可见 border 在 .bk-tag-input-trigger 上，故此处补红框 */
+    /* db-tag-input 外层无 border，可见 border 在 .db-tag-input-panel 上，故此处补红框 */
     &.is-error {
-      :deep(.bk-tag-input-trigger) {
-        border-color: #ea3636;
-        transition: all 0.15s;
-      }
-
       :deep(.db-tag-input-panel) {
         border-color: #ea3636;
         transition: all 0.15s;
