@@ -80,6 +80,19 @@ class K8sQdrantApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializ
     cluster_name = serializers.CharField(help_text=_("集群名称"))
     cluster_alias = serializers.CharField(help_text=_("集群别名"))
     component_list = serializers.ListField(help_text=_("组件列表"), child=ComponentInfo())
+    # 部署模式：True(默认)表示共享集群，False表示独占集群
+    is_public = serializers.BooleanField(help_text=_("是否共享集群(True:共享集群, False:独占集群)"), default=True)
+    # 业务ID，独占集群下用于获取该业务独占的BCS集群资源
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        # 独占集群必须绑定业务ID，未显式传入时默认取当前提单的业务ID
+        if attrs.get("bk_biz_id") is None:
+            attrs["bk_biz_id"] = int(self.context.get("bk_biz_id") or 0)
+        if not attrs["is_public"] and not attrs["bk_biz_id"]:
+            raise serializers.ValidationError(_("独占集群部署必须提供业务ID"))
+        return attrs
 
 
 class K8sQdrantApplyFlowParamBuilder(builders.FlowParamBuilder):
