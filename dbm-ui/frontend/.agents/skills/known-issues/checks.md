@@ -28,6 +28,8 @@
 - [组件目录必须 kebab-case](doc/component-dir-kebab-case.md) —— 本次新建或重命名带 `Index.vue` 的组件目录
 - [表格列宽优先 min-width，取值落在约定档位](doc/table-column-width.md) —— 本次新增或改了
   `TableColumn` 的 `width` / `min-width`（不含 `EditableColumn`）
+- [有样式的容器不能由 `$slots.x` 决定渲染](doc/slot-wrapper-container.md) —— 改 `components/bkui-vue/**`
+  里带 class 的 `v-if="$slots.xxx"` 容器，或给自研基础组件新增插槽出口
 
 ## B 类：只报告，改法未定
 

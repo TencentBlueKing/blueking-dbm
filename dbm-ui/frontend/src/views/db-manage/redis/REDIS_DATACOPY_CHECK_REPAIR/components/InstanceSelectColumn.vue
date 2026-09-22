@@ -39,7 +39,7 @@
               {{ displayText }}
             </div>
           </template>
-          <BkOption
+          <DbOption
             v-for="item in selectList"
             :key="item"
             :label="item"

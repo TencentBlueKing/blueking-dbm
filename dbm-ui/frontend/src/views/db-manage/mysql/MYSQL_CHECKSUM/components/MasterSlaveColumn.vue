@@ -21,9 +21,6 @@
     required>
     <EditableSelect
       v-model="selected"
-      :class="{
-        'mysql-checksum-select-not-empty': selected.length > 0,
-      }"
       display-key="instance_address"
       id-key="instance_address"
       :list="allSlaveInstances"
@@ -284,12 +281,6 @@
     .option-info {
       margin-left: auto;
       color: #979ba5;
-    }
-  }
-
-  .mysql-checksum-select-not-empty.bk-select {
-    .bk-select-trigger {
-      height: initial !important;
     }
   }
 

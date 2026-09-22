@@ -18,6 +18,7 @@
     :class="{
       'is-focus': isFocus,
       'is-disabled': disabled,
+      'is-no-collapse': !collapseTags,
     }"
     @click="handleTriggerClick"
     @mousedown="handleTriggerMousedown">
@@ -144,6 +145,8 @@
     /** 是否允许输入新建候选外的标签。开启后「仅候选」模式亦可创建新值（回车 / 粘贴不再过滤非法值） */
     allowCreate?: boolean;
     clearable?: boolean;
+    /** 收起态是否把换行的标签折叠成 +N。关闭后组件不再限高，标签全部展开并把容器撑高 */
+    collapseTags?: boolean;
     /** 候选下拉宽度，不传则跟随触发器宽度 */
     contentWidth?: number;
     disabled?: boolean;
@@ -169,6 +172,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowCreate: false,
     clearable: true,
+    collapseTags: true,
     contentWidth: undefined,
     disabled: false,
     list: undefined,
@@ -289,6 +293,9 @@
       return;
     }
     overflowTagIndex.value = null;
+    if (!props.collapseTags) {
+      return;
+    }
     await nextTick();
     const tagElements = Array.from(tagListRef.value?.querySelectorAll<HTMLElement>('.db-tag-input-tag') ?? []).filter(
       (element) => !element.classList.contains('db-tag-input-overflow-tag'),
@@ -718,7 +725,6 @@
 <style lang="less" scoped>
   .db-tag-input {
     position: relative;
-    width: 100%;
     height: 32px;
     cursor: text;
 
@@ -750,9 +756,26 @@
       }
     }
 
-    &:not(.is-focus) {
+    // 收起态标签要挤进一行才截断，不折叠时没有这个前提
+    &:not(.is-focus, .is-no-collapse) {
       .db-tag-input-tag {
         max-width: 30%;
+      }
+    }
+
+    // 不折叠：面板回到文档流，高度交给内容，聚焦时也不再是浮层，所以去掉投影
+    &.is-no-collapse {
+      height: auto;
+
+      .db-tag-input-panel {
+        position: static;
+        max-height: none;
+      }
+
+      &.is-focus {
+        .db-tag-input-panel {
+          box-shadow: none;
+        }
       }
     }
 

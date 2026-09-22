@@ -36,16 +36,16 @@
     <EditableSelect
       v-model="modelValue"
       :clearable="false">
-      <BkOptionGroup
+      <DbOptionGroup
         v-for="group in groupedVersions"
         :key="group.label"
         :label="group.label">
-        <BkOption
+        <DbOption
           v-for="version in group.children"
           :key="version.value"
           :label="version.value"
           :value="version.value" />
-      </BkOptionGroup>
+      </DbOptionGroup>
     </EditableSelect>
   </EditableColumn>
 </template>

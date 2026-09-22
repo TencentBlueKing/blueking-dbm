@@ -21,18 +21,10 @@
       multiple
       multiple-mode="tag"
       @toggle="handleBlur">
-      <template
-        #tag="{
-          selected,
-        }: {
-          selected: {
-            value: number;
-            label: string;
-          }[];
-        }">
+      <template #tag="{ selected }">
         <TagList
           closeable
-          :list="selected"
+          :list="selected.map((item) => ({ label: String(item.label), value: item.value }))"
           @close="handleTagClose" />
       </template>
       <DbOption
