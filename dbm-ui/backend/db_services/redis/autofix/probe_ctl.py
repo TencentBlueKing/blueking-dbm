@@ -32,12 +32,11 @@ def is_probe_deploy_biz_enabled(bk_biz_id) -> bool:
         return False
 
     try:
-        item = RedisAutofixCtl.objects.get(ctl_name=AutofixItem.PROBE_DEPLOY_BIZS.value)
-    except RedisAutofixCtl.DoesNotExist:
-        # 兼容：存量环境未配置该配置项，自动写入空列表，默认不部署
-        logger.info("probe deploy biz whitelist not configured, auto create with empty list")
-        RedisAutofixCtl.objects.create(ctl_name=AutofixItem.PROBE_DEPLOY_BIZS.value, ctl_value="[]")
-        return False
+        # bk_cloud_id / bk_biz_id 为 NOT NULL 列，初始化时必须写入（与表内其他配置项的建行惯例一致）
+        item, _ = RedisAutofixCtl.objects.get_or_create(
+            ctl_name=AutofixItem.PROBE_DEPLOY_BIZS.value,
+            defaults={"bk_cloud_id": 0, "bk_biz_id": 0, "ctl_value": "[]"},
+        )
     except Exception as err:  # noqa
         logger.warning("probe deploy biz whitelist query failed: %s, skip probe deploy", err)
         return False
