@@ -47,15 +47,14 @@ class AgentHandler:
         return str(uuid.uuid4())
 
     @staticmethod
-    def __current_trace_id() -> str:
-        """读取当前 OTel trace id；无有效 span 时返回空串。"""
-        return get_current_trace_id() or ""
+    def __with_trace_id(property_data: dict | None = None) -> dict:
+        """把当前 trace_id 写入 session content property；平台只在创建时接收该字段。
 
-    @classmethod
-    def __with_trace_id(cls, property_data: dict | None = None) -> dict:
-        """把当前 trace_id 写入 session content property；平台只在创建时接收该字段。"""
+        用户提问不走 SessionManager.save_content（property 结构不同），因此需在此自行补齐，
+        保证与 SDK 写回的 assistant 内容挂在同一条 trace 上。
+        """
         data = dict(property_data or {})
-        trace_id = cls.__current_trace_id()
+        trace_id = get_current_trace_id()
         if trace_id:
             data["trace_id"] = trace_id
         return data
@@ -139,13 +138,12 @@ class AgentHandler:
             executor=username,
             caller_executor=username,
             caller_bk_app_code=settings.APP_CODE,
+            # 无有效 span 时 inject 不写入任何 header，这里拿到空 dict
             caller_trace_context=trace_headers() or None,
         )
         # 模型覆盖挂在 resource manager 上，agent 装配时经 get_agent_config 生效
         rm = cls.__build_resource_manager(agent_code, username, model)
         sm = cls.__build_session_manager(agent_code, username)
-        # SessionManager 只在构造时快照 trace_id；显式回填保证与 user content 同一条
-        sm.trace_id = sm.trace_id or cls.__current_trace_id()
         agent_instance = AgentBuilder(
             resource_manager=rm,
             session_manager=sm,
