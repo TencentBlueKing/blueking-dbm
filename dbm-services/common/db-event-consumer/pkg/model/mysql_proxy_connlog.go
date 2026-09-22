@@ -233,9 +233,9 @@ CREATE TABLE IF NOT EXISTS %s (
   PRIMARY KEY (proxy_ip,dteventtimestamp,id),
   KEY id(id),
   KEY idx_0 (dteventtimestamp),
-  KEY idx_1 (proxy_ip,conn_time),
-  KEY idx_2 (client_ip),
-  KEY idx_3 (conn_user)
+  KEY idx_1 (proxy_ip, conn_time),
+  KEY idx_2 (cluster_domain, conn_user),
+  KEY idx_3 (proxy_ip, session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
 `
 
@@ -255,7 +255,9 @@ CREATE TABLE IF NOT EXISTS %s (
   conn_user varchar(100) NULL,
   session_id bigint NULL,
   bk_biz_id int NULL,
-  bk_cloud_id int NULL
+  bk_cloud_id int NULL,
+  INDEX idx_session_id (session_id) USING INVERTED,
+  INDEX idx_proxy_ip (proxy_ip) USING INVERTED
 ) ENGINE=OLAP
 DUPLICATE KEY(cluster_domain, dteventtimehour)
 PARTITION BY RANGE(dteventtimehour)()
@@ -263,7 +265,7 @@ DISTRIBUTED BY HASH(cluster_domain) BUCKETS 12
 PROPERTIES (
   "replication_allocation" = "tag.location.default: 1",
   "min_load_replica_num" = "-1",
-  "bloom_filter_columns" = "cluster_domain, proxy_ip, conn_user",
+  "bloom_filter_columns" = "conn_user",
   "is_being_synced" = "false",
   "dynamic_partition.enable" = "true",
   "dynamic_partition.time_unit" = "DAY",

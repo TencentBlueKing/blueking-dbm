@@ -1,8 +1,9 @@
 package scenesnapshot
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
@@ -15,12 +16,8 @@ type engineInnodbStatus struct {
 
 var engineInnodbStatusName = "engine-innodb-status"
 
+// engineInnodbStatusScene engine status 现场
 func engineInnodbStatusScene(db *pkg.MySQLMonitorDBH) error {
-	err := archivescenes.DeleteOld(engineInnodbStatusName, sceneBase, 1)
-	if err != nil {
-		return err
-	}
-
 	res, err := queryEngineInnodbStatus(db)
 	if err != nil {
 		return err

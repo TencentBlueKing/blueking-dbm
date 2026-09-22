@@ -46,5 +46,11 @@ func init() {
 	_ = subCmdRun.MarkPersistentFlagRequired("items")
 	_ = viper.BindPFlag("run-items", subCmdRun.PersistentFlags().Lookup("items"))
 
+	subCmdRun.PersistentFlags().BoolP(
+		"no-delay", "", false,
+		"skip the random delay before collecting, for manual run",
+	)
+	_ = viper.BindPFlag("run-no-delay", subCmdRun.PersistentFlags().Lookup("no-delay"))
+
 	rootCmd.AddCommand(subCmdRun)
 }

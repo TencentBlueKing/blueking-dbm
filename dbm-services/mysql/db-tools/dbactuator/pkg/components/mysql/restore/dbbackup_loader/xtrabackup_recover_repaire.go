@@ -439,7 +439,7 @@ func ResetPath(paths []string, cnf *util.CnfFile, backup bool) error {
 					}
 				}
 				return nil
-			}, 30*time.Second, 10*time.Minute, logger.Default())
+			}, 30*time.Second, 20*time.Minute, logger.Default())
 			if err != nil {
 				return err
 			}

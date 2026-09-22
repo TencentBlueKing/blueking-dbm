@@ -3,8 +3,9 @@ package scenesnapshot
 import (
 	"bytes"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"log/slog"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 
@@ -25,10 +26,14 @@ type mysqlProcess struct {
 
 var processListName = "processlist"
 
+// queryProcesslist 优先按照时间排序
 func queryProcesslist(db *pkg.MySQLMonitorDBH) (res []*mysqlProcess, err error) {
+	// 不同版本返回的列名大小写可能不一致, 统一 alias 成大写, 和 mysqlProcess 的 db tag 对齐
 	err = db.Select(
 		&res,
-		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST ORDER BY TIME DESC`,
+		"SELECT ID AS `ID`, USER AS `USER`, HOST AS `HOST`, DB AS `DB`, "+
+			"COMMAND AS `COMMAND`, TIME AS `TIME`, STATE AS `STATE`, INFO AS `INFO` "+
+			"FROM INFORMATION_SCHEMA.PROCESSLIST ORDER BY TIME DESC",
 	)
 	if err != nil {
 		slog.Error("show full processlist", slog.String("error", err.Error()))
@@ -38,17 +43,8 @@ func queryProcesslist(db *pkg.MySQLMonitorDBH) (res []*mysqlProcess, err error) 
 	return
 }
 
-func processListScene(db *pkg.MySQLMonitorDBH) error {
-	err := archivescenes.DeleteOld(processListName, sceneBase, 1)
-	if err != nil {
-		return err
-	}
-
-	processList, err := queryProcesslist(db)
-	if err != nil {
-		return err
-	}
-
+// processListScene processlist 现场
+func processListScene(processList []*mysqlProcess) error {
 	var b bytes.Buffer
 	tw := table.NewWriter()
 	tw.SetOutputMirror(&b)
@@ -75,7 +71,7 @@ func processListScene(db *pkg.MySQLMonitorDBH) error {
 
 	tw.Render()
 
-	err = archivescenes.Write(processListName, sceneBase, b.Bytes())
+	err := archivescenes.Write(processListName, sceneBase, b.Bytes())
 	if err != nil {
 		return err
 	}

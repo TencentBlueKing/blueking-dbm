@@ -127,8 +127,11 @@ func loadSnapShot() ([]*mysqlProcess, error) {
 }
 
 func queryProcessList(db *pkg.MySQLMonitorDBH) ([]mysqlProcess, error) {
+	// 不同版本返回的列名大小写可能不一致, 统一 alias 成大写, 和 mysqlProcess 的 db tag 对齐
 	rows, err := db.Queryx(
-		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`,
+		"SELECT ID AS `ID`, USER AS `USER`, HOST AS `HOST`, DB AS `DB`, " +
+			"COMMAND AS `COMMAND`, TIME AS `TIME`, STATE AS `STATE`, INFO AS `INFO` " +
+			"FROM INFORMATION_SCHEMA.PROCESSLIST",
 	)
 	if err != nil {
 		slog.Error("show full processlist", slog.String("error", err.Error()))
