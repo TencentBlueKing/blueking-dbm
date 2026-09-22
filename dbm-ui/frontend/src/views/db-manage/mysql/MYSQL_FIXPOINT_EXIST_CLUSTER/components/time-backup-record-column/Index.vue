@@ -124,11 +124,7 @@
     <EditableSelect
       v-else-if="backupTime"
       :placeholder="t('未匹配到备份记录，请选择')"
-      :popover-options="{
-        boundary: 'parent',
-        trigger: 'manual',
-        isShow: false,
-      }"
+      trigger="manual"
       @click="handleShowSelector" />
     <EditableBlock
       v-else

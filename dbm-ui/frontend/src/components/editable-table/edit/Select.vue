@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     class="bk-editable-select"
     v-bind="{ ...attrs, ...props }"
@@ -56,7 +56,7 @@
         name="tag"
         :selected="selected" />
     </template>
-  </BkSelect>
+  </DbSelect>
 </template>
 <script lang="ts">
   /* eslint-disable vue/no-unused-properties */
@@ -71,12 +71,9 @@
   import _ from 'lodash';
   import { useAttrs, type VNode, watch } from 'vue';
 
-  import useColumn from '../useColumn';
+  import type { SelectedItem } from '@components/bkui-vue/select/common';
 
-  type ISelected = {
-    label: string;
-    value: number | string;
-  };
+  import useColumn from '../useColumn';
 
   const props = defineProps<Props>();
 
@@ -89,9 +86,9 @@
     allOptionIcon?: () => VNode;
     default?: () => VNode;
     option?: (value: { item: Record<string, any> }) => VNode;
-    tag?: (value: { selected: ISelected[] }) => VNode;
-    tagRender?: (item: ISelected) => VNode;
-    trigger?: (value: { selected: ISelected[] }) => VNode;
+    tag?: (value: { selected: SelectedItem[] }) => VNode;
+    tagRender?: (item: SelectedItem) => VNode;
+    trigger?: (value: { selected: SelectedItem[] }) => VNode;
   }>();
 
   const modelValue = defineModel<T>();
@@ -124,50 +121,46 @@
 </script>
 <style lang="less">
   .bk-editable-table-body-column {
+    // 边框统一由表格的 td::before 画，组件自身在默认态和聚焦态给触发器加的边框、投影都要抹掉
+    .bk-editable-select {
+      &.dbm-select {
+        .dbm-select-input-box {
+          height: 40px;
+          background: transparent;
+          border-color: transparent;
+        }
+
+        // 多选标签模式，标签换行时跟着把单元格撑高
+        .dbm-select-tag {
+          min-height: 40px;
+          background: transparent;
+          border-color: transparent;
+        }
+
+        &.is-focus {
+          .dbm-select-input-box,
+          .dbm-select-tag {
+            border-color: transparent;
+            box-shadow: none;
+          }
+        }
+      }
+    }
+
     &.is-readonly,
     &.is-disabled {
       .bk-editable-select {
-        &.bk-select {
+        &.dbm-select {
           pointer-events: none;
 
-          .bk-tag-close,
-          .clear-icon {
+          .dbm-select-clear-icon,
+          .dbm-tag-close {
             display: none !important;
           }
 
           * {
             pointer-events: none;
           }
-        }
-      }
-    }
-  }
-
-  .bk-editable-select {
-    &.bk-select {
-      width: 100%;
-
-      .bk-input {
-        height: 40px;
-        border: none;
-        box-shadow: none !important;
-      }
-
-      .bk-input--text {
-        background: transparent;
-      }
-
-      .bk-select-trigger {
-        display: flex;
-        align-items: center;
-        height: 40px !important;
-
-        .bk-select-tag {
-          height: 40px !important;
-          background: transparent;
-          border: none !important;
-          box-shadow: none !important;
-          flex: 1;
         }
       }
     }

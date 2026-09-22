@@ -24,7 +24,7 @@
       <EditableSelect
         v-model="modelValue"
         :clearable="false">
-        <BkOption
+        <DbOption
           v-for="(item, index) in selectList"
           :key="index"
           :label="item.label"
@@ -39,7 +39,7 @@
               {{ t('推荐') }}
             </DbTag>
           </div>
-        </BkOption>
+        </DbOption>
       </EditableSelect>
     </BkLoading>
   </EditableColumn>

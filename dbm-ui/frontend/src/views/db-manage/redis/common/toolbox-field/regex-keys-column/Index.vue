@@ -26,11 +26,10 @@
     </template>
     <EditableTagInput
       v-model="modelValue"
-      allow-auto-match
       allow-create
       clearable
-      has-delete-icon
       :placeholder="t('请输入正则表达式')"
+      :split-fn="tagInputSplitFn"
       @change="handleChange" />
     <template #tips>
       <div style="font-size: 12px; line-height: 24px; color: #63656e">
@@ -72,6 +71,9 @@
   const { t } = useI18n();
 
   const batchEditValue = ref<string[]>([]);
+
+  // 正则本身含 | 、逗号、空格等字符，只按分号拆分，避免一条正则被拆成多个标签
+  const tagInputSplitFn = (value: string) => value.split(';');
 
   const handleBatchEditConfirm = () => {
     emits('batch-edit', batchEditValue.value, props.field);

@@ -97,10 +97,3 @@
     },
   );
 </script>
-
-<style lang="less" scoped>
-  :deep(.bk-select-tag) {
-    border: none !important;
-    box-shadow: none !important;
-  }
-</style>

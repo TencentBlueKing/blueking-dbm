@@ -17,8 +17,8 @@
     </template>
     <EditableTagInput
       v-model="modelValue"
-      :max-data="single ? 1 : -1"
-      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')" />
+      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+      :single="single" />
     <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>

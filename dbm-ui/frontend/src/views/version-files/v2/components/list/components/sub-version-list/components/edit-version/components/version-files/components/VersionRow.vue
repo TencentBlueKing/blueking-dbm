@@ -98,7 +98,7 @@
           :clearable="false"
           ext-cls="version-files-version-row-select"
           @change="(value: string) => handleOsTypeChange(value)">
-          <BkOption
+          <DbOption
             v-for="system in systemList"
             :key="system.value"
             v-bk-tooltips="{
@@ -176,7 +176,7 @@
               </div>
             </div>
           </template>
-          <BkOption
+          <DbOption
             v-for="version in versionList"
             :key="version.value"
             v-bk-tooltips="{

@@ -21,7 +21,7 @@
     <EditableSelect
       v-model="modelValue"
       :clearable="false">
-      <BkOption
+      <DbOption
         v-for="(item, index) in versions"
         :id="item"
         :key="item"
@@ -45,7 +45,7 @@
             </DbTag>
           </template>
         </TextOverflowLayout>
-      </BkOption>
+      </DbOption>
     </EditableSelect>
   </EditableColumn>
 </template>

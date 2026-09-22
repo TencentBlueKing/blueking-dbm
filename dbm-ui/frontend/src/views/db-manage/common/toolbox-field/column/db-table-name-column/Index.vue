@@ -29,14 +29,12 @@
       @click="handleShowTips">
       <EditableTagInput
         v-model="modelValue"
-        allow-auto-match
         allow-create
         clearable
         :disabled="disabled"
-        has-delete-icon
-        :max-data="single ? 1 : -1"
-        :paste-fn="tagInputPasteFn"
         :placeholder="placeholder"
+        :single="single"
+        :split-fn="tagInputSplitFn"
         @change="handleChange" />
       <div style="display: none">
         <div
@@ -119,7 +117,7 @@
     tippyIns?.show();
   };
 
-  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+  const tagInputSplitFn = (value: string) => value.split(batchSplitRegex);
 
   onMounted(() => {
     setTimeout(() => {
