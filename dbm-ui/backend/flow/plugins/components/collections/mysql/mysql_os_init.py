@@ -12,6 +12,7 @@ import base64
 import copy
 import re
 
+from django.utils.translation import gettext as _
 from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 
@@ -335,11 +336,14 @@ class GetOsSysParamComponent(Component):
 class CleanDataBakDirSvr(BkJobService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        script_content = """
+        script_content = r"""
         echo "clean mysqllog bak dir"
+        if pgrep -x mysqld >/dev/null 2>&1; then
+            echo "__MYSQLD_RUNNING_REFUSE_CLEAN__"
+            pgrep -ax mysqld || true
+            exit 1
+        fi
         find /data/ -type d -name "mysqllog_2*_bak_*"  -exec rm -rf {} + || true
-        find /data/mysqldata/ -mindepth 1 -maxdepth 1 -type d   ! -regex '.*/200[0-9][0-9]$' -exec rm -rf {} + || true
-        find /data1/mysqldata/ -mindepth 1 -maxdepth 1 -type d   ! -regex '.*/200[0-9][0-9]$' -exec rm -rf {} + || true
         find /data/dbbak -type f ! \( -name "*.log" -o -name "*.err" \) -delete 2>/dev/null || true
         find /data/dbbak -depth -type d -empty -delete 2>/dev/null || true
         find /data1/dbbak -type f ! \( -name "*.log" -o -name "*.err" \) -delete 2>/dev/null || true
@@ -357,7 +361,10 @@ class CleanDataBakDirSvr(BkJobService):
                 rm -rf "${export_install_path}" || true
             fi
         done
-        """  # noqa
+        """.replace(
+            "__MYSQLD_RUNNING_REFUSE_CLEAN__",
+            _("检测到 mysqld 进程，拒绝清理备份目录"),
+        )
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {

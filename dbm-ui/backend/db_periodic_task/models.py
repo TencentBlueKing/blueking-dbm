@@ -349,23 +349,20 @@ class MySQLBackupRecoverTask(BaseReportABS):
             return []
 
     @classmethod
-    def get_recent_24h_task_cluster_ids(cls):
+    def get_today_task_cluster_ids(cls):
         """
-        获取最近24小时内发起任务集群ID列表
+        获取项目时区自然日内已创建演练任务的集群 ID。
+
+        当天任意状态的任务都占用该集群的当日名额。窗口是本地 00:00 到次日 00:00。
         """
-        try:
-            recent_time = timezone.now() - timedelta(hours=24)
-            return list(
-                MySQLBackupRecoverTask.objects.filter(
-                    create_at__gte=recent_time,
-                    # 排除所有状态的任务，不仅仅是创建时间
-                )
-                .values_list("cluster_id", flat=True)
-                .distinct()
-            )
-        except Exception as e:
-            logger.warning(gettext("获取最近24小时任务集群ID列表时发生数据库连接错误: {}").format(str(e)))
-            return []
+        now_local = timezone.localtime()
+        day_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        return list(
+            cls.objects.filter(create_at__gte=day_start, create_at__lt=day_end)
+            .values_list("cluster_id", flat=True)
+            .distinct()
+        )
 
     @classmethod
     def get_running_task_cluster_ids(cls):

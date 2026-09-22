@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from celery.schedules import crontab
+from django.core.cache import cache
 from django.utils.translation import gettext as _
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
@@ -20,12 +21,23 @@ from .gen_task import gen_rollback_task
 
 logger = logging.getLogger("root")
 
+# 整轮互斥。任务行要等资源申请成功才落库，5 分钟一轮时两轮重叠会选中同一集群。
+# TTL 只覆盖进程崩溃后的残留锁，正常结束会在 finally 里删掉。
+BACKUP_RECOVERY_LOCK_KEY = "mysql_backup_rollback:gen_task"
+BACKUP_RECOVERY_LOCK_TTL = 2 * 60 * 60
+
 
 # 分钟偏移 +1，避免与 */2、*/5 等周期任务在同一分钟撞点
 @register_periodic_task(run_every=crontab(minute="1-59/5"))
 def backup_data_recovery_task():
+    if not cache.add(BACKUP_RECOVERY_LOCK_KEY, 1, timeout=BACKUP_RECOVERY_LOCK_TTL):
+        logger.info(_("备份恢复演练仍在执行，本轮跳过"))
+        return
     logger.info("start backup data recovery task")
-    gen_rollback_task()
+    try:
+        gen_rollback_task()
+    finally:
+        cache.delete(BACKUP_RECOVERY_LOCK_KEY)
 
 
 @register_periodic_task(run_every=crontab(day_of_week="*", hour="10", minute="30"))

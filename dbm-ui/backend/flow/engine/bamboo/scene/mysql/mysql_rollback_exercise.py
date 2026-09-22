@@ -431,16 +431,14 @@ class MySQLRollbackExerciseFlow(object):
             "labels": self.labels,
             "operator": "system",
         }
-        # 机器归还到资源池
+        # 清理数据备份目录
         sub_pipeline.add_act(
-            act_name=_("机器归还到资源池"),
-            act_component_code=ExternalServiceComponent.code,
+            act_name=_("清理数据备份目录"),
+            act_component_code=CleanDataBakDirComponent.code,
             kwargs={
-                "params": import_data,
-                "api_import_path": DBResourceApi.__module__,
-                "api_import_module": "DBResourceApi",
-                "api_call_func": "resource_import",
-                "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+                "bk_biz_id": get_resource_biz(),
+                "bk_cloud_id": self.rollback_host["bk_cloud_id"],
+                "exec_ip": self.rollback_host["ip"],
             },
         )
         # 转移模块到对应业务的资源池
@@ -454,14 +452,16 @@ class MySQLRollbackExerciseFlow(object):
                 "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
             },
         )
-        # 清理数据备份目录
+        # 机器归还到资源池
         sub_pipeline.add_act(
-            act_name=_("清理数据备份目录"),
-            act_component_code=CleanDataBakDirComponent.code,
+            act_name=_("机器归还到资源池"),
+            act_component_code=ExternalServiceComponent.code,
             kwargs={
-                "bk_biz_id": get_resource_biz(),
-                "bk_cloud_id": self.rollback_host["bk_cloud_id"],
-                "exec_ip": self.rollback_host["ip"],
+                "params": import_data,
+                "api_import_path": DBResourceApi.__module__,
+                "api_import_module": "DBResourceApi",
+                "api_call_func": "resource_import",
+                "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
             },
         )
         # # 解除告警屏蔽
