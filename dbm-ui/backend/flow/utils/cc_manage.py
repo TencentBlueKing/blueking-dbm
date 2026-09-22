@@ -552,32 +552,38 @@ class CcManage(object):
         if not bk_host_ids:
             return {}
 
-        bk_host_ids = list(set(bk_host_ids))
-        set_modules = CCApi.search_module(
-            {"bk_biz_id": self.hosting_biz_id, "bk_set_id": bk_set_id, "bk_module_name": ""},
-            use_admin=True,
-        )
-        bk_module_ids = [module["bk_module_id"] for module in set_modules.get("info") or []]
-        host_id__module_ids_map = {host_id: [] for host_id in bk_host_ids}
-        if not bk_module_ids:
-            return host_id__module_ids_map
-
-        res = CCApi.find_module_host_relation(
-            {
-                "bk_biz_id": self.hosting_biz_id,
-                "bk_module_ids": bk_module_ids,
-                "module_fields": ["bk_module_id"],
-                "host_fields": ["bk_host_id"],
-                "page": {"start": 0, "limit": 500},
-            },
-            use_admin=True,
-        )
-        bk_host_id_set = set(bk_host_ids)
-        for relation in res.get("relation") or []:
-            host_id = relation["host"]["bk_host_id"]
-            if host_id not in bk_host_id_set:
-                continue
-            host_id__module_ids_map[host_id] = [info["bk_module_id"] for info in relation.get("modules") or []]
+        bk_host_ids = list(dict.fromkeys(bk_host_ids))
+        host_id__module_ids_map: Dict[int, List[int]] = {host_id: [] for host_id in bk_host_ids}
+        # open_find_host_topo_relation 限制 bk_host_ids 一次最多 500 个
+        host_query_batch_size = 500
+        page_limit = 500
+        for start in range(0, len(bk_host_ids), host_query_batch_size):
+            host_id_batch = bk_host_ids[start : start + host_query_batch_size]
+            page_start = 0
+            while True:
+                res = CCApi.find_host_topo_relation(
+                    {
+                        "bk_biz_id": self.hosting_biz_id,
+                        "bk_set_ids": [bk_set_id],
+                        "bk_host_ids": host_id_batch,
+                        "page": {"start": page_start, "limit": page_limit},
+                    },
+                    use_admin=True,
+                )
+                relations = res.get("data") or []
+                for relation in relations:
+                    host_id = relation["bk_host_id"]
+                    module_id = relation["bk_module_id"]
+                    if host_id not in host_id__module_ids_map:
+                        continue
+                    if module_id not in host_id__module_ids_map[host_id]:
+                        host_id__module_ids_map[host_id].append(module_id)
+                if len(relations) < page_limit:
+                    break
+                page_start += page_limit
+                count = res.get("count")
+                if count is not None and page_start >= count:
+                    break
         return host_id__module_ids_map
 
     def _detach_hosts_from_module(self, bk_set_id: int, bk_module_id: int, bk_host_ids: List[int]) -> None:
