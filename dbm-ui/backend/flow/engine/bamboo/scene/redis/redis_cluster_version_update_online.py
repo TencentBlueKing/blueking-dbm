@@ -640,8 +640,9 @@ class RedisClusterVersionUpdateOnline(object):
         if storage_pipelines:
             redis_pipeline.add_parallel_sub_pipeline(storage_pipelines)
 
-        # Redis 集群版本升级完成后，自动提交一张 Redis 备份单据（3 小时内 DBA 未点执行则自动终止）
-        upgraded_cluster_ids = self._collect_upgraded_cluster_ids()
+        # 存储层升级完成后，自动提交一张 Redis 备份单据（3 小时内 DBA 未点执行则自动终止）
+        # 仅升级 Proxy 时不重启 Redis 实例，无需自动备份
+        upgraded_cluster_ids = self._collect_upgraded_cluster_ids(node_types=(RedisVerUpdateNodeType.Backend.value,))
         if upgraded_cluster_ids:
             redis_pipeline.add_act(
                 act_name=_("自动提交Redis备份单据"),

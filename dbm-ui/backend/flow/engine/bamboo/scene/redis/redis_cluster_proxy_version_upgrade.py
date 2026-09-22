@@ -125,4 +125,4 @@ class RedisProxyVersionUpgradeSceneFlow(object):
             sub_builder = ClusterProxysUpgradeAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        redis_pipeline.run_pipeline()
+        redis_pipeline.run_pipeline(init_trans_data_class=CommonContext())
