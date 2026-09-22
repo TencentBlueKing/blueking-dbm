@@ -22,38 +22,37 @@
  * SOFTWARE.
  */
 
-package hamysql
+package main
 
 import (
-	"regexp"
+	"encoding/json"
+	"log"
+	"net"
+	"net/http"
+	"time"
 )
 
-const (
-	sanitizedSecret      = "<secret>"
-	maxSanitizedErrorLen = 256
-)
-
-var (
-	dsnFragmentPattern    = regexp.MustCompile(`[^\s]+:[^\s]+@(tcp|unix)\([^)]+\)[^\s]*`)
-	dsnCredentialPattern  = regexp.MustCompile(`([^\s:/]+):([^@\s]+)@`)
-	sensitiveParamPattern = regexp.MustCompile(`(?i)(password|token|passwd|pwd)\s*=\s*[^\s&]+`)
-)
-
-// SanitizeConnectionError returns a desensitized error summary safe for harvest reporting.
-// Passwords, tokens, and DSN credential segments are redacted. MySQL error codes and server
-// messages are preserved when they do not embed credentials. err may be nil.
-func SanitizeConnectionError(err error) string {
-	if err == nil {
-		return ""
+func startHTTPHealth(addr, etcdAddr, mysqlAddr string) (net.Listener, error) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status": "ok",
+			"etcd":   etcdAddr,
+			"mysql":  mysqlAddr,
+		})
+	})
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
 	}
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	go func() {
+		_ = server.Serve(ln)
+	}()
+	return ln, nil
+}
 
-	msg := err.Error()
-	msg = dsnFragmentPattern.ReplaceAllString(msg, "<redacted-dsn>")
-	msg = dsnCredentialPattern.ReplaceAllString(msg, "$1:"+sanitizedSecret+"@")
-	msg = sensitiveParamPattern.ReplaceAllString(msg, "$1="+sanitizedSecret)
-
-	if len(msg) > maxSanitizedErrorLen {
-		msg = msg[:maxSanitizedErrorLen]
-	}
-	return msg
+func logHTTPReady(addr string) {
+	log.Printf("http mock ready, addr: %s", addr)
 }

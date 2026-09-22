@@ -28,12 +28,15 @@ import (
 	"context"
 	"errors"
 
+	adminapm "dbm-services/common/dbha-v2/internal/admin/apm"
 	adminconfig "dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 )
 
 // AdminGrpcService implements proto.AdminServiceServer.
@@ -48,9 +51,12 @@ func NewAdminGrpcService(s *Service) *AdminGrpcService {
 	return &AdminGrpcService{srv: s}
 }
 
-// NewServer creates a gRPC server with keepalive and message size options from config (defaults set in Cfg).
-func (g *AdminGrpcService) NewServer() *grpc.Server {
-	cfg := adminconfig.Cfg.Grpc
+// NewServer creates a gRPC server with keepalive, message size, and storage lifecycle handling.
+func (g *AdminGrpcService) NewServer(configs ...adminconfig.GrpcConfig) *grpc.Server {
+	cfg := adminconfig.Snapshot().Grpc
+	if len(configs) > 0 {
+		cfg = configs[0]
+	}
 
 	kasp := keepalive.ServerParameters{
 		Time:    cfg.ServerPingTime,
@@ -67,14 +73,34 @@ func (g *AdminGrpcService) NewServer() *grpc.Server {
 		grpc.KeepaliveEnforcementPolicy(kacp),
 		grpc.MaxRecvMsgSize(cfg.MaxReceiveMessageSize),
 		grpc.MaxSendMsgSize(cfg.MaxSendMessageSize),
+		grpc.ChainUnaryInterceptor(
+			adminapm.UnaryServerInterceptor(),
+			g.storageUnaryInterceptor(),
+		),
 	)
+}
+
+func (g *AdminGrpcService) storageUnaryInterceptor() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req any,
+		_ *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (any, error) {
+		resource := g.srv.storageSlot.Get()
+		if resource == nil || !resource.acquire() {
+			return nil, status.Error(codes.Unavailable, "storage is reloading")
+		}
+		defer resource.release()
+		return handler(context.WithValue(ctx, storageContextKey{}, resource), req)
+	}
 }
 
 // Heartbeat admin server heartbeat
 func (g *AdminGrpcService) Heartbeat(
 	ctx context.Context, req *proto.HeartbeatRequest,
 ) (*proto.HeartbeatResponse, error) {
-	logger.Info("admin server heartbeat request(%v)", req)
+	logger.Info("admin heartbeat request")
 	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
 }
 
@@ -85,7 +111,11 @@ func (g *AdminGrpcService) GetProbeConfig(
 	logger.Debug("probe config request, bk_cloud_id: %d, ip: %s, client_id: %s, version: %s, updated_time: %d",
 		req.GetBkCloudId(), req.GetIp(), req.GetClientID(), req.GetVersion(), req.GetUpdatedTime())
 
-	payload, err := adminconfig.GenProbeConfig(ctx, g.srv.db, int(req.GetBkCloudId()), req.GetIp())
+	db := dbFromContext(ctx, g.srv.currentDB)
+	if db == nil {
+		return nil, status.Error(codes.Unavailable, "storage is unavailable")
+	}
+	payload, err := adminconfig.GenProbeConfig(ctx, db, int(req.GetBkCloudId()), req.GetIp())
 	if err != nil {
 		if errors.Is(err, adminconfig.ErrNoData) {
 			return &proto.ProbeConfigResponse{

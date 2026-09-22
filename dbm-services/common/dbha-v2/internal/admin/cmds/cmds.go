@@ -22,17 +22,22 @@
  * SOFTWARE.
  */
 
+// Package cmds provides cobra command implementations for admin (start, stop, restart, reload, health).
 package cmds
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/admin/config"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -41,21 +46,17 @@ var (
 	JsonFormatter bool
 )
 
-func procName() string {
-	if n := process.BinaryName(); n != "" {
-		return n
-	}
-	return process.NameAdmin
-}
-
+// StartCmdRunE runs the admin process in foreground.
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.StartCmdRunE(cmd, args, config.Cfg.PidFile, procName())
 }
 
+// StopCmdRunE stops the running admin process.
 func StopCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.StopCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop)
 }
 
+// RestartCmdRunE stops then starts the admin process.
 func RestartCmdRunE(cmd *cobra.Command, args []string) error {
 	configPath, _ := cmd.Root().PersistentFlags().GetString("config")
 	if err := config.Load(configPath); err != nil {
@@ -65,7 +66,8 @@ func RestartCmdRunE(cmd *cobra.Command, args []string) error {
 	if err := process.StopCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop); err != nil {
 		return err
 	}
-	if err := process.WaitForProcessExit(config.Cfg.PidFile, procName(), time.Duration(StopTimeout)*time.Second); err != nil {
+	waitTimeout := time.Duration(StopTimeout) * time.Second
+	if err := process.WaitForProcessExit(config.Cfg.PidFile, procName(), waitTimeout); err != nil {
 		return err
 	}
 	if useDaemonStart {
@@ -74,10 +76,17 @@ func RestartCmdRunE(cmd *cobra.Command, args []string) error {
 	return StartCmdRunE(cmd, args)
 }
 
+// ReloadCmdRunE sends a reload signal to the running admin process.
 func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.ReloadCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop)
+	configPath, _ := cmd.Root().PersistentFlags().GetString("config")
+	pidFile, err := reloadSignalPidFile(configPath)
+	if err != nil {
+		return err
+	}
+	return process.ReloadCmdRunE(cmd, args, pidFile, procName(), StopTimeout, ForceStop)
 }
 
+// DaemonStartCmdRunE starts the admin process under the process guard.
 func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
 	configPath, _ := cmd.Root().PersistentFlags().GetString("config")
 	if err := config.Load(configPath); err != nil {
@@ -86,6 +95,7 @@ func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.DaemonStartCmdRunE(cmd, args, config.Cfg.PidFile, procName(), process.DefaultGuardRestartDelay)
 }
 
+// HealthCmdRunE prints admin process health information.
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
 
@@ -102,4 +112,40 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), string(data))
 	return nil
+}
+
+func procName() string {
+	if n := process.BinaryName(); n != "" {
+		return n
+	}
+	return process.NameAdmin
+}
+
+func reloadSignalPidFile(configPath string) (string, error) {
+	next, err := config.Parse(configPath)
+	if isConfigFileMissing(err) {
+		logger.Warn(
+			"admin reload config file missing, using current pid file, config_path: %s, errmsg: %s",
+			configPath, err,
+		)
+		return config.Cfg.PidFile, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := config.Validate(next); err != nil {
+		return "", err
+	}
+	return config.Cfg.PidFile, nil
+}
+
+func isConfigFileMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	var notFound viper.ConfigFileNotFoundError
+	if errors.As(err, &notFound) {
+		return true
+	}
+	return errors.Is(err, os.ErrNotExist)
 }

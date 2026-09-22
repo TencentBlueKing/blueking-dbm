@@ -118,6 +118,22 @@ func TestSetLoggerAndLog(t *testing.T) {
 	if Log() != mock {
 		t.Fatal("Log() should return the set logger")
 	}
+
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 50; i++ {
+			SetLogger(mock)
+			_ = Log()
+			Info("concurrent")
+		}
+		close(done)
+	}()
+	for i := 0; i < 50; i++ {
+		SetLogger(mock)
+		Info("concurrent")
+	}
+	<-done
+	SetLogger(mock)
 }
 
 func TestDebug(t *testing.T) {
@@ -233,6 +249,18 @@ func TestConvertLevel(t *testing.T) {
 				t.Fatalf("convertLevel(%v) = %v, want %v", tt.level, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDbmLoggerSetLevel(t *testing.T) {
+	path := t.TempDir() + "/dynamic.log"
+	log := NewDbmLogger(Config{FileName: path, LogLevel: InfoLevel})
+	if got := zapcore.Level(log.level.Load()); got != zapcore.InfoLevel {
+		t.Fatalf("initial level: %s, want info", got)
+	}
+	log.SetLevel(DebugLevel)
+	if got := zapcore.Level(log.level.Load()); got != zapcore.DebugLevel {
+		t.Fatalf("updated level: %s, want debug", got)
 	}
 }
 
