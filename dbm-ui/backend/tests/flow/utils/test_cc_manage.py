@@ -27,8 +27,7 @@ def _mock_topo_objects(bk_module_id=4238, bk_set_id=96):
 @patch("backend.flow.utils.cc_manage.BizSettings.get_exact_hosting_biz", return_value=3)
 @patch("backend.flow.utils.cc_manage.CCApi.delete_module")
 @patch("backend.flow.utils.cc_manage.CCApi.transfer_host_module")
-@patch("backend.flow.utils.cc_manage.CCApi.find_module_host_relation")
-@patch("backend.flow.utils.cc_manage.CCApi.search_module")
+@patch("backend.flow.utils.cc_manage.CCApi.find_host_topo_relation")
 @patch("backend.flow.utils.cc_manage.CCApi.list_biz_hosts")
 @patch("backend.flow.utils.cc_manage.ClusterMonitorTopo.objects.get")
 @patch("backend.flow.utils.cc_manage.AppMonitorTopo.objects.get")
@@ -36,8 +35,7 @@ def test_delete_cc_module_detaches_shared_hosts_before_delete(
     mock_app_topo_get,
     mock_topo_get,
     mock_list_biz_hosts,
-    mock_search_module,
-    mock_find_module_host_relation,
+    mock_find_host_topo_relation,
     mock_transfer_host_module,
     mock_delete_module,
     _mock_hosting_biz,
@@ -47,12 +45,14 @@ def test_delete_cc_module_detaches_shared_hosts_before_delete(
     mock_topo_get.return_value = topo_obj
     mock_app_topo_get.return_value = app_topo
     mock_list_biz_hosts.return_value = {"info": [{"bk_host_id": 101}, {"bk_host_id": 102}]}
-    mock_search_module.return_value = {"info": [{"bk_module_id": 4238}, {"bk_module_id": 4239}]}
-    mock_find_module_host_relation.return_value = {
-        "relation": [
-            {"host": {"bk_host_id": 101}, "modules": [{"bk_module_id": 4238}, {"bk_module_id": 4239}]},
-            {"host": {"bk_host_id": 102}, "modules": [{"bk_module_id": 4238}, {"bk_module_id": 4239}]},
-        ]
+    mock_find_host_topo_relation.return_value = {
+        "count": 4,
+        "data": [
+            {"bk_host_id": 101, "bk_module_id": 4238, "bk_set_id": 96},
+            {"bk_host_id": 101, "bk_module_id": 4239, "bk_set_id": 96},
+            {"bk_host_id": 102, "bk_module_id": 4238, "bk_set_id": 96},
+            {"bk_host_id": 102, "bk_module_id": 4239, "bk_set_id": 96},
+        ],
     }
 
     cc_manage.delete_cc_module("mongodb", ClusterType.MongoReplicaSet.value, cluster_id=63)
@@ -70,8 +70,7 @@ def test_delete_cc_module_detaches_shared_hosts_before_delete(
 @patch("backend.flow.utils.cc_manage.BizSettings.get_exact_hosting_biz", return_value=3)
 @patch("backend.flow.utils.cc_manage.CcManage.recycle_host")
 @patch("backend.flow.utils.cc_manage.CCApi.delete_module")
-@patch("backend.flow.utils.cc_manage.CCApi.find_module_host_relation")
-@patch("backend.flow.utils.cc_manage.CCApi.search_module")
+@patch("backend.flow.utils.cc_manage.CCApi.find_host_topo_relation")
 @patch("backend.flow.utils.cc_manage.CCApi.list_biz_hosts")
 @patch("backend.flow.utils.cc_manage.ClusterMonitorTopo.objects.get")
 @patch("backend.flow.utils.cc_manage.AppMonitorTopo.objects.get")
@@ -79,8 +78,7 @@ def test_delete_cc_module_recycles_exclusive_hosts(
     mock_app_topo_get,
     mock_topo_get,
     mock_list_biz_hosts,
-    mock_search_module,
-    mock_find_module_host_relation,
+    mock_find_host_topo_relation,
     mock_delete_module,
     mock_recycle_host,
     _mock_hosting_biz,
@@ -90,9 +88,9 @@ def test_delete_cc_module_recycles_exclusive_hosts(
     mock_topo_get.return_value = topo_obj
     mock_app_topo_get.return_value = app_topo
     mock_list_biz_hosts.return_value = {"info": [{"bk_host_id": 201}]}
-    mock_search_module.return_value = {"info": [{"bk_module_id": 5001}]}
-    mock_find_module_host_relation.return_value = {
-        "relation": [{"host": {"bk_host_id": 201}, "modules": [{"bk_module_id": 5001}]}]
+    mock_find_host_topo_relation.return_value = {
+        "count": 1,
+        "data": [{"bk_host_id": 201, "bk_module_id": 5001, "bk_set_id": 96}],
     }
 
     cc_manage.delete_cc_module("mongodb", ClusterType.MongoReplicaSet.value, cluster_id=70)
@@ -143,6 +141,34 @@ def test_delete_cc_module_skips_when_topo_missing(
     cc_manage.delete_cc_module("mongodb", ClusterType.MongoReplicaSet.value, cluster_id=63)
 
     mock_delete_module.assert_not_called()
+
+
+@patch("backend.flow.utils.cc_manage.BizSettings.get_exact_hosting_biz", return_value=3)
+@patch("backend.flow.utils.cc_manage.CCApi.find_host_topo_relation")
+def test_find_host_module_ids_map_in_set_queries_host_ids_in_batches(
+    mock_find_host_topo_relation,
+    _mock_hosting_biz,
+):
+    cc_manage = _build_cc_manage()
+    host_ids = list(range(1, 502))
+    mock_find_host_topo_relation.side_effect = [
+        {
+            "count": 500,
+            "data": [{"bk_host_id": host_id, "bk_module_id": 4238, "bk_set_id": 96} for host_id in host_ids[:500]],
+        },
+        {"count": 1, "data": [{"bk_host_id": 501, "bk_module_id": 4238, "bk_set_id": 96}]},
+    ]
+
+    host_id__module_ids_map = cc_manage._find_host_module_ids_map_in_set(bk_set_id=96, bk_host_ids=host_ids)
+
+    assert mock_find_host_topo_relation.call_count == 2
+    first_params = mock_find_host_topo_relation.call_args_list[0].args[0]
+    second_params = mock_find_host_topo_relation.call_args_list[1].args[0]
+    assert first_params["bk_host_ids"] == host_ids[:500]
+    assert first_params["bk_set_ids"] == [96]
+    assert second_params["bk_host_ids"] == [501]
+    assert host_id__module_ids_map[1] == [4238]
+    assert host_id__module_ids_map[501] == [4238]
 
 
 @patch("backend.flow.utils.cc_manage.env")
