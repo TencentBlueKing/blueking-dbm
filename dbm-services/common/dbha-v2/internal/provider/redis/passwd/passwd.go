@@ -72,6 +72,12 @@ func GetDbInstPasswd(bkCloudID, clusterID int, machineType haprobe.DbmMetadataMa
 	return instance().dbInstPasswd(bkCloudID, clusterID, machineType)
 }
 
+// GetProxyAdminPasswd returns the redis_proxy_admin password of a cluster.
+// Predixy admin ports (and any future admin-port probe/switch) use this, not redis_proxy.
+func GetProxyAdminPasswd(bkCloudID, clusterID int) (string, error) {
+	return instance().proxyAdminPasswd(bkCloudID, clusterID)
+}
+
 // GetMachinePasswd returns the OS password of the redis machines of a cloud area.
 // It is keyed by a fixed pseudo instance rather than by host, so one value covers
 // every machine.

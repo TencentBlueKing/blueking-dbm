@@ -109,6 +109,62 @@ tenDBClusters:
           - host: xxx.xxx.xxx.7
             port: 3306
 
+# redis clusters, grouped by cluster type the same way mysqlClusters and tenDBClusters are
+TwemproxyRedisInstance:
+  - domain: "cache.dbha-test1.hz.db"
+    clusterId: 1001
+    bkBizId: 1
+    bkCloudId: 0
+    proxy:
+      - host: xxx.xxx.xxx.1
+        port: 50000
+        adminPort: 51000
+      - host: xxx.xxx.xxx.2
+        port: 50000
+        adminPort: 51000
+
+    # A shard is one master-slave group, i.e. one twemproxy backend.
+    # It carries no redis-cluster slot information.
+    shards:
+      - master:
+          host: xxx.xxx.xxx.3
+          port: 30000
+        slave:
+          - host: xxx.xxx.xxx.4
+            port: 30000
+      - master:
+          host: xxx.xxx.xxx.3
+          port: 30001
+        slave:
+          - host: xxx.xxx.xxx.4
+            port: 30001
+
+    clb:
+      - bkCloudId: 0
+        region: "广州"
+        listenerId: "xxx"
+        loadbalancerId: "xxx"
+        instances:
+          - host: xxx.xxx.xxx.1
+            port: 50000
+          - host: xxx.xxx.xxx.2
+            port: 50000
+
+# proxy-only: the storage layer is never switched, so no shards are needed
+PredixyRedisCluster:
+  - domain: "cluster.dbha-test1.hz.db"
+    clusterId: 1002
+    bkBizId: 1
+    bkCloudId: 0
+    proxy:
+      - host: xxx.xxx.xxx.5
+        port: 50000
+        adminPort: 51000
+
+# The remaining redis keys follow the same shape:
+#   RedisInstance / TwemproxyTendisSSDInstance / PredixyTendisplusInstance take shards,
+#   PredixyTendisplusCluster is proxy-only.
+
 dbmServices:
   dbmApiMetadata:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances/
@@ -124,7 +180,17 @@ dbmServices:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/swap_role/
     timeout: 10s
     token: "xxx"
-  
+
+  dbmApiSwapRedisRole:
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/tendis_cluster_swap/
+    timeout: 10s
+    token: "xxx"
+
+  dbmApiQueryRedisPassword:
+    api: http://127.0.0.1:80/apis/proxypass/dbpriv/proxy_password/
+    timeout: 10s
+    token: "xxx"
+
   dbmApiDomainGet:
     api: http://127.0.0.1:80/apis/proxypass/dns/domain/get/
     timeout: 10s

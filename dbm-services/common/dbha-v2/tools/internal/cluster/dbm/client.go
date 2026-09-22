@@ -26,6 +26,7 @@ package dbm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -88,6 +89,13 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 
 // UpdateInstanceStatus updates the status of a batch of database instances.
 func (c *Client) UpdateInstanceStatus(instanceList []config.InstanceAddress, status DbmMetadataStatus) error {
+	return c.UpdateInstanceStatusInCloud(0, instanceList, status)
+}
+
+// UpdateInstanceStatusInCloud updates the status of a batch of database instances
+// within the given cloud area.
+func (c *Client) UpdateInstanceStatusInCloud(bkCloudId int, instanceList []config.InstanceAddress,
+	status DbmMetadataStatus) error {
 	if len(instanceList) == 0 {
 		return nil
 	}
@@ -102,6 +110,7 @@ func (c *Client) UpdateInstanceStatus(instanceList []config.InstanceAddress, sta
 	}
 
 	req := UpdateInstanceStatusRequest{
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.ClusterConfig.DbmServices.DbmApiUpdateStatus.Token,
 		Payloads:     payloads,
 	}
@@ -126,13 +135,20 @@ func (c *Client) UpdateInstanceStatus(instanceList []config.InstanceAddress, sta
 
 // UpdateAllInstancesStatus updates the status of all database instances in batches.
 func (c *Client) UpdateAllInstancesStatus(instanceList []config.InstanceAddress, status DbmMetadataStatus) error {
+	return c.UpdateAllInstancesStatusInCloud(0, instanceList, status)
+}
+
+// UpdateAllInstancesStatusInCloud updates the status of all database instances of the given
+// cloud area in batches.
+func (c *Client) UpdateAllInstancesStatusInCloud(bkCloudId int, instanceList []config.InstanceAddress,
+	status DbmMetadataStatus) error {
 	for start := 0; start < len(instanceList); start += updateStatusBatchSize {
 		end := start + updateStatusBatchSize
 		if end > len(instanceList) {
 			end = len(instanceList)
 		}
 
-		if err := c.UpdateInstanceStatus(instanceList[start:end], status); err != nil {
+		if err := c.UpdateInstanceStatusInCloud(bkCloudId, instanceList[start:end], status); err != nil {
 			return err
 		}
 	}
@@ -192,7 +208,14 @@ func (c *Client) QueryMetadataFromDbm(bkCloudId int, ips []string) ([]*DbInstMet
 
 // QueryInstanceRole queries instance role from DBM
 func (c *Client) QueryInstanceRole(ip string, port int) (haprobe.DbmMetadataInstanceRole, error) {
-	metadataList, err := c.QueryMetadataFromDbm(0, []string{ip})
+	return c.QueryInstanceRoleInCloud(0, ip, port)
+}
+
+// QueryInstanceRoleInCloud queries instance role from DBM within the given cloud area.
+func (c *Client) QueryInstanceRoleInCloud(bkCloudId int, ip string, port int) (
+	haprobe.DbmMetadataInstanceRole, error,
+) {
+	metadataList, err := c.QueryMetadataFromDbm(bkCloudId, []string{ip})
 	if err != nil {
 		return "", err
 	}
@@ -244,7 +267,13 @@ func (c *Client) SwapMySQLRole(masterIp string, masterPort int, slaveIp string, 
 
 // GetAllInstancesOfDomain retrieves all instances of a specific domain
 func (c *Client) GetAllInstancesOfDomain(domain string) ([]InstanceInfoInDomain, error) {
+	return c.GetAllInstancesOfDomainInCloud(0, domain)
+}
+
+// GetAllInstancesOfDomainInCloud retrieves all instances of a domain within the given cloud area
+func (c *Client) GetAllInstancesOfDomainInCloud(bkCloudId int, domain string) ([]InstanceInfoInDomain, error) {
 	req := DomainGetRequest{
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.ClusterConfig.DbmServices.DbmApiDomainGet.Token,
 		DomainName:   []string{domain},
 	}
@@ -269,8 +298,14 @@ func (c *Client) GetAllInstancesOfDomain(domain string) ([]InstanceInfoInDomain,
 
 // AddInstanceToDomain adds an instance to a specific domain
 func (c *Client) AddInstanceToDomain(ip string, port int, domain string, bkBizId int) error {
+	return c.AddInstanceToDomainInCloud(0, ip, port, domain, bkBizId)
+}
+
+// AddInstanceToDomainInCloud adds an instance to a domain within the given cloud area
+func (c *Client) AddInstanceToDomainInCloud(bkCloudId int, ip string, port int, domain string, bkBizId int) error {
 	req := DomainPutRequest{
 		App:          strconv.Itoa(bkBizId),
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.ClusterConfig.DbmServices.DbmApiDomainPut.Token,
 		InstancesToAdd: []InstancesOfDomain{
 			{
@@ -410,4 +445,136 @@ func (c *Client) DeregisterClbPartTarget(clb *config.ClbConfig, ips []string) er
 	}
 
 	return nil
+}
+
+// SwapRedisRole swaps master-slave roles of a Redis pair in the DBM metadata.
+// masterIp:masterPort must be the pair member DBM currently believes is the master.
+func (c *Client) SwapRedisRole(bkCloudId int, domain string,
+	masterIp string, masterPort int, slaveIp string, slavePort int) error {
+	apiCfg := config.ClusterConfig.DbmServices.DbmApiSwapRedisRole
+	if apiCfg.Api == "" {
+		return gerrors.New(gerrors.InvalidParameter,
+			"dbmApiSwapRedisRole.api is empty, please configure it in cluster.yaml")
+	}
+
+	req := SwapRedisRoleRequest{
+		BkCloudID:    bkCloudId,
+		DbCloudToken: apiCfg.Token,
+		Payload: SwapRedisRolePayload{
+			Master: SwapRedisRoleInstance{IP: masterIp, Port: masterPort},
+			Slave:  SwapRedisRoleInstance{IP: slaveIp, Port: slavePort},
+			Domain: domain,
+		},
+	}
+
+	respond, err := c.SendRequest(apiCfg.Api, hanet.HttpMethodPost, req, apiCfg.Timeout)
+	if err != nil {
+		return err
+	}
+
+	swapResp := &SwapRoleResponse{}
+	if err := json.Unmarshal(respond, swapResp); err != nil {
+		return err
+	}
+
+	if !swapResp.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", swapResp.Message)
+	}
+
+	return nil
+}
+
+// Components and users recognized by the DBM password service.
+const (
+	componentRedis           = "redis"
+	componentRedisProxy      = "redis_proxy"
+	componentRedisProxyAdmin = "redis_proxy_admin"
+
+	userInstanceDefault = "default"
+)
+
+// redisComponentName maps a machine type onto the data-port component.
+// Proxy admin ports use redis_proxy_admin via QueryRedisProxyAdminPassword.
+func redisComponentName(machineType haprobe.DbmMetadataMachineType) (string, error) {
+	switch machineType {
+	case haprobe.DbmMetadataMachineTypeTwemProxy, haprobe.DbmMetadataMachineTypePredixy:
+		return componentRedisProxy, nil
+	case haprobe.DbmMetadataMachineTypeTendisCache,
+		haprobe.DbmMetadataMachineTypeTendisPlus,
+		haprobe.DbmMetadataMachineTypeTendisSSD:
+		return componentRedis, nil
+	default:
+		return "", gerrors.Newf(gerrors.InvalidParameter,
+			"unsupported machine type for redis password, machine_type: %s", machineType)
+	}
+}
+
+// QueryRedisPassword returns the data-port password of one cluster.
+//
+// The reset/show flow touches a handful of clusters and exits, so each cluster
+// is queried once, on demand, with no caching in between.
+func (c *Client) QueryRedisPassword(bkCloudId, clusterId int,
+	machineType haprobe.DbmMetadataMachineType) (string, error) {
+	component, err := redisComponentName(machineType)
+	if err != nil {
+		return "", err
+	}
+	return c.queryRedisPasswordByComponent(bkCloudId, clusterId, component)
+}
+
+// QueryRedisProxyAdminPassword returns the redis_proxy_admin password of a cluster.
+// Predixy admin ports (and any future admin-port probe/switch) use this, not redis_proxy.
+func (c *Client) QueryRedisProxyAdminPassword(bkCloudId, clusterId int) (string, error) {
+	return c.queryRedisPasswordByComponent(bkCloudId, clusterId, componentRedisProxyAdmin)
+}
+
+func (c *Client) queryRedisPasswordByComponent(bkCloudId, clusterId int, component string) (string, error) {
+	apiCfg := config.ClusterConfig.DbmServices.DbmApiQueryRedisPassword
+	if apiCfg.Api == "" {
+		return "", gerrors.New(gerrors.InvalidParameter,
+			"dbmApiQueryRedisPassword.api is empty, please configure it in cluster.yaml")
+	}
+
+	instanceKey := strconv.Itoa(clusterId)
+	req := QueryPasswdRequest{
+		DbCloudToken: apiCfg.Token,
+		BkCloudID:    bkCloudId,
+		Instances: []passwdInstance{
+			{IP: instanceKey, Port: 0, BkCloudID: bkCloudId},
+		},
+		Users: []passwdUser{{UserName: userInstanceDefault, Component: component}},
+		Limit: 2,
+	}
+
+	resp, err := c.SendRequest(apiCfg.Api, hanet.HttpMethodPost, req, apiCfg.Timeout)
+	if err != nil {
+		return "", err
+	}
+
+	passwdResp := &QueryPasswdResponse{}
+	if err := json.Unmarshal(resp, passwdResp); err != nil {
+		return "", gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal password response: %s", err.Error())
+	}
+
+	if passwdResp.Code != 0 {
+		return "", gerrors.Newf(gerrors.Failure, "request failed, code: %d, errmsg: %s",
+			passwdResp.Code, passwdResp.Message)
+	}
+
+	// The service may report more than was asked for, and the cluster id travels in
+	// the ip field, so both have to match before the password is trusted.
+	for _, item := range passwdResp.Data.Items {
+		if item.Component != component || item.IP != instanceKey {
+			continue
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(item.Password)
+		if err != nil {
+			return "", gerrors.Newf(gerrors.InvalidParameter,
+				"failed to decode the %s password of cluster %d: %s", component, clusterId, err.Error())
+		}
+		return string(decoded), nil
+	}
+
+	return "", gerrors.Newf(gerrors.NotExist, "no %s password for cluster %d", component, clusterId)
 }

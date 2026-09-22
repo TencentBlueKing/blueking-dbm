@@ -25,119 +25,45 @@
 package config
 
 import (
-	"fmt"
 	"os"
-	"time"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"gopkg.in/yaml.v3"
 )
 
-// InstanceAddress represents the address of a database instance.
-type InstanceAddress struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
-}
-
-// ProxyAddress represents the address of a mysql proxy server.
-type ProxyAddress struct {
-	Host      string `yaml:"host"`
-	Port      int    `yaml:"port"`
-	AdminPort int    `yaml:"adminPort"`
-}
-
-// ClbConfig represents a Clb binding for cluster instances.
-type ClbConfig struct {
-	BkCloudID      int               `yaml:"bkCloudId"`
-	Region         string            `yaml:"region"`
-	ListenerID     string            `yaml:"listenerId"`
-	LoadBalancerID string            `yaml:"loadbalancerId"`
-	Instances      []InstanceAddress `yaml:"instances"`
-}
-
-// MysqlCluster represents a MySQL cluster.
-type MysqlCluster struct {
-	Domain      string            `yaml:"domain"`
-	DomainSlave string            `yaml:"domainSlave"`
-	BkBizId     int               `yaml:"bkBizId"`
-	Proxy       []ProxyAddress    `yaml:"proxy"`
-	Master      InstanceAddress   `yaml:"master"`
-	Slave       []InstanceAddress `yaml:"slave"`
-	Clb         []ClbConfig       `yaml:"clb,omitempty"`
-}
-
-// TenDBClusterNodeInfo represents the information of a TenDBCluster node.
-type TenDBClusterNodeInfo struct {
-	Host       string `yaml:"host"`
-	Port       int    `yaml:"port"`
-	ServerName string `yaml:"serverName"`
-	User       string `yaml:"user"`
-	Password   string `yaml:"password"`
-	Wrapper    string
-}
-
-// RemoteSlaveInfo represents the information of a remote slave instance.
-type RemoteSlaveInfo struct {
-	TenDBClusterNodeInfo `yaml:",inline"`
-	MasterHost           string `yaml:"masterHost"` // Identify the master-slave one-to-one relationship
-	MasterPort           int    `yaml:"masterPort"` // Identify the master-slave one-to-one relationship
-}
-
-// TenDBCluster represents a TenDB cluster.
-type TenDBCluster struct {
-	Domain       string                 `yaml:"domain"`      // main domain, used as master domain for spider binding
-	DomainSlave  string                 `yaml:"domainSlave"` // slave domain for spider slave binding (optional, only used when SpiderSlave exists)
-	BkBizId      int                    `yaml:"bkBizId"`
-	Spider       []TenDBClusterNodeInfo `yaml:"spider"`
-	SpiderSlave  []TenDBClusterNodeInfo `yaml:"spiderSlave"`
-	CtlMaster    TenDBClusterNodeInfo   `yaml:"ctlMaster"`
-	CtlSlave     []TenDBClusterNodeInfo `yaml:"ctlSlave"`
-	RemoteMaster []TenDBClusterNodeInfo `yaml:"remoteMaster"`
-	RemoteSlave  []RemoteSlaveInfo      `yaml:"remoteSlave"`
-	Clb          []ClbConfig            `yaml:"clb,omitempty"`
-}
-
-// BinlogInfo represents mysql binlog information.
-type BinlogInfo struct {
-	TenDBClusterNodeInfo
-	File     string `yaml:"file"`
-	Position uint64 `yaml:"position"`
-}
-
-// APIConfig represents API configuration
-type APIConfig struct {
-	Api     string        `yaml:"api"`
-	Timeout time.Duration `yaml:"timeout"`
-	Token   string        `yaml:"token"`
-}
-
-// DbmApis represents DBM apis configurations
-type DbmApis struct {
-	DbmApiMetadata                APIConfig `yaml:"dbmApiMetadata"`
-	DbmApiUpdateStatus            APIConfig `yaml:"dbmApiUpdateStatus"`
-	DbmApiSwapMysqlRole           APIConfig `yaml:"dbmApiSwapMysqlRole"`
-	DbmApiDomainGet               APIConfig `yaml:"dbmApiDomainGet"`
-	DbmApiDomainPut               APIConfig `yaml:"dbmApiDomainPut"`
-	DbmApiClbGetTargetPrivateIps  APIConfig `yaml:"dbmApiClbGetTargetPrivateIps"`
-	DbmApiClbRegisterPartTarget   APIConfig `yaml:"dbmApiClbRegisterPartTarget"`
-	DbmApiClbDeregisterPartTarget APIConfig `yaml:"dbmApiClbDeregisterPartTarget"`
-}
-
-// AuthInfo represents authentication information for MySQL instances
-type AuthInfo struct {
-	User          string `yaml:"user"`
-	Password      string `yaml:"password"`
-	ProxyUser     string `yaml:"proxyUser"`
-	ProxyPassword string `yaml:"proxyPassword"`
-	ReplUser      string `yaml:"replUser"`
-	ReplPassword  string `yaml:"replPassword"`
-}
-
-// Config represents the configuration of the test tools.
+// Config represents the configuration of the cluster tool.
+// Redis yaml keys use the standard cluster type names declared in cluster_type.go.
 type Config struct {
 	MysqlClusters []MysqlCluster `yaml:"mysqlClusters"`
 	TenDBClusters []TenDBCluster `yaml:"tenDBClusters"`
-	DbmServices   DbmApis        `yaml:"dbmServices"`
-	AuthInfo      AuthInfo       `yaml:"authInfo"`
+
+	RedisInstance              []RedisCluster `yaml:"RedisInstance"`
+	TwemproxyRedisInstance     []RedisCluster `yaml:"TwemproxyRedisInstance"`
+	TwemproxyTendisSSDInstance []RedisCluster `yaml:"TwemproxyTendisSSDInstance"`
+	PredixyTendisplusInstance  []RedisCluster `yaml:"PredixyTendisplusInstance"`
+	PredixyRedisCluster        []RedisCluster `yaml:"PredixyRedisCluster"`
+	PredixyTendisplusCluster   []RedisCluster `yaml:"PredixyTendisplusCluster"`
+
+	DbmServices DbmApis  `yaml:"dbmServices"`
+	AuthInfo    AuthInfo `yaml:"authInfo"`
+}
+
+type redisClusterGroup struct {
+	clusterType haprobe.DbmMetadataClusterType
+	clusters    *[]RedisCluster
+}
+
+func (c *Config) redisClusterGroups() []redisClusterGroup {
+	return []redisClusterGroup{
+		{ClusterTypeRedisInstance, &c.RedisInstance},
+		{ClusterTypeTwemproxyRedisInstance, &c.TwemproxyRedisInstance},
+		{ClusterTypeTwemproxyTendisSSDInstance, &c.TwemproxyTendisSSDInstance},
+		{ClusterTypePredixyTendisplusInstance, &c.PredixyTendisplusInstance},
+		{ClusterTypePredixyRedisCluster, &c.PredixyRedisCluster},
+		{ClusterTypePredixyTendisplusCluster, &c.PredixyTendisplusCluster},
+	}
 }
 
 // ClusterConfig represents the global cluster configuration instance
@@ -148,17 +74,57 @@ func SetClusterConfig(config *Config) {
 	ClusterConfig = config
 }
 
+// ClusterTypeOptions lists every --type value reset and show accept:
+// the db-type family keywords, then each standard cluster type.
+func ClusterTypeOptions() []string {
+	options := []string{DbTypeMysql.String()}
+	options = append(options, clusterTypeNames(mysqlClusterTypes)...)
+	options = append(options, DbTypeRedis.String())
+	return append(options, clusterTypeNames(allRedisClusterTypes())...)
+}
+
+// RedisClustersOfType returns the configured redis clusters of one type,
+// or every redis cluster when clusterType is empty.
+func (c *Config) RedisClustersOfType(clusterType haprobe.DbmMetadataClusterType) []*RedisCluster {
+	targets := make([]*RedisCluster, 0)
+	if c == nil {
+		return targets
+	}
+	for _, group := range c.redisClusterGroups() {
+		if clusterType != "" && group.clusterType != clusterType {
+			continue
+		}
+		for i := range *group.clusters {
+			targets = append(targets, &(*group.clusters)[i])
+		}
+	}
+	return targets
+}
+
+// stampRedisClusterTypes stamps the cluster type to the redis cluster
+func (c *Config) stampRedisClusterTypes() {
+	for _, group := range c.redisClusterGroups() {
+		for i := range *group.clusters {
+			(*group.clusters)[i].ClusterType = group.clusterType
+		}
+	}
+}
+
 // LoadConfig loads configuration from YAML file
 func LoadConfig(configFile string) (*Config, error) {
 	data, err := os.ReadFile(configFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
+		return nil, gerrors.Newf(gerrors.Failure, "failed to read config file, errmsg: %s", err.Error())
 	}
 
 	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse config: %v", err)
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidYaml, "failed to parse config, errmsg: %s", err.Error())
+	}
+
+	config.stampRedisClusterTypes()
+	if err := validateRedisClusters(&config); err != nil {
+		return nil, err
 	}
 
 	return &config, nil
