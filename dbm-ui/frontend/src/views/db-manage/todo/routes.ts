@@ -35,6 +35,6 @@ export function getRoutes() {
         },
         component: () => import('@views/db-manage/todo/disabled/Index.vue'),
       },
-    ] as RouteRecordRaw[],
+    ].filter((_) => _) as RouteRecordRaw[],
   };
 }
