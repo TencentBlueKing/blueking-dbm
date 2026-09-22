@@ -149,7 +149,21 @@ func (s *service) queryConfig() (QueryConfig, error) {
 func (s *service) dbInstPasswd(
 	bkCloudID, clusterID int, machineType haprobe.DbmMetadataMachineType,
 ) (string, error) {
-	key := instanceCacheKey(clusterID, componentName(machineType))
+	component, err := componentName(machineType)
+	if err != nil {
+		return "", err
+	}
+
+	return s.passwdByComponent(bkCloudID, clusterID, component)
+}
+
+// proxyAdminPasswd returns the redis_proxy_admin password of a cluster.
+func (s *service) proxyAdminPasswd(bkCloudID, clusterID int) (string, error) {
+	return s.passwdByComponent(bkCloudID, clusterID, componentRedisProxyAdmin)
+}
+
+func (s *service) passwdByComponent(bkCloudID, clusterID int, component string) (string, error) {
+	key := instanceCacheKey(clusterID, component)
 
 	if passwd, ok := s.cache.Get(key); ok {
 		return passwd, nil
@@ -164,7 +178,7 @@ func (s *service) dbInstPasswd(
 	passwd, ok := s.cache.Get(key)
 	if !ok {
 		return "", gerrors.Newf(gerrors.NotExist,
-			"no redis password, cluster_id: %d, machine_type: %s", clusterID, machineType)
+			"no redis password, cluster_id: %d, component: %s", clusterID, component)
 	}
 
 	return passwd, nil
@@ -204,11 +218,8 @@ func (s *service) batchFill(bkCloudID int, clusterIDs []int) error {
 		}
 		seen[clusterID] = struct{}{}
 
-		// One query covers every component, so any hit means the cluster is done.
+		// One query fills every component, so a redis hit means this cluster is done.
 		if _, ok := s.cache.Get(instanceCacheKey(clusterID, componentRedis)); ok {
-			continue
-		}
-		if _, ok := s.cache.Get(instanceCacheKey(clusterID, componentRedisProxy)); ok {
 			continue
 		}
 
@@ -250,10 +261,11 @@ func (s *service) fetchInstances(bkCloudID int, clusterIDs []int) error {
 	users := []passwdUser{
 		{UserName: userInstanceDefault, Component: componentRedis},
 		{UserName: userInstanceDefault, Component: componentRedisProxy},
+		{UserName: userInstanceDefault, Component: componentRedisProxyAdmin},
 	}
 
 	// One password per instance and user, plus room for an over-reporting service.
-	items, err := s.query(bkCloudID, instances, users, len(instances)*2+1)
+	items, err := s.query(bkCloudID, instances, users, len(instances)*3+1)
 	if err != nil {
 		return err
 	}
@@ -307,17 +319,19 @@ func decodePasswd(encoded string) (string, error) {
 	return string(decoded), nil
 }
 
-// componentName maps a machine type onto the component holding its credentials.
-func componentName(machineType haprobe.DbmMetadataMachineType) string {
+// componentName maps a machine type onto the data-port component.
+// Proxy admin ports use redis_proxy_admin via GetProxyAdminPasswd, not this mapping.
+func componentName(machineType haprobe.DbmMetadataMachineType) (string, error) {
 	switch machineType {
 	case haprobe.DbmMetadataMachineTypeTwemProxy, haprobe.DbmMetadataMachineTypePredixy:
-		return componentRedisProxy
+		return componentRedisProxy, nil
 	case haprobe.DbmMetadataMachineTypeTendisCache,
 		haprobe.DbmMetadataMachineTypeTendisPlus,
 		haprobe.DbmMetadataMachineTypeTendisSSD:
-		return componentRedis
+		return componentRedis, nil
 	default:
-		return componentRedisProxyAdmin
+		return "", gerrors.Newf(gerrors.InvalidParameter,
+			"unsupported machine type for redis password, machine_type: %s", machineType)
 	}
 }
 

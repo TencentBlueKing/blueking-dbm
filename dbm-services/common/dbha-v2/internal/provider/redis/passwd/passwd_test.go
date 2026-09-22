@@ -243,6 +243,14 @@ func TestGetDbInstPasswd_CachesEveryReturnedComponent(t *testing.T) {
 		t.Fatalf("unexpected proxy password, got: %s, want: %s", proxyPasswd, want)
 	}
 
+	adminPasswd, err := GetProxyAdminPasswd(0, 2002)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if want := plainPasswd("2002", componentRedisProxyAdmin); adminPasswd != want {
+		t.Fatalf("unexpected admin password, got: %s, want: %s", adminPasswd, want)
+	}
+
 	if got := f.requestCount(); got != 1 {
 		t.Fatalf("the proxy lookup issued its own query, requests: %d", got)
 	}
@@ -282,9 +290,8 @@ func TestGetDbInstPasswd_UnknownMachineTypeHasNoPassword(t *testing.T) {
 	f := newFakePasswdServer(t)
 	configure(t, f)
 
-	// An unmapped machine type resolves to a component the query never covers.
 	if _, err := GetDbInstPasswd(0, 8, haprobe.DbmMetadataMachineType("unknown")); err == nil {
-		t.Fatal("expected an error for a machine type without a queried component")
+		t.Fatal("expected an error for an unsupported machine type")
 	}
 }
 
@@ -315,16 +322,37 @@ func TestGetDbInstPasswd_RequestShape(t *testing.T) {
 	if req.Instances[0].IP != "1234" || req.Instances[0].Port != 0 || req.Instances[0].BkCloudID != 42 {
 		t.Errorf("unexpected instance: %+v", req.Instances[0])
 	}
-	if len(req.Users) != 2 {
+	if len(req.Users) != 3 {
 		t.Fatalf("unexpected user count: %d", len(req.Users))
 	}
+	gotComponents := make(map[string]struct{}, len(req.Users))
 	for _, user := range req.Users {
 		if user.UserName != userInstanceDefault {
 			t.Errorf("unexpected username: %s", user.UserName)
 		}
+		gotComponents[user.Component] = struct{}{}
 	}
-	if want := 1*2 + 1; req.Limit != want {
+	for _, want := range []string{componentRedis, componentRedisProxy, componentRedisProxyAdmin} {
+		if _, ok := gotComponents[want]; !ok {
+			t.Errorf("missing user component: %s", want)
+		}
+	}
+	if want := 1*3 + 1; req.Limit != want {
 		t.Errorf("unexpected limit, got: %d, want: %d", req.Limit, want)
+	}
+}
+
+func TestGetProxyAdminPasswd(t *testing.T) {
+	resetService(t)
+	f := newFakePasswdServer(t)
+	configure(t, f)
+
+	passwd, err := GetProxyAdminPasswd(0, 3003)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if want := plainPasswd("3003", componentRedisProxyAdmin); passwd != want {
+		t.Fatalf("unexpected admin password, got: %s, want: %s", passwd, want)
 	}
 }
 
@@ -731,14 +759,21 @@ func TestComponentName(t *testing.T) {
 		haprobe.DbmMetadataMachineTypeTendisCache: componentRedis,
 		haprobe.DbmMetadataMachineTypeTendisPlus:  componentRedis,
 		haprobe.DbmMetadataMachineTypeTendisSSD:   componentRedis,
-		haprobe.DbmMetadataMachineType(""):        componentRedisProxyAdmin,
-		haprobe.DbmMetadataMachineTypeBackend:     componentRedisProxyAdmin,
 	}
 
 	for machineType, want := range cases {
-		if got := componentName(machineType); got != want {
+		got, err := componentName(machineType)
+		if err != nil {
+			t.Errorf("componentName(%q) unexpected error: %s", machineType, err)
+			continue
+		}
+		if got != want {
 			t.Errorf("componentName(%q) = %s, want %s", machineType, got, want)
 		}
+	}
+
+	if _, err := componentName(haprobe.DbmMetadataMachineTypeBackend); err == nil {
+		t.Fatal("expected an error for an unsupported machine type")
 	}
 }
 
