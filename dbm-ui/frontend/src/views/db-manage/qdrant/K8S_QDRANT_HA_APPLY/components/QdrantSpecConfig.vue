@@ -141,6 +141,8 @@
   interface Props {
     addonType: ServiceParameters<typeof getAddonSpecPlan>['addonType'];
     addonVersion: string;
+    applyMode?: string;
+    bkBizId?: number | string;
   }
 
   export const getDefaultQdrantConfig = () => ({
@@ -153,7 +155,10 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    applyMode: 'SharedMode',
+    bkBizId: '',
+  });
 
   const qdrant = defineModel<ReturnType<typeof getDefaultQdrantConfig>[]>('qdrant', {
     required: true,
@@ -167,6 +172,10 @@
 
   const disabled = computed(() => !props.addonVersion);
 
+  // 独占集群（isPublic=false）时按业务 ID 取该业务独占的套餐
+  const isPublic = computed(() => props.applyMode !== 'ExclusiveMode');
+  const bkBizId = computed(() => (props.bkBizId ? Number(props.bkBizId) : undefined));
+
   const { run: runGetAddonSpecPlan } = useRequest(getAddonSpecPlan, {
     manual: true,
     onSuccess(specPlan) {
@@ -178,19 +187,29 @@
             Object.fromEntries(item.components.map((comItem) => [comItem.componentName, comItem])),
           ]),
       );
+
+      // 部署类型/业务变化后已选套餐可能不在新列表中，回退到自定义配置
+      if (mode.value !== 'custom' && !componentSettings[mode.value]) {
+        mode.value = 'custom';
+      }
     },
   });
 
   watch(
-    () => props.addonVersion,
+    [() => props.addonVersion, isPublic, bkBizId],
     () => {
-      if (props.addonVersion) {
-        runGetAddonSpecPlan({
-          addonType: props.addonType,
-          addonVersion: props.addonVersion,
-        });
+      // 业务 ID 未就绪时不请求，避免回显过程中先按默认业务取一次造成结果竞态
+      if (!props.addonVersion || !bkBizId.value) {
+        return;
       }
+      runGetAddonSpecPlan({
+        addonType: props.addonType,
+        addonVersion: props.addonVersion,
+        bkBizId: bkBizId.value,
+        isPublic: isPublic.value,
+      });
     },
+    { immediate: true },
   );
 
   watch(mode, () => {
