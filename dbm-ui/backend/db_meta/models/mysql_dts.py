@@ -16,7 +16,7 @@ from typing import Any, Dict
 
 from django.db import models
 from django.db.models import Q
-from django.utils.timezone import localtime
+from django.utils.timezone import localtime, now
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
@@ -233,3 +233,15 @@ class MysqlDtsInfo(AuditedModel):
             # 串行化并发预占：后到者会等到先到者提交后再读到其 ToDo
             list(cls.objects.filter(status__in=cls.ACTIVE_EXCLUSIVE_STATUSES).select_for_update().order_by("id"))
             cls.dts_info_clusive(ticket_id=ticket_id, ticket_type=ticket_type, details=details)
+
+    @classmethod
+    def release_todo_placeholders(cls, ticket_id: int) -> int:
+        """释放本单尚未进入迁移的 ToDo 占坑。
+
+        FullOnline 仍由 pipeline REVOKED 信号收成 Terminated。
+        Disconnected 表示切换已完成，不能在这里覆盖。
+        """
+        return cls.objects.filter(ticket_id=ticket_id, status=MysqlDtsStatus.ToDo.value).update(
+            status=MysqlDtsStatus.Terminated.value,
+            update_at=now(),
+        )

@@ -96,6 +96,32 @@ def _rename_cluster_filter_side_effect(*args, **kwargs):
     ]
 
 
+def _pool_deploy(**overrides):
+    """资源池部署不传主机，机器由 resource_spec 申请后回填。"""
+    data = {
+        "cluster_name": "dts-test",
+        "bk_cloud_id": 0,
+    }
+    data.update(overrides)
+    return data
+
+
+def _pool_resource_spec():
+    """本分支 deploy 要求 infos 行内同时给出 master 与 worker 规格。"""
+    role = {"spec_id": 1, "count": 1}
+    return {"master": dict(role), "worker": dict(role)}
+
+
+def _deploy_infos_row(*, dts_resource=None, migrate=None):
+    row = _minimal_layered_details(
+        dts_resource=dts_resource if dts_resource is not None else {"deploy": _pool_deploy()},
+    )
+    if migrate is not None:
+        row["migrate"] = migrate
+    row["resource_spec"] = _pool_resource_spec()
+    return row
+
+
 def _minimal_layered_details(**overrides):
     data = {
         "dts_resource": {
@@ -325,23 +351,17 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_no_mode_deploy_defaults_destroy_true_cleanup_false(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(dts_resource={"deploy": _minimal_deploy()})
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()]})
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertFalse(slz.validated_data["dts_resource"].get("mode"))
-        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertFalse(slz.validated_data["infos"][0]["dts_resource"].get("mode"))
+        self.assertTrue(slz.validated_data["destroy_after_migrate"])
         plan = slz.context["migrate_plan"]
         self.assertTrue(plan.auto_deploy_dts)
         self.assertFalse(plan.cleanup_after_migrate)
         self.assertEqual(plan.dts_lifecycle, DtsLifecycleMode.DEPLOY.value)
 
     def test_no_mode_deploy_cleanup_false(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={"deploy": _minimal_deploy(), "cleanup_after_migrate": False},
-            )
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()], "cleanup_after_migrate": False})
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
@@ -399,44 +419,28 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
 
     def test_destroy_after_migrate_true_on_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={
-                    "destroy_after_migrate": True,
-                    "deploy": _minimal_deploy(),
-                }
-            )
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()], "destroy_after_migrate": True})
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertTrue(slz.validated_data["destroy_after_migrate"])
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_destroy_and_cleanup_both_true_valid(self):
         slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={
-                    "destroy_after_migrate": True,
-                    "cleanup_after_migrate": True,
-                    "deploy": _minimal_deploy(),
-                }
-            )
+            data={
+                "infos": [_deploy_infos_row()],
+                "destroy_after_migrate": True,
+                "cleanup_after_migrate": True,
+            }
         )
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
-        self.assertTrue(slz.validated_data["dts_resource"]["cleanup_after_migrate"])
+        self.assertTrue(slz.validated_data["destroy_after_migrate"])
+        self.assertTrue(slz.validated_data["cleanup_after_migrate"])
         self.assertTrue(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_destroy_after_migrate_false_ok_on_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={
-                    "destroy_after_migrate": False,
-                    "deploy": _minimal_deploy(),
-                }
-            )
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()], "destroy_after_migrate": False})
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertFalse(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertFalse(slz.validated_data["destroy_after_migrate"])
 
     def test_infos_two_one_to_one_valid(self):
         slz = MysqlMigrateBaseDetailSerializer(
@@ -708,26 +712,13 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertIn("交叉", str(slz.errors))
 
     def test_infos_colocated_master_worker_same_row_ok(self):
-        """同行 master/worker 同机部署合法，不按交叉拒单。"""
+        """资源池部署不传主机。两行 resource_spec 一致，不按交叉拒单。"""
         slz = MysqlMigrateBaseDetailSerializer(
             data={
                 "infos": [
-                    _minimal_layered_details(
-                        dts_resource={
-                            "deploy": _minimal_deploy(
-                                master_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                                worker_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                            )
-                        }
-                    ),
-                    _minimal_layered_details(
-                        dts_resource={
-                            "deploy": _minimal_deploy(
-                                cluster_name="dts-test-b",
-                                master_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
-                                worker_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
-                            )
-                        },
+                    _deploy_infos_row(),
+                    _deploy_infos_row(
+                        dts_resource={"deploy": _pool_deploy(cluster_name="dts-test-b")},
                         migrate=_one_to_one_migrate(101, 201, ["db_a"]),
                     ),
                 ]

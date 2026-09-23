@@ -50,6 +50,14 @@ from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
+# 这三类单据在 inner 启动时预占 MysqlDtsInfo.ToDo。中止或预占后失败必须把 ToDo 收掉，
+# 因为此时经常还没有 pipeline，REVOKED 信号不会发出。
+_MYSQL_DTS_MIGRATE_TICKET_TYPES = (
+    TicketType.MYSQL_DTS_DATA_MIGRATE,
+    TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
+    TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME,
+)
+
 
 class InnerFlowDataClass:
     def __init__(self, func):
@@ -170,11 +178,7 @@ class InnerFlow(BaseTicketFlow):
             SqlserverDtsInfo.dts_info_clusive(
                 ticket_id=self.ticket.id, ticket_type=ticket_type, details=self.ticket.details
             )
-        if ticket_type in [
-            TicketType.MYSQL_DTS_DATA_MIGRATE,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
-            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME,
-        ]:
+        if ticket_type in _MYSQL_DTS_MIGRATE_TICKET_TYPES:
             # 预占 ToDo + 互斥（ToDo/FullOnline），缩小 check→update_meta 并发窗口
             # rename 单按行推断 migrate_type，这里不整单写死
             if ticket_type == TicketType.MYSQL_DTS_DATA_MIGRATE:
@@ -227,7 +231,8 @@ class InnerFlow(BaseTicketFlow):
             else:
                 self._run()
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
-            # 处理互斥异常和非预期的异常
+            # 预占已提交。失败时信号不会把 ToDo 收成 Terminated，这里先释放占坑。
+            self._release_mysql_dts_todo()
             self.run_error_status_handler(err)
             return
         else:
@@ -252,9 +257,16 @@ class InnerFlow(BaseTicketFlow):
     def _retry(self) -> Any:
         super()._retry()
 
+    def _release_mysql_dts_todo(self) -> None:
+        if self.ticket.ticket_type not in _MYSQL_DTS_MIGRATE_TICKET_TYPES:
+            return
+        MysqlDtsInfo.release_todo_placeholders(ticket_id=self.ticket.id)
+
     def _revoke(self, operator, remark="") -> Any:
         from backend.db_services.taskflow.handlers import TaskFlowHandler
 
+        # 没有 FlowTree 或树还在待创建时，不会发出 REVOKED，ToDo 占坑要在这里收掉。
+        self._release_mysql_dts_todo()
         # 刷新flow和单据状态 --> 终止
         self.flush_revoke_status_handler(operator, remark)
         # 停止相关联的todo
