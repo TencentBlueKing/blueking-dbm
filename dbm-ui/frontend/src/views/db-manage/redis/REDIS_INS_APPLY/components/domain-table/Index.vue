@@ -13,12 +13,13 @@
 
 <template>
   <div class="domain-table">
+    <!-- row-key 不能用 cluster_name：cluster_name 是正在编辑的主访问入口，值一变整行就会重建；行数据上没有 index 字段，会回退到 rowIndex -->
     <PrimaryTable
       class="custom-edit-table"
       :columns="columns"
       :data="tableData"
       :empty="t('请选择业务')"
-      row-key="cluster_name" />
+      row-key="index" />
     <HostSelector
       :key="instanceSelectorKey"
       v-model="selectedHostList"
