@@ -130,16 +130,9 @@ class _ItsmV4Api(BaseApi):
         }
 
     @classmethod
-    def format_create_ticket_params(cls, params):
+    def _build_form_data(cls, params):
+        """将旧版 fields/dynamic_fields 映射为 V4 form_data（create 与 update 共用）"""
         dynamic_fields = params.get("dynamic_fields", [])
-        if "workflow_key" in params and "form_data" in params:
-            if "approver" in params["form_data"]:
-                params["form_data"]["approver"] = cls.format_operator_value(params["form_data"]["approver"])
-            params["form_data"]["show_table"] = (
-                ItsmShowTable.SHOW.value if dynamic_fields else ItsmShowTable.HIDE.value
-            )
-            return params
-
         form_data = {}
         for field in params.get("fields", []):
             key = field.get("key")
@@ -159,6 +152,21 @@ class _ItsmV4Api(BaseApi):
         if dynamic_fields:
             form_data["dynamic_fields"] = cls.format_dynamic_fields(dynamic_fields)
 
+        return form_data
+
+    @classmethod
+    def format_create_ticket_params(cls, params):
+        dynamic_fields = params.get("dynamic_fields", [])
+        if "workflow_key" in params and "form_data" in params:
+            if "approver" in params["form_data"]:
+                params["form_data"]["approver"] = cls.format_operator_value(params["form_data"]["approver"])
+            params["form_data"]["show_table"] = (
+                ItsmShowTable.SHOW.value if dynamic_fields else ItsmShowTable.HIDE.value
+            )
+            return params
+
+        form_data = cls._build_form_data(params)
+
         return {
             "workflow_key": cls.get_workflow_key(),
             "operator": params.get("creator"),
@@ -167,6 +175,17 @@ class _ItsmV4Api(BaseApi):
             "callback_token": params.get("callback_token"),
             "options": params.get("options", {}),
             "system_id": cls.get_system_id(),
+        }
+
+    @classmethod
+    def format_update_ticket_params(cls, ticket_id, old_params, operator):
+        """将旧版 ITSM 参数转换为 V4 handle_ticket 的 update 参数（改单后更新单据内容）"""
+        return {
+            "ticket_id": ticket_id,
+            "operator": operator,
+            "action": {"method": "update", "params": {}},
+            "form_data": cls._build_form_data(old_params),
+            "options": old_params.get("options", {}),
         }
 
     def __init__(self):

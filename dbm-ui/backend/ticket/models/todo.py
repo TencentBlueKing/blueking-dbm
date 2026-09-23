@@ -53,6 +53,7 @@ class TodoManager(models.Manager):
         todo_operators_map = {
             TodoType.ITSM: itsm_operators,
             TodoType.APPROVE: creator,
+            TodoType.CONFIRM_MODIFY: creator,
             TodoType.TIMER: creator,
             TodoType.INNER_APPROVE: creator + dba,
             TodoType.RESOURCE_REPLENISH: creator + dba,
@@ -61,6 +62,7 @@ class TodoManager(models.Manager):
         todo_helpers_map = {
             TodoType.ITSM: itsm_helpers,
             TodoType.APPROVE: ticket_helpers,
+            TodoType.CONFIRM_MODIFY: ticket_helpers,
             TodoType.TIMER: ticket_helpers,
             TodoType.INNER_APPROVE: ticket_helpers + second_dba + other_dba,
             TodoType.RESOURCE_REPLENISH: ticket_helpers + second_dba + other_dba,
