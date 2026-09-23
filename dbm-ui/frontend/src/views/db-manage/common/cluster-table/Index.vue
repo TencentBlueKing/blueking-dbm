@@ -8,6 +8,7 @@
       :data-source="dataSource"
       :disable-select-method="disableSelectMethod"
       :filter-value="filterValue"
+      :polling="isPolling"
       releate-url-query
       :row-class-name="getRowClass"
       row-key="id"
@@ -203,21 +204,8 @@
     },
   ];
 
-  watch(
-    () => [props.clusterType, props.clusterId],
-    () => {
-      if (props.clusterType.includes('k8s')) {
-        if (props.clusterId) {
-          tableRef.value?.stopPolling();
-        } else {
-          tableRef.value?.startPolling();
-        }
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  // k8s 集群状态变化频繁需要轮询，打开集群详情时暂停
+  const isPolling = computed(() => props.clusterType.includes('k8s') && !props.clusterId);
 
   const fetchData = () => {
     tableRef.value?.fetchData(fetchDataParams);

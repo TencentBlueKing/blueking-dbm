@@ -33,7 +33,7 @@
 </template>
 <script setup lang="ts">
   import { Icon } from 'tdesign-vue-next';
-  import { computed, inject, type StyleValue, type VNode } from 'vue';
+  import type { StyleValue, VNode } from 'vue';
 
   import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
 

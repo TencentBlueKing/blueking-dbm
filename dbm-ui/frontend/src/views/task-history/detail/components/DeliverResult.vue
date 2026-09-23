@@ -108,7 +108,7 @@
                       }
                       return '--';
                     }
-                  : '--',
+                  : undefined,
               colKey: item.id,
               title: item.display_name,
             })),
@@ -161,12 +161,6 @@
         background: #f0f1f5;
         align-items: center;
         justify-content: space-between;
-
-        .db-icon-down-shape {
-          color: #979ba5;
-          transform: rotateZ(0deg);
-          transition: all 0.5s;
-        }
 
         .panel-title {
           font-size: 12px;

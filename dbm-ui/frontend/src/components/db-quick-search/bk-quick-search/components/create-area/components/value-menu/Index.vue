@@ -1,6 +1,6 @@
 <template>
   <div class="bk-quick-search-value-panel">
-    <ElConfigProvider :locale="zhCn">
+    <ElConfigProvider :locale="elementLocale">
       <component
         :is="renderCom"
         :config="config"
@@ -62,9 +62,9 @@
 </template>
 <script setup lang="ts">
   import { ElConfigProvider } from 'element-plus';
+  import en from 'element-plus/es/locale/lang/en';
   import zhCn from 'element-plus/es/locale/lang/zh-cn';
   import { Button } from 'tdesign-vue-next';
-  import { computed, onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { comType } from '@components/db-quick-search/bk-quick-search/constants';
@@ -95,7 +95,9 @@
 
   const modelValue = defineModel<IValue['values']>();
 
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+
+  const elementLocale = computed(() => (locale.value === 'en' ? en : zhCn));
 
   const isMacOs = /Mac OS X ([\d_]+)/.test(navigator.userAgent);
 

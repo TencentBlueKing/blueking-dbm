@@ -577,6 +577,10 @@
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
+    // 输入法组合期间 v-model 尚未同步 inputValue，此时的回车只用于上屏
+    if (event.isComposing) {
+      return;
+    }
     switch (event.key) {
       case 'Enter':
         event.preventDefault();
@@ -722,7 +726,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .db-tag-input {
     position: relative;
     height: 32px;

@@ -1,3 +1,16 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
+
 import { Popover } from 'bkui-vue';
 import _ from 'lodash';
 import { defineComponent, getCurrentInstance, type Reactive, type Ref, ref, shallowRef, type UnwrapRef } from 'vue';
@@ -35,16 +48,19 @@ export const useSelect = (
       return false;
     }
     const selectedMap = { ...selectedRowMap.value };
+    // 整页都不可选时没有可勾选的行，不能视为全选
+    let hasSelectableRow = false;
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < tableData.value.results.length; i++) {
       if (props.disableSelectMethod && props.disableSelectMethod(tableData.value.results[i])) {
         continue;
       }
+      hasSelectableRow = true;
       if (!selectedMap[_.get(tableData.value.results[i], props.rowKey)]) {
         return false;
       }
     }
-    return true;
+    return hasSelectableRow;
   });
 
   const handleTogglePageSelect = (checked: boolean) => {
@@ -113,7 +129,7 @@ export const useSelect = (
           colKey='row-select'
           fixed='left'
           resizable={false}
-          width={isSelectPlanVisible.value ? 60 : 36}>
+          width={isSelectPlanVisible.value ? 60 : 32}>
           {{
             default: ({ row }: { row: any }) => {
               const selectDisabled = props.disableSelectMethod ? props.disableSelectMethod(row) : false;
@@ -129,13 +145,14 @@ export const useSelect = (
                     <Radio
                       disabled={Boolean(selectDisabled)}
                       label={() => true}
-                      modelValue={Boolean(selectedRowMap.value[row[props.rowKey]])}
+                      modelValue={Boolean(selectedRowMap.value[_.get(row, props.rowKey)])}
+                      style='width: 16px; height: 16px;line-height: 0;display: block;'
                       onChange={() => handleSelect(row)}
                     />
                   ) : (
                     <Checkbox
                       disabled={Boolean(selectDisabled)}
-                      modelValue={Boolean(selectedRowMap.value[row[props.rowKey]])}
+                      modelValue={Boolean(selectedRowMap.value[_.get(row, props.rowKey)])}
                       style='width: 16px; height: 16px;'
                       onChange={() => handleSelect(row)}
                     />
