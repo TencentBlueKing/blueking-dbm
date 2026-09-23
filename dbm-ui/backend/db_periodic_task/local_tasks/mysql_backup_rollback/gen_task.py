@@ -231,7 +231,8 @@ def build_recovery_storage_spec(
 ) -> list:
     """构建回档资源申请所需的 storage_spec
 
-    优先从待演练集群的 master 节点规格中获取盘符布局，多块盘场景下：
+    优先从待演练集群的 master 节点规格中获取盘符布局。存储层不足 2 块盘时按单盘申请。
+    两块盘及以上才按原盘符布局申请：
     - 超过 2 块盘时只按原规格列表顺序取前 2 块申请，避免资源池按 3 盘及以上匹配失败
     - 数据盘(/data1 优先，否则 /data)按基于备份估算出的容量申请，且不小于原规格 min 值
     - 其它盘按原规格 min 值申请，保持 mount_point 与 master 一致
@@ -256,8 +257,12 @@ def build_recovery_storage_spec(
     fallback_spec = [{"max": 2147483647, "min": min_disk_size_gb}]
 
     master_storage_spec = get_master_storage_spec(cluster)
-    if not master_storage_spec:
-        logger.debug(_("集群 {} 按单盘模式申请，最小容量: {} GB").format(cluster.immute_domain, min_disk_size_gb))
+    if len(master_storage_spec) < 2:
+        logger.debug(
+            _("集群 {} 存储规格 {} 块盘，按单盘模式申请，最小容量: {} GB").format(
+                cluster.immute_domain, len(master_storage_spec), min_disk_size_gb
+            )
+        )
         return fallback_spec
 
     # 解析 master 规格构建多盘申请，任何异常都退避到单盘模式
@@ -288,8 +293,11 @@ def build_recovery_storage_spec(
             mount_point = item.get("mount_point")
             original_min = int(item.get("min", 0) or 0)
 
-            # 数据盘按计算值申请，且不小于原规格 min；其它盘保持原规格 min
-            if mount_point == data_mount_point:
+            # 数据盘默认取计算值与原规格 min 的较大者。
+            # 计算值已经乘过引擎和备份类型系数，不超过原规格一半时按计算值申请。
+            if mount_point == data_mount_point and min_disk_size_gb * 2 <= original_min:
+                spec_min = min_disk_size_gb
+            elif mount_point == data_mount_point:
                 spec_min = max(min_disk_size_gb, original_min)
             else:
                 spec_min = original_min
@@ -453,7 +461,7 @@ def gen_rollback_task():
     if not rs_list:
         logger.info(_("没有可用的资源_，跳过回档任务生成_"))
         return
-    rs_count = rs_list["count"]
+    rs_count = rs_list.get("count", 0)
     if rs_count == 0:
         logger.info(_("没有可用的资源，跳过回档任务生成"))
         return

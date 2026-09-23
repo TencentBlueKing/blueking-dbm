@@ -152,6 +152,7 @@ class MySQLSingleApplyFlow(object):
         with_exporter_config: bool = True,
         skip_add_domain: bool = False,
         skip_install_bk_plugin: bool = False,
+        with_probe: bool = True,
     ) -> SubBuilder:
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
@@ -289,6 +290,7 @@ class MySQLSingleApplyFlow(object):
                 with_collect_sysinfo=with_collect_sysinfo,
                 with_push_config=with_push_config,
                 with_exporter_config=with_exporter_config,
+                with_probe=with_probe,
             )
         )
         if origin_cluster_domain:
