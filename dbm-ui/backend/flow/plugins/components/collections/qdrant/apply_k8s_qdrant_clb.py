@@ -35,12 +35,14 @@ class ApplyK8sQdrantClbService(BaseService):
         cluster_name = global_data["cluster_name"]
         k8s_cluster_name = global_data["k8s_cluster_name"]
         bk_biz_id = global_data["bk_biz_id"]
+        is_public = global_data.get("is_public")
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        regions_resp = KubernetesApi.get_regions()
+        logger.info(_("获取 qdrant CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
+        regions_resp = KubernetesApi.get_regions(bkBizId=bk_biz_id, isPublic=is_public)
 
         # 匹配clusterName与k8s_cluster_name一致的数据，获取vpcID和regionCode
         region_code = ""
