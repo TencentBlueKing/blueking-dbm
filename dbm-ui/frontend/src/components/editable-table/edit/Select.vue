@@ -69,7 +69,7 @@
 </script>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
   import _ from 'lodash';
-  import { useAttrs, type VNode, watch } from 'vue';
+  import type { VNode } from 'vue';
 
   import type { SelectedItem } from '@components/bkui-vue/select/common';
 
@@ -91,7 +91,9 @@
     trigger?: (value: { selected: SelectedItem[] }) => VNode;
   }>();
 
-  const modelValue = defineModel<T>();
+  const modelValue = defineModel<T | undefined>({
+    default: undefined,
+  });
 
   const attrs = useAttrs();
 
@@ -124,6 +126,8 @@
     // 边框统一由表格的 td::before 画，组件自身在默认态和聚焦态给触发器加的边框、投影都要抹掉
     .bk-editable-select {
       &.dbm-select {
+        width: 100%;
+
         .dbm-select-input-box {
           height: 40px;
           background: transparent;

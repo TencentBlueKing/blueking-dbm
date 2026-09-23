@@ -16,7 +16,7 @@
     <tr>
       <RenderTh
         v-for="(columnItem, index) in columnList"
-        :key="`#${index}}#${columnItem.key}`"
+        :key="`#${index}#${columnItem.key}`"
         :class="{
           'fixed-left-column': columnItem.props.fixed === 'left',
           'fixed-right-column': columnItem.props.fixed === 'right',

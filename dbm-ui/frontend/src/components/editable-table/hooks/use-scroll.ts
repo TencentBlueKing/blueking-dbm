@@ -12,7 +12,7 @@
  */
 
 import _ from 'lodash';
-import { onBeforeUnmount, onMounted, type Ref, shallowRef } from 'vue';
+import type { Ref } from 'vue';
 
 export default function (tableContentRef: Ref<HTMLElement | null>) {
   const leftFixedStyles = shallowRef({});

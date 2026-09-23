@@ -18,7 +18,7 @@
 </template>
 <script lang="ts">
   import _ from 'lodash';
-  import { inject, type InjectionKey, onBeforeUnmount, onMounted, provide } from 'vue';
+  import type { InjectionKey } from 'vue';
 
   import type { IContext as IColumnContext } from './Column.vue';
   import { tableInjectKey } from './Index.vue';
