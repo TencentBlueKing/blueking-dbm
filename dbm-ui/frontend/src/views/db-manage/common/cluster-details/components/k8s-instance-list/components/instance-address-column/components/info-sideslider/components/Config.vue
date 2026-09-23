@@ -31,14 +31,19 @@
   import { retrieveSurrealdbHaInstanceDetail } from '@services/source/surrealdbHa';
   import { retrieveSurrealdbSingleInstanceDetail } from '@services/source/surrealdbSingle';
 
+  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
+
   import { getOffset } from '@utils';
 
   import { ClusterTypes } from '@/common/const';
 
   interface Props {
     clusterData: {
+      bk_biz_id?: number;
       cluster_name: string;
+      cluster_type: string;
       id: number;
+      is_public?: boolean;
       k8s_cluster_name: string;
       namespace: string;
     };
@@ -77,6 +82,7 @@
       k8sClusterName: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
       podName: props.podName,
+      ...getExclusiveClusterParams(props.clusterData),
     });
 
     nextTick(() => {

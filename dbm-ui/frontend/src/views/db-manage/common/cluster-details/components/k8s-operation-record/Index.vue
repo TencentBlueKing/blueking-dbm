@@ -129,6 +129,8 @@
   import DbTable from '@components/db-table/IndexNew.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
+  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
+
   import { ClusterTypes } from '@/common/const';
 
   import { URL_K8S_OPERATION_MEMO_KEY } from '../../constants';
@@ -139,8 +141,11 @@
 
   interface Props {
     clusterData: {
+      bk_biz_id?: number;
       cluster_name: string;
+      cluster_type: string;
       components: SurrealdbHaModel['components'];
+      is_public?: boolean;
       k8s_cluster_name: string;
       namespace: string;
     };
@@ -174,6 +179,7 @@
       clusterName: props.clusterData.cluster_name,
       k8sClusterName: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
+      ...getExclusiveClusterParams(props.clusterData),
     });
 
   const fetchData = () => {

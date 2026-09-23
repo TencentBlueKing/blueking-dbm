@@ -29,7 +29,7 @@
   <div class="info-title mt-20">{{ t('部署环境') }}</div>
   <InfoList>
     <InfoItem :label="t('部署类型')">
-      {{ t('共享集群') }}
+      {{ ticketDetails.details.is_public === false ? t('独占集群') : t('共享集群') }}
     </InfoItem>
     <InfoItem :label="t('地域')">
       {{ cityName }}
