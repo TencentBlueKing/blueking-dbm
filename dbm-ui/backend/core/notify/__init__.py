@@ -10,4 +10,4 @@ specific language governing permissions and limitations under the License.
 """
 
 from .constants import MsgType
-from .handlers import CmsiHandler, NotifyAdapter, send_msg, send_msg_for_ai_task_guardian
+from .handlers import CmsiHandler, NotifyAdapter, send_modify_notify, send_msg, send_msg_for_ai_task_guardian

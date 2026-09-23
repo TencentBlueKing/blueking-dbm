@@ -155,12 +155,18 @@ class BaseTicketFlow(ABC):
         self.flow_obj.status = TicketFlowStatus.RUNNING
         self.flow_obj.save(update_fields=["flow_obj_id", "status", "update_at"])
 
+    def init_flow_context(self):
+        # 清空流程上下文，但保留 next_flow 指针，避免改单插入节点后重试丢失流程顺序
+        next_flow = self.flow_obj.context.get(FlowContext.NEXT_FLOW.value)
+        self.flow_obj.context = {"ack": False}
+        if next_flow:
+            self.flow_obj.context[FlowContext.NEXT_FLOW.value] = next_flow
+
     def flush_error_status_handler(self):
         """重试刷新错误节点，更新相关状态，剔除错误信息"""
         self.flow_obj.err_msg = self.flow_obj.err_code = None
         self.flow_obj.status = TicketFlowStatus.RUNNING
-        # 清空流程上下文
-        self.flow_obj.context = {"ack": False}
+        self.init_flow_context()
         self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at", "context"])
 
     def flush_revoke_status_handler(self, operator, remark=""):
