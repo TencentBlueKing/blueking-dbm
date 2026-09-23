@@ -76,15 +76,10 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 
 // SyntaxCheckParam 语法检查请求参数
 type SyntaxCheckParam struct {
-	BkBizID               int      `json:"bk_biz_id"`
-	ClusterType           string   `json:"cluster_type"`
-	Versions              []string `json:"versions"`
-	DefaultStorageEngines []string `json:"default_storage_engines"`
-}
-
-// StorageEngines returns explicit default_storage_engines, or engines parsed from versions.
-func (p *SyntaxCheckParam) StorageEngines() []string {
-	return syntax.ResolveDefaultStorageEngines(p.DefaultStorageEngines, p.Versions)
+	BkBizID     int                  `json:"bk_biz_id"`
+	ClusterType string               `json:"cluster_type"`
+	Versions    []string             `json:"versions"`
+	ClusterInfo []syntax.ClusterInfo `json:"cluster_info"`
 }
 
 // CheckFileParam 语法检查请求参数
@@ -185,11 +180,11 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 		},
 		IsLocalFile: true,
 		Param: syntax.CheckSQLFileParam{
-			BkBizID:               param.BkBizID,
-			ClusterType:           param.ClusterType,
-			BkRepoBasePath:        "",
-			FileNames:             []string{fileName},
-			DefaultStorageEngines: param.StorageEngines(),
+			BkBizID:        param.BkBizID,
+			ClusterType:    param.ClusterType,
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+			ClusterInfo:    param.ClusterInfo,
 			ExecuteObjects: []syntax.ExecuteSQLFileObj{
 				{
 					LineId:        0,
@@ -250,11 +245,11 @@ func (s *SyntaxHandler) CheckSQLInject(r *gin.Context) {
 		},
 		IsLocalFile: true,
 		Param: syntax.CheckSQLFileParam{
-			BkBizID:               param.BkBizID,
-			ClusterType:           param.ClusterType,
-			BkRepoBasePath:        "",
-			FileNames:             []string{fileName},
-			DefaultStorageEngines: param.StorageEngines(),
+			BkBizID:        param.BkBizID,
+			ClusterType:    param.ClusterType,
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	defer p.DelTempDir()
@@ -293,12 +288,12 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 			BaseWorkdir:        workdir,
 		},
 		Param: syntax.CheckSQLFileParam{
-			BkBizID:               param.BkBizID,
-			ClusterType:           param.ClusterType,
-			BkRepoBasePath:        param.Path,
-			FileNames:             param.Files,
-			ExecuteObjects:        param.ExecuteObjects,
-			DefaultStorageEngines: param.StorageEngines(),
+			BkBizID:        param.BkBizID,
+			ClusterType:    param.ClusterType,
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+			ExecuteObjects: param.ExecuteObjects,
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	data, err := check.RunSyntaxCheck(versions)
@@ -323,9 +318,9 @@ func (s *SyntaxHandler) CreateAndUploadDDLTblListFile(r *gin.Context) {
 			BaseWorkdir:        workdir,
 		},
 		Param: syntax.CheckSQLFileParam{
-			BkRepoBasePath:        param.Path,
-			FileNames:             param.Files,
-			DefaultStorageEngines: param.StorageEngines(),
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	if err := check.CreateAndUploadDDLTblFile(); err != nil {
@@ -359,9 +354,9 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 			BaseWorkdir:        workdir,
 		},
 		Param: syntax.CheckSQLFileParam{
-			BkRepoBasePath:        param.Path,
-			FileNames:             param.Files,
-			DefaultStorageEngines: param.StorageEngines(),
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	defer p.DelTempDir()
@@ -453,9 +448,9 @@ func (s *SyntaxHandler) ParseSQLFileStatement(r *gin.Context) {
 			BaseWorkdir:        workdir,
 		},
 		Param: syntax.CheckSQLFileParam{
-			BkRepoBasePath:        param.Path,
-			FileNames:             param.Files,
-			DefaultStorageEngines: param.StorageEngines(),
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	defer p.DelTempDir()
@@ -509,10 +504,10 @@ func (s *SyntaxHandler) ParseSQLTables(r *gin.Context) {
 		},
 		IsLocalFile: true,
 		Param: syntax.CheckSQLFileParam{
-			ClusterType:           param.ClusterType,
-			BkRepoBasePath:        "",
-			FileNames:             []string{fileName},
-			DefaultStorageEngines: param.StorageEngines(),
+			ClusterType:    param.ClusterType,
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	defer p.DelTempDir()
@@ -553,9 +548,9 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 		},
 		IsLocalFile: true,
 		Param: syntax.CheckSQLFileParam{
-			BkRepoBasePath:        "",
-			FileNames:             []string{fileName},
-			DefaultStorageEngines: param.StorageEngines(),
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+			ClusterInfo:    param.ClusterInfo,
 		},
 	}
 	defer p.DelTempDir()

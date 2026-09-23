@@ -21,7 +21,7 @@ func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) 
 	return c.spiderCheckWithClusterEngines(mysqlVersion, nil)
 }
 
-func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
+func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clusters []ClusterInfo) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
@@ -41,7 +41,7 @@ func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clu
 		}
 	}
 	r.ParseBuiltinBan(c.NotAllowedDefaultValCol)
-	return r.Merge(c.checkWithClusterEngines(mysqlVersion, clusterDefaultEngines))
+	return r.Merge(c.checkWithClusterEngines(mysqlVersion, clusters))
 }
 
 // NotAllowedDefaultValCol 不允许存在默认值的字段

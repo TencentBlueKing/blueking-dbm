@@ -59,12 +59,12 @@ type TmysqlParseFile struct {
 
 // CheckSQLFileParam TODO
 type CheckSQLFileParam struct {
-	BkBizID               int                 `json:"bk_biz_id"`
-	ClusterType           string              `json:"cluster_type"`
-	BkRepoBasePath        string              `json:"bkrepo_base_path"`
-	FileNames             []string            `json:"file_names"`
-	ExecuteObjects        []ExecuteSQLFileObj `json:"execute_objects"`
-	DefaultStorageEngines []string            `json:"default_storage_engines"`
+	BkBizID        int                 `json:"bk_biz_id"`
+	ClusterType    string              `json:"cluster_type"`
+	BkRepoBasePath string              `json:"bkrepo_base_path"`
+	FileNames      []string            `json:"file_names"`
+	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
+	ClusterInfo    []ClusterInfo       `json:"cluster_info"`
 }
 
 // ExecuteSQLFileObj SQL导入执行对象
@@ -77,13 +77,13 @@ type ExecuteSQLFileObj struct {
 
 // TmysqlParse TODO
 type TmysqlParse struct {
-	tmpWorkdir            string
-	result                map[string]*CheckInfo
-	bkRepoClient          *bkrepo.BkRepoClient
-	TmysqlParseBinPath    string
-	BaseWorkdir           string
-	mu                    sync.Mutex
-	ClusterDefaultEngines []string
+	tmpWorkdir         string
+	result             map[string]*CheckInfo
+	bkRepoClient       *bkrepo.BkRepoClient
+	TmysqlParseBinPath string
+	BaseWorkdir        string
+	mu                 sync.Mutex
+	Clusters           []ClusterInfo
 	TendbClusterSyntaxCheckOptions
 }
 
@@ -205,7 +205,6 @@ const DdlMapFileSubffix = ".tbl.map"
 // RunSyntaxCheck 运行语法检查
 func (tf *TmysqlParseFile) RunSyntaxCheck(versions []string) (result map[string]*CheckInfo, err error) {
 	var data map[string]*CheckInfo
-	tf.ClusterDefaultEngines = tf.Param.DefaultStorageEngines
 	logger.Info("cluster type :%s", tf.Param.ClusterType)
 	switch strings.ToLower(tf.Param.ClusterType) {
 	case app.Spider, app.TendbCluster:
@@ -247,6 +246,7 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 
 	var errs []error
 	for _, version := range versions {
+		tf.Clusters = clustersForVersion(tf.Param.ClusterInfo, version)
 		if err = tf.doSingleVersion(dbtype, version); err != nil {
 			logger.Error("when do [%s],syntax check,failed:%s", version, err.Error())
 			errs = append(errs, err)
@@ -780,7 +780,7 @@ func (t *TmysqlParse) AnalyzeParseResult(executedSqlFileCh chan string, mysqlVer
 	return errors.Join(errs...)
 }
 
-func (c *CheckInfo) parseResult(rule *RuleItem, res ParseLineQueryBase, ver string) {
+func (c *CheckInfo) parseResult(rule *RuleItem, res ParseLineQueryBase, ver string, clusters []ClusterInfo) {
 	matched, err := rule.CheckItem(res.Command)
 	if matched {
 		if rule.Ban {
@@ -788,14 +788,14 @@ func (c *CheckInfo) parseResult(rule *RuleItem, res ParseLineQueryBase, ver stri
 				Line:        res.Line,
 				Sqltext:     res.QueryString,
 				CommandType: res.Command,
-				WarnInfo:    fmt.Sprintf("[%s]: %s", ver, err.Error()),
+				WarnInfo:    prefixDomains(fmt.Sprintf("[%s]: %s", ver, err.Error()), clusters),
 			})
 		} else {
 			c.RiskWarnings = append(c.RiskWarnings, RiskInfo{
 				Line:        res.Line,
 				Sqltext:     res.QueryString,
 				CommandType: res.Command,
-				WarnInfo:    fmt.Sprintf("[%s]: %s", ver, err.Error()),
+				WarnInfo:    prefixDomains(fmt.Sprintf("[%s]: %s", ver, err.Error()), clusters),
 			})
 		}
 	}
@@ -875,6 +875,7 @@ func (t *TmysqlParse) getSyntaxErrorResult(res ParseLineQueryBase, mysqlVersion 
 	if len(vl) >= 2 {
 		errMsg = fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg)
 	}
+	errMsg = prefixDomains(errMsg, t.Clusters)
 	return FailedInfo{
 		Line:      res.ErrorLine,
 		Sqltext:   res.QueryString,
@@ -936,7 +937,7 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 			checkResult.BanWarnings = append(checkResult.BanWarnings, RiskInfo{
 				Line:     res.Line,
 				Sqltext:  res.QueryString,
-				WarnInfo: fmt.Sprintf("禁止操作系统库: %s", res.DbName),
+				WarnInfo: prefixDomains(fmt.Sprintf("禁止操作系统库: %s", res.DbName), t.Clusters),
 			})
 			t.mu.Unlock()
 			continue
@@ -944,9 +945,9 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 		// tmysqlparse检查结果全部正确，开始判断语句是否符合定义的规则（即虽然语法正确，但语句可能是高危语句或禁用的命令）
 		switch dbtype {
 		case app.MySQL:
-			checkResult.parseResult(R.CommandRule.HighRiskCommandRule, res, mysqlVersion)
-			checkResult.parseResult(R.CommandRule.BanCommandRule, res, mysqlVersion)
-			err = checkResult.runcheck(res, bs, mysqlVersion, t.ClusterDefaultEngines)
+			checkResult.parseResult(R.CommandRule.HighRiskCommandRule, res, mysqlVersion, t.Clusters)
+			checkResult.parseResult(R.CommandRule.BanCommandRule, res, mysqlVersion, t.Clusters)
+			err = checkResult.runcheck(res, bs, mysqlVersion, t.Clusters)
 			if err != nil {
 				goto END
 			}
@@ -957,14 +958,14 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 						Line:        res.Line,
 						Sqltext:     res.QueryString,
 						CommandType: res.Command,
-						WarnInfo:    fmt.Sprintf("禁止操作: %s,需要开始请找DBA协商", res.Command),
+						WarnInfo:    prefixDomains(fmt.Sprintf("禁止操作: %s,需要开始请找DBA协商", res.Command), t.Clusters),
 					})
 					continue
 				}
 			}
-			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
-			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
-			err = checkResult.runSpidercheck(ddlTbls, res, bs, mysqlVersion, t.ClusterDefaultEngines)
+			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion, t.Clusters)
+			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion, t.Clusters)
+			err = checkResult.runSpidercheck(ddlTbls, res, bs, mysqlVersion, t.Clusters)
 			if err != nil {
 				goto END
 			}
@@ -979,7 +980,7 @@ END:
 }
 
 func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQueryBase, bs []byte,
-	mysqlVersion string, defaultStorageEngines []string) (err error) {
+	mysqlVersion string, clusters []ClusterInfo) (err error) {
 	var sc SpiderChecker
 	var result *CheckerResult
 	// 其他规则分析
@@ -993,7 +994,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 			return err
 		}
 		o.TableOptionMap = ConvertTableOptionToMap(o.TableOptions)
-		result = o.spiderCheckWithClusterEngines(mysqlVersion, defaultStorageEngines)
+		result = o.spiderCheckWithClusterEngines(mysqlVersion, clusters)
 		// 如果dbName为空，则实际库名由参数指定,无特殊情况
 		ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 	case SQLTypeCreateDb:
@@ -1039,7 +1040,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 			logger.Error("json unmarshal line failed %s", err.Error())
 			return err
 		}
-		result = o.spiderCheckWithClusterEngines(mysqlVersion, defaultStorageEngines)
+		result = o.spiderCheckWithClusterEngines(mysqlVersion, clusters)
 		ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 	}
 	if result == nil && sc != nil {
@@ -1071,7 +1072,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 	return err
 }
 
-func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion string, defaultStorageEngines []string) (err error) {
+func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion string, clusters []ClusterInfo) (err error) {
 	var mc Checker
 	var result *CheckerResult
 	// 其他规则分析
@@ -1083,14 +1084,14 @@ func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion str
 			return err
 		}
 		o.TableOptionMap = ConvertTableOptionToMap(o.TableOptions)
-		result = o.checkWithClusterEngines(mysqlVersion, defaultStorageEngines)
+		result = o.checkWithClusterEngines(mysqlVersion, clusters)
 	case SQLTypeAlterTable:
 		var o AlterTableResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmarshal line failed %s", err.Error())
 			return err
 		}
-		result = o.checkWithClusterEngines(mysqlVersion, defaultStorageEngines)
+		result = o.checkWithClusterEngines(mysqlVersion, clusters)
 	case SQLTypeDelete:
 		var o DeleteResult
 		if err = json.Unmarshal(bs, &o); err != nil {

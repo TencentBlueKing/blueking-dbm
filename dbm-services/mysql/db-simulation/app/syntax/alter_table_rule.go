@@ -21,7 +21,7 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	return c.checkWithClusterEngines(mysqlVersion, nil)
 }
 
-func (c AlterTableResult) checkWithClusterEngines(mysqlVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
+func (c AlterTableResult) checkWithClusterEngines(mysqlVersion string, clusters []ClusterInfo) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
@@ -46,7 +46,7 @@ func (c AlterTableResult) checkWithClusterEngines(mysqlVersion string, clusterDe
 	}
 	r.Parse(R.AlterTableRule.AddColumnMixed, c.GetAllAlterType(), "")
 	r.ParseBuiltinBan(c.JsonColumInvalidDefaultCheck)
-	parseEngineMismatch(r, c.SpecifiedEngine(), clusterDefaultEngines)
+	parseEngineMismatch(r, c.SpecifiedEngine(), clusters)
 	return
 }
 
