@@ -8,7 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db.models import Q
+
+from collections import defaultdict
+
 from django.http import HttpRequest
 
 from backend.configuration.constants import DBType
@@ -103,6 +105,42 @@ def auth_parse_clusters(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
     return cluster_ids
 
 
+def _cluster_ids_by_machine_ids(machine_ids) -> list:
+    """按机器主键分别查 storage / proxy 所属集群，避免从 Cluster 同时 LEFT JOIN 两侧再 OR。"""
+    from backend.db_meta.models import ProxyInstance, StorageInstance
+
+    machine_ids = list(machine_ids)
+    if not machine_ids:
+        return []
+
+    storage_ids = StorageInstance.objects.filter(machine_id__in=machine_ids).values_list("cluster__id", flat=True)
+    proxy_ids = ProxyInstance.objects.filter(machine_id__in=machine_ids).values_list("cluster__id", flat=True)
+    cluster_ids = set(storage_ids)
+    cluster_ids.update(proxy_ids)
+    cluster_ids.discard(None)
+    return list(cluster_ids)
+
+
+def _cluster_ids_by_machine_port_pairs(pairs: set) -> list:
+    """按 (machine_id, port) 精确命中 storage / proxy，再取集群 ID。空 pairs 不查库。"""
+    from backend.db_meta.models import ProxyInstance, StorageInstance
+
+    if not pairs:
+        return []
+
+    machine_ids = {machine_id for machine_id, _port in pairs}
+    ports = {port for _machine_id, port in pairs}
+    cluster_ids = set()
+    for model in (StorageInstance, ProxyInstance):
+        rows = model.objects.filter(machine_id__in=machine_ids, port__in=ports).values_list(
+            "machine_id", "port", "cluster__id"
+        )
+        for machine_id, port, cluster_id in rows:
+            if cluster_id is not None and (machine_id, port) in pairs:
+                cluster_ids.add(cluster_id)
+    return list(cluster_ids)
+
+
 def auth_parse_hosts(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
     """
     解析主机列表 - 获取集群列表鉴权
@@ -112,28 +150,21 @@ def auth_parse_hosts(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
     - bk_host_id: 主机ID
     - bk_host_ids: 主机ID列表
     """
-    from backend.db_meta.models import Cluster
+    from backend.db_meta.models import Machine
 
     data = request.query_params if request.method == "GET" else request.data
     if "ip" in data:
-        filters = Q(storageinstance__machine__ip=data["ip"]) | Q(proxyinstance__machine__ip=data["ip"])
-        cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True))
+        machine_ids = Machine.objects.filter(ip=data["ip"]).values_list("bk_host_id", flat=True)
     elif "ips" in data:
-        filters = Q(storageinstance__machine__ip__in=data["ips"]) | Q(proxyinstance__machine__ip__in=data["ips"])
-        cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True))
+        machine_ids = Machine.objects.filter(ip__in=data["ips"]).values_list("bk_host_id", flat=True)
     elif "bk_host_id" in data:
-        filters = Q(storageinstance__machine__bk_host_id=data["bk_host_id"]) | Q(
-            proxyinstance__machine__bk_host_id=data["bk_host_id"]
-        )
-        cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True))
+        machine_ids = [data["bk_host_id"]]
     elif "bk_host_ids" in data:
-        filters = Q(storageinstance__machine__bk_host_id__in=data["bk_host_ids"]) | Q(
-            proxyinstance__machine__bk_host_id__in=data["bk_host_ids"]
-        )
-        cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True))
+        machine_ids = data["bk_host_ids"]
     else:
         raise ValueError("ip or bk_host_id is required")
 
+    cluster_ids = _cluster_ids_by_machine_ids(machine_ids)
     if not cluster_ids:
         raise ValueError("parse error, no clusters found for the given params")
 
@@ -195,8 +226,6 @@ def auth_parse_instances(request: HttpRequest, *args, **kwargs) -> ClusterIdList
     - ip: 主机IP
     - port: 端口
     """
-    from backend.db_meta.models import Cluster
-
     data = request.query_params if request.method == "GET" else request.data
     addresses = data.get("instances") or data.get("address") or data.get("instance") or data.get("ip_port")
     ip, port = data.get("ip"), data.get("port")
@@ -220,17 +249,20 @@ def auth_parse_instances(request: HttpRequest, *args, **kwargs) -> ClusterIdList
     else:
         raise ValueError("instances/address/instance/ip_port is required")
 
-    # 分两条查询聚合 cluster id，避免单条 SQL 同时对 storage / proxy 做 LEFT JOIN 再用 OR（难优化、易放大行数）
-    storage_filter = Q()
-    proxy_filter = Q()
-    for addr_ip, addr_port in ip_ports:
-        storage_filter |= Q(storageinstance__machine__ip=addr_ip, storageinstance__port=addr_port)
-        proxy_filter |= Q(proxyinstance__machine__ip=addr_ip, proxyinstance__port=addr_port)
+    # 先按 IP 查机器，再按 (machine_id, port) 命中实例。不从 Cluster 做 JOIN，也不对空条件 filter。
+    from backend.db_meta.models import Machine
 
-    id_set = set()
-    id_set.update(Cluster.objects.filter(storage_filter).values_list("id", flat=True))
-    id_set.update(Cluster.objects.filter(proxy_filter).values_list("id", flat=True))
-    cluster_ids = list(id_set)
+    ip_to_machine_ids = defaultdict(list)
+    ips = {addr_ip for addr_ip, _port in ip_ports}
+    for machine_id, machine_ip in Machine.objects.filter(ip__in=ips).values_list("bk_host_id", "ip"):
+        ip_to_machine_ids[machine_ip].append(machine_id)
+
+    pairs = set()
+    for addr_ip, addr_port in ip_ports:
+        for machine_id in ip_to_machine_ids.get(addr_ip, []):
+            pairs.add((machine_id, addr_port))
+
+    cluster_ids = _cluster_ids_by_machine_port_pairs(pairs)
     if not cluster_ids:
         raise ValueError("parse error, no clusters found for the given params")
 
