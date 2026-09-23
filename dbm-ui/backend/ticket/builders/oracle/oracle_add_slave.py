@@ -51,8 +51,15 @@ class OracleAddSlaveDetailSerializer(OracleOpsBaseDetailSerializer):
 
 
 class OracleAddSlaveParamBuilder(builders.FlowParamBuilder):
-    # 复用重建 slave 的场景
-    controller = OracleController.oracle_add_slave_scene
+    controller_add_slave = OracleController.oracle_add_slave_scene
+    controller_cascading_scene = OracleController.oracle_add_slave_via_cascading_scene
+
+    def build_controller_info(self) -> dict:
+        if self.ticket_data["flow_type"] == TicketType.ORACLE_ADD_SLAVE:
+            self.controller = self.controller_add_slave
+        else:
+            self.controller = self.controller_cascading_scene
+        return super().build_controller_info()
 
 
 class OracleAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
