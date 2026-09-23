@@ -25,7 +25,7 @@
     <div
       v-clickoutside:[contentRef]="handleClose"
       class="retry-selector-trigger"
-      :class="[activeCls, { 'retry-selector-trigger--loading': state.loading }]"
+      :class="{ 'is-active': state.isShow, 'is-loading': state.loading }"
       @click="handleToggle">
       <div class="retry-selector-display">
         {{ state.active.started_time }}
@@ -74,7 +74,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import type { PrimaryTableCol } from 'tdesign-vue-next';
+  import type { PrimaryTableCol, TableRowData } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { getRetryNodeHistories } from '@services/source/taskflow';
@@ -109,7 +109,6 @@
   });
 
   const isLatest = computed(() => state.active.version === state.latestVersion);
-  const activeCls = computed(() => (state.isShow ? 'retry-selector-trigger--active' : ''));
 
   const { body } = document;
   const columns: PrimaryTableCol[] = [
@@ -174,6 +173,11 @@
         }
         isAnomalies.value = false;
       })
+      .catch(() => {
+        // 空态切到异常形态，给出重新拉取的入口
+        state.histories = [];
+        isAnomalies.value = true;
+      })
       .finally(() => {
         state.loading = false;
       });
@@ -187,7 +191,7 @@
   /**
    * 选中当前行
    */
-  const handleSelected = ({ row }: { row: Record<string, any> }) => {
+  const handleSelected = ({ row }: { row: TableRowData }) => {
     const data = row as RetryNodeItem;
     if (state.active.version === data.version) return;
 
@@ -219,68 +223,66 @@
 </script>
 
 <style lang="less" scoped>
-  .retry-selector {
-    &-display {
-      width: 100%;
-      color: #c4c6cc;
-    }
+  .retry-selector-display {
+    width: 100%;
+    color: #c4c6cc;
+  }
 
-    &-icon {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      color: #c4c6cc;
-      transition: all 0.2s;
-    }
+  .retry-selector-icon {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    color: #c4c6cc;
+    transition: all 0.2s;
+  }
 
-    &-trigger {
-      position: relative;
-      height: 26px;
-      min-width: 170px;
-      padding: 0 20px 0 8px;
-      font-size: @font-size-mini;
-      line-height: 24px;
-      color: @default-color;
-      cursor: pointer;
-      background-color: #4d4d4d;
-      border: 1px solid transparent;
-      border-radius: 2px;
+  .retry-selector-trigger {
+    position: relative;
+    height: 26px;
+    min-width: 170px;
+    padding: 0 20px 0 8px;
+    font-size: @font-size-mini;
+    line-height: 24px;
+    color: @default-color;
+    cursor: pointer;
+    background-color: #4d4d4d;
+    border: 1px solid transparent;
+    border-radius: 2px;
 
-      &--active {
-        border-color: @primary-color;
+    &.is-active {
+      border-color: @primary-color;
 
-        .retry-selector-icon {
-          transform: rotate(180deg);
-        }
-      }
-
-      &--loading {
-        cursor: not-allowed;
-      }
-
-      .dbm-tag {
-        height: 16px;
-        padding: 0 4px;
-        line-height: 16px;
-        pointer-events: none;
+      .retry-selector-icon {
+        transform: rotate(180deg);
       }
     }
 
-    &-loading {
-      position: absolute;
-      top: 4px;
-      right: 6px;
-      background-color: @bg-gray;
+    &.is-loading {
+      cursor: not-allowed;
     }
 
-    &-content {
-      padding: 9px 2px;
+    .dbm-tag {
+      height: 16px;
+      padding: 0 4px;
+      line-height: 16px;
+      pointer-events: none;
+    }
+  }
 
-      strong {
-        display: block;
-        padding-bottom: 12px;
-        color: @title-color;
-      }
+  .retry-selector-loading {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background-color: @bg-gray;
+  }
+
+  .retry-selector-content {
+    padding: 9px 2px;
+
+    strong {
+      display: block;
+      padding-bottom: 12px;
+      color: @title-color;
     }
   }
 </style>

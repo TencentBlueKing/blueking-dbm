@@ -13,8 +13,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { computed } from 'vue';
-
   import { useMenuContext } from './common/context';
 
   interface Props {

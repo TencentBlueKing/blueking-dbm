@@ -31,6 +31,8 @@ export interface OptionGroupContext {
  */
 export interface OptionRegistry {
   getEl: () => HTMLElement | null;
+  /** 所在分组已折叠，选项不可见但 visible 仍为 true（visible 只表示搜索命中） */
+  isCollapsed: boolean;
   isDisabled: boolean;
   optionID: OptionValue;
   optionName: number | string;

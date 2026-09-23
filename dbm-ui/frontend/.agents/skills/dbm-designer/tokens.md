@@ -1,6 +1,6 @@
 # 令牌补表
 
-[SKILL.md](SKILL.md) 已有布局间距、字号、语义色。这里只放派生值。Less 用 `@primary-color`，不要在业务样式另写 hex。
+[SKILL.md](SKILL.md) 已有布局间距、字号、语义色。这里只放派生值。样式直接写具体值（如 `#3a84ff`），不引用 Less 变量（`@primary-color` 等），也不 `@import` bkui 的 `themes.less`；取值只能来自 SKILL.md 与本表，不要另起新色值。
 
 ## 微间距与高度
 
