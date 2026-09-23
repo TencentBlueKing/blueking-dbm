@@ -729,7 +729,7 @@
           return;
         }
         if (count < len) {
-          formData.details.domains.splice(count - 1, len - count);
+          formData.details.domains.splice(count);
           return;
         }
       }
