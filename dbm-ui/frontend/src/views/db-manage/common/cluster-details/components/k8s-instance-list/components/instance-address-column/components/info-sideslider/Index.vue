@@ -86,9 +86,12 @@
 
   interface Props {
     clusterData: {
+      bk_biz_id?: number;
       cluster_name: string;
+      cluster_type: string;
       db_type: string;
       id: number;
+      is_public?: boolean;
       k8s_cluster_name: string;
       namespace: string;
     };

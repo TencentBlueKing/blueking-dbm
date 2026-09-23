@@ -42,6 +42,8 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
+
   import { InfoItem } from './components/Index.vue';
   import type { ClusterDetailModel, ISupportClusterType } from './types';
 
@@ -68,6 +70,7 @@
           clusterName: props.data.cluster_name,
           k8sClusterName: props.data.k8s_cluster_name,
           namespace: props.data.namespace,
+          ...getExclusiveClusterParams(props.data),
         },
       ],
     },

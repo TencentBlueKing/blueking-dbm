@@ -39,25 +39,56 @@
   import { getBcsClusters } from '@services/source/kubernetesToolbox';
 
   interface Props {
+    applyMode?: string;
+    bkBizId?: number | string;
     regionCode: string;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    applyMode: 'SharedMode',
+    bkBizId: '',
+  });
   const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
 
+  // 独占集群（isPublic=false）时按业务 ID 取该业务独占的 BCS 集群资源
+  const isPublic = computed(() => props.applyMode !== 'ExclusiveMode');
+  const bkBizId = computed(() => (props.bkBizId ? Number(props.bkBizId) : undefined));
+
   const bcsClusterList = computed(() => {
     return (bcsClusterData?.value || []).find((item) => item.regionCode === props.regionCode)?.k8sClusterList || [];
   });
 
-  const { data: bcsClusterData, loading: isLoading } = useRequest(getBcsClusters, {
-    defaultParams: [
-      {
-        isPublic: true,
-      },
-    ],
+  const {
+    data: bcsClusterData,
+    loading: isLoading,
+    run,
+  } = useRequest(getBcsClusters, {
+    manual: true,
+  });
+
+  watch(
+    [isPublic, bkBizId],
+    () => {
+      // 业务 ID 未就绪时不请求，避免回显过程中先按默认业务取一次造成结果竞态
+      if (!bkBizId.value) {
+        return;
+      }
+      run({
+        bkBizId: bkBizId.value,
+        isPublic: isPublic.value,
+      });
+    },
+    { immediate: true },
+  );
+
+  // 部署类型/地域变化后已选集群可能不在新列表中，清空避免提交失效数据
+  watch(bcsClusterList, (list) => {
+    if (modelValue.value && !list.some((item) => item.clusterName === modelValue.value)) {
+      modelValue.value = '';
+    }
   });
 </script>
