@@ -9,5 +9,5 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-# 主机池 & 资源池相关的定时任务 TODO: 待验证
-# from .dirty_machine import auto_recycle_dissolve_hosts
+# 主机池 & 资源池相关的定时任务
+from .dirty_machine import auto_recycle_dissolve_hosts

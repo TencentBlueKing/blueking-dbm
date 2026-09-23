@@ -45,10 +45,10 @@ class TestAuthParseHosts:
             storage.objects.filter.return_value.values_list.return_value = [1, None]
             proxy.objects.filter.return_value.values_list.return_value = [2, 1]
 
-            result = auth_parse_hosts(_request({"ip": "10.0.0.43"}))
+            result = auth_parse_hosts(_request({"ip": "1.0.0.43"}))
 
         assert set(result) == {1, 2}
-        machine.objects.filter.assert_called_once_with(ip="10.0.0.43")
+        machine.objects.filter.assert_called_once_with(ip="1.0.0.43")
         storage.objects.filter.assert_called_once_with(machine_id__in=[101])
         proxy.objects.filter.assert_called_once_with(machine_id__in=[101])
         cluster.objects.filter.assert_not_called()
@@ -71,9 +71,9 @@ class TestAuthParseHosts:
             machine.objects.filter.return_value.values_list.return_value = []
 
             with pytest.raises(ValueError, match="no clusters found"):
-                auth_parse_hosts(_request({"ips": ["10.0.0.1"]}))
+                auth_parse_hosts(_request({"ips": ["1.0.0.1"]}))
 
-        machine.objects.filter.assert_called_once_with(ip__in=["10.0.0.1"])
+        machine.objects.filter.assert_called_once_with(ip__in=["1.0.0.1"])
         storage.objects.filter.assert_not_called()
         proxy.objects.filter.assert_not_called()
 
@@ -86,9 +86,9 @@ class TestAuthParseInstances:
     def test_keeps_exact_machine_port_pairs(self):
         with _patched_models() as (machine, storage, proxy, cluster):
             machine.objects.filter.return_value.values_list.return_value = [
-                (101, "10.0.0.1"),
-                (102, "10.0.0.1"),
-                (201, "10.0.0.2"),
+                (101, "1.0.0.1"),
+                (102, "1.0.0.1"),
+                (201, "1.0.0.2"),
             ]
             # (101, 3307) 与请求的 (101, 3306) / (201, 3307) 不是同一对，不能命中
             storage.objects.filter.return_value.values_list.return_value = [
@@ -98,10 +98,10 @@ class TestAuthParseInstances:
             ]
             proxy.objects.filter.return_value.values_list.return_value = [(201, 3307, 22)]
 
-            result = auth_parse_instances(_request({"instances": ["10.0.0.1:3306", "10.0.0.2:3307"]}))
+            result = auth_parse_instances(_request({"instances": ["1.0.0.1:3306", "1.0.0.2:3307"]}))
 
         assert set(result) == {11, 22}
-        assert set(machine.objects.filter.call_args.kwargs["ip__in"]) == {"10.0.0.1", "10.0.0.2"}
+        assert set(machine.objects.filter.call_args.kwargs["ip__in"]) == {"1.0.0.1", "1.0.0.2"}
         storage_kwargs = storage.objects.filter.call_args.kwargs
         assert storage_kwargs["machine_id__in"] == {101, 102, 201}
         assert storage_kwargs["port__in"] == {3306, 3307}
@@ -112,7 +112,7 @@ class TestAuthParseInstances:
             machine.objects.filter.return_value.values_list.return_value = []
 
             with pytest.raises(ValueError, match="no clusters found"):
-                auth_parse_instances(_request({"ip": "10.0.0.9", "port": 3306}))
+                auth_parse_instances(_request({"ip": "1.0.0.9", "port": 3306}))
 
         storage.objects.filter.assert_not_called()
         proxy.objects.filter.assert_not_called()
