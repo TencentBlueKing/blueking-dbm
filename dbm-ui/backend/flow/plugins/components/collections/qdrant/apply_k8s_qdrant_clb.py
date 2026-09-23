@@ -19,6 +19,7 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.k8s_db.qdrant.consts import CLB_NAME_SUFFIX
 
 logger = logging.getLogger("flow")
 
@@ -32,21 +33,25 @@ class ApplyK8sQdrantClbService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
-        cluster_name = global_data["k8s_cluster_name"]
+        cluster_name = global_data["cluster_name"]
+        k8s_cluster_name = global_data["k8s_cluster_name"]
+        bk_biz_id = global_data["bk_biz_id"]
+        is_public = global_data.get("is_public")
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        regions_resp = KubernetesApi.get_regions()
+        logger.info(_("获取 qdrant CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
+        regions_resp = KubernetesApi.get_regions(params={"bkBizId": bk_biz_id, "isPublic": is_public})
 
-        # 匹配clusterName与cluster_name一致的数据，获取vpcID和regionCode
+        # 匹配clusterName与k8s_cluster_name一致的数据，获取vpcID和regionCode
         region_code = ""
         vpc_id = ""
         region_name = ""
         for region in regions_resp:
             for k8s_cluster in region.get("k8sClusterList", []):
-                if k8s_cluster.get("clusterName") == cluster_name:
+                if k8s_cluster.get("clusterName") == k8s_cluster_name:
                     region_code = region.get("regionCode", "")
                     vpc_id = k8s_cluster.get("vpcID", "")
                     region_name = region.get("regionName", "")
@@ -55,17 +60,18 @@ class ApplyK8sQdrantClbService(BaseService):
                 break
 
         if not region_code or not vpc_id:
-            self.log_error(_("未找到与集群名称 {} 匹配的区域信息").format(cluster_name))
+            self.log_error(_("未找到与集群名称 {} 匹配的区域信息").format(k8s_cluster_name))
             return False
 
         # 申请CLB
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": "{}-{}-clb".format(cluster_name, "qdrant"),
+            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}",
             "clb_nums": 1,
             "async_to_dbm": False,
         }
+        logger.info(_("申请 qdrant CLB，clb_name: {}").format(params["clb_name"]))
 
         clb_id = KubernetesApi.apply_clb(params)
 
