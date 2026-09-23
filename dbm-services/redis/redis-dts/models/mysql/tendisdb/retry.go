@@ -2,6 +2,7 @@ package tendisdb
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -10,15 +11,16 @@ import (
 
 // 瞬时错误重试配置。
 // 双重上限：次数上限防止死循环,时间上限防止调度循环被长时间阻塞。
+// 退避节奏: 10s -> 20s -> 40s -> 80s(封顶),只要其中一次成功即视为成功。
 const (
 	// getTaskRetryMaxAttempts GetTaskByID 的最大尝试次数(含首次),超过则直接返回错误
 	getTaskRetryMaxAttempts = 5
 	// getTaskRetryMaxBackoff 累计退避时长上限,超过则直接返回错误
 	getTaskRetryMaxBackoff = 3 * time.Minute
-	// getTaskRetryInitialBackoff 首次退避基准;后续翻倍,封顶 60s
-	getTaskRetryInitialBackoff = 2 * time.Second
-	// getTaskRetryMaxSingleBackoff 单次最大退避
-	getTaskRetryMaxSingleBackoff = 60 * time.Second
+	// getTaskRetryInitialBackoff 首次退避基准: 10s;后续翻倍(20s/40s/80s),封顶 singleMaxBackoff
+	getTaskRetryInitialBackoff = 10 * time.Second
+	// getTaskRetryMaxSingleBackoff 单次最大退避: 80s
+	getTaskRetryMaxSingleBackoff = 80 * time.Second
 )
 
 // transientBizCodeWhitelist 业务错误码白名单。
@@ -113,10 +115,14 @@ func retryOnTransient(
 				fmt.Sprintf("transient err, maxBackoff=%s reached, give up: %v", maxBackoff, err))
 			return err
 		}
-		logTransientWarn(logger, opName, attempt, maxAttempts, sleepDur, totalBackoff,
-			fmt.Sprintf("transient err, sleep %s and retry: %v", sleepDur, err))
-		time.Sleep(sleepDur)
-		totalBackoff += sleepDur
+		// 加入抖动(等比抖动: [0.5*sleepDur, 1.5*sleepDur)),避免大量并发调用
+		// (如同时有几十个DTS任务在轮询状态)在同一时刻被打满连接池后,
+		// 又在完全相同的时刻集中重试,造成"重试风暴"反复把连接池打满。
+		jitteredSleep := jitter(sleepDur)
+		logTransientWarn(logger, opName, attempt, maxAttempts, jitteredSleep, totalBackoff,
+			fmt.Sprintf("transient err, sleep %s(base %s) and retry: %v", jitteredSleep, sleepDur, err))
+		time.Sleep(jitteredSleep)
+		totalBackoff += jitteredSleep
 		// 指数退避,封顶 singleMaxBackoff
 		sleepDur *= 2
 		if sleepDur > singleMaxBackoff {
@@ -124,6 +130,19 @@ func retryOnTransient(
 		}
 	}
 	return nil
+}
+
+// jitter 对退避时长 d 做等比抖动,返回值落在 [0.5d, 1.5d) 区间。
+// 目的: 大量并发调用如果都用完全相同的固定退避序列,一旦同时因连接池打满而失败,
+// 会在完全相同的时刻发起下一轮重试,形成同步的"重试风暴",反而更难恢复;
+// 加入随机抖动后,各调用方的重试时刻被打散,能更平滑地分摊到上游服务上。
+func jitter(d time.Duration) time.Duration {
+	if d <= 0 {
+		return d
+	}
+	half := d / 2
+	// [0, half) 的随机量 + half,得到 [half, 2*half)=[0.5d,1.5d) 区间(整数除法误差可忽略)
+	return half + time.Duration(rand.Int63n(int64(half)+1))
 }
 
 func logTransientWarn(logger *zap.Logger, opName string, attempt, maxAttempts int,

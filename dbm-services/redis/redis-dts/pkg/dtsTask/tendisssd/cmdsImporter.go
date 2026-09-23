@@ -112,6 +112,20 @@ func (item *ImporterItem) ErrorAbleToBeIgnored(errData string) bool {
 	return item.IsWrongTypeErr(errData)
 }
 
+// deleteImportedFile 单个文件导入成功后立即删除该文件,避免全部文件都导入完才统一清理,占用过多磁盘空间
+func (item *ImporterItem) deleteImportedFile() {
+	if item.SQLFile == "" {
+		return
+	}
+	if err := os.Remove(item.SQLFile); err != nil {
+		if !os.IsNotExist(err) {
+			item.Logger.Warn(fmt.Sprintf("import success but remove sqlfile:%s failed,err:%v", item.SQLFile, err))
+		}
+		return
+	}
+	item.Logger.Info(fmt.Sprintf("导入成功,已删除文件:%s", item.SQLFile))
+}
+
 // RunTask 执行导入task
 func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 	supPipeImport := task.IsSupportPipeImport()
@@ -160,6 +174,7 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 			if item.ErrorAbleToBeIgnored(errStr) == true {
 				// 可忽略的错误
 				item.Err = nil
+				item.deleteImportedFile()
 				return
 			}
 			if retryAble && times <= maxRetryTimes {
@@ -187,6 +202,7 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 		errStr := strings.TrimSpace(string(errBytes))
 		if errStr != "" {
 			if item.ErrorAbleToBeIgnored(errStr) == true {
+				item.deleteImportedFile()
 				return
 			}
 			if retryAble == true && times <= maxRetryTimes {
@@ -201,6 +217,8 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 		}
 		break
 	}
+	// 导入成功,立即删除该文件,避免所有文件都导入完才统一清理导致磁盘占用过高
+	item.deleteImportedFile()
 }
 
 // LookupDstRedisProxyAddrs ..

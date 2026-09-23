@@ -20,6 +20,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// BuildDate 二进制编译时间,通过编译时 `-ldflags "-X main.BuildDate=xxx"` 注入,
+// 未注入(如直接 go run)时为空,--version 会显示 unknown。
+var BuildDate string
+
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,7 +38,12 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Println(constvar.TendisDTSVersion)
+		fmt.Printf("Version: %s\n", constvar.TendisDTSVersion)
+		if BuildDate != "" {
+			fmt.Printf("BuildDate: %s\n", BuildDate)
+		} else {
+			fmt.Printf("BuildDate: unknown\n")
+		}
 		return
 	}
 	if *showHelp {
