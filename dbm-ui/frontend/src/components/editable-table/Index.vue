@@ -24,6 +24,7 @@
           :column-list="columnList"
           :column-size-config="columnSizeConfig"
           @mousedown="handleMouseDown"
+          @mouseleave="handleMouseLeave"
           @mousemove="handleMouseMove" />
         <tbody class="bk-editable-table-body">
           <slot />
@@ -69,20 +70,11 @@
 </template>
 <script lang="ts">
   import _ from 'lodash';
-  import {
-    type ComponentInternalInstance,
-    type InjectionKey,
-    provide,
-    type Ref,
-    ref,
-    shallowRef,
-    type VNode,
-    watch,
-  } from 'vue';
+  import type { ComponentInternalInstance, InjectionKey, Ref, VNode } from 'vue';
 
   import { useEventBus } from '@hooks';
 
-  import Column, { type IContext as IColumnContext } from './Column.vue';
+  import Column, { type IColumnElement, type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
   import Block from './edit/Block.vue';
   import DatePicker from './edit/DatePicker.vue';
@@ -171,7 +163,11 @@
   const isShowScrollX = ref(true);
   const isUserChange = ref(false);
 
-  const { columnSizeConfig, handleMouseDown, handleMouseMove } = useResize(tableRef, resizePlaceholderRef, columnList);
+  const { columnSizeConfig, handleMouseDown, handleMouseLeave, handleMouseMove } = useResize(
+    tableRef,
+    resizePlaceholderRef,
+    columnList,
+  );
   const { fixedLeft, fixedRight, initalScroll, leftFixedStyles, rightFixedStyles } = useScroll(tableRef);
   const { pushRowspanTask, removeRowspanTask, runRowspanTask } = useRowspan();
 
@@ -317,13 +313,9 @@
     // 展示新的错误前清理上一次遗留的错误态
     clearValidate();
     // 后端校验无法保证 row index 的正确性，需要通过 row key 来标记每一行数据
-    // 优先通过 props.model 将 row key 转换成 row index
-    const errorRowKeyMap = errorList.reduce<Record<string, (typeof errorList)[number]>>((result, item) => {
-      return Object.assign(result, {
-        [item.row_key]: item,
-      });
-    }, {});
-    const errorRowIndexMap = props.model.reduce<Record<string, (typeof errorList)[number]>>((result, item, index) => {
+    // 优先通过 props.model 将 row key 转换成 row index，同一行可能有多个字段的错误
+    const errorRowKeyMap = _.groupBy(errorList, 'row_key');
+    const errorRowIndexMap = props.model.reduce<Record<string, typeof errorList>>((result, item, index) => {
       if (item?.row_key && errorRowKeyMap[item.row_key]) {
         Object.assign(result, {
           [index]: errorRowKeyMap[item.row_key],
@@ -340,7 +332,7 @@
       }
       Array.from(rowEle.querySelectorAll('td.bk-editable-table-body-column') || []).forEach((tdEle) => {
         // eslint-disable-next-line no-underscore-dangle
-        const getColumnInstance = (tdEle as any).__getCurrentInstance__;
+        const getColumnInstance = (tdEle as IColumnElement).__getCurrentInstance__;
         if (!_.isFunction(getColumnInstance)) {
           return;
         }
@@ -348,8 +340,10 @@
         if (!columnInstance) {
           return;
         }
-        const errorInfo = errorRowIndexMap[rowIndex];
-        columnInstance.exposeProxy.viewError(errorInfo.errors, errorInfo.field);
+        // 单元格按 idMark 匹配，不匹配的字段错误会被忽略
+        errorRowIndexMap[rowIndex]!.forEach((errorInfo) => {
+          columnInstance.exposeProxy?.viewError(errorInfo.errors, errorInfo.field);
+        });
       });
     });
   };

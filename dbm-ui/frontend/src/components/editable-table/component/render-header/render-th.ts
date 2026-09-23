@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { defineComponent, h, resolveDirective, withDirectives } from 'vue';
+import { resolveDirective, withDirectives } from 'vue';
 
 import type { IContext as IColumnContext } from '../../Column.vue';
 

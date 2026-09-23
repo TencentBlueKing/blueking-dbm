@@ -38,7 +38,7 @@
   }
 </script>
 <script setup lang="ts" generic="T extends [string, string] | [Date, Date] | string | Date">
-  import { useAttrs, type VNode, watch } from 'vue';
+  import type { VNode } from 'vue';
 
   import useColumn from '../useColumn';
 
@@ -51,7 +51,9 @@
     footer?: () => VNode;
   }>();
 
-  const modelValue = defineModel<T>();
+  const modelValue = defineModel<T | undefined>({
+    default: undefined,
+  });
 
   const attrs = useAttrs();
 

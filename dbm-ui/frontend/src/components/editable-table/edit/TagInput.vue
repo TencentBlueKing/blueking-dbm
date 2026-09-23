@@ -28,7 +28,6 @@
 </template>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">
   import _ from 'lodash';
-  import { watch } from 'vue';
 
   import useColumn from '../useColumn';
 
@@ -45,7 +44,9 @@
   defineProps<Props>();
   const emits = defineEmits<Emits<T>>();
 
-  const modelValue = defineModel<T>();
+  const modelValue = defineModel<T | undefined>({
+    default: undefined,
+  });
 
   const attrs = useAttrs();
 
@@ -78,6 +79,8 @@
     // 边框统一由表格的 td::before 画，组件自身在默认 / hover / 聚焦三态给面板加的边框都要抹掉，否则会错开 1px 叠成双框
     .bk-editable-tag-input {
       &.db-tag-input {
+        width: 100%;
+
         .db-tag-input-panel {
           min-height: 40px;
           background: transparent;
