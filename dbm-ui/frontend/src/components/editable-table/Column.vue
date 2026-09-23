@@ -74,18 +74,7 @@
   import { Loading } from 'bkui-vue/lib/icon';
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import {
-    type ComponentInternalInstance,
-    computed,
-    getCurrentInstance,
-    inject,
-    type InjectionKey,
-    onBeforeUnmount,
-    provide,
-    reactive,
-    type Ref,
-    type VNode,
-  } from 'vue';
+  import type { ComponentInternalInstance, InjectionKey, Ref, VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getColumnCount, tableInjectKey } from './Index.vue';
@@ -147,6 +136,11 @@
     validate: (trigger?: string) => Promise<boolean>;
   }
 
+  // 渲染后的 td 上挂载组件实例的获取方法，供 table 的 viewError 按 DOM 查找单元格
+  export type IColumnElement = HTMLElement & {
+    __getCurrentInstance__?: () => ComponentInternalInstance;
+  };
+
   export const EditableTableColumnKey: InjectionKey<{
     blur: () => void;
     clearValidate: () => void;
@@ -192,10 +186,11 @@
   interface IFinalRule {
     message: string | (() => string);
     trigger: string;
-    validator: (value: any, rowDataValue?: Record<string, any>) => Promise<boolean | string> | boolean | string;
+    validator: NonNullable<IRule['validator']>;
   }
 
-  let loadingValidatorTimer: ReturnType<typeof setTimeout>;
+  // 每次验证各自轮询 loading 状态，互不清理；卸载时全部放行，避免阻塞整表验证
+  const loadingValidatorReleaseSet = new Set<() => void>();
 
   const getRulesFromProps = (props: Props) => {
     const rules: ({
@@ -208,21 +203,24 @@
       rules.push({
         message: t('{n}查询中', { n: label }),
         trigger: '',
-        validator: () => {
-          clearTimeout(loadingValidatorTimer);
-          return new Promise((resolve) => {
+        validator: () =>
+          new Promise<boolean>((resolve) => {
+            let timer: ReturnType<typeof setTimeout>;
+            const release = () => {
+              clearTimeout(timer);
+              loadingValidatorReleaseSet.delete(release);
+              resolve(true);
+            };
             const loop = () => {
               if (!props.loading) {
-                resolve(true);
+                release();
                 return;
               }
-              loadingValidatorTimer = setTimeout(() => {
-                loop();
-              }, 500);
+              timer = setTimeout(loop, 500);
             };
+            loadingValidatorReleaseSet.add(release);
             loop();
-          });
-        },
+          }),
       });
     }
     if (props.required) {
@@ -273,7 +271,7 @@
     let customEmail = false;
 
     const formatConfigRules = configRules.reduce<IFinalRule[]>((result, rule) => {
-      let rulevalidator: any;
+      let rulevalidator: IFinalRule['validator'];
       if (rule.required) {
         rulevalidator = _.isFunction(rule.validator) ? rule.validator : defaultValidator.required;
         customRequired = true;
@@ -411,7 +409,7 @@
       nextTick(() => {
         if (isRowspanRender.value) {
           // eslint-disable-next-line no-underscore-dangle
-          (rootRef.value as any).__getCurrentInstance__ = () => currentInstance;
+          (rootRef.value as IColumnElement).__getCurrentInstance__ = () => currentInstance;
         }
       });
     },
@@ -577,7 +575,7 @@
         validateDeferredMap[triggerKey] = undefined;
 
         // setTimeout 延迟执行 Column 可能会已经被卸载，已卸载的单元格不阻塞验证
-        if (!currentInstance.isMounted) {
+        if (currentInstance.isUnmounted) {
           deferred.resolve(true);
           return;
         }
@@ -668,7 +666,7 @@
   onBeforeUnmount(() => {
     rowContext?.unregisterColumn(columnKey);
     registerRules = [];
-    clearTimeout(loadingValidatorTimer);
+    loadingValidatorReleaseSet.forEach((release) => release());
     tableContext?.removeRowspanTask(calcRowspanRender);
     if (tippyIns) {
       tippyIns.hide();
@@ -731,9 +729,9 @@
     &.is-readonly {
       background: var(--column-readonly-background-color);
 
-      &::before {
-        border-color: var(--column-readonly-border-color);
-      }
+      // &::before {
+      //   border-color: var(--column-readonly-border-color);
+      // }
 
       .bk-editable-table-field-cell {
         & > * {

@@ -46,7 +46,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { nextTick, onMounted, onUpdated, ref, useTemplateRef, type VNode, watch } from 'vue';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import useColumn from '../useColumn';
@@ -63,7 +63,9 @@
     prepend?: () => VNode;
   }>();
 
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<string>({
+    default: '',
+  });
 
   const { t } = useI18n();
 
