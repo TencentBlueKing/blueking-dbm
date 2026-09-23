@@ -73,8 +73,7 @@
             disabled: !isOverflowMap[index],
             content: item.message,
           }"
-          class="item-message"
-          @mouseenter="handleMessageEnter(index)">
+          class="item-message">
           {{ item.message }}
         </span>
         <span class="item-line">[{{ t('行') }} {{ item.line }}]</span>
@@ -92,6 +91,7 @@
 </template>
 
 <script setup lang="ts">
+  import { nextTick, onMounted, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   export type IMessageList = Array<{
@@ -116,16 +116,6 @@
   // 记录每一行 message 是否溢出
   const isOverflowMap = ref<Record<number, boolean>>({});
 
-  // 鼠标进入时检测是否溢出，仅溢出时才启用 tooltip
-  const handleMessageEnter = (index: number) => {
-    const el = messageRefMap.get(index);
-    if (!el) return;
-    isOverflowMap.value = {
-      ...isOverflowMap.value,
-      [index]: el.offsetWidth < el.scrollWidth,
-    };
-  };
-
   // 缓存每个 message span 的 DOM 引用
   const messageRefMap = new Map<number, HTMLElement>();
 
@@ -136,6 +126,22 @@
       messageRefMap.delete(index);
     }
   };
+
+  // DOM 更新后检测所有 message 是否溢出
+  const checkOverflow = () => {
+    const map: Record<number, boolean> = {};
+    messageRefMap.forEach((el, index) => {
+      map[index] = el.offsetWidth < el.scrollWidth;
+    });
+    isOverflowMap.value = map;
+  };
+
+  onMounted(checkOverflow);
+  watch(
+    () => props.data,
+    () => nextTick(checkOverflow),
+    { flush: 'post' },
+  );
 
   type Emits = (e: 'goto-line', line: number) => void;
 
