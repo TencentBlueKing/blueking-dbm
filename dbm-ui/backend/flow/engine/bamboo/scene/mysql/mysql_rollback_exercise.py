@@ -266,6 +266,8 @@ class MySQLRollbackExerciseFlow(object):
                 with_exporter_config=False,
                 skip_add_domain=True,
                 skip_install_bk_plugin=True,
+                # 演练临时实例不接入 dbha，标准化子流程去掉「探针升级」
+                with_probe=False,
             )
         )
         sub_pipeline.add_sub_pipeline(self._build_reinstall_v2_dbbackup_subflow(cluster_class))
