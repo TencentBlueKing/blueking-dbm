@@ -449,13 +449,13 @@
     "@babel/helper-string-parser" "^7.29.7"
     "@babel/helper-validator-identifier" "^7.29.7"
 
-"@blueking/ai-blueking@2.2.3":
-  version "2.2.3"
-  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.2.3.tgz#e2eccc2ff7870cbcb6005c9056907f735fd9aedc"
-  integrity sha512-IXosor3KjD+um2ropL+Bp7z6P+o3AZI4Po75A/dz/MA9gNFrE+7AHFzEwTjaOVAv4fTcyT82YgBJJ+gBP6XFrQ==
+"@blueking/ai-blueking@2.4.1":
+  version "2.4.1"
+  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.4.1.tgz#d29d591a0c6de93e1521eef56329a6d0a6bffe37"
+  integrity sha512-+SgQY/O3tQfzJZ4ossVaLMPAkdwfuQlidruL/3rpyUAhF4buFBwuiAqZGY2DKrCG8QcId1kdlLD+HmVqeb0nhw==
   dependencies:
-    "@blueking/chat-helper" "0.0.12-beta.24"
-    "@blueking/chat-x" "0.0.49-beta.12"
+    "@blueking/chat-helper" "2.4.0"
+    "@blueking/chat-x" "2.4.1"
     bkui-vue "2.0.2-beta.81"
     tippy.js "^6.3.7"
     vue-draggable-resizable "^3.0.0"
@@ -523,17 +523,17 @@
   dependencies:
     "@vue/runtime-dom" "^3.4.27"
 
-"@blueking/chat-helper@0.0.12-beta.24":
-  version "0.0.12-beta.24"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.12-beta.24.tgz#4eeb41d8f7b01340acc468b63a3a7f039cc9abd0"
-  integrity sha512-Zstz4u4SC3nKUuMdnvPA4HQ81i7i7xj8pr8lDkYP6vFKPjSG+Xm8qK6CpZfq90tzioxVHgkAroYhluAKpylpaQ==
+"@blueking/chat-helper@2.4.0":
+  version "2.4.0"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-2.4.0.tgz#f6ed4e7013664222403b8db09d250cb9fa1c5114"
+  integrity sha512-gbh6uL+I/VPrhKhRV60CGef45kSWFxbqv2wKhqTALSVjbyOj4+MxPwZPeBYS0yeoCoKQ4XC0G4tSLKiaaHLiqA==
   dependencies:
     "@types/json-schema" "^7.0.15"
 
-"@blueking/chat-x@0.0.49-beta.12":
-  version "0.0.49-beta.12"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.49-beta.12.tgz#2ad89660f94e48b4242ebb3121ec9f0c24b0a77c"
-  integrity sha512-RdodgJ6sGCS11wnl5FATzgkFhr1jYL0j04mOHHDTRKRt1arwk5TeSvElipqXHDaMIeGSjzCqMLcC6520stZcMw==
+"@blueking/chat-x@2.4.1":
+  version "2.4.1"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-2.4.1.tgz#287124d4808401ed650d8eef6901497419754da2"
+  integrity sha512-Bwh6dSbUAiEn4jzNOv5ci6X/rQ7bN0I2H+71sGo1NCQ4fjJ7xHWsm3DBiJKEP7/sDmnMK6rULt1upam7/qA00w==
   dependencies:
     "@modelcontextprotocol/sdk" "^1.27.1"
     bkui-vue "2.0.2-beta.81"
