@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { inject } from 'vue';
-
 import { tableInjectKey } from './Index.vue';
 
 export default () => {
