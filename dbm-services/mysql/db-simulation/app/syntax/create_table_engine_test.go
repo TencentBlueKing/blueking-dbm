@@ -11,6 +11,7 @@
 package syntax
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -94,7 +95,7 @@ func TestEngineMismatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hit, msg := EngineMismatch(tt.specified, tt.clusterDefaults)
+			hit, msg := EngineMismatch(tt.specified, clusterInfosFromEngines(tt.clusterDefaults))
 			assert.Equal(t, tt.wantHit, hit)
 			if tt.wantHit {
 				require.NotEmpty(t, msg)
@@ -198,7 +199,7 @@ func TestCreateTableResult_Checker_InnoDBDoesNotSuggestInnoDB(t *testing.T) {
 func TestCreateTableResult_SpiderChecker_EngineMismatch(t *testing.T) {
 	mismatch := newCreateTableWithEngine("InnoDB")
 	mismatch.IsCreateTableLike = true
-	cr := mismatch.spiderCheckWithClusterEngines("5.7", []string{"rocksdb"})
+	cr := mismatch.spiderCheckWithClusterEngines("5.7", []ClusterInfo{{Engine: "rocksdb"}})
 	require.NotNil(t, cr)
 	joined := strings.Join(cr.RiskWarns, "\n")
 	lower := strings.ToLower(joined)
@@ -209,7 +210,7 @@ func TestCreateTableResult_SpiderChecker_EngineMismatch(t *testing.T) {
 
 	spider := newCreateTableWithEngine("SPIDER")
 	spider.IsCreateTableLike = true
-	cr = spider.spiderCheckWithClusterEngines("5.7", []string{"rocksdb"})
+	cr = spider.spiderCheckWithClusterEngines("5.7", []ClusterInfo{{Engine: "rocksdb"}})
 	require.NotNil(t, cr)
 	assert.NotContains(t, strings.Join(cr.RiskWarns, "\n"), engineMismatchPhrase)
 }
@@ -220,7 +221,7 @@ func TestCreateTableResult_Checker_MixedClusterEngines(t *testing.T) {
 		TableName:    "t1",
 		TableOptions: []TableOption{{Key: "engine", Value: "InnoDB"}},
 	}
-	cr := c.checkWithClusterEngines("5.7", []string{"rocksdb", "innodb"})
+	cr := c.checkWithClusterEngines("5.7", []ClusterInfo{{Engine: "rocksdb"}, {Engine: "innodb"}})
 	require.NotNil(t, cr)
 	joined := strings.Join(cr.RiskWarns, "\n")
 	require.Contains(t, joined, engineMismatchPhrase)
@@ -241,7 +242,7 @@ func TestAlterTableResult_Checker_EngineMismatch(t *testing.T) {
 			},
 		},
 	}
-	cr := mismatch.checkWithClusterEngines("5.7", []string{"rocksdb"})
+	cr := mismatch.checkWithClusterEngines("5.7", []ClusterInfo{{Engine: "rocksdb"}})
 	require.NotNil(t, cr)
 	joined := strings.Join(cr.RiskWarns, "\n")
 	lower := strings.ToLower(joined)
@@ -259,7 +260,7 @@ func TestAlterTableResult_Checker_EngineMismatch(t *testing.T) {
 			},
 		},
 	}
-	cr = same.checkWithClusterEngines("5.7", []string{"rocksdb"})
+	cr = same.checkWithClusterEngines("5.7", []ClusterInfo{{Engine: "rocksdb"}})
 	require.NotNil(t, cr)
 	assert.NotContains(t, strings.Join(cr.RiskWarns, "\n"), engineMismatchPhrase)
 }
@@ -274,11 +275,22 @@ func newCreateTableWithEngine(specified string) CreateTableResult {
 	return c
 }
 
-func clusterEngines(clusterDefault string) []string {
+func clusterEngines(clusterDefault string) []ClusterInfo {
 	if clusterDefault == "" {
 		return nil
 	}
-	return []string{clusterDefault}
+	return []ClusterInfo{{Engine: clusterDefault}}
+}
+
+func clusterInfosFromEngines(engines []string) []ClusterInfo {
+	if len(engines) == 0 {
+		return nil
+	}
+	out := make([]ClusterInfo, 0, len(engines))
+	for _, engine := range engines {
+		out = append(out, ClusterInfo{Engine: engine})
+	}
+	return out
 }
 
 func requireCreateTableCheckerRules(t *testing.T) {
@@ -298,69 +310,65 @@ func requireAlterTableCheckerRules(t *testing.T) {
 	}
 }
 
-func TestResolveDefaultStorageEngines(t *testing.T) {
-	tests := []struct {
-		name     string
-		explicit []string
-		versions []string
-		want     []string
-	}{
-		{
-			name:     "explicit wins over version tag",
-			explicit: []string{"innodb"},
-			versions: []string{"MySQL-5.7-RocksDB"},
-			want:     []string{"InnoDB"},
-		},
-		{
-			name:     "empty explicit takes rocksdb from three-part version",
-			explicit: nil,
-			versions: []string{"MySQL-5.7-RocksDB"},
-			want:     []string{"RocksDB"},
-		},
-		{
-			name:     "tokudb from three-part version",
-			versions: []string{"MySQL-5.6-TokuDB"},
-			want:     []string{"TokuDB"},
-		},
-		{
-			name:     "community suffix is not an engine",
-			versions: []string{"MySQL-8.0-Community"},
-			want:     []string{},
-		},
-		{
-			name:     "two-part version has no engine",
-			versions: []string{"MySQL-5.7"},
-			want:     []string{},
-		},
-		{
-			name:     "mixed versions keep only known engines",
-			versions: []string{"MySQL-5.7-RocksDB", "MySQL-8.0-Community", "MySQL-5.6-TokuDB"},
-			want:     []string{"RocksDB", "TokuDB"},
-		},
-		{
-			name:     "blank explicit still falls back to version",
-			explicit: []string{"", "  "},
-			versions: []string{"MySQL-5.7-RocksDB"},
-			want:     []string{"RocksDB"},
-		},
-		{
-			name:     "duplicate version engines are unique",
-			versions: []string{"MySQL-5.7-RocksDB", "MySQL-5.7-rocksdb"},
-			want:     []string{"RocksDB"},
-		},
-		{
-			name:     "explicit mixed case folds to canonical",
-			explicit: []string{"ROCKSDB", "rocksdb", "RocksDB"},
-			want:     []string{"RocksDB"},
-		},
+func TestEngineMismatchNamesBothDomains(t *testing.T) {
+	clusters := []ClusterInfo{
+		{ClusterDomain: "cwncgchendb.test-1.kio.db", Engine: "InnoDB", Version: "MySQL-5.6"},
+		{ClusterDomain: "tmpdb.test-1-20250918143959662879.dba.db", Engine: "InnoDB", Version: "MySQL-5.6"},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ResolveDefaultStorageEngines(tt.explicit, tt.versions)
-			if tt.want == nil {
-				tt.want = []string{}
-			}
-			require.Equal(t, tt.want, got)
-		})
+	hit, msg := EngineMismatch("RocksDB", clusters)
+	require.True(t, hit)
+	assert.Equal(t,
+		"指定 ENGINE=RocksDB，与集群 cwncgchendb.test-1.kio.db、tmpdb.test-1-20250918143959662879.dba.db 的默认存储引擎 InnoDB 不一致",
+		msg)
+}
+
+func TestEngineMismatchNamesOnlyConflictDomain(t *testing.T) {
+	clusters := []ClusterInfo{
+		{ClusterDomain: "innodb.example.db", Engine: "InnoDB"},
+		{ClusterDomain: "rocks.example.db", Engine: "RocksDB"},
 	}
+	hit, msg := EngineMismatch("InnoDB", clusters)
+	require.True(t, hit)
+	assert.Contains(t, msg, "rocks.example.db")
+	assert.NotContains(t, msg, "innodb.example.db")
+	assert.Contains(t, msg, "RocksDB")
+}
+
+func TestEngineMismatchBlankEngineSkipped(t *testing.T) {
+	hit, msg := EngineMismatch("InnoDB", []ClusterInfo{{
+		ClusterDomain: "a.example.db",
+		Engine:        "",
+		Version:       "MySQL-5.7-RocksDB",
+	}})
+	assert.False(t, hit)
+	assert.Empty(t, msg)
+}
+
+func TestClustersForVersionParsesOncePerToken(t *testing.T) {
+	all := []ClusterInfo{
+		{ClusterDomain: "a.example.db", Engine: "InnoDB", Version: "MySQL-5.6"},
+		{ClusterDomain: "b.example.db", Engine: "InnoDB", Version: "MySQL-5.6"},
+		{ClusterDomain: "c.example.db", Engine: "RocksDB", Version: "MySQL-5.7"},
+	}
+	got := clustersForVersion(all, "5.6.24")
+	require.Len(t, got, 2)
+	assert.Equal(t, "a.example.db", got[0].ClusterDomain)
+	assert.Equal(t, "b.example.db", got[1].ClusterDomain)
+
+	got = clustersForVersion(all, "")
+	require.Len(t, got, 3)
+}
+
+func TestSyntaxErrorMessageIncludesDomainsWithoutNewFields(t *testing.T) {
+	p := &TmysqlParse{Clusters: []ClusterInfo{
+		{ClusterDomain: "cwncgchendb.test-1.kio.db", Engine: "InnoDB", Version: "MySQL-5.6"},
+		{ClusterDomain: "tmpdb.test-1-20250918143959662879.dba.db", Engine: "InnoDB", Version: "MySQL-5.6"},
+		{ClusterDomain: "cwncgchendb.test-1.kio.db", Engine: "InnoDB", Version: "MySQL-5.6"},
+	}}
+	info := p.getSyntaxErrorResult(ParseLineQueryBase{ErrorMsg: "bad sql", QueryString: "SELECT", ErrorLine: 3}, "5.6.24")
+	assert.Contains(t, info.ErrorMsg, "[cwncgchendb.test-1.kio.db、tmpdb.test-1-20250918143959662879.dba.db]")
+	assert.Contains(t, info.ErrorMsg, "[MySQL-5.6]: bad sql")
+	raw, err := json.Marshal(info)
+	require.NoError(t, err)
+	assert.NotContains(t, string(raw), "cluster_domain")
 }

@@ -26,7 +26,7 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 	return c.spiderCheckWithClusterEngines(spiderVersion, nil)
 }
 
-func (c CreateTableResult) spiderCheckWithClusterEngines(spiderVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
+func (c CreateTableResult) spiderCheckWithClusterEngines(spiderVersion string, clusters []ClusterInfo) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
@@ -51,7 +51,7 @@ func (c CreateTableResult) spiderCheckWithClusterEngines(spiderVersion string, c
 	if !c.IsCreateTableLike {
 		c.shardKeyChecker(r)
 	}
-	parseEngineMismatch(r, c.GetEngine(), clusterDefaultEngines)
+	parseEngineMismatch(r, c.GetEngine(), clusters)
 	return r
 }
 

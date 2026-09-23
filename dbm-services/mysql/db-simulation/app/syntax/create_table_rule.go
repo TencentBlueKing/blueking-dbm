@@ -24,11 +24,11 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	return c.checkWithClusterEngines(mysqlVersion, nil)
 }
 
-func (c CreateTableResult) checkWithClusterEngines(mysqlVersion string, clusterDefaultEngines []string) (r *CheckerResult) {
+func (c CreateTableResult) checkWithClusterEngines(mysqlVersion string, clusters []ClusterInfo) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
-	parseCreateTableEngineRule(r, c.GetEngine(), clusterDefaultEngines)
+	parseCreateTableEngineRule(r, c.GetEngine(), clusters)
 	r.Parse(R.CreateTableRule.SuggestBlobColumCount, c.BlobColumCount(), "")
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
 		r.ParseBuiltinRisk(func() (bool, string) {
@@ -160,81 +160,134 @@ func optionStringValue(options []TableOption, key string) string {
 	return ""
 }
 
+// ClusterInfo 是一次语法检查里的一个集群。引擎只读 Engine，不从 Version 标签拆。
+type ClusterInfo struct {
+	ClusterDomain string `json:"cluster_domain"`
+	Engine        string `json:"engine"`
+	Version       string `json:"version"`
+}
+
 // EngineMismatch reports whether SQL specified ENGINE is incompatible with
 // every selected cluster default. SQL is applied to all selected clusters, so
 // any distinct default that does not equal specified is a hit.
 // empty specified, empty defaults, or specified engine spider => no mismatch.
 // names are canonicalized (InnoDB, RocksDB, TokuDB, ...) so case does not matter.
 // duplicates and blank entries are ignored.
-func EngineMismatch(specified string, clusterDefaults []string) (hit bool, msg string) {
+func EngineMismatch(specified string, clusters []ClusterInfo) (hit bool, msg string) {
 	specified = canonicalStorageEngine(specified)
-	defaults := normalizeStorageEngines(clusterDefaults)
-	if specified == "" || len(defaults) == 0 {
+	if specified == "" || strings.EqualFold(specified, "spider") {
 		return false, ""
 	}
-	if strings.EqualFold(specified, "spider") {
-		return false, ""
-	}
-	var conflicts []string
-	for _, clusterDefault := range defaults {
-		if specified == clusterDefault {
+	var conflictEngines []string
+	var conflictDomains []string
+	seenEngine := map[string]struct{}{}
+	seenDomain := map[string]struct{}{}
+	anyEngine := false
+	for _, cluster := range clusters {
+		engine := canonicalStorageEngine(cluster.Engine)
+		if engine == "" {
 			continue
 		}
-		conflicts = append(conflicts, clusterDefault)
+		anyEngine = true
+		if engine == specified {
+			continue
+		}
+		if _, ok := seenEngine[engine]; !ok {
+			seenEngine[engine] = struct{}{}
+			conflictEngines = append(conflictEngines, engine)
+		}
+		domain := strings.TrimSpace(cluster.ClusterDomain)
+		if domain == "" {
+			continue
+		}
+		if _, ok := seenDomain[domain]; !ok {
+			seenDomain[domain] = struct{}{}
+			conflictDomains = append(conflictDomains, domain)
+		}
 	}
-	if len(conflicts) == 0 {
+	if !anyEngine || len(conflictEngines) == 0 {
 		return false, ""
 	}
-	return true, fmt.Sprintf("指定 ENGINE=%s，与集群默认存储引擎 %s 不一致", specified, strings.Join(conflicts, ", "))
+	if len(conflictDomains) == 0 {
+		return true, fmt.Sprintf("指定 ENGINE=%s，与集群默认存储引擎 %s 不一致", specified, strings.Join(conflictEngines, ", "))
+	}
+	return true, fmt.Sprintf("指定 ENGINE=%s，与集群 %s 的默认存储引擎 %s 不一致",
+		specified, strings.Join(conflictDomains, "、"), strings.Join(conflictEngines, "、"))
 }
 
-func parseCreateTableEngineRule(r *CheckerResult, specified string, clusterDefaultEngines []string) {
-	if len(normalizeStorageEngines(clusterDefaultEngines)) > 0 {
-		parseEngineMismatch(r, specified, clusterDefaultEngines)
+func parseCreateTableEngineRule(r *CheckerResult, specified string, clusters []ClusterInfo) {
+	if len(enginesFromClusters(clusters)) > 0 {
+		parseEngineMismatch(r, specified, clusters)
 		return
 	}
 	r.Parse(R.CreateTableRule.SuggestEngine, strings.ToLower(specified), "")
 }
 
-func parseEngineMismatch(r *CheckerResult, specified string, clusterDefaultEngines []string) {
-	if len(normalizeStorageEngines(clusterDefaultEngines)) == 0 {
+func parseEngineMismatch(r *CheckerResult, specified string, clusters []ClusterInfo) {
+	if len(enginesFromClusters(clusters)) == 0 {
 		return
 	}
 	r.ParseBuiltinRisk(func() (bool, string) {
-		return EngineMismatch(specified, clusterDefaultEngines)
+		return EngineMismatch(specified, clusters)
 	})
 }
 
-// ResolveDefaultStorageEngines returns explicit engines when present.
-// Otherwise it picks known engine literals from three-part version tags
-// such as MySQL-5.7-RocksDB. Community and other non-engine suffixes are ignored.
-func ResolveDefaultStorageEngines(explicit, versionTags []string) []string {
-	if engines := normalizeStorageEngines(explicit); len(engines) > 0 {
-		return engines
+func enginesFromClusters(clusters []ClusterInfo) []string {
+	raw := make([]string, 0, len(clusters))
+	for _, cluster := range clusters {
+		raw = append(raw, cluster.Engine)
 	}
-	return enginesFromVersionTags(versionTags)
+	return normalizeStorageEngines(raw)
 }
 
-func enginesFromVersionTags(versionTags []string) []string {
-	extracted := make([]string, 0, len(versionTags))
-	for _, tag := range versionTags {
-		tag = strings.TrimSpace(tag)
-		parts := strings.Split(tag, "-")
-		if len(parts) < 3 {
-			continue
+func versionToken(v string) string {
+	for _, token := range []string{"8.4", "8.0", "5.7", "5.6", "5.5"} {
+		if strings.Contains(v, token) {
+			return token
 		}
-		last := strings.TrimSpace(parts[len(parts)-1])
-		if !isKnownStorageEngine(last) {
-			continue
-		}
-		extracted = append(extracted, last)
 	}
-	return normalizeStorageEngines(extracted)
+	return ""
 }
 
-func isKnownStorageEngine(name string) bool {
-	_, ok := knownStorageEngines[strings.ToLower(strings.TrimSpace(name))]
-	return ok
+// clustersForVersion 选出和本次解析版本同一主次版本的集群。空版本表示整份列表，只解析一次。
+func clustersForVersion(all []ClusterInfo, mysqlVersion string) []ClusterInfo {
+	if strings.TrimSpace(mysqlVersion) == "" {
+		return all
+	}
+	token := versionToken(mysqlVersion)
+	if token == "" {
+		return all
+	}
+	matched := make([]ClusterInfo, 0)
+	for _, cluster := range all {
+		if versionToken(cluster.Version) == token {
+			matched = append(matched, cluster)
+		}
+	}
+	return matched
+}
+
+func prefixDomains(msg string, clusters []ClusterInfo) string {
+	if msg == "" {
+		return msg
+	}
+	seen := map[string]struct{}{}
+	var domains []string
+	for _, cluster := range clusters {
+		domain := strings.TrimSpace(cluster.ClusterDomain)
+		if domain == "" {
+			continue
+		}
+		if _, ok := seen[domain]; ok {
+			continue
+		}
+		seen[domain] = struct{}{}
+		domains = append(domains, domain)
+	}
+	if len(domains) == 0 {
+		return msg
+	}
+	return fmt.Sprintf("[%s] %s", strings.Join(domains, "、"), msg)
 }
 
 func canonicalStorageEngine(name string) string {
