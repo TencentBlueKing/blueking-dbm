@@ -40,9 +40,14 @@
 
   interface Props {
     addonType: ServiceParameters<typeof getAddonVersions>['addonType'];
+    applyMode?: string;
+    bkBizId?: number | string;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    applyMode: 'SharedMode',
+    bkBizId: '',
+  });
   const modelValue = defineModel<string>({
     required: true,
   });
@@ -51,6 +56,10 @@
   });
 
   const { t } = useI18n();
+
+  // 独占集群（isPublic=false）时按业务 ID 取该业务独占的可用版本
+  const isPublic = computed(() => props.applyMode !== 'ExclusiveMode');
+  const bkBizId = computed(() => (props.bkBizId ? Number(props.bkBizId) : undefined));
 
   const versionList = computed(() =>
     (versionData.value || []).flatMap((item) =>
@@ -69,13 +78,36 @@
     ),
   );
 
-  const { data: versionData, loading: isLoading } = useRequest(getAddonVersions, {
-    defaultParams: [
-      {
-        addonType: props.addonType,
-      },
-    ],
+  const {
+    data: versionData,
+    loading: isLoading,
+    run,
+  } = useRequest(getAddonVersions, {
+    manual: true,
+    onSuccess(data) {
+      // 部署类型/业务变化后已选版本可能不在新列表中，清空避免提交失效数据
+      if (modelValue.value && !data.some((item) => item.supportedVersions.includes(modelValue.value))) {
+        modelValue.value = '';
+        majorVersion.value = '';
+      }
+    },
   });
+
+  watch(
+    [() => props.addonType, isPublic, bkBizId],
+    () => {
+      // 业务 ID 未就绪时不请求，避免回显过程中先按默认业务取一次造成结果竞态
+      if (!bkBizId.value) {
+        return;
+      }
+      run({
+        addonType: props.addonType,
+        bkBizId: bkBizId.value,
+        isPublic: isPublic.value,
+      });
+    },
+    { immediate: true },
+  );
 
   watch([modelValue, versionData], () => {
     if (modelValue.value && versionList.value) {

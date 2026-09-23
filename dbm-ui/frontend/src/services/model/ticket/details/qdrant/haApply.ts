@@ -23,6 +23,7 @@ export interface HaApply extends DetailBase {
   creator: string;
   db_app_abbr: string;
   db_version: string;
+  is_public: boolean; // 部署类型，true=共享集群；false=独占集群
   k8s_cluster_name: string;
   major_version: string;
   remark: string;

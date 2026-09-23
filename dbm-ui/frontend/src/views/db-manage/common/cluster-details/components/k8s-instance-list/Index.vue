@@ -236,6 +236,7 @@
   import { useK8sInstanceOperations } from '@views/db-manage/common/hooks';
   import InstanceBatchCopy from '@views/db-manage/common/instance-batch-copy/Index.vue';
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
+  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
 
   import { getOffset, messageSuccess } from '@utils';
 
@@ -345,6 +346,7 @@
       cluster_name: props.clusterData.cluster_name,
       k8s_cluster_name: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
+      ...getExclusiveClusterParams(props.clusterData),
       // role: props.role,
     });
   };
