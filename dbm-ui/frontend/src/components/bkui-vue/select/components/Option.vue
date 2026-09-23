@@ -156,6 +156,7 @@
 
   const registry = reactive({
     getEl: () => rootRef.value,
+    isCollapsed: computed(() => !!group?.groupCollapse),
     isDisabled,
     optionID,
     optionName,
@@ -189,6 +190,18 @@
     unregister(oldValue);
     register();
   });
+
+  // 虚拟滚动开关切换时，同 key 的选项实例会被复用而不重新挂载，需要在这里补注册 / 注销
+  watch(
+    () => props.skipRegister,
+    (skipRegister) => {
+      if (skipRegister) {
+        unregister(registry.optionID);
+      } else {
+        register();
+      }
+    },
+  );
 
   onBeforeMount(register);
 

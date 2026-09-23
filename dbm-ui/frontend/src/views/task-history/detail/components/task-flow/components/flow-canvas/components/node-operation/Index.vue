@@ -45,9 +45,9 @@
   import { forceFailflowNode, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
 
-  import { messageSuccess } from '@utils';
+  import { type Node } from '@views/task-history/detail/components/task-flow/components/flow-canvas/utils';
 
-  import { type Node } from '../../utils';
+  import { messageSuccess } from '@utils';
 
   export interface Props {
     data?: Node;

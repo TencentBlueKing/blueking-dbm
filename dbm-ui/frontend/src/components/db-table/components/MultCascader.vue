@@ -1,6 +1,18 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div
-    ref="menuRef"
     class="db-table-filter-type-mult-cascader"
     :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div
@@ -79,7 +91,6 @@
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Input } from 'tdesign-vue-next';
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import Checkbox from '@components/tdesign-ui/checkbox';
@@ -185,7 +196,6 @@
   watch(
     () => props.value,
     () => {
-      console.log('props.valueprops.valueprops.value = ', props.value);
       if (isInnerSelfChange) {
         isInnerSelfChange = false;
         return;
@@ -217,23 +227,16 @@
         return;
       }
 
-      if (!props.value) {
-        handleExpaneParent(list.value[0]);
-      } else {
-        const currentValue = props.value.split(',')[0];
-        for (const parentItem of list.value) {
-          if (props.checkStrictly && parentItem.value === currentValue) {
-            handleExpaneParent(parentItem);
-            break;
-          }
-          for (const childItem of parentItem.children) {
-            if (childItem.value === currentValue) {
-              handleExpaneParent(parentItem);
-              break;
-            }
-          }
-        }
-      }
+      const currentValue = props.value ? props.value.split(',')[0] : '';
+      // 值是逗号串拆出的字符串，选项值可能是数字，统一按字符串比较；找不到对应父级时展开第一项
+      const currentParent = currentValue
+        ? list.value.find(
+            (parentItem) =>
+              (props.checkStrictly && String(parentItem.value) === currentValue) ||
+              parentItem.children.some((childItem) => String(childItem.value) === currentValue),
+          )
+        : undefined;
+      handleExpaneParent(currentParent ?? list.value[0]);
       calcPanelWidth();
     },
     {
@@ -248,7 +251,6 @@
   const handleParentChange = (checked: boolean, data: IListItem) => {
     const latestValueMap = { ...localValueIdMap.value };
 
-    console.log('checkedcheckedcheckedchecked = ', checked);
     if (props.checkStrictly) {
       // 父级可以作为值被选中
       if (checked) {
@@ -285,7 +287,7 @@
   onMounted(() => {
     calcPanelWidth();
     setTimeout(() => {
-      searchBoxRef.value!.querySelector('input')?.focus();
+      searchBoxRef.value?.querySelector('input')?.focus();
     }, 100);
   });
 </script>
@@ -338,34 +340,6 @@
       &.active {
         color: #3a84ff;
         background: #f4f6fa;
-      }
-    }
-
-    .item-checkbox {
-      width: 16px;
-      height: 16px;
-      margin-right: 8px;
-      border: 1px solid #979ba5;
-      border-radius: 2px;
-      transition: all 0.1s;
-
-      &.is-checked {
-        position: relative;
-        background: #3a84ff;
-        border-color: #3a84ff;
-
-        &::after {
-          position: absolute;
-          top: 4px;
-          left: 3px;
-          width: 6px;
-          height: 3px;
-          border: 2px solid #fff;
-          border-top: none;
-          border-right: none;
-          content: '';
-          transform: rotateZ(-45deg);
-        }
       }
     }
   }

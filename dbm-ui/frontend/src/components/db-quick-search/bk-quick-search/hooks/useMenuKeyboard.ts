@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue';
+import type { Ref } from 'vue';
 
 export default <T>(
   list: Ref<T[]>,
@@ -27,9 +27,14 @@ export default <T>(
     if (!isMenuVisible()) {
       return;
     }
-    // enter键直接触发选中
-    if (['Enter', 'NumpadEnter'].includes(event.code) && activeIndex.value > -1 && !event.metaKey && !event.ctrlKey) {
-      submitCallback(list.value[activeIndex.value]!, activeIndex.value);
+    // enter键直接触发选中；输入法上屏的 Enter 不算选中
+    if (['Enter', 'NumpadEnter'].includes(event.code) && !event.metaKey && !event.ctrlKey && !event.isComposing) {
+      const activeItem = list.value[activeIndex.value];
+      // 候选为空时不提交，避免把 undefined 作为选中值
+      if (activeItem === undefined) {
+        return;
+      }
+      submitCallback(activeItem, activeIndex.value);
       return;
     }
     // 上下键位移动选中

@@ -55,7 +55,7 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, type CSSProperties, onMounted, ref, useTemplateRef } from 'vue';
+  import type { CSSProperties } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ValueMenu from '@components/db-quick-search/bk-quick-search/components/create-area/components/value-menu/Index.vue';
@@ -260,13 +260,14 @@
       editTextareaRef.value!.selectionEnd = props.lastValueText.length;
     }
     // 切换编辑状态的的 click 事件这里也会监听到，加个延时，确保在非编辑状态下点击不会触发
+    // 捕获阶段监听：搜索框 wrapper 的点击会 stopPropagation，冒泡阶段收不到搜索框内其它位置的点击
     setTimeout(() => {
       editTextareaRef.value!.focus();
-      document.addEventListener('click', handleOutsideClick);
+      document.addEventListener('click', handleOutsideClick, true);
     });
   });
   onBeforeUnmount(() => {
-    document.removeEventListener('click', handleOutsideClick);
+    document.removeEventListener('click', handleOutsideClick, true);
     if (singleEndEditCallback === endEditCallback) {
       singleEndEditCallback = null;
     }

@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, type Ref } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * 点击组件外部时执行回调
@@ -28,11 +28,12 @@ export default (callback: () => void, rootRef?: Ref<HTMLElement | undefined>) =>
     callback();
   };
 
+  // 捕获阶段监听：搜索框 wrapper 的点击会 stopPropagation，冒泡阶段收不到其它搜索框实例内的点击
   onMounted(() => {
-    document.body.addEventListener('click', handleOutsideClick);
+    document.body.addEventListener('click', handleOutsideClick, true);
   });
 
   onBeforeUnmount(() => {
-    document.body.removeEventListener('click', handleOutsideClick);
+    document.body.removeEventListener('click', handleOutsideClick, true);
   });
 };

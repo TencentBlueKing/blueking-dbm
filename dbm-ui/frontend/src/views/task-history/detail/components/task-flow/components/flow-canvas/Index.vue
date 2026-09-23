@@ -55,12 +55,12 @@
 
   import { messageSuccess } from '@utils';
 
-  import { CanvasEvent, GraphEvent, NodeEvent } from '@antv/g6';
+  import { GraphEvent, type IElementEvent, NodeEvent } from '@antv/g6';
   import { useFullscreen } from '@vueuse/core';
 
   import NodeOperation, { type NodeOperationType } from './components/node-operation/Index.vue';
   import Tools from './components/Tools.vue';
-  import { FlowGraph, type Node, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './utils';
+  import { FlowGraph, getEventNode, type Node, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './utils';
 
   interface Props {
     /** 左侧浮动面板宽度，画布铺满整个容器，定位时要让流程图起点避开被面板遮住的那一段 */
@@ -97,6 +97,10 @@
 
   // 缩放动画只给工具栏按钮和快捷键用，滚轮要跟手，不能排队等动画
   const ZOOM_ANIMATION = { duration: 500, easing: 'ease' };
+  // 节点上操作按钮的图形 key 都是「操作名 + Wraper / Icon / Text」（见 normalNode 的 drawOperationShape）。
+  // 必须整名匹配：重试次数角标 retryDisplayText 之类的图形也以操作名开头，按前缀判会被当成按钮
+  const OPERATION_SHAPE_REG =
+    /^(manualConfirm|forceFail|forceRetry|forceSkip|retry|skip|aiLogAnalysis)(Wraper|Icon|Text)$/;
   // Firefox 常按「行」上报滚动量，换算成像素后与其它浏览器手感一致
   const WHEEL_LINE_HEIGHT = 16;
   // 滚轮缩放灵敏度：每滚动 1px 对应的缩放百分比。鼠标滚轮一格约 100px，即一格 10%
@@ -129,9 +133,6 @@
   const nodeOperationState = reactive({
     currentNode: undefined as Node | undefined,
     instance: null as Instance | null,
-    log: {
-      isShow: false,
-    },
     // 气泡内容按操作类型渲染，打开前先定下来
     type: 'retry' as NodeOperationType,
   });
@@ -159,14 +160,14 @@
     return new DOMRect(left, top, 0, 0);
   };
 
-  const handleShowTooltip = (e: any) => {
-    const { target } = e;
-    const status = getNodeDisplayStatus(target.data);
+  const handleShowTooltip = (e: IElementEvent) => {
+    const node = getEventNode(e);
+    const status = getNodeDisplayStatus(node);
     if (status === 'CREATED') {
       return;
     }
 
-    const { id, style } = target.data;
+    const { id, style } = node;
     let [x, y] = flowGraphInstance!.getElementPosition(id);
     // 右上角状态图标画在卡片右上角，即包围盒的右边缘
     x += style.width / 2;
@@ -191,12 +192,10 @@
     statusTooltip.show();
   };
 
-  const handleOperationShowTip = async (type: NodeOperationType, e: any) => {
-    const { target } = e;
-    const id = target.data.id;
-    let [x, y] = flowGraphInstance!.getElementPosition(id);
+  const handleOperationShowTip = async (type: NodeOperationType, node: Node) => {
+    let [x, y] = flowGraphInstance!.getElementPosition(node.id);
     y += 28;
-    const { retryable, todoId } = target.data;
+    const { retryable, todoId } = node;
     // 偏移量是操作按钮中心相对节点中心的距离：节点宽 224（getNodeSize），按钮从卡片左边缘 4px 起
     // 横向排列、间距 8px，画在哪由 normalNode 的 drawOperationShape 决定，改那边要同步改这里
     switch (type) {
@@ -223,7 +222,7 @@
     nodeOperationState.instance?.destroy();
     operationAnchor = anchor;
     nodeOperationState.type = type;
-    nodeOperationState.currentNode = target.data;
+    nodeOperationState.currentNode = node;
     // 气泡内容随操作类型变，等这一轮渲染落地再交给 tippy，否则会先闪一下上一次的文案
     await nextTick();
 
@@ -276,6 +275,8 @@
       },
     };
 
+    // 每次打开都清空：取消后再对别的节点操作，不能带上一次填的原因
+    formData.remark = '';
     InfoBox({
       cancelText: t('取消'),
       confirmButtonTheme: 'danger',
@@ -322,7 +323,6 @@
           remark: formData.remark,
           root_id: props.rootId,
         });
-        Object.assign(formData, { remark: '' });
         messageSuccess(t('操作成功'));
         emits('refresh');
       },
@@ -357,66 +357,57 @@
   const bindGraphEvents = () => {
     const graph = flowGraphInstance!;
 
-    graph.on(NodeEvent.CLICK, (e: any) => {
-      const { originalTarget, target } = e;
+    graph.on(NodeEvent.CLICK, (e: IElementEvent) => {
       // 所有画布的点击事件都在这里统一处理，提升性能
-      const { className } = originalTarget;
-      const { id, name } = target.data;
+      const node = getEventNode(e);
+      const [, operation] = OPERATION_SHAPE_REG.exec(e.originalTarget.className) || [];
       const params = {
-        id,
-        name,
+        id: node.id,
+        name: node.name!,
       };
 
-      if (className.startsWith('manualConfirm')) {
-        // 确认继续
-        handleOperationShowTip('continue', e);
-        return;
-      }
-      if (className.startsWith('forceFail')) {
-        // 强制失败
-        handleOperationShowTip('forceFail', e);
-        return;
-      }
-      if (className.startsWith('skip')) {
-        // 跳过
-        handleOperationShowTip('skip', e);
-        return;
-      }
-      if (className.startsWith('forceSkip')) {
-        // 强制跳过
-        handleForceSkipOrRetry('forceSkip', params);
-        return;
-      }
-      if (className.startsWith('retry')) {
-        // 失败重试
-        if (isSuperUserMode.value) {
+      switch (operation) {
+        case 'manualConfirm':
+          // 确认继续
+          handleOperationShowTip('continue', node);
+          return;
+        case 'forceFail':
+          // 强制失败
+          handleOperationShowTip('forceFail', node);
+          return;
+        case 'skip':
+          // 跳过
+          handleOperationShowTip('skip', node);
+          return;
+        case 'retry':
+          // 失败重试
+          handleOperationShowTip('retry', node);
+          return;
+        case 'forceSkip':
+          // 强制跳过
+          handleForceSkipOrRetry('forceSkip', params);
+          return;
+        case 'forceRetry':
+          // 强制重试
           handleForceSkipOrRetry('forceRetry', params);
-        } else {
-          handleOperationShowTip('retry', e);
-        }
-        return;
-      }
-      if (className.startsWith('forceRetry')) {
-        // 强制失败重试
-        handleForceSkipOrRetry('forceRetry', params);
-        return;
-      }
-      if (className.startsWith('aiLogAnalysis')) {
-        // 日志解析
-        emits('clickSingleNode', target.data, true);
-        return;
-      }
-      if (target.data.type === FlowTypes.ServiceActivity) {
-        emits('clickSingleNode', target.data);
-      }
-      if (target.data.type === FlowTypes.SubProcess) {
-        toggleExpand(target.data.id);
+          return;
+        case 'aiLogAnalysis':
+          // 日志解析
+          emits('clickSingleNode', node, true);
+          return;
       }
 
-      focusNode(target.data.id);
+      if (node.type === FlowTypes.ServiceActivity) {
+        emits('clickSingleNode', node);
+      }
+      if (node.type === FlowTypes.SubProcess) {
+        toggleExpand(node.id);
+      }
+
+      focusNode(node.id);
     });
 
-    graph.on(NodeEvent.POINTER_ENTER, (e: any) => {
+    graph.on(NodeEvent.POINTER_ENTER, (e: IElementEvent) => {
       if (e.originalTarget.className === 'rightTopBackground') {
         handleShowTooltip(e);
       }
@@ -440,10 +431,6 @@
         return;
       }
       nodeOperationState.instance?.popperInstance?.forceUpdate();
-    });
-
-    graph.on(CanvasEvent.CLICK, () => {
-      nodeOperationState.log.isShow = false;
     });
 
     // 只监听 AFTER_RENDER：展开折叠会增删节点，聚焦节点可能被重建，这里补一次聚焦态。

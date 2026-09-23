@@ -23,7 +23,6 @@
     class="cluster-selector-table"
     :container-height="containerHeight"
     :data-source="getResourceList"
-    disable-polling
     :disable-select-method="disableSelectMethod"
     :filter-value="searchValue"
     :row-class-name="getRowClass"

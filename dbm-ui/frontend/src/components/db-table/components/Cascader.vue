@@ -1,10 +1,21 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
-  <div
-    ref="menuRef"
-    class="db-table-filter-type-cascader">
+  <div class="db-table-filter-type-cascader">
     <div class="t-table__filter-pop-search">
       <Input
-        v-model="serachKey"
+        v-model="searchKey"
         autofocus
         borderless
         clearable
@@ -12,50 +23,55 @@
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
-    <div
-      v-if="isSearch && renderSearchList.length > 0"
-      key="search"
-      class="search-wrapper">
+    <div class="layout-wrapper">
       <div
-        v-for="(item, index) in renderSearchList"
-        :key="index"
-        class="value-item"
-        @click="() => handleChange(item)">
-        <Radio
-          :checked="item.value === localValue"
-          style="pointer-events: none" />
-        {{ item.searchLabel }}
-      </div>
-    </div>
-    <template v-if="!isSearch">
-      <div class="parent-wrapper">
+        v-if="isSearch && renderSearchList.length > 0"
+        key="search"
+        class="search-wrapper">
         <div
-          v-for="item in list"
-          :key="item.value"
+          v-for="(item, index) in renderSearchList"
+          :key="index"
           class="value-item"
-          :class="{ active: item.value === parentKey }"
-          @click="() => handleSelectParent(item)">
-          {{ item.label }}
-        </div>
-      </div>
-      <div class="children-wrapper">
-        <div
-          v-for="item in childrenList"
-          :key="item.value"
-          class="value-item"
-          :class="{ active: item.value === localValue }"
           @click="() => handleChange(item)">
           <Radio
             :checked="item.value === localValue"
             style="pointer-events: none" />
-          {{ item.value }}
+          {{ item.searchLabel }}
         </div>
       </div>
-    </template>
+      <template v-if="!isSearch">
+        <div class="parent-wrapper">
+          <div
+            v-for="item in list"
+            :key="item.value"
+            class="value-item"
+            :class="{ active: item.value === parentKey }"
+            @click="() => handleSelectParent(item)">
+            {{ item.label }}
+          </div>
+        </div>
+        <div class="children-wrapper">
+          <div
+            v-for="item in childrenList"
+            :key="item.value"
+            class="value-item"
+            :class="{ active: item.value === localValue }"
+            @click="() => handleChange(item)">
+            <Radio
+              :checked="item.value === localValue"
+              style="pointer-events: none" />
+            {{ item.label }}
+          </div>
+        </div>
+      </template>
+    </div>
     <div
       v-if="isSearch && renderSearchList.length < 1"
-      class="bk-quick-search-type-menu-filter-empty">
-      {{ t('未搜索到 “{n}” 相关数据', { n: keyword }) }}
+      class="t-table-filter-empty">
+      <BkException
+        :description="t('搜索为空')"
+        scene="part"
+        type="search-empty" />
     </div>
   </div>
 </template>
@@ -63,11 +79,9 @@
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Input, Radio } from 'tdesign-vue-next';
-  import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    keyword: string;
     list: {
       children: {
         label: string;
@@ -94,15 +108,15 @@
 
   const { t } = useI18n();
 
-  const serachKey = ref('');
+  const searchKey = ref('');
   const parentKey = ref<string | number>('');
   const localValue = ref<string | number>('');
 
-  const isSearch = computed(() => Boolean(props.keyword && _.trim(props.keyword)));
+  const isSearch = computed(() => Boolean(_.trim(searchKey.value)));
   const childrenList = computed(() => _.find(props.list, (item) => item.value === parentKey.value)?.children || []);
 
   const renderSearchList = computed(() => {
-    const keyword = `${props.keyword || ''}`.trim().toLowerCase();
+    const keyword = searchKey.value.trim().toLowerCase();
     if (!keyword) {
       return [];
     }
@@ -156,14 +170,21 @@
   };
 
   onMounted(() => {
-    handleSelectParent(props.list[0]!);
+    // 已选值所在的父级已由 modelValue 定位，没有选中值时才默认展开第一项
+    if (!parentKey.value && props.list.length > 0) {
+      handleSelectParent(props.list[0]);
+    }
   });
 </script>
 <style lang="less">
   .db-table-filter-type-cascader {
-    display: flex;
-    padding: 8px 0;
-    overflow: hidden;
+    padding-bottom: 8px;
+
+    .layout-wrapper {
+      display: flex;
+      margin-top: 8px;
+      overflow: hidden;
+    }
 
     .search-wrapper {
       flex: 1;
@@ -176,6 +197,27 @@
     .children-wrapper {
       flex: 1;
       border-left: 1px solid #dcdee5;
+    }
+
+    .value-item {
+      display: flex;
+      height: 32px;
+      padding: 0 10px 0 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+      align-items: center;
+
+      &:hover {
+        color: #3a84ff;
+        background-color: #eaf3ff;
+      }
+
+      &.active {
+        color: #3a84ff;
+        background: #f4f6fa;
+      }
     }
   }
 </style>

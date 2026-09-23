@@ -21,6 +21,7 @@ import { type Group, Image as GImage, Rect as GRect } from '@antv/g';
 import { Rect } from '@antv/g6';
 
 import { type Node } from './layout';
+import { type FlowNodeAttributes } from './normalNode';
 
 const iconMap = {
   [FlowTypes.ConditionalParallelGateway]: BranchGatewayImage,
@@ -33,7 +34,7 @@ export class GatewayNode extends Rect {
     return this.context.model.getNodeLikeDatum(this.id) as Node;
   }
 
-  drawBackground(attributes: any, container: Group) {
+  drawBackground(attributes: FlowNodeAttributes, container: Group) {
     const backgroundShapeStyle = {
       fill: '#fff',
       height: 48,
@@ -60,7 +61,7 @@ export class GatewayNode extends Rect {
     this.upsert('iconWraperShape', GRect, iconWraperShapeStyle, container);
   }
 
-  drawFocusBackgroundShape(attributes: any, container: Group) {
+  drawFocusBackgroundShape(attributes: FlowNodeAttributes, container: Group) {
     const [width, height] = this.getSize(attributes);
     if (!width || !height) {
       return;
@@ -80,7 +81,7 @@ export class GatewayNode extends Rect {
   }
 
   // 基类方法覆盖
-  drawIconShape(attributes: any, container: Group) {
+  drawIconShape(attributes: FlowNodeAttributes, container: Group) {
     const [width, height] = this.getSize(attributes);
     if (!width || !height) {
       return;
@@ -97,13 +98,13 @@ export class GatewayNode extends Rect {
     this.upsert('gatewayIcon', GImage, gatewayIconStyle, container);
   }
 
-  renderNode(attributes: any, container: Group) {
+  renderNode(attributes: FlowNodeAttributes, container: Group) {
     this.drawFocusBackgroundShape(attributes, container);
     this.drawBackground(attributes, container);
   }
 
   // eslint-disable-next-line perfectionist/sort-classes
-  render(attributes = this.parsedAttributes as any, container: Group) {
+  render(attributes = this.parsedAttributes as FlowNodeAttributes, container: Group) {
     super.render(attributes, container);
     this.renderNode(attributes, container);
   }
