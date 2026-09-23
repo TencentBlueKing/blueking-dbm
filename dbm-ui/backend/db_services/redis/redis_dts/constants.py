@@ -137,7 +137,34 @@ echo "[ERROR] predixy($srcProxyIP:$srcProxyPort) get a failed,err:$getVal"
 exit -1
 fi
 
-python -c "import json; conf_data=open('$confFile').read(); json_data={'data':conf_data}; \
+serversInMem=$(/usr/local/predixy/bin/redis-cli -h $srcProxyIP -p $srcProxyPort -a $srcProxyPassword info servers 2>/dev/null \
+    | awk '{gsub(/\r/,"")} /^Server:/{srv=$0; sub(/^Server:/,"",srv); fail=""} \
+        /^CurrentIsFail:/{fail=$0; sub(/^CurrentIsFail:/,"",fail)} \
+        /^$/{if(srv!="" && fail=="0") print srv; srv=""; fail=""} \
+        END{if(srv!="" && fail=="0") print srv}' | sort -u)
+if [[ -z $serversInMem ]]
+then
+echo "[ERROR] predixy($srcProxyIP:$srcProxyPort) info servers get server list empty"
+exit -1
+fi
+
+serversInConf=$(awk '$1=="Servers"||$1=="Masters"{f=1; next} f&&$1=="}"{f=0; next} f&&$1=="+"{print $2}' $confFile | sort -u)
+if [[ -z $serversInConf ]]
+then
+echo "[ERROR] $srcProxyIP predixy confFile:$confFile Servers list empty"
+exit -1
+fi
+
+diffRet=$(diff <(echo "$serversInMem") <(echo "$serversInConf"))
+if [[ -n $diffRet ]]
+then
+echo "[ERROR] $srcProxyIP predixy($srcProxyPort) memory servers(CurrentIsFail:0) not consistent \
+with confFile:$confFile servers, diff:
+$diffRet"
+exit -1
+fi
+
+python3 -c "import json; conf_data=open('$confFile').read(); json_data={'data':conf_data}; \
 s1='<ctx>'+json.dumps(json_data)+'</ctx>';print(s1)"
 """
 

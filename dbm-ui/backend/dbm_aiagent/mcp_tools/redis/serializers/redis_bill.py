@@ -10,12 +10,44 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
+from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.spec import SpecMachineType
 from backend.flow.consts import ClusterRoleEnum, DbBackupRoleEnum, RedisBackupEnum
+
+_REDIS_SPEC_MACHINE_TYPES = (
+    SpecMachineType.PROXY.value,
+    SpecMachineType.TendisTwemproxyRedisInstance.value,
+    SpecMachineType.TendisPredixyTendisplusCluster.value,
+    SpecMachineType.TwemproxyTendisSSDInstance.value,
+)
 
 
 class SubmitBillOutputSerializer(serializers.Serializer):
     bill_id = serializers.IntegerField(help_text=_("单据id, 理论上都会返回，如果没有返回说明有错误，需要把错误暴露出来"))
     bill_url = serializers.URLField(help_text=_("单据链接"))
+
+
+class ListRedisSpecsInputSerializer(serializers.Serializer):
+    """列出 desc（备注）中含 mcp_allow（大小写不敏感）的 Redis 规格，供 apply 选型。"""
+
+    machine_type = serializers.ChoiceField(
+        choices=_REDIS_SPEC_MACHINE_TYPES,
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text=_(
+            "可选。过滤机器类型：proxy（代理层，Twemproxy/Predixy通用）、"
+            "TwemproxyRedisInstance（TendisCache后端，RedisCluster架构复用此规格）、"
+            "PredixyTendisplusCluster（Tendisplus后端）、TwemproxyTendisSSDInstance（TendisSSD后端）；"
+            "不传则四类都返回"
+        ),
+    )
+
+
+class ListRedisSpecsOutputSerializer(serializers.Serializer):
+    results = serializers.ListField(child=serializers.DictField(), help_text=_("规格列表"))
+    count = serializers.IntegerField(help_text=_("数量"))
 
 
 class SubmitBillRedisBaseInputSerializer(serializers.Serializer):
@@ -29,6 +61,71 @@ class SubmitBillRedisClusterApplyInputSerializer(serializers.Serializer):
     new_cluster_name = serializers.CharField(help_text=_("新集群名（英文数字及连字符，不能与已有集群重名）"))
     keep_source_password = serializers.BooleanField(
         help_text=_("新集群密码是否与源集群保持一致，默认 False（生成新随机密码）"),
+        default=False,
+        required=False,
+    )
+
+
+class SubmitBillRedisClusterNewApplyInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+    cluster_name = serializers.CharField(help_text=_("新集群名（英文数字及连字符，不能与同类型的已有集群重名）"))
+    cluster_alias = serializers.CharField(help_text=_("集群别名，用于页面展示，不传默认与cluster_name一致"), required=False, default=None)
+    cluster_type = serializers.ChoiceField(
+        choices=ClusterType.get_choices(),
+        help_text=_(
+            "集群架构类型，仅支持带proxy层的架构，其余类型运行时会被拒绝："
+            "TendisTwemproxyRedisInstance(Twemproxy+RedisCache)、"
+            "TwemproxyTendisSSDInstance(Twemproxy+TendisSSD)、"
+            "TendisPredixyRedisCluster(Predixy+RedisCluster)、"
+            "TendisPredixyTendisplusCluster(Predixy+Tendisplus集群版)、"
+            "TendisPredixyTendisplusInstance(Predixy+Tendisplus主从版)"
+        ),
+    )
+    db_version = serializers.CharField(
+        help_text=_("后端存储部署版本，需与cluster_type匹配，如 Redis-6.2.7（Cache类）、Tendisplus-2.7.6（Tendisplus类）")
+    )
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域id，默认0（表示直连区域）"), default=0, required=False)
+    city_code = serializers.CharField(
+        help_text=_("城市代码（机器所在城市，用于资源池选机），不传或传空则不限城市"),
+        default="",
+        allow_blank=True,
+        required=False,
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        choices=AffinityEnum.get_choices(),
+        help_text=_(
+            "容灾要求（机器亲和性策略），影响资源池选机的分布策略，默认NONE（无要求）。可选值："
+            "SAME_SUBZONE_CROSS_SWTICH(指定园区)、SAME_SUBZONE(指定园区，无机架要求)、"
+            "CROS_SUBZONE(跨园区)、CROSS_RACK(不限园区)、NONE(无)、"
+            "MAX_EACH_ZONE_EQUAL(每个subzone尽量均匀分布)"
+        ),
+        default=AffinityEnum.NONE.value,
+        required=False,
+    )
+    proxy_spec_id = serializers.IntegerField(help_text=_("proxy层机器的资源规格id（需为平台中已存在的有效规格id，可参照已有同类型集群的规格获取）"))
+    proxy_count = serializers.IntegerField(help_text=_("proxy机器数量，至少2台，否则单据会被拒绝"))
+    backend_spec_id = serializers.IntegerField(help_text=_("后端存储（redis）机器的资源规格id（需为平台中已存在的有效规格id，可参照已有同类型集群的规格获取）"))
+    group_num = serializers.IntegerField(help_text=_("后端机器组数，即master机器数（master去重后的机器对数），至少为1"))
+    shard_num = serializers.IntegerField(
+        help_text=_(
+            "集群总分片数（master实例总数）；不能小于group_num；"
+            "当cluster_type为TendisPredixyRedisCluster或TendisPredixyTendisplusCluster（集群协议类型）时，要求 >= 3"
+        )
+    )
+    proxy_pwd = serializers.CharField(
+        help_text=_("proxy访问密码，不传或传空则自动生成满足密码强度策略的随机密码"),
+        required=False,
+        allow_blank=True,
+        default=None,
+    )
+    port = serializers.IntegerField(help_text=_("proxy监听端口，默认50000"), default=50000, required=False)
+    apply_clb = serializers.BooleanField(
+        help_text=_("是否同时为集群申请并绑定CLB（腾讯云负载均衡）用于访问入口，默认False（不申请）"),
+        default=False,
+        required=False,
+    )
+    apply_polaris = serializers.BooleanField(
+        help_text=_("是否同时为集群申请并绑定北极星服务用于访问入口，默认False（不申请）"),
         default=False,
         required=False,
     )

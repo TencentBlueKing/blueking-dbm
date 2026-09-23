@@ -14,18 +14,21 @@ import string
 from collections import defaultdict
 from itertools import chain
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.configuration.constants import DBPrivSecurityType
+from backend.configuration.constants import AffinityEnum, DBPrivSecurityType, DBType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_meta.models import AppCache, Cluster, Spec, StorageInstanceTuple
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ClusterRoleEnum, ConfigTypeEnum, RedisCapacityUpdateType
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.ticket.builders.common.base import IpSource
+from backend.ticket.builders.common.constants import REDIS_PROXY_MIN
 from backend.ticket.constants import SwitchConfirmType, TicketType
 from backend.ticket.models import Ticket
 
@@ -38,6 +41,53 @@ REDIS_CLUSTER_APPLY_SUPPORTED_TYPES = [
     ClusterType.TendisPredixyTendisplusInstance,
 ]
 
+# Redis 相关规格的机器类型：proxy层 + 三类后端存储层（RedisCluster架构复用TendisCache的后端规格，故不单列）
+_REDIS_SPEC_MACHINE_TYPES = (
+    SpecMachineType.PROXY.value,
+    SpecMachineType.TendisTwemproxyRedisInstance.value,
+    SpecMachineType.TendisPredixyTendisplusCluster.value,
+    SpecMachineType.TwemproxyTendisSSDInstance.value,
+)
+_MCP_DESC_MARK = "mcp_allow"
+
+
+def _mcp_allowed_spec_queryset(machine_type: str = ""):
+    """启用中、备注(desc)含 mcp_allow（大小写不敏感）的 Redis 规格。"""
+    qs = Spec.objects.filter(
+        spec_cluster_type=DBType.Redis.value,
+        enable=True,
+        spec_machine_type__in=_REDIS_SPEC_MACHINE_TYPES,
+    ).filter(Q(desc__icontains=_MCP_DESC_MARK))
+    mt = (machine_type or "").strip()
+    if mt:
+        qs = qs.filter(spec_machine_type=mt)
+    return qs
+
+
+def list_redis_specs(machine_type: str = ""):
+    """
+    列出启用中、备注(desc)含 mcp_allow（大小写不敏感）的 Redis 规格。
+    仅返回白名单备注规格，避免名称混乱时全表瞎选。
+    """
+    qs = _mcp_allowed_spec_queryset(machine_type)
+
+    results = []
+    for s in qs.order_by("spec_machine_type", "spec_id"):
+        info = s.get_spec_info()
+        results.append(
+            {
+                "spec_id": s.spec_id,
+                "spec_name": s.spec_name,
+                "machine_type": s.spec_machine_type,
+                "cpu": info.get("cpu") or {},
+                "mem": info.get("mem") or {},
+                "device_class": info.get("device_class") or [],
+                "storage_spec": info.get("storage_spec") or [],
+                "desc": s.desc or "",
+            }
+        )
+    return {"results": results, "count": len(results)}
+
 
 def generate_custom_id():
     """生成格式: 6位数字_13位数字_6位数字"""
@@ -45,6 +95,82 @@ def generate_custom_id():
     part2 = "".join(random.choices(string.digits, k=13))
     part3 = "".join(random.choices(string.digits, k=6))
     return f"{part1}_{part2}_{part3}"
+
+
+def _build_redis_cluster_apply_details(
+    bk_cloud_id,
+    db_app_abbr,
+    city_code,
+    disaster_tolerance_level,
+    cluster_type,
+    db_version,
+    cluster_name,
+    cluster_alias,
+    proxy_pwd,
+    port,
+    proxy_spec_id,
+    proxy_count,
+    backend_spec_id,
+    group_num,
+    shard_num,
+    apply_clb=False,
+    apply_polaris=False,
+):
+    """
+    组装 REDIS_CLUSTER_APPLY 单据的 details 参数（含 resource_spec）
+    供「克隆申请」「全新申请」两种入口共用，避免重复拼装逻辑
+    """
+    # 规格详情，用于补充resource_spec的展示字段
+    proxy_spec = Spec.objects.get(spec_id=proxy_spec_id)
+    backend_spec = Spec.objects.get(spec_id=backend_spec_id)
+
+    location_spec = {"city": city_code, "sub_zone_ids": []}
+    return {
+        "bk_cloud_id": bk_cloud_id,
+        "cap_key": "",
+        "proxy_port": port,
+        "proxy_pwd": proxy_pwd,
+        "db_app_abbr": db_app_abbr,
+        "city_code": city_code,
+        "disaster_tolerance_level": disaster_tolerance_level,
+        "cluster_type": cluster_type,
+        "db_version": db_version,
+        "cluster_name": cluster_name,
+        "cluster_alias": cluster_alias or cluster_name,
+        "ip_source": IpSource.RESOURCE_POOL.value,
+        "cluster_shard_num": shard_num,
+        "apply_clb": apply_clb,
+        "apply_polaris": apply_polaris,
+        "resource_spec": {
+            "proxy": {
+                "count": proxy_count,
+                "spec_id": proxy_spec_id,
+                "capacity": proxy_spec.capacity,
+                "cpu": proxy_spec.cpu,
+                "mem": proxy_spec.mem,
+                "qps": proxy_spec.qps,
+                "spec_name": proxy_spec.spec_name,
+                "storage_spec": proxy_spec.storage_spec,
+                "affinity": disaster_tolerance_level,
+                "location_spec": location_spec,
+                "spec_cluster_type": proxy_spec.spec_cluster_type,
+                "spec_machine_type": proxy_spec.spec_machine_type,
+            },
+            "backend_group": {
+                "affinity": disaster_tolerance_level,
+                "count": group_num,
+                "location_spec": location_spec,
+                "spec_id": backend_spec_id,
+                "spec_info": {
+                    "cluster_capacity": backend_spec.capacity * group_num,
+                    "cluster_shard_num": shard_num,
+                    "machine_pair": group_num,
+                    "qps": backend_spec.qps,
+                    "spec_name": backend_spec.spec_name,
+                },
+            },
+        },
+    }
 
 
 # 集群部署（克隆申请）
@@ -113,63 +239,117 @@ def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name, ke
         # 默认行为：随机生成，满足平台密码强度策略
         proxy_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
 
-    # 规格详情，用于补充resource_spec的展示字段
-    proxy_spec = Spec.objects.get(spec_id=proxy_spec_id)
-    backend_spec = Spec.objects.get(spec_id=backend_spec_id)
-
-    location_spec = {"city": city_code, "sub_zone_ids": []}
     ticket_param = {
         "bk_biz_id": bk_biz_id,
         "creator": request.user.username,
         "helpers": [],
         "remark": "mcp redis cluster apply(clone from {}) ticket".format(cluster_domain),
         "ticket_type": TicketType.REDIS_CLUSTER_APPLY,
-        "details": {
-            "bk_cloud_id": cluster_obj.bk_cloud_id,
-            "cap_key": "",
-            "proxy_port": 50000,
-            "proxy_pwd": proxy_pwd,
-            "db_app_abbr": db_app_abbr,
-            "city_code": city_code,
-            "disaster_tolerance_level": disaster_tolerance_level,
-            "cluster_type": cluster_obj.cluster_type,
-            "db_version": cluster_obj.major_version,
-            "cluster_name": new_cluster_name,
-            "cluster_alias": new_cluster_name,
-            "ip_source": IpSource.RESOURCE_POOL.value,
-            "cluster_shard_num": shard_num,
-            "apply_clb": False,
-            "apply_polaris": False,
-            "resource_spec": {
-                "proxy": {
-                    "count": proxy_count,
-                    "spec_id": proxy_spec_id,
-                    "capacity": proxy_spec.capacity,
-                    "cpu": proxy_spec.cpu,
-                    "mem": proxy_spec.mem,
-                    "qps": proxy_spec.qps,
-                    "spec_name": proxy_spec.spec_name,
-                    "storage_spec": proxy_spec.storage_spec,
-                    "affinity": disaster_tolerance_level,
-                    "location_spec": location_spec,
-                    "spec_cluster_type": proxy_spec.spec_cluster_type,
-                    "spec_machine_type": proxy_spec.spec_machine_type,
-                },
-                "backend_group": {
-                    "affinity": disaster_tolerance_level,
-                    "count": group_num,
-                    "location_spec": location_spec,
-                    "spec_id": backend_spec_id,
-                    "spec_info": {
-                        "cluster_capacity": backend_spec.capacity * group_num,
-                        "cluster_shard_num": shard_num,
-                        "machine_pair": group_num,
-                        "qps": backend_spec.qps,
-                        "spec_name": backend_spec.spec_name,
-                    },
-                },
-            },
-        },
+        "details": _build_redis_cluster_apply_details(
+            bk_cloud_id=cluster_obj.bk_cloud_id,
+            db_app_abbr=db_app_abbr,
+            city_code=city_code,
+            disaster_tolerance_level=disaster_tolerance_level,
+            cluster_type=cluster_obj.cluster_type,
+            db_version=cluster_obj.major_version,
+            cluster_name=new_cluster_name,
+            cluster_alias=new_cluster_name,
+            proxy_pwd=proxy_pwd,
+            port=50000,
+            proxy_spec_id=proxy_spec_id,
+            proxy_count=proxy_count,
+            backend_spec_id=backend_spec_id,
+            group_num=group_num,
+            shard_num=shard_num,
+        ),
+    }
+    tk = Ticket.create_ticket(**ticket_param)
+    return {"bill_id": tk.pk, "bill_url": tk.url}
+
+
+# 集群部署（全新申请，非克隆）
+def redis_cluster_new_apply(
+    request,
+    bk_biz_id,
+    cluster_name,
+    cluster_type,
+    db_version,
+    proxy_spec_id,
+    proxy_count,
+    backend_spec_id,
+    group_num,
+    shard_num,
+    cluster_alias=None,
+    bk_cloud_id=0,
+    city_code="",
+    disaster_tolerance_level=AffinityEnum.NONE.value,
+    proxy_pwd=None,
+    port=50000,
+    apply_clb=False,
+    apply_polaris=False,
+):
+    """
+    全新申请一个redis集群（不依赖任何已有集群），机器来源固定为资源池
+    仅支持带proxy层的架构：TwemproxyRedisInstance、TwemproxyTendisSSDInstance、
+    PredixyRedisCluster、PredixyTendisplusCluster、PredixyTendisplusInstance
+
+    @param proxy_spec_id/backend_spec_id: proxy/后端存储 使用的机器规格id
+    @param proxy_count: proxy机器数量，至少2台
+    @param group_num: 后端机器组数（master去重后的机器对数）
+    @param shard_num: 集群总分片数；RedisCluster/Tendisplus集群协议类型要求 >= 3，且不能小于group_num
+    @param proxy_pwd: 不传则自动生成满足密码强度策略的随机密码
+    """
+    if cluster_type not in REDIS_CLUSTER_APPLY_SUPPORTED_TYPES:
+        return {
+            "error": "集群类型{}暂不支持通过该工具申请，仅支持: {}".format(
+                cluster_type, [t.value for t in REDIS_CLUSTER_APPLY_SUPPORTED_TYPES]
+            )
+        }
+
+    if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
+        return {"error": "集群名{}已存在，请更换".format(cluster_name)}
+
+    if proxy_count < REDIS_PROXY_MIN:
+        return {"error": "proxy数量至少为{}".format(REDIS_PROXY_MIN)}
+
+    if group_num < 1:
+        return {"error": "机器组数(group_num)必须 >= 1"}
+
+    if shard_num < group_num:
+        return {"error": "分片数(shard_num) 不能小于机器组数(group_num)"}
+
+    if cluster_type in (ClusterType.TendisPredixyRedisCluster, ClusterType.TendisPredixyTendisplusCluster):
+        if shard_num < 3:
+            return {"error": "{}集群分片数(shard_num)至少大于3".format(cluster_type)}
+
+    db_app_abbr = AppCache.get_app_attr(bk_biz_id, "db_app_abbr") or str(bk_biz_id)
+    proxy_pwd = proxy_pwd or DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+
+    ticket_param = {
+        "bk_biz_id": bk_biz_id,
+        "creator": request.user.username,
+        "helpers": [],
+        "remark": "mcp redis cluster new apply ticket",
+        "ticket_type": TicketType.REDIS_CLUSTER_APPLY,
+        "details": _build_redis_cluster_apply_details(
+            bk_cloud_id=bk_cloud_id,
+            db_app_abbr=db_app_abbr,
+            city_code=city_code,
+            disaster_tolerance_level=disaster_tolerance_level,
+            cluster_type=cluster_type,
+            db_version=db_version,
+            cluster_name=cluster_name,
+            cluster_alias=cluster_alias,
+            proxy_pwd=proxy_pwd,
+            port=port,
+            proxy_spec_id=proxy_spec_id,
+            proxy_count=proxy_count,
+            backend_spec_id=backend_spec_id,
+            group_num=group_num,
+            shard_num=shard_num,
+            apply_clb=apply_clb,
+            apply_polaris=apply_polaris,
+        ),
     }
     tk = Ticket.create_ticket(**ticket_param)
     return {"bill_id": tk.pk, "bill_url": tk.url}
