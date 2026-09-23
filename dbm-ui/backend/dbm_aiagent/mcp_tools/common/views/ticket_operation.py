@@ -34,7 +34,7 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpDBManagePermission
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, TicketSnapshot
 from backend.ticket.todos import TodoActionType
 
 logger = logging.getLogger("root")
@@ -129,8 +129,9 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         if tk.status != TicketStatus.TODO:
             raise DBMMcpBadTicketStatusException(msg=f"{tk.status} 不支持当前操作")
 
+        version = TicketSnapshot.objects.filter(ticket_id=ticket_id).count()
         TicketHandler.batch_process_ticket(
-            username=username, action=TodoActionType.APPROVE, ticket_ids=[ticket_id], params={}
+            username=username, action=TodoActionType.APPROVE, ticket_ids=[ticket_id], params={"version": version}
         )
 
         time.sleep(5)  # 这里 sleep 是为了能返回一个正常点的状态

@@ -741,3 +741,9 @@ def send_msg_for_ai_task_guardian(
     # 可异步发送消息，非阻塞路径默认不抛出异常
     # AI单据值守消息通道专属
     NotifyAdapter(ticket_id, deadline).send_msg_of_ai_task_guardian(ai_result=ai_result, receiver_role=receiver_role)
+
+
+@shared_task
+def send_modify_notify(ticket_id: int, operator: str, mode: str, remark: str):
+    # 改单通知：代为修改/调整申请后通知提单人 TODO 后续产品提出需求再实现具体逻辑
+    logger.info(f"{ticket_id}-{operator}-{mode}-{remark}")
