@@ -167,7 +167,8 @@ export function parseFlow(data: FlowDetail): FlowModel {
         }
         const targetRaw = nodeLookup[flow.target];
         if (targetRaw && !isHiddenNode(targetRaw.type as FlowType)) {
-          edges.push({ id: `${fromId}-${flow.target}`, source: fromId, target: flow.target });
+          // 扇出网关的两条空分支会以同一对首尾直连汇聚网关，按首尾拼 id 会撞，flow id 全局唯一
+          edges.push({ id: flowId, source: fromId, target: flow.target });
         }
         walkNode(flow.target, siblings);
       });
@@ -275,12 +276,13 @@ export function countNodeStatus(model: FlowModel) {
   return counts;
 }
 
-// 节点自身或它的任一子孙命中目标状态
+// 叶子节点看自身，子流程与扇出网关只看子孙，与 countNodeStatus 同一口径。
+// 容器自身的状态不作数：子流程里有待继续节点时它自己是执行中，按自身判定会在「执行中」下挂出一个空子流程
 function hasStatusInTree(node: TreeNode, status: string): boolean {
-  if (getNodeFilterStatus(node) === status) {
-    return true;
+  if (!node.children) {
+    return getNodeFilterStatus(node) === status;
   }
-  return (node.children || []).some((child) => hasStatusInTree(child, status));
+  return node.children.some((child) => hasStatusInTree(child, status));
 }
 
 export function generateDifferentStatusTreeData(treeData: TreeNode[], status: string) {

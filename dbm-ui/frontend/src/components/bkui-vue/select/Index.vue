@@ -626,8 +626,11 @@
     return '';
   });
 
+  // 触发器输入框正在作为搜索框使用（inputSearch 且已展开）
+  const isInputSearching = computed(() => props.filterable && props.inputSearch && isPopoverShow.value);
+
   // 触发器输入框可编辑：inputSearch 搜索（展开时）或 allowCreate 创建
-  const isInput = computed(() => (props.filterable && props.inputSearch && isPopoverShow.value) || props.allowCreate);
+  const isInput = computed(() => isInputSearching.value || props.allowCreate);
 
   const isCollapseTags = computed(() =>
     props.autoHeight ? props.collapseTags && !isPopoverShow.value : props.collapseTags,
@@ -640,9 +643,13 @@
     return (props.clearable && !!selected.value.length) || (props.allowCreate && !!customOptionName.value);
   });
 
-  const triggerValue = computed(() =>
-    isInput.value && customOptionName.value ? customOptionName.value : selectedLabel.value.join(','),
-  );
+  const triggerValue = computed(() => {
+    // 作为搜索框时只展示搜索词，已选文案由 placeholder 提示，否则输入会拼接在已选文案之后
+    if (isInputSearching.value) {
+      return customOptionName.value;
+    }
+    return isInput.value && customOptionName.value ? customOptionName.value : selectedLabel.value.join(',');
+  });
 
   const triggerPlaceholder = computed(() =>
     isInput.value ? selectedLabel.value.join(',') || localPlaceholder.value : localPlaceholder.value,
@@ -695,13 +702,13 @@
     isEnableVirtualRender.value ? (filterList.value.length - virtualEnd.value) * VIRTUAL_LINE_HEIGHT : 0,
   );
 
-  // 键盘导航与滚动定位的候选项，已排除禁用与被搜索过滤掉的选项
+  // 键盘导航与滚动定位的候选项，已排除禁用、被搜索过滤掉以及所在分组已折叠的选项
   const navigableList = computed<{ getEl?: () => HTMLElement | null; value: OptionValue }[]>(() => {
     if (isEnableVirtualRender.value) {
       return filterList.value.filter((item) => !item.disabled).map((item) => ({ value: item[props.idKey] }));
     }
     return options.value
-      .filter((option) => option.visible && !option.isDisabled)
+      .filter((option) => option.visible && !option.isDisabled && !option.isCollapsed)
       .map((option) => ({ getEl: option.getEl, value: option.optionID }));
   });
 
@@ -877,6 +884,8 @@
     const label = option.optionName || option.optionID;
     if (!props.multiple) {
       selected.value = [{ label, value: option.optionID }];
+      // allowCreate 下触发器优先展示输入内容，选中已有选项后需清掉残留输入，否则仍显示输入的关键字
+      customOptionName.value = '';
       emitChange(option.optionID);
       emits('select', option.optionID);
       handleHidePopover();
@@ -900,10 +909,16 @@
     if (props.showSelectAllDisabled) {
       return;
     }
+    // 全选 / 取消全选只作用于可选项，已选的禁用项、自定义创建的值等不在可选范围内的值保持不变
+    const selectableValues = [...selectableList.value.keys()];
     if (isAllSelected.value) {
-      selected.value = [];
+      selected.value = selected.value.filter((item) => !selectableValues.some((value) => isEqual(value, item.value)));
     } else {
-      selected.value = [...selectableList.value.entries()].map(([value, label]) => ({ label, value }));
+      const unselectedList = [...selectableList.value.entries()]
+        .filter(([value]) => !selected.value.some((item) => isEqual(item.value, value)))
+        .map(([value, label]) => ({ label, value }));
+      // 与选中具体选项一致，全选时移除「全部」
+      selected.value = [...selected.value.filter((item) => item.value !== props.allOptionId), ...unselectedList];
     }
     emitSelectedChange();
     focusInput();
@@ -1210,8 +1225,6 @@
 </script>
 
 <style lang="less">
-  @import 'bkui-vue/lib/styles/themes/themes.less';
-
   .dbm-select {
     display: block;
     font-size: 12px;
@@ -1225,16 +1238,16 @@
     &.is-focus:not(.is-disabled) {
       .dbm-select-input-box,
       .dbm-select-tag {
-        border-color: @primary-color;
+        border-color: #3a84ff;
         outline: 0;
-        box-shadow: 0 0 3px 0 @input-shadow-color;
+        box-shadow: 0 0 3px 0 #a3c5fd;
       }
 
       &.is-simplicity {
         .dbm-select-input-box,
         .dbm-select-tag {
           border-color: transparent;
-          border-bottom-color: @primary-color;
+          border-bottom-color: #3a84ff;
           box-shadow: none;
         }
       }
@@ -1264,12 +1277,12 @@
 
     &.is-disabled {
       .dbm-select-input-box {
-        background-color: @input-disabled-bg;
-        border-color: @disable-color;
+        background-color: #fafbfd;
+        border-color: #dcdee5;
       }
 
       .dbm-select-input {
-        color: @gray-color;
+        color: #979ba5;
         cursor: not-allowed;
       }
     }
@@ -1278,12 +1291,12 @@
       .dbm-select-input-box {
         background-color: transparent;
         border-color: transparent;
-        border-bottom-color: @input-border-color;
+        border-bottom-color: #c4c6cc;
 
         &:hover {
-          background-color: @input-block-color;
+          background-color: #f5f7fa;
           border-color: transparent;
-          border-bottom-color: @light-gray;
+          border-bottom-color: #c4c6cc;
         }
       }
     }
@@ -1307,18 +1320,18 @@
     .dbm-select-angle-down {
       width: 20px;
       font-size: 20px;
-      color: @gray-color;
+      color: #979ba5;
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .dbm-select-clear-icon {
       width: 20px;
       font-size: 14px;
-      color: @light-gray;
+      color: #c4c6cc;
       cursor: pointer;
 
       &:hover {
-        color: @gray-color;
+        color: #979ba5;
       }
     }
 
@@ -1331,9 +1344,9 @@
     display: flex;
     width: 100%;
     height: 32px;
-    color: @default-color;
-    background-color: @white-color;
-    border: 1px solid @light-gray;
+    color: #63656e;
+    background-color: #fff;
+    border: 1px solid #c4c6cc;
     border-radius: 2px;
     box-sizing: border-box;
     align-items: center;
@@ -1346,7 +1359,7 @@
     }
 
     &:hover {
-      border-color: @gray-color;
+      border-color: #979ba5;
     }
 
     .dbm-select-input {
@@ -1355,7 +1368,7 @@
       padding: 0 28px 0 10px;
       overflow: hidden;
       font-size: inherit;
-      color: @default-color;
+      color: #63656e;
       text-overflow: ellipsis;
       white-space: nowrap;
       cursor: pointer;
@@ -1365,7 +1378,7 @@
       flex: 1;
 
       &::placeholder {
-        color: @light-gray;
+        color: #c4c6cc;
       }
     }
   }
@@ -1375,9 +1388,9 @@
     height: 100%;
     padding: 0 10px;
     margin-right: 10px;
-    color: @default-color;
-    background-color: @select-hover-color;
-    border-right: 1px solid @light-gray;
+    color: #63656e;
+    background-color: #f5f7fa;
+    border-right: 1px solid #c4c6cc;
     align-items: center;
   }
 
@@ -1392,9 +1405,9 @@
 
   .dbm-select-popover {
     font-size: 12px;
-    color: @default-color;
-    background-color: @white-color;
-    border: 1px solid @disable-color;
+    color: #63656e;
+    background-color: #fff;
+    border: 1px solid #dcdee5;
     border-radius: 2px;
     box-shadow: 0 2px 6px 0 rgb(0 0 0 / 10%);
 
@@ -1408,7 +1421,7 @@
     .dbm-select-empty {
       display: flex;
       height: 56px;
-      color: @default-color;
+      color: #63656e;
       align-items: center;
       justify-content: center;
     }
@@ -1419,7 +1432,7 @@
       height: 14px;
       margin-right: 4px;
       font-size: 14px;
-      color: @light-gray;
+      color: #c4c6cc;
       align-items: center;
       justify-content: center;
     }
@@ -1447,8 +1460,8 @@
       position: sticky;
       top: 0;
       z-index: 1;
-      background-color: @white-color;
-      border-bottom: 1px solid @border-color;
+      background-color: #fff;
+      border-bottom: 1px solid #dcdee5;
     }
 
     .dbm-select-options-loading {
@@ -1460,27 +1473,27 @@
 
     .dbm-select-all {
       padding: 4px 0;
-      border-bottom: 1px solid @border-color;
+      border-bottom: 1px solid #dcdee5;
 
       .dbm-select-all-wrapper {
         display: flex;
         height: 32px;
         padding: 0 12px;
-        color: @default-color;
+        color: #63656e;
         cursor: pointer;
         align-items: center;
 
         &:hover {
-          background-color: @select-hover-color;
+          background-color: #f5f7fa;
         }
 
         &.is-active {
-          color: @primary-color;
-          background-color: @select-active-color;
+          color: #3a84ff;
+          background-color: #e1ecff;
         }
 
         &.is-disabled {
-          color: @light-gray;
+          color: #c4c6cc;
           cursor: not-allowed;
 
           &:hover {
@@ -1498,19 +1511,19 @@
     .dbm-select-search-wrapper {
       display: flex;
       margin: 4px 8px 0;
-      border-bottom: 1px solid @input-block-hover-color;
+      border-bottom: 1px solid #eaebf0;
       align-items: center;
 
       .dbm-select-search-icon {
         margin-left: 2px;
-        color: @gray-color;
+        color: #979ba5;
       }
 
       .dbm-select-search-input {
         width: 100%;
         height: 32px;
         padding: 0 8px;
-        color: @default-color;
+        color: #63656e;
         cursor: text;
         background-color: transparent;
         border: none;
@@ -1518,7 +1531,7 @@
         flex: 1;
 
         &::placeholder {
-          color: @light-gray;
+          color: #c4c6cc;
         }
       }
 
@@ -1528,13 +1541,13 @@
         height: 14px;
         margin-right: 2px;
         font-size: 14px;
-        color: @light-gray;
+        color: #c4c6cc;
         cursor: pointer;
         align-items: center;
         justify-content: center;
 
         &:hover {
-          color: @gray-color;
+          color: #979ba5;
         }
       }
     }
@@ -1542,8 +1555,8 @@
     .dbm-select-extension {
       display: flex;
       height: 40px;
-      background-color: @input-disabled-bg;
-      border-top: 1px solid @disable-color;
+      background-color: #fafbfd;
+      border-top: 1px solid #dcdee5;
       border-radius: 0 0 2px 2px;
       align-items: center;
     }

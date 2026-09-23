@@ -27,7 +27,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, ref } from 'vue';
 
   import ValueTag from '@components/db-quick-search/bk-quick-search/components/ValueTag.vue';
   import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';

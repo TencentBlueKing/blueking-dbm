@@ -135,6 +135,7 @@
   </Popup>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { SearchIcon, SettingIcon } from 'tdesign-icons-vue-next';
   import type { CheckboxGroupValue, TableProps } from 'tdesign-vue-next';
   import { Checkbox, CheckboxGroup, Input, Popup, RadioButton, RadioGroup } from 'tdesign-vue-next';
@@ -236,14 +237,25 @@
       props.onColumnControllerVisibleChange?.(true, 'open');
       return;
     }
-    props.onConfirm?.({
+    const settings = {
       columns: draftColumns.value
         .filter((column) => draftChecked.value.includes(column.field) || column.disabled)
         .map((column) => column.field),
       fontSize: draftFontSize.value,
       order: draftColumns.value.map((column) => column.field),
       rowSize: draftRowSize.value,
-    });
+    };
+    // 未做任何调整时不提交，避免重建列（丢失拖拽列宽）和无效的配置保存请求
+    const isChanged =
+      !_.isEqual(settings.columns, props.displayColumns) ||
+      !_.isEqual(settings.order, props.order) ||
+      settings.fontSize !== props.fontSize ||
+      settings.rowSize !== props.rowSize;
+    if (!isChanged) {
+      props.onColumnControllerVisibleChange?.(false, 'cancel');
+      return;
+    }
+    props.onConfirm?.(settings);
     props.onColumnControllerVisibleChange?.(false, 'confirm');
   };
 

@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div
@@ -20,7 +33,7 @@
           @change="handleChange">
           <div
             v-for="item in renderList"
-            :key="item.label"
+            :key="item.value"
             class="t-table__filter-pop-item"
             :class="{ 'empty-item': renderList.length >= 2 && item.value === SpecialOptions.EMPTY }">
             <Checkbox
@@ -45,7 +58,6 @@
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Checkbox, CheckboxGroup, type CheckboxGroupValue, Input } from 'tdesign-vue-next';
-  import { nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { SpecialOptions } from '@common/const';
@@ -97,13 +109,15 @@
   const contentMinWidth = ref(0);
 
   const renderList = computed(() => {
-    if (props.remoteSearch) {
-      return list.value;
-    }
     const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
+    // 无关键字时已选项置顶，远程搜索的首屏结果里不一定包含已选项
     if (!keyword) {
       const modelValueMap = makeMap(defaultValue.value.map((item) => item.value));
       return [...defaultValue.value, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
+    }
+    // 远程搜索的结果已按关键字过滤
+    if (props.remoteSearch) {
+      return list.value;
     }
 
     return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
@@ -140,7 +154,7 @@
 
   onMounted(() => {
     setTimeout(() => {
-      searchBoxRef.value!.querySelector('input')?.focus();
+      searchBoxRef.value?.querySelector('input')?.focus();
     }, 100);
   });
 </script>

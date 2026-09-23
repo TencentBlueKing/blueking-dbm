@@ -175,15 +175,18 @@
     isResizing.value = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+    document.onselectstart = null;
+    document.ondragstart = null;
   };
 
   const handleResizeStart = (event: MouseEvent) => {
-    // 拖拽过程中不要选中树里的文字
-    event.preventDefault();
     resizeStart.clientX = event.clientX;
     resizeStart.width = expandWidth.value;
     isResizing.value = true;
 
+    // 拖拽过程中不要选中树里的文字
+    document.onselectstart = () => false;
+    document.ondragstart = () => false;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };

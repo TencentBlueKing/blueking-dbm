@@ -16,7 +16,7 @@
     :data="currentTaskflowDetail"
     :root-id="rootId"
     :status-count="statusCount"
-    @refresh="fetchTaskflowDetails" />
+    @refresh="handleRefresh" />
   <BkLoading :loading="!currentTaskflowDetail">
     <div
       ref="missionDetailPageRef"
@@ -330,10 +330,6 @@
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-      }
-
-      .operations {
-        margin-left: auto;
       }
     }
 

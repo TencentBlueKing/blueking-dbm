@@ -16,9 +16,9 @@ import { FlowTypes } from '@services/source/taskflow';
 import { forkGatewayTypes } from '@views/task-history/detail/utils';
 
 import { type Group } from '@antv/g';
-import { type Point, Polyline } from '@antv/g6';
+import { type Point, Polyline, type PolylineStyleProps } from '@antv/g6';
 
-import { trunkGap } from './layout';
+import { type Node, trunkGap } from './layout';
 
 export default class CustomEdge extends Polyline {
   startEndPoint: [Point, Point] = [
@@ -54,11 +54,11 @@ export default class CustomEdge extends Polyline {
   }
 
   get sourceNodeData() {
-    return (this.sourceNode as any).data;
+    return this.context.model.getNodeLikeDatum(this.sourceNode.id) as Node;
   }
 
   get targetNodeData() {
-    return (this.targetNode as any).data;
+    return this.context.model.getNodeLikeDatum(this.targetNode.id) as Node;
   }
 
   drawCircleToStartNode(container: Group) {
@@ -78,7 +78,11 @@ export default class CustomEdge extends Polyline {
     }
   }
 
-  protected getEndpoints(attributes: any, optimize?: boolean, controlPoints?: Point[] | (() => Point[])) {
+  protected getEndpoints(
+    attributes: Required<PolylineStyleProps>,
+    optimize?: boolean,
+    controlPoints?: Point[] | (() => Point[]),
+  ) {
     const startEndPoint = super.getEndpoints(attributes, optimize, controlPoints);
     // 只有进入子流程的入口边需要把端点挪到引出点上，同层的普通连线用端口原位，
     // 挪了会让线和节点右边缘之间空出一截
@@ -113,7 +117,7 @@ export default class CustomEdge extends Polyline {
     return startEndPoint;
   }
 
-  protected getKeyPath(attributes: any) {
+  protected getKeyPath(attributes: Required<PolylineStyleProps>) {
     const keyPathStyle = super.getKeyPath(attributes)!;
     // 这两条边没有配 controlPoints，基类给的就是「起点 + 终点」两条指令
     const [, startX, startY] = keyPathStyle[0] as ['M', number, number];
@@ -138,7 +142,7 @@ export default class CustomEdge extends Polyline {
   }
 
   // eslint-disable-next-line @typescript-eslint/member-ordering, perfectionist/sort-classes
-  render(attributes = this.parsedAttributes as any, container: Group) {
+  render(attributes = this.parsedAttributes, container: Group) {
     super.render(attributes, container);
     this.drawCircleToStartNode(container);
   }

@@ -69,7 +69,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -126,7 +125,7 @@
 
     return list.value.reduce(
       (result, parentItem) => {
-        if (isSearchKeywordMatch(parentItem.label, filterKey.value)) {
+        if (props.checkStrictly && isSearchKeywordMatch(parentItem.label, filterKey.value)) {
           result.push({
             label: parentItem.label,
             searchLabel: parentItem.label,

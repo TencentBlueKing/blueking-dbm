@@ -26,12 +26,12 @@
           bkUiSettings,
           filterValue,
           data: tableData.results,
+          defaultSort: urlDefaultSort ?? inhertProps.defaultSort,
           maxHeight: tableMaxHeight,
           showHeader: true,
-          filterRow: null as any,
           resizable: true,
           titleEllipsis: true,
-          ellipsis: true
+          ellipsis: true,
         }"
         @bk-ui-settings-change="handleDisplayColumnsChange"
         @filter-change="handleFilterChanges"
@@ -82,15 +82,12 @@
   import {
     type FilterValue,
     type SortOptions,
-    type TableChangeContext,
-    type TableChangeData,
     type TableProps,
     type TableRowData,
     type TableSort,
   } from 'tdesign-vue-next';
-  import { nextTick, onMounted, type Ref, ref, type VNode } from 'vue';
+  import type { Ref, VNode } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
-  import { useRouter } from 'vue-router';
 
   import type { IRequestPayload } from '@services/http';
   import type { ListBase } from '@services/types';
@@ -112,15 +109,15 @@
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number;
     // 自定义排序方法
-    customSortMethod?: (sort: TableSort) => any;
+    customSortMethod?: (sort: TableSort) => unknown;
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     defaultLimit?: number;
-    // 关闭 10s 自动轮询，弹窗类场景（选择器）用
-    disablePolling?: boolean;
     disableSelectMethod?: (data: any) => boolean | string;
     filterValue?: Record<string, string | string[]>;
     // 固定分页，不通过容器高度自动计算
     fixedPagination?: boolean;
+    // 开启 10s 自动轮询，列表需要实时刷新状态时用，支持动态切换
+    polling?: boolean;
     // 是否解析 URL query 参数
     releateUrlQuery?: boolean;
     // 是否允许行点击选中
@@ -129,7 +126,7 @@
     // 是否开启远程分页
     selectable?: boolean;
     // 默认选中
-    selected?: any[];
+    selected?: unknown[];
     // 是否单选
     // eslint-disable-next-line vue/no-unused-properties
     selectSingle?: boolean;
@@ -140,10 +137,8 @@
 
   export interface Emits {
     (e: 'requestSuccess', value: any): void;
-    (e: 'requestFinished', value: any[]): void;
     (e: 'clearSearch'): void;
     (e: 'selection', key: string[], list: any[]): void;
-    (e: 'change', data: TableChangeData, context: TableChangeContext<TableRowData>): void;
     (e: 'sortChange', sort: TableSort, options: SortOptions<TableRowData>): void;
     (e: 'filterChange', filterValue: FilterValue): void;
     (e: 'bkUiSettingsChange', payload: BkUiSettingsChangePayload): void;
@@ -153,19 +148,14 @@
     bkUiAppearanceSettings: () => VNode;
     default: () => VNode;
     empty: () => VNode;
-    expandRow: () => VNode;
-    setting: () => VNode;
   }
 
   export interface Exposes {
-    // clearSelected: () => void;
     fetchAllData: <T>() => Promise<Array<T>>;
     fetchData: (params?: Record<string, any>, loading?: boolean) => void;
     getData: <T>() => Array<T>;
     loading: Ref<boolean>;
     removeSelectByKey: (key: string) => void;
-    startPolling: () => void;
-    stopPolling: () => void;
     updateTableHeight: (containerHeight?: number) => void;
     updateTableKey: () => void;
   }
@@ -175,10 +165,10 @@
     containerHeight: undefined,
     customSortMethod: undefined,
     defaultLimit: undefined,
-    disablePolling: false,
     disableSelectMethod: () => false,
     filterValue: undefined,
     fixedPagination: false,
+    polling: false,
     releateUrlQuery: false,
     rowClickSelectable: false,
     selectable: false,
@@ -195,11 +185,11 @@
     const baseProps = { ...props };
     delete baseProps['containerHeight'];
     // @ts-expect-error 删除不存在的 props
-    delete baseProps['disablePolling'];
-    // @ts-expect-error 删除不存在的 props
     delete baseProps['disableSelectMethod'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['fixedPagination'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['polling'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['releateUrlQuery'];
     // @ts-expect-error 删除不存在的 props
@@ -220,6 +210,7 @@
   });
 
   const router = useRouter();
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -265,6 +256,8 @@
   let sortParams = {};
 
   let isReady = false;
+  // URL 联动时首次请求沿用 URL 上的页码，不重置到第一页
+  let isKeepUrlPage = false;
   let isSortChangeFetch = false;
   let isPaginationChangeFetch = false;
   // 请求序号，只接受最后一次请求的结果，避免快速切换筛选或分页时旧响应覆盖新数据
@@ -278,7 +271,7 @@
   const getSearchingStatus = () => {
     const searchKeys: string[] = [];
     for (const [key, value] of Object.entries(paramsMemo)) {
-      if (['', undefined].includes(value as any)) continue;
+      if (value === '' || value === undefined) continue;
 
       searchKeys.push(key);
     }
@@ -286,13 +279,19 @@
     return searchKeys.length > 0;
   };
 
-  const { getSearchParams, replaceSearchParams } = useUrlSearch();
-
   const triggerSelection = () => {
     emits('selection', Object.keys(selectedRowMap.value), Object.values(selectedRowMap.value));
   };
 
   const fetchListData = (loading = true, isPolling = false) => {
+    // 用户触发的请求先停掉待执行的轮询，避免轮询请求顶掉本次请求
+    if (!isPolling) {
+      handleStopPolling();
+    }
+    // 触发来源在发起时就定下来，不能等响应回来再读，否则会被后续请求改写或因请求失败而残留
+    const isKeepSelection = isPaginationChangeFetch || isSortChangeFetch || isPolling;
+    isSortChangeFetch = false;
+    isPaginationChangeFetch = false;
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
@@ -329,16 +328,12 @@
             });
           }
 
-          if (!isPaginationChangeFetch && !isSortChangeFetch && !isPolling && !isFirstFetch) {
+          if (!isKeepSelection && !isFirstFetch) {
             handleClearWholeSelect();
           }
-          isSortChangeFetch = false;
-          isPaginationChangeFetch = false;
           isFirstFetch = false;
 
-          if (data.results.length < 1 || props.disablePolling) {
-            handleStopPolling();
-          } else {
+          if (props.polling && data.results.length > 0) {
             handleStartPolling();
           }
 
@@ -366,8 +361,19 @@
       fetchListData(false, true);
     },
     10 * 1000,
-    // useTimeoutFn 默认创建即计时，关闭轮询时连首次都不要起
-    { immediate: !props.disablePolling },
+    // 首次计时由请求成功后发起，创建时不计时
+    { immediate: false },
+  );
+
+  watch(
+    () => props.polling,
+    () => {
+      if (props.polling) {
+        handleStartPolling();
+      } else {
+        handleStopPolling();
+      }
+    },
   );
 
   // 拉取全量数据
@@ -384,9 +390,9 @@
   watch(
     () => props.selected,
     () => {
-      selectedRowMap.value = props.selected.reduce<Record<string, any>>((acc, item) => {
+      selectedRowMap.value = props.selected.reduce<typeof selectedRowMap.value>((acc, item) => {
         return Object.assign(acc, {
-          [item[props.rowKey]]: item,
+          [_.get(item, props.rowKey)]: item,
         });
       }, {});
     },
@@ -395,25 +401,33 @@
     },
   );
 
-  // 解析 URL 上面的分页信息
+  // 解析 URL 上的分页与排序信息，字段与 fetchListData 写回 URL 的 limit / offset / ordering 对应
   const parseURL = () => {
     if (!props.releateUrlQuery || props.fixedPagination) {
       return;
     }
-    const { offset, order_field: orderField, order_type: orderType, page_size: limit } = getSearchParams();
-    if (offset && limit) {
-      pagination.current = ~~offset;
-      pagination.limit = ~~limit;
-      pagination.limitList = [...new Set([...pagination.limitList, pagination.limit])].sort((a, b) => a - b);
+    const { limit, offset, ordering } = getSearchParams();
+    const urlLimit = ~~limit;
+    if (urlLimit > 0) {
+      pagination.limit = urlLimit;
+      pagination.current = Math.floor(~~offset / urlLimit) + 1;
+      pagination.limitList = [...new Set([...pagination.limitList, urlLimit])].sort((a, b) => a - b);
     }
-    if (orderField && orderType) {
-      paramsMemo = {
-        order_field: orderField,
-        order_type: orderType,
-      };
+    if (ordering) {
+      sortParams = { ordering };
     }
     isReady = true;
+    isKeepUrlPage = true;
+    return ordering
+      ? {
+          descending: ordering.startsWith('-'),
+          sortBy: ordering.replace(/^-/, ''),
+        }
+      : undefined;
   };
+
+  // 表头排序图标只在首次渲染时读取 defaultSort，URL 需在 setup 阶段解析
+  const urlDefaultSort: TableSort | undefined = parseURL();
 
   // 选中单行
   const handleRowClick = (payload: Parameters<NonNullable<TableProps['onRowClick']>>[number]) => {
@@ -421,7 +435,10 @@
       return;
     }
     const targetElement = payload.e.target as HTMLElement;
-    if (/bk-button/.test(targetElement.className)) {
+    // 点击行内按钮、链接、输入框、图标等交互元素时不切换选中
+    if (
+      targetElement.closest('button, a, input, .bk-button, .t-button, .bk-link, .t-link, .bk-dbm-icon, .db-svg-icon')
+    ) {
       return;
     }
 
@@ -489,25 +506,23 @@
   };
 
   onMounted(() => {
-    parseURL();
     calcTableHeight();
   });
 
   defineExpose<Exposes>({
-    // 清空选择
-    // clearSelected() {
-    //   handleClearWholeSelect();
-    // },
     // 获取全量数据
     fetchAllData: fetchAllData,
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, loading = true) {
-      // 未开启 URL 联动时不会走 parseURL，此时查询条件变化才回到第一页，条件不变视为原地刷新
+      // URL 联动时首次请求沿用 URL 页码，之后每次都回到第一页
+      // 未开启 URL 联动时查询条件变化才回到第一页，条件不变视为原地刷新
       const isParamsChanged = !_.isEqual(paramsMemo, params);
       paramsMemo = {
         ...params,
       };
-      if (isReady || isParamsChanged) {
+      if (isKeepUrlPage) {
+        isKeepUrlPage = false;
+      } else if (isReady || isParamsChanged) {
         pagination.current = 1;
       }
       fetchListData(loading);
@@ -518,13 +533,10 @@
     },
     loading: isLoading,
     removeSelectByKey(key: string) {
-      delete selectedRowMap.value[key];
-    },
-    startPolling() {
-      handleStartPolling();
-    },
-    stopPolling() {
-      handleStopPolling();
+      // selectedRowMap 是 shallowRef，必须整体替换才能触发更新
+      const selectedMap = { ...selectedRowMap.value };
+      delete selectedMap[key];
+      selectedRowMap.value = selectedMap;
     },
     updateTableHeight,
     updateTableKey() {

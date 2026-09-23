@@ -19,6 +19,7 @@ import { Circle as GCircle, type Group, Rect as GRect, Text as GText } from '@an
 import { Rect } from '@antv/g6';
 
 import { type Node } from './layout';
+import { type FlowNodeAttributes } from './normalNode';
 
 export class StartEndNode extends Rect {
   get data() {
@@ -29,7 +30,7 @@ export class StartEndNode extends Rect {
     return this.data.type === FlowTypes.EmptyStartEvent;
   }
 
-  drawBackgroundShape(attributes: any, container: Group) {
+  drawBackgroundShape(attributes: FlowNodeAttributes, container: Group) {
     const backgroundShapeStyle = {
       fill: '#fff',
       r: 24,
@@ -48,7 +49,7 @@ export class StartEndNode extends Rect {
     this.upsert('iconWraperShape', GCircle, iconWraperShapeStyle, container);
   }
 
-  drawFocusBackgroundShape(attributes: any, container: Group) {
+  drawFocusBackgroundShape(attributes: FlowNodeAttributes, container: Group) {
     const [width, height] = this.getSize(attributes);
     if (!width || !height) {
       return;
@@ -67,7 +68,7 @@ export class StartEndNode extends Rect {
     this.upsert('focusBackground', GRect, focusBackgroundStyle, container);
   }
 
-  drawTitleShape(_: any, container: Group) {
+  drawTitleShape(_: FlowNodeAttributes, container: Group) {
     const text = this.isStartNode ? t('始') : t('终');
     const titleShapeStyle = {
       fill: '#FFF',
@@ -82,14 +83,14 @@ export class StartEndNode extends Rect {
     this.upsert('titleShape', GText, titleShapeStyle, container);
   }
 
-  renderNode(attributes: any, container: Group) {
+  renderNode(attributes: FlowNodeAttributes, container: Group) {
     this.drawFocusBackgroundShape(attributes, container);
     this.drawBackgroundShape(attributes, container);
     this.drawTitleShape(attributes, container);
   }
 
   // eslint-disable-next-line perfectionist/sort-classes
-  render(attributes = this.parsedAttributes as any, container: Group) {
+  render(attributes = this.parsedAttributes as FlowNodeAttributes, container: Group) {
     super.render(attributes, container);
     this.renderNode(attributes, container);
   }

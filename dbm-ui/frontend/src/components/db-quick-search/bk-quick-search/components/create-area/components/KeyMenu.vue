@@ -41,7 +41,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { toRef, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';

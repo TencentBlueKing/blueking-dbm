@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { InjectionKey, Ref } from 'vue';
+
 /**
  * 专家模式开关。
  *

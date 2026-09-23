@@ -144,9 +144,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { ZOOM_OPTIONS } from '@views/task-history/detail/components/task-flow/components/flow-canvas/utils';
   import { NODE_STATUS_META } from '@views/task-history/detail/utils';
-
-  import { ZOOM_OPTIONS } from '../utils';
 
   interface Props {
     isFullScreen: boolean;

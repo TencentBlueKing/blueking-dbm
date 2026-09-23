@@ -77,21 +77,45 @@
     isSHowHorizontalScroll.value = scrollWidth > clientWidth;
   }, 20);
 
-  const handleTableContentScroll = throttle((event: Event) => {
-    const { scrollLeft, scrollTop } = event.target as HTMLElement;
-    verticalScrollRef.value?.scrollTo(0, scrollTop);
-    horizontalScrollRef.value?.scrollTo(scrollLeft, 0);
-  }, 20);
+  // 程序设置滚动位置也会触发目标元素的 scroll 事件，记下后在该元素上忽略一次，避免内容区与滚动条来回写入
+  const programmaticScrollEls = new WeakSet<HTMLElement>();
 
-  const handleVerticalScroll = throttle((event: Event) => {
-    tableContentEl.value!.scrollTop = (event.target as HTMLElement).scrollTop;
-  }, 20);
+  const syncScrollPosition = (el: HTMLElement | undefined, key: 'scrollLeft' | 'scrollTop', value: number) => {
+    if (!el || el[key] === value) {
+      return;
+    }
+    const prevValue = el[key];
+    el.scrollTo(key === 'scrollTop' ? { top: value } : { left: value });
+    // 被浏览器钳制成原值时不会触发 scroll 事件，不能记录
+    if (el[key] !== prevValue) {
+      programmaticScrollEls.add(el);
+    }
+  };
 
-  const handleHorizontalScroll = throttle((event: Event) => {
-    window.requestAnimationFrame(() => {
-      tableContentEl.value!.scrollLeft = (event.target as HTMLElement).scrollLeft;
-    });
-  }, 20);
+  const handleTableContentScroll = (event: Event) => {
+    const target = event.target as HTMLElement;
+    if (programmaticScrollEls.delete(target)) {
+      return;
+    }
+    syncScrollPosition(verticalScrollRef.value, 'scrollTop', target.scrollTop);
+    syncScrollPosition(horizontalScrollRef.value, 'scrollLeft', target.scrollLeft);
+  };
+
+  const handleVerticalScroll = (event: Event) => {
+    const target = event.target as HTMLElement;
+    if (programmaticScrollEls.delete(target)) {
+      return;
+    }
+    syncScrollPosition(tableContentEl.value, 'scrollTop', target.scrollTop);
+  };
+
+  const handleHorizontalScroll = (event: Event) => {
+    const target = event.target as HTMLElement;
+    if (programmaticScrollEls.delete(target)) {
+      return;
+    }
+    syncScrollPosition(tableContentEl.value, 'scrollLeft', target.scrollLeft);
+  };
 
   let resizeObserver: ResizeObserver;
   let mutationObserver: MutationObserver;
@@ -111,6 +135,8 @@
       });
 
       resizeObserver.observe(tableContentEl.value.querySelector('table') as HTMLElement);
+      // 容器尺寸（如 maxHeight）变化而表格本身不变时，也要重新计算滚动条是否显示
+      resizeObserver.observe(tableContentEl.value);
     });
 
     mutationObserver.observe(tableEl.value as HTMLElement, {

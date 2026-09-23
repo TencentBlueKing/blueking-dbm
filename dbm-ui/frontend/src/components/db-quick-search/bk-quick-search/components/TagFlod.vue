@@ -22,7 +22,6 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { computed, nextTick, onBeforeUnmount, useTemplateRef, watch } from 'vue';
 
   import type { IValue, Props as ContextProps } from '../Index.vue';
   import { getValuesText } from '../utils';
