@@ -43,7 +43,7 @@ class ApplyK8sVmClbService(BaseService):
 
         logger.info(_("获取 vminsert CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
         try:
-            regions_resp = KubernetesApi.get_regions(bkBizId=bk_biz_id, isPublic=is_public)
+            regions_resp = KubernetesApi.get_regions(params={"bkBizId": bk_biz_id, "isPublic": is_public})
         except (ApiRequestError, ApiResultError) as err:
             self.log_error(_("获取vminsert CLB区域信息失败: {}").format(err))
             return False
