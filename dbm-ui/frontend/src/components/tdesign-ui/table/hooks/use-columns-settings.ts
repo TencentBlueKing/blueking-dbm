@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import _ from 'lodash';
 import type { TableProps } from 'tdesign-vue-next';
 import { computed, type ExtractPropTypes, type h, type Ref, shallowRef, useSlots, watch } from 'vue';
 
@@ -27,7 +28,7 @@ import type {
 } from '../types/table';
 import { getSettingsFields, reorderTableColumns, resolveColumnSettings } from '../utils/column-settings';
 import { BKUI_SETTINGS_COLUMN_NAME, BUILT_IN_COLUMN_KEYS, TABLE_COLUMN_ID_ATTRIBUTE } from '../utils/constant';
-import { camelCaseArray, deleteUndefinedProps, makeMap } from '../utils/utils';
+import { deleteUndefinedProps, makeMap } from '../utils/utils';
 
 import { useTableProvide } from './use-table-inject';
 
@@ -93,7 +94,7 @@ export const useColumnsSettings = (
           list.push(tableColumnsMap.value[columnId]?.value as BkUiTableCol);
         }
       });
-    return camelCaseArray(list);
+    return list;
   });
   useTableProvide({
     addColumnProps: (id: string, columnProps: Ref<IRegisteredColumnProps>) => {
@@ -119,16 +120,33 @@ export const useColumnsSettings = (
   const localColumnSettings = shallowRef(resolveColumnSettings([]));
   const fontSize = shallowRef<FontSizeEnum>(props.bkUiSettings?.fontSize || 'medium');
   const rowSize = shallowRef<RowSizeEnum>(props.bkUiSettings?.rowSize || props.size || 'medium');
+  // 组件内确认过、外部尚未回写的列配置；外部配置变化后以外部为准
+  let confirmedSettings: Pick<BkUiSettings, 'checked' | 'order'> | undefined;
+
+  // 内容不变时保持引用，避免列配置重建导致 tdesign 重置列宽
+  const updateLocalColumnSettings = (settings: Pick<BkUiSettings, 'checked' | 'order'>) => {
+    const latest = resolveColumnSettings(settingsFields.value, settings);
+    if (!_.isEqual(latest, localColumnSettings.value)) {
+      localColumnSettings.value = latest;
+    }
+  };
 
   watch(
     () => [props.displayColumns, props.bkUiSettings, settingsFields.value] as const,
-    () => {
-      localColumnSettings.value = resolveColumnSettings(settingsFields.value, {
-        checked: props.displayColumns?.length ? (props.displayColumns as string[]) : props.bkUiSettings?.checked,
-        order: props.bkUiSettings?.order,
-      });
-      fontSize.value = props.bkUiSettings?.fontSize || 'medium';
-      rowSize.value = props.bkUiSettings?.rowSize || props.size || 'medium';
+    ([displayColumns, bkUiSettings], oldValue) => {
+      // 仅列定义变化（列 props 更新、列增删）时沿用组件内状态，不回退到外部初始配置
+      const isPropsChanged = !oldValue || oldValue[0] !== displayColumns || oldValue[1] !== bkUiSettings;
+      if (isPropsChanged) {
+        confirmedSettings = undefined;
+        fontSize.value = bkUiSettings?.fontSize || 'medium';
+        rowSize.value = bkUiSettings?.rowSize || props.size || 'medium';
+      }
+      updateLocalColumnSettings(
+        confirmedSettings ?? {
+          checked: displayColumns?.length ? (displayColumns as string[]) : bkUiSettings?.checked,
+          order: bkUiSettings?.order,
+        },
+      );
     },
     {
       immediate: true,
@@ -184,10 +202,11 @@ export const useColumnsSettings = (
                 order: string[];
                 rowSize: RowSizeEnum;
               }) => {
-                localColumnSettings.value = resolveColumnSettings(settingsFields.value, {
+                confirmedSettings = {
                   checked: settings.columns,
                   order: settings.order,
-                });
+                };
+                updateLocalColumnSettings(confirmedSettings);
                 fontSize.value = settings.fontSize;
                 rowSize.value = settings.rowSize;
                 props.onDisplayColumnsChange?.(localColumnSettings.value.checked);
@@ -236,7 +255,8 @@ export const useColumnsSettings = (
     deleteUndefinedProps({
       ...props,
       columns: finalColumns.value,
-      rowspanAndColspan,
+      // tdesign 只要收到该函数就会在每次 data / columns 变化时逐单元格计算合并，无需合并时不传
+      rowspanAndColspan: isBkuiSettingsControl.value || props.rowspanAndColspan ? rowspanAndColspan : undefined,
     }),
   );
 
@@ -253,10 +273,11 @@ export const useColumnsSettings = (
     return `t-font-size-${fontSize.value.charAt(0).toLowerCase()}`;
   });
   const onDisplayColumnsChange = (columns: NonNullable<TableProps['displayColumns']>) => {
-    localColumnSettings.value = resolveColumnSettings(settingsFields.value, {
+    confirmedSettings = {
       checked: columns as string[],
       order: localColumnSettings.value.order,
-    });
+    };
+    updateLocalColumnSettings(confirmedSettings);
   };
   return {
     columnController,

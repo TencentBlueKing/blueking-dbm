@@ -101,18 +101,22 @@
       version_id: currentData.value.version,
     };
 
-    return getNodeLog(params)
-      .then((data) => {
-        logState.data = data;
-        // 请求可能在组件卸载后才返回
-        dbLogRef.value?.setLog(data);
-      })
-      .finally(() => {
-        logState.loading = false;
-        if (isInit && nodeData.value.status === 'RUNNING' && !isActive.value) {
-          resume();
-        }
-      });
+    return (
+      getNodeLog(params)
+        .then((data) => {
+          logState.data = data;
+          // 请求可能在组件卸载后才返回
+          dbLogRef.value?.setLog(data);
+        })
+        // 报错提示已由请求层统一给出。这里必须吞掉：useTimeoutPoll 的回调一旦抛错，轮询就再也不会续上
+        .catch(() => {})
+        .finally(() => {
+          logState.loading = false;
+          if (isInit && nodeData.value.status === 'RUNNING' && !isActive.value) {
+            resume();
+          }
+        })
+    );
   };
 
   const { t } = useI18n();

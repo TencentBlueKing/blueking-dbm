@@ -7,7 +7,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { useRoute } from 'vue-router';
 
   import BkQuickSearch, {
     type IValue,
@@ -22,7 +21,7 @@
 
   const emits = defineEmits<(e: 'change', value: Record<string, string>, payload: IValue[]) => void>();
 
-  const modelValue = defineModel<Record<string, any>>({});
+  const modelValue = defineModel<Record<string, string>>({});
 
   const route = useRoute();
 
@@ -110,6 +109,8 @@
 
   // 记录最近一次向外输出的值，用于识别组件自身的回写，避免和外部赋值互相覆盖
   let lastOutputValue: Record<string, string> | undefined;
+  // 回显请求序号，只接受最后一次回显的结果，避免先发的慢请求覆盖新值
+  let latestEchoId = 0;
   const handleModelValueChange = _.throttle(
     () => {
       const latestValue = modelValue.value;
@@ -119,6 +120,9 @@
       if (lastOutputValue && _.isEqual(latestValue, lastOutputValue)) {
         return;
       }
+
+      latestEchoId = latestEchoId + 1;
+      const currentEchoId = latestEchoId;
 
       const taskQueue = props.data.map((searchItemConfig) => {
         // 解析时间
@@ -213,6 +217,9 @@
         );
       });
       Promise.all(taskQueue).then((data) => {
+        if (currentEchoId !== latestEchoId) {
+          return;
+        }
         defaultValue.value = _.filter(data, (item) => Boolean(item)) as IValue[];
         handleChange(defaultValue.value);
       });
@@ -237,7 +244,10 @@
   const handleChange = (value: IValue[]) => {
     const result = formatResult(value);
 
-    lastOutputValue = result;
+    // 已有新的输出，作废还未返回的回显
+    latestEchoId = latestEchoId + 1;
+    // 存副本：result 会成为外部 v-model 的原始对象，外部就地修改时不能连带改掉这里的记录
+    lastOutputValue = { ...result };
     // 值未变时不回写，避免触发外部 deep watch 造成重复请求
     if (!_.isEqual(result, modelValue.value)) {
       modelValue.value = result;

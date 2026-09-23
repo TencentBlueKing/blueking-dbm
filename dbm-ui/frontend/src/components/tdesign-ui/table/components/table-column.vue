@@ -29,6 +29,8 @@
 
   // eslint-disable-next-line vue/no-unused-properties
   const props = withDefaults(defineProps<BkUiTableCol>(), {
+    // 显式 undefined 跳过布尔转换，否则缺省会变成 false，tdesign 表头不再跟随 ellipsis 省略
+    ellipsisTitle: undefined,
     resizable: true,
   });
 

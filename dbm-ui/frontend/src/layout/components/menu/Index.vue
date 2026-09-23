@@ -6,11 +6,10 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { provide, ref, toRef, watch } from 'vue';
-
   import { type MenuContext, menuContextKey, type MenuItemInfo, useSideMenuCollapse } from './common/context';
 
   interface Props {
+    // eslint-disable-next-line vue/no-unused-properties
     activeKey?: string;
     openedKeys?: (string | undefined)[];
   }
@@ -29,8 +28,9 @@
   const menuMap = ref<Record<string, MenuItemInfo>>({});
   const openedKeys = ref<string[]>([]);
 
+  // 调用方传入的是行内数组字面量，父组件每次重渲染都会换引用，按内容比较才不会覆盖用户手动展开 / 收起的子菜单
   watch(
-    [() => props.openedKeys, collapse],
+    [() => props.openedKeys.join(','), collapse],
     () => {
       openedKeys.value = collapse.value ? [] : (props.openedKeys.filter((item) => item) as string[]);
     },

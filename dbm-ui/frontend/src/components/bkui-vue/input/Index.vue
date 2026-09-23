@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div
     v-if="type === 'textarea'"
@@ -144,7 +157,7 @@
 <script setup lang="ts">
   import { Close, DownSmall, Eye, Search, Unvisible } from 'bkui-vue/lib/icon';
   import { useFormItem } from 'bkui-vue/lib/shared';
-  import { computed, nextTick, onBeforeUnmount, onMounted, ref, type VNode, watch } from 'vue';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   interface Props {
@@ -390,9 +403,9 @@
     const rawValue = getInputValue(event);
     let value: string | number = rawValue;
     if (props.type === 'number') {
+      // 输入中的 '-' 等不完整数字，原生 value 同样为 ''，不能回写 DOM，否则会吞掉用户正在输入的内容
       if (rawValue === '') {
         value = getNumberEmptyValue();
-        syncNativeValue(value);
       } else {
         value = toPrecision(Number(rawValue));
       }
@@ -506,35 +519,33 @@
 </script>
 
 <style lang="less">
-  @import 'bkui-vue/lib/styles/themes/themes.less';
-
   .dbm-input,
   .dbm-textarea {
     display: inline-flex;
     width: 100%;
     font-size: 12px;
-    color: @default-color;
+    color: #63656e;
     background-color: #fff;
-    border: 1px solid @light-gray;
+    border: 1px solid #c4c6cc;
     border-radius: 2px;
     box-sizing: border-box;
     transition: all 0.3s;
 
     ::placeholder {
       font-size: 12px;
-      color: @light-gray;
+      color: #c4c6cc;
     }
 
     &.is-disabled,
     &.is-readonly {
-      background-color: @input-disabled-bg;
-      border-color: @disable-color;
+      background-color: #fafbfd;
+      border-color: #dcdee5;
 
       input,
       textarea {
-        color: @gray-color;
+        color: #979ba5;
         cursor: not-allowed;
-        background-color: @input-disabled-bg;
+        background-color: #fafbfd;
       }
     }
 
@@ -551,7 +562,7 @@
     height: 32px;
 
     &:hover:not(.is-disabled) {
-      border-color: @gray-color;
+      border-color: #979ba5;
 
       .is-show-clear-only-hover {
         display: flex;
@@ -559,13 +570,13 @@
     }
 
     &.is-focused:not(.is-readonly) {
-      border-color: @primary-color;
+      border-color: #3a84ff;
       outline: 0;
-      box-shadow: 0 0 3px 0 @input-shadow-color;
+      box-shadow: 0 0 3px 0 #a3c5fd;
 
       &.is-simplicity {
         border-color: transparent;
-        border-bottom-color: @primary-color;
+        border-bottom-color: #3a84ff;
         box-shadow: none;
       }
     }
@@ -573,17 +584,17 @@
     &.is-simplicity {
       background-color: transparent;
       border-color: transparent;
-      border-bottom-color: @light-gray;
+      border-bottom-color: #c4c6cc;
 
       &:hover:not(.is-disabled) {
-        background-color: @input-block-color;
+        background-color: #f5f7fa;
         border-color: transparent;
-        border-bottom-color: @gray-color;
+        border-bottom-color: #979ba5;
         box-shadow: none;
 
         .dbm-input-text,
         .dbm-input-suffix-icon {
-          background-color: @input-block-color;
+          background-color: #f5f7fa;
         }
       }
     }
@@ -607,7 +618,7 @@
       padding: 0 8px;
       overflow: hidden;
       line-height: 1;
-      color: @default-color;
+      color: #63656e;
       text-overflow: ellipsis;
       white-space: nowrap;
       background-color: #fff;
@@ -634,15 +645,15 @@
     .dbm-input-suffix-area {
       display: flex;
       padding: 0 8px;
-      color: @default-color;
-      background-color: @input-block-color;
-      border-right: 1px solid @light-gray;
+      color: #63656e;
+      background-color: #f5f7fa;
+      border-right: 1px solid #c4c6cc;
       align-items: center;
     }
 
     .dbm-input-suffix-area {
       border: 0;
-      border-left: 1px solid @light-gray;
+      border-left: 1px solid #c4c6cc;
     }
 
     .dbm-input-suffix-icon {
@@ -650,7 +661,7 @@
       height: 100%;
       padding-right: 8px;
       font-size: 14px;
-      color: @light-gray;
+      color: #c4c6cc;
       cursor: pointer;
       background-color: #fff;
       flex-shrink: 0;
@@ -658,7 +669,7 @@
       align-self: center;
 
       &:hover {
-        color: @gray-color;
+        color: #979ba5;
       }
 
       &.is-show-clear-only-hover {
@@ -673,11 +684,11 @@
       align-self: center;
 
       &.is-over-limit {
-        color: @danger-color;
+        color: #ea3636;
       }
 
       span {
-        color: @input-maxlength-color;
+        color: #979ba5;
       }
     }
 
@@ -695,20 +706,20 @@
         display: flex;
         overflow: hidden;
         line-height: 1;
-        color: @gray-color;
+        color: #979ba5;
         text-align: center;
         cursor: pointer;
-        background-color: @input-block-color;
+        background-color: #f5f7fa;
         flex: 1;
         align-items: center;
 
         &.is-disabled {
-          color: @light-gray;
+          color: #c4c6cc;
           cursor: not-allowed;
         }
 
         &:not(.is-disabled):hover {
-          background-color: @input-block-hover-color;
+          background-color: #eaebf0;
         }
       }
 
@@ -729,13 +740,13 @@
     flex-direction: column;
 
     &.is-focused:not(.is-readonly) {
-      border-color: @primary-color;
+      border-color: #3a84ff;
       outline: 0;
-      box-shadow: 0 0 3px 0 @input-shadow-color;
+      box-shadow: 0 0 3px 0 #a3c5fd;
     }
 
     &:hover:not(.is-disabled) {
-      border-color: @gray-color;
+      border-color: #979ba5;
 
       .is-show-clear-only-hover {
         display: flex;
@@ -768,12 +779,12 @@
       display: flex;
       padding-right: 8px;
       font-size: 14px;
-      color: @light-gray;
+      color: #c4c6cc;
       cursor: pointer;
       background-color: #fff;
 
       &:hover {
-        color: @gray-color;
+        color: #979ba5;
       }
 
       &.is-show-clear-only-hover {
@@ -791,11 +802,11 @@
       justify-content: flex-end;
 
       &.is-over-limit {
-        color: @danger-color;
+        color: #ea3636;
       }
 
       span {
-        color: @input-maxlength-color;
+        color: #979ba5;
       }
     }
   }

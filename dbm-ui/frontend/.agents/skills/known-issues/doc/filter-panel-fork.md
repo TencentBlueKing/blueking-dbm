@@ -8,10 +8,10 @@
 - **不要**直接让两边复用同一个面板组件：宿主形态不同（表头 popover 宽度跟随列宽，vs
   搜索框下的 tippy 面板宽度自适应内容），模板与样式几乎没有重合，强行合并会把两个宿主的布局约束缠在一起。也**不要**只做「把
   db-table 那份补齐到和 quick-search 一致」：这次能补齐，下次改动仍然是两处
-- **存量**：`src/components/db-table/components/hooks/useMenuList.ts` 仍无防抖、无请求竞态保护（quick-search
-  那份已加 `_.debounce`）；拼错的 `expanedParent` 现在只剩 `src/components/db-table/components/MultCascader.vue`
+- **存量**：两份 `useMenuList.ts` 的防抖与请求序号已对齐（db-table 那份的远程关键字仍未走
+  `splitSearchKeyword` 多值拆分）；拼错的 `expanedParent` 现在只剩 `src/components/db-table/components/MultCascader.vue`
   一个文件（`rg -n expanedParent src`），quick-search 那份已改名，是漂移的又一个实例
-- **核实**：2026-09-10
+- **核实**：2026-09-23
 
 ## 补充
 

@@ -1,5 +1,5 @@
 import tippy, { type Instance, type Props } from 'tippy.js';
-import { onBeforeUnmount, onMounted, type Ref, watch } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * 侧栏收起时用 tippy 承载菜单浮层，展开时销毁实例

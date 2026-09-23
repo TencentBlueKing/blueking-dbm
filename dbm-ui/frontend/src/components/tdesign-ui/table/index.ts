@@ -18,6 +18,7 @@ import type {
 } from 'tdesign-vue-next/es/table';
 
 import './theme/_index.less';
+import './components/table.less';
 
 import EnhancedTable from './components/enhanced-table.vue';
 import PrimaryTable from './components/primary-table.vue';

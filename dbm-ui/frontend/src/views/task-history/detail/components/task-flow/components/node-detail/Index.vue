@@ -63,7 +63,7 @@
         </div>
         <template v-if="STATUS_FAILED">
           <BkPopConfirm
-            v-if="nodeData.retryable"
+            v-if="nodeData.retryable && !isTaskRevoked"
             :confirm-text="t('确认重试')"
             :content="t('重试将重新执行当前节点')"
             :title="t('确认重试当前失败节点？')"
@@ -79,7 +79,7 @@
             </BkButton>
           </BkPopConfirm>
           <BkPopConfirm
-            v-if="nodeData.skippable"
+            v-if="nodeData.skippable && !isTaskRevoked"
             :confirm-text="t('跳过节点')"
             :content="t('跳过将忽略当前节点失败状态，直接执行后续节点，当前节点标记为“执行成功(失败手动跳过)”')"
             :title="t('确认跳过当前失败节点？')"
@@ -104,7 +104,7 @@
             <span>{{ t('日志解析') }}</span>
           </BkButton>
         </template>
-        <template v-else>
+        <template v-else-if="!isTaskRevoked">
           <BkPopConfirm
             v-if="STATUS_TODO"
             :confirm-text="t('继续执行')"
@@ -189,6 +189,7 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import { formatLogData } from '@components/db-log/utils';
 
+  import OperationRecord from '@views/task-history/detail/components/OperationRecord.vue';
   import {
     type FlowDetail,
     type FlowNode,
@@ -199,8 +200,6 @@
   import { messageSuccess } from '@utils';
 
   import AiBluekingImage from '@images/ai-blueking.svg';
-
-  import OperationRecord from '../../../OperationRecord.vue';
 
   import ExecuteLog from './components/execute-log/Index.vue';
   import InputOutput from './components/input-output/Index.vue';
@@ -257,6 +256,8 @@
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
   const STATUS_FAILED = computed(() => nodeData.value.status === 'FAILED');
   const STATUS_TODO = computed(() => !!nodeData.value.todoId);
+  // 流程已终止后节点不能再重试、跳过、继续或强制失败，与画布保持一致；日志解析只读，不受影响
+  const isTaskRevoked = computed(() => !!nodeData.value.isTaskRevoked);
   const statusInfo = computed(() => {
     // 已终止是整条流程被撤销，和节点自己执行失败不是一回事，文案单独保留
     if (nodeData.value.status === 'REVOKED') {
@@ -353,6 +354,8 @@
   const handleClose = () => {
     emits('close');
     activePanelId.value = 'log';
+    // 换节点重新打开时，执行日志还没报上新版本前不能拿上一个节点的版本去做日志解析
+    logVersion.value = '';
   };
 
   const handleAiLogAnalysis = async () => {
@@ -388,20 +391,6 @@
 </script>
 
 <style lang="less" scoped>
-  .tips-content {
-    font-weight: normal;
-    line-height: normal;
-
-    .title {
-      padding-bottom: 16px;
-      text-align: left;
-    }
-
-    .btn {
-      margin-top: 0;
-    }
-  }
-
   .node-log-main {
     .log-header {
       display: flex;
@@ -477,26 +466,6 @@
             background: #dcdee5;
           }
         }
-      }
-
-      .log-header-btn {
-        text-align: right;
-        flex-shrink: 0;
-
-        :deep(.bk-button-text) {
-          font-size: 14px;
-          color: @default-color;
-
-          i {
-            display: inline-block;
-            margin-right: 5px;
-          }
-        }
-      }
-
-      .quick-btn {
-        width: 32px;
-        height: 32px;
       }
     }
 

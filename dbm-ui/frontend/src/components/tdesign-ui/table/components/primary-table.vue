@@ -18,23 +18,23 @@
         h(
           PrimaryTable,
           {
-            filterIcon: () => filterIcon,
-            sortIcon: () => sortIcon,
+            filterIcon: renderFilterIcon,
+            sortIcon: renderSortIcon,
             // tdesign 仅在 filterRow === null 时关闭过滤行，过滤条件统一由外部搜索栏承载
             filterRow: null as any,
             ...attrs,
             ...customProps,
-            class: {
-              [attrs.class?.toString() || '']: true,
-              [tableFontSizeClass]: true,
-              [tableSizeClass]: true,
-              't-table__custom-scroll': needCustomScroll,
-            },
+            class: normalizeClass([
+              attrs.class,
+              tableFontSizeClass,
+              tableSizeClass,
+              { 't-table__custom-scroll': needCustomScroll },
+            ]),
             columnController,
             displayColumns,
             onDisplayColumnsChange,
           },
-          slots,
+          getTableSlots(),
         )
       "
       ref="tableRef" />
@@ -52,14 +52,14 @@
   import { PrimaryTable } from 'tdesign-vue-next';
   import baseTableProps from 'tdesign-vue-next/es/table/base-table-props';
   import primaryTableProps from 'tdesign-vue-next/es/table/primary-table-props';
-  import { h, useAttrs, useTemplateRef } from 'vue';
+  import { h, normalizeClass, useAttrs, useTemplateRef } from 'vue';
 
   import { useColumnsSettings } from '../hooks/use-columns-settings';
   import { useTableExpose } from '../hooks/use-table-expose';
   import { type BkUiTableCol, commonTableProps, type PrimaryTableRefExpose } from '../types/table';
 
   import CustomScroll from './custom-scroll.vue';
-  import { filterIcon, sortIcon } from './icons';
+  import { renderFilterIcon, renderSortIcon } from './icons';
 
   defineOptions({
     name: 'PrimaryTable',
@@ -70,15 +70,17 @@
     ...primaryTableProps,
     ...commonTableProps,
   });
-  const {
-    bkUiAppearanceSettings,
-    default: defaultSlots,
-    ...slots
-  } = defineSlots<{
+  const slots = defineSlots<{
     bkUiAppearanceSettings(): void;
     default(): { props: BkUiTableCol }[];
   }>();
   const attrs = useAttrs();
+
+  // 渲染时再取，动态插槽（如 v-if 控制的 #empty）增删后才能同步转发
+  const getTableSlots = () => {
+    const { bkUiAppearanceSettings, default: defaultSlots, ...tableSlots } = slots;
+    return tableSlots;
+  };
 
   const tableRef = useTemplateRef<PrimaryTableRefExpose>('tableRef');
   const tableColumnRef = useTemplateRef<HTMLDivElement>('tableColumnRef');
@@ -90,6 +92,3 @@
 
   defineExpose<PrimaryTableRefExpose>();
 </script>
-<style lang="less">
-  @import './table.less';
-</style>

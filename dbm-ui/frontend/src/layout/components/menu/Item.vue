@@ -44,8 +44,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, ref } from 'vue';
-
   import { useMenuContext, useMenuFlyout, useSubmenuId } from './common/context';
   import { useMenuPopover } from './hooks/useMenuPopover';
 

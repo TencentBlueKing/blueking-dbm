@@ -76,9 +76,9 @@
 
   import { useUserProfile } from '@stores';
 
-  import { messageSuccess } from '@utils';
+  import { type FlowDetail, type NodeStatusCount, superUserModeInjectionKey } from '@views/task-history/detail/utils';
 
-  import { type FlowDetail, type NodeStatusCount, superUserModeInjectionKey } from '../utils';
+  import { messageSuccess } from '@utils';
 
   interface Props {
     data?: FlowDetail;
@@ -142,6 +142,13 @@
   });
 
   const isRevokable = computed(() => !isTaskOver.value);
+
+  // 任务结束后开关随之隐藏，模式也要一起退出，否则画布和批量栏还停在强制操作的形态
+  watch(isTaskOver, (value) => {
+    if (value) {
+      isSuperUserMode.value = false;
+    }
+  });
 
   const { loading: isRevokeLoading, run: runRevokePipeline } = useRequest(revokePipeline, {
     manual: true,

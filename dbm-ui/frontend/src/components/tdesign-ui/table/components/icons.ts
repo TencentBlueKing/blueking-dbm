@@ -13,7 +13,7 @@
 
 import { h } from 'vue';
 
-export const filterIcon = h(
+const filterIcon = h(
   'span',
   {
     style: {
@@ -46,7 +46,7 @@ export const filterIcon = h(
   ],
 );
 
-export const sortIcon = h(
+const sortIcon = h(
   'span',
   {
     style: {
@@ -78,3 +78,8 @@ export const sortIcon = h(
     ),
   ],
 );
+
+// 作为表格 props 传入，保持引用稳定，避免每次渲染都被判定为 props 变化
+export const renderFilterIcon = () => filterIcon;
+
+export const renderSortIcon = () => sortIcon;

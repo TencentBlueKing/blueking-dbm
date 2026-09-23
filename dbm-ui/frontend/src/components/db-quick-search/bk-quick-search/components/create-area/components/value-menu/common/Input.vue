@@ -26,7 +26,6 @@
 </template>
 <script setup lang="ts">
   import { CloseCircleFilledIcon, SearchIcon } from 'tdesign-icons-vue-next';
-  import { onMounted, ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   const modelValue = defineModel<string>({
@@ -92,7 +91,7 @@
       border-color: #3a84ff;
     }
 
-    &-prefix {
+    .bk-quick-search-custom-input-prefix {
       display: flex;
       margin-right: 6px;
       font-size: 14px;
@@ -100,7 +99,7 @@
       align-items: center;
     }
 
-    &-inner {
+    .bk-quick-search-custom-input-inner {
       width: 100%;
       height: 100%;
       padding: 0;
@@ -116,7 +115,7 @@
       }
     }
 
-    &-clear {
+    .bk-quick-search-custom-input-clear {
       display: flex;
       margin-left: 6px;
       font-size: 14px;

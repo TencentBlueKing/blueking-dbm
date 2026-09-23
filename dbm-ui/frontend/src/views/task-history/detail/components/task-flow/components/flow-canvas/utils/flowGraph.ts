@@ -22,7 +22,17 @@ import {
   type NodeDisplayStatus,
 } from '@views/task-history/detail/utils';
 
-import { ExtensionCategory, Graph, GraphEvent, type NodeData, NodeEvent, register } from '@antv/g6';
+import {
+  ExtensionCategory,
+  Graph,
+  GraphEvent,
+  type IElementEvent,
+  type IEvent,
+  type NodeData,
+  NodeEvent,
+  register,
+  type ViewportAnimationEffectTiming,
+} from '@antv/g6';
 
 import CustomEdge from './customEdge';
 import { GatewayNode } from './gatewayNode';
@@ -78,6 +88,12 @@ const statusHoverStateMap: Partial<Record<NodeDisplayStatus, string>> = {
   TODO: 'todoImageBackgroundColorHover',
 };
 
+/**
+ * 节点事件对应的布局后节点数据。
+ * 三类自定义节点都有返回它的 data getter，但事件的 target 只标成 G6 的 Element，类型上看不到
+ */
+export const getEventNode = (e: IElementEvent) => (e.target as unknown as { data: Node }).data;
+
 register(ExtensionCategory.NODE, FlowTypes.ConditionalParallelGateway, GatewayNode);
 register(ExtensionCategory.NODE, FlowTypes.ConvergeGateway, GatewayNode);
 register(ExtensionCategory.NODE, FlowTypes.ParallelGateway, GatewayNode);
@@ -122,7 +138,7 @@ export class FlowGraph {
     if (token !== this.renderToken) {
       return false;
     }
-    this.graph?.setData(graphData as any);
+    this.graph?.setData(graphData);
     return true;
   }
 
@@ -314,28 +330,28 @@ export class FlowGraph {
       zoom: this.viewZoom,
     });
 
-    this.graph.on(NodeEvent.POINTER_ENTER, (e: any) => {
-      const { originalTarget, target } = e;
-      const targetName = originalTarget.className;
-      this.hoverNodeId = target.data.id;
-      const state = this.graph!.getElementState(target.data.id) || [];
+    this.graph.on(NodeEvent.POINTER_ENTER, (e: IElementEvent) => {
+      const targetName = e.originalTarget.className;
+      const node = getEventNode(e);
+      this.hoverNodeId = node.id;
+      const state = this.graph!.getElementState(node.id) || [];
       if (targetName === 'backgroundShape') {
         // 背景加深
-        this.graph!.setElementState(target.data.id, [...state, 'nodeBackgroundHover']);
+        this.graph!.setElementState(node.id, [...state, 'nodeBackgroundHover']);
         return;
       }
       if (targetName === 'rightTopBackground') {
         // 右上角背景加深
-        const hoverState = statusHoverStateMap[getNodeDisplayStatus(target.data)];
+        const hoverState = statusHoverStateMap[getNodeDisplayStatus(node)];
         if (hoverState) {
-          this.graph!.setElementState(target.data.id, [...state, hoverState]);
+          this.graph!.setElementState(node.id, [...state, hoverState]);
         }
         return;
       }
       const hoverType = targetNameHoverTypeMap[targetName];
       // 操作按钮背景加深
       if (hoverType) {
-        this.graph!.setElementState(target.data.id, [...state, hoverType]);
+        this.graph!.setElementState(node.id, [...state, hoverType]);
       }
     });
 
@@ -412,7 +428,7 @@ export class FlowGraph {
     }, 500);
   }
 
-  on(eventName: string, callback: (...args: any[]) => void) {
+  on<T extends IEvent>(eventName: string, callback: (event: T) => void) {
     this.graph?.on(eventName, callback);
   }
 
@@ -428,11 +444,11 @@ export class FlowGraph {
     this.graph?.resize();
   }
 
-  translateBy(offset: [number, number], animate?: any) {
+  translateBy(offset: [number, number], animate?: ViewportAnimationEffectTiming) {
     this.graph!.translateBy(offset, animate);
   }
 
-  translateTo(point: [number, number], animate?: any) {
+  translateTo(point: [number, number], animate?: ViewportAnimationEffectTiming) {
     this.graph!.translateTo(point, animate);
   }
 
@@ -457,7 +473,7 @@ export class FlowGraph {
   }
 
   // origin 是缩放锚点的视口坐标，不传则按视口中心缩放
-  zoomTo(zoom: number, animate?: any, origin?: [number, number]) {
+  zoomTo(zoom: number, animate?: ViewportAnimationEffectTiming, origin?: [number, number]) {
     // AFTER_TRANSFORM 是防抖的，这里同步记一份，避免这段时间里的视口补偿按旧倍率算
     this.viewZoom = zoom;
     this.graph!.zoomTo(zoom, animate, origin);

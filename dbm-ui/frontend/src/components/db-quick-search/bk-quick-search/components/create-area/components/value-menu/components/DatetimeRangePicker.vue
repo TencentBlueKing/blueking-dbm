@@ -12,7 +12,6 @@
 <script setup lang="ts">
   import dayjs from 'dayjs';
   import { ElDatePickerPanel } from 'element-plus';
-  import { useAttrs } from 'vue';
 
   interface IResult {
     label: string;

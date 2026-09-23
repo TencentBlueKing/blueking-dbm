@@ -1,5 +1,5 @@
 import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-import { onMounted, type Ref, ref } from 'vue';
+import type { Ref } from 'vue';
 
 import useOutSideClick from './useOutSideClick';
 

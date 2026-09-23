@@ -1,4 +1,4 @@
-import { defineComponent, h, type PropType } from 'vue';
+import type { PropType } from 'vue';
 
 import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
@@ -17,11 +17,11 @@ export default defineComponent({
       type: Boolean,
     },
   },
-  // eslint-disable-next-line perfectionist/sort-objects
+
   emits: ['change'],
   setup(props, context) {
     return () => {
-      return h(props.config.component, {
+      return h(props.config.component!, {
         onChange: (value: unknown) => {
           context.emit('change', value);
         },

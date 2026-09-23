@@ -59,7 +59,7 @@
 <script lang="tsx">
   import _ from 'lodash';
   import { Icon } from 'tdesign-vue-next';
-  import { computed, type InjectionKey, provide, reactive, ref, shallowRef, watch } from 'vue';
+  import type { Component, InjectionKey } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { hideAll } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
@@ -85,7 +85,7 @@
     changeTrigger?: 'blur' | 'change';
     clearable?: boolean;
     data: {
-      component?: any;
+      component?: Component;
       default?: boolean;
       description?: string;
       id: string;
@@ -100,8 +100,8 @@
       name: string;
       pasteParseMethod?: (value: string) => string[];
       placeholder?: string;
-      props?: Record<string, any>;
-      remoteMethod?: (params?: any) => Promise<
+      props?: Record<string, unknown>;
+      remoteMethod?: (params: { defaultValue?: string; keyword?: string }) => Promise<
         {
           children?: {
             label: string;
