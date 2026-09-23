@@ -73,6 +73,7 @@ class CreateK8sQdrantClusterService(BaseService):
             "bkBizId": global_data["bk_biz_id"],
             "bkBizName": global_data["bk_biz_name"],
             "bkAppAbbr": global_data["db_app_abbr"],
+            "isPublic": global_data.get("is_public"),
             "componentList": component_list,
             "async_to_dbm": False,
             "bk_username": global_data["creator"],

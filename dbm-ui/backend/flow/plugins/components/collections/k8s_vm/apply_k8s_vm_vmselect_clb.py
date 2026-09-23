@@ -35,12 +35,15 @@ class ApplyK8sVmVmselectClbService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
         cluster_name = global_data["k8s_cluster_name"]
+        bk_biz_id = global_data["bk_biz_id"]
+        is_public = global_data.get("is_public")
 
         if trans_data is None or trans_data == "${trans_data}":
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
+        logger.info(_("获取 vmselect CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
         try:
-            regions_resp = KubernetesApi.get_regions()
+            regions_resp = KubernetesApi.get_regions(params={"bkBizId": bk_biz_id, "isPublic": is_public})
         except (ApiRequestError, ApiResultError) as err:
             self.log_error(_("获取vmselect CLB区域信息失败: {}").format(err))
             return False
