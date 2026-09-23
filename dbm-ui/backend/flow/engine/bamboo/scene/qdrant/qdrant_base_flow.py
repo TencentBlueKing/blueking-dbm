@@ -42,3 +42,4 @@ class K8sQdrantBaseFlow(object):
         self.cluster_name = data.get("cluster_name")
         self.cluster_alias = data.get("cluster_alias")
         self.component_list = data.get("component_list")
+        self.is_public = data.get("is_public")

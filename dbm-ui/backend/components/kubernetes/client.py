@@ -132,7 +132,7 @@ class _KubernetesApi(BaseApi):
         )
         self.get_regions = self.generate_data_api(
             method="GET",
-            url="/v4/dbs/metadata/k8s_cluster_config/regions?isPublic=true",
+            url="/v4/dbs/metadata/k8s_cluster_config/regions",
             description=_("获取区域列表"),
         )
         self.write_back_cluster_id = self.generate_data_api(
