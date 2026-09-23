@@ -32,8 +32,6 @@
   }
 </script>
 <script setup lang="ts" generic="T extends [string, string] | [Date, Date] | string | Date">
-  import { useAttrs, watch } from 'vue';
-
   import useColumn from '../useColumn';
 
   const props = defineProps<Props>();
@@ -42,7 +40,9 @@
     (e: 'change', value: T): void;
   }>();
 
-  const modelValue = defineModel<T>();
+  const modelValue = defineModel<T | undefined>({
+    default: undefined,
+  });
 
   const attrs = useAttrs();
 

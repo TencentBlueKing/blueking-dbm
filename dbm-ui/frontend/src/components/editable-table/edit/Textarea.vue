@@ -37,7 +37,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useAttrs, type VNode, watch } from 'vue';
+  import type { VNode } from 'vue';
 
   import DbmInput from '@components/bkui-vue/input/Index.vue';
 
@@ -65,7 +65,9 @@
     prepend?: () => VNode;
   }>();
 
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<string | undefined>({
+    default: undefined,
+  });
 
   const attrs = useAttrs();
 
@@ -98,7 +100,7 @@
         .dbm-textarea {
           pointer-events: none;
 
-          .dbm-input-suffix-icon {
+          .dbm-textarea-clear-icon {
             display: none !important;
           }
 
