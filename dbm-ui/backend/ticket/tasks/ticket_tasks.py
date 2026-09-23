@@ -241,35 +241,51 @@ class TicketTask(object):
         ticket_configs = TicketFlowsConfig.objects.filter(bk_biz_id=PLAT_BIZ_ID)
         ticket_type__config = {config.ticket_type: config for config in ticket_configs}
 
-        def filter_tickets(expire_type):
-            ticket_ids = []
-            flow_filters = None
-            todo_filters = None
+        # 模块级常量：expire_type -> (model_cls, Q 条件)
+        expire_type_filter_map = {
             # 待审批
-            if expire_type == TicketExpireType.ITSM:
-                flow_filters = Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
+            TicketExpireType.ITSM: (
+                Flow,
+                Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING),
+            ),
             # 待确认
-            elif expire_type == TicketExpireType.PAUSE:
-                flow_filters = Q(flow_type=FlowType.PAUSE, status=TicketFlowStatus.RUNNING)
+            TicketExpireType.PAUSE: (
+                Flow,
+                Q(flow_type=FlowType.PAUSE, status=TicketFlowStatus.RUNNING),
+            ),
             # 已失败
-            elif expire_type == TicketExpireType.INNER_FLOW:
-                flow_filters = Q(flow_type__in=FLOW_TASK_TYPES, status=TicketFlowStatus.FAILED)
+            TicketExpireType.INNER_FLOW: (
+                Flow,
+                Q(flow_type__in=FLOW_TASK_TYPES, status=TicketFlowStatus.FAILED),
+            ),
             # 待继续
-            elif expire_type == TicketExpireType.FLOW_TODO:
-                todo_filters = Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS)
+            TicketExpireType.FLOW_TODO: (
+                Todo,
+                Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS),
+            ),
             # 定时中
-            elif expire_type == TicketExpireType.TIMER:
-                todo_filters = Q(type=TodoType.TIMER, status__in=TODO_RUNNING_STATUS)
+            TicketExpireType.TIMER: (
+                Todo,
+                Q(type=TodoType.TIMER, status__in=TODO_RUNNING_STATUS),
+            ),
             # 待补货
-            elif expire_type == TicketExpireType.RESOURCE_REPLENISH:
-                todo_filters = Q(type=TodoType.RESOURCE_REPLENISH, status__in=TODO_RUNNING_STATUS)
+            TicketExpireType.RESOURCE_REPLENISH: (
+                Todo,
+                Q(type=TodoType.RESOURCE_REPLENISH, status__in=TODO_RUNNING_STATUS),
+            ),
+            # 待确认修改
+            TicketExpireType.CONFIRM_MODIFY: (
+                Todo,
+                Q(type=TodoType.CONFIRM_MODIFY, status__in=TODO_RUNNING_STATUS),
+            ),
+        }
 
-            if flow_filters:
-                ticket_ids = list(Flow.objects.filter(flow_filters).values_list("ticket", flat=True))
-            elif todo_filters:
-                ticket_ids = list(Todo.objects.filter(todo_filters).values_list("ticket", flat=True))
-
-            return ticket_ids
+        def filter_tickets(expire_type):
+            entry = expire_type_filter_map.get(expire_type)
+            if not entry:
+                return []
+            model_cls, filters = entry
+            return list(model_cls.objects.filter(filters).values_list("ticket", flat=True))
 
         def find_expire_flow_tickets(expire_type):
             """获取超时过期的单据"""
