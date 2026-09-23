@@ -109,8 +109,7 @@
             required>
             <DomainTable
               v-model:domains="formData.details.replica_sets"
-              :app-abbr="formData.details.db_app_abbr"
-              :nodes-number="formData.details.node_count" />
+              :app-abbr="formData.details.db_app_abbr" />
           </BkFormItem>
           <BkFormItem
             :label="t('后端存储规格')"

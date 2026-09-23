@@ -13,16 +13,18 @@
 
 <template>
   <div class="mysql-domains">
+    <!-- row-key 不能用 key：key 是正在编辑的域名，值一变整行就会重建；行数据上没有 index 字段，会回退到 rowIndex -->
     <PrimaryTable
       class="custom-edit-table"
       :columns="columns"
       :data="tableData"
       :empty="t('请选择业务和DB模块名')"
-      row-key="key" />
+      row-key="index" />
   </div>
 </template>
 
 <script setup lang="tsx">
+  import { Form } from 'bkui-vue';
   import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
@@ -135,19 +137,15 @@
       },
     },
   ];
-  // 设置域名 form-item refs
-  const domainRefs: any[] = [];
-  const setDomainRef = (el: any) => {
+  // 设置域名 form-item refs，按行号存，行卸载时移除
+  const domainRefs = new Map<number, InstanceType<typeof Form.FormItem>>();
+  const setDomainRef = (el: unknown, rowIndex: number) => {
     if (el) {
-      domainRefs.push(el);
+      domainRefs.set(rowIndex, el as InstanceType<typeof Form.FormItem>);
+    } else {
+      domainRefs.delete(rowIndex);
     }
   };
-  watch(
-    () => props.formdata.details.cluster_count,
-    () => {
-      domainRefs.splice(0, domainRefs.length - 1);
-    },
-  );
   const columns = computed(() => {
     const columns: PrimaryTableCol[] = [
       {
@@ -233,7 +231,7 @@
         {isMain ? (
           <bk-form-item
             key={rowIndex}
-            ref={setDomainRef}
+            ref={(el: unknown) => setDomainRef(el, rowIndex)}
             class={{
               'domain-address-item': true,
               'domain-address-item-empty': !props.formdata.details.domains[rowIndex]?.key,
