@@ -19,6 +19,7 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.k8s_db.qdrant.consts import CLB_NAME_SUFFIX
 
 logger = logging.getLogger("flow")
 
@@ -66,7 +67,7 @@ class ApplyK8sQdrantClbService(BaseService):
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": "{}-{}-qdrant-clb".format(cluster_name, bk_biz_id),
+            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}",
             "clb_nums": 1,
             "async_to_dbm": False,
         }
