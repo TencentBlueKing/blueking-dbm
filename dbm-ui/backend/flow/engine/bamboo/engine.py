@@ -18,7 +18,7 @@ from bamboo_engine.api import EngineAPIResult
 from bamboo_engine.builder import Data
 from bamboo_engine.eri import NodeType
 from django.utils.translation import gettext as _
-from pipeline.eri.models import State
+from pipeline.eri.models import Schedule, State
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from backend.db_services.taskflow.utils import force_skip_and_retry_decorator
@@ -90,6 +90,69 @@ class BambooEngine:
     def retry_node(self, node_id: str, data: Optional[dict] = None, is_force: bool = False) -> EngineAPIResult:
         result = api.retry_node(runtime=BambooDjangoRuntime(), node_id=node_id, data=data)
         return result
+
+    def retry_schedule(self, node_id: str) -> EngineAPIResult:
+        """
+        从 schedule 阶段重试失败节点
+        与 retry_node 不同：retry_node 走 runtime.execute 会从 execute 阶段重头执行（重新下发动作）；
+        本方法复用节点失败时残留的 Schedule 对象，直接从 schedule 阶段重新进入调度，不重跑 execute。
+        仅适用于 execute 已成功、已进入 schedule（轮询/回调）阶段的节点，且 schedule 幂等（通常如此）
+        """
+        runtime = BambooDjangoRuntime()
+        try:
+            # node = runtime.get_node(node_id)
+            state = runtime.get_state(node_id)
+
+            # 仅允许对 RUNNING, FAILED, FINISHED 节点执行
+            if state.name not in [states.RUNNING, states.FAILED, states.FINISHED]:
+                raise PipelineError(_("节点当前状态为 {}, 只能对失败/完成节点执行 schedule 重试").format(state.name))
+
+            # 按 node_id 取残留的 schedule（不按 version 过滤，避免被强制失败等操作刷新过的 state 版本打断）
+            # execute 阶段就失败的节点不会有 schedule，这里取不到即说明无法从 schedule 重试
+            db_schedule = Schedule.objects.filter(node_id=node_id).order_by("-id").first()
+            if not db_schedule:
+                raise PipelineError(_("节点 {} 不存在调度对象, 可能尚未进入 schedule 阶段, 请使用 retry_node").format(node_id))
+
+            # kill / 强制失败只会把进程置为 asleep，故 sleep 进程仍可查到
+            process_info = runtime.get_sleep_process_info_with_current_node_id(node_id)
+            if not process_info:
+                raise PipelineError(_("找不到处于睡眠状态且当前节点为 {} 的进程").format(node_id))
+
+            # 状态：失败 ---> 准备
+            if state.name == states.FAILED:
+                runtime.set_state(
+                    node_id=node_id,
+                    to_state=states.READY,
+                    version=state.version,
+                    is_retry=True,
+                    clear_started_time=True,
+                    clear_archived_time=True,
+                )
+            # 状态：准备/成功 --> running
+            if state.name != states.RUNNING:
+                runtime.set_state(
+                    node_id=node_id,
+                    to_state=states.RUNNING,
+                    version=state.version,
+                    set_started_time=True,
+                )
+
+            # 将 schedule 版本对齐到当前 RUNNING 版本, 并复位 finished/expired, 使其可被重新调度
+            Schedule.objects.filter(id=db_schedule.id).update(
+                version=state.version, finished=False, expired=False, scheduling=False
+            )
+
+            # 不唤醒进程：schedule 阶段进程本就处于 sleep，对齐 callback 行为
+            runtime.schedule(
+                process_id=process_info.process_id,
+                node_id=node_id,
+                schedule_id=db_schedule.id,
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("retry_schedule for node(%s) failed", node_id)
+            return EngineAPIResult(result=False, message="fail", exc=e)
+
+        return EngineAPIResult(result=True, message="success")
 
     @force_skip_and_retry_decorator("can_skip")
     def skip_node(self, node_id: str, is_force: bool = False) -> EngineAPIResult:
