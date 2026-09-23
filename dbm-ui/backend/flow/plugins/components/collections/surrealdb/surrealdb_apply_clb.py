@@ -44,7 +44,7 @@ class ApplySurrealDBClbService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         logger.info(_("获取 surrealdb CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
-        regions_resp = KubernetesApi.get_regions(bkBizId=bk_biz_id, isPublic=is_public)
+        regions_resp = KubernetesApi.get_regions(params={"bkBizId": bk_biz_id, "isPublic": is_public})
 
         # 匹配clusterName与k8s_cluster_name一致的数据，获取vpcID和regionCode
         region_code = ""
