@@ -13,12 +13,13 @@
 
 <template>
   <div class="domain-table">
+    <!-- row-key 不能用 set_id：set_id 是正在编辑的集群ID，值一变整行就会重建；行数据上没有 index 字段，会回退到 rowIndex -->
     <PrimaryTable
       class="domain-address"
       :columns="columns"
       :data="tableData"
       :empty="t('请选择业务和DB模块名')"
-      row-key="set_id" />
+      row-key="index" />
   </div>
 </template>
 
@@ -37,7 +38,7 @@
   import ClusterIdBatchEdit from './ClusterIdBatchEdit.vue';
   import ClusterNameBatchEdit from './ClusterNameBatchEdit.vue';
 
-  type FormItem = typeof Form.FormItem;
+  type FormItem = InstanceType<typeof Form.FormItem>;
 
   interface Domain {
     [key: string]: string;
@@ -48,7 +49,6 @@
 
   interface Props {
     appAbbr: string;
-    nodesNumber: number;
   }
 
   const props = defineProps<Props>();
@@ -138,7 +138,7 @@
       cell: (_, { rowIndex }) => (
         <bk-form-item
           key={rowIndex}
-          ref={(value: FormItem) => setSetIdRef(value)}
+          ref={(el: unknown) => setFormItemRef(clusterIdRefs, el, rowIndex)}
           class={{
             'cell-item': true,
             'domain-address-item-empty': !domains.value[rowIndex]?.set_id,
@@ -183,7 +183,7 @@
       cell: (_, { rowIndex }) => (
         <bk-form-item
           key={rowIndex}
-          ref={(value: FormItem) => setNameRef(value)}
+          ref={(el: unknown) => setFormItemRef(clusterNameRefs, el, rowIndex)}
           class='cell-item'
           errorDisplayType='tooltips'
           label-width={0}
@@ -210,8 +210,9 @@
     },
   ];
 
-  const clusterIdRefs: FormItem[] = [];
-  const clusterNameRefs: FormItem[] = [];
+  // form-item refs 按行号存，行卸载时移除
+  const clusterIdRefs = new Map<number, FormItem>();
+  const clusterNameRefs = new Map<number, FormItem>();
 
   // 没有 appName 则不展示 table 数据
   const tableData = computed(() => {
@@ -223,23 +224,11 @@
   const clusterIdKeys = computed(() => tableData.value.map((item) => item.set_id));
   // const clusterNameKeys = computed(() => tableData.value.map(item => item.name));
 
-  watch(
-    () => props.nodesNumber,
-    () => {
-      clusterIdRefs.splice(0, clusterIdRefs.length - 1);
-      clusterNameRefs.splice(0, clusterNameRefs.length - 1);
-    },
-  );
-
-  const setSetIdRef = (el: FormItem) => {
+  const setFormItemRef = (refs: Map<number, FormItem>, el: unknown, rowIndex: number) => {
     if (el) {
-      clusterIdRefs.push(el);
-    }
-  };
-
-  const setNameRef = (el: FormItem) => {
-    if (el) {
-      clusterNameRefs.push(el);
+      refs.set(rowIndex, el as FormItem);
+    } else {
+      refs.delete(rowIndex);
     }
   };
 
