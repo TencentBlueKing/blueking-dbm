@@ -20,7 +20,7 @@ import (
 
 // 按需采集条件的默认阈值
 const (
-	defaultSnapshotKeepDays              = 2
+	defaultSnapshotKeepHours             = 48
 	defaultSnapshotLongQueryTime   int64 = 30
 	defaultSnapshotThreadsRunning        = 50
 	defaultSnapshotFreeConnections       = 10
@@ -29,8 +29,8 @@ const (
 // initSnapshotOptions 阈值没配置时用默认值
 func (c *Checker) initSnapshotOptions() {
 	// 保留天数和按需采集无关, 无条件填充
-	if c.SnapshotKeepDays <= 0 {
-		c.SnapshotKeepDays = defaultSnapshotKeepDays
+	if c.SnapshotKeepHours <= 0 {
+		c.SnapshotKeepHours = defaultSnapshotKeepHours
 	}
 
 	if !c.SnapshotOnDemand {
@@ -81,7 +81,8 @@ func (c *Checker) needSnapshotToDisk(processList []*mysqlProcess) bool {
 	// processlist 就是当前的全部连接, 不用再查一次 Threads_connected
 	maxConnections, err := queryMaxConnections(c.db)
 	if err != nil {
-		return true
+		// c.db 已经是有效连接了，这里失败是未知错误，不快照了
+		return false
 	}
 	if freeConnections := maxConnections - len(processList); freeConnections < c.SnapshotFreeConnections {
 		slog.Info(

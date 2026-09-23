@@ -234,7 +234,7 @@
   role: []
   options:
     snapshot_on_demand: true
-    snapshot_keep_days: 2
+    snapshot_keep_hours: 48
     snapshot_long_query_time: 30
     snapshot_long_query_exclude_user: []
     snapshot_threads_running: 50

@@ -369,7 +369,7 @@
   },
   {
     "conf_name": "scene-snapshot",
-    "value_default": "{\"enable\":false,\"name\":\"scene-snapshot\",\"role\":[],\"machine_type\":[\"spider\",\"remote\",\"backend\",\"single\"],\"schedule\":\"@every 1m\"}",
+    "value_default": "{\"enable\":true,\"name\":\"scene-snapshot\",\"role\":[],\"machine_type\":[\"spider\",\"remote\",\"backend\",\"single\"],\"schedule\":\"@every 1m\", \"options\": {\"snapshot_on_demand\": true, \"snapshot_keep_hours\": 48, \"snapshot_long_query_time\": 60, \"snapshot_long_query_exclude_user\": [\"dba_bak_all_sel\", \"MONITOR\"], \"snapshot_threads_running\": 50, \"query_kill_enable\": false, \"query_kill_rules\": [{ \"rule_name\": \"bad-query-1\", \"match_user\": \"xxuser\", \"match_query\": \"^(?is)select\\\\s.*XXXXXXXXTable.*group by c1,c2\", \"match_command\": \"Query\", \"match_host\": \"\", \"time_gt\": 60 }]}}",
     "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "MAP",
