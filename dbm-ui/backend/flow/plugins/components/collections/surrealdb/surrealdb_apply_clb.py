@@ -34,7 +34,9 @@ class ApplySurrealDBClbService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
-        cluster_name = global_data["k8s_cluster_name"]
+        cluster_name = global_data["cluster_name"]
+        k8s_cluster_name = global_data["k8s_cluster_name"]
+        bk_biz_id = global_data["bk_biz_id"]
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
@@ -42,13 +44,13 @@ class ApplySurrealDBClbService(BaseService):
 
         regions_resp = KubernetesApi.get_regions()
 
-        # 匹配clusterName与cluster_name一致的数据，获取vpcID和regionCode
+        # 匹配clusterName与k8s_cluster_name一致的数据，获取vpcID和regionCode
         region_code = ""
         region_name = ""
         vpc_id = ""
         for region in regions_resp:
             for k8s_cluster in region.get("k8sClusterList", []):
-                if k8s_cluster.get("clusterName") == cluster_name:
+                if k8s_cluster.get("clusterName") == k8s_cluster_name:
                     region_code = region.get("regionCode", "")
                     region_name = region.get("regionName", "")
                     vpc_id = k8s_cluster.get("vpcID", "")
@@ -57,17 +59,18 @@ class ApplySurrealDBClbService(BaseService):
                 break
 
         if not region_code or not vpc_id:
-            self.log_error(_("未找到与集群名称 {} 匹配的区域信息").format(cluster_name))
+            self.log_error(_("未找到与集群名称 {} 匹配的区域信息").format(k8s_cluster_name))
             return False
 
         # 申请CLB
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": f"{cluster_name}-{CLB_NAME_SUFFIX}",
+            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}",
             "clb_nums": 1,
             "async_to_dbm": False,
         }
+        logger.info(_("申请 surrealdb CLB，clb_name: {}").format(params["clb_name"]))
 
         clb_id = KubernetesApi.apply_clb(params)
 
