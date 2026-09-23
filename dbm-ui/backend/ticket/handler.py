@@ -378,7 +378,17 @@ class TicketHandler:
             ticket.todo_of_ticket.exclude(type=TodoType.INNER_APPROVE).filter(status__in=TODO_RUNNING_STATUS).first()
             for ticket in tickets
         ]
-        operations = [{"todo_id": todo.id, "params": params} for todo in running_todos if todo]
+        operations = []
+        all_version = params.pop("version", {})
+        for todo in running_todos:
+            if todo:
+                params["version"] = all_version.get(todo.ticket.id, "")
+                operations.append(
+                    {
+                        "todo_id": todo.id,
+                        "params": params,
+                    }
+                )
         return TicketHandler.batch_process_todo(user=username, action=action, operations=operations)
 
     @classmethod

@@ -68,7 +68,16 @@ from backend.ticket.filters import (
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import CheckDomainRepeatHandler, TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
+from backend.ticket.models import (
+    ClusterOperateRecord,
+    Flow,
+    InstanceOperateRecord,
+    Ticket,
+    TicketFlowsConfig,
+    TicketSnapshot,
+    Todo,
+)
+from backend.ticket.modify import TicketModifyHandler
 from backend.ticket.serializers import (
     BatchTicketOperateSerializer,
     BatchTodoOperateSerializer,
@@ -92,9 +101,12 @@ from backend.ticket.serializers import (
     SensitiveTicketSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
+    TicketModifySerializer,
     TicketSerializer,
+    TicketSnapshotSerializer,
     TicketTypeResponseSLZ,
     TicketTypeSLZ,
+    TicketVersionSerializer,
     TodoOperateSerializer,
     TodoSerializer,
     UpdateTicketFlowConfigSerializer,
@@ -147,7 +159,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         elif self.action == "get_instance_operate_records":
             return [InstanceDetailPermission()]
         # 单据详情，关联单据查看动作
-        elif self.action in ["retrieve", "flows", "retry_flow", "revoke_flow"]:
+        elif self.action in ["retrieve", "flows", "retry_flow", "revoke_flow", "modify_records"]:
             instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
             return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
         # 单据流程设置，关联单据流程设置动作
@@ -158,6 +170,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             "delete_ticket_flow_config",
         ]:
             return ticket_flows_config_permission(self.action, self.request)
+        # 改单接口：权限由 modify handler 内部校验(审批人/提单人/补货处理人)
+        elif self.action == "modify":
+            return []
         # 对于处理todo的接口，可以不用鉴权，todo本身会判断是否是确认人
         elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket", "cluster_disable_todo"]:
             return []
@@ -371,7 +386,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     def flows(self, request, *args, **kwargs):
         """补充todo列表"""
         ticket = self.get_object()
-        serializer = self.get_serializer(ticket.flows.select_related("flowsummary").order_by("id"), many=True)
+        flows = ticket.ordered_flows(ticket.flows.select_related("flowsummary"))
+        serializer = self.get_serializer(flows, many=True)
         return Response(serializer.data)
 
     @common_swagger_auto_schema(
@@ -422,6 +438,69 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         remark = data["remark"]
         TicketHandler.revoke_ticket(ticket_ids, operator=request.user.username, remark=remark)
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("改单"),
+        request_body=TicketModifySerializer(),
+        responses={status.HTTP_200_OK: TicketSerializer(label=_("改单后的单据"))},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=True, serializer_class=TicketModifySerializer)
+    def modify(self, request, pk):
+        """改单统一入口：代为修改/重新编辑/调整申请，权限与状态校验在 modify handler 内完成"""
+        data = self.params_validate(self.get_serializer_class(), context={"ticket_ctx": TicketContext()})
+        ticket = TicketModifyHandler.modify(
+            ticket_id=pk,
+            operator=request.user.username,
+            mode=data["mode"],
+            details=data["details"],
+            remark=data.get("remark") or "",
+            version=data.get("version"),
+            change_count=data.get("change_count") or 0,
+        )
+        # 注意：不能复用 self.get_serializer(ticket)，@action 的 serializer_class 是请求体校验器
+        # TicketModifySerializer，会覆盖掉视图默认的 TicketSerializer，导致序列化出错
+        return Response(TicketSerializer(ticket, context=self.get_serializer_context()).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("改单记录"),
+        responses={status.HTTP_200_OK: TicketSnapshotSerializer(many=True)},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=True, filter_class=None, pagination_class=None)
+    def modify_records(self, request, pk):
+        """单据改单快照记录，用于前端渲染变更对比抽屉"""
+        ticket = self.get_object()
+        records = TicketSnapshot.objects.filter(ticket_id=ticket.id).order_by("id")
+        return Response(TicketSnapshotSerializer(records, many=True).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取单据版本号"),
+        tags=[TICKET_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        filter_class=None,
+        pagination_class=None,
+        serializer_class=TicketVersionSerializer,
+    )
+    def get_ticket_version(self, request, *args, **kwargs):
+        """获取单据版本号"""
+        data = self.params_validate(self.get_serializer_class())
+        ticket_ids = [int(ticket_id) for ticket_id in data["ticket_ids"].split(",")]
+
+        # 按 ticket_id 聚合统计快照条数，即版本号
+        version_qs = (
+            TicketSnapshot.objects.filter(ticket_id__in=ticket_ids).values("ticket_id").annotate(version=Count("id"))
+        )
+
+        # 默认所有单据初始版本号为 0（无任何快照记录）
+        version_map = {ticket_id: 0 for ticket_id in ticket_ids}
+        for item in version_qs:
+            version_map[item["ticket_id"]] = item["version"]
+
+        return Response(version_map)
 
     @swagger_auto_schema(
         operation_summary=_("获取单据类型列表"),

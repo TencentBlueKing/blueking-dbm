@@ -24,6 +24,7 @@ from backend.ticket.constants import (
     TicketStatus,
     TicketType,
 )
+from backend.ticket.flow_manager.confirm_modify import ConfirmModifyFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import (
     HCMReplenishResourceTaskFlow,
@@ -50,6 +51,7 @@ SUPPORTED_FLOW_MAP = {
     FlowType.INNER_FLOW.value: InnerFlow,
     FlowType.QUICK_INNER_FLOW.value: QuickInnerFlow,
     FlowType.PAUSE.value: PauseFlow,
+    FlowType.CONFIRM_MODIFY.value: ConfirmModifyFlow,
     FlowType.DELIVERY.value: DeliveryFlow,
     FlowType.IGNORE_RESULT_INNER_FLOW.value: IgnoreResultInnerFlow,
     FlowType.DESCRIBE_TASK.value: DescribeTaskFlow,
@@ -87,9 +89,13 @@ class TicketFlowManager(object):
 
         # 先取下一个流程，再取当前流程，可以根据流程的顺序保证并发的一致性
         # 如果current_flow晚于next_flow，说明流程已经发起
-        is_init_flow = next_flow.id == self.ticket.flows.first().id
+        # 按 next_flow 链表在内存中排序后，用位置索引比较，兼容存量数据(无标记时退化为按 id)
+        ordered_flows = self.ticket.ordered_flows()
+        flow_index = {flow.id: idx for idx, flow in enumerate(ordered_flows)}
+        first_flow = ordered_flows[0] if ordered_flows else None
+        is_init_flow = first_flow is not None and next_flow.id == first_flow.id
 
-        if current_flow.id >= next_flow.id and not is_init_flow:
+        if flow_index.get(current_flow.id, 0) >= flow_index.get(next_flow.id, 0) and not is_init_flow:
             logger.error(_("流程非预期：当前流程晚于下一个流程"))
             return
 
