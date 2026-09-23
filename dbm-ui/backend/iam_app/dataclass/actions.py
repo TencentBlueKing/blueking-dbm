@@ -1253,6 +1253,20 @@ class ActionEnum:
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    REDIS_ROLLBACK = ActionMeta(
+        id=TicketType.REDIS_ROLLBACK.lower(),
+        subgroup=_("数据复制与构造"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    REDIS_ROLLBACK_DESTROY = ActionMeta(
+        id=TicketType.REDIS_ROLLBACK_DESTROY.lower(),
+        subgroup=_("数据复制与构造"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     REDIS_DESTROY = ActionMeta(
         id=TicketType.REDIS_DESTROY.lower(),
         subgroup=_("集群管理"),

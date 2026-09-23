@@ -116,9 +116,8 @@ func (job *RedisInstall) Name() string {
 	return "redis_install"
 }
 
-// Run 执行
-func (job *RedisInstall) Run() (err error) {
-	// 增加文件锁
+// lockInstall acquires redis_install file lock with a 30m timeout and returns release func.
+func (job *RedisInstall) lockInstall() (release func(), err error) {
 	lockFileName := fmt.Sprintf("%s/%s", consts.PackageSavePath, "redis_install.lock")
 	fl := util.NewFileLock(lockFileName)
 	runTimes := 0
@@ -128,7 +127,6 @@ func (job *RedisInstall) Run() (err error) {
 
 	sleepTime := time.Duration(rand.Intn(10)+1) * time.Second
 	time.Sleep(sleepTime)
-	// 如果持续半个小时都没拿到锁就认为任务失败了
 	for {
 		err := fl.TryFileLock()
 		if err == nil {
@@ -139,7 +137,7 @@ func (job *RedisInstall) Run() (err error) {
 
 		select {
 		case <-timer.C:
-			return errors.New("the task has been executed for more than 30 minutes")
+			return nil, errors.New("the task has been executed for more than 30 minutes")
 		default:
 			runTimes++
 			sleepTime := time.Duration(rand.Intn(5)+5) * time.Second
@@ -150,8 +148,11 @@ func (job *RedisInstall) Run() (err error) {
 			time.Sleep(sleepTime)
 		}
 	}
-	defer fl.ReleaseFileLock()
+	return fl.ReleaseFileLock, nil
+}
 
+// prepareDirs sets up media and instance directories under the install lock.
+func (job *RedisInstall) prepareDirs() (err error) {
 	if err := job.DelShutdownFiles(); err != nil {
 		job.runtime.Logger.Warn("try del shutdown backuo files failed")
 	}
@@ -164,8 +165,46 @@ func (job *RedisInstall) Run() (err error) {
 	if err != nil {
 		return
 	}
-	err = job.InitInstanceDirs()
+	return job.InitInstanceDirs()
+}
+
+// Prepare unpacks media, initializes directories, and renders redis.conf without starting instances.
+// Used when data files must be placed before process start (e.g., rollback).
+func (job *RedisInstall) Prepare() (err error) {
+	release, err := job.lockInstall()
 	if err != nil {
+		return err
+	}
+	defer release()
+
+	if err = job.prepareDirs(); err != nil {
+		return err
+	}
+	for _, port := range job.params.Ports {
+		installed, err := job.IsRedisInstalled(port)
+		if err != nil {
+			return err
+		}
+		if installed {
+			job.runtime.Logger.Info("redis %s:%d already installed, skip config render", job.params.IP, port)
+			continue
+		}
+		if err = job.GenerateConfigFile(port); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Run executes installation.
+func (job *RedisInstall) Run() (err error) {
+	release, err := job.lockInstall()
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	if err = job.prepareDirs(); err != nil {
 		return
 	}
 	err = job.StartAll()

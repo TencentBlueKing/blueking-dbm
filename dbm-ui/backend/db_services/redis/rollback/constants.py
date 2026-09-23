@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.flow.consts import DEFAULT_TWEMPROXY_SEG_MIN_NUM, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM
 
@@ -20,6 +21,11 @@ RESOURCE_TAG = "db_services/redis/rollback"
 BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS = 3
 # 查询同一批次备份，默认是三小时内
 BACKUP_LOG_ROLLBACK_TIME_RANGE_HOURS = 3
+
+# Batch list query window. Large clusters (e.g. 180 shards) produce thousands of file records;
+# capping the window at 30 days protects backend query and frontend rendering performance.
+BACKUP_BATCH_DEFAULT_WINDOW_DAYS = 7
+BACKUP_BATCH_MAX_WINDOW_DAYS = 30
 
 BACKUP_STATUS_SUCCESS = "to_backup_system_success"
 SWITCHED_SHARD_VALUE = "switched-0"
@@ -33,13 +39,15 @@ CACHE_CLUSTER_TYPES = (
     ClusterType.TendisRedisInstance.value,
 )
 
-# rollback_version: datastructure 是旧构造链路(v1)，rollback 是本实现(v2)
+# rollback_version: datastructure = v1 construction flow, rollback = v2 implementation
 DATASTRUCTURE_VERSION = "datastructure"
 ROLLBACK_VERSION = "rollback"
 
-# 回档临时实例独立的 CC 模块名，位于 redis 监控 set 下（如 redis.redisserver/rollback），
-# 不挂到源集群模块，避免临时实例被当成源集群成员采集
-ROLLBACK_CC_MODULE_NAME = "rollback"
+# CC topology for temporary rollback hosts: DBM's own manage set, in the cluster's hosting biz.
+# The set is never registered in AppMonitorTopo, which is where every metric and log collector
+# takes its targets, and clean_cc_topo keeps its empty modules.
+ROLLBACK_CC_SET_NAME = DB_MANAGE_SET
+ROLLBACK_CC_MODULE_NAME = "redis.rollback"
 
 SELECT_MODE_BY_TIME = "by_time"
 SELECT_MODE_BY_IDENTIFY = "by_identify"
@@ -72,5 +80,7 @@ IDENTIFY_UNKNOWN = "UNKNOWN"
 FILTER_MODE_DELETE_MATCHED = "delete_matched"
 FILTER_MODE_KEEP_MATCHED = "keep_matched"
 
+# Conservative unpacked/compressed size ratio for backup files, used by the disk precheck.
+UNPACK_RATIO = 3
 DISK_USED_RATIO_FAIL = 85
 DISK_USED_PLUS_NEED_RATIO_FAIL = 0.9

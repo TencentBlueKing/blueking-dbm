@@ -512,6 +512,9 @@ class TicketType(StrStructuredEnum):
     REDIS_DATA_STRUCTURE = TicketEnumField("REDIS_DATA_STRUCTURE", _("Redis 集群数据构造"), _("数据构造"))
     REDIS_DATA_STRUCTURE_TASK_DELETE = TicketEnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("Redis 数据构造记录删除"),
                                                        _("数据构造"), register_iam=True)  # noqa
+    REDIS_ROLLBACK = TicketEnumField("REDIS_ROLLBACK", _("Redis 备份恢复"), _("数据构造"), register_iam=True)
+    REDIS_ROLLBACK_DESTROY = TicketEnumField("REDIS_ROLLBACK_DESTROY", _("Redis 备份恢复实例删除"), _("数据构造"),
+                                             register_iam=True)  # noqa
     REDIS_CLUSTER_SHARD_NUM_UPDATE = TicketEnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("Redis 集群分片数变更"),
                                                      _("集群维护"))
     REDIS_CLUSTER_TYPE_UPDATE = TicketEnumField("REDIS_CLUSTER_TYPE_UPDATE", _("Redis 集群类型变更"), _("集群维护"))

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,6 +40,7 @@ type RedisInsKeyPatternJobParam struct {
 	InstNum              int                 `json:"inst_num"`
 	KeyWhiteRegex        string              `json:"key_white_regex"`
 	KeyBlackRegex        string              `json:"key_black_regex"`
+	FilterMode           string              `json:"filter_mode"` // "" / "delete_matched" (default) | "keep_matched"
 	IsKeysToBeDel        bool                `json:"is_keys_to_be_del"`
 	DeleteRate           int                 `json:"delete_rate"`            // cache Redis删除速率,避免del 命令执行过快
 	TendisplusDeleteRate int                 `json:"tendisplus_delete_rate"` // tendisplus删除速率,避免del 命令执行过快
@@ -88,11 +90,24 @@ func (job *TendisKeysPattern) Init(m *jobruntime.JobGenericRuntime) error {
 
 	job.params.KeyWhiteRegex = util.TrimLines(job.params.KeyWhiteRegex)
 	job.params.KeyBlackRegex = util.TrimLines(job.params.KeyBlackRegex)
-	// 白名单不能为空
-	if job.params.KeyWhiteRegex == "" {
-		err = fmt.Errorf("%s为空,白名单不能为空", job.params.KeyWhiteRegex)
-		job.runtime.Logger.Error(err.Error())
-		return err
+	if job.params.FilterMode == "" {
+		job.params.FilterMode = "delete_matched"
+	}
+	if job.params.FilterMode == "keep_matched" {
+		if job.params.KeyWhiteRegex == "" {
+			err = fmt.Errorf("keep_matched 模式白名单不能为空")
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+	} else {
+		if job.params.KeyWhiteRegex == "" && job.params.KeyBlackRegex == "" {
+			err = fmt.Errorf("白名单和黑名单不能同时为空")
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		if job.params.KeyWhiteRegex == "" {
+			job.params.KeyWhiteRegex = ".*"
+		}
 	}
 
 	// ports 和 inst_num 不能同时为空
@@ -150,6 +165,7 @@ func (job *TendisKeysPattern) Run() (err error) {
 			return err
 		}
 		task.newConnect()
+		task.FilterMode = job.params.FilterMode
 		keyTasks = append(keyTasks, task)
 	}
 
@@ -223,7 +239,7 @@ type RedisInsKeyPatternTask struct {
 	SegStart             int                 `json:"segStart"` // 源实例所属segment start
 	SegEnd               int                 `json:"segEnd"`   // 源实例所属segment end
 	DbList               []int               `json:"dbList"`   // 单实例后续可能会支持多db提取key操作, 默认只支持db0
-
+	FilterMode           string              `json:"filterMode"`
 }
 
 // NewRedisInsKeyPatternTask new redis instance keypattern task
@@ -1162,13 +1178,20 @@ func (task *RedisInsKeyPatternTask) GetTendisKeys() {
 	msg = fmt.Sprintf("try to get filelock:%s success,starting getTendisKeys,addr:%s", lockFile, task.Addr())
 	task.runtime.Logger.Info(msg)
 
+	keepMode := task.FilterMode == "keep_matched"
+	origWhite, origBlack := task.KeyWhiteRegex, task.KeyBlackRegex
+	if keepMode {
+		task.KeyWhiteRegex = ".*"
+		task.KeyBlackRegex = ""
+	}
+
 	task.GetMasterData()
 	if task.Err != nil {
 		return
 	}
 
-	// 如果key模式(白名单)中所有key都要求精确匹配,则无需去提取
-	if task.IsAllKeyNamesInWhiteRegex() {
+	// keep_matched dumps all keys first, then inverts locally.
+	if !keepMode && task.IsAllKeyNamesInWhiteRegex() {
 		task.getKeysFromRegex()
 		return
 	}
@@ -1191,6 +1214,87 @@ func (task *RedisInsKeyPatternTask) GetTendisKeys() {
 		task.Err = fmt.Errorf("unknown db type:%s,ip:%s,port:%d", task.TendisType, task.IP, task.Port)
 		task.runtime.Logger.Error(task.Err.Error())
 		return
+	}
+	if keepMode {
+		task.KeyWhiteRegex = origWhite
+		task.KeyBlackRegex = origBlack
+		task.applyKeepMatchedFilter()
+	}
+}
+
+func (task *RedisInsKeyPatternTask) applyKeepMatchedFilter() {
+	if task.Err != nil || task.ResultFile == "" {
+		return
+	}
+	whitePattern := task.getSafeRegexPattern(task.KeyWhiteRegex)
+	blackPattern := task.getSafeRegexPattern(task.KeyBlackRegex)
+	if task.Err != nil {
+		return
+	}
+	var whiteRe, blackRe *regexp.Regexp
+	var err error
+	if whitePattern != "" && whitePattern != ".*" {
+		whiteRe, err = regexp.Compile(whitePattern)
+		if err != nil {
+			task.Err = fmt.Errorf("keep_matched white regex compile fail: %v", err)
+			return
+		}
+	}
+	if blackPattern != "" && blackPattern != ".*" {
+		blackRe, err = regexp.Compile(blackPattern)
+		if err != nil {
+			task.Err = fmt.Errorf("keep_matched black regex compile fail: %v", err)
+			return
+		}
+	}
+	heartbeat := fmt.Sprintf("%s_%s:heartbeat", task.MasterIP, task.MasterPort)
+	dbha := fmt.Sprintf("dbha:agent:%s", task.MasterIP)
+	inFile, err := os.Open(task.ResultFile)
+	if err != nil {
+		task.Err = err
+		return
+	}
+	defer inFile.Close()
+	tmpFile := task.ResultFile + ".keep_matched"
+	outFile, err := os.OpenFile(tmpFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0755)
+	if err != nil {
+		task.Err = err
+		return
+	}
+	scanner := bufio.NewScanner(inFile)
+	buf := make([]byte, 0, 1024*1024)
+	scanner.Buffer(buf, 10*1024*1024)
+	for scanner.Scan() {
+		key := scanner.Text()
+		if key == "" {
+			continue
+		}
+		if strings.Contains(key, heartbeat) || strings.Contains(key, dbha) {
+			continue
+		}
+		keep := true
+		if whiteRe != nil {
+			keep = whiteRe.MatchString(key)
+		}
+		if keep && blackRe != nil && blackRe.MatchString(key) {
+			keep = false
+		}
+		if keep {
+			continue
+		}
+		if _, err = outFile.WriteString(key + "\n"); err != nil {
+			task.Err = err
+			outFile.Close()
+			return
+		}
+	}
+	outFile.Close()
+	if err = scanner.Err(); err != nil {
+		task.Err = err
+		return
+	}
+	if err = os.Rename(tmpFile, task.ResultFile); err != nil {
+		task.Err = err
 	}
 }
 
