@@ -7,6 +7,8 @@ import (
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,6 +28,14 @@ type pitrRebuildClusterParams struct {
 	DstCluster    common.MongoCluster `json:"dst_cluster"`
 	SrcShard      common.MongoSet     `json:"src_shard"`
 	DstShard      common.MongoSet     `json:"dst_shard"`
+	ShardMap      []pitrShardMapEntry `json:"shard_map"`
+}
+
+// pitrShardMapEntry flow下发的 源shard -> 目标shard 显式配对。
+// 与灌备份、shardIdentity 用的是同一份配对，按set_name关联，不依赖数组下标。
+type pitrShardMapEntry struct {
+	SrcSetName string `json:"src_set_name"`
+	DstSetName string `json:"dst_set_name"`
 }
 
 // PitrRebuildClusterJob 结构体
@@ -157,19 +167,20 @@ func (s *PitrRebuildClusterJob) updateConfigsvr() error {
 
 	// insert config.shards
 	// format like { "_id" : "srcShard.SetName", "host" : "dstShard.Host", "state" : 1 }
+	pairs, err := s.resolveShardPairs()
+	if err != nil {
+		return err
+	}
 
-	for i := 0; i < len(s.ConfParams.SrcCluster.Shards); i++ {
-		srcShard := s.ConfParams.SrcCluster.Shards[i]
-		dstShard := s.ConfParams.DstCluster.Shards[i]
-
-		dstHost, err := dstShard.GetConfigShardHost()
+	for _, pair := range pairs {
+		dstHost, err := pair.dst.GetConfigShardHost()
 		if err != nil {
 			return errors.Wrap(err, "get config shard row")
 		}
 		_, err = cli.Database("config").Collection("shards").InsertOne(
 			context.TODO(),
 			bson.D{
-				{Key: "_id", Value: srcShard.SetName},
+				{Key: "_id", Value: pair.srcSetName},
 				{Key: "host", Value: dstHost},
 				{Key: "state", Value: 1},
 			},
@@ -177,7 +188,7 @@ func (s *PitrRebuildClusterJob) updateConfigsvr() error {
 		if err != nil {
 			return errors.Wrap(err, "update config shard")
 		}
-		s.runtime.Logger.Info("update config shard success")
+		s.runtime.Logger.Info("update config.shards %s -> %s", pair.srcSetName, dstHost)
 	}
 
 	err = op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
@@ -232,6 +243,10 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 		return errors.Wrap(err, "drop local db")
 	}
 
+	if err = s.dropRoutingCache(cli); err != nil {
+		return err
+	}
+
 	rows, err := fetchAll(cli, "admin", "system.version", 100)
 	if err != nil {
 		return errors.Wrap(err, "fetch all system.version")
@@ -250,39 +265,23 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 		return errors.Wrap(err, "delete minOpTimeRecovery")
 	}
 
+	// shardIdentity 来自源集群备份：只改 shardName 与 config.shards 对齐；
+	// configsvrConnectionString / clusterId 保持备份原值，不改成目标集群。
 	ret := cli.Database("admin").Collection("system.version").FindOne(context.TODO(),
 		bson.D{{Key: "_id", Value: "shardIdentity"}})
-
-	if ret.Err() != nil && !errors.Is(ret.Err(), mongo.ErrNoDocuments) {
+	if ret.Err() != nil {
+		if errors.Is(ret.Err(), mongo.ErrNoDocuments) {
+			return errors.Wrap(ret.Err(), "shardIdentity not found")
+		}
 		return errors.Wrap(ret.Err(), "find shardIdentity")
 	}
 
-	var shardIdentityRow common.ShardIdentity
-
-	if errors.Is(ret.Err(), mongo.ErrNoDocuments) {
-		// todo insert
-		return errors.Wrap(ret.Err(), "shardIdentitynot found")
-	} else {
-		err = ret.Decode(&shardIdentityRow)
-		if err != nil {
-			return errors.Wrap(err, "decode shardIdentity")
-		}
-		shardIdentityRow.ShardName = s.ConfParams.DstShard.SetName
-		configHost, err := s.ConfParams.DstCluster.Configsvr.GetConfigShardHost()
-		if err != nil {
-			return errors.Wrap(err, "get config host")
-		}
-		shardIdentityRow.ConfigsvrConnectionString = fmt.Sprintf("%s/%s", s.ConfParams.DstShard.SetName, configHost)
-	}
-
-	// update shardName in admin.system.version
 	_, err = cli.Database("admin").Collection("system.version").UpdateOne(
 		context.TODO(),
 		bson.D{{Key: "_id", Value: "shardIdentity"}},
 		bson.D{{Key: "$set", Value: bson.D{
 			{Key: "shardName", Value: s.ConfParams.SrcShard.SetName},
 		}}}, nil)
-
 	if err != nil {
 		return errors.Wrap(err, "update shardIdentity")
 	}
@@ -297,6 +296,31 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 
 	err = s.reInitiate(op)
 	return err
+}
+
+// dropRoutingCache 删除shardsvr本地持久化的路由缓存 config.cache.*
+// 回档会把源集群的 config.cache.* 一并导入，其中的 collection version 可能高于目标configsvr。
+// 同一epoch下shard的路由缓存只能单调前进，残留的高版本会让mongos的setShardVersion被拒绝并无限重试。
+// 只能在standalone下执行：以shardsvr角色运行时这些表由CatalogCacheLoader持有，drop后会被重新写回。
+// cli : 以standalone方式直连的mongo client
+// return error if failed
+func (s *PitrRebuildClusterJob) dropRoutingCache(cli *mongo.Client) error {
+	configDb := cli.Database("config")
+	names, err := configDb.ListCollectionNames(context.TODO(), bson.D{})
+	if err != nil {
+		return errors.Wrap(err, "list config collections")
+	}
+	for _, name := range names {
+		// cache.collections, cache.databases, cache.chunks.<ns|uuid>
+		if !strings.HasPrefix(name, "cache.") {
+			continue
+		}
+		if err = configDb.Collection(name).Drop(context.TODO()); err != nil {
+			return errors.Wrap(err, "drop config."+name)
+		}
+		s.runtime.Logger.Info("drop config.%s success", name)
+	}
+	return nil
 }
 
 // reInitiate 重新初始化，只有一个节点
@@ -350,4 +374,125 @@ func fetchAll(cli *mongo.Client, db, coll string, maxRow int) (rows []string, er
 		}
 	}
 	return rows, nil
+}
+
+// shardPair 一条 config.shards 记录：以源shard名为_id，指向目标shard的host
+type shardPair struct {
+	srcSetName string
+	dst        common.MongoSet
+}
+
+// resolveShardPairs 确定写入config.shards的配对。
+// 优先使用flow下发的shard_map，它与灌备份、shardIdentity 是同一份配对；
+// 老版本flow的payload没有这个字段，回退到按set_name数字后缀排序（与flow的排序规则一致）。
+func (s *PitrRebuildClusterJob) resolveShardPairs() ([]shardPair, error) {
+	srcShards, dstShards := s.ConfParams.SrcCluster.Shards, s.ConfParams.DstCluster.Shards
+
+	if len(s.ConfParams.ShardMap) == 0 {
+		s.runtime.Logger.Info("shard_map absent in payload, fallback to set_name order pairing")
+		return pairShardsBySetName(srcShards, dstShards)
+	}
+
+	if len(s.ConfParams.ShardMap) != len(srcShards) {
+		return nil, errors.Errorf("shard_map size %d not equal src shard count %d",
+			len(s.ConfParams.ShardMap), len(srcShards))
+	}
+
+	srcBySetName := make(map[string]struct{}, len(srcShards))
+	for _, one := range srcShards {
+		srcBySetName[one.SetName] = struct{}{}
+	}
+	dstBySetName := make(map[string]common.MongoSet, len(dstShards))
+	for _, one := range dstShards {
+		dstBySetName[one.SetName] = one
+	}
+
+	pairs := make([]shardPair, 0, len(s.ConfParams.ShardMap))
+	seenSrc := make(map[string]struct{}, len(s.ConfParams.ShardMap))
+	seenDst := make(map[string]struct{}, len(s.ConfParams.ShardMap))
+	for _, entry := range s.ConfParams.ShardMap {
+		if entry.SrcSetName == "" || entry.DstSetName == "" {
+			return nil, errors.Errorf("bad shard_map entry %+v", entry)
+		}
+		if _, dup := seenSrc[entry.SrcSetName]; dup {
+			return nil, errors.Errorf("duplicated src set_name %s in shard_map", entry.SrcSetName)
+		}
+		if _, dup := seenDst[entry.DstSetName]; dup {
+			return nil, errors.Errorf("duplicated dst set_name %s in shard_map", entry.DstSetName)
+		}
+		if _, ok := srcBySetName[entry.SrcSetName]; !ok {
+			return nil, errors.Errorf("src set_name %s in shard_map not found in src_cluster", entry.SrcSetName)
+		}
+		dstShard, ok := dstBySetName[entry.DstSetName]
+		if !ok {
+			return nil, errors.Errorf("dst set_name %s in shard_map not found in dst_cluster", entry.DstSetName)
+		}
+		seenSrc[entry.SrcSetName] = struct{}{}
+		seenDst[entry.DstSetName] = struct{}{}
+		pairs = append(pairs, shardPair{srcSetName: entry.SrcSetName, dst: dstShard})
+	}
+
+	return pairs, nil
+}
+
+// shardSetNameNumericSuffix 取 set_name 末尾连续数字并去掉前导0。
+// 现网存在不带编号的set_name，此时返回"0"，与 Python __get_shard_idx 的默认值一致。
+func shardSetNameNumericSuffix(setName string) string {
+	end := len(setName)
+	start := end
+	for start > 0 {
+		c := setName[start-1]
+		if c < '0' || c > '9' {
+			break
+		}
+		start--
+	}
+
+	digits := strings.TrimLeft(setName[start:end], "0")
+	if digits == "" {
+		return "0"
+	}
+	return digits
+}
+
+// compareShardSetName 复刻 Python get_shards(sort_by_set_name=True) 的排序键 (编号, set_name)。
+// 编号按数值比较，但用「位数+字典序」而不是转int，避免超长数字后缀溢出。
+// 编号相同（含两个都不带编号）时按名字比较，保证与Python一样不依赖CMDB行序。
+func compareShardSetName(left, right string) int {
+	lDigits, rDigits := shardSetNameNumericSuffix(left), shardSetNameNumericSuffix(right)
+	if len(lDigits) != len(rDigits) {
+		if len(lDigits) < len(rDigits) {
+			return -1
+		}
+		return 1
+	}
+	if lDigits != rDigits {
+		return strings.Compare(lDigits, rDigits)
+	}
+	return strings.Compare(left, right)
+}
+
+func sortMongoSetsBySetName(sets []common.MongoSet) []common.MongoSet {
+	out := make([]common.MongoSet, len(sets))
+	copy(out, sets)
+	sort.SliceStable(out, func(i, j int) bool {
+		return compareShardSetName(out[i].SetName, out[j].SetName) < 0
+	})
+	return out
+}
+
+// pairShardsBySetName 按 set_name 数字后缀排序后按下标配对源/目标 shard。
+// 仅用于兼容没有下发shard_map的老payload。直接用CMDB列表下标配对会在源集群扩容后错位
+// （源 s20,s50,s24,s3 vs 临时 s1,s2,s3,s4）。
+func pairShardsBySetName(src, dst []common.MongoSet) ([]shardPair, error) {
+	if len(src) != len(dst) {
+		return nil, errors.Errorf("src shard count %d not equal dst shard count %d", len(src), len(dst))
+	}
+	srcSorted := sortMongoSetsBySetName(src)
+	dstSorted := sortMongoSetsBySetName(dst)
+	pairs := make([]shardPair, len(srcSorted))
+	for i := range srcSorted {
+		pairs[i] = shardPair{srcSetName: srcSorted[i].SetName, dst: dstSorted[i]}
+	}
+	return pairs, nil
 }

@@ -229,6 +229,7 @@ class TestCalculateClusterReduceShard:
         after = [s.set_name for s in cluster.shards]
         assert before == after == ["demo-s3", "demo-s1", "demo-s2"]
         assert ordered == ["demo-s1", "demo-s2", "demo-s3"]
+        assert [s["set_name"] for s in cluster.__json__()["shards"]] == ["demo-s1", "demo-s2", "demo-s3"]
 
     def test_by_count_picks_highest_numbered_shards(self, monkeypatch):
         # 每机 1 片时缩 2 片：取编号最大的 2 个，剩余仍均衡
