@@ -105,7 +105,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             db_act_template["payload"].update(kwargs["cluster"])
 
         # 这里有些场景没有tendis_backup_info，比如key删除
-        if getattr(trans_data, "tendis_backup_info"):
+        if getattr(trans_data, "tendis_backup_info", None):
             db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
 
         db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))

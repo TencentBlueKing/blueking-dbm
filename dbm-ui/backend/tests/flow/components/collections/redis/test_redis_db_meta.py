@@ -114,3 +114,35 @@ def test_redis_rollback_host_transfer_rejects_missing_cluster_module_before_call
     assert MachineType.TENDISCACHE.value in error_message
     assert MachineType.TENDISPLUS.value in error_message
     mock_cc_operator.assert_not_called()
+
+
+def test_redis_rollback_cc_transfer_uses_standalone_set_outside_monitoring():
+    from backend.db_services.redis.rollback.constants import ROLLBACK_CC_MODULE_NAME, ROLLBACK_CC_SET_NAME
+
+    ticket_data = {"bk_biz_id": 3, "created_by": "admin"}
+    activity_cluster = {
+        "bk_cloud_id": 0,
+        "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
+        "temp_instances": ["1.1.1.3:30000", "1.1.1.3:30001", "1.1.1.4:30000"],
+    }
+    hosts = {"1.1.1.3": 123, "1.1.1.4": 124}
+
+    def get_instance(machine__ip, machine__bk_cloud_id, port):
+        return SimpleNamespace(machine=SimpleNamespace(ip=machine__ip, bk_host_id=hosts[machine__ip]), port=port)
+
+    with patch("backend.flow.utils.redis.redis_db_meta.StorageInstance.objects.get", side_effect=get_instance), patch(
+        "backend.flow.utils.redis.redis_db_meta.CcManage"
+    ) as mock_cc_manage, patch(
+        "backend.db_services.cmdb.biz.get_or_create_set_with_name", return_value=555
+    ) as mock_set, patch(
+        "backend.db_services.cmdb.biz.get_or_create_cmdb_module_with_name", return_value=777
+    ) as mock_module:
+        cc_manage = mock_cc_manage.return_value
+        cc_manage.hosting_biz_id = 9
+        RedisDBMeta(ticket_data=ticket_data, cluster=activity_cluster).redis_rollback_cc_transfer()
+
+    mock_set.assert_called_once_with(9, ROLLBACK_CC_SET_NAME)
+    mock_module.assert_called_once_with(9, 555, ROLLBACK_CC_MODULE_NAME)
+    cc_manage.get_or_create_set_module.assert_not_called()
+    cc_manage.transfer_host_module.assert_called_once_with([123, 124], [777], is_increment=False)
+    assert (ROLLBACK_CC_SET_NAME, ROLLBACK_CC_MODULE_NAME) == ("db.manage.set", "redis.rollback")

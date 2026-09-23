@@ -190,6 +190,20 @@ class RedisDataStructureContext:
 
 
 @dataclass
+class RedisRollbackContext:
+    """Pipeline context for Redis rollback v2.
+
+    Declares only fields actively read or written by this flow.
+    """
+
+    redis_act_payload: Optional[Any] = None  # Class instance generating actuator payloads
+    disk_used: dict = field(default_factory=dict)  # Disk usage stats populated by disk check act
+    backup_dir: str = None  # Root directory for downloaded backups
+    alarm_shield_id: int = None  # Alarm shield ID
+    tendis_backup_info: list = None  # Read by the shared actuator component; unused by this flow
+
+
+@dataclass
 class RedisRollbackExerciseContext:
     """
     回档演练上下文

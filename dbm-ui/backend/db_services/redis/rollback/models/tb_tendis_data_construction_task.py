@@ -43,6 +43,10 @@ class TbTendisRollbackTasks(AuditedModel):
     host_count = models.IntegerField(verbose_name=_("构造的主机数量"))
     recovery_time_point = models.DateTimeField(verbose_name=_("构造到指定时间"))
     temp_redis_password = models.CharField(max_length=128, default="", verbose_name=_("临时集群redis密码base64值"))
+    rollback_version = models.CharField(max_length=16, default="datastructure", verbose_name=_("回档实现版本"))
+    rollback_mode = models.CharField(max_length=32, default="", verbose_name=_("选备模式"))
+    backup_identify = models.CharField(max_length=255, default="", verbose_name=_("备份批次标识"))
+    rollback_detail = models.JSONField(default=dict, verbose_name=_("回档明细"))
 
     class Meta:
         db_table = "tb_tendis_rollback_tasks"

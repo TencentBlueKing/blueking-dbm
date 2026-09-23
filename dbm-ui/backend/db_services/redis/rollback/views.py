@@ -33,6 +33,7 @@ from .handlers import DataStructureHandler
 from .models import TbTendisRollbackTasks
 from .serializers import (
     BackupBatchQuerySerializer,
+    BatchDetailQuerySerializer,
     CheckTimeSerializer,
     RollbackPrecheckSerializer,
     RollbackSerializer,
@@ -151,12 +152,8 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
             return Response({"exist": True, "msg": "success"})
 
 
-@method_decorator(
-    name="list_batches",
-    decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),
-)
 class BackupBatchViewSet(SystemViewSet):
-    """回档备份批次与预检。"""
+    """Backup batches and precheck endpoints for redis rollback."""
 
     default_permission_class = [DBManagePermission()]
 
@@ -173,6 +170,20 @@ class BackupBatchViewSet(SystemViewSet):
         end_time = str2datetime(data["end_time"]) if data.get("end_time") else None
         result = BackupBatchService(cluster).list_batches(
             start_time=start_time, end_time=end_time, shard_values=data.get("shard_values") or None
+        )
+        return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("备份批次分片详情"),
+        request_body=BatchDetailQuerySerializer(),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BatchDetailQuerySerializer)
+    def batch_details(self, request, bk_biz_id, **kwargs):
+        data = self.validated_data
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=data["cluster_id"])
+        result = BackupBatchService(cluster).batch_details(
+            backup_identify=data["backup_identify"], shard_values=data.get("shard_values") or None
         )
         return Response(result)
 

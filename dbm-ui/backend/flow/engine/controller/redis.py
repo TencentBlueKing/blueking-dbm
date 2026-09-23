@@ -61,6 +61,8 @@ from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyS
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_replicas_force_resync import RedisReplicasForceResyncSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.destroy import RedisRollbackDestroyFlow
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.flow import RedisRollbackFlow
 from backend.flow.engine.bamboo.scene.redis.redis_rollback_exercise import RedisRollbackExerciseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill import (
@@ -319,6 +321,16 @@ class RedisController(BaseController):
         """
         flow = RedisDataStructureTaskDeleteFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_rollback_task_delete_flow()
+
+    def redis_rollback(self):
+        """Redis rollback v2 flow entry."""
+        flow = RedisRollbackFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_rollback()
+
+    def redis_rollback_destroy(self):
+        """Redis rollback instance destroy v2 flow entry."""
+        flow = RedisRollbackDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_rollback_destroy()
 
     def redis_cluster_add_slave(self):
         """

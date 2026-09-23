@@ -2103,11 +2103,16 @@ var CmdWhiteList = []string{
 	"cluster",
 	"slowlog",
 	"CONFIG",
+	"CONFXX", // dbm_redis_exporter: renamed CONFIG
 	"binlogflush",
 	"INCRSYNC",
 	"readonly",
 	"adminset",
 	"select",
+	"hello",      // Redis 6+ / modern client RESP3 handshake
+	"client",     // redis_exporter: CLIENT SETNAME
+	"rocksprop",  // tendisplus exporter: rocksdb metrics
+	"binlogsize", // tendisplus/ssd exporter
 }
 
 // IsRedisUsing 通过执行monitor命令确认redis是否在使用(过滤掉dba执行的命令)

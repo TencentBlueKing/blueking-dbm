@@ -8,12 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import timedelta
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
+from backend.db_services.redis.rollback.constants import BACKUP_BATCH_MAX_WINDOW_DAYS
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.ticket.builders.common.field import DBTimezoneField
+from backend.utils.time import str2datetime
 
 
 class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
@@ -38,6 +42,31 @@ class BackupBatchQuerySerializer(serializers.Serializer):
     end_time = DBTimezoneField(help_text=_("结束时间"), required=False, allow_null=True, allow_blank=True)
     shard_values = serializers.ListField(
         child=serializers.CharField(), required=False, allow_empty=True, help_text=_("按分片过滤，不传表示全部")
+    )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        start_time, end_time = attrs.get("start_time"), attrs.get("end_time")
+        if not start_time and not end_time:
+            return attrs
+        if not (start_time and end_time):
+            raise serializers.ValidationError(_("start_time 与 end_time 必须成对提供"))
+        start, end = str2datetime(start_time), str2datetime(end_time)
+        if start > end:
+            raise serializers.ValidationError(_("start_time 不能晚于 end_time"))
+        span = end - start
+        if span > timedelta(days=BACKUP_BATCH_MAX_WINDOW_DAYS):
+            raise serializers.ValidationError(
+                _("备份批次查询跨度不能超过 {} 天，当前 {} 天").format(BACKUP_BATCH_MAX_WINDOW_DAYS, span.days)
+            )
+        return attrs
+
+
+class BatchDetailQuerySerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    backup_identify = serializers.CharField(help_text=_("备份批次"))
+    shard_values = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_empty=True, help_text=_("按分片过滤，不传表示该批次全部分片")
     )
 
 

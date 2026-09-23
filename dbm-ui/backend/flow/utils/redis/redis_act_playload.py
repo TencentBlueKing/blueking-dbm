@@ -88,7 +88,12 @@ cutoff_list = [
     TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
 ]
 migrate_list = [TicketType.REDIS_TENDIS_META_MITRATE.value]
-tool_list = [TicketType.REDIS_DATA_STRUCTURE.value, TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value]
+tool_list = [
+    TicketType.REDIS_DATA_STRUCTURE.value,
+    TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value,
+    TicketType.REDIS_ROLLBACK.value,
+    TicketType.REDIS_ROLLBACK_DESTROY.value,
+]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,
     ClusterType.TwemproxyTendisSSDInstance.value,
@@ -2251,6 +2256,66 @@ class RedisActPayload(object):
                 "dest_dir": params["dest_dir"],
                 "full_file_list": params["full_file_list"],
                 "binlog_file_list": params["binlog_file_list"],
+            },
+        }
+
+    def redis_rollback_payload(self, **kwargs) -> dict:
+        """Builds payload for redis_rollback atomjob.
+
+        The install section reuses redis_install parameter schema so the actuator
+        can prepare instances inline before restoring data.
+        """
+        params = kwargs["params"]
+        ports = [instance["dest_port"] for instance in params.get("instances") or []]
+        install_payload = self.get_redis_install_4_scene(
+            params={
+                "bk_biz_id": self.bk_biz_id,
+                "exec_ip": params["dest_ip"],
+                "immute_domain": params["immute_domain"],
+                "cluster_type": params["cluster_type"],
+                "db_version": params["db_version"],
+                "ports": ports,
+                "start_port": min(ports) if ports else 0,
+                "inst_num": 0,
+            }
+        )["payload"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ROLLBACK.value,
+            "payload": {
+                "dest_ip": params["dest_ip"],
+                "dest_dir": params.get("dest_dir") or "",
+                "recover_at": params.get("recover_at") or "",
+                "install": install_payload,
+                "instances": params.get("instances") or [],
+            },
+        }
+
+    def redis_rollback_key_filter_payload(self, **kwargs) -> dict:
+        """Builds payload for post-rollback key pattern filtering."""
+        tools_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
+        )
+        ip = kwargs["ip"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Tendis.value + "_" + RedisActuatorActionEnum.KEYS_DELETE_REGEX.value,
+            "payload": {
+                "pkg": tools_pkg.name,
+                "pkg_md5": tools_pkg.md5,
+                "bk_biz_id": self.bk_biz_id,
+                "fileserver": self.__get_fileserver(),
+                "path": self.cluster.get("path") or "",
+                "domain": self.cluster["domain_name"],
+                "key_white_regex": self.cluster["white_regex"],
+                "key_black_regex": self.cluster["black_regex"],
+                "filter_mode": self.cluster.get("filter_mode") or "",
+                "ip": ip,
+                "ports": self.cluster[ip],
+                "is_keys_to_be_del": True,
+                "delete_rate": int(self.global_config["delete_rate"]),
+                "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 

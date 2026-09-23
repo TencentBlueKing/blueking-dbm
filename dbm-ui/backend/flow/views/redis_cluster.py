@@ -547,6 +547,26 @@ class RedisDataStructureTaskDeleteSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisRollbackSceneApiView(FlowTestView):
+    """api: /apis/v1/flow/scene/redis_rollback"""
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_rollback()
+        return Response({"root_id": root_id})
+
+
+class RedisRollbackDestroySceneApiView(FlowTestView):
+    """api: /apis/v1/flow/scene/redis_rollback_destroy"""
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_rollback_destroy()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterAddSlaveApiView(FlowTestView):
     """
     api: /apis/v1/flow/scene/redis_cluster_add_slave

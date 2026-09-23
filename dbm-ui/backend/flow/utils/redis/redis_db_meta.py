@@ -811,8 +811,10 @@ class RedisDBMeta(object):
             related_rollback_bill_id=self.cluster["related_rollback_bill_id"],
             bk_biz_id=self.cluster["bk_biz_id"],
             prod_cluster=self.cluster["prod_cluster"],
-        ).update(destroyed_status=self.cluster["destroyed_status"])
-        return task
+        )
+        if self.cluster.get("task_id"):
+            task = task.filter(id=self.cluster["task_id"])
+        return task.update(destroyed_status=self.cluster["destroyed_status"]) > 0
 
     def __get_cluster_config(self, domain_name: str, db_version: str, conf_type: str, namespace: str) -> Any:
         """
@@ -859,6 +861,10 @@ class RedisDBMeta(object):
             recovery_time_point=self.cluster["recovery_time_point"],
             status=self.cluster["status"],
             temp_redis_password=base64.b64encode(passwd_ret.get("redis_password").encode("utf-8")),
+            rollback_version=self.cluster.get("rollback_version") or "datastructure",
+            rollback_mode=self.cluster.get("rollback_mode") or "",
+            backup_identify=self.cluster.get("backup_identify") or "",
+            rollback_detail=self.cluster.get("rollback_detail") or {},
         )
         task.save()
 
@@ -907,6 +913,31 @@ class RedisDBMeta(object):
                     )
                 )
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
+        return True
+
+    def redis_rollback_cc_transfer(self) -> bool:
+        """Move temporary rollback hosts into db.manage.set/redis.rollback of the hosting biz.
+
+        Temp instances belong to no cluster, so they must stay outside every collector: the
+        set is never registered in AppMonitorTopo / ClusterMonitorTopo and no service instances
+        are created. Staying in the hosting biz keeps the later host recycle on its usual path.
+        """
+        from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
+        from backend.db_services.redis.rollback.constants import ROLLBACK_CC_MODULE_NAME, ROLLBACK_CC_SET_NAME
+
+        bk_cloud_id = self.cluster["bk_cloud_id"]
+        bk_host_ids = set()
+        for temp_instance in self.cluster["temp_instances"]:
+            ip, port = temp_instance.split(IP_PORT_DIVIDER)
+            instance = StorageInstance.objects.get(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id, port=int(port))
+            bk_host_ids.add(instance.machine.bk_host_id)
+
+        cc_manage = CcManage(self.ticket_data["bk_biz_id"], self.cluster["cluster_type"])
+        bk_set_id = get_or_create_set_with_name(cc_manage.hosting_biz_id, ROLLBACK_CC_SET_NAME)
+        bk_module_id = get_or_create_cmdb_module_with_name(
+            cc_manage.hosting_biz_id, bk_set_id, ROLLBACK_CC_MODULE_NAME
+        )
+        cc_manage.transfer_host_module(sorted(bk_host_ids), [bk_module_id], is_increment=False)
         return True
 
     # 刷新bkcc 服务实例，触发gse 重新下发GSE，插件配置

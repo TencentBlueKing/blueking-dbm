@@ -216,6 +216,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		// 老备份系统
 		// m.atomJobMapper[atomredis.NewRedisDataRecover().Name()] = atomredis.NewRedisDataRecover
 		m.atomJobMapper[atomredis.NewRedisDataStructure().Name()] = atomredis.NewRedisDataStructure
+		m.atomJobMapper[atomredis.NewRedisRollback().Name()] = atomredis.NewRedisRollback
 		m.atomJobMapper[atomredis.NewClusterMeetCheckFinish().Name()] = atomredis.NewClusterMeetCheckFinish
 		m.atomJobMapper[atomredis.NewRedisDtsOnlineSwitch().Name()] = atomredis.NewRedisDtsOnlineSwitch
 		m.atomJobMapper[atomredis.NewRedisVersionUpdate().Name()] = atomredis.NewRedisVersionUpdate

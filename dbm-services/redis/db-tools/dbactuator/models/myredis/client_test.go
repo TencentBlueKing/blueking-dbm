@@ -2,7 +2,9 @@ package myredis
 
 import (
 	"net"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -96,5 +98,30 @@ func TestConnectWithRetryUsesExplicitRetryBudget(t *testing.T) {
 	}
 	if elapsed > time.Second {
 		t.Fatalf("retrying connect exceeded expected test budget, elapsed:%s", elapsed)
+	}
+}
+
+func TestCmdWhiteListFiltersExporterAndHandshakeMonitorLines(t *testing.T) {
+	re, err := regexp.Compile("(?i)" + strings.Join(CmdWhiteList, "|"))
+	if err != nil {
+		t.Fatalf("CmdWhiteList is not a valid regex: %v", err)
+	}
+
+	filtered := []string{
+		`1789972397.740697 [0 1.1.1.1:59888] "hello" "3"`,
+		`1789096881.334293 [0 1.1.1.1:36430] "CLIENT" "SETNAME" "redis_exporter"`,
+		`1789096881.334402 [0 1.1.1.1:36430] "CONFXX" "GET" "*"`,
+		`1789096881.336021 [0 1.1.1.1:36430] "rocksprop" "rocksdb.levelstats"`,
+		`1789096881.336309 [0 1.1.1.1:36430] "binlogsize"`,
+	}
+	for _, line := range filtered {
+		if !re.MatchString(line) {
+			t.Errorf("expected whitelist to filter monitor line: %s", line)
+		}
+	}
+
+	business := `1789096881.400000 [0 1.1.1.1:12345] "get" "user:1"`
+	if re.MatchString(business) {
+		t.Errorf("whitelist should not filter business command: %s", business)
 	}
 }

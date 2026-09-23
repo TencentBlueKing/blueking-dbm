@@ -94,6 +94,7 @@ class DestHost:
     ports: List[int] = field(default_factory=list)
     task_ids: List[str] = field(default_factory=list)
     download_bytes: int = 0
+    unpacked_bytes: int = 0
 
 
 @dataclass
