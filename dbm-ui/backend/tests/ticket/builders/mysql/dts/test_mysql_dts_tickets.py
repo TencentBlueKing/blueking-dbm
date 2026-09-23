@@ -34,6 +34,7 @@ from backend.ticket.builders.mysql.dts.mysql_dts_tickets import (
     MysqlToMysqlMigrateFlowParamBuilder,
     _maybe_create_destroy_after_migrate,
     _patch_migrate_task_names,
+    _validate_infos_deploy_hosts_unique,
     _validate_mysql_to_mysql_cluster_types,
 )
 from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketFlowStatus, TicketStatus, TicketType
@@ -48,6 +49,31 @@ def _minimal_deploy(**overrides):
         "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
         "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
     }
+    data.update(overrides)
+    return data
+
+
+def _minimal_pool_deploy(**overrides):
+    """资源池模式的 deploy：master/worker 主机由资源申请回填，提单入参不带主机。"""
+    data = {
+        "cluster_name": "dts-test",
+        "bk_cloud_id": 0,
+    }
+    data.update(overrides)
+    return data
+
+
+def _pool_deploy_row(**deploy_overrides):
+    """资源池模式下一行 deploy：主机由资源申请回填，规格按行提供 worker.spec_id。"""
+    return _minimal_layered_details(
+        dts_resource={"deploy": _minimal_pool_deploy(**deploy_overrides)},
+        resource_spec={"worker": {"spec_id": 1, "count": 1}},
+    )
+
+
+def _pool_deploy_ticket(**overrides):
+    """资源池模式下带 deploy 的单行 infos 单据（生命周期字段写在单据顶层）。"""
+    data = {"infos": [_pool_deploy_row()]}
     data.update(overrides)
     return data
 
@@ -325,25 +351,35 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_no_mode_deploy_defaults_destroy_true_cleanup_false(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(dts_resource={"deploy": _minimal_deploy()})
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket())
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertFalse(slz.validated_data["dts_resource"].get("mode"))
-        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertFalse(slz.validated_data["infos"][0]["dts_resource"].get("mode"))
+        self.assertTrue(slz.validated_data["destroy_after_migrate"])
         plan = slz.context["migrate_plan"]
         self.assertTrue(plan.auto_deploy_dts)
         self.assertFalse(plan.cleanup_after_migrate)
         self.assertEqual(plan.dts_lifecycle, DtsLifecycleMode.DEPLOY.value)
 
     def test_no_mode_deploy_cleanup_false(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={"deploy": _minimal_deploy(), "cleanup_after_migrate": False},
-            )
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket(cleanup_after_migrate=False))
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
+
+    def test_single_row_deploy_rejected(self):
+        """资源池模式下 deploy 主机由资源申请回填，单行（无 infos）没有行内 resource_spec 落点 → 拒单。"""
+        slz = MysqlMigrateBaseDetailSerializer(
+            data=_minimal_layered_details(dts_resource={"deploy": _minimal_pool_deploy()})
+        )
+        self.assertFalse(slz.is_valid())
+        self.assertIn("resource_spec", str(slz.errors))
+
+    def test_infos_deploy_without_worker_spec_rejected(self):
+        """有 deploy 的行未提供行内 resource_spec.worker → 拒单。"""
+        slz = MysqlMigrateBaseDetailSerializer(
+            data={"infos": [_minimal_layered_details(dts_resource={"deploy": _minimal_pool_deploy()})]}
+        )
+        self.assertFalse(slz.is_valid())
+        self.assertIn("resource_spec.worker", str(slz.errors))
 
     def test_grant_cluster_empty_major_version_rejected(self):
         """AE8：授权目标集群 major_version 为空 → 拒单。"""
@@ -399,44 +435,24 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
 
     def test_destroy_after_migrate_true_on_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={
-                    "destroy_after_migrate": True,
-                    "deploy": _minimal_deploy(),
-                }
-            )
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket(destroy_after_migrate=True))
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertTrue(slz.validated_data["destroy_after_migrate"])
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_destroy_and_cleanup_both_true_valid(self):
         slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={
-                    "destroy_after_migrate": True,
-                    "cleanup_after_migrate": True,
-                    "deploy": _minimal_deploy(),
-                }
-            )
+            data=_pool_deploy_ticket(destroy_after_migrate=True, cleanup_after_migrate=True)
         )
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
-        self.assertTrue(slz.validated_data["dts_resource"]["cleanup_after_migrate"])
+        self.assertTrue(slz.validated_data["destroy_after_migrate"])
+        self.assertTrue(slz.validated_data["cleanup_after_migrate"])
         self.assertTrue(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_destroy_after_migrate_false_ok_on_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={
-                    "destroy_after_migrate": False,
-                    "deploy": _minimal_deploy(),
-                }
-            )
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket(destroy_after_migrate=False))
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertFalse(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertFalse(slz.validated_data["destroy_after_migrate"])
 
     def test_infos_two_one_to_one_valid(self):
         slz = MysqlMigrateBaseDetailSerializer(
@@ -708,32 +724,31 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertIn("交叉", str(slz.errors))
 
     def test_infos_colocated_master_worker_same_row_ok(self):
-        """同行 master/worker 同机部署合法，不按交叉拒单。"""
-        slz = MysqlMigrateBaseDetailSerializer(
-            data={
-                "infos": [
-                    _minimal_layered_details(
-                        dts_resource={
-                            "deploy": _minimal_deploy(
-                                master_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                                worker_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                            )
-                        }
-                    ),
-                    _minimal_layered_details(
-                        dts_resource={
-                            "deploy": _minimal_deploy(
-                                cluster_name="dts-test-b",
-                                master_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
-                                worker_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
-                            )
-                        },
-                        migrate=_one_to_one_migrate(101, 201, ["db_a"]),
-                    ),
-                ]
-            }
-        )
-        self.assertTrue(slz.is_valid(), slz.errors)
+        """同行 master/worker 同机部署合法，不按交叉拒单。
+
+        资源池模式下主机由资源申请回填（提单入参不带 master_hosts/worker_hosts），
+        故直接校验回填后行内主机的去重规则。
+        """
+        infos = [
+            {
+                "dts_resource": {
+                    "deploy": _minimal_deploy(
+                        master_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+                        worker_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+                    )
+                }
+            },
+            {
+                "dts_resource": {
+                    "deploy": _minimal_deploy(
+                        cluster_name="dts-test-b",
+                        master_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
+                        worker_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
+                    )
+                }
+            },
+        ]
+        self.assertIsNone(_validate_infos_deploy_hosts_unique(infos))
 
     def test_infos_same_src_dst_same_db_rejected(self):
         """AE2：同源同目标同库 → 拒单。"""
