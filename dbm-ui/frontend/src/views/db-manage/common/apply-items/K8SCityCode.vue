@@ -43,13 +43,53 @@
 
   import { getRegions } from '@services/source/kubernetesToolbox';
 
+  interface Props {
+    applyMode?: string;
+    bkBizId?: number | string;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    applyMode: 'SharedMode',
+    bkBizId: '',
+  });
   const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const { data: cityData, loading } = useRequest(getRegions);
+  // 独占集群（isPublic=false）时按业务 ID 取该业务独占的可用区域
+  const isPublic = computed(() => props.applyMode !== 'ExclusiveMode');
+  const bkBizId = computed(() => (props.bkBizId ? Number(props.bkBizId) : undefined));
+
+  const {
+    data: cityData,
+    loading,
+    run,
+  } = useRequest(getRegions, {
+    manual: true,
+    onSuccess(data) {
+      // 部署类型/业务变化后已选地域可能不在新列表中，清空避免提交失效数据
+      if (modelValue.value && !data.some((item) => item.regionCode === modelValue.value)) {
+        modelValue.value = '';
+      }
+    },
+  });
+
+  watch(
+    [isPublic, bkBizId],
+    () => {
+      // 业务 ID 未就绪时不请求，避免回显过程中先按默认业务取一次造成结果竞态
+      if (!bkBizId.value) {
+        return;
+      }
+      run({
+        bkBizId: bkBizId.value,
+        isPublic: isPublic.value,
+      });
+    },
+    { immediate: true },
+  );
 </script>
 
 <style lang="less">

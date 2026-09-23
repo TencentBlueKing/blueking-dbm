@@ -37,17 +37,26 @@
             required />
         </DbCard>
         <DbCard :title="t('部署环境')">
-          <K8SApplyMode v-model="formData.details.apply_mode" />
-          <K8SCityCode v-model="formData.details.city_code" />
+          <K8SApplyMode
+            v-model="formData.details.apply_mode"
+            :cluster-type="ClusterTypes.K8S_SURREALDB_HA" />
+          <K8SCityCode
+            v-model="formData.details.city_code"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id" />
           <K8SClusterName
             v-model="formData.details.k8s_cluster_name"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id"
             :region-code="formData.details.city_code" />
         </DbCard>
         <DbCard :title="t('资源配置')">
           <K8SVersion
             v-model="formData.details.db_version"
             v-model:major-version="formData.details.major_version"
-            addon-type="surrealdb" />
+            addon-type="surrealdb"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id" />
           <DbFormItem :label="t('部署模式')">
             <BkRadioGroup
               v-model="topoName"
@@ -64,7 +73,9 @@
             v-model:surreal="formData.details.surreal"
             v-model:tikv="formData.details.tikv"
             addon-type="surrealdb"
-            :addon-version="formData.details.major_version" />
+            :addon-version="formData.details.major_version"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id" />
           <DbFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -178,6 +189,7 @@
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
+        apply_mode: details.is_public === false ? 'ExclusiveMode' : 'SharedMode',
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
@@ -287,6 +299,8 @@
           },
         ],
         creator: userProfile.username,
+        // 部署类型落库为 is_public，独占集群为 false
+        is_public: details.apply_mode !== 'ExclusiveMode',
         remark: formData.remark,
       });
 

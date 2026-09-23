@@ -19,8 +19,9 @@ import http from '../http';
 
 /**
  * 获取存储版本信息
+ * bkBizId / isPublic 为独占集群参数：isPublic=false 表示独占集群，bkBizId 为该独占集群所属业务 ID
  */
-export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant' }) {
+export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant'; bkBizId?: number; isPublic?: boolean }) {
   return http.get<
     {
       addonVersion: string;
@@ -31,8 +32,9 @@ export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant' }) 
 
 /**
  * 查询城市信息
+ * bkBizId / isPublic 为独占集群参数：isPublic=false 表示独占集群，bkBizId 为该独占集群所属业务 ID
  */
-export function getRegions() {
+export function getRegions(params?: { bkBizId?: number; isPublic?: boolean }) {
   return http.get<
     {
       k8sClusterList: {
@@ -44,13 +46,16 @@ export function getRegions() {
       regionCode: string;
       regionName: string;
     }[]
-  >(`${getRootPath()}/get_regions/`);
+  >(`${getRootPath()}/get_regions/`, params);
 }
 
 /**
  * 查询BCS集群信息
  */
-export function getBcsClusters(params: { isPublic: boolean }) {
+export function getBcsClusters(params: {
+  bkBizId?: number; // 当前业务 ID, 独占集群所属业务 ID，用于取该业务独占的 BCS 集群资源
+  isPublic: boolean; // true=共享集群（公共集群）；false=独占集群
+}) {
   return http.get<
     {
       k8sClusterList: {
@@ -67,8 +72,14 @@ export function getBcsClusters(params: { isPublic: boolean }) {
 
 /**
  * 查询集群部署套餐
+ * bkBizId / isPublic 为独占集群参数：isPublic=false 表示独占集群，bkBizId 为该独占集群所属业务 ID
  */
-export function getAddonSpecPlan(params: { addonType: 'surrealdb' | 'qdrant'; addonVersion: string }) {
+export function getAddonSpecPlan(params: {
+  addonType: 'surrealdb' | 'qdrant';
+  addonVersion: string;
+  bkBizId?: number;
+  isPublic?: boolean;
+}) {
   return http.get<
     {
       addonName: string;
