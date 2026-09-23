@@ -17,20 +17,16 @@
       h(
         EnhancedTable,
         {
-          filterIcon: () => filterIcon,
-          sortIcon: () => sortIcon,
+          filterIcon: renderFilterIcon,
+          sortIcon: renderSortIcon,
           ...attrs,
           ...customProps,
-          class: {
-            [attrs.class?.toString() || '']: true,
-            [tableFontSizeClass]: true,
-            [tableSizeClass]: true,
-          },
+          class: normalizeClass([attrs.class, tableFontSizeClass, tableSizeClass]),
           columnController,
           displayColumns,
           onDisplayColumnsChange,
         },
-        slots,
+        getTableSlots(),
       )
     "
     ref="tableRef" />
@@ -47,13 +43,13 @@
   import baseTableProps from 'tdesign-vue-next/es/table/base-table-props';
   import enhancedTableProps from 'tdesign-vue-next/es/table/enhanced-table-props';
   import primaryTableProps from 'tdesign-vue-next/es/table/primary-table-props';
-  import { h, useAttrs, useTemplateRef } from 'vue';
+  import { h, normalizeClass, useAttrs, useTemplateRef } from 'vue';
 
   import { useColumnsSettings } from '../hooks/use-columns-settings';
   import { useTableExpose } from '../hooks/use-table-expose';
   import { type BkUiTableCol, commonTableProps, type EnhancedTableRefExpose } from '../types/table';
 
-  import { filterIcon, sortIcon } from './icons';
+  import { renderFilterIcon, renderSortIcon } from './icons';
 
   defineOptions({
     name: 'EnhancedTable',
@@ -65,15 +61,17 @@
     ...enhancedTableProps,
     ...commonTableProps,
   });
-  const {
-    bkUiAppearanceSettings,
-    default: defaultSlots,
-    ...slots
-  } = defineSlots<{
+  const slots = defineSlots<{
     bkUiAppearanceSettings(): void;
     default(): { props: BkUiTableCol }[];
   }>();
   const attrs = useAttrs();
+
+  // 渲染时再取，动态插槽（如 v-if 控制的 #empty）增删后才能同步转发
+  const getTableSlots = () => {
+    const { bkUiAppearanceSettings, default: defaultSlots, ...tableSlots } = slots;
+    return tableSlots;
+  };
   const tableRef = useTemplateRef<EnhancedTableRefExpose>('tableRef');
   const tableColumnRef = useTemplateRef<HTMLDivElement>('tableColumnRef');
 
@@ -82,6 +80,3 @@
   useTableExpose<EnhancedTableRefExpose>(tableRef);
   defineExpose<EnhancedTableRefExpose>();
 </script>
-<style lang="less">
-  @import './table';
-</style>

@@ -15,7 +15,7 @@ import _ from 'lodash';
 
 import { getNodeDisplayStatus, NODE_STATUS_META } from '@views/task-history/detail/utils';
 
-import { encodeRegexp, getCostTimeDisplay } from '@utils';
+import { getCostTimeDisplay } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -43,9 +43,25 @@ import {
   Rect as GRect,
   Text as GText,
 } from '@antv/g';
-import { Rect, type UpsertHooks } from '@antv/g6';
+import { Rect, type RectStyleProps, type UpsertHooks } from '@antv/g6';
 
 import { type Node } from './layout';
+
+/** 基类样式加上 flowGraph 在 node.style / node.state 里挂的自定义样式，三类节点的绘制都按它取色与显隐 */
+export type FlowNodeAttributes = {
+  aiLogOptFill: string;
+  failedImageBackgroundColor: string;
+  finishedImageBackgroundColor: string;
+  focusNodeVisibility: 'hidden' | 'visible';
+  forceFailOptFill: string;
+  loadingImageBackgroundColor: string;
+  manualOptFill: string;
+  nodeBackgroundshadowColor: string;
+  retryOptFill: string;
+  skipImageBackgroundColor: string;
+  skipOptFill: string;
+  todoImageBackgroundColor: string;
+} & Required<RectStyleProps>;
 
 const LINE_WIDTH = 168;
 
@@ -155,7 +171,7 @@ export class NormalNode extends Rect {
     });
   }
 
-  drawBackgroundShape(attributes: any, container: Group) {
+  drawBackgroundShape(attributes: FlowNodeAttributes, container: Group) {
     const strokeColor = this.statusMeta.canvasStroke;
 
     const [width, height] = this.getSize(attributes);
@@ -180,7 +196,7 @@ export class NormalNode extends Rect {
     this.upsertShape('backgroundShape', GRect, backgroundShapeStyle, container);
   }
 
-  drawCollapseShape(attributes: any, container: Group) {
+  drawCollapseShape(attributes: FlowNodeAttributes, container: Group) {
     if (!this.data.pipeline) {
       return;
     }
@@ -212,7 +228,7 @@ export class NormalNode extends Rect {
     this.upsertShape('collapseIcon', GImage, collapseIconStyle, container);
   }
 
-  drawFocusBackgroundShape(attributes: any, container: Group) {
+  drawFocusBackgroundShape(attributes: FlowNodeAttributes, container: Group) {
     const [width, height] = this.getSize(attributes);
     if (!width || !height) {
       return;
@@ -231,7 +247,7 @@ export class NormalNode extends Rect {
     this.upsertShape('focusBackground', GRect, focusBackgroundStyle, container);
   }
 
-  drawNodeTitleShape(attributes: any, container: Group) {
+  drawNodeTitleShape(attributes: FlowNodeAttributes, container: Group) {
     const [width] = this.getSize(attributes);
     if (!width) {
       return;
@@ -241,13 +257,13 @@ export class NormalNode extends Rect {
 
     let y = 8;
 
-    let lines = searchKey ? name!.split(new RegExp(encodeRegexp(searchKey))) : [name!];
-    if (lines.length === 2) {
-      lines = adjustLinesText(lines, searchKey);
-    } else {
-      if (getTextWidth(name!) > LINE_WIDTH) {
-        y = 16;
-      }
+    // 换行只按第一处命中调整，后面的命中留在第二段原文里，下面逐行高亮时一并处理
+    const keyIndex = searchKey ? name!.indexOf(searchKey) : -1;
+    let lines = [name!];
+    if (keyIndex > -1) {
+      lines = adjustLinesText([name!.slice(0, keyIndex), name!.slice(keyIndex + searchKey.length)], searchKey);
+    } else if (getTextWidth(name!) > LINE_WIDTH) {
+      y = 16;
     }
 
     const nodeTitleStyleList = lines.map((text, index) => {
@@ -269,8 +285,8 @@ export class NormalNode extends Rect {
     nodeTitleStyleList.forEach((nodeTitleStyle, index) => {
       const lineText = nodeTitleStyle.text;
       if (searchKey && lineText.includes(searchKey)) {
-        const textList = lineText.split(searchKey);
-        textList.splice(1, 0, searchKey);
+        // 每两段原文之间都补回关键字，一行里命中多处时才不会丢
+        const textList = lineText.split(searchKey).flatMap((text, i) => (i ? [searchKey, text] : [text]));
         textList.forEach((text, textIndex) => {
           if (!text) {
             return;
@@ -294,7 +310,7 @@ export class NormalNode extends Rect {
     });
   }
 
-  drawOperationShape(attributes: any, container: Group) {
+  drawOperationShape(attributes: FlowNodeAttributes, container: Group) {
     if (this.isSubProcess || this.data.isTaskRevoked) {
       return;
     }
@@ -319,17 +335,17 @@ export class NormalNode extends Rect {
         const {
           attributes: { x: rwX, y: rwY },
         } = this.getShape('forceRetryWraper');
-        const retryIconStyle = {
+        const forceRetryIconStyle = {
           height: 12,
           src: ForceRetryImage,
           width: 12,
           x: rwX + 5,
           y: rwY + 6,
         };
-        this.upsertShape('retryIcon', GImage, retryIconStyle, container);
+        this.upsertShape('forceRetryIcon', GImage, forceRetryIconStyle, container);
         const {
           attributes: { x: riX, y: riY },
-        } = this.getShape('retryIcon');
+        } = this.getShape('forceRetryIcon');
         const forceRetryTextStyle = {
           fill: '#FFFFFF',
           fontSize: 12,
@@ -352,17 +368,17 @@ export class NormalNode extends Rect {
         const {
           attributes: { x: swX, y: swY },
         } = this.getShape('forceSkipWraper');
-        const skipIconStyle = {
+        const forceSkipIconStyle = {
           height: 12,
           src: ForceSkipWarningImage,
           width: 12,
           x: swX + 4,
           y: swY + 5,
         };
-        this.upsertShape('skipIcon', GImage, skipIconStyle, container);
+        this.upsertShape('forceSkipIcon', GImage, forceSkipIconStyle, container);
         const {
           attributes: { x: siX, y: siY },
-        } = this.getShape('skipIcon');
+        } = this.getShape('forceSkipIcon');
         const forceSkipTextStyle = {
           fill: '#E38B02',
           fontSize: 12,
@@ -585,7 +601,7 @@ export class NormalNode extends Rect {
     }
   }
 
-  drawRetryDisplayShape(_: any, container: Group) {
+  drawRetryDisplayShape(_: FlowNodeAttributes, container: Group) {
     if (!this.isFailed || this.isSubProcess || !this.data.retry) {
       return;
     }
@@ -635,7 +651,7 @@ export class NormalNode extends Rect {
     this.upsertShape('retryCountNumber', GText, retryCountNumberStyle, container);
   }
 
-  drawStatusShape(attributes: any, container: Group) {
+  drawStatusShape(attributes: FlowNodeAttributes, container: Group) {
     const [width, height] = this.getSize(attributes);
     if (!width || !height) {
       return;
@@ -806,7 +822,7 @@ export class NormalNode extends Rect {
     }
   }
 
-  drawTimeDisplayShape(attributes: any, container: Group) {
+  drawTimeDisplayShape(attributes: FlowNodeAttributes, container: Group) {
     if (!this.data.started_at || this.isSkiped) {
       return;
     }
@@ -841,18 +857,17 @@ export class NormalNode extends Rect {
       width: backgroundWidth + 6,
       x: textX - 2,
       y: textY - 14,
-      zindex: 1,
     };
 
     this.upsertShape('timeDisplayBackground', GRect, timeDisplayBackgroundStyle, container);
   }
 
-  render(attributes = this.parsedAttributes as any, container: Group) {
+  render(attributes = this.parsedAttributes as FlowNodeAttributes, container: Group) {
     super.render(attributes, container);
     this.renderNode(attributes, container);
   }
 
-  renderNode(attributes: any, container: Group) {
+  renderNode(attributes: FlowNodeAttributes, container: Group) {
     this.drawnKeys = new Set();
     this.ownedKeys ??= new Set();
     this.drawFocusBackgroundShape(attributes, container);

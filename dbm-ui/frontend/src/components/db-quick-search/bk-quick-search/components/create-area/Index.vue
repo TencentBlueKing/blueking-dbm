@@ -69,7 +69,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { type CSSProperties, onMounted, ref, shallowRef, type StyleValue, useTemplateRef } from 'vue';
+  import type { CSSProperties, StyleValue } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import useMenuPop, { update as updateMenuPop } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';

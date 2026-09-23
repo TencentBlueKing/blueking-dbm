@@ -38,7 +38,6 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { Radio } from 'tdesign-vue-next';
-  import { onMounted, ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { SpecialOptions } from '@common/const';

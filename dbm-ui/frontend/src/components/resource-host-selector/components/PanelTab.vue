@@ -6,7 +6,6 @@
       @click="handleChange('host')">
       {{ t('资源池主机') }}
     </div>
-    <div class="tab-item"></div>
   </div>
 </template>
 <script setup lang="ts">

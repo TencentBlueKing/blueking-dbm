@@ -67,7 +67,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -160,7 +159,8 @@
       };
     }
     let indeterminate = false;
-    let checked = true;
+    // 没有子项时不能算作全选
+    let checked = parentData.children.length > 0;
     parentData.children.forEach((item) => {
       if (!localValueIdMap.value[item.value]) {
         checked = false;

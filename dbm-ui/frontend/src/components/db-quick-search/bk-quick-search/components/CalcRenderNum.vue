@@ -21,7 +21,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { getCurrentInstance, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue';
 
   import type { IValue, Props as ContextProps } from '../Index.vue';
   import { getValuesText } from '../utils';

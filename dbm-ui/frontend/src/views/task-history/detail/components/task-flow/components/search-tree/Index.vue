@@ -185,8 +185,12 @@
   ]);
 
   const statusDisplay = computed(() => statusList.value.find((item) => item.value === statusValue.value)!.label);
+  // 终止是整条流程的状态，每个节点带的 isTaskRevoked 都一样，看第一个即可；终止后不再给批量操作
   const showBatchOperation = computed(
-    () => ['FAILED', 'RUNNING', 'TODO'].includes(statusValue.value) && renderTreeData.value.length > 0,
+    () =>
+      ['FAILED', 'RUNNING', 'TODO'].includes(statusValue.value) &&
+      renderTreeData.value.length > 0 &&
+      !props.data[0]?.isTaskRevoked,
   );
 
   const openedTreeNodesSet = new Set<string>();

@@ -62,16 +62,16 @@
         <template v-else>
           <BkPopConfirm
             :confirm-text="t('批量重试')"
-            :content="t('重试将重新执行这n个节点', { n: data.length })"
+            :content="t('重试将重新执行这n个节点', { n: retryableNodes.length })"
             :popover-options="{
-              disabled: isDisabled,
+              disabled: !retryableNodes.length,
             }"
-            :title="t('确认重试n个失败节点？', { n: data.length })"
+            :title="t('确认重试n个失败节点？', { n: retryableNodes.length })"
             trigger="click"
             width="280"
             @confirm="handleConfirmRetry">
             <BkButton
-              :disabled="isDisabled"
+              :disabled="!retryableNodes.length"
               :loading="isRetryLoading"
               theme="primary">
               {{ t('批量重试') }}
@@ -81,18 +81,18 @@
             :confirm-text="t('批量跳过')"
             :content="
               t('跳过将忽略这n个节点的失败状态，直接执行后续节点，当前节点将被标记为“执行成功（失败手动跳过）”', {
-                n: data.length,
+                n: skippableNodes.length,
               })
             "
             :popover-options="{
-              disabled: isDisabled,
+              disabled: !skippableNodes.length,
             }"
-            :title="t('确认跳过n个失败节点？', { n: data.length })"
+            :title="t('确认跳过n个失败节点？', { n: skippableNodes.length })"
             trigger="click"
             width="280"
             @confirm="handleConfirmSkip">
             <BkButton
-              :disabled="isDisabled"
+              :disabled="!skippableNodes.length"
               :loading="isSkipLoading"
               outline
               theme="primary">
@@ -196,6 +196,9 @@
   });
 
   const isDisabled = computed(() => !props.data.length);
+  // 普通重试 / 跳过只提交允许该操作的节点，与单节点入口的判断一致；强制操作本就是绕过这层限制，不过滤
+  const retryableNodes = computed(() => props.data.filter((item) => item.retryable));
+  const skippableNodes = computed(() => props.data.filter((item) => item.skippable));
 
   const handleSuccess = () => {
     isCheckAll.value = false;
@@ -250,14 +253,14 @@
 
   const handleConfirmSkip = () => {
     runBatchSkipTaskflowNode({
-      nodes: props.data.map((item) => item.id),
+      nodes: skippableNodes.value.map((item) => item.id),
       root_id: props.rootId,
     });
   };
 
   const handleConfirmRetry = () => {
     runBatchRetryNodes({
-      nodes: props.data.map((item) => item.id),
+      nodes: retryableNodes.value.map((item) => item.id),
       root_id: props.rootId,
     });
   };
@@ -280,6 +283,8 @@
       },
     };
 
+    // 每次打开都清空：取消后再发起，不能带上一次填的原因
+    formData.remark = '';
     InfoBox({
       cancelText: t('取消'),
       confirmButtonTheme: 'danger',
@@ -336,7 +341,6 @@
             remark: formData.remark,
             root_id: props.rootId,
           });
-          Object.assign(formData, { remark: '' });
           handleSuccess();
         } finally {
           forceRetryAndSkipLoading.value = false;

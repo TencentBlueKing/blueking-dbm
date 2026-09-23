@@ -39,7 +39,6 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { Checkbox } from 'tdesign-vue-next';
-  import { computed, onMounted, ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { SpecialOptions } from '@common/const';
