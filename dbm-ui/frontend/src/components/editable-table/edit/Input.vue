@@ -33,15 +33,15 @@
     </div>
   </div>
 </template>
-<script setup lang="ts">
-  import { useAttrs, type VNode, watch } from 'vue';
+<script setup lang="ts" generic="T extends string | number">
+  import type { VNode } from 'vue';
 
   import DbmInput from '@components/bkui-vue/input/Index.vue';
 
   import useColumn from '../useColumn';
 
   /* eslint-disable vue/no-unused-properties */
-  interface Props {
+  export interface Props {
     maxlength?: number;
     minlength?: number;
     placeholder?: string;
@@ -49,18 +49,18 @@
     suffix?: string;
   }
 
-  interface Emits {
+  export interface Emits<T> {
     (e: 'blur' | 'focus'): void;
-    (e: 'change', params: string): void;
+    (e: 'change', value: T): void;
   }
 
-  interface Exposes {
+  export interface Exposes {
     focus(): void;
   }
 
   const props = defineProps<Props>();
 
-  const emits = defineEmits<Emits>();
+  const emits = defineEmits<Emits<T>>();
 
   const slots = defineSlots<{
     append?: () => VNode;
@@ -68,7 +68,9 @@
     prepend?: () => VNode;
   }>();
 
-  const modelValue = defineModel<string | number>();
+  const modelValue = defineModel<T | undefined>({
+    default: undefined,
+  });
 
   const attrs = useAttrs();
   const columnContext = useColumn();
@@ -79,7 +81,7 @@
     columnContext?.validate('change');
   });
 
-  const handleChange = (value: string) => {
+  const handleChange = (value: T) => {
     emits('change', value);
   };
 
@@ -106,7 +108,7 @@
     &.is-disabled {
       .bk-editable-input {
         .dbm-input {
-          .dbm-textarea-clear-icon {
+          .dbm-input-clear-icon {
             display: none !important;
           }
 

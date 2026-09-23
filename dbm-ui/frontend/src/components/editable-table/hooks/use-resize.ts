@@ -12,9 +12,12 @@
  */
 
 import _ from 'lodash';
-import { onBeforeUnmount, onMounted, type Ref, ref, type ShallowRef, watch } from 'vue';
+import type { Ref, ShallowRef } from 'vue';
 
 import type { IContext as IColumnContext } from '../Column.vue';
+
+// 未设置宽度的列在剩余空间不足时的兜底宽度，与拖拽的最小宽度一致
+const AUTO_COLUMN_MIN_WIDTH = 80;
 
 export default function (
   tableRef: Readonly<ShallowRef<HTMLElement | null>>,
@@ -104,7 +107,7 @@ export default function (
 
       let extraWidth = 0;
       maxColumn.forEach((column) => {
-        let renderWidth = meanWidth;
+        let renderWidth = Math.min(Number(column.props.maxWidth), Math.max(meanWidth, AUTO_COLUMN_MIN_WIDTH));
         if (Number(column.props.maxWidth) <= meanWidth) {
           renderWidth = Number(column.props.maxWidth);
           extraWidth += meanWidth - Number(column.props.maxWidth);
@@ -122,7 +125,7 @@ export default function (
       });
       autoColumn.forEach((column) => {
         columnSizeConfigCache[column.key] = {
-          renderWidth: meanWidth,
+          renderWidth: Math.max(meanWidth, AUTO_COLUMN_MIN_WIDTH),
         };
       });
 
@@ -155,12 +158,16 @@ export default function (
     if (!dragable) {
       return;
     }
+    // mousedown 挂在 thead 上，event.target 可能是 th 内部的元素
+    const columnEl = (event.target as HTMLElement).closest('th');
+    if (!columnEl) {
+      return;
+    }
     dragging.value = true;
 
     const tableEl = tableRef.value;
     const tableLeft = tableEl!.getBoundingClientRect().left;
-    const columnEl = event.target as HTMLElement;
-    const columnRect = columnEl!.getBoundingClientRect();
+    const columnRect = columnEl.getBoundingClientRect();
 
     const columnKey = columnEl.dataset.name as string;
 
@@ -196,14 +203,9 @@ export default function (
         const finalLeft = Number.parseInt(resizeProxy.style.left, 10);
         const latestColumnWidth = Math.ceil(Math.max(finalLeft - startColumnLeft, 80));
 
-        const nextSiblingEl = columnEl!.nextElementSibling as HTMLElement;
-
-        if (nextSiblingEl!.classList.contains('table-column-resize')) {
-          return;
-        }
-
         resizeProxy.style.display = 'none';
         document.body.style.cursor = '';
+        document.body.style.userSelect = '';
         dragging.value = false;
 
         const realWidth = Math.max(
@@ -268,6 +270,16 @@ export default function (
     }
   };
 
+  // 从热区直接移出表头时 handleMouseMove 不会再触发，需要在这里复位
+  const handleMouseLeave = () => {
+    if (dragging.value) {
+      return;
+    }
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    dragable = false;
+  };
+
   const handleOuterMousemove = _.throttle((event: Event) => {
     let i = event.composedPath().length - 1;
     while (i >= 0) {
@@ -291,6 +303,7 @@ export default function (
   return {
     columnSizeConfig,
     handleMouseDown,
+    handleMouseLeave,
     handleMouseMove,
   };
 }
