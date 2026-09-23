@@ -93,7 +93,7 @@ class OracleMasterFailoverFlow(OracleBaseFlow):
                 ),
             )
 
-            if info["is_check_process"]:
+            if self.data["is_check_process"]:
                 sub_pipeline.add_act(
                     act_name=_("检查故障主库连接"),
                     act_component_code=ExecuteOracleActuatorScriptComponent.code,
