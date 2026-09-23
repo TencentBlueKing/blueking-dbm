@@ -748,6 +748,7 @@ class TicketType(StrStructuredEnum):
     ORACLE_EXEC_SCRIPT_APPLY = TicketEnumField("ORACLE_EXEC_SCRIPT_APPLY", _("ORACLE 变更SQL执行"), _("脚本任务"))
     ORACLE_ADD_SLAVE = TicketEnumField("ORACLE_ADD_SLAVE", _("ORACLE 添加从库"), _("集群管理"))
     ORACLE_REPLACE_HOST = TicketEnumField("ORACLE_REPLACE_HOST", _("ORACLE 整机替换"), _("集群管理"))
+    ORACLE_MASTER_FAIL_OVER = TicketEnumField("ORACLE_MASTER_FAIL_OVER", _("ORACLE 主库故障切换"), _("集群管理"))
 
     # 测试
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"))

@@ -16,9 +16,11 @@ from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     BaseTicketFlowBuilderPatchMixin,
+    CommonValidate,
     ParamValidateSerializerMixin,
     SkipToRepresentationMixin,
     TicketBaseValidateSerializerMixin,
+    fetch_cluster_ids,
 )
 
 
@@ -37,6 +39,11 @@ class OracleOpsBaseDetailSerializer(
         attrs = super().validate(attrs)
         attrs = super().validated_params(attrs=attrs)
         return attrs
+
+    def validated_cluster_type(self, attrs, cluster_type: ClusterType):
+        """校验集群类型"""
+        cluster_ids = fetch_cluster_ids(attrs)
+        CommonValidate.validated_cluster_type(cluster_ids, cluster_type)
 
 
 class OracleOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
