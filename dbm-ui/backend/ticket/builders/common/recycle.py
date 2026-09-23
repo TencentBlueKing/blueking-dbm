@@ -168,7 +168,7 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
             recycle_hosts = output_data[0]["values"] if output_data else []
             if recycle_hosts:
                 recycle_hosts = self.__standardized(recycle_hosts)
-            ticket_flows = list(self.ticket.flows.all())
+            ticket_flows = self.ticket.ordered_flows()
         except AppBaseException as e:
             BaseTicketFlow(current_flow).run_error_status_handler(e)
         else:
