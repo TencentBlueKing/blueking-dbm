@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/models/mysqlite"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/backupsys"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
@@ -412,9 +413,11 @@ func (task *Task) BackupRecordSaveToLocalDB() {
 		return
 	}
 	task.RedisBinlogHistorySchema.ID = 0 // 重置为0,以便gorm自增
-	task.Err = task.sqdb.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(&task.RedisBinlogHistorySchema).Error
+	task.Err = mysqlite.RetryOnWriteErr(func() error {
+		return task.sqdb.Clauses(clause.OnConflict{
+			UpdateAll: true,
+		}).Create(&task.RedisBinlogHistorySchema).Error
+	})
 	if task.Err != nil {
 		task.Err = fmt.Errorf("BackupRecordSaveToLocalDB sqdb.Create fail,err:%v", task.Err)
 		mylog.Logger.Error(task.Err.Error())
