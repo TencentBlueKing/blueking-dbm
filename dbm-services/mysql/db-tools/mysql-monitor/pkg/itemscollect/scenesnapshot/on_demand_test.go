@@ -16,6 +16,12 @@ func TestInitSnapshotOptions(t *testing.T) {
 		t.Fatalf("should not set defaults when disabled: %+v", c)
 	}
 
+	// 保留时长和按需采集无关, 关闭时也要填默认值
+	if c.SnapshotKeepHours != defaultSnapshotKeepHours {
+		t.Fatalf("expect default keep hours %d, got %d",
+			defaultSnapshotKeepHours, c.SnapshotKeepHours)
+	}
+
 	// 开了按需采集但没配阈值, 用默认值
 	c = &Checker{SnapshotOnDemand: true}
 	c.initSnapshotOptions()

@@ -47,8 +47,8 @@ func init() {
 }
 
 type Checker struct {
-	// SnapshotKeepDays 快照保留天数, 不配置用默认值 2
-	SnapshotKeepDays int `mapstructure:"snapshot_keep_days"`
+	// SnapshotKeepHours 快照保留小时数, 不配置用默认值 48
+	SnapshotKeepHours int `mapstructure:"snapshot_keep_hours"`
 	// SnapshotOnDemand 是否按需采集快照, 默认 false 即每轮都采集, 详见 on_demand.go
 	SnapshotOnDemand bool `mapstructure:"snapshot_on_demand"`
 	// SnapshotLongQueryTime 按需采集条件: 存在 Time 大于 N 秒的查询, 不配置用默认值 30
@@ -104,7 +104,7 @@ func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 // 清理失败不影响采集, 只记录日志
 func (c *Checker) cleanOldScenes() {
 	for _, sceneName := range []string{processListName, engineInnodbStatusName} {
-		if err := archivescenes.DeleteOld(sceneName, sceneBase, c.SnapshotKeepDays); err != nil {
+		if err := archivescenes.DeleteOld(sceneName, sceneBase, c.SnapshotKeepHours); err != nil {
 			slog.Warn(
 				name, slog.String("msg", "delete old scenes"),
 				slog.String("scene", sceneName), slog.String("error", err.Error()),
