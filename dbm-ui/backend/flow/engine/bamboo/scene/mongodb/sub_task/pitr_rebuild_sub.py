@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from typing import Dict, List
+
 from backend.flow.consts import MongoDBActuatorActionEnum
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
@@ -25,7 +27,19 @@ class PitrRebuildSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, file_path, exec_node: MongoNode, src_shard, dst_shard, src_cluster, dst_cluster) -> dict:
+    def make_kwargs(
+        cls,
+        file_path,
+        exec_node: MongoNode,
+        src_shard,
+        dst_shard,
+        src_cluster,
+        dst_cluster,
+        shard_map: List[Dict] = None,
+    ) -> dict:
+        """
+        @param shard_map: 源shard名->目标shard名的显式配对，只有configsvr写config.shards时需要
+        """
         dba_user, dba_pwd = MongoUtil.get_dba_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id)
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
@@ -47,6 +61,7 @@ class PitrRebuildSubTask(BaseSubTask):
                     "dst_cluster": dst_cluster.__json__(),
                     "src_shard": src_shard.__json__(),
                     "dst_shard": dst_shard.__json__(),
+                    "shard_map": shard_map or [],
                 },
             },
         }
