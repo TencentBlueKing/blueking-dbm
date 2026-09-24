@@ -10,12 +10,14 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_default, auth_parse_bizs, auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
+    list_redis_specs,
     redis_cluster_apply,
     redis_cluster_cutoff,
+    redis_cluster_new_apply,
     redis_delete_key_by_regex,
     redis_extract_key,
     redis_flush_db,
@@ -33,10 +35,13 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
     redis_version_update_online,
 )
 from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
+    ListRedisSpecsInputSerializer,
+    ListRedisSpecsOutputSerializer,
     SubmitBillOutputSerializer,
     SubmitBillRedisAnalysisHotkeyInputSerializer,
     SubmitBillRedisBaseInputSerializer,
     SubmitBillRedisClusterApplyInputSerializer,
+    SubmitBillRedisClusterNewApplyInputSerializer,
     SubmitBillRedisClusterScaleInputSerializer,
     SubmitBillRedisCutoffInputSerializer,
     SubmitBillRedisDeleteKeyInputSerializer,
@@ -53,7 +58,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpTicketToolPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpSkipPermission, McpTicketToolPermission
 
 """
 单据相关 mcp
@@ -69,6 +74,28 @@ from backend.iam_app.handlers.drf_perm.mcp import McpTicketToolPermission
 
 class RedisBillMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "列出 Redis 资源规格（仅 enable=true 且备注 desc 含 mcp_allow 的条目，大小写不敏感），"
+                "供创单前选型。可选 machine_type=proxy|TwemproxyRedisInstance|PredixyTendisplusCluster|"
+                "TwemproxyTendisSSDInstance。"
+                "返回 results/count：含 spec_id、cpu/mem/storage_spec、device_class、desc。"
+                "创单须用此处的 spec_id，禁止凭名称瞎猜。"
+            )
+        ),
+        request_slz=ListRedisSpecsInputSerializer,
+        response_slz=ListRedisSpecsOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.REDIS_BILL],
+        name_prefix="redis_bill",
+        permission_classes=[McpSkipPermission],
+        mcp_auth_parser=auth_default,
+    )
+    def list_redis_specs(self, request, *args, **kwargs):
+        p = self.params_validate(self.get_serializer_class())
+        return Response(list_redis_specs(machine_type=p.get("machine_type") or ""))
 
     # =========================== 涉及机器资源类单据 begin ===========================
     # done: proxy扩容、proxy缩容、整机替换、集群部署（克隆申请）
@@ -121,6 +148,58 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         return Response(
             redis_ins_apply(
                 request, bk_biz_id, cluster_domain, new_cluster_name, spec_id, keep_source_password, master_ip
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""全新申请一个redis集群（不依赖任何已有集群，需自行指定架构类型、版本、规格、分片数、组数、容灾级别等），""" """机器来源固定为资源池""")),
+        request_slz=SubmitBillRedisClusterNewApplyInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_bizs,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.REDIS_BILL],
+        name_prefix="redis_bill",
+    )
+    def submit_bill_redis_cluster_new_apply(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_name = self.get_param("cluster_name")
+        cluster_alias = self.get_param("cluster_alias", None)
+        cluster_type = self.get_param("cluster_type")
+        db_version = self.get_param("db_version")
+        bk_cloud_id = self.get_param("bk_cloud_id", 0)
+        city_code = self.get_param("city_code", "")
+        disaster_tolerance_level = self.get_param("disaster_tolerance_level")
+        proxy_spec_id = self.get_param("proxy_spec_id")
+        proxy_count = self.get_param("proxy_count")
+        backend_spec_id = self.get_param("backend_spec_id")
+        group_num = self.get_param("group_num")
+        shard_num = self.get_param("shard_num")
+        proxy_pwd = self.get_param("proxy_pwd", None)
+        port = self.get_param("port", 50000)
+        apply_clb = self.get_param("apply_clb", False)
+        apply_polaris = self.get_param("apply_polaris", False)
+
+        return Response(
+            redis_cluster_new_apply(
+                request,
+                bk_biz_id,
+                cluster_name,
+                cluster_type,
+                db_version,
+                proxy_spec_id,
+                proxy_count,
+                backend_spec_id,
+                group_num,
+                shard_num,
+                cluster_alias=cluster_alias,
+                bk_cloud_id=bk_cloud_id,
+                city_code=city_code,
+                disaster_tolerance_level=disaster_tolerance_level,
+                proxy_pwd=proxy_pwd,
+                port=port,
+                apply_clb=apply_clb,
+                apply_polaris=apply_polaris,
             )
         )
 

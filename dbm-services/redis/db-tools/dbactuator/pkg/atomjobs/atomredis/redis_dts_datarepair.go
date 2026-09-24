@@ -48,10 +48,10 @@ func (job *RedisDtsDataRepair) Run() (err error) {
 	if err != nil {
 		return
 	}
-	// 3. 并发提取与校验,并发度5
+	// 3. 并发提取与校验,并发度默认5,可通过参数concurrency传入
 	var wg sync.WaitGroup
 	taskList := make([]*RedisInsDtsDataCheckAndRepairTask, 0, len(job.params.SrcRedisPortSegmentList))
-	pool, err := ants.NewPoolWithFunc(5, func(i interface{}) {
+	pool, err := ants.NewPoolWithFunc(job.params.GetConcurrency(), func(i interface{}) {
 		defer wg.Done()
 		task := i.(*RedisInsDtsDataCheckAndRepairTask)
 		task.RunDataRepair()
