@@ -395,7 +395,7 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request, errCo
 			fmt.Errorf("插件类型 '%s' 版本 '%s' 不存在或未配置，请检查插件配置", request.StorageAddonType, request.StorageAddonVersion))
 	}
 
-	// 反序列化支持的版本列表
+	// 反序列化支持的版本列表（作为组件级 releases 缺失时的兜底）
 	var supportedVersions []string
 	if err := json.Unmarshal([]byte(storageAddon[0].SupportedVersions), &supportedVersions); err != nil {
 		slog.Error("failed to unmarshal supported versions", "error", err)
@@ -403,15 +403,27 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request, errCo
 			fmt.Errorf("supported versions 反序列化失败"))
 	}
 
-	// 检查组件版本是否在支持的版本列表中
+	// 解析 releases 字段，按组件维度获取各自的支持版本列表
+	componentVersionsMap, err := parseComponentReleases(storageAddon[0].Releases)
+	if err != nil {
+		slog.Error("failed to unmarshal releases", "error", err)
+		return dbserrors.NewK8sDbsError(errCode,
+			fmt.Errorf("releases 反序列化失败: %w", err))
+	}
+
+	// 检查组件版本：优先使用 releases 中该组件对应的版本列表，缺失时回退到 supported_versions
 	for _, component := range request.ComponentList {
 		if component.Version == nil {
 			continue
 		}
-		if !lo.Contains(supportedVersions, *component.Version) {
+		allowedVersions, matched := componentVersionsMap[component.ComponentName]
+		if !matched || len(allowedVersions) == 0 {
+			allowedVersions = supportedVersions
+		}
+		if !lo.Contains(allowedVersions, *component.Version) {
 			return dbserrors.NewK8sDbsError(errCode,
 				fmt.Errorf("组件 %s 的版本 %s 不在支持的版本列表中，支持的版本: %v",
-					component.ComponentName, *component.Version, supportedVersions))
+					component.ComponentName, *component.Version, allowedVersions))
 		}
 	}
 
@@ -429,6 +441,34 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request, errCo
 				request.AddonClusterVersion, supportedAcVersions))
 	}
 	return nil
+}
+
+// parseComponentReleases 解析 addon 的 releases 字段，返回 componentName -> 支持版本列表 的映射。
+// releases 字段的 JSON 结构示例：
+//
+//	[{"componentName":"surreal","versions":["2.4.0","3.0.1"]},
+//	 {"componentName":"tikv","versions":["8.5.2","8.5.5"]}]
+//
+// 若 releases 为空字符串或空数组，返回空 map（调用方需自行处理回退逻辑）。
+func parseComponentReleases(releasesJSON string) (map[string][]string, error) {
+	result := make(map[string][]string)
+	if strings.TrimSpace(releasesJSON) == "" {
+		return result, nil
+	}
+	var releases []struct {
+		ComponentName string   `json:"componentName"`
+		Versions      []string `json:"versions"`
+	}
+	if err := json.Unmarshal([]byte(releasesJSON), &releases); err != nil {
+		return nil, err
+	}
+	for _, rel := range releases {
+		if rel.ComponentName == "" {
+			continue
+		}
+		result[rel.ComponentName] = rel.Versions
+	}
+	return result, nil
 }
 
 // saveClusterReleaseMeta 记录集群 release 元数据
