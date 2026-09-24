@@ -150,7 +150,13 @@ class MySQLAlarm(AlarmCallback):
                 "keyword": "慢查询数量",
                 "level": [0, 1, 2],
                 "cluster_type": [],
-            }
+            },
+            {
+                "keyword": "主机 CPU 负载",
+                "level": [0, 1],
+                "cluster_type": ["tendbha", "tendbsingle"],
+                "ratelimit": "1 / 8",
+            },
         ],
         "call_mysql_conf_analyzer": [
             {

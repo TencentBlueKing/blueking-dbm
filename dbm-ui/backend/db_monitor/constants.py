@@ -326,7 +326,7 @@ ALARM_CALLBACK_ACTIONS = {
     AUTOFIX_ACTION_NAME: {"template": AUTOFIX_ACTION_TEMPLATE, "label_starts": ["NEED_AUTOFIX"]},
     ALARM_CALLBACK_ACTION_NAME: {
         "template": ALARM_CALLBACK_ACTION_TEMPLATE,
-        "label_starts": ["MySQL", "DBM_DBHA", "DBM_REDIS"],
+        "label_starts": ["MYSQL", "DBM_DBHA", "DBM_REDIS"],
     },
 }
 

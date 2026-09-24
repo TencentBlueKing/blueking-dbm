@@ -75,12 +75,15 @@ func Run(hardcode bool) error {
 						"db-up", err.Error(), map[string]interface{}{
 							"instance_host": h.Host,
 							"instance_port": h.Port,
+							"instance":      fmt.Sprintf("%s-%d", h.Host, h.Port),
 						},
 					)
+					// db_up 优先级很高，报 -1 上去，提高告警策略的优先级
 					utils.SendMonitorMetrics(
 						"db_up", -1, map[string]interface{}{
 							"instance_host": h.Host,
 							"instance_port": h.Port,
+							"instance":      fmt.Sprintf("%s-%d", h.Host, h.Port),
 							"error_msg":     sanitizeConnErrMsg(err.Error()),
 						},
 					)

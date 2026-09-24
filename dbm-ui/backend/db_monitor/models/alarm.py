@@ -1361,9 +1361,11 @@ class MonitorPolicy(AuditedModel):
         for label in labels:
             # 可以注册多个 callbacks
             for callback_name, callback in callback_actions.items():
+                # label 与 label_starts 比较时忽略大小写
+                label_starts = tuple(prefix.lower() for prefix in callback["label_starts"] or [])
                 if (
-                    callback["label_starts"]
-                    and any(label.startswith(prefix) for prefix in callback["label_starts"])
+                    label_starts
+                    and label.lower().startswith(label_starts)
                     and callback.get("action_id", None) is not None
                 ):
                     callbacks.append(
@@ -1399,9 +1401,7 @@ class MonitorPolicy(AuditedModel):
                 dirs.remove(skip_dir)
 
             for alarm_tpl in files:
-
                 with (open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f):
-                    logger.info("[sync_plat_monitor_policy] start sync bkm alarm tpl: %s " % alarm_tpl)
                     try:
                         template_dict = json.loads(f.read())
                         # 监控API不支持传入额外的字段
@@ -1424,6 +1424,7 @@ class MonitorPolicy(AuditedModel):
                         logger.error(("[sync_plat_monitor_policy] template %s has no details" % alarm_tpl))
                         continue
 
+                    logger.info("[sync_plat_monitor_policy] start sync bkm alarm tpl: %s " % alarm_tpl)
                     template_dict["is_enabled"] = template_dict["details"]["is_enabled"]
                     # patch template
                     labels = list(set(template_dict["details"]["labels"]))
