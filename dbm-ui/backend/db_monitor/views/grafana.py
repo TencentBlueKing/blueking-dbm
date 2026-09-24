@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_meta.enums import ClusterType
 from backend.db_monitor.models import Dashboard
 from backend.db_monitor.serializers import (
     DashboardUrlSerializer,
@@ -63,11 +64,12 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
             org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type, type=DashboardType.CLUSTER
         )
         if dashes.exists():
+            is_k8s = cluster_type in ClusterType.k8s_container_cluster_type_values()
             dash_urls = [
                 {
                     "id": VIEW_ID_MAPPING.get(dash.view, dash.view),
                     "view": _(dash.view),
-                    "url": dash.get_url(bk_biz_id, cluster_id),
+                    "url": dash.get_k8s_url(cluster_id) if is_k8s else dash.get_cluster_url(bk_biz_id, cluster_id),
                 }
                 for dash in dashes
             ]
