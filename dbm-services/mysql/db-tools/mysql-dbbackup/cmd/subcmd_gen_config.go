@@ -15,6 +15,7 @@ import (
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -154,6 +155,16 @@ func generateOneDSGString(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 	case cst.BackupRoleMaster, cst.BackupRoleRepeater, cst.BackupRoleOrphan:
 		return opt.Master.DataSchemaGrant, nil
 	case cst.BackupRoleSlave:
+		instInfo, err := pkg.GetSelfInfo(cfg.Ip, cfg.Port)
+		if err != nil {
+			return opt.Slave.DataSchemaGrant, nil
+		}
+		// 只读组，使用 Readonly.DataSchemaGrant 来控制备份内容
+		if !instInfo.IsStandBy &&
+			strings.EqualFold(instInfo.InstanceInnerRole, cst.BackupRoleSlave) &&
+			opt.Readonly.DataSchemaGrant != "" {
+			return opt.Readonly.DataSchemaGrant, nil
+		}
 		return opt.Slave.DataSchemaGrant, nil
 	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave, cst.BackupRoleSpiderMnt:
 		return "schema,grant", nil

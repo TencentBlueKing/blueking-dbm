@@ -15,6 +15,8 @@ type BackupOptions struct {
 	} `json:"Logical"`
 	Master logicBackupDataOption `json:"Master" validate:"required"`
 	Slave  logicBackupDataOption `json:"Slave"`
+	// Readonly 只读组可单独设置备份内容，目前把非 standby 的 slave 都归到 只读组
+	Readonly logicBackupDataOption `json:"Readonly"`
 	// EnableBackupClient auto | yes | no
 	EnableBackupClient string `json:"EnableBackupClient"`
 }
