@@ -133,7 +133,7 @@
   import { t } from '@locales/index';
 
   import type { ToolboxLeafNode, ToolboxTreeNode } from '../common/types';
-  import { getLeafChildren, hasChildGroups, isLeafNode, isTreeNode } from '../common/utils';
+  import { getLeafChildren, hasChildGroups, isLeafNode, isSearchMatched, isTreeNode } from '../common/utils';
 
   import MenuItem from './components/MenuItem.vue';
 
@@ -206,14 +206,14 @@
     };
   });
 
-  /** 按工具名过滤，无命中项的分组整体隐藏 */
+  /** 按工具名过滤（忽略大小写，支持拼音），无命中项的分组整体隐藏 */
   const filterBySearchKey = (menuList: ToolboxTreeNode[]): ToolboxTreeNode[] => {
     return menuList.reduce<ToolboxTreeNode[]>((acc, menuItem) => {
       if (hasChildGroups(menuItem)) {
-        const filterChildren = menuItem.children
+        const filterChildren = (menuItem.children as ToolboxTreeNode[])
           .map((childrenItem) => {
             const filterList = (childrenItem.children as ToolboxLeafNode[]).filter((subChildrenItem) =>
-              subChildrenItem.name.includes(searchKey.value),
+              isSearchMatched(searchKey.value, subChildrenItem.name),
             );
             return { ...childrenItem, children: filterList };
           })
@@ -221,7 +221,7 @@
         return filterChildren.length > 0 ? acc.concat({ ...menuItem, children: filterChildren }) : acc;
       }
       const filterList = (menuItem.children as ToolboxLeafNode[]).filter((childrenItem) =>
-        childrenItem.name.includes(searchKey.value),
+        isSearchMatched(searchKey.value, childrenItem.name),
       );
       return filterList.length > 0 ? acc.concat({ ...menuItem, children: filterList }) : acc;
     }, []);
@@ -339,6 +339,14 @@
 
         &.db-icon-resource {
           color: #3a84ff;
+        }
+
+        &.db-icon-migration {
+          color: #3a84ff;
+        }
+
+        &.db-icon-shujujiance {
+          color: #f79413;
         }
       }
 
