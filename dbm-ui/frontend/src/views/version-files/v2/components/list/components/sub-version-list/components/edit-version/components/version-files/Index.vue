@@ -34,6 +34,7 @@
     <UploadFile
       ref="uploadFileRef"
       :db-type="dbType"
+      :distribution="distribution"
       :pkg-type="pkgType"
       :uploaded-file-names="uploadedFileNames"
       :version="version" />
@@ -76,6 +77,7 @@
   interface Props {
     data?: (Omit<TableRow, 'rowKey' | 'percentage' | 'uid' | 'status'>)[];
     dbType: DBTypes;
+    distribution?: string;
     isApplied?: boolean;
     pkgType: string;
     version: string;

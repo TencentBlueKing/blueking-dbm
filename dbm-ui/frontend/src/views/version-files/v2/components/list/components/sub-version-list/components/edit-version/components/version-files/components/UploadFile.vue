@@ -44,6 +44,7 @@
 
   interface Props {
     dbType: DBTypes;
+    distribution?: string;
     pkgType: string;
     uploadedFileNames: string[];
     version: string;
@@ -75,9 +76,11 @@
 
   const uploadRef = ref<InstanceType<typeof DbUpload>>();
 
+  const uploadUid = Date.now();
+
   const uploadOptions = computed(() => ({
     accept: ['mysql', 'mysql-proxy'].includes(props.pkgType) ? '.tar.gz,.tar.xz' : '',
-    basePath: `/${props.dbType}/${props.pkgType}/${props.version}`,
+    basePath: `/${props.dbType}/${props.pkgType}/${props.distribution || 'default'}/${uploadUid}`,
     disabled: !props.version,
     excludeNames: props.uploadedFileNames,
     mode: 'bkrepo' as const,
