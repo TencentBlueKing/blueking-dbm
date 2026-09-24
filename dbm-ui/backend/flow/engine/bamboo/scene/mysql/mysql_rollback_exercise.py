@@ -12,7 +12,7 @@ import copy
 import logging
 import pathlib
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.db.models import Q
@@ -52,19 +52,37 @@ from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_ac
 from backend.flow.plugins.components.collections.mysql.mysql_backup_recovery_exercise import (
     MySQLBackupRecoverTaskMetaComponent,
 )
+from backend.flow.plugins.components.collections.mysql.mysql_exercise_binlog_query import (
+    MysqlExerciseBinlogDownloadComponent,
+    MysqlExerciseBinlogQueryComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.act_payload.mysql.peripheraltools import PeripheralToolsPayload
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import (
+    DownloadBackupFileKwargs,
+    DownloadMediaKwargs,
+    ExecActuatorKwargs,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import MySQLRollbackExerciseContext
+from backend.utils.time import datetime2str, str2datetime
 
 logger = logging.getLogger("flow")
 
 # V2 备份介质取自 version_series.name=beta（非 latest）；优先 alpha，无则兼容 release
 _BACKUP_VERSION_SERIES_NAME = "beta"
 _BACKUP_PHASE_PRIORITY = [VersionPhase.ALPHA.value, VersionPhase.RELEASE.value]
+# 演练 binlog 前滚固定窗口：备份结束时间 + 1 小时
+EXERCISE_BINLOG_WINDOW = timedelta(hours=1)
+
+
+def calc_exercise_binlog_rollback_time(backup_end_time) -> str:
+    """前滚终点 = 全备结束时间 + 固定 1 小时窗口。"""
+    if not backup_end_time:
+        return ""
+    return datetime2str(str2datetime(backup_end_time) + EXERCISE_BINLOG_WINDOW)
 
 
 def _get_v2_package_by_phase(
@@ -357,29 +375,10 @@ class MySQLRollbackExerciseFlow(object):
             extend=False,
         )
 
-        # 创建成功分支节点
-        success_act = sub_pipeline.add_act(
-            act_name=_("更新演练任务状态为成功"),
-            act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
-            kwargs={
-                "task_id": self.root_id,
-                "task_status": TaskStatus.RECOVER_SUCCESS,
-                "root_id": self.root_id,
-            },
-            extend=False,
-        )
-
-        # 创建失败分支节点
-        failed_act = sub_pipeline.add_act(
-            act_name=_("更新演练任务状态为失败"),
-            act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
-            kwargs={
-                "task_id": self.root_id,
-                "task_status": TaskStatus.RECOVER_FAILED,
-                "root_id": self.root_id,
-            },
-            extend=False,
-        )
+        my_cluster["backup_time"] = backup_info.get("backup_time") or backup_info.get("backup_consistent_time")
+        my_cluster["rollback_time"] = calc_exercise_binlog_rollback_time(backup_info.get("backup_end_time"))
+        success_act = self._build_binlog_forward_subflow(cluster_class, my_cluster, backup_info)
+        failed_act = self._add_task_status_act(sub_pipeline, _("更新演练任务状态为失败"), TaskStatus.RECOVER_FAILED)
 
         # 添加条件网关：根据回档执行结果选择不同分支
         sub_pipeline.add_conditional_subs(
@@ -474,6 +473,112 @@ class MySQLRollbackExerciseFlow(object):
         # )
         # 更新任务状态
         return sub_pipeline.build_sub_process(sub_name=_("{}回档演练".format(cluster_class.immute_domain)))
+
+    def _add_task_status_act(self, pipeline, act_name, task_status, extend=False):
+        return pipeline.add_act(
+            act_name=act_name,
+            act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
+            kwargs={
+                "task_id": self.root_id,
+                "task_status": task_status,
+                "root_id": self.root_id,
+            },
+            extend=extend,
+        )
+
+    def _build_binlog_apply_subflow(self, cluster_class: Cluster, my_cluster: dict):
+        apply_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        exec_act_kwargs = ExecActuatorKwargs(
+            bk_cloud_id=cluster_class.bk_cloud_id,
+            cluster_type=cluster_class.cluster_type,
+            cluster=copy.deepcopy(my_cluster),
+            job_timeout=MYSQL_DATA_RESTORE_TIME,
+            exec_ip=my_cluster["rollback_ip"],
+            get_mysql_payload_func=MysqlActPayload.tendb_recover_binlog_payload.__name__,
+        )
+        apply_act = apply_pipeline.add_act(
+            act_name=_("前滚binlog {}").format(my_cluster["rollback_ip"]),
+            act_component_code=ExecRollbackActForSourceComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+            error_ignorable=True,
+            extend=False,
+        )
+        apply_ok = self._add_task_status_act(apply_pipeline, _("更新演练任务状态为成功"), TaskStatus.RECOVER_SUCCESS)
+        apply_fail = self._add_task_status_act(
+            apply_pipeline, _("更新演练任务状态为binlog apply失败"), TaskStatus.BINLOG_APPLY_FAILED
+        )
+        apply_pipeline.add_conditional_subs(
+            source_act=apply_act,
+            conditions=[
+                Conditions(act_object=apply_ok, express="==0"),
+                Conditions(act_object=apply_fail, express="==1"),
+            ],
+            conditions_param="rollback_code",
+            name=_("判断binlog apply状态"),
+        )
+        return apply_pipeline.build_sub_process(sub_name=_("binlog apply"))
+
+    def _build_binlog_download_subflow(self, cluster_class: Cluster, my_cluster: dict):
+        download_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        download_act = download_pipeline.add_act(
+            act_name=_("下载演练binlog {}").format(my_cluster["rollback_ip"]),
+            act_component_code=MysqlExerciseBinlogDownloadComponent.code,
+            kwargs=asdict(
+                DownloadBackupFileKwargs(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    task_ids=[],
+                    dest_ip=my_cluster["rollback_ip"],
+                    dest_dir=my_cluster["file_target_path"],
+                    reason="download binlog for mysql rollback exercise",
+                )
+            ),
+            error_ignorable=True,
+            extend=False,
+        )
+        download_fail = self._add_task_status_act(
+            download_pipeline, _("更新演练任务状态为binlog准备失败"), TaskStatus.BINLOG_PREPARE_FAILED
+        )
+        apply_sub = self._build_binlog_apply_subflow(cluster_class, my_cluster)
+        download_pipeline.add_conditional_subs(
+            source_act=download_act,
+            conditions=[
+                Conditions(act_object=apply_sub, express="==0"),
+                Conditions(act_object=download_fail, express="==1"),
+            ],
+            conditions_param="binlog_download_code",
+            name=_("判断binlog下载状态"),
+        )
+        return download_pipeline.build_sub_process(sub_name=_("下载并前滚binlog"))
+
+    def _build_binlog_forward_subflow(self, cluster_class: Cluster, my_cluster: dict, backup_info: dict):
+        success_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        query_act = success_pipeline.add_act(
+            act_name=_("查询演练窗口binlog"),
+            act_component_code=MysqlExerciseBinlogQueryComponent.code,
+            kwargs={
+                "cluster_id": cluster_class.id,
+                "backup_info": backup_info,
+                "backup_time": my_cluster.get("backup_time"),
+                "rollback_time": my_cluster.get("rollback_time"),
+            },
+            write_payload_var="rollback_error_info",
+            error_ignorable=True,
+            extend=False,
+        )
+        query_fail = self._add_task_status_act(
+            success_pipeline, _("更新演练任务状态为binlog准备失败"), TaskStatus.BINLOG_PREPARE_FAILED
+        )
+        download_sub = self._build_binlog_download_subflow(cluster_class, my_cluster)
+        success_pipeline.add_conditional_subs(
+            source_act=query_act,
+            conditions=[
+                Conditions(act_object=download_sub, express="==0"),
+                Conditions(act_object=query_fail, express="==1"),
+            ],
+            conditions_param="binlog_query_code",
+            name=_("判断binlog查询状态"),
+        )
+        return success_pipeline.build_sub_process(sub_name=_("全备恢复成功后前滚binlog"))
 
     def _build_reinstall_v2_dbbackup_subflow(self, cluster_class: Cluster):
         backup_pkg_type = MysqlVersionToDBBackupForMap[self.data["db_version"]]
