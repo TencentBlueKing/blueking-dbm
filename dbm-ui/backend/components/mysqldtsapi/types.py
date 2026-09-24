@@ -261,6 +261,7 @@ class TaskTableFilterTable(BaseModel):
 
 
 class TaskTableFilter(BaseModel):
+    # DTS master OpenAPI 校验 do_dbs 元素必须为字符串，不支持 {schema, table} 对象
     do_dbs: list[str] = Field(default_factory=list, description=_("库白名单（DTS 通配）"))
     ignore_dbs: list[str] = Field(default_factory=list, description=_("库黑名单"))
     do_tables: list[TaskTableFilterTable] = Field(default_factory=list, description=_("表白名单"))

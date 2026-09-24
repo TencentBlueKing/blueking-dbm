@@ -14,9 +14,13 @@ from typing import Any
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.flow.utils.mysql.dts.migrate_helper import resolve_cluster_target_spider_endpoint, resolve_source_endpoint
+from backend.flow.utils.mysql.dts.migrate_helper import (
+    _resolve_non_cluster_target_write_instance,
+    resolve_cluster_target_spider_endpoint,
+    resolve_source_endpoint,
+)
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec, SyncScope
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode
 from backend.ticket.constants import TicketType
@@ -101,18 +105,6 @@ def _resolve_proxy_by_endpoint(cluster: Cluster, host: str, port: int) -> ProxyI
     return ins
 
 
-def _resolve_target_write_instance(cluster: Cluster) -> StorageInstance:
-    """目标侧按 checksum slave 角色使用：优先 Backend/Remote Master（DTS 写入端）。"""
-    for role in (InstanceRole.BACKEND_MASTER, InstanceRole.REMOTE_MASTER):
-        ins = cluster.storageinstance_set.filter(instance_role=role).first()
-        if ins:
-            return ins
-    ins = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).first()
-    if not ins:
-        raise ValueError(_("目标集群 {} 未找到可用写入实例").format(cluster.id))
-    return ins
-
-
 def build_dts_checksum_ticket_info(*, task_spec: DtsTaskSpec, bk_biz_id: int) -> dict[str, Any]:
     """组装 DTS 模式关联 checksum 单据详情（源=master，目标=slave）。"""
     if not task_spec.sources:
@@ -126,7 +118,7 @@ def build_dts_checksum_ticket_info(*, task_spec: DtsTaskSpec, bk_biz_id: int) ->
         spider_host, spider_port = resolve_cluster_target_spider_endpoint(dst_cluster, task_spec.target_spider)
         slave_ins = _resolve_proxy_by_endpoint(dst_cluster, spider_host, spider_port)
     else:
-        slave_ins = _resolve_target_write_instance(dst_cluster)
+        slave_ins = _resolve_non_cluster_target_write_instance(dst_cluster)
     db_patterns, ignore_dbs, table_patterns, ignore_tables = _scope_to_checksum_patterns(source_spec.sync_scope)
 
     return {

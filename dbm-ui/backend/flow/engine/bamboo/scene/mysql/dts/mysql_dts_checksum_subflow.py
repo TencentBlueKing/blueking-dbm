@@ -10,9 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
 
+from django.utils.translation import gettext as _
+
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_catchup import MysqlDtsPollCatchupComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_result_get import (
     MySQLCheckSumTicketResultComponent,
@@ -21,6 +24,11 @@ from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_sta
     MySQLCheckSumTicketProbeComponent,
 )
 from backend.flow.utils.mysql.dts.checksum_helper import build_dts_checksum_ticket_info
+from backend.flow.utils.mysql.dts.constants import (
+    MYSQL_DTS_CATCHUP_MAX_FAIL_STREAK,
+    MYSQL_DTS_CATCHUP_POLL_INTERVAL,
+    MYSQL_DTS_CATCHUP_REQUIRED_CONSECUTIVE,
+)
 from backend.flow.utils.mysql.dts.context import MysqlDtsChecksumSubflowInput
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec
 from backend.flow.utils.mysql.mysql_act_dataclass import MysqlCheckSumKwargs
@@ -30,6 +38,7 @@ def mysql_dts_checksum_subflow(
     *,
     inp: MysqlDtsChecksumSubflowInput,
     task_spec: DtsTaskSpec,
+    need_catchup_before_result: bool = False,
 ) -> SubBuilder:
     """追平后关联 MYSQL_DTS_CHECKSUM：源=master、目标=slave，dts_mode 跳过主从硬检查。"""
     checksum_info = build_dts_checksum_ticket_info(task_spec=task_spec, bk_biz_id=inp.bk_biz_id)
@@ -65,6 +74,20 @@ def mysql_dts_checksum_subflow(
         act_component_code=MySQLCheckSumTicketProbeComponent.code,
         kwargs={},
     )
+    if need_catchup_before_result:
+        sub.add_act(
+            act_name=_("轮询等待 DTS 追平"),
+            act_component_code=MysqlDtsPollCatchupComponent.code,
+            kwargs={
+                "master_addr": inp.master_addr,
+                "bk_cloud_id": inp.bk_cloud_id,
+                "task_name": inp.task_name or task_spec.task_name,
+                "source_name_list": inp.source_name_list,
+                "poll_interval": MYSQL_DTS_CATCHUP_POLL_INTERVAL,
+                "required_consecutive": MYSQL_DTS_CATCHUP_REQUIRED_CONSECUTIVE,
+                "max_fail_streak": MYSQL_DTS_CATCHUP_MAX_FAIL_STREAK,
+            },
+        )
     sub.add_act(
         act_name=MySQLCheckSumTicketResultComponent.node_name,
         act_component_code=MySQLCheckSumTicketResultComponent.code,

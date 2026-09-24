@@ -23,11 +23,15 @@ from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_confirm_
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
 from backend.flow.utils.mysql.dts.context import MysqlDtsCutoverSubflowInput, MysqlDtsTransData
 from backend.flow.utils.mysql.dts.cutover_helper import build_dts_cutover_payload, resolve_dts_master_exec_target
-from backend.flow.utils.mysql.dts.migrate_helper import task_mode_runs_incremental
+from backend.flow.utils.mysql.dts.migrate_helper import (
+    build_dts_routine_checksum_verify_kwargs,
+    task_mode_runs_incremental,
+)
 from backend.flow.utils.mysql.dts.migrate_plan import DtsMigratePlan, DtsTaskSpec
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, VerifyChecksumKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
@@ -84,6 +88,13 @@ def mysql_dts_cutover_subflow(
             act_name=confirm_name,
             act_component_code=PauseComponent.code,
             kwargs={},
+        )
+    routine_verify = build_dts_routine_checksum_verify_kwargs(task_spec)
+    if routine_verify:
+        sub.add_act(
+            act_name=_("再次检查例行 checksum"),
+            act_component_code=VerifyChecksumComponent.code,
+            kwargs=asdict(VerifyChecksumKwargs(**routine_verify)),
         )
     sub.add_act(
         act_name=_("下发 db-actuator 到 DTS Master"),
