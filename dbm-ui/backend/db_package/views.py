@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import os
+import posixpath
 from typing import Dict, Tuple
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -29,7 +30,7 @@ from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import DBVersion, Distribution, ProxyInstance, StorageInstance, VersionSeries
 from backend.db_package.constants import DB_PACKAGE_TAG, INSTALL_PACKAGE_LIST, PARSE_FILE_EXT, PackageType
-from backend.db_package.exceptions import DBPackageBaseException, PackageNotExistException
+from backend.db_package.exceptions import DBPackageBaseException, PackageNotExistException, PackagePathException
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
 from backend.db_package.serializers import (
@@ -76,6 +77,25 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         else:
             return [get_request_key_id(request, "db_type")]
 
+    @staticmethod
+    def move_package_to_formal(storage_handler: StorageHandler, pkg_data: Dict) -> str:
+        """将暂存区介质文件按版本归属移动到正式目录，返回入库路径；非暂存区路径原样返回"""
+        path = pkg_data["path"]
+        if not storage_handler.is_staging_path(path):
+            return path
+
+        db_version = pkg_data.get("db_version")
+        if not db_version:
+            raise PackagePathException(_("暂存区介质{}缺少所属版本，无法转存到正式目录").format(path))
+
+        formal_path = Package.build_formal_path(
+            db_version=db_version,
+            db_type=pkg_data["db_type"],
+            pkg_type=pkg_data["pkg_type"],
+            file_name=posixpath.basename(path),
+        )
+        return storage_handler.move_staging_file_to_formal(path, formal_path)
+
     @common_swagger_auto_schema(
         operation_summary=_("新建版本文件"),
         tags=[DB_PACKAGE_TAG],
@@ -85,7 +105,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         data["updater"] = request.user.username
         data.update(update_at=timezone.now())
         # 先将暂存区文件转移到正式目录，再以正式路径入库，保证 DB 记录与制品库实际文件路径一致
-        data["path"] = StorageHandler().move_staging_file_to_formal(data["path"])
+        data["path"] = self.move_package_to_formal(StorageHandler(), data)
         package, created = Package.objects.update_or_create(
             defaults=data,
             name=data["name"],
@@ -116,7 +136,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
                 pkg_data["updater"] = username
                 pkg_data["update_at"] = now
                 # 先将暂存区文件转移到正式目录，再以正式路径入库，保证 DB 记录与制品库实际文件路径一致
-                pkg_data["path"] = storage_handler.move_staging_file_to_formal(pkg_data["path"])
+                pkg_data["path"] = self.move_package_to_formal(storage_handler, pkg_data)
                 package, created = Package.objects.update_or_create(
                     defaults=pkg_data,
                     name=pkg_data["name"],

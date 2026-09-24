@@ -15,7 +15,8 @@
 2. 上传文件到目标制品库
 
 > 全部上传： python manage.py upload_bkrepo   
-> 指定db类型上传：python manage.py upload_bkrepo -p redis
+> 指定db类型上传：python manage.py upload_bkrepo -p redis  
+> 只会上传 medium.lock 维护的介质，页面手工上传的介质不会被迁移
 
 ## 同步制品库记录到saas数据库
 
@@ -36,8 +37,9 @@ python manage.py sync_from_bkrepo -t cloud
 ```
 db_type
     pkg_type
-        version
-            media_file
+        distribution
+            full_version
+                media_file
 ```
 
 ## 将日志平台采集项信息制作成json文件

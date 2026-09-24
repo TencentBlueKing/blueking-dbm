@@ -14,6 +14,7 @@ from django.core.management.base import BaseCommand
 
 from backend.configuration.constants import DBType
 from backend.core.storages.storage import get_storage
+from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
 from backend.utils.time import str2datetime
 
@@ -30,34 +31,36 @@ class Command(BaseCommand):
         db_type = options["type"]
         storage = get_storage()
 
+        # 制品库介质目录: /{db_type}/{pkg_type}/{distribution}/{full_version}/{filename}
         for pkg_type in storage.listdir(f"/{db_type}")[0]:
-            # 排除非介质文件
-            if pkg_type["name"] in ["keyfiles", "db-remote-service", "sqlfile"]:
+            # 只同步介质类型目录，业务临时文件等其他目录直接跳过
+            if pkg_type["name"] not in PackageType.get_values():
                 continue
 
-            for version in storage.listdir(pkg_type["fullPath"])[0]:
-                for media in storage.listdir(version["fullPath"])[1]:
-                    create_at = str2datetime(media["createdDate"], aware_check=False)
-                    logger.info(
-                        "{}\t{}\t{}\t{}\t{}\t{}\t".format(
-                            media["name"],
-                            media["fullPath"],
-                            media["path"],
-                            media["size"],
-                            media["md5"],
-                            create_at,
+            for distribution in storage.listdir(pkg_type["fullPath"])[0]:
+                for version in storage.listdir(distribution["fullPath"])[0]:
+                    for media in storage.listdir(version["fullPath"])[1]:
+                        create_at = str2datetime(media["createdDate"], aware_check=False)
+                        logger.info(
+                            "{}\t{}\t{}\t{}\t{}\t{}\t".format(
+                                media["name"],
+                                media["fullPath"],
+                                media["path"],
+                                media["size"],
+                                media["md5"],
+                                create_at,
+                            )
                         )
-                    )
-                    Package.objects.update_or_create(
-                        defaults={
-                            "path": media["fullPath"],
-                            "size": media["size"],
-                            "md5": media["md5"],
-                            "create_at": create_at,
-                            "update_at": media["lastModifiedDate"],
-                        },
-                        db_type=db_type,
-                        pkg_type=pkg_type["name"],
-                        version=version["name"],
-                        name=media["name"],
-                    )
+                        Package.objects.update_or_create(
+                            defaults={
+                                "path": media["fullPath"],
+                                "size": media["size"],
+                                "md5": media["md5"],
+                                "create_at": create_at,
+                                "update_at": media["lastModifiedDate"],
+                            },
+                            db_type=db_type,
+                            pkg_type=pkg_type["name"],
+                            version=version["name"],
+                            name=media["name"],
+                        )

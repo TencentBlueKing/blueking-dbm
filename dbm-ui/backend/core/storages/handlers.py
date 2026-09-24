@@ -127,33 +127,40 @@ class StorageHandler(object):
 
         return target_path
 
-    def move_staging_file_to_formal(self, staging_path: str, overwrite: bool = True) -> str:
-        """
-        将暂存区文件移动到正式目录（去除 /staging 前缀）
+    @staticmethod
+    def is_staging_path(path: str) -> bool:
+        """判断是否为暂存区文件路径"""
+        prefix = STAGING_PREFIX.rstrip("/") + "/"
+        return bool(path) and path.startswith(prefix) and path != prefix
 
-        例如: /staging/mysql/mysql-dumper/latest/xxxx.py -> /mysql/mysql-dumper/latest/xxxx.py
+    def move_staging_file_to_formal(self, staging_path: str, formal_path: str, overwrite: bool = True) -> str:
+        """
+        将暂存区文件移动到调用方给出的正式路径，文件名须与暂存区文件一致
+
+        例如: /staging/mysql/actuator/DBM/{uid}/dbactuator -> /mysql/actuator/DBM/1.0.5.0.0.0/dbactuator
 
         非暂存区路径（如 CI 同步直接给出的正式路径）不做处理，原样返回；
         暂存区文件已不存在但正式目录已有该文件时，视为此前已转正，幂等返回正式路径；
-        暂存区路径不合法、或暂存与正式目录均无该文件时抛出异常，避免把失效路径写入 DB。
+        路径不合法、或暂存与正式目录均无该文件时抛出异常，避免把失效路径写入 DB。
 
         :param staging_path: 暂存区文件完整路径
+        :param formal_path: 正式目录文件完整路径
         :param overwrite: 正式目录已存在同名文件时是否覆盖
         :return: 移动后的正式目录文件路径；非暂存区路径原样返回
-        :raises StagingFileError: 暂存区路径非法，或文件在暂存与正式目录中均不存在
+        :raises StagingFileError: 路径非法，或文件在暂存与正式目录中均不存在
         """
         # 1. 非暂存区路径无需转正，原样返回
-        prefix = STAGING_PREFIX.rstrip("/") + "/"
-        if not staging_path or not staging_path.startswith(prefix) or staging_path == prefix:
+        if not self.is_staging_path(staging_path):
             return staging_path
 
-        # 2. 不允许包含 . / .. 等路径段（防止路径穿越）
-        segments = [seg for seg in staging_path.split("/") if seg != ""]
-        if any(seg in (".", "..") for seg in segments):
-            raise StagingFileError(_("非法的暂存区路径: {}").format(staging_path))
+        # 2. 不允许包含 . / .. 等路径段（防止路径穿越），且转正前后文件名必须一致
+        for path in (staging_path, formal_path):
+            segments = [seg for seg in (path or "").split("/") if seg != ""]
+            if not segments or any(seg in (".", "..") for seg in segments):
+                raise StagingFileError(_("非法的文件路径: {}").format(path))
 
-        # 去除 /staging 前缀得到正式路径
-        formal_path = staging_path[len(STAGING_PREFIX.rstrip("/")) :]
+        if self.is_staging_path(formal_path) or posixpath.basename(staging_path) != posixpath.basename(formal_path):
+            raise StagingFileError(_("正式路径{}与暂存区路径{}不匹配").format(formal_path, staging_path))
 
         # 3. 暂存区文件不存在时，若正式目录已有该文件，说明此前已转正（如批量提交部分成功后重试），
         if not self.storage.exists(staging_path):

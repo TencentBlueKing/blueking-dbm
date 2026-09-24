@@ -1,4 +1,4 @@
-FROM mirrors.tencent.com/build/blueking/dbmedium-builder:1.0.0 as go-mod-builder
+FROM mirrors.tencent.com/build/blueking/dbmedium-builder:1.0.0 AS go-mod-builder
 
 WORKDIR /blueking-dbm
 ADD ./dbm-services ./dbm-services
@@ -100,7 +100,7 @@ RUN set -ex && \
     )
 
 
-FROM go-mod-builder as medium-builder
+FROM go-mod-builder AS medium-builder
 
 WORKDIR /
 
@@ -113,7 +113,7 @@ RUN set -ex && \
 COPY --from=base-app  /app/medium.lock /
 
 
-FROM medium-builder as mysql-medium-builder
+FROM medium-builder AS mysql-medium-builder
 
 WORKDIR /
 ## 构建mysql介质
@@ -136,7 +136,7 @@ RUN set -ex && \
     make package VERSION=$(/lock.sh mysql dbbackup version) DIST=community GITHASH=$(/lock.sh mysql dbbackup commitId) -j4
 
 
-FROM medium-builder as redis-medium-builder
+FROM medium-builder AS redis-medium-builder
 
 ## 构建redis介质
 RUN set -ex && \
@@ -147,7 +147,7 @@ RUN set -ex && \
     bash package.sh --version=$(/lock.sh redis dbmon version) --git-hash=$(/lock.sh redis dbmon commitId) --git-date=$(/lock.sh redis dbmon commitDate)
 
 
-FROM medium-builder as mongodb-medium-builder
+FROM medium-builder AS mongodb-medium-builder
 
 ## 构建mongodb介质
 RUN set -ex && \
@@ -160,21 +160,20 @@ RUN set -ex && \
     make build VERSION=$(/lock.sh mongodb mongo-toolkit version) GITHASH=$(/lock.sh mongodb mongo-toolkit commitId) BUILDSTAMP=$(/lock.sh mongodb mongo-toolkit commitDate) -j4
 
 
-FROM medium-builder as bigdata-medium-builder
+FROM medium-builder AS bigdata-medium-builder
 
 ## 构建大数据介质
+## 大数据的actuator都是一个, 任意编译即可；riak的介质需要单独编译
 RUN set -ex && \
-    ## 大数据的actuator都是一个，任意编译即可
     cd /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator && \
     make VERSION=$(/lock.sh es actuator version) GITHASH=$(/lock.sh es actuator commitId) -j4 && \
-    ## riak的介质需要单独编译
     cd /blueking-dbm/dbm-services/riak/db-tools/dbactuator && \
     make build VERSION=$(/lock.sh riak actuator version) GITHASH=$(/lock.sh riak actuator commitId) -j4 && \
     cd /blueking-dbm/dbm-services/riak/db-tools/riak-monitor && \
     make release-bin VERSION=$(/lock.sh riak riak-monitor version) GITHASH=$(/lock.sh riak riak-monitor commitId) -j4
 
 
-FROM medium-builder as sqlserver-medium-builder
+FROM medium-builder AS sqlserver-medium-builder
 
 ## 构建sqlserver介质
 RUN set -ex && \
@@ -182,7 +181,7 @@ RUN set -ex && \
     make build VERSION=$(/lock.sh sqlserver actuator version) GITHASH=$(/lock.sh sqlserver actuator commitId) -j4
 
 
-FROM medium-builder as cloud-medium-builder
+FROM medium-builder AS cloud-medium-builder
 
 ## 构建云区域组件介质
 RUN set -ex && \
@@ -194,7 +193,7 @@ RUN set -ex && \
     make VERSION=$(/lock.sh cloud cloud-drs version) GITHASH=$(/lock.sh cloud cloud-drs commitId) -j4
 
 
-FROM base-app as medium-app
+FROM base-app AS medium-app
 
 WORKDIR /app
 
