@@ -8,6 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
@@ -30,9 +31,9 @@ class VerifyChecksumService(BaseService):
     def _execute(self, data, parent_data):
 
         allow_diff_cnt = 0
-        is_exist_checksum_history = True
 
         kwargs = data.get_one_of_inputs("kwargs")
+        skip_if_no_records = bool(kwargs.get("skip_if_no_records", False))
 
         checksum_instance_tuples = kwargs["checksum_instance_tuples"]
         error_message_list = []
@@ -41,6 +42,7 @@ class VerifyChecksumService(BaseService):
             master_ip = t["master"].split(":")[0]
             master_port = t["master"].split(":")[1]
             slave_address = t["slave"]
+            is_exist_checksum_history = True
             checksum_history_cnt = checksum_history_diff_cnt = 0
 
             # 判断checksum_history表是否存在
@@ -59,14 +61,15 @@ class VerifyChecksumService(BaseService):
                 }
             )
             if res[0]["error_msg"]:
+                if skip_if_no_records:
+                    self.log_info(_("节点 [{}] 跳过例行 checksum（DRS 失败）: {}").format(slave_address, res[0]["error_msg"]))
+                    continue
                 error_message_list.append(f"This node [{slave_address}] verify checksum failed: {res[0]['error_msg']}")
                 continue
 
             if int(res[0]["cmd_results"][0]["table_data"][0]["t"]) == 0:
-                # 标记 checksum_history 不存在
                 is_exist_checksum_history = False
 
-            # 拼接查询校验结果命令集，并分析结果
             check_cmds = [
                 (
                     f"select count(0) as cnt from {INFODBA_SCHEMA}.checksum"
@@ -108,32 +111,44 @@ class VerifyChecksumService(BaseService):
                 }
             )
 
-            # 执行如果出现异常报错
             if res[0]["error_msg"]:
+                if skip_if_no_records:
+                    self.log_info(_("节点 [{}] 跳过例行 checksum（DRS 失败）: {}").format(slave_address, res[0]["error_msg"]))
+                    continue
                 error_message_list.append(f"This node [{slave_address}] verify checksum failed: {res[0]['error_msg']}")
                 continue
 
-            # 捕捉返回结果
-            checksum_cnt = int(res[0]["cmd_results"][0]["table_data"][0]["cnt"])
-            checksum_diff_cnt = int(res[0]["cmd_results"][1]["table_data"][0]["cnt"])
-            if is_exist_checksum_history:
-                checksum_history_cnt = int(res[0]["cmd_results"][2]["table_data"][0]["cnt"])
-                checksum_history_diff_cnt = int(res[0]["cmd_results"][3]["table_data"][0]["cnt"])
-
-            # 分析结果
-            # 场景1: 如果最近14天内在checksum/checksum_history表没有记录，异常
-            if checksum_cnt == 0 and checksum_history_cnt == 0:
-                error_message_list.append(
-                    f"This node [{slave_address}] has not queried the verification records of the last 14 days"
-                )
-            # 场景2: checksum不一致结果大于允许范围； 或者checksum表为空且history表不一致结果大于允许范围，异常
-            elif checksum_diff_cnt > allow_diff_cnt or (
-                checksum_cnt == 0 and checksum_history_diff_cnt > allow_diff_cnt
-            ):
-                error_message_list.append(f"This node [{slave_address}] has diff chuck in the last 14 days")
-            # 其余场景：从结果看表示数据一致，正常
+            for cmd_result in res[0]["cmd_results"]:
+                if cmd_result.get("error_msg"):
+                    if skip_if_no_records:
+                        self.log_info(
+                            _("节点 [{}] 跳过例行 checksum（SQL 失败）: {}").format(slave_address, cmd_result["error_msg"])
+                        )
+                        break
+                    error_message_list.append(
+                        f"This node [{slave_address}] verify checksum failed: {cmd_result['error_msg']}"
+                    )
+                    break
             else:
-                self.log_info(f"The node [{slave_address}] passed the checkpoint [verify-checksum] !")
+                checksum_cnt = int(res[0]["cmd_results"][0]["table_data"][0]["cnt"])
+                checksum_diff_cnt = int(res[0]["cmd_results"][1]["table_data"][0]["cnt"])
+                if is_exist_checksum_history:
+                    checksum_history_cnt = int(res[0]["cmd_results"][2]["table_data"][0]["cnt"])
+                    checksum_history_diff_cnt = int(res[0]["cmd_results"][3]["table_data"][0]["cnt"])
+
+                if checksum_cnt == 0 and checksum_history_cnt == 0:
+                    if skip_if_no_records:
+                        self.log_info(_("节点 [{}] 无近 14 天例行 checksum 记录，跳过").format(slave_address))
+                        continue
+                    error_message_list.append(
+                        f"This node [{slave_address}] has not queried the verification records of the last 14 days"
+                    )
+                elif checksum_diff_cnt > allow_diff_cnt or (
+                    checksum_cnt == 0 and checksum_history_diff_cnt > allow_diff_cnt
+                ):
+                    error_message_list.append(f"This node [{slave_address}] has diff chuck in the last 14 days")
+                else:
+                    self.log_info(f"The node [{slave_address}] passed the checkpoint [verify-checksum] !")
 
         if error_message_list:
             for error in error_message_list:

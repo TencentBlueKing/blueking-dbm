@@ -256,6 +256,10 @@ class MysqlDtsChecksumSubflowInput:
     bk_biz_id: int
     ticket_id: int
     creator: str = ""
+    master_addr: str = ""
+    task_name: str = ""
+    bk_cloud_id: int = 0
+    source_name_list: list[str] | None = None
 
 
 @dataclass

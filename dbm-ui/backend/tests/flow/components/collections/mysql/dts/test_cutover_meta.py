@@ -99,7 +99,13 @@ class CutoverMetaExecuteTest(TestCase):
 
 
 class CutoverSubflowWiringTest(SimpleTestCase):
-    def _build_acts(self, *, task_mode: str | None = "all", plan_task_mode: str | None = None):
+    def _build_acts(
+        self,
+        *,
+        task_mode: str | None = "all",
+        plan_task_mode: str | None = None,
+        routine_verify=None,
+    ):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow import mysql_dts_cutover_subflow
         from backend.flow.utils.mysql.dts.context import MysqlDtsCutoverSubflowInput
         from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskConfig, DtsTaskSpec, SourceSpec, SyncScope
@@ -128,6 +134,11 @@ class CutoverSubflowWiringTest(SimpleTestCase):
             patch(
                 "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.build_dts_cutover_payload",
                 return_value={},
+            ),
+            # 编排期该函数会查 Cluster 元数据；SimpleTestCase 禁 DB，默认不挂载例行 checksum 节点
+            patch(
+                "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.build_dts_routine_checksum_verify_kwargs",
+                return_value=routine_verify,
             ),
             patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.GetFileList"),
             patch(
@@ -217,3 +228,29 @@ class CutoverSubflowWiringTest(SimpleTestCase):
 
         confirm = self._confirm_act(self._build_acts(task_mode="", plan_task_mode=""))
         self.assertEqual(confirm["act_component_code"], MysqlDtsPollConfirmAliveComponent.code)
+
+    def test_routine_checksum_act_after_confirm_for_non_cluster_target(self):
+        from django.utils.translation import gettext as _
+
+        from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_confirm_alive import (
+            MysqlDtsPollConfirmAliveComponent,
+        )
+        from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+        from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
+
+        routine = {"bk_cloud_id": 0, "checksum_instance_tuples": [], "skip_if_no_records": True}
+        acts = self._build_acts(routine_verify=routine)
+        codes = [a["act_component_code"] for a in acts]
+        confirm_idx = codes.index(MysqlDtsPollConfirmAliveComponent.code)
+        verify_idx = codes.index(VerifyChecksumComponent.code)
+        trans_idx = codes.index(TransFileComponent.code)
+        self.assertLess(confirm_idx, verify_idx)
+        self.assertLess(verify_idx, trans_idx)
+        verify_act = next(a for a in acts if a["act_component_code"] == VerifyChecksumComponent.code)
+        self.assertEqual(verify_act["act_name"], _("再次检查例行 checksum"))
+
+    def test_no_routine_checksum_act_when_kwargs_none(self):
+        from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
+
+        acts = self._build_acts()
+        self.assertFalse(any(a["act_component_code"] == VerifyChecksumComponent.code for a in acts))

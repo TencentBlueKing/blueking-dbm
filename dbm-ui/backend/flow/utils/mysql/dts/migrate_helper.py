@@ -37,7 +37,7 @@ from backend.components.mysqldtsapi.types import (
     TaskTableFilterTable,
     parse_dts_binlog_coord,
 )
-from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, MysqlDtsCluster, ProxyInstance, StorageInstance
 from backend.db_meta.models.mysql_dts import MysqlDtsClusterStatus
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
@@ -279,9 +279,35 @@ def _merge_system_ignore_dbs(do_dbs: list[str], ignore_dbs: list[str]) -> list[s
 
 
 def sync_scope_to_table_filter(sync_scope: SyncScope) -> TaskTableFilter | None:
-    """SyncScope（用户写的单据通配）→ source_conf.table_filter；有 table_routes 时返回 None。"""
+    """SyncScope（用户写的单据通配）→ source_conf.table_filter。
+
+    同名四列直接映射为 do_dbs/do_tables。table_routes（库表映射）时 DTS 侧
+    table_migrate_rule 只做改名映射、不限定同步范围，必须按「库表名转换」约定显式
+    下发源端白名单 do_dbs（{schema, table} 对象），否则会整库同步。
+    库表映射场景不存在 ignore 入参，ignore 段留空。
+    """
     if sync_scope.table_routes:
-        return None
+        # do_dbs 只能是字符串（DTS master OpenAPI 校验 value must be a string）；
+        # 表维度放 do_tables，schema 写具体源库名（对齐 DTS 黑白名单样例），逐条 (schema, table) 精确圈范围
+        do_dbs: list[str] = []
+        do_tables: list[TaskTableFilterTable] = []
+        seen_dbs: set[str] = set()
+        seen_tables: set[tuple[str, str]] = set()
+        for route in sync_scope.table_routes:
+            # to_dts_glob("") 会渲染成 "*"（全库），空源库名必须在转换前拦掉
+            raw_schema = (route.source_schema() or "").strip()
+            if not raw_schema:
+                raise ValueError(_("库表映射 table_routes 必须提供源库名（source_db / source_db_pattern）"))
+            schema = to_dts_glob(raw_schema)
+            table = to_dts_glob(route.source_table_name())
+            if schema not in seen_dbs:
+                seen_dbs.add(schema)
+                do_dbs.append(schema)
+            key = (schema, table)
+            if key not in seen_tables:
+                seen_tables.add(key)
+                do_tables.append(TaskTableFilterTable(schema=schema, table=table))
+        return TaskTableFilter(do_dbs=do_dbs, do_tables=do_tables)
     do_dbs = [to_dts_glob(item) for item in (sync_scope.do_dbs or []) if (item or "").strip()]
     do_tables = list(sync_scope.do_tables or [])
     if not do_dbs or not do_tables:
@@ -600,6 +626,38 @@ def _resolve_spider_master(cluster: Cluster) -> ProxyInstance:
     if not spider_master:
         raise ValueError(_("集群 {} 未找到 Spider Master").format(cluster.id))
     return spider_master
+
+
+def _resolve_non_cluster_target_write_instance(cluster: Cluster) -> StorageInstance:
+    """非 TenDBCluster 目标写入端（供 DTS 切换前例行 checksum 等）。"""
+    for role in (InstanceRole.BACKEND_MASTER, InstanceRole.REMOTE_MASTER):
+        ins = cluster.storageinstance_set.filter(instance_role=role).first()
+        if ins:
+            return ins
+    ins = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).first()
+    if not ins:
+        raise ValueError(_("目标集群 {} 未找到可用写入实例").format(cluster.id))
+    return ins
+
+
+def build_dts_routine_checksum_verify_kwargs(task_spec: DtsTaskSpec) -> dict | None:
+    """DTS cutover 前例行 checksum 节点 kwargs；TenDBCluster 目标返回 None（不挂载 U1）。"""
+    if not task_spec.sources:
+        raise ValueError(_("task_spec 无 sources"))
+    dst_cluster = Cluster.objects.get(id=task_spec.target_cluster_id)
+    if dst_cluster.cluster_type == ClusterType.TenDBCluster.value:
+        return None
+    source_spec = task_spec.sources[0]
+    src_cluster = Cluster.objects.get(id=source_spec.cluster_id)
+    master_host, master_port = resolve_source_endpoint(source_spec, src_cluster)
+    target_ins = _resolve_non_cluster_target_write_instance(dst_cluster)
+    master_addr = f"{master_host}{IP_PORT_DIVIDER}{master_port}"
+    slave_addr = f"{target_ins.machine.ip}{IP_PORT_DIVIDER}{target_ins.port}"
+    return {
+        "bk_cloud_id": int(dst_cluster.bk_cloud_id),
+        "checksum_instance_tuples": [{"master": master_addr, "slave": slave_addr}],
+        "skip_if_no_records": True,
+    }
 
 
 def resolve_cluster_target_spider_endpoint(cluster: Cluster, target_spider: str | None = None) -> tuple[str, int]:

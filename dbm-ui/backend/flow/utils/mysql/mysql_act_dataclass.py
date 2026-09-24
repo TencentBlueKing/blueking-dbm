@@ -526,6 +526,7 @@ class VerifyChecksumKwargs:
 
     bk_cloud_id: int
     checksum_instance_tuples: list
+    skip_if_no_records: bool = False
 
 
 @dataclass

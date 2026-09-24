@@ -404,6 +404,27 @@ class SyncScopeMappingTest(SimpleTestCase):
         self.assertEqual(len(rules), 1)
         self.assertEqual(rules[0].source.schema, "db_x")
 
+    def test_table_routes_generate_whitelist_do_dbs(self):
+        """库表映射场景 table_migrate_rule 只做改名映射，必须显式下发源端白名单 table_filter。"""
+        scope = SyncScope(
+            table_routes=[
+                {"source_db": "db_old", "source_table": "*", "target_db": "db_new"},
+                {"source_db": "db_old", "source_table": "*", "target_db": "db_new"},  # 去重
+                {"source_db": "db2", "source_table": "t1", "target_db": "db2_new"},
+            ],
+        )
+        tf = sync_scope_to_table_filter(scope)
+        self.assertIsNotNone(tf)
+        self.assertEqual(tf.do_dbs, ["db_old", "db2"])
+        self.assertEqual([(item.schema, item.table) for item in tf.do_tables], [("db_old", "*"), ("db2", "t1")])
+        self.assertEqual(tf.ignore_dbs, [])
+        self.assertEqual(tf.ignore_tables, [])
+
+    def test_table_route_without_source_db_rejected(self):
+        scope = SyncScope(table_routes=[{"source_table": "*", "target_db": "db_new"}])
+        with self.assertRaises(ValueError):
+            sync_scope_to_table_filter(scope)
+
     def test_table_route_dataclass_and_pattern_priority(self):
         from backend.flow.utils.mysql.dts.migrate_plan import TableRoute
 
