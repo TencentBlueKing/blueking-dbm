@@ -149,7 +149,12 @@ func ExecuteSqlplusAsSysdbaWithTimeout(timeout time.Duration, cmds ...string) er
 	}
 	script.WriteString("EXIT;\n")
 
-	bashCmd := fmt.Sprintf("sqlplus -S / as sysdba <<'SQLPLUS_EOF'\n%sSQLPLUS_EOF", script.String())
+	// 使用 bash 内建 `exec` 让 sqlplus 直接替换 bash 进程（不 fork 子进程）。
+	// 这样 Go 侧 exec.CommandContext 拿到的 pid 就是 sqlplus 本身，
+	// 一旦 ctx 超时，Go 标准库对 pid 发送 SIGKILL 能真正终止 sqlplus，
+	// 避免出现 "bash 被 kill 但 sqlplus 变成孤儿进程持有 stdout 管道
+	// 导致 Wait 阻塞十几分钟" 的现象。
+	bashCmd := fmt.Sprintf("exec sqlplus -S / as sysdba <<'SQLPLUS_EOF'\n%sSQLPLUS_EOF", script.String())
 
 	stdout, err := util.RunBashCmd(bashCmd, "", nil, timeout)
 	if err != nil {
@@ -179,7 +184,6 @@ func QueryOraclePaths() ([]string, error) {
 		return paths, err
 	}
 
-	// query := `select status from v$instance`
 	db, err := OpenOracleAsSysdba()
 	if err != nil {
 		return paths, err

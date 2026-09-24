@@ -15,7 +15,7 @@ from datetime import datetime
 from django.db import transaction
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import InstancePhase, InstanceRole, InstanceStatus
+from backend.db_meta.enums import ClusterStatus, InstancePhase, InstanceRole, InstanceStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 
@@ -165,6 +165,10 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int, failover=False):
                 )
             )
 
+        if failover:
+            cluster.status = ClusterStatus.ABNORMAL.value
+            cluster.save(update_fields=["status"])
+            logger.info(_("[主库故障切换] 集群状态已更新为异常"))
     except Exception as e:
         logger.error(traceback.format_exc())
         raise Exception(_("oracle primary/standby swap failed: {}").format(e)) from e
