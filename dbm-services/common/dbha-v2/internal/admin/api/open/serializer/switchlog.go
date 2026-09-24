@@ -39,6 +39,9 @@ const (
 	// SwitchVersionV2 Used to distinguish v2 switch log api.
 	SwitchVersionV2 = "v2"
 
+	// switchSuccessResult switch result reported for a successfully switched instance
+	switchSuccessResult = "switching completed successfully"
+
 	TimeFormat = "2006-01-02T15:04:05-07:00"
 )
 
@@ -62,6 +65,19 @@ type QueryArgs struct {
 type SwitchLogRequest struct {
 	// query args from request.body
 	QueryArgs QueryArgs `json:"query_args"`
+	// query limit
+	PageArgs QueryPage `json:"page_args"`
+}
+
+// QueryFixAutoArgs query args of switch log autofix request
+type QueryFixAutoArgs struct {
+	UID int `json:"uid"`
+}
+
+// SwitchLogAutoFixRequest switch log auto fix request
+type SwitchLogAutoFixRequest struct {
+	// query args from request.body
+	QueryArgs QueryFixAutoArgs `json:"query_args"`
 	// query limit
 	PageArgs QueryPage `json:"page_args"`
 }
@@ -107,7 +123,9 @@ type SwitchLogOutputInfo struct {
 	Port     int    `json:"port"`
 }
 
-// SwitchLogInfoListOutput switch log info list output
+// SwitchLogInfoListOutput converts switch snapshot logs into the switch log list output.
+// The status is taken from the instance and falls back to the snapshot status when the
+// instance status is empty.
 func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLog) SwitchLogListResponse {
 	res := make(SwitchLogListResponse, 0)
 	loc, _ := time.LoadLocation("Asia/Shanghai")
@@ -141,6 +159,17 @@ func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLo
 				switchLogCheckTime[k] = checkStartTime
 			}
 
+			status := switchLog.Status.String()
+			if instance.Status != "" {
+				status = instance.Status.String()
+			}
+
+			// failed instances keep the snapshot error message, successful ones report the success message
+			switchResult := switchLog.Result
+			if status == hamodel.DbSwitchingSnapshotLogStatusSuccess.String() {
+				switchResult = switchSuccessResult
+			}
+
 			res = append(res, SwitchLogListOutputInfo{
 				UID:                switchLog.ID,
 				IP:                 instance.IP,
@@ -156,29 +185,33 @@ func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLo
 				App:                strconv.Itoa(switchLog.BkBizID),
 				CloudID:            switchLog.BkCloudID,
 				Cluster:            instance.ClusterName,
-				SwitchResult:       switchLog.Result,
+				SwitchResult:       switchResult,
 				SwitchStartTime:    switchStartTime,
 				SwitchFinishedTime: switchFinishTime,
-				Status:             switchLog.Status.String(),
+				Status:             status,
 				SwitchVersion:      SwitchVersionV2,
 			})
 		}
 	}
 
-	// Backfill the check time for records of the same switch request sharing the same IP
-	// but different ports; fall back to the switch start time if none is available.
-	for i := range res {
-		if res[i].ConfirmCheckTime != "" {
+	backfillSwitchLogCheckTime(res, switchLogCheckTime)
+
+	return res
+}
+
+// backfillSwitchLogCheckTime backfills the check time for records of the same switch request
+// sharing the same IP but different ports; fall back to the switch start time if none is available.
+func backfillSwitchLogCheckTime(logs SwitchLogListResponse, checkTimeMap map[string]string) {
+	for i := range logs {
+		if logs[i].ConfirmCheckTime != "" {
 			continue
 		}
 
-		k := fmt.Sprintf("%d:%s", res[i].UID, res[i].IP)
-		if checkTime, ok := switchLogCheckTime[k]; ok {
-			res[i].ConfirmCheckTime = checkTime
+		k := fmt.Sprintf("%d:%s", logs[i].UID, logs[i].IP)
+		if checkTime, ok := checkTimeMap[k]; ok {
+			logs[i].ConfirmCheckTime = checkTime
 		} else {
-			res[i].ConfirmCheckTime = res[i].SwitchStartTime
+			logs[i].ConfirmCheckTime = logs[i].SwitchStartTime
 		}
 	}
-
-	return res
 }

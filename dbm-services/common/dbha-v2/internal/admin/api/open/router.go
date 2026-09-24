@@ -187,4 +187,11 @@ func RegisterSwitchLogApi(switchLogHandler *handler.SwitchLogHandler, server *ha
 		Path:    "/switchlogs/",
 		Handler: switchLogHandler.Get,
 	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodPost,
+		Path:    "/switchqueue/autofix/",
+		Handler: switchLogHandler.AutoFixList,
+	})
 }
