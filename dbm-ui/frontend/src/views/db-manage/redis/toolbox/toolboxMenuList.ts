@@ -208,7 +208,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         name: t('重建从库'),
       },
     ],
-    icon: 'tongyong',
+    icon: 'resource',
     id: 'common',
     name: t('通用'),
   },
