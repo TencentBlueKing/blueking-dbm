@@ -175,3 +175,37 @@ func (h *SwitchLogHandler) Get(c *gin.Context) {
 
 	ginx.V1SuccessJSONResponse(c, output, serializer.RespOK, "")
 }
+
+// AutoFixList lists switchqueue autofix
+//
+//	@ID			openapi_switchlog_autofix_list
+//	@Summary	List switch queue for autofix
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.switchlog_autofix
+//	@Param		request	body		serializer.SwitchLogAutoFixRequest	false	"query parameters"
+//	@Success	200		{object}	serializer.SwitchLogListResponse
+//	@Router		/api/admin/switchqueue/autofix/ [post]
+func (h *SwitchLogHandler) AutoFixList(c *gin.Context) {
+	var req serializer.SwitchLogAutoFixRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ginx.V1ErrorJSONResponse(c, serializer.RespErr, err)
+		return
+	}
+
+	switchSnapshotLogs, err := h.switchLogService.ListSwitchSnapshotAutoFixLogs(
+		c.Request.Context(),
+		req.QueryArgs.UID,
+		req.PageArgs.Offset,
+		req.PageArgs.Limit,
+	)
+	if err != nil {
+		ginx.V1ErrorJSONResponse(c, serializer.RespErr, err)
+		return
+	}
+
+	output := serializer.SwitchLogInfoListOutput(switchSnapshotLogs)
+
+	ginx.V1SuccessJSONResponse(c, output, serializer.RespOK, "")
+}

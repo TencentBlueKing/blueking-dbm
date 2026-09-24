@@ -67,20 +67,21 @@ func (a SnapshotActionType) String() string {
 
 // SwitchingSnapshotInstance is the data structure for switching snapshot instance.
 type SwitchingSnapshotInstance struct {
-	ClusterID         int        `json:"cluster_id"`
-	ClusterName       string     `json:"cluster_name"`
-	IP                string     `json:"ip"`
-	Port              int        `json:"port"`
-	MachineType       string     `json:"machine_type"`
-	InstanceRole      string     `json:"instance_role"`
-	StrategyID        int        `json:"strategy_id"`
-	EventName         string     `json:"event_name,omitempty"`
-	EventNameReason   string     `json:"event_name_reason,omitempty"`
-	NewMasterIP       string     `json:"new_master_ip"`
-	NewMasterPort     int        `json:"new_master_port"`
-	BkIdcID           int        `json:"idc_id"`
-	CheckStartTime    *time.Time `json:"check_start_time,omitempty"`
-	CheckFinishedTime *time.Time `json:"check_finished_time,omitempty"`
+	ClusterID         int                          `json:"cluster_id"`
+	ClusterName       string                       `json:"cluster_name"`
+	IP                string                       `json:"ip"`
+	Port              int                          `json:"port"`
+	MachineType       string                       `json:"machine_type"`
+	InstanceRole      string                       `json:"instance_role"`
+	StrategyID        int                          `json:"strategy_id"`
+	EventName         string                       `json:"event_name,omitempty"`
+	EventNameReason   string                       `json:"event_name_reason,omitempty"`
+	NewMasterIP       string                       `json:"new_master_ip"`
+	NewMasterPort     int                          `json:"new_master_port"`
+	Status            DbSwitchingSnapshotLogStatus `json:"status,omitempty"`
+	BkIdcID           int                          `json:"idc_id"`
+	CheckStartTime    *time.Time                   `json:"check_start_time,omitempty"`
+	CheckFinishedTime *time.Time                   `json:"check_finished_time,omitempty"`
 }
 
 type DbSwitchingSnapshotLogStatus string
