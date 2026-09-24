@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -59,6 +60,8 @@ from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 from backend.flow.utils.mongodb.version_utils import extract_mongodb_major_minor, resolve_mongodb_flow_db_version
+
+logger = logging.getLogger("flow")
 
 
 @dataclass()
@@ -1358,6 +1361,52 @@ class ActKwargs:
                 return password
         return ""
 
+    def _deferred_replica_set_peers(self, node_info: dict) -> list:
+        """同副本集其余节点 host:port，供 dbactuator 向权威 primary 核对 rs.conf。"""
+        cluster_id = int(node_info.get("cluster_id") or 0)
+        if not cluster_id:
+            return []
+        set_id = str(node_info.get("set_id") or "")
+        try:
+            cluster = MongoRepository.fetch_one_cluster(with_domain=False, id=cluster_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "resolve deferred deinstall replicaSetPeers fail %s:%s cluster_id=%s err=%s",
+                node_info.get("ip"),
+                node_info.get("port"),
+                cluster_id,
+                exc,
+            )
+            return []
+        if cluster is None:
+            return []
+        replica_sets = []
+        config = cluster.get_config()
+        if config is not None:
+            replica_sets.append(config)
+        replica_sets.extend(cluster.get_shards() or [])
+        matched = []
+        for replica_set in replica_sets:
+            if set_id and getattr(replica_set, "set_name", "") != set_id:
+                continue
+            matched.append(replica_set)
+        if not set_id and len(matched) != 1:
+            return []
+        peers = []
+        seen = set()
+        self_ip = node_info["ip"]
+        self_port = int(node_info["port"])
+        for replica_set in matched:
+            for member in replica_set.members or []:
+                if member.ip == self_ip and int(member.port) == self_port:
+                    continue
+                addr = "{}:{}".format(member.ip, member.port)
+                if addr in seen:
+                    continue
+                seen.add(addr)
+                peers.append(addr)
+        return peers
+
     def get_mongo_deferred_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info: list) -> dict:
         """延迟下架严格卸载原子任务 kwargs（不做 force）。"""
         nodes = [node["ip"] for node in nodes_info]
@@ -1393,6 +1442,11 @@ class ActKwargs:
                     "renameDir": True,
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": password,
+                    "replicaSetPeers": self._deferred_replica_set_peers(node_info)
+                    if instance_type == MongoDBInstanceType.MongoD.value
+                    else [],
+                    "removedCheckAttempts": 36,
+                    "removedCheckIntervalSec": 5,
                 },
             },
         }

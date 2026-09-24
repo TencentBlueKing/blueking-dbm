@@ -20,15 +20,17 @@ from pipeline.core.flow.activity import Service
 from backend import env
 from backend.components import DRSApi, JobApi
 from backend.db_meta.enums import InstanceStatus
-from backend.db_meta.models import StorageInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_services.mongodb.autofix.enums import MongoAutofixLogEvent, MongoAutofixStatus
 from backend.db_services.mongodb.autofix.log import write_autofix_log
 from backend.db_services.mongodb.autofix.models import MongoAutofixCore
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import (
     build_mongod_list_from_core,
-    create_mongod_ensure_start_ticket,
-    create_mongod_fix_status_ticket,
-    create_mongod_manual_ticket,
+    build_mongos_list_from_core,
+    create_mongo_ensure_start_ticket,
+    create_mongo_fix_status_ticket,
+    create_mongo_manual_ticket,
+    is_mongos_core,
     mongo_create_ticket,
 )
 from backend.db_services.mongodb.autofix.triage import (
@@ -355,13 +357,20 @@ def _probe_drs_login(
 
 
 def _mark_instances_unavailable(ip: str, ports: List[int], bk_host_id: int = 0) -> None:
-    qs = StorageInstance.objects.filter(machine__ip=ip)
-    if ports:
-        qs = qs.filter(port__in=ports)
-    if bk_host_id:
-        qs = qs.filter(machine__bk_host_id=bk_host_id)
-    updated = qs.update(status=InstanceStatus.UNAVAILABLE.value)
-    logger.info("mongo autofix pre mark UNAVAILABLE ip=%s ports=%s count=%s", ip, ports, updated)
+    for model in (StorageInstance, ProxyInstance):
+        qs = model.objects.filter(machine__ip=ip)
+        if ports:
+            qs = qs.filter(port__in=ports)
+        if bk_host_id:
+            qs = qs.filter(machine__bk_host_id=bk_host_id)
+        updated = qs.update(status=InstanceStatus.UNAVAILABLE.value)
+        logger.info(
+            "mongo autofix pre mark UNAVAILABLE model=%s ip=%s ports=%s count=%s",
+            model.__name__,
+            ip,
+            ports,
+            updated,
+        )
 
 
 def _link_pre_related_ticket(pre_ticket_id, followup_ticket: Optional[Ticket], log_fn=None) -> None:
@@ -409,6 +418,13 @@ def _unlock_pre_for_followup(pre_ticket_id, cluster_ids: List[int], log_fn=None)
             log_fn(msg)
 
 
+def _create_replace_followup(core, cluster_ids):
+    if is_mongos_core(core):
+        return mongo_create_ticket(core, cluster_ids, mongos_list=build_mongos_list_from_core(core), mongod_list=[])
+    mongod_list = build_mongod_list_from_core(core)
+    return mongo_create_ticket(core, cluster_ids, mongos_list=[], mongod_list=mongod_list)
+
+
 class MongoAutofixPreTriageService(BaseService):
     """PRE triage: disk/GSE/DRS → follow-up ticket."""
 
@@ -446,7 +462,8 @@ class MongoAutofixPreTriageService(BaseService):
 
         gse_alive = _probe_gse_alive(ip, bk_cloud_id, log_fn=self.log_info)
         datadir_writable = None
-        if gse_alive is True:
+        mongos = bool(info.get("wait_gse_forever")) or is_mongos_core(core)
+        if gse_alive is True and not mongos:
             datadir_writable = _probe_datadir_writable(ip, bk_cloud_id, log_fn=self.log_info)
 
         drs_ok, drs_auth_error = False, False
@@ -489,7 +506,7 @@ class MongoAutofixPreTriageService(BaseService):
             pre_ticket_id = global_data.get("uid") or core.pre_ticket_id
             _unlock_pre_for_followup(pre_ticket_id, cluster_ids, log_fn=self.log_info)
             try:
-                followup_ticket = create_mongod_manual_ticket(core, creator=creator)
+                followup_ticket = create_mongo_manual_ticket(core, creator=creator)
             except Exception as exc:  # noqa: BLE001
                 self.log_error(f"create manual ticket fail: {exc}")
                 core.deal_status = MongoAutofixStatus.FAIL.value
@@ -526,8 +543,7 @@ class MongoAutofixPreTriageService(BaseService):
         _unlock_pre_for_followup(pre_ticket_id, cluster_ids, log_fn=self.log_info)
         try:
             if action == ACTION_REPLACE:
-                mongod_list = build_mongod_list_from_core(core)
-                followup_ticket = mongo_create_ticket(core, cluster_ids, mongos_list=[], mongod_list=mongod_list)
+                followup_ticket = _create_replace_followup(core, cluster_ids)
                 core.refresh_from_db()
                 core.confirm_result = confirm_result
                 if not followup_ticket:
@@ -535,7 +551,7 @@ class MongoAutofixPreTriageService(BaseService):
                     core.status_version = "empty_resource_spec_or_create_fail"
                 core.save(update_fields=["confirm_result", "deal_status", "status_version", "update_at"])
             elif action == ACTION_RELOAD:
-                followup_ticket = create_mongod_ensure_start_ticket(core, creator=creator)
+                followup_ticket = create_mongo_ensure_start_ticket(core, creator=creator)
                 if followup_ticket:
                     core.ticket_id = followup_ticket.id
                     core.deal_status = MongoAutofixStatus.TICKETED.value
@@ -544,7 +560,7 @@ class MongoAutofixPreTriageService(BaseService):
                 core.confirm_result = confirm_result
                 core.save(update_fields=["confirm_result", "ticket_id", "deal_status", "update_at"])
             elif action == ACTION_FIX_STATUS:
-                followup_ticket = create_mongod_fix_status_ticket(core, creator=creator)
+                followup_ticket = create_mongo_fix_status_ticket(core, creator=creator)
                 if followup_ticket:
                     core.ticket_id = followup_ticket.id
                     core.deal_status = MongoAutofixStatus.TICKETED.value

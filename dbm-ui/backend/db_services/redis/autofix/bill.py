@@ -38,6 +38,24 @@ logger = logging.getLogger("root")
 
 FAILOVER_DRILL_DOMAIN_PREFIX: str = "cache.failover-drill-"
 
+_MONGO_FAULT_TYPES = {MachineType.MONGOS.value, MachineType.MONGODB.value, MachineType.MONOG_CONFIG.value} | {
+    role.value for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]
+}
+_MONGO_MONGOD_ROLES = {role.value for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]} | {
+    role.value for role in MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG]
+}
+
+
+def mongodb_autofix_enabled() -> bool:
+    """Mongo 自愈总开关。读失败视为关闭，避免 Redis 侧把故障静默丢掉。"""
+    try:
+        from backend.db_services.mongodb.autofix.ctl import is_autofix_enabled
+
+        return is_autofix_enabled()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("read mongodb autofix switch fail, keep redis mongo ticket path err=%s", exc)
+        return False
+
 
 def generate_autofix_ticket(fault_clusters: QuerySet):
     """自愈创建单据"""
@@ -201,9 +219,18 @@ def will_ignore_autofix_by_domain(cluster: RedisAutofixCore):
 def generate_single_autofix_ticket(cluster: RedisAutofixCore):
     try:
         fault_machines = json.loads(cluster.fault_machines)
+        mongo_takeover = mongodb_autofix_enabled()
         mongos_list, mongod_list, redis_proxies, redis_slaves, cluster_ids = [], [], [], [], [cluster.cluster_id]
         for fault_machine in fault_machines:
             fault_ip = fault_machine["ip"]
+            instance_type = fault_machine["instance_type"]
+            if mongo_takeover and instance_type in _MONGO_FAULT_TYPES:
+                logger.info(
+                    "skip mongo fault in redis bill, mongodb autofix enabled {}#{}".format(
+                        cluster.immute_domain, fault_ip
+                    )
+                )
+                continue
             fault_obj = Machine.objects.filter(ip=fault_ip, bk_biz_id=cluster.bk_biz_id).get()
             fault_info = {
                 "ip": fault_ip,
@@ -211,16 +238,16 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
                 "bk_sub_zone": fault_obj.bk_sub_zone,
                 "bk_sub_zone_id": fault_obj.bk_sub_zone_id,
                 "city": fault_obj.bk_city.logical_city.name,
-                "instance_type": fault_machine["instance_type"],
+                "instance_type": instance_type,
                 "spec_config": fault_obj.spec_config,
                 "cluster_type": cluster.cluster_type,
                 "bk_host_id": fault_obj.bk_host_id,
             }
-            if fault_machine["instance_type"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
+            if instance_type in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
                 redis_proxies.append(fault_info)
-            elif fault_machine["instance_type"] == MachineType.MONGOS.value:
+            elif instance_type == MachineType.MONGOS.value:
                 mongos_list.append(fault_info)
-            elif fault_machine["instance_type"] in MachineTypeInstanceRoleMap[MachineType.MONGODB]:
+            elif instance_type in _MONGO_MONGOD_ROLES:
                 mongod_list.append(fault_info)
                 if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
                     clusters = query_cluster_by_hosts(hosts=[fault_ip])
@@ -245,10 +272,20 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
             )
             try:
                 mongo_create_ticket(cluster, cluster_ids, mongos_list, mongod_list)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 logger.error(
                     "mongodb create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e)
                 )
+            return
+        if not redis_proxies and not redis_slaves:
+            logger.info(
+                "redis autofix ignore, mongo faults handled by mongodb autofix domain=%s",
+                cluster.immute_domain,
+            )
+            cluster.status_version = get_random_string(12)
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_IGNORE.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             return
         # 只鞥一次高一个角色，，sinc 2025-12-xxs
         if len(redis_slaves) > 0:

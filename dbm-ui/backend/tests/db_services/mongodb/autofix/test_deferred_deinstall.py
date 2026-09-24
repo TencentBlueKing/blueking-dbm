@@ -31,12 +31,12 @@ def test_normalize_instance_type():
 
 def test_build_deferred_deinstall_infos():
     info = {"instances": [{"cluster_id": 128, "port": 27001, "cluster_name": "rs1"}]}
-    old_instances = [{"ip": "1.1.1.1", "port": 27001, "bk_cloud_id": 0, "set_id": "rs1"}]
+    old_instances = [{"ip": "127.0.0.1", "port": 27001, "bk_cloud_id": 0, "set_id": "rs1"}]
     infos = _build_deferred_deinstall_infos(info, old_instances, "mongod")
     assert len(infos) == 1
     assert infos[0]["cluster_id"] == 128
     assert infos[0]["instance_type"] == "mongod"
-    assert infos[0]["ip"] == "1.1.1.1"
+    assert infos[0]["ip"] == "127.0.0.1"
 
 
 def test_check_meta_sets_machine_exists():
@@ -92,11 +92,11 @@ def test_format_deferred_targets_dedupes_ip():
     assert (
         _format_deferred_targets(
             [
-                {"ip": "1.1.1.1", "port": 27001},
-                {"ip": "2.2.2.2", "port": 27001},
+                {"ip": "127.0.0.1", "port": 27001},
+                {"ip": "127.0.0.2", "port": 27001},
             ]
         )
-        == "1.1.1.1;2.2.2.2"
+        == "127.0.0.1;127.0.0.2"
     )
 
 
@@ -174,6 +174,34 @@ def test_cleanup_meta_deletes_orphan_machine():
         assert svc._execute(data, None) is True
         cc_cls.return_value.recycle_host.assert_called_once_with([576])
         machine.delete.assert_called_once()
+
+
+def test_deferred_deinstall_kwargs_sends_replica_set_peers():
+    from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+    ak = ActKwargs()
+    ak.payload = {"bk_cloud_id": 0}
+    ak.file_path = "/tmp/actuator"
+    node = {
+        "ip": "127.0.0.1",
+        "port": 27001,
+        "bk_cloud_id": 0,
+        "cluster_id": 1,
+        "set_id": "rs1",
+    }
+    member_self = SimpleNamespace(ip="127.0.0.1", port=27001)
+    peer = SimpleNamespace(ip="127.0.0.2", port=27001)
+    replica = SimpleNamespace(set_name="rs1", members=[member_self, peer])
+    cluster = SimpleNamespace(get_config=lambda: None, get_shards=lambda: [replica])
+    with patch.object(ak, "_resolve_deferred_deinstall_password", return_value="secret"), patch(
+        "backend.flow.utils.mongodb.mongodb_dataclass.MongoRepository.fetch_one_cluster",
+        return_value=cluster,
+    ):
+        kwargs = ak.get_mongo_deferred_deinstall_kwargs(node, "mongod", [node])
+    payload = kwargs["db_act_template"]["payload"]
+    assert payload["replicaSetPeers"] == ["127.0.0.2:27001"]
+    assert payload["removedCheckAttempts"] == 36
+    assert payload["removedCheckIntervalSec"] == 5
 
 
 def test_resolve_deferred_deinstall_password_skips_empty_and_falls_back():
