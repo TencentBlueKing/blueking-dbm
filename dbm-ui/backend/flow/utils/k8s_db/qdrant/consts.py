@@ -13,6 +13,3 @@ specific language governing permissions and limitations under the License.
 
 # CLB 名称后缀，最终形如 "{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}"
 CLB_NAME_SUFFIX = "qdrant-clb"
-
-# CLB 名称时间戳格式（精确到秒，避免名称过长）
-CLB_NAME_TIME_FORMAT = "%Y%m%d%H%M%S"
