@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from backend.db_services.mongodb.autofix.gates import RESTART_SHIELD_TICKET_TYPES
-from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import create_mongod_ensure_start_ticket
+from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import create_mongo_ensure_start_ticket
 from backend.ticket.constants import TicketType
 
 
@@ -20,7 +20,7 @@ def test_ensure_start_in_restart_shield_types():
     assert TicketType.MONGODB_INSTANCE_ENSURE_START.value in RESTART_SHIELD_TICKET_TYPES
 
 
-def test_create_mongod_ensure_start_ticket_details():
+def test_create_mongo_ensure_start_ticket_details():
     cluster = SimpleNamespace(id=11, major_version="mongodb-6.0", immute_domain="m1.test.dba.db")
     machine = SimpleNamespace(bk_host_id=1001, ip="127.0.0.1", bk_cloud_id=0)
     storage = SimpleNamespace(id=501, port=27017, machine_type="mongodb", machine=machine)
@@ -62,7 +62,7 @@ def test_create_mongod_ensure_start_ticket_details():
             "backend.db_services.mongodb.autofix.mongodb_autofix_ticket.notify.send_msg.apply_async",
         ),
     ):
-        ticket = create_mongod_ensure_start_ticket(core, creator="admin")
+        ticket = create_mongo_ensure_start_ticket(core, creator="admin")
 
     assert ticket is created
     kwargs = create_ticket.call_args.kwargs

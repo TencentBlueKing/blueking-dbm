@@ -14,6 +14,7 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.mongodb.autofix.discover import discover_mongod_backend_faults
+from backend.db_services.mongodb.autofix.discover_mongos import discover_mongos_dbha_faults
 from backend.db_services.mongodb.autofix.enums import (
     MONGO_AUTOFIX_ACTIVE_STATUSES,
     MongoAutofixLogEvent,
@@ -107,12 +108,17 @@ def _sync_core_from_tickets(core: MongoAutofixCore) -> None:
 
 @register_periodic_task(run_every=crontab(minute="*/2"))
 def watch_mongod_backend_fault():
-    """旁观者 member_state 发现 → 延迟/熔断/屏蔽 → 写 Core → 出 PRE."""
+    """mongod 旁观者发现 + mongos DBHA 发现 → Core → PRE."""
     try:
         created = discover_mongod_backend_faults()
         logger.info("watch_mongod_backend_fault created=%s", len(created))
     except Exception as exc:  # noqa: BLE001
         logger.exception("watch_mongod_backend_fault error: %s", exc)
+    try:
+        mongos_tickets = discover_mongos_dbha_faults()
+        logger.info("watch_mongos_dbha_fault created=%s", len(mongos_tickets))
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("watch_mongos_dbha_fault error: %s", exc)
 
 
 @register_periodic_task(run_every=crontab(minute="*/2"))

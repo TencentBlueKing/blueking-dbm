@@ -28,6 +28,7 @@ CTL_DEFAULTS = {
     MongoAutofixCtlItem.CITY_HOST_THRESHOLD.value: "5",
     MongoAutofixCtlItem.ENABLE_CONFIGSVR.value: "off",
     MongoAutofixCtlItem.DRY_RUN.value: "off",
+    MongoAutofixCtlItem.DBHA_ID.value: "0",
     # 默认需要审批；off 时自愈自动链路跳过 ITSM / 人工确认
     MongoAutofixCtlItem.FOLLOWUP_NEED_APPROVAL.value: "on",
 }
@@ -53,6 +54,15 @@ def is_autofix_enabled() -> bool:
 
 def is_dry_run() -> bool:
     return get_ctl_value(MongoAutofixCtlItem.DRY_RUN.value).lower() == "on"
+
+
+def set_ctl_value(ctl_name: str, ctl_value: str, bk_cloud_id: int = 0, bk_biz_id: int = 0) -> None:
+    MongoAutofixCtl.objects.update_or_create(
+        ctl_name=ctl_name,
+        bk_cloud_id=bk_cloud_id,
+        bk_biz_id=bk_biz_id,
+        defaults={"ctl_value": str(ctl_value)},
+    )
 
 
 def is_configsvr_enabled() -> bool:

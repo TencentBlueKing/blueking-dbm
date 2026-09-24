@@ -62,7 +62,17 @@ def _build_reachable_deinstall_sub(root_id: str, ticket_data: dict, get_kwargs: 
         kwargs=kwargs,
     )
 
-    # 故障机 dbmon 配置可能已空/已删，延迟下架路径显式容忍失败（不阻断后续严格卸载）
+    # 先在 dbmon 本地屏蔽，避免故障机恢复后健康检查在卸载窗口重新拉起 mongod。
+    kwargs_shield_dbmon = sub_kwargs.get_dbmon_operation_kwargs(
+        node_info=info, operation_type=MongoInstanceDbmonType.ShieldDbmon
+    )
+    sub.add_act(
+        act_name=_("MongoDB-{}:{}-屏蔽dbmon拉起".format(info["ip"], str(info["port"]))),
+        act_component_code=MongoFastExecScriptComponent.code,
+        kwargs=kwargs_shield_dbmon,
+    )
+
+    # 故障机 dbmon 配置可能已空/已删，删除操作显式容忍失败（不阻断后续严格卸载）。
     kwargs_delete_dbmon = sub_kwargs.get_dbmon_operation_kwargs(
         node_info=info, operation_type=MongoInstanceDbmonType.DeleteDbmon, tolerate_failure=True
     )

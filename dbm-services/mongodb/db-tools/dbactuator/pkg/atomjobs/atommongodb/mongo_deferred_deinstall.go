@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,18 +26,24 @@ const (
 	rsStateStrRemoved       = "REMOVED"
 	// Older MongoDB after rs.remove(): isMaster.info (not myState=10).
 	rsInvalidConfigMsg = "does not have a valid replica set config"
+
+	// After rs.remove() the recovered node may briefly report SECONDARY on stale
+	// local config until it learns the newer replica-set config.
+	mongodRemovedCheckAttempts = 12
+	mongodRemovedCheckInterval = 5 * time.Second
 )
 
 // DeferredDeInstallConfParams 延迟下架严格卸载参数
 type DeferredDeInstallConfParams struct {
-	IP            string   `json:"ip" validate:"required"`
-	Port          int      `json:"port" validate:"required"`
-	SetId         string   `json:"setId"`
-	NodeInfo      []string `json:"nodeInfo" validate:"required"`
-	InstanceType  string   `json:"instanceType" validate:"required"` // mongod mongos
-	RenameDir     bool     `json:"renameDir"`
-	AdminUsername string   `json:"adminUsername"`
-	AdminPassword string   `json:"adminPassword"`
+	IP              string   `json:"ip" validate:"required"`
+	Port            int      `json:"port" validate:"required"`
+	SetId           string   `json:"setId"`
+	NodeInfo        []string `json:"nodeInfo" validate:"required"`
+	ReplicaSetPeers []string `json:"replicaSetPeers"`
+	InstanceType    string   `json:"instanceType" validate:"required"` // mongod mongos
+	RenameDir       bool     `json:"renameDir"`
+	AdminUsername   string   `json:"adminUsername"`
+	AdminPassword   string   `json:"adminPassword"`
 }
 
 // DeferredDeInstall 故障替换后的延迟严格卸载：进程已停可直接清理；
@@ -198,6 +205,87 @@ func isMongodRemovedAccepted(r mongodRemovedCheckResult) bool {
 	return false
 }
 
+func isMongodRemovedRetryable(r mongodRemovedCheckResult) bool {
+	if r.State == 1 || strings.EqualFold(r.StateStr, "PRIMARY") {
+		return false
+	}
+	if r.IsMaster != nil && *r.IsMaster {
+		return false
+	}
+	if r.State == 2 || strings.EqualFold(r.StateStr, "SECONDARY") {
+		return true
+	}
+	if r.Secondary != nil && *r.Secondary {
+		return true
+	}
+	switch r.State {
+	case 0, 3, 5, 6: // startup, recovering, startup2, unknown
+		return true
+	}
+	return false
+}
+
+func formatMongodRemovedRefuse(r mongodRemovedCheckResult) error {
+	return fmt.Errorf(
+		"mongod is not REMOVED, refuse deferred deinstall: state=%d stateStr=%s msg=%q ismaster=%v secondary=%v rsStatusErr=%q",
+		r.State, r.StateStr, r.Msg, r.IsMaster, r.Secondary, r.RsStatusErr,
+	)
+}
+
+func waitUntilMongodRemoved(
+	probe func() (mongodRemovedCheckResult, error),
+	attempts int,
+	interval time.Duration,
+	sleep func(time.Duration),
+	logf func(string, ...interface{}),
+) (mongodRemovedCheckResult, error) {
+	if attempts < 1 {
+		attempts = 1
+	}
+	if sleep == nil {
+		sleep = time.Sleep
+	}
+	if logf == nil {
+		logf = func(string, ...interface{}) {}
+	}
+	var last mongodRemovedCheckResult
+	var lastErr error
+	for i := 1; i <= attempts; i++ {
+		result, err := probe()
+		if err != nil {
+			lastErr = err
+			logf("REMOVED check attempt %d/%d failed, will retry: %v", i, attempts, err)
+			if i < attempts {
+				sleep(interval)
+			}
+			continue
+		}
+		last = result
+		lastErr = nil
+		if isMongodRemovedAccepted(result) {
+			logf(
+				"mongod is REMOVED/out-of-config on attempt %d/%d state=%d stateStr=%s msg=%q",
+				i, attempts, result.State, result.StateStr, result.Msg,
+			)
+			return result, nil
+		}
+		if !isMongodRemovedRetryable(result) {
+			return result, formatMongodRemovedRefuse(result)
+		}
+		logf(
+			"mongod still transitional on attempt %d/%d state=%d stateStr=%s msg=%q, wait for REMOVED",
+			i, attempts, result.State, result.StateStr, result.Msg,
+		)
+		if i < attempts {
+			sleep(interval)
+		}
+	}
+	if lastErr != nil {
+		return last, fmt.Errorf("check mongod REMOVED fail after %d attempts: %w", attempts, lastErr)
+	}
+	return last, formatMongodRemovedRefuse(last)
+}
+
 // checkMongodRemoved 本机 mongod 必须已脱离副本集（REMOVED 或旧版 invalid config）。
 func (d *DeferredDeInstall) checkMongodRemoved() error {
 	d.runtime.Logger.Info("start to check mongod REMOVED state")
@@ -205,7 +293,27 @@ func (d *DeferredDeInstall) checkMongodRemoved() error {
 		return fmt.Errorf("adminUsername/adminPassword required to verify mongod REMOVED state")
 	}
 
-	// Prefer hello(); fall back to isMaster for older MongoDB. Also accept myState == 10.
+	_, err := waitUntilMongodRemoved(
+		d.probeMongodRemoved,
+		mongodRemovedCheckAttempts,
+		mongodRemovedCheckInterval,
+		time.Sleep,
+		d.runtime.Logger.Info,
+	)
+	if err == nil {
+		return nil
+	}
+	if len(d.ConfParams.ReplicaSetPeers) > 0 {
+		d.runtime.Logger.Warn(
+			"local mongod not REMOVED after retries (%v), fall back to authoritative rs.conf",
+			err,
+		)
+		return d.checkMongodAbsentFromAuthoritativeConfig()
+	}
+	return err
+}
+
+func (d *DeferredDeInstall) probeMongodRemoved() (mongodRemovedCheckResult, error) {
 	eval := `
 (function(){
   var out = {ok:0, state:0, stateStr:"", msg:"", ismaster:null, secondary:null, isreplicaset:null};
@@ -240,36 +348,98 @@ func (d *DeferredDeInstall) checkMongodRemoved() error {
 
 	stdout, err := d.runMongoEval(eval)
 	if err != nil {
-		return fmt.Errorf("check mongod REMOVED fail: %w", err)
+		return mongodRemovedCheckResult{}, fmt.Errorf("check mongod REMOVED fail: %w", err)
 	}
 	var result mongodRemovedCheckResult
 	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
 		d.runtime.Logger.Error("parse REMOVED check output fail stdout=%q err=%v", stdout, err)
-		return fmt.Errorf("parse REMOVED check output fail: %w", err)
+		return mongodRemovedCheckResult{}, fmt.Errorf("parse REMOVED check output fail: %w", err)
 	}
+	return result, nil
+}
 
-	if isMongodRemovedAccepted(result) {
+// checkMongodAbsentFromAuthoritativeConfig asks the live replica-set primary.
+// The recovered source's local config can be stale and may report SECONDARY even
+// though the source has already been removed by the replacement flow.
+func (d *DeferredDeInstall) checkMongodAbsentFromAuthoritativeConfig() error {
+	source := fmt.Sprintf("%s:%d", d.ConfParams.IP, d.ConfParams.Port)
+	checkedPrimaries := make(map[string]struct{})
+	var errs []string
+
+	for _, peer := range d.ConfParams.ReplicaSetPeers {
+		host, portStr, err := net.SplitHostPort(peer)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("invalid peer %q: %v", peer, err))
+			continue
+		}
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("invalid peer port %q: %v", peer, err))
+			continue
+		}
+		primary, err := common.GetPrimaryInfo(
+			d.Mongo, d.ConfParams.AdminUsername, d.ConfParams.AdminPassword, host, port,
+		)
+		if err != nil || primary == "" {
+			errs = append(errs, fmt.Sprintf("resolve primary via %s fail: %v", peer, err))
+			continue
+		}
+		if _, ok := checkedPrimaries[primary]; ok {
+			continue
+		}
+		checkedPrimaries[primary] = struct{}{}
+
+		primaryHost, primaryPortStr, err := net.SplitHostPort(primary)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("invalid primary %q: %v", primary, err))
+			continue
+		}
+		primaryPort, err := strconv.Atoi(primaryPortStr)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("invalid primary port %q: %v", primary, err))
+			continue
+		}
+		stdout, err := d.runMongoEvalAt(primaryHost, primaryPort, buildReplicaSetConfigCheckEval(source))
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("check rs.conf via primary %s fail: %v", primary, err))
+			continue
+		}
+		var result replicaSetConfigCheckResult
+		if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+			errs = append(errs, fmt.Sprintf("parse rs.conf result via primary %s output=%q: %v", primary, stdout, err))
+			continue
+		}
+		if result.Found {
+			return fmt.Errorf(
+				"mongod still exists in authoritative rs.conf, refuse deferred deinstall: source=%s primary=%s version=%d",
+				source, primary, result.Version,
+			)
+		}
 		d.runtime.Logger.Info(
-			"mongod is REMOVED/out-of-config state=%d stateStr=%s msg=%q ismaster=%v secondary=%v",
-			result.State, result.StateStr, result.Msg, result.IsMaster, result.Secondary,
+			"mongod absent from authoritative rs.conf source=%s primary=%s version=%d",
+			source, primary, result.Version,
 		)
 		return nil
 	}
 	return fmt.Errorf(
-		"mongod is not REMOVED, refuse deferred deinstall: state=%d stateStr=%s msg=%q ismaster=%v secondary=%v rsStatusErr=%q",
-		result.State, result.StateStr, result.Msg, result.IsMaster, result.Secondary, result.RsStatusErr,
+		"unable to verify source absence from authoritative rs.conf source=%s errors=%s",
+		source, strings.Join(errs, "; "),
 	)
 }
 
 func (d *DeferredDeInstall) runMongoEval(eval string) (string, error) {
+	return d.runMongoEvalAt(d.ConfParams.IP, d.ConfParams.Port, eval)
+}
+
+func (d *DeferredDeInstall) runMongoEvalAt(host string, port int, eval string) (string, error) {
 	var stdoutBuf bytes.Buffer
 	var stderrBuf bytes.Buffer
 	cmdBuilder := mycmd.New(
 		d.Mongo,
 		"-u", d.ConfParams.AdminUsername,
 		"-p", mycmd.Password(d.ConfParams.AdminPassword),
-		"--host", d.ConfParams.IP,
-		"--port", strconv.Itoa(d.ConfParams.Port),
+		"--host", host,
+		"--port", strconv.Itoa(port),
 		"--authenticationDatabase=admin",
 		"--quiet",
 		"--eval", eval,

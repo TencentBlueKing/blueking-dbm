@@ -302,6 +302,9 @@ def save_swithed_host_by_cluster(switch_hosts: Dict):
     switched_cluster = {}
     # 以集群维度聚合故障信息
     for swiched_host in switch_hosts.values():
+        if swiched_host.instance_type == MachineType.MONGOS.value:
+            logger.info("skip redis autofix core for mongos ip={}, handled by mongodb autofix".format(swiched_host.ip))
+            continue
         cluster = swiched_host.immute_domain
         if swiched_host.cluster_type == ClusterType.TendisRedisInstance.value:
             cluster = swiched_host.ip  # 主从集群 ； 用机器来聚合
@@ -320,6 +323,8 @@ def save_swithed_host_by_cluster(switch_hosts: Dict):
         )
     # 按照集群维度保存信息
     for cluster in switched_cluster.values():
+        if not cluster["fault_machines"]:
+            continue
         logger.info(
             "autofix cluster {} with hosts {} begin".format(cluster["immute_domain"], cluster["fault_machines"])
         )
