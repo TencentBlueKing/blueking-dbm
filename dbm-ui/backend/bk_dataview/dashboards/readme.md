@@ -39,7 +39,15 @@ ___________________________________
 "tags": ["TwemproxyTendisSSDInstance"],
 // 其中 “慢查询” 仪表盘，会适用于 "tendbsingle", "tendbha", "tendbcluster" 这三种集群类型
 "tags": ["tendbsingle", "tendbha", "tendbcluster", "慢查询"],
+// k8s 集群使用 ClusterType 取值
+"tags": ["k8s_qdrant_ha"],
 ```
+
+# k8s 集群仪表盘变量约定
+k8s 指标没有 cluster_domain 维度，后端通过 URL 注入以下变量，代理层按指标维度 `namespace`、`app_kubernetes_io_instance` 鉴权：
+- `namespace`、`cluster`（DBM 集群名，对应维度 app_kubernetes_io_instance）、`bcs_cluster_id`：变量名必须一致，hide 设置为 2
+- 其余变量（如 collection）按上述变量级联查询，可按需暴露
+- 每个查询都必须同时带上 `namespace` 和 `app_kubernetes_io_instance` 过滤，否则会被拒绝
 
 # 替换下钻仪表盘的地址为占位符
 ```
