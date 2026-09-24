@@ -128,7 +128,9 @@ export function batchCreatePackages(params: {
     allow_biz_ids?: number[];
     db_type: DBTypes;
     db_version?: number;
+    distribution_name?: string;
     enable?: boolean;
+    full_version?: string;
     md5: string;
     mode?: string;
     name: string;
