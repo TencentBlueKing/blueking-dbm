@@ -46,12 +46,7 @@ class HCMResourceReplenishService(BaseService):
             raise Exception(_("关联单据/flow不存在，推测此流程已结束/已废弃，建议终止任务"))
 
     def __do_create_apply(self, bk_biz_id, ticket, spec, kwargs, apply_count, device_index):
-        # subzone=SUBZONE_ALL（可用区全部+分 Campus 生产）：跨园区调度，不做单园区容量预检，
-        # 直接按候选机型顺序提单，失败时走既有换机型重试流程
-        if kwargs["subzone"] != SUBZONE_ALL:
-            device_index = self.__find_candidate_device(spec, kwargs, device_index)
-        elif device_index >= len(spec.device_class):
-            raise Exception(_("在所有候选机型中，都没有库存容量，请稍后重试"))
+        device_index = self.__find_candidate_device(spec, kwargs, device_index)
         try:
             apply_id = HCMApi.create_apply(
                 bk_biz_id=bk_biz_id,
@@ -71,11 +66,7 @@ class HCMResourceReplenishService(BaseService):
             return self.__do_create_apply(bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1)
 
     def __do_modify_apply(self, suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index):
-        # subzone=SUBZONE_ALL 同 __do_create_apply：跨园区调度，不做单园区容量预检
-        if kwargs["subzone"] != SUBZONE_ALL:
-            device_index = self.__find_candidate_device(spec, kwargs, device_index)
-        elif device_index >= len(spec.device_class):
-            raise Exception(_("在所有候选机型中，都没有库存容量，请稍后重试"))
+        device_index = self.__find_candidate_device(spec, kwargs, device_index)
         try:
             HCMApi.modify_apply(
                 suborder_id=suborder_id,
@@ -96,6 +87,13 @@ class HCMResourceReplenishService(BaseService):
             return self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1)
 
     def __find_candidate_device(self, spec, kwargs, candidate_index):
+        # subzone=SUBZONE_ALL（可用区全部+分 Campus（Camplus）生产）：跨园区调度，跳过单园区容量预检，
+        # 直接把资源分配交给海磊提单接口，失败时走既有换机型重试流程。
+        # 由于不做本地容量预检，候选机型不受 CANDIDATE_DEVICE_NUM 上限限制，遍历全部候选机型
+        if kwargs["subzone"] == SUBZONE_ALL:
+            if candidate_index >= len(spec.device_class):
+                raise Exception(_("在所有候选机型中，都没有库存容量，请稍后重试"))
+            return candidate_index
         for index in range(candidate_index, min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM)):
             capacity = HCMApi.get_cvm_device_capacity(spec.device_class[index], kwargs["subzone"])
             if capacity > 0:
