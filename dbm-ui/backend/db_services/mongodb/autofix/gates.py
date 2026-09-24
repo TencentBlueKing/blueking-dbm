@@ -268,14 +268,18 @@ def is_restart_shielded(
 
 
 def count_mongo_hosts_by_zone(zone_ids: Iterable[int]) -> Dict[int, int]:
-    """统计各园区 mongodb/mongo_config 主机数，供园区占比熔断."""
+    """统计各园区 mongodb/mongo_config/mongos 主机数，供园区占比熔断."""
     zone_ids = [zid for zid in set(zone_ids) if zid]
     if not zone_ids:
         return {}
     rows = (
         Machine.objects.filter(
             bk_sub_zone_id__in=zone_ids,
-            machine_type__in=[MachineType.MONGODB.value, MachineType.MONOG_CONFIG.value],
+            machine_type__in=[
+                MachineType.MONGODB.value,
+                MachineType.MONOG_CONFIG.value,
+                MachineType.MONGOS.value,
+            ],
         )
         .values("bk_sub_zone_id")
         .annotate(host_count=Count("bk_host_id"))
