@@ -40,6 +40,20 @@ type SwitchLog struct {
 	DB *hamysql.GormDB
 }
 
+// switchLogListColumns are the columns used by the switch log list output.
+// The large json columns strategies and origin_instances are skipped.
+var switchLogListColumns = []string{
+	hamodel.DbSwitchingSnapshotLogFieldID,
+	hamodel.DbSwitchingSnapshotLogFieldBkBizID,
+	hamodel.DbSwitchingSnapshotLogFieldBkCloudID,
+	hamodel.DbSwitchingSnapshotLogFieldInstances,
+	hamodel.DbSwitchingSnapshotLogFieldStatus,
+	hamodel.DbSwitchingSnapshotLogFieldResult,
+	hamodel.DbSwitchingSnapshotLogFieldReason,
+	hamodel.DbSwitchingSnapshotLogFieldStartTime,
+	hamodel.DbSwitchingSnapshotLogFieldFinishedTime,
+}
+
 // ListSwitchSnapshotLogs list switch snapshot logs
 func (s *SwitchLog) ListSwitchSnapshotLogs(
 	ctx context.Context,
@@ -52,7 +66,8 @@ func (s *SwitchLog) ListSwitchSnapshotLogs(
 	var count int64
 	var switchLogs []*hamodel.DbSwitchingSnapshotLog
 
-	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{})
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
+		Select(switchLogListColumns)
 
 	if bkBizID != 0 {
 		bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingSnapshotLogFieldBkBizID)
@@ -141,4 +156,37 @@ func (s *SwitchLog) ListSwitchLogInfo(
 	}
 
 	return switchLogInfos, nil
+}
+
+// ListSwitchSnapshotAutoFixLogs list switch snapshot autofix logs.
+func (s *SwitchLog) ListSwitchSnapshotAutoFixLogs(
+	ctx context.Context,
+	uid int,
+	offset int,
+	limit int,
+) ([]*hamodel.DbSwitchingSnapshotLog, error) {
+	var switchLogs []*hamodel.DbSwitchingSnapshotLog
+
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
+		Select(switchLogListColumns)
+
+	uidCond := fmt.Sprintf("%s >= ? ", hamodel.DbSwitchingSnapshotLogFieldID)
+	query = query.Where(uidCond, uid)
+
+	// only return switch records, filter out notify records.
+	// historical records have a NULL action (before the column was added) and are kept.
+	actionField := hamodel.DbSwitchingSnapshotLogFieldAction
+	notifyCond := fmt.Sprintf("(%s IS NULL OR %s != ?)", actionField, actionField)
+	query = query.Where(notifyCond, hamodel.SnapshotActionTypeNotify.String())
+
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
+
+	orderCond := fmt.Sprintf("%s DESC ", hamodel.DbSwitchingSnapshotLogFieldID)
+	if err := query.Order(orderCond).Find(&switchLogs).Error; err != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return switchLogs, nil
 }
