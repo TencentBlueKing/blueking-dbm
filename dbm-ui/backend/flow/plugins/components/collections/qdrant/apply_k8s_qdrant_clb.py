@@ -20,7 +20,8 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.k8s_db.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.k8s_db.qdrant.consts import CLB_NAME_SUFFIX, CLB_NAME_TIME_FORMAT
+from backend.flow.utils.k8s_db.consts import CLB_NAME_TIME_FORMAT
+from backend.flow.utils.k8s_db.qdrant.consts import CLB_NAME_SUFFIX
 
 logger = logging.getLogger("flow")
 
