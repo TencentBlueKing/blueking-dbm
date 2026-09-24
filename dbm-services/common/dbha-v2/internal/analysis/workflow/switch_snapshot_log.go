@@ -253,6 +253,7 @@ func (s *SwitchingSnapshotReport) ReportBeforeSwitchingSnapshot() {
 		return
 	}
 	s.SnapshotData.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusDoing
+	setSnapshotInstancesStatus(s.SnapshotData.DbSwitchingSnapshotLog, hamodel.DbSwitchingSnapshotLogStatusDoing)
 
 	for _, l := range s.SnapshotLoggers {
 		if appendErr := l.PreSwitchLog(s.SnapshotData); appendErr != nil {
@@ -263,8 +264,8 @@ func (s *SwitchingSnapshotReport) ReportBeforeSwitchingSnapshot() {
 }
 
 // ReportAfterSwitchingSnapshot reports the switching snapshot after switching.
-// It updates each instance's new master info from the response, sets the finished time,
-// status and result, then delegates to each logger's PostSwitchLog.
+// It updates each instance's new master info and instance level status from the response,
+// sets the finished time, status and result, then delegates to each logger's PostSwitchLog.
 func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Response) {
 	if rsp == nil {
 		return
@@ -276,15 +277,19 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 		return
 	}
 
-	// update new master info for each instance from the switch response
+	// update new master info and instance level status for each instance from the switch response
 	bkCloudID := s.SnapshotData.DbSwitchingSnapshotLog.BkCloudID
 	instances := s.SnapshotData.DbSwitchingSnapshotLog.Instances
+	failureInsts := rsp.GetFailureInsts()
+	// the whole switch failed but no instance is reported as failed, mark all instances as failed
+	allFailed := rsp.Err != nil && len(failureInsts) == 0
 	for _, instance := range instances.Data {
 		instKey := switchcore.GenerateMetadataKey(bkCloudID, instance.IP, instance.Port)
 		if res, has := rsp.GetNewMasterInfo(instKey); has {
 			instance.NewMasterIP = res.Host
 			instance.NewMasterPort = res.Port
 		}
+		instance.Status = resolveInstanceSwitchStatus(failureInsts, instKey, allFailed)
 	}
 
 	if instances.Valid {
@@ -409,4 +414,31 @@ func buildInstancesListFromFailures(
 		})
 	}
 	return instances
+}
+
+// resolveInstanceSwitchStatus resolves the instance level switch status from the switch response.
+// An instance is failed once the switcher reports it as a failure instance; when the whole switch
+// fails but no failure instance is reported, all instances are marked as failed.
+func resolveInstanceSwitchStatus(
+	failureInsts map[switchcore.MetadataKey]*dbm.DbInstMetadata,
+	instKey switchcore.MetadataKey,
+	allFailed bool,
+) hamodel.DbSwitchingSnapshotLogStatus {
+	if _, failed := failureInsts[instKey]; failed {
+		return hamodel.DbSwitchingSnapshotLogStatusFailed
+	}
+	if allFailed {
+		return hamodel.DbSwitchingSnapshotLogStatusFailed
+	}
+	return hamodel.DbSwitchingSnapshotLogStatusSuccess
+}
+
+// setSnapshotInstancesStatus sets the same switch status for all instances of the snapshot record.
+func setSnapshotInstancesStatus(log *hamodel.DbSwitchingSnapshotLog, status hamodel.DbSwitchingSnapshotLogStatus) {
+	if !log.Instances.Valid {
+		return
+	}
+	for _, instance := range log.Instances.Data {
+		instance.Status = status
+	}
 }
