@@ -91,11 +91,20 @@ class AiReportViewSet(SystemViewSet):
                 **self._serialize_ai_report(ai_report),
             }
 
-        def empty_cluster_health_report(report_status: ClusterHealthReportStatus):
+        def get_available_dates(qs):
+            return list(
+                dict.fromkeys(
+                    timezone.localtime(report_time).date().isoformat()
+                    for report_time in qs.values_list("report_to_time", flat=True)
+                )
+            )
+
+        def empty_cluster_health_report(report_status: ClusterHealthReportStatus, available_dates=None):
             return Response(
                 {
                     "report_status": report_status.value,
                     "has_report": False,
+                    "available_dates": available_dates or [],
                 }
             )
 
@@ -118,6 +127,7 @@ class AiReportViewSet(SystemViewSet):
             cluster_domain=params["cluster_domain"],
             report_to_time__gte=cluster.create_at,
         ).exclude(share_url="")
+        available_dates = get_available_dates(base_qs)
         portrait_report = (
             base_qs.filter(
                 report_to_time__gte=start_time,
@@ -129,23 +139,24 @@ class AiReportViewSet(SystemViewSet):
 
         # 已接入画像能力，但所选日期当天没有生成可用报告。
         if not portrait_report:
-            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED)
+            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED, available_dates)
 
         share_path = portrait_report.share_url.rstrip("/")
         report_id = share_path.rsplit("/", 1)[-1] if share_path else ""
         # 画像记录存在但分享链接格式异常，按“未产生可用报告”处理，避免前端收到异常。
         if not report_id:
-            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED)
+            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED, available_dates)
 
         ai_report = AiAnalysisReport.objects.filter(id=report_id).first()
         # 分享链接指向的 AI 报告不存在，说明当天报告不可用。
         if not ai_report:
-            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED)
+            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED, available_dates)
 
         return Response(
             {
                 "report_status": ClusterHealthReportStatus.GENERATED.value,
                 "has_report": True,
+                "available_dates": available_dates,
                 **serialize_cluster_health_report(portrait_report, ai_report),
             }
         )
