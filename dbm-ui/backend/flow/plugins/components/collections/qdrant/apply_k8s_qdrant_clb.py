@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+from datetime import datetime
 from typing import List
 
 from django.utils.translation import gettext as _
@@ -67,7 +68,7 @@ class ApplyK8sQdrantClbService(BaseService):
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}",
+            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}-{int(datetime.now().timestamp() * 1000)}",
             "clb_nums": 1,
             "async_to_dbm": False,
         }
