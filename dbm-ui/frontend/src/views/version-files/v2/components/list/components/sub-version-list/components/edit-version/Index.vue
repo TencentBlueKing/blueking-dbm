@@ -127,6 +127,7 @@
             ref="versionFilesRef"
             :data="dbVersion?.packages"
             :db-type="dbType"
+            :distribution="releaseVersion?.name"
             :is-applied="isApplied"
             :pkg-type="pkgType"
             :version="versionSeriesLabel"
@@ -377,7 +378,9 @@
       ...item,
       db_type: props.dbType,
       db_version: data.id,
+      distribution_name: props.releaseVersion?.name,
       enable: formModel.value.enable,
+      full_version: formModel.value.full_version,
       permit_os: item.permit_os.length === 1 && item.permit_os[0] === 'all' ? [] : item.permit_os,
       permit_os_type: item.permit_os_type,
       pkg_type: props.pkgType,
