@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
+from backend.components import KubernetesApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
@@ -23,6 +24,7 @@ from backend.db_meta.models import AppCache, Cluster
 __all__ = ["Dashboard"]
 
 from backend.db_monitor.constants import DashboardType
+from backend.db_monitor.exceptions import DashboardException
 
 
 class Dashboard(AuditedModel):
@@ -49,7 +51,7 @@ class Dashboard(AuditedModel):
         verbose_name = _("仪表盘")
         unique_together = (("org_id", "org_name", "view", "cluster_type"),)
 
-    def get_url(self, bk_biz_id, cluster_id, view=None):
+    def get_cluster_url(self, bk_biz_id, cluster_id):
         from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 
         cluster = Cluster.objects.filter(id=cluster_id).last()
@@ -64,8 +66,30 @@ class Dashboard(AuditedModel):
             "var-app_id": bk_biz_id,
             "var-appid": bk_biz_id,
             "var-app": AppCache.get_app_attr(bk_biz_id, default=bk_biz_id),
-            # "kiosk": 1,
         }
+
+        return env.BK_SAAS_HOST + f"{self.url}?" + urllib.parse.urlencode(params)
+
+    def get_k8s_url(self, cluster_id):
+        from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
+
+        # k8s 集群指标没有 cluster_domain 维度，需注入 k8s 专属变量
+        cluster = Cluster.objects.get(id=cluster_id)
+        cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True) or {}
+
+        params = {
+            "orgId": DEFAULT_ORG_ID,
+            "orgName": DEFAULT_ORG_NAME,
+            "var-namespace": cluster_detail.get("namespace"),
+            # 对应指标维度 app_kubernetes_io_instance
+            "var-cluster": cluster.name,
+            "var-bcs_cluster_id": (cluster_detail.get("k8sClusterConfig") or {}).get("clusterName"),
+        }
+        missing_keys = [key for key, value in params.items() if not value]
+        if missing_keys:
+            raise DashboardException(
+                message=_("k8s 集群 {} 详情缺失字段: {}").format(cluster.immute_domain, ", ".join(missing_keys))
+            )
 
         return env.BK_SAAS_HOST + f"{self.url}?" + urllib.parse.urlencode(params)
 
