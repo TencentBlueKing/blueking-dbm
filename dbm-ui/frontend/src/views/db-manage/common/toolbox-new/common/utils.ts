@@ -1,3 +1,5 @@
+import pinyin from 'tiny-pinyin';
+
 import type { ToolboxLeafNode, ToolboxMenuNode, ToolboxTreeNode } from './types';
 
 /**
@@ -30,4 +32,22 @@ export function hasChildGroups(node: ToolboxTreeNode): boolean {
 /** 获取树节点直接挂载的叶子节点 */
 export function getLeafChildren(node: ToolboxTreeNode): ToolboxLeafNode[] {
   return node.children.filter((item): item is ToolboxLeafNode => isLeafNode(item));
+}
+
+/**
+ * 工具名搜索匹配：忽略大小写，支持拼音全拼与首字母
+ * @example isSearchMatched('jk', '健康检查') // true
+ */
+export function isSearchMatched(searchKey: string, name: string): boolean {
+  const keyword = searchKey.trim().toLowerCase();
+  if (!keyword) {
+    return true;
+  }
+  if (name.toLowerCase().includes(keyword)) {
+    return true;
+  }
+  const pinyinList = pinyin.parse(name).map((item) => item.target.toLowerCase());
+  const fullPinyin = pinyinList.join('');
+  const initials = pinyinList.reduce((result, item) => result + item[0], '');
+  return fullPinyin.includes(keyword) || initials.includes(keyword);
 }
