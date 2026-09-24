@@ -61,7 +61,8 @@ export default class SurrealdbHa extends ClusterBase {
   dns_to_clb: boolean;
   domain: string;
   id: number;
-  is_public?: boolean; // 部署类型，true=共享集群；false=独占集群
+  // 部署类型（true=共享集群；false=独占集群）待后端就绪后放开
+  // is_public?: boolean;
   k8s_cluster_name: string;
   major_version: string;
   master_domain: string;
@@ -105,7 +106,7 @@ export default class SurrealdbHa extends ClusterBase {
     this.dns_to_clb = payload.dns_to_clb;
     this.domain = payload.domain;
     this.id = payload.id || 0;
-    this.is_public = payload.is_public;
+    // this.is_public = payload.is_public;
     this.k8s_cluster_name = payload.k8s_cluster_name;
     this.master_domain = payload.master_domain || '';
     this.major_version = payload.major_version || '';

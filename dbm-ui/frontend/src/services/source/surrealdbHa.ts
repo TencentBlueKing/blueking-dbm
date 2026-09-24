@@ -60,9 +60,10 @@ export function getSurrealdbHaDetail(params: { id: number }) {
  * 获取集群实例列表
  */
 export const getSurrealdbHaInstanceList = function (params: {
-  bkBizId?: number;
+  // 独占集群参数待后端就绪后放开
+  // bkBizId?: number;
   cluster_name: string;
-  isPublic?: boolean;
+  // isPublic?: boolean;
   k8s_cluster_name: string;
   namespace: string;
   // role: string;
@@ -77,13 +78,14 @@ export const getSurrealdbHaInstanceList = function (params: {
  * 获取集群实例详情
  */
 export const retrieveSurrealdbHaInstanceDetail = function (params: {
-  bkBizId?: number;
+  // 独占集群参数待后端就绪后放开
+  // bkBizId?: number;
   cluster_id: number;
   /** K8s 后端约定，保持 camelCase */
   clusterName: string;
   /** K8s 后端约定，保持 camelCase */
   componentName: string;
-  isPublic?: boolean;
+  // isPublic?: boolean;
   /** K8s 后端约定，保持 camelCase */
   k8sClusterName: string;
   namespace: string;
@@ -99,10 +101,11 @@ export const retrieveSurrealdbHaInstanceDetail = function (params: {
  */
 export function updateSurrealdbHaClusterMeta(params: {
   bk_biz_id: number;
-  bkBizId?: number;
+  // 独占集群参数待后端就绪后放开
+  // bkBizId?: number;
   cluster_alias?: string;
   cluster_id: number;
-  isPublic?: boolean;
+  // isPublic?: boolean;
   tags?: Record<string, string>[];
 }) {
   return http.post<Record<string, never>>(`${getRootPath()}/update_cluster_meta/`, params);
@@ -136,11 +139,12 @@ export function getSurrealdbHaTopoGraph(params: { cluster_id: number; k8sCluster
  */
 export const getSurrealdbHaOperationLog = function (params: {
   bk_biz_id: number;
-  bkBizId?: number;
+  // 独占集群参数待后端就绪后放开
+  // bkBizId?: number;
   clusterName: string;
   creator?: string;
   endTime?: string;
-  isPublic?: boolean;
+  // isPublic?: boolean;
   k8sClusterName: string;
   limit: number;
   namespace: string;
@@ -162,9 +166,10 @@ export const getSurrealdbHaOperationLog = function (params: {
  * clusterName / k8sClusterName 为 K8s 后端约定，保持 camelCase
  */
 export const getSurrealdbHaComponentSpec = function (params: {
-  bkBizId?: number;
+  // 独占集群参数待后端就绪后放开
+  // bkBizId?: number;
   clusterName: string;
-  isPublic?: boolean;
+  // isPublic?: boolean;
   k8sClusterName: string;
   namespace: string;
 }) {

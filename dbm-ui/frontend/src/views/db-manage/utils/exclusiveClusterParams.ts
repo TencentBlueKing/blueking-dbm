@@ -14,8 +14,8 @@ import { isExclusiveClusterType } from '@common/const';
 
 /**
  * 集群资源查询的独占集群参数
- * 仅白名单内的集群类型才需要透传 isPublic / bkBizId，`is_public` 缺失时按共享集群兜底；
- * 非白名单集群类型返回空对象，保持既有请求不变
+ * 后端目前只就绪了 get_regions，此处先不返回参数（返回空对象），待后端就绪后放开白名单内的返回；
+ * 届时白名单内返回 { bkBizId, isPublic }（`is_public` 缺失按共享集群兜底），白名单外返回 {}
  */
 export const getExclusiveClusterParams = (cluster: {
   bk_biz_id?: number;
@@ -30,7 +30,7 @@ export const getExclusiveClusterParams = (cluster: {
   }
 
   return {
-    bkBizId: cluster.bk_biz_id,
-    isPublic: cluster.is_public !== false,
+    // bkBizId: cluster.bk_biz_id,
+    // isPublic: cluster.is_public !== false,
   };
 };
