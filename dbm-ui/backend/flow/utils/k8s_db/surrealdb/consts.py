@@ -33,5 +33,8 @@ SURREALDB_PORT = 8000
 # CLB 名称后缀
 CLB_NAME_SUFFIX = "surrealdb-clb"
 
+# CLB 名称时间戳格式（精确到秒，避免名称过长）
+CLB_NAME_TIME_FORMAT = "%Y%m%d%H%M%S"
+
 # 域名前缀，最终形如 "{DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
 DOMAIN_PREFIX = "surrealdb"
