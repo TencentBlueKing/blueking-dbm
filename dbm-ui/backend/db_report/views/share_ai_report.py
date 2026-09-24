@@ -36,10 +36,10 @@ SWAGGER_TAG = _("AI文件报告")
 class ClusterHealthReportQuerySerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    date = serializers.CharField(help_text=_("报告日期，格式：YYYY-MM-DD"))
+    date = serializers.CharField(required=False, allow_blank=True, help_text=_("报告日期，格式：YYYY-MM-DD"))
 
     def validate_date(self, value):
-        if not parse_date(value):
+        if value and not parse_date(value):
             raise serializers.ValidationError(_("日期格式错误，请使用 YYYY-MM-DD"))
         return value
 
@@ -109,9 +109,6 @@ class AiReportViewSet(SystemViewSet):
             )
 
         params = self.params_validate(ClusterHealthReportQuerySerializer)
-        report_date = parse_date(params["date"])
-        start_time = timezone.make_aware(datetime.combine(report_date, time.min))
-        end_time = start_time + timedelta(days=1)
         cluster = Cluster.objects.filter(
             bk_biz_id=params["bk_biz_id"],
             immute_domain=params["cluster_domain"],
@@ -128,6 +125,14 @@ class AiReportViewSet(SystemViewSet):
             report_to_time__gte=cluster.create_at,
         ).exclude(share_url="")
         available_dates = get_available_dates(base_qs)
+        latest_portrait_report = base_qs.order_by("-report_to_time", "-id").first()
+        report_date = parse_date(params.get("date") or "") or (
+            timezone.localtime(latest_portrait_report.report_to_time).date() if latest_portrait_report else None
+        )
+        if not report_date:
+            return empty_cluster_health_report(ClusterHealthReportStatus.NOT_GENERATED, available_dates)
+        start_time = timezone.make_aware(datetime.combine(report_date, time.min))
+        end_time = start_time + timedelta(days=1)
         portrait_report = (
             base_qs.filter(
                 report_to_time__gte=start_time,
