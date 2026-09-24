@@ -58,3 +58,9 @@ class SubscriptionMetricException(DBMonitorBaseException):
     ERROR_CODE = "205"
     MESSAGE = _("告警订阅异常")
     MESSAGE_TPL = _("告警订阅异常: {message}")
+
+
+class DashboardException(DBMonitorBaseException):
+    ERROR_CODE = "206"
+    MESSAGE = _("仪表盘异常")
+    MESSAGE_TPL = _("仪表盘异常: {message}")

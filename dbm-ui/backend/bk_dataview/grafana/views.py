@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
+from collections import defaultdict
+from typing import Dict, List, Optional
 from urllib import parse
 
 import requests
@@ -32,8 +34,8 @@ from backend.iam_app.handlers.drf_perm.base import IAMPermission
 
 from ...db_monitor.constants import DashboardType
 from . import client
-from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
-from .promsql import extract_condition_from_promql
+from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME, K8S_AUTH_KEYS, K8S_INSTANCE_KEY, K8S_NAMESPACE_KEY
+from .promsql import QueryConditions, extract_conditions_from_promql
 from .provisioning import Dashboard, Datasource
 from .settings import grafana_settings
 from .utils import requests_curl_log
@@ -419,43 +421,104 @@ class ProxyBaseView(View):
         resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
         return self.__check_iam_permission(request, actions, [cluster.id], resource_meta)
 
+    def __check_biz_permission(self, request, bk_biz_id):
+        actions, resource_meta = [ActionEnum.DB_MANAGE], ResourceEnum.BUSINESS
+        return self.__check_iam_permission(request, actions, [bk_biz_id], resource_meta)
+
     def __check_app_permission(self, request, app):
         app = AppCache.objects.get(db_app_abbr=app)
-        actions, resource_meta = [ActionEnum.DB_MANAGE], ResourceEnum.BUSINESS
-        return self.__check_iam_permission(request, actions, [app.bk_biz_id], resource_meta)
+        return self.__check_biz_permission(request, app.bk_biz_id)
 
-    def _auth(self, request):
+    def __check_k8s_cluster_permission(self, request, conditions: QueryConditions) -> bool:
+        """
+        k8s 集群鉴权：k8s 指标没有 cluster_domain 维度，
+        通过 namespace 末段解析业务，再结合 app_kubernetes_io_instance（集群名）定位 DBM 集群
+        """
+        bk_biz_ids = set()
+        for namespace in conditions.get(K8S_NAMESPACE_KEY, []):
+            bk_biz_id = namespace.rsplit("-", 1)[-1]
+            if not bk_biz_id.isdigit():
+                return False
+            bk_biz_ids.add(int(bk_biz_id))
+
+        cluster_names = set(conditions.get(K8S_INSTANCE_KEY, []))
+        # 没有集群名时退化为业务鉴权；仅带 bcs_cluster_id 的查询无法确定归属业务，直接拒绝
+        if not cluster_names:
+            return bool(bk_biz_ids) and all(
+                self.__check_biz_permission(request, bk_biz_id) for bk_biz_id in bk_biz_ids
+            )
+
+        clusters = Cluster.objects.filter(
+            name__in=cluster_names, cluster_type__in=ClusterType.k8s_container_cluster_type_values()
+        )
+        if bk_biz_ids:
+            clusters = clusters.filter(bk_biz_id__in=bk_biz_ids)
+        clusters = list(clusters)
+        # 每个集群名都必须能定位到集群；同名集群需全部有权限
+        if {cluster.name for cluster in clusters} != cluster_names:
+            return False
+
+        cluster_type__ids: Dict[str, List[int]] = defaultdict(list)
+        for cluster in clusters:
+            cluster_type__ids[cluster.cluster_type].append(cluster.id)
+        for cluster_type, cluster_ids in cluster_type__ids.items():
+            actions = [ActionEnum.cluster_type_to_action(cluster_type, action_key="VIEW")]
+            resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster_type)
+            if not self.__check_iam_permission(request, actions, cluster_ids, resource_meta):
+                return False
+        return True
+
+    def _check_conditions_permission(self, request, conditions: QueryConditions) -> bool:
+        # 鉴权优先级：集群 > k8s 集群 > 业务
+        if "cluster_domain" in conditions:
+            return all(
+                self.__check_cluster_permission(request, cluster_domain)
+                for cluster_domain in conditions["cluster_domain"]
+            )
+        if any(key in conditions for key in K8S_AUTH_KEYS):
+            return self.__check_k8s_cluster_permission(request, conditions)
+        if "app" in conditions:
+            return all(self.__check_app_permission(request, app) for app in conditions["app"])
+        return True
+
+    @staticmethod
+    def _parse_where_conditions(where: List[Dict], field_map: Dict[str, str] = None) -> QueryConditions:
+        field_map = field_map or {}
+        conditions: QueryConditions = {}
+        for match in where:
+            if not match.get("value"):
+                continue
+            values = match["value"] if isinstance(match["value"], list) else [match["value"]]
+            key = field_map.get(match["key"], match["key"])
+            # 同一维度出现多次时合并取值，避免只校验最后一个
+            conditions.setdefault(key, []).extend(str(value) for value in values)
+        return conditions
+
+    def _extract_query_conditions(self, request) -> Optional[List[QueryConditions]]:
+        """提取查询请求的过滤条件，每个元素对应一个子查询；非查询请求返回 None"""
         url = self.get_request_url(request)
         if url.endswith("/timeseries/time_series/unify_query/"):
-            # 这里仅针对 DBM 场景处理，基本都是简单的一级查询，暂不考虑复杂情况
-            condition = {
-                match["key"]: match["value"][0]
-                for match in json.loads(request.body.decode())["query_configs"][0]["where"]
-                if match.get("value")
-            }
-        elif url.endswith("/timeseries/graph_promql_query/"):
-            # promql 查询
-            condition = extract_condition_from_promql(json.loads(request.body.decode())["promql"])
-        elif url.endswith("/timeseries/grafana/query/") or url.endswith("/timeseries/grafana/query_log/"):
+            return [
+                self._parse_where_conditions(query_config.get("where", []))
+                for query_config in json.loads(request.body.decode())["query_configs"]
+            ]
+        if url.endswith("/timeseries/graph_promql_query/"):
+            return extract_conditions_from_promql(json.loads(request.body.decode())["promql"])
+        if url.endswith("/timeseries/grafana/query/") or url.endswith("/timeseries/grafana/query_log/"):
             log_field_map = {"cluster_domain": ["domain", "__ext.cluster_domain"], "app": ["__ext.app"]}
             log_field_map = {value: key for key, values in log_field_map.items() for value in values}
-            condition = {
-                log_field_map.get(match["key"], match["key"]): match["value"][0]
-                for match in json.loads(request.body.decode())["where"]
-                if match.get("value")
-            }
-        else:
+            return [self._parse_where_conditions(json.loads(request.body.decode())["where"], log_field_map)]
+        return None
+
+    def _auth(self, request):
+        conditions_list = self._extract_query_conditions(request)
+        if conditions_list is None:
             return True
 
-        check = True
-        # 鉴权优先级：集群 > 业务
-        if "cluster_domain" in condition:
-            check = self.__check_cluster_permission(request, condition["cluster_domain"])
-        elif "app" in condition:
-            check = self.__check_app_permission(request, condition["app"])
-
-        if not check:
-            raise PermissionError
+        # 每个子查询（promql 的每个向量选择器）都需要通过鉴权
+        for conditions in conditions_list:
+            if not self._check_conditions_permission(request, conditions):
+                raise PermissionError
 
 
 class StaticView(ProxyBaseView):
