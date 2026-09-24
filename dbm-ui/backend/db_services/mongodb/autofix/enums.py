@@ -26,6 +26,7 @@ class MongoAutofixCtlItem(StrStructuredEnum):
     CITY_HOST_THRESHOLD = EnumField("city_host_threshold", _("同城市异常主机数熔断阈值"))
     ENABLE_CONFIGSVR = EnumField("enable_configsvr", _("是否允许 configsvr 自愈"))
     DRY_RUN = EnumField("dry_run", _("仅发现不出单"))
+    DBHA_ID = EnumField("last_id", _("mongos DBHA 切换队列游标"))
     FOLLOWUP_NEED_APPROVAL = EnumField(
         "followup_need_approval",
         _("重启/修状态跟单是否需要审批(默认 on)"),

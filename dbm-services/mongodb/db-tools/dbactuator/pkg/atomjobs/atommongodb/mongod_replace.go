@@ -51,6 +51,101 @@ type MongoDReplace struct {
 	StatusCh        chan int
 }
 
+type replicaSetConfigCheckResult struct {
+	Found   bool `json:"found"`
+	Version int  `json:"version"`
+}
+
+type rsRemainingMember struct {
+	Host     string `json:"host"`
+	Votes    int    `json:"votes"`
+	Health   int    `json:"health"`
+	State    int    `json:"state"`
+	StateStr string `json:"stateStr"`
+}
+
+type rsRemoveQuorumCheckResult struct {
+	Remaining []rsRemainingMember `json:"remaining"`
+}
+
+func buildReplicaSetConfigCheckEval(source string) string {
+	sourceJSON, _ := json.Marshal(source)
+	return fmt.Sprintf(`
+(function(){
+  var source = %s;
+  var conf = rs.conf();
+  var found = false;
+  var members = conf.members || [];
+  for (var i = 0; i < members.length; i++) {
+    if (members[i].host === source) { found = true; break; }
+  }
+  print(JSON.stringify({found: found, version: conf.version || 0}));
+})();`, string(sourceJSON))
+}
+
+func buildReplicaSetRemoveQuorumEval(source string) string {
+	sourceJSON, _ := json.Marshal(source)
+	return fmt.Sprintf(`
+(function(){
+  var source = %s;
+  var conf = rs.conf();
+  var status = rs.status();
+  var statusMap = {};
+  var sm = status.members || [];
+  for (var i = 0; i < sm.length; i++) {
+    statusMap[sm[i].name] = sm[i];
+  }
+  var remaining = [];
+  var members = conf.members || [];
+  for (var j = 0; j < members.length; j++) {
+    var m = members[j];
+    if (m.host === source) { continue; }
+    var st = statusMap[m.host];
+    remaining.push({
+      host: m.host,
+      votes: (typeof m.votes === "undefined" || m.votes === null) ? 1 : Number(m.votes),
+      health: st && typeof st.health !== "undefined" ? Number(st.health) : 0,
+      state: st && typeof st.state !== "undefined" ? Number(st.state) : 8,
+      stateStr: st && st.stateStr ? st.stateStr : "DOWN"
+    });
+  }
+  print(JSON.stringify({remaining: remaining}));
+})();`, string(sourceJSON))
+}
+
+// validateRsQuorumAfterRemove refuses rs.remove unless remaining healthy
+// voting members would still be a strict majority (healthy*2 > voting).
+// Equivalently: failed*2 >= voting is refused, including the even case
+// "2 remaining, 1 failed" which cannot keep a PRIMARY.
+// Non-voting members (votes=0) are ignored. Members in rs.conf() but missing
+// from rs.status() are treated as failed.
+func validateRsQuorumAfterRemove(remaining []rsRemainingMember) error {
+	voting := 0
+	failed := 0
+	var failedHosts []string
+	for _, m := range remaining {
+		if m.Votes <= 0 {
+			continue
+		}
+		voting++
+		if m.Health != 1 {
+			failed++
+			failedHosts = append(failedHosts, fmt.Sprintf("%s(health=%d state=%s)", m.Host, m.Health, m.StateStr))
+		}
+	}
+	if voting == 0 {
+		return fmt.Errorf("no remaining voting members after remove, refuse rs.remove")
+	}
+	healthy := voting - failed
+	if healthy*2 <= voting {
+		return fmt.Errorf(
+			"after remove, remaining voting members=%d healthy=%d failed=%d (%s); no strict majority, refuse rs.remove",
+			voting, healthy, failed, strings.Join(failedHosts, ","),
+		)
+	}
+	return nil
+}
+
 func rsStateToString(state string) string {
 	switch state {
 	case "1":
@@ -76,7 +171,7 @@ func rsStateToString(state string) string {
 	}
 }
 
-func (r *MongoDReplace) runMongoEval(eval string) error {
+func (r *MongoDReplace) runMongoEvalOutput(eval string) (string, error) {
 	var stdoutBuf bytes.Buffer
 	var stderrBuf bytes.Buffer
 	cmdBuilder := mycmd.New(
@@ -98,15 +193,54 @@ func (r *MongoDReplace) runMongoEval(eval string) error {
 			"run mongo eval fail, cmd:%q, exitCode:%d, stdout:%q, stderr:%q, err:%v",
 			maskedCmdline, ret.ExitCode, stdout, stderr, err,
 		)
-		return fmt.Errorf("run mongo eval fail: %w", err)
+		return "", fmt.Errorf("run mongo eval fail: %w", err)
 	}
 	if ret.ExitCode != 0 {
 		r.runtime.Logger.Error(
 			"run mongo eval non-zero exit, cmd:%q, exitCode:%d, stdout:%q, stderr:%q",
 			maskedCmdline, ret.ExitCode, stdout, stderr,
 		)
-		return fmt.Errorf("run mongo eval non-zero exit: %d", ret.ExitCode)
+		return "", fmt.Errorf("run mongo eval non-zero exit: %d", ret.ExitCode)
 	}
+	return stdout, nil
+}
+
+func (r *MongoDReplace) runMongoEval(eval string) error {
+	_, err := r.runMongoEvalOutput(eval)
+	return err
+}
+
+// sourceInReplicaSetConfig checks the authoritative config through the current primary.
+// rs.status() is deliberately not used: a down member may be absent from status while
+// still retaining voting rights in rs.conf().
+func (r *MongoDReplace) sourceInReplicaSetConfig() (bool, int, error) {
+	source := fmt.Sprintf("%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
+	stdout, err := r.runMongoEvalOutput(buildReplicaSetConfigCheckEval(source))
+	if err != nil {
+		return false, 0, err
+	}
+	var result replicaSetConfigCheckResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		return false, 0, fmt.Errorf("parse rs.conf check output %q fail: %w", stdout, err)
+	}
+	return result.Found, result.Version, nil
+}
+
+func (r *MongoDReplace) checkQuorumAfterRemove() error {
+	source := fmt.Sprintf("%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
+	stdout, err := r.runMongoEvalOutput(buildReplicaSetRemoveQuorumEval(source))
+	if err != nil {
+		return fmt.Errorf("check remaining rs quorum before remove fail: %w", err)
+	}
+	var result rsRemoveQuorumCheckResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		return fmt.Errorf("parse remaining rs quorum check output %q fail: %w", stdout, err)
+	}
+	if err := validateRsQuorumAfterRemove(result.Remaining); err != nil {
+		r.runtime.Logger.Error("%s", err.Error())
+		return err
+	}
+	r.runtime.Logger.Info("remaining voting members keep strict majority before remove source=%s", source)
 	return nil
 }
 
@@ -307,11 +441,6 @@ func (r *MongoDReplace) makeAddTargetScript() error {
 	if r.ConfParams.TargetIP == "" {
 		return nil
 	}
-	// 生成脚本内容
-	r.runtime.Logger.Info(
-		"start building addTarget script target=%s:%d",
-		r.ConfParams.TargetIP, r.ConfParams.TargetPort,
-	)
 	addMember := common.NewReplicasetMemberAdd()
 	addMember.Host = strings.Join([]string{r.ConfParams.TargetIP, strconv.Itoa(r.ConfParams.TargetPort)}, ":")
 	addMember.Priority = r.TargetPriority
@@ -323,10 +452,6 @@ func (r *MongoDReplace) makeAddTargetScript() error {
 	}
 	addTargetConfScript := strings.Join([]string{"rs.add(", addMemberJson, ")"}, "")
 	r.AddTargetScript = addTargetConfScript
-	r.runtime.Logger.Info(
-		"addTarget script built successfully target=%s:%d",
-		r.ConfParams.TargetIP, r.ConfParams.TargetPort,
-	)
 	return nil
 }
 
@@ -344,17 +469,13 @@ func (r *MongoDReplace) execAddTargetScript() error {
 		return nil
 	}
 
-	r.runtime.Logger.Info(
-		"start executing addTarget script via primary=%s:%d target=%s:%d",
-		r.PrimaryIP, r.PrimaryPort, r.ConfParams.TargetIP, r.ConfParams.TargetPort,
-	)
 	if err := r.runMongoEval(r.AddTargetScript); err != nil {
 		r.runtime.Logger.Error("execute addTarget script fail, error:%s", err)
 		return fmt.Errorf("execute addTarget script fail, error:%s", err)
 	}
 	r.runtime.Logger.Info(
-		"addTarget script executed successfully target=%s:%d",
-		r.ConfParams.TargetIP, r.ConfParams.TargetPort,
+		"rs.add %s:%d via primary %s:%d",
+		r.ConfParams.TargetIP, r.ConfParams.TargetPort, r.PrimaryIP, r.PrimaryPort,
 	)
 	return nil
 }
@@ -364,7 +485,6 @@ func (r *MongoDReplace) checkTargetStatus() {
 	if r.ConfParams.TargetIP == "" {
 		return
 	}
-	r.runtime.Logger.Info("start checking target status target=%s:%d", r.ConfParams.TargetIP, r.ConfParams.TargetPort)
 	for {
 		_, _, status, _, _, _, err := common.GetNodeInfo(r.Mongo, r.PrimaryIP, r.PrimaryPort,
 			r.ConfParams.AdminUsername,
@@ -398,7 +518,6 @@ func (r *MongoDReplace) primaryStepDown() error {
 		return nil
 	}
 
-	r.runtime.Logger.Info("start converting primary to secondary source=%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
 	_, err := common.AuthRsStepDown(r.Mongo, r.PrimaryIP, r.PrimaryPort, r.ConfParams.AdminUsername,
 		r.ConfParams.AdminPassword)
 	if err != nil {
@@ -430,29 +549,42 @@ func (r *MongoDReplace) removeSource() error {
 	if r.ConfParams.SourceIP == "" {
 		return nil
 	}
-	// 检查source是否存在
-	flag, _, _, _, _, _, _ := common.GetNodeInfo(r.Mongo, r.PrimaryIP, r.PrimaryPort,
-		r.ConfParams.AdminUsername, r.ConfParams.AdminPassword, r.ConfParams.SourceIP, r.ConfParams.SourcePort)
-	if flag == false {
+	// rs.conf() is the source of truth. Do not infer removal from rs.status():
+	// an unhealthy member can disappear from status before it is removed from config.
+	found, versionBefore, err := r.sourceInReplicaSetConfig()
+	if err != nil {
+		return fmt.Errorf("check source in rs.conf before remove fail: %w", err)
+	}
+	if !found {
 		r.runtime.Logger.Info("source %s is already removed", strings.Join(
 			[]string{r.ConfParams.SourceIP, strconv.Itoa(r.ConfParams.SourcePort)}, ":"))
 		return nil
 	}
-	r.runtime.Logger.Info("start building remove-source script source=%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
+	if err := r.checkQuorumAfterRemove(); err != nil {
+		return err
+	}
 	removeSourceConfScript := strings.Join([]string{
 		"rs.remove(",
 		fmt.Sprintf("\"%s:%d\"", r.ConfParams.SourceIP, r.ConfParams.SourcePort),
 		")"}, "")
-	r.runtime.Logger.Info("remove-source script built successfully source=%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
-	r.runtime.Logger.Info(
-		"start executing remove-source script source=%s:%d via primary=%s:%d",
-		r.ConfParams.SourceIP, r.ConfParams.SourcePort, r.PrimaryIP, r.PrimaryPort,
-	)
 	if err := r.runMongoEval(removeSourceConfScript); err != nil {
 		r.runtime.Logger.Error("execute remove source script fail, error:%s", err)
 		return fmt.Errorf("execute remove source script fail, error:%s", err)
 	}
-	r.runtime.Logger.Info("remove-source script executed successfully source=%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
+	found, versionAfter, err := r.sourceInReplicaSetConfig()
+	if err != nil {
+		return fmt.Errorf("verify source removal in rs.conf fail: %w", err)
+	}
+	if found {
+		return fmt.Errorf(
+			"source still exists in rs.conf after rs.remove: source=%s:%d versionBefore=%d versionAfter=%d",
+			r.ConfParams.SourceIP, r.ConfParams.SourcePort, versionBefore, versionAfter,
+		)
+	}
+	r.runtime.Logger.Info(
+		"rs.remove %s:%d via primary %s:%d confVersion %d->%d",
+		r.ConfParams.SourceIP, r.ConfParams.SourcePort, r.PrimaryIP, r.PrimaryPort, versionBefore, versionAfter,
+	)
 	return nil
 }
 

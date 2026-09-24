@@ -10,10 +10,13 @@ from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_triag
 from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_wait_machine import (
     DEFAULT_MAX_WAIT_SEC,
     I_SERIES_MAX_WAIT_SEC,
+    WAIT_FOREVER_SEC,
     MongoAutofixPreWaitMachineComponent,
     MongoAutofixPreWaitMachineService,
     _max_wait_seconds,
     _probe_uptime_once,
+    resolve_max_wait_seconds,
+    wait_gse_forever,
     wait_machine_act_name,
 )
 
@@ -43,6 +46,33 @@ def test_wait_act_name_high_io_and_standard():
     assert wait_machine_act_name(high, "IT5.4XLARGE64") == "等待机器启动-127.0.0.1-(高IO/30m/2m)"
     assert wait_machine_act_name(std, "SA5.MEDIUM4") == "等待机器启动-127.0.0.2-(标准类/4h/2m)"
     assert wait_machine_act_name(std, "") == "等待机器启动-127.0.0.2-(标准类/4h/2m)"
+
+
+def test_mongos_waits_gse_forever():
+    info = {"ip": "127.0.0.3", "wait_gse_forever": True, "machine_type": "mongos"}
+    assert wait_gse_forever(info) is True
+    assert resolve_max_wait_seconds(info, "IT5.4XLARGE64") == WAIT_FOREVER_SEC
+    assert wait_machine_act_name(info, "IT5.4XLARGE64") == "等待机器启动-127.0.0.3-(mongos/一直等/2m)"
+
+
+def test_mongos_never_times_out_wait_machine():
+    service = MongoAutofixPreWaitMachineService()
+    service.log_info = MagicMock()
+    service.finish_schedule = MagicMock()
+    data = FakeData({"ip": "127.0.0.1", "bk_cloud_id": 0, "wait_gse_forever": True})
+    data.outputs.started_at = (timezone.now() - timedelta(hours=48)).isoformat()
+    data.outputs.machine_started = 0
+    data.outputs.max_wait_sec = WAIT_FOREVER_SEC
+    data.outputs.poll_rounds = 2
+
+    with patch(
+        "backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_wait_machine._probe_uptime_once",
+        return_value=False,
+    ):
+        assert service._schedule(data, None) is True
+
+    assert getattr(data.outputs, "timed_out", 0) != 1
+    service.finish_schedule.assert_not_called()
 
 
 def test_uptime_probe_executes_uptime_script():

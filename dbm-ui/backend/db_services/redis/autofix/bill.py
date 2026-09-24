@@ -24,7 +24,6 @@ from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
-from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
 from backend.db_services.redis.util import is_support_redis_auotfix
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -37,6 +36,10 @@ from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 logger = logging.getLogger("root")
 
 FAILOVER_DRILL_DOMAIN_PREFIX: str = "cache.failover-drill-"
+
+_MONGO_FAULT_TYPES = {MachineType.MONGOS.value, MachineType.MONGODB.value, MachineType.MONOG_CONFIG.value} | {
+    role.value for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]
+}
 
 
 def generate_autofix_ticket(fault_clusters: QuerySet):
@@ -201,9 +204,17 @@ def will_ignore_autofix_by_domain(cluster: RedisAutofixCore):
 def generate_single_autofix_ticket(cluster: RedisAutofixCore):
     try:
         fault_machines = json.loads(cluster.fault_machines)
-        mongos_list, mongod_list, redis_proxies, redis_slaves, cluster_ids = [], [], [], [], [cluster.cluster_id]
+        redis_proxies, redis_slaves, cluster_ids = [], [], [cluster.cluster_id]
         for fault_machine in fault_machines:
             fault_ip = fault_machine["ip"]
+            instance_type = fault_machine["instance_type"]
+            if instance_type in _MONGO_FAULT_TYPES:
+                logger.info(
+                    "skip mongo fault in redis bill, handled by mongodb autofix {}#{}".format(
+                        cluster.immute_domain, fault_ip
+                    )
+                )
+                continue
             fault_obj = Machine.objects.filter(ip=fault_ip, bk_biz_id=cluster.bk_biz_id).get()
             fault_info = {
                 "ip": fault_ip,
@@ -211,20 +222,13 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
                 "bk_sub_zone": fault_obj.bk_sub_zone,
                 "bk_sub_zone_id": fault_obj.bk_sub_zone_id,
                 "city": fault_obj.bk_city.logical_city.name,
-                "instance_type": fault_machine["instance_type"],
+                "instance_type": instance_type,
                 "spec_config": fault_obj.spec_config,
                 "cluster_type": cluster.cluster_type,
                 "bk_host_id": fault_obj.bk_host_id,
             }
-            if fault_machine["instance_type"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
+            if instance_type in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
                 redis_proxies.append(fault_info)
-            elif fault_machine["instance_type"] == MachineType.MONGOS.value:
-                mongos_list.append(fault_info)
-            elif fault_machine["instance_type"] in MachineTypeInstanceRoleMap[MachineType.MONGODB]:
-                mongod_list.append(fault_info)
-                if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
-                    clusters = query_cluster_by_hosts(hosts=[fault_ip])
-                    cluster_ids = [cls_obj["cluster_id"] for cls_obj in clusters]
             else:
                 if fault_obj.cluster_type == ClusterType.TendisRedisInstance.value:
                     clusters = query_cluster_by_hosts(hosts=[fault_ip])
@@ -237,18 +241,11 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
                 cluster.immute_domain, redis_proxies, redis_slaves
             )
         )
-        if mongos_list or mongod_list:
-            logger.info(
-                "mongodb cluster_summary_fault {}; cluster_ids:{}; mongos_list:{}, mongod_list:{}".format(
-                    cluster.immute_domain, cluster_ids, mongos_list, mongod_list
-                )
-            )
-            try:
-                mongo_create_ticket(cluster, cluster_ids, mongos_list, mongod_list)
-            except Exception as e:
-                logger.error(
-                    "mongodb create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e)
-                )
+        if not redis_proxies and not redis_slaves:
+            cluster.status_version = "mongo_handled_by_mongodb_autofix"
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_IGNORE.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             return
         # 只鞥一次高一个角色，，sinc 2025-12-xxs
         if len(redis_slaves) > 0:

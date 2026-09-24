@@ -25,8 +25,11 @@ logger = logging.getLogger("flow")
 POLL_INTERVAL_SEC = 120
 DEFAULT_MAX_WAIT_SEC = 4 * 60 * 60
 I_SERIES_MAX_WAIT_SEC = 30 * 60
+WAIT_FOREVER_SEC = 0
 HIGH_IO_LABEL = _("高IO")
 STANDARD_LABEL = _("标准类")
+MONGOS_LABEL = _("mongos")
+FOREVER_LABEL = _("一直等")
 
 
 def _get_device_class(info: dict) -> str:
@@ -56,6 +59,21 @@ def _max_wait_seconds(device_class: str) -> int:
     return I_SERIES_MAX_WAIT_SEC if _is_high_io(device_class) else DEFAULT_MAX_WAIT_SEC
 
 
+def wait_gse_forever(info: dict) -> bool:
+    """mongos PRE：GSE/uptime 探测一直等到机器起来，不按机型超时。"""
+    if info.get("wait_gse_forever"):
+        return True
+    if str(info.get("machine_type") or "").lower() == "mongos":
+        return True
+    return any(str(role).lower() == "mongos" for role in (info.get("roles") or []))
+
+
+def resolve_max_wait_seconds(info: dict, device_class: str) -> int:
+    if wait_gse_forever(info):
+        return WAIT_FOREVER_SEC
+    return _max_wait_seconds(device_class)
+
+
 def _format_duration(seconds: int) -> str:
     if seconds >= 3600 and seconds % 3600 == 0:
         return "{}h".format(seconds // 3600)
@@ -65,13 +83,15 @@ def _format_duration(seconds: int) -> str:
 
 
 def wait_machine_act_name(info: dict, device_class: str | None = None) -> str:
-    """等待机器启动-{ip}-(高IO/30m/2m) 或 等待机器启动-{ip}-(标准类/4h/2m)。"""
+    """等待机器启动-{ip}-(高IO/30m/2m) 或 等待机器启动-{ip}-(标准类/4h/2m)；mongos 为一直等。"""
     ip = info.get("ip") or ""
+    poll = _format_duration(POLL_INTERVAL_SEC)
+    if wait_gse_forever(info):
+        return _("等待机器启动-{}-({}/{}/{})").format(ip, MONGOS_LABEL, FOREVER_LABEL, poll)
     if device_class is None:
         device_class = _get_device_class(info)
     kind = HIGH_IO_LABEL if _is_high_io(device_class) else STANDARD_LABEL
     wait = _format_duration(_max_wait_seconds(device_class))
-    poll = _format_duration(POLL_INTERVAL_SEC)
     return _("等待机器启动-{}-({}/{}/{})").format(ip, kind, wait, poll)
 
 
@@ -96,7 +116,7 @@ class MongoAutofixPreWaitMachineService(BaseService):
         ip = info["ip"]
         bk_cloud_id = int(info.get("bk_cloud_id") or 0)
         device_class = _get_device_class(info)
-        max_wait_sec = _max_wait_seconds(device_class)
+        max_wait_sec = resolve_max_wait_seconds(info, device_class)
 
         data.outputs.started_at = timezone.now().isoformat()
         data.outputs.machine_started = 0
@@ -129,7 +149,7 @@ class MongoAutofixPreWaitMachineService(BaseService):
         elapsed_sec = (timezone.now() - started).total_seconds()
         max_wait_sec = int(data.outputs.max_wait_sec)
 
-        if elapsed_sec >= max_wait_sec:
+        if max_wait_sec > 0 and elapsed_sec >= max_wait_sec:
             data.outputs.timed_out = 1
             self.log_warning(
                 "wait machine start timeout ip={} elapsed_sec={:.0f} max_wait_sec={}, continue triage".format(

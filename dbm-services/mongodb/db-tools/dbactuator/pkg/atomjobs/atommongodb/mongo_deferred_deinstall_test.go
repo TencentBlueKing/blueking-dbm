@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
@@ -111,6 +113,36 @@ func TestMongoDeferredDeinstall_Name(t *testing.T) {
 
 func boolPtr(v bool) *bool { return &v }
 
+func TestBuildReplicaSetConfigCheckEvalEscapesSource(t *testing.T) {
+	source := `127.0.0.1:27017"; throw new Error("injected")`
+	eval := buildReplicaSetConfigCheckEval(source)
+	sourceJSON, err := json.Marshal(source)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	if !strings.Contains(eval, "var source = "+string(sourceJSON)) {
+		t.Fatalf("source is not JSON escaped in eval: %s", eval)
+	}
+}
+
+func TestDeferredDeInstallParamsReplicaSetPeersJSON(t *testing.T) {
+	input := DeferredDeInstallConfParams{
+		IP:              "127.0.0.1",
+		Port:            27017,
+		NodeInfo:        []string{"127.0.0.1"},
+		ReplicaSetPeers: []string{"127.0.0.2:27017", "127.0.0.3:27017"},
+		InstanceType:    "mongod",
+	}
+	payload := marshalDeferredDeInstallParams(t, input)
+	var output DeferredDeInstallConfParams
+	if err := json.Unmarshal(payload, &output); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+	if len(output.ReplicaSetPeers) != 2 || output.ReplicaSetPeers[1] != "127.0.0.3:27017" {
+		t.Fatalf("unexpected replicaSetPeers: %#v", output.ReplicaSetPeers)
+	}
+}
+
 func TestIsMongodRemovedAccepted(t *testing.T) {
 	cases := []struct {
 		name string
@@ -159,5 +191,49 @@ func TestIsMongodRemovedAccepted(t *testing.T) {
 				t.Fatalf("got %v want %v for %+v", got, tc.want, tc.in)
 			}
 		})
+	}
+}
+
+func TestIsMongodRemovedRetryable(t *testing.T) {
+	if !isMongodRemovedRetryable(mongodRemovedCheckResult{State: 2, StateStr: "SECONDARY"}) {
+		t.Fatal("SECONDARY should be retryable")
+	}
+	if isMongodRemovedRetryable(mongodRemovedCheckResult{State: 1, StateStr: "PRIMARY"}) {
+		t.Fatal("PRIMARY should not be retryable")
+	}
+	if isMongodRemovedRetryable(mongodRemovedCheckResult{IsMaster: boolPtr(true), State: 2}) {
+		t.Fatal("ismaster true should not be retryable")
+	}
+}
+
+func TestWaitUntilMongodRemovedRetriesSecondaryThenAccepts(t *testing.T) {
+	calls := 0
+	probe := func() (mongodRemovedCheckResult, error) {
+		calls++
+		if calls < 3 {
+			return mongodRemovedCheckResult{State: 2, StateStr: "SECONDARY"}, nil
+		}
+		return mongodRemovedCheckResult{State: rsStateRemoved, StateStr: rsStateStrRemoved}, nil
+	}
+	slept := 0
+	_, err := waitUntilMongodRemoved(probe, 5, time.Millisecond, func(time.Duration) { slept++ }, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if calls != 3 {
+		t.Fatalf("calls=%d want 3", calls)
+	}
+	if slept != 2 {
+		t.Fatalf("slept=%d want 2", slept)
+	}
+}
+
+func TestWaitUntilMongodRemovedGivesUpOnPersistentSecondary(t *testing.T) {
+	probe := func() (mongodRemovedCheckResult, error) {
+		return mongodRemovedCheckResult{State: 2, StateStr: "SECONDARY"}, nil
+	}
+	_, err := waitUntilMongodRemoved(probe, 3, time.Millisecond, func(time.Duration) {}, nil)
+	if err == nil {
+		t.Fatal("expected error after retries")
 	}
 }

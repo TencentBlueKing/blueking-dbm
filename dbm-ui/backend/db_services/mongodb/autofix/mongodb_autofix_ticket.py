@@ -20,7 +20,8 @@ from backend import env
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.core import notify
-from backend.db_meta.models import Cluster, Machine, StorageInstance
+from backend.db_meta.enums import MachineType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix import ctl as autofix_ctl
 from backend.db_services.mongodb.autofix.enums import MongoAutofixStatus
@@ -149,6 +150,44 @@ def mongod_get_resource_spec(cluster_id: int, mongod_list: list) -> dict:
     return resource_spec
 
 
+def is_mongos_core(core: MongoAutofixCore) -> bool:
+    """MongoAutofixCore 是否为 mongos 故障（DBHA / PRE 共用）。"""
+    for fm in core.fault_machines or []:
+        if not isinstance(fm, dict):
+            continue
+        machine_type = str(fm.get("machine_type") or fm.get("instance_type") or "").lower()
+        if machine_type == MachineType.MONGOS.value:
+            return True
+    return any(str(role).lower() == MachineType.MONGOS.value for role in (core.roles or []))
+
+
+def build_mongos_list_from_core(core: MongoAutofixCore) -> list:
+    """从 MongoAutofixCore 组装 mongos_list（供 MONGODB_AUTOFIX 申请资源）。"""
+    return build_mongod_list_from_core(core)
+
+
+def _lookup_autofix_instance(core: MongoAutofixCore, port: int):
+    """优先 StorageInstance，mongos 回退 ProxyInstance。"""
+
+    def _query(model):
+        inst = (
+            model.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .filter(machine__ip=core.ip, port=port)
+            .first()
+        )
+        if inst is None and core.bk_host_id:
+            inst = (
+                model.objects.select_related("machine")
+                .prefetch_related("cluster")
+                .filter(machine__bk_host_id=core.bk_host_id, port=port)
+                .first()
+            )
+        return inst
+
+    return _query(StorageInstance) or _query(ProxyInstance)
+
+
 def build_mongod_list_from_core(core: MongoAutofixCore) -> list:
     """从 MongoAutofixCore 组装 mongod_list（供 MONGODB_AUTOFIX 申请资源）。"""
     machine = None
@@ -184,7 +223,7 @@ def build_mongod_list_from_core(core: MongoAutofixCore) -> list:
     ]
 
 
-def create_mongod_reload_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
+def create_mongo_reload_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
     """从 Core 组装并创建 MONGODB_INSTANCE_RELOAD 单据。"""
     if not creator:
         mongodb_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=core.bk_biz_id, db_type=DBType.MongoDB.value)
@@ -251,7 +290,7 @@ def create_mongod_reload_ticket(core: MongoAutofixCore, creator: Optional[str] =
     return ticket
 
 
-def create_mongod_ensure_start_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
+def create_mongo_ensure_start_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
     """从 Core 组装并创建 MONGODB_INSTANCE_ENSURE_START（已监听则跳过，不强制 stop）。"""
     if not creator:
         mongodb_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=core.bk_biz_id, db_type=DBType.MongoDB.value)
@@ -259,42 +298,30 @@ def create_mongod_ensure_start_ticket(core: MongoAutofixCore, creator: Optional[
 
     ports = core.ports or []
     if not ports:
-        logger.error("create_mongod_ensure_start_ticket: empty ports core=%s", core.id)
+        logger.error("create_mongo_ensure_start_ticket: empty ports core=%s", core.id)
         return None
 
     infos = []
     for port in ports:
-        storage = (
-            StorageInstance.objects.select_related("machine")
-            .prefetch_related("cluster")
-            .filter(machine__ip=core.ip, port=port)
-            .first()
-        )
-        if core.bk_host_id:
-            storage = storage or (
-                StorageInstance.objects.select_related("machine")
-                .prefetch_related("cluster")
-                .filter(machine__bk_host_id=core.bk_host_id, port=port)
-                .first()
-            )
-        if not storage:
+        inst = _lookup_autofix_instance(core, port)
+        if not inst:
             logger.error(
-                "create_mongod_ensure_start_ticket: storage missing ip=%s port=%s core=%s",
+                "create_mongo_ensure_start_ticket: instance missing ip=%s port=%s core=%s",
                 core.ip,
                 port,
                 core.id,
             )
             return None
-        cluster = storage.cluster.first()
+        cluster = inst.cluster.first()
         infos.append(
             {
                 "cluster_id": cluster.id if cluster else core.cluster_id,
-                "bk_host_id": storage.machine.bk_host_id,
-                "ip": storage.machine.ip,
-                "instance_id": storage.id,
-                "port": storage.port,
-                "role": storage.machine_type,
-                "bk_cloud_id": storage.machine.bk_cloud_id,
+                "bk_host_id": inst.machine.bk_host_id,
+                "ip": inst.machine.ip,
+                "instance_id": inst.id,
+                "port": inst.port,
+                "role": inst.machine_type,
+                "bk_cloud_id": inst.machine.bk_cloud_id,
                 "db_version": cluster.major_version if cluster else "",
             }
         )
@@ -314,7 +341,7 @@ def create_mongod_ensure_start_ticket(core: MongoAutofixCore, creator: Optional[
     return ticket
 
 
-def create_mongod_fix_status_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
+def create_mongo_fix_status_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
     """从 Core 组装并创建 MONGODB_INSTANCE_FIX_STATUS（探测成功后修元数据状态，不重启）。"""
     if not creator:
         mongodb_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=core.bk_biz_id, db_type=DBType.MongoDB.value)
@@ -322,43 +349,31 @@ def create_mongod_fix_status_ticket(core: MongoAutofixCore, creator: Optional[st
 
     ports = core.ports or []
     if not ports:
-        logger.error("create_mongod_fix_status_ticket: empty ports core=%s", core.id)
+        logger.error("create_mongo_fix_status_ticket: empty ports core=%s", core.id)
         return None
 
     infos = []
     for port in ports:
-        storage = (
-            StorageInstance.objects.select_related("machine")
-            .prefetch_related("cluster")
-            .filter(machine__ip=core.ip, port=port)
-            .first()
-        )
-        if core.bk_host_id:
-            storage = storage or (
-                StorageInstance.objects.select_related("machine")
-                .prefetch_related("cluster")
-                .filter(machine__bk_host_id=core.bk_host_id, port=port)
-                .first()
-            )
-        if not storage:
+        inst = _lookup_autofix_instance(core, port)
+        if not inst:
             logger.error(
-                "create_mongod_fix_status_ticket: storage missing ip=%s port=%s core=%s",
+                "create_mongo_fix_status_ticket: instance missing ip=%s port=%s core=%s",
                 core.ip,
                 port,
                 core.id,
             )
             return None
-        cluster = storage.cluster.first()
+        cluster = inst.cluster.first()
         cluster_id = cluster.id if cluster else core.cluster_id
         master_domain = (cluster.immute_domain if cluster else None) or core.immute_domain
         infos.append(
             {
-                "ip": storage.machine.ip,
-                "port": storage.port,
-                "bk_cloud_id": storage.machine.bk_cloud_id,
+                "ip": inst.machine.ip,
+                "port": inst.port,
+                "bk_cloud_id": inst.machine.bk_cloud_id,
                 "dry_run": False,
                 "cluster_id": cluster_id,
-                "instance_address": f"{storage.machine.ip}:{storage.port}",
+                "instance_address": f"{inst.machine.ip}:{inst.port}",
                 "master_domain": master_domain,
             }
         )
@@ -382,7 +397,7 @@ def create_mongod_fix_status_ticket(core: MongoAutofixCore, creator: Optional[st
     return ticket
 
 
-def create_mongod_manual_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
+def create_mongo_manual_ticket(core: MongoAutofixCore, creator: Optional[str] = None) -> Optional[Ticket]:
     """PRE auth_error / gse_inconclusive：创建显式人工处理单，便于跟踪结案。"""
     if not creator:
         mongodb_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=core.bk_biz_id, db_type=DBType.MongoDB.value)
