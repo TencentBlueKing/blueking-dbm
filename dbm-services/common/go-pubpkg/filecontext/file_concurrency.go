@@ -37,7 +37,7 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 	fc := NewFileContext(contextFile)
 
 	if fi, err := os.Stat(fc.contextFile); err == nil && fi != nil {
-		if time.Now().Sub(fi.ModTime()).Seconds() > 60*60*24*7 {
+		if time.Now().Sub(fi.ModTime()).Seconds() > 60*60*24*1 {
 			logger.Info("remove expired context file %s", fc.contextFile)
 			err = os.Remove(fc.contextFile)
 			if err != nil && cmutil.FileExists(fc.contextFile) {
