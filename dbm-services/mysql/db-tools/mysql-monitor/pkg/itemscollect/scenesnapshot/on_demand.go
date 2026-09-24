@@ -49,6 +49,7 @@ func (c *Checker) initSnapshotOptions() {
 }
 
 // needSnapshotToDisk 是否需要采集现场, 没开按需采集就每轮都采集
+// 如果后面采用常驻进程的模式，这里可以限频。比如发现 longQuery，如果一直是同一条，可以多轮之间不必重复采集
 func (c *Checker) needSnapshotToDisk(processList []*mysqlProcess) bool {
 	if !c.SnapshotOnDemand {
 		return true
