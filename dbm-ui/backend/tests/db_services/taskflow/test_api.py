@@ -89,4 +89,12 @@ class TestTaskflowApi:
         url = f"/apis/taskflow/{self.root_id}/node_log/"
         data = client.get(url, data={"node_id": self.node_id, "version_id": "1"}).data
 
-        assert len(data) == 2
+        assert set(data.keys()) == {"count", "next", "previous", "results"}
+        assert isinstance(data["results"], list)
+
+        # offset超出总数时，results为空，next/previous为null
+        data = client.get(url, data={"node_id": self.node_id, "version_id": "1", "offset": 100, "limit": 5}).data
+        assert data["count"] == 2
+        assert data["results"] == []
+        assert data["next"] is None
+        assert data["previous"] is not None

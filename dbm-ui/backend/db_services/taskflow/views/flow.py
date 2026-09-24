@@ -306,6 +306,8 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         version_id = validated_data["version_id"]
         label_filters = validated_data.get("labels")
         label_filters = label_filters.split(",") if label_filters else []
+        offset = validated_data.get("offset", 0)
+        limit = validated_data.get("limit", 0)
         logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters)
         if validated_data["download"]:
             # 导出下载日志
@@ -314,8 +316,23 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
                 content_type="application/text charset=utf-8",
                 headers={"Content-Disposition": f'attachment; filename="{root_id}-{node_id}-{version_id}.log"'},
             )
-        else:
-            return Response(logs)
+
+        # 参考 LimitOffsetPagination 的分页结构返回
+        total = len(logs)
+        page_logs = logs[offset : offset + limit] if limit else logs[offset:]
+
+        def build_page_url(page_offset):
+            query_params = requests.query_params.copy()
+            query_params["offset"] = page_offset
+            return requests.build_absolute_uri(f"{requests.path}?{query_params.urlencode()}")
+
+        next_url, previous_url = None, None
+        if limit:
+            if offset + limit < total:
+                next_url = build_page_url(offset + limit)
+            if offset > 0:
+                previous_url = build_page_url(max(offset - limit, 0))
+        return Response({"count": total, "next": next_url, "previous": previous_url, "results": page_logs})
 
     @common_swagger_auto_schema(
         operation_summary=_("回调节点"),
