@@ -37,6 +37,10 @@ from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import buil
 from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_clean_sub_flow
 from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.machine_os_baseline import (
+    build_machine_os_baseline_acts,
+    init_ntpdate_enabled,
+)
 from backend.flow.plugins.components.collections.common.operate_host_bklog_collector import (
     OperateHostBklogCollectorComponent,
 )
@@ -45,7 +49,6 @@ from backend.flow.plugins.components.collections.common.sa_idle_check import Che
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.common.transfer_host_to_pool import TransferHostToPoolComponent
-from backend.flow.plugins.components.collections.common.update_hosts_file import AddHostsEntryComponent
 from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOutputHandler
 from backend.flow.utils.common_act_dataclass import (
     ImportMachinePollKwargs,
@@ -226,27 +229,20 @@ class ImportResourceInitStepFlow(object):
                 },
             )
 
-        # 更新目标机器的 /etc/hosts
-        # 从系统配置 INIT_OS_HOSTS 读取需要写入的条目，格式为 {domain: ip}
-        # 若该 key 未配置或值为空，则跳过此步骤；配置后可对所有新初始化机器生效
-        # 典型场景：将某个内部服务域名与 IP 的映射写入 hosts，确保机器能正常解析该域名
-        init_os_hosts: dict = SystemSettings.get_setting_value(key=SystemSettingsEnum.INIT_OS_HOSTS.value, default={})
-        if init_os_hosts and (not is_windows):
-            # 将 {domain: ip} 转换为 [{"ip": ..., "domain": ...}] 传给 Component
-            # Component 会对每条记录执行 grep 检查，仅追加缺失的条目（幂等）
-            hosts_entries = [{"ip": ip, "domain": domain} for domain, ip in init_os_hosts.items()]
-            p.add_act(
-                act_name=_("更新hosts文件"),
-                act_component_code=AddHostsEntryComponent.code,
-                kwargs={
-                    # 保留每台机器自己的 bk_cloud_id，不能共用第一个的值，
-                    # 否则不同管控区域的机器会路由到错误目标
-                    "exec_targets": [
-                        {"ip": host["ip"], "bk_cloud_id": host.get("bk_cloud_id", 0)} for host in host_list
-                    ],
-                    "hosts_entries": hosts_entries,
-                },
+        # 主机 OS 初始化：/etc/hosts 由 INIT_OS_HOSTS 决定，ntpdate 由 INIT_OS_NTPDATE 决定。
+        # 两者都没有时不挂节点。Windows 不跑。
+        # 海磊补货编排期 host_list 为空，只要开了其中一项，act 仍要挂上，执行期从 trans_data 补主机。
+        if not is_windows:
+            init_os_hosts: dict = SystemSettings.get_setting_value(
+                key=SystemSettingsEnum.INIT_OS_HOSTS.value, default={}
             )
+            hosts_entries = [{"ip": ip, "domain": domain} for domain, ip in (init_os_hosts or {}).items()]
+            if init_ntpdate_enabled() or hosts_entries:
+                baseline_acts = build_machine_os_baseline_acts(host_list, hosts_entries)
+                if len(baseline_acts) >= 2:
+                    p.add_parallel_acts(acts_list=baseline_acts)
+                else:
+                    p.add_act(**baseline_acts[0])
 
         # 调用资源导入接口
         resource_kwargs = {
