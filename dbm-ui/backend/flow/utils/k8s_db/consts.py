@@ -12,3 +12,6 @@ specific language governing permissions and limitations under the License.
 # 异步 schedule 轮询相关
 SCHEDULE_INTERVAL_SECONDS = 60
 SCHEDULE_MAX_RETRIES = 30
+
+# CLB 名称时间戳格式（精确到秒，避免名称过长），供 qdrant / surrealdb 等共用
+CLB_NAME_TIME_FORMAT = "%Y%m%d%H%M%S"
