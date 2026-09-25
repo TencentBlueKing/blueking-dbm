@@ -43,7 +43,9 @@ func newFailureInstanceForWindow(ip string, port int, dbType haprobe.DbType) *Fa
 	}
 }
 
-func newFailureEventForWindow(ip string, port int, dbType haprobe.DbType, event haprobe.DbEventName) *FailureInstanceInfo {
+func newFailureEventForWindow(
+	ip string, port int, dbType haprobe.DbType, event haprobe.DbEventName,
+) *FailureInstanceInfo {
 	inst := newFailureInstanceForWindow(ip, port, dbType)
 	inst.EventName = event
 	return inst

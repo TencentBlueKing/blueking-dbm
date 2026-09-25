@@ -31,8 +31,8 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
-	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -212,6 +212,9 @@ func (r *MetadataReader) ExtractDbStatusData(dbStatus []*hamodel.DbhaDataStatus)
 			data.DbStatusVals = append(data.DbStatusVals, parser.DBTyperWrapper{
 				DbTypeName: dbStat.DbTypeName,
 				Value:      dbStat.Value.Data,
+				BkCloudID:  dbStat.BkCloudID,
+				DbIp:       dbStat.DbIp,
+				DbPort:     dbStat.DbPort,
 			})
 		}
 	}

@@ -53,8 +53,10 @@ type HealthInfo struct {
 	ProcName string `json:"procName"`
 	Status   Status `json:"status"`
 	ErrMsg   string `json:"errmsg"`
+	Uptime   int64  `json:"uptime,omitempty"` // machine uptime in seconds
 }
 
+// IsAlive reports whether the probed process is running.
 func (h HealthInfo) IsAlive() bool {
 	return h.Status == StatusRunning
 }

@@ -110,12 +110,12 @@ func NewLogToDbHandlerFromConfig() (*LogToDbHandler, error) {
 		Passwd: config.Cfg.Storage.Password,
 	}
 
-	hdl.writeTimeout = config.Cfg.Workflow.SwitchFlow.SwitchLogWriteTimeout
+	hdl.writeTimeout = config.Cfg.Workflow.SwitchFlow.Common.SwitchLogWriteTimeout
 	if hdl.writeTimeout <= 0 {
 		hdl.writeTimeout = SwitchLogDefaultDbWriteTimeout
 	}
 
-	hdl.connectTimeout = config.Cfg.Workflow.SwitchFlow.DbConnectTimeout
+	hdl.connectTimeout = config.Cfg.Workflow.SwitchFlow.Common.DbConnectTimeout
 	if hdl.connectTimeout <= 0 {
 		hdl.connectTimeout = SwitchLogDefaultDbConnectTimeout
 	}
