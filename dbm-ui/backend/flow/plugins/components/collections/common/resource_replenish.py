@@ -14,6 +14,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.components.hcm.client import HCMApi
+from backend.components.hcm.constants import SUBZONE_ALL
 from backend.db_meta.models import Spec
 from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -73,6 +74,7 @@ class HCMResourceReplenishService(BaseService):
                 ticket_id=ticket.id,
                 username=ticket.creator,
                 subzone=kwargs["subzone"],
+                city=kwargs["city"],
                 os_name=kwargs["os_name"],
                 device_types=spec.device_class,
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
@@ -85,6 +87,13 @@ class HCMResourceReplenishService(BaseService):
             return self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1)
 
     def __find_candidate_device(self, spec, kwargs, candidate_index):
+        # subzone=SUBZONE_ALL（可用区全部+分 Campus（Camplus）生产）：跨园区调度，跳过单园区容量预检，
+        # 直接把资源分配交给海磊提单接口，失败时走既有换机型重试流程。
+        # 由于不做本地容量预检，候选机型不受 CANDIDATE_DEVICE_NUM 上限限制，遍历全部候选机型
+        if kwargs["subzone"] == SUBZONE_ALL:
+            if candidate_index >= len(spec.device_class):
+                raise Exception(_("在所有候选机型中，都没有库存容量，请稍后重试"))
+            return candidate_index
         for index in range(candidate_index, min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM)):
             capacity = HCMApi.get_cvm_device_capacity(spec.device_class[index], kwargs["subzone"])
             if capacity > 0:
@@ -187,9 +196,11 @@ class HCMResourceReplenishService(BaseService):
             self.log_info(_("申请到的机器数量与CC查询到的机器数量不一致，推迟到下个周期查询"))
             return True
 
-        # 校验主机是否与申请机型参数一致(暂时仅打印日志提示)
-        spec = Spec.objects.get(spec_id=ticket.details["spec_id"])
-        expected_device_class = spec.device_class[0] if spec.device_class else ""
+        # 校验主机是否与申请机型参数一致(暂时仅打印日志提示)，以实际申请的机型为准（重试可能已切换机型）
+        current_device_index = device_index or 0
+        expected_device_class = (
+            spec.device_class[current_device_index] if current_device_index < len(spec.device_class) else ""
+        )
         for host in hosts:
             if host["device_class"] != expected_device_class:
                 self.log_error(_("主机{}机型与申请机型{}不一致").format(host["device_class"], expected_device_class))
