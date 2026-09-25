@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 from django.db.models import Q
 from django.utils.translation import gettext as _
@@ -27,6 +27,89 @@ from backend.ticket.models import ClusterOperateRecord, Ticket
 from backend.utils.time import find_nearby_time
 
 logger = logging.getLogger("root")
+
+
+def select_pitr_backup_logs_by_sets(
+    rollback_time: datetime,
+    set_names: Set[str],
+    full_logs: List[Dict],
+    incr_logs: List[Dict],
+    range_days: int,
+    start_time: datetime,
+    end_time: datetime,
+) -> Dict[str, Dict]:
+    """按 set_name 从一批全备/增量日志中选出每个分片的回档链。不访问 BKLog。"""
+    full_by_set: Dict[str, List[Dict]] = defaultdict(list)
+    for log in full_logs:
+        set_name = log.get("set_name")
+        if set_name in set_names:
+            full_by_set[set_name].append(log)
+
+    missing_full = sorted(set_names - set(full_by_set.keys()))
+    if missing_full:
+        raise AppBaseException(
+            _("距离回档时间点{}天内没有全备日志 set_name: {} from {} to {}").format(range_days, missing_full, start_time, end_time)
+        )
+
+    result: Dict[str, Dict] = {}
+    fullname_by_set: Dict[str, str] = {}
+    for set_name in set_names:
+        logs = full_by_set[set_name]
+        logs.sort(key=lambda x: x["pitr_last_pos"])
+        try:
+            idx = find_nearby_time([log["pitr_last_pos"] for log in logs], rollback_time, 1)
+        except IndexError:
+            raise AppBaseException(_("无法找到时间点{}附近的全备日志记录 set_name:{}").format(rollback_time, set_name))
+        full = logs[idx]
+        result[set_name] = {"full_backup_log": full, "incr_backup_logs": []}
+        fullname_by_set[set_name] = full["pitr_fullname"]
+
+    incr_by_set: Dict[str, List[Dict]] = defaultdict(list)
+    for log in incr_logs:
+        set_name = log.get("set_name")
+        if set_name not in fullname_by_set:
+            continue
+        if log.get("pitr_fullname") != fullname_by_set[set_name]:
+            continue
+        incr_by_set[set_name].append(log)
+
+    missing_incr = sorted(set_names - set(incr_by_set.keys()))
+    if missing_incr:
+        raise AppBaseException(
+            _("距离回档时间点{}天内没有增量备份日志 set_name: {} from {} to {}").format(range_days, missing_incr, start_time, end_time)
+        )
+
+    for set_name in set_names:
+        logs = incr_by_set[set_name]
+        logs.sort(key=lambda x: x["pitr_last_pos"])
+        try:
+            idx = find_nearby_time([log["pitr_last_pos"] for log in logs], rollback_time, 0)
+        except IndexError:
+            raise AppBaseException(_("无法找到时间点{}附近的增量备份记录 set_name:{}").format(rollback_time, set_name))
+        result[set_name]["incr_backup_logs"] = logs[: idx + 1]
+
+    return result
+
+
+def to_pitr_task_ids(full: Dict, incr_logs: List[Dict]) -> List[Dict]:
+    """把全备+增量日志转成下载节点需要的 task_ids。"""
+    src_addr = "{}:{}".format(full["ip"], full["port"])
+    records = [
+        {
+            "task_id": full["bs_taskid"],
+            "file_name": full["file_name"],
+            "instance": src_addr,
+        }
+    ]
+    for incr_log in incr_logs:
+        records.append(
+            {
+                "task_id": incr_log["bs_taskid"],
+                "file_name": incr_log["file_name"],
+                "instance": src_addr,
+            }
+        )
+    return records
 
 
 class MongoDBRestoreHandler(object):
@@ -101,6 +184,40 @@ class MongoDBRestoreHandler(object):
         incr_backup_logs = incr_backup_logs[: incr_latest_index + 1]
 
         return {"full_backup_log": latest_full_backup_log, "incr_backup_logs": incr_backup_logs}
+
+    def query_latest_backup_logs_by_sets(self, rollback_time: datetime, set_names: List[str]) -> Dict[str, Dict]:
+        """一次拉全备、一次拉增量，按 set_name 选出每个分片的全备+增量链。
+
+        给 ShardedCluster PITR 用：flow 构建期不再对每个分片打 BKLog。
+        """
+        if not set_names:
+            raise AppBaseException(_("set_names 不能为空"))
+
+        end_time = rollback_time + timedelta(days=1)
+        start_time = end_time - timedelta(days=BACKUP_LOG_RANGE_DAYS)
+        wanted = set(set_names)
+
+        full_logs = self._get_log_from_bklog(
+            collector="mongo_backup_result",
+            start_time=start_time,
+            end_time=end_time,
+            query_string=f"cluster_id: {self.cluster_id} AND pitr_file_type: {PitrFillType.FULL}",
+        )
+        incr_logs = self._get_log_from_bklog(
+            collector="mongo_backup_result",
+            start_time=start_time,
+            end_time=end_time,
+            query_string=f"cluster_id: {self.cluster_id} AND pitr_file_type: {PitrFillType.INCR}",
+        )
+        return select_pitr_backup_logs_by_sets(
+            rollback_time=rollback_time,
+            set_names=wanted,
+            full_logs=full_logs or [],
+            incr_logs=incr_logs or [],
+            range_days=BACKUP_LOG_RANGE_DAYS,
+            start_time=start_time,
+            end_time=end_time,
+        )
 
     @classmethod
     def _aggregate_ticket_backup_logs(cls, backup_logs):

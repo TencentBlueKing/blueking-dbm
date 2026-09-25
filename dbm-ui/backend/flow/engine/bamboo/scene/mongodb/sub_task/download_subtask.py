@@ -33,20 +33,28 @@ class DownloadSubTask(BaseSubTask):
 
     @classmethod
     def make_kwargs(
-        cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path, dest_dir: str, node: MongoNode
+        cls,
+        payload: Dict,
+        sub_payload: Dict,
+        rs: ReplicaSet,
+        file_path,
+        dest_dir: str,
+        node: MongoNode,
+        src_set_name: str = None,
     ) -> dict:
         print("get_backup_node", sub_payload)
         os_account = PayloadHandler.redis_get_os_account()
-        task_id_list = [m.get("task_id") for m in sub_payload["task_ids"]]
-        # sub_payload["_tmp_data"]["dest_node"] = node
+        # PITR 的 task_ids 由上游「查询备份记录」节点写入 trans_data；普通 restore 仍从单据带下来
+        task_id_list = [m.get("task_id") for m in sub_payload.get("task_ids") or []]
 
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "bk_cloud_id": node.bk_cloud_id,
             "task_ids": task_id_list,
+            "src_set_name": src_set_name or rs.set_name,
             "dest_ip": node.ip,
             "dest_dir": dest_dir,
-            "reason": "mongodb recover setName:{} to {}".format(rs.set_name, node.ip),
+            "reason": "mongodb recover setName:{} to {}".format(src_set_name or rs.set_name, node.ip),
             "login_user": os_account["os_user"],
             "login_passwd": os_account["os_password"],
         }
@@ -98,6 +106,7 @@ class DownloadSubTask(BaseSubTask):
         dest_dir: str,
         dest_node: MongoNode,
         sub_pipeline: SubBuilder,
+        src_set_name: str = None,
     ) -> Tuple[SubBuilder]:
         """
         for one process_shard
@@ -106,7 +115,9 @@ class DownloadSubTask(BaseSubTask):
         # 创建子流程
         if sub_pipeline is None:
             sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-        kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, shard, file_path, dest_dir, dest_node)
+        kwargs = cls.make_kwargs(
+            ticket_data, sub_ticket_data, shard, file_path, dest_dir, dest_node, src_set_name=src_set_name
+        )
         act = {
             "act_name": _("下载备份文件 {}".format(kwargs["dest_ip"])),
             "act_component_code": MongoDownloadBackupFileComponent.code,

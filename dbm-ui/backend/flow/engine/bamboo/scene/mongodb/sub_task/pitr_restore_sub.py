@@ -30,26 +30,43 @@ class PitrRestoreSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, sub_payload: Dict, shard: ReplicaSet, file_path, dest_dir: str, exec_node: MongoNode) -> dict:
+    def make_kwargs(
+        cls,
+        sub_payload: Dict,
+        shard: ReplicaSet,
+        file_path,
+        dest_dir: str,
+        exec_node: MongoNode,
+        src_set_name: str = None,
+    ) -> dict:
         # todo find primary node
         dba_user, dba_pwd = MongoUtil.get_dba_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id)
+        src_set_name = src_set_name or shard.set_name
+        src_addr = ""
+        if sub_payload.get("task_ids"):
+            src_addr = sub_payload["task_ids"][0]["instance"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
             "bk_cloud_id": exec_node.bk_cloud_id,
             "exec_ip": exec_node.ip,
+            "payload_func": {
+                "module": "backend.flow.utils.mongodb.mongodb_dataclass",
+                "function": "payload_func_pitr_restore",
+            },
             "db_act_template": {
                 "action": MongoDBActuatorActionEnum.PitRestore,
                 "file_path": file_path,
                 "exec_account": "root",
                 "sudo_account": "mysql",
+                "src_set_name": src_set_name,
                 "payload": {
                     "ip": exec_node.ip,
                     "port": int(exec_node.port),
                     "adminUsername": dba_user,
                     "adminPassword": dba_pwd,
                     "gracefulStop": False,
-                    "srcAddr": sub_payload["task_ids"][0]["instance"],
+                    "srcAddr": src_addr,
                     "recoverTimeStr": sub_payload["dst_time"],
                     "dryRun": False,
                     "dir": dest_dir,
@@ -68,6 +85,7 @@ class PitrRestoreSubTask(BaseSubTask):
         dest_dir: str,
         exec_node: MongoNode,
         sub_pipeline: SubBuilder,
+        src_set_name: str = None,
     ) -> Tuple[SubBuilder, List]:
         """
         cluster can be  a ReplicaSet or  a ShardedCluster
@@ -77,7 +95,7 @@ class PitrRestoreSubTask(BaseSubTask):
         if sub_pipeline is None:
             sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-        kwargs = cls.make_kwargs(sub_ticket_data, shard, file_path, dest_dir, exec_node)
+        kwargs = cls.make_kwargs(sub_ticket_data, shard, file_path, dest_dir, exec_node, src_set_name=src_set_name)
         act = {
             "act_name": _("执行回档命令 {}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,

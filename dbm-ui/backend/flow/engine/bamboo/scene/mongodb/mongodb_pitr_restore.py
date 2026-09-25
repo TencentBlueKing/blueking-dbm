@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 from rest_framework import serializers
@@ -28,7 +28,7 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.pitr_rebuild_sub import P
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.pitr_restore_sub import PitrRestoreSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_script_template import prepare_recover_dir_script
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
@@ -93,8 +93,8 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         # 1. 部署临时集群（目前省略）
         # 2. 获得每个目标集群的信息
         # 3-1. 预处理. 准备数据文件目录 mkdir -p $MONGO_RECOVER_DIR
-        # 3-2. 预处理. 获得每个目标集群的备份文件列表，下载备份文件
-        # 4. 执行回档任务
+        # 3-2. 运行期节点查询各分片全备/增量记录（避免构建期对每个分片串行打 BKLog）
+        # 4. 下载备份并执行回档
 
         # 所有涉及的cluster
         cluster_id_list_from = []
@@ -257,6 +257,16 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         if len(src_shards) != len(dst_shards):
             raise Exception("src_shards and dst_shards has different shards")
 
+        # BKLog 查询放到运行期节点，避免构建期对每个分片串行打日志平台
+        FetchBackupRecordSubTask.process_cluster(
+            root_id=self.root_id,
+            ticket_data=self.payload,
+            sub_ticket_data=row,
+            src_cluster=src_cluster,
+            src_shards=src_shards,
+            sub_pipeline=cluster_sb,
+        )
+
         for idx in range(len(src_shards)):
             src_shard = src_shards[idx]
             dst_shard = dst_shards[idx]
@@ -340,18 +350,9 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         """
         pitr_restore_flow one shard from src_cluster/src_shard to cluster/shard
         """
-        # FetchBackupRecordSubTask 根据 sub_ticket_data中的src_cluster_id, dst_time 获得备份文件列表.
-        FetchBackupRecordSubTask.process_shard(
-            root_id=self.root_id,
-            ticket_data=self.payload,
-            sub_ticket_data=row,
-            cluster=src_cluster,
-            shard=src_shard,
-        )
         exec_node = row["__exec_node"][shard.set_name]
 
         logger.debug("sub_ticket_data {}".format(row))
-        # process_cluster 会根据src_cluster_id, dst_time 获得备份文件列表.
         DownloadSubTask.process_shard(
             root_id=self.root_id,
             ticket_data=self.payload,
@@ -361,6 +362,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             dest_dir=dest_dir,
             dest_node=exec_node,
             sub_pipeline=shard_sub,
+            src_set_name=src_shard.set_name,
         )
 
         PitrRestoreSubTask.process_shard(
@@ -372,6 +374,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             dest_dir=dest_dir,
             exec_node=exec_node,
             sub_pipeline=shard_sub,
+            src_set_name=src_shard.set_name,
         )
 
         return
@@ -541,6 +544,24 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         sb.add_parallel_acts(acts_list=acts_list)
         cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("restart_as_standalone"))
 
+    @staticmethod
+    def build_shard_map(src_shards: List[ReplicaSet], dst_shards: List[ReplicaSet]) -> List[Dict]:
+        """生成 源shard -> 目标shard 的显式配对，供actuator写config.shards
+
+        @param src_shards: 源集群shards，必须是 get_shards(sort_by_set_name=True) 的结果
+        @param dst_shards: 目标集群shards，同上
+        两个入参的顺序必须与 process_cluster 灌备份、rebuild_cluster 写shardIdentity 时一致，
+        否则catalog里的shard名会与机器上的数据/identity错位。
+        """
+        if len(src_shards) != len(dst_shards):
+            raise Exception(
+                "src_shards({}) and dst_shards({}) has different shards".format(len(src_shards), len(dst_shards))
+            )
+
+        return [
+            {"src_set_name": src.set_name, "dst_set_name": dst.set_name} for src, dst in zip(src_shards, dst_shards)
+        ]
+
     def rebuild_cluster(
         self,
         row: Dict,
@@ -554,6 +575,8 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         dst_configsvr = dst_cluster.get_config()
         src_shards = src_cluster.get_shards(with_config=False, sort_by_set_name=True)
         dst_shards = dst_cluster.get_shards(with_config=False, sort_by_set_name=True)
+        # config.shards 必须用与灌备份/shardIdentity 完全相同的配对，显式下发而不是让actuator再推导一次
+        shard_map = self.build_shard_map(src_shards, dst_shards)
 
         acts_list = []
         sb = SubBuilder(root_id=self.root_id, data=self.payload)
@@ -569,6 +592,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
                     dst_shard=dst_configsvr,
                     src_cluster=src_cluster,
                     dst_cluster=dst_cluster,
+                    shard_map=shard_map,
                 ),
             }
         )
