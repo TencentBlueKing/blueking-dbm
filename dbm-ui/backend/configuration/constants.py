@@ -201,6 +201,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     # 机器初始化时需要写入 /etc/hosts 的条目，格式：{domain: ip}
     # 示例：{"example.internal.domain": "127.0.0.1"}
     INIT_OS_HOSTS = EnumField("INIT_OS_HOSTS", _("机器初始化hosts配置"))
+    # 入资源池时是否初始化时间同步（tos -f dns；TencentOS Server 4 用 chronyd，其它用 ntpdate）
+    INIT_OS_NTPDATE = EnumField("INIT_OS_NTPDATE", _("机器初始化ntpdate开关"))
     # 每日代办提醒配置
     DBM_DAILY_TODO_REMIND = EnumField("DBM_DAILY_TODO_REMIND", _("每日代办提醒配置"))
     # 代办类型和用户映射信息
@@ -388,6 +390,7 @@ DEFAULT_SETTINGS = [
     # }
     [SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS, "list", [], _("禁用DBHA自动修复配置")],
     [SystemSettingsEnum.PACKAGE_SUPPORT_SYSTEMS.value, "dict", DEFAULT_PACKAGE_SUPPORT_SYSTEMS, _("介质支持的操作系统")],
+    [SystemSettingsEnum.INIT_OS_NTPDATE.value, "bool", False, _("机器初始化ntpdate开关")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
