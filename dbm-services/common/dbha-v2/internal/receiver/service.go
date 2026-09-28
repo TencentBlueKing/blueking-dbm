@@ -136,24 +136,27 @@ func (s *Service) Close() {
 		s.apmSvr = nil
 	}
 
-	wg := sync.WaitGroup{}
+	// Close sources first and wait so in-flight handlers finish before sinks close.
+	sourceWG := sync.WaitGroup{}
 	for _, inputter := range s.sources {
-		wg.Add(1)
+		sourceWG.Add(1)
 		go func(in source.Inputter) {
-			defer wg.Done()
+			defer sourceWG.Done()
 			in.Close()
 		}(inputter)
 	}
+	sourceWG.Wait()
 
+	sinkWG := sync.WaitGroup{}
 	for _, outputer := range s.sinkers {
-		wg.Add(1)
+		sinkWG.Add(1)
 		go func(out sink.Sinker) {
-			defer wg.Done()
+			defer sinkWG.Done()
 			out.Close()
 		}(outputer)
 	}
+	sinkWG.Wait()
 
-	wg.Wait()
 	close(s.quit)
 	s.quit = nil
 }

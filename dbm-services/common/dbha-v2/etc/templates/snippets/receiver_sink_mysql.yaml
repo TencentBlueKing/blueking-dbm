@@ -4,3 +4,13 @@
       user: "{{COMMON_STORAGE_USER}}"
       password: "{{COMMON_STORAGE_PASSWORD}}"
       saveTimeout: {{RECEIVER_SINK_MYSQL_SAVE_TIMEOUT}}
+      # batch write defaults: batchChunkSize=200, chunkMaxBytes=1MB, writeRetryTimeout=30s
+      batchChunkSize: 200
+      chunkMaxBytes: 1048576
+      writeRetryTimeout: 30s
+      # interpolateParams defaults to true when omitted; set false to disable
+      interpolateParams: true
+      # maxOpenConns=0 keeps unlimited (probe path must not be starved)
+      maxOpenConns: 0
+      maxIdleConns: 16
+      connMaxLifetime: 5m

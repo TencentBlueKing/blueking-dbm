@@ -627,6 +627,59 @@ func TestNewRejectsEmptyTopics(t *testing.T) {
 	}
 }
 
+func TestResolveMaxMessageAge(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		in   time.Duration
+		want time.Duration
+	}{
+		{name: "zero falls back to 1m", in: 0, want: time.Minute},
+		{name: "explicit kept", in: 5 * time.Minute, want: 5 * time.Minute},
+		{name: "negative kept", in: -1, want: -1},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := resolveMaxMessageAge(tc.in); got != tc.want {
+				t.Fatalf("resolveMaxMessageAge(%v) = %v, want %v", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestNewSaramaConfigDefaults(t *testing.T) {
+	t.Parallel()
+	cfg := newSaramaConfig(config.SourceConfig{
+		Endpoints: "127.0.0.1:9092",
+		Topics:    []string{"t"},
+	})
+	if cfg.ChannelBufferSize != defaultChannelBufferSize {
+		t.Fatalf("ChannelBufferSize = %d, want %d", cfg.ChannelBufferSize, defaultChannelBufferSize)
+	}
+	if cfg.Consumer.MaxProcessingTime != defaultMaxProcessingTime {
+		t.Fatalf("MaxProcessingTime = %s, want %s",
+			cfg.Consumer.MaxProcessingTime, defaultMaxProcessingTime)
+	}
+}
+
+func TestNewSaramaConfigExplicit(t *testing.T) {
+	t.Parallel()
+	cfg := newSaramaConfig(config.SourceConfig{
+		Endpoints:         "127.0.0.1:9092",
+		Topics:            []string{"t"},
+		ChannelBufferSize: 64,
+		MaxProcessingTime: 2 * time.Second,
+	})
+	if cfg.ChannelBufferSize != 64 {
+		t.Fatalf("ChannelBufferSize = %d, want 64", cfg.ChannelBufferSize)
+	}
+	if cfg.Consumer.MaxProcessingTime != 2*time.Second {
+		t.Fatalf("MaxProcessingTime = %s, want 2s", cfg.Consumer.MaxProcessingTime)
+	}
+}
+
 func TestRebuildAndCloseRace(t *testing.T) {
 	group := newFakeConsumerGroup(nil)
 	c := newTestConsumer(t, func(addrs []string, groupID string, config *sarama.Config) (sarama.ConsumerGroup, error) {

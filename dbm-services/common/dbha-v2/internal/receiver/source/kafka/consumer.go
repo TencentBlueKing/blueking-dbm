@@ -63,7 +63,7 @@ const (
 	consumeRetryMaxBackoff  = 30 * time.Second
 	consumeRebuildThreshold = 5
 	timeoutMargin           = 5 * time.Second
-	defaultMaxMessageAge    = 5 * time.Minute
+	defaultMaxMessageAge    = 1 * time.Minute
 )
 
 type xdgSCRAMClient struct {
@@ -95,6 +95,9 @@ type consumer struct {
 	topics        []string
 	cliCfg        *sarama.Config
 	maxMessageAge time.Duration
+	batchSize     int
+	batchMaxBytes int
+	batchLinger   time.Duration
 	quit          chan struct{}
 	closeOnce     sync.Once
 	mu            sync.Mutex
@@ -125,11 +128,23 @@ func New(cfg config.SourceConfig) (*consumer, error) {
 		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid kafka endpoints, errmsg: %s", err)
 	}
 
+	batchSize := cfg.BatchSize
+	if batchSize <= 0 {
+		batchSize = defaultBatchSize
+	}
+	batchMaxBytes := cfg.BatchMaxBytes
+	if batchMaxBytes <= 0 {
+		batchMaxBytes = defaultBatchMaxBytes
+	}
+
 	return &consumer{
 		endpoints:     hanet.ToHostPorts(parsed),
 		topics:        cfg.Topics,
 		cliCfg:        cliCfg,
 		maxMessageAge: resolveMaxMessageAge(cfg.MaxMessageAge),
+		batchSize:     batchSize,
+		batchMaxBytes: batchMaxBytes,
+		batchLinger:   cfg.BatchLinger,
 		quit:          make(chan struct{}),
 		newGroup:      sarama.NewConsumerGroup,
 		minBackoff:    consumeRetryMinBackoff,
@@ -146,6 +161,9 @@ func (k *consumer) Harvest(ctx context.Context, savers []sink.Sinker) error {
 		k.runHarvestLoop(ctx, &consumerHandler{
 			savers:        savers,
 			maxMessageAge: k.maxMessageAge,
+			batchSize:     k.batchSize,
+			batchMaxBytes: k.batchMaxBytes,
+			batchLinger:   k.batchLinger,
 		})
 	}(ctx)
 
@@ -346,7 +364,19 @@ func newSaramaConfig(cfg config.SourceConfig) *sarama.Config {
 	cliCfg.Version = sarama.V0_10_2_0
 	cliCfg.Consumer.Offsets.Initial = sarama.OffsetNewest
 	cliCfg.Consumer.Return.Errors = true
-	cliCfg.Consumer.MaxProcessingTime = 200 * time.Millisecond
+
+	maxProcessingTime := cfg.MaxProcessingTime
+	if maxProcessingTime <= 0 {
+		maxProcessingTime = defaultMaxProcessingTime
+	}
+	cliCfg.Consumer.MaxProcessingTime = maxProcessingTime
+
+	channelBufferSize := cfg.ChannelBufferSize
+	if channelBufferSize <= 0 {
+		channelBufferSize = defaultChannelBufferSize
+	}
+	cliCfg.ChannelBufferSize = channelBufferSize
+
 	cliCfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
 		sarama.NewBalanceStrategyRange(),
