@@ -29,7 +29,7 @@ logger = logging.getLogger("flow")
 # SurrealDB 3.x 兼容 TiKV/PD 8.5.5
 _PD_TIKV_VERSION_MAP = {
     "2": "7.5.2",
-    "3": "8.5.5",
+    "3": "8.5.8",
 }
 
 
