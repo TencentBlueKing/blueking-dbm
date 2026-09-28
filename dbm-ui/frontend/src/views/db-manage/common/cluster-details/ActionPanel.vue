@@ -291,15 +291,15 @@
   });
 
   watch(
-    () => props.clusterData,
+    () => props.clusterData.id,
     () => {
       // 部分仪表盘暂时没数据，若请求会报错
       if (
-        props.clusterData &&
+        props.clusterData.id &&
         ![
-          ClusterTypes.K8S_QDRANT_HA,
-          ClusterTypes.K8S_SURREALDB_HA,
-          ClusterTypes.K8S_SURREALDB_SINGLE,
+          // ClusterTypes.K8S_QDRANT_HA,
+          // ClusterTypes.K8S_SURREALDB_HA,
+          // ClusterTypes.K8S_SURREALDB_SINGLE,
           ClusterTypes.ORACLE_PRIMARY_STANDBY,
           ClusterTypes.ORACLE_SINGLE_NONE,
         ].includes(props.clusterData.cluster_type)
