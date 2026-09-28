@@ -189,8 +189,12 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         # 请求内部的dashboard url，但是host要替换为当前dbm的host
         if "/grafana/get_dashboard/" in request.path:
             data = response.json()["data"]
-            data["url"] = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
-            for url_info in data["urls"]:
+            # 无仪表盘时内部返回 {"url": "#", "urls": []}，原样透传
+            if "grafana/" in (data.get("url") or ""):
+                data["url"] = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
+            for url_info in data.get("urls") or []:
+                if "grafana/" not in (url_info.get("url") or ""):
+                    continue
                 url_info["url"] = f"{env.BK_SAAS_HOST}/grafana/{url_info['url'].split('grafana/')[1]}"
             return Response(data)
         if ".css" in request.path:
