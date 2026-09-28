@@ -27,7 +27,6 @@ package kafka
 import (
 	"time"
 
-	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/safe"
@@ -43,8 +42,16 @@ const (
 var handleMessageLabel = safe.WithLabel("kafka-handle-message")
 
 type consumerHandler struct {
-	savers        []sink.Sinker
-	maxMessageAge time.Duration
+	savers         []sink.Sinker
+	maxMessageAge  time.Duration
+	batchSize      int
+	batchMaxBytes  int
+	batchLinger    time.Duration
+	degradeTimeout time.Duration
+
+	// lastBatchErrorCount is Invalid+Failed from the latest BatchSinker.SaveBatch
+	// in the current flush; used to count KafkaWriteErrorsTotal only when marking.
+	lastBatchErrorCount int
 }
 
 var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
@@ -63,95 +70,7 @@ func (h *consumerHandler) ConsumeClaim(
 	session sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim,
 ) error {
-	var (
-		skippedCount  int
-		lastSkipAge   time.Duration
-		lastSkipOff   int64
-		lastSkipLogAt time.Time
-	)
-
-	for {
-		select {
-		case <-session.Context().Done():
-			flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge)
-			return nil
-
-		case msg, ok := <-claim.Messages():
-			if !ok {
-				flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge)
-				return nil
-			}
-
-			skipped := h.handleMessage(msg, claim.HighWaterMarkOffset())
-			if skipped {
-				skippedCount++
-				lastSkipAge = time.Since(msg.Timestamp)
-				lastSkipOff = msg.Offset
-				if lastSkipLogAt.IsZero() || time.Since(lastSkipLogAt) >= staleSkipLogInterval {
-					if flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge) {
-						skippedCount = 0
-						lastSkipLogAt = time.Now()
-					}
-				}
-			}
-
-			session.MarkMessage(msg, "")
-		}
-	}
-}
-
-func (h *consumerHandler) handleMessage(msg *sarama.ConsumerMessage, hwm int64) (skipped bool) {
-	safe.Run(func() {
-		if h.shouldSkipStale(msg, hwm) {
-			skipped = true
-			return
-		}
-
-		dataLength := len(msg.Value)
-		data := &sink.Message{
-			Topic: msg.Topic,
-			Data:  make([]byte, dataLength),
-		}
-		if dataLength > 0 {
-			copy(data.Data, msg.Value)
-		}
-
-		if err := apm.KafkaReadBytesTotal.AddWithLabels(map[string]string{
-			apm.MetricLabelKafka: msg.Topic,
-		}, float64(dataLength)); err != nil {
-			logger.Warn("update kafka read bytes metric failed, errmsg: %s", err)
-		}
-
-		if err := apm.KafkaReadMessagesTotal.IncWithLabels(map[string]string{
-			apm.MetricLabelKafka: msg.Topic,
-		}); err != nil {
-			logger.Warn("update kafka read messages metric failed, errmsg: %s", err)
-		}
-
-		for _, saver := range h.savers {
-			if err := saver.Save(data); err != nil {
-				logger.Warn("save the data failed, topic: %s, errmsg: %s", msg.Topic, err)
-
-				if metricErr := apm.KafkaWriteErrorsTotal.IncWithLabels(map[string]string{
-					apm.MetricLabelKafka: msg.Topic,
-				}); metricErr != nil {
-					logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
-				}
-			}
-		}
-	}, handleMessageLabel, safe.WithOnPanic(func(pi safe.PanicInfo) {
-		logger.Error(
-			"handle kafka message panic, topic: %s, partition: %d, offset: %d, errmsg: %s",
-			msg.Topic, msg.Partition, msg.Offset, panicReasonError(pi.Reason),
-		)
-		if metricErr := apm.KafkaWriteErrorsTotal.IncWithLabels(map[string]string{
-			apm.MetricLabelKafka: msg.Topic,
-		}); metricErr != nil {
-			logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
-		}
-	}))
-
-	return
+	return h.consumeClaimBatched(session, claim)
 }
 
 func (h *consumerHandler) shouldSkipStale(msg *sarama.ConsumerMessage, hwm int64) bool {

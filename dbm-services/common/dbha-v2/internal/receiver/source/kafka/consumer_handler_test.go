@@ -133,8 +133,11 @@ func TestConsumeClaimMarksMessages(t *testing.T) {
 	if err := h.ConsumeClaim(session, claim); err != nil {
 		t.Fatalf("ConsumeClaim failed, errmsg: %s", err)
 	}
-	if session.markedCount() != 3 {
-		t.Fatalf("expected 3 marks, got: %d", session.markedCount())
+	if session.markedCount() != 1 {
+		t.Fatalf("expected 1 mark for batch, got: %d", session.markedCount())
+	}
+	if len(session.marked) != 1 || session.marked[0].Offset != 2 {
+		t.Fatalf("expected mark offset 2, got: %+v", session.marked)
 	}
 	if saver.callCount() != 3 {
 		t.Fatalf("expected 3 saves, got: %d", saver.callCount())
@@ -179,8 +182,11 @@ func TestConsumeClaimMarksOnPanic(t *testing.T) {
 	if err := h.ConsumeClaim(session, claim); err != nil {
 		t.Fatalf("ConsumeClaim failed, errmsg: %s", err)
 	}
-	if session.markedCount() != 2 {
-		t.Fatalf("expected both messages marked after panic, got: %d", session.markedCount())
+	if session.markedCount() != 1 {
+		t.Fatalf("expected 1 mark after panic batch, got: %d", session.markedCount())
+	}
+	if len(session.marked) != 1 || session.marked[0].Offset != 2 {
+		t.Fatalf("expected mark offset 2, got: %+v", session.marked)
 	}
 	if saver.callCount() != 2 {
 		t.Fatalf("expected second message still processed, saves: %d", saver.callCount())
