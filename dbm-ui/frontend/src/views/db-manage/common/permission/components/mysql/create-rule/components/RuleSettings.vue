@@ -28,11 +28,15 @@
       property="account_id"
       required>
       <DbSelect
+        ref="selectRef"
         v-model="formData.account_id"
         :clearable="false"
         filterable
         :input-search="false"
-        :loading="isLoading">
+        :remote-method="handleSearchAccount"
+        :scroll-loading="isLoading"
+        @scroll-end="handleLoadMore"
+        @toggle="handleToggleSelect">
         <DbOption
           v-for="item of accounts"
           :key="item.account_id"
@@ -169,6 +173,8 @@
       afterChange: AccountRule;
       beforeChange: AccountRule;
     };
+    /** 编辑 / 从行入口进入时已知的账号名，用于懒加载下的回显兜底 */
+    userName?: string;
   }
 
   interface Exposes {
@@ -178,11 +184,14 @@
     }>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    userName: '',
+  });
 
   const { t } = useI18n();
 
   const formRef = ref();
+  const selectRef = useTemplateRef('selectRef');
   const formData = reactive<AccountRule>({
     access_db: '',
     account_id: null,
@@ -328,12 +337,94 @@
     (['ddl', 'dml', 'glob'] as AccountRulePrivilegeKey[]).some(getAllCheckedboxIndeterminate),
   );
 
+  /**
+   * 账号下拉懒加载：分页拉取账号规则聚合出的账号，避免全量请求
+   */
+  const PAGE_SIZE = 20;
+  const pagination = reactive({
+    count: 0,
+    offset: 0,
+  });
+  let searchKeyword = '';
+
   const { loading: isLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,
-    onSuccess({ results }) {
-      accounts.value = results.map((item) => item.account);
+    onSuccess({ count, results }, [params]) {
+      // 过期响应直接丢弃：请求发起时的关键字 / offset 与当前状态任一不一致即视为过期
+      if ((params.user || '') !== searchKeyword || params.offset !== pagination.offset) {
+        return;
+      }
+      pagination.count = count;
+      accounts.value = _.uniqBy([...accounts.value, ...results.map((item) => item.account)], 'account_id');
     },
   });
+
+  const fetchAccounts = (offset: number) => {
+    getPermissionRulesRun({
+      account_type: props.accountType,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      limit: PAGE_SIZE,
+      offset,
+      ...(searchKeyword ? { user: searchKeyword } : {}),
+    });
+  };
+
+  /**
+   * 远程搜索账号名（带防抖）
+   */
+  const handleSearchAccount = _.debounce((keyword: string) => {
+    searchKeyword = keyword.trim();
+    pagination.offset = 0;
+    pagination.count = 0;
+    // 搜索重置已加载列表，仅保留种子账号（编辑态回显需要）
+    accounts.value = props.userName ? accounts.value.filter((item) => item.account_id === formData.account_id) : [];
+    fetchAccounts(0);
+  }, 300);
+
+  /**
+   * 触底加载下一页
+   */
+  const handleLoadMore = () => {
+    if (isLoading.value || pagination.offset + PAGE_SIZE >= pagination.count) {
+      return;
+    }
+    pagination.offset += PAGE_SIZE;
+    fetchAccounts(pagination.offset);
+  };
+
+  /**
+   * 下拉内容不足以滚动时自动续拉下一页
+   * （后端按规则条数分页、前端按账号展示，一页可能聚合不出足够撑满可视区的账号数；
+   * 由 isLoading 的 watch 在每次请求结束后再次触发，形成链式填充直至可滚动或数据加载完）
+   */
+  const autoFillIfNotScrollable = () => {
+    // 下拉未展开时无需处理
+    if (!selectRef.value?.isPopoverShow) {
+      return;
+    }
+    const dropdownEl = selectRef.value?.contentRef?.querySelector('.dbm-select-dropdown');
+    // 可滚动即达标；数据加载完则停止
+    if (!dropdownEl || dropdownEl.scrollHeight > dropdownEl.clientHeight || pagination.offset + PAGE_SIZE >= pagination.count) {
+      return;
+    }
+    handleLoadMore();
+  };
+
+  watch(isLoading, (loading) => {
+    if (!loading) {
+      // 渲染完成后再测量
+      nextTick(autoFillIfNotScrollable);
+    }
+  });
+
+  /**
+   * 下拉展开时启动自动续拉检测
+   */
+  const handleToggleSelect = (isShow: boolean) => {
+    if (isShow) {
+      nextTick(autoFillIfNotScrollable);
+    }
+  };
 
   watch(
     () => props.rulesFormData,
@@ -354,12 +445,29 @@
     formData.privilege = value ? _.cloneDeep(props.ruleSettingsConfig.dbOperations) : { ddl: [], dml: [], glob: [] };
   };
 
-  getPermissionRulesRun({
-    account_type: props.accountType,
-    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    limit: -1,
-    offset: 0,
-  });
+  // 编辑 / 行入口进入时，把已选账号作为种子数据，保证懒加载下能正常回显
+  watch(
+    [() => props.userName, () => formData.account_id],
+    () => {
+      if (!props.userName || !formData.account_id) {
+        return;
+      }
+      if (accounts.value.some((item) => item.account_id === formData.account_id)) {
+        return;
+      }
+      accounts.value.unshift({
+        account_id: formData.account_id,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        create_time: '',
+        creator: '',
+        password: '',
+        user: props.userName,
+      });
+    },
+    { immediate: true },
+  );
+
+  fetchAccounts(0);
 
   defineExpose<Exposes>({
     getValue: () =>
