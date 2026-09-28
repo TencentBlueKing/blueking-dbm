@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 
 import logging.config
+from datetime import datetime
 from typing import List
 
 from django.utils.translation import gettext as _
@@ -20,6 +21,7 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.k8s_db.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.k8s_db.consts import CLB_NAME_TIME_FORMAT
 from backend.flow.utils.k8s_db.surrealdb.consts import CLB_NAME_SUFFIX
 
 logger = logging.getLogger("flow")
@@ -68,7 +70,7 @@ class ApplySurrealDBClbService(BaseService):
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}",
+            "clb_name": f"{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}-{datetime.now().strftime(CLB_NAME_TIME_FORMAT)}",
             "clb_nums": 1,
             "async_to_dbm": False,
         }
