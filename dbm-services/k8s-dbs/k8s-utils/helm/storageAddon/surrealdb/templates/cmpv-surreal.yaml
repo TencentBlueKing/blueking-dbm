@@ -5,6 +5,7 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
+        - surreal-3.2.4
         - surreal-3.0.1
         - surreal-2.4.0
         - surreal-2.3.7
@@ -14,6 +15,10 @@ spec:
       compDefs:
         - surreal-tikv-{{ .Chart.Version}}
   releases:
+    - name: surreal-3.2.4
+      serviceVersion: 3.2.4
+      images:
+        surreal: docker.io/surrealdb/surrealdb:v3.2.4
     - name: surreal-3.0.1
       serviceVersion: 3.0.1
       images:
