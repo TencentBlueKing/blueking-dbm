@@ -183,6 +183,8 @@
   import { forceFailflowNode, getNodeLog, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
 
+  import { useFetchAllPages } from '@hooks';
+
   import { useSystemEnviron, useUserProfile } from '@stores';
 
   import { useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
@@ -235,6 +237,9 @@
   );
 
   const { sendMessage, show } = useAiBluekingState();
+
+  // 日志解析需要把该节点版本的全量日志交给 AI，按分片取全量
+  const { runAsync: runFetchAllNodeLogs } = useFetchAllPages(getNodeLog);
 
   // 准备中与执行中同色，与画布、搜索树保持一致
   const STATUS_THEME_MAP = {
@@ -360,8 +365,9 @@
 
   const handleAiLogAnalysis = async () => {
     aiLogAnalysisLoading.value = true;
+
     try {
-      const logList = await getNodeLog({
+      const logList = await runFetchAllNodeLogs({
         labels: 'not_for_ai',
         node_id: props.node.id,
         root_id: props.rootId,

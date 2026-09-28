@@ -71,7 +71,7 @@
 
   import ExecuteHistory from './components/ExecuteHistory.vue';
 
-  type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
+  type NodeLogItem = ServiceReturnType<typeof getNodeLog>['results'][number];
 
   interface Props {
     autoOpenAiLog: boolean;
@@ -89,35 +89,8 @@
   });
   const emits = defineEmits<Emits>();
 
-  const getNodeLogRequest = (isInit?: boolean) => {
-    if (!currentData.value.version) {
-      return;
-    }
-
-    logState.loading = true;
-    const params = {
-      node_id: nodeData.value.id,
-      root_id: props.rootId,
-      version_id: currentData.value.version,
-    };
-
-    return (
-      getNodeLog(params)
-        .then((data) => {
-          logState.data = data;
-          // 请求可能在组件卸载后才返回
-          dbLogRef.value?.setLog(data);
-        })
-        // 报错提示已由请求层统一给出。这里必须吞掉：useTimeoutPoll 的回调一旦抛错，轮询就再也不会续上
-        .catch(() => {})
-        .finally(() => {
-          logState.loading = false;
-          if (isInit && nodeData.value.status === 'RUNNING' && !isActive.value) {
-            resume();
-          }
-        })
-    );
-  };
+  // 终端尚未完成 fit 时的分片条数下限，避免发出 limit 为 0 的空请求
+  const MIN_LOG_PAGE_SIZE = 30;
 
   const { t } = useI18n();
 
@@ -137,9 +110,90 @@
   const currentData = ref({ version: '' });
 
   const logState = reactive({
-    data: [] as NodeLog[],
+    data: [] as NodeLogItem[],
     loading: false,
   });
+
+  // 已拉取条数，同时作为下一次分片请求的 offset
+  let loadedCount = 0;
+  // 日志版本与生命周期令牌，用于丢弃已过期分片的返回
+  let logToken = 0;
+
+  /**
+   * 分片条数取终端「一屏半」（按逻辑行计，不折算行）
+   */
+  const getLogPageSize = () => {
+    const rows = dbLogRef.value?.getVisibleRows() ?? 0;
+    return Math.max(Math.ceil(rows * 1.5), MIN_LOG_PAGE_SIZE);
+  };
+
+  /**
+   * 从已拉取位置继续分片拉取，直到取满全量总数
+   */
+  const fetchLogChunks = async (token: number) => {
+    const pageSize = getLogPageSize();
+    let hasMore = true;
+
+    while (hasMore && token === logToken) {
+      const page = await getNodeLog({
+        limit: pageSize,
+        node_id: nodeData.value.id,
+        offset: loadedCount,
+        root_id: props.rootId,
+        version_id: currentData.value.version,
+      });
+      // 请求可能在切换版本或组件卸载后才返回
+      if (token !== logToken) {
+        return;
+      }
+
+      const chunk = page.results;
+      // 是否还有下一页只看 has_data，在写入本片数据之前先判定
+      hasMore = page.has_data === true;
+      if (chunk.length > 0) {
+        loadedCount += chunk.length;
+        logState.data.push(...chunk);
+        dbLogRef.value?.appendLog(chunk);
+
+        // 首片已渲染，后续分片续加载不再遮挡
+        logState.loading = false;
+      }
+    }
+  };
+
+  const getNodeLogRequest = (isInit?: boolean) => {
+    if (!currentData.value.version) {
+      return Promise.resolve();
+    }
+
+    // 日志区为空时展示加载遮罩，首片渲染后即关闭，续加载不遮挡已展示内容
+    if (isInit) {
+      logState.loading = true;
+    }
+
+    const token = (logToken += 1);
+
+    return fetchLogChunks(token).finally(() => {
+      if (token !== logToken) {
+        return;
+      }
+      logState.loading = false;
+      if (isInit && nodeData.value.status === 'RUNNING' && !isActive.value) {
+        resume();
+      }
+    });
+  };
+
+  /**
+   * 中断在途分片并清空日志，用于切换执行记录版本与关闭侧滑
+   */
+  const resetLogState = () => {
+    logToken += 1;
+    loadedCount = 0;
+    logState.data = [];
+    logState.loading = false;
+    dbLogRef.value?.setLog([]);
+  };
 
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
@@ -177,12 +231,16 @@
 
   watch(
     () => props.isShow,
-    async () => {
-      if (props.isShow) {
+    async (isShow) => {
+      if (isShow) {
         // 侧滑打开时内容才挂载，等这一轮渲染结束日志容器才存在
         await nextTick();
         dbLogRef.value?.init();
+        return;
       }
+      // 关闭侧滑时中断在途分片并清空，避免下次打开残留旧结果
+      pause();
+      resetLogState();
     },
     {
       immediate: true,
@@ -210,6 +268,7 @@
     currentData.value = data;
     emits('versionChange', data.version);
     pause();
+    resetLogState();
     getNodeLogRequest(true);
   };
 
@@ -217,6 +276,11 @@
     const content = getLogContent();
     execCopy(content);
   };
+
+  onBeforeUnmount(() => {
+    // 组件卸载后在途分片的返回不再写入
+    logToken += 1;
+  });
 </script>
 
 <style lang="less" scoped>

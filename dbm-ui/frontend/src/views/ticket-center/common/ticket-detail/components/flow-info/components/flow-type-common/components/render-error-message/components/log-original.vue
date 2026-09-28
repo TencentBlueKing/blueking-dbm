@@ -38,6 +38,8 @@
   import FlowMode from '@services/model/ticket/flow';
   import { getNodeLog, getSpecificNodes } from '@services/source/taskflow';
 
+  import { useFetchAllPages } from '@hooks';
+
   interface Props {
     data: FlowMode<unknown, any>;
   }
@@ -80,13 +82,7 @@
     },
   });
 
-  const {
-    data: logContent,
-    loading: isLoadingLogContent,
-    run: runGetNodeLog,
-  } = useRequest(getNodeLog, {
-    manual: true,
-  });
+  const { data: logContent, loading: isLoadingLogContent, run: runGetNodeLog } = useFetchAllPages(getNodeLog);
 
   watch(renderLogContent, () => {
     nextTick(() => {

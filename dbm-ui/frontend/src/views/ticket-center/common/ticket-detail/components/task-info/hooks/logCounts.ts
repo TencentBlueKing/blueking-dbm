@@ -13,7 +13,7 @@
 
 import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
 
-export type ILogItem = ServiceReturnType<typeof getNodeLog>[number];
+import { useFetchAllPages } from '@hooks';
 
 /**
  * 计算执行文件成功、失败个数
@@ -21,7 +21,8 @@ export type ILogItem = ServiceReturnType<typeof getNodeLog>[number];
 export default function () {
   let versionId = '';
   const isLoading = ref(false);
-  const wholeLogList = shallowRef([] as ILogItem[]);
+  // 统计依赖全量日志，按分片取全量
+  const { data: wholeLogList, runAsync: fetchWholeLogList } = useFetchAllPages(getNodeLog);
   const fileStartReg = /.*\[start\]-(.+)$/;
   const fileEndReg = /.*\[end\]-(.+)$/;
   const counts = reactive({
@@ -29,20 +30,15 @@ export default function () {
     success: 0,
   });
 
-  let lastLogLength = 0;
   let logTimer: NodeJS.Timeout;
+
   const fetchLog = (rootId: string, nodeId: string) => {
-    getNodeLog({
+    fetchWholeLogList({
       node_id: nodeId,
       root_id: rootId,
       version_id: versionId,
     })
-      .then((logData) => {
-        if (lastLogLength !== logData.length) {
-          wholeLogList.value = logData as ILogItem[];
-        }
-        lastLogLength = logData.length;
-
+      .then(() => {
         logTimer = setTimeout(() => {
           fetchLog(rootId, nodeId);
         }, 2000);
