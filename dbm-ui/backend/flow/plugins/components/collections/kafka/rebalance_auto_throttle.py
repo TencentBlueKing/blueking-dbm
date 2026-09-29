@@ -149,10 +149,13 @@ class KafkaRebalanceAutoThrottleService(SidecarServiceABC):
 
     def _resolve_bounds(self, cluster_id):
         """
-        查询本轮调速所需的带宽利用率与动态限速上限。监控数据不可用时返回None（已记录跳过原因）。
+        查询本轮调速所需的带宽利用率与动态限速上限。监控数据不可用时返回None。
+        跳过原因（缺哪些broker、缺哪类指标）通过on_skip=self.log_warning打到流程日志里——
+        必须走self.log_xxx而不是rebalance_throttle_util模块内的logger：后者不带extra，
+        JSONFormatter产出的记录里没有root_pipeline/node_id，在流程日志里按root_id是检索不到的。
         """
         try:
-            bounds = get_rebalance_throttle_bounds(cluster_id)
+            bounds = get_rebalance_throttle_bounds(cluster_id, on_skip=self.log_warning)
         except Exception as err:
             self.log_warning(_("查询带宽利用率失败，跳过本轮检查：{}").format(err))
             return None
