@@ -448,7 +448,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=True, serializer_class=TicketModifySerializer)
     def modify(self, request, pk):
         """改单统一入口：代为修改/重新编辑/调整申请，权限与状态校验在 modify handler 内完成"""
-        data = self.params_validate(self.get_serializer_class())
+        # details 的深度校验依赖 ticket_ctx(业务/模块/规格/城市等映射)，而 params_validate 不会走
+        # get_serializer_context，需在此手动注入，否则 TicketDetailsSerializer 校验时取不到 ticket_ctx
+        data = self.params_validate(self.get_serializer_class(), context={"ticket_ctx": TicketContext()})
         ticket = TicketModifyHandler.modify(
             ticket_id=pk,
             operator=request.user.username,
