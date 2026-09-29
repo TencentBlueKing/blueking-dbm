@@ -99,6 +99,14 @@ from .query import RedisListRetrieveResource
         tags=[constants.RESOURCE_TAG],
     ),
 )
+@method_decorator(
+    name="get_dbs",
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("获取Redis集群DB列表"),
+        responses={status.HTTP_200_OK: yasg_slz.RedisDBResourceSLZ},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
 class RedisClusterViewSet(viewsets.ResourceViewSet):
     query_class = RedisListRetrieveResource
     query_serializer_class = serializers.ListRedisResourceSLZ
@@ -129,6 +137,11 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         """获取特定角色的节点"""
         params = self.params_validate(self.get_serializer_class())
         return Response(self.query_class.get_nodes(bk_biz_id, cluster_id, params["role"], params.get("keyword")))
+
+    @action(methods=["GET"], detail=True, url_path="get_dbs", serializer_class=None)
+    def get_dbs(self, request, bk_biz_id: int, cluster_id: int):
+        """获取Redis集群DB列表"""
+        return Response(self.query_class.get_cluster_dbs(bk_biz_id, cluster_id))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群访问密码"),
