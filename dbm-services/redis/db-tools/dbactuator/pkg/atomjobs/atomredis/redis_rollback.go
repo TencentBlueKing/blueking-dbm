@@ -108,6 +108,11 @@ func (job *RedisRollback) Run() error {
 		job.params.DestIP, saveDir, len(redo), len(resume), len(job.params.Instances))
 
 	if len(redo) > 0 {
+		// zstd and lzop live in dbtools; Prepare installs it too late for staging.
+		if err = install.params.DbToolsPkg.Install(); err != nil {
+			job.runtime.Logger.Error("RedisRollback install dbtools failed: %v", err)
+			return err
+		}
 		staged, err := job.stageBackups(saveDir, redo)
 		if err != nil {
 			return err

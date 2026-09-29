@@ -195,3 +195,75 @@ def test_rollback_payload_installs_empty_instances_too():
     install_params = payload_builder.get_redis_install_4_scene.call_args.kwargs["params"]
     assert install_params["ports"] == [30000, 30001]
     assert [inst["dest_port"] for inst in payload["payload"]["instances"]] == [30000, 30001]
+
+
+def test_twemproxy_payload_reads_servers_from_node_params(monkeypatch):
+    """The shared payload builder is created at 初始化配置, before the proxy node sets servers."""
+    from backend.flow.utils.redis import redis_act_playload
+    from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+
+    monkeypatch.setattr(
+        redis_act_playload.Package, "get_latest_package", MagicMock(return_value=MagicMock(name="pkg", md5="m"))
+    )
+    payload_builder = RedisActPayload.__new__(RedisActPayload)
+    payload_builder.cluster = {
+        "bk_biz_id": 3,
+        "domain_name": "cache.example.db",
+        "proxy_port": 50000,
+        "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
+    }
+    payload_builder.proxy_version = "Twemproxy-latest"
+    payload_builder._RedisActPayload__get_cluster_config = MagicMock(
+        return_value={"redis_password": "r", "password": "p"}
+    )
+
+    servers = ["2.2.2.2:30000 admin 0-419999 1"]
+    payload = payload_builder.add_twemproxy_payload(ip="2.2.2.2", params={"servers": servers})
+    assert payload["payload"]["servers"] == servers
+
+
+def test_rollback_dbmon_keeps_only_heartbeat_and_maxmemory():
+    from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+
+    jobs = ("redis_fullbackup", "redis_binlogbackup", "redis_keylife", "redis_monitor", "redis_heartbeat")
+    payload_builder = RedisActPayload.__new__(RedisActPayload)
+    payload_builder.bkdbmon_install = MagicMock(
+        return_value={
+            "payload": {
+                **{job: {"cron": "@every 1m"} for job in jobs},
+                "redis_maxmemory_set": {"enable": True, "cron": "@every 10s"},
+            }
+        }
+    )
+
+    payload = payload_builder.redis_rollback_dbmon_payload(ip="2.2.2.2", params={"servers": []})["payload"]
+    assert [payload[job]["cron"] for job in jobs] == ["", "", "", "", "@every 1m"]
+    assert payload["redis_maxmemory_set"] == {"enable": True, "cron": "@every 10s"}
+
+
+def test_media_is_transferred_once_with_proxy_files_on_proxy_host():
+    import inspect
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from backend.flow.engine.bamboo.scene.redis.redis_rollback import flow as rollback_flow
+    from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+
+    file_list = MagicMock()
+    file_list.redis_cluster_apply_backend.return_value = ["actuator", "redis", "tools", "dbmon"]
+    file_list.redis_cluster_apply_proxy.return_value = ["actuator", "twemproxy", "tools", "dbmon"]
+    dest_ips = ["2.2.2.2", "3.3.3.3"]
+
+    def files_by_ip(cluster_type):
+        plan = SimpleNamespace(db_version="Redis-6", cluster_type=cluster_type)
+        with patch.object(rollback_flow, "GetFileList", return_value=file_list):
+            acts = rollback_flow.RedisRollbackFlow._trans_file_acts(plan, ActKwargs(), dest_ips)
+        return {act["kwargs"]["exec_ip"]: act["kwargs"]["file_list"] for act in acts}
+
+    assert files_by_ip(ClusterType.TendisTwemproxyRedisInstance.value) == {
+        "2.2.2.2": ["actuator", "redis", "tools", "dbmon", "twemproxy"],
+        "3.3.3.3": ["actuator", "redis", "tools", "dbmon"],
+    }
+    backend_only = ["actuator", "redis", "tools", "dbmon"]
+    assert files_by_ip(ClusterType.TendisRedisInstance.value) == {ip: backend_only for ip in dest_ips}
+    assert "TransFileComponent" not in inspect.getsource(rollback_flow.RedisRollbackFlow._deploy_proxy)
