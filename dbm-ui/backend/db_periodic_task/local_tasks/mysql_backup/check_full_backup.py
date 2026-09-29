@@ -18,6 +18,8 @@ from blueapps.core.celery.celery import app
 from django.db.models import Q
 from django.utils import timezone
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import ConfFile, ConfType, FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -31,6 +33,53 @@ from .bklog_query import ClusterBackup
 from .check_ignore import CheckIgnore
 
 logger = logging.getLogger("root")
+
+# dbbackup.options 中代表备份对象的配置项
+DATA_SCHEMA_GRANT_CONF_NAMES = ["Slave.DataSchemaGrant", "Master.DataSchemaGrant", "Readonly.DataSchemaGrant"]
+
+
+def is_data_backup_expected(cluster: Cluster) -> bool:
+    """
+    判断集群是否预期产生全备数据。
+    从 dbconfig 查询 dbbackup.options 的 Master/Slave.DataSchemaGrant，
+    取值为 all 或包含 data 时，代表预期要有全备数据；否则巡检发现的无备份不当做异常。
+    查询异常、或返回的配置里不包含这两个配置项时，都按预期有全备数据处理，避免漏报。
+    """
+    try:
+        content = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": ConfFile.DBBACKUP_OPTIONS.value,
+                "conf_type": ConfType.BACKUP.value,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP.value,
+            }
+        )["content"]
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning("query dbbackup.options failed for cluster {}: {}".format(cluster.immute_domain, e))
+        return True
+
+    conf_found = False
+    for conf_name in DATA_SCHEMA_GRANT_CONF_NAMES:
+        conf_value = str(content.get(conf_name) or "").lower()
+        if not conf_value:
+            continue
+        conf_found = True
+        values = [v.strip() for v in conf_value.split(",")]
+        if "all" in values or "data" in values:
+            return True
+    # 配置里没有这两个配置项，无法判断，默认当做需要全备
+    if not conf_found:
+        logger.warning(
+            "no {} found in dbbackup.options for cluster {}".format(
+                DATA_SCHEMA_GRANT_CONF_NAMES, cluster.immute_domain
+            )
+        )
+        return True
+    return False
 
 
 def get_query_date_time(date_str: str):
@@ -125,6 +174,8 @@ def check_full_backup(date_str: str):
     _check_tendbha_full_backup(date_str)
     # tendbcluster 全备巡检
     _check_tendbcluster_full_backup(date_str)
+    # tendbsingle 全备巡检
+    _check_tendbsingle_full_backup(date_str)
 
 
 class BackupFile:
@@ -184,6 +235,23 @@ def _check_tendbha_full_backup(date_str: str):
     """
     # 清理过期的报表
     MysqlBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+    _check_storage_full_backup(ClusterType.TenDBHA, date_str)
+
+
+@app.task
+def _check_tendbsingle_full_backup(date_str: str):
+    """
+    tendbsingle 必须有一份完整的备份
+    """
+    _check_storage_full_backup(ClusterType.TenDBSingle, date_str)
+
+
+def _check_storage_full_backup(cluster_type: str, date_str: str):
+    """
+    tendbha / tendbsingle 单实例维度的全备巡检
+    @param cluster_type: 集群类型
+    @param date_str: 指定巡检日期，为空时巡检前一天
+    """
     # 获取忽略配置
     ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.FullBackup)
 
@@ -191,17 +259,17 @@ def _check_tendbha_full_backup(date_str: str):
     start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "====  start check full backup for cluster type {}, time range[{},{}] ====".format(
-            ClusterType.TenDBHA, start_time, end_time
+            cluster_type, start_time, end_time
         )
     )
-    query = Q(cluster_type=ClusterType.TenDBHA) & Q(create_at__lt=timezone.now() - timedelta(days=1))
+    query = Q(cluster_type=cluster_type) & Q(create_at__lt=timezone.now() - timedelta(days=1))
     for c in Cluster.objects.filter(query):
         try:
-            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.immute_domain, ClusterType.TenDBHA):
+            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.immute_domain, cluster_type):
                 logger.info(f"==== skip check full backup for cluster {c.immute_domain} (ignored by config) ====")
                 continue
 
-            logger.info("==== start check full backup for tendbha {} ====".format(c.immute_domain))
+            logger.info("==== start check full backup for {} {} ====".format(cluster_type, c.immute_domain))
             backup = ClusterBackup(c.id, c.immute_domain)
 
             items = backup.query_backup_from_dbreport(start_time, end_time)
@@ -213,6 +281,14 @@ def _check_tendbha_full_backup(date_str: str):
                         backup.success = True
                         break
             if not backup.success:
+                # 备份对象配置中不包含 data 时，没有全备数据属于预期，不当做异常
+                if not is_data_backup_expected(c):
+                    logger.info(
+                        "==== skip check full backup for cluster {} (data backup not expected) ====".format(
+                            c.immute_domain
+                        )
+                    )
+                    continue
                 host_failed, detail_failed = get_backup_failed_detail(c.immute_domain, start_time, end_time)
                 failed_days = get_backup_failed_duration(
                     c.immute_domain, MysqlBackupCheckSubType.FullBackup.value, start_time
@@ -222,7 +298,7 @@ def _check_tendbha_full_backup(date_str: str):
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
                     cluster=c.immute_domain,
-                    cluster_type=ClusterType.TenDBHA,
+                    cluster_type=cluster_type,
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
                     status=False,
                     state=ReportStateType.ABNORMAL.value,
@@ -240,13 +316,13 @@ def _check_tendbha_full_backup(date_str: str):
                         summary=failed_msg,
                     )
                 except PortraitSDKBaseException:
-                    logger.exception(f"report {c.immute_domain} tendbha full backup report to portrait failed")
+                    logger.exception(f"report {c.immute_domain} {cluster_type} full backup report to portrait failed")
             else:
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
                     cluster=c.immute_domain,
-                    cluster_type=ClusterType.TenDBHA,
+                    cluster_type=cluster_type,
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
                     status=True,
                     state=ReportStateType.NORMAL.value,
@@ -310,6 +386,14 @@ def _check_tendbcluster_full_backup(date_str: str):
 
             # 持续天数，只记录失败的
             if not backup.success:
+                # 备份对象配置中不包含 data 时，没有全备数据属于预期，不当做异常
+                if not is_data_backup_expected(c):
+                    logger.info(
+                        "==== skip check full backup for tendbcluster {} (data backup not expected) ====".format(
+                            c.immute_domain
+                        )
+                    )
+                    continue
                 host_failed, detail_failed = get_backup_failed_detail(c.immute_domain, start_time, end_time)
                 failed_days = get_backup_failed_duration(
                     c.immute_domain, MysqlBackupCheckSubType.FullBackup.value, start_time

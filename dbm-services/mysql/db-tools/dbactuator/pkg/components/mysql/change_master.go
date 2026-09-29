@@ -202,6 +202,7 @@ func (b *BuildMSRelationComp) CheckBuildOk() (err error) {
 }
 
 // CloseAllDbConn 关闭所有数据库连接
+// Init 可能在任意一步失败, b.db / b.mdb 都可能是 nil, Close 内部已兼容
 func (b *BuildMSRelationComp) CloseAllDbConn() {
 	b.db.Close()
 	b.mdb.Close()
