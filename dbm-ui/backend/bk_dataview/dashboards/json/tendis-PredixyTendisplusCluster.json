@@ -699,7 +699,7 @@
               "type": "range"
             }
           ],
-          "title": "predixy cpu使用率",
+          "title": "predixy 主机cpu使用率",
           "type": "timeseries"
         },
         {
@@ -1901,10 +1901,10 @@
               "host": [],
               "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip 物理层丢弃",
+              "promqlAlias": "$tag_ip 网卡冲突包",
               "query_configs": [],
               "refId": "A",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m])) > 0",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval]))",
               "step": "2m",
               "type": "range"
             },
@@ -1921,10 +1921,10 @@
               "host": [],
               "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip 网卡冲突包",
+              "promqlAlias": "$tag_ip 物理层丢弃",
               "query_configs": [],
               "refId": "B",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m]))",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval])) > 0",
               "step": "2m",
               "type": "range"
             },
@@ -1944,7 +1944,27 @@
               "promqlAlias": "$tag_ip 网卡丢弃包",
               "query_configs": [],
               "refId": "C",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m])) > 0",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval])) > 0",
+              "step": "2m",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_ip Tcp重传",
+              "query_configs": [],
+              "refId": "D",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:netstat:cur_tcp_retranssegs{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval])) > 0",
               "step": "2m",
               "type": "range"
             }
@@ -2050,10 +2070,10 @@
               "host": [],
               "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip 物理层丢弃",
+              "promqlAlias": "$tag_ip 网卡冲突包",
               "query_configs": [],
               "refId": "A",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) > 0",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
               "step": "2m",
               "type": "range"
             },
@@ -2070,10 +2090,10 @@
               "host": [],
               "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip 网卡冲突包",
+              "promqlAlias": "$tag_ip 物理层丢弃",
               "query_configs": [],
               "refId": "B",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) > 0",
               "step": "2m",
               "type": "range"
             },
@@ -2093,7 +2113,27 @@
               "promqlAlias": "$tag_ip 网卡丢弃包",
               "query_configs": [],
               "refId": "C",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) > 0",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) > 0",
+              "step": "2m",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_ip Tcp重传",
+              "query_configs": [],
+              "refId": "D",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:netstat:cur_tcp_retranssegs{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
               "step": "2m",
               "type": "range"
             }
@@ -2952,7 +2992,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_total_requests{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_total_requests{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "2m",
           "type": "instant"
         }
@@ -3358,7 +3398,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])))",
+          "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])))",
           "step": "2m",
           "type": "instant"
         }
@@ -3594,7 +3634,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "instant"
         }
@@ -4040,7 +4080,7 @@
           "promqlAlias": "$tag_cmd",
           "query_configs": [],
           "refId": "B",
-          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval]))",
+          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval])) > 0",
           "step": "2m",
           "type": "range"
         }
@@ -4153,7 +4193,7 @@
           "promqlAlias": "$tag_cmd",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
+          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) > 0",
           "step": "2m",
           "type": "range"
         },
@@ -4622,7 +4662,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
-      "description": "proxy 访问延迟分布 predixy_server_latency_bucket",
+      "description": "proxy 访问延迟分布 predixy_cmdstat_response_latency_bucket，相邻 le 差分后的 QPS，含 ≤4ms",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -4654,7 +4694,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "normal"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -4719,7 +4759,7 @@
           "promqlAlias": "(2s,+Inf)",
           "query_configs": [],
           "refId": "A",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4739,7 +4779,7 @@
           "promqlAlias": "(1s,2s]",
           "query_configs": [],
           "refId": "B",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4759,7 +4799,7 @@
           "promqlAlias": "(512ms,1s]",
           "query_configs": [],
           "refId": "C",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4779,7 +4819,7 @@
           "promqlAlias": "(256ms,512ms]",
           "query_configs": [],
           "refId": "D",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4799,7 +4839,7 @@
           "promqlAlias": "(128ms,256ms]",
           "query_configs": [],
           "refId": "E",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4819,7 +4859,7 @@
           "promqlAlias": "(64ms,128ms]",
           "query_configs": [],
           "refId": "F",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4839,7 +4879,7 @@
           "promqlAlias": "(32ms,64ms]",
           "query_configs": [],
           "refId": "G",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4859,7 +4899,7 @@
           "promqlAlias": "(16ms,32ms]",
           "query_configs": [],
           "refId": "H",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"16000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"16000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4879,7 +4919,7 @@
           "promqlAlias": "(8ms,16ms]",
           "query_configs": [],
           "refId": "I",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"16000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"8000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"16000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"8000\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         },
@@ -4899,12 +4939,302 @@
           "promqlAlias": "(4ms,8ms]",
           "query_configs": [],
           "refId": "J",
-          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"8000\"}[2m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"4000\"}[2m])))",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"8000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"4000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(2ms,4ms]",
+          "query_configs": [],
+          "refId": "K",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"4000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(1ms,2ms]",
+          "query_configs": [],
+          "refId": "L",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(0,1ms]",
+          "query_configs": [],
+          "refId": "M",
+          "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1000\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
       ],
-      "title": "proxy 访问延迟分布",
+      "title": "proxy 访问延迟分布/每秒 (所有分段)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "description": "只显示大于32ms的延迟数据",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "series",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "id": 102,
+      "interval": "2m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 300
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(2s,+Inf)",
+          "query_configs": [],
+          "refId": "A",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(1s,2s]",
+          "query_configs": [],
+          "refId": "B",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(512ms,1s]",
+          "query_configs": [],
+          "refId": "C",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(256ms,512ms]",
+          "query_configs": [],
+          "refId": "D",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(128ms,256ms]",
+          "query_configs": [],
+          "refId": "E",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(64ms,128ms]",
+          "query_configs": [],
+          "refId": "F",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "(32ms,64ms]",
+          "query_configs": [],
+          "refId": "G",
+          "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[$__interval])))",
+          "step": "2m",
+          "type": "range"
+        }
+      ],
+      "title": "proxy 访问延迟分布/每秒 (大于32ms)",
       "type": "timeseries"
     },
     {
@@ -4968,9 +5298,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 49
       },
-      "id": 102,
+      "id": 103,
       "interval": "2m",
       "options": {
         "legend": {
@@ -5008,7 +5338,7 @@
           "promqlAlias": "P99",
           "query_configs": [],
           "refId": "A",
-          "source": "histogram_quantile(0.99, sum by (le) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\"}[2m])))",
+          "source": "histogram_quantile(0.99, sum by (le) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         }
@@ -5077,9 +5407,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 41
+        "y": 49
       },
-      "id": 103,
+      "id": 104,
       "interval": "2m",
       "options": {
         "legend": {
@@ -5117,7 +5447,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "histogram_quantile(0.99, sum by (instance, le) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\"}[2m])))",
+          "source": "histogram_quantile(0.99, sum by (instance, le) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         }
@@ -5189,7 +5519,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 33
+        "y": 41
       },
       "id": 5,
       "interval": "2m",
@@ -5305,7 +5635,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 49
+        "y": 57
       },
       "id": 33,
       "interval": "2m",
@@ -5434,7 +5764,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 49
+        "y": 57
       },
       "id": 34,
       "interval": "2m",
@@ -5563,7 +5893,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 57
+        "y": 65
       },
       "id": 20,
       "interval": "2m",
@@ -5691,7 +6021,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 57
+        "y": 65
       },
       "id": 46,
       "interval": "2m",
@@ -5731,7 +6061,7 @@
           "promqlAlias": "Hit",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_hits_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_hits_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         },
@@ -5751,7 +6081,7 @@
           "promqlAlias": "Miss",
           "query_configs": [],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_misses_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_misses_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
@@ -5765,7 +6095,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 73
       },
       "id": 43,
       "panels": [],
@@ -5833,7 +6163,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 66
+        "y": 74
       },
       "id": 39,
       "interval": "2m",
@@ -5943,7 +6273,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 66
+        "y": 74
       },
       "id": 45,
       "interval": "2m",
@@ -6052,7 +6382,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 74
+        "y": 82
       },
       "id": 49,
       "interval": "2m",
@@ -6092,7 +6422,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "(sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])))+(sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])))",
+          "source": "(sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])))+(sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])))",
           "step": "2m",
           "type": "range"
         }
@@ -6162,7 +6492,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 74
+        "y": 82
       },
       "id": 95,
       "interval": "2m",
@@ -6271,7 +6601,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 82
+        "y": 90
       },
       "id": 98,
       "interval": "2m",
@@ -6380,7 +6710,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 82
+        "y": 90
       },
       "id": 99,
       "interval": "2m",
@@ -6489,7 +6819,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 90
+        "y": 98
       },
       "id": 47,
       "interval": "2m",
@@ -6529,7 +6859,7 @@
           "promqlAlias": "$tag_instance in",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_input_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_input_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         },
@@ -6549,7 +6879,7 @@
           "promqlAlias": "$tag_instance out",
           "query_configs": [],
           "refId": "B",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_output_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_output_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
@@ -6684,7 +7014,7 @@
   "timezone": "",
   "title": "tendis-PredixyTendisplusCluster",
   "uid": "BBo1yt0Vk",
-  "version": 72,
+  "version": 79,
   "weekStart": "",
   "__inputs": [
     {
