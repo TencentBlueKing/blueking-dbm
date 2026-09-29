@@ -46,26 +46,48 @@ const (
 
 var flushBatchLabel = safe.WithLabel("kafka-flush-batch")
 
+// staleSkipTracker accumulates skipped stale messages and logs them at most once per interval.
+type staleSkipTracker struct {
+	count     int
+	lastOff   int64
+	lastAge   time.Duration
+	lastLogAt time.Time
+}
+
+func (t *staleSkipTracker) add(claim sarama.ConsumerGroupClaim, skipped int, off int64, age time.Duration) {
+	if skipped <= 0 {
+		return
+	}
+	t.count += skipped
+	t.lastOff = off
+	t.lastAge = age
+	if !t.lastLogAt.IsZero() && time.Since(t.lastLogAt) < staleSkipLogInterval {
+		return
+	}
+	if flushStaleSkipLog(claim, t.count, t.lastOff, t.lastAge) {
+		t.count = 0
+		t.lastLogAt = time.Now()
+	}
+}
+
+func (t *staleSkipTracker) flush(claim sarama.ConsumerGroupClaim) {
+	flushStaleSkipLog(claim, t.count, t.lastOff, t.lastAge)
+}
+
 func (h *consumerHandler) consumeClaimBatched(
 	session sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim,
 ) error {
-	var (
-		skippedCount  int
-		lastSkipAge   time.Duration
-		lastSkipOff   int64
-		lastSkipLogAt time.Time
-	)
-
+	var stale staleSkipTracker
 	messages := claim.Messages()
 	for {
 		select {
 		case <-session.Context().Done():
-			flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge)
+			stale.flush(claim)
 			return nil
 		case first, ok := <-messages:
 			if !ok {
-				flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge)
+				stale.flush(claim)
 				return nil
 			}
 			batch := h.drainBatch(session.Context(), messages, first)
@@ -73,19 +95,9 @@ func (h *consumerHandler) consumeClaimBatched(
 				continue
 			}
 			skipped, lastOff, lastAge := h.flushBatch(session, claim, batch)
-			if skipped > 0 {
-				skippedCount += skipped
-				lastSkipOff = lastOff
-				lastSkipAge = lastAge
-				if lastSkipLogAt.IsZero() || time.Since(lastSkipLogAt) >= staleSkipLogInterval {
-					if flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge) {
-						skippedCount = 0
-						lastSkipLogAt = time.Now()
-					}
-				}
-			}
+			stale.add(claim, skipped, lastOff, lastAge)
 			if session.Context().Err() != nil {
-				flushStaleSkipLog(claim, skippedCount, lastSkipOff, lastSkipAge)
+				stale.flush(claim)
 				return nil
 			}
 		}
@@ -159,45 +171,55 @@ func (h *consumerHandler) flushBatch(
 	claim sarama.ConsumerGroupClaim,
 	batch []*sarama.ConsumerMessage,
 ) (skipped int, lastSkipOff int64, lastSkipAge time.Duration) {
-	hwm := claim.HighWaterMarkOffset()
-	var (
-		toWrite  []*sink.Message
-		keptMsgs []*sarama.ConsumerMessage
-		lastMsg  = batch[len(batch)-1]
-	)
-
-	for _, msg := range batch {
-		if h.shouldSkipStale(msg, hwm) {
-			skipped++
-			lastSkipOff = msg.Offset
-			lastSkipAge = time.Since(msg.Timestamp)
-			continue
-		}
-		keptMsgs = append(keptMsgs, msg)
-		dataLength := len(msg.Value)
-		data := &sink.Message{
-			Topic: msg.Topic,
-			Data:  make([]byte, dataLength),
-		}
-		if dataLength > 0 {
-			copy(data.Data, msg.Value)
-		}
-		toWrite = append(toWrite, data)
-	}
-	h.recordReadMetrics(keptMsgs)
+	kept, toWrite, skipped, lastSkipOff, lastSkipAge, stats := h.partitionBatch(batch, claim.HighWaterMarkOffset())
+	h.recordReadMetrics(kept)
 
 	if h.hasBatchSinker() {
-		h.flushViaBatchSinker(session, claim, batch, keptMsgs, toWrite)
+		h.flushViaBatchSinker(session, claim, batch, kept, toWrite, &stats)
 	} else {
-		h.flushViaOneByOne(session, keptMsgs)
+		h.flushViaOneByOne(session, kept, &stats)
 	}
 
 	if session.Context().Err() != nil {
 		return skipped, lastSkipOff, lastSkipAge
 	}
-	h.observeConsumeDelay(keptMsgs)
-	session.MarkMessage(lastMsg, "")
+	h.observeConsumeDelay(kept)
+	h.emitWriteStats(batch[len(batch)-1].Topic, stats)
+	session.MarkMessage(batch[len(batch)-1], "")
 	return skipped, lastSkipOff, lastSkipAge
+}
+
+func (h *consumerHandler) partitionBatch(
+	batch []*sarama.ConsumerMessage,
+	hwm int64,
+) (
+	kept []*sarama.ConsumerMessage,
+	toWrite []*sink.Message,
+	skipped int,
+	lastSkipOff int64,
+	lastSkipAge time.Duration,
+	stats sink.WriteStats,
+) {
+	for _, msg := range batch {
+		if h.shouldSkipStale(msg, hwm) {
+			skipped++
+			lastSkipOff = msg.Offset
+			lastSkipAge = time.Since(msg.Timestamp)
+			stats.AddDrop("", sink.ReasonStale, 1)
+			continue
+		}
+		kept = append(kept, msg)
+		toWrite = append(toWrite, copySinkMessage(msg))
+	}
+	return kept, toWrite, skipped, lastSkipOff, lastSkipAge, stats
+}
+
+func copySinkMessage(msg *sarama.ConsumerMessage) *sink.Message {
+	data := &sink.Message{Topic: msg.Topic, Data: make([]byte, len(msg.Value))}
+	if len(msg.Value) > 0 {
+		copy(data.Data, msg.Value)
+	}
+	return data
 }
 
 func (h *consumerHandler) hasBatchSinker() bool {
@@ -215,73 +237,130 @@ func (h *consumerHandler) flushViaBatchSinker(
 	batch []*sarama.ConsumerMessage,
 	keptMsgs []*sarama.ConsumerMessage,
 	toWrite []*sink.Message,
+	stats *sink.WriteStats,
 ) {
-	batchPanicked := false
+	var (
+		batchPanicked bool
+		errCount      int
+		batchStats    sink.WriteStats
+	)
 	safe.Run(func() {
-		h.writeBatchSinkers(session, toWrite)
+		errCount, batchStats = h.writeBatchSinkers(session, toWrite)
 	}, flushBatchLabel, safe.WithOnPanic(func(pi safe.PanicInfo) {
 		batchPanicked = true
-		firstOff, lastOff := int64(0), int64(0)
-		if len(batch) > 0 {
-			firstOff = batch[0].Offset
-			lastOff = batch[len(batch)-1].Offset
-		}
-		logger.Error(
-			"handle kafka batch panic, topic: %s, partition: %d, offset_from: %d, offset_to: %d, errmsg: %s",
-			claim.Topic(), claim.Partition(), firstOff, lastOff, panicReasonError(pi.Reason),
-		)
+		h.logBatchPanic(claim, batch, pi)
 	}))
 	if batchPanicked {
-		h.degradeWriteOneByOne(session, keptMsgs)
+		h.degradeWriteOneByOne(session, keptMsgs, stats)
 		return
 	}
-	if session.Context().Err() == nil {
-		h.recordBatchWriteErrors(toWrite)
+	if session.Context().Err() != nil {
+		return
 	}
+	stats.Merge(batchStats)
+	if len(toWrite) > 0 {
+		h.addWriteErrors(toWrite[0].Topic, errCount)
+	}
+}
+
+func (h *consumerHandler) logBatchPanic(
+	claim sarama.ConsumerGroupClaim,
+	batch []*sarama.ConsumerMessage,
+	pi safe.PanicInfo,
+) {
+	firstOff, lastOff := int64(0), int64(0)
+	if len(batch) > 0 {
+		firstOff = batch[0].Offset
+		lastOff = batch[len(batch)-1].Offset
+	}
+	logger.Error(
+		"handle kafka batch panic, topic: %s, partition: %d, offset_from: %d, offset_to: %d, errmsg: %s",
+		claim.Topic(), claim.Partition(), firstOff, lastOff, panicReasonError(pi.Reason),
+	)
 }
 
 func (h *consumerHandler) flushViaOneByOne(
 	session sarama.ConsumerGroupSession,
 	keptMsgs []*sarama.ConsumerMessage,
+	stats *sink.WriteStats,
 ) {
+	if len(h.savers) == 0 {
+		stats.AddDrop("", sink.ReasonNoSink, len(keptMsgs))
+		return
+	}
 	for _, msg := range keptMsgs {
 		if session.Context().Err() != nil {
 			return
 		}
-		h.handleOneMessage(session, session.Context(), msg)
+		stats.Merge(h.handleOneMessage(session, session.Context(), msg))
 	}
 }
 
-func (h *consumerHandler) writeBatchSinkers(session sarama.ConsumerGroupSession, msgs []*sink.Message) {
-	h.lastBatchErrorCount = 0
+func (h *consumerHandler) writeBatchSinkers(
+	session sarama.ConsumerGroupSession,
+	msgs []*sink.Message,
+) (int, sink.WriteStats) {
+	var stats sink.WriteStats
 	if len(msgs) == 0 {
-		return
+		return 0, stats
 	}
+	if len(h.savers) == 0 {
+		stats.AddDrop("", sink.ReasonNoSink, len(msgs))
+		return 0, stats
+	}
+	errCount := 0
 	for _, saver := range h.savers {
-		bs, ok := saver.(sink.BatchSinker)
-		if !ok {
-			for _, msg := range msgs {
-				if session.Context().Err() != nil {
-					return
-				}
-				if err := saver.Save(msg); err != nil {
-					logger.Warn("save the data failed, topic: %s, errmsg: %s", msg.Topic, err)
-					incKafkaWriteErrors(msg.Topic, 1)
-				}
-			}
+		if session.Context().Err() != nil {
+			return errCount, stats
+		}
+		n, one := h.writeOneBatchSaver(session, saver, msgs)
+		errCount += n
+		stats.Merge(one)
+	}
+	return errCount, stats
+}
+
+func (h *consumerHandler) writeOneBatchSaver(
+	session sarama.ConsumerGroupSession,
+	saver sink.Sinker,
+	msgs []*sink.Message,
+) (int, sink.WriteStats) {
+	bs, ok := saver.(sink.BatchSinker)
+	if !ok {
+		return 0, h.saveBatchOneByOne(session, saver, msgs)
+	}
+	result, err := bs.SaveBatch(session.Context(), msgs)
+	if err != nil && len(msgs) > 0 {
+		logger.Warn("save batch failed, topic: %s, errmsg: %s", msgs[0].Topic, err)
+	}
+	return result.Invalid + result.Failed, result.Stats
+}
+
+func (h *consumerHandler) saveBatchOneByOne(
+	session sarama.ConsumerGroupSession,
+	saver sink.Sinker,
+	msgs []*sink.Message,
+) sink.WriteStats {
+	var stats sink.WriteStats
+	for _, msg := range msgs {
+		if session.Context().Err() != nil {
+			return stats
+		}
+		if err := saver.Save(msg); err != nil {
+			logger.Warn("save the data failed, topic: %s, errmsg: %s", msg.Topic, err)
+			h.addWriteErrors(msg.Topic, 1)
+			stats.AddDrop("", sink.ReasonWriteError, 1)
 			continue
 		}
-		result, err := bs.SaveBatch(session.Context(), msgs)
-		if err != nil {
-			logger.Warn("save batch failed, topic: %s, errmsg: %s", msgs[0].Topic, err)
-		}
-		h.lastBatchErrorCount += result.Invalid + result.Failed
+		stats.Written++
 	}
+	return stats
 }
 
 func (h *consumerHandler) degradeWriteOneByOne(
 	session sarama.ConsumerGroupSession,
 	msgs []*sarama.ConsumerMessage,
+	stats *sink.WriteStats,
 ) {
 	timeout := h.degradeTimeout
 	if timeout <= 0 {
@@ -295,11 +374,23 @@ func (h *consumerHandler) degradeWriteOneByOne(
 			return
 		}
 		if degradeCtx.Err() != nil {
-			// degrade timeout while session still valid: count remaining and mark later
-			incKafkaWriteErrors(msg.Topic, len(msgs)-i)
+			h.addWriteErrors(msg.Topic, len(msgs)-i)
+			h.addUntouchedDegrade(stats, msgs[i:])
 			return
 		}
-		h.handleOneMessage(session, degradeCtx, msg)
+		stats.Merge(h.handleOneMessage(session, degradeCtx, msg))
+	}
+}
+
+func (h *consumerHandler) addUntouchedDegrade(stats *sink.WriteStats, msgs []*sarama.ConsumerMessage) {
+	for range msgs {
+		if len(h.savers) == 0 {
+			stats.AddDrop("", sink.ReasonNoSink, 1)
+			continue
+		}
+		for range h.savers {
+			stats.AddDrop("", sink.ReasonDegradeTimeout, 1)
+		}
 	}
 }
 
@@ -307,46 +398,114 @@ func (h *consumerHandler) handleOneMessage(
 	session sarama.ConsumerGroupSession,
 	writeCtx context.Context,
 	msg *sarama.ConsumerMessage,
-) {
+) sink.WriteStats {
+	var stats sink.WriteStats
+	done := 0
+	panicked := false
 	safe.Run(func() {
-		dataLength := len(msg.Value)
-		data := &sink.Message{
-			Topic: msg.Topic,
-			Data:  make([]byte, dataLength),
-		}
-		if dataLength > 0 {
-			copy(data.Data, msg.Value)
-		}
-		for _, saver := range h.savers {
-			if session.Context().Err() != nil {
-				return
-			}
-			if writeCtx.Err() != nil {
-				incKafkaWriteErrors(msg.Topic, 1)
-				return
-			}
-			if bs, ok := saver.(sink.BatchSinker); ok {
-				result, err := bs.SaveBatch(writeCtx, []*sink.Message{data})
-				if err != nil {
-					logger.Warn("save batch one failed, topic: %s, errmsg: %s", msg.Topic, err)
-				}
-				if n := result.Invalid + result.Failed; n > 0 {
-					incKafkaWriteErrors(msg.Topic, n)
-				}
-				continue
-			}
-			if err := saver.Save(data); err != nil {
-				logger.Warn("save the data failed, topic: %s, errmsg: %s", msg.Topic, err)
-				incKafkaWriteErrors(msg.Topic, 1)
-			}
-		}
+		h.writeMessageSavers(session, writeCtx, msg, &stats, &done)
 	}, handleMessageLabel, safe.WithOnPanic(func(pi safe.PanicInfo) {
+		panicked = true
 		logger.Error(
 			"handle kafka message panic, topic: %s, partition: %d, offset: %d, errmsg: %s",
 			msg.Topic, msg.Partition, msg.Offset, panicReasonError(pi.Reason),
 		)
-		incKafkaWriteErrors(msg.Topic, 1)
+		h.addWriteErrors(msg.Topic, 1)
 	}))
+	if panicked {
+		h.addPanicDrops(&stats, done)
+	}
+	return stats
+}
+
+func (h *consumerHandler) writeMessageSavers(
+	session sarama.ConsumerGroupSession,
+	writeCtx context.Context,
+	msg *sarama.ConsumerMessage,
+	stats *sink.WriteStats,
+	done *int,
+) {
+	if len(h.savers) == 0 {
+		stats.AddDrop("", sink.ReasonNoSink, 1)
+		return
+	}
+	data := copySinkMessage(msg)
+	for i, saver := range h.savers {
+		*done = i
+		if session.Context().Err() != nil {
+			return
+		}
+		if writeCtx.Err() != nil {
+			h.addWriteErrors(msg.Topic, 1)
+			h.addDegradeFrom(stats, i)
+			*done = len(h.savers)
+			return
+		}
+		h.writeOneSaver(writeCtx, msg.Topic, data, saver, stats)
+		*done = i + 1
+	}
+}
+
+func (h *consumerHandler) writeOneSaver(
+	writeCtx context.Context,
+	topic string,
+	data *sink.Message,
+	saver sink.Sinker,
+	stats *sink.WriteStats,
+) {
+	if bs, ok := saver.(sink.BatchSinker); ok {
+		result, err := bs.SaveBatch(writeCtx, []*sink.Message{data})
+		if err != nil {
+			logger.Warn("save batch one failed, topic: %s, errmsg: %s", topic, err)
+		}
+		if n := result.Invalid + result.Failed; n > 0 {
+			h.addWriteErrors(topic, n)
+		}
+		stats.Merge(sink.RewriteCtxDone(result.Stats, sink.ReasonDegradeTimeout))
+		return
+	}
+	if err := saver.Save(data); err != nil {
+		logger.Warn("save the data failed, topic: %s, errmsg: %s", topic, err)
+		h.addWriteErrors(topic, 1)
+		stats.AddDrop("", sink.ReasonWriteError, 1)
+		return
+	}
+	stats.Written++
+}
+
+func (h *consumerHandler) addDegradeFrom(stats *sink.WriteStats, from int) {
+	for i := from; i < len(h.savers); i++ {
+		stats.AddDrop("", sink.ReasonDegradeTimeout, 1)
+	}
+}
+
+func (h *consumerHandler) addPanicDrops(stats *sink.WriteStats, done int) {
+	if len(h.savers) == 0 {
+		stats.AddDrop("", sink.ReasonPanic, 1)
+		return
+	}
+	for i := done; i < len(h.savers); i++ {
+		stats.AddDrop("", sink.ReasonPanic, 1)
+	}
+}
+
+func (h *consumerHandler) emitWriteStats(topic string, stats sink.WriteStats) {
+	if stats.Written == 0 && len(stats.Samples) == 0 && stats.DropTotal() == 0 {
+		return
+	}
+	if h.recordStats != nil {
+		h.recordStats(topic, stats)
+		return
+	}
+	sink.RecordWriteStats(topic, stats)
+}
+
+func (h *consumerHandler) addWriteErrors(topic string, n int) {
+	if h.countWriteErrors != nil {
+		h.countWriteErrors(topic, n)
+		return
+	}
+	incKafkaWriteErrors(topic, n)
 }
 
 func (h *consumerHandler) recordReadMetrics(msgs []*sarama.ConsumerMessage) {
@@ -362,13 +521,6 @@ func (h *consumerHandler) recordReadMetrics(msgs []*sarama.ConsumerMessage) {
 			logger.Warn("update kafka read messages metric failed, errmsg: %s", err)
 		}
 	}
-}
-
-func (h *consumerHandler) recordBatchWriteErrors(msgs []*sink.Message) {
-	if len(msgs) == 0 || h.lastBatchErrorCount <= 0 {
-		return
-	}
-	incKafkaWriteErrors(msgs[0].Topic, h.lastBatchErrorCount)
 }
 
 func (h *consumerHandler) observeConsumeDelay(msgs []*sarama.ConsumerMessage) {

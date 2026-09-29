@@ -129,6 +129,8 @@ func (p *stubConnPool) BeginTx(context.Context, *sql.TxOptions) (gorm.ConnPool, 
 	p.beginCalls.Add(1)
 	return p, nil
 }
+func (p *stubConnPool) Commit() error   { return nil }
+func (p *stubConnPool) Rollback() error { return nil }
 
 type stubResult struct{}
 

@@ -75,9 +75,18 @@ type preparedRow struct {
 type endpointChunkResult struct {
 	attempted    []bool
 	rowOK        []bool
+	rowOKAt      []time.Time
 	rowPermanent []bool
 	err          error
 	fatal        bool
+}
+
+type chunkWriteOutcome struct {
+	failed int
+	exit   string
+	rowOK  [][]bool
+	rowAt  [][]time.Time
+	perm   [][][]bool
 }
 
 // SaveBatch writes msgs with parse-once, dedup, chunked upsert and bounded retry.
@@ -86,10 +95,10 @@ type endpointChunkResult struct {
 // be counted again on degrade; upsert is idempotent.
 func (s *mysql) SaveBatch(ctx context.Context, msgs []*Message) (BatchResult, error) {
 	if s.closed.Load() {
-		return BatchResult{}, context.Canceled
+		return BatchResult{Stats: dropAll(len(msgs), ReasonSinkClosed)}, context.Canceled
 	}
 	if err := ctx.Err(); err != nil {
-		return BatchResult{}, err
+		return BatchResult{Stats: dropAll(len(msgs), ReasonCtxDone)}, err
 	}
 	if len(msgs) == 0 {
 		return BatchResult{}, nil
@@ -110,9 +119,16 @@ func (s *mysql) SaveBatch(ctx context.Context, msgs []*Message) (BatchResult, er
 		logger.Warn("update mysql write batch size metric failed, errmsg: %s", err)
 	}
 
-	failed, err := s.writeChunks(ctx, topic, chunks)
-	result.Failed = failed
+	outcome, err := s.writeChunks(ctx, topic, chunks)
+	result.Failed = outcome.failed
+	applyWriteStats(&result, rows, chunks, outcome)
 	return result, err
+}
+
+func dropAll(n int, reason string) WriteStats {
+	var stats WriteStats
+	stats.AddDrop("", reason, n)
+	return stats
 }
 
 func (s *mysql) prepareBatch(msgs []*Message, topic string) ([]preparedRow, BatchResult, int) {
@@ -125,6 +141,7 @@ func (s *mysql) prepareBatch(msgs []*Message, topic string) ([]preparedRow, Batc
 		hd := &haprobe.HarvestData{}
 		if err := json.Unmarshal(msg.Data, hd); err != nil {
 			result.Invalid++
+			result.Stats.AddDrop("", ReasonInvalidJSON, 1)
 			if metricErr := apm.MySqlReadErrorsTotal.IncWithLabels(map[string]string{
 				apm.MetricLabelMysql: topic,
 			}); metricErr != nil {
@@ -135,12 +152,15 @@ func (s *mysql) prepareBatch(msgs []*Message, topic string) ([]preparedRow, Batc
 		data := hamodel.NewDbhaData(hd)
 		if !data.HarvestType.IsKnown() {
 			result.Invalid++
+			result.Stats.AddDrop(string(data.DbTypeName), ReasonUnknownType, 1)
 			continue
 		}
 		result.Valid++
 		totalBytes += len(msg.Data)
 		key := rowKey(data)
-		if _, exists := byKey[key]; !exists {
+		if prev, exists := byKey[key]; exists {
+			result.Stats.AddDrop(string(prev.data.DbTypeName), ReasonDedup, 1)
+		} else {
 			order = append(order, key)
 		}
 		byKey[key] = preparedRow{data: data, size: len(msg.Data)}
@@ -227,8 +247,10 @@ func (s *mysql) writeChunks(
 	ctx context.Context,
 	topic string,
 	chunks [][]*hamodel.DbhaDataStatus,
-) (int, error) {
+) (chunkWriteOutcome, error) {
 	rowOK, rowNeed := newRowState(len(s.dbs), chunks)
+	rowAt := newRowTimes(chunks)
+	perm := newPermState(len(s.dbs), chunks)
 	elapsed := make([]int64, len(s.dbs))
 	ran := make([]bool, len(s.dbs))
 	defer s.flushBatchDurations(topic, elapsed, ran)
@@ -237,16 +259,17 @@ func (s *mysql) writeChunks(
 	backoff := retryBackoffStart
 	for {
 		if err := ctx.Err(); err != nil {
-			return countFailedRows(rowOK), err
+			return newChunkOutcome(rowOK, rowAt, perm, ReasonCtxDone), err
 		}
 		results, fatal := s.writeRound(ctx, topic, chunks, rowNeed, elapsed, ran)
-		updateRowOutcomes(results, rowOK, rowNeed)
+		updateRowOutcomes(results, rowOK, rowNeed, rowAt)
+		accumulatePermanent(results, perm)
 		if fatal != nil {
-			return countFailedRows(rowOK), fatal
+			return newChunkOutcome(rowOK, rowAt, perm, exitFromFatal(fatal)), fatal
 		}
 		pending := pendingChunkCount(rowNeed)
 		if pending == 0 {
-			return countFailedRows(rowOK), nil
+			return newChunkOutcome(rowOK, rowAt, perm, ""), nil
 		}
 		if deadline.IsZero() {
 			deadline = time.Now().Add(s.writeRetryTimeout)
@@ -256,17 +279,12 @@ func (s *mysql) writeChunks(
 				"mysql batch write retry timeout, topic: %s, pending_chunks: %d",
 				topic, pending,
 			)
-			return countFailedRows(rowOK), nil
+			return newChunkOutcome(rowOK, rowAt, perm, ReasonRetryTimeout), nil
 		}
 		if !waitCtx(ctx, backoff) {
-			return countFailedRows(rowOK), ctx.Err()
+			return newChunkOutcome(rowOK, rowAt, perm, ReasonCtxDone), ctx.Err()
 		}
-		if backoff < retryBackoffMax {
-			backoff *= 2
-			if backoff > retryBackoffMax {
-				backoff = retryBackoffMax
-			}
-		}
+		backoff = growBackoff(backoff)
 		if err := apm.MySqlRetryTotal.AddWithLabels(map[string]string{
 			apm.MetricLabelMysql: topic,
 		}, float64(pending)); err != nil {
@@ -390,7 +408,7 @@ func (s *mysql) writeSelected(
 		}
 		err := s.writer.write(ctx, db, rows)
 		if err == nil {
-			return successResult(len(chunk), indexes)
+			return successResult(len(chunk), indexes, s.currentTime())
 		}
 		lastErr = err
 		if ctx.Err() != nil {
@@ -456,6 +474,7 @@ func (s *mysql) fallbackPerRow(
 		err := s.writer.write(ctx, db, []*hamodel.DbhaDataStatus{chunk[idx]})
 		if err == nil {
 			res.rowOK[idx] = true
+			res.rowOKAt[idx] = s.currentTime()
 			continue
 		}
 		if ctx.Err() != nil {
@@ -511,22 +530,48 @@ func (s *mysql) observeBatchDuration(topic string, ms float64) {
 	}
 }
 
-func updateRowOutcomes(results [][]endpointChunkResult, rowOK [][]bool, rowNeed [][][]bool) {
-	nEp := len(results)
+func updateRowOutcomes(
+	results [][]endpointChunkResult,
+	rowOK [][]bool,
+	rowNeed [][][]bool,
+	rowAt [][]time.Time,
+) {
 	for c := range rowOK {
-		for i := 0; i < nEp; i++ {
-			r := results[i][c]
-			if r.rowOK == nil {
+		for j := range rowOK[c] {
+			if rowOK[c][j] {
 				continue
 			}
-			for j, ok := range r.rowOK {
-				if ok {
-					rowOK[c][j] = true
-				}
+			ok, at := firstSuccess(results, c, j)
+			if !ok {
+				continue
+			}
+			rowOK[c][j] = true
+			if !at.IsZero() {
+				rowAt[c][j] = at
 			}
 		}
 		applyRowNeed(results, rowOK[c], rowNeed, c)
 	}
+}
+
+func firstSuccess(results [][]endpointChunkResult, c, j int) (bool, time.Time) {
+	var earliest time.Time
+	saw := false
+	for i := range results {
+		r := results[i][c]
+		if r.rowOK == nil || j >= len(r.rowOK) || !r.rowOK[j] {
+			continue
+		}
+		saw = true
+		if r.rowOKAt == nil || j >= len(r.rowOKAt) || r.rowOKAt[j].IsZero() {
+			continue
+		}
+		at := r.rowOKAt[j]
+		if earliest.IsZero() || at.Before(earliest) {
+			earliest = at
+		}
+	}
+	return saw, earliest
 }
 
 func applyRowNeed(results [][]endpointChunkResult, rowOK []bool, rowNeed [][][]bool, c int) {
@@ -608,6 +653,7 @@ func blankResult(n int, indexes []int) endpointChunkResult {
 	res := endpointChunkResult{
 		attempted:    make([]bool, n),
 		rowOK:        make([]bool, n),
+		rowOKAt:      make([]time.Time, n),
 		rowPermanent: make([]bool, n),
 	}
 	for _, idx := range indexes {
@@ -616,10 +662,11 @@ func blankResult(n int, indexes []int) endpointChunkResult {
 	return res
 }
 
-func successResult(n int, indexes []int) endpointChunkResult {
+func successResult(n int, indexes []int, at time.Time) endpointChunkResult {
 	res := blankResult(n, indexes)
 	for _, idx := range indexes {
 		res.rowOK[idx] = true
+		res.rowOKAt[idx] = at
 	}
 	return res
 }
@@ -649,6 +696,125 @@ func waitCtx(ctx context.Context, d time.Duration) bool {
 	case <-timer.C:
 		return true
 	}
+}
+
+func newChunkOutcome(rowOK [][]bool, rowAt [][]time.Time, perm [][][]bool, exit string) chunkWriteOutcome {
+	return chunkWriteOutcome{
+		failed: countFailedRows(rowOK),
+		exit:   exit,
+		rowOK:  rowOK,
+		rowAt:  rowAt,
+		perm:   perm,
+	}
+}
+
+func exitFromFatal(err error) string {
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		return ReasonCtxDone
+	}
+	return ReasonFatal
+}
+
+func growBackoff(backoff time.Duration) time.Duration {
+	if backoff < retryBackoffMax {
+		backoff *= 2
+		if backoff > retryBackoffMax {
+			return retryBackoffMax
+		}
+	}
+	return backoff
+}
+
+func newRowTimes(chunks [][]*hamodel.DbhaDataStatus) [][]time.Time {
+	rowAt := make([][]time.Time, len(chunks))
+	for c, chunk := range chunks {
+		rowAt[c] = make([]time.Time, len(chunk))
+	}
+	return rowAt
+}
+
+func newPermState(nEp int, chunks [][]*hamodel.DbhaDataStatus) [][][]bool {
+	perm := make([][][]bool, nEp)
+	for i := range perm {
+		perm[i] = make([][]bool, len(chunks))
+		for c, chunk := range chunks {
+			perm[i][c] = make([]bool, len(chunk))
+		}
+	}
+	return perm
+}
+
+func accumulatePermanent(results [][]endpointChunkResult, perm [][][]bool) {
+	for i := range results {
+		for c := range results[i] {
+			r := results[i][c]
+			if r.rowPermanent == nil {
+				continue
+			}
+			for j, on := range r.rowPermanent {
+				if on {
+					perm[i][c][j] = true
+				}
+			}
+		}
+	}
+}
+
+func applyWriteStats(
+	result *BatchResult,
+	rows []preparedRow,
+	chunks [][]*hamodel.DbhaDataStatus,
+	outcome chunkWriteOutcome,
+) {
+	idx := 0
+	for c, chunk := range chunks {
+		for j := range chunk {
+			if idx >= len(rows) {
+				return
+			}
+			noteRowStat(&result.Stats, rows[idx], outcome, c, j)
+			idx++
+		}
+	}
+}
+
+func noteRowStat(stats *WriteStats, row preparedRow, outcome chunkWriteOutcome, c, j int) {
+	dbType := string(row.data.DbTypeName)
+	if outcome.rowOK[c][j] {
+		stats.Written++
+		if ms, ok := DelayMillis(outcome.rowAt[c][j], row.data.ReportTimestamp); ok {
+			stats.Samples = append(stats.Samples, DelaySample{DbType: dbType, Ms: ms})
+		}
+		return
+	}
+	stats.AddDrop(dbType, rowFailReason(outcome, c, j), 1)
+}
+
+func rowFailReason(outcome chunkWriteOutcome, c, j int) string {
+	if allEndpointsPermanent(outcome.perm, c, j) || outcome.exit == "" {
+		return ReasonDataError
+	}
+	return outcome.exit
+}
+
+func allEndpointsPermanent(perm [][][]bool, c, j int) bool {
+	if len(perm) == 0 {
+		return false
+	}
+	for i := range perm {
+		if c >= len(perm[i]) || j >= len(perm[i][c]) || !perm[i][c][j] {
+			return false
+		}
+	}
+	return true
+}
+
+func sampleMillis(results [][]endpointChunkResult, c, j int, reportTs uint64) (float64, bool) {
+	saw, at := firstSuccess(results, c, j)
+	if !saw {
+		return 0, false
+	}
+	return DelayMillis(at, reportTs)
 }
 
 // ensure mysql implements BatchSinker
