@@ -177,7 +177,7 @@
   },
   {
     "conf_name": "mysql-err-critical",
-    "value_default": "{\"enable\":false,\"name\":\"mysql-err-critical\",\"role\":[],\"machine_type\":[\"single\",\"backend\",\"remote\"],\"schedule\":\"@every 5m\"}",
+    "value_default": "{\"enable\":true,\"name\":\"mysql-err-critical\",\"role\":[],\"machine_type\":[\"single\",\"backend\",\"remote\"],\"schedule\":\"@every 5m\"}",
     "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "MAP",
@@ -401,7 +401,7 @@
   },
   {
     "conf_name": "spider-err-critical",
-    "value_default": "{\"enable\":false,\"name\":\"spider-err-critical\",\"role\":[],\"machine_type\":[\"spider\"],\"schedule\":\"@every 5m\"}",
+    "value_default": "{\"enable\":true,\"name\":\"spider-err-critical\",\"role\":[],\"machine_type\":[\"spider\"],\"schedule\":\"@every 5m\"}",
     "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "MAP",

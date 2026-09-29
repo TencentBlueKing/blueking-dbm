@@ -82,7 +82,15 @@ func (l *LogicalDumper) buildArgs() ([]string, error) {
 	if ok, _ := MydumperHasOption(binPath, "--source-data"); ok {
 		args = append(args, "--source-data", "--replica-data")
 	}
-	if *l.cnf.LogicalBackup.TrxConsistencyOnly { // nil is true
+	if !l.cnf.Public.IfBackupData() { // 如果不备份数据，不加 lock 了
+		if ok, _ := MydumperHasOption(binPath, "--sync-thread-lock-mode", "NO_LOCK"); ok {
+			args = append(args, "--trx-tables=0 --sync-thread-lock-mode=NO_LOCK") //NO_LOCK
+		} else {
+			// mydumper 废弃的参数没有移除，只是报个 deprecated ERROR (不理解!!)
+			// CRITICAL **: --no-locks is deprecated use --sync-thread-lock-mode instead
+			args = append(args, "--no-locks") //--trx-tables=0
+		}
+	} else if *l.cnf.LogicalBackup.TrxConsistencyOnly { // nil is true
 		if ok, _ := MydumperHasOption(binPath, "--trx-tables"); ok {
 			// --trx-tables 与 --trx-consistency-only 不是等价替换的
 			args = append(args, "--trx-tables=0 --sync-thread-lock-mode=FTWRL")
@@ -90,10 +98,11 @@ func (l *LogicalDumper) buildArgs() ([]string, error) {
 			args = append(args, "--trx-consistency-only")
 		}
 	} else {
-		if ok, _ := MydumperHasOption(binPath, "--trx-tables"); ok {
+		if ok, _ := MydumperHasOption(binPath, "--sync-thread-lock-mode", "NO_LOCK"); ok {
 			args = append(args, "--trx-tables=0 --sync-thread-lock-mode=NO_LOCK") //--trx-tables=0
 		}
 	}
+
 	if l.cnf.Public.KillLongQueryTime > 0 {
 		args = append(args, "--kill-long-queries",
 			fmt.Sprintf("--long-query-guard=%d", l.cnf.Public.KillLongQueryTime))

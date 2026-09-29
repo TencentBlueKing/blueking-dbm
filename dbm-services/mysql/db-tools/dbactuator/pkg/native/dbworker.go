@@ -78,20 +78,19 @@ func NewDbWorkerNoPing(host, user, password string) (*DbWorker, error) {
 }
 
 // Stop close connection
+// 允许 h 为 nil, 连接没建起来时一般是 defer 里直接调用, 不应该 panic
 func (h *DbWorker) Stop() {
-	if h.Db != nil {
-		if err := h.Db.Close(); err != nil {
-			logger.Warn("close db handler failed, err:%s", err.Error())
-		}
-	}
+	h.Close()
 }
 
 // Close close connection
+// 允许 h 为 nil, 连接没建起来时一般是 defer 里直接调用, 不应该 panic
 func (h *DbWorker) Close() {
-	if h.Db != nil {
-		if err := h.Db.Close(); err != nil {
-			logger.Warn("close db handler failed, err:%s", err.Error())
-		}
+	if h == nil || h.Db == nil {
+		return
+	}
+	if err := h.Db.Close(); err != nil {
+		logger.Warn("close db handler failed, err:%s", err.Error())
 	}
 }
 
