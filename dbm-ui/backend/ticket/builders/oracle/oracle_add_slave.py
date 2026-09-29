@@ -30,6 +30,7 @@ from backend.ticket.constants import TicketType
 class OracleAddSlaveDetailSerializer(OracleOpsBaseDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        replace_flag = serializers.BooleanField(help_text=_("是否替换"), required=False)
         old_node = InstanceInfoSerializer(help_text=_("旧机器信息"))
         replace_host = InstanceInfoSerializer(help_text=_("替换所选的主机信息"), required=False)  # 整机替换才有的参数
         old_master = InstanceInfoSerializer(help_text=_("旧master主机"), required=False)
