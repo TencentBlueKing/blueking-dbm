@@ -49,9 +49,10 @@ type consumerHandler struct {
 	batchLinger    time.Duration
 	degradeTimeout time.Duration
 
-	// lastBatchErrorCount is Invalid+Failed from the latest BatchSinker.SaveBatch
-	// in the current flush; used to count KafkaWriteErrorsTotal only when marking.
-	lastBatchErrorCount int
+	// recordStats replaces sink.RecordWriteStats in tests.
+	recordStats func(topic string, stats sink.WriteStats)
+	// countWriteErrors replaces kafka write-error counting in tests.
+	countWriteErrors func(topic string, n int)
 }
 
 var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)

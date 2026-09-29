@@ -43,15 +43,19 @@ type Sinker interface {
 // Valid is the count of messages that passed validation (before dedup).
 // Invalid is JSON-illegal or unknown harvest_type count.
 // Failed is rows that ultimately were not written on any endpoint.
+// Stats counts each input message once: written, or one drop reason.
 type BatchResult struct {
 	Valid   int
 	Invalid int
 	Failed  int
+	Stats   WriteStats
 }
 
 // BatchSinker optionally writes many messages in one call.
 // error is non-nil only when ctx is done or the sink is closed; other failures
 // are reported via BatchResult.Failed.
+// Implementations must fill Stats so Written plus the drop total equals len(msgs).
+// A sinker that leaves Stats empty is omitted from the sink delay and drop metrics.
 type BatchSinker interface {
 	SaveBatch(ctx context.Context, msgs []*Message) (BatchResult, error)
 }

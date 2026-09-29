@@ -29,10 +29,18 @@ import (
 )
 
 const (
-	MetricLabelKafka = "kafka"
-	MetricLabelMysql = "mysql"
-	MetricLabelProbe = "probe"
+	MetricLabelKafka  = "kafka"
+	MetricLabelMysql  = "mysql"
+	MetricLabelProbe  = "probe"
+	MetricLabelSink   = "sink"
+	MetricLabelDbType = "db_type"
+	MetricLabelReason = "reason"
 )
+
+// sinkWriteDelayBuckets covers the 60s analysis window and late writes up to 5 minutes.
+var sinkWriteDelayBuckets = []float64{
+	1000, 2000, 5000, 10000, 20000, 30000, 45000, 60000, 120000, 300000,
+}
 
 var (
 	KafkaReadMessagesTotal *haapm.HaCounter
@@ -54,12 +62,16 @@ var (
 	ProbeReceiveMessagesTotal *haapm.HaCounter
 	ProbeReceiveBytesTotal    *haapm.HaCounter
 	ProbeQueueFullTotal       *haapm.HaCounter
+
+	SinkWriteDelayMs      *haapm.HaHistogram
+	SinkDropMessagesTotal *haapm.HaCounter
 )
 
 func init() {
 	initKafkaMetrics()
 	initMySQLMetrics()
 	initProbeMetrics()
+	initSinkMetrics()
 }
 
 func initKafkaMetrics() {
@@ -160,6 +172,23 @@ func initProbeMetrics() {
 	)
 }
 
+func initSinkMetrics() {
+	SinkWriteDelayMs = haapm.NewHaHistogramWithBuckets(
+		"sink_write_delay_ms",
+		"Delay from probe report_timestamp to a successful sink write (milliseconds)",
+		sinkWriteDelayBuckets,
+		MetricLabelSink,
+		MetricLabelDbType,
+	)
+	SinkDropMessagesTotal = haapm.NewHaCounter(
+		"sink_drop_messages_total",
+		"Messages not written to storage or dropped on purpose",
+		MetricLabelSink,
+		MetricLabelDbType,
+		MetricLabelReason,
+	)
+}
+
 // InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
 // Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
@@ -187,5 +216,7 @@ func InitAPM(serviceID, serviceName string) {
 		ProbeReceiveMessagesTotal,
 		ProbeReceiveBytesTotal,
 		ProbeQueueFullTotal,
+		SinkWriteDelayMs,
+		SinkDropMessagesTotal,
 	)
 }
