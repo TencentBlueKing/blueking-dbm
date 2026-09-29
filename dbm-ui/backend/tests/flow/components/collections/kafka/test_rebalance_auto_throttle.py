@@ -271,6 +271,17 @@ class TestSidecarFuncGuards:
 
         mock_write.assert_not_called()
 
+    @patch.object(mod, "get_rebalance_throttle_bounds", return_value=None)
+    def test_skip_reason_is_forwarded_to_flow_log(self, mock_bounds):
+        """get_rebalance_throttle_bounds把on_skip当作原因输出通道回调，原因要能落到流程日志里"""
+        svc = _make_service()
+
+        svc._resolve_bounds(100)
+
+        called = mock_bounds.call_args
+        assert called.args[0] == 100
+        assert called.kwargs["on_skip"] == svc.log_warning
+
     @patch.object(mod, "read_rebalance_state")
     @patch.object(mod, "resolve_and_validate_exec_ip", side_effect=ValueError("127.0.0.1不是集群kafka.test.db的broker节点"))
     @patch.object(mod, "FlowTree")

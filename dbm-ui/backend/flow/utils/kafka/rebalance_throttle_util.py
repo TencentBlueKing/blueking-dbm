@@ -11,14 +11,14 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api, JobApi
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.dbm_aiagent.mcp_tools.common.impl.job import get_job_exec_status
 from backend.flow.consts import DBA_ROOT_USER
 from backend.utils.string import base64_encode
@@ -244,7 +244,18 @@ def resolve_and_validate_exec_ip(cluster_id: int, ip: str) -> int:
     return cluster.bk_cloud_id
 
 
-def get_rebalance_throttle_bounds(cluster_id: int) -> Optional[Dict]:
+def _report_skip(message: str, reporter: Optional[Callable[[str], None]] = None) -> None:
+    """
+    输出"本轮为什么跳过自动调速"的原因。
+    调用方能传reporter时优先用调用方的日志通道：流程节点里的 self.log_info/self.log_warning 会带
+    extra（root_id/node_id/version_id），JSONFormatter把这些字段一起打进日志记录，所以能按
+    root_pipeline/node_id检索到。本模块的模块级logger走的是同一个flow logger，但**不带extra**，
+    产出的记录里没有root_pipeline/node_id——按流程检索这些日志是搜不到的，只能当服务端日志看。
+    """
+    (reporter or logger.warning)(message)
+
+
+def get_rebalance_throttle_bounds(cluster_id: int, on_skip: Optional[Callable[[str], None]] = None) -> Optional[Dict]:
     """
     返回本轮自动调速需要的两个信号：当前最忙broker的带宽利用率、动态限速上限。
     利用率取所有broker中的max而不是集群汇总均值——否则单个热点broker会被其他空闲broker平均掉，
@@ -256,16 +267,22 @@ def get_rebalance_throttle_bounds(cluster_id: int) -> Optional[Dict]:
     必须要求集群内所有broker的监控数据都完整才计算，只要有一台缺数据就整体返回None——
     如果只用凑得到数据的那部分broker算：漏看的broker恰好是热点（已经过载）会误判为"利用率不高"
     继续提速；漏看的broker恰好是最低带宽的那台，动态上限又会被其他broker的数据高估。
-    监控数据不完整（新集群/采集延迟/部分broker缺失）时返回None，调用方应跳过本轮调速判断。
+    监控数据不完整（新集群/采集延迟/部分broker缺失）时返回None，调用方应跳过本轮调速判断；
+    on_skip传入调用方的日志方法后，跳过的具体原因（缺哪些broker、缺的是哪类指标）会打到流程日志里。
     """
     cluster = Cluster.objects.get(id=cluster_id)
     total_broker_count = cluster.storageinstance_set.filter(instance_role=InstanceRole.BROKER.value).count()
     if total_broker_count == 0:
+        _report_skip(_("集群{}在db_meta里没有broker实例，无法计算带宽利用率").format(cluster_id), on_skip)
         return None
 
-    stats = get_broker_bandwidth_utilization(cluster_id)
+    # 缺失明细由get_broker_bandwidth_utilization统一输出（含缺哪些IP、缺哪类指标），这里不再重复打
+    stats = get_broker_bandwidth_utilization(cluster_id, on_missing=on_skip)
     if len(stats) < total_broker_count:
-        logger.warning("集群%s只有%d/%d台broker监控数据完整，跳过本轮自动调速判断", cluster_id, len(stats), total_broker_count)
+        _report_skip(
+            _("集群{}只有{}/{}台broker带宽监控数据完整，跳过本轮自动调速判断").format(cluster_id, len(stats), total_broker_count),
+            on_skip,
+        )
         return None
 
     max_utilization_pct = max(s["utilization_pct"] for s in stats)
@@ -277,9 +294,177 @@ def get_rebalance_throttle_bounds(cluster_id: int) -> Optional[Dict]:
     }
 
 
-def get_broker_bandwidth_utilization(cluster_id: int) -> List[Dict]:
+# 每台broker带宽规格(Mbps)的表达式。利用率那条promql的分母、以及单独查带宽（动态限速上限要用到
+# 绝对值取min，光靠比值拿不到）用的都是这一份，抽成常量是为了：
+#   ① 窗口、聚合算子只在一处定义，改窗口时不会漏掉另一边；
+#   ② 两边必须是同一个算子。原来分母写的是 avg by (bk_target_ip)、这里写的是 max by——按"每台机器
+#      一条series"的现状两者等价，但一旦这个指标带上网卡/设备之类的维度，就会出现"利用率分母按平均、
+#      动态上限按最大"的口径分裂：同一台机器两边算出来的带宽不是同一个值。统一取 max，跟分子
+#      speed_recv_bit/speed_sent_bit 的 max by (bk_target_ip) 也一致（那两个确实是多网卡，取最忙的）。
+# script_dbm_bandwidth 是通用带宽采集脚本指标（对应/etc/dbm_bandwidth），不带cluster_domain/
+# instance_role维度，只能按bk_target_ip在Python侧与本集群broker IP列表关联。
+# 窗口3m：这个值是装机时按机型写一次、之后不变的常量，avg_over_time的窗口宽窄不影响取值（都是
+# 那个常量），宽窗口只是多一分"窗口里至少有一个样本"的容错
+BANDWIDTH_PROMQL = "max by (bk_target_ip) (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[3m]))"
+
+
+def _utilization_promql(labels: str) -> str:
+    """
+    利用率在监控侧一条promql里算完（拆成多次查询时，各次返回的是"自己那个时刻的最新点"，
+    彼此之间有查询耗时差，用不同时刻的流量和带宽相除本身就不严谨）。
+    speed_recv_bit/speed_sent_bit已经是bit/s（Kafka Dashboard验证过的指标，见
+    backend/bk_dataview/dashboards/json/kafka.json），不是bytes/s的计数器，不能再套rate()，
+    换算Mbit/s时也不能再乘8——之前误当成bytes_recv/bytes_sent计数器用rate()包一层，
+    单位和指标名都是错的。
+    单位基准：分子 /1e6 换算成Mbit/s，分母 script_dbm_bandwidth 本身就是Mbps
+    （对应 DeviceClass.bandwidth 的"Mbps"，见 db_meta/models/machine.py:270），
+    两者口径一致，相除即利用率。原来用 /1024/1024 得到的是Mibit/s，再除以十进制的Mbps
+    会让利用率系统性偏高约4.9%（1024²/1e6），相对85%/80%两个水位不是可忽略的量。
+    recv/sent/bandwidth都套3m的avg_over_time。窗口长度不是随便取的：实测这两类指标
+    （bkmonitor:dbm_system:net:speed_*_bit 和 script_dbm_bandwidth:dbm_bandwidth）的
+    采样周期都是60s——用 count_over_time(m[1m]) 在30分钟窗口上逐step统计，每台机器
+    min=avg=max=1，也就是[1m]窗口里恰好只有一个样本。这种时候avg_over_time等于没平滑
+    （平均值就是那个原始值本身），单点抖动会直接推动50MB/s的步进调整，而且余量为零——
+    一旦相位漂移或漏采一个点，该step立刻变null。[3m]能装下3个样本，才是真的平滑，
+    并且能容忍漏掉1~2个点。代价是最多3分钟的滞后，相对sidecar本身2分钟一轮可以忽略。
+    分母直接复用 BANDWIDTH_PROMQL，保证跟"单独查带宽"那条是同一个算子、同一个窗口。
+    匹配用 on(bk_target_ip)（两侧标签集不同，默认的全标签匹配会匹配不上），右侧是按IP唯一
+    的聚合结果，所以是 group_left。注意 group_left 后面直接跟右操作数、不加括号——加了括号
+    会被解析成 grouping label 列表而不是右操作数（仓库既有写法见
+    bk_dataview/dashboards/json/hdfs.json、doris.json 的 "group_left avg by (...)"）。
+    """
+    sent = f"max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_sent_bit{{{labels}}}[3m]))"
+    recv = f"max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_recv_bit{{{labels}}}[3m]))"
+    return f"({sent} + {recv}) / 1000000 / on(bk_target_ip) group_left {BANDWIDTH_PROMQL}"
+
+
+def _query_steps_by_ip(
+    bk_biz_id: int, promql: str, start_timestamp: int, end_timestamp: int
+) -> Tuple[int, Dict[str, Dict[float, float]]]:
+    """
+    返回 (原始series条数, {ip: {step时间戳: 值}})，每个ip只保留非空点。
+    不在这里直接取"最后一个点"：range查询的最后一个step正好落在"现在"，这类指标有采集/计算
+    延迟，末点为空是常见现象（仓库里其它取点代码也都是先filter掉null再取最后一点，见
+    db_monitor/tasks.py、doris/sync_cluster_remote_used.py）。直接按末点判缺失会让整轮
+    被判成数据不完整、自动调速长期不动作且不报错。真正的取点由 _pick_aligned_step 决定。
+    """
+    query_params = {
+        "bk_biz_id": bk_biz_id,
+        "query_configs": [
+            {
+                "data_source_label": "prometheus",
+                "data_type_label": "time_series",
+                "promql": promql,
+                "interval": 60,
+                "alias": "a",
+            }
+        ],
+        "expression": "a",
+        "alias": "a",
+        "start_time": start_timestamp,
+        "end_time": end_timestamp,
+        "slimit": 500,
+        "down_sample_range": "3m",
+        "type": "range",
+    }
+    response = BKMonitorV3Api.unify_query(query_params)
+    steps_by_ip: Dict[str, Dict[float, float]] = {}
+    series_count = 0
+    for series in response.get("series", []) if response else []:
+        series_count += 1
+        ip = series.get("dimensions", {}).get("bk_target_ip")
+        if not ip:
+            continue
+        for point in series.get("datapoints", []):
+            if point and point[0] is not None and len(point) > 1:
+                steps_by_ip.setdefault(ip, {})[point[1]] = point[0]
+    return series_count, steps_by_ip
+
+
+def _pick_aligned_step(step_maps: List[Dict[str, Dict[float, float]]], broker_ips: set) -> Optional[float]:
+    """
+    在两条查询共有的step里，选一个"对尽可能多broker都有值"的step，覆盖数并列时取更新的那个。
+    同一个step上取值，才能保证利用率跟带宽严格来自同一时刻（这是把利用率并成一条promql的
+    目的）；同时又不因为末点恰好没算出来（采集延迟）就把整轮作废——那只是让取点往后挪一个
+    step。覆盖率取max而不是"最新一个有数据的step"，是为了不让某一台broker的延迟把其它broker
+    的数据一起拖到更陈旧的时间点上。
+
+    返回选中的step时间戳；两条查询的step里一个可用的都没有（比如两边都没数据）时返回None，
+    调用方据此把每台broker都算成"整个窗口无数据"。注意返回的step有可能只覆盖部分broker，
+    甚至覆盖数为0（网格有交集、只是没有一台broker同时在两边同一个step上有值），
+    "是否所有broker都被覆盖"由调用方拿结果自己判断，不在这里兜底。
+    """
+    candidate_steps = set()
+    for ip_map in step_maps:
+        for steps in ip_map.values():
+            candidate_steps.update(steps)
+
+    best_step, best_cover = None, -1
+    for step in sorted(candidate_steps, reverse=True):
+        cover = sum(1 for ip in broker_ips if all(step in ip_map.get(ip, {}) for ip_map in step_maps))
+        if cover > best_cover:
+            best_step, best_cover = step, cover
+    return best_step
+
+
+def _collect_broker_stats(
+    broker_ips: set,
+    utilization_steps: Dict[str, Dict[float, float]],
+    bandwidth_steps: Dict[str, Dict[float, float]],
+    aligned_step: Optional[float],
+) -> Tuple[List[Dict], Dict[str, str]]:
+    """
+    逐台broker算利用率，返回 (结果列表, ip -> 缺失原因)。
+    "整个窗口都没有"和"选了对齐step后这个step上没有"要分开：前者是采集/指标本身的问题，
+    后者多半是这台机器采集延迟、落在了别的step上，排查方向完全不同。
+    """
+    utilization_by_ip = {ip: steps[aligned_step] for ip, steps in utilization_steps.items() if aligned_step in steps}
+    bandwidth_by_ip = {ip: steps[aligned_step] for ip, steps in bandwidth_steps.items() if aligned_step in steps}
+
+    results: List[Dict] = []
+    missing: Dict[str, str] = {}
+    for ip in broker_ips:
+        if ip not in bandwidth_steps:
+            missing[ip] = _("bandwidth指标整个窗口无数据")
+            continue
+        if ip not in utilization_steps:
+            missing[ip] = _("recv/sent指标整个窗口无数据")
+            continue
+        bandwidth_mbps = bandwidth_by_ip.get(ip)
+        if bandwidth_mbps is None:
+            missing[ip] = _("对齐step上bandwidth无数据（采集延迟）")
+            continue
+        if ip not in utilization_by_ip:
+            missing[ip] = _("对齐step上recv/sent无数据（采集延迟）")
+            continue
+        if not bandwidth_mbps:
+            missing[ip] = _("bandwidth指标为0")
+            continue
+        utilization_pct = round(utilization_by_ip[ip] * 100, 2)
+        # 流量仅作展示用，由同一个step的利用率×带宽反推，保证跟utilization_pct自洽
+        traffic_mbps = round(utilization_pct / 100 * bandwidth_mbps, 2)
+        results.append(
+            {
+                "bk_target_ip": ip,
+                "traffic_mbps": traffic_mbps,
+                "bandwidth_mbps": bandwidth_mbps,
+                "utilization_pct": utilization_pct,
+            }
+        )
+    return results, missing
+
+
+def get_broker_bandwidth_utilization(
+    cluster_id: int, on_missing: Optional[Callable[[str], None]] = None
+) -> List[Dict]:
     """
     逐台broker计算带宽利用率，返回每台broker的 [bk_target_ip, traffic_mbps, bandwidth_mbps, utilization_pct]。
+    on_missing是"本轮出了什么问题"的输出通道，传入调用方的日志方法（如sidecar的self.log_warning）时，
+    下面这些都会打到流程日志里——不只监控数据缺失，还包括带app查询覆盖不全后退回、两条查询没有共同
+    step这类情况，所以名字叫missing但语义是"本轮的异常/退化说明"：
+      · 监控数据缺失的明细（缺哪些IP、缺的是哪类指标）
+      · 按app查询覆盖不全、退回不带app查询的结果
+      · 利用率查询与带宽查询没有共同step
     """
     cluster = Cluster.objects.get(id=cluster_id)
     brokers = list(cluster.storageinstance_set.filter(instance_role=InstanceRole.BROKER.value))
@@ -291,72 +476,73 @@ def get_broker_bandwidth_utilization(cluster_id: int) -> List[Dict]:
     end_timestamp = int(timezone2timestamp(now))
     start_timestamp = int(timezone2timestamp(now - timedelta(minutes=5)))
 
-    def _query_latest_by_ip(promql: str) -> Dict[str, float]:
-        query_params = {
-            "bk_biz_id": cluster.bk_biz_id,
-            "query_configs": [
-                {
-                    "data_source_label": "prometheus",
-                    "data_type_label": "time_series",
-                    "promql": promql,
-                    "interval": 60,
-                    "alias": "a",
-                }
-            ],
-            "expression": "a",
-            "alias": "a",
-            "start_time": start_timestamp,
-            "end_time": end_timestamp,
-            "slimit": 500,
-            "down_sample_range": "3m",
-            "type": "range",
-        }
-        response = BKMonitorV3Api.unify_query(query_params)
-        result = {}
-        for series in response.get("series", []) if response else []:
-            ip = series.get("dimensions", {}).get("bk_target_ip")
-            values = [p[0] for p in series.get("datapoints", []) if p[0] is not None]
-            if ip and values:
-                result[ip] = values[-1]
-        return result
+    # app维度对应集群监控视图(Kafka Dashboard / bk_dataview/dashboards/json/kafka.json)里的 $app，
+    # 取值口径跟dashboard保持一致：db_monitor/models/dashboard.py 是用
+    # AppCache.get_app_attr(bk_biz_id, default=bk_biz_id) 渲染 $app 的（比直接查缓存多了CC兜底）
+    app_abbr = str(AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id) or "")
+    base_labels = f'cluster_domain="{cluster.immute_domain}",instance_role="broker"'
 
-    # speed_recv_bit/speed_sent_bit已经是bit/s（Kafka Dashboard验证过的指标，见
-    # backend/bk_dataview/dashboards/json/kafka.json），不是bytes/s的计数器，不能再套rate()，
-    # 换算Mbps时也不能再乘8——之前误当成bytes_recv/bytes_sent计数器用rate()包一层，
-    # 单位和指标名都是错的
-    recv_by_ip = _query_latest_by_ip(
-        "max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_recv_bit"
-        '{cluster_domain="%s",instance_role="broker"}[3m]))' % cluster.immute_domain
+    utilization_series_count, utilization_steps = _query_steps_by_ip(
+        cluster.bk_biz_id, _utilization_promql(f'app="{app_abbr}",{base_labels}'), start_timestamp, end_timestamp
     )
-    sent_by_ip = _query_latest_by_ip(
-        "max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_sent_bit"
-        '{cluster_domain="%s",instance_role="broker"}[3m]))' % cluster.immute_domain
-    )
-    # script_dbm_bandwidth 是通用带宽采集脚本指标（对应/etc/dbm_bandwidth），不带cluster_domain/instance_role
-    # 维度，只能按bk_target_ip在Python侧与本集群broker IP列表关联
-    bandwidth_by_ip = _query_latest_by_ip(
-        "max by (bk_target_ip) (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[3m]))"
+    # app的取值口径一旦跟监控series上的实际值对不上（业务改名、只有部分机器标签缺失等），
+    # 加了app会让部分甚至全部broker查不到数据、功能静默失效。cluster_domain本身已能唯一定位集群，
+    # 所以覆盖不全时退回不带app的查询再试一次，取覆盖更全的那次结果。这条不假设app一定有问题
+    # （数据本来就全缺时这里也会触发，紧接着的缺失明细才是结论）
+    if len(utilization_steps) < len(broker_ips):
+        without_app_series_count, without_app_steps = _query_steps_by_ip(
+            cluster.bk_biz_id, _utilization_promql(base_labels), start_timestamp, end_timestamp
+        )
+        if len(without_app_steps) > len(utilization_steps):
+            _report_skip(
+                _("集群{}按app={}查询带宽利用率只覆盖{}/{}台broker，退回不带app的查询后覆盖{}/{}台").format(
+                    cluster_id,
+                    app_abbr,
+                    len(utilization_steps),
+                    len(broker_ips),
+                    len(without_app_steps),
+                    len(broker_ips),
+                ),
+                on_missing,
+            )
+            utilization_series_count, utilization_steps = without_app_series_count, without_app_steps
+
+    bandwidth_series_count, bandwidth_steps = _query_steps_by_ip(
+        cluster.bk_biz_id, BANDWIDTH_PROMQL, start_timestamp, end_timestamp
     )
 
-    results = []
-    for ip in broker_ips:
-        # 三者必须同时有效才计算：只要有一侧监控数据缺失/延迟，就不能用另一侧当0凑出一个偏低的
-        # 利用率——那样会误判为"利用率不高"从而错误提速，跟"监控数据不完整时跳过本轮调速"的
-        # 原则矛盾
-        if ip not in recv_by_ip or ip not in sent_by_ip or ip not in bandwidth_by_ip:
-            logger.warning("broker %s 的recv/sent/bandwidth监控数据不完整，跳过该broker的利用率计算", ip)
-            continue
-        bandwidth_mbps = bandwidth_by_ip[ip]
-        if not bandwidth_mbps:
-            continue
-        traffic_bits_per_sec = recv_by_ip[ip] + sent_by_ip[ip]
-        traffic_mbps = traffic_bits_per_sec / 1024 / 1024
-        results.append(
-            {
-                "bk_target_ip": ip,
-                "traffic_mbps": round(traffic_mbps, 2),
-                "bandwidth_mbps": bandwidth_mbps,
-                "utilization_pct": round(traffic_mbps / bandwidth_mbps * 100, 2),
-            }
+    # 两条查询参数相同、step网格本该一致，完全错开属于异常情况（比如两条指标来自不同的采集源/
+    # 不同的时间对齐）。这时"每台broker都缺"的真正原因是没有共同step，不能落到下面的按台明细里
+    # 被说成"采集延迟"（那会把人往采集侧带）。
+    # 判定必须用"两个step集合无交集"，不能用"覆盖数==0"：网格有交集、只是没有任何一台broker
+    # 恰好同时在两边同一个step上有数据（利用率只有A、带宽只有B）也会让覆盖数为0，那种情况
+    # 按台明细（A缺bandwidth、B缺recv/sent）才是准确的
+    utilization_step_set = {step for steps in utilization_steps.values() for step in steps}
+    bandwidth_step_set = {step for steps in bandwidth_steps.values() for step in steps}
+    if utilization_step_set and bandwidth_step_set and not (utilization_step_set & bandwidth_step_set):
+        _report_skip(
+            _("集群{}的利用率查询与带宽查询没有共同的step（利用率{}个step、带宽{}个step），本轮跳过自动调速").format(
+                cluster_id, len(utilization_step_set), len(bandwidth_step_set)
+            ),
+            on_missing,
+        )
+        return []
+
+    aligned_step = _pick_aligned_step([utilization_steps, bandwidth_steps], broker_ips)
+    results, missing = _collect_broker_stats(broker_ips, utilization_steps, bandwidth_steps, aligned_step)
+
+    if missing:
+        _report_skip(
+            _("集群{}有{}/{}台broker带宽监控数据不完整，缺失明细: {}" "（利用率查询{}条series、带宽查询{}条series，对齐step={}，app标签={}）").format(
+                cluster_id,
+                len(missing),
+                len(broker_ips),
+                dict(sorted(missing.items())),
+                utilization_series_count,
+                bandwidth_series_count,
+                aligned_step if aligned_step is not None else _("<无可用step>"),
+                app_abbr or _("<未使用>"),
+            ),
+            on_missing,
         )
     return results
