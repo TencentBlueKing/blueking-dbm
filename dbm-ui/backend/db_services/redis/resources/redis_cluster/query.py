@@ -14,6 +14,8 @@ from django.db import connection
 from django.db.models import Q, QuerySet
 from django.utils.translation import gettext_lazy as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
@@ -34,6 +36,7 @@ from backend.db_services.dbbase.resources.register import register_resource_deco
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.resources.constants import REDIS_LIST_CLUSTER_TYPE, SQL_QUERY_MASTER_SLAVE_STATUS
+from backend.flow.consts import ConfigTypeEnum
 from backend.utils.basic import dictfetchall
 
 
@@ -193,6 +196,31 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
 
         role_host_ids = list(machines.values_list("bk_host_id", flat=True))
         return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
+
+    @classmethod
+    def get_cluster_dbs(cls, bk_biz_id: int, cluster_id: int) -> dict:
+        """获取 Redis 集群配置的 DB 索引列表"""
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        resp = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": cluster.major_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP,
+            }
+        )
+        databases = int((resp.get("content") or {}).get("databases", 0))
+        return {
+            "cluster_id": cluster.id,
+            "cluster_name": cluster.name,
+            "domain": cluster.immute_domain,
+            "databases": databases,
+            "dbs": list(range(databases)),
+        }
 
     @classmethod
     def _filter_cluster_hook(

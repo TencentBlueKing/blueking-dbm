@@ -113,3 +113,17 @@ class PasswordResourceSLZ(serializers.Serializer):
             "example": {"cluster_name": "hs1", "domain": "cache.tendis.dd.abc.db", "password": "123456"}
         }
         ref_name = f"{REF_NAME}_PasswordResourceSLZ"
+
+
+class RedisDBResourceSLZ(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {
+            "example": {
+                "cluster_id": 1001,
+                "cluster_name": "hs1",
+                "domain": "cache.tendis.dd.abc.db",
+                "databases": 2,
+                "dbs": [0, 1],
+            }
+        }
+        ref_name = f"{REF_NAME}_RedisDBResourceSLZ"
