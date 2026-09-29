@@ -1008,9 +1008,18 @@ class RedisActPayload(object):
             },
         }
 
+    def __get_proxy_servers(self, **kwargs) -> list:
+        # self.cluster is frozen at "初始化配置"; servers set on later nodes only arrive via params.
+        params = kwargs.get("params") or {}
+        if "servers" in params:
+            return params["servers"]
+        return self.cluster["servers"]
+
     def add_predixy_payload(self, **kwargs) -> dict:
-        """
-        predixy扩容
+        """Installs predixy for a rollback temp cluster (v1 REDIS_DATA_STRUCTURE, v2 REDIS_ROLLBACK).
+
+        Port and passwords come from the source cluster's config; `servers` is passed by the calling
+        node via `params`. Proxy scale-out uses `get_install_predixy_payload` instead.
         """
         self.proxy_pkg = Package.get_latest_package(
             version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
@@ -1028,7 +1037,7 @@ class RedisActPayload(object):
                 "predixypasswd": proxy_config["password"],
                 "predixyadminpasswd": proxy_config["redis_proxy_admin_password"],
                 "redispasswd": proxy_config["redis_password"],
-                "servers": self.cluster["servers"],
+                "servers": self.__get_proxy_servers(**kwargs),
                 "dbconfig": proxy_config,
                 "mediapkg": {
                     "pkg": self.proxy_pkg.name,
@@ -1057,8 +1066,10 @@ class RedisActPayload(object):
         }
 
     def add_twemproxy_payload(self, **kwargs) -> dict:
-        """
-        twemproxy扩容
+        """Installs twemproxy for a rollback temp cluster (v1 REDIS_DATA_STRUCTURE, v2 REDIS_ROLLBACK).
+
+        Port and passwords come from the source cluster's config; `servers` is passed by the calling
+        node via `params`. Proxy scale-out uses `get_install_twemproxy_payload` instead.
         """
         self.proxy_pkg = Package.get_latest_package(
             version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
@@ -1081,7 +1092,7 @@ class RedisActPayload(object):
                 "conf_configs": proxy_config,
                 # 以下为流程中需要补充的参数
                 "ip": kwargs["ip"],
-                "servers": self.cluster["servers"],
+                "servers": self.__get_proxy_servers(**kwargs),
             },
         }
 
@@ -1495,6 +1506,17 @@ class RedisActPayload(object):
             "action": DBActuatorTypeEnum.Bkdbmon.value + "_" + RedisActuatorActionEnum.Install.value,
             "payload": payload,
         }
+
+    def redis_rollback_dbmon_payload(self, **kwargs) -> dict:
+        """bk-dbmon for rollback temp hosts: only heartbeat and maxmemory_set stay scheduled.
+
+        Backups would report under the source domain and monitor would count temp instances
+        against the source cluster; dbmon skips any job whose cron is empty.
+        """
+        payload = self.bkdbmon_install(**kwargs)
+        for job in ("redis_fullbackup", "redis_binlogbackup", "redis_keylife", "redis_monitor"):
+            payload["payload"][job]["cron"] = ""
+        return payload
 
     @staticmethod
     def get_bkdbmon_servers_params(cluster: Cluster, ip: str) -> dict:

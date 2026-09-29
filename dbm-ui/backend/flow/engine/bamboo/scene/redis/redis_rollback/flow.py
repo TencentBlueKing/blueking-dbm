@@ -137,20 +137,10 @@ class RedisRollbackFlow:
                 },
             )
 
-        trans_acts = []
+        redis_pipeline.add_parallel_acts(acts_list=self._trans_file_acts(plan, act_kwargs, dest_ips))
+
         init_acts = []
         for ip in dest_ips:
-            trans_kwargs = deepcopy(act_kwargs)
-            # Instance installation runs inline during restore; transfer all packages (actuator, redis, tools, dbmon).
-            trans_kwargs.file_list = GetFileList(db_type=DBType.Redis).redis_cluster_apply_backend(plan.db_version)
-            trans_kwargs.exec_ip = ip
-            trans_acts.append(
-                {
-                    "act_name": _("Redis-{}-下发介质包").format(ip),
-                    "act_component_code": TransFileComponent.code,
-                    "kwargs": asdict(trans_kwargs),
-                }
-            )
             init_kwargs = deepcopy(act_kwargs)
             init_kwargs.exec_ip = ip
             init_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
@@ -161,7 +151,6 @@ class RedisRollbackFlow:
                     "kwargs": asdict(init_kwargs),
                 }
             )
-        redis_pipeline.add_parallel_acts(acts_list=trans_acts)
         redis_pipeline.add_parallel_acts(acts_list=init_acts)
 
         plugin_acts = [
@@ -379,6 +368,29 @@ class RedisRollbackFlow:
             )
         return redis_pipeline.build_sub_process(sub_name=_("集群[{}]回档").format(plan.immute_domain))
 
+    @staticmethod
+    def _trans_file_acts(plan, act_kwargs, dest_ips) -> list:
+        # Instances are installed inside the restore act, and the proxy on dest_ips[0] afterwards,
+        # so every package they need goes out in this single transfer.
+        file_list = GetFileList(db_type=DBType.Redis)
+        backend_files = file_list.redis_cluster_apply_backend(plan.db_version)
+        acts = []
+        for ip in dest_ips:
+            trans_kwargs = deepcopy(act_kwargs)
+            trans_kwargs.exec_ip = ip
+            trans_kwargs.file_list = backend_files
+            if ip == dest_ips[0] and is_have_proxy(plan.cluster_type):
+                proxy_files = file_list.redis_cluster_apply_proxy(plan.cluster_type)
+                trans_kwargs.file_list = list(dict.fromkeys(backend_files + proxy_files))
+            acts.append(
+                {
+                    "act_name": _("Redis-{}-下发介质包").format(ip),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(trans_kwargs),
+                }
+            )
+        return acts
+
     def _install_dbmon(self, plan, act_kwargs, pipeline):
         app = AppCache.get_app_attr(plan.bk_biz_id, "db_app_abbr")
         app_name = AppCache.get_app_attr(plan.bk_biz_id, "bk_biz_name")
@@ -403,7 +415,7 @@ class RedisRollbackFlow:
                     "cache_backup_mode": "",
                 }
             ]
-            dbmon_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+            dbmon_kwargs.get_redis_payload_func = RedisActPayload.redis_rollback_dbmon_payload.__name__
             acts.append(
                 {
                     "act_name": _("Redis-{}-安装监控").format(dest_host.ip),
@@ -414,18 +426,9 @@ class RedisRollbackFlow:
         pipeline.add_parallel_acts(acts_list=acts)
 
     def _deploy_proxy(self, plan, act_kwargs, dest_ips, pipeline):
-        if not is_have_proxy(plan.cluster_type):
-            act_kwargs.new_install_proxy_exec_ip = dest_ips[0]
-            return
         act_kwargs.new_install_proxy_exec_ip = dest_ips[0]
-        trans_kwargs = deepcopy(act_kwargs)
-        trans_kwargs.exec_ip = dest_ips[0]
-        trans_kwargs.file_list = GetFileList(db_type=DBType.Redis).redis_cluster_apply_proxy(plan.cluster_type)
-        pipeline.add_act(
-            act_name=_("{}proxy下发介质包").format(dest_ips[0]),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(trans_kwargs),
-        )
+        if not is_have_proxy(plan.cluster_type):
+            return
         servers = []
         if is_twemproxy_proxy_type(plan.cluster_type):
             for item in plan.items:
