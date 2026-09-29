@@ -8,7 +8,7 @@ from backend.configuration.constants import DBType
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_report", "0049_mysqlclusterskewreport"),
+        ("db_report", "0048_flownodenamealias_flownodedurationbaseline_and_more"),
     ]
 
     operations = [
