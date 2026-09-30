@@ -10,26 +10,34 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
+from rest_framework import status
 from rest_framework.decorators import action
 
-from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_dirty.filters import DirtyMachinePoolFilter
 from backend.db_dirty.models import DirtyMachine
-from backend.db_dirty.serializers import ListMachinePoolSerializer
+from backend.db_dirty.serializers import ListMachinePoolResponseSerializer, TransferDirtyMachineSerializer
+from backend.db_dirty.views import DBDirtyMachineViewSet
 from backend.db_services.plugin.constants import SWAGGER_TAG
 from backend.db_services.plugin.view import BaseOpenAPIViewSet
 
 logger = logging.getLogger("root")
 
 
-class DBDirtyMachineViewSet(BaseOpenAPIViewSet):
-    filter_class = None
-    pagination_class = AuditedLimitOffsetPagination
+class DBDirtyMachineApiGwViewSet(BaseOpenAPIViewSet, DBDirtyMachineViewSet):
+    @common_swagger_auto_schema(
+        operation_summary=_("将主机转移至待回收/故障池模块"),
+        request_body=TransferDirtyMachineSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=TransferDirtyMachineSerializer)
+    def transfer_hosts_to_pool(self, request):
+        return super().transfer_hosts_to_pool(request)
 
     @common_swagger_auto_schema(
         operation_summary=_("主机池查询"),
+        responses={status.HTTP_200_OK: ListMachinePoolResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(
@@ -39,6 +47,4 @@ class DBDirtyMachineViewSet(BaseOpenAPIViewSet):
         queryset=DirtyMachine.objects.all().order_by("-update_at"),
     )
     def query_machine_pool(self, request):
-        machine_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
-        machine_data = ListMachinePoolSerializer(machine_qs, many=True).data
-        return self.paginator.get_paginated_response(data=machine_data)
+        return super().query_machine_pool(request)
