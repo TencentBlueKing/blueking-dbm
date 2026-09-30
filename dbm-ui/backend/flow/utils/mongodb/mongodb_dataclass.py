@@ -3241,3 +3241,16 @@ def payload_func_install_dbmon(db_act_template: dict, ctx: CommonContext) -> dic
     nodes = instances_by_ip[exec_ip]
     db_act_template["payload"]["servers"] = [node.__json__() for node in nodes]  # 必须强制为list，默认是set
     return db_act_template
+
+
+def payload_func_pitr_restore(db_act_template: dict, ctx: CommonContext) -> dict:
+    """从 trans_data.pitr_backup_records 注入 srcAddr。PITR 备份记录在运行期节点查出。"""
+    if db_act_template.get("payload", {}).get("srcAddr"):
+        return db_act_template
+    src_set_name = db_act_template.get("src_set_name")
+    records = (ctx.get("pitr_backup_records") or {}).get(src_set_name) or {}
+    task_ids = records.get("task_ids") or []
+    if not task_ids:
+        raise Exception("pitr_backup_records missing for set_name={}".format(src_set_name))
+    db_act_template["payload"]["srcAddr"] = task_ids[0]["instance"]
+    return db_act_template

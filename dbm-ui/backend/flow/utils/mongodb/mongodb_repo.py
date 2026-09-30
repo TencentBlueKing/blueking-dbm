@@ -379,8 +379,13 @@ class ShardedCluster(MongoDBCluster):
             matches = re.findall("[0-9]+$", set_name)
             return int(matches[-1]) if matches else 0
 
+        def __sort_key(set_name: str):
+            # 现网存在不带编号的set_name，编号一律取0，此时用名字兜底保证顺序确定。
+            # nosqlstoragesetdtl 查询没有 order_by，不能依赖CMDB行序。
+            return __get_shard_idx(set_name), set_name
+
         ordered_shards = (
-            sorted(self.shards, key=lambda x: __get_shard_idx(x.set_name)) if sort_by_set_name else list(self.shards)
+            sorted(self.shards, key=lambda x: __sort_key(x.set_name)) if sort_by_set_name else list(self.shards)
         )
 
         shards = []
@@ -408,7 +413,8 @@ class ShardedCluster(MongoDBCluster):
             "app": self.app,
             "region": self.region,
             "mongos": [m.__json__() for m in self.mongos],
-            "shards": [s.__json__() for s in self.shards],
+            # 与 get_shards(sort_by_set_name=True) / PITR 回档配对一致，避免 CMDB 主键序 zip 错位
+            "shards": [s.__json__() for s in self.get_shards(sort_by_set_name=True)],
             "configsvr": self.config.__json__(),
         }
 

@@ -44,9 +44,18 @@ class MongoDownloadBackupFile(BaseService):
         trans_data.set("retry", retry_times + 1)
         data.outputs["trans_data"] = trans_data  # update
 
+        task_ids = kwargs.get("task_ids") or []
+        src_set_name = kwargs.get("src_set_name")
+        if not task_ids:
+            records = (trans_data.get("pitr_backup_records") or {}).get(src_set_name) or {}
+            task_ids = [item.get("task_id") for item in records.get("task_ids") or [] if item.get("task_id")]
+        if not task_ids:
+            self.log_error(_("未找到分片 {} 的备份 task_ids").format(src_set_name))
+            return False
+
         params = {
             "bk_cloud_id": kwargs["bk_cloud_id"],
-            "taskid_list": kwargs["task_ids"],
+            "taskid_list": task_ids,
             "login_user": kwargs["login_user"],
             "login_passwd": kwargs["login_passwd"],
             "dest_ip": kwargs["dest_ip"],

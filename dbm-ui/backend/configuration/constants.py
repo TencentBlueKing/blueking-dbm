@@ -211,6 +211,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     DISABLE_DBHA_AUTOFIX_APPS = EnumField("DISABLE_DBHA_AUTOFIX_APPS", _("DBHA业务自动修复开关"))
     # 平台内置兜底告警组信息
     PLATFORM_ALERT_GROUP_INFO = EnumField("PLATFORM_ALERT_GROUP_INFO", _("平台内置兜底告警组信息"))
+    # MongoDB PITR 查询备份记录时，单次 BKLog 查询包含的分片数
+    MONGODB_PITR_SET_QUERY_BATCH = EnumField("MONGODB_PITR_SET_QUERY_BATCH", _("MongoDB PITR单次查询分片数"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):
@@ -388,6 +390,7 @@ DEFAULT_SETTINGS = [
     # }
     [SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS, "list", [], _("禁用DBHA自动修复配置")],
     [SystemSettingsEnum.PACKAGE_SUPPORT_SYSTEMS.value, "dict", DEFAULT_PACKAGE_SUPPORT_SYSTEMS, _("介质支持的操作系统")],
+    [SystemSettingsEnum.MONGODB_PITR_SET_QUERY_BATCH.value, "int", 80, _("MongoDB PITR单次查询分片数")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
