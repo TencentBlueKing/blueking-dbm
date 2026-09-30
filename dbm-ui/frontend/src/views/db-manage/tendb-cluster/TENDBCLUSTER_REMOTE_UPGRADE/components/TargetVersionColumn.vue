@@ -82,7 +82,14 @@
         <div class="content-item">
           <div class="item-title">{{ t('版本包文件') }}：</div>
           <div class="item-content">
+            <span
+              v-if="pkgReadonly"
+              v-overflow-tips
+              class="text-overflow">
+              {{ modelValue.pkg_name || '--' }}
+            </span>
             <InnerSelect
+              v-else
               is-plain
               :list="packageSelectList"
               :model-value="pkgId"
@@ -136,12 +143,14 @@
      */
     higherSubVersion?: boolean;
     moduleReadonly?: boolean;
+    pkgReadonly?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     higherMajorVersion: false,
     higherSubVersion: false,
     moduleReadonly: false,
+    pkgReadonly: false,
   });
 
   const modelValue = defineModel<{

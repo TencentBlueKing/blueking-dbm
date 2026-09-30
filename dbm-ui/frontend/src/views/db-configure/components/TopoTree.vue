@@ -18,19 +18,19 @@
     :z-index="12">
     <div class="config-tree">
       <div class="config-tree-search">
-        <BkInput
-          v-model="treeState.search"
-          :placeholder="t('请输入模块名')"
-          type="search" />
+        <DbQuickSearch
+          v-model="treeSearchValue"
+          :data="searchSelectData" />
       </div>
       <BkTree
         ref="treeRef"
-        :data="treeState.data"
-        :indent="16"
+        :data="displayTreeData"
+        :indent="0"
         label="name"
+        :line-height="48"
         :node-content-action="['click']"
         node-key="treeId"
-        :offset-left="24"
+        :offset-left="8"
         :prefix-icon="treePrefixIcon"
         :search="treeSearchConfig"
         :selected="treeState.selected"
@@ -41,10 +41,25 @@
             <span class="config-tree-tag">
               {{ getIconText(item) }}
             </span>
+            <div class="config-tree-text">
+              <span
+                v-overflow-tips="{ content: item.name, placement: 'right' }"
+                class="config-tree-name text-overflow">
+                {{ item.name }}
+              </span>
+              <!-- 模块节点第二行：`${存储层系列}，${字符集}` -->
+              <span
+                v-if="item.levelType === ConfLevels.MODULE && item.subDescription"
+                v-overflow-tips="{ content: item.subDescription, placement: 'right' }"
+                class="config-tree-desc text-overflow">
+                {{ item.subDescription }}
+              </span>
+            </div>
+            <!-- 模块节点右端：关联集群数（灰底小方块，≥1000 显示 999+，纯展示） -->
             <span
-              v-overflow-tips="{ content: item.name, placement: 'right' }"
-              class="config-tree-name text-overflow">
-              {{ item.name }}
+              v-if="item.levelType === ConfLevels.MODULE"
+              class="cluster-count-tag">
+              {{ formatClusterCount(item.clusters?.length ?? 0) }}
             </span>
             <AuthButton
               v-if="item.levelType === ConfLevels.APP && isShowAddBtn"
@@ -62,7 +77,7 @@
         <template #empty>
           <EmptyStatus
             :is-anomalies="treeState.isAnomalies"
-            :is-searching="!!treeState.search"
+            :is-searching="isSearching"
             @clear-search="handleClearSearch"
             @refresh="handleRefresh" />
         </template>
@@ -78,6 +93,7 @@
   import { clusterTypeInfos, ClusterTypes, ConfLevels, DBTypes } from '@common/const';
 
   import AuthButton from '@components/auth-component/button.vue';
+  import type { Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import type { TreeData, TreeState } from '@views/db-configure/common/types';
@@ -93,8 +109,62 @@
     search: '',
   });
 
-  const { createModule, fetchBusinessTopoTree, handleSelectedTreeNode, treePrefixIcon, treeRef, treeSearchConfig } =
-    useTreeData(treeState);
+  const {
+    charsetOptions,
+    createModule,
+    fetchBusinessTopoTree,
+    filterTreeBySearch,
+    handleSelectedTreeNode,
+    treePrefixIcon,
+    treeRef,
+    treeSearchConfig,
+    treeSearchValue,
+  } = useTreeData(treeState);
+
+  // 默认按模块名搜索，字符集候选取当前树数据去重结果
+  const searchSelectData = computed<QuickSearchProps['data']>(() => [
+    {
+      default: true,
+      id: 'moduleName',
+      name: t('模块名'),
+      type: 'input',
+    },
+    {
+      id: 'moduleId',
+      name: t('模块 ID'),
+      type: 'input',
+    },
+    {
+      id: 'charset',
+      list: charsetOptions.value.map((item) => ({
+        label: item,
+        value: item,
+      })),
+      name: t('字符集'),
+      type: 'multiple',
+    },
+  ]);
+
+  /** 应用分字段过滤后的树数据 */
+  const displayTreeData = computed(() => filterTreeBySearch(treeState.data));
+
+  /** 是否处于搜索态（含原关键字搜索与分字段条件） */
+  const isSearching = computed(() => Boolean(treeState.search) || Object.values(treeSearchValue.value).some(Boolean));
+
+  /** 关联集群数：≥1000 显示 999+（口径同详情，纯展示） */
+  const formatClusterCount = (count: number) => (count >= 1000 ? '999+' : String(count));
+
+  const handleClearSearch = () => {
+    treeState.search = '';
+    treeSearchValue.value = {};
+  };
+
+  const handleRefresh = () => {
+    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
+    if (dbType) {
+      fetchBusinessTopoTree(dbType);
+    }
+  };
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
   const dbType = computed(() => clusterTypeInfos[clusterType.value as ClusterTypes]?.dbType || DBTypes.MYSQL);
@@ -113,17 +183,6 @@
     return '集';
   };
 
-  const handleClearSearch = () => {
-    treeState.search = '';
-  };
-
-  const handleRefresh = () => {
-    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
-    if (dbType) {
-      fetchBusinessTopoTree(dbType);
-    }
-  };
-
   defineExpose({
     handleRefresh,
     treeState,
@@ -132,38 +191,84 @@
 
 <style lang="less" scoped>
   .config-tree {
+    display: flex;
     height: 100%;
+    min-width: 0;
     padding: 16px;
     background-color: @bg-white;
+    flex-direction: column;
+    gap: 16px;
 
-    .bk-tree {
-      height: calc(100% - 42px) !important;
+    .config-tree-search {
+      flex-shrink: 0;
+    }
+
+    /* 行与搜索框左右对齐（设计源：同为 16px 内缩、等宽）；预留滚动条宽度，
+       行内容不再被滚动条压住；overflow: clip 防止行底色横向溢出到侧栏之外 */
+    :deep(.bk-tree) {
+      min-width: 0;
+      min-height: 0;
+      overflow: clip;
+      flex: 1;
       font-size: 12px;
 
-      :deep(.bk-node-prefix) {
-        color: #979ba5;
+      .bk-tree-container {
+        overflow: auto;
+        scrollbar-gutter: stable;
       }
 
-      :deep(.bk-node-row) {
-        padding-left: 8px;
+      /* 设计稿行内边距 8px；展开箭头占位（node-action）补足到名称起点 */
+      .bk-node-row {
+        padding-right: 8px;
+      }
 
-        &:hover {
-          background-color: #e1ecff;
-        }
+      .bk-node-prefix {
+        width: 12px;
+        height: 12px;
+        color: #3a84ff;
+      }
+
+      .bk-node-action {
+        width: 12px;
+        margin-right: 8px;
+        color: #3a84ff;
       }
     }
 
     .config-tree-node {
       display: flex;
+      width: 100%;
+      min-width: 0;
       align-items: center;
-      padding: 0 4px;
+    }
+
+    /* 模块名与第二行描述左对齐，整列作为节点正文区 */
+    .config-tree-text {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .config-tree-name {
+      font-size: 12px;
+      line-height: 20px;
+      color: #4d4f56;
+    }
+
+    .config-tree-desc {
+      font-size: 12px;
+      line-height: 20px;
+      color: #979ba5;
     }
 
     .config-tree-tag {
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       margin-right: 8px;
-      line-height: 20px;
+      font-size: 12px;
+      line-height: 24px;
       color: white;
       text-align: center;
       background-color: #c4c6cc;
@@ -171,31 +276,35 @@
       border-radius: 50%;
     }
 
-    .config-tree-name {
-      flex: 1;
-      margin-right: 4px;
+    .cluster-count-tag {
+      height: 18px;
+      padding: 0 8px;
+      margin-left: 8px;
+      font-size: 12px;
+      line-height: 18px;
+      color: #4d4f56;
+      text-align: center;
+      background-color: #f0f1f5;
+      border-radius: 2px;
+      flex-shrink: 0;
     }
 
     .config-tree-add-btn {
-      display: none;
+      display: flex;
       width: 26px;
       height: 26px;
       min-width: 26px;
       padding: 5px;
+      margin-left: 8px;
       border-radius: 2px;
     }
 
     :deep(.bk-node-row) {
       &.is-selected {
-        color: @primary-color;
         background-color: #e1ecff;
 
-        .bk-node-prefix {
-          color: #3a84ff;
-        }
-
-        .config-tree-add-btn {
-          display: flex;
+        .config-tree-name {
+          color: @primary-color;
         }
 
         .config-tree-tag {
@@ -203,16 +312,6 @@
         }
       }
 
-      &:hover {
-        .config-tree-add-btn {
-          display: flex;
-        }
-      }
-    }
-
-    .config-tree-search {
-      display: flex;
-      margin-bottom: 16px;
     }
   }
 </style>

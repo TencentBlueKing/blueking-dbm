@@ -11,7 +11,7 @@
 <template>
   <DbSideslider
     v-if="isShowAddParam"
-    ref="sideslider"
+    class="param-form-sideslider"
     :is-show="isShowAddParam"
     quick-close
     render-directive="show"
@@ -637,12 +637,16 @@
 
 <style lang="less" scoped>
   .add-param-content {
-    padding: 24px;
+    padding: 24px 24px 32px;
+
+    :deep(.bk-form > .bk-form-item:last-child) {
+      margin-bottom: 0;
+    }
 
     .form-section {
       padding: 16px 20px;
       margin-bottom: 24px;
-      background: #fafbfd;
+      background: #f5f7fa;
       border-radius: 2px;
     }
 
@@ -707,6 +711,13 @@
       margin-left: 4px;
       font-size: 12px;
       color: #979ba5;
+    }
+  }
+
+  .param-form-sideslider {
+    :deep(.bk-modal-footer:not(.is-fixed) .bk-sideslider-footer) {
+      padding-bottom: 24px;
+      margin-top: 0;
     }
   }
 

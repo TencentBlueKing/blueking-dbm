@@ -36,7 +36,8 @@
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster"
-            higher-major-version />
+            higher-major-version
+            pkg-readonly />
           <EditableColumn
             :label="t('规格')"
             :min-width="200"

@@ -14,7 +14,9 @@
 <template>
   <ApplyPermissionCatch>
     <BkLoading :loading="loading">
-      <div class="param-operations mb-16">
+      <div
+        class="param-operations mb-16"
+        :class="{ 'is-sticky': stickyOperations }">
         <div>
           <AuthTemplate
             :action-id="actionId"
@@ -39,7 +41,7 @@
               }"
               :disabled="selectedRows.length === 0"
               @click="handleShowBatchRestoreInfoBox">
-              {{ t('批量处理自定义') }}
+              {{ t('恢复默认') }}
             </BkButton>
           </AuthTemplate>
         </div>
@@ -352,6 +354,8 @@
     rowKey?: string;
     /** 是否支持行选择（批量编辑） */
     selectable?: boolean;
+    /** 是否将操作栏吸附在参数 Tab 下方 */
+    stickyOperations?: boolean;
     version: string;
   }
 
@@ -364,6 +368,7 @@
     levelValue: window.PROJECT_CONFIG.BIZ_ID,
     rowKey: 'conf_name',
     selectable: false,
+    stickyOperations: false,
   });
 
   const emit = defineEmits<(e: 'change') => void>();
@@ -1039,7 +1044,7 @@
       headerAlign: 'left',
       title: () =>
         h('div', { class: 'custom-title' }, [
-          h('span', { class: 'custom-title-text' }, t('确认批量处理自定义参数')),
+          h('span', { class: 'custom-title-text' }, t('确认批量恢复默认参数？')),
           h('span', { class: 'custom-sub-title' }, [
             t('已选'),
             h('span', { class: 'sub-title-num' }, String(total)),
@@ -1134,6 +1139,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+
+    &.is-sticky {
+      position: sticky;
+      top: var(--param-operations-sticky-top, calc(42px - var(--db-content-padding-top, 0px)));
+      z-index: 98;
+      padding: 16px 0;
+      margin-top: -16px;
+      background: #fff;
+    }
   }
 
   .param-operations-left {
@@ -1155,8 +1169,8 @@
 
   .inline-edit-cell-confirm {
     display: inline-flex;
-    height: 26px;
-    min-width: 26px;
+    height: 32px;
+    min-width: 32px;
     padding: 0;
     font-size: 16px;
     align-items: center;
@@ -1165,8 +1179,8 @@
 
   .inline-edit-cell-cancel {
     display: inline-flex;
-    height: 26px;
-    min-width: 26px;
+    height: 32px;
+    min-width: 32px;
     padding: 0;
     font-size: 16px;
     align-items: center;

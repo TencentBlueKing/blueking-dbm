@@ -252,6 +252,7 @@ export function updateResource(params: {
   for_biz?: number;
   host_id_ip_map?: Record<string, string>; // update_type 相关字段
   labels?: number[];
+  os_name?: string;
   rack_id?: string;
   remark?: {
     [key: string]: {

@@ -14,7 +14,7 @@
 <template>
   <ApplyPermissionCatch>
     <div class="config-detail-page">
-      <div class="config-detail-page-content db-scroll-y">
+      <div class="config-detail-page-content">
         <!-- 参数信息 -->
         <DbCard>
           <BkAlert
@@ -29,11 +29,13 @@
           <ParamTable
             :conf-type="confType"
             :config-name="configName"
+            fixed-pagination
             :level-info="levelParams.level_info"
             :level-name="levelParams.level_name"
             :level-value="levelParams.level_value"
             :namespace="namespace"
             selectable
+            sticky-operations
             :version="version"
             @change="handleParamChange">
           </ParamTable>
@@ -189,6 +191,8 @@
   }
 
   .config-detail-page-content {
+    --param-operations-sticky-top: calc(-1 * var(--db-content-padding-top, 0px));
+
     padding: 24px;
     border-radius: 2px;
 

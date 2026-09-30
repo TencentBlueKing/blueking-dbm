@@ -22,13 +22,17 @@
       " />
     <DbForm
       ref="formRef"
-      class="create-module-page db-scroll-y"
-      :label-width="100"
+      class="create-module-page"
+      :label-width="160"
       :model="formData"
       :rules="rules"
       :scroll-align-to-top="false">
-      <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
-      <div class="module-info-card">
+      <!-- 模块信息 + 存储层 / 接入层：同一张白卡，两个层用浅灰块分组 -->
+      <DbCard
+        v-model:collapse="isModuleInfoExpanded"
+        class="module-info-card"
+        mode="collapse"
+        :title="t('模块信息')">
         <FormItemWithHint
           class="form-item-name"
           :label="t('模块名称')"
@@ -45,61 +49,58 @@
               v-model="formData.alias_name"
               class="module-name-input"
               :maxlength="63"
-              :placeholder="t('请输入模块名')"
+              :placeholder="t('由英文字母、数字、连字符组成')"
               show-word-limit
               @change="handleValidate" />
             <DomainPreview :module-name="formData.alias_name" />
           </div>
         </FormItemWithHint>
         <BkFormItem
-          :label="t('数据库信息')"
+          :label="t('字符集')"
           required>
-          <div class="db-config-row">
-            <DbTag
-              class="db-type-tag"
-              theme="info"
-              type="stroke">
-              <template #icon>
-                <i class="db-icon-mysql mr-5" />
-              </template>
-              {{ clusterTypeInfos[clusterType]?.name }}
-            </DbTag>
-            <FormItemWithHint
-              class="version-form-item"
-              property="db_version"
-              required
-              :show-label="false">
-              <DbVersionSelect
-                v-model="formData.db_version"
-                class="version-select-inline"
-                :db-type="DBTypes.MYSQL"
-                :prefix="t('存储层版本')"
-                @change="handleValidate" />
-            </FormItemWithHint>
-            <FormItemWithHint
-              class="charset-form-item"
-              property="charset"
-              required
-              :show-label="false">
-              <DbSelect
-                v-model="formData.charset"
-                class="charset-select-inline"
-                :clearable="false"
-                :disabled="isBindSuccessfully"
-                filterable
-                :placeholder="t('请选择字符集')"
-                :prefix="t('字符集')"
-                @change="handleValidate">
-                <DbOption
-                  v-for="(item, index) of characterSets"
-                  :key="index"
-                  :label="item"
-                  :value="item" />
-              </DbSelect>
-            </FormItemWithHint>
-          </div>
+          <DbSelect
+            v-model="formData.charset"
+            class="charset-select"
+            :clearable="false"
+            :disabled="isBindSuccessfully"
+            filterable
+            :placeholder="t('请选择字符集')"
+            @change="handleValidate">
+            <DbOption
+              v-for="(item, index) of characterSets"
+              :key="index"
+              :label="item"
+              :value="item" />
+          </DbSelect>
         </BkFormItem>
-      </div>
+
+        <!-- 存储层：三级版本选型 + OS 约束（仅启用版本可选） -->
+        <div class="layer-config-card">
+          <div class="layer-title">{{ t('存储层') }}</div>
+          <VersionOsEditor
+            ref="storageEditorRef"
+            :db-type="DBTypes.MYSQL"
+            default-distribution-name="TXSQL"
+            pkg-type="mysql"
+            @before-series-change="handleBeforeStorageSeriesChange"
+            @change="handleStorageChange" />
+        </div>
+
+        <!-- 接入层：仅 MySQL 主从（tendbha）；系列 → 版本号，发行版隐式 DBM -->
+        <div
+          v-if="clusterType === ClusterTypes.TENDBHA"
+          class="layer-config-card">
+          <div class="layer-title">{{ t('接入层') }}</div>
+          <VersionOsEditor
+            ref="proxyEditorRef"
+            :db-type="DBTypes.MYSQL"
+            default-distribution-name="DBM"
+            pkg-type="mysql-proxy"
+            :show-distribution="false"
+            @before-series-change="handleBeforeProxySeriesChange"
+            @change="handleProxyChange" />
+        </div>
+      </DbCard>
 
       <!-- 参数配置 — 四个 Tab -->
       <div class="param-config-wrapper">
@@ -113,23 +114,28 @@
             :name="tab.conf_file"
             render-directive="show">
             <template #label>
-              {{ tab.name }}
-              <span
-                v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
-                class="tab-modified-dot" />
+              <span class="param-tab-label">
+                {{ tab.name }}
+                <span
+                  v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
+                  class="tab-modified-dot" />
+              </span>
             </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
               :conf-type="tab.conf_type"
               :namespace="tab.namespace"
+              :sticky-operations="activeConfType === tab.conf_file"
               :version="tab.conf_file" />
           </BkTabPanel>
         </BkTab>
       </div>
     </DbForm>
     <template #action>
+      <!-- §2.3 创建按钮：该层版本未选齐则不可用；指定范围已选为空亦不可用 -->
       <BkButton
         class="w-88"
+        :disabled="!isVersionSelectionComplete"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -159,11 +165,17 @@
     </template>
   </SmartAction>
   <Teleport to="#dbContentTitleAppend">
-    <span class="create-module-nav-desc"> {{ t('业务') }} : {{ bizInfo.name }} </span>
+    <span class="create-module-nav">
+      <DbTag theme="info">
+        {{ clusterTypeInfos[clusterType]?.name || clusterType }}
+      </DbTag>
+      <span class="create-module-nav-desc"> {{ t('业务') }} : {{ bizInfo.name }} </span>
+    </span>
   </Teleport>
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { I18nT, useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -178,11 +190,11 @@
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   import DomainPreview from '@views/db-configure/components/DomainPreview.vue';
+  import VersionOsEditor, { type VersionOsValue } from '@views/db-configure/components/VersionOsEditor.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
-  import { random } from '@utils';
+  import { messageError, random } from '@utils';
 
-  import DbVersionSelect from '../components/DbVersionSelect.vue';
   import ParamTable from '../components/ParamTable.vue';
 
   type Emits = (e: 'routerBack') => void;
@@ -204,6 +216,9 @@
   const isBindSuccessfully = ref(false);
   const isSubmitting = ref(false);
 
+  /** 模块信息卡展开态：校验失败时自动展开，避免错误提示被折叠隐藏 */
+  const isModuleInfoExpanded = ref(true);
+
   // 表单数据
   const getFormData = () => ({
     alias_name: (route.query.alias_name ?? '') as string,
@@ -212,6 +227,84 @@
   });
   const formData = reactive(getFormData());
   const formRef = ref();
+
+  // 集群类型 → 协议组件名映射（创建模块 db_versions 的 key）
+  const clusterComponentNames: Record<string, string[]> = {
+    [ClusterTypes.TENDBHA]: ['backend', 'proxy'],
+    [ClusterTypes.TENDBSINGLE]: ['single'],
+  };
+
+  /** 组件名 → 展示层名（提交校验提示用） */
+  const componentLabelMap: Record<string, string> = {
+    backend: '存储层',
+    proxy: '接入层',
+    single: '存储层',
+  };
+
+  /** 存储层选型值（backend / single） */
+  const storageVersion = ref<VersionOsValue>({
+    distributionId: '',
+    osMode: 'follow',
+    osType: '',
+    seriesId: '',
+    specifyOs: [],
+    versionId: '',
+  });
+  /** 接入层选型值（proxy，仅主从） */
+  const proxyVersion = ref<VersionOsValue>({
+    distributionId: '',
+    osMode: 'follow',
+    osType: '',
+    seriesId: '',
+    specifyOs: [],
+    versionId: '',
+  });
+
+  const storageEditorRef = ref<InstanceType<typeof VersionOsEditor>>();
+  const proxyEditorRef = ref<InstanceType<typeof VersionOsEditor>>();
+
+  /** 存储层选型变化：更新 db_version（参数 Tab 依赖）并同步校验 */
+  const handleStorageChange = (value: VersionOsValue) => {
+    storageVersion.value = value;
+    // 参数 Tab 的版本标识取系列名（§4：同系列换版本号不重载）
+    formData.db_version = storageEditorRef.value?.getSeriesName() ?? '';
+    handleValidate();
+  };
+
+  const handleProxyChange = (value: VersionOsValue) => {
+    proxyVersion.value = value;
+  };
+
+  /**
+   * §4 重载确认：换存储层系列会重载 mysql 存储 Tab；
+   * 该 Tab 有已改项时弹 InfoBox 二次确认（对象写「存储层」），取消则版本下拉回滚
+   */
+  const handleBeforeStorageSeriesChange = (next: () => void) => {
+    const changedCount = tableRefs.value?.dbconf?.changedCount ?? 0;
+    if (changedCount === 0) {
+      next();
+      return;
+    }
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定'),
+      content: t('存储层系列变更将重载参数配置_n_项已修改内容将被丢弃_是否继续_', { n: changedCount }),
+      headerAlign: 'center',
+      onConfirm: () => {
+        tableRefs.value?.dbconf?.handleReset?.();
+        next();
+      },
+      title: t('确认重载存储层参数_'),
+    });
+  };
+
+  /**
+   * §4 重载确认：换接入层系列（TenDBCluster 重载 Spider 配置 Tab；MySQL 主从无 proxy 参数 Tab 仅更新部署默认）
+   * 当前集群类型为主从，无 proxy 参数 Tab，直接放行
+   */
+  const handleBeforeProxySeriesChange = (next: () => void) => {
+    next();
+  };
 
   const characterSets = ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'];
 
@@ -313,6 +406,21 @@
     Object.values(tableRefs.value).reduce((sum, ref) => sum + (ref?.changedCount ?? 0), 0),
   );
 
+  /**
+   * §2.3 创建按钮可用性：各层版本选齐且指定范围模式下已选非空
+   * 存储层必备；主从（tendbha）另需接入层选齐
+   */
+  const isVersionSelectionComplete = computed(() => {
+    const storage = storageVersion.value;
+    const storageOk = storage.versionId !== '' && (storage.osMode === 'follow' || storage.specifyOs.length > 0);
+    if (!storageOk) return false;
+    if (clusterType.value === ClusterTypes.TENDBHA) {
+      const proxy = proxyVersion.value;
+      return proxy.versionId !== '' && (proxy.osMode === 'follow' || proxy.specifyOs.length > 0);
+    }
+    return true;
+  });
+
   /** 每个 Tab 的已修改数量（用于 Tab 小黄点） */
   const tabChangedCountMap = computed(() => {
     const map: Record<string, number> = {};
@@ -325,9 +433,35 @@
 
   /** 提交 */
   const handleSubmit = async () => {
+    // 前端补齐校验：后端只校验 db_versions 必传，不校验各层齐全，提交前须确保该集群类型的所有组件都传上来。
+    // 放在 isSubmitting 之前：提前返回时不能把按钮留在 loading 态
+    const componentNames = clusterComponentNames[clusterType.value] || [];
+    const validateResults = [
+      { componentName: 'backend', result: storageEditorRef.value?.validate() },
+      ...(clusterType.value === ClusterTypes.TENDBHA
+        ? [{ componentName: 'proxy', result: proxyEditorRef.value?.validate() }]
+        : []),
+    ];
+    const invalid = validateResults.find((item) => item.result && !item.result.ok);
+    if (invalid?.result) {
+      window.changeConfirm = true;
+      // 校验失败必须给用户可见反馈，不能只打日志（否则点确定像没反应）
+      messageError(`${t(componentLabelMap[invalid.componentName])}：${invalid.result.message}`);
+      return;
+    }
+
     isSubmitting.value = true;
     try {
       await formRef.value?.validate();
+
+      // 组装 db_versions：{组件名: {db_version_id, permit_os_type, permit_os}}
+      const dbVersions: Record<string, { db_version_id: number; permit_os: string[]; permit_os_type: string }> = {};
+      if (componentNames.includes('single') || componentNames.includes('backend')) {
+        dbVersions[componentNames[0]] = storageEditorRef.value!.getWriteValue();
+      }
+      if (componentNames.includes('proxy')) {
+        dbVersions.proxy = proxyEditorRef.value!.getWriteValue();
+      }
 
       // 新建模块
       const createResult = await createModules({
@@ -335,6 +469,7 @@
         biz_id: bizId,
         cluster_type: clusterType.value,
         db_module_name: `${formData.alias_name}-${formData.db_version}-${formData.charset}`,
+        db_versions: Object.keys(dbVersions).length > 0 ? dbVersions : undefined,
       });
       moduleId.value = createResult.db_module_id;
 
@@ -387,6 +522,8 @@
         },
       });
     } catch (e) {
+      // 校验失败时展开模块信息卡，避免错误提示被折叠隐藏
+      isModuleInfoExpanded.value = true;
       console.log(e);
     }
     isSubmitting.value = false;
@@ -409,19 +546,54 @@
 
 <style lang="less" scoped>
   .create-module-page {
-    height: 100%;
+    --module-form-content-width: 960px;
+
     padding-bottom: 20px;
 
     :deep(.bk-form-item) {
-      max-width: 690px;
+      max-width: calc(160px + var(--module-form-content-width));
+    }
+
+    /* 模块名称行不受宽度限制，域名预览与输入框同行展示 */
+    :deep(.form-item-name) {
+      max-width: none;
     }
   }
 
+  // 模块信息白卡：内部承载存储层 / 接入层两个浅灰分组块
   .module-info-card {
-    padding: 24px;
-    background: #fff;
     border-radius: 2px;
-    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
+
+    /* 层内「版本 / 操作系统版本」的 label 列与表单 label 列对齐
+       （VersionOsEditor 自带 76px 固定列宽，此处按 label-width 160 覆盖） */
+    :deep(.row-label) {
+      width: 160px;
+      padding-right: 22px;
+    }
+
+    :deep(.row-content) {
+      max-width: var(--module-form-content-width);
+    }
+
+    .layer-config-card {
+      padding: 16px 0;
+      background: #f5f7fa;
+      border-radius: 2px;
+
+      & + .layer-config-card {
+        margin-top: 16px;
+      }
+
+      .layer-title {
+        width: 160px;
+        padding-right: 22px;
+        margin-bottom: 16px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #313238;
+        text-align: right;
+      }
+    }
   }
 
   .form-item-name {
@@ -432,33 +604,20 @@
 
   .module-name-row {
     display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     align-items: center;
 
     .module-name-input {
-      width: 370px;
+      width: var(--module-form-content-width);
+      max-width: 100%;
       flex-shrink: 0;
     }
   }
 
-  .db-config-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .version-select-inline,
-    .charset-select-inline {
-      width: auto;
-      min-width: 160px;
-    }
-
-    .version-form-item,
-    .charset-form-item {
-      margin-bottom: 0;
-
-      :deep(.bk-form-content) {
-        margin-bottom: 0;
-      }
-    }
+  .charset-select {
+    width: var(--module-form-content-width);
+    max-width: 100%;
   }
 
   .param-config-wrapper {
@@ -467,16 +626,20 @@
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
+    /* Tab 头吸附：整页滚动到参数区时保持可见，明确当前配置的是哪一部分；
+       底色必须不透明，否则表体会从吸顶区域透出来。
+       top 取负的内容区上内边距：滚动容器按 padding box 裁剪内容，sticky 的 top: 0 却相对 content box，
+       不抵消这段 padding 就会留出一条缝，表体行会从那道缝里露到 Tab 条上方 */
+    :deep(.bk-tab-header) {
+      position: sticky;
+      top: calc(-1 * var(--db-content-padding-top, 0px));
+      z-index: 99;
+      background: #f0f1f5;
+    }
+
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
     }
-  }
-
-  .db-type-tag {
-    height: 30px;
-    color: @primary-color;
-    background: white;
-    border: 1px solid @border-primary;
   }
 
   .total-change-stats {
@@ -499,19 +662,36 @@
     color: #979ba5;
   }
 
+  .param-tab-label {
+    display: inline-flex;
+    height: 42px;
+    padding-right: 8px;
+    align-items: center;
+  }
+
   .tab-modified-dot {
-    display: inline-block;
+    position: absolute;
+    top: 10px;
+    right: 16px;
     width: 8px;
     height: 8px;
-    margin-left: 4px;
     background: #f59500;
+    border: 1px solid #fff;
     border-radius: 50%;
+    box-sizing: border-box;
+  }
+
+  /* 导航栏：集群类型标签 + 业务信息（与全局配置详情页同形） */
+  .create-module-nav {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 8px;
+    align-items: center;
   }
 
   .create-module-nav-desc {
     position: relative;
     padding-left: 8px;
-    margin-left: 8px;
     font-family: 'Microsoft YaHei', sans-serif;
     font-size: 14px;
     line-height: 22px;

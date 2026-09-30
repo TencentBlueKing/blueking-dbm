@@ -13,45 +13,57 @@
 
 <template>
   <BkLoading :loading="loading">
-    <div class="param-operations mb-16">
-      <div class="param-operations-left">
-        <BkButton
-          theme="primary"
-          @click="handleAddParam">
-          {{ t('添加参数') }}
-        </BkButton>
-        <BkButton
-          v-if="selectable"
-          :disabled="selectedRows.length === 0"
-          @click="handleBatchEdit">
-          {{ t('批量编辑') }}
-        </BkButton>
-        <div
-          v-if="changedCount > 0"
-          class="only-changed">
-          <I18nT
-            keypath="已修改n项"
-            tag="span">
-            <template #n>
-              <span style="font-weight: 700; color: #f59500">{{ changedCount }}</span>
-            </template>
-          </I18nT>
+    <!-- Affix 默认启用底部吸附，用 NaN 关闭底部比较，仅保留顶部吸附 -->
+    <component
+      :is="stickyOperations ? Affix : 'div'"
+      ref="operationsAffixRef"
+      v-bind="
+        stickyOperations ? { container: getScrollContainer, offsetTop: 42, offsetBottom: Number.NaN, zIndex: 98 } : {}
+      "
+      class="param-operations-wrapper mb-16"
+      :class="{ 'is-sticky': stickyOperations }">
+      <div
+        ref="operationsRef"
+        class="param-operations">
+        <div class="param-operations-left">
+          <BkButton
+            theme="primary"
+            @click="handleAddParam">
+            {{ t('添加参数') }}
+          </BkButton>
+          <BkButton
+            v-if="selectable"
+            :disabled="selectedRows.length === 0"
+            @click="handleBatchEdit">
+            {{ t('批量编辑') }}
+          </BkButton>
+          <div
+            v-if="changedCount > 0"
+            class="only-changed">
+            <I18nT
+              keypath="共修改n个参数"
+              tag="span">
+              <template #n>
+                <span style="font-weight: 700; color: #f59500">{{ changedCount }}</span>
+              </template>
+            </I18nT>
+          </div>
+        </div>
+        <div class="param-operations-right">
           <BkCheckbox
             v-model="showChangedOnly"
             @change="refreshTable">
             {{ t('仅显示已修改') }}
           </BkCheckbox>
+          <DbQuickSearch
+            v-model="searchValue"
+            :data="quickSearchData"
+            parse-url
+            style="width: 500px"
+            @change="refreshTable" />
         </div>
       </div>
-      <div class="param-operations-right">
-        <DbQuickSearch
-          v-model="searchValue"
-          :data="quickSearchData"
-          parse-url
-          style="width: 500px"
-          @change="refreshTable" />
-      </div>
-    </div>
+    </component>
     <DbTable
       ref="paramTableRef"
       :data-source="paramDataSource"
@@ -174,6 +186,12 @@
                 @mouseenter="handleCellMouseEnter($event, row)">
                 {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
               </span>
+              <DbTag
+                v-if="batchCustomizedNames.has(row.conf_name)"
+                size="small"
+                theme="warning">
+                {{ t('自定义') }}
+              </DbTag>
               <DbIcon
                 v-if="row.flag_readonly !== 1"
                 v-bk-tooltips="{ content: t('编辑参数') }"
@@ -265,6 +283,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import Affix from 'tdesign-vue-next/es/affix';
   import type { Instance } from 'tippy.js';
   import { I18nT, useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -281,6 +300,8 @@
 
   import ValueEditor from '@views/db-configure/components/ValueEditor.vue';
 
+  import { useResizeObserver } from '@vueuse/core';
+
   import BatchEditSideslider from './BatchEditSideslider.vue';
 
   type LevelConfigResult = ServiceReturnType<typeof getLevelConfig>;
@@ -291,7 +312,7 @@
     /** 配置名称（用于保存时） */
     configName?: string;
     confType: string;
-    /** 是否固定分页 */
+    /** 是否固定分页（默认固定：整页滚动，表格不内滚，行数按每页条数撑开页面） */
     fixedPagination?: boolean;
     /** 层级信息（用于集群级别） */
     levelInfo?: Record<string, string>;
@@ -304,28 +325,55 @@
     rowKey?: string;
     /** 是否支持行选择（批量编辑） */
     selectable?: boolean;
+    /** 是否将操作栏吸附在参数 Tab 下方 */
+    stickyOperations?: boolean;
     version: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     configName: '',
-    fixedPagination: false,
+    fixedPagination: true,
     levelInfo: undefined,
     levelName: 'app',
     levelValue: undefined,
     rowKey: 'conf_name',
     selectable: false,
+    stickyOperations: false,
   });
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
+
+  const operationsRef = ref<HTMLElement>();
+  const operationsAffixRef = ref<HTMLElement | { handleScroll: () => void }>();
+
+  // 新建页由内容区滚动，工具栏固定在 42px 的 Tab 下方
+  const getScrollContainer = () =>
+    operationsRef.value?.closest<HTMLElement>('.db-navigation-content-wrapper') ?? window;
+
+  const updateOperationsAffix = () => {
+    const affix = operationsAffixRef.value;
+    if (operationsRef.value?.offsetWidth && affix && 'handleScroll' in affix) {
+      affix.handleScroll();
+    }
+  };
+
+  // 切回 Tab 和页面改宽时更新固定位置、占位及宽度
+  watch(
+    () => props.stickyOperations,
+    () => nextTick(updateOperationsAffix),
+    { flush: 'post' },
+  );
+  useResizeObserver(() => operationsRef.value?.closest<HTMLElement>('.param-config-wrapper'), updateOperationsAffix);
 
   const allConfItems = ref<ConfItem[]>([]);
   const originConfItems = ref<ConfItem[]>([]);
   const availableParams = ref<ConfItem[]>([]);
   // 本地新增但尚未被服务端数据刷新覆盖的项（追加到列表末尾，不破坏原始排序）
   const pendingAddedItems = ref<ConfItem[]>([]);
-  // 新增下拉可选的参数：排除已添加未提交的，避免同名参数再开一行
+  // 批量编辑即固化为自定义，数值与继承值相同也需要提交
+  const batchCustomizedNames = ref(new Set<string>());
+  // 新增下拉排除已添加未提交的参数，避免重复添加
   const selectableParams = computed(() => {
     const pendingNames = new Set(pendingAddedItems.value.map((item) => item.conf_name));
     return availableParams.value.filter((item) => !pendingNames.has(item.conf_name));
@@ -404,7 +452,7 @@
   /** 获取行样式名（修改项行添加 class） */
   const getRowClassName = ({ row }: { row: ConfItem }) => {
     const origin = originConfItems.value.find((o) => o.conf_name === row.conf_name);
-    if (origin && row.conf_value !== origin.conf_value) {
+    if (origin && (row.conf_value !== origin.conf_value || batchCustomizedNames.value.has(row.conf_name))) {
       return 'row-modified';
     }
     return '';
@@ -561,6 +609,7 @@
       originConfItems.value = _.cloneDeep(res.conf_items || []);
       // 服务端数据已包含最新变更，清空本地新增缓存
       pendingAddedItems.value = [];
+      batchCustomizedNames.value.clear();
       nextTick(() => {
         paramTableRef.value?.fetchData({}, true);
       });
@@ -708,19 +757,22 @@
   /** 批量编辑保存回调 - 前端暂存变更 */
   const handleBatchEditSaved = (changedItems: ConfItem[]) => {
     changedItems.forEach((changedItem) => {
-      const target = findConfItem(changedItem[rowKeyField.value]);
+      const addedItem = pendingAddedItems.value.find((item) => item.conf_name === changedItem.conf_name);
+      const target = addedItem ?? allConfItems.value.find((item) => item.conf_name === changedItem.conf_name);
       if (target) {
         target.conf_value = changedItem.conf_value;
-        if (target.op_type !== 'add') {
-          target.op_type = 'update';
-        }
+        target.op_type = addedItem ? 'add' : 'update';
+        batchCustomizedNames.value.add(target.conf_name);
       }
     });
     refreshTable();
   };
 
   /** 是否有变更 */
-  const hasChange = () => pendingAddedItems.value.length > 0 || !_.isEqual(allConfItems.value, originConfItems.value);
+  const hasChange = () =>
+    pendingAddedItems.value.length > 0 ||
+    batchCustomizedNames.value.size > 0 ||
+    !_.isEqual(allConfItems.value, originConfItems.value);
 
   /** 获取变更的参数列表 */
   const getChangedItems = () => {
@@ -734,7 +786,7 @@
     // 已修改的参数（与服务端初始值对比）
     allConfItems.value.forEach((item) => {
       const origin = originConfItems.value.find((o) => o.conf_name === item.conf_name);
-      if (origin && origin.conf_value !== item.conf_value) {
+      if (origin && (origin.conf_value !== item.conf_value || batchCustomizedNames.value.has(item.conf_name))) {
         changedItems.push({ ...item, op_type: 'update' });
       }
     });
@@ -774,6 +826,7 @@
     originConfItems.value = [];
     availableParams.value = [];
     pendingAddedItems.value = [];
+    batchCustomizedNames.value.clear();
     tippyInstances.forEach((inst) => inst.destroy());
     tippyInstances.length = 0;
   };
@@ -810,6 +863,15 @@
 </script>
 
 <style lang="less" scoped>
+  .param-operations-wrapper.is-sticky {
+    margin-top: -16px;
+
+    .param-operations {
+      padding: 16px 0;
+      background: #fff;
+    }
+  }
+
   .param-operations {
     display: flex;
     align-items: center;
@@ -823,6 +885,8 @@
 
     .only-changed {
       display: flex;
+      font-size: 12px;
+      line-height: 20px;
       align-items: center;
       gap: 8px;
 
@@ -846,8 +910,8 @@
 
   .inline-edit-cell-confirm {
     display: inline-flex;
-    height: 26px;
-    min-width: 26px;
+    height: 32px;
+    min-width: 32px;
     padding: 0;
     font-size: 16px;
     align-items: center;
@@ -856,8 +920,8 @@
 
   .inline-edit-cell-cancel {
     display: inline-flex;
-    height: 26px;
-    min-width: 26px;
+    height: 32px;
+    min-width: 32px;
     padding: 0;
     font-size: 16px;
     align-items: center;

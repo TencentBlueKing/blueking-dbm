@@ -28,9 +28,20 @@ export type TreeData = {
   levelType: ConfLevels;
   name: string;
   parentId: string;
+  /** 树节点第二行灰色描述：`${存储层系列}，${字符集}`（仅模块级节点） */
+  subDescription?: string;
   tag: string;
   treeId: string;
   version?: string;
+};
+
+/**
+ * 树搜索条件（SearchSelect 分字段搜索的值）
+ */
+export type TreeSearchValue = {
+  charset?: string;
+  moduleId?: string;
+  moduleName?: string;
 };
 
 /**

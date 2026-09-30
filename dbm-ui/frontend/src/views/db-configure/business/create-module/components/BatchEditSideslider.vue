@@ -155,14 +155,21 @@
                   </span>
                 </td>
                 <td :class="{ 'is-changed': item.isChanged }">
-                  <span
-                    v-bk-tooltips="{
-                      content: item.newValue,
-                      disabled: !overflowMap[`new_${item.conf_name}`],
-                    }"
-                    class="diff-cell-text"
-                    @mouseenter="(e: MouseEvent) => checkOverflow(e, `new_${item.conf_name}`)">
-                    {{ item.newValue }}
+                  <span class="diff-value">
+                    <span
+                      v-bk-tooltips="{
+                        content: item.newValue,
+                        disabled: !overflowMap[`new_${item.conf_name}`],
+                      }"
+                      class="diff-cell-text"
+                      @mouseenter="(e: MouseEvent) => checkOverflow(e, `new_${item.conf_name}`)">
+                      {{ item.newValue }}
+                    </span>
+                    <DbTag
+                      size="small"
+                      theme="warning">
+                      {{ t('自定义') }}
+                    </DbTag>
                   </span>
                 </td>
               </tr>
@@ -335,15 +342,11 @@
   };
 
   const handleSave = () => {
-    const changedItems = editItems.value
-      .filter((item) => {
-        const origin = originItems.value.find((o) => o.conf_name === item.conf_name);
-        return origin?.conf_value !== item.conf_value;
-      })
-      .map((item) => ({
-        ...item,
-        op_type: 'update' as const,
-      }));
+    // 保存会将所有保留的选中项固化为自定义，不按数值是否变化过滤
+    const changedItems = editItems.value.map((item) => ({
+      ...item,
+      op_type: 'update' as const,
+    }));
 
     if (changedItems.length === 0) {
       handleClose();
@@ -497,6 +500,20 @@
 
       td.is-changed {
         background: #fdf4e8;
+      }
+    }
+
+    .diff-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .diff-cell-text {
+        min-width: 0;
+      }
+
+      :deep(.dbm-tag) {
+        flex-shrink: 0;
       }
     }
 
