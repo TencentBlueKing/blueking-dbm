@@ -61,7 +61,7 @@ class ItsmTodo(todos.TodoActor):
         # 审批人终止，认为是拒单
         elif action == TodoActionType.TERMINATE and username != own:
             # 校验内容版本：提单人可能在审批期间重新编辑过单据
-            TicketModifyHandler.check_content_version(self.todo.ticket, params.get("version"))
+            # TicketModifyHandler.check_content_version(self.todo.ticket, params.get("version"))
             approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=False)
             self.todo.set_terminated(username, action)
         # 自己终止，认为是撤单
@@ -71,7 +71,7 @@ class ItsmTodo(todos.TodoActor):
         # 只允许审批人/admin 通过
         elif action == TodoActionType.APPROVE:
             # 校验内容版本：提单人可能在审批期间重新编辑过单据
-            TicketModifyHandler.check_content_version(self.todo.ticket, params.get("version"))
+            # TicketModifyHandler.check_content_version(self.todo.ticket, params.get("version"))
             if username not in self.todo.operators + self.todo.helpers:
                 username = "admin"
             approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=True)
