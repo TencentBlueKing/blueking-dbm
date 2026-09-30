@@ -18,9 +18,14 @@ import type { ConfLevels } from '@common/const';
 export default class BizConfTopoTree {
   children: BizConfTopoTree[];
   extra: {
+    /** 模块字符集（模块树第二行展示用；后端 resource_tree 待补，缺失时第二行不展示该段） */
+    charset?: string;
     domain: string;
     proxy_version: string;
+    /** 存储层系列（模块树第二行展示用，即模块配置的 db_version） */
     version: string;
+    /** 模块版本系列（模块树第二行展示用，与 charset 组合展示） */
+    version_series?: string;
   };
   instance_id: number;
   instance_name: string;

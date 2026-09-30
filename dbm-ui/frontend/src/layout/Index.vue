@@ -415,10 +415,16 @@
   }
 
   .db-navigation-content-wrapper {
-    padding: 20px 24px 0;
+    /* 内容区上内边距：滚动容器按 padding box 裁剪内容，而 sticky 的 top 相对 content box，
+       页面里的吸顶元素需要用这个值抵消，否则会留出一条露出内容的缝 */
+    --db-content-padding-top: 20px;
+
+    padding: var(--db-content-padding-top) 24px 0;
     overflow: auto;
 
     &.is-fullscreen {
+      --db-content-padding-top: 0px;
+
       padding: 0;
     }
   }

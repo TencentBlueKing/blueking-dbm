@@ -216,7 +216,9 @@
   const bkTableRef = ref();
   const tableKey = ref(Date.now().toString());
   const isLoading = ref(false);
-  const tableMaxHeight = ref<number | 'auto'>('auto');
+  // undefined 表示不做高度限制，走 tdesign 默认行为；只要给了值（含 'auto' 这类字符串），
+  // tdesign 就会进入「固定表头 + 表体滚动」模式，渲染出的表头克隆层会飘在表体中间
+  const tableMaxHeight = ref<number>();
   const tableData = ref<ListBase<any>>({
     count: 0,
     next: '',

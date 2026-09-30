@@ -39,6 +39,7 @@
               :data-source="paramDataSource"
               :default-limit="100"
               :filter-value="searchValue"
+              fixed-pagination
               row-key="conf_name"
               @clear-search="handleQuickSearchChange"
               @filter-change="handleFilterChange"
@@ -689,9 +690,15 @@
   }
 
   .param-operations {
+    position: sticky;
+    top: calc(-1 * var(--db-content-padding-top, 0px));
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 16px 0;
+    margin-top: -16px;
+    background: #fff;
   }
 
   .column-title-tips {

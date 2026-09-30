@@ -93,6 +93,7 @@
 
   import City from './components/City.vue';
   import DeviceClassItem from './components/DeviceClass.vue';
+  import OsName from './components/OsName.vue';
   import Rack from './components/Rack.vue';
   import StorageDevice, { createRowData } from './components/StorageDevice.vue';
   import SubZone from './components/SubZone.vue';
@@ -121,6 +122,7 @@
   const genDefaultData = () => ({
     city_meta: '' as string | number,
     device_class: '',
+    os_name: '',
     rack_id: '',
     storage_device: [createRowData()],
     sub_zone_meta: '' as string | number,
@@ -144,6 +146,11 @@
       label: t('机型'),
       type: 'string',
     },
+    os_name: {
+      content: OsName,
+      label: t('操作系统名称'),
+      type: 'string',
+    },
     rack_id: {
       content: Rack,
       label: t('机架'),
@@ -163,7 +170,9 @@
 
   const formRef = useTemplateRef('formRef');
   const itemRef = ref<
-    InstanceType<typeof City | typeof DeviceClassItem | typeof Rack | typeof StorageDevice | typeof SubZone>[]
+    InstanceType<
+      typeof City | typeof DeviceClassItem | typeof OsName | typeof Rack | typeof StorageDevice | typeof SubZone
+    >[]
   >([]);
 
   const isSubmiting = ref(false);
@@ -219,10 +228,11 @@
     const valuePromiseList = itemRef.value!.map((item) => Promise.resolve(item.getValue()));
     Promise.all(valuePromiseList)
       .then((result) => {
-        const params: Pick<
+        type Params = Pick<
           ServiceParameters<typeof updateResource>,
-          'city_meta' | 'device_class' | 'rack_id' | 'storage_device' | 'sub_zone_meta'
-        > = result.reduce<Record<string, any>>((prev, resultItem) => {
+          'city_meta' | 'device_class' | 'os_name' | 'rack_id' | 'storage_device' | 'sub_zone_meta'
+        >;
+        const params = result.reduce<Params>((prev, resultItem) => {
           return Object.assign(prev, resultItem);
         }, {});
 
@@ -230,6 +240,7 @@
         const subZoneAfter = params.sub_zone_meta?.sub_zone || '';
         const rackIdAfter = params.rack_id || '';
         const deviceClassAfter = params.device_class || '';
+        const osNameAfter = params.os_name || '';
         const storageDeviceAfter = params.storage_device
           ? `（${Object.entries(params.storage_device)
               .map(([key, item]) => `${key}:${item.size}G:${deviceClassDisplayMap[item.disk_type as DeviceClass]}`)
@@ -241,6 +252,7 @@
           const subZoneBefore = item.sub_zone;
           const rackIdBefore = item.rack_id;
           const deviceClassBefore = item.device_class;
+          const osNameBefore = item.os_name;
           const storageDeviceBefore = _.isEmpty(item.storage_device)
             ? ''
             : `（${Object.entries(item.storage_device)
@@ -261,6 +273,9 @@
             Object.assign(remarkItem, {
               device_class: { after_value: deviceClassAfter, before_value: deviceClassBefore },
             });
+          }
+          if (osNameAfter) {
+            Object.assign(remarkItem, { os_name: { after_value: osNameAfter, before_value: osNameBefore } });
           }
           if (storageDeviceAfter) {
             Object.assign(remarkItem, {

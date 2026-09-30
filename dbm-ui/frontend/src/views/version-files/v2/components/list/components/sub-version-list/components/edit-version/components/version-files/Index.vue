@@ -32,6 +32,7 @@
       </tbody>
     </table>
     <UploadFile
+      v-show="tableData.length === 0"
       ref="uploadFileRef"
       :db-type="dbType"
       :pkg-type="pkgType"

@@ -107,6 +107,10 @@
   .database-content {
     height: 100%;
 
+    :deep(.bk-resize-layout-main) {
+      overflow-y: auto;
+    }
+
     :deep(.bk-resize-layout-aside) {
       &::after {
         display: none;

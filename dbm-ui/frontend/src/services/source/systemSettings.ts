@@ -72,6 +72,7 @@ export const getMachineProperty = function () {
   return http.get<{
     city_meta: boolean; // 地域
     device_class: boolean; // 机型
+    os_name: boolean; // 操作系统
     rack_id: boolean; // 机架
     storage_device: boolean; // 磁盘
     sub_zone_meta: boolean; // 园区
