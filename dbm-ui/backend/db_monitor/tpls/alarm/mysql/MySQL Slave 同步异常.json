@@ -80,7 +80,7 @@
         "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 4,
+          "count": 2,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -90,7 +90,7 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 11
         },
         "recovery_config": {
           "check_window": 5,
@@ -224,7 +224,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(slave-status-dbm_report_channel)",
-  "version": 29,
+  "version": 30,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:52:08+08:00"

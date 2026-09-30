@@ -87,7 +87,7 @@ type Public struct {
 	// AcquireLockWaitTimeout If LOCK TABLES FOR BACKUP does not return within given timeout, abort the backup.
 	// issue lock to mysqld: default 10s
 	//  lock-ddl-timeout(xtrabackup57), backup-lock-timeout(xtrabackup80) --lock-wait-timeout(mydumper)
-	AcquireLockWaitTimeout int `ini:"AcquireLockWaitTimeout"`
+	AcquireLockWaitTimeout int `ini:"AcquireLockWaitTimeout"` // AcquireBackupLockTimeout?
 	// IsFullBackup yes: true, no: false, empty or auto: 自动判断
 	// 这个选项默认 empty 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
 	// 某些情况只需要表结构，可以设置此选项强制上报为全备
