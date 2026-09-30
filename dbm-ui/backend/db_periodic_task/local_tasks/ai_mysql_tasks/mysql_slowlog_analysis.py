@@ -11,12 +11,14 @@ specific language governing permissions and limitations under the License.
 import logging
 from datetime import timedelta
 
+from celery.schedules import crontab
 from django.db.models import Count
 from django.utils import timezone
 
 from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_periodic_task.local_tasks.mysql_backup.check_ignore import CheckIgnore
+from backend.db_periodic_task.register import register_periodic_task
 from backend.db_report.enums import AiAnalysisSubType
 from backend.db_report.models.mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis
 from backend.db_report.models.mysql_slowlog_detail import MysqlSlowlogDetail
@@ -29,7 +31,7 @@ SLOW_QUERY_COUNT_THRESHOLD = 10
 
 
 # 后续没用了，择机删除 periodic_mysql_slowlog_ai_analysis
-# @register_periodic_task(run_every=crontab(minute=0))
+@register_periodic_task(run_every=crontab(minute=0))
 def periodic_mysql_slowlog_ai_analysis():
     """周期任务：从慢日志详情表中查询过去 1 小时内慢查询数量超过阈值的集群，进行 AI 分析"""
     if not env.ENABLE_DBM_AI:
