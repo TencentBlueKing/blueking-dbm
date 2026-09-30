@@ -160,3 +160,9 @@ class ClusterEntryNotBindException(DBMetaBaseException):
     ERROR_CODE = "025"
     MESSAGE = _("访问入口未绑定")
     MESSAGE_TPL = _("访问入口 {entry} 未绑定到 IP")
+
+
+class DBModuleVersionException(DBMetaBaseException):
+    ERROR_CODE = "026"
+    MESSAGE = _("模块版本不合法")
+    MESSAGE_TPL = _("{message}")

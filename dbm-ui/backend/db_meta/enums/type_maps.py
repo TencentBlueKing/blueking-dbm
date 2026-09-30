@@ -90,6 +90,13 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.OracleSingleNone: [MachineType.ORACLE],
 }
 
+# 纳入模块版本约束的集群，值为 DBModule 版本字典中的组件名
+ClusterTypeModuleComponentDefine = {
+    ClusterType.TenDBSingle: [MachineType.SINGLE],
+    ClusterType.TenDBHA: [MachineType.BACKEND, MachineType.PROXY],
+    ClusterType.TenDBCluster: [MachineType.REMOTE, MachineType.SPIDER],
+}
+
 ClusterMachineAccessTypeDefine = {
     ClusterType.TendisPredixyRedisCluster: {
         AccessLayer.PROXY: MachineType.PREDIXY,
@@ -305,6 +312,11 @@ InstanceRoleInstanceInnerRoleMap = {
     InstanceRole.PRIMARY: InstanceInnerRole.PRIMARY,
     InstanceRole.STANDBY: InstanceInnerRole.STANDBY,
 }
+
+
+def module_component_types(cluster_type: str) -> list:
+    """DBModule 版本字典允许的组件名。未纳入约束的集群返回空列表，不允许写入版本。"""
+    return [machine_type.value for machine_type in ClusterTypeModuleComponentDefine.get(cluster_type, [])]
 
 
 def machine_type_to_cluster_type(machine_type: MachineType) -> ClusterType:

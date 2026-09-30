@@ -331,6 +331,18 @@ class TestDBResourceViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert mock_update.called
 
+    @patch("backend.components.dbresource.client.DBResourceApi.resource_batch_update")
+    def test_resource_update_os_name(self, mock_update):
+        """测试资源更新操作系统"""
+        mock_update.return_value = {"result": True}
+
+        url = "/apis/dbresource/resource/update/"
+        data = {"bk_host_ids": [10001], "os_name": "tlinux-2.6"}
+        response = client.post(url, data=data, content_type="application/json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_update.call_args.kwargs["params"]["os_name"] == "tlinux-2.6"
+
     @patch("backend.components.dbresource.client.DBResourceApi.resource_group_count")
     def test_resource_group_count(self, mock_group_count):
         """测试按照组件统计资源数量"""

@@ -19,7 +19,7 @@ from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import AccessLayer, ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -200,6 +200,11 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class MysqlSingleApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        # 补充模块约束的操作系统参数
+        db_module = DBModule.objects.get(db_module_id=self.ticket_data["db_module_id"])
+        self.patch_module_os_params(self.ticket_data["resource_spec"], "backend", db_module, AccessLayer.STORAGE)
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
 

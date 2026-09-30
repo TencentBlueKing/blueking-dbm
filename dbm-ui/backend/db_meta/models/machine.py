@@ -21,7 +21,6 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components import CCApi
-from backend.components.hcm.client import HCMApi
 from backend.constants import INT_MAX, CommonHostDBMeta, MongoDBHostDBMeta
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.exceptions import HostDoseNotExistInCmdbException
@@ -278,6 +277,7 @@ class DeviceClass(models.Model):
     @classmethod
     def sync_device_from_hcm(cls):
         """从hcm同步机型，仅适用于内部环境"""
+        from backend.components.hcm.client import HCMApi
 
         # 默认过滤条件是支持申请的机型，且是常规项目
         rules = [
