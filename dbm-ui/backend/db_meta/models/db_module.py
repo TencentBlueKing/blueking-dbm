@@ -9,32 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, Mapping
 
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
-from jsonschema.validators import validate
 
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
-from backend.db_meta.models import AppCache
-from backend.db_meta.models.db_version import DBVersion
+from backend.db_meta.dataclass import DBModuleComponentVersion
+from backend.db_meta.enums import ClusterType, module_component_types
+from backend.db_meta.exceptions import DBModuleVersionException
+from backend.db_meta.models.app import AppCache
 
 logger = logging.getLogger("root")
-
-
-class DBVersionInfoContainer(object):
-    """
-    新版本管理下, db module 的版本信息结构复杂
-    如果返回一个字典会很难用, 所以放到一个类对象返回
-    """
-
-    def __init__(self, data):
-        db_version_id = data["db_version_id"]
-        self.db_version: DBVersion = DBVersion.objects.get(pk=db_version_id)
-        self.permit_os_type: str = data["permit_os_type"]
-        self.permit_os: List[str] = data["permit_os"]
 
 
 class DBModule(AuditedModel):
@@ -49,11 +36,11 @@ class DBModule(AuditedModel):
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
 
     in_upgrade = models.BooleanField(default=False, help_text=_("在升级状态"))
-    # 这样一致性才好保证, 虽然数据不直观
+    # 两个字段的值都是 {组件名: DBModuleComponentVersion.to_dict()}，组件名见 ClusterTypeModuleComponentDefine
     current_db_version_info_dict = models.JSONField(help_text=_("当前版本信息 id"), default=dict)
     target_db_version_info_dict = models.JSONField(help_text=_("目标版本信息 id"), default=dict, null=True, blank=True)
 
-    # 只读控制信息
+    # 待废弃
     extra_info = models.JSONField(help_text=_("扩展信息, mysql/sqlsvr 用到"), default=dict, null=True, blank=True)
 
     class Meta:
@@ -107,124 +94,52 @@ class DBModule(AuditedModel):
         return db_module_choices
 
     @property
-    def current_db_version(self) -> Dict[str, DBVersionInfoContainer]:
+    def current_db_version(self) -> Dict[str, DBModuleComponentVersion]:
         return self.__db_version_getter(DBModule.current_db_version_info_dict.field.name)
 
     @property
-    def target_db_version(self) -> Dict[str, DBVersionInfoContainer]:
+    def target_db_version(self) -> Dict[str, DBModuleComponentVersion]:
         return self.__db_version_getter(DBModule.target_db_version_info_dict.field.name)
 
     @current_db_version.setter
-    def current_db_version(self, data: Dict):
-        """
-        支持partial set
-        这样调用
+    def current_db_version(self, data: Mapping):
+        """按组件局部写入，未传的组件保持原值。只校验结构与组件名，版本与介质包校验见 api.db_module.version。
+
         dm.current_db_version = {
-          'proxy':{
-            'db_version_id': 1,
-            'permit_os_type': 'windows',
-            'permit_os': ['2005', '2006']
-          }
+            "proxy": {"db_version_id": 1, "permit_os_type": "Linux", "permit_os": []},
         }
         dm.save()
         """
         self.__db_version_setter(DBModule.current_db_version_info_dict.field.name, data)
 
     @target_db_version.setter
-    def target_db_version(self, data: Dict):
+    def target_db_version(self, data: Mapping):
         self.__db_version_setter(DBModule.target_db_version_info_dict.field.name, data)
 
-    def __db_version_getter(self, field_name: str) -> Dict[str, DBVersionInfoContainer]:
-        """
-        返回字典的 key 是集群类型的 machine type
-        """
-        res = {}
-        machine_types = ClusterTypeMachineTypeDefine[self.cluster_type]
-        if self.cluster_type == ClusterType.TenDBCluster:
-            machine_types.append("tdbctl")
-
-        for m in machine_types:
-            data = getattr(self, field_name, None)
-            if data and m.value in data:
-                res[m.value] = DBVersionInfoContainer(data=data[m.value])
-
-        return res
-
-    def __db_version_setter(self, field_name: str, data: Dict):
-        """
-        字典的 key 是集群类型的 machine type
-        tendbsingle 样例
-        data = {
-            "single": {
-                "db_version_id": 1,
-                "permit_os_type": "Linux",
-                "permit_os": ["tlinux", "centos"]
-            }
+    def __db_version_getter(self, field_name: str) -> Dict[str, DBModuleComponentVersion]:
+        raw = getattr(self, field_name, None) or {}
+        if not isinstance(raw, dict):
+            return {}
+        return {
+            key: DBModuleComponentVersion.from_dict(raw[key])
+            for key in module_component_types(self.cluster_type)
+            if raw.get(key)
         }
-        tendbha 样例
-        data = {
-            "proxy": {
-                "db_version_id": 1,
-                "permit_os_type": "Linux",
-                "permit_os": ["tlinux", "centos"]
-            }
-        }
-                支持只输入部分 machine type 做 partial update
-        """
-        machine_types = ClusterTypeMachineTypeDefine[self.cluster_type]
 
-        # 中控不是个 machine type
-        # 为了方便写代码, 注入伪造下
-        if self.cluster_type == ClusterType.TenDBCluster:
-            machine_types.append("tdbctl")
+    def __db_version_setter(self, field_name: str, data: Mapping):
+        if not isinstance(data, Mapping):
+            raise DBModuleVersionException(message=_("版本信息必须是对象"))
 
-        # list 转换不能少, 相当于 copy
-        # 不然会报 RuntimeError: dictionary changed size during iteration
-        # 这样的预处理能增加操作的容错性
-        for k in list(data.keys()):
-            if k not in machine_types:
-                del data[k]
+        unknown = sorted(set(data) - set(module_component_types(self.cluster_type)))
+        if unknown:
+            raise DBModuleVersionException(message=_("不支持的组件: {}").format(",".join(unknown)))
 
-        # key 都是 optional 的
-        # 这样能方便的 partial update
-        schema = {
-            "type": "object",
-            "$defs": {
-                "version_description": {
-                    "type": "object",
-                    "properties": {
-                        "db_version_id": {"type": "integer"},
-                        "permit_os_type": {"type": "string"},
-                        "permit_os": {"type": "array", "items": {"type": "string"}},
-                    },
-                    "required": ["db_version_id", "permit_os_type", "permit_os"],
-                    "additionalProperties": False,
-                }
-            },
-            "properties": {m: {"$ref": "#/$defs/version_description"} for m in machine_types},
-            "propertyNames": {"enum": machine_types},
-            "additionalProperties": False,
-        }
-        validate(instance=data, schema=schema)
-
-        db_type = ClusterType.cluster_type_to_db_type(self.cluster_type)
-
-        # 校验 dbtype 和 pkgtype 是不是吻合
-        for machine_type, mdata in data.items():
-            # 目前只校验了 dbtype
-            # 这里有个问题
-            # 可以给 backend 绑定一个 proxy 的 db version
-            # ToDo 该如何验证呢
-            # ToDo 似乎需要一个 cluster_type-machine_type 和 db_type-pkg_type 的映射
-            DBVersion.objects.get(
-                pk=mdata["db_version_id"],
-                distribution_snapshot__db_type=db_type,
-            )
-
-        original_data = getattr(self, field_name)
-        original_data.update(data)
-
-        self.current_db_version_info_dict = original_data
+        stored = getattr(self, field_name, None)
+        stored = dict(stored) if isinstance(stored, dict) else {}
+        for key, raw in data.items():
+            layer = raw if isinstance(raw, DBModuleComponentVersion) else DBModuleComponentVersion.from_dict(raw)
+            stored[key] = layer.to_dict()
+        setattr(self, field_name, stored)
 
     def query_user_conf(self) -> Any:
         """
