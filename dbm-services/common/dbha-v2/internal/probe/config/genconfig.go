@@ -528,6 +528,7 @@ func LocalFields(cfg Configuration) []GenOption {
 		WithLog(cfg.Log),
 		WithClient(cfg.Client),
 		WithAdmin(cfg.Admin),
+		WithCollect(cfg.Collect),
 		WithClearPorts(cfg.ClearPorts),
 	}
 	if cfg.Reporter != nil {
@@ -622,6 +623,27 @@ func WithAdmin(admin AdminConfig) GenOption {
 			LocalIP:      admin.LocalIP,
 			SyncInterval: durationToYAML(admin.SyncInterval),
 		}
+	}
+}
+
+// WithCollect keeps the local collection settings. Admin does not send them, so
+// without this a rewrite triggered by an admin-side change would drop the block
+// and silently fall back to the defaults.
+//
+// A zero-valued block is left out entirely, mirroring WithClient, so configs that
+// predate the field round-trip unchanged.
+func WithCollect(collect CollectConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if collect.IsZero() {
+			return
+		}
+		rendered := &probeCollectYAML{
+			CollectTaskGoroutines: collect.CollectTaskGoroutines,
+		}
+		if collect.HostMetricInterval > 0 {
+			rendered.HostMetricInterval = collect.HostMetricInterval.String()
+		}
+		cfg.Collect = rendered
 	}
 }
 
