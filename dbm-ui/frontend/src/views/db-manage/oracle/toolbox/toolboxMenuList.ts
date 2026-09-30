@@ -29,4 +29,32 @@ export const toolboxMenuList = [
     id: 'sql',
     name: t('SQL任务'),
   },
+  {
+    children: [
+      {
+        dbConsoleValue: 'oracle.toolbox.addSlave',
+        desc: t('为所选上游实例新增 1 个从库'),
+        id: TicketTypes.ORACLE_ADD_SLAVE,
+        name: t('添加从库'),
+        parentId: 'migrate',
+      },
+      {
+        dbConsoleValue: 'oracle.toolbox.masterFailOver',
+        desc: t('主库异常时强制提升从库为主，仅适用于主从集群'),
+        id: TicketTypes.ORACLE_MASTER_FAIL_OVER,
+        name: t('主库故障切换'),
+        parentId: 'migrate',
+      },
+      {
+        dbConsoleValue: 'oracle.toolbox.replaceHost',
+        desc: t('替换所选主机，支持单节点以及主从集群的从库。'),
+        id: TicketTypes.ORACLE_REPLACE_HOST,
+        name: t('整机替换'),
+        parentId: 'migrate',
+      },
+    ],
+    icon: 'db-icon-cluster',
+    id: 'migrate',
+    name: t('集群维护'),
+  },
 ];
