@@ -21,6 +21,28 @@ import http from '../http';
 const path = '/apis/cmdb';
 
 /**
+ * 组件版本写入结构（db_versions 单个组件的值）
+ * permit_os 传 [] 表示「跟随版本包」，非空列表表示「指定范围」
+ */
+export interface ComponentVersionInput {
+  db_version_id: number;
+  permit_os: string[];
+  permit_os_type: string;
+}
+
+/**
+ * 组件版本展示信息（db_version_info 单个组件的值）
+ */
+export interface ComponentVersionInfo extends ComponentVersionInput {
+  distribution: string;
+  effective_permit_os: string[];
+  follow_package: boolean;
+  full_version: string;
+  version_name: string;
+  version_series: string;
+}
+
+/**
  * 业务列表
  */
 export function getBizs(params = {} as { action: string }) {
@@ -53,6 +75,8 @@ export function createModules(params: {
   biz_id: number;
   cluster_type: ClusterTypes;
   db_module_name: string;
+  /** 各组件版本约束：tendbsingle→single；tendbha→backend+proxy；tendbcluster→remote+spider。后端不校验各层是否传齐，前端需传齐该集群类型的所有组件 */
+  db_versions?: Record<string, ComponentVersionInput>;
 }) {
   return http.post<{
     bk_biz_id: number;
@@ -64,6 +88,8 @@ export function createModules(params: {
     cluster_type: ClusterTypes;
     db_module_id: number;
     db_module_name: string;
+    /** 各组件版本展示信息（存量模块未设置时为 {}） */
+    db_version_info?: Record<string, ComponentVersionInfo>;
     name: string;
   }>(`${path}/${params.biz_id}/create_module/`, params);
 }
@@ -114,12 +140,36 @@ export function getModules(params: { bk_biz_id: number; cluster_type: ClusterTyp
         updated_by: string;
         version: string;
       };
+      /** 各组件版本展示信息（存量模块未设置时为 {}） */
+      db_version_info?: Record<string, ComponentVersionInfo>;
       name: string;
       permission: {
         dbconfig_view: boolean;
       };
     }[]
   >(`${path}/${params.bk_biz_id}/list_modules/`, params);
+}
+
+/**
+ * 修改模块的操作系统约束
+ * 模块创建后版本号不允许修改，只能修改 OS 约束（类型和范围）；
+ * 只传要改的组件，没传的保持原样；传了 db_version_id 也会被后端忽略
+ */
+export function updateModuleVersionOs(params: {
+  bk_biz_id: number;
+  db_module_id: number;
+  db_versions: Record<
+    string,
+    {
+      permit_os: string[];
+      permit_os_type: string;
+    }
+  >;
+}) {
+  return http.post<{
+    db_module_id: number;
+    db_version_info: Record<string, ComponentVersionInfo>;
+  }>(`${path}/${params.bk_biz_id}/update_module_version_os/`, params);
 }
 
 /**

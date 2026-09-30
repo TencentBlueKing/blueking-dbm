@@ -4,9 +4,6 @@
       <span class="module-info-label">{{ t('ID') }}：</span>{{ moduleInfo.moduleId || '--' }}
     </span>
     <span class="module-info-item">
-      <span class="module-info-label">{{ t('存储层版本') }}：</span>{{ moduleInfo.version || '--' }}
-    </span>
-    <span class="module-info-item">
       <span class="module-info-label">{{ t('字符集') }}：</span>{{ moduleInfo.charset || '--' }}
     </span>
     <RelatedClusters
@@ -14,6 +11,12 @@
       :related-cluster-count="moduleInfo.relatedClusterCount"
       :related-cluster-list="moduleInfo.relatedClusterList"
       :related-clusters="moduleInfo.relatedClusters" />
+    <span class="module-info-item">
+      <span class="module-info-label">{{ t('最近更新') }}：</span>
+      <bk-user-display-name :user-id="moduleInfo.updatedBy || ''" />
+      <span class="module-update-separator">&nbsp;/&nbsp;</span>
+      {{ moduleInfo.updatedAt ? utcDisplayTime(moduleInfo.updatedAt) : '--' }}
+    </span>
   </div>
 </template>
 
@@ -25,6 +28,8 @@
   import { ClusterTypes } from '@common/const';
 
   import type { ModuleInfo } from '@views/db-configure/common/types';
+
+  import { utcDisplayTime } from '@utils';
 
   import RelatedClusters from '../components/RelatedClusters.vue';
 
@@ -80,6 +85,16 @@
     align-items: center;
     font-size: 12px;
     line-height: 20px;
+    color: #313238;
     white-space: nowrap;
+  }
+
+  .module-update-separator {
+    white-space: pre;
+  }
+
+  /* 字段名灰、值深（设计稿口径） */
+  .module-info-label {
+    color: #63656e;
   }
 </style>

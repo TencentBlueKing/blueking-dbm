@@ -117,6 +117,16 @@ export function getDbVersionList(params: { version_series__in: string }) {
   return http.get<DbVersionModel[]>(`${path}/dbversion/`, params);
 }
 
+/** 获取跟随版本包模式下当前版本支持的 OS，按类型分组 */
+export function getDbVersionPermitOs(params: { db_version_id: number }) {
+  return http.get<
+    {
+      permit_os: string[];
+      permit_os_type: string;
+    }[]
+  >(`${path}/dbversion/${params.db_version_id}/list_permit_os/`);
+}
+
 /**
  * 新增介质版本
  */

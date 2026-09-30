@@ -22,13 +22,17 @@
       " />
     <DbForm
       ref="formRef"
-      class="clone-module-page db-scroll-y"
-      :label-width="100"
+      class="clone-module-page"
+      :label-width="160"
       :model="formData"
       :rules="rules"
       :scroll-align-to-top="false">
-      <!-- 模块信息 -->
-      <div class="module-info-card">
+      <!-- 模块信息 + 存储层 / 接入层：同一张白卡，两个层用浅灰块分组 -->
+      <DbCard
+        v-model:collapse="isModuleInfoExpanded"
+        class="module-info-card"
+        mode="collapse"
+        :title="t('模块信息')">
         <!-- 模块名 -->
         <FormItemWithHint
           class="form-item-name"
@@ -38,90 +42,70 @@
           required
           :rules="rules.alias_name">
           <template #hint>
-            {{ t('仅支持小写字母、数字、连字符，') }}<span class="hint-warning">{{ t('创建后不可改') }}</span>
+            {{ t('仅支持小写字母、数字、连字符，') }}
+            <span class="hint-warning">{{ t('创建后不可改') }}</span>
           </template>
           <div class="module-name-row">
             <BkInput
               v-model="formData.alias_name"
               class="module-name-input"
               :maxlength="63"
-              :placeholder="t('请输入模块名')"
+              :placeholder="t('由英文字母、数字、连字符组成')"
               show-word-limit
               @change="handleValidate" />
           </div>
         </FormItemWithHint>
-        <!-- 数据库信息 -->
         <BkFormItem
-          :label="t('数据库信息')"
+          :label="t('字符集')"
           required>
-          <div class="db-config-row">
-            <DbTag
-              class="db-type-tag"
-              theme="info"
-              type="stroke">
-              <template #icon>
-                <i class="db-icon-mysql mr-5" />
-              </template>
-              {{ clusterTypeInfos[ClusterTypes.TENDBCLUSTER]?.name }}
-            </DbTag>
-            <FormItemWithHint
-              class="version-form-item"
-              property="db_version"
-              required
-              :show-label="false">
-              <DbVersionSelect
-                v-model="formData.db_version"
-                class="version-select-inline"
-                :db-type="DBTypes.MYSQL"
-                :prefix="t('存储层版本')"
-                :source-version="String(route.query.confFile || '')"
-                @change="handleValidate" />
-            </FormItemWithHint>
-            <FormItemWithHint
-              class="version-form-item"
-              property="spider_version"
-              required
-              :show-label="false">
-              <DbVersionSelect
-                v-model="formData.spider_version"
-                class="version-select-inline"
-                :db-type="DBTypes.MYSQL"
-                :placeholder="t('请选择xx', [t('接入层版本')])"
-                :prefix="t('接入层版本')"
-                query-key="spider"
-                @change="handleValidate" />
-            </FormItemWithHint>
-            <FormItemWithHint
-              class="charset-form-item"
-              property="charset"
-              required
-              :show-label="false">
-              <DbSelect
-                v-model="formData.charset"
-                class="charset-select-inline"
-                :clearable="false"
-                filterable
-                :placeholder="t('请选择字符集')"
-                :prefix="t('字符集')"
-                @change="handleValidate">
-                <DbOption
-                  v-for="(item, index) of characterSets"
-                  :key="index"
-                  :label="item"
-                  :value="item">
-                  <span>{{ item }}</span>
-                  <DbTag
-                    v-if="sourceCharset && item === sourceCharset"
-                    class="ml-5"
-                    theme="info">
-                    {{ t('源字符集') }}
-                  </DbTag>
-                </DbOption>
-              </DbSelect>
-            </FormItemWithHint>
-          </div>
+          <DbSelect
+            v-model="formData.charset"
+            class="charset-select"
+            :clearable="false"
+            filterable
+            :placeholder="t('请选择字符集')"
+            @change="handleValidate">
+            <DbOption
+              v-for="(item, index) of characterSets"
+              :key="index"
+              :label="item"
+              :value="item">
+              <span>{{ item }}</span>
+              <DbTag
+                v-if="sourceCharset && item === sourceCharset"
+                class="ml-5"
+                theme="info">
+                {{ t('源字符集') }}
+              </DbTag>
+            </DbOption>
+          </DbSelect>
         </BkFormItem>
-      </div>
+
+        <!-- 存储层：三级版本选型 + OS 约束（协议 §0：tendbcluster → remote，介质 mysql） -->
+        <div class="layer-config-card">
+          <div class="layer-title">{{ t('存储层') }}</div>
+          <VersionOsEditor
+            ref="storageEditorRef"
+            v-model="storageVersion"
+            :db-type="DBTypes.MYSQL"
+            default-distribution-name="TXSQL"
+            pkg-type="mysql"
+            @before-series-change="handleBeforeStorageSeriesChange"
+            @change="handleStorageChange" />
+        </div>
+
+        <!-- 接入层：spider（协议 §0：tendbcluster → spider，介质 spider） -->
+        <div class="layer-config-card">
+          <div class="layer-title">{{ t('接入层') }}</div>
+          <VersionOsEditor
+            ref="spiderEditorRef"
+            v-model="spiderVersion"
+            :db-type="DBTypes.MYSQL"
+            pkg-type="spider"
+            @before-series-change="handleBeforeSpiderSeriesChange"
+            @change="handleSpiderChange" />
+        </div>
+      </DbCard>
 
       <!-- 参数配置 Tab -->
       <div class="param-config-wrapper">
@@ -161,6 +145,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="!isVersionSelectionComplete"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -222,18 +207,25 @@
   </DbSideslider>
 
   <Teleport to="#dbContentTitleAppend">
-    <span class="clone-module-meta">
-      <span> {{ t('业务') }}：{{ bizInfo.name }} </span>
-      <span> {{ t('源模块') }}：{{ String(route.query.moduleName) || '--' }} </span>
+    <!-- 数据库类型固定在导航栏展示（源模块已锁定，不随表单修改，与全局配置详情页同形） -->
+    <span class="clone-module-nav">
+      <DbTag theme="info">
+        {{ clusterTypeInfos[ClusterTypes.TENDBCLUSTER]?.name || ClusterTypes.TENDBCLUSTER }}
+      </DbTag>
+      <span class="clone-module-meta">
+        <span> {{ t('业务') }}：{{ bizInfo.name }} </span>
+        <span> {{ t('源模块') }}：{{ String(route.query.moduleName) || '--' }} </span>
+      </span>
     </span>
   </Teleport>
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { checkDbModuleUnique, createModules } from '@services/source/cmdb';
+  import { checkDbModuleUnique, type ComponentVersionInfo, createModules, getModules } from '@services/source/cmdb';
   import {
     type CloneConfItem,
     type CloneModuleQueryResult,
@@ -242,6 +234,7 @@
     moduleCloneQuery,
     saveModulesDeployInfo,
   } from '@services/source/configs';
+  import { getReleaseVersionList, getVersionSeriesList } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
@@ -250,11 +243,11 @@
   import DbTable from '@components/db-table/IndexNew.vue';
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
+  import VersionOsEditor, { type VersionOsValue } from '@views/db-configure/components/VersionOsEditor.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
-  import { random } from '@utils';
+  import { messageError, random } from '@utils';
 
-  import DbVersionSelect from '../components/DbVersionSelect.vue';
   import LevelConfigTable from '../components/LevelConfigTable.vue';
   import ParamTable from '../components/ParamTable.vue';
 
@@ -305,6 +298,158 @@
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
     formRef.value?.validate();
+  };
+
+  /** 组件名 → 展示层名（提交校验提示用） */
+  const componentLabelMap: Record<string, string> = {
+    remote: '存储层',
+    spider: '接入层',
+  };
+
+  /** 存储层（remote）选型值 */
+  const storageVersion = ref<VersionOsValue>({
+    distributionId: '',
+    osMode: 'follow',
+    osType: '',
+    seriesId: '',
+    specifyOs: [],
+    versionId: '',
+  });
+  /** 接入层（spider）选型值 */
+  const spiderVersion = ref<VersionOsValue>({
+    distributionId: '',
+    osMode: 'follow',
+    osType: '',
+    seriesId: '',
+    specifyOs: [],
+    versionId: '',
+  });
+
+  const storageEditorRef = ref<InstanceType<typeof VersionOsEditor>>();
+  const spiderEditorRef = ref<InstanceType<typeof VersionOsEditor>>();
+
+  /**
+   * 由源模块 db_version_info 还原三级选型的回填结构：
+   * 发行版/系列按名称匹配版本接口的 ID，版本号直接用 db_version_id，OS 约束按 follow_package/effective_permit_os 还原
+   */
+  const buildVersionOsValue = async (
+    info: ComponentVersionInfo | undefined,
+    pkgType: string,
+  ): Promise<VersionOsValue | undefined> => {
+    if (!info?.db_version_id) return undefined;
+    const distributionList = await getReleaseVersionList({ db_type: DBTypes.MYSQL, pkg_type: pkgType });
+    const distribution = distributionList.find((item) => item.name === info.distribution);
+    if (!distribution) return undefined;
+    const seriesList = await getVersionSeriesList({ distribution: distribution.id });
+    const series = seriesList.find((item) => item.name === info.version_series);
+    if (!series) return undefined;
+    return {
+      distributionId: distribution.id,
+      osMode: info.follow_package ? 'follow' : 'specify',
+      osType: 'Linux',
+      seriesId: series.id,
+      specifyOs: [...info.effective_permit_os],
+      versionId: info.db_version_id,
+    };
+  };
+
+  /**
+   * 克隆带出源模块的 remote / spider 三级选型：
+   * 存量模块 db_version_info 为空时保持不选，由用户手动选择发行版
+   */
+  const { run: fetchSourceVersion } = useRequest(getModules, {
+    manual: true,
+    async onSuccess(modules) {
+      const sourceInfo = modules.find((item) => item.db_module_id === Number(route.query.moduleId))?.db_version_info;
+      if (!sourceInfo) return;
+      const storageValue = await buildVersionOsValue(sourceInfo.remote, 'mysql');
+      if (storageValue) {
+        storageVersion.value = storageValue;
+        // 回填不触发 change，参数 Tab / 克隆对比的版本标识（系列名）在这里显式同步一次
+        formData.db_version = sourceInfo.remote?.version_series ?? '';
+        handleValidate();
+      }
+      const spiderValue = await buildVersionOsValue(sourceInfo.spider, 'spider');
+      if (spiderValue) {
+        spiderVersion.value = spiderValue;
+        formData.spider_version = sourceInfo.spider?.version_series ?? '';
+      }
+    },
+  });
+
+  /** 存储层选型变化：参数 Tab 的版本标识取系列名（同系列换版本号不重载） */
+  const handleStorageChange = (value: VersionOsValue) => {
+    storageVersion.value = value;
+    formData.db_version = storageEditorRef.value?.getSeriesName() ?? '';
+    handleValidate();
+  };
+
+  /** 接入层选型变化：Spider 参数 Tab 的版本标识同样取系列名 */
+  const handleSpiderChange = (value: VersionOsValue) => {
+    spiderVersion.value = value;
+    formData.spider_version = spiderEditorRef.value?.getSeriesName() ?? '';
+    handleValidate();
+  };
+
+  /** 模块信息卡折叠状态（提交失败时展开，避免错误提示被折叠隐藏） */
+  const isModuleInfoExpanded = ref(true);
+
+  /** §2.3 创建按钮可用性：两层版本都选齐，且指定范围模式下已选非空 */
+  const isVersionSelectionComplete = computed(() => {
+    const storage = storageVersion.value;
+    const storageOk = storage.versionId !== '' && (storage.osMode === 'follow' || storage.specifyOs.length > 0);
+    if (!storageOk) return false;
+    const spider = spiderVersion.value;
+    return spider.versionId !== '' && (spider.osMode === 'follow' || spider.specifyOs.length > 0);
+  });
+
+  /** 重载确认用的审查/差异项数（与操作栏 totalCounts 同口径；克隆页参数表不暴露 changedCount） */
+  const getReloadChangedCount = () => totalCounts.value.changed + totalCounts.value.custom;
+
+  /** 重载指定层的参数对比 Tab（重新拉取对比结果，本地修改随之丢弃） */
+  const refreshConfTab = (confType: string) => {
+    const tab = confTabs.value.find((item) => item.conf_type === confType);
+    if (tab) tableRefs.value[tab.conf_file]?.refreshData?.();
+  };
+
+  /** 换存储层系列会重载存储参数 Tab：有已改项时二次确认，取消则版本下拉回滚 */
+  const handleBeforeStorageSeriesChange = (next: () => void) => {
+    const changedCount = getReloadChangedCount();
+    if (changedCount === 0) {
+      next();
+      return;
+    }
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定'),
+      content: t('存储层系列变更将重载参数配置，{n} 项已修改内容将被丢弃，是否继续？', { n: changedCount }),
+      headerAlign: 'center',
+      onConfirm: () => {
+        refreshConfTab('dbconf');
+        next();
+      },
+      title: t('确认重载存储层参数'),
+    });
+  };
+
+  /** 换接入层系列会重载 Spider 参数 Tab：同上 */
+  const handleBeforeSpiderSeriesChange = (next: () => void) => {
+    const changedCount = getReloadChangedCount();
+    if (changedCount === 0) {
+      next();
+      return;
+    }
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定'),
+      content: t('接入层系列变更将重载参数配置，{n} 项已修改内容将被丢弃，是否继续？', { n: changedCount }),
+      headerAlign: 'center',
+      onConfirm: () => {
+        refreshConfTab('proxyconf');
+        next();
+      },
+      title: t('确认重载接入层参数'),
+    });
   };
 
   // 模块名校验规则
@@ -519,6 +664,11 @@
     sourceCharset.value = String(route.query.charset);
     formData.charset = String(route.query.charset);
   }
+  // 克隆带出源模块的三级选型（发行版 / 系列 / 版本号 / OS 约束）
+  fetchSourceVersion({
+    bk_biz_id: Number(bizId),
+    cluster_type: ClusterTypes.TENDBCLUSTER,
+  });
 
   // 版本变化时：刷新 Tab 列表 + 重新拉取参数对比结果
   watch(
@@ -581,6 +731,18 @@
 
   /** 提交 */
   const handleSubmit = async () => {
+    // 前端补齐校验：后端只校验 db_versions 必传，不校验各层齐全，提交前须确保 remote / spider 都选齐。
+    // 放在 isSubmitting 之前：提前返回时不能把按钮留在 loading 态
+    const validateResults = [
+      { componentName: 'remote', result: storageEditorRef.value?.validate() },
+      { componentName: 'spider', result: spiderEditorRef.value?.validate() },
+    ];
+    const invalid = validateResults.find((item) => item.result && !item.result.ok);
+    if (invalid?.result) {
+      messageError(`${t(componentLabelMap[invalid.componentName])}：${invalid.result.message}`);
+      return;
+    }
+
     try {
       await formRef.value?.validate();
 
@@ -593,6 +755,11 @@
         biz_id: Number(bizId),
         cluster_type: ClusterTypes.TENDBCLUSTER,
         db_module_name: dbModuleName,
+        // 协议 §0：tendbcluster 必须传 remote(存储层) + spider(接入层)，后端不校验各层是否传齐
+        db_versions: {
+          remote: storageEditorRef.value!.getWriteValue(),
+          spider: spiderEditorRef.value!.getWriteValue(),
+        },
       });
 
       // 绑定部署信息
@@ -632,6 +799,8 @@
         },
       });
     } catch (e) {
+      // 校验失败时展开模块信息卡，避免错误提示被折叠隐藏
+      isModuleInfoExpanded.value = true;
       console.error(e);
     }
     isSubmitting.value = false;
@@ -645,19 +814,44 @@
 
 <style lang="less" scoped>
   .clone-module-page {
-    height: 100%;
     padding-bottom: 20px;
 
     :deep(.bk-form-item) {
       max-width: 690px;
     }
+
   }
 
+  // 模块信息白卡（DbCard）：内部承载存储层 / 接入层两个浅灰分组块
   .module-info-card {
-    padding: 24px;
-    background: #fff;
     border-radius: 2px;
-    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
+
+    /* 层内「版本 / 操作系统版本」的 label 列与表单 label 列对齐
+       （VersionOsEditor 自带 76px 固定列宽，此处按 label-width 160 覆盖） */
+    :deep(.row-label) {
+      width: 160px;
+      padding-right: 22px;
+    }
+
+    .layer-config-card {
+      padding: 16px 0;
+      background: #f5f7fa;
+      border-radius: 2px;
+
+      & + .layer-config-card {
+        margin-top: 16px;
+      }
+
+      .layer-title {
+        width: 160px;
+        padding-right: 22px;
+        margin-bottom: 16px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #313238;
+        text-align: right;
+      }
+    }
   }
 
   .form-item-name {
@@ -668,33 +862,18 @@
 
   .module-name-row {
     display: flex;
+    flex-wrap: wrap;
+    row-gap: 4px;
     align-items: center;
 
     .module-name-input {
-      width: 370px;
+      width: 520px;
       flex-shrink: 0;
     }
   }
 
-  .db-config-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .version-select-inline,
-    .charset-select-inline {
-      width: auto;
-      min-width: 180px;
-    }
-
-    .version-form-item,
-    .charset-form-item {
-      margin-bottom: 0;
-
-      :deep(.bk-form-content) {
-        margin-bottom: 0;
-      }
-    }
+  .charset-select {
+    width: 520px;
   }
 
   .param-config-wrapper {
@@ -703,16 +882,20 @@
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
+    /* Tab 头吸附：整页滚动到参数区时保持可见，明确当前配置的是哪一部分；
+       底色必须不透明，否则表体会从吸顶区域透出来。
+       top 取负的内容区上内边距：滚动容器按 padding box 裁剪内容，sticky 的 top: 0 却相对 content box，
+       不抵消这段 padding 就会留出一条缝，表体行会从那道缝里露到 Tab 条上方 */
+    :deep(.bk-tab-header) {
+      position: sticky;
+      top: calc(-1 * var(--db-content-padding-top, 0px));
+      z-index: 99;
+      background: #f0f1f5;
+    }
+
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
     }
-  }
-
-  .db-type-tag {
-    height: 30px;
-    color: @primary-color;
-    background: white;
-    border: 1px solid @border-primary;
   }
 
   .sideslider-sub-title {
@@ -736,9 +919,16 @@
     }
   }
 
+  /* 导航栏：集群类型标签 + 业务 / 源模块信息（与全局配置详情页同形） */
+  .clone-module-nav {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 8px;
+    align-items: center;
+  }
+
   .clone-module-meta {
     display: inline-flex;
-    margin-left: 8px;
     font-size: 14px;
     color: #979ba5;
     align-items: center;

@@ -81,7 +81,7 @@
     disabled: !props.version,
     excludeNames: props.uploadedFileNames,
     mode: 'bkrepo' as const,
-    multiple: true,
+    multiple: false,
     showFileList: false,
     size: 10240,
   }));

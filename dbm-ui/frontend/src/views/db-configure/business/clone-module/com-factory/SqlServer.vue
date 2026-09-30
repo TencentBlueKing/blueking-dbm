@@ -22,7 +22,7 @@
       " />
     <DbForm
       ref="formRef"
-      class="clone-module-page db-scroll-y"
+      class="clone-module-page"
       :label-width="100"
       :model="formData"
       :rules="rules"
@@ -57,17 +57,6 @@
           :label="t('数据库信息')"
           required>
           <div class="db-config-row">
-            <DbTag
-              class="db-type-tag"
-              theme="info"
-              type="stroke">
-              <template #icon>
-                <DbIcon
-                  class="mr-4"
-                  type="sqlserver" />
-              </template>
-              {{ clusterTypeInfos[clusterType]?.name }}
-            </DbTag>
             <FormItemWithHint
               class="custom-form-item version-select-inline"
               property="version"
@@ -269,9 +258,15 @@
   </DbSideslider>
 
   <Teleport to="#dbContentTitleAppend">
-    <span class="clone-module-meta">
-      <span> {{ t('业务') }}：{{ bizInfo.name || '--' }} </span>
-      <span> {{ t('源模块') }}：{{ String(route.query.moduleName) || '--' }} </span>
+    <!-- 数据库类型固定在导航栏展示（源模块已锁定，不随表单修改，与全局配置详情页同形） -->
+    <span class="clone-module-nav">
+      <DbTag theme="info">
+        {{ clusterTypeInfos[clusterType]?.name || clusterType }}
+      </DbTag>
+      <span class="clone-module-meta">
+        <span> {{ t('业务') }}：{{ bizInfo.name || '--' }} </span>
+        <span> {{ t('源模块') }}：{{ String(route.query.moduleName) || '--' }} </span>
+      </span>
     </span>
   </Teleport>
 </template>
@@ -758,7 +753,6 @@
 
 <style lang="less" scoped>
   .clone-module-page {
-    height: 100%;
     padding-bottom: 20px;
 
     :deep(.bk-form-item) {
@@ -781,6 +775,7 @@
 
   .module-name-row {
     display: flex;
+    column-gap: 12px;
     align-items: center;
 
     .module-name-input {
@@ -797,18 +792,8 @@
     width: 100%;
     min-width: 0;
 
-    > *:not(.db-type-tag) {
+    > * {
       min-width: 140px;
-    }
-
-    .db-type-tag {
-      height: 32px;
-      min-width: 140px;
-      color: @primary-color;
-      background: white;
-      border: 1px solid @border-primary;
-      flex: 0 0 auto;
-      justify-content: center;
     }
 
     .version-select-inline {
@@ -849,6 +834,17 @@
     background: #fff;
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
+
+    /* Tab 头吸附：整页滚动到参数区时保持可见，明确当前配置的是哪一部分；
+       底色必须不透明，否则表体会从吸顶区域透出来。
+       top 取负的内容区上内边距：滚动容器按 padding box 裁剪内容，sticky 的 top: 0 却相对 content box，
+       不抵消这段 padding 就会留出一条缝，表体行会从那道缝里露到 Tab 条上方 */
+    :deep(.bk-tab-header) {
+      position: sticky;
+      top: calc(-1 * var(--db-content-padding-top, 0px));
+      z-index: 99;
+      background: #f0f1f5;
+    }
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
@@ -924,9 +920,16 @@
     }
   }
 
+  /* 导航栏：集群类型标签 + 业务 / 源模块信息（与全局配置详情页同形） */
+  .clone-module-nav {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 8px;
+    align-items: center;
+  }
+
   .clone-module-meta {
     display: inline-flex;
-    margin-left: 8px;
     font-size: 14px;
     color: #979ba5;
     align-items: center;

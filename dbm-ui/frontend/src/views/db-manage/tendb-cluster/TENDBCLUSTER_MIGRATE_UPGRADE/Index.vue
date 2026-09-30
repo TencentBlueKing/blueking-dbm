@@ -37,7 +37,8 @@
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster"
             higher-major-version
-            higher-sub-version />
+            higher-sub-version
+            pkg-readonly />
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.TENDBCLUSTER"
