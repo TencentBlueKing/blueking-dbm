@@ -13,6 +13,8 @@
 
 import TendbhaMachineModel from '@services/model/mysql/tendbha-machine';
 import TendbSingleMachineModel from '@services/model/mysql/tendbSingle-machine';
+import OracleHaMachineModel from '@services/model/oracle/oracle-ha-machine';
+import OracleSingleMachineModel from '@services/model/oracle/oracle-single-machine';
 import RedisMachineModel from '@services/model/redis/redis-machine';
 import SqlserverMachineModel from '@services/model/sqlserver/sqlserver-machine';
 import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
@@ -26,9 +28,13 @@ export type ISupportHostType =
   | ClusterTypes.SQLSERVER_SINGLE
   | ClusterTypes.TENDBCLUSTER
   | ClusterTypes.TENDBHA
-  | ClusterTypes.TENDBSINGLE;
+  | ClusterTypes.TENDBSINGLE
+  | ClusterTypes.ORACLE_PRIMARY_STANDBY
+  | ClusterTypes.ORACLE_SINGLE_NONE;
 
 export interface ClusterTypeRelateMachineModel {
+  [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaMachineModel;
+  [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleMachineModel;
   [ClusterTypes.REDIS]: RedisMachineModel;
   [ClusterTypes.SQLSERVER_HA]: SqlserverMachineModel;
   [ClusterTypes.SQLSERVER_SINGLE]: SqlserverMachineModel;
