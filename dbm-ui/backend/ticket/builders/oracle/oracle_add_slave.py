@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource, SourceType
+from backend.exceptions import AppBaseException
 from backend.flow.engine.controller.oracle import OracleController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
@@ -49,6 +50,12 @@ class OracleAddSlaveDetailSerializer(OracleOpsBaseDetailSerializer):
     source_type = serializers.ChoiceField(
         help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
     )
+
+    def validate(self, attrs):
+        if len(attrs["infos"]) > 1:
+            raise AppBaseException(_("当前仅允许单个集群生成单据"))
+        attrs = super().validate(attrs)
+        return attrs
 
 
 class OracleAddSlaveParamBuilder(builders.FlowParamBuilder):
