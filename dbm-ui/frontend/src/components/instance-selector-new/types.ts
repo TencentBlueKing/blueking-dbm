@@ -13,6 +13,8 @@
 
 import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
+import OracleHaInstanceModel from '@services/model/oracle/oracle-ha-instance';
+import OracleSingleInstanceModel from '@services/model/oracle/oracle-single-instance';
 import RedisInstanceModel from '@services/model/redis/redis-instance';
 import SqlserverHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
 import SqlserverSingleInstanceModel from '@services/model/sqlserver/sqlserver-single-instance';
@@ -23,6 +25,8 @@ import { ClusterTypes } from '@common/const';
 export type ISupportClusterType =
   | ClusterTypes.MONGO_REPLICA_SET
   | ClusterTypes.MONGO_SHARED_CLUSTER
+  | ClusterTypes.ORACLE_PRIMARY_STANDBY
+  | ClusterTypes.ORACLE_SINGLE_NONE
   | ClusterTypes.REDIS
   | ClusterTypes.SQLSERVER_HA
   | ClusterTypes.SQLSERVER_SINGLE
@@ -33,6 +37,8 @@ export type ISupportClusterType =
 export interface ClusterTypeRelateInstanceModel {
   [ClusterTypes.MONGO_REPLICA_SET]: MongodbInstanceModel;
   [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbInstanceModel;
+  [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaInstanceModel;
+  [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleInstanceModel;
   [ClusterTypes.REDIS]: RedisInstanceModel;
   [ClusterTypes.SQLSERVER_HA]: SqlserverHaInstanceModel;
   [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleInstanceModel;

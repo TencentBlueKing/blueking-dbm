@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { getOracleHaMachineList } from '@services/source/oracleHaCluster';
+import { getOracleSingleMachineList } from '@services/source/oracleSingleCluster';
 import { getRedisMachineList } from '@services/source/redis';
 import { getMachineList as getSqlserverhaMachineList } from '@services/source/sqlserveHaCluster';
 import { getTendbclusterMachineList } from '@services/source/tendbcluster';
@@ -24,6 +26,8 @@ import type { ISupportHostType } from './types';
 // 主机类型 → 默认数据源（machine list 接口）
 // 角色过滤不做默认值，全部由调用方通过 dataSourceMap 覆盖时显式传入（如 instance_role: 'backend_master'）
 export const hostMachineDataSourceMap: Record<ISupportHostType, (params: any) => Promise<any>> = {
+  [ClusterTypes.ORACLE_PRIMARY_STANDBY]: getOracleHaMachineList,
+  [ClusterTypes.ORACLE_SINGLE_NONE]: getOracleSingleMachineList,
   [ClusterTypes.REDIS]: getRedisMachineList,
   [ClusterTypes.SQLSERVER_HA]: getSqlserverhaMachineList,
   [ClusterTypes.SQLSERVER_SINGLE]: getSqlserverhaMachineList,
