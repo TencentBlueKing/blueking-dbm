@@ -98,8 +98,11 @@ class KubernetesResourceViewSet(ResourceViewSet):
     )
     @action(methods=["GET"], detail=False, url_path="get_regions")
     def get_regions(self, request, *args, **kwargs):
-        """获取区域列表"""
-        return Response(self.query_class.get_regions())
+        """获取区域列表
+
+        isPublic=true(默认) 返回共享集群的可用区域；isPublic=false 时按 bkBizId 返回独占集群的可用区域
+        """
+        return Response(self.query_class.get_regions(request.query_params.dict(), kwargs.get("bk_biz_id")))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群组件规格"),
