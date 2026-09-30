@@ -137,6 +137,7 @@ func (s *Server) bindPrometheus() error {
 			return fmt.Errorf("register metric %s: %w", m.Name, err)
 		}
 		m.Collector = col
+		materializeZero(col, m.Labels)
 	}
 	return nil
 }

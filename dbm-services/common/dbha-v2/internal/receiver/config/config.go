@@ -69,33 +69,48 @@ type ApmConfig struct {
 }
 
 // SourceConfig define the information of data input stream.
+// Kafka-only fields (batchSize, batchMaxBytes, batchLinger, channelBufferSize,
+// maxProcessingTime) are ignored by the probe source.
 type SourceConfig struct {
-	Name                      string        `yaml:"name"                 mapstructure:"name"`
-	Enable                    bool          `yaml:"enable"               mapstructure:"enable"`
-	Endpoints                 string        `yaml:"endpoint"             mapstructure:"endpoint"`
-	NetDialTimeout            time.Duration `yaml:"netDialTimeout"       mapstructure:"netDialTimeout"`
-	NetReadTimeout            time.Duration `yaml:"netReadTimeout"       mapstructure:"netReadTimeout"`
-	NetWriteTimeout           time.Duration `yaml:"netWriteTimeout"      mapstructure:"netWriteTimeout"`
-	User                      string        `yaml:"user"                 mapstructure:"user"`
-	Password                  string        `yaml:"password"             mapstructure:"password"`
-	Mechanism                 string        `yaml:"mechanism"            mapstructure:"mechanism"`
-	Topics                    []string      `yaml:"topics"               mapstructure:"topics"`
-	BufferSize                int           `yaml:"bufferSize"           mapstructure:"bufferSize"`
-	GrpcServerPingTime        time.Duration `yaml:"grpcServerPingTime"        mapstructure:"grpcServerPingTime"`
-	GrpcPingTimeout           time.Duration `yaml:"grpcPingTimeout"           mapstructure:"grpcPingTimeout"`
-	GrpcKeepAliveMinTime      time.Duration `yaml:"grpcKeepAliveMinTime"      mapstructure:"grpcKeepAliveMinTime"`
-	GrpcMaxReceiveMessageSize int           `yaml:"grpcMaxReceiveMessageSize" mapstructure:"grpcMaxReceiveMessageSize"`
-	GrpcMaxSendMessageSize    int           `yaml:"grpcMaxSendMessageSize"    mapstructure:"grpcMaxSendMessageSize"`
+	Name                      string        `yaml:"name"                       mapstructure:"name"`
+	Enable                    bool          `yaml:"enable"                     mapstructure:"enable"`
+	Endpoints                 string        `yaml:"endpoint"                   mapstructure:"endpoint"`
+	NetDialTimeout            time.Duration `yaml:"netDialTimeout"             mapstructure:"netDialTimeout"`
+	NetReadTimeout            time.Duration `yaml:"netReadTimeout"             mapstructure:"netReadTimeout"`
+	NetWriteTimeout           time.Duration `yaml:"netWriteTimeout"            mapstructure:"netWriteTimeout"`
+	User                      string        `yaml:"user"                       mapstructure:"user"`
+	Password                  string        `yaml:"password"                   mapstructure:"password"`
+	Mechanism                 string        `yaml:"mechanism"                  mapstructure:"mechanism"`
+	Topics                    []string      `yaml:"topics"                     mapstructure:"topics"`
+	MaxMessageAge             time.Duration `yaml:"maxMessageAge"              mapstructure:"maxMessageAge"`
+	BufferSize                int           `yaml:"bufferSize"                 mapstructure:"bufferSize"`
+	BatchSize                 int           `yaml:"batchSize"                  mapstructure:"batchSize"`
+	BatchMaxBytes             int           `yaml:"batchMaxBytes"              mapstructure:"batchMaxBytes"`
+	BatchLinger               time.Duration `yaml:"batchLinger"                mapstructure:"batchLinger"`
+	ChannelBufferSize         int           `yaml:"channelBufferSize"          mapstructure:"channelBufferSize"`
+	MaxProcessingTime         time.Duration `yaml:"maxProcessingTime"          mapstructure:"maxProcessingTime"`
+	GrpcServerPingTime        time.Duration `yaml:"grpcServerPingTime"         mapstructure:"grpcServerPingTime"`
+	GrpcPingTimeout           time.Duration `yaml:"grpcPingTimeout"            mapstructure:"grpcPingTimeout"`
+	GrpcKeepAliveMinTime      time.Duration `yaml:"grpcKeepAliveMinTime"       mapstructure:"grpcKeepAliveMinTime"`
+	GrpcMaxReceiveMessageSize int           `yaml:"grpcMaxReceiveMessageSize"  mapstructure:"grpcMaxReceiveMessageSize"`
+	GrpcMaxSendMessageSize    int           `yaml:"grpcMaxSendMessageSize"     mapstructure:"grpcMaxSendMessageSize"`
 }
 
 // SinkConfig Configuration related to data storage.
 type SinkConfig struct {
-	Name        string        `yaml:"name"        mapstructure:"name"`
-	Enable      bool          `yaml:"enable"      mapstructure:"enable"`
-	Endpoints   string        `yaml:"endpoint"    mapstructure:"endpoint"`
-	User        string        `yaml:"user"        mapstructure:"user"`
-	Password    string        `yaml:"password"    mapstructure:"password"`
-	SaveTimeout time.Duration `yaml:"saveTimeout" mapstructure:"saveTimeout"`
+	Name              string        `yaml:"name"              mapstructure:"name"`
+	Enable            bool          `yaml:"enable"            mapstructure:"enable"`
+	Endpoints         string        `yaml:"endpoint"          mapstructure:"endpoint"`
+	User              string        `yaml:"user"              mapstructure:"user"`
+	Password          string        `yaml:"password"          mapstructure:"password"`
+	SaveTimeout       time.Duration `yaml:"saveTimeout"       mapstructure:"saveTimeout"`
+	BatchChunkSize    int           `yaml:"batchChunkSize"    mapstructure:"batchChunkSize"`
+	ChunkMaxBytes     int           `yaml:"chunkMaxBytes"     mapstructure:"chunkMaxBytes"`
+	WriteRetryTimeout time.Duration `yaml:"writeRetryTimeout" mapstructure:"writeRetryTimeout"`
+	InterpolateParams *bool         `yaml:"interpolateParams" mapstructure:"interpolateParams"`
+	MaxOpenConns      int           `yaml:"maxOpenConns"      mapstructure:"maxOpenConns"`
+	MaxIdleConns      int           `yaml:"maxIdleConns"      mapstructure:"maxIdleConns"`
+	ConnMaxLifetime   time.Duration `yaml:"connMaxLifetime"     mapstructure:"connMaxLifetime"`
 }
 
 // ServiceConfig service's configuration

@@ -8,3 +8,10 @@
       netWriteTimeout: {{RECEIVER_SOURCE_KAFKA_NET_WRITE_TIMEOUT}}
       mechanism: "{{RECEIVER_SOURCE_KAFKA_MECHANISM}}"
       topics: {{RECEIVER_SOURCE_KAFKA_TOPICS}}
+      # kafka-only batch defaults: batchSize=500 (capped by channelBufferSize),
+      # batchMaxBytes=4MB, batchLinger=0 (off), channelBufferSize=256, maxProcessingTime=1s
+      batchSize: 500
+      batchMaxBytes: 4194304
+      batchLinger: 0s
+      channelBufferSize: 256
+      maxProcessingTime: 1s

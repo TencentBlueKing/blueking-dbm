@@ -105,3 +105,27 @@ func newCollector(m *Metric, subsystem string) prometheus.Collector {
 		return nil
 	}
 }
+
+// materializeZero creates one zero-valued series for a labeled vector so the
+// metric appears in scrapes before any real observation. Unlabeled collectors
+// already export zero and are skipped. Histogram and summary series are created
+// with With only, so their sample count stays zero.
+func materializeZero(col prometheus.Collector, names []string) {
+	if len(names) == 0 {
+		return
+	}
+	labels := prometheus.Labels{}
+	for _, n := range names {
+		labels[n] = ""
+	}
+	switch c := col.(type) {
+	case *prometheus.CounterVec:
+		c.With(labels)
+	case *prometheus.GaugeVec:
+		c.With(labels).Set(0)
+	case *prometheus.HistogramVec:
+		c.With(labels)
+	case *prometheus.SummaryVec:
+		c.With(labels)
+	}
+}

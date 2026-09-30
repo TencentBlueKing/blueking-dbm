@@ -22,9 +22,11 @@
  * SOFTWARE.
  */
 
+// Package sink stores receiver messages in configured backend databases.
 package sink
 
 import (
+	"context"
 	"strings"
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
@@ -37,11 +39,32 @@ type Sinker interface {
 	Close()
 }
 
+// BatchResult summarizes one SaveBatch call.
+// Valid is the count of messages that passed validation (before dedup).
+// Invalid is JSON-illegal or unknown harvest_type count.
+// Failed is rows that ultimately were not written on any endpoint.
+// Stats counts each input message once: written, or one drop reason.
+type BatchResult struct {
+	Valid   int
+	Invalid int
+	Failed  int
+	Stats   WriteStats
+}
+
+// BatchSinker optionally writes many messages in one call.
+// error is non-nil only when ctx is done or the sink is closed; other failures
+// are reported via BatchResult.Failed.
+// Implementations must fill Stats so Written plus the drop total equals len(msgs).
+// A sinker that leaves Stats empty is omitted from the sink delay and drop metrics.
+type BatchSinker interface {
+	SaveBatch(ctx context.Context, msgs []*Message) (BatchResult, error)
+}
+
 // NewSinker create a new saver
 func NewSinker(cfg config.SinkConfig) (Sinker, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mySQLName):
-		return newMySql(cfg.Endpoints, cfg.User, cfg.Password, cfg.SaveTimeout)
+		return newMySql(cfg)
 
 	default:
 		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)

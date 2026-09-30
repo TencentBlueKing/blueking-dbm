@@ -29,29 +29,52 @@ import (
 )
 
 const (
-	MetricLabelKafka = "kafka"
-	MetricLabelMysql = "mysql"
-	MetricLabelProbe = "probe"
+	MetricLabelKafka  = "kafka"
+	MetricLabelMysql  = "mysql"
+	MetricLabelProbe  = "probe"
+	MetricLabelSink   = "sink"
+	MetricLabelDbType = "db_type"
+	MetricLabelReason = "reason"
 )
+
+// sinkWriteDelayBuckets covers the 60s analysis window and late writes up to 5 minutes.
+var sinkWriteDelayBuckets = []float64{
+	1000, 2000, 5000, 10000, 20000, 30000, 45000, 60000, 120000, 300000,
+}
 
 var (
 	KafkaReadMessagesTotal *haapm.HaCounter
 	KafkaReadBytesTotal    *haapm.HaCounter
 	KafkaWriteErrorsTotal  *haapm.HaCounter
+	KafkaConsumeDelayMs    *haapm.HaHistogram
 
-	MySqlWriteDurationMs    *haapm.HaHistogram
-	MySqlWriteMessagesTotal *haapm.HaCounter
-	MySqlWriteBytesTotal    *haapm.HaCounter
-	MySqlReadErrorsTotal    *haapm.HaCounter
-	MySqlWriteErrorsTotal   *haapm.HaCounter
+	MySqlWriteDurationMs      *haapm.HaHistogram
+	MySqlWriteMessagesTotal   *haapm.HaCounter
+	MySqlWriteBytesTotal      *haapm.HaCounter
+	MySqlReadErrorsTotal      *haapm.HaCounter
+	MySqlWriteErrorsTotal     *haapm.HaCounter
+	MySqlBatchWriteDurationMs *haapm.HaHistogram
+	MySqlWriteBatchSize       *haapm.HaHistogram
+	MySqlDedupDroppedTotal    *haapm.HaCounter
+	MySqlBatchFallbackTotal   *haapm.HaCounter
+	MySqlRetryTotal           *haapm.HaCounter
 
 	ProbeReceiveMessagesTotal *haapm.HaCounter
 	ProbeReceiveBytesTotal    *haapm.HaCounter
 	ProbeQueueFullTotal       *haapm.HaCounter
+
+	SinkWriteDelayMs      *haapm.HaHistogram
+	SinkDropMessagesTotal *haapm.HaCounter
 )
 
 func init() {
-	// Kafka
+	initKafkaMetrics()
+	initMySQLMetrics()
+	initProbeMetrics()
+	initSinkMetrics()
+}
+
+func initKafkaMetrics() {
 	KafkaReadBytesTotal = haapm.NewHaCounter(
 		"kafka_read_bytes_total",
 		"Total bytes read from Kafka",
@@ -67,12 +90,46 @@ func init() {
 		"Total errors write to Kafka",
 		MetricLabelKafka,
 	)
+	KafkaConsumeDelayMs = haapm.NewHaHistogramWithBuckets(
+		"kafka_consume_delay_ms",
+		"End-to-end delay from Kafka message timestamp to MySQL write (milliseconds)",
+		haapm.DefaultDurationBuckets,
+		MetricLabelKafka,
+	)
+}
 
-	// mysql
+func initMySQLMetrics() {
 	MySqlWriteDurationMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_write_duration_ms",
 		"Duration of write to mysql (milliseconds)",
 		haapm.DefaultDurationBuckets,
+		MetricLabelMysql,
+	)
+	MySqlBatchWriteDurationMs = haapm.NewHaHistogramWithBuckets(
+		"mysql_batch_write_duration_ms",
+		"Duration of batch write to mysql per endpoint (milliseconds)",
+		haapm.DefaultDurationBuckets,
+		MetricLabelMysql,
+	)
+	MySqlWriteBatchSize = haapm.NewHaHistogramWithBuckets(
+		"mysql_write_batch_size",
+		"Rows written per batch after dedup",
+		haapm.DefaultDurationBuckets,
+		MetricLabelMysql,
+	)
+	MySqlDedupDroppedTotal = haapm.NewHaCounter(
+		"mysql_dedup_dropped_total",
+		"Total messages dropped by primary-key dedup within a batch",
+		MetricLabelMysql,
+	)
+	MySqlBatchFallbackTotal = haapm.NewHaCounter(
+		"mysql_batch_fallback_total",
+		"Total times a chunk fell back to per-row write due to data errors",
+		MetricLabelMysql,
+	)
+	MySqlRetryTotal = haapm.NewHaCounter(
+		"mysql_retry_total",
+		"Total chunk write retry attempts",
 		MetricLabelMysql,
 	)
 	MySqlWriteMessagesTotal = haapm.NewHaCounter(
@@ -95,8 +152,9 @@ func init() {
 		"Total errors write to mysql",
 		MetricLabelMysql,
 	)
+}
 
-	// probe
+func initProbeMetrics() {
 	ProbeReceiveMessagesTotal = haapm.NewHaCounter(
 		"probe_receive_messages_total",
 		"Total messages receive from Probe",
@@ -114,6 +172,23 @@ func init() {
 	)
 }
 
+func initSinkMetrics() {
+	SinkWriteDelayMs = haapm.NewHaHistogramWithBuckets(
+		"sink_write_delay_ms",
+		"Delay from probe report_timestamp to a successful sink write (milliseconds)",
+		sinkWriteDelayBuckets,
+		MetricLabelSink,
+		MetricLabelDbType,
+	)
+	SinkDropMessagesTotal = haapm.NewHaCounter(
+		"sink_drop_messages_total",
+		"Messages not written to storage or dropped on purpose",
+		MetricLabelSink,
+		MetricLabelDbType,
+		MetricLabelReason,
+	)
+}
+
 // InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
 // Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
@@ -127,13 +202,21 @@ func InitAPM(serviceID, serviceName string) {
 		KafkaReadMessagesTotal,
 		KafkaReadBytesTotal,
 		KafkaWriteErrorsTotal,
+		KafkaConsumeDelayMs,
 		MySqlWriteDurationMs,
 		MySqlWriteMessagesTotal,
 		MySqlWriteBytesTotal,
 		MySqlReadErrorsTotal,
 		MySqlWriteErrorsTotal,
+		MySqlBatchWriteDurationMs,
+		MySqlWriteBatchSize,
+		MySqlDedupDroppedTotal,
+		MySqlBatchFallbackTotal,
+		MySqlRetryTotal,
 		ProbeReceiveMessagesTotal,
 		ProbeReceiveBytesTotal,
 		ProbeQueueFullTotal,
+		SinkWriteDelayMs,
+		SinkDropMessagesTotal,
 	)
 }

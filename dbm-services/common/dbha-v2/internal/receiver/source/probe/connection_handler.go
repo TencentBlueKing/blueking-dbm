@@ -44,6 +44,8 @@ type connectionHandler struct {
 	bufferSize int
 	eventC     requestEventC
 	wg         sync.WaitGroup
+	// recordStats replaces sink.RecordWriteStats in tests.
+	recordStats func(topic string, stats sink.WriteStats)
 }
 
 func (c *connectionHandler) readEvent() {
@@ -55,12 +57,14 @@ func (c *connectionHandler) readEvent() {
 
 		if len(c.savers) == 0 {
 			logger.Debug("no connection handler, drop the data: %v", msg)
+			c.emitDrop(sink.ReasonNoSink)
 			continue
 		}
 
 		dataLength := len(msg.Payload)
 		if dataLength <= 0 {
 			logger.Debug("no payload in message, drop the data: %v", msg)
+			c.emitDrop(sink.ReasonEmpty)
 			continue
 		}
 
@@ -77,6 +81,20 @@ func (c *connectionHandler) readEvent() {
 			}
 		}
 	}
+}
+
+func (c *connectionHandler) emitDrop(reason string) {
+	var stats sink.WriteStats
+	stats.AddDrop("", reason, 1)
+	c.emitStats(stats)
+}
+
+func (c *connectionHandler) emitStats(stats sink.WriteStats) {
+	if c.recordStats != nil {
+		c.recordStats(SinkMessageTopic, stats)
+		return
+	}
+	sink.RecordWriteStats(SinkMessageTopic, stats)
 }
 
 func (c *connectionHandler) postEvent(event *proto.ReceiverRequest) error {

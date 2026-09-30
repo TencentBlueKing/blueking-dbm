@@ -55,19 +55,24 @@ var defaultOptions = options{
 }
 
 type options struct {
-	user             string
-	password         string
-	proto            string
-	ip               string
-	port             int
-	dbName           string
-	charset          string
-	parseTime        *bool
-	loc              string
-	timeout          time.Duration
-	readTimeout      time.Duration
-	writeTimeout     time.Duration
-	maxAllowedPacket int
+	user                 string
+	password             string
+	proto                string
+	ip                   string
+	port                 int
+	dbName               string
+	charset              string
+	parseTime            *bool
+	loc                  string
+	timeout              time.Duration
+	readTimeout          time.Duration
+	writeTimeout         time.Duration
+	maxAllowedPacket     int
+	autoMaxAllowedPacket bool
+	interpolateParams    bool
+	maxOpenConns         int
+	maxIdleConns         int
+	connMaxLifetime      time.Duration
 
 	// The default length of string type fields.
 	defaultStringSize uint
@@ -114,63 +119,47 @@ func (o options) BuildDSNString(coverPassword bool) string {
 	}
 
 	hasOptions := false
-	if o.charset != "" {
+	appendOpt := func(kv string) {
+		if hasOptions {
+			dsnBuilder.WriteString("&")
+		}
 		hasOptions = true
-		dsnBuilder.WriteString("charset=" + o.charset)
+		dsnBuilder.WriteString(kv)
+	}
+
+	if o.charset != "" {
+		appendOpt("charset=" + o.charset)
 	}
 
 	if o.parseTime != nil {
-		if hasOptions {
-			dsnBuilder.WriteString(fmt.Sprintf("&parseTime=%t", *o.parseTime))
-		} else {
-			hasOptions = true
-			dsnBuilder.WriteString(fmt.Sprintf("parseTime=%t", *o.parseTime))
-		}
+		appendOpt(fmt.Sprintf("parseTime=%t", *o.parseTime))
 	}
 
 	if o.loc != "" {
-		if hasOptions {
-			dsnBuilder.WriteString("&loc=" + o.loc)
-		} else {
-			hasOptions = true
-			dsnBuilder.WriteString("loc=" + o.loc)
-		}
+		appendOpt("loc=" + o.loc)
 	}
 
-	if o.maxAllowedPacket != 0 {
-		if hasOptions {
-			dsnBuilder.WriteString(fmt.Sprintf("&maxAllowedPacket=%d", o.maxAllowedPacket))
-		} else {
-			hasOptions = true
-			dsnBuilder.WriteString(fmt.Sprintf("maxAllowedPacket=%d", o.maxAllowedPacket))
-		}
+	// OptionAutoMaxAllowedPacket takes precedence over OptionMaxAllowedPacket.
+	if o.autoMaxAllowedPacket {
+		appendOpt("maxAllowedPacket=0")
+	} else if o.maxAllowedPacket != 0 {
+		appendOpt(fmt.Sprintf("maxAllowedPacket=%d", o.maxAllowedPacket))
 	}
 
 	if o.timeout != 0 {
-		if hasOptions {
-			dsnBuilder.WriteString(fmt.Sprintf("&timeout=%s", o.timeout))
-		} else {
-			hasOptions = true
-			dsnBuilder.WriteString(fmt.Sprintf("timeout=%s", o.timeout))
-		}
+		appendOpt(fmt.Sprintf("timeout=%s", o.timeout))
 	}
 
 	if o.readTimeout != 0 {
-		if hasOptions {
-			dsnBuilder.WriteString(fmt.Sprintf("&readTimeout=%s", o.readTimeout))
-		} else {
-			hasOptions = true
-			dsnBuilder.WriteString(fmt.Sprintf("readTimeout=%s", o.readTimeout))
-		}
-
+		appendOpt(fmt.Sprintf("readTimeout=%s", o.readTimeout))
 	}
+
 	if o.writeTimeout != 0 {
-		if hasOptions {
-			dsnBuilder.WriteString(fmt.Sprintf("&writeTimeout=%s", o.writeTimeout))
-		} else {
-			hasOptions = true
-			dsnBuilder.WriteString(fmt.Sprintf("writeTimeout=%s", o.writeTimeout))
-		}
+		appendOpt(fmt.Sprintf("writeTimeout=%s", o.writeTimeout))
+	}
+
+	if o.interpolateParams {
+		appendOpt("interpolateParams=true")
 	}
 
 	return dsnBuilder.String()
@@ -356,10 +345,68 @@ func OptionWriteTimeout(val time.Duration) *funcOptions {
 }
 
 // OptionMaxAllowedPacket sets maxAllowedPacket in DSN.
+// Ignored when OptionAutoMaxAllowedPacket(true) is also set.
 func OptionMaxAllowedPacket(val int) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.maxAllowedPacket = val
+			return nil
+		},
+	}
+}
+
+// OptionAutoMaxAllowedPacket writes maxAllowedPacket=0 into the DSN so the
+// driver queries the server limit on each new connection. Takes precedence
+// over OptionMaxAllowedPacket. Intended for standard MySQL with interpolateParams.
+func OptionAutoMaxAllowedPacket(val bool) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.autoMaxAllowedPacket = val
+			return nil
+		},
+	}
+}
+
+// OptionInterpolateParams enables client-side parameter interpolation in DSN.
+// Only for standard MySQL with a driver-recognized safe charset (e.g. utf8mb4).
+// Do not use for proxy/tdbctl management ports.
+func OptionInterpolateParams(val bool) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.interpolateParams = val
+			return nil
+		},
+	}
+}
+
+// OptionMaxOpenConns sets sql.DB MaxOpenConns. Applied only by NewGormDB when
+// non-zero. Zero leaves the database/sql default unchanged.
+func OptionMaxOpenConns(val int) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.maxOpenConns = val
+			return nil
+		},
+	}
+}
+
+// OptionMaxIdleConns sets sql.DB MaxIdleConns. Applied only by NewGormDB when
+// non-zero. Zero leaves the database/sql default unchanged.
+func OptionMaxIdleConns(val int) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.maxIdleConns = val
+			return nil
+		},
+	}
+}
+
+// OptionConnMaxLifetime sets sql.DB ConnMaxLifetime. Applied only by NewGormDB when
+// non-zero. Zero leaves the database/sql default unchanged.
+func OptionConnMaxLifetime(val time.Duration) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.connMaxLifetime = val
 			return nil
 		},
 	}

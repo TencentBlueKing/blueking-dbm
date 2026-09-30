@@ -124,6 +124,7 @@ func (p *Probe) Run(ctx context.Context) error {
 	return p.svr.Serve(listen)
 }
 
+// PushDataUnary accepts one probe payload and queues it for the connection handler.
 func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (*proto.ReceiverResponse, error) {
 	if err := apm.ProbeReceiveMessagesTotal.IncWithLabels(map[string]string{
 		apm.MetricLabelProbe: "probe",
@@ -153,6 +154,9 @@ func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (
 	}); metricErr != nil {
 		logger.Warn("update probe queue full metric failed, errmsg: %s", metricErr)
 	}
+	if p.connHandler != nil {
+		p.connHandler.emitDrop(sink.ReasonQueueFull)
+	}
 
 	return &proto.ReceiverResponse{
 		Code:   1,
@@ -160,6 +164,7 @@ func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (
 	}, nil
 }
 
+// Harvest starts the probe gRPC server and forwards events to savers.
 func (p *Probe) Harvest(ctx context.Context, savers []sink.Sinker) error {
 	p.wg.Add(1)
 	go func(ctx context.Context) {

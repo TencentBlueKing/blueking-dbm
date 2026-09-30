@@ -94,6 +94,18 @@ func NewGormDB(opts ...Option) (*GormDB, error) {
 		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to open the db:%s errmsg: %s", db.opts.dbName, err)
 	}
 
+	if sqlDb, sqlErr := gdb.DB(); sqlErr == nil {
+		if db.opts.maxOpenConns != 0 {
+			sqlDb.SetMaxOpenConns(db.opts.maxOpenConns)
+		}
+		if db.opts.maxIdleConns != 0 {
+			sqlDb.SetMaxIdleConns(db.opts.maxIdleConns)
+		}
+		if db.opts.connMaxLifetime != 0 {
+			sqlDb.SetConnMaxLifetime(db.opts.connMaxLifetime)
+		}
+	}
+
 	db.db = gdb
 	db.close = func() {
 		if sqlDb, err := db.db.DB(); err == nil {

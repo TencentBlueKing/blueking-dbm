@@ -27,6 +27,7 @@ package sink
 import (
 	"encoding/json"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/receiver/apm"
@@ -52,116 +53,237 @@ type Message struct {
 }
 
 type mysql struct {
-	dbs []*hamysql.GormDB
+	dbs               []*hamysql.GormDB
+	writer            chunkWriter
+	batchChunkSize    int
+	chunkMaxBytes     int
+	writeRetryTimeout time.Duration
+	closed            atomic.Bool
+	// recordDuration replaces the batch-duration histogram in tests.
+	recordDuration func(topic string, ms float64)
+	// nowFn replaces the clock used for write-delay samples. Nil means time.Now.
+	nowFn func() time.Time
+	// recordStats replaces RecordWriteStats in tests.
+	recordStats func(topic string, stats WriteStats)
 }
 
-func newMySql(endpoints, user, password string, timeout time.Duration) (*mysql, error) {
-	epoints, err := hanet.NewEndpoints(endpoints)
+func newMySql(cfg config.SinkConfig) (*mysql, error) {
+	epoints, err := hanet.NewEndpoints(cfg.Endpoints)
 	if err != nil {
 		return nil, err
 	}
 
+	gormLogger := newMySQLGormLogger()
+	timeout := cfg.SaveTimeout
+	if timeout <= 0 {
+		timeout = constant.DefaultSaveTimeout
+	}
+	msql := &mysql{
+		writer:            gormChunkWriter{},
+		batchChunkSize:    resolvePositiveInt(cfg.BatchChunkSize, defaultBatchChunkSize),
+		chunkMaxBytes:     resolvePositiveInt(cfg.ChunkMaxBytes, defaultChunkMaxBytes),
+		writeRetryTimeout: resolvePositiveDuration(cfg.WriteRetryTimeout, defaultWriteRetryTimeout),
+	}
+
+	for _, epoint := range epoints {
+		db, err := hamysql.NewGormDB(buildMySQLOptions(cfg, epoint, gormLogger, timeout)...)
+		if err != nil {
+			return nil, err
+		}
+		msql.dbs = append(msql.dbs, db)
+	}
+	return msql, nil
+}
+
+func newMySQLGormLogger() logger.Logger {
 	logBasename := filepath.Base(config.Cfg.Log.Path)
 	logDir := filepath.Dir(config.Cfg.Log.Path)
-
-	logCfg := logger.Config{
+	return logger.NewZapLogger(logger.Config{
 		FileName:   filepath.Join(logDir, "gorm-"+logBasename),
 		LogLevel:   logger.Level(config.Cfg.Log.Level),
 		MaxSizeMB:  config.Cfg.Log.FileSize,
 		MaxBackups: config.Cfg.Log.FileCount,
+	})
+}
+
+func buildMySQLOptions(
+	cfg config.SinkConfig,
+	epoint *hanet.Endpoint,
+	gormLogger logger.Logger,
+	timeout time.Duration,
+) []hamysql.Option {
+	maxIdleConns := resolvePositiveInt(cfg.MaxIdleConns, defaultMaxIdleConns)
+	connMaxLifetime := resolvePositiveDuration(cfg.ConnMaxLifetime, defaultConnMaxLifetime)
+	opts := []hamysql.Option{
+		hamysql.OptionIP(epoint.Host),
+		hamysql.OptionPort(epoint.Port),
+		hamysql.OptionProto(epoint.Proto),
+		hamysql.OptionDBName(hamodel.DatabaseName),
+		hamysql.OptionUser(cfg.User),
+		hamysql.OptionPassword(cfg.Password),
+		hamysql.OptionLogger(gormLogger),
+		hamysql.OptionReadTimeout(timeout),
+		hamysql.OptionWriteTimeout(timeout),
+		hamysql.OptionMaxIdleConns(maxIdleConns),
+		hamysql.OptionConnMaxLifetime(connMaxLifetime),
 	}
-
-	gormLogger := logger.NewZapLogger(logCfg)
-
-	msql := &mysql{}
-
-	if timeout <= 0 {
-		timeout = constant.DefaultSaveTimeout
+	if cfg.MaxOpenConns != 0 {
+		opts = append(opts, hamysql.OptionMaxOpenConns(cfg.MaxOpenConns))
 	}
-
-	for _, epoint := range epoints {
-		db, err := hamysql.NewGormDB(
-			hamysql.OptionIP(epoint.Host),
-			hamysql.OptionPort(epoint.Port),
-			hamysql.OptionProto(epoint.Proto),
-			hamysql.OptionDBName(hamodel.DatabaseName),
-			hamysql.OptionUser(user),
-			hamysql.OptionPassword(password),
-			hamysql.OptionLogger(gormLogger),
-			hamysql.OptionReadTimeout(timeout),
-			hamysql.OptionWriteTimeout(timeout),
+	interpolate := true
+	if cfg.InterpolateParams != nil {
+		interpolate = *cfg.InterpolateParams
+	}
+	if interpolate {
+		opts = append(opts,
+			hamysql.OptionInterpolateParams(true),
+			hamysql.OptionAutoMaxAllowedPacket(true),
 		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		msql.dbs = append(msql.dbs, db)
 	}
+	return opts
+}
 
-	return msql, nil
+func resolvePositiveInt(v, def int) int {
+	if v <= 0 {
+		return def
+	}
+	return v
+}
+
+func resolvePositiveDuration(v, def time.Duration) time.Duration {
+	if v <= 0 {
+		return def
+	}
+	return v
+}
+
+func (s *mysql) currentTime() time.Time {
+	if s.nowFn != nil {
+		return s.nowFn()
+	}
+	return time.Now()
+}
+
+func (s *mysql) emitStats(topic string, stats WriteStats) {
+	if s.recordStats != nil {
+		s.recordStats(topic, stats)
+		return
+	}
+	RecordWriteStats(topic, stats)
 }
 
 func (s *mysql) Save(msg *Message) error {
 	startTime := time.Now()
 	defer func() {
-		if err := apm.MySqlWriteDurationMs.ObserveWithLabels(map[string]string{
+		err := apm.MySqlWriteDurationMs.ObserveWithLabels(map[string]string{
 			apm.MetricLabelMysql: msg.Topic,
-		}, float64(time.Since(startTime).Milliseconds())); err != nil {
+		}, float64(time.Since(startTime).Milliseconds()))
+		if err != nil {
 			logger.Warn("update mysql write duration metric failed, errmsg: %s", err)
 		}
 	}()
 
+	err, stats := s.saveOne(msg)
+	s.emitStats(msg.Topic, stats)
+	return err
+}
+
+func (s *mysql) saveOne(msg *Message) (error, WriteStats) {
+	var stats WriteStats
 	dbStatus := &haprobe.HarvestData{}
-	if err := json.Unmarshal([]byte(msg.Data), dbStatus); err != nil {
-		if metricErr := apm.MySqlReadErrorsTotal.IncWithLabels(map[string]string{
-			apm.MetricLabelMysql: msg.Topic,
-		}); metricErr != nil {
-			logger.Warn("update mysql read errors metric failed, errmsg: %s", metricErr)
-		}
-		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
+	if err := json.Unmarshal(msg.Data, dbStatus); err != nil {
+		s.countReadError(msg.Topic)
+		stats.AddDrop("", ReasonInvalidJSON, 1)
+		return gerrors.Newf(
+			gerrors.InvalidJson,
+			"unmarshal a mysql metric message failed, topic(%s), %v",
+			msg.Topic, err,
+		), stats
 	}
 
-	logger.Debug("outputter(mysql) save msg: %s, raw: %s", string(msg.Data), string(dbStatus.RawValue))
+	logger.Debug("outputter(mysql) save msg: %s, raw: %s", msg.Data, dbStatus.RawValue)
 
 	data := hamodel.NewDbhaData(dbStatus)
 	if !data.HarvestType.IsKnown() {
+		stats.AddDrop(string(data.DbTypeName), ReasonUnknownType, 1)
 		return gerrors.Newf(gerrors.InvalidParameter,
 			"unknown harvest_type, topic: %s, db: %s:%d, harvest_type: %s",
-			msg.Topic, data.DbIp, data.DbPort, data.HarvestType)
+			msg.Topic, data.DbIp, data.DbPort, data.HarvestType), stats
 	}
 
+	s.writeSaveEndpoints(msg, data, &stats)
+	s.countSaveVolume(msg)
+	return nil, stats
+}
+
+func (s *mysql) writeSaveEndpoints(msg *Message, data *hamodel.DbhaDataStatus, stats *WriteStats) {
+	dbType := string(data.DbTypeName)
+	var firstOK time.Time
+	okN, dataFails, otherFails := 0, 0, 0
 	for _, db := range s.dbs {
 		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(data).Error
-
 		if err != nil {
-			logger.Warn("save the mysql metric failed, errmsg: %s", err)
-
-			if metricErr := apm.MySqlWriteErrorsTotal.IncWithLabels(map[string]string{
-				apm.MetricLabelMysql: msg.Topic,
-			}); metricErr != nil {
-				logger.Warn("update mysql write errors metric failed, errmsg: %s", metricErr)
-			}
+			s.noteSaveEndpointError(msg.Topic, err, &dataFails, &otherFails)
+			continue
 		}
+		if okN == 0 {
+			firstOK = s.currentTime()
+		}
+		okN++
 	}
+	if okN > 0 {
+		stats.Written = 1
+		if ms, ok := DelayMillis(firstOK, data.ReportTimestamp); ok {
+			stats.Samples = append(stats.Samples, DelaySample{DbType: dbType, Ms: ms})
+		}
+		return
+	}
+	reason := ReasonWriteError
+	if len(s.dbs) > 0 && otherFails == 0 && dataFails == len(s.dbs) {
+		reason = ReasonDataError
+	}
+	stats.AddDrop(dbType, reason, 1)
+}
 
+func (s *mysql) noteSaveEndpointError(topic string, err error, dataFails, otherFails *int) {
+	logger.Warn("save the mysql metric failed, errmsg: %s", err)
+	if classifyMySQLError(err) == mysqlErrData {
+		*dataFails++
+	} else {
+		*otherFails++
+	}
+	if metricErr := apm.MySqlWriteErrorsTotal.IncWithLabels(map[string]string{
+		apm.MetricLabelMysql: topic,
+	}); metricErr != nil {
+		logger.Warn("update mysql write errors metric failed, errmsg: %s", metricErr)
+	}
+}
+
+func (s *mysql) countReadError(topic string) {
+	if metricErr := apm.MySqlReadErrorsTotal.IncWithLabels(map[string]string{
+		apm.MetricLabelMysql: topic,
+	}); metricErr != nil {
+		logger.Warn("update mysql read errors metric failed, errmsg: %s", metricErr)
+	}
+}
+
+func (s *mysql) countSaveVolume(msg *Message) {
 	if err := apm.MySqlWriteMessagesTotal.IncWithLabels(map[string]string{
 		apm.MetricLabelMysql: msg.Topic,
 	}); err != nil {
 		logger.Warn("update mysql write messages metric failed, errmsg: %s", err)
 	}
-
 	if err := apm.MySqlWriteBytesTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelMysql: msg.Topic,
 	}, float64(len(msg.Data))); err != nil {
 		logger.Warn("update mysql write bytes metric failed, errmsg: %s", err)
 	}
-	return nil
 }
 
 func (s *mysql) Close() {
+	s.closed.Store(true)
 	for _, db := range s.dbs {
 		db.Close()
 	}
