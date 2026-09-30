@@ -102,6 +102,13 @@ class DBVersionConflictCheckResponseSerializer(serializers.Serializer):
     full_version_conflict = serializers.BooleanField(help_text=_("完整版本号是否冲突"))
 
 
+class DBVersionPermitOsSerializer(serializers.Serializer):
+    """介质版本可选操作系统出参(用于 swagger 文档)"""
+
+    permit_os_type = serializers.CharField(help_text=_("操作系统类型"))
+    permit_os = serializers.ListField(help_text=_("已启用介质包支持的操作系统"), child=serializers.CharField())
+
+
 class DBPackageTypeListQuerySerializer(serializers.Serializer):
     """获取某 DB 类型下的 pkg 类型配置 入参"""
 

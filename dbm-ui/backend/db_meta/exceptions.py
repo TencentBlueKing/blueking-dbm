@@ -166,3 +166,9 @@ class ClusterStateException(DBMetaBaseException):
     ERROR_CODE = "026"
     MESSAGE = _("集群状态异常")
     MESSAGE_TPL = _("集群状态异常: {message}")
+
+
+class DBModuleVersionException(DBMetaBaseException):
+    ERROR_CODE = "026"
+    MESSAGE = _("模块版本不合法")
+    MESSAGE_TPL = _("{message}")
