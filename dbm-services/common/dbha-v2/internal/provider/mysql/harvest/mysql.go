@@ -32,7 +32,6 @@ package harvest
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
@@ -90,8 +89,9 @@ type harvestGroup struct {
 	interval time.Duration
 	// accept reports whether an endpoint belongs to this group.
 	accept func(c *collector) bool
-	// emit produces one HarvestData for a single collector.
-	emit func(c *collector, dataC chan<- *plugin.HarvestData)
+	// emit produces one HarvestData for a single collector. ctx is the harvester
+	// generation context: it lets the send give up when the generation is gone.
+	emit func(ctx context.Context, c *collector, dataC chan<- *plugin.HarvestData)
 }
 
 // MySql mysql harvester
@@ -104,7 +104,6 @@ type MySql struct {
 	machineID string
 	serviceID string
 	name      string
-	wg        sync.WaitGroup
 	cfg       *config.RawHarvesterConfig
 	// harvestGroups declares every harvest group (default / heartbeat; repldelay is disabled)
 	harvestGroups []*harvestGroup
@@ -166,28 +165,23 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 			logger.Info("skip empty harvest group, name: %s, group: %s", m.name, g.htype)
 			continue
 		}
-		m.wg.Add(1)
 		go m.runGroupLoop(ctx, g, dataC)
 	}
 
-	// Close dataC only after every group loop has exited.
-	go func() {
-		m.wg.Wait()
-		close(dataC)
-	}()
-
+	// dataC is never closed: pool workers are process-wide and outlive this
+	// harvester generation, so no plugin can prove that no worker will write to
+	// it again — closing it would panic a worker with "send on closed channel".
+	// runPlugin exits on ctx.Done instead.
 	return dataC, nil
 }
 
 // runGroupLoop drives one harvest group on its own timer, fanning out over the group's
 // collectors every tick via beginCollecting.
 func (m *MySql) runGroupLoop(ctx context.Context, g *harvestGroup, dataC chan<- *plugin.HarvestData) {
-	defer m.wg.Done()
-
 	collectRound := func() {
-		wg := &sync.WaitGroup{}
-		m.beginCollecting(wg, dataC, g)
-		wg.Wait()
+		// Submit only: the round never waits for the collection to finish, so a
+		// slow instance cannot delay the next tick.
+		m.beginCollecting(ctx, dataC, g)
 	}
 
 	if ctx.Err() != nil {
@@ -357,7 +351,7 @@ func (m *MySql) newHarvestData(c *collector, htype haprobe.HarvestType) *plugin.
 }
 
 // collecting is the default group's emit: it produces a full status snapshot for one collector.
-func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
+func (m *MySql) collecting(ctx context.Context, c *collector, dataC chan<- *plugin.HarvestData) {
 	status := &haprobe.MySqlStatus{}
 
 	data := m.newHarvestData(c, haprobe.HarvestTypeDefault)
@@ -366,7 +360,12 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		c.close()
 		data.Value = status
 		data.ReportTimestamp = uint64(time.Now().Unix())
-		dataC <- data
+		// Sending must stay cancellable: a full dataC would otherwise pin the pool
+		// worker forever and silently shrink the effective worker count.
+		select {
+		case dataC <- data:
+		case <-ctx.Done():
+		}
 	}()
 
 	isProxyServicePort := c.isTendbHaProxy() && !c.isAdmin()
@@ -427,17 +426,32 @@ func (c *collector) collectCommonStatus(status *haprobe.MySqlStatus) {
 	}
 }
 
-// beginCollecting fans out one round of the given group over its collectors.
-func (m *MySql) beginCollecting(wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData, g *harvestGroup) {
+// beginCollecting submits one collection job per collector of the group. It
+// returns without waiting for the collection to finish, so the group cadence
+// never depends on slow instances.
+func (m *MySql) beginCollecting(ctx context.Context, dataC chan<- *plugin.HarvestData, g *harvestGroup) {
 	for _, c := range m.collectors[g.htype] {
-		wg.Add(1)
-
-		go func(t *collector) {
-			defer wg.Done()
-
-			g.emit(t, dataC)
-		}(c)
+		m.submitCollector(ctx, c, g, dataC)
 	}
+}
+
+// submitCollector submits the collection job of one instance.
+//
+// The dedup key carries the harvest type, so the same ip:port collected by two
+// groups (default and heartbeat) never blocks itself.
+func (m *MySql) submitCollector(ctx context.Context, c *collector, g *harvestGroup,
+	dataC chan<- *plugin.HarvestData) {
+	base.DefaultPool().Submit(base.CollectJob{
+		Key: base.JobKey(string(haprobe.DbTypeMySql), c.endpoint.Host, c.endpoint.Port,
+			string(g.htype)),
+		Run: func() {
+			// Abandon jobs of a harvester generation that is already gone.
+			if ctx.Err() != nil {
+				return
+			}
+			g.emit(ctx, c, dataC)
+		},
+	})
 }
 
 func (m *MySql) collectInterval() time.Duration {
@@ -489,7 +503,7 @@ func (m *MySql) buildHarvestGroups() []*harvestGroup {
 
 // emitDbStatus opens a connection, lets fillStatus populate a fresh MySqlStatus, and sends one
 // HarvestData tagged with htype.
-func (m *MySql) emitDbStatus(c *collector, htype haprobe.HarvestType,
+func (m *MySql) emitDbStatus(ctx context.Context, c *collector, htype haprobe.HarvestType,
 	dataC chan<- *plugin.HarvestData, fillStatus fillStatusFunc) {
 	status := &haprobe.MySqlStatus{}
 	var event *haprobe.DbEvent = nil
@@ -506,7 +520,12 @@ func (m *MySql) emitDbStatus(c *collector, htype haprobe.HarvestType,
 		}
 		data.ReportTimestamp = uint64(time.Now().Unix())
 
-		dataC <- data
+		// Sending must stay cancellable: a full dataC would otherwise pin the pool
+		// worker forever and silently shrink the effective worker count.
+		select {
+		case dataC <- data:
+		case <-ctx.Done():
+		}
 	}()
 
 	if c.endpoint == nil {
@@ -528,7 +547,7 @@ func (m *MySql) emitDbStatus(c *collector, htype haprobe.HarvestType,
 // collectHeartbeat is the heartbeat group's emit: every probed instance REPLACE
 // dbha_heartbeat with sql_log_bin OFF (local write probe, not replication lag),
 // then reads HeartbeatDelay from that same local row.
-func (m *MySql) collectHeartbeat(c *collector, dataC chan<- *plugin.HarvestData) {
+func (m *MySql) collectHeartbeat(ctx context.Context, c *collector, dataC chan<- *plugin.HarvestData) {
 	var fillStatus fillStatusFunc = func(c *collector, status *haprobe.MySqlStatus) *haprobe.DbEvent {
 		heartbeatStatus, err := c.obtainHeartbeatStatus(false, heartbeatWriteMaxAttempts)
 		status.HeartbeatStatus = heartbeatStatus
@@ -543,14 +562,14 @@ func (m *MySql) collectHeartbeat(c *collector, dataC chan<- *plugin.HarvestData)
 		return c.writeHeartbeatFailureEvent(errors.New(heartbeatStatus.WriteFailureReason))
 	}
 
-	m.emitDbStatus(c, haprobe.HarvestTypeHeartbeat, dataC, fillStatus)
+	m.emitDbStatus(ctx, c, haprobe.HarvestTypeHeartbeat, dataC, fillStatus)
 }
 
 // collectReplDelay is the repldelay group's emit: every probed instance REPLACE
 // dbha_repl_heartbeat (binlog ON) for its own host:port — a replica may also be
 // another topology's master; then also SHOW SLAVE STATUS and read delay from the
 // replicated row keyed by Master_Host/Master_Port/Master_Server_Id when present.
-func (m *MySql) collectReplDelay(c *collector, dataC chan<- *plugin.HarvestData) {
+func (m *MySql) collectReplDelay(ctx context.Context, c *collector, dataC chan<- *plugin.HarvestData) {
 	var fillStatus fillStatusFunc = func(c *collector, status *haprobe.MySqlStatus) *haprobe.DbEvent {
 		masterStatus, err := c.obtainMasterStatus()
 		status.MasterStatus = masterStatus
@@ -569,5 +588,5 @@ func (m *MySql) collectReplDelay(c *collector, dataC chan<- *plugin.HarvestData)
 		return nil
 	}
 
-	m.emitDbStatus(c, haprobe.HarvestTypeReplDelay, dataC, fillStatus)
+	m.emitDbStatus(ctx, c, haprobe.HarvestTypeReplDelay, dataC, fillStatus)
 }

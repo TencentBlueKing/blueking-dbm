@@ -283,25 +283,7 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 
 // obtainlHostStatus obtain this host status
 func (c *collector) obtainHostStatus() (*haprobe.HostMetric, error) {
-	hostStatus := &haprobe.HostMetric{}
-
-	if err := c.SetCpuStatus(hostStatus); err != nil {
-		logger.Warn("failed to update CPU status, errmsg: %s", err)
-	}
-
-	if err := c.SetNetStatus(hostStatus); err != nil {
-		logger.Warn("failed to update Net status, errmsg: %s", err)
-	}
-
-	if err := c.SetMemoryStatus(hostStatus); err != nil {
-		logger.Warn("failed to update memory status, errmsg: %s", err)
-	}
-
-	if err := c.SetDiskStatus(hostStatus); err != nil {
-		logger.Warn("failed to update memory status, errmsg: %s", err)
-	}
-
-	return hostStatus, nil
+	return base.HostMetricSnapshot(), nil
 }
 
 // hasSessionVariableLike reports whether SHOW SESSION VARIABLES LIKE pattern returned any rows.

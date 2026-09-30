@@ -28,7 +28,6 @@ package harvest
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
@@ -52,7 +51,6 @@ type Redis struct {
 	bkCloudID int
 	machineID string
 	serviceID string
-	wg        sync.WaitGroup
 	cfg       *config.RawHarvesterConfig
 	// key: the redis endpoint
 	collectors map[string]*collector
@@ -90,15 +88,11 @@ func (r *Redis) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 	// Load all collectors.
 	r.loadCollectors()
 
-	r.wg.Add(1)
 	go func(ctx context.Context) {
-		defer r.wg.Done()
-		defer close(dataC)
-
 		collectRound := func() {
-			wg := &sync.WaitGroup{}
-			r.beginCollecting(ctx, wg, dataC)
-			wg.Wait()
+			// Submit only: the round never waits for the collection to finish, so a
+			// slow instance cannot delay the next tick.
+			r.beginCollecting(ctx, dataC)
 		}
 
 		if ctx.Err() != nil {
@@ -123,6 +117,10 @@ func (r *Redis) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 		}
 	}(ctx)
 
+	// dataC is never closed: pool workers are process-wide and outlive this
+	// harvester generation, so no plugin can prove that no worker will write to
+	// it again — closing it would panic a worker with "send on closed channel".
+	// runPlugin exits on ctx.Done instead.
 	return dataC, nil
 }
 
@@ -198,7 +196,12 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 		data.Value = status
 		data.ReportTimestamp = uint64(time.Now().Unix())
 
-		dataC <- data
+		// Sending must stay cancellable: a full dataC would otherwise pin the pool
+		// worker forever and silently shrink the effective worker count.
+		select {
+		case dataC <- data:
+		case <-ctx.Done():
+		}
 	}()
 
 	if hostStatus, err := c.obtainHostStatus(); err != nil {
@@ -309,14 +312,25 @@ func (r *Redis) populateStorage(ctx context.Context, c *collector, status *hapro
 	status.HeartbeatStatus = heartbeat
 }
 
-func (r *Redis) beginCollecting(ctx context.Context, wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData) {
+// beginCollecting submits one job per instance and returns without waiting for
+// the collection to finish, so the harvest cadence never depends on slow instances.
+func (r *Redis) beginCollecting(ctx context.Context, dataC chan<- *plugin.HarvestData) {
 	for _, c := range r.collectors {
-		wg.Add(1)
-
-		go func(t *collector) {
-			defer wg.Done()
-
-			r.collecting(ctx, t, dataC)
-		}(c)
+		r.submitCollector(ctx, c, dataC)
 	}
+}
+
+// submitCollector submits the collection job of one instance.
+func (r *Redis) submitCollector(ctx context.Context, c *collector, dataC chan<- *plugin.HarvestData) {
+	base.DefaultPool().Submit(base.CollectJob{
+		Key: base.JobKey(string(haprobe.DbTypeRedis), c.endpoint.Host, c.endpoint.Port,
+			string(haprobe.HarvestTypeDefault)),
+		Run: func() {
+			// Abandon jobs of a harvester generation that is already gone.
+			if ctx.Err() != nil {
+				return
+			}
+			r.collecting(ctx, c, dataC)
+		},
+	})
 }
