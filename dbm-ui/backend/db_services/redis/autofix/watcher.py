@@ -299,9 +299,15 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
 
 # 把故障切换成功后的机器/集群信息保存起来
 def save_swithed_host_by_cluster(switch_hosts: Dict):
+    from backend.db_services.redis.autofix.bill import mongodb_autofix_enabled
+
     switched_cluster = {}
+    skip_mongos = mongodb_autofix_enabled()
     # 以集群维度聚合故障信息
     for swiched_host in switch_hosts.values():
+        if swiched_host.instance_type == MachineType.MONGOS.value and skip_mongos:
+            logger.info("skip redis autofix core for mongos ip={}, handled by mongodb autofix".format(swiched_host.ip))
+            continue
         cluster = swiched_host.immute_domain
         if swiched_host.cluster_type == ClusterType.TendisRedisInstance.value:
             cluster = swiched_host.ip  # 主从集群 ； 用机器来聚合
@@ -320,6 +326,8 @@ def save_swithed_host_by_cluster(switch_hosts: Dict):
         )
     # 按照集群维度保存信息
     for cluster in switched_cluster.values():
+        if not cluster["fault_machines"]:
+            continue
         logger.info(
             "autofix cluster {} with hosts {} begin".format(cluster["immute_domain"], cluster["fault_machines"])
         )

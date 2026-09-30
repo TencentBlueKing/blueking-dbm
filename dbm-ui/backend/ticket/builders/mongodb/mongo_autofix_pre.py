@@ -31,7 +31,9 @@ class MongoDBAutofixPreDetailSerializer(BaseMongoDBOperateDetailSerializer):
         cluster_ids = serializers.ListField(help_text=_("关联集群 ID"), child=serializers.IntegerField(), required=False)
         cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
         immute_domain = serializers.CharField(help_text=_("主域名"), required=False)
-        disk_rw_ok = serializers.IntegerField(help_text=_("磁盘读写探测结果"), required=False, allow_null=True)
+        wait_gse_forever = serializers.BooleanField(help_text=_("GSE 探测是否一直等待"), required=False, default=False)
+        machine_type = serializers.CharField(help_text=_("机器类型"), required=False, allow_blank=True)
+        roles = serializers.ListField(help_text=_("角色列表"), required=False)
 
     infos = serializers.ListSerializer(help_text=_("Mongo 自愈预确认信息"), child=AutofixPreDetailSerializer())
 
