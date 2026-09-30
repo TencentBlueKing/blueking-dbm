@@ -33,6 +33,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/internal/probe/selfmetric"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -190,6 +191,19 @@ func (p *Probe) startPlugin(
 }
 
 func (p *Probe) startRuntime(parent context.Context, serviceID string) *harvestRuntime {
+	// The pool is process-wide and outlives harvester generations, so it is driven
+	// by parent (the process context) and only resized across reloads.
+	base.DefaultPool().SetWorkers(parent, config.Snapshot().Collect.CollectTaskCount())
+
+	// Host metrics are machine-wide: sampled once per process and read by every
+	// collector instead of being sampled per instance. StartHostMetric is a no-op
+	// after the first call, so a reload only retunes the interval through
+	// SetHostMetricInterval and never rebuilds the sampler (which would discard
+	// the current snapshot).
+	hostInterval := config.Snapshot().Collect.HostMetricIntervalDuration()
+	base.StartHostMetric(parent, hostInterval)
+	base.SetHostMetricInterval(hostInterval)
+
 	ctx, cancel := context.WithCancel(parent)
 	rt := &harvestRuntime{cancel: cancel}
 	for _, e := range effectivePluginEntries() {

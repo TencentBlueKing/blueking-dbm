@@ -37,13 +37,28 @@ import (
 	"github.com/spf13/viper"
 )
 
-// defaultPidFile is the fallback pid-file path used when the loaded config
-// leaves pidFile empty, so the running process never operates with an empty
-// pid-file path.
-const defaultPidFile = "./pids/probe.pid"
+const (
+	// defaultPidFile is the fallback pid-file path used when the loaded config
+	// leaves pidFile empty, so the running process never operates with an empty
+	// pid-file path.
+	defaultPidFile = "./pids/probe.pid"
 
-// MinSyncInterval is the floor applied to admin.syncInterval.
-const MinSyncInterval = 10 * time.Second
+	// MinSyncInterval is the floor applied to admin.syncInterval.
+	MinSyncInterval = 10 * time.Second
+
+	// defaultCollectTaskGoroutines is the fallback number of goroutines that run
+	// collection tasks, i.e. the fallback cap on instances collected at once.
+	defaultCollectTaskGoroutines = 8
+
+	// defaultHostMetricInterval is how often the process-wide host metric sampler
+	// refreshes its snapshot when collect.hostMetricInterval is unset.
+	defaultHostMetricInterval = 10 * time.Second
+
+	// minHostMetricInterval is the shortest accepted host metric sample interval.
+	// One sample itself costs well over a second (cpu.Percent(1s) plus the packet
+	// loss sleep), so a smaller interval would keep the sampler busy back to back.
+	minHostMetricInterval = 3 * time.Second
+)
 
 // Cfg holds the currently applied probe configuration. Concurrent readers must use Snapshot.
 var Cfg = defaultConfiguration()
@@ -97,6 +112,17 @@ func (a AdminConfig) IsZero() bool {
 // SyncEnabled reports whether periodic sync should run.
 func (a AdminConfig) SyncEnabled() bool {
 	return a.SyncInterval > 0 && len(a.Endpoints) > 0
+}
+
+// CollectConfig controls the machine-wide collection concurrency.
+type CollectConfig struct {
+	CollectTaskGoroutines int           `yaml:"collectTaskGoroutines" mapstructure:"collectTaskGoroutines"`
+	HostMetricInterval    time.Duration `yaml:"hostMetricInterval" mapstructure:"hostMetricInterval"`
+}
+
+// IsZero reports whether the block carries nothing worth writing to disk.
+func (c CollectConfig) IsZero() bool {
+	return c.CollectTaskGoroutines == 0 && c.HostMetricInterval == 0
 }
 
 // ReporterConfig reporter config
@@ -220,6 +246,7 @@ type Configuration struct {
 	Harvester  HarvesterConfig `yaml:"harvester"  mapstructure:"harvester"`
 	Health     HealthConfig    `yaml:"health"     mapstructure:"health"`
 	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
+	Collect    CollectConfig   `yaml:"collect"    mapstructure:"collect"`
 	ClearPorts []int           `yaml:"clearPorts" mapstructure:"clearPorts"`
 }
 
@@ -273,7 +300,53 @@ func postProcess(cfg *Configuration) {
 		cfg.PidFile = defaultPidFile
 	}
 	clampSyncInterval(cfg)
+	clampCollect(cfg)
 	normalizeHarvesterExtraKeysOn(cfg)
+}
+
+// clampCollect repairs unusable collect settings and warns about each repair.
+func clampCollect(cfg *Configuration) {
+	// A non-positive worker count is unusable: apply the default so the pool runs
+	// with a working cap instead of silently ignoring the setting.
+	if cfg.Collect.CollectTaskGoroutines < 0 {
+		logger.Warn("collect.collectTaskGoroutines is negative, fall back to the default value, "+
+			"configured: %d, default: %d", cfg.Collect.CollectTaskGoroutines, defaultCollectTaskGoroutines)
+		cfg.Collect.CollectTaskGoroutines = defaultCollectTaskGoroutines
+	}
+
+	// A negative interval is unusable: apply the default so the sampler runs on a
+	// working cadence instead of silently ignoring the setting.
+	if cfg.Collect.HostMetricInterval < 0 {
+		logger.Warn("collect.hostMetricInterval is negative, fall back to the default value, "+
+			"configured: %s, default: %s", cfg.Collect.HostMetricInterval, defaultHostMetricInterval)
+		cfg.Collect.HostMetricInterval = defaultHostMetricInterval
+	}
+
+	// A very small interval would keep the sampler running back to back, because
+	// one sample takes longer than the interval itself.
+	if cfg.Collect.HostMetricInterval > 0 && cfg.Collect.HostMetricInterval < minHostMetricInterval {
+		logger.Warn("collect.hostMetricInterval is too small, reset to the minimum value, "+
+			"configured: %s, minimum: %s", cfg.Collect.HostMetricInterval, minHostMetricInterval)
+		cfg.Collect.HostMetricInterval = minHostMetricInterval
+	}
+}
+
+// CollectTaskCount returns the effective number of goroutines running collection
+// tasks, falling back to the default when the block is unset or non-positive.
+func (c CollectConfig) CollectTaskCount() int {
+	if c.CollectTaskGoroutines <= 0 {
+		return defaultCollectTaskGoroutines
+	}
+	return c.CollectTaskGoroutines
+}
+
+// HostMetricIntervalDuration returns the effective host metric sample interval,
+// falling back to the default when the block is unset or non-positive.
+func (c CollectConfig) HostMetricIntervalDuration() time.Duration {
+	if c.HostMetricInterval <= 0 {
+		return defaultHostMetricInterval
+	}
+	return c.HostMetricInterval
 }
 
 func clampSyncInterval(cfg *Configuration) {
