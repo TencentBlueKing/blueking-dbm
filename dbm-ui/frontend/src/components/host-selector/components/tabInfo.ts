@@ -18,6 +18,8 @@ import { t } from '@locales/index';
 import type { ISupportHostType } from '../types';
 
 export const tabListMap: Record<ISupportHostType, string> = {
+  [ClusterTypes.ORACLE_PRIMARY_STANDBY]: t('Oracle 主从主机'),
+  [ClusterTypes.ORACLE_SINGLE_NONE]: t('Oracle 单节点主机'),
   [ClusterTypes.REDIS]: t('Redis 主机'),
   [ClusterTypes.SQLSERVER_HA]: t('SQLServer 主从主机'),
   [ClusterTypes.SQLSERVER_SINGLE]: t('SQLServer 单节点主机'),
