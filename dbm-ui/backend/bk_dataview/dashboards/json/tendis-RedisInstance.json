@@ -513,7 +513,7 @@
               "type": "range"
             }
           ],
-          "title": "redis_master eth1网卡使用率",
+          "title": "redis_master网卡使用率",
           "type": "timeseries"
         },
         {
@@ -615,10 +615,10 @@
               "host": [],
               "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip 物理层丢弃",
+              "promqlAlias": "$tag_ip 网卡冲突包",
               "query_configs": [],
               "refId": "A",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) > 0",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
               "step": "2m",
               "type": "range"
             },
@@ -635,10 +635,10 @@
               "host": [],
               "mode": "code",
               "module": [],
-              "promqlAlias": "$tag_ip 网卡冲突包",
+              "promqlAlias": "$tag_ip 物理层丢弃",
               "query_configs": [],
               "refId": "B",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) > 0",
               "step": "2m",
               "type": "range"
             },
@@ -658,7 +658,27 @@
               "promqlAlias": "$tag_ip 网卡丢弃包",
               "query_configs": [],
               "refId": "C",
-              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) > 0",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) > 0",
+              "step": "2m",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_ip Tcp重传",
+              "query_configs": [],
+              "refId": "D",
+              "source": "max by (ip) (irate(bkmonitor:dbm_system:netstat:cur_tcp_retranssegs{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
               "step": "2m",
               "type": "range"
             }
@@ -1125,7 +1145,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])))",
+          "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])))",
           "step": "2m",
           "type": "instant"
         }
@@ -1281,7 +1301,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "instant"
         }
@@ -2379,7 +2399,7 @@
           "promqlAlias": "$tag_cmd",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
+          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) > 0",
           "step": "2m",
           "type": "range"
         },
@@ -2535,7 +2555,7 @@
               },
               {
                 "id": "custom.axisPlacement",
-                "value": "right"
+                "value": "hidden"
               },
               {
                 "id": "custom.axisLabel",
@@ -2564,13 +2584,13 @@
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull",
-            "max"
+            "min",
+            "lastNotNull"
           ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Max",
+          "sortBy": "Last *",
           "sortDesc": true,
           "width": 300
         },
@@ -2664,7 +2684,7 @@
           "type": "range"
         }
       ],
-      "title": "已使用内存",
+      "title": "Cluster Memory",
       "type": "timeseries"
     },
     {
@@ -2766,10 +2786,10 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "user+sys",
+          "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) + sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) + sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
@@ -2840,33 +2860,21 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "expired_keys"
+              "id": "byRegexp",
+              "options": "expired_keys|evicted_keys"
             },
             "properties": [
               {
+                "id": "unit",
+                "value": "suffix:key/s"
+              },
+              {
                 "id": "custom.axisPlacement",
-                "value": "right"
+                "value": "hidden"
               },
               {
                 "id": "custom.axisLabel",
-                "value": "keys/sec"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "evicted_keys"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "custom.axisLabel",
-                "value": "keys/sec"
+                "value": "key/s"
               }
             ]
           }
@@ -2912,7 +2920,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "not-expiring",
+          "promqlAlias": "keys_no_expiring",
           "query_configs": [],
           "refId": "A",
           "source": "(sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))-(sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
@@ -2935,7 +2943,7 @@
           "promqlAlias": "expired_keys",
           "query_configs": [],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_expired_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_expired_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         },
@@ -2955,7 +2963,7 @@
           "promqlAlias": "evicted_keys",
           "query_configs": [],
           "refId": "C",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_evicted_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_evicted_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         },
@@ -3144,7 +3152,7 @@
           "promqlAlias": "$tag_instance new_conn",
           "query_configs": [],
           "refId": "C",
-          "source": "avg(irate(bkmonitor:exporter_dbm_redis_exporter:redis_connections_received_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) by (instance)",
+          "source": "avg(irate(bkmonitor:exporter_dbm_redis_exporter:redis_connections_received_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) by (instance)",
           "step": "2m",
           "type": "range"
         }
@@ -3253,7 +3261,7 @@
           "promqlAlias": "Hit",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_hits_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_hits_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         },
@@ -3273,7 +3281,7 @@
           "promqlAlias": "Miss",
           "query_configs": [],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_misses_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_misses_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
@@ -3318,7 +3326,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -3427,7 +3435,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -3491,12 +3499,12 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_master_repl_offset{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_master_repl_offset{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
       ],
-      "title": "Redis MasterReplOffset/秒",
+      "title": "Redis MasterReplOffset",
       "type": "timeseries"
     },
     {
@@ -3600,7 +3608,7 @@
           "promqlAlias": "$tag_instance in",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_input_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_input_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         },
@@ -3620,7 +3628,7 @@
           "promqlAlias": "$tag_instance out",
           "query_configs": [],
           "refId": "B",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_output_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_output_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "2m",
           "type": "range"
         }
@@ -4342,7 +4350,7 @@
           "promqlAlias": "$tag_cmd",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_slave\"}[$__interval]))",
+          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_slave\"}[$__interval])) > 0",
           "step": "2m",
           "type": "range"
         },
@@ -4488,7 +4496,7 @@
   "timezone": "",
   "title": "tendis-RedisInstance",
   "uid": "RedisInstance",
-  "version": 76,
+  "version": 77,
   "weekStart": "",
   "__inputs": [
     {
