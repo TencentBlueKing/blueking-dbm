@@ -28,11 +28,12 @@
           @change="refreshData" />
       </div>
     </div>
+    <!-- 固定分页：整页滚动，表格不内滚，行数按每页条数撑开页面 -->
     <DbTable
       ref="tableRef"
       :data-source="filteredDataSource"
       :filter-value="searchValue"
-      :fixed-pagination="false"
+      fixed-pagination
       row-key="conf_name"
       @clear-search="refreshData"
       @filter-change="handleColumnFilterChange"

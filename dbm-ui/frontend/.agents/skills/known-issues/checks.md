@@ -10,6 +10,8 @@
 
 ## A 类：命中即修
 
+- [实例导出使用主机 ID，不是实例 ID](doc/instance-export-host-ids.md) —— 新增或修改 `DropdownExportExcel` 的
+  `export-type="instance"`，且 `:ids` 来自取 `item.id` 的 `selectedIdList`；应使用公共选择 hook 的 `selectedHostIdList`
 - [单据详情与提单入口对齐并复用同族展示](doc/ticket-detail-entry-alignment.md) —— 新增或修改
   `ticket-center/common/ticket-detail/components/task-info/com-factory/**`，涉及 `backupinfo` 或目标规格展示
 - [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
@@ -28,6 +30,8 @@
   `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
   的弹窗外壳 / PanelTab / 表格容器 / 取值语义，或新写「左表格 + 右结果预览」选择器
 - [组件目录必须 kebab-case](doc/component-dir-kebab-case.md) —— 本次新建或重命名带 `Index.vue` 的组件目录
+- [WebConsole 连接方式不要复用 RoleSelect](doc/webconsole-select-semantics.md) —— `views/db-manage/common/webconsole/**`
+  中 `<RoleSelect>` 的 `v-model` 绑定连接方式而非数据库角色
 - [表格列宽优先 min-width，取值落在约定档位](doc/table-column-width.md) —— 本次新增或改了 `TableColumn` 的 `width` /
   `min-width`（不含 `EditableColumn`）
 - [有样式的容器不能由 `$slots.x` 决定渲染](doc/slot-wrapper-container.md) —— 改 `components/bkui-vue/**` 里带 class 的
@@ -39,8 +43,13 @@
   `version`、使用改单记录的代码，或新增流程类型入口 / 流程状态组件 / 待办类型
 - [自写 footer 的取消按钮必须走离开确认，先考虑删 footer 用自带的](doc/popover-footer-cancel.md) —— 新增或修改
   `DbSideslider` / `DbDialog` 的 `#footer`，里面有「取消」「关闭」按钮
-- [自写 footer 的取消按钮必须走离开确认，先考虑删 footer 用自带的](doc/popover-footer-cancel.md) —— 新增或修改
-  `DbSideslider` / `DbDialog` 的 `#footer`，里面有「取消」「关闭」按钮
+- [不存在的 `Db*` 组件会被当成原生元素静默失效](doc/nonexistent-db-component.md) —— 写 `DbRadio` / `DbRadioGroup` /
+  `DbCheckbox` / `DbSwitch` 这类 bkui 组件族里没有 `Db*` 包装的标签；或写 `<BkXxx>` 但 `bkui-vue`
+  的 barrel 里没导出该组件（如 `BkSearchSelect`，需显式 `import ... from 'bkui-vue/lib/search-select'`）
+- [给 DbTable 传非数值 max-height 会触发 tdesign 固定表头模式，表头飘在表体中间](doc/table-max-height-value.md) —— 给
+  `DbTable` / `PrimaryTable` 传 `max-height` / `:max-height`，且取值是 `'auto'` 这类非数字
+- [内容区里的 sticky 元素要抵消 `.db-navigation-content-wrapper` 的上内边距](doc/sticky-offset-content-padding.md)
+  —— 在页面 / 组件里写 `position: sticky; top: 0`，且该元素位于 `.db-navigation-content-wrapper` 内
 
 ## B 类：只报告，改法未定
 

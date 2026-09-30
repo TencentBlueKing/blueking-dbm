@@ -24,9 +24,11 @@
       ref="tableRef"
       :custom-sort-method="handleCustomSort"
       :data-source="dataSource"
+      :filter-value="searchValue"
       row-key="id"
       :sort="tableSort"
       @clear-search="refreshTable"
+      @filter-change="handleFilterChange"
       @request-success="initChangeTippy">
       <!-- 1. 操作时间 -->
       <TableColumn
@@ -41,6 +43,7 @@
       <!-- 2. 操作人 -->
       <TableColumn
         col-key="op_user"
+        :filter="columnFilters.op_user"
         :title="t('操作人')"
         :width="120">
         <template #default="{ row }">
@@ -50,6 +53,7 @@
       <!-- 3. 配置类型 -->
       <TableColumn
         col-key="conf_type_lc"
+        :filter="columnFilters.conf_type_lc"
         :title="t('配置类型')"
         :width="120">
         <template #default="{ row }">
@@ -62,6 +66,7 @@
       <TableColumn
         col-key="conf_file_lc"
         ellipsis
+        :filter="columnFilters.conf_file_lc"
         :title="t('配置文件')"
         :width="140">
         <template #default="{ row }">
@@ -71,6 +76,7 @@
       <!-- 5. 操作类型 -->
       <TableColumn
         col-key="op_type"
+        :filter="columnFilters.op_type"
         :title="t('操作类型')"
         :width="120">
         <template #default="{ row }">
@@ -140,6 +146,7 @@
 
   import { dbTippy } from '@common/tippy';
 
+  import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import { utcDisplayTime } from '@utils';
@@ -164,7 +171,7 @@
   const confTabs = inject<Ref<{ conf_file: string; conf_type: string; name: string }[]>>('confTabs');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchValue = ref<Record<string, any>>({});
+  const searchValue = ref<Record<string, string>>({});
 
   // 受控排序状态
   const tableSort = ref<{ descending: boolean; sortBy: string }>({
@@ -389,25 +396,17 @@
     if (Object.keys(filters).length > 0) {
       filteredData = filteredData.filter((item) =>
         Object.entries(filters).every(([key, val]) => {
-          if (!val || (Array.isArray(val) && val.length === 0)) return true;
-
-          // multiple 类型：值是数组
-          if (Array.isArray(val)) {
-            // datetime-range：值是 [Date, Date]
-            if (key === 'updated_at') {
-              const [start, end] = val as Date[];
-              const itemDate = new Date((item as Record<string, any>)[key]);
-              return itemDate >= start && itemDate <= end;
-            }
-            // multiple 枚举：值是字符串数组，判断数据中对应字段是否包含在数组中
-            const fieldValue = String((item as Record<string, any>)[key] ?? '');
-            return val.includes(fieldValue);
+          if (!val) return true;
+          if (key === 'updated_at') {
+            const [start, end] = val.split(',');
+            const itemTime = dayjs(item.updated_at).valueOf();
+            return itemTime >= dayjs(start).valueOf() && itemTime <= dayjs(end).valueOf();
           }
-
-          // input 类型：字符串模糊匹配
-          const search = String(val).toLowerCase();
-          const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
-          return fieldValue.includes(search);
+          const fieldValue = String(item[key as keyof typeof item] ?? '');
+          if (['conf_file_lc', 'conf_type_lc', 'op_type', 'op_user'].includes(key)) {
+            return val.split(',').includes(fieldValue);
+          }
+          return fieldValue.toLowerCase().includes(val.toLowerCase());
         }),
       );
     }
@@ -426,6 +425,13 @@
   /** 刷新表格 */
   const refreshTable = () => {
     tableRef.value?.fetchData({}, true);
+  };
+
+  const handleFilterChange = (value: Record<string, string | string[]>) => {
+    searchValue.value = Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, Array.isArray(item) ? item.join(',') : item]),
+    );
+    refreshTable();
   };
 
   /** 自定义排序方法：更新排序状态并重新拉取数据 */
@@ -530,6 +536,23 @@
       type: 'input' as const,
     },
   ]);
+
+  // 搜索栏与列筛选共用候选项和远程人员查询
+  const columnFilters = computed(() =>
+    Object.fromEntries(
+      quickSearchData.value
+        .filter((item) => item.type === 'multiple')
+        .map((item) => [
+          item.id,
+          {
+            component: markRaw(MultipleSelect),
+            name: item.name,
+            props: item,
+            showConfirmAndReset: true,
+          },
+        ]),
+    ),
+  );
 
   onUnmounted(() => {
     tippyInstances.forEach((inst) => inst.destroy());

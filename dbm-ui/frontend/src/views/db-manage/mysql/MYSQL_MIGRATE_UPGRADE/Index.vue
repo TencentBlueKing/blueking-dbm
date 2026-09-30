@@ -36,7 +36,8 @@
               v-model="item.target_version"
               v-model:new-db-module-id="item.new_db_module_id"
               v-model:pkg-id="item.pkg_id"
-              :cluster="item.cluster" />
+              :cluster="item.cluster"
+              pkg-readonly />
             <SpecColumn
               v-model="item.specId"
               :cluster-type="DBTypes.MYSQL"

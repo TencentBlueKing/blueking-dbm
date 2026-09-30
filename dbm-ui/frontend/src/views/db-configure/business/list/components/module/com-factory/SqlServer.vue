@@ -33,6 +33,12 @@
         :related-cluster-count="moduleInfo.relatedClusterCount"
         :related-cluster-list="moduleInfo.relatedClusterList"
         :related-clusters="moduleInfo.relatedClusters" />
+      <span class="module-info-item">
+        <span class="module-info-label">{{ t('最近更新') }}：</span>
+        <bk-user-display-name :user-id="moduleInfo.updatedBy || ''" />
+        <span class="module-update-separator">&nbsp;/&nbsp;</span>
+        {{ moduleInfo.updatedAt ? utcDisplayTime(moduleInfo.updatedAt) : '--' }}
+      </span>
     </div>
   </div>
 </template>
@@ -45,6 +51,8 @@
   import { ClusterTypes } from '@common/const';
 
   import type { ModuleInfo } from '@views/db-configure/common/types';
+
+  import { utcDisplayTime } from '@utils';
 
   import RelatedClusters from '../components/RelatedClusters.vue';
 
@@ -136,5 +144,9 @@
     font-size: 12px;
     line-height: 20px;
     white-space: nowrap;
+  }
+
+  .module-update-separator {
+    white-space: pre;
   }
 </style>
