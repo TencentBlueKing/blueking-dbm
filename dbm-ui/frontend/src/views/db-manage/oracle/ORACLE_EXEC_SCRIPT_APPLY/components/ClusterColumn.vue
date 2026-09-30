@@ -21,7 +21,7 @@
       :placeholder="t('请输入或选择集群')" />
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
-      :cluster-types="[ClusterTypes.ORACLE_PRIMARY_STANDBY, ClusterTypes.ORACLE_SINGLE_NONE]"
+      :cluster-types="clusterTypesByDBType[DBTypes.ORACLE]"
       :selected="selectedClusters"
       @change="handelClusterChange" />
   </EditableColumn>
@@ -34,7 +34,7 @@
   import OracalHaModel from '@services/model/oracle/oracle-ha';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, clusterTypesByDBType, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
