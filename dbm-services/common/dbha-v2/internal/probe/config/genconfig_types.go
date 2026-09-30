@@ -46,7 +46,15 @@ type probeYAML struct {
 	Harvester  probeHarvesterYAML `yaml:"harvester"`
 	Health     *probeHealthYAML   `yaml:"health,omitempty"`
 	Log        LogConfig          `yaml:"log"`
+	Collect    *probeCollectYAML  `yaml:"collect,omitempty"`
 	ClearPorts []int              `yaml:"clearPorts,omitempty"`
+}
+
+// probeCollectYAML is the on-wire shape of the machine-wide collection settings.
+type probeCollectYAML struct {
+	CollectTaskGoroutines int `yaml:"collectTaskGoroutines,omitempty"`
+	// HostMetricInterval is a string for YAML output (e.g. "10s"); CollectConfig uses time.Duration.
+	HostMetricInterval string `yaml:"hostMetricInterval,omitempty"`
 }
 
 // probeHealthYAML is the on-wire shape of the health-check write verification config.
