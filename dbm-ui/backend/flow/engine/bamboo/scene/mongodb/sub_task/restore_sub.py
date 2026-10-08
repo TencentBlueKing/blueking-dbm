@@ -94,7 +94,7 @@ class RestoreSubTask(BaseSubTask):
         kwargs = cls.make_kwargs(sub_ticket_data, file_path, dest_dir, exec_node, dest_node, dest_type)
         acts_list.append(
             {
-                "act_name": _("{} {}".format(rs.set_name, kwargs["exec_ip"])),
+                "act_name": _("MG-Import-{}-{}".format(rs.set_name, kwargs["exec_ip"])),
                 "act_component_code": ExecJobComponent2.code,
                 "kwargs": kwargs,
             }

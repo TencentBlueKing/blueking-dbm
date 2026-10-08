@@ -175,7 +175,7 @@ class InstanceOpSubTask(BaseSubTask):
 
         kwargs = cls.make_kwargs(file_path, exec_node, op)
         act = {
-            "act_name": _("{} {}:{}".format(act_name, exec_node.ip, exec_node.port)),
+            "act_name": _("{}-{}:{}".format(act_name, exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,
             "kwargs": kwargs,
         }

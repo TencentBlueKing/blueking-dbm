@@ -146,7 +146,7 @@ class MongoRestoreFlow(MongoBaseFlow):
                 dest_dir=dest_dir,
                 dest_node=exec_node,
             )
-            step3_sub.append(sub_pl.build_sub_process(_("下载备份文件-{}").format(cluster.name)))
+            step3_sub.append(sub_pl.build_sub_process(_("MG-DownloadBackup-{}").format(cluster.name)))
 
             sub_pl4, sub_bk_host_list4 = RestoreSubTask.process_cluster(
                 root_id=self.root_id,
@@ -157,13 +157,13 @@ class MongoRestoreFlow(MongoBaseFlow):
                 dest_dir=dest_dir,
                 exec_node=exec_node,
             )
-            step4_sub.append(sub_pl4.build_sub_process(_("执行导入命令-{}").format(cluster.name)))
+            step4_sub.append(sub_pl4.build_sub_process(_("MG-Import-{}").format(cluster.name)))
 
             # 开始组装流程 从Step1 开始
             # Step1 执行做准备脚本  执行mkdir -p /data/dbbak/recover_mg
             sb.add_act(
                 **ExecShellScript.act(
-                    act_name=_("MongoDB-预处理"),
+                    act_name=_("MG-Prepare"),
                     file_list=file_list,
                     bk_host_list=bk_host_list,
                     exec_account="root",
@@ -174,7 +174,7 @@ class MongoRestoreFlow(MongoBaseFlow):
             # Step2 介质下发 bk_host_list 在SendMedia.act会去重.
             sb.add_act(
                 **SendMedia.act(
-                    act_name=_("MongoDB-介质下发"),
+                    act_name=_("MG-SendMedia"),
                     file_list=file_list,
                     bk_host_list=bk_host_list,
                     file_target_path=actuator_workdir,
@@ -185,7 +185,7 @@ class MongoRestoreFlow(MongoBaseFlow):
             # Step4 执行回档
             sb.add_parallel_sub_pipeline(sub_flow_list=step4_sub)
 
-            root_sub.append(sb.build_sub_process(_("{}").format(cluster.name)))
+            root_sub.append(sb.build_sub_process(_("MG-Restore-{}").format(cluster.name)))
 
         #
         pipeline.add_parallel_sub_pipeline(sub_flow_list=root_sub)
