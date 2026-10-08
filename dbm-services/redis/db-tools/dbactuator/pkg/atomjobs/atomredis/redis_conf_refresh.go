@@ -375,12 +375,16 @@ func (job *RedisConfRefresh) applyConfFile(plans map[int]*regenConfPlan) error {
 	return nil
 }
 
+// writePlanIfChanged 渲染结果与现状不同才写.
+//
+// 带 include 的配置即使展开后与渲染结果一致也要写: 只有写成自成一体的文件、挪走 instance.conf,
+// 那些优先认 instance.conf 的工具才不会继续往一个将来没人加载的文件里写.
 func (job *RedisConfRefresh) writePlanIfChanged(port int, plan *regenConfPlan) error {
-	if confDirectivesEqual(plan.oldConfData, plan.confData) {
+	if confDirectivesEqual(plan.oldConfData, plan.confData) && !plan.hasInclude() {
 		job.runtime.Logger.Info("port(%d) conf already matches rendered plan,skip write", port)
 		return nil
 	}
-	backupFile, err := writeRegenConfPlan(plan, port, job.runtime.Logger)
+	backupFile, _, err := writeRegenConfPlan(plan, port, job.runtime.Logger)
 	if err != nil {
 		return err
 	}
@@ -579,6 +583,12 @@ func (job *RedisConfRefresh) applyRestartPort(port int, plan *regenConfPlan) err
 
 	switch action {
 	case restartSkip:
+		// 生效配置没变, 不必重启; 但 include 布局仍要落成自成一体的文件
+		if plan.hasInclude() {
+			if err := job.writePlanIfChanged(port, plan); err != nil {
+				return err
+			}
+		}
 		return settleReplication(cli, job.replSnapshots[port], job.params.Role,
 			syncWaitTimeoutOrDefault(job.params.SyncWaitTimeoutSeconds), job.runtime.Logger)
 	case restartStart:

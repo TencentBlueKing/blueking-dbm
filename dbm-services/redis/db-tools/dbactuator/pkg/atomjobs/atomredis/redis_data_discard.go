@@ -159,17 +159,13 @@ func (job *RedisVersionUpdate) localDataFileNames(port int) (dataDir string, nam
 	if err != nil {
 		return "", nil, err
 	}
-	confFiles := []string{confFile}
-	if backupFile, ok := job.confBackupFiles[port]; ok {
-		confFiles = append(confFiles, backupFile)
+	confTexts, err := job.localDataConfTexts(port, confFile)
+	if err != nil {
+		return "", nil, err
 	}
 	nameSet := make(map[string]struct{}, len(localDataFileEntries))
-	for _, file := range confFiles {
-		data, readErr := os.ReadFile(file)
-		if readErr != nil {
-			return "", nil, fmt.Errorf("read conf(%s) failed,err:%v", file, readErr)
-		}
-		directives := parseRedisConfDirectives(string(data))
+	for _, confText := range confTexts {
+		directives := parseRedisConfDirectives(confText)
 		if dataDir == "" {
 			dataDir = unquoteConfValue(directives.lastValue("dir"))
 		}
@@ -194,6 +190,41 @@ func (job *RedisVersionUpdate) localDataFileNames(port int) (dataDir string, nam
 	}
 	sort.Strings(names)
 	return dataDir, names, nil
+}
+
+// localDataConfTexts 找数据文件名要看的配置文本: 当前的 redis.conf, 以及本次重建前的旧配置.
+//
+// dbfilename 之类可能只写在 include 进来的 instance.conf 里, 所以都要按展开后的内容看.
+// 旧配置优先用重建时记下的展开结果: 那时 instance.conf 已随重建挪走, 再拿备份文件去展开
+// 只会找不到被引用的文件.
+func (job *RedisVersionUpdate) localDataConfTexts(port int, confFile string) ([]string, error) {
+	data, err := os.ReadFile(confFile)
+	if err != nil {
+		return nil, fmt.Errorf("read conf(%s) failed,err:%v", confFile, err)
+	}
+	texts := []string{job.expandedOrRaw(port, confFile, string(data))}
+	if oldConf, ok := job.regenOldConfs[port]; ok {
+		return append(texts, oldConf), nil
+	}
+	backupFile, ok := job.confBackupFiles[port]
+	if !ok {
+		return texts, nil
+	}
+	data, err = os.ReadFile(backupFile)
+	if err != nil {
+		return nil, fmt.Errorf("read conf(%s) failed,err:%v", backupFile, err)
+	}
+	return append(texts, job.expandedOrRaw(port, confFile, string(data))), nil
+}
+
+// expandedOrRaw 展开 include, 展开不了时退回原文. include 相对路径按 redis.conf 所在目录解析
+func (job *RedisVersionUpdate) expandedOrRaw(port int, confFile, confText string) string {
+	expanded, _, err := expandRedisConfIncludes(confFile, confText)
+	if err != nil {
+		job.runtime.Logger.Warn("port(%d) expand includes failed,use conf as is,err:%v", port, err)
+		return confText
+	}
+	return expanded
 }
 
 // moveAsideLocalData 把本地 RDB/AOF 改名挪开, 停实例之后、拉起之前调用.
