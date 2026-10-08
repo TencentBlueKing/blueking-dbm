@@ -76,7 +76,7 @@
 
   import { useSqlImport } from '@stores';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import TicketPayload, {
     createTicketPayload,
@@ -88,7 +88,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       major_version: string;
       master_domain: string;
