@@ -51,12 +51,6 @@ const (
 	TdbctlFlushRouteSql         = "TDBCTL FLUSH ROUTING"
 	TdbctlFlushRouteForceSql    = "TDBCTL FLUSH ROUTING FORCE"
 	TdbctlAlterNodeSql          = "TDBCTL ALTER NODE %s OPTIONS(HOST '%s', Port %d, USER '%s', PASSWORD '%s')"
-	TdbctlChangeMasterSql       = `
-		CHANGE MASTER TO 
-		MASTER_HOST='%s', MASTER_PORT=%d, 
-		MASTER_LOG_FILE='%s', MASTER_LOG_POS=%d, 
-		MASTER_AUTO_POSITION=0;
-	`
 )
 
 // Types of CLUSTER_ROLE in information_schema.TDBCTL_NODES
@@ -126,6 +120,55 @@ type TdbctlNodeReplInfo struct {
 
 	RelayMasterLogFileIndex int    `json:"Parsed_Relay_Master_Log_File_Index"`
 	ExecMasterLogPosInt     uint64 `json:"Parsed_Exec_Master_Log_Pos"`
+}
+
+// UnmarshalJSON decodes tdbctl REPLICATION_INFO, accepting both the legacy Master_*/Slave_*
+// keys and the MySQL 8.4 Source_*/Replica_* keys; legacy keys win when both are present.
+func (info *TdbctlNodeReplInfo) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		MasterHost         string `json:"Master_Host"`
+		MasterPort         int    `json:"Master_Port"`
+		SlaveIORunning     string `json:"Slave_IO_Running"`
+		SlaveSQLRunning    string `json:"Slave_SQL_Running"`
+		RelayMasterLogFile string `json:"Relay_Master_Log_File"`
+		ExecMasterLogPos   string `json:"Exec_Master_Log_Pos"`
+
+		SourceHost         string `json:"Source_Host"`
+		SourcePort         int    `json:"Source_Port"`
+		ReplicaIORunning   string `json:"Replica_IO_Running"`
+		ReplicaSQLRunning  string `json:"Replica_SQL_Running"`
+		RelaySourceLogFile string `json:"Relay_Source_Log_File"`
+		ExecSourceLogPos   string `json:"Exec_Source_Log_Pos"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	info.MasterHost = raw.MasterHost
+	if info.MasterHost == "" {
+		info.MasterHost = raw.SourceHost
+	}
+	info.MasterPort = raw.MasterPort
+	if info.MasterPort == 0 {
+		info.MasterPort = raw.SourcePort
+	}
+	info.SlaveIORunning = raw.SlaveIORunning
+	if info.SlaveIORunning == "" {
+		info.SlaveIORunning = raw.ReplicaIORunning
+	}
+	info.SlaveSQLRunning = raw.SlaveSQLRunning
+	if info.SlaveSQLRunning == "" {
+		info.SlaveSQLRunning = raw.ReplicaSQLRunning
+	}
+	info.RelayMasterLogFile = raw.RelayMasterLogFile
+	if info.RelayMasterLogFile == "" {
+		info.RelayMasterLogFile = raw.RelaySourceLogFile
+	}
+	info.ExecMasterLogPos = raw.ExecMasterLogPos
+	if info.ExecMasterLogPos == "" {
+		info.ExecMasterLogPos = raw.ExecSourceLogPos
+	}
+	return nil
 }
 
 // TdbctlNodeInfo represents query result of information_schema.TDBCTL_NODES
@@ -1038,8 +1081,13 @@ func (op *TdbctlOperator) RepairTdbctlReplication() error {
 		"try to repair replication relationship for tdbctl nodes, primary: %s:%d, binlog file: %s, binlog position: %d",
 		primaryHost, primaryPort, primaryBinlogFile, primaryBinlogPos)
 
-	changeMasterSql := fmt.Sprintf(TdbctlChangeMasterSql, primaryHost, primaryPort,
-		primaryBinlogFile, primaryBinlogPos)
+	src := hamysql.ReplSource{
+		Host:         primaryHost,
+		Port:         primaryPort,
+		LogFile:      primaryBinlogFile,
+		LogPos:       primaryBinlogPos,
+		AutoPosition: hamysql.AutoPositionOff,
+	}
 	var succeededNodes, failedNodes []string
 
 	for _, node := range op.SecondaryTdbctlNodes {
@@ -1049,7 +1097,7 @@ func (op *TdbctlOperator) RepairTdbctlReplication() error {
 
 		nodeName := op.ToTdbctlName(&node)
 		if err := DoChangeMasterSteps(
-			node.Host, node.Port, changeMasterSql, op.reportLogf,
+			node.Host, node.Port, src, op.reportLogf,
 		); err != nil {
 			failedNodes = append(failedNodes, nodeName)
 			op.Logf(switchlogger.SwitchWarn,

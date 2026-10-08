@@ -25,6 +25,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -358,17 +359,16 @@ func (hdl *TenDBClusterHandler) changeTdbCtlMasterForAllTdbCtlSlave(ctlSlaveList
 		})
 	}
 
-	changeMasterSQL := fmt.Sprintf("CHANGE MASTER TO "+
-		"MASTER_HOST = '%s', "+
-		"MASTER_PORT = %d, "+
-		"MASTER_USER = '%s', "+
-		"MASTER_PASSWORD = '%s', "+
-		"MASTER_AUTO_POSITION = 1",
-		targetIp, targetPort,
-		config.ClusterConfig.AuthInfo.ReplUser, config.ClusterConfig.AuthInfo.ReplPassword)
+	src := hamysql.ReplSource{
+		Host:         targetIp,
+		Port:         targetPort,
+		User:         config.ClusterConfig.AuthInfo.ReplUser,
+		Password:     config.ClusterConfig.AuthInfo.ReplPassword,
+		AutoPosition: hamysql.AutoPositionOn,
+	}
 
 	for _, slave := range slaveList {
-		if err := hdl.changeMasterForTdbctlSlave(slave.Host, slave.Port, changeMasterSQL); err != nil {
+		if err := hdl.changeMasterForTdbctlSlave(slave.Host, slave.Port, src); err != nil {
 			return err
 		}
 	}
@@ -380,7 +380,7 @@ func (hdl *TenDBClusterHandler) changeTdbCtlMasterForAllTdbCtlSlave(ctlSlaveList
 }
 
 // changeMasterForTdbctlSlave changes master for tdbctl slave
-func (hdl *TenDBClusterHandler) changeMasterForTdbctlSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
+func (hdl *TenDBClusterHandler) changeMasterForTdbctlSlave(slaveIp string, slavePort int, src hamysql.ReplSource) error {
 	slaveDB, err := hdl.ConnectTdbctlNode(slaveIp, slavePort)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
@@ -397,7 +397,7 @@ func (hdl *TenDBClusterHandler) changeMasterForTdbctlSlave(slaveIp string, slave
 		return err
 	}
 
-	if err = slaveDB.DB().Exec(changeMasterSQL).Error; err != nil {
+	if _, err = slaveDB.ChangeReplicationTo(context.Background(), src); err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to change master on node(%s:%d), errmsg: %s",
 			slaveIp, slavePort, err.Error())
 	}
