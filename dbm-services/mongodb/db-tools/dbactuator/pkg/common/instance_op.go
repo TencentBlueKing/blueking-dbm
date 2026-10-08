@@ -200,7 +200,10 @@ func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 					return checkDeadline()
 				}
 			}
-			return inst.waitPortReleaseWithDeadline(waitRetry, waitInterval, deadline, hasDeadline)
+			if err := inst.waitPortReleaseWithDeadline(waitRetry, waitInterval, deadline, hasDeadline); err != nil {
+				return err
+			}
+			return inst.waitMongodLockCleanAfterStop(processNameStr, deadline, hasDeadline)
 		} else if pid > 0 {
 			processNameStr, err := getProcessNameByPID(pid)
 			if err != nil {
@@ -240,12 +243,42 @@ func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 	}
 	if err := inst.waitPortReleaseWithDeadline(extraRetry, extraInterval, deadline, hasDeadline); err == nil {
 		inst.logger.Info("port %d released after extended wait following stop retries", inst.Port)
-		return nil
+		return inst.waitMongodLockCleanAfterStop(processNameStr, deadline, hasDeadline)
 	}
 	if hasDeadline {
 		return checkDeadline()
 	}
 	return fmt.Errorf("port %d still in use after %d retries, stop failed", inst.Port, maxRetry)
+}
+
+// waitMongodLockCleanAfterStop waits until mongod.lock is empty/missing after port release.
+// mongos and missing processName skip the check. A missing or unreadable mongo.conf is a warning
+// and skips the check, so stop still succeeds. When no stop deadline is set, waits up to 30s.
+// A deadline already spent on the port wait still keeps mongodLockCleanMinWait for the lock.
+func (inst *InstanceOp) waitMongodLockCleanAfterStop(
+	processName string, deadline time.Time, hasDeadline bool,
+) error {
+	if !strings.Contains(processName, "mongod") {
+		return nil
+	}
+	dbPath, err := ResolveMongodDbPath(inst.Port)
+	if err != nil {
+		inst.logger.Warn(
+			"resolve mongod dbPath for port %d failed, skip mongod.lock check: %v",
+			inst.Port, err,
+		)
+		return nil
+	}
+	timeout := 30 * time.Second
+	if hasDeadline {
+		timeout = lockCleanWaitBudget(time.Until(deadline))
+	}
+	inst.logger.Info("wait mongod.lock clean after stop: port=%d dbPath=%s timeout=%s", inst.Port, dbPath, timeout)
+	if err := WaitMongodLockClean(dbPath, timeout); err != nil {
+		return errors.Wrapf(err, "mongod.lock not clean after stop on port %d", inst.Port)
+	}
+	inst.logger.Info("mongod.lock clean after stop on port %d", inst.Port)
+	return nil
 }
 
 func (inst *InstanceOp) stepDownIfPrimary(processName string) error {

@@ -28,9 +28,24 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 )
 
 const mongoShutdownPollInterval = 500 * time.Millisecond
+
+// mongodLockCleanMinWait is the shortest poll window for mongod.lock after the port is released.
+// mongod drops the listener before it clears the lock, so a deadline already spent on the port
+// wait must not collapse the lock check into a single stat.
+const mongodLockCleanMinWait = 5 * time.Second
+
+// lockCleanWaitBudget returns how long to wait for mongod.lock to clear.
+// A remaining budget shorter than mongodLockCleanMinWait is raised to that floor.
+func lockCleanWaitBudget(remaining time.Duration) time.Duration {
+	if remaining < mongodLockCleanMinWait {
+		return mongodLockCleanMinWait
+	}
+	return remaining
+}
 
 // isErrNoSuchProcess reports whether err means the target PID no longer exists (syscall.Kill ESRCH).
 // Uses errno checks plus a string fallback for environments where errors.Is does not match as expected.
@@ -264,6 +279,22 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 		"ShutdownMongoProcess: port=%d listenPid=%d mongoPid=%d proc=%q gracefulTimeout=%s force=%v",
 		port, listenPID0, pid, procName, timeout, force)
 
+	isMongod := strings.Contains(procName, "mongod")
+	var dbPath string
+	if isMongod {
+		dbPath, err = ResolveMongodDbPath(port)
+		if err != nil {
+			// Conf may already be gone on deinstall or a leftover instance. Stopping the
+			// process must not depend on reading storage.dbPath; skip the lock check.
+			warn("ShutdownMongoProcess: port=%d resolve dbPath failed, skip mongod.lock check: %v", port, err)
+			dbPath = ""
+		} else {
+			info("ShutdownMongoProcess: port=%d mongod dbPath=%s", port, dbPath)
+		}
+	}
+
+	gracefulDeadline := time.Now().Add(timeout)
+
 	// kill -15 pid, graceful shutdown
 	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
 		if stderrors.Is(err, syscall.ESRCH) {
@@ -281,6 +312,15 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 	waitErr := waitPortRelease(port, timeout)
 	if waitErr == nil {
 		info("ShutdownMongoProcess: port=%d released after graceful shutdown", port)
+		if dbPath != "" {
+			remaining := lockCleanWaitBudget(time.Until(gracefulDeadline))
+			info("ShutdownMongoProcess: port=%d wait mongod.lock clean, timeout=%s", port, remaining)
+			if err := WaitMongodLockClean(dbPath, remaining); err != nil {
+				errLog("ShutdownMongoProcess: port=%d mongod.lock not clean after graceful stop: %v", port, err)
+				return errors.Wrapf(err, "mongod.lock not clean after graceful shutdown on port %d", port)
+			}
+			info("ShutdownMongoProcess: port=%d mongod.lock clean after graceful shutdown", port)
+		}
 		return nil
 	}
 	warn("ShutdownMongoProcess: port=%d graceful wait failed: %v", port, waitErr)
@@ -307,6 +347,7 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 	}
 	if listenPID == 0 {
 		info("ShutdownMongoProcess: port=%d no listener before SIGKILL (race), done", port)
+		warnIfMongodLockDirty(warn, port, dbPath, isMongod)
 		return nil
 	}
 
@@ -324,6 +365,7 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 		}
 		if listenPIDVerify == 0 {
 			info("ShutdownMongoProcess: port=%d listener cleared during re-resolve, done", port)
+			warnIfMongodLockDirty(warn, port, dbPath, isMongod)
 			return nil
 		}
 		errLog(
@@ -333,6 +375,7 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 	}
 	if killPid == 0 {
 		info("ShutdownMongoProcess: port=%d no mongo listener before SIGKILL (race), done", port)
+		warnIfMongodLockDirty(warn, port, dbPath, isMongod)
 		return nil
 	}
 
@@ -353,6 +396,7 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 			}
 			if listenPID2 == 0 {
 				info("ShutdownMongoProcess: port=%d cleared after stale SIGKILL", port)
+				warnIfMongodLockDirty(warn, port, dbPath, isMongod)
 				return nil
 			}
 			errLog(
@@ -383,7 +427,88 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 		return fmt.Errorf("port %d still has listener pid after graceful timeout (%s) and kill -9: %w", port, timeout, waitKillErr)
 	}
 	info("ShutdownMongoProcess: port=%d released after SIGKILL", port)
+	warnIfMongodLockDirty(warn, port, dbPath, isMongod)
 	return nil
+}
+
+func warnIfMongodLockDirty(warn func(string, ...interface{}), port int, dbPath string, isMongod bool) {
+	if !isMongod || dbPath == "" {
+		return
+	}
+	clean, size, err := IsMongodLockClean(dbPath)
+	if err != nil {
+		warn("ShutdownMongoProcess: port=%d check mongod.lock after force stop failed: %v", port, err)
+		return
+	}
+	if !clean {
+		warn(
+			"ShutdownMongoProcess: port=%d mongod.lock not empty after force stop (size=%d path=%s), unclean shutdown possible",
+			port, size, mongodLockPath(dbPath))
+	}
+}
+
+// mongodLockPath returns the mongod.lock path under dbPath.
+func mongodLockPath(dbPath string) string {
+	return filepath.Join(dbPath, "mongod.lock")
+}
+
+// IsMongodLockClean reports whether mongod exited cleanly for dbPath.
+// Missing file or size 0 means clean; size > 0 means unclean / still shutting down.
+func IsMongodLockClean(dbPath string) (clean bool, size int64, err error) {
+	fi, err := os.Stat(mongodLockPath(dbPath))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return true, 0, nil
+		}
+		return false, 0, errors.Wrapf(err, "stat mongod.lock under %s", dbPath)
+	}
+	size = fi.Size()
+	return size == 0, size, nil
+}
+
+// WaitMongodLockClean polls until mongod.lock is clean (missing or empty) or timeout.
+// timeout <= 0 still checks once.
+func WaitMongodLockClean(dbPath string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		clean, size, err := IsMongodLockClean(dbPath)
+		if err != nil {
+			return err
+		}
+		if clean {
+			return nil
+		}
+		if timeout <= 0 || time.Now().After(deadline) {
+			return fmt.Errorf("mongod.lock still not empty under %s (size=%d) after %s", dbPath, size, timeout)
+		}
+		time.Sleep(mongoShutdownPollInterval)
+	}
+}
+
+// ResolveMongodDbPath returns storage.dbPath from mongo.conf for port.
+// Looks up the data root with dbmonconsts.GetMongoDataDir(port) so conf under
+// MONGO_DATA_DIR, /data1, or /data is found the same way as DoStart.
+// Fails if dataDir/conf is missing, dbPath is empty, or dbPath is relative
+// (relative paths are resolved against mongod's cwd, which actuator does not know).
+func ResolveMongodDbPath(port int) (string, error) {
+	portStr := strconv.Itoa(port)
+	dataDir := dbmonconsts.GetMongoDataDir(portStr)
+	if dataDir == "" {
+		return "", errors.New("can not find mongo data dir")
+	}
+	confFile := filepath.Join(dataDir, "mongodata", portStr, "mongo.conf")
+	conf, err := LoadMongoDBConfFromFile(confFile)
+	if err != nil {
+		return "", errors.Wrapf(err, "load mongo.conf for port %d from %s", port, confFile)
+	}
+	dbPath := conf.Storage.DbPath
+	if dbPath == "" {
+		return "", fmt.Errorf("dbPath is empty in %s", confFile)
+	}
+	if !filepath.IsAbs(dbPath) {
+		return "", fmt.Errorf("dbPath %q in %s is not absolute", dbPath, confFile)
+	}
+	return dbPath, nil
 }
 
 // GetMongoPidAndNameByPort returns pid and /proc comm name for mongod/mongos listening on port
