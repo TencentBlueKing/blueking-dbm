@@ -13,6 +13,8 @@ package dts_cutover
 import (
 	"database/sql"
 	"fmt"
+	"strings"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -20,8 +22,8 @@ import (
 
 const precheckStatusTimeoutSec = 30
 
-// PreCheck 切换前预检：源连通 + 表可展开/存在 + Master 任务 status 可查。
-// 不加锁、不 stop、不探测权限、不检查 blocking_ddls、不卡任务运行态。
+// PreCheck 切换前预检：源连通、表可展开且存在，再轮询到各源 Running 且 SBM==0。
+// 本步骤不执行 FLUSH TABLES ... WITH READ LOCK，也不 stop、不探测权限。
 // 多源按顺序 fail-fast。
 func (c *Comp) PreCheck() error {
 	if err := c.Init(); err != nil {
@@ -42,15 +44,16 @@ func (c *Comp) PreCheck() error {
 		}
 	}
 
-	resp, err := FetchTaskStatus(p.DtsMasterAddr, p.TaskName, precheckStatusTimeoutSec)
-	if err != nil {
-		return fmt.Errorf("预检查询任务 status 失败: %w", err)
-	}
-	if err = validateTaskStatusFetchable(resp); err != nil {
+	if err := pollReadyBeforeLock(func() ([]TaskStatusItem, error) {
+		resp, ferr := FetchTaskStatus(p.DtsMasterAddr, p.TaskName, precheckStatusTimeoutSec)
+		if ferr != nil {
+			return nil, ferr
+		}
+		return resp.Data, nil
+	}, defaultPrecheckPollMax, func() { time.Sleep(precheckPollInterval) }); err != nil {
 		return err
 	}
-	logger.Info("预检通过: sources=%d task=%s status_items=%d",
-		len(p.SourceEndpoints), p.TaskName, len(resp.Data))
+	logger.Info("预检通过: sources=%d task=%s", len(p.SourceEndpoints), p.TaskName)
 	return nil
 }
 
@@ -79,7 +82,7 @@ func precheckOneSource(ep SourceEndpoint, scope *SyncScope, lockTables []TableIt
 	return nil
 }
 
-// ResolveTablesForPrecheck 展开或解析待锁表，并确认表在源端存在；不加锁。
+// ResolveTablesForPrecheck 展开或解析表清单，并确认这些表在源端存在。
 func ResolveTablesForPrecheck(db *sql.DB, scope *SyncScope, lockTables []TableItem) ([]LockedTable, error) {
 	tables, err := resolveTablesList(db, scope, lockTables)
 	if err != nil {
@@ -91,7 +94,7 @@ func ResolveTablesForPrecheck(db *sql.DB, scope *SyncScope, lockTables []TableIt
 	return tables, nil
 }
 
-// resolveTablesList 与 LockSourceTables 的清单解析语义对齐（不加锁）。
+// resolveTablesList 解析待锁表清单。预检与 LockSourceTables 共用。
 func resolveTablesList(db *sql.DB, scope *SyncScope, lockTables []TableItem) ([]LockedTable, error) {
 	if len(lockTables) > 0 {
 		tables := make([]LockedTable, 0, len(lockTables))
@@ -105,9 +108,7 @@ func resolveTablesList(db *sql.DB, scope *SyncScope, lockTables []TableItem) ([]
 			}
 			tables = append(tables, LockedTable{Schema: schema, Table: it.Table})
 		}
-		if len(tables) > SoftTableLimit {
-			return nil, fmt.Errorf("lock_tables 数量 %d 超过软上限 %d", len(tables), SoftTableLimit)
-		}
+		logger.Info("lock_tables 待锁表数量 tables=%d", len(tables))
 		return tables, nil
 	}
 	return ExpandSyncScope(db, scope)
@@ -136,13 +137,25 @@ LIMIT 1`
 	return nil
 }
 
-// validateTaskStatusFetchable 仅要求能查到任务 status（data 非空）；不卡运行态、不看 blocking_ddls。
-func validateTaskStatusFetchable(resp *TaskStatusListResponse) error {
+// validateTaskRunning 要求能查到任务，且每个子任务 stage 为 Running。不看 blocking_ddls。
+func validateTaskRunning(resp *TaskStatusListResponse) error {
 	if resp == nil {
 		return fmt.Errorf("预检任务 status 响应为空")
 	}
 	if len(resp.Data) == 0 {
 		return fmt.Errorf("预检任务 status 无数据（task 可能不存在）")
+	}
+	for _, item := range resp.Data {
+		stage := TaskStage(strings.TrimSpace(string(item.Stage)))
+		if stage == TaskStageRunning {
+			continue
+		}
+		src := statusSourceKey(item)
+		msg := strings.TrimSpace(item.ErrorMsg)
+		if msg != "" {
+			return fmt.Errorf("预检任务不在运行中: source %s stage=%s error_msg=%s", src, stage, msg)
+		}
+		return fmt.Errorf("预检任务不在运行中: source %s stage=%s", src, stage)
 	}
 	return nil
 }

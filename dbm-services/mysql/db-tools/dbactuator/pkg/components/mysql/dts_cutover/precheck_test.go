@@ -20,20 +20,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidateTaskStatusFetchable(t *testing.T) {
-	require.Error(t, validateTaskStatusFetchable(nil))
-	require.Error(t, validateTaskStatusFetchable(&TaskStatusListResponse{}))
-	require.NoError(t, validateTaskStatusFetchable(&TaskStatusListResponse{
-		Data: []TaskStatusItem{{Name: "t", Stage: "Stopped"}},
+func TestValidateTaskRunning(t *testing.T) {
+	require.Error(t, validateTaskRunning(nil))
+	require.Error(t, validateTaskRunning(&TaskStatusListResponse{}))
+	require.NoError(t, validateTaskRunning(&TaskStatusListResponse{
+		Data: []TaskStatusItem{{Name: "t", Stage: TaskStageRunning}},
 	}))
+	err := validateTaskRunning(&TaskStatusListResponse{
+		Data: []TaskStatusItem{{Name: "t", SourceName: "src1", Stage: TaskStageStopped}},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "src1")
+	require.Contains(t, err.Error(), string(TaskStageStopped))
 }
 
-func TestValidateTaskStatusFetchableIgnoresBlockingDDLAndStage(t *testing.T) {
-	// AE3 / AE5：非运行态 + blocking_ddls 仍可通过「任务可查」门禁
-	err := validateTaskStatusFetchable(&TaskStatusListResponse{
+func TestValidateTaskRunningRejectsPausedWithError(t *testing.T) {
+	err := validateTaskRunning(&TaskStatusListResponse{
+		Data: []TaskStatusItem{{
+			SourceName: "src1",
+			Stage:      TaskStagePaused,
+			ErrorMsg:   "syncer boom",
+			SyncStatus: &SyncStatus{BlockingDDLs: []string{"ALTER TABLE t"}},
+		}},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "syncer boom")
+}
+
+func TestValidateTaskRunningAllowsBlockingDDLWhileRunning(t *testing.T) {
+	err := validateTaskRunning(&TaskStatusListResponse{
 		Data: []TaskStatusItem{{
 			Name:  "t",
-			Stage: "Paused",
+			Stage: TaskStageRunning,
 			SyncStatus: &SyncStatus{
 				BlockingDDLs: []string{"ALTER TABLE t"},
 			},
@@ -105,22 +123,6 @@ func TestResolveTablesForPrecheck(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestPreCheckChecksumGate(t *testing.T) {
-	c := &Comp{Params: &Params{
-		DtsMasterAddr: "127.0.0.2:18301",
-		TaskName:      "task-a",
-		SourceEndpoints: []SourceEndpoint{{
-			Host: "127.0.0.10", Port: 20000, User: "u", Password: "p",
-		}},
-		SyncScope:      &SyncScope{DoDBs: []string{"app"}, DoTables: []TableItem{{Schema: "*", Table: "*"}}},
-		ChecksumPassed: false,
-		SkipChecksum:   false,
-	}}
-	err := c.PreCheck()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "checksum")
-}
-
 func TestPreCheckSourceConnectFailFast(t *testing.T) {
 	c := &Comp{Params: &Params{
 		DtsMasterAddr: "127.0.0.2:18301",
@@ -143,15 +145,15 @@ func TestFetchTaskStatusAndValidateOK(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Contains(t, r.URL.Path, "/api/v1/tasks/")
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"total":1,"data":[{"name":"task-a","stage":"Paused","sync_status":{"blocking_ddls":["x"],"seconds_behind_master":0}}]}`))
+		_, _ = w.Write([]byte(`{"total":1,"data":[{"name":"task-a","stage":"Running","sync_status":{"blocking_ddls":["x"],"seconds_behind_master":0}}]}`))
 	}))
 	defer srv.Close()
 
 	addr := strings.TrimPrefix(srv.URL, "http://")
 	resp, err := FetchTaskStatus(addr, "task-a", 5)
 	require.NoError(t, err)
-	require.NoError(t, validateTaskStatusFetchable(resp))
-	require.Equal(t, "Paused", resp.Data[0].Stage)
+	require.NoError(t, validateTaskRunning(resp))
+	require.Equal(t, TaskStageRunning, resp.Data[0].Stage)
 	require.NotEmpty(t, resp.Data[0].SyncStatus.BlockingDDLs)
 }
 
@@ -164,5 +166,5 @@ func TestFetchTaskStatusEmptyData(t *testing.T) {
 	addr := strings.TrimPrefix(srv.URL, "http://")
 	resp, err := FetchTaskStatus(addr, "missing", 5)
 	require.NoError(t, err)
-	require.Error(t, validateTaskStatusFetchable(resp))
+	require.Error(t, validateTaskRunning(resp))
 }

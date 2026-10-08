@@ -32,11 +32,26 @@ type SyncStatus struct {
 	Synced              bool     `json:"synced"`
 }
 
+// TaskStage worker 子任务阶段。出错时为 Paused，错误原文在 error_msg。
+type TaskStage string
+
+const (
+	TaskStageNew          TaskStage = "New"
+	TaskStageRunning      TaskStage = "Running"
+	TaskStagePausing      TaskStage = "Pausing"
+	TaskStagePaused       TaskStage = "Paused"
+	TaskStageResuming     TaskStage = "Resuming"
+	TaskStageStopping     TaskStage = "Stopping"
+	TaskStageStopped      TaskStage = "Stopped"
+	TaskStageFinished     TaskStage = "Finished"
+	TaskStageInvalidStage TaskStage = "InvalidStage"
+)
+
 // TaskStatusItem GET /api/v1/tasks/{task}/status 单条。
 type TaskStatusItem struct {
 	Name       string      `json:"name"`
 	SourceName string      `json:"source_name"`
-	Stage      string      `json:"stage"`
+	Stage      TaskStage   `json:"stage"`
 	Unit       string      `json:"unit"`
 	ErrorMsg   string      `json:"error_msg"`
 	SyncStatus *SyncStatus `json:"sync_status"`
@@ -156,9 +171,6 @@ func CheckSnapshotCatchup(items []TaskStatusItem, snapshots map[string]BinlogCoo
 	for _, item := range items {
 		src := statusSourceKey(item)
 		seen[src] = struct{}{}
-		if item.ErrorMsg != "" {
-			return fmt.Errorf("source %s 任务错误: %s", src, item.ErrorMsg)
-		}
 		if item.SyncStatus == nil {
 			return fmt.Errorf("source %s 缺少 sync_status", src)
 		}

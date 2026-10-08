@@ -9,8 +9,8 @@
  */
 
 // Package dts_cutover 在 DTS Master 主机上执行 MySQL DTS 安全切换：
-// 预检（源连通/表存在/任务可查）→ 源端迁移表读锁 → 拍 master 位点快照并持锁轮询追平 → Master HTTP API stop → 采位点 → 源端 unlock。
-// 持锁追平条件：SBM==0 且 syncer≥加锁瞬间 master 快照（不用实时 master≥syncer）。
+// 预检（源连通/表存在/子任务 Running，并在加锁前轮询到 SBM==0）→ 源端迁移表读锁 → 拍 master 位点快照并短时持锁复核 → Master HTTP API stop → 采位点 → 源端 unlock。
+// 加锁前预检 1s×30。持锁复核 0.5s×60。持锁条件：SBM==0 且 syncer≥加锁瞬间 master 快照（不用实时 master≥syncer）。
 // 本期不对目标端加锁，不做域名/Proxy 切换。停任务与查状态统一走 Master OpenAPI。
 package dts_cutover
 
@@ -24,9 +24,11 @@ import (
 )
 
 const (
-	defaultCatchupRecheck = 3
-	defaultCatchupPollMax = 300
-	catchupPollInterval   = 1 * time.Second
+	defaultCatchupRecheck  = 3
+	defaultPrecheckPollMax = 30
+	precheckPollInterval   = 1 * time.Second
+	defaultCatchupPollMax  = 60
+	catchupPollInterval    = 500 * time.Millisecond
 )
 
 // Comp DTS cutover 组件。
@@ -45,15 +47,14 @@ type Params struct {
 	LockTables      []TableItem      `json:"lock_tables"`
 	// CatchupRecheck：连续通过持锁快照追平的次数，默认 3
 	CatchupRecheck int `json:"catchup_recheck"`
-	// CatchupPollMax：持锁轮询最大次数（含首次），默认 300；间隔 1s
+	// CatchupPollMax：持锁复核最大次数（含首次），默认 60；间隔 0.5s
 	CatchupPollMax int `json:"catchup_poll_max"`
 	// ApiTimeoutSec：stop API 超时；兼容旧字段 dmctl_timeout_sec
 	ApiTimeoutSec   int `json:"api_timeout_sec"`
 	DmctlTimeoutSec int `json:"dmctl_timeout_sec"` // deprecated: 同 ApiTimeoutSec
-	// ChecksumPassed：编排侧已完成数据校验（部分同步一致性靠 checksum）
+	// 编排透传。cutover 不读校验结果，也不据此改变追平。
 	ChecksumPassed bool `json:"checksum_passed"`
-	// SkipChecksum：单据明确跳过校验时为 true；否则必须 ChecksumPassed
-	SkipChecksum bool `json:"skip_checksum"`
+	SkipChecksum   bool `json:"skip_checksum"`
 }
 
 // SourceEndpoint 源端连接信息（临时账号；连接发起方 = dts-master）。
@@ -154,10 +155,6 @@ func (c *Comp) Init() error {
 		p.CatchupPollMax = p.CatchupRecheck
 	}
 	p.ApiTimeoutSec = p.stopTimeoutSec()
-	// 部分同步必须先有 checksum（或显式 skip）才能 cutover
-	if !p.SkipChecksum && !p.ChecksumPassed {
-		return fmt.Errorf("cutover 拒绝执行：checksum 尚未通过（部分同步依赖校验结果；请确认编排先完成数据校验）")
-	}
 	return nil
 }
 
@@ -167,11 +164,7 @@ func (c *Comp) Run() error {
 		return err
 	}
 	p := c.Params
-	if p.SkipChecksum {
-		logger.Info("单据跳过 checksum，持锁复核按 SBM=0 且 syncer>=加锁 master 快照")
-	} else {
-		logger.Info("checksum 已通过，持锁复核按 SBM=0 且 syncer>=加锁 master 快照")
-	}
+	logger.Info("持锁复核按 SBM=0 且 syncer>=加锁 master 快照 skip_checksum=%t", p.SkipChecksum)
 
 	locks := make([]*SourceLockConn, 0, len(p.SourceEndpoints))
 	defer func() {
@@ -214,36 +207,21 @@ func (c *Comp) Run() error {
 		logger.Info("加锁位点快照 source=%s master=(%s, %d)", src, coord.File, coord.Position)
 	}
 
-	var statusItems []TaskStatusItem
-	consecutive := 0
-	pollMax := p.catchupPollMax()
-	var lastCatchupErr error
-	for attempt := 0; attempt < pollMax; attempt++ {
-		if attempt > 0 {
-			time.Sleep(catchupPollInterval)
-		}
-		resp, ferr := FetchTaskStatus(p.DtsMasterAddr, p.TaskName, 30)
-		if ferr != nil {
-			return fmt.Errorf("持锁复核追平失败（不执行 stop）: %w", ferr)
-		}
-		statusItems = resp.Data
-		if cerr := CheckSnapshotCatchup(statusItems, lockSnapshots); cerr != nil {
-			consecutive = 0
-			lastCatchupErr = cerr
-			logger.Warn("持锁复核未追平 attempt=%d/%d: %s", attempt+1, pollMax, cerr.Error())
-			continue
-		}
-		consecutive++
-		logger.Info("持锁复核追平通过 (%d/%d) attempt=%d/%d", consecutive, p.CatchupRecheck, attempt+1, pollMax)
-		if consecutive >= p.CatchupRecheck {
-			break
-		}
-	}
-	if consecutive < p.CatchupRecheck {
-		if lastCatchupErr == nil {
-			lastCatchupErr = fmt.Errorf("连续通过次数不足: got=%d want=%d", consecutive, p.CatchupRecheck)
-		}
-		return fmt.Errorf("持锁复核超时（将 unlock，不执行 stop）: %w", lastCatchupErr)
+	statusItems, perr := pollUntilCaughtUp(
+		func() ([]TaskStatusItem, error) {
+			resp, ferr := FetchTaskStatus(p.DtsMasterAddr, p.TaskName, 30)
+			if ferr != nil {
+				return nil, ferr
+			}
+			return resp.Data, nil
+		},
+		lockSnapshots,
+		p.CatchupRecheck,
+		p.catchupPollMax(),
+		func() { time.Sleep(catchupPollInterval) },
+	)
+	if perr != nil {
+		return perr
 	}
 
 	if err := StopTask(p.DtsMasterAddr, p.TaskName, p.ApiTimeoutSec, nil); err != nil {
@@ -264,4 +242,165 @@ func (c *Comp) Run() error {
 	}
 	logger.Info("DTS cutover 完成: task=%s sources=%d", p.TaskName, len(out.Sources))
 	return nil
+}
+
+type catchupPollAction int
+
+const (
+	catchupPollPass catchupPollAction = iota
+	catchupPollRetry
+	catchupPollAbort
+)
+
+// taskReportError 单元失败时 worker 把 stage 写成 Paused，并把错误放进 error_msg。
+// 人工暂停也是 Paused，但 error_msg 为空，继续等追平。
+// InvalidStage 是占位，正常状态不会出现，见到就退出。
+func taskReportError(items []TaskStatusItem) error {
+	for _, item := range items {
+		stage := TaskStage(strings.TrimSpace(string(item.Stage)))
+		src := statusSourceKey(item)
+		msg := strings.TrimSpace(item.ErrorMsg)
+		switch stage {
+		case TaskStageInvalidStage:
+			if msg != "" {
+				return fmt.Errorf("source %s 任务错误: %s", src, msg)
+			}
+			return fmt.Errorf("source %s 任务阶段异常: stage=%s", src, stage)
+		case TaskStagePaused:
+			if msg == "" {
+				continue
+			}
+			return fmt.Errorf("source %s 任务错误: %s", src, msg)
+		}
+	}
+	return nil
+}
+
+func decideCatchupPoll(items []TaskStatusItem, snapshots map[string]BinlogCoord) (catchupPollAction, error) {
+	if err := taskReportError(items); err != nil {
+		return catchupPollAbort, err
+	}
+	if err := CheckSnapshotCatchup(items, snapshots); err != nil {
+		return catchupPollRetry, err
+	}
+	return catchupPollPass, nil
+}
+
+// sourcesQuietEnoughToLock 加锁前只看延迟和 blocking_ddls，不拿实时 master 跟 syncer 比。
+func sourcesQuietEnoughToLock(items []TaskStatusItem) error {
+	if len(items) == 0 {
+		return fmt.Errorf("任务状态为空")
+	}
+	for _, item := range items {
+		src := statusSourceKey(item)
+		if item.SyncStatus == nil {
+			return fmt.Errorf("source %s 缺少 sync_status", src)
+		}
+		ss := item.SyncStatus
+		if len(ss.BlockingDDLs) > 0 {
+			return fmt.Errorf("source %s 存在 blocking_ddls: %v", src, ss.BlockingDDLs)
+		}
+		if ss.SecondsBehindMaster != 0 {
+			return fmt.Errorf("source %s 未追平: sbm=%d", src, ss.SecondsBehindMaster)
+		}
+	}
+	return nil
+}
+
+func decideReadyBeforeLock(items []TaskStatusItem) (catchupPollAction, error) {
+	if err := taskReportError(items); err != nil {
+		return catchupPollAbort, err
+	}
+	if err := validateTaskRunning(&TaskStatusListResponse{Data: items}); err != nil {
+		return catchupPollAbort, err
+	}
+	if err := sourcesQuietEnoughToLock(items); err != nil {
+		return catchupPollRetry, err
+	}
+	return catchupPollPass, nil
+}
+
+// pollReadyBeforeLock 在 FLUSH 之前等到各源 SBM==0。报错或非 Running 立刻失败，不进入加锁。
+func pollReadyBeforeLock(
+	fetch func() ([]TaskStatusItem, error),
+	pollMax int,
+	sleep func(),
+) error {
+	if pollMax < 1 {
+		pollMax = 1
+	}
+	var lastErr error
+	for attempt := 0; attempt < pollMax; attempt++ {
+		if attempt > 0 && sleep != nil {
+			sleep()
+		}
+		items, ferr := fetch()
+		if ferr != nil {
+			return fmt.Errorf("预检查询任务 status 失败: %w", ferr)
+		}
+		action, cerr := decideReadyBeforeLock(items)
+		switch action {
+		case catchupPollAbort:
+			return fmt.Errorf("预检发现 DTS 任务不可切换（未加锁）: %w", cerr)
+		case catchupPollRetry:
+			lastErr = cerr
+			logger.Warn("预检尚未适合加锁 attempt=%d/%d: %s", attempt+1, pollMax, cerr.Error())
+			continue
+		default:
+			logger.Info("预检适合加锁 attempt=%d/%d", attempt+1, pollMax)
+			return nil
+		}
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("未观察到适合加锁的状态")
+	}
+	return fmt.Errorf("预检追平超时（未加锁）: %w", lastErr)
+}
+
+func pollUntilCaughtUp(
+	fetch func() ([]TaskStatusItem, error),
+	snapshots map[string]BinlogCoord,
+	recheck int,
+	pollMax int,
+	sleep func(),
+) ([]TaskStatusItem, error) {
+	if recheck < 1 {
+		recheck = 1
+	}
+	if pollMax < 1 {
+		pollMax = 1
+	}
+	var statusItems []TaskStatusItem
+	consecutive := 0
+	var lastCatchupErr error
+	for attempt := 0; attempt < pollMax; attempt++ {
+		if attempt > 0 && sleep != nil {
+			sleep()
+		}
+		items, ferr := fetch()
+		if ferr != nil {
+			return nil, fmt.Errorf("持锁复核追平失败（不执行 stop）: %w", ferr)
+		}
+		statusItems = items
+		action, cerr := decideCatchupPoll(items, snapshots)
+		switch action {
+		case catchupPollAbort:
+			return nil, fmt.Errorf("持锁复核发现 DTS 任务报错（不执行 stop，将 unlock）: %w", cerr)
+		case catchupPollRetry:
+			consecutive = 0
+			lastCatchupErr = cerr
+			logger.Warn("持锁复核未追平 attempt=%d/%d: %s", attempt+1, pollMax, cerr.Error())
+			continue
+		default:
+			consecutive++
+			logger.Info("持锁复核追平通过 (%d/%d) attempt=%d/%d", consecutive, recheck, attempt+1, pollMax)
+			if consecutive >= recheck {
+				return statusItems, nil
+			}
+		}
+	}
+	if lastCatchupErr == nil {
+		lastCatchupErr = fmt.Errorf("连续通过次数不足: got=%d want=%d", consecutive, recheck)
+	}
+	return nil, fmt.Errorf("持锁复核超时（将 unlock，不执行 stop）: %w", lastCatchupErr)
 }
