@@ -35,14 +35,21 @@ export const useSelectorSearch = (
   const { t } = useI18n();
 
   const searchValue = ref<Record<string, string>>({});
-  const columnAttrs = ref<Record<string, { text: string; value: string }[]>>({});
+  // 按 attrs 预置空数组：列的 filter 从首次渲染就存在。若接口返回后才从 undefined 变成有值，
+  // tdesign 表头会卸载重建 TEllipsis，已排队的 updated 钩子读到 null 的 root 报错
+  const columnAttrs = ref<Record<string, { text: string; value: string }[]>>(
+    Object.fromEntries(attrs.map((attr) => [attr, []])),
+  );
 
   queryBizClusterAttrs({
     bk_biz_id: currentBizId,
     cluster_attrs: attrs.join(','),
     cluster_type: clusterType,
   }).then((result) => {
-    columnAttrs.value = result;
+    columnAttrs.value = {
+      ...columnAttrs.value,
+      ...result,
+    };
   });
 
   // 候选项接口返回前取到空数组，条件本身按 attrs 同步决定，不等接口
