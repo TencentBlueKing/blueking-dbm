@@ -261,6 +261,26 @@ func TestSaveBatchRetryThenFail(t *testing.T) {
 	}
 }
 
+func TestSaveBatchRetryBackoffStopsAtDeadline(t *testing.T) {
+	t.Parallel()
+	w := &fakeChunkWriter{fn: func(ctx context.Context, db *gorm.DB, rows []*hamodel.DbhaDataStatus) error {
+		return &mysqldriver.MySQLError{Number: 1290, Message: "readonly"}
+	}}
+	s := newTestMysql(t, 1, w)
+	s.writeRetryTimeout = time.Second
+	start := time.Now()
+	result, err := s.SaveBatch(context.Background(), []*Message{
+		sampleMsg(t, "127.0.0.1", 3306, "default"),
+	})
+	elapsed := time.Since(start)
+	if err != nil || result.Failed != 1 || result.Stats.DropCount("mysql", ReasonRetryTimeout) != 1 {
+		t.Fatalf("err: %v, failed: %d, stats: %+v", err, result.Failed, result.Stats)
+	}
+	if elapsed >= 1300*time.Millisecond {
+		t.Fatalf("retry exceeded clamped deadline, elapsed: %s", elapsed)
+	}
+}
+
 func TestSaveBatchCtxCancel(t *testing.T) {
 	t.Parallel()
 	w := &fakeChunkWriter{fn: func(ctx context.Context, db *gorm.DB, rows []*hamodel.DbhaDataStatus) error {

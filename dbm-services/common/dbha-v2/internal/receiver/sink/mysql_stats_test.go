@@ -28,6 +28,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -240,6 +241,28 @@ func TestSaveBatchReasons(t *testing.T) {
 	})
 	if err == nil || fatalResult.Stats.DropCount("mysql", ReasonFatal) != 1 || fatalResult.Failed != 1 {
 		t.Fatalf("fatal: err=%v failed=%d stats=%+v", err, fatalResult.Failed, fatalResult.Stats)
+	}
+}
+
+func TestSaveBatchCanceledWhileCtxActiveIsFatal(t *testing.T) {
+	t.Parallel()
+	causes := []error{
+		context.Canceled,
+		fmt.Errorf("driver: %w", context.Canceled),
+	}
+	for _, cause := range causes {
+		s := newTestMysql(t, 1, &fakeChunkWriter{fn: func(
+			ctx context.Context, db *gorm.DB, rows []*hamodel.DbhaDataStatus,
+		) error {
+			return cause
+		}})
+		result, err := s.SaveBatch(context.Background(), []*Message{
+			sampleAt(t, 3306, "default", haprobe.DbTypeMySql, 1),
+		})
+		if err == nil || result.Stats.DropCount("mysql", ReasonFatal) != 1 ||
+			result.Stats.DropCount("mysql", ReasonCtxDone) != 0 {
+			t.Fatalf("cause: %v, err: %v, stats: %+v", cause, err, result.Stats)
+		}
 	}
 }
 

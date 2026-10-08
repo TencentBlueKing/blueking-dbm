@@ -185,6 +185,9 @@ func (h *consumerHandler) flushBatch(
 	}
 	h.observeConsumeDelay(kept)
 	h.emitWriteStats(batch[len(batch)-1].Topic, stats)
+	// Mark while the session is alive, including retry-timeout and data-error
+	// drops. A finished session is not marked, so those messages are consumed
+	// again. This matches the single-message Save path from before batching.
 	session.MarkMessage(batch[len(batch)-1], "")
 	return skipped, lastSkipOff, lastSkipAge
 }

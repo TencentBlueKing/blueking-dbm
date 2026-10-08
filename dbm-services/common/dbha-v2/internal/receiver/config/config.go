@@ -110,7 +110,7 @@ type SinkConfig struct {
 	InterpolateParams *bool         `yaml:"interpolateParams" mapstructure:"interpolateParams"`
 	MaxOpenConns      int           `yaml:"maxOpenConns"      mapstructure:"maxOpenConns"`
 	MaxIdleConns      int           `yaml:"maxIdleConns"      mapstructure:"maxIdleConns"`
-	ConnMaxLifetime   time.Duration `yaml:"connMaxLifetime"     mapstructure:"connMaxLifetime"`
+	ConnMaxLifetime   time.Duration `yaml:"connMaxLifetime"   mapstructure:"connMaxLifetime"`
 }
 
 // ServiceConfig service's configuration
