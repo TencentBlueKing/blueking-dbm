@@ -42,8 +42,6 @@
 </template>
 
 <script setup lang="tsx">
-  import _ from 'lodash';
-
   import { execCopy } from '@utils';
 
   import { t } from '@locales/index';
@@ -77,14 +75,10 @@
 
   let terminal: Terminal | null;
   let fitAddon: FitAddon | null;
-  let isAutoScrollEnabled = true; // 默认开启自动滚动
-  let lastScrollPosition = 0; // 记录上次滚动位置
+  // 视口是否钉在底部：刚打开为 true，之后由「视口是否在最下方」刷新（onScroll 里统一处理）
+  let isPinnedToBottom = true;
   let localLogList: NodeLog[] = [];
   let logicalLineNumbers: number[] = []; // 逻辑行与实际行的映射
-
-  const updateLastScrollPosition = _.debounce(() => {
-    lastScrollPosition = terminal?.buffer.active.viewportY || 0;
-  }, 500);
 
   const initTerm = () => {
     terminal = new Terminal({
@@ -104,21 +98,6 @@
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(linkAddon);
     terminal.open(document.getElementById('nodeLogTermContent')!);
-    lastScrollPosition = terminal.buffer.active.viewportY;
-
-    const originalWrite = terminal.writeln;
-    terminal.write = function (data: string) {
-      originalWrite.call(this, data);
-      // 仅当用户未手动滚动时自动跳转到底部
-      if (isAutoScrollEnabled) {
-        terminal?.scrollToBottom();
-      } else {
-        // 维持用户手动定位的位置
-        setTimeout(() => {
-          terminal?.scrollToLine(lastScrollPosition);
-        });
-      }
-    };
 
     // 劫持键盘事件
     terminal.attachCustomKeyEventHandler((e) => {
@@ -132,14 +111,10 @@
       return true;
     });
 
-    terminal.attachCustomWheelEventHandler(() => {
-      updateLastScrollPosition();
-      return true;
-    });
-
     terminal.onScroll(() => {
       const buffer = terminal?.buffer.active;
-      isAutoScrollEnabled = (buffer?.viewportY || 0) + (terminal?.rows || 0) >= (buffer?.length || 0);
+      // 程序滚动落点与状态一致（钉底滚到底、恢复滚到原位置），统一按「视口是否在最下方」刷新即可
+      isPinnedToBottom = (buffer?.viewportY || 0) + (terminal?.rows || 0) >= (buffer?.length || 0);
       updateLineNumbers();
       checkTermScroll();
     });
@@ -191,11 +166,12 @@
 
   const handleClearLog = () => {
     terminal?.clear();
+    // 清空后是新的一份日志视图，重新钉在底部
+    isPinnedToBottom = true;
   };
 
   const handleTermToTop = () => {
     terminal?.scrollToTop();
-    lastScrollPosition = 0;
   };
 
   const handleTermToBottom = () => {
@@ -203,16 +179,36 @@
   };
 
   /**
-   * 设置日志
+   * 保证缓冲区能装下已加载的全部日志
+   * scrollback 不足时顶部会被持续裁剪：行号被截断、用户滚动位置也无法保持
+   * 容量 = scrollback + 视口行数，需覆盖已加载的全部行
+   */
+  const ensureScrollback = () => {
+    if (!terminal) {
+      return;
+    }
+    const required = localLogList.length + 10;
+    if ((terminal.options.scrollback ?? 0) < required) {
+      terminal.options.scrollback = required;
+    }
+  };
+
+  /**
+   * 设置日志（切换版本 / 全屏重放）
    */
   const handleSetLog = (list: NodeLog[] = []) => {
     handleClearLog();
     localLogList = list;
+    ensureScrollback();
     const transferList = formatLogData(list);
     const content = transferList.join('\r\n');
-    terminal?.write(content);
-    setTimeout(() => {
+    // write 是异步解析，滚动调整必须在回调里做（此时数据才真正进入缓冲区）
+    terminal?.write(content, () => {
       fitAddon?.fit();
+      // 刚打开 / 切换版本都是新内容，定位到最下面
+      if (isPinnedToBottom) {
+        terminal?.scrollToBottom();
+      }
       updateLogicalLineNumbers();
       updateLineNumbers();
       checkTermScroll();
@@ -221,17 +217,33 @@
 
   /**
    * 追加日志
-   * 不清屏，仅写入新增分片，保留用户当前滚动位置
+   * 不清屏，仅写入新增分片：
+   * - 视口钉在底部：每次追加后自动滚动到最下面
+   * - 用户滚动查看：保持视口行号不变（scrollback 已覆盖全量，不会因裁剪产生行号偏移）
    */
   const handleAppendLog = (list: NodeLog[] = []) => {
     if (!list.length) {
       return;
     }
 
+    // 已有内容时先换行，避免本片第一行拼在上一片最后一行的行尾
+    const hasPrevious = localLogList.length > 0;
     localLogList = [...localLogList, ...list];
-    const content = formatLogData(list).join('\r\n');
-    terminal?.write(content);
-    setTimeout(() => {
+    ensureScrollback();
+
+    const content = `${hasPrevious ? '\r\n' : ''}${formatLogData(list).join('\r\n')}`;
+    // write 是异步解析，滚动调整必须在回调里做（此时数据才真正进入缓冲区）
+    const anchorY = terminal?.buffer.active.viewportY ?? 0;
+    terminal?.write(content, () => {
+      if (isPinnedToBottom) {
+        terminal?.scrollToBottom();
+      } else {
+        const buffer = terminal?.buffer.active;
+        // 扩容等导致的行号偏移，恢复到用户原本所在位置
+        if (buffer && anchorY !== buffer.viewportY) {
+          terminal?.scrollToLine(anchorY);
+        }
+      }
       updateLogicalLineNumbers();
       updateLineNumbers();
       checkTermScroll();
@@ -245,7 +257,7 @@
   const getVisibleRows = () => fitAddon?.proposeDimensions()?.rows ?? terminal?.rows ?? 0;
 
   const destroyTerm = () => {
-    isAutoScrollEnabled = true;
+    isPinnedToBottom = true;
     terminal?.clear();
     terminal?.dispose();
     fitAddon?.dispose();
