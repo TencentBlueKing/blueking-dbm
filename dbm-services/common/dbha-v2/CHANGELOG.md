@@ -1,5 +1,23 @@
 # DBHA-v2 Change Log
 
+## v2.0.1-beta.4
+
+- 【新增】探针 health 命令增加 touch 写入校验，并为 touch 写入失败和 uptime 获取失败分别增加对应的错误码。
+- 【新增】增加四种全局默认策略：dbha_ssh_auth_failure、dbha_ssh_timeout、dbha_disk_write_failure、dbha_uptime_failure。
+- 【新增】Admin 增加 probeHealth.diskWriteDirs，用于配置探针写入校验的目录。
+- 【新增】策略接口将业务策略的优先级限制为不超过 9000（9000 以上暂定为全局策略）。
+- 【新增】增加从探针上报到写入 MySQL 的延迟统计。
+- 【优化】SSH 探测失败时返回具体错误事件，并按该事件匹配对应策略。
+- 【优化】完善通知行为的快照日志，补充未匹配到策略的通知、不在白名单内的通知，以及策略行为为通知的记录。
+- 【优化】完善快照日志表，为文件写入和数据库写入补充信息。新增 Action、Strategies、OriginInstances 字段；实例信息中补充 StrategyID、EventName、EventNameReason 字段。
+- 【优化】切换日志接口兼容 action 字段，返回 action 不为 notify，或 action 为空（兼容旧数据）的记录。
+- 【优化】完善策略排序，保证优先级与切换行为都相同时，排序结果是确定的。
+- 【优化】提高 receiver 从 Kafka 读取数据并写入 MySQL 的性能。
+- 【修复】多个不同事件的故障实例在策略匹配时，触发行为会被覆盖。策略匹配顺序为：业务优先于全局，其次按优先级，切换行为优先。
+- 【修复】策略触发次数与滑动窗口内同一实例、同一事件累计次数的比对有误。滑动窗口的累计次数改由 FailureInstanceInfo 持有，并用于策略匹配。
+- 【修复】receiver 消费 Kafka 后未提交 offset，导致 Kafka 中记录的 offset 不正确。
+- 【修复】receiver 的 consumer 在 harvest 异常退出后无法自行恢复，不能继续从 Kafka 读取数据。
+
 ## v2.0.1-beta.3
 
 - 【新增】Linux Probe 启停脚本按操作发起时间判先后，并发下发 start 和 stop 时以更晚的那次为准。发起时间由调用方通过 `--intent-ts` 或 `DBHA_INTENT_TS` 传入，不传则取脚本启动时间，只能近似下发顺序。
