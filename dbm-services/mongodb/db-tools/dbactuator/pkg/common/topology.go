@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // MongoNode is the node of a mongo set
@@ -58,12 +57,4 @@ type MongoCluster struct {
 	Mongos      []MongoNode `json:"mongos"`
 	Shards      []MongoSet  `json:"shards"`
 	Configsvr   MongoSet    `json:"configsvr"`
-}
-
-// ShardIdentity is the identity of a shard
-type ShardIdentity struct {
-	Id                        string             `bson:"_id"`
-	ClusterId                 primitive.ObjectID `bson:"clusterId"`
-	ShardName                 string             `bson:"shardName"`
-	ConfigsvrConnectionString string             `bson:"configsvrConnectionString"`
 }

@@ -140,7 +140,8 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
             source_cluster_name__cluster[cluster.alias.rsplit("-", 2)[0]] = cluster
             cluster_records.append(ClusterOperateRecord(cluster_id=cluster.id, ticket=self.ticket, flow=rollback_flow))
 
-        ClusterOperateRecord.objects.bulk_create(cluster_records)
+        # flow重试会重新执行pre_callback，此时临时集群的记录已存在，忽略唯一键冲突
+        ClusterOperateRecord.objects.bulk_create(cluster_records, ignore_conflicts=True)
 
         # 为定点构造的flow填充临时集群的信息
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=ticket_data["cluster_ids"])}

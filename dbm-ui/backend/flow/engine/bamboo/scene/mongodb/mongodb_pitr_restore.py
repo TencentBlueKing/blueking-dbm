@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 from rest_framework import serializers
@@ -28,7 +28,7 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.pitr_rebuild_sub import P
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.pitr_restore_sub import PitrRestoreSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_script_template import prepare_recover_dir_script
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
@@ -93,8 +93,8 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         # 1. 部署临时集群（目前省略）
         # 2. 获得每个目标集群的信息
         # 3-1. 预处理. 准备数据文件目录 mkdir -p $MONGO_RECOVER_DIR
-        # 3-2. 预处理. 获得每个目标集群的备份文件列表，下载备份文件
-        # 4. 执行回档任务
+        # 3-2. 运行期节点查询各分片全备/增量记录（避免构建期对每个分片串行打 BKLog）
+        # 4. 下载备份并执行回档
 
         # 所有涉及的cluster
         cluster_id_list_from = []
@@ -165,7 +165,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             cluster_sb = self.process_cluster(
                 row=row, src_cluster=src_cluster, cluster=cluster, actuator_workdir=actuator_workdir, dest_dir=dest_dir
             )
-            cluster_pipes.append(cluster_sb.build_sub_process(_("pitr cluster {}").format(cluster.name)))
+            cluster_pipes.append(cluster_sb.build_sub_process(_("MG-PitrRestore-{}").format(cluster.name)))
 
         # 1. 统一预处理
         # 2. 统一下发文件
@@ -175,7 +175,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         # Step1 执行做准备脚本  执行mkdir -p /data/dbbak/recover_mg
         pipeline.add_act(
             **ExecShellScript.act(
-                act_name=_("MongoDB-预处理 {}".format(len(bk_host_list))),
+                act_name=_("MG-Prepare-{}".format(len(bk_host_list))),
                 file_list=file_list,
                 bk_host_list=bk_host_list,
                 exec_account="root",
@@ -186,7 +186,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         # Step2 介质下发
         pipeline.add_act(
             **SendMedia.act(
-                act_name=_("MongoDB-介质下发 {}".format(len(bk_host_list))),
+                act_name=_("MG-SendMedia-{}".format(len(bk_host_list))),
                 file_list=file_list,
                 bk_host_list=bk_host_list,
                 file_target_path=actuator_workdir,
@@ -257,6 +257,16 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         if len(src_shards) != len(dst_shards):
             raise Exception("src_shards and dst_shards has different shards")
 
+        # BKLog 查询放到运行期节点，避免构建期对每个分片串行打日志平台
+        FetchBackupRecordSubTask.process_cluster(
+            root_id=self.root_id,
+            ticket_data=self.payload,
+            sub_ticket_data=row,
+            src_cluster=src_cluster,
+            src_shards=src_shards,
+            sub_pipeline=cluster_sb,
+        )
+
         for idx in range(len(src_shards)):
             src_shard = src_shards[idx]
             dst_shard = dst_shards[idx]
@@ -273,14 +283,14 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             )
             shard_pipes.append(
                 shard_sb.build_sub_process(
-                    _("{} restore {} to {}").format(src_shard.set_type, src_shard.set_name, dst_shard.set_name)
+                    _("MG-Restore-{}-{}-to-{}").format(src_shard.set_type, src_shard.set_name, dst_shard.set_name)
                 )
             )
 
         # 为每个Shard执行回档，包括configsvr
         restore_sb = SubBuilder(root_id=self.root_id, data=self.payload)
         restore_sb.add_parallel_sub_pipeline(sub_flow_list=shard_pipes)
-        cluster_sb.add_sub_pipeline(sub_flow=restore_sb.build_sub_process("restore_shards"))
+        cluster_sb.add_sub_pipeline(sub_flow=restore_sb.build_sub_process(_("MG-RestoreShards")))
         # restore_sb end
 
         if cluster.is_sharded_cluster():
@@ -321,7 +331,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             sub_pipeline=cluster_sb,
             exec_node=exec_node,
             file_path=actuator_workdir,
-            act_name=_("CheckEmptyData"),
+            act_name=_("MG-CheckEmptyData"),
             op="check_empty_data",
         )
         return
@@ -340,18 +350,9 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         """
         pitr_restore_flow one shard from src_cluster/src_shard to cluster/shard
         """
-        # FetchBackupRecordSubTask 根据 sub_ticket_data中的src_cluster_id, dst_time 获得备份文件列表.
-        FetchBackupRecordSubTask.process_shard(
-            root_id=self.root_id,
-            ticket_data=self.payload,
-            sub_ticket_data=row,
-            cluster=src_cluster,
-            shard=src_shard,
-        )
         exec_node = row["__exec_node"][shard.set_name]
 
         logger.debug("sub_ticket_data {}".format(row))
-        # process_cluster 会根据src_cluster_id, dst_time 获得备份文件列表.
         DownloadSubTask.process_shard(
             root_id=self.root_id,
             ticket_data=self.payload,
@@ -361,6 +362,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             dest_dir=dest_dir,
             dest_node=exec_node,
             sub_pipeline=shard_sub,
+            src_set_name=src_shard.set_name,
         )
 
         PitrRestoreSubTask.process_shard(
@@ -372,6 +374,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             dest_dir=dest_dir,
             exec_node=exec_node,
             sub_pipeline=shard_sub,
+            src_set_name=src_shard.set_name,
         )
 
         return
@@ -386,7 +389,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         for ip in cluster.get_iplist():
             acts_list.append(
                 {
-                    "act_name": _("stop_dbmon {}".format(ip)),
+                    "act_name": _("MG-StopDbmon-{}".format(ip)),
                     "act_component_code": ExecJobComponent2.code,
                     "kwargs": InstanceOpSubTask.make_node_kwargs(
                         ip=ip, file_path=actuator_workdir, bk_cloud_id=cluster.bk_cloud_id, op="stop_dbmon"
@@ -399,7 +402,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("stop_dbmon"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-StopDbmon")))
 
     def stop_mongos(
         self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, dest_dir: str, cluster_sb: SubBuilder
@@ -410,7 +413,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         for mongos in cluster.get_mongos():
             acts_list.append(
                 {
-                    "act_name": _("stop_mongos {}:{}".format(mongos.ip, mongos.port)),
+                    "act_name": _("MG-StopMongos-{}:{}".format(mongos.ip, mongos.port)),
                     "act_component_code": ExecJobComponent2.code,
                     "kwargs": InstanceOpSubTask.make_kwargs(
                         exec_node=mongos, file_path=actuator_workdir, op="stop", graceful_stop=False
@@ -423,7 +426,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("stop_mongos"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-StopMongos")))
 
     def remove_not_exec_node_from_rs(
         self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, dest_dir: str, cluster_sb: SubBuilder
@@ -437,7 +440,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
                 if m.equal(row["__exec_node"][shard.set_name]):
                     acts_list.append(
                         {
-                            "act_name": _("rs_remove_others {}:{}".format(m.ip, m.port)),
+                            "act_name": _("MG-RsRemoveOthers-{}:{}".format(m.ip, m.port)),
                             "act_component_code": ExecJobComponent2.code,
                             "kwargs": InstanceOpSubTask.make_kwargs(
                                 exec_node=m, file_path=actuator_workdir, op="rs_remove_other_node"
@@ -449,7 +452,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("rs_remove_other_node"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-RsRemoveOthers")))
 
     def start_all_shardsvr(
         self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, dest_dir: str, cluster_sb: SubBuilder
@@ -460,7 +463,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             for m in shard.members:
                 acts_list.append(
                     {
-                        "act_name": _("start {}:{}".format(m.ip, m.port)),
+                        "act_name": _("MG-StartMongod-{}:{}".format(m.ip, m.port)),
                         "act_component_code": ExecJobComponent2.code,
                         "kwargs": InstanceOpSubTask.make_kwargs(exec_node=m, file_path=actuator_workdir, op="start"),
                     }
@@ -470,7 +473,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("start_mongo"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-StartMongod")))
 
     def start_all_mongos(
         self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, dest_dir: str, cluster_sb: SubBuilder
@@ -480,7 +483,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         for m in cluster.get_mongos():
             acts_list.append(
                 {
-                    "act_name": _("start {}:{}".format(m.ip, m.port)),
+                    "act_name": _("MG-StartMongos-{}:{}".format(m.ip, m.port)),
                     "act_component_code": ExecJobComponent2.code,
                     "kwargs": InstanceOpSubTask.make_kwargs(exec_node=m, file_path=actuator_workdir, op="start"),
                 }
@@ -490,7 +493,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("start_mongos"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-StartMongos")))
 
     def stop_not_exec_node(
         self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, dest_dir: str, cluster_sb: SubBuilder
@@ -505,7 +508,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
 
                 acts_list.append(
                     {
-                        "act_name": _("stop {}:{}".format(m.ip, m.port)),
+                        "act_name": _("MG-StopMongod-{}:{}".format(m.ip, m.port)),
                         "act_component_code": ExecJobComponent2.code,
                         "kwargs": InstanceOpSubTask.make_kwargs(
                             exec_node=m, file_path=actuator_workdir, op="stop", graceful_stop=False
@@ -517,7 +520,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("stop_not_exec_node"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-StopNotExecNode")))
 
     def restart_as_standalone(
         self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, dest_dir: str, cluster_sb: SubBuilder
@@ -528,7 +531,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         for mongos in cluster.get_mongos():
             acts_list.append(
                 {
-                    "act_name": _("restart {}:{}".format(mongos.ip, mongos.port)),
+                    "act_name": _("MG-RestartAsStandalone-{}:{}".format(mongos.ip, mongos.port)),
                     "act_component_code": ExecJobComponent2.code,
                     "kwargs": HelloSubTask.make_kwargs(exec_node=mongos, file_path=actuator_workdir),
                 }
@@ -539,7 +542,25 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             return
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("restart_as_standalone"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-RestartAsStandalone")))
+
+    @staticmethod
+    def build_shard_map(src_shards: List[ReplicaSet], dst_shards: List[ReplicaSet]) -> List[Dict]:
+        """生成 源shard -> 目标shard 的显式配对，供actuator写config.shards
+
+        @param src_shards: 源集群shards，必须是 get_shards(sort_by_set_name=True) 的结果
+        @param dst_shards: 目标集群shards，同上
+        两个入参的顺序必须与 process_cluster 灌备份、rebuild_cluster 写shardIdentity 时一致，
+        否则catalog里的shard名会与机器上的数据/identity错位。
+        """
+        if len(src_shards) != len(dst_shards):
+            raise Exception(
+                "src_shards({}) and dst_shards({}) has different shards".format(len(src_shards), len(dst_shards))
+            )
+
+        return [
+            {"src_set_name": src.set_name, "dst_set_name": dst.set_name} for src, dst in zip(src_shards, dst_shards)
+        ]
 
     def rebuild_cluster(
         self,
@@ -554,13 +575,15 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
         dst_configsvr = dst_cluster.get_config()
         src_shards = src_cluster.get_shards(with_config=False, sort_by_set_name=True)
         dst_shards = dst_cluster.get_shards(with_config=False, sort_by_set_name=True)
+        # config.shards 必须用与灌备份/shardIdentity 完全相同的配对，显式下发而不是让actuator再推导一次
+        shard_map = self.build_shard_map(src_shards, dst_shards)
 
         acts_list = []
         sb = SubBuilder(root_id=self.root_id, data=self.payload)
         exec_node = row["__exec_node"][dst_configsvr.set_name]
         acts_list.append(
             {
-                "act_name": _("rebuild {} {}:{}".format(dst_configsvr.set_name, exec_node.ip, exec_node.port)),
+                "act_name": _("MG-Rebuild-{}-{}:{}".format(dst_configsvr.set_name, exec_node.ip, exec_node.port)),
                 "act_component_code": ExecJobComponent2.code,
                 "kwargs": PitrRebuildSubTask.make_kwargs(
                     exec_node=exec_node,
@@ -569,11 +592,12 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
                     dst_shard=dst_configsvr,
                     src_cluster=src_cluster,
                     dst_cluster=dst_cluster,
+                    shard_map=shard_map,
                 ),
             }
         )
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("rebuild_cluster-configsvr"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-RebuildConfigsvr")))
 
         acts_list = []
         sb = SubBuilder(root_id=self.root_id, data=self.payload)
@@ -583,7 +607,7 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             exec_node = row["__exec_node"][dst_shard.set_name]
             acts_list.append(
                 {
-                    "act_name": _("rebuild {} {}:{}".format(dst_shard.set_name, exec_node.ip, exec_node.port)),
+                    "act_name": _("MG-Rebuild-{}-{}:{}".format(dst_shard.set_name, exec_node.ip, exec_node.port)),
                     "act_component_code": ExecJobComponent2.code,
                     "kwargs": PitrRebuildSubTask.make_kwargs(
                         exec_node=exec_node,
@@ -597,4 +621,4 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
             )
 
         sb.add_parallel_acts(acts_list=acts_list)
-        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("rebuild_cluster-shardsvr"))
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(_("MG-RebuildShardsvr")))

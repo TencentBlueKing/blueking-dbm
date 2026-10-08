@@ -13,6 +13,8 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 # 全量查询集群的备份日志时，默认返回7天内
 BACKUP_LOG_RANGE_DAYS = 7
+# 单次 BKLog 查询最多包含的分片数。pitr_fullname 只精确到小时，多分片会共用，必须按 set_name 分批。
+PITR_SET_QUERY_BATCH = 80
 
 
 class PitrFillType(StrStructuredEnum):

@@ -4,18 +4,22 @@ import (
 	"context"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // 备份
@@ -73,7 +77,7 @@ func (s *pitrRecoverJob) Run() error {
 	for _, f := range []execFunc{
 		{"checkDstMongo", s.checkDstMongo},
 		//	{"checkSrcFileReady", s.checkSrcFileReady},
-		{"dropConfigDb", s.dropConfigDb},
+		{"removeConfigDb", s.removeConfigDb},
 		{"restartAsStandAlone", s.restartAsStandAlone},
 		{"doPitrRecover", s.doPitrRecover},
 	} {
@@ -114,45 +118,172 @@ func (s *pitrRecoverJob) isGracefulStop() bool {
 	return *s.param.GracefulStop
 }
 
-// dropConfigDb 删除configsvr的数据库表
-func (s *pitrRecoverJob) dropConfigDb() error {
+// removeConfigDb 清空 configsvr 上会被回档覆盖的表，保留集合本身。
+// 全量备份经常没有这些 bson。集合不存在时 applyOps 无法插入，所以缺了要先建。
+func (s *pitrRecoverJob) removeConfigDb() error {
 	client, err := s.MongoInst.Connect()
 	if err != nil {
 		return errors.Wrap(err, "Connect")
 	}
 	inst := common.NewInstance(s.param.IP, s.param.Port, s.param.AdminUsername, s.param.AdminPassword, "")
-	rsOp := common.NewRsOp()
-	conf, err := rsOp.GetRsConf(inst)
+	isConfigsvr, err := s.isConfigsvr(inst)
 	if err != nil {
-		s.runtime.Logger.Info("not replica set mode, skip drop config")
+		return err
+	}
+	if !isConfigsvr {
+		s.runtime.Logger.Info("not configsvr, skip remove config")
 		return nil
 	}
 
-	if !conf.Config.Configsvr {
-		s.runtime.Logger.Info("not configsvr, skip drop config")
-		return nil
+	ctx := context.Background()
+	names, err := client.Database("config").ListCollectionNames(ctx, bson.D{})
+	if err != nil {
+		return errors.Wrap(err, "ListCollectionNames config")
+	}
+	exists := map[string]struct{}{}
+	for _, name := range names {
+		exists[name] = struct{}{}
 	}
 
 	// 流程的前面已经在mongos上检查上库表，这里可以不再检查
 	// 检查 configsvr是否为空 database 表为空 -> 表示没有库
-	n, err := client.Database("config").Collection("databases").CountDocuments(context.Background(), bson.M{})
-	if err != nil {
-		return errors.Wrap(err, "CountDocuments config.databases")
-	}
-	if n > 0 {
-		return errors.Errorf("config.databases not empty, count:%d", n)
+	if _, ok := exists["databases"]; ok {
+		n, err := client.Database("config").Collection("databases").CountDocuments(ctx, bson.M{})
+		if err != nil {
+			return errors.Wrap(err, "CountDocuments config.databases")
+		}
+		if n > 0 {
+			return errors.Errorf("config.databases not empty, count:%d", n)
+		}
 	}
 
-	// 也许还有其他表，这里只删除几个常见的表.
+	// 只清文档。集合不存在就先建，后续增量 applyOps 才能写入。
+	// changelog 官方是 capped、size 200MB、没有 max。不存在或被建成普通集合时按这个定义建。
+	// 已经是 capped 的，drop 后沿用原来的 size/max。
 	for _, col := range []string{"databases", "collections", "chunks", "changelog"} {
-		if err := client.Database("config").Collection(col).Drop(context.Background()); err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Drop config.%s", col))
-		} else {
-			s.runtime.Logger.Info("Drop config.%s done", col)
+		if err := s.emptyConfigCollection(ctx, client, col, exists); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+// changelogCappedBytes 对应 mongod 的 kChangeLogCollectionSizeMB，单位是字节。4.4 到 8.0 都是 200MB，没有 max。
+const changelogCappedBytes int64 = 200 * 1024 * 1024
+
+func (s *pitrRecoverJob) emptyConfigCollection(
+	ctx context.Context, client *mongo.Client, col string, exists map[string]struct{},
+) error {
+	db := client.Database("config")
+	if _, ok := exists[col]; !ok {
+		if col == "changelog" {
+			return s.createCappedConfigCollection(ctx, db, col, changelogCappedBytes, 0)
+		}
+		if err := db.CreateCollection(ctx, col); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Create config.%s", col))
+		}
+		s.runtime.Logger.Info("Create config.%s done", col)
+		return nil
+	}
+
+	capped, size, maxDocs, err := configCollectionCapped(ctx, db, col)
+	if err != nil {
+		return err
+	}
+	if col == "changelog" && !capped {
+		if err := db.Collection(col).Drop(ctx); err != nil {
+			return errors.Wrap(err, "Drop config.changelog")
+		}
+		return s.createCappedConfigCollection(ctx, db, col, changelogCappedBytes, 0)
+	}
+	if capped {
+		if err := db.Collection(col).Drop(ctx); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Drop capped config.%s", col))
+		}
+		if size <= 0 {
+			size = changelogCappedBytes
+		}
+		return s.createCappedConfigCollection(ctx, db, col, size, maxDocs)
+	}
+
+	res, err := db.Collection(col).DeleteMany(ctx, bson.D{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Remove config.%s", col))
+	}
+	s.runtime.Logger.Info("Remove config.%s done, deleted:%d", col, res.DeletedCount)
+	return nil
+}
+
+func (s *pitrRecoverJob) createCappedConfigCollection(
+	ctx context.Context, db *mongo.Database, col string, size, maxDocs int64,
+) error {
+	opts := options.CreateCollection().SetCapped(true).SetSizeInBytes(size)
+	if maxDocs > 0 {
+		opts.SetMaxDocuments(maxDocs)
+	}
+	if err := db.CreateCollection(ctx, col, opts); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Create capped config.%s", col))
+	}
+	s.runtime.Logger.Info("Create capped config.%s done, size:%d max:%d", col, size, maxDocs)
+	return nil
+}
+
+func configCollectionCapped(ctx context.Context, db *mongo.Database, name string) (bool, int64, int64, error) {
+	cur, err := db.ListCollections(ctx, bson.M{"name": name})
+	if err != nil {
+		return false, 0, 0, errors.Wrap(err, "ListCollections "+name)
+	}
+	defer cur.Close(ctx)
+	var docs []bson.M
+	if err := cur.All(ctx, &docs); err != nil {
+		return false, 0, 0, errors.Wrap(err, "ListCollections decode "+name)
+	}
+	if len(docs) == 0 {
+		return false, 0, 0, nil
+	}
+	opts, _ := docs[0]["options"].(bson.M)
+	if opts == nil {
+		return false, 0, 0, nil
+	}
+	capped, _ := opts["capped"].(bool)
+	return capped, bsonToInt64(opts["size"]), bsonToInt64(opts["max"]), nil
+}
+
+func bsonToInt64(v interface{}) int64 {
+	switch n := v.(type) {
+	case int32:
+		return int64(n)
+	case int64:
+		return n
+	case int:
+		return int64(n)
+	case float64:
+		return int64(n)
+	default:
+		return 0
+	}
+}
+
+// isConfigsvr 优先看副本集配置。回档重试时进程已经是 standalone，改看 mongo.conf 的 clusterRole。
+func (s *pitrRecoverJob) isConfigsvr(inst *common.Instance) (bool, error) {
+	conf, err := common.NewRsOp().GetRsConf(inst)
+	if err == nil {
+		return conf.Config.Configsvr, nil
+	}
+	s.runtime.Logger.Info("replSetGetConfig failed, fallback to mongo.conf: %s", err.Error())
+
+	port := strconv.Itoa(s.param.Port)
+	dataDir := dbmonconsts.GetMongoDataDir(port)
+	confFile := filepath.Join(dataDir, "mongodata", port, "mongo.conf")
+	yml, loadErr := common.LoadMongoDBConfFromFile(confFile)
+	if loadErr != nil {
+		return false, errors.Wrap(loadErr, "load mongo.conf")
+	}
+	if yml.Sharding != nil && yml.Sharding.ClusterRole == "configsvr" {
+		return true, nil
+	}
+	return false, nil
 }
 
 // checkDstMongo 目标必须为空.
