@@ -52,6 +52,8 @@ type BatchResult struct {
 }
 
 // BatchSinker optionally writes many messages in one call.
+// Every message in one call must use the same topic. Metrics for the batch use
+// that topic.
 // error is non-nil only when ctx is done or the sink is closed; other failures
 // are reported via BatchResult.Failed.
 // Implementations must fill Stats so Written plus the drop total equals len(msgs).

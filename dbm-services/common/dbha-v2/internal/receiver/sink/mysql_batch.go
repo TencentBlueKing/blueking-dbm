@@ -104,10 +104,10 @@ func (s *mysql) SaveBatch(ctx context.Context, msgs []*Message) (BatchResult, er
 		return BatchResult{}, nil
 	}
 
-	topic := msgs[0].Topic
+	topic := warnMixedTopic(msgs)
 	rows, result, totalBytes := s.prepareBatch(msgs, topic)
 	dedupDropped := result.Valid - len(rows)
-	s.recordPrepareMetrics(topic, result.Valid, result.Invalid, dedupDropped, totalBytes)
+	s.recordPrepareMetrics(topic, result.Valid, dedupDropped, totalBytes)
 	if len(rows) == 0 {
 		return result, nil
 	}
@@ -176,7 +176,19 @@ func (s *mysql) prepareBatch(msgs []*Message, topic string) ([]preparedRow, Batc
 	return rows, result, totalBytes
 }
 
-func (s *mysql) recordPrepareMetrics(topic string, valid, invalid, dedupDropped, totalBytes int) {
+func warnMixedTopic(msgs []*Message) string {
+	topic := msgs[0].Topic
+	for _, msg := range msgs[1:] {
+		if msg.Topic == topic {
+			continue
+		}
+		logger.Warn("save batch mixed topics, topic: %s, other_topic: %s", topic, msg.Topic)
+		break
+	}
+	return topic
+}
+
+func (s *mysql) recordPrepareMetrics(topic string, valid, dedupDropped, totalBytes int) {
 	if dedupDropped > 0 {
 		if err := apm.MySqlDedupDroppedTotal.AddWithLabels(map[string]string{
 			apm.MetricLabelMysql: topic,
@@ -196,7 +208,6 @@ func (s *mysql) recordPrepareMetrics(topic string, valid, invalid, dedupDropped,
 			logger.Warn("update mysql write bytes metric failed, errmsg: %s", err)
 		}
 	}
-	_ = invalid
 }
 
 func rowKey(d *hamodel.DbhaDataStatus) string {
@@ -265,7 +276,11 @@ func (s *mysql) writeChunks(
 		updateRowOutcomes(results, rowOK, rowNeed, rowAt)
 		accumulatePermanent(results, perm)
 		if fatal != nil {
-			return newChunkOutcome(rowOK, rowAt, perm, exitFromFatal(fatal)), fatal
+			reason := ReasonFatal
+			if ctx.Err() != nil {
+				reason = ReasonCtxDone
+			}
+			return newChunkOutcome(rowOK, rowAt, perm, reason), fatal
 		}
 		pending := pendingChunkCount(rowNeed)
 		if pending == 0 {
@@ -275,13 +290,17 @@ func (s *mysql) writeChunks(
 			deadline = time.Now().Add(s.writeRetryTimeout)
 		}
 		if time.Now().After(deadline) {
-			logger.Warn(
-				"mysql batch write retry timeout, topic: %s, pending_chunks: %d",
-				topic, pending,
+			logger.Error(
+				"mysql batch write retry timeout, topic: %s, pending_chunks: %d, failed_rows: %d",
+				topic, pending, countFailedRows(rowOK),
 			)
 			return newChunkOutcome(rowOK, rowAt, perm, ReasonRetryTimeout), nil
 		}
-		if !waitCtx(ctx, backoff) {
+		wait := backoff
+		if remain := time.Until(deadline); remain < wait {
+			wait = remain
+		}
+		if !waitCtx(ctx, wait) {
 			return newChunkOutcome(rowOK, rowAt, perm, ReasonCtxDone), ctx.Err()
 		}
 		backoff = growBackoff(backoff)
@@ -708,13 +727,6 @@ func newChunkOutcome(rowOK [][]bool, rowAt [][]time.Time, perm [][][]bool, exit 
 	}
 }
 
-func exitFromFatal(err error) string {
-	if err == context.Canceled || err == context.DeadlineExceeded {
-		return ReasonCtxDone
-	}
-	return ReasonFatal
-}
-
 func growBackoff(backoff time.Duration) time.Duration {
 	if backoff < retryBackoffMax {
 		backoff *= 2
@@ -807,14 +819,6 @@ func allEndpointsPermanent(perm [][][]bool, c, j int) bool {
 		}
 	}
 	return true
-}
-
-func sampleMillis(results [][]endpointChunkResult, c, j int, reportTs uint64) (float64, bool) {
-	saw, at := firstSuccess(results, c, j)
-	if !saw {
-		return 0, false
-	}
-	return DelayMillis(at, reportTs)
 }
 
 // ensure mysql implements BatchSinker

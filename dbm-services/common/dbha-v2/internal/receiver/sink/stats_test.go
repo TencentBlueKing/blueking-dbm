@@ -76,16 +76,16 @@ func TestRewriteCtxDone(t *testing.T) {
 	}
 }
 
-func TestEarliestEndpointSample(t *testing.T) {
+func TestFirstSuccessUsesEarliestEndpoint(t *testing.T) {
 	t.Parallel()
 	t0 := time.Unix(1000, 0)
 	results := [][]endpointChunkResult{{
-		{rowOK: []bool{true}, rowOKAt: []time.Time{t0}},
-	}, {
 		{rowOK: []bool{true}, rowOKAt: []time.Time{t0.Add(200 * time.Millisecond)}},
+	}, {
+		{rowOK: []bool{true}, rowOKAt: []time.Time{t0}},
 	}}
-	ms, ok := sampleMillis(results, 0, 0, 990)
-	if !ok || ms != 10000 {
-		t.Fatalf("expected earliest sample 10000ms, ok=%v ms=%v", ok, ms)
+	ok, at := firstSuccess(results, 0, 0)
+	if !ok || !at.Equal(t0) {
+		t.Fatalf("expected earliest success at %s, ok: %v, at: %s", t0, ok, at)
 	}
 }

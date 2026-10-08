@@ -4,9 +4,13 @@
       user: "{{COMMON_STORAGE_USER}}"
       password: "{{COMMON_STORAGE_PASSWORD}}"
       saveTimeout: {{RECEIVER_SINK_MYSQL_SAVE_TIMEOUT}}
-      # batch write defaults: batchChunkSize=200, chunkMaxBytes=1MB, writeRetryTimeout=30s
+      # batch write defaults: batchChunkSize=200, chunkMaxBytes=1MB
       batchChunkSize: 200
       chunkMaxBytes: 1048576
+      # writeRetryTimeout starts after the first failed round. After it elapses,
+      # no further backoff or round starts, but the round already running finishes.
+      # saveTimeout is the read/write timeout of one SQL statement.
+      # Kafka maxProcessingTime defaults to 1s; batch retry may run longer.
       writeRetryTimeout: 30s
       # interpolateParams defaults to true when omitted; set false to disable
       interpolateParams: true
