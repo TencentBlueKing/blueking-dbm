@@ -208,30 +208,141 @@ type confRegenRequest struct {
 	MasterAuthFollowsPassword bool
 	// ConfFile / OldConfData 磁盘上的现状, 由 loadRegenInput 读好后填入.
 	//
+	// OldConfData 是展开 include 之后、redis 实际加载的那份文本, 渲染与校验只认它;
+	// RawOldConfData 是磁盘原文, 只用于备份和回滚. IncludedFiles 是原文 include 过的文件.
+	//
 	// 文件 IO 留在调用方: 渲染与校验因此是纯函数, 调用方也能自己决定从哪读
-	ConfFile    string
-	OldConfData string
-	Logger      *logger.Logger
+	ConfFile       string
+	OldConfData    string
+	RawOldConfData string
+	IncludedFiles  []string
+	Logger         *logger.Logger
 }
 
 // regenConfPlan 渲染并校验通过、但还没落盘的一次配置重建
 type regenConfPlan struct {
-	confFile    string
-	oldConfData string
-	confData    string
+	confFile string
+	// oldConfData 展开 include 之后的旧配置, 用于差异比对; rawOldConfData 是磁盘原文, 用于备份
+	oldConfData    string
+	rawOldConfData string
+	includedFiles  []string
+	confData       string
 }
 
-// loadRegenInput 读取待重建端口在磁盘上的现状
-func loadRegenInput(port int) (confFile string, oldConfData string, err error) {
-	confFile, err = getRedisConfFileForRegen(port)
+// hasInclude 原文是否靠 include 引入了别的文件
+func (p *regenConfPlan) hasInclude() bool {
+	return len(p.includedFiles) > 0
+}
+
+// backupData 备份/回滚该用的磁盘原文
+func (p *regenConfPlan) backupData() string {
+	if p.rawOldConfData != "" {
+		return p.rawOldConfData
+	}
+	return p.oldConfData
+}
+
+// regenInput 待重建端口在磁盘上的现状
+type regenInput struct {
+	confFile string
+	raw      string
+	expanded string
+	includes []string
+}
+
+// loadRegenInput 读取待重建端口在磁盘上的现状, 并按 redis 语义展开 include
+func loadRegenInput(port int) (regenInput, error) {
+	confFile, err := getRedisConfFileForRegen(port)
 	if err != nil {
-		return "", "", err
+		return regenInput{}, err
 	}
 	oldBytes, err := os.ReadFile(confFile)
 	if err != nil {
-		return "", "", fmt.Errorf("read redis conf(%s) failed,err:%v", confFile, err)
+		return regenInput{}, fmt.Errorf("read redis conf(%s) failed,err:%v", confFile, err)
 	}
-	return confFile, string(oldBytes), nil
+	expanded, includes, err := expandRedisConfIncludes(confFile, string(oldBytes))
+	if err != nil {
+		return regenInput{}, err
+	}
+	return regenInput{confFile: confFile, raw: string(oldBytes), expanded: expanded, includes: includes}, nil
+}
+
+// redisConfIncludeMaxDepth include 嵌套层数上限. redis 自己既不设限也不查循环
+const redisConfIncludeMaxDepth = 8
+
+// expandRedisConfIncludes 按 redis 加载配置的方式展开 include: 在 include 所在行原地内联
+// 被引用文件(递归), 其余行原样保留. 行序因此与 redis 实际看到的一致, lastValue 之类
+// "后出现的覆盖先出现的" 判断不用感知 include.
+//
+// 没有 include 时原样返回 raw.
+//
+// 相对路径按 confFile 所在目录解析: redis 是相对进程 cwd 解析的, 而 su mysql -c 拉起时
+// cwd 不可控, 找不到就报错, 不去猜. 通配符(redis 7 才支持)、循环、超深嵌套、读不到文件
+// 一律报错 —— 这些现场按原样重建只会丢配置.
+func expandRedisConfIncludes(confFile, raw string) (expanded string, includes []string, err error) {
+	baseDir := filepath.Dir(confFile)
+	stack := []string{resolvePathSymlinks(confFile)}
+	expanded, err = expandConfIncludesFrom(baseDir, confFile, raw, stack, &includes)
+	if err != nil {
+		return "", nil, err
+	}
+	return expanded, includes, nil
+}
+
+func expandConfIncludesFrom(baseDir, curFile, data string, stack []string, includes *[]string) (string, error) {
+	lines := strings.Split(data, "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		target, isInclude := confIncludeTarget(line)
+		if !isInclude {
+			out = append(out, line)
+			continue
+		}
+		if target == "" {
+			return "", fmt.Errorf("conf(%s) has an include without a path", curFile)
+		}
+		if strings.ContainsAny(target, "*?[") {
+			return "", fmt.Errorf("conf(%s) include %q uses a glob pattern,not supported", curFile, target)
+		}
+		path := target
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(baseDir, path)
+		}
+		path = filepath.Clean(path)
+		if len(stack) > redisConfIncludeMaxDepth {
+			return "", fmt.Errorf("conf(%s) include %s nested deeper than %d levels",
+				curFile, path, redisConfIncludeMaxDepth)
+		}
+		resolved := resolvePathSymlinks(path)
+		if slices.Contains(stack, resolved) {
+			return "", fmt.Errorf("conf(%s) include %s forms a cycle", curFile, path)
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("conf(%s) include %s cannot be read,err:%v", curFile, path, err)
+		}
+		*includes = append(*includes, path)
+		nextStack := append(slices.Clone(stack), resolved)
+		sub, err := expandConfIncludesFrom(baseDir, path, string(content), nextStack, includes)
+		if err != nil {
+			return "", err
+		}
+		out = append(out, strings.TrimSuffix(sub, "\n"))
+	}
+	return strings.Join(out, "\n"), nil
+}
+
+// confIncludeTarget 判断一行是否为生效的 include, 返回去引号后的路径
+func confIncludeTarget(line string) (target string, isInclude bool) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+		return "", false
+	}
+	fields := strings.Fields(trimmed)
+	if !strings.EqualFold(fields[0], "include") {
+		return "", false
+	}
+	return unquoteConfValue(strings.TrimSpace(trimmed[len(fields[0]):])), true
 }
 
 // buildRegenPlan 组装一次重建请求并跑完渲染与校验.
@@ -242,13 +353,19 @@ func buildRegenPlan(req confRegenRequest, item RedisConfRenderItem, delivered bo
 	if !delivered || len(item.ConfConfigs) == 0 {
 		return nil, nil
 	}
-	confFile, oldConfData, err := loadRegenInput(req.Port)
+	input, err := loadRegenInput(req.Port)
 	if err != nil {
 		return nil, err
 	}
 	req.Item = item
-	req.ConfFile = confFile
-	req.OldConfData = oldConfData
+	req.ConfFile = input.confFile
+	req.OldConfData = input.expanded
+	req.RawOldConfData = input.raw
+	req.IncludedFiles = input.includes
+	if len(input.includes) > 0 {
+		req.Logger.Info("port(%d) conf(%s) includes %v,regenerate from the expanded conf",
+			req.Port, input.confFile, input.includes)
+	}
 	return req.buildPlan()
 }
 
@@ -266,23 +383,100 @@ func (req confRegenRequest) buildPlan() (*regenConfPlan, error) {
 	if err = req.validateRegenConf(confData, oldDirectives); err != nil {
 		return nil, err
 	}
-	return &regenConfPlan{confFile: req.ConfFile, oldConfData: req.OldConfData, confData: confData}, nil
+	return &regenConfPlan{
+		confFile:       req.ConfFile,
+		oldConfData:    req.OldConfData,
+		rawOldConfData: req.RawOldConfData,
+		includedFiles:  req.IncludedFiles,
+		confData:       confData,
+	}, nil
 }
 
-// writeRegenConfPlan 把已校验过的渲染结果落盘, 先备份旧文件.
-// 备份路径打进日志, 调用方需要回滚时自己记; 本函数不负责回滚.
-func writeRegenConfPlan(plan *regenConfPlan, port int, log *logger.Logger) (backupFile string, err error) {
+// retiredConfFile 一个随重建一起被改名挪走的 include 文件
+type retiredConfFile struct {
+	orig  string
+	moved string
+}
+
+// renameIncludedConfFile 退役/挪回 include 文件用的改名, 单测里替换它来模拟改名失败
+var renameIncludedConfFile = os.Rename
+
+// writeRegenConfPlan 把已校验过的渲染结果落盘, 先备份磁盘原文.
+//
+// 新文件不再带 include, 实例目录内被 include 过的文件随之改名挪走, 否则
+// GetRedisLoccalConfFile 之类优先认 instance.conf 的工具会继续读写一个已经没有进程加载的文件.
+// 挪走失败时把 redis.conf 恢复成原文再返回错误, 磁盘上只会是
+// "原文 + include 文件在原处" 或 "新文件 + include 文件已挪走" 两种自洽状态.
+//
+// 备份路径和退役记录打进日志并返回, 调用方需要回滚时自己记; 本函数不负责回滚.
+func writeRegenConfPlan(plan *regenConfPlan, port int, log *logger.Logger) (
+	backupFile string, retired []retiredConfFile, err error) {
 	log.Info("port(%d) conf regenerate diff:\n%s",
 		port, diffRedisConfDirectives(plan.oldConfData, plan.confData))
-	backupFile, err = backupRedisConfFile(plan.confFile, []byte(plan.oldConfData))
+	raw := plan.backupData()
+	backupFile, err = backupRedisConfFile(plan.confFile, []byte(raw))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if err = writeRedisConfFile(plan.confFile, []byte(plan.confData)); err != nil {
-		return "", err
+		return "", nil, err
+	}
+	retired, err = retireIncludedConfFiles(plan, log)
+	if err != nil {
+		if restoreErr := writeRedisConfFile(plan.confFile, []byte(raw)); restoreErr != nil {
+			return "", nil, fmt.Errorf("%v; restore conf(%s) from %s failed,err:%v",
+				err, plan.confFile, backupFile, restoreErr)
+		}
+		return "", nil, err
 	}
 	log.Info("port(%d) conf regenerated,conf:%s,backup:%s", port, plan.confFile, backupFile)
-	return backupFile, nil
+	return backupFile, retired, nil
+}
+
+// retireIncludedConfFiles 把实例目录内被 include 过的文件改名为 <name>.<时间戳>.bak.
+//
+// 实例目录外的文件(可能被多个实例共用)只参与展开, 不动. 任一改名失败时把已改名的挪回去.
+func retireIncludedConfFiles(plan *regenConfPlan, log *logger.Logger) ([]retiredConfFile, error) {
+	if !plan.hasInclude() {
+		return nil, nil
+	}
+	instDir := resolvePathSymlinks(filepath.Dir(plan.confFile))
+	suffix := "." + time.Now().Format(consts.FilenameTimeLayout) + ".bak"
+	retired := make([]retiredConfFile, 0, len(plan.includedFiles))
+	seen := make(map[string]bool, len(plan.includedFiles))
+	for _, file := range plan.includedFiles {
+		if seen[file] {
+			continue
+		}
+		seen[file] = true
+		rel, relErr := filepath.Rel(instDir, resolvePathSymlinks(file))
+		if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			log.Info("include %s is outside inst dir %s,left in place", file, instDir)
+			continue
+		}
+		moved := file + suffix
+		if err := renameIncludedConfFile(file, moved); err != nil {
+			if restoreErr := restoreRetiredConfFiles(retired, log); restoreErr != nil {
+				log.Error("%s", restoreErr)
+			}
+			return nil, fmt.Errorf("retire include %s to %s failed,err:%v", file, moved, err)
+		}
+		retired = append(retired, retiredConfFile{orig: file, moved: moved})
+		log.Info("include %s retired to %s,regenerated conf no longer loads it", file, moved)
+	}
+	return retired, nil
+}
+
+// restoreRetiredConfFiles 把退役的 include 文件挪回原处, 回滚 redis.conf 原文之前调用
+func restoreRetiredConfFiles(retired []retiredConfFile, log *logger.Logger) error {
+	for i := len(retired) - 1; i >= 0; i-- {
+		item := retired[i]
+		if err := renameIncludedConfFile(item.moved, item.orig); err != nil {
+			return fmt.Errorf("restore include %s from %s failed,err:%v", item.orig, item.moved, err)
+		}
+		log.Info("include %s restored from %s", item.orig, item.moved)
+	}
+	return nil
 }
 
 // getRedisConfFileForRegen 定位待重建的配置文件.
@@ -642,6 +836,11 @@ func (req confRegenRequest) validateRegenConf(confData string, oldDirectives con
 		return fmt.Errorf("port(%d) conf(%s) %v", port, confFile, err)
 	}
 	newDirectives := parseRedisConfDirectives(confData)
+	// 重建结果必须自成一体: 带着 include 写下去, 被引用文件里的旧指令会重新混进来
+	if newDirectives.has("include") {
+		return fmt.Errorf("port(%d) regenerated conf must not contain include,got %v",
+			port, newDirectives["include"])
+	}
 
 	// 必备指令: 缺 port/dir 说明下发的不是完整一份配置(同版本升级、版本降级场景
 	// dbm 侧只继承 maxmemory 这类少量配置项), 拿它重建只会写出一份空壳配置

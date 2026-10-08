@@ -99,6 +99,10 @@ type RedisVersionUpdate struct {
 	localPkgBaseName string
 	// confBackupFiles port -> 本次重建配置前的备份文件, 供起不来时回滚
 	confBackupFiles map[int]string
+	// retiredIncludes port -> 随重建一起挪走的 include 文件, 回滚配置前要先挪回
+	retiredIncludes map[int][]retiredConfFile
+	// regenOldConfs port -> 本次重建前展开 include 后的旧配置, 找本地数据文件名时用
+	regenOldConfs map[int]string
 	// replSnapshots port -> 停机前的复制状态, 拉起后据此钉死"角色和主库都没变"
 	replSnapshots map[int]replSnapshot
 	// discardPorts port -> 本次是否空载起进程(挪走本地 RDB/AOF), 停机前一次算好
@@ -153,6 +157,7 @@ func (job *RedisVersionUpdate) Init(m *jobruntime.JobGenericRuntime) error {
 		return err
 	}
 	job.confBackupFiles = make(map[int]string, len(job.params.Ports))
+	job.retiredIncludes = make(map[int][]retiredConfFile, len(job.params.Ports))
 	job.replSnapshots = make(map[int]replSnapshot, len(job.params.Ports))
 	job.discardPorts = make(map[int]bool, len(job.params.Ports))
 	job.discardedFiles = make(map[int][]discardedDataFile, len(job.params.Ports))
@@ -406,21 +411,16 @@ func (job *RedisVersionUpdate) precheckReplExpectation(ports []int) error {
 		return nil
 	}
 	for _, port := range ports {
-		confFile, err := getRedisConfFileForRegen(port)
+		input, err := loadRegenInput(port)
 		if err != nil {
-			// 老部署可能只有 instance.conf. 缺 redis.conf 时降级为只做拉起后断言,
-			// 不让"只换二进制"的存量路径失败
+			// 老部署可能只有 instance.conf, 或 include 解析不了. 降级为只做拉起后断言,
+			// 不让"只换二进制"的存量路径失败; 要重建配置的端口会在 precheckConfRegen 被拦下
 			job.runtime.Logger.Warn("port(%d) skip conf level replication precheck,err:%v", port, err)
 			continue
 		}
-		confBytes, err := os.ReadFile(confFile)
-		if err != nil {
-			err = fmt.Errorf("read redis conf(%s) failed,err:%v", confFile, err)
-			job.runtime.Logger.Error("%s", err)
-			return err
-		}
-		if err = job.checkConfReplExpectation(port, string(confBytes)); err != nil {
-			err = fmt.Errorf("port(%d) conf(%s) %v", port, confFile, err)
+		// 主从关系可能只写在 include 进来的 instance.conf 里, 必须看展开后的配置
+		if err = job.checkConfReplExpectation(port, input.expanded); err != nil {
+			err = fmt.Errorf("port(%d) conf(%s) %v", port, input.confFile, err)
 			job.runtime.Logger.Error("%s", err)
 			return err
 		}
@@ -638,16 +638,29 @@ func (job *RedisVersionUpdate) regenConfFile(port int) (err error) {
 		job.runtime.Logger.Info("port(%d) no target version conf delivered,skip conf regenerate", port)
 		return nil
 	}
-	backupFile, err := writeRegenConfPlan(plan, port, job.runtime.Logger)
+	backupFile, retired, err := writeRegenConfPlan(plan, port, job.runtime.Logger)
 	if err != nil {
 		return err
 	}
 	job.confBackupFiles[port] = backupFile
+	if job.regenOldConfs == nil {
+		job.regenOldConfs = make(map[int]string)
+	}
+	job.regenOldConfs[port] = plan.oldConfData
+	if len(retired) > 0 {
+		if job.retiredIncludes == nil {
+			job.retiredIncludes = make(map[int][]retiredConfFile)
+		}
+		job.retiredIncludes[port] = retired
+	}
 	return nil
 }
 
 // restoreRedisConfFile 回滚配置文件.
 // 用目标版本配置起不来时, 把旧配置放回去再重试一次, 最差退化到旧行为.
+//
+// 旧配置可能 include 了随重建挪走的文件, 必须先挪回来: 否则放回去的 include 指向一个
+// 不存在的文件, redis 连旧配置都起不来.
 func (job *RedisVersionUpdate) restoreRedisConfFile(port int) error {
 	backupFile, ok := job.confBackupFiles[port]
 	if !ok || backupFile == "" {
@@ -657,6 +670,10 @@ func (job *RedisVersionUpdate) restoreRedisConfFile(port int) error {
 	if err != nil {
 		return err
 	}
+	if err = restoreRetiredConfFiles(job.retiredIncludes[port], job.runtime.Logger); err != nil {
+		return fmt.Errorf("port(%d) %v", port, err)
+	}
+	delete(job.retiredIncludes, port)
 	backupBytes, err := os.ReadFile(backupFile)
 	if err != nil {
 		return fmt.Errorf("read conf backup(%s) failed,err:%v", backupFile, err)
@@ -665,6 +682,7 @@ func (job *RedisVersionUpdate) restoreRedisConfFile(port int) error {
 		return fmt.Errorf("restore conf(%s) from %s failed,err:%v", confFile, backupFile, err)
 	}
 	delete(job.confBackupFiles, port)
+	delete(job.regenOldConfs, port)
 	return nil
 }
 

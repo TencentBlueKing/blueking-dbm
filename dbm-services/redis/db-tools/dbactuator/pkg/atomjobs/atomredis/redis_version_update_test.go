@@ -193,3 +193,78 @@ func TestWrapSyncWaitErr(t *testing.T) {
 		t.Error("nil should stay nil")
 	}
 }
+
+// TestVersionUpdateRegenGcsLayout 复现 4 升 6 的线上问题: 密码和主从关系只写在 include 进来的
+// instance.conf 里. 以前重建只看 redis.conf, 写出 requirepass "" 且新从库没有 masterauth.
+func TestVersionUpdateRegenGcsLayout(t *testing.T) {
+	cases := []struct {
+		name     string
+		instConf string
+		setup    func(job *RedisVersionUpdate)
+		wantRepl string
+	}{
+		{
+			// old_slave: 停机前是从库, 期望来自快照
+			name:     "old slave keeps following its master",
+			instConf: "requirepass xxxxpasswd\nslaveof 1.1.1.2 30000\nmasterauth xxxxpasswd\n",
+			setup: func(job *RedisVersionUpdate) {
+				job.params.Role = consts.MetaRoleRedisSlave
+				job.replSnapshots[30000] = replSnapshot{
+					addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+				}
+			},
+			wantRepl: "1.1.1.2 30000",
+		},
+		{
+			// old_master: 已被 switch 关掉没有快照, sync_masters 指定跟随新主.
+			// 当主库时磁盘上本来就没有 masterauth, 要用 instance.conf 里的密码补上
+			name:     "old master follows the new master",
+			instConf: "requirepass xxxxpasswd\n",
+			setup: func(job *RedisVersionUpdate) {
+				job.params.Role = consts.MetaRoleRedisMaster
+				job.params.ClusterType = consts.TendisTypeRedisInstance
+				job.params.SyncMasters = map[string]string{"30000": "1.1.1.3:30000"}
+			},
+			wantRepl: "1.1.1.3 30000",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			confFile, instConf, _ := setupGcsLayout(t, 30000)
+			writeTestFile(t, instConf, tc.instConf)
+
+			job := buildRegenJob("1.1.1.1", []int{30000})
+			job.params.PortConfConfigs = map[string]RedisConfRenderItem{
+				"30000": targetConfItem(filepath.Dir(confFile)),
+			}
+			tc.setup(job)
+			if err := job.precheckSyncMasters(); err != nil {
+				t.Fatalf("precheckSyncMasters err:%v", err)
+			}
+			if err := job.precheckReplExpectation([]int{30000}); err != nil {
+				t.Fatalf("precheckReplExpectation err:%v", err)
+			}
+			if err := job.precheckConfRegen([]int{30000}); err != nil {
+				t.Fatalf("precheckConfRegen err:%v", err)
+			}
+			if err := job.regenConfFile(30000); err != nil {
+				t.Fatalf("regenConfFile err:%v", err)
+			}
+
+			got := readTestFile(t, confFile)
+			directives := parseRedisConfDirectives(got)
+			if pass := unquoteConfValue(directives.lastValue("requirepass")); pass != "xxxxpasswd" {
+				t.Errorf("requirepass = %q, want the password from instance.conf:\n%s", pass, got)
+			}
+			if auth := unquoteConfValue(directives.lastValue("masterauth")); auth != "xxxxpasswd" {
+				t.Errorf("masterauth = %q, want the password from instance.conf:\n%s", auth, got)
+			}
+			if _, repl := effectiveReplicationOf(got); repl != tc.wantRepl {
+				t.Errorf("replication = %q, want %q:\n%s", repl, tc.wantRepl, got)
+			}
+			if strings.Contains(got, `requirepass ""`) {
+				t.Errorf("regenerated conf must not drop the password:\n%s", got)
+			}
+		})
+	}
+}

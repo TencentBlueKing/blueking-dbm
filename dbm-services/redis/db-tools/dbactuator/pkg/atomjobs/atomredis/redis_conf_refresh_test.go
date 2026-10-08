@@ -565,6 +565,70 @@ func TestWritePlanIfChangedWritesWhenDifferent(t *testing.T) {
 	}
 }
 
+// includeLayoutPlan 一份展开后与渲染结果完全一致、但磁盘原文带 include 的计划
+func includeLayoutPlan(t *testing.T) (plan *regenConfPlan, instConf string) {
+	t.Helper()
+	confFile := setupInstanceConf(t, 30000, "placeholder\n")
+	instConf = filepath.Join(filepath.Dir(confFile), "instance.conf")
+	raw := "port 30000\ninclude " + instConf + "\n"
+	writeTestFile(t, confFile, raw)
+	writeTestFile(t, instConf, "requirepass xxxxpasswd\n")
+	expanded, includes, err := expandRedisConfIncludes(confFile, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &regenConfPlan{
+		confFile:       confFile,
+		oldConfData:    expanded,
+		rawOldConfData: raw,
+		includedFiles:  includes,
+		confData:       expanded,
+	}, instConf
+}
+
+func TestWritePlanIfChangedWritesIncludeLayoutEvenWhenEqual(t *testing.T) {
+	plan, instConf := includeLayoutPlan(t)
+	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfFile)
+	if err := job.writePlanIfChanged(30000, plan); err != nil {
+		t.Fatalf("writePlanIfChanged err:%v", err)
+	}
+	if got := readTestFile(t, plan.confFile); got != plan.confData {
+		t.Errorf("include layout should be flattened,got:\n%s", got)
+	}
+	if _, err := os.Stat(instConf); !os.IsNotExist(err) {
+		t.Errorf("instance.conf should be retired,stat err:%v", err)
+	}
+}
+
+func TestApplyRestartPortIncludeLayoutWritesWithoutBounce(t *testing.T) {
+	plan, instConf := includeLayoutPlan(t)
+	// 运行态已经与渲染结果一致: 不该重启, 也就不会走到停实例那一步
+	local := newFakeRedis(t, oldPass)
+	local.info = "# Replication\r\nrole:slave\r\n"
+	local.setConfig("port", "30000")
+	local.setConfig("requirepass", oldPass)
+	cli, err := myredis.NewRedisClient(local.addr(), oldPass, 0, consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
+		t.Fatalf("connect fake local redis failed:%v", err)
+	}
+	t.Cleanup(cli.Close)
+
+	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeRestart)
+	job.addrMapCli[job.addrOf(30000)] = cli
+	if err = job.applyRestartPort(30000, plan); err != nil {
+		t.Fatalf("applyRestartPort err:%v", err)
+	}
+	if local.got("SHUTDOWN") {
+		t.Error("include alone should not bounce the instance")
+	}
+	if got := readTestFile(t, plan.confFile); got != plan.confData {
+		t.Errorf("include layout should be flattened on skip,got:\n%s", got)
+	}
+	if _, err = os.Stat(instConf); !os.IsNotExist(err) {
+		t.Errorf("instance.conf should be retired,stat err:%v", err)
+	}
+}
+
 func TestDecideRestartAction(t *testing.T) {
 	cases := []struct {
 		running, confEqual, runtimeMatch bool
