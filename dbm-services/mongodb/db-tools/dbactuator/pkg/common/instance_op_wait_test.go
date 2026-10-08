@@ -32,6 +32,26 @@ func TestWaitPortReleaseWithDeadlineTimesOut(t *testing.T) {
 	}
 }
 
+func TestWaitMongodLockCleanAfterStopSkipsWhenConfMissing(t *testing.T) {
+	op := NewInstanceOp("127.0.0.1", 65521, "admin", "pass", testLogger())
+	err := op.waitMongodLockCleanAfterStop("mongod", time.Now().Add(-time.Second), true)
+	if err != nil {
+		t.Fatalf("expected skip when mongo.conf is missing, got %v", err)
+	}
+}
+
+func TestWaitMongodLockCleanAfterStopSkipsMongos(t *testing.T) {
+	op := NewInstanceOp("127.0.0.1", 65521, "admin", "pass", testLogger())
+	start := time.Now()
+	err := op.waitMongodLockCleanAfterStop("mongos", time.Now().Add(-time.Second), true)
+	if err != nil {
+		t.Fatalf("expected skip for mongos, got %v", err)
+	}
+	if time.Since(start) > 500*time.Millisecond {
+		t.Fatalf("mongos skip waited too long: %v", time.Since(start))
+	}
+}
+
 func TestDoStopWithOptionsNoListenerReturnsNil(t *testing.T) {
 	op := NewInstanceOp("127.0.0.1", 65530, "admin", "pass", testLogger())
 	err := op.DoStopWithOptions(StopOptions{Graceful: false, Timeout: time.Second})
