@@ -69,7 +69,7 @@
   interface Props {
     // tab id，与 tableConfigMap 的 key 一致，取值含 tendbhaSlave 这类非 ClusterTypes 的值
     activeTab: string;
-    // 列筛选候选项，按字段名索引，没拉到候选项的字段取值为 undefined
+    // 列筛选候选项，按字段名索引，searchAttrs 之外的字段取值为 undefined
     columnFilter: Record<string, PrimaryTableCol['filter']>;
   }
 
