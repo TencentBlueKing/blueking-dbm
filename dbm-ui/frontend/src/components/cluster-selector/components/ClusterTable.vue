@@ -205,7 +205,7 @@
     type: 'multiple' as const,
   }));
 
-  // 列筛选候选项来自 queryBizClusterAttrs，没拉到候选项的字段取值为 undefined，对应列不挂筛选
+  // 列筛选候选项来自 queryBizClusterAttrs，searchAttrs 之外的字段取值为 undefined，对应列不挂筛选
   const columnFilter = computed(() =>
     _.mapValues(columnAttrs.value, (list) => ({
       list: list.map((item) => ({
