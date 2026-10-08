@@ -33,7 +33,6 @@
         required>
         <DbSelect
           v-model="formData.for_biz"
-          :allow-empty-values="[0]"
           disabled>
           <DbOption
             v-for="bizItem in bizList"

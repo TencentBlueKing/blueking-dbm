@@ -20,9 +20,9 @@
         :rules="rules"
         style="width: 100%">
         <DbSelect
-          :allow-empty-values="['']"
           class="device-class-select"
           :clearable="false"
+          :empty-values="[null, undefined]"
           filterable
           :input-search="false"
           :loading="isLoading"
