@@ -25,9 +25,7 @@
         :label="t('所属业务')"
         property="for_biz"
         required>
-        <DbSelect
-          v-model="formData.for_biz"
-          :allow-empty-values="[0]">
+        <DbSelect v-model="formData.for_biz">
           <DbOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"

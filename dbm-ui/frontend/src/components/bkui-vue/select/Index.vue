@@ -283,8 +283,6 @@
     allOptionText?: string;
     /** 是否允许输入选项之外的值 */
     allowCreate?: boolean;
-    /** 可以作为有效选中值的空值，如 [0]、[''] */
-    allowEmptyValues?: OptionValue[];
     autoFocus?: boolean;
     /** collapseTags 模式下，展开下拉时自动展开全部标签 */
     autoHeight?: boolean;
@@ -299,6 +297,8 @@
     disableScrollToSelectedOption?: boolean;
     /** list 模式下取展示文案的字段名 */
     displayKey?: string;
+    /** 视为未选的值，不计入已选项、展示占位符，如 [0, '', null, undefined] */
+    emptyValues?: OptionValue[];
     /** 是否开启虚拟滚动，仅 list 模式生效 */
     enableVirtualRender?: boolean;
     filterable?: boolean;
@@ -374,7 +374,6 @@
     allOptionId: undefined,
     allOptionText: '',
     allowCreate: false,
-    allowEmptyValues: () => [],
     autoFocus: false,
     autoHeight: true,
     behavior: 'normal',
@@ -385,6 +384,7 @@
     disableFocusBehavior: false,
     disableScrollToSelectedOption: false,
     displayKey: 'label',
+    emptyValues: () => ['', null, undefined],
     enableVirtualRender: false,
     filterable: false,
     filterOption: undefined,
@@ -730,9 +730,9 @@
 
   /**
    * 空值不计入已选项，避免 ''、null 之类的值被回显成一个空标签。
-   * 0 一律视为有效值，其余空值需要调用方通过 allowEmptyValues 显式声明
+   * 哪些值算空由 emptyValues 声明，默认 0 为有效值；用 0 表示未选的场景需把 0 加入 emptyValues
    */
-  const isValidValue = (value: OptionValue) => !!value || value === 0 || props.allowEmptyValues.includes(value);
+  const isValidValue = (value: OptionValue) => !props.emptyValues.includes(value);
 
   /** 以 modelValue 为准重置已选数据 */
   const handleSetSelectedData = () => {

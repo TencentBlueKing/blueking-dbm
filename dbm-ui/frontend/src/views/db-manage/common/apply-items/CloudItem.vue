@@ -17,7 +17,6 @@
     property="details.bk_cloud_id"
     required>
     <DbSelect
-      :allow-empty-values="[0]"
       class="item-input"
       :clearable="false"
       filterable

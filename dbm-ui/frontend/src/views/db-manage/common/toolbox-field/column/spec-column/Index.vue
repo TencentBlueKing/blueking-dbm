@@ -54,6 +54,7 @@
       v-else
       v-model="modelValue"
       display-key="spec_name"
+      :empty-values="[0, '', null, undefined]"
       id-key="spec_id"
       :list="sortedSpecList">
       <template #option="{ item }">

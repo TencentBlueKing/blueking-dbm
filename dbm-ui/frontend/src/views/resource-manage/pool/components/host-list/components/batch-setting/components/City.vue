@@ -14,7 +14,6 @@
 <template>
   <DbSelect
     v-model="modelValue"
-    :allow-empty-values="[0]"
     filterable
     :loading="isLoading"
     :placeholder="t('请选择地域')">
