@@ -26,12 +26,10 @@ import (
 )
 
 const (
-	// SoftTableLimit 展开后表数量软上限，便于早失败。
-	SoftTableLimit = 2000
 	// PacketMarginBytes 相对 max_allowed_packet 的安全余量（1MB）。
 	PacketMarginBytes = 1024 * 1024
 	// LockWaitTimeoutSec 会话级锁等待超时。
-	LockWaitTimeoutSec = 10
+	LockWaitTimeoutSec = 5
 )
 
 // SyncScope 紧凑同步范围（与 DTS table_filter / Flow sync_scope 同形）。
@@ -204,12 +202,7 @@ func ExpandSyncScope(db *sql.DB, scope *SyncScope) ([]LockedTable, error) {
 	if len(tables) == 0 {
 		return nil, fmt.Errorf("sync_scope 展开结果为空，拒绝空清单加锁")
 	}
-	if len(tables) > SoftTableLimit {
-		return nil, fmt.Errorf(
-			"展开表数量 %d 超过软上限 %d，请缩小迁移范围",
-			len(tables), SoftTableLimit,
-		)
-	}
+	logger.Info("展开待锁表数量 tables=%d", len(tables))
 	return tables, nil
 }
 

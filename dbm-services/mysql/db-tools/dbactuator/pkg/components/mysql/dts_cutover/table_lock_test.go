@@ -38,7 +38,7 @@ func TestValidateFlushSQLBudget(t *testing.T) {
 	sql := "FLUSH TABLES `app`.`t1` WITH READ LOCK"
 	require.NoError(t, ValidateFlushSQLBudget(sql, 4*1024*1024))
 
-	huge := "FLUSH TABLES " + strings.Repeat("`db`.`t`,", SoftTableLimit) + "`db`.`x` WITH READ LOCK"
+	huge := "FLUSH TABLES " + strings.Repeat("`db`.`t`,", 2000) + "`db`.`x` WITH READ LOCK"
 	err := ValidateFlushSQLBudget(huge, PacketMarginBytes+10)
 	require.Error(t, err)
 }
