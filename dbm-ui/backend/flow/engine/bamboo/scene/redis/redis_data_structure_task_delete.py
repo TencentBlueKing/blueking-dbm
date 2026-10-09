@@ -19,12 +19,14 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import DestroyedStatus
+from backend.db_services.redis.rollback.constants import ROLLBACK_VERSION
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.util import is_have_proxy
 from backend.flow.consts import DBActuatorTypeEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchShutdownAtomJob
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.destroy import RedisRollbackDestroyFlow
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
@@ -64,18 +66,19 @@ class RedisDataStructureTaskDeleteFlow(object):
         self.data = data
 
     @staticmethod
-    def __get_cluster_info(bk_biz_id: int, related_rollback_bill_id: int, prod_cluster: str) -> dict:
+    def __get_cluster_info(
+        bk_biz_id: int, related_rollback_bill_id: int, prod_cluster: str, task_id: Optional[int] = None
+    ) -> dict:
         """
         1、删除构造记录：需要提供哪些参数呢？ （bk_cloud_id，源集群名，记录id （related_rollback_bill_id））
         """
 
-        task = (
-            TbTendisRollbackTasks.objects.filter(
-                related_rollback_bill_id=related_rollback_bill_id, bk_biz_id=bk_biz_id, prod_cluster=prod_cluster
-            )
-            .order_by("-update_at")
-            .first()
+        tasks = TbTendisRollbackTasks.objects.filter(
+            related_rollback_bill_id=related_rollback_bill_id, bk_biz_id=bk_biz_id, prod_cluster=prod_cluster
         )
+        if task_id:
+            tasks = tasks.filter(id=task_id)
+        task = tasks.order_by("-update_at").first()
 
         if not task:
             raise Exception(
@@ -101,9 +104,24 @@ class RedisDataStructureTaskDeleteFlow(object):
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines_multi_cluster = []
         for info in self.data["infos"]:
-            sub_pipelines_multi_cluster.append(self.build_cluster_task_delete(info))
+            if self.__is_rollback_record(info):
+                sub = RedisRollbackDestroyFlow(root_id=self.root_id, data=self.data).build_cluster_destroy(info)
+            else:
+                sub = self.build_cluster_task_delete(info)
+            sub_pipelines_multi_cluster.append(sub)
         redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
         return redis_pipeline_all.run_pipeline()
+
+    @staticmethod
+    def __is_rollback_record(info: dict) -> bool:
+        # Infos without task_id come from tickets submitted before task_id existed, or the rollback
+        # exercise; both only hold v1 records.
+        if not info.get("task_id"):
+            return False
+        version = (
+            TbTendisRollbackTasks.objects.filter(id=info["task_id"]).values_list("rollback_version", flat=True).first()
+        )
+        return version == ROLLBACK_VERSION
 
     def build_cluster_task_delete(self, info: dict, tasks_info: dict = None):
         """Build a SubProcess for a single cluster's cleanup/delete steps.
@@ -123,6 +141,7 @@ class RedisDataStructureTaskDeleteFlow(object):
                 bk_biz_id=ticket_bk_biz_id,
                 related_rollback_bill_id=info["related_rollback_bill_id"],
                 prod_cluster=info["prod_cluster"],
+                task_id=info.get("task_id"),
             )
 
         logger.info("redis_rollback_task_delete_flow tasks_info:{}".format(tasks_info))
@@ -143,6 +162,7 @@ class RedisDataStructureTaskDeleteFlow(object):
             "related_rollback_bill_id": info["related_rollback_bill_id"],
             "bk_biz_id": ticket_bk_biz_id,
             "prod_cluster": info["prod_cluster"],
+            "task_id": info.get("task_id"),
             "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
             "cluster_type": cluster_kwargs.cluster["cluster_type"],
             "destroyed_status": DestroyedStatus.DESTROYING,
@@ -222,6 +242,7 @@ class RedisDataStructureTaskDeleteFlow(object):
             "related_rollback_bill_id": info["related_rollback_bill_id"],
             "bk_biz_id": ticket_bk_biz_id,
             "prod_cluster": info["prod_cluster"],
+            "task_id": info.get("task_id"),
             "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
             "cluster_type": act_kwargs.cluster["cluster_type"],
             "destroyed_status": DestroyedStatus.DESTROYED,

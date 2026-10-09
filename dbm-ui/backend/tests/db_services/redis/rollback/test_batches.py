@@ -9,12 +9,15 @@ from backend.db_services.redis.rollback.serializers import BackupBatchQuerySeria
 from backend.db_services.redis.rollback.shards import ShardRef
 
 
-def _record(shard_value, file_name, source_ip="1.1.1.1", server_port=30000, hour="01", minute="00", size=1):
+def _record(
+    shard_value, file_name, source_ip="1.1.1.1", server_port=30000, hour="01", minute="00", size=1, role="master"
+):
     return {
         "backup_identify": "SCHEDULED-2026010101",
         "shard_value": shard_value,
         "source_ip": source_ip,
         "server_port": server_port,
+        "source_role": role,
         "file_name": file_name,
         "task_id": "t-{}".format(file_name),
         "size": size,
@@ -56,7 +59,6 @@ def test_list_batches_returns_summary_without_shard_tree():
         "shard_count",
         "is_complete",
         "is_all_shards_covered",
-        "has_multi_rounds",
         "source_is_all_current",
     }
 
@@ -100,12 +102,11 @@ def test_list_batches_summary_flags_when_batch_covers_topology():
     assert batch["shard_count"] == 2
     assert batch["is_all_shards_covered"] is True
     assert batch["source_is_all_current"] is True
-    assert batch["has_multi_rounds"] is False
     assert batch["is_complete"] is True
     assert batch["backup_type"] == "SCHEDULED"
 
 
-def test_list_batches_flags_multi_rounds():
+def test_list_batches_counts_multi_round_shard_once():
     service = _service(
         [
             _record("0-1", "r1.aof.zst", minute="00"),
@@ -115,12 +116,43 @@ def test_list_batches_flags_multi_rounds():
 
     batch = service.list_batches()["batches"][0]
 
-    assert batch["has_multi_rounds"] is True
     assert batch["shard_count"] == 1
     assert batch["total_size"] == 2
 
 
-# --- batch_details: shard / round tree --------------------------------------------------------
+def test_list_batches_ignores_unsharded_records():
+    refs = [ShardRef("0-104999", current_master="1.1.1.1:30000", current_slave="1.1.1.9:30000", resolvable=True)]
+    service = _service(
+        [
+            _record("0-104999", "a.aof.zst"),
+            # e.g. a rollback temp host reporting under the source domain
+            _record("", "temp.rdb", source_ip="2.2.2.2"),
+        ],
+        refs=refs,
+    )
+
+    batch = service.list_batches()["batches"][0]
+
+    assert batch["shard_count"] == 1
+    assert batch["total_size"] == 1
+    assert batch["is_complete"] is True
+    assert batch["is_all_shards_covered"] is True
+    assert batch["source_is_all_current"] is True
+
+
+def test_source_is_current_follows_role_at_backup_time():
+    """After a failover the old slave is the current master; its backups are no longer current."""
+    refs = [ShardRef("0-1", current_master="1.1.1.9:30000", current_slave="1.1.1.1:30000", resolvable=True)]
+    failed_over = _service([_record("0-1", "a.aof.zst", source_ip="1.1.1.9", role="slave")], refs=refs)
+    unchanged = _service([_record("0-1", "a.aof.zst", source_ip="1.1.1.1", role="slave")], refs=refs)
+    unknown = _service([_record("0-1", "a.aof.zst", source_ip="1.1.1.1", role="")], refs=refs)
+
+    assert failed_over.list_batches()["batches"][0]["source_is_all_current"] is False
+    assert unchanged.list_batches()["batches"][0]["source_is_all_current"] is True
+    assert unknown.list_batches()["batches"][0]["source_is_all_current"] is False
+
+
+# --- batch_details: each shard's selected full backup -----------------------------------------
 
 
 def test_batch_details_filters_by_shard_value():
@@ -140,13 +172,13 @@ def test_batch_details_filters_by_shard_value():
 
     assert result["backup_identify"] == "SCHEDULED-2026010101"
     assert [s["shard_value"] for s in result["shards"]] == ["0-104999"]
-    round_detail = result["shards"][0]["rounds"][0]
-    assert round_detail["source_ip"] == "3.3.3.3"
-    assert round_detail["source_is_current"] is False
-    assert result["shards"][0]["in_current_topology"] is True
+    shard = result["shards"][0]
+    assert shard["source_ip"] == "3.3.3.3"
+    assert shard["source_is_current"] is False
+    assert shard["in_current_topology"] is True
 
 
-def test_batch_details_groups_rounds_per_shard():
+def test_batch_details_returns_only_the_selected_round():
     service = _service(
         [
             _record("0-1", "r1.aof.zst", minute="00"),
@@ -155,11 +187,23 @@ def test_batch_details_groups_rounds_per_shard():
         by_identify=True,
     )
 
-    rounds = service.batch_details("SCHEDULED-2026010101")["shards"][0]["rounds"]
+    shard = service.batch_details("SCHEDULED-2026010101")["shards"][0]
 
-    assert [r["round_key"] for r in rounds] == ["r2.aof.zst", "r1.aof.zst"]
-    assert rounds[0]["is_latest"] is True
-    assert rounds[1]["is_latest"] is False
+    assert [f["file_name"] for f in shard["files"]] == ["r2.aof.zst"]
+    assert not {"rounds", "round_key", "is_latest"} & set(shard)
+
+
+def test_batch_details_warns_about_unsharded_records():
+    service = _service(
+        [_record("0-1", "a.aof.zst"), _record("", "temp.rdb", source_ip="2.2.2.2")],
+        by_identify=True,
+    )
+
+    result = service.batch_details("SCHEDULED-2026010101")
+
+    assert [s["shard_value"] for s in result["shards"]] == ["0-1"]
+    assert len(result["warnings"]) == 1
+    assert "2.2.2.2:30000 temp.rdb" in result["warnings"][0]
 
 
 def test_batch_details_marks_shard_absent_from_topology():
@@ -171,7 +215,7 @@ def test_batch_details_marks_shard_absent_from_topology():
     assert shard["current_master"] is None
 
 
-def test_batch_details_round_keeps_all_split_files():
+def test_batch_details_keeps_all_split_files():
     service = _service(
         [
             dict(_record("0-1", "full.aof.zst.split.000", size=5), round_key="full.aof.zst"),
@@ -180,12 +224,11 @@ def test_batch_details_round_keeps_all_split_files():
         by_identify=True,
     )
 
-    rounds = service.batch_details("SCHEDULED-2026010101")["shards"][0]["rounds"]
+    shard = service.batch_details("SCHEDULED-2026010101")["shards"][0]
 
-    assert len(rounds) == 1
-    assert rounds[0]["is_complete"] is True
-    assert rounds[0]["size"] == 12
-    assert len(rounds[0]["files"]) == 2
+    assert shard["is_complete"] is True
+    assert shard["size"] == 12
+    assert len(shard["files"]) == 2
 
 
 # --- query window guard -----------------------------------------------------------------------

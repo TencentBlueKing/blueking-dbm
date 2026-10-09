@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.constants import LOCATOR_SOURCE_BKLOG, LOCATOR_SOURCE_TABLE
 from backend.db_services.redis.rollback.locator import BackupLocator, row_to_backup_system_format
@@ -27,6 +29,26 @@ def test_row_to_backup_system_format_from_dict():
     assert record["task_id"] == "task-1"
     assert record["round_key"] == "foo.aof.zst"
     assert record["shard_value"] == "0-104999"
+    assert record["source_role"] == ""
+
+
+@pytest.mark.parametrize(
+    "row,expected",
+    [
+        ({"redis_role": "slave", "backup_file": "x.aof"}, "slave"),
+        ({"role": "master", "backup_file": "x.aof"}, "master"),
+        ({"backup_file": "/data/dbbak/5005578-redis-slave-1.1.1.1-30000-20260929-050000.aof.zst"}, "slave"),
+        ({"redis_role": "", "backup_file": "5005578-redis-master-1.1.1.1-30000-20260929-050000.rdb"}, "master"),
+        ({"backup_file": "foo.aof.zst"}, ""),
+    ],
+)
+def test_source_role_from_field_then_file_name(row, expected):
+    assert row_to_backup_system_format(row)["source_role"] == expected
+
+
+def test_source_role_from_table_row():
+    row = MagicMock(redis_role="slave", backup_file="x.aof", backup_file_size=1, backup_port=30000)
+    assert row_to_backup_system_format(row)["source_role"] == "slave"
 
 
 def test_locator_falls_back_to_bklog_when_table_empty():

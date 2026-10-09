@@ -60,6 +60,7 @@ from backend.flow.consts import (
     NameSpaceEnum,
     RedisActuatorActionEnum,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cache_backup_mode,
@@ -92,7 +93,6 @@ tool_list = [
     TicketType.REDIS_DATA_STRUCTURE.value,
     TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value,
     TicketType.REDIS_ROLLBACK.value,
-    TicketType.REDIS_ROLLBACK_DESTROY.value,
 ]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,
@@ -1015,7 +1015,7 @@ class RedisActPayload(object):
             return params["servers"]
         return self.cluster["servers"]
 
-    def add_predixy_payload(self, **kwargs) -> dict:
+    def rollback_predixy_payload(self, **kwargs) -> dict:
         """Installs predixy for a rollback temp cluster (v1 REDIS_DATA_STRUCTURE, v2 REDIS_ROLLBACK).
 
         Port and passwords come from the source cluster's config; `servers` is passed by the calling
@@ -1065,7 +1065,7 @@ class RedisActPayload(object):
             },
         }
 
-    def add_twemproxy_payload(self, **kwargs) -> dict:
+    def rollback_twemproxy_payload(self, **kwargs) -> dict:
         """Installs twemproxy for a rollback temp cluster (v1 REDIS_DATA_STRUCTURE, v2 REDIS_ROLLBACK).
 
         Port and passwords come from the source cluster's config; `servers` is passed by the calling
@@ -1095,6 +1095,10 @@ class RedisActPayload(object):
                 "servers": self.__get_proxy_servers(**kwargs),
             },
         }
+
+    # In-flight tickets resolve payload functions by their stored name; drop after one release.
+    add_twemproxy_payload = rollback_twemproxy_payload
+    add_predixy_payload = rollback_predixy_payload
 
     def get_install_redis_payload(self, **kwargs) -> dict:
         """
@@ -2285,10 +2289,16 @@ class RedisActPayload(object):
         """Builds payload for redis_rollback atomjob.
 
         The install section reuses redis_install parameter schema so the actuator
-        can prepare instances inline before restoring data.
+        can prepare instances inline before restoring data. Nodes built before plans were
+        persisted carry ``instances`` and ``recover_at`` themselves instead of ``plan_id``.
         """
         params = kwargs["params"]
-        ports = [instance["dest_port"] for instance in params.get("instances") or []]
+        instances, recover_at = params.get("instances") or [], params.get("recover_at") or ""
+        if params.get("plan_id"):
+            plan = RollbackPlan.load(params["plan_id"])
+            instances = plan.actuator_instances(params["dest_ip"])
+            recover_at = plan.recover_at.isoformat() if plan.recover_at else ""
+        ports = [instance["dest_port"] for instance in instances]
         install_payload = self.get_redis_install_4_scene(
             params={
                 "bk_biz_id": self.bk_biz_id,
@@ -2307,37 +2317,9 @@ class RedisActPayload(object):
             "payload": {
                 "dest_ip": params["dest_ip"],
                 "dest_dir": params.get("dest_dir") or "",
-                "recover_at": params.get("recover_at") or "",
+                "recover_at": recover_at,
                 "install": install_payload,
-                "instances": params.get("instances") or [],
-            },
-        }
-
-    def redis_rollback_key_filter_payload(self, **kwargs) -> dict:
-        """Builds payload for post-rollback key pattern filtering."""
-        tools_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
-        ip = kwargs["ip"]
-        return {
-            "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendis.value + "_" + RedisActuatorActionEnum.KEYS_DELETE_REGEX.value,
-            "payload": {
-                "pkg": tools_pkg.name,
-                "pkg_md5": tools_pkg.md5,
-                "bk_biz_id": self.bk_biz_id,
-                "fileserver": self.__get_fileserver(),
-                "path": self.cluster.get("path") or "",
-                "domain": self.cluster["domain_name"],
-                "key_white_regex": self.cluster["white_regex"],
-                "key_black_regex": self.cluster["black_regex"],
-                "filter_mode": self.cluster.get("filter_mode") or "",
-                "ip": ip,
-                "ports": self.cluster[ip],
-                "is_keys_to_be_del": True,
-                "delete_rate": int(self.global_config["delete_rate"]),
-                "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
-                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "instances": instances,
             },
         }
 
