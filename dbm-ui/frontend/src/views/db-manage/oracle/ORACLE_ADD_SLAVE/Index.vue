@@ -30,6 +30,7 @@
             v-model="formData.mode"
             :desc="t('为主从集群的从库新增级联从库')"
             icon="bk-dbm-icon db-icon-kelong"
+            :min-width="0"
             :title="t('从库')"
             true-value="slave" />
           <CardCheckbox
@@ -37,6 +38,7 @@
             class="ml-8"
             :desc="t('为主从集群的主库新增从库')"
             icon="bk-dbm-icon db-icon-shengji"
+            :min-width="0"
             :title="t('主库')"
             true-value="master" />
           <CardCheckbox
@@ -44,6 +46,7 @@
             class="ml-8"
             :desc="t('为单节点新增从库，原实例升主')"
             icon="bk-dbm-icon db-icon-plus-fill"
+            :min-width="0"
             :title="t('单节点')"
             true-value="single" />
         </div>
@@ -418,6 +421,25 @@
 <style lang="less" scoped>
   .mode-cards {
     display: flex;
+    width: 100%;
     align-items: stretch;
+
+    :deep(.card-checkbox) {
+      min-width: 0;
+      flex: 1 1 0;
+
+      .card-checkbox-content {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .card-checkbox-title,
+      .card-checkbox-desc {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
   }
 </style>
