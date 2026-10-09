@@ -48,6 +48,7 @@ export interface DtsDataMigrateRename extends DetailBase {
         spec_id: number;
       };
     };
+    source_role: 'master' | 'slave';
   }[];
   specs?: DetailSpecs;
   task: {

@@ -81,6 +81,9 @@
     <InfoItem :label="t('数据冲突处理')">
       {{ conflictHandleText || '--' }}
     </InfoItem>
+    <InfoItem :label="t('复制数据来源')">
+      {{ sourceRoleText || '--' }}
+    </InfoItem>
   </InfoList>
 </template>
 <script setup lang="ts">
@@ -127,6 +130,17 @@
   const conflictHandleText = computed(() => {
     const { on_duplicate: onDuplicate } = props.ticketDetails.details.task || {};
     return (onDuplicate && conflictHandleTextMap[onDuplicate]) || t('报错并停止');
+  });
+
+  const sourceRoleTextMap = {
+    master: 'Master',
+    slave: 'Slave',
+  } as const;
+
+  const sourceRoleText = computed(() => {
+    const { infos } = props.ticketDetails.details || {};
+    const sourceRole = infos?.[0]?.source_role;
+    return sourceRole && sourceRoleTextMap[sourceRole];
   });
 
   // 从 infos[].migrate.one_to_one 提取行数据
