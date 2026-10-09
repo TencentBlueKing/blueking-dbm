@@ -36,6 +36,9 @@
                 :placeholder="t('自动生成')">
               </EditableBlock>
             </EditableColumn>
+            <DbListColumn
+              v-model="rowData.dbList"
+              :cluster="rowData.cluster" />
             <BackupColumn
               v-model="rowData.backup"
               @batch-edit="handleBatchEdit">
@@ -88,6 +91,7 @@
   import { random } from '@utils';
 
   import BackupColumn, { BackupType } from './components/BackupColumn.vue';
+  import DbListColumn from './components/DbListColumn.vue';
   import ForceColumn, { ForceType } from './components/ForceColumn.vue';
 
   interface IDataRow {
@@ -98,6 +102,8 @@
       id: number;
       master_domain: string;
     };
+    // 清档范围，空数组表示全部
+    dbList: number[];
     force: string;
   }
 
@@ -112,6 +118,7 @@
       },
       values.cluster,
     ),
+    dbList: values.dbList || [],
     force: values.force || ForceType.NO,
   });
 
@@ -138,6 +145,8 @@
             cluster: {
               master_domain: item.domain,
             } as IDataRow['cluster'],
+            // 旧单无 db_list 字段时视为「全部」
+            dbList: item.db_list || [],
             force: item.force ? ForceType.YES : ForceType.NO,
           }),
         ),
@@ -150,9 +159,9 @@
       backup: boolean;
       cluster_id: number;
       cluster_type: string;
-      db_list: [];
+      db_list: number[];
       domain: string;
-      flushall: true; // TODO: 目前都是 true, 后续根据后端实现调整
+      flushall: boolean;
       force: boolean;
     }[];
   }>(TicketTypes.REDIS_PURGE);
@@ -203,6 +212,11 @@
       label: t('目标集群'),
     },
     {
+      case: t('全部'),
+      key: 'dbList',
+      label: t('清档范围'),
+    },
+    {
       case: t('是'),
       key: 'backup',
       label: t('备份'),
@@ -216,6 +230,17 @@
     },
   ];
 
+  // 批量录入清档范围：「全部」或空为 []；DB0,DB1 解析为 [0, 1]，非法号原样保留由列组件标红
+  const parseBatchDbList = (value?: string) => {
+    if (!value || value === t('全部')) {
+      return [];
+    }
+    return value
+      .split(',')
+      .map((item) => Number(item.trim().replace(/^DB/i, '')))
+      .filter((item) => !Number.isNaN(item));
+  };
+
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createRowData({
@@ -223,6 +248,7 @@
         cluster: {
           master_domain: item.domain || '',
         } as IDataRow['cluster'],
+        dbList: parseBatchDbList(item.dbList),
         force: item.force || '',
       }),
     );
@@ -268,7 +294,7 @@
             backup: item.backup == BackupType.YES,
             cluster_id: item.cluster.id,
             cluster_type: item.cluster.cluster_type,
-            db_list: [],
+            db_list: [...new Set(item.dbList)],
             domain: item.cluster.master_domain,
             flushall: true, // TODO: 目前都是 true, 后续根据后端实现调整
             force: item.force == ForceType.YES,
