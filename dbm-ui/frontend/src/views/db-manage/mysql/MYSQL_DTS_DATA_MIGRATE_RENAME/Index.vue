@@ -102,9 +102,9 @@
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
       <BkFormItem
-        :label="t('复制数据来源')"
+        :label="t('备份位置')"
         required>
-        <BkRadioGroup v-model="formData.sourceRole">
+        <BkRadioGroup v-model="formData.backupLocale">
           <BkRadio label="master"> Master </BkRadio>
           <BkRadio label="slave"> Slave </BkRadio>
         </BkRadioGroup>
@@ -264,6 +264,7 @@
   });
 
   const defaultData = () => ({
+    backupLocale: 'master' as 'master' | 'slave',
     conflictHandle: 'error' as 'error' | 'replace' | 'ignore',
     payload: createTicketPayload(),
     sourceRole: 'master' as 'master' | 'slave',
@@ -351,6 +352,7 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      backup_locale: 'master' | 'slave';
       dts_resource: {
         deploy: Record<string, never>;
       };
@@ -397,6 +399,7 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
+            backup_locale: formData.backupLocale,
             dts_resource: {
               deploy: {},
             },

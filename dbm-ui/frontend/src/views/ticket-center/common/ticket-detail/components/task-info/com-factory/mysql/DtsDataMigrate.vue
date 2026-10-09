@@ -141,8 +141,8 @@
     <InfoItem :label="t('数据冲突处理')">
       {{ conflictHandleText || '--' }}
     </InfoItem>
-    <InfoItem :label="t('复制数据来源')">
-      {{ sourceRoleText || '--' }}
+    <InfoItem :label="t('备份位置')">
+      {{ backupLocaleText || '--' }}
     </InfoItem>
   </InfoList>
 </template>
@@ -206,15 +206,15 @@
     return (onDuplicate && conflictHandleTextMap[onDuplicate]) || t('报错并停止');
   });
 
-  const sourceRoleTextMap = {
+  const backupLocaleTextMap = {
     master: 'Master',
     slave: 'Slave',
   } as const;
 
-  const sourceRoleText = computed(() => {
+  const backupLocaleText = computed(() => {
     const { infos } = props.ticketDetails.details || {};
-    const sourceRole = infos?.[0]?.source_role;
-    return sourceRole && sourceRoleTextMap[sourceRole];
+    const backupLocale = infos?.[0]?.backup_locale;
+    return backupLocale && backupLocaleTextMap[backupLocale];
   });
 
   // 从 infos[].migrate.one_to_one 提取行数据
