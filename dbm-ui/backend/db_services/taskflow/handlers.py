@@ -13,6 +13,7 @@ import json
 import logging
 import re
 import time
+import zlib
 from datetime import timedelta
 from json import JSONDecodeError
 from operator import itemgetter
@@ -43,6 +44,11 @@ from backend.utils.string import format_json_string
 from backend.utils.time import calculate_cost_time, datetime2str
 
 logger = logging.getLogger("root")
+
+# 日志按页拉取的页大小
+LOG_DOWNLOAD_PAGE_SIZE = 2000
+# 错误日志的额外过滤条件
+ERROR_LOG_FILTER = 'AND "levelname: error"'
 
 
 class TaskFlowHandler:
@@ -268,92 +274,211 @@ class TaskFlowHandler:
         return node_ids
 
     @staticmethod
-    def bklog_esquery_search(indices, query_string, start_time, end_time, offset: int = 0, limit: int = 10000):
-        """esquery搜索"""
-        resp = BKLogApi.esquery_search(
-            {
-                "indices": indices,
-                "start_time": start_time,
-                "end_time": end_time,
-                "query_string": query_string,
-                "start": offset,
-                "size": limit,
-            }
-        )
-        return resp["hits"]["hits"]
-
-    def get_version_logs(
-        self,
-        node_id: str,
-        version_id: str,
-        label_filters: list = None,
+    def bklog_esquery_search(
+        indices,
+        query_string,
+        start_time,
+        end_time,
         offset: int = 0,
         limit: int = 10000,
-    ) -> List[Dict[str, Dict]]:
-        """获取节点的日志信息"""
+        search_after: list = None,
+        sort_list: list = None,
+    ):
+        """esquery搜索"""
+        params = {
+            "indices": indices,
+            "start_time": start_time,
+            "end_time": end_time,
+            "query_string": query_string,
+            "start": offset,
+            "size": limit,
+        }
+        # 空游标/排序不下发，避免被日志平台当成有效查询条件
+        if search_after:
+            params["search_after"] = search_after
+        if sort_list:
+            params["sort_list"] = sort_list
+        return BKLogApi.esquery_search(params)["hits"]["hits"]
+
+    def _version_log_window(self, node_id: str, version_id: str):
+        """校验节点日志是否可查，返回 (提示文案, 开始时间, 结束时间)。"""
         if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
-            return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
+            return _("节点尚未运行，请稍后查看"), None, None
+        try:
+            history = {h["version"]: h for h in self.get_node_histories(node_id)}[version_id]
+        except KeyError:
+            return _("无法找到当前版本{}的节点日志").format(version_id), None, None
+        if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
+            return _("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION), None, None
+        return (
+            None,
+            datetime2str(history["started_time"]),
+            datetime2str(history["finished_time"] + timedelta(days=1)),
+        )
+
+    def _version_log_collectors(self, node_id: str, version_id: str, extra_filter: str = ""):
+        """节点日志的两个采集源，返回 [(索引, 查询DSL)]。extra_filter 用于追加过滤条件(如错误日志)。"""
+        pods = " OR ".join(
+            f"__ext.io_kubernetes_pod:*{pod}*" for pod in ("schedule", "worker", "dbsimulation", "dbpriv")
+        )
+        biz = env.DBA_APP_BK_BIZ_ID
+        base_query = f'"{self.root_id}" AND "{node_id}" AND {version_id}'
+        return [
+            (f"{biz}_bklog.dbm_log", f"({base_query}) AND ({pods}) {extra_filter}".strip()),
+            (f"{biz}_bklog.dbm_dbactuator,{biz}_bklog.dbm_win_dbactuator,", f"{base_query} {extra_filter}".strip()),
+        ]
+
+    def _iter_merged_hits(self, collectors, start_time, end_time, desc: bool, page_size: int):
+        """两个采集源各自 search_after 后按时间归并，避免共用游标漏日志。"""
+        order = "desc" if desc else "asc"
+        sort_list = [["dtEventTimeStamp", order], ["gseIndex", order], ["iterationIndex", order]]
+        cursors = [{"buf": [], "i": 0, "after": None, "done": False} for _ in collectors]
+
+        def peek(cursor, indices, query_string):
+            if cursor["done"]:
+                return None
+            if cursor["i"] >= len(cursor["buf"]):
+                hits = (
+                    self.bklog_esquery_search(
+                        indices=indices,
+                        query_string=query_string,
+                        start_time=start_time,
+                        end_time=end_time,
+                        offset=0,
+                        limit=page_size,
+                        search_after=cursor["after"],
+                        sort_list=sort_list,
+                    )
+                    or []
+                )
+                if not hits:
+                    cursor["done"] = True
+                    return None
+                last = hits[-1]
+                source = last.get("_source") or {}
+                cursor.update(
+                    buf=hits,
+                    i=0,
+                    after=last.get("sort")
+                    or [source.get("dtEventTimeStamp"), source.get("gseIndex"), source.get("iterationIndex")],
+                )
+            hit = cursor["buf"][cursor["i"]]
+            return self._hit_sort_key(hit), hit
+
+        while True:
+            ranked = []
+            for seq, (cursor, (indices, query_string)) in enumerate(zip(cursors, collectors)):
+                item = peek(cursor, indices, query_string)
+                if item:
+                    ranked.append((item[0], seq, cursor))
+            if not ranked:
+                return
+            cursor = (max(ranked) if desc else min(ranked))[2]
+            yield cursor["buf"][cursor["i"]]
+            cursor["i"] += 1
+
+    @staticmethod
+    def _hit_sort_key(hit: Dict):
+        """命中记录的排序键，归并多个采集源时与 ES 的排序保持一致。"""
+        source = hit.get("_source") or {}
+        return (
+            int(source.get("dtEventTimeStamp") or 0),
+            int(source.get("gseIndex") or 0),
+            int(source.get("iterationIndex") or 0),
+        )
+
+    def _hit_to_record(self, hit: Dict, label_filters: list = None):
+        source = hit.get("_source") or {}
+        log = self._format_log(source.get("log", ""), source.get("serverIp", ""), hit.get("_index", ""))
+        if not log or (label_filters and log.get("label") in label_filters):
+            return None
+        return self.generate_log_record(timestamp=source.get("time"), levelname=log["levelname"], message=log["log"])
+
+    def _collect_version_logs(self, node_id: str, version_id: str, extra_filter: str = ""):
+        """拉齐两个采集源的命中并按时间正序合并。窗口校验不通过时返回 (None, 提示文案)。"""
+        reason, start_time, end_time = self._version_log_window(node_id, version_id)
+        if reason:
+            return None, reason
+        hits = []
+        for indices, query_string in self._version_log_collectors(node_id, version_id, extra_filter):
+            logger.info(_("BKLog 查询DSL: {} {}").format(indices, query_string))
+            hits.extend(
+                self.bklog_esquery_search(
+                    indices=indices, query_string=query_string, start_time=start_time, end_time=end_time
+                )
+                or []
+            )
+        return sorted(hits, key=self._hit_sort_key), None
+
+    def _iter_version_records(self, node_id: str, version_id: str, label_filters: list, desc: bool):
+        reason, start_time, end_time = self._version_log_window(node_id, version_id)
+        if reason:
+            yield self.generate_log_record(message=reason)
+            return
+        produced = False
+        hits = self._iter_merged_hits(
+            self._version_log_collectors(node_id, version_id), start_time, end_time, desc, LOG_DOWNLOAD_PAGE_SIZE
+        )
+        for hit in hits:
+            record = self._hit_to_record(hit, label_filters)
+            if not record:
+                continue
+            produced = True
+            yield record
+        if not produced:
+            yield self.generate_log_record(message=_("日志上报中，请稍后查看"))
+
+    def get_version_logs_with_search_after(self, node_id: str, version_id: str, label_filters: list = None):
+        """节点日志预览：按时间正序（从旧到新）分页拉取，累计超过大小阈值后停止。"""
+        max_size = int(env.MAX_LOG_SIZE_MB * 1024 * 1024)
+        logs, total, too_large = [], 0, False
+        for record in self._iter_version_records(node_id, version_id, label_filters, False):
+            size = len(str(record).encode("utf-8"))
+            if total + size > max_size:
+                too_large = True
+                break
+            logs.append(record)
+            total += size
+        return {"logs": logs, "too_large": too_large}
+
+    def validate_version_log_download(self, node_id: str, version_id: str):
+        """下载前校验。有提示文案时调用方返回 400 + JSON，不要进入 gzip 生成器。"""
+        return self._version_log_window(node_id, version_id)[0]
+
+    def iter_gzip_version_logs(self, node_id: str, version_id: str, label_filters: list = None):
+        """按时间正序增量压缩。无论中途是否出错都必须 flush，否则 gzip 没有合法结尾。"""
+        compressor = zlib.compressobj(wbits=16 + zlib.MAX_WBITS)
+
+        def compress(record: Dict) -> bytes:
+            line = f"[{record['timestamp']} {record['levelname']}] {record['message']}\n"
+            return compressor.compress(line.encode("utf-8")) or b""
 
         try:
-            node_histories_map = {h["version"]: h for h in self.get_node_histories(node_id)}
-            history = node_histories_map[version_id]
-        except KeyError:
-            return [self.generate_log_record(message=_("无法找到当前版本{}的节点日志").format(version_id))]
-
-        if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
-            return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
-
-        # 探测日志的pod名称
-        detected_pods = ["schedule", "worker", "dbsimulation", "dbpriv"]
-        detected_pods_query = " OR ".join([f"__ext.io_kubernetes_pod:*{pod}*" for pod in detected_pods])
-
-        start_time = datetime2str(history["started_time"])
-        end_time = datetime2str(history["finished_time"] + timedelta(days=1))
-        # 获取pod采集日志
-        dbm_logs_query = f'("{self.root_id}" AND "{node_id}" AND {version_id}) AND ({detected_pods_query})'
-        logger.info(_("BKLog DBM_LOG 查询DSL: {}").format(dbm_logs_query))
-        dbm_logs = self.bklog_esquery_search(
-            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log",
-            query_string=dbm_logs_query,
-            start_time=start_time,
-            end_time=end_time,
-            offset=offset,
-            limit=limit,
-        )
-        # 获取dbactuator采集日志
-        dbm_dbactuator_query = f'"{self.root_id}" AND "{node_id}" AND {version_id}'
-        logger.info(_("BKLog DBACTUATOR 查询DSL: {}").format(dbm_dbactuator_query))
-        dbm_dbactuator_logs = self.bklog_esquery_search(
-            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
-            query_string=dbm_dbactuator_query,
-            start_time=start_time,
-            end_time=end_time,
-            offset=offset,
-            limit=limit,
-        )
-        logger.info(_("BKLog DBACTUATOR 查询结果: {}").format(dbm_dbactuator_logs))
-        # 格式化日志信息
-        logs = []
-        sorted_hits = sorted(
-            dbm_logs + dbm_dbactuator_logs,
-            key=lambda x: (
-                int(x["_source"]["dtEventTimeStamp"]),
-                int(x["_source"]["gseIndex"]),
-                int(x["_source"]["iterationIndex"]),
-            ),
-        )
-
-        for hit in sorted_hits:
-            log = self._format_log(hit["_source"]["log"], hit["_source"]["serverIp"], hit["_index"])
-            # 日志不存在，或者在过滤标签里面，则忽略
-            if not log or (label_filters and log.get("label") in label_filters):
-                continue
-            logs.append(
+            for record in self._iter_version_records(node_id, version_id, label_filters, False):
+                chunk = compress(record)
+                if chunk:
+                    yield chunk
+        except Exception as err:
+            # 响应头(200 + Content-Disposition)已经发出，状态码改不了，只能把中断原因写进文件，
+            # 否则用户拿到的是一个解压才报错、且查不到原因的截断包
+            logger.exception("node log download interrupted: root_id=%s, node_id=%s", self.root_id, node_id)
+            yield compress(
                 self.generate_log_record(
-                    timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
+                    levelname=LogLevelName.ERROR.value,
+                    message=_("日志拉取中断，文件可能不完整：{}").format(err),
                 )
             )
-        if not logs and offset == 0:
+        tail = compressor.flush()
+        if tail:
+            yield tail
+
+    def get_version_logs(self, node_id: str, version_id: str, label_filters: list = None) -> List[Dict[str, Dict]]:
+        """获取节点的日志信息"""
+        hits, reason = self._collect_version_logs(node_id, version_id)
+        if reason:
+            return [self.generate_log_record(message=reason)]
+        logs = [record for record in (self._hit_to_record(hit, label_filters) for hit in hits) if record]
+        if not logs:
             return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
         return logs
 
@@ -362,66 +487,10 @@ class TaskFlowHandler:
 
         默认同时查询 dbm_log（pod 采集）与 dbactuator 采集日志，按时间合并后返回。
         """
-        if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
-            return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
-
-        try:
-            node_histories_map = {h["version"]: h for h in self.get_node_histories(node_id)}
-            history = node_histories_map[version_id]
-        except KeyError:
-            return [self.generate_log_record(message=_("无法找到当前版本{}的节点日志").format(version_id))]
-
-        if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
-            return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
-
-        start_time = datetime2str(history["started_time"])
-        end_time = datetime2str(history["finished_time"] + timedelta(days=1))
-        error_filter = 'AND "levelname: error"'
-
-        # 默认扫描 dbm_log 错误日志（与 get_version_logs 同一套 pod 探测）
-        detected_pods = ["schedule", "worker", "dbsimulation", "dbpriv"]
-        detected_pods_query = " OR ".join([f"__ext.io_kubernetes_pod:*{pod}*" for pod in detected_pods])
-        dbm_logs_query = (
-            f'("{self.root_id}" AND "{node_id}" AND {version_id}) AND ({detected_pods_query}) {error_filter}'
-        )
-        logger.info(_("BKLog DBM_LOG ERROR 查询DSL: {}").format(dbm_logs_query))
-        dbm_logs = self.bklog_esquery_search(
-            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log",
-            query_string=dbm_logs_query,
-            start_time=start_time,
-            end_time=end_time,
-        )
-
-        # 查询 dbactuator 采集的错误日志
-        dbm_dbactuator_query = f'"{self.root_id}" AND "{node_id}" AND {version_id} {error_filter}'
-        logger.info(_("BKLog DBACTUATOR ERROR 查询DSL: {}").format(dbm_dbactuator_query))
-        dbm_dbactuator_logs = self.bklog_esquery_search(
-            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
-            query_string=dbm_dbactuator_query,
-            start_time=start_time,
-            end_time=end_time,
-        )
-        logger.info(_("BKLog DBACTUATOR 查询结果: {}").format(dbm_dbactuator_logs))
-
-        logs: List[Dict] = []
-        sorted_hits = sorted(
-            dbm_logs + dbm_dbactuator_logs,
-            key=lambda x: (
-                int(x["_source"]["dtEventTimeStamp"]),
-                int(x["_source"]["gseIndex"]),
-                int(x["_source"]["iterationIndex"]),
-            ),
-        )
-
-        for hit in sorted_hits:
-            log = self._format_log(hit["_source"]["log"], hit["_source"]["serverIp"], hit["_index"])
-            if log:
-                logs.append(
-                    self.generate_log_record(
-                        timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
-                    )
-                )
-        return logs
+        hits, reason = self._collect_version_logs(node_id, version_id, extra_filter=ERROR_LOG_FILTER)
+        if reason:
+            return [self.generate_log_record(message=reason)]
+        return [record for record in (self._hit_to_record(hit) for hit in hits) if record]
 
     @staticmethod
     def generate_log_record(
