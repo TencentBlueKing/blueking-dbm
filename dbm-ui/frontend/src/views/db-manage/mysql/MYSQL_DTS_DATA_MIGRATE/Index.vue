@@ -229,9 +229,11 @@
     labels: data.labels || [],
     source_cluster: Object.assign(
       {
+        cluster_subzones: [],
         cluster_type: '',
         id: 0,
         master_domain: '',
+        region: '',
       } as unknown as TendbhaModel,
       data.source_cluster,
     ),
