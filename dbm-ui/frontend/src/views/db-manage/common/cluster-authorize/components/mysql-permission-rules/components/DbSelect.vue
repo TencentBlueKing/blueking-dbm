@@ -18,7 +18,9 @@
         :key="item.rule_id"
         :label="item.access_db"
         :value="item.access_db" />
-      <template #extension>
+      <template
+        v-if="showExtension"
+        #extension>
         <div
           class="default-display-main"
           @click="handleToCreateRules">
@@ -55,6 +57,7 @@
   });
 
   const router = useRouter();
+  const route = useRoute();
   const { t } = useI18n();
 
   const rules = [
@@ -64,6 +67,10 @@
       validator: (value: string[]) => value.length > 0,
     },
   ];
+
+  const showExtension = computed(() => {
+    return route.name !== 'PermissionRules' && route.name !== 'spiderPermission';
+  });
 
   /**
    * 跳转新建规则界面
