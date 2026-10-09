@@ -62,6 +62,16 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 
 
+def _overlay_cluster_binlog_from_trans_data(cluster: dict, trans_data):
+    """演练运行时查询结果写入 trans_data 后，前滚 payload 从此处回填。"""
+    if not cluster or not trans_data or not isinstance(trans_data, dict):
+        return
+    for key in ("binlog_start_file", "binlog_start_pos", "binlog_files_list"):
+        value = trans_data.get(key)
+        if value not in (None, "", []):
+            cluster[key] = value
+
+
 class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     """
     定义mysql不同执行类型，拼接不同的payload参数，对应不同的dict结构体。
@@ -1871,6 +1881,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 实例 前滚binglog
         """
+        _overlay_cluster_binlog_from_trans_data(self.cluster, kwargs.get("trans_data"))
         logger.info(self.cluster)
         logger.info(
             "backup_time: {} ~ stop_time: {} ".format(self.cluster["backup_time"], self.cluster["rollback_time"])

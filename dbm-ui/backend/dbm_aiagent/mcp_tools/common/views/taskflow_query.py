@@ -110,7 +110,12 @@ class TaskflowQueryMcpToolsViewSet(McpToolsViewSet):
                 MySQLBackupRecoverTask.objects.filter(
                     create_at__gte=start_time,
                     create_at__lte=end_time,
-                    task_status__in=[TaskStatus.RECOVER_FAILED, TaskStatus.COMMIT_FAILED],
+                    task_status__in=[
+                        TaskStatus.RECOVER_FAILED,
+                        TaskStatus.COMMIT_FAILED,
+                        TaskStatus.BINLOG_PREPARE_FAILED,
+                        TaskStatus.BINLOG_APPLY_FAILED,
+                    ],
                 )
                 .exclude(task_id="")
                 .values_list("task_id", flat=True)

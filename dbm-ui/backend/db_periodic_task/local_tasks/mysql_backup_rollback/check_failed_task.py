@@ -136,7 +136,7 @@ def check_mysql_backup_exercise_failed():
     # 查询失败的任务
     try:
         failed_tasks = MySQLBackupRecoverTask.objects.filter(
-            task_status=TaskStatus.RECOVER_FAILED, create_at__range=(start_time, end_time)
+            task_status__in=TaskStatus.exercise_failed_statuses(), create_at__range=(start_time, end_time)
         ).order_by("bk_biz_id", "create_at")
     except Exception as e:
         logger.error(_("查询演练失败任务异常: {}").format(e))
