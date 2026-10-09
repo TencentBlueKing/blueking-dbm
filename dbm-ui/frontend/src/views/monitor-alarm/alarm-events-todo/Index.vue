@@ -39,7 +39,7 @@
 
   import { useAlarmEventsCount } from '@hooks';
 
-  import AlarmEventsPage from '../alarm-events/Index.vue';
+  import AlarmEventsPage from '@views/monitor-alarm/alarm-events/Index.vue';
 
   const { t } = useI18n();
   const route = useRoute();

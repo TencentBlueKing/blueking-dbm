@@ -205,6 +205,13 @@ export const useQuickSearch = (options: { isGlobalPage: ComputedRef<boolean>; is
       return result;
     }, {});
 
+    // 待办页默认只看未恢复的告警，URL 已带 status 时以 URL 为准
+    if (options.isTodoPage.value && !initValue.status) {
+      Object.assign(initValue, {
+        status: 'ABNORMAL',
+      });
+    }
+
     Object.assign(initValue, {
       [timeRangeSearchId]: initTimeRange().join(','),
     });
