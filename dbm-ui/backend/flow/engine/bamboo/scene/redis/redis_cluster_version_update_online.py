@@ -25,6 +25,7 @@ from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.util import (
+    is_predixy_standalone_type,
     is_redis_cluster_protocal,
     is_redis_instance_type,
     is_tendisssd_instance_type,
@@ -85,12 +86,8 @@ _FLUSH_AFTER_UPGRADE_SUPPORTED_CLUSTER_TYPES = {
 # 空载起进程后要等主库把数据整份传回来, 大实例可能远超 actuator 默认的 30 分钟
 _SYNC_WAIT_TIMEOUT_SECONDS = 6 * 3600
 
-# 这两种架构没有可用的 master 升级路径:
-#   - TendisPredixyTendisplusInstance 既不走 cluster failover 也不走 twemproxy 主从切换,
-#     放行的话一个升级 act 都不会执行, 却照样翻转主从元数据
-#   - TendisTwemproxyTendisplusIns 会走到建同步原子任务, 而它不支持 tendisplus
+# TendisTwemproxyTendisplusIns 会走到建同步原子任务, 而它不支持 tendisplus
 _MASTER_UPGRADE_UNSUPPORTED_CLUSTER_TYPES = {
-    ClusterType.TendisPredixyTendisplusInstance.value,
     ClusterType.TendisTwemproxyTendisplusIns.value,
 }
 
@@ -514,7 +511,7 @@ class RedisClusterVersionUpdateOnline(object):
 
     @staticmethod
     def _validate_master_upgrade_supported(cluster: Cluster):
-        """master 升级只有两条实现路径: RedisCluster 协议的 cluster failover, 和 twemproxy 主从切换.
+        """master 升级支持 RedisCluster failover 或 Twemproxy/Predixy 主从版的代理后端切换.
 
         (TendisRedisInstance 主从版走 instance_pair_buckets, 不经过这里.)
         其余架构放行的话, 流程一个升级 act 都不会执行, 却照样翻转主从元数据, 让元数据与实际主从关系相反.
@@ -524,7 +521,11 @@ class RedisClusterVersionUpdateOnline(object):
             raise Exception(
                 _("集群 {} 架构 {} 暂不支持 master 在线版本升级, 请只提交 slave").format(cluster.immute_domain, cluster_type)
             )
-        if not is_redis_cluster_protocal(cluster_type) and not is_twemproxy_proxy_type(cluster_type):
+        if not (
+            is_redis_cluster_protocal(cluster_type)
+            or is_twemproxy_proxy_type(cluster_type)
+            or is_predixy_standalone_type(cluster_type)
+        ):
             raise Exception(
                 _("集群 {} 架构 {} 没有 master 在线版本升级的实现, 请只提交 slave").format(cluster.immute_domain, cluster_type)
             )
@@ -797,10 +798,13 @@ class RedisClusterVersionUpdateOnline(object):
 
         # 处理不同类型的集群升级
         cluster_type = cluster_meta_data["cluster_type"]
-        if is_redis_cluster_protocal(cluster_type) and ctx.pairs_to_switch:
-            self._handle_redis_cluster_upgrade(ctx)
-        elif is_twemproxy_proxy_type(cluster_type) and ctx.pairs_to_switch:
-            self._handle_twemproxy_cluster_upgrade(ctx)
+        if ctx.pairs_to_switch:
+            if is_redis_cluster_protocal(cluster_type):
+                self._handle_redis_cluster_upgrade(ctx)
+            elif is_twemproxy_proxy_type(cluster_type) or is_predixy_standalone_type(cluster_type):
+                self._handle_twemproxy_cluster_upgrade(ctx)
+            else:
+                raise NotImplementedError("cluster_type:{} is not supported to switch".format(cluster_type))
 
         cc_update_acts, role_meta_acts = [], []
         # 构造元数据更新节点，由外层 Backend 数据更新收尾统一挂载到 dbmon 重装前
@@ -1044,15 +1048,17 @@ class RedisClusterVersionUpdateOnline(object):
             kwargs=asdict(ctx.act_kwargs),
         )
 
-        ctx.act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
-            cluster_id=ctx.act_kwargs.cluster["cluster_id"]
-        )
-        ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
-        ctx.pipeline.add_act(
-            act_name=_("{}-检查切换状态").format(first_master_ip),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(ctx.act_kwargs),
-        )
+        if is_twemproxy_proxy_type(ctx.cluster_meta_data["cluster_type"]):
+            # twemproxy admin 后端检查不适用于 Predixy 主从版
+            ctx.act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
+                cluster_id=ctx.act_kwargs.cluster["cluster_id"]
+            )
+            ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
+            ctx.pipeline.add_act(
+                act_name=_("{}-检查切换状态").format(first_master_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(ctx.act_kwargs),
+            )
 
     def _add_old_master_upgrade_acts(self, ctx: _ClusterUpgradeCtx):
         """添加old_master升级动作"""

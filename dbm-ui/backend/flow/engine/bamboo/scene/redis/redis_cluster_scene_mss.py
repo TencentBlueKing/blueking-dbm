@@ -211,14 +211,10 @@ class RedisClusterMSSSceneFlow(object):
         4. 刷新 new master 监控
         5. 元数据修改 old-master 2 unavliable.
         """
-        redis_pipeline, twemproxy_server_shards = SubBuilder(root_id=self.root_id, data=flow_data), {}
-        if act_kwargs.cluster["cluster_type"] in [
-            ClusterType.TwemproxyTendisSSDInstance.value,
-            ClusterType.TendisTwemproxyRedisInstance.value,
-        ]:
-            twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
-            )
+        redis_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
+        twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+            act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+        )
 
         sync_relations, master_ips, slave_ips = [], [], []
         for ms_pair in ms_switch["pairs"]:
