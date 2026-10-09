@@ -101,6 +101,14 @@
         </BkRadioGroup>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
+      <BkFormItem
+        :label="t('复制数据来源')"
+        required>
+        <BkRadioGroup v-model="formData.sourceRole">
+          <BkRadio label="master"> Master </BkRadio>
+          <BkRadio label="slave"> Slave </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
       <DbMappingSideslider
         v-model:is-show="showMappingSlider"
         :data="currentEditingRow?.db_mapping || []"
@@ -236,9 +244,11 @@
     labels: data.labels || [],
     source_cluster: Object.assign(
       {
+        cluster_subzones: [],
         cluster_type: '',
         id: 0,
         master_domain: '',
+        region: '',
       } as unknown as TendbhaModel,
       data.source_cluster,
     ),
@@ -256,6 +266,7 @@
   const defaultData = () => ({
     conflictHandle: 'error' as 'error' | 'replace' | 'ignore',
     payload: createTicketPayload(),
+    sourceRole: 'master' as 'master' | 'slave',
     tableData: [createTableRow()],
   });
 
@@ -374,6 +385,7 @@
           spec_id: number;
         };
       };
+      source_role: 'master' | 'slave';
     }[];
     task: {
       on_duplicate: 'error' | 'replace' | 'ignore';
@@ -419,6 +431,7 @@
                 spec_id: item.spec_id,
               },
             },
+            source_role: formData.sourceRole,
           })),
           task: {
             on_duplicate: formData.conflictHandle,
