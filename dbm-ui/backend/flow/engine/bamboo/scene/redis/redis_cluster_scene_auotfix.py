@@ -24,7 +24,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
+from backend.db_services.redis.util import cal_proxy_servers, is_predixy_proxy_type
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
     DEFAULT_REDIS_START_PORT,
@@ -134,17 +134,9 @@ class RedisClusterAutoFixSceneFlow(object):
                 slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
 
         cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
-        redis_master_set, redis_slave_set, servers = (
-            cluster_info["redis_master_set"],
-            cluster_info["redis_slave_set"],
-            [],
+        servers = cal_proxy_servers(
+            cluster.cluster_type, cluster.name, cluster_info["redis_master_set"], cluster_info["redis_slave_set"]
         )
-        if is_twemproxy_proxy_type(cluster.cluster_type):
-            for set in redis_master_set:
-                ip_port, seg_range = str.split(set)
-                servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
-        else:
-            servers = redis_master_set + redis_slave_set
 
         proxy_port, proxy_ips = 0, []
         if cluster.cluster_type != ClusterType.TendisRedisInstance.value:

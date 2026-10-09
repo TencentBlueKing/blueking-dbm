@@ -351,10 +351,12 @@ class RedisClusterDataCopyFlow(object):
         install_param["cluster_password"] = src_cluster_info["cluster_password"]
         install_param["redis_password"] = src_cluster_info["redis_password"]
         install_param["redis_proxy_admin_password"] = src_cluster_info.get("redis_proxy_admin_password", "")
-        if is_twemproxy_proxy_type(info.get("target_cluster_type", src_cluster_info["cluster_type"])):
-            install_param["redis_databases"] = DEFAULT_REDIS_INSTANCE_DATABASES
-        elif is_redis_cluster_protocal(info.get("target_cluster_type", src_cluster_info["cluster_type"])):
+        dst_cluster_type = install_param["cluster_type"]
+        if is_redis_cluster_protocal(dst_cluster_type):
             install_param["redis_databases"] = DEFAULT_REDIS_CLUSTER_DATABASES
+        elif is_twemproxy_proxy_type(dst_cluster_type) or is_predixy_proxy_type(dst_cluster_type):
+            # 非 Cluster 协议的 Predixy 主从版同样使用实例版的数据库数量
+            install_param["redis_databases"] = DEFAULT_REDIS_INSTANCE_DATABASES
         else:
             install_param["redis_databases"] = src_cluster_info["redis_databases"]
         install_param["max_disk"] = info["max_disk"]
@@ -681,7 +683,8 @@ class RedisClusterDataCopyFlow(object):
         if is_twemproxy_proxy_type(src_cluster_type) and is_twemproxy_proxy_type(dst_cluster_type):
             return False
         if is_predixy_proxy_type(src_cluster_type) and is_predixy_proxy_type(dst_cluster_type):
-            return False
+            # Predixy 程序相同，但主从版与 Cluster 协议的 ServerPool 配置不同
+            return is_redis_cluster_protocal(src_cluster_type) != is_redis_cluster_protocal(dst_cluster_type)
         return True
 
     def __get_proxy_version_by_cluster_type(self, cluster_type: str) -> str:
