@@ -100,6 +100,14 @@
           </BkRadio>
         </BkRadioGroup>
       </BkFormItem>
+      <BkFormItem
+        :label="t('备份位置')"
+        required>
+        <BkRadioGroup v-model="formData.backupLocale">
+          <BkRadio label="master"> Master </BkRadio>
+          <BkRadio label="slave"> Slave </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
       <DbMappingSideslider
         v-model:is-show="showMappingSlider"
@@ -256,8 +264,10 @@
   });
 
   const defaultData = () => ({
+    backupLocale: 'slave' as 'master' | 'slave',
     conflictHandle: 'error' as 'error' | 'replace' | 'ignore',
     payload: createTicketPayload(),
+    sourceRole: 'master' as 'master' | 'slave',
     tableData: [createTableRow()],
   });
 
@@ -333,6 +343,7 @@
         });
       });
       Object.assign(formData, {
+        backupLocale: details.backup_locale || 'slave',
         conflictHandle: details.task?.on_duplicate || 'error',
         payload: createTicketPayload(ticketDetail),
         tableData: tableData.length ? tableData : [createTableRow()],
@@ -376,7 +387,9 @@
           spec_id: number;
         };
       };
+      source_role: 'master' | 'slave';
     }[];
+    backup_locale: 'master' | 'slave';
     task: {
       on_duplicate: 'error' | 'replace' | 'ignore';
     };
@@ -421,7 +434,9 @@
                 spec_id: item.spec_id,
               },
             },
+            source_role: formData.sourceRole,
           })),
+          backup_locale: formData.backupLocale,
           task: {
             on_duplicate: formData.conflictHandle,
           },
