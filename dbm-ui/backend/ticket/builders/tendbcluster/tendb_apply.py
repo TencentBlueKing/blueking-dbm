@@ -46,6 +46,7 @@ class TenDBClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin, seria
     spider_port = serializers.IntegerField(help_text=_("集群访问端口"))
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"))
     remote_shard_num = serializers.IntegerField(help_text=_("单机分片数"))
+    apply_clb = serializers.BooleanField(help_text=_("集群部署成功后是否创建CLB"), required=False, default=False)
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"))
