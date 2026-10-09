@@ -29,6 +29,8 @@ type DbmEnvData struct {
 	CC_MANAGE_TOPO    struct {
 		SetId            int `json:"set_id"`
 		ResourceModuleId int `json:"resource.idle.module"`
+		PendingModuleId  int `json:"pending.module"`
+		DirtyModuleId    int `json:"dirty_module_id"`
 	} `json:"CC_MANAGE_TOPO"`
 	RESOURCE_INDEPENDENT_BIZ int `json:"RESOURCE_INDEPENDENT_BIZ"`
 }
