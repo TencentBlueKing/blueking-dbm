@@ -201,6 +201,19 @@ export const getRedisClusterList = async (params: {
   );
 
 /**
+ * 获取 Redis 集群可选择的 DB 列表
+ */
+export function getRedisClusterDbs(params: { cluster_id: number }) {
+  return http.get<{
+    cluster_id: number;
+    cluster_name: string;
+    databases: number;
+    dbs: number[];
+    domain: string;
+  }>(`${getRootPath()}/${params.cluster_id}/get_dbs/`);
+}
+
+/**
  * 查询主机列表
  */
 export function getRedisMachineList(params: {
