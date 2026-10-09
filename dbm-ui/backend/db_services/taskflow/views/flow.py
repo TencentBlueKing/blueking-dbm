@@ -11,14 +11,14 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 
-from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend import env
 from backend.bk_web import viewsets
-from backend.bk_web.handlers import build_page_url
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.exceptions import OperateNodeException
@@ -307,25 +307,22 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         version_id = validated_data["version_id"]
         label_filters = validated_data.get("labels")
         label_filters = label_filters.split(",") if label_filters else []
-        offset = validated_data.get("offset", 0)
-        limit = validated_data.get("limit", 0)
-        logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters, offset, limit)
+        handler = TaskFlowHandler(root_id=root_id)
         if validated_data["download"]:
-            # 导出下载日志
-            return HttpResponse(
-                logs,
-                content_type="application/text charset=utf-8",
-                headers={"Content-Disposition": f'attachment; filename="{root_id}-{node_id}-{version_id}.log"'},
+            # 校验失败必须返回非 2xx，否则前端会把 JSON 响应体当成文件保存下来。
+            # 生成器一旦写出字节状态码就不能再改，所以校验必须前置。
+            reason = handler.validate_version_log_download(node_id, version_id)
+            if reason:
+                return Response({"message": reason}, status=status.HTTP_400_BAD_REQUEST)
+            response = StreamingHttpResponse(
+                handler.iter_gzip_version_logs(node_id, version_id, label_filters), content_type="application/gzip"
             )
+            response["Content-Disposition"] = f'attachment; filename="{root_id}-{node_id}-{version_id}.log.gz"'
+            response["X-Accel-Buffering"] = "no"
+            return response
 
-        next_url, previous_url = None, None
-        if logs:
-            next_url = build_page_url(requests, offset + limit)
-            has_data = True
-        else:
-            previous_url = build_page_url(requests, max(offset - limit, 0))
-            has_data = False
-        return Response({"has_data": has_data, "next": next_url, "previous": previous_url, "results": logs})
+        log_data = handler.get_version_logs_with_search_after(node_id, version_id, label_filters)
+        return Response({"result": log_data["logs"], "too_large": log_data["too_large"]})
 
     @common_swagger_auto_schema(
         operation_summary=_("回调节点"),
