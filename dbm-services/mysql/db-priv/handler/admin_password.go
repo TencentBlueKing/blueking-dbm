@@ -32,10 +32,12 @@ func (m *PrivService) GetPassword(c *gin.Context) {
 		SendResponse(c, err, nil)
 		return
 	}
-	SendResponse(c, err, ListResponse{
-		Count: count,
-		Items: batch,
-	})
+	SendResponse(
+		c, err, ListResponse{
+			Count: count,
+			Items: batch,
+		},
+	)
 	return
 }
 
@@ -102,10 +104,12 @@ func (m *PrivService) GetMysqlAdminPassword(c *gin.Context) {
 		SendResponse(c, err, nil)
 		return
 	}
-	SendResponse(c, err, ListResponse{
-		Count: count,
-		Items: batch,
-	})
+	SendResponse(
+		c, err, ListResponse{
+			Count: count,
+			Items: batch,
+		},
+	)
 	return
 }
 
@@ -134,27 +138,5 @@ func (m *PrivService) ModifyAdminPassword(c *gin.Context) {
 	if input.Async == false {
 		SendResponse(c, err, batch)
 	}
-	return
-}
-
-func (m *PrivService) MigratePlatformPassword(c *gin.Context) {
-	slog.Info("do MigratePlatformPassword!")
-	var input service.PlatformPara
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-	if err = json.Unmarshal(body, &input); err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-	err = input.MigratePlatformPassword()
-	if err != nil {
-		slog.Error("msg", "MigratePlatformPassword", err)
-	}
-	SendResponse(c, err, nil)
 	return
 }
