@@ -261,6 +261,7 @@
     clearDuplicateTip,
     clearFiles,
     fileList,
+    handleFiles,
     handleRemove,
     handleRetry,
     inputRef,
