@@ -33,6 +33,7 @@ type InstallInstanceFromExistingParams struct {
 	SlaveDbUniqueName     string `json:"slave_db_unique_name" validate:"required"`
 	OldMasterHost         string `json:"old_master_host"`
 	OldMasterDbUniqueName string `json:"old_master_db_unique_name"`
+	MasterServiceNames    string `json:"master_service_names"`
 }
 
 // InstallInstanceFromExisting 执行脚本原子任务   root用户执行
@@ -52,6 +53,7 @@ type InstallInstanceFromExistingRunTimeCtx struct {
 	DbRecoveryFileDest string `json:"db_recovery_file_dest"`
 	LogArchiveConfig   string `json:"log_archive_config"`
 	FailoverServer     string `json:"failover_server"`
+	ServiceNames       string `json:"service_names"`
 }
 
 // NewInstallInstanceFromExisting new
@@ -499,6 +501,20 @@ func (e *InstallInstanceFromExisting) ModifyPfile() error {
 		e.FailoverServer = e.Params.OldMasterDbUniqueName
 	}
 
+	parts := strings.Split(e.Params.MasterServiceNames, ",")
+	replaced := make([]string, 0, len(parts))
+	for _, p := range parts {
+		name := strings.TrimSpace(p)
+		if name == "" {
+			continue
+		}
+		if strings.EqualFold(name, e.Params.MasterDbUniqueName) {
+			name = e.Params.SlaveDbUniqueName
+		}
+		replaced = append(replaced, name)
+	}
+	e.ServiceNames = strings.Join(replaced, ",")
+
 	// 声明所有待修改的 pfile 参数
 	entries := []pfileEntry{
 		// DG 相关
@@ -509,6 +525,7 @@ func (e *InstallInstanceFromExisting) ModifyPfile() error {
 		{"*.fal_server", e.FailoverServer, true},
 		// 命名
 		{"*.db_unique_name", e.Params.SlaveDbUniqueName, true},
+		{"*.service_names", e.ServiceNames, true},
 		// SGA：*. 与 SID.__ 两种前缀均处理
 		{"*.sga_max_size", sgaBytes, false},
 		{"*.sga_target", sgaBytes, false},

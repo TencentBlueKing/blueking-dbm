@@ -100,7 +100,26 @@ func (e *RmanDuplicate) Run() error {
 		return err
 	}
 	e.waitAfterDuplicate()
+	e.configArchivelogDeletionPolicy()
 	defer e.maskPasswordInScript(scriptPath)
+	return nil
+}
+
+// configArchivelogDeletionPolicy 配置归档日志删除策略：
+func (e *RmanDuplicate) configArchivelogDeletionPolicy() error {
+	e.Runtime.Logger.Info("start to config archivelog deletion policy")
+
+	cmd := fmt.Sprintf(`rman target / <<EOF
+CONFIGURE ARCHIVELOG DELETION POLICY TO APPLIED ON STANDBY;
+EOF`)
+
+	e.Runtime.Logger.Info("execute cmd: %s", cmd)
+	out, err := util.RunBashCmd(cmd, "", nil, consts.RmanConfigTimeout)
+	if err != nil {
+		e.Runtime.Logger.Error("config archivelog deletion policy fail, error:%s, output:%s", err, out)
+		return fmt.Errorf("config archivelog deletion policy fail, error:%s, output:%s", err, out)
+	}
+	e.Runtime.Logger.Info("config archivelog deletion policy successfully, output:\n%s", out)
 	return nil
 }
 

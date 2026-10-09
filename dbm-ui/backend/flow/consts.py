@@ -783,6 +783,7 @@ class OracleActuatorActionEnum(StrStructuredEnum):
     CheckConnections = EnumField("check-connections", _("check-connections"))
     ActivateStandby = EnumField("activate-standby", _("activate-standby"))
     MergeTnsnames = EnumField("merge-tnsnames", _("merge-tnsnames"))
+    DynamicTns = EnumField("dynamic-tns", _("dynamic-tns"))
 
 
 class SqlserverActuatorActionEnum(StrStructuredEnum):

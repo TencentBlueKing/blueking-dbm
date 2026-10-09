@@ -1,6 +1,7 @@
 package atomoracle
 
 import (
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/common"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/core/staticembed"
@@ -139,7 +140,17 @@ func (e *ConfigDataguard) ConfigDataguard() error {
 
 // ConfigTnsNames 配置tnsnames.ora
 func (e *ConfigDataguard) ConfigTnsNames() error {
-	e.Runtime.Logger.Info("start to config tnsnames.ora")
+	return ConfigTnsNames(e.Runtime.Logger, e.Params.SlaveDbUniqueName,
+		e.Params.SlaveHost, e.Params.SlavePort, e.Params.OracleSID)
+}
+
+// ConfigTnsNames 配置tnsnames.ora 的公共实现：
+// 1) 读取内嵌模板并替换占位符
+// 2) 追加写入到 $ORACLE_HOME/network/admin/tnsnames.ora
+// 3) 通过 tnsping 校验连通性
+func ConfigTnsNames(log *logger.Logger, slaveDbUniqueName, slaveHost string,
+	slavePort int, oracleSID string) error {
+	log.Info("start to config tnsnames.ora")
 
 	oracleHome := os.Getenv("ORACLE_HOME")
 	if oracleHome == "" {
@@ -149,32 +160,32 @@ func (e *ConfigDataguard) ConfigTnsNames() error {
 
 	tplBytes, err := staticembed.TnsNames.ReadFile(staticembed.TnsNamesFileName)
 	if err != nil {
-		e.Runtime.Logger.Error("read embedded %s fail, error:%s", staticembed.TnsNamesFileName, err)
+		log.Error("read embedded %s fail, error:%s", staticembed.TnsNamesFileName, err)
 		return fmt.Errorf("read embedded %s fail, error:%s", staticembed.TnsNamesFileName, err)
 	}
 
 	content := strings.NewReplacer(
-		consts.TnsPlaceholderDBUniqueName, e.Params.SlaveDbUniqueName,
-		consts.TnsPlaceholderHost, e.Params.SlaveHost,
-		consts.TnsPlaceholderPort, strconv.Itoa(e.Params.SlavePort),
-		consts.TnsPlaceholderOracleSID, e.Params.OracleSID,
+		consts.TnsPlaceholderDBUniqueName, slaveDbUniqueName,
+		consts.TnsPlaceholderHost, slaveHost,
+		consts.TnsPlaceholderPort, strconv.Itoa(slavePort),
+		consts.TnsPlaceholderOracleSID, oracleSID,
 	).Replace(string(tplBytes))
 
 	// 追加写入，避免覆盖已有条目；文件不存在则创建
 	f, err := os.OpenFile(tnsFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, consts.TnsFilePerm)
 	if err != nil {
-		e.Runtime.Logger.Error("open %s fail, error:%s", tnsFile, err)
+		log.Error("open %s fail, error:%s", tnsFile, err)
 		return fmt.Errorf("open %s fail, error:%s", tnsFile, err)
 	}
 	defer f.Close()
 	if _, err = f.WriteString(content + "\n"); err != nil {
-		e.Runtime.Logger.Error("append content to %s fail, error:%s", tnsFile, err)
+		log.Error("append content to %s fail, error:%s", tnsFile, err)
 		return fmt.Errorf("append content to %s fail, error:%s", tnsFile, err)
 	}
-	e.Runtime.Logger.Info("config tnsnames.ora successfully, file:%s, appended content:\n%s", tnsFile, content)
+	log.Info("config tnsnames.ora successfully, file:%s, appended content:\n%s", tnsFile, content)
 
 	// tnsping 校验连通性
-	if err = TnsPing(e.Params.SlaveDbUniqueName); err != nil {
+	if err = TnsPing(slaveDbUniqueName); err != nil {
 		return err
 	}
 	return nil
