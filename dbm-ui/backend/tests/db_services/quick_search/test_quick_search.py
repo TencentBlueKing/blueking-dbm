@@ -239,3 +239,27 @@ class TestQuickSearchViewSet:
         assert response.data.get("count") >= 1
         assert response.data.get("offset") == 0
         assert response.data.get("limit") == 1
+
+    @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
+    @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
+    def test_search_count_match_search_result(self, resource_list_mock, query, init_mysql_cluster):
+        """
+        测试 search 与 search_result 统计的命中数一致，且全量返回时 count 与 results 数量对得上
+        """
+        cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+
+        query["keyword"] = self._get_keyword(query, cluster.immute_domain)
+        search_response = self._request_quick_search(resource_list_mock, query)
+        assert search_response.status_code == 200
+        search_count = search_response.data.get("count", {}).get("cluster")
+
+        query["resource_type"] = "cluster"
+        query["offset"] = 0
+        query["limit"] = -1
+        result_response = self._request_search_result(resource_list_mock, query)
+        assert result_response.status_code == 200
+        # 结果页统计的命中数需与快速查询保持一致
+        assert result_response.data.get("count") == search_count
+        # 全量返回时，count 需与实际返回的数据量一致
+        assert len(result_response.data.get("results", [])) == result_response.data.get("count")

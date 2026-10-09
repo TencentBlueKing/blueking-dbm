@@ -97,11 +97,13 @@ class QSearchHandler(object):
         self.limit = limit
         return filter_func(keyword_list)
 
-    def _slice(self, objs):
-        """按 self.offset / self.limit 切片；limit 为 -1 时返回全量"""
-        if self.limit == -1:
+    def _slice(self, objs, limit=None, offset=None):
+        """按 offset / limit 切片；limit 为 -1 时返回全量"""
+        limit = self.limit if limit is None else limit
+        offset = self.offset if offset is None else offset
+        if limit == -1:
             return objs
-        return objs[self.offset : self.offset + self.limit]
+        return objs[offset : offset + limit]
 
     def get_permission_biz_ids(self, bk_biz_ids, filter_type):
         """获取有权限的业务id"""
@@ -203,12 +205,9 @@ class QSearchHandler(object):
         if self.db_types:
             objs = objs.filter(cluster_type__in=self.cluster_types)
 
-        limit = self.limit if limit is None else limit
-        offset = offset or self.offset
+        # 总数与分页数据必须取自同一个 queryset，保证 count 与 results 数量一致
         total = objs.count()
-
-        # limit 为 None 表示不分页（返回全量）
-        sliced = self._slice(objs)
+        sliced = self._slice(objs, limit=limit, offset=offset)
 
         if return_type == "objects":
             return sliced, total
@@ -261,39 +260,28 @@ class QSearchHandler(object):
 
         objs = Cluster.objects.filter(qs).distinct()
 
-        # 复用 ListRetrieveResource 的序列化逻辑
-        # 创建临时子类实例，设置 cluster_types
-        resource_cls = ListRetrieveResource
-        # 获取有效的集群类型列表，过滤掉未定义 db_type 的集群类型（如 tbinlogdumper）
-        if self.cluster_types:
-            cluster_types = self.cluster_types
-        else:
-            # 过滤掉未定义 db_type 的集群类型
-            cluster_types = []
-            for ct in ClusterType.get_values():
-                try:
-                    ClusterType.cluster_type_to_db_type(ct)
-                    cluster_types.append(ct)
-                except ValueError:
-                    # 跳过未定义 db_type 的集群类型
-                    pass
-        resource_cls.cluster_types = cluster_types
-
-        # 统计匹配总数（不受 limit 截断影响），但需先应用业务 / db_type 过滤
-        total_objs = objs
+        # 业务 / db_type 过滤必须作用于统计和分页的同一个 queryset，
+        # 否则 count 统计的是过滤后的数据，而 results 取的是未过滤的数据，两者数量对不上
+        cluster_types = self.get_cluster_type_scope()
         if self.bk_biz_ids:
-            total_objs = total_objs.filter(bk_biz_id__in=self.bk_biz_ids)
-        if self.db_types:
-            total_objs = total_objs.filter(cluster_type__in=self.cluster_types)
-        total = total_objs.count()
+            objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
+        objs = objs.filter(cluster_type__in=cluster_types)
 
-        # 获取集群ID列表（按分页 offset/limit 切片，limit 为 None 时取全量），调用 _list_clusters 进行序列化
-        cluster_ids = list(self._slice(objs.values_list("id", flat=True)))
+        # 统计匹配总数（不受 limit 截断影响）
+        total = objs.count()
+
+        # 获取集群ID列表（按分页 offset/limit 切片，limit 为 -1 时取全量），调用 _list_clusters 进行序列化
+        # 显式排序，保证分页数据稳定且不会重复 / 遗漏
+        cluster_ids = list(self._slice(objs.order_by("id").values_list("id", flat=True)))
         if not cluster_ids:
             return [], total
 
-        # 构造 query_params，通过 id__in 来精确查询
-        query_params = {"id": ",".join(map(str, cluster_ids))}
+        # 复用 ListRetrieveResource 的序列化逻辑
+        # 用临时子类承载 cluster_types，避免污染 ListRetrieveResource 基类（会影响其他集群查询接口）
+        resource_cls = type("QuickSearchListResource", (ListRetrieveResource,), {"cluster_types": cluster_types})
+
+        # 构造 query_params，通过 id__in 来精确查询；ordering 与 cluster_ids 顺序保持一致
+        query_params = {"id": ",".join(map(str, cluster_ids)), "ordering": "id"}
         resource_list = resource_cls._list_clusters(
             bk_biz_id=None,  # 已在 filter 中处理
             query_params=query_params,
@@ -302,6 +290,25 @@ class QSearchHandler(object):
         )
 
         return self.supplementary_fields(resource_list.data), total
+
+    def get_cluster_type_scope(self):
+        """获取结果集允许的集群类型列表
+
+        指定 db_type 时为其对应的集群类型；否则为所有能映射出 db_type 的集群类型。
+        过滤掉未定义 db_type 的集群类型（如 tbinlogdumper），保证 count 与结果页实际能返回的数据量一致
+        """
+        if self.cluster_types:
+            return self.cluster_types
+
+        cluster_types = []
+        for ct in ClusterType.get_values():
+            try:
+                ClusterType.cluster_type_to_db_type(ct)
+            except ValueError:
+                # 跳过未定义 db_type 的集群类型
+                continue
+            cluster_types.append(ct)
+        return cluster_types
 
     def _build_tag_filter(self, keyword_list: list) -> Q:
         """构建标签过滤条件，支持 标签:标签值 格式
@@ -412,9 +419,10 @@ class QSearchHandler(object):
             .filter(qs)
         )
 
-        # 统计匹配总数（storage + proxy 各自命中数之和，不受 limit 截断影响）
-        total = storage_objs.count() + proxy_objs.count()
+        # 统计匹配总数（storage + proxy 合并后的命中数，不受 limit 截断影响）
+        # 这里以合并后的数据长度为准，避免 count 与结果页实际可翻出的数据量不一致
         combined = list(storage_objs.values(*fields)) + list(proxy_objs.values(*fields))
+        total = len(combined)
         combined = self._slice(combined)
 
         return self.supplementary_fields(combined), total
