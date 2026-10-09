@@ -130,7 +130,7 @@ class TestBaseOpenAPIViewSetPermissions:
 
     def test_cmdb_apigw_viewset_with_jwt_with_action_perm(self):
         """CMDBApiGwViewSet 通过 JWT 认证，create_module 使用 default_permission_class → 应包含 DBManagePermission"""
-        from backend.db_services.plugin.cmdb.view import CMDBApiGwViewSet
+        from backend.db_services.plugin.cmdb.views import CMDBApiGwViewSet
 
         viewset = CMDBApiGwViewSet()
         mock_request = MagicMock()
@@ -145,7 +145,7 @@ class TestBaseOpenAPIViewSetPermissions:
 
     def test_cmdb_apigw_viewset_without_jwt(self):
         """CMDBApiGwViewSet 未通过 JWT 认证时，RejectPermission 应排在第一位"""
-        from backend.db_services.plugin.cmdb.view import CMDBApiGwViewSet
+        from backend.db_services.plugin.cmdb.views import CMDBApiGwViewSet
 
         viewset = CMDBApiGwViewSet()
         mock_request = MagicMock()
