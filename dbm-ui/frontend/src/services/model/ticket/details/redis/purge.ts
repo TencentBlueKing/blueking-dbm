@@ -7,9 +7,9 @@ export interface Purge extends DetailBase {
     backup: boolean;
     cluster_id: number;
     cluster_type: string;
-    db_list: [];
+    db_list: number[];
     domain: string;
-    flushall: true; // TODO: 目前都是 true, 后续根据后端实现调整
+    flushall: boolean;
     force: boolean;
   }[];
 }
