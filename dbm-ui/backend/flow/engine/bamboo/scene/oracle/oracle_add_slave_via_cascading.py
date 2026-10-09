@@ -85,7 +85,6 @@ class OracleAddSlaveViaCascadingFlow(OracleBaseFlow):
             old_master = info["old_master"]["ip"]
             old_node = info["old_node"]["ip"]
             new_slave = info["new_slave"]["ip"]
-            replace_host = info["replace_host"]["ip"]
 
             # 1. 环境预检查 + 依赖插件安装
             sub_pipeline.add_sub_pipeline(
@@ -193,6 +192,7 @@ class OracleAddSlaveViaCascadingFlow(OracleBaseFlow):
 
             # 9. 若为替换场景, 追加替换公共子流程 (级联模式固定使用 replace_instance + SLAVE_ENTRY)
             if info["replace_flag"]:
+                replace_host = info["replace_host"]["ip"]
                 meta_kwargs = build_replace_meta_kwargs_for_primary_standby(
                     cluster_id=info["cluster_id"],
                     bk_biz_id=self.data["bk_biz_id"],

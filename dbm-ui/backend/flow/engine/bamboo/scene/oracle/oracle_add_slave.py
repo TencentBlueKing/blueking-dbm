@@ -106,7 +106,6 @@ class OracleAddSlaveFlow(OracleBaseFlow):
             cluster_master = cluster.storageinstance_set.get(instance_role=InstanceRole.PRIMARY.value).machine.ip
             old_node = info["old_node"]["ip"]
             new_slave = info["new_slave"]["ip"]
-            replace_host = info["replace_host"]["ip"]
             # 1. 环境预检查 + 依赖插件安装
             sub_pipeline.add_sub_pipeline(
                 sub_flow=build_precheck_sub_flow(
@@ -174,7 +173,18 @@ class OracleAddSlaveFlow(OracleBaseFlow):
                 )
             )
 
-            # 7. 仅 Oracle 单节点版集群需要校验旧实例是否为真实主节点
+            # 7. tnsnames配置改为动态监听连接串
+            sub_pipeline.add_act(
+                **_make_oracle_act(
+                    act_name=_("tnsnames配置改为动态监听连接串"),
+                    exec_ip=old_node,
+                    bk_cloud_id=bk_cloud_id,
+                    payload_func_name=OracleActPayload.get_dynamic_tns.__name__,
+                    run_as_system_user=DBA_ORACLE_USER,
+                )
+            )
+
+            # 8. 仅 Oracle 单节点版集群需要校验旧实例是否为真实主节点
             if cluster.cluster_type == ClusterType.OracleSingleNone.value:
                 sub_pipeline.add_act(
                     **_make_oracle_act(
@@ -186,7 +196,7 @@ class OracleAddSlaveFlow(OracleBaseFlow):
                     )
                 )
 
-            # 8. 写入元数据 - 新增机器
+            # 9. 写入元数据 - 新增机器
             sub_pipeline.add_act(
                 act_name=_("写入元数据-新增机器"),
                 act_component_code=OracleDBMetaComponent.code,
@@ -200,8 +210,9 @@ class OracleAddSlaveFlow(OracleBaseFlow):
                 ),
             )
 
-            # 9. 若为替换场景, 追加替换公共子流程
+            # 10. 若为替换场景, 追加替换公共子流程
             if info["replace_flag"]:
+                replace_host = info["replace_host"]["ip"]
                 meta_kwargs, dns_role = self._build_replace_meta_kwargs(cluster, info, new_slave)
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=build_replace_common_sub_flow(

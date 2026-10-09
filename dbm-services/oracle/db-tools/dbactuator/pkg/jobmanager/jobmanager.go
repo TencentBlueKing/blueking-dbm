@@ -152,6 +152,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atomoracle.NewMergeTnsnames,
 			atomoracle.NewStopListener,
 			atomoracle.NewGetTnsnamesFile,
+			atomoracle.NewDynamicTns,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}

@@ -154,6 +154,9 @@ const (
 	RmanPlaceholderSlave           = "{{slave}}"
 	RmanPlaceholderAvailableNumber = "{{available_number}}"
 
+	// RmanConfigTimeout 执行 rman CONFIGURE 命令的超时时间
+	RmanConfigTimeout = 1 * time.Minute
+
 	// LagThresholdSec 延迟阈值（秒）
 	LagThresholdSec = 60
 )

@@ -35,23 +35,6 @@ class OracleActPayload(object):
             print(f"configs: {configs}")
         return configs
 
-    def get_master_dataguard_config_payload(self, **kwargs) -> dict:
-        """
-        主从配置初始化
-        """
-        configs = self._get_configs(kwargs["trans_data"], AddSlaveContext.get_configs_var_name())
-        return {
-            "db_type": DBActuatorTypeEnum.Default.value,
-            "action": OracleActuatorActionEnum.MasterDataguardConfig.value,
-            "payload": {
-                "log_archive_config": configs["log_archive_config"],
-                "available_number": configs["available_number"],
-                "slave_host": self.ticket_data["new_slave"]["ip"],
-                "oracle_sid": configs["oracle_sid"],
-                "slave_db_unique_name": configs["slave_db_unique_name"],
-            },
-        }
-
     def get_sysinit_payload(self, **kwargs) -> dict:
         """
         系统配置初始化
@@ -119,6 +102,7 @@ class OracleActPayload(object):
                 "slave_host": kwargs["ip"],
                 "master_db_unique_name": configs["master_db_unique_name"],
                 "slave_db_unique_name": configs["slave_db_unique_name"],
+                "master_service_names": configs["service_names"],
             },
         }
 
@@ -142,6 +126,7 @@ class OracleActPayload(object):
                 "slave_host": kwargs["ip"],
                 "master_db_unique_name": configs["master_db_unique_name"],
                 "slave_db_unique_name": configs["slave_db_unique_name"],
+                "master_service_names": configs["service_names"],
                 "old_master_host": self.ticket_data["old_master"]["ip"],
                 "old_master_db_unique_name": master_configs["master_db_unique_name"],
             },
@@ -263,7 +248,7 @@ class OracleActPayload(object):
 
     def get_tnsnames_file_payload(self, **kwargs) -> dict:
         """
-        获取密码文件
+        获取tnsnames文件
         """
         return {
             "db_type": DBActuatorTypeEnum.Oracle.value,
@@ -385,5 +370,22 @@ class OracleActPayload(object):
                 "available_number": configs["available_number"],
                 "master_db_unique_name": configs["master_db_unique_name"],
                 "account": OraclePassword.get_sys_account(UserName.ORACLE_SYS),
+            },
+        }
+
+    def get_dynamic_tns(self, **kwargs) -> dict:
+        """
+        改为动态监听连接串
+        """
+        configs = self._get_configs(kwargs["trans_data"], AddSlaveContext.get_configs_var_name())
+
+        return {
+            "db_type": DBActuatorTypeEnum.Oracle.value,
+            "action": OracleActuatorActionEnum.DynamicTns.value,
+            "payload": {
+                "slave_host": self.ticket_data["new_slave"]["ip"],
+                "slave_port": consts.ManagerDefaultPort.ORACLE_PORT.value,
+                "oracle_sid": configs["oracle_sid"],
+                "slave_db_unique_name": configs["slave_db_unique_name"],
             },
         }
