@@ -81,6 +81,9 @@
     <InfoItem :label="t('数据冲突处理')">
       {{ conflictHandleText || '--' }}
     </InfoItem>
+    <InfoItem :label="t('备份位置')">
+      {{ backupLocaleText || '--' }}
+    </InfoItem>
   </InfoList>
 </template>
 <script setup lang="ts">
@@ -127,6 +130,16 @@
   const conflictHandleText = computed(() => {
     const { on_duplicate: onDuplicate } = props.ticketDetails.details.task || {};
     return (onDuplicate && conflictHandleTextMap[onDuplicate]) || t('报错并停止');
+  });
+
+  const backupLocaleTextMap = {
+    master: 'Master',
+    slave: 'Slave',
+  } as const;
+
+  const backupLocaleText = computed(() => {
+    const { backup_locale: backupLocale } = props.ticketDetails.details || {};
+    return backupLocale && backupLocaleTextMap[backupLocale];
   });
 
   // 从 infos[].migrate.one_to_one 提取行数据
