@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
+import { getNodeLogPage, getRetryNodeHistories } from '@services/source/taskflow';
 
 import { useFetchAllPages } from '@hooks';
 
@@ -22,7 +22,7 @@ export default function () {
   let versionId = '';
   const isLoading = ref(false);
   // 统计依赖全量日志，按分片取全量
-  const { data: wholeLogList, runAsync: fetchWholeLogList } = useFetchAllPages(getNodeLog);
+  const { data: wholeLogList, runAsync: fetchWholeLogList } = useFetchAllPages(getNodeLogPage);
   const fileStartReg = /.*\[start\]-(.+)$/;
   const fileEndReg = /.*\[end\]-(.+)$/;
   const counts = reactive({

@@ -54,7 +54,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
+  import { getNodeLogPage, getRetryNodeHistories } from '@services/source/taskflow';
 
   import DbLog from '@components/db-log/index.vue';
 
@@ -71,7 +71,7 @@
 
   import ExecuteHistory from './components/ExecuteHistory.vue';
 
-  type NodeLogItem = ServiceReturnType<typeof getNodeLog>['results'][number];
+  type NodeLogItem = ServiceReturnType<typeof getNodeLogPage>['results'][number];
 
   interface Props {
     autoOpenAiLog: boolean;
@@ -91,6 +91,8 @@
 
   // 终端尚未完成 fit 时的分片条数下限，避免发出 limit 为 0 的空请求
   const MIN_LOG_PAGE_SIZE = 30;
+  // 后端单次拉取上限
+  const MAX_LOG_PAGE_SIZE = 10000;
 
   const { t } = useI18n();
 
@@ -114,34 +116,37 @@
     loading: false,
   });
 
-  // 已拉取条数，同时作为下一次分片请求的 offset
-  let loadedCount = 0;
   // 日志版本与生命周期令牌，用于丢弃已过期分片的返回
   let logToken = 0;
 
   /**
-   * 分片条数取终端「一屏半」（按逻辑行计，不折算行）
+   * 分片条数取终端「一屏半」（按逻辑行计，不折算行），不超过后端单次上限
    */
   const getLogPageSize = () => {
     const rows = dbLogRef.value?.getVisibleRows() ?? 0;
-    return Math.max(Math.ceil(rows * 1.5), MIN_LOG_PAGE_SIZE);
+    return Math.min(Math.max(Math.ceil(rows * 1.5), MIN_LOG_PAGE_SIZE), MAX_LOG_PAGE_SIZE);
   };
 
   /**
-   * 从已拉取位置继续分片拉取，直到取满全量总数
+   * 按游标续拉分片，直到后端标记没有下一页
    */
   const fetchLogChunks = async (token: number) => {
     const pageSize = getLogPageSize();
+    // 首片 next 为空，后续直接请求上一片返回的 next 地址
+    let next = '';
     let hasMore = true;
 
     while (hasMore && token === logToken) {
-      const page = await getNodeLog({
-        limit: pageSize,
-        node_id: nodeData.value.id,
-        offset: loadedCount,
-        root_id: props.rootId,
-        version_id: currentData.value.version,
-      });
+      const page = await getNodeLogPage(
+        {
+          limit: pageSize,
+          node_id: nodeData.value.id,
+          offset: 0,
+          root_id: props.rootId,
+          version_id: currentData.value.version,
+        },
+        next,
+      );
       // 请求可能在切换版本或组件卸载后才返回
       if (token !== logToken) {
         return;
@@ -150,14 +155,23 @@
       const chunk = page.results;
       // 是否还有下一页只看 has_data，在写入本片数据之前先判定
       hasMore = page.has_data === true;
-      if (chunk.length > 0) {
-        loadedCount += chunk.length;
-        logState.data.push(...chunk);
-        dbLogRef.value?.appendLog(chunk);
-
-        // 首片已渲染，后续分片续加载不再遮挡
-        logState.loading = false;
+      // 分片为空兜底，避免异常时无限续拉
+      if (chunk.length === 0) {
+        break;
       }
+
+      // 最后一片（has_data 为 false）也要写入展示
+      logState.data.push(...chunk);
+      dbLogRef.value?.appendLog(chunk);
+
+      // 首片已渲染，后续分片续加载不再遮挡
+      logState.loading = false;
+
+      // 没有下一页地址时结束（本片数据已写入）
+      if (!page.next) {
+        break;
+      }
+      next = page.next;
     }
   };
 
@@ -189,7 +203,6 @@
    */
   const resetLogState = () => {
     logToken += 1;
-    loadedCount = 0;
     logState.data = [];
     logState.loading = false;
     dbLogRef.value?.setLog([]);

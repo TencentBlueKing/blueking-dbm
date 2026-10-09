@@ -36,7 +36,7 @@
   import { useRequest } from 'vue-request';
 
   import FlowMode from '@services/model/ticket/flow';
-  import { getNodeLog, getSpecificNodes } from '@services/source/taskflow';
+  import { getNodeLogPage, getSpecificNodes } from '@services/source/taskflow';
 
   import { useFetchAllPages } from '@hooks';
 
@@ -82,7 +82,7 @@
     },
   });
 
-  const { data: logContent, loading: isLoadingLogContent, run: runGetNodeLog } = useFetchAllPages(getNodeLog);
+  const { data: logContent, loading: isLoadingLogContent, run: runGetNodeLog } = useFetchAllPages(getNodeLogPage);
 
   watch(renderLogContent, () => {
     nextTick(() => {

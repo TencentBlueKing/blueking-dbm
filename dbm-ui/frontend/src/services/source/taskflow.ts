@@ -186,8 +186,22 @@ export function getRetryNodeHistories(params: { node_id: string; root_id: string
 }
 
 /**
- * 节点日志（单次分片，由调用方指定 offset / limit）
- * has_data 为 true 表示还有下一页
+ * 节点日志分片响应
+ * has_data 为 true 表示还有下一页；next 是下一片的请求地址（已内嵌 search_after 等全部查询参数）
+ */
+interface NodeLogResponse {
+  has_data: boolean;
+  next: string;
+  results: {
+    levelname: string;
+    message: string;
+    // 后端按字符串返回时间戳
+    timestamp: number | string;
+  }[];
+}
+
+/**
+ * 节点日志首片（search_after 游标分页：首片不传 search_after）
  */
 export function getNodeLog(params: {
   labels?: string;
@@ -197,14 +211,31 @@ export function getNodeLog(params: {
   root_id: string;
   version_id: string;
 }) {
-  return http.get<{
-    has_data: boolean;
-    results: {
-      levelname: string;
-      message: string;
-      timestamp: number;
-    }[];
-  }>(`${path}/${params.root_id}/node_log/`, params);
+  return http.get<NodeLogResponse>(`${path}/${params.root_id}/node_log/`, params);
+}
+
+/**
+ * 节点日志下一片：直接请求上一片返回的 next 地址（去掉域名，走当前环境的代理）
+ */
+export function getNodeLogNext(next: string) {
+  return http.get<NodeLogResponse>(next.replace(/^https?:\/\/[^/]+/, ''));
+}
+
+/**
+ * 节点日志分片：next 为空请求首片，否则直接请求上一片返回的 next 地址
+ */
+export function getNodeLogPage(
+  params: {
+    labels?: string;
+    limit?: number;
+    node_id: string;
+    offset?: number;
+    root_id: string;
+    version_id: string;
+  },
+  next = '',
+) {
+  return next ? getNodeLogNext(next) : getNodeLog(params);
 }
 
 /**
