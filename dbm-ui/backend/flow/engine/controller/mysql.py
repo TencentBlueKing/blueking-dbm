@@ -76,6 +76,7 @@ from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_ha_apply_revoke_flow import MySQLHAApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_single_apply_revoke_flow import MySQLSingleApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.validate.dbconsole_dump_validator import DbConsoleDumpFlowValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator import MysqlDtsMigrateFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_local_upgrade_validator import MySQLLocalUpgradeValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_add_validator import MySQLProxyClusterAddFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_rebuild_validator import (
@@ -863,14 +864,17 @@ class MySQLController(BaseController):
         flow = MysqlDtsClusterReinstallFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(MysqlDtsMigrateFlowValidator)
     def mysql_to_mysql_migrate_scene(self):
         flow = MysqlToMysqlMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(MysqlDtsMigrateFlowValidator)
     def mysql_ha_to_cluster_migrate_scene(self):
         flow = MysqlHaToClusterMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(MysqlDtsMigrateFlowValidator)
     def mysql_rename_migrate_scene(self):
         flow = MysqlRenameMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()

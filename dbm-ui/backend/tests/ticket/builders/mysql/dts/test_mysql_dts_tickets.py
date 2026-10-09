@@ -37,6 +37,7 @@ from backend.ticket.builders.mysql.dts.mysql_dts_tickets import (
     _validate_mysql_to_mysql_cluster_types,
 )
 from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketFlowStatus, TicketStatus, TicketType
+from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.ticket.serializers import TicketDetailsSerializer
 from backend.utils.excel import ExcelHandler
 
@@ -182,6 +183,9 @@ def _grant_cluster_filter_side_effect(*args, **kwargs):
             id=i,
             major_version="MySQL-5.7",
             cluster_type=ClusterType.TenDBHA.value,
+            bk_biz_id=1,
+            db_module_id=1,
+            immute_domain="c{}.db".format(i),
         )
         for i in ids
     ]
@@ -202,11 +206,23 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
             "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_table_with_pattern",
             return_value=["tb_a"],
         )
-        for patcher in (cluster_patcher, db_patcher, table_patcher):
+        validator_prefix = "backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator"
+        structure_patchers = [
+            patch(validator_prefix + ".query_source_charset_collations", return_value=[]),
+            patch(validator_prefix + ".query_target_collations", return_value=[]),
+            patch(validator_prefix + ".query_non_table_objects", return_value=[]),
+            patch(
+                validator_prefix + ".get_cluster_config",
+                return_value={"mysqld": {"default_storage_engine": "innodb"}},
+            ),
+        ]
+        for patcher in (cluster_patcher, db_patcher, table_patcher, *structure_patchers):
             self.addCleanup(patcher.stop)
         cluster_patcher.start()
         self.mock_show_databases = db_patcher.start()
         self.mock_show_tables = table_patcher.start()
+        for patcher in structure_patchers:
+            patcher.start()
 
     def test_migrate_serializer_builds_plan(self):
         slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
@@ -2462,3 +2478,151 @@ class MySQLDtsChecksumFlowBuilderTest(SimpleTestCase):
         self.assertFalse(dts_builder.need_itsm)
         self.assertTrue(base_builder.need_itsm)
         self.assertTrue(dts_builder.need_timer)
+
+
+def _structure_error_text(exc) -> str:
+    return str(exc.errors)
+
+
+class MysqlDtsMigrateStructurePrecheckTest(SimpleTestCase):
+    def setUp(self):
+        super().setUp()
+        self.engines = {"c100.db": "innodb", "c200.db": "innodb"}
+        self.source_collations = [("utf8mb4", "utf8mb4_general_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_general_ci")]
+        self.non_table_objects = []
+        prefix = "backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator"
+        patchers = [
+            patch(
+                "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
+                side_effect=_grant_cluster_filter_side_effect,
+            ),
+            patch(
+                "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_database_with_pattern",
+                return_value=["db_a"],
+            ),
+            patch(
+                "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_table_with_pattern",
+                return_value=["tb_a"],
+            ),
+            patch(prefix + ".Cluster.objects.filter", side_effect=self._clusters),
+            patch(prefix + ".query_source_charset_collations", side_effect=self._source_collations),
+            patch(prefix + ".query_target_collations", side_effect=self._target_collations),
+            patch(prefix + ".query_non_table_objects", side_effect=self._non_table),
+            patch(prefix + ".get_cluster_config", side_effect=self._config),
+        ]
+        for patcher in patchers:
+            self.addCleanup(patcher.stop)
+            patcher.start()
+
+    def _clusters(self, *args, **kwargs):
+        ids = list(kwargs.get("id__in") or [])
+        return [
+            SimpleNamespace(
+                id=cluster_id,
+                bk_biz_id=1,
+                immute_domain="c{}.db".format(cluster_id),
+                major_version="MySQL-5.7",
+                db_module_id=1,
+                cluster_type=ClusterType.TenDBHA.value,
+            )
+            for cluster_id in ids
+        ]
+
+    def _config(self, domain_name, db_version, module_id, namespace, bk_biz_id):
+        return {"mysqld": {"default_storage_engine": self.engines[domain_name]}}
+
+    def _source_collations(self, cluster_id, sync_scope, bk_biz_id):
+        return list(self.source_collations)
+
+    def _target_collations(self, cluster_id, bk_biz_id):
+        return list(self.target_collations)
+
+    def _non_table(self, cluster_id, sync_scope, bk_biz_id):
+        return list(self.non_table_objects)
+
+    def _serializer(self, details):
+        return MysqlToMysqlMigrateDetailSerializer(
+            data=details,
+            context={"ticket_type": TicketType.MYSQL_DTS_DATA_MIGRATE, "bk_biz_id": 1},
+        )
+
+    def _raise_text(self, details) -> str:
+        slz = self._serializer(details)
+        with self.assertRaises(TicketParamsVerifyException) as ctx:
+            slz.is_valid()
+        for item in ctx.exception.errors:
+            self.assertEqual(item["field"], "cluster_id")
+            self.assertIn("errors", item)
+            self.assertNotIn("non_field_errors", item)
+        return _structure_error_text(ctx.exception)
+
+    def test_missing_source_collation_rejected(self):
+        self.source_collations = [("utf8mb4", "utf8mb4_0900_ai_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_general_ci")]
+        text = self._raise_text(_minimal_layered_details())
+        self.assertIn("utf8mb4_0900_ai_ci", text)
+        self.assertIn("db_a.tb_a", text)
+
+    def test_collation_present_on_target_passes(self):
+        self.source_collations = [("utf8mb4", "utf8mb4_0900_ai_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_0900_ai_ci")]
+        slz = self._serializer(_minimal_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+
+    def test_engine_case_difference_passes(self):
+        self.engines = {"c100.db": "InnoDB", "c200.db": "innodb"}
+        slz = self._serializer(_minimal_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+
+    def test_engine_mismatch_rejected(self):
+        self.engines = {"c100.db": "innodb", "c200.db": "rocksdb"}
+        text = self._raise_text(_minimal_layered_details())
+        self.assertIn("innodb", text)
+        self.assertIn("rocksdb", text)
+        self.assertIn("100", text)
+        self.assertIn("200", text)
+
+    def test_non_table_objects_rejected(self):
+        self.non_table_objects = [("PROCEDURE", "db_a.sp_demo"), ("FUNCTION", "db_a.fn_demo")]
+        text = self._raise_text(_minimal_layered_details())
+        self.assertIn("存储过程", text)
+        self.assertIn("函数", text)
+        self.assertIn("db_a.sp_demo", text)
+        self.assertIn("db_a.fn_demo", text)
+        self.assertIn("check_non_table_object", text)
+
+    def test_check_non_table_object_false_keeps_charset_and_engine(self):
+        self.non_table_objects = [("PROCEDURE", "db_a.sp_demo"), ("FUNCTION", "db_a.fn_demo")]
+        self.source_collations = [("utf8mb4", "utf8mb4_0900_ai_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_general_ci")]
+        self.engines = {"c100.db": "innodb", "c200.db": "rocksdb"}
+        details = _minimal_layered_details()
+        details["check_non_table_object"] = False
+        text = self._raise_text(details)
+        self.assertIn("utf8mb4_0900_ai_ci", text)
+        self.assertIn("db_a.tb_a", text)
+        self.assertIn("innodb", text)
+        self.assertIn("rocksdb", text)
+        self.assertNotIn("存储过程", text)
+        self.assertNotIn("db_a.sp_demo", text)
+
+    def test_three_builders_use_scene_validator(self):
+        from backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator import (
+            MysqlDtsMigrateFlowValidator,
+        )
+        from backend.flow.engine.controller.mysql import MySQLController
+
+        scenes = (
+            MySQLController.mysql_to_mysql_migrate_scene,
+            MySQLController.mysql_ha_to_cluster_migrate_scene,
+            MySQLController.mysql_rename_migrate_scene,
+        )
+        builders = (
+            MysqlToMysqlMigrateFlowBuilder,
+            MysqlHaToClusterMigrateFlowBuilder,
+            MysqlRenameMigrateFlowBuilder,
+        )
+        for scene, builder in zip(scenes, builders):
+            self.assertIs(scene.validator, MysqlDtsMigrateFlowValidator)
+            self.assertIs(builder.validator, scene.validator)

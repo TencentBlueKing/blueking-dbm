@@ -48,6 +48,7 @@ from backend.flow.utils.mysql.dts.sync_scope_overlap import landing_object_set, 
 from backend.flow.utils.mysql.dts.task_name import patch_migrate_task_names_into_details
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
@@ -350,6 +351,11 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
         required=False,
         help_text=_("迁移成功后是否串联销毁单据（多行 infos 时整单生效，默认 true；单行请写在 dts_resource）"),
     )
+    check_non_table_object = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text=_("是否检查视图、存储过程、函数、触发器和事件是否存在（整单生效，默认 true）。这些对象 DTS 不会迁移，设为 false 则不检查"),
+    )
     recycle_hosts = serializers.BooleanField(
         required=False,
         help_text=_("销毁时是否回收主机（多行 infos 时整单生效，默认 true；单行请写在 dts_resource）"),
@@ -410,6 +416,8 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
             bk_biz_id=self.context.get("bk_biz_id", plans[0].bk_biz_id),
             has_infos=has_infos,
         )
+        if self.context.get("ticket_type"):
+            return ParamValidateSerializerMixin.validated_params(self, attrs)
         return attrs
 
 
@@ -1338,6 +1346,7 @@ class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     inner_flow_builder = MysqlToMysqlMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 数据迁移")
     resource_batch_apply_builder = DtsMigrateResourceParamBuilder
+    validator = MySQLController.mysql_to_mysql_migrate_scene.validator
 
 
 class MysqlHaToClusterMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
@@ -1360,6 +1369,7 @@ class MysqlHaToClusterMigrateFlowBuilder(DtsMigrateFlowBuilder):
     inner_flow_builder = MysqlHaToClusterMigrateFlowParamBuilder
     inner_flow_name = _("MySQL HA到Cluster数据迁移")
     resource_batch_apply_builder = DtsMigrateResourceParamBuilder
+    validator = MySQLController.mysql_ha_to_cluster_migrate_scene.validator
 
 
 class MysqlRenameMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
@@ -1373,3 +1383,4 @@ class MysqlRenameMigrateFlowBuilder(DtsMigrateFlowBuilder):
     inner_flow_builder = MysqlRenameMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 重命名迁移")
     resource_batch_apply_builder = DtsMigrateResourceParamBuilder
+    validator = MySQLController.mysql_rename_migrate_scene.validator

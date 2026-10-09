@@ -28,6 +28,7 @@ import pymysql
 
 from backend.components.mysqldtsapi.types import (
     CreateSourceRequest,
+    PurgeConfig,
     Source,
     SourceConfig,
     SourceConfItem,
@@ -566,6 +567,7 @@ class DtsMigrateE2EOpenApiTest(unittest.TestCase):
                     enable_gtid=enable_gtid,
                     enable=True,
                     cluster_type="mysql",
+                    purge=PurgeConfig(interval=600, expires=6, remain_space=50),
                 )
             )
             body = src_req.model_dump(exclude_none=True, by_alias=True)
