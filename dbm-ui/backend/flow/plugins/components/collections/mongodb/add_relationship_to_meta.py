@@ -24,7 +24,7 @@ logger = logging.getLogger("json")
 
 class ExecAddRelationshipOperation(BaseService):
     """
-    NameServiceCreate服务
+    MongoDB 添加关系到 meta
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -34,13 +34,16 @@ class ExecAddRelationshipOperation(BaseService):
         kwargs 私有变量
         """
 
-        # 从流程节点中获取变量
         kwargs = data.get_one_of_inputs("kwargs")
+        progress_callback = self.log_info
 
-        # 写入meta
         try:
+            self.log_info(
+                "start add mongodb relationship to meta, cluster_type={}, name={}".format(
+                    kwargs.get("cluster_type"), kwargs.get("name")
+                )
+            )
             if kwargs["cluster_type"] == ClusterType.MongoReplicaSet.value:
-
                 pkg_create_mongoset(
                     bk_biz_id=kwargs["bk_biz_id"],
                     name=kwargs["name"],
@@ -57,6 +60,7 @@ class ExecAddRelationshipOperation(BaseService):
                     spec_config=kwargs["spec_config"],
                     disaster_tolerance_level=kwargs.get("disaster_tolerance_level", "NONE"),
                     zone_list=kwargs["zone_list"],
+                    progress_callback=progress_callback,
                 )
             elif kwargs["cluster_type"] == ClusterType.MongoShardedCluster.value:
                 pkg_create_mongo_cluster(
@@ -75,14 +79,17 @@ class ExecAddRelationshipOperation(BaseService):
                     machine_specs=kwargs["machine_specs"],
                     disaster_tolerance_level=kwargs.get("disaster_tolerance_level", "NONE"),
                     zone_list=kwargs["zone_list"],
+                    progress_callback=progress_callback,
                 )
+            else:
+                self.log_error("unsupported cluster_type:{}".format(kwargs.get("cluster_type")))
+                return False
         except Exception as e:
             self.log_error("add relationship to meta fail, error:{}".format(str(e)))
             return False
         self.log_info("add mongodb relationship to meta successfully")
         return True
 
-    # 流程节点输入参数
     def inputs_format(self) -> List:
         return [
             Service.InputItem(name="kwargs", key="kwargs", type="dict", required=True),
