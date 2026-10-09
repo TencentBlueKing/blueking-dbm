@@ -78,6 +78,29 @@ def is_redis_cluster_protocal(cluster_type: str) -> bool:
     ]
 
 
+def is_predixy_standalone_type(cluster_type: str) -> bool:
+    """Predixy 代理 + TendisPlus 主从实例，使用 StandaloneServerPool。"""
+    return cluster_type == ClusterType.TendisPredixyTendisplusInstance
+
+
+def is_seg_range_shard_type(cluster_type: str) -> bool:
+    """由 seg_range 路由到 master 的 proxy 集群。"""
+    return is_twemproxy_proxy_type(cluster_type) or is_predixy_standalone_type(cluster_type)
+
+
+def cal_proxy_servers(cluster_type: str, cluster_name: str, redis_master_set: list, redis_slave_set: list) -> list:
+    """按 proxy 的后端协议生成 servers 配置。"""
+    if is_twemproxy_proxy_type(cluster_type):
+        servers = []
+        for master in redis_master_set:
+            ip_port, seg_range = str.split(master)
+            servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))
+        return servers
+    if is_predixy_standalone_type(cluster_type):
+        return list(redis_master_set)
+    return list(redis_master_set) + list(redis_slave_set)
+
+
 def is_have_proxy(cluster_type: str) -> bool:
     """
     是否有proxy

@@ -30,6 +30,7 @@ from backend.db_services.redis.rollback.handlers import DataStructureHandler
 from backend.db_services.redis.util import (
     is_have_proxy,
     is_predixy_proxy_type,
+    is_predixy_standalone_type,
     is_redis_cluster_protocal,
     is_redis_instance_type,
     is_tendisplus_instance_type,
@@ -826,6 +827,8 @@ class RedisDataStructureFlow(object):
 
             if is_twemproxy_proxy_type(cluster_type):
                 servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
+            elif is_predixy_standalone_type(cluster_type):
+                servers = self.cal_predixy_standalone_serveres(redis_instance_set, node_pairs)
             elif is_redis_cluster_protocal(cluster_type):
                 servers = cluster_dst_instance
             else:
@@ -866,6 +869,16 @@ class RedisDataStructureFlow(object):
         for slave in redis_instance_set:
             instance, seg_range = slave.split(" ")
             servers.append("{} {} {} 1".format(node_dict.get(instance, miss_range_instance), name, seg_range))
+        return servers
+
+    def cal_predixy_standalone_serveres(self, redis_instance_set, node_pairs) -> list:
+        """回档临时实例的 StandaloneServerPool 后端须保留原 master 的 seg_range。"""
+        miss_range_instance = "127.0.0.1:6379"
+        node_dict = dict(node_pairs)
+        servers = []
+        for master in redis_instance_set:
+            instance, seg_range = master.split(" ")
+            servers.append("{} {}".format(node_dict.get(instance, miss_range_instance), seg_range))
         return servers
 
     def get_prod_temp_instance_pairs(

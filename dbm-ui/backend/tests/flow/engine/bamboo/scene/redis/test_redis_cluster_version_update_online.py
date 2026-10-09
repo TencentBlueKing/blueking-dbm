@@ -632,6 +632,7 @@ def _valid_instance_pair_flow(target_version=TARGET_VERSION, upgrade_master=Fals
         ClusterType.TendisTwemproxyRedisInstance,
         ClusterType.TwemproxyTendisSSDInstance,
         ClusterType.TendisTwemproxyTendisplusIns,
+        ClusterType.TendisPredixyTendisplusInstance,
     ],
 )
 def test_proxy_upgrade_flow_builds_for_proxy_supported_cluster_types(monkeypatch, cluster_type):
@@ -686,6 +687,7 @@ def test_backend_flow_builds_redis_cluster_protocol_switch_branch(monkeypatch, c
         ClusterType.TendisTwemproxyRedisInstance,
         ClusterType.TwemproxyTendisSSDInstance,
         ClusterType.TendisTwemproxyTendisplusIns,
+        ClusterType.TendisPredixyTendisplusInstance,
     ],
 )
 def test_backend_flow_builds_twemproxy_switch_branch(monkeypatch, cluster_type):
@@ -699,6 +701,8 @@ def test_backend_flow_builds_twemproxy_switch_branch(monkeypatch, cluster_type):
     names = _flatten_act_names()
     assert _RecorderBuilder.created[0].ran is True
     assert any("主从切换" in name for name in names)
+    if cluster_type == ClusterType.TendisPredixyTendisplusInstance:
+        assert not any("检查切换状态" in name for name in names)
     assert not any("暂停bkdbmon" in name for name in names)
     assert any("1.1.1.1-重装bkdbmon" == name for name in names)
     assert any("1.1.1.2-重装bkdbmon" == name for name in names)
@@ -896,9 +900,6 @@ def test_instance_pair_master_upgrade_establishes_sync_itself(monkeypatch):
 @pytest.mark.parametrize(
     "cluster_type",
     [
-        # 既不走 cluster failover 也不走 twemproxy 主从切换: 放行的话一个升级 act 都不会执行,
-        # 却照样翻转主从元数据
-        ClusterType.TendisPredixyTendisplusInstance,
         # 会走到建同步原子任务, 而它不支持 tendisplus
         ClusterType.TendisTwemproxyTendisplusIns,
         ClusterType.TendisTendisplusInsance,
