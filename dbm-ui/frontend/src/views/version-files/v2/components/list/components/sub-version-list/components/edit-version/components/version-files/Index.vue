@@ -37,6 +37,12 @@
       :pkg-type="pkgType"
       :uploaded-file-names="uploadedFileNames"
       :version="version" />
+    <input
+      ref="replaceInputRef"
+      :accept="replaceAccept"
+      style="display: none"
+      type="file"
+      @change="handleReplaceInputChange" />
   </div>
 </template>
 <script setup lang="ts">
@@ -44,7 +50,7 @@
 
   import type { DBTypes } from '@common/const';
 
-  import { random } from '@utils';
+  import { messageWarn, random } from '@utils';
 
   import UploadFile from './components/UploadFile.vue';
   import VersionRow from './components/VersionRow.vue';
@@ -101,6 +107,10 @@
   const isValidError = ref(false);
   const tableData = ref<TableRow[]>([]);
   const uploadSyncedUids = new Set<number>();
+  const replaceInputRef = ref<HTMLInputElement>();
+  let replacingRowKey = '';
+
+  const replaceAccept = computed(() => (['mysql', 'mysql-proxy'].includes(props.pkgType) ? '.tar.gz,.tar.xz' : ''));
 
   const uploadedFileNames = computed(() =>
     tableData.value.filter((item) => item.status === 'staged' || !item.status).map((item) => item.name),
@@ -262,22 +272,70 @@
   };
 
   const handleReplaceRow = (index: number) => {
-    // Remove the old row first, then trigger file input
-    // The new upload will appear as a fresh row via the fileList watcher
+    // 仅记录待替换行并打开文件选择框，用户确认选择文件后再执行替换
     const row = tableData.value[index];
-    // Clean up OS tracking for the old row
-    const oldOsType = row.permit_os_type || '';
-    if (oldOsType) {
-      selectedSystems.value.delete(oldOsType);
+    if (!row) return;
+    replacingRowKey = row.rowKey;
+    if (replaceInputRef.value) {
+      replaceInputRef.value.value = '';
+      replaceInputRef.value.click();
     }
-    if (oldOsType && selectedVersions.value[oldOsType]) {
-      (row.permit_os || []).forEach((v: string) => {
-        selectedVersions.value[oldOsType]?.delete(v);
-      });
+  };
+
+  const handleReplaceInputChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    const rowKey = replacingRowKey;
+    replacingRowKey = '';
+    target.value = '';
+
+    // 用户取消选择或未选择文件：不做任何替换
+    if (!file || !rowKey) return;
+
+    const index = tableData.value.findIndex((item) => item.rowKey === rowKey);
+    if (index < 0) return;
+
+    // 与其它行重名校验（排除当前被替换行）
+    const isDuplicate = tableData.value.some((item, idx) => idx !== index && item.name === file.name);
+    if (isDuplicate) {
+      messageWarn(t('已存在同名文件「x」', { x: file.name }));
+      return;
     }
+
+    const uploadRef = uploadFileRef.value?.uploadRef;
+    if (!uploadRef) return;
+
+    const oldRow = tableData.value[index];
+    // 先移除旧行，确保同名文件不会被上传组件的重名拦截过滤
     tableData.value.splice(index, 1);
-    // Trigger file input on DbUpload
-    uploadFileRef.value?.uploadRef?.inputRef?.click();
+    const existedUids = new Set((uploadRef.fileList || []).map((f) => f.uid));
+    uploadRef.handleFiles([file]);
+    const newEntry = (uploadRef.fileList || []).find((f) => !existedUids.has(f.uid));
+
+    if (!newEntry) {
+      // 上传未被接受，恢复旧行
+      tableData.value.splice(index, 0, oldRow);
+      return;
+    }
+
+    // 在原位置插入新的上传行，后续进度由 fileList watcher 同步
+    tableData.value.splice(index, 0, {
+      errMsg: undefined,
+      md5: '',
+      name: newEntry.name || file.name,
+      path: '',
+      percentage: newEntry.percentage || 0,
+      rowKey: random(),
+      size: newEntry.size || file.size,
+      status: 'uploading',
+      tempId: '',
+      uid: newEntry.uid,
+    });
+
+    nextTick(() => {
+      handleOsTypeChange(true);
+    });
+    emits('valueChange');
   };
 
   const handleRetryRow = (index: number) => {
