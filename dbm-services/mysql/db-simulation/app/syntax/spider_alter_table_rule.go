@@ -41,7 +41,17 @@ func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clu
 		}
 	}
 	r.ParseBuiltinBan(c.NotAllowedDefaultValCol)
+	r.ParseBuiltinBan(c.AlterEngineNotAllowed)
 	return r.Merge(c.checkWithClusterEngines(mysqlVersion, clusters))
+}
+
+// AlterEngineNotAllowed 暂不允许修改存储引擎，待 tdbctl 能执行 ALTER TABLE ENGINE 后放开。
+func (c AlterTableResult) AlterEngineNotAllowed() (bool, string) {
+	engine := canonicalStorageEngine(c.SpecifiedEngine())
+	if engine == "" {
+		return false, ""
+	}
+	return true, fmt.Sprintf("Tendbcluster集群暂不允许 ALTER TABLE 修改存储引擎 ENGINE=%s", engine)
 }
 
 // NotAllowedDefaultValCol 不允许存在默认值的字段
