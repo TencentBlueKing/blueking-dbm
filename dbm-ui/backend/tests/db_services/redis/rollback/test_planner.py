@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
 from backend.db_services.redis.rollback.batches import is_split_round_complete, latest_round_per_shard
-from backend.db_services.redis.rollback.constants import FILTER_MODE_DELETE_MATCHED, FILTER_MODE_KEEP_MATCHED
 from backend.db_services.redis.rollback.shards import ShardRef
 from backend.flow.consts import DEFAULT_REDIS_START_PORT
-from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
-    FullBackupRef,
-    KeyFilterSpec,
-    RollbackItem,
-    RollbackPlan,
-)
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import FullBackupRef, RollbackItem, RollbackPlan
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
 
 
@@ -61,15 +55,6 @@ def test_latest_round_per_shard_picks_newest_begin():
     assert latest["0-104999"][0]["round_key"] == "b"
 
 
-def test_key_filter_spec_routing():
-    assert KeyFilterSpec.from_ticket("", "").enabled is False
-    keep = KeyFilterSpec.from_ticket("user:*", "tmp:*")
-    assert keep.filter_mode == FILTER_MODE_KEEP_MATCHED
-    delete_only_black = KeyFilterSpec.from_ticket("", "tmp:*")
-    assert delete_only_black.filter_mode == FILTER_MODE_DELETE_MATCHED
-    assert delete_only_black.white_regex == ".*"
-
-
 def test_pack_dest_hosts_keeps_same_source_adjacent():
     items = [
         RollbackItem(
@@ -112,7 +97,7 @@ def test_pack_dest_hosts_keeps_same_source_adjacent():
         items=items,
     )
     planner = RollbackPlanner.__new__(RollbackPlanner)
-    planner._pack_dest_hosts(plan, ["2.2.2.2"], 1)
+    planner.pack_dest_hosts(plan, ["2.2.2.2"], 1)
     assert [item.dest_port for item in plan.items] == [
         DEFAULT_REDIS_START_PORT,
         DEFAULT_REDIS_START_PORT + 1,

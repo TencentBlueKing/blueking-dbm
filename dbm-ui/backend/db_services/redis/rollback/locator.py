@@ -17,16 +17,18 @@ from typing import Any, Dict, List, Optional, Sequence
 from backend import env
 from backend.components.bklog.client import BKLogApi
 from backend.db_meta.models import Cluster
-from backend.db_report.models.redis_backup_result import RedisBackupResult
+from backend.db_report.models.redis_backup_result import RedisBackupResult, RedisBinlogResult
+from backend.db_services.redis.rollback.binlogs import binlog_index
 from backend.db_services.redis.rollback.constants import (
     BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
     BACKUP_STATUS_SUCCESS,
+    BINLOG_LOOKUP_MARGIN_HOURS,
     LOCATOR_SOURCE_BKLOG,
     LOCATOR_SOURCE_TABLE,
 )
-from backend.db_services.redis.rollback.shards import round_key_from_filename
+from backend.db_services.redis.rollback.shards import round_key_from_filename, source_role
 from backend.utils.string import pascal_to_snake
-from backend.utils.time import datetime2str
+from backend.utils.time import datetime2str, str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -60,6 +62,7 @@ def row_to_backup_system_format(row) -> Dict[str, Any]:
             "size": size,
             "source_ip": row.get("server_ip") or row.get("backup_host") or "",
             "server_port": int(row.get("server_port") or row.get("backup_port") or 0),
+            "source_role": source_role(row.get("redis_role") or row.get("role"), file_name),
             "task_id": str(row.get("backup_taskid") or ""),
             "file_name": file_name,
             "shard_value": row.get("shard_value") or "",
@@ -78,6 +81,7 @@ def row_to_backup_system_format(row) -> Dict[str, Any]:
         "size": int(row.backup_file_size or 0),
         "source_ip": row.backup_host or "",
         "server_port": int(row.backup_port or 0),
+        "source_role": source_role(row.redis_role, file_name),
         "task_id": str(row.backup_taskid or ""),
         "file_name": file_name,
         "shard_value": row.shard_value or "",
@@ -88,10 +92,25 @@ def row_to_backup_system_format(row) -> Dict[str, Any]:
     }
 
 
-class BackupLocator:
-    """Locate full backups by (immute_domain, shard_value). Table first, BKLog fallback.
+def binlog_record(file_name: str, task_id, size, source_ip: str, source_port, begin_time) -> Dict[str, Any]:
+    file_name = (file_name or "").split("/")[-1]
+    if isinstance(begin_time, str):
+        begin_time = str2datetime(begin_time) if begin_time else None
+    return {
+        "task_id": str(task_id or ""),
+        "file_name": file_name,
+        "size": int(size or 0),
+        "source_ip": source_ip or "",
+        "source_port": int(source_port or 0),
+        "begin_time": _as_utc(begin_time) if begin_time else None,
+        "index": binlog_index(file_name),
+    }
 
-    Phase 1 implements the full-backup path only. Binlog lookup is a stub.
+
+class BackupLocator:
+    """Locate full backups by (immute_domain, shard_value) and binlogs by source instance.
+
+    Table first, BKLog fallback.
     """
 
     def __init__(self, cluster: Cluster):
@@ -123,6 +142,67 @@ class BackupLocator:
             self.locator_source = LOCATOR_SOURCE_BKLOG
             records = self._query_bklog(start_time=start_time, end_time=end_time)
         return records
+
+    def locate_binlogs(
+        self, source_ip: str, source_port: int, start_time: datetime, end_time: datetime
+    ) -> List[Dict[str, Any]]:
+        """Binlogs of one source instance begun within the window widened by the lookup margin.
+
+        Only files named with a parseable index are returned; ``begin_time`` is the time in the name.
+        """
+        margin = timedelta(hours=BINLOG_LOOKUP_MARGIN_HOURS)
+        start_time, end_time = _as_utc(start_time) - margin, _as_utc(end_time) + margin
+        records = self._query_binlog_table(source_ip, source_port, start_time, end_time)
+        if not records:
+            records = self._query_binlog_bklog(source_ip, source_port, start_time, end_time)
+        return [r for r in records if r["index"] is not None and r["begin_time"] is not None]
+
+    def _query_binlog_table(self, source_ip, source_port, start_time, end_time) -> List[Dict[str, Any]]:
+        try:
+            rows = RedisBinlogResult.objects.using("report_db").filter(
+                immute_domain=self.cluster.immute_domain,
+                backup_host=source_ip,
+                backup_port=source_port,
+                backup_status=BACKUP_STATUS_SUCCESS,
+                backup_begin_time__gte=start_time,
+                backup_begin_time__lte=end_time,
+            )
+            return [
+                binlog_record(
+                    row.backup_file,
+                    row.backup_taskid,
+                    row.backup_file_size,
+                    row.backup_host,
+                    row.backup_port,
+                    row.backup_begin_time,
+                )
+                for row in rows
+            ]
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("BackupLocator binlog table query failed for %s:%s: %s", source_ip, source_port, exc)
+            return []
+
+    def _query_binlog_bklog(self, source_ip, source_port, start_time, end_time) -> List[Dict[str, Any]]:
+        query_string = f"server_ip: {source_ip} AND server_port: {source_port} AND status: {BACKUP_STATUS_SUCCESS}"
+        # Logs are indexed by report time, which trails the file's begin time.
+        logs = self._esquery(
+            start_time,
+            end_time + timedelta(hours=BINLOG_LOOKUP_MARGIN_HOURS),
+            query_string,
+            collector="redis_binlog_backup_result",
+        )
+        records = [
+            binlog_record(
+                log.get("backup_file"),
+                log.get("backup_taskid"),
+                log.get("backup_file_size"),
+                log.get("server_ip"),
+                log.get("server_port"),
+                log.get("start_time"),
+            )
+            for log in logs
+        ]
+        return [r for r in records if r["begin_time"] and start_time <= r["begin_time"] <= end_time]
 
     def _query_table(
         self,
@@ -198,10 +278,12 @@ class BackupLocator:
         raw_logs = self._esquery(start_time, end_time, query_string)
         return [row_to_backup_system_format(log) for log in raw_logs]
 
-    def _esquery(self, start_time: datetime, end_time: datetime, query_string: str) -> List[Dict]:
+    def _esquery(
+        self, start_time: datetime, end_time: datetime, query_string: str, collector: str = "redis_fullbackup_result"
+    ) -> List[Dict]:
         resp = BKLogApi.esquery_search(
             {
-                "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.redis_fullbackup_result",
+                "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
                 "start_time": datetime2str(_as_utc(start_time)),
                 "end_time": datetime2str(_as_utc(end_time)),
                 "query_string": query_string,

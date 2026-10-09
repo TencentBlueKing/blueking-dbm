@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
-from backend.db_services.redis.rollback.constants import BACKUP_BATCH_MAX_WINDOW_DAYS
+from backend.db_services.redis.rollback.constants import BACKUP_BATCH_MAX_WINDOW_DAYS, SHARD_ROUTE_MAX_KEYS
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.utils.time import str2datetime
@@ -70,23 +70,37 @@ class BatchDetailQuerySerializer(serializers.Serializer):
     )
 
 
-class ShardSelectionSerializer(serializers.Serializer):
-    shard_value = serializers.CharField(help_text=_("该批次当时的分片"))
-    round_key = serializers.CharField(help_text=_("轮次"), required=False, allow_blank=True, default="")
-
-
 class RollbackPrecheckSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     backup_identify = serializers.CharField(help_text=_("备份批次"), required=True)
-    shards = serializers.ListField(
-        help_text=_("勾选的分片与轮次，为空表示该批次全部分片取最新一轮"),
-        child=ShardSelectionSerializer(),
+    shard_values = serializers.ListField(
+        help_text=_("勾选的分片（该批次当时的 shard_value），为空表示该批次全部分片"),
+        child=serializers.CharField(),
         required=False,
         allow_empty=True,
     )
-    key_white_regex = serializers.CharField(required=False, allow_blank=True, default="")
-    key_black_regex = serializers.CharField(required=False, allow_blank=True, default="")
+    allow_binlog_nonconsecutive = serializers.BooleanField(
+        help_text=_("允许 binlog 序号不连续（接受缺失这段写入）"), required=False, default=False
+    )
     resource_spec = serializers.JSONField(required=False)
+
+
+class ShardRouteSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    keys = serializers.ListField(
+        help_text=_("待路由的 key，去重后最多 {} 个").format(SHARD_ROUTE_MAX_KEYS),
+        child=serializers.CharField(allow_blank=True, trim_whitespace=False),
+        allow_empty=False,
+    )
+    backup_identify = serializers.CharField(
+        help_text=_("备份批次，传入时返回该批次中覆盖各 key 所需的全部分片"), required=False, allow_blank=True, default=""
+    )
+
+    def validate_keys(self, keys):
+        unique = list(dict.fromkeys(keys))
+        if len(unique) > SHARD_ROUTE_MAX_KEYS:
+            raise serializers.ValidationError(_("一次最多路由 {} 个 key，当前 {} 个").format(SHARD_ROUTE_MAX_KEYS, len(unique)))
+        return unique
 
 
 class CheckTimeSerializer(serializers.Serializer):

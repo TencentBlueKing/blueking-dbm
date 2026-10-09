@@ -28,6 +28,9 @@ BACKUP_BATCH_DEFAULT_WINDOW_DAYS = 7
 BACKUP_BATCH_MAX_WINDOW_DAYS = 30
 
 BACKUP_STATUS_SUCCESS = "to_backup_system_success"
+# Role at backup time, as dbmon reports it and writes it into file names.
+BACKUP_ROLE_MASTER = "master"
+BACKUP_ROLE_SLAVE = "slave"
 SWITCHED_SHARD_VALUE = "switched-0"
 SINGLE_INSTANCE_SHARD_VALUE = "{}-{}".format(DEFAULT_TWEMPROXY_SEG_MIN_NUM, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1)
 
@@ -38,6 +41,22 @@ CACHE_CLUSTER_TYPES = (
     ClusterType.TendisTwemproxyRedisInstance.value,
     ClusterType.TendisRedisInstance.value,
 )
+SSD_CLUSTER_TYPES = (
+    ClusterType.TwemproxyTendisSSDInstance.value,
+    ClusterType.TendisTendisSSDInstance.value,
+)
+ROLLBACK_CLUSTER_TYPES = CACHE_CLUSTER_TYPES + SSD_CLUSTER_TYPES
+
+# Binlogs rotate about every 20 minutes but an upload may lag by up to 2 hours, so the lookup
+# window is widened on both sides to be sure it holds the files around each end of the chain.
+BINLOG_LOOKUP_MARGIN_HOURS = 6
+
+SHARD_ROUTE_MAX_KEYS = 50
+SHARD_ROUTE_CONCURRENCY = 8
+
+# Task ids per download bill. The backup system's cap is unconfirmed; kept well below the 100
+# queryTasks is known to accept.
+DOWNLOAD_BATCH_SIZE = 50
 
 # rollback_version: datastructure = v1 construction flow, rollback = v2 implementation
 DATASTRUCTURE_VERSION = "datastructure"
@@ -76,9 +95,6 @@ LOCATOR_SOURCE_BKLOG = "bklog"
 
 IDENTIFY_PREFIXES = ("SCHEDULED", "REUPLOAD", "FOREVER", "FLUSH", "BILL", "DTS")
 IDENTIFY_UNKNOWN = "UNKNOWN"
-
-FILTER_MODE_DELETE_MATCHED = "delete_matched"
-FILTER_MODE_KEEP_MATCHED = "keep_matched"
 
 # Conservative unpacked/compressed size ratio for backup files, used by the disk precheck.
 UNPACK_RATIO = 3

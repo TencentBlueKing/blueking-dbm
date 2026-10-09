@@ -31,12 +31,14 @@ from . import constants
 from .batches import BackupBatchService
 from .handlers import DataStructureHandler
 from .models import TbTendisRollbackTasks
+from .routing import ShardRouter
 from .serializers import (
     BackupBatchQuerySerializer,
     BatchDetailQuerySerializer,
     CheckTimeSerializer,
     RollbackPrecheckSerializer,
     RollbackSerializer,
+    ShardRouteSerializer,
 )
 
 
@@ -197,3 +199,14 @@ class BackupBatchViewSet(SystemViewSet):
         data = self.validated_data
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=data["cluster_id"])
         return Response(RollbackPlanner(cluster, data).precheck())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("按 key 查询所在分片"),
+        request_body=ShardRouteSerializer(),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ShardRouteSerializer)
+    def shard_route(self, request, bk_biz_id, **kwargs):
+        data = self.validated_data
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=data["cluster_id"])
+        return Response(ShardRouter(cluster).route(data["keys"], data.get("backup_identify") or ""))

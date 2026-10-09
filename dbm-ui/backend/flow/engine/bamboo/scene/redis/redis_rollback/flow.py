@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 from django.utils.translation import gettext as _
 
@@ -20,15 +20,18 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import DataStructureStatus, InstanceRole
 from backend.db_meta.models import AppCache, Cluster
+from backend.db_services.redis.rollback.backup_presence import confirm_backup_tasks
 from backend.db_services.redis.rollback.constants import (
     ROLLBACK_CC_MODULE_NAME,
     ROLLBACK_CC_SET_NAME,
     ROLLBACK_VERSION,
 )
-from backend.db_services.redis.util import is_have_proxy, is_twemproxy_proxy_type
+from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.util import is_have_proxy, is_predixy_proxy_type, is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEPENDENCIES_PLUGINS, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
@@ -83,10 +86,32 @@ class RedisRollbackFlow:
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return pipeline.run_pipeline()
 
+    @staticmethod
+    def _load_plan(cluster: Cluster, info: dict, dest_ips: List[str]) -> Tuple[int, RollbackPlan]:
+        """Runs the plan approved at submission, packed onto the hosts actually applied for.
+
+        Tickets submitted before plans were persisted have no ``plan_id`` and are planned here once.
+        """
+        plan_id = info.get("plan_id")
+        if not plan_id:
+            plan = RollbackPlanner(cluster, info).build(dest_ips=dest_ips, pack=True)
+            return plan.save(), plan
+
+        plan = RollbackPlan.load(plan_id)
+        problems = confirm_backup_tasks(
+            {item.shard.shard_value: item.task_ids for item in plan.items if not item.is_placeholder}
+        )
+        if problems:
+            raise RollbackPlanError(
+                context={"message": "; ".join(m for messages in problems.values() for m in messages)}
+            )
+        RollbackPlanner.pack_dest_hosts(plan, dest_ips, len(dest_ips))
+        return plan.save(plan_id), plan
+
     def build_cluster_rollback(self, info: dict):
         cluster = Cluster.objects.get(id=info["cluster_id"])
         dest_ips = [host["ip"] for host in info.get("redis") or []]
-        plan = RollbackPlanner(cluster, info).build(dest_ips=dest_ips, pack=True)
+        plan_id, plan = self._load_plan(cluster, info, dest_ips)
         is_drill = self.data.get("is_rollback_drill", False)
         cluster_ticket_data = deepcopy(self.data)
         cluster_ticket_data.update(
@@ -220,12 +245,11 @@ class RedisRollbackFlow:
                 act_component_code=RedisRollbackDownloadComponent.code,
                 kwargs={
                     "bk_cloud_id": plan.bk_cloud_id,
-                    "task_ids": dest_host.task_ids,
+                    "plan_id": plan_id,
                     "dest_ip": dest_host.ip,
                     "login_user": os_account["os_user"],
                     "login_passwd": os_account["os_password"],
                     "reason": "redis rollback",
-                    "download_bytes": dest_host.download_bytes,
                     "set_trans_data_dataclass": RedisRollbackContext.__name__,
                 },
             )
@@ -245,30 +269,19 @@ class RedisRollbackFlow:
 
         recover_acts = []
         for dest_host in plan.dest_hosts:
-            host_items = [item for item in plan.items if item.dest_ip == dest_host.ip]
             recover_kwargs = deepcopy(act_kwargs)
             recover_kwargs.exec_ip = dest_host.ip
             recover_kwargs.is_update_trans_data = False
             recover_kwargs.get_redis_payload_func = RedisActPayload.redis_rollback_payload.__name__
             recover_kwargs.cluster = {
+                "plan_id": plan_id,
                 "dest_ip": dest_host.ip,
                 # Empty: the actuator uses $REDIS_BACKUP_DIR, the same source _DISK_SHELL reports for download.
                 "dest_dir": "",
-                "recover_at": plan.recover_at.strftime("%Y-%m-%d %H:%M:%S") if plan.recover_at else "",
                 "immute_domain": plan.immute_domain,
                 "domain_name": plan.immute_domain,
                 "cluster_type": plan.cluster_type,
                 "db_version": plan.db_version,
-                "instances": [
-                    {
-                        "source_ip": item.source_ip,
-                        "source_port": item.source_port,
-                        "dest_port": item.dest_port,
-                        "full_files": [f.file_name for f in item.full_files],
-                        "binlog_files": [],
-                    }
-                    for item in host_items
-                ],
             }
             recover_acts.append(
                 {
@@ -316,9 +329,6 @@ class RedisRollbackFlow:
             self._install_dbmon(plan, act_kwargs, redis_pipeline)
 
         self._deploy_proxy(plan, act_kwargs, dest_ips, redis_pipeline)
-
-        if plan.key_filter.enabled:
-            self._add_key_filter(plan, act_kwargs, redis_pipeline)
 
         prod_instance_range = [
             item.shard.current_master or "{}:{}".format(item.source_ip, item.source_port) for item in plan.items
@@ -425,45 +435,30 @@ class RedisRollbackFlow:
             )
         pipeline.add_parallel_acts(acts_list=acts)
 
+    @staticmethod
+    def _proxy_servers(plan):
+        """Returns ``(payload_func_name, servers)`` for the temp proxy; placeholders are backends too."""
+        if is_twemproxy_proxy_type(plan.cluster_type):
+            servers = [
+                "{}:{} admin {} 1".format(item.dest_ip, item.dest_port, item.shard.shard_value) for item in plan.items
+            ]
+            return RedisActPayload.rollback_twemproxy_payload.__name__, servers
+        if is_predixy_proxy_type(plan.cluster_type):
+            servers = ["{}{}{}".format(item.dest_ip, IP_PORT_DIVIDER, item.dest_port) for item in plan.items]
+            return RedisActPayload.rollback_predixy_payload.__name__, servers
+        raise NotImplementedError("unsupported proxy for cluster type: {}".format(plan.cluster_type))
+
     def _deploy_proxy(self, plan, act_kwargs, dest_ips, pipeline):
         act_kwargs.new_install_proxy_exec_ip = dest_ips[0]
         if not is_have_proxy(plan.cluster_type):
             return
-        servers = []
-        if is_twemproxy_proxy_type(plan.cluster_type):
-            for item in plan.items:
-                servers.append("{}:{} {} {} 1".format(item.dest_ip, item.dest_port, "admin", item.shard.shard_value))
+        payload_func, servers = self._proxy_servers(plan)
         proxy_kwargs = deepcopy(act_kwargs)
         proxy_kwargs.exec_ip = dest_ips[0]
         proxy_kwargs.cluster["servers"] = servers
-        proxy_kwargs.get_redis_payload_func = RedisActPayload.add_twemproxy_payload.__name__
+        proxy_kwargs.get_redis_payload_func = payload_func
         pipeline.add_act(
             act_name=_("{}安装proxy实例").format(dest_ips[0]),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(proxy_kwargs),
         )
-
-    def _add_key_filter(self, plan, act_kwargs, pipeline):
-        acts = []
-        for dest_host in plan.dest_hosts:
-            filter_kwargs = deepcopy(act_kwargs)
-            filter_kwargs.exec_ip = dest_host.ip
-            filter_kwargs.is_update_trans_data = False
-            filter_kwargs.get_redis_payload_func = RedisActPayload.redis_rollback_key_filter_payload.__name__
-            filter_kwargs.cluster = {
-                "domain_name": plan.immute_domain,
-                "white_regex": plan.key_filter.white_regex,
-                "black_regex": plan.key_filter.black_regex,
-                "filter_mode": plan.key_filter.filter_mode,
-                dest_host.ip: dest_host.ports,
-                "path": "",
-            }
-            acts.append(
-                {
-                    "act_name": _("Redis-{}-key过滤").format(dest_host.ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(filter_kwargs),
-                }
-            )
-        if acts:
-            pipeline.add_parallel_acts(acts_list=acts)

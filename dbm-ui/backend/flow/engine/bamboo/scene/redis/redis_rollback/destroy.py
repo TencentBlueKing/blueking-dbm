@@ -23,7 +23,7 @@ from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.util import is_have_proxy
 from backend.flow.consts import DBActuatorTypeEnum, RedisActuatorActionEnum
-from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchShutdownAtomJob
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -38,7 +38,10 @@ logger = logging.getLogger("flow")
 
 
 class RedisRollbackDestroyFlow:
-    """Destroy v2 rollback temp instances. Locate by PK, refuse v1 records, never pass passwords."""
+    """Sub-flow for destroying v2 rollback temp instances, dispatched from REDIS_DATA_STRUCTURE_TASK_DELETE.
+
+    Locates the record by PK, refuses v1 records and never passes passwords.
+    """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         self.root_id = root_id
@@ -55,9 +58,7 @@ class RedisRollbackDestroyFlow:
             raise RollbackPlanError(context={"message": _("构造记录 {} 不存在").format(task_id)})
         version = getattr(task, "rollback_version", None) or DATASTRUCTURE_VERSION
         if version != ROLLBACK_VERSION:
-            raise RollbackPlanError(
-                context={"message": _("记录 {} 是 {} 构造产物，请改用 REDIS_DATA_STRUCTURE_TASK_DELETE").format(task.id, version)}
-            )
+            raise RollbackPlanError(context={"message": _("记录 {} 是 {} 构造产物，不能走备份恢复销毁流程").format(task.id, version)})
         return task
 
     @staticmethod
@@ -80,12 +81,6 @@ class RedisRollbackDestroyFlow:
             "temp_cluster_proxies": proxies,
             "rollback_version": task.rollback_version,
         }
-
-    def redis_rollback_destroy(self):
-        pipeline = Builder(root_id=self.root_id, data=self.data)
-        subs = [self.build_cluster_destroy(info) for info in self.data["infos"]]
-        pipeline.add_parallel_sub_pipeline(sub_flow_list=subs)
-        return pipeline.run_pipeline()
 
     def build_cluster_destroy(self, info: dict):
         is_drill = self.data.get("is_rollback_drill", False)

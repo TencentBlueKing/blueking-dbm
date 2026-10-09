@@ -12,6 +12,7 @@ from backend.db_services.redis.rollback.constants import (
 )
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.destroy import RedisRollbackDestroyFlow
+from backend.ticket.builders.redis.base import ClusterValidateMixin
 from backend.ticket.builders.redis.redis_rollback import RedisRollbackDetailSerializer
 
 
@@ -25,11 +26,11 @@ def _ticket_info(**extra):
     return attr
 
 
-def test_ticket_rejects_non_cache_cluster():
+def test_ticket_rejects_unsupported_cluster():
     serializer = RedisRollbackDetailSerializer.InfoSerializer()
     cluster = MagicMock()
-    cluster.cluster_type = ClusterType.TwemproxyTendisSSDInstance.value
-    cluster.immute_domain = "ssd.example.db"
+    cluster.cluster_type = ClusterType.TendisTwemproxyTendisplusIns.value
+    cluster.immute_domain = "plus.example.db"
     with patch("backend.ticket.builders.redis.redis_rollback.Cluster") as cluster_model:
         cluster_model.objects.get.return_value = cluster
         try:
@@ -49,7 +50,7 @@ def test_destroy_refuses_v1_record():
             RedisRollbackDestroyFlow.load_task({"task_id": 9})
             assert False, "expected RollbackPlanError"
         except RollbackPlanError as exc:
-            assert "REDIS_DATA_STRUCTURE_TASK_DELETE" in str(exc.message)
+            assert "datastructure" in str(exc.message)
 
 
 def test_destroy_payload_omits_passwords_and_supports_multi_proxy():
@@ -102,20 +103,47 @@ def test_ticket_allows_identify_only():
         assert serializer.validate(_ticket_info())
 
 
-def test_ticket_allows_identify_plus_shards():
-    serializer, cluster = _cache_serializer()
+def _validate_ticket_data(data):
+    serializer = RedisRollbackDetailSerializer.InfoSerializer(data=data)
+    _unused, cluster = _cache_serializer()
     with patch("backend.ticket.builders.redis.redis_rollback.Cluster") as cluster_model, patch(
         "backend.ticket.builders.redis.redis_rollback.RollbackPlanner"
-    ) as planner_cls:
+    ), patch.object(ClusterValidateMixin, "check_cluster_phase", side_effect=lambda cluster_id: cluster_id):
         cluster_model.objects.get.return_value = cluster
-        planner_cls.return_value.build.return_value = MagicMock()
-        attr = _ticket_info(
-            shards=[
-                {"shard_value": "0-104999", "round_key": "a.aof.zst"},
-                {"shard_value": "105000-209999", "round_key": ""},
-            ]
-        )
-        assert serializer.validate(attr)
+        serializer.is_valid()
+    return serializer
+
+
+def test_ticket_allows_identify_plus_shard_values():
+    serializer = _validate_ticket_data(_ticket_info(shard_values=["0-104999", "105000-209999"]))
+    assert not serializer.errors, serializer.errors
+    assert serializer.validated_data["shard_values"] == ["0-104999", "105000-209999"]
+
+
+def test_ticket_rejects_object_and_blank_shard_values():
+    assert "shard_values" in _validate_ticket_data(_ticket_info(shard_values=[{"shard_value": "0-104999"}])).errors
+    assert "shard_values" in _validate_ticket_data(_ticket_info(shard_values=[""])).errors
+
+
+def test_ticket_locks_rounds_and_ignores_caller_supplied_ones():
+    locked = [{"shard_value": "0-104999", "round_key": "a.aof.zst"}]
+    forged = [{"shard_value": "0-104999", "round_key": "forged.aof.zst"}]
+    planner_inputs = []
+
+    def _planner(cluster, info):
+        planner_inputs.append(info.get("locked_rounds"))
+        return MagicMock(build=MagicMock(return_value=MagicMock(locked_rounds=locked)))
+
+    serializer = RedisRollbackDetailSerializer.InfoSerializer(data=_ticket_info(locked_rounds=forged))
+    _unused, cluster = _cache_serializer()
+    with patch("backend.ticket.builders.redis.redis_rollback.Cluster") as cluster_model, patch(
+        "backend.ticket.builders.redis.redis_rollback.RollbackPlanner", side_effect=_planner
+    ), patch.object(ClusterValidateMixin, "check_cluster_phase", side_effect=lambda cluster_id: cluster_id):
+        cluster_model.objects.get.return_value = cluster
+        assert serializer.is_valid(), serializer.errors
+
+    assert planner_inputs == [None]
+    assert serializer.validated_data["locked_rounds"] == locked
 
 
 def test_ticket_surfaces_planner_error():
@@ -129,7 +157,7 @@ def test_ticket_surfaces_planner_error():
     ) as planner_cls:
         cluster_model.objects.get.return_value = cluster
         planner_cls.return_value.build.side_effect = RollbackPlanError(context={"message": "主机数量(3)不能大于待构造分片数(1)"})
-        attr = _ticket_info(resource_spec={"redis": {"count": 3, "id": 1}}, shards=[{"shard_value": "0-104999"}])
+        attr = _ticket_info(resource_spec={"redis": {"count": 3, "id": 1}}, shard_values=["0-104999"])
         try:
             serializer.validate(attr)
             assert False, "expected ValidationError"
