@@ -308,8 +308,12 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         label_filters = validated_data.get("labels")
         label_filters = label_filters.split(",") if label_filters else []
         offset = validated_data.get("offset", 0)
-        limit = validated_data.get("limit", 0)
-        logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters, offset, limit)
+        limit = validated_data.get("limit", 10000)
+        search_after = validated_data.get("search_after", None)
+        log_data = TaskFlowHandler(root_id=root_id).get_version_logs_with_search_after(
+            node_id, version_id, label_filters, offset, limit, search_after
+        )
+        logs = log_data["logs"]
         if validated_data["download"]:
             # 导出下载日志
             return HttpResponse(
@@ -317,15 +321,19 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
                 content_type="application/text charset=utf-8",
                 headers={"Content-Disposition": f'attachment; filename="{root_id}-{node_id}-{version_id}.log"'},
             )
-
-        next_url, previous_url = None, None
-        if logs:
-            next_url = build_page_url(requests, offset + limit)
-            has_data = True
-        else:
-            previous_url = build_page_url(requests, max(offset - limit, 0))
-            has_data = False
-        return Response({"has_data": has_data, "next": next_url, "previous": previous_url, "results": logs})
+        next_search_after = log_data["search_after"]
+        # has_data 表示是否存在真实日志，占位提示(如"日志上报中，请稍后查看")不算有数据
+        has_data = log_data["has_data"]
+        # 游标翻页: offset/limit保持不变，仅推进search_after
+        next_url = build_page_url(requests, next_search_after) if has_data else None
+        return Response(
+            {
+                "has_data": has_data,
+                "next": next_url,
+                "search_after": next_search_after,
+                "results": logs,
+            }
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("回调节点"),

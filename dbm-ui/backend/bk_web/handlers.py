@@ -23,17 +23,24 @@ from backend.exceptions import AppBaseException, ErrorCode
 logger = logging.getLogger("root")
 
 
-def build_page_url(request: Request, offset: int, **query_updates) -> str:
+def build_page_url(request: Request, search_after: list = None, **query_updates) -> str:
     """
-    基于当前请求构建指定分页偏移量的完整URL，常用于无法使用DRF分页器(数据源非queryset)的next/previous链接
+    基于当前请求构建分页URL，常用于无法使用DRF分页器(数据源非queryset)的next/previous链接
     :param request: DRF请求对象
-    :param offset: 分页偏移量
-    :param query_updates: 额外需要覆盖的查询参数
+    :param search_after: 日志游标，列表会被序列化为逗号分隔(a,b,c)；None表示移除该参数
+    :param query_updates: 额外需要覆盖的查询参数，值为None表示移除该参数
     """
     query_params = request.query_params.copy()
     # 注意: QueryDict的update是追加语义，这里通过__setitem__覆盖同名参数
-    for key, value in {**query_updates, "offset": offset}.items():
-        query_params[key] = value
+    for key, value in {**query_updates, "search_after": search_after}.items():
+        # None表示移除该查询参数，例如回到首页时清除游标
+        if value is None:
+            query_params.pop(key, None)
+        # 列表值(如search_after游标)序列化为逗号分隔形式，避免被str()整体展开
+        elif isinstance(value, (list, tuple)):
+            query_params[key] = ",".join(str(item) for item in value)
+        else:
+            query_params[key] = value
     return request.build_absolute_uri(f"{request.path}?{query_params.urlencode()}")
 
 
