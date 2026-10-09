@@ -33,6 +33,22 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="db_list"
+      :min-width="120"
+      :title="t('清档范围')">
+      <template #default="{ row }: { row: IRowData }">
+        <span v-if="!row.db_list?.length">{{ t('全部') }}</span>
+        <template v-else>
+          <DbTag
+            v-for="db in row.db_list"
+            :key="db"
+            class="mr-4">
+            DB{{ db }}
+          </DbTag>
+        </template>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="backup"
       :title="t('清档前备份')">
       <template #default="{ row }: { row: IRowData }">
