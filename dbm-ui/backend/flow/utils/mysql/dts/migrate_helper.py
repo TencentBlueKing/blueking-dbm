@@ -20,6 +20,7 @@ from backend.components.mysqldtsapi.types import (
     FullMigrateConfig,
     IncrMigrateConfig,
     MyLoaderConfig,
+    PurgeConfig,
     RelayConfig,
     Source,
     SourceConfig,
@@ -593,6 +594,7 @@ def build_create_source_request(
         enable=True,
         cluster_type=cluster_type,
         spider=spider,
+        purge=PurgeConfig(interval=600, expires=6, remain_space=50),
         relay_config=relay_config,
     )
     return CreateSourceRequest(source=source, worker_name=bind_worker)

@@ -39,11 +39,13 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_all_enables_relay_without_dir_or_purge(self, _ep, _gtid):
+    def test_all_enables_relay_and_default_purge(self, _ep, _gtid):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p", task_mode="all")
         self.assertIsNotNone(req.source.relay_config)
         self.assertTrue(req.source.relay_config.enable_relay)
-        self.assertIsNone(req.source.purge)
+        self.assertEqual(req.source.purge.interval, 600)
+        self.assertEqual(req.source.purge.expires, 6)
+        self.assertEqual(req.source.purge.remain_space, 50)
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
@@ -58,6 +60,9 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
     def test_full_does_not_enable_relay(self, _ep, _gtid):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p", task_mode="full")
         self.assertTrue(req.source.relay_config is None or req.source.relay_config.enable_relay is False)
+        self.assertEqual(req.source.purge.interval, 600)
+        self.assertEqual(req.source.purge.expires, 6)
+        self.assertEqual(req.source.purge.remain_space, 50)
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
