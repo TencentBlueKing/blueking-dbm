@@ -171,7 +171,8 @@ class RedisRollbackDownloadService(BaseService):
             )
             bill_id = response.get("bill_id", -1)
             if bill_id <= 0:
-                self.log_error(_("提交下载失败: {}").format(response))
+                # A retry resubmits every batch: bamboo rebuilds outputs on each execute.
+                self.log_error(_("提交下载失败: {}；已提交且仍在下载的单号: {}").format(response, bill_ids))
                 return False
             bill_ids.append(bill_id)
         self.log_info(

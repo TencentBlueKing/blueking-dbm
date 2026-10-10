@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone as django_timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
 from backend.db_services.redis.rollback.shards import ShardRef
 from backend.flow.engine.bamboo.scene.redis.redis_rollback import flow as rollback_flow
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
+    ORPHAN_PLAN_TTL,
     BinlogRef,
     DestHost,
     FullBackupRef,
@@ -22,6 +25,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import Rollba
 from backend.flow.plugins.components.collections.redis import redis_rollback as rollback_components
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackContext
+from backend.ticket.builders.redis.redis_rollback import RedisRollbackFlowBuilder
 
 FULL_NAME = "3-TENDISSSD-FULL-slave-1.1.1.1-30000-20260101-000000-9.tar"
 
@@ -96,6 +100,47 @@ def test_plan_is_saved_once_and_updated_in_place():
     RollbackPlanner.pack_dest_hosts(plan, ["2.2.2.2"], 1)
     assert plan.save(plan_id) == plan_id
     assert RollbackPlan.load(plan_id).dest_host("2.2.2.2").ports == [30000]
+
+
+@pytest.mark.django_db
+def test_plan_is_bound_to_its_ticket():
+    plan = _plan(packed=False)
+    bound_at_submit, bound_at_flow, unbound = plan.save(), plan.save(), plan.save()
+    RollbackPlan.bind_ticket([bound_at_submit], 11)
+    plan.save(bound_at_flow, ticket_id="12")
+    plan.save(unbound)
+
+    ticket_ids = dict(TbTendisRollbackPlan.objects.values_list("id", "ticket_id"))
+    assert ticket_ids == {bound_at_submit: 11, bound_at_flow: 12, unbound: None}
+    assert TbTendisRollbackPlan.objects.get(id=plan.save(ticket_id=13)).ticket_id == 13
+
+
+@pytest.mark.django_db
+def test_only_old_plans_without_a_ticket_are_cleaned():
+    plan = _plan(packed=False)
+    old_orphan, new_orphan, old_bound = plan.save(), plan.save(), plan.save(ticket_id=11)
+    TbTendisRollbackPlan.objects.filter(id__in=[old_orphan, old_bound]).update(
+        create_at=django_timezone.now() - ORPHAN_PLAN_TTL - timedelta(minutes=1)
+    )
+
+    assert RollbackPlan.delete_orphans() == 1
+    assert set(TbTendisRollbackPlan.objects.values_list("id", flat=True)) == {new_orphan, old_bound}
+
+
+def test_ticket_builder_binds_submitted_plans():
+    builder = RedisRollbackFlowBuilder.__new__(RedisRollbackFlowBuilder)
+    builder.ticket = MagicMock(id=21, details={"infos": [{"plan_id": 5}, {"plan_id": 6}, {}]})
+    with patch.object(RollbackPlan, "bind_ticket") as bind:
+        builder.patch_ticket_detail()
+    bind.assert_called_once_with([5, 6], 21)
+
+
+def test_flow_writes_its_ticket_onto_the_plan():
+    with patch.object(RollbackPlan, "load", return_value=_plan(packed=False)), patch.object(
+        RollbackPlan, "save", return_value=7
+    ) as save, patch.object(rollback_flow, "confirm_backup_tasks", return_value={}):
+        rollback_flow.RedisRollbackFlow._load_plan(MagicMock(), {"plan_id": 7}, ["2.2.2.2"], ticket_id=31)
+    save.assert_called_once_with(7, ticket_id=31)
 
 
 def test_actuator_instance_sends_a_digest_instead_of_file_names():
@@ -181,7 +226,7 @@ def test_node_kwargs_reference_the_plan_and_do_not_grow_with_binlog_count():
 def test_flow_runs_the_submitted_plan_without_replanning():
     submitted = _plan(packed=False)
     with patch.object(RollbackPlan, "load", return_value=submitted), patch.object(
-        RollbackPlan, "save", side_effect=lambda plan_id=None: plan_id
+        RollbackPlan, "save", side_effect=lambda plan_id=None, ticket_id=None: plan_id
     ), patch.object(rollback_flow, "confirm_backup_tasks", return_value={}) as confirm, patch.object(
         rollback_flow, "RollbackPlanner", wraps=rollback_flow.RollbackPlanner
     ) as planner:
@@ -198,7 +243,7 @@ def test_flow_keeps_an_allowed_binlog_gap_without_rechecking_the_chain():
     submitted.allow_binlog_nonconsecutive = True
     submitted.items[0].binlog_gaps = {"missing_count": 1, "missing": [1001]}
     with patch.object(RollbackPlan, "load", return_value=submitted), patch.object(
-        RollbackPlan, "save", side_effect=lambda plan_id=None: plan_id
+        RollbackPlan, "save", side_effect=lambda plan_id=None, ticket_id=None: plan_id
     ), patch.object(rollback_flow, "confirm_backup_tasks", return_value={}), patch.object(
         rollback_flow, "select_binlog_chain", create=True
     ) as chain, patch.object(
@@ -252,6 +297,31 @@ def test_download_submits_one_bill_per_batch():
     assert [len(batch) for batch in batches] == [rollback_components.DOWNLOAD_BATCH_SIZE, 1]
     assert sum(batches, []) == plan.dest_hosts[0].task_ids
     assert data.outputs.backup_bill_ids == [11, 12]
+
+
+def test_download_failure_logs_the_bills_already_submitted():
+    plan = _plan(binlog_count=rollback_components.DOWNLOAD_BATCH_SIZE)
+    kwargs = {
+        "bk_cloud_id": 0,
+        "plan_id": 7,
+        "dest_ip": "2.2.2.2",
+        "login_user": "u",
+        "login_passwd": "p",
+        "set_trans_data_dataclass": RedisRollbackContext.__name__,
+    }
+    trans_data = RedisRollbackContext(disk_used={"2.2.2.2": {"backup_dir": "/data"}})
+    data = SimpleNamespace(
+        get_one_of_inputs={"kwargs": kwargs, "trans_data": trans_data}.get, outputs=SimpleNamespace()
+    )
+    svc = _download_service()
+    errors = []
+    svc.log_error = errors.append
+    bills = iter([{"bill_id": 11}, {"bill_id": -1}])
+    with patch.object(RollbackPlan, "load", return_value=plan), patch.object(
+        rollback_components.RedisBackupApi, "download", side_effect=lambda params: next(bills)
+    ):
+        assert svc._execute(data, None) is False
+    assert "[11]" in errors[0]
 
 
 def _schedule(outputs, totals):

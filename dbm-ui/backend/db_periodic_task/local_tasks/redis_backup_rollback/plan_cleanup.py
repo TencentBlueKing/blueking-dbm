@@ -8,20 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .plan_cleanup import clean_orphan_redis_rollback_plans
-from .task import (
-    init_redis_rollback_candidates,
-    redis_rollback_exercise,
-    redis_rollback_exercise_ticket_anomaly_detect,
-    repair_stuck_redis_rollback_exercise,
-)
-from .weekly_ai_summary import redis_rollback_exercise_weekly_ai_summary
+import logging
 
-__all__ = [
-    "clean_orphan_redis_rollback_plans",
-    "init_redis_rollback_candidates",
-    "redis_rollback_exercise",
-    "redis_rollback_exercise_ticket_anomaly_detect",
-    "repair_stuck_redis_rollback_exercise",
-    "redis_rollback_exercise_weekly_ai_summary",
-]
+from celery.schedules import crontab
+
+from backend.db_periodic_task.local_tasks.register import register_periodic_task
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
+
+logger = logging.getLogger("root")
+
+
+@register_periodic_task(run_every=crontab(hour="3", minute="30"))
+def clean_orphan_redis_rollback_plans():
+    logger.info("clean_orphan_redis_rollback_plans deleted %s plans", RollbackPlan.delete_orphans())

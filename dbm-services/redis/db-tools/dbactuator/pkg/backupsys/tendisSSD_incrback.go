@@ -110,18 +110,6 @@ func NewTredisRocksDBIncrBack(filename, sourceIP string, fullStartPos uint64, st
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
-	if ret.StartTime.After(time.Now()) == true {
-		//未来时间
-		ret.Err = fmt.Errorf("binlogPull startTime:%s > time.Now()", startTime)
-		mylog.Logger.Error(ret.Err.Error())
-		return ret
-	}
-	if ret.EndTime.After(time.Now()) == true {
-		//未来时间
-		ret.Err = fmt.Errorf("binlogPull endTime:%s > time.Now()", endTime)
-		mylog.Logger.Error(ret.Err.Error())
-		return ret
-	}
 	ret.ResultSortBinlog = []*TredisRocksDBIncrBackItem{}
 	ret.ResultBinlogMap = make(map[string]*TredisRocksDBIncrBackItem)
 	return

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework.exceptions import ValidationError
 
+import backend.ticket.builders.redis.redis_toolbox_datastruct_task_delete as builder_module
 from backend.db_meta.enums import DestroyedStatus
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.ticket.builders.redis.redis_toolbox_datastruct_task_delete import (
@@ -27,8 +28,12 @@ def _task(task_id=7, version="rollback", destroyed=DestroyedStatus.NOT_DESTROYED
     return task
 
 
+BK_BIZ_ID = 3
+
+
 def _validate(attr):
-    return RedisDataStructureTaskDeleteDetailSerializer.InfoSerializer().validate(attr)
+    serializer = RedisDataStructureTaskDeleteDetailSerializer.InfoSerializer(context={"bk_biz_id": BK_BIZ_ID})
+    return serializer.validate(attr)
 
 
 def test_task_id_alone_fills_the_rest_from_the_record():
@@ -37,7 +42,7 @@ def test_task_id_alone_fills_the_rest_from_the_record():
         model.objects.get.return_value = _task()
         attr = _validate({"task_id": 7})
 
-    model.objects.get.assert_called_once_with(id=7)
+    model.objects.get.assert_called_once_with(id=7, bk_biz_id=BK_BIZ_ID)
     assert attr == {
         "task_id": 7,
         "prod_cluster": "cache.example.db",
@@ -53,6 +58,20 @@ def test_task_id_must_point_to_an_undestroyed_record():
         model.objects.get.return_value = _task(destroyed=DestroyedStatus.DESTROYED)
         with pytest.raises(ValidationError):
             _validate({"task_id": 7})
+
+
+def test_task_id_of_another_biz_is_rejected_as_missing():
+    class DoesNotExist(Exception):
+        pass
+
+    with patch(f"{BUILDER}.TbTendisRollbackTasks") as model:
+        model.DoesNotExist = DoesNotExist
+        model.objects.get.side_effect = DoesNotExist
+        with pytest.raises(ValidationError) as exc:
+            _validate({"task_id": 7})
+
+    model.objects.get.assert_called_once_with(id=7, bk_biz_id=BK_BIZ_ID)
+    assert "不存在" in str(exc.value)
 
 
 def _legacy_attr():
@@ -79,6 +98,19 @@ def test_legacy_params_resolving_to_one_record_get_a_task_id():
             p.stop()
     assert attr["task_id"] == 5
     assert attr["prod_cluster"] == "cache.example.db"
+
+
+def test_legacy_params_only_match_records_of_the_ticket_biz():
+    patches = _patch_legacy([])
+    task_model = builder_module.TbTendisRollbackTasks
+    try:
+        with pytest.raises(ValidationError) as exc:
+            _validate(_legacy_attr())
+    finally:
+        for p in patches:
+            p.stop()
+    assert task_model.objects.filter.call_args.kwargs["bk_biz_id"] == BK_BIZ_ID
+    assert "没有找到未销毁的实例" in str(exc.value)
 
 
 def test_legacy_params_matching_several_records_are_rejected():

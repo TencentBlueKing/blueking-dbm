@@ -115,18 +115,6 @@ func NewTplusRocksDBIncrBack(filename, sourceIP string, rocksdbIdx int, startPos
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
-	if ret.StartTime.After(time.Now()) == true {
-		//未来时间
-		ret.Err = fmt.Errorf("binlogPull startTime:%s > time.Now()", startTime)
-		mylog.Logger.Error(ret.Err.Error())
-		return ret
-	}
-	if ret.EndTime.After(time.Now()) == true {
-		//未来时间
-		ret.Err = fmt.Errorf("binlogPull endTime:%s > time.Now()", endTime)
-		mylog.Logger.Error(ret.Err.Error())
-		return ret
-	}
 	ret.ResultSortBinlog = []*TplusRocksDBIncrBackItem{}
 	ret.ResultBinlogMap = make(map[string]*TplusRocksDBIncrBackItem)
 	return

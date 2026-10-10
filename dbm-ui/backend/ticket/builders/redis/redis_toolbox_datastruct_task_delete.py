@@ -41,7 +41,11 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
         def validate(self, attr):
             """业务逻辑校验"""
             attr = super().validate(attr)
-            task = self._task_by_id(attr["task_id"]) if attr.get("task_id") else self._task_by_bill(attr)
+            bk_biz_id = self.context["bk_biz_id"]
+            if attr.get("task_id"):
+                task = self._task_by_id(bk_biz_id, attr["task_id"])
+            else:
+                task = self._task_by_bill(bk_biz_id, attr)
             attr["task_id"] = task.id
             attr["prod_cluster"] = task.prod_cluster
             attr["cluster_id"] = task.prod_cluster_id
@@ -50,9 +54,9 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
             return attr
 
         @staticmethod
-        def _task_by_id(task_id: int) -> TbTendisRollbackTasks:
+        def _task_by_id(bk_biz_id: int, task_id: int) -> TbTendisRollbackTasks:
             try:
-                task = TbTendisRollbackTasks.objects.get(id=task_id)
+                task = TbTendisRollbackTasks.objects.get(id=task_id, bk_biz_id=bk_biz_id)
             except TbTendisRollbackTasks.DoesNotExist:
                 raise serializers.ValidationError(_("构造记录{}不存在").format(task_id))
             if task.destroyed_status != DestroyedStatus.NOT_DESTROYED:
@@ -60,7 +64,7 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
             return task
 
         @staticmethod
-        def _task_by_bill(attr: dict) -> TbTendisRollbackTasks:
+        def _task_by_bill(bk_biz_id: int, attr: dict) -> TbTendisRollbackTasks:
             missing = [key for key in ("related_rollback_bill_id", "cluster_id", "bk_cloud_id") if key not in attr]
             if missing:
                 raise serializers.ValidationError(_("未提供 task_id 时必须提供 {}").format(", ".join(missing)))
@@ -71,6 +75,7 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
 
             tasks = list(
                 TbTendisRollbackTasks.objects.filter(
+                    bk_biz_id=bk_biz_id,
                     related_rollback_bill_id=attr["related_rollback_bill_id"],
                     prod_cluster=prod_cluster.immute_domain,
                     bk_cloud_id=attr["bk_cloud_id"],

@@ -19,7 +19,8 @@ class Migration(migrations.Migration):
                 ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
                 ("id", models.BigAutoField(primary_key=True, serialize=False)),
                 ("bk_biz_id", models.BigIntegerField(verbose_name="业务id")),
-                ("cluster_id", models.BigIntegerField(verbose_name="集群id")),
+                ("cluster_id", models.BigIntegerField(db_index=True, verbose_name="集群id")),
+                ("ticket_id", models.BigIntegerField(blank=True, db_index=True, null=True, verbose_name="单据id")),
                 ("plan", models.JSONField(default=dict, verbose_name="回档计划")),
             ],
             options={

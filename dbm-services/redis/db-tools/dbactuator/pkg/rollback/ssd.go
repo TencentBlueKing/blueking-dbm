@@ -10,10 +10,14 @@ package rollback
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -177,8 +181,8 @@ func (r *ssdRestorer) restore(inst InstanceRestore, backupRoot string, binlogs [
 	return nil
 }
 
-// replay applies binlogs in index order. Like v1, per-command errors are counted and logged
-// rather than failing the port.
+// replay applies binlogs in index order. Like v1, error replies are counted and logged rather
+// than failing the port, unless every reply of a file is an error.
 func (r *ssdRestorer) replay(port int, startPos uint64, recoverAt time.Time, binlogs []string, workDir string) error {
 	addr := fmt.Sprintf("%s:%d", r.DestIP, port)
 	password, err := myredis.GetRedisPasswdFromConfFile(port)
@@ -194,7 +198,8 @@ func (r *ssdRestorer) replay(port int, startPos uint64, recoverAt time.Time, bin
 		return err
 	}
 
-	endMs := recoverAt.UnixMilli()
+	endMs := replayEndMs(recoverAt)
+	var total replyStats
 	for _, f := range binlogs {
 		base := filepath.Base(f)
 		if err = decompressFile(f, filepath.Join(workDir, base)); err != nil {
@@ -203,24 +208,105 @@ func (r *ssdRestorer) replay(port int, startPos uint64, recoverAt time.Time, bin
 		logFile := filepath.Join(workDir, strings.TrimSuffix(base, filepath.Ext(base)))
 		cmdFile, outFile := logFile+".cmd", logFile+".out"
 
-		parse := fmt.Sprintf("%s %s --start-position=%d --end-datetime=%d %s > %s",
-			ssdToolEnv(), consts.TredisBinlogBin, startPos, endMs, logFile, cmdFile)
-		out, err := util.RunBashCmd(parse, "", nil, ssdCmdTimeout)
-		if err != nil || strings.Contains(out, "ERR:") {
-			return fmt.Errorf("parse binlog %s failed: %v %s", base, err, out)
+		if err = parseBinlog(logFile, cmdFile, startPos, endMs); err != nil {
+			return fmt.Errorf("parse binlog %s failed: %v", base, err)
 		}
-		apply := fmt.Sprintf("%s --no-raw --no-auth-warning -h %s -p %d -a %s < %s > %s",
-			consts.RedisCliBin, r.DestIP, port, util.ShellQuote(password), cmdFile, outFile)
-		if _, err = util.RunBashCmdReplacePkey(apply, password, "", nil, ssdCmdTimeout); err != nil {
+		if err = applyCommands(r.DestIP, port, password, cmdFile, outFile); err != nil {
 			return fmt.Errorf("apply binlog %s failed: %v", base, err)
 		}
-		total, failed := countReplies(outFile)
-		mylog.Logger.Info("%s applied %s: %d commands, %d errors", addr, base, total, failed)
+		stats, err := readReplies(outFile)
+		if err != nil {
+			return fmt.Errorf("apply binlog %s: %v", base, err)
+		}
+		mylog.Logger.Info("%s applied %s: %d reply lines, %d errors, samples %q",
+			addr, base, stats.Lines, stats.Errors, stats.Samples)
+		if stats.Lines > 0 && stats.Errors == stats.Lines {
+			return fmt.Errorf("apply binlog %s: all %d replies are errors, samples %q",
+				base, stats.Lines, stats.Samples)
+		}
+		total.add(stats)
 		_ = os.Remove(logFile)
 		_ = os.Remove(cmdFile)
 		_ = os.Remove(outFile)
 	}
+	if total.Errors > 0 {
+		mylog.Logger.Warn("%s replayed %d binlogs with %d error replies in %d reply lines, "+
+			"writes behind these errors may be missing, samples %q",
+			addr, len(binlogs), total.Errors, total.Lines, total.Samples)
+	} else {
+		mylog.Logger.Info("%s replayed %d binlogs, %d reply lines, no errors", addr, len(binlogs), total.Lines)
+	}
 	return nil
+}
+
+// replayEndMs is the --end-datetime for recoverAt. The bound is exclusive, so like v1 it is one
+// second later to keep the writes made within the recoverAt second.
+func replayEndMs(recoverAt time.Time) int64 {
+	return recoverAt.Add(time.Second).UnixMilli()
+}
+
+func parseBinlog(logFile, cmdFile string, startPos uint64, endMs int64) error {
+	out, err := os.Create(cmdFile)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), ssdCmdTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, consts.TredisBinlogBin,
+		fmt.Sprintf("--start-position=%d", startPos), fmt.Sprintf("--end-datetime=%d", endMs), logFile)
+	cmd.Env = append(os.Environ(), ssdToolEnv()...)
+	var stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = out, &stderr
+	if err = cmd.Run(); err != nil || strings.Contains(stderr.String(), "ERR:") {
+		return fmt.Errorf("%v %s", err, stderr.String())
+	}
+	return nil
+}
+
+// applyCommands feeds cmdFile to redis-cli. The password goes in as a leading AUTH on stdin
+// so that it never shows up in the process arguments.
+func applyCommands(ip string, port int, password, cmdFile, outFile string) error {
+	in, err := os.Open(cmdFile)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(outFile)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), ssdCmdTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, consts.RedisCliBin, "--no-raw", "-h", ip, "-p", strconv.Itoa(port))
+	var stderr bytes.Buffer
+	cmd.Stdin = io.MultiReader(strings.NewReader(authLine(password)), in)
+	cmd.Stdout, cmd.Stderr = out, &stderr
+	if err = cmd.Run(); err != nil {
+		return fmt.Errorf("%v %s", err, stderr.String())
+	}
+	return nil
+}
+
+// authLine quotes the password the way redis-cli splits stdin lines: inside double quotes,
+// with \" \\ and \xHH escapes.
+func authLine(password string) string {
+	var b strings.Builder
+	b.WriteString(`AUTH "`)
+	for i := 0; i < len(password); i++ {
+		switch c := password[i]; {
+		case c == '"' || c == '\\':
+			b.WriteByte('\\')
+			b.WriteByte(c)
+		case c >= 0x20 && c < 0x7f:
+			b.WriteByte(c)
+		default:
+			fmt.Fprintf(&b, `\x%02x`, c)
+		}
+	}
+	b.WriteString("\"\n")
+	return b.String()
 }
 
 // LocalBinlogs returns inst's downloaded binlogs in replay order, after checking that they are
@@ -345,9 +431,12 @@ func ssdRestoreTool(media string) (string, error) {
 	return "", fmt.Errorf("no rocksdb restore tool for media %s", media)
 }
 
-func ssdToolEnv() string {
+func ssdToolEnv() []string {
 	deps := filepath.Join(consts.UsrLocal, "redis", "bin", "deps")
-	return fmt.Sprintf("LD_PRELOAD=%s/libjemalloc.so LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s", deps, deps)
+	return []string{
+		fmt.Sprintf("LD_PRELOAD=%s/libjemalloc.so", deps),
+		fmt.Sprintf("LD_LIBRARY_PATH=%s:%s", os.Getenv("LD_LIBRARY_PATH"), deps),
+	}
 }
 
 // restoreRocksdb replaces dataDir/rocksdb with the one rebuilt from backupRoot.
@@ -360,7 +449,7 @@ func restoreRocksdb(media, backupRoot, dataDir string) error {
 	if err = os.RemoveAll(rocksdbDir); err != nil {
 		return err
 	}
-	cmd := ssdToolEnv() + " " + fmt.Sprintf(tool, backupRoot, rocksdbDir)
+	cmd := strings.Join(ssdToolEnv(), " ") + " " + fmt.Sprintf(tool, backupRoot, rocksdbDir)
 	mylog.Logger.Info("restore rocksdb: %s", cmd)
 	out, err := util.RunBashCmd(cmd, "", nil, ssdCmdTimeout)
 	if err != nil || strings.Contains(out, "ERR:") {
@@ -372,20 +461,52 @@ func restoreRocksdb(media, backupRoot, dataDir string) error {
 	return util.LocalDirChownMysql(dataDir)
 }
 
-// countReplies counts redis-cli replies in out and how many of them are errors.
-func countReplies(out string) (total, failed int) {
+const replyErrorSamples = 5
+
+// replyStats counts redis-cli --no-raw output lines, not commands: an array reply spans
+// several lines, so the error ratio means little and only an all-error file fails the port.
+type replyStats struct {
+	Lines   int
+	Errors  int
+	Samples []string
+}
+
+func (s *replyStats) add(o replyStats) {
+	s.Lines += o.Lines
+	s.Errors += o.Errors
+	for _, line := range o.Samples {
+		if len(s.Samples) >= replyErrorSamples {
+			break
+		}
+		s.Samples = append(s.Samples, line)
+	}
+}
+
+// readReplies summarizes out, whose first line answers the AUTH applyCommands prepends.
+func readReplies(out string) (replyStats, error) {
+	var st replyStats
 	f, err := os.Open(out)
 	if err != nil {
-		return 0, 0
+		return st, err
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 64*1024), 64*1024*1024)
+	if !scanner.Scan() {
+		return st, fmt.Errorf("no reply to AUTH: %v", scanner.Err())
+	}
+	if line := scanner.Text(); line != "OK" {
+		return st, fmt.Errorf("auth failed: %s", line)
+	}
 	for scanner.Scan() {
-		total++
-		if strings.HasPrefix(scanner.Text(), "(error)") {
-			failed++
+		line := scanner.Text()
+		st.Lines++
+		if strings.HasPrefix(line, "(error)") {
+			st.Errors++
+			if len(st.Samples) < replyErrorSamples {
+				st.Samples = append(st.Samples, line)
+			}
 		}
 	}
-	return total, failed
+	return st, scanner.Err()
 }
