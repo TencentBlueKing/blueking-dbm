@@ -25,7 +25,6 @@
 package switchcore
 
 import (
-	"context"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -33,9 +32,6 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchmutex"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-
-	"gorm.io/gorm"
 )
 
 const (
@@ -49,13 +45,12 @@ const (
 
 	defaultDbConnectTimeout   = 3 * time.Second
 	defaultClusterLockTimeout = 60 * time.Second
-	defaultExecSqlTimeout     = 6 * time.Second
 )
 
 // HostLevelSwitchMaxHostConcurrency returns a positive cap for
 // parallel host-level switch workers (bounded number of hosts processed concurrently).
 func HostLevelSwitchMaxHostConcurrency() int {
-	n := config.Cfg.Workflow.SwitchFlow.HostLevelSwitchMaxHostNum
+	n := config.Cfg.Workflow.SwitchFlow.Common.HostLevelSwitchMaxHostNum
 	if n <= 0 {
 		logger.Warn("hostLevelSwitchMaxHostNum(%d) is invalid, using default %d",
 			n, HostLevelSwitchDefaultMaxHostNum)
@@ -67,7 +62,7 @@ func HostLevelSwitchMaxHostConcurrency() int {
 // HostLevelSwitchMaxInstanceConcurrency returns the cap for
 // parallel per-instance switch work on the same host (shared across all switch groups of the host).
 func HostLevelSwitchMaxInstanceConcurrency() int {
-	n := config.Cfg.Workflow.SwitchFlow.HostLevelSwitchMaxInstanceNum
+	n := config.Cfg.Workflow.SwitchFlow.Common.HostLevelSwitchMaxInstanceNum
 	if n <= 0 {
 		logger.Warn("hostLevelSwitchMaxInstanceNum(%d) is invalid, using default %d",
 			n, HostLevelSwitchDefaultMaxInstanceNum)
@@ -79,7 +74,7 @@ func HostLevelSwitchMaxInstanceConcurrency() int {
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
 // parallel cluster-level switch workers.
 func ClusterLevelSwitchMaxClusterConcurrency() int {
-	n := config.Cfg.Workflow.SwitchFlow.ClusterLevelSwitchMaxClusterNum
+	n := config.Cfg.Workflow.SwitchFlow.Common.ClusterLevelSwitchMaxClusterNum
 	if n <= 0 {
 		logger.Warn("max cluster number(%d) for cluster level switch is invalid, using default %d",
 			n, ClusterLevelSwitchDefaultMaxClusterNum)
@@ -91,7 +86,7 @@ func ClusterLevelSwitchMaxClusterConcurrency() int {
 // ClusterLevelSwitchMaxInstanceConcurrency returns the cap for
 // parallel per-instance work inside one cluster (e.g. pre-switch checks).
 func ClusterLevelSwitchMaxInstanceConcurrency() int {
-	n := config.Cfg.Workflow.SwitchFlow.ClusterLevelSwitchMaxInstanceNum
+	n := config.Cfg.Workflow.SwitchFlow.Common.ClusterLevelSwitchMaxInstanceNum
 	if n <= 0 {
 		logger.Warn("clusterLevelSwitchMaxInstanceNum(%d) is invalid, using default %d",
 			n, ClusterLevelSwitchDefaultMaxInstanceNum)
@@ -103,7 +98,7 @@ func ClusterLevelSwitchMaxInstanceConcurrency() int {
 // DbmApiMaxConcurrentRequests returns the cap for
 // parallel in-flight DBM API calls (e.g. per-instance status update).
 func DbmApiMaxConcurrentRequests() int {
-	n := config.Cfg.Workflow.SwitchFlow.DbmApiMaxConcurrentRequests
+	n := config.Cfg.Workflow.SwitchFlow.Common.DbmApiMaxConcurrentRequests
 	if n <= 0 {
 		logger.Warn("dbmApiMaxConcurrentRequests(%d) is invalid, using default %d",
 			n, DbmApiDefaultMaxConcurrentRequests)
@@ -112,37 +107,22 @@ func DbmApiMaxConcurrentRequests() int {
 	return n
 }
 
-// DbConnectTimeout returns workflow.switchflow.dbConnectTimeout, or default when unset.
+// DbConnectTimeout returns workflow.switchflow.common.dbConnectTimeout, or default when unset.
 func DbConnectTimeout() time.Duration {
-	d := config.Cfg.Workflow.SwitchFlow.DbConnectTimeout
+	d := config.Cfg.Workflow.SwitchFlow.Common.DbConnectTimeout
 	if d <= 0 {
 		return defaultDbConnectTimeout
 	}
 	return d
 }
 
-// ClusterLockTimeout returns workflow.switchflow.clusterLockTimeout, or default when unset.
+// ClusterLockTimeout returns workflow.switchflow.common.clusterLockTimeout, or default when unset.
 func ClusterLockTimeout() time.Duration {
-	d := config.Cfg.Workflow.SwitchFlow.ClusterLockTimeout
+	d := config.Cfg.Workflow.SwitchFlow.Common.ClusterLockTimeout
 	if d <= 0 {
 		return defaultClusterLockTimeout
 	}
 	return d
-}
-
-// ExecSqlTimeout returns workflow.switchflow.execSqlTimeout, or default when unset.
-func ExecSqlTimeout() time.Duration {
-	d := config.Cfg.Workflow.SwitchFlow.ExecSqlTimeout
-	if d <= 0 {
-		return defaultExecSqlTimeout
-	}
-	return d
-}
-
-// GormWithExecSqlTimeout returns db scoped to ExecSqlTimeout and the cancel func for its context deadline.
-func GormWithExecSqlTimeout(db *hamysql.GormDB) (*gorm.DB, context.CancelFunc) {
-	ctx, cancel := context.WithTimeout(context.Background(), ExecSqlTimeout())
-	return db.DBWithContext(ctx), cancel
 }
 
 // LockClusterWithTimeout locks a cluster with a timeout.

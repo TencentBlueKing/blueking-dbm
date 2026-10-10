@@ -259,8 +259,8 @@ func TestGinHTTPServer_IPWhitelist(t *testing.T) {
 
 	// Test non-whitelisted IP should be rate limited on first request
 	req = httptest.NewRequest("GET", "/health", nil)
-	req.Header.Set("X-Forwarded-For", "192.168.1.1")
-	req.RemoteAddr = "192.168.1.1:12345"
+	req.Header.Set("X-Forwarded-For", "127.0.0.2")
+	req.RemoteAddr = "127.0.0.2:12345"
 	w = httptest.NewRecorder()
 	server.router.ServeHTTP(w, req)
 

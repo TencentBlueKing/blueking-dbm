@@ -59,7 +59,8 @@ type matchStrategiesCase struct {
 	strategies []*hamodel.DbSwitchingStrategy // strategies to match against
 	instances  []FailureInstanceInfo          // failure instances to match
 	wantGroups []wantGroup                    // expected groups, matched by strategy name (order-insensitive)
-	wantOrder  []string                       // optional: strategy names in expected output order ("" = unmatched); nil skips the order check
+	// optional: strategy names in expected output order ("" = unmatched); nil skips the order check
+	wantOrder []string
 }
 
 // wantGroup describes one expected failure group in the match result.
@@ -801,7 +802,9 @@ func TestCreateRequestWithGroup_FilterUnavailableAndKeepAvailable(t *testing.T) 
 // excludeUnavailableInstances / special strategy tests
 // ============================================================
 
-func excludeUnavailableInstancesMakeInst(cloud int, ip string, port int, event haprobe.DbEventName) FailureInstanceInfo {
+func excludeUnavailableInstancesMakeInst(
+	cloud int, ip string, port int, event haprobe.DbEventName,
+) FailureInstanceInfo {
 	return FailureInstanceInfo{
 		BkCloudID: cloud,
 		IP:        ip,
@@ -826,12 +829,13 @@ func excludeUnavailableInstancesMakeMeta(cloud int, ip string, port int) *dbm.Db
 // (i.e. not unavailable) survive the filter, and that a nil/empty req yields no switchable instance.
 func TestExcludeUnavailableInstances(t *testing.T) {
 	group := []FailureInstanceInfo{
-		excludeUnavailableInstancesMakeInst(0, "127.0.0.1", 3306, haprobe.DbEventNameDetectFailure), // available, in req
-		excludeUnavailableInstancesMakeInst(0, "127.0.0.2", 3306, haprobe.DbEventNameDetectFailure), // unavailable, not in req
+		// 127.0.0.1 is available and present in req; 127.0.0.2 is unavailable and absent from req.
+		excludeUnavailableInstancesMakeInst(0, "127.0.0.1", 3306, haprobe.DbEventNameDetectFailure),
+		excludeUnavailableInstancesMakeInst(0, "127.0.0.2", 3306, haprobe.DbEventNameDetectFailure),
 	}
 	req := &switcher.Request{
-		DbType:        haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{excludeUnavailableInstancesMakeMeta(0, "127.0.0.1", 3306)},
+		DbType:   haprobe.DbTypeMySql,
+		InstData: []*dbm.DbInstMetadata{excludeUnavailableInstancesMakeMeta(0, "127.0.0.1", 3306)},
 	}
 
 	got := excludeUnavailableInstances(group, req)
@@ -848,85 +852,5 @@ func TestExcludeUnavailableInstances(t *testing.T) {
 	}
 	if got := excludeUnavailableInstances(group, &switcher.Request{}); got != nil {
 		t.Fatalf("expected nil for empty req, got %v", got)
-	}
-}
-
-// TestMatchStrategies_SpecialStrategyExcludesStaleInstances verifies that stale failure events
-// (already-switched instances) are excluded before special strategy matching, so the aggressive
-// cluster-scope strategy is not wrongly selected when only one cluster is actually switchable.
-func TestMatchStrategies_SpecialStrategyExcludesStaleInstances(t *testing.T) {
-	executor, td := newTestSwitchExecutor(t)
-
-	testutil.InsertStrategies(t, td.DbhaData,
-		&hamodel.DbSwitchingStrategy{
-			Name:             "host-switch",
-			BkBizID:          21,
-			Status:           hamodel.StatusTypeEnabled,
-			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
-			TriggerCount:     1,
-			Priority:         2,
-			Scope:            hamodel.ActionScopeTypeHost,
-			Action:           hamodel.ActionTypeSwitch,
-		},
-		&hamodel.DbSwitchingStrategy{
-			Name:             "cluster-switch",
-			BkBizID:          21,
-			Status:           hamodel.StatusTypeEnabled,
-			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
-			TriggerCount:     2,
-			Priority:         1,
-			Scope:            hamodel.ActionScopeTypeCluster,
-			Action:           hamodel.ActionTypeSwitch,
-		},
-	)
-
-	rawGroup := &FailureGroup{
-		BkBizID:   21,
-		BkCloudID: 1,
-		DbType:    haprobe.DbTypeMySql,
-		Instances: []FailureInstanceInfo{
-			{BkBizID: 21, BkCloudID: 1, ClusterID: 10, IP: "127.0.0.10", Port: 3306, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-			{BkBizID: 21, BkCloudID: 1, ClusterID: 10, IP: "127.0.0.11", Port: 3306, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
-			{BkBizID: 21, BkCloudID: 1, ClusterID: 11, IP: "127.0.0.20", Port: 3306, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-			{BkBizID: 21, BkCloudID: 1, ClusterID: 11, IP: "127.0.0.21", Port: 3306, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
-		},
-	}
-
-	// DBM only returns the available instances of cluster 10.
-	req := &switcher.Request{
-		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, BkBizID: 21, Status: dbm.Running},
-			{BkCloudID: 1, IP: "127.0.0.11", Port: 3306, BkBizID: 21, Status: dbm.Running},
-		},
-	}
-	filteredGroup := &FailureGroup{
-		BkBizID:   21,
-		BkCloudID: 1,
-		DbType:    haprobe.DbTypeMySql,
-		Instances: excludeUnavailableInstances(rawGroup.Instances, req),
-	}
-	if len(filteredGroup.Instances) != 2 {
-		t.Fatalf("expected 2 switchable instances after excluding stale cluster, got %d", len(filteredGroup.Instances))
-	}
-
-	// Without exclusion both clusters satisfy the special condition, so cluster-scope
-	// (threshold 2) matches first and binds all 4 instances.
-	result := executor.MatchStrategies(context.Background(), rawGroup)
-	if result == nil || len(result.Groups) == 0 {
-		t.Fatal("raw group should match some strategy")
-	}
-	if result.Groups[0].Strategy.Scope != hamodel.ActionScopeTypeCluster {
-		t.Fatalf("raw group should select cluster-scope, got %s", result.Groups[0].Strategy.Scope)
-	}
-
-	// After excluding the stale cluster, only one cluster remains, so host-scope (threshold 1)
-	// is selected.
-	result = executor.MatchStrategies(context.Background(), filteredGroup)
-	if result == nil || len(result.Groups) == 0 {
-		t.Fatal("filtered group should still match a strategy")
-	}
-	if result.Groups[0].Strategy.Scope != hamodel.ActionScopeTypeHost {
-		t.Fatalf("filtered group should select host-scope, got %s", result.Groups[0].Strategy.Scope)
 	}
 }

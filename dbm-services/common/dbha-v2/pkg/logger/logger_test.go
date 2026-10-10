@@ -28,6 +28,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -36,8 +37,10 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-// mockLogger implements Logger interface for testing
+// mockLogger implements Logger interface for testing.
+// mu guards fields written by log methods when tests exercise concurrent SetLogger/Log.
 type mockLogger struct {
+	mu          sync.Mutex
 	debugCalled bool
 	infoCalled  bool
 	warnCalled  bool
@@ -56,30 +59,40 @@ func (m *mockLogger) OriginLogger() *zap.Logger {
 }
 
 func (m *mockLogger) Debug(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.debugCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Info(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.infoCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Warn(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.warnCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Error(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.errorCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Fatal(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.fatalCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
@@ -118,6 +131,22 @@ func TestSetLoggerAndLog(t *testing.T) {
 	if Log() != mock {
 		t.Fatal("Log() should return the set logger")
 	}
+
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 50; i++ {
+			SetLogger(mock)
+			_ = Log()
+			Info("concurrent")
+		}
+		close(done)
+	}()
+	for i := 0; i < 50; i++ {
+		SetLogger(mock)
+		Info("concurrent")
+	}
+	<-done
+	SetLogger(mock)
 }
 
 func TestDebug(t *testing.T) {
@@ -233,6 +262,18 @@ func TestConvertLevel(t *testing.T) {
 				t.Fatalf("convertLevel(%v) = %v, want %v", tt.level, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDbmLoggerSetLevel(t *testing.T) {
+	path := t.TempDir() + "/dynamic.log"
+	log := NewDbmLogger(Config{FileName: path, LogLevel: InfoLevel})
+	if got := zapcore.Level(log.level.Load()); got != zapcore.InfoLevel {
+		t.Fatalf("initial level: %s, want info", got)
+	}
+	log.SetLevel(DebugLevel)
+	if got := zapcore.Level(log.level.Load()); got != zapcore.DebugLevel {
+		t.Fatalf("updated level: %s, want debug", got)
 	}
 }
 

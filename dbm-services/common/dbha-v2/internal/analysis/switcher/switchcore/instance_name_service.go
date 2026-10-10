@@ -29,6 +29,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -73,7 +74,8 @@ func (manager *NameServiceManager) logf(level switchlogger.SwitchLogLevel, forma
 	logger.Warn(format, args...)
 }
 
-func (manager *NameServiceManager) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo) bool {
+// ReleaseDNSEntry removes the instance from DNS entries.
+func (manager *NameServiceManager) ReleaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo) bool {
 	allSuccess := true
 	if len(dnsEntries) == 0 {
 		manager.logf(switchlogger.SwitchInfo, "no dns entry to release")
@@ -81,8 +83,7 @@ func (manager *NameServiceManager) releaseDNSEntry(dnsEntries []dbm.BindEntryDns
 	}
 
 	for _, dns := range dnsEntries {
-		if (manager.MachineType == haprobe.DbmMetadataMachineTypeProxy) ||
-			(manager.MachineType == haprobe.DbmMetadataMachineTypeSpider) {
+		if dbtype.HasDnsSingleAddressGuard(manager.MachineType) {
 			addressNum, err := manager.DbmClient.GetAddressNumberOfDomain(manager.BkCloudID, dns.DomainName)
 			if err != nil {
 				manager.logf(switchlogger.SwitchWarn, "failed to get address number of domain (%s): %s",
@@ -124,7 +125,8 @@ func (manager *NameServiceManager) releaseDNSEntry(dnsEntries []dbm.BindEntryDns
 	return allSuccess
 }
 
-func (manager *NameServiceManager) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo) bool {
+// ReleaseCLBEntry removes the instance from CLB entries.
+func (manager *NameServiceManager) ReleaseCLBEntry(clbEntries []dbm.BindEntryClbInfo) bool {
 	allSuccess := true
 	if clbEntries == nil {
 		manager.logf(switchlogger.SwitchInfo, "no clb entry to release")
@@ -161,7 +163,8 @@ func (manager *NameServiceManager) releaseCLBEntry(clbEntries []dbm.BindEntryClb
 	return allSuccess
 }
 
-func (manager *NameServiceManager) releasePolarisEntry(polarisEntries []dbm.BindEntryPolarisInfo) bool {
+// ReleasePolarisEntry removes the instance from Polaris entries.
+func (manager *NameServiceManager) ReleasePolarisEntry(polarisEntries []dbm.BindEntryPolarisInfo) bool {
 	allSuccess := true
 	if polarisEntries == nil {
 		manager.logf(switchlogger.SwitchInfo, "no polaris entry to release")
@@ -200,9 +203,9 @@ func (manager *NameServiceManager) releasePolarisEntry(polarisEntries []dbm.Bind
 
 // DeleteNameService removes broken-down instance from DNS, CLB, and Polaris entries.
 func (manager *NameServiceManager) DeleteNameService(entry dbm.DbmMetadataBindEntry) error {
-	dnsFlag := manager.releaseDNSEntry(entry.DNS)
-	clbFlag := manager.releaseCLBEntry(entry.CLB)
-	polarisFlag := manager.releasePolarisEntry(entry.Polaris)
+	dnsFlag := manager.ReleaseDNSEntry(entry.DNS)
+	clbFlag := manager.ReleaseCLBEntry(entry.CLB)
+	polarisFlag := manager.ReleasePolarisEntry(entry.Polaris)
 
 	if !(dnsFlag && clbFlag && polarisFlag) {
 		return gerrors.Newf(gerrors.Failure, "failed to release this instance from all entries")

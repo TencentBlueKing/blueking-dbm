@@ -51,7 +51,11 @@ func (c whitelistCluster) String() string {
 }
 
 // queryBlackWhiteListFromDbhaV1 queries black white list from dbha-v1.
-func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(ctx context.Context, bkBizId int, bkCloudId int) ([]*dbm.Dbhav1BlackWhiteListItem, error) {
+func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(
+	ctx context.Context,
+	bkBizId int,
+	bkCloudId int,
+) ([]*dbm.Dbhav1BlackWhiteListItem, error) {
 	if s.cli == nil {
 		return nil, gerrors.Newf(gerrors.Failure, "dbm client is not initialized")
 	}
@@ -183,8 +187,13 @@ func (w *Workflow) filterByWhitelistForScan(ctx context.Context, bizID int, bizM
 
 // filterByWhitelistForSwitch filters switch requests by whitelist:
 // whitelisted instances proceed to switching, others are removed and notified only.
-func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger,
-	group *FailureGroup, req *switcher.Request, strategies []*hamodel.DbSwitchingStrategy) error {
+func (w *Workflow) filterByWhitelistForSwitch(
+	ctx context.Context,
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup,
+	req *switcher.Request,
+	strategies []*hamodel.DbSwitchingStrategy,
+) error {
 	if !config.Cfg.Workflow.EnableWhiteList {
 		logger.Warn("whitelist is disabled, skip filtering whitelisted instances")
 		return nil
@@ -202,8 +211,8 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, snapshotLogge
 
 	whiteList, err := w.dbmSync.queryBlackWhiteListFromDbhaV1(ctx, bkBizID, group.BkCloudID)
 	if err != nil {
-		instanceAddrs := make([]string, 0, len(req.MySqlInstData))
-		for _, meta := range req.MySqlInstData {
+		instanceAddrs := make([]string, 0, len(req.InstData))
+		for _, meta := range req.InstData {
 			instanceAddrs = append(instanceAddrs, instanceKey(meta.BkCloudID, meta.IP, meta.Port))
 		}
 
@@ -214,7 +223,7 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, snapshotLogge
 		logger.Warn("%s", msg)
 		w.alarm.TriggerWithBizId(bkBizID, msg)
 
-		req.MySqlInstData = make([]*dbm.DbInstMetadata, 0)
+		req.InstData = make([]*dbm.DbInstMetadata, 0)
 		return gerrors.Newf(gerrors.InternalServerFailure, "%s", msg)
 	}
 
@@ -229,7 +238,7 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, snapshotLogge
 	whitelistedMetas := make([]*dbm.DbInstMetadata, 0)
 	remaining := make([]*dbm.DbInstMetadata, 0)
 
-	for _, meta := range req.MySqlInstData {
+	for _, meta := range req.InstData {
 		clusterKey := whitelistCluster{
 			BkBizID: meta.BkBizID, BkCloudID: meta.BkCloudID, ClusterID: meta.ClusterID,
 		}.String()
@@ -243,14 +252,12 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, snapshotLogge
 	}
 
 	// only whitelisted instances proceed to switching
-	req.MySqlInstData = whitelistedMetas
+	req.InstData = whitelistedMetas
 
 	if len(remaining) == 0 {
 		return nil
 	}
 
-	// write a notify snapshot for the non-whitelisted instances before raising the alarm,
-	// so that they still leave a traceable record even when no switch is executed.
 	w.reportWhitelistNotifySnapshot(snapshotLoggers, group, remaining, req.SwitchID, strategies)
 
 	// send a notification alarm for non-whitelisted instances
@@ -260,7 +267,8 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, snapshotLogge
 			fmt.Sprintf("%s(%d):%s:%d", meta.Cluster, meta.ClusterID, meta.IP, meta.Port))
 	}
 	log := fmt.Sprintf(
-		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, instances: [%s]",
+		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, "+
+			"bkCloudId: %d, dbType: %s, instances: [%s]",
 		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(instanceInfos, ", "))
 	logger.Info("%s", log)
 	w.alarm.TriggerWithBizId(bkBizID, log)

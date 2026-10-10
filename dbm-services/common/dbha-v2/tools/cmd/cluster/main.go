@@ -43,6 +43,7 @@ const (
 )
 
 var configFilePath string
+var sessionWhere string
 
 // ResetRun executes the reset subcommand
 func ResetRun(cmd *cobra.Command, args []string) error {
@@ -215,6 +216,33 @@ func ShowRoutingRun(cmd *cobra.Command, args []string) error {
 	}
 }
 
+// ShowSessionRun executes the show session subcommand
+func ShowSessionRun(cmd *cobra.Command, args []string) error {
+	if configFilePath == "" {
+		return gerrors.Newf(gerrors.Failure, "config file path is required")
+	}
+
+	clusterConfig, err := config.LoadConfig(configFilePath)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to load config: %s", err.Error())
+	}
+
+	config.SetClusterConfig(clusterConfig)
+
+	clusterType, _ := cmd.Flags().GetString("type")
+
+	switch clusterType {
+	case ClusterTypeTendbha:
+		clusterHdl := handler.NewMysqlClusterHandler()
+		return clusterHdl.ShowAllMysqlClustersSession(sessionWhere)
+	case ClusterTypeTenDBCluster:
+		tenDBClusterHdl := handler.NewTenDBClusterHandler()
+		return tenDBClusterHdl.ShowAllTenDBClustersSession(sessionWhere)
+	default:
+		return gerrors.Newf(gerrors.Failure, typeOptionsHint)
+	}
+}
+
 func newResetCmd() *cobra.Command {
 	resetCmd := &cobra.Command{
 		Use:   "reset",
@@ -300,11 +328,20 @@ func main() {
 		RunE:  ShowClbRun,
 	}
 
+	showSessionCmd := &cobra.Command{
+		Use:   "session",
+		Short: "Show sessions (information_schema.processlist) of all nodes (JSON format)",
+		RunE:  ShowSessionRun,
+	}
+	showSessionCmd.Flags().StringVar(&sessionWhere, "where", "",
+		"filter condition appended as-is to the WHERE clause of the processlist query")
+
 	showCmd.AddCommand(showDomainCmd)
 	showCmd.AddCommand(showNodesCmd)
 	showCmd.AddCommand(showReplicationCmd)
 	showCmd.AddCommand(showRoutingCmd)
 	showCmd.AddCommand(showClbCmd)
+	showCmd.AddCommand(showSessionCmd)
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(newResetCmd())

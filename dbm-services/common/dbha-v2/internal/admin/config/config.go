@@ -26,7 +26,9 @@
 package config
 
 import (
+	"bytes"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/constant"
@@ -34,30 +36,6 @@ import (
 
 	"github.com/spf13/viper"
 )
-
-// minProbeGseConnTimeout is the lower bound enforced by clampProbeGseConnTimeout
-// when probeGse.connTimeout is empty, invalid, or below this duration.
-const minProbeGseConnTimeout = 5 * time.Second
-
-// minProbeHarvesterInterval / minProbeHarvesterTimeout are lower bounds enforced at admin load
-// for ProbeMysql / ProbeRedis / ProbeProxyAdmin Interval / Timeout fields. Values that are
-// zero or below the minimum are normalized so probe never receives 0s and starts a
-// zero-interval ticker.
-// minProbeHarvesterHeartbeatInterval / minProbeHarvesterReplHeartbeatInterval are the floors
-// for heartbeatInterval / replDelayInterval on probeMysql and probeProxyAdmin.
-// Empty YAML values are not clamped here: viper's duration decoder rejects them and Load returns
-// an error before clamp runs, so callers must always supply a parseable Go duration string.
-const (
-	minProbeHarvesterInterval              = 5 * time.Second
-	minProbeHarvesterHeartbeatInterval     = 1 * time.Second
-	minProbeHarvesterReplHeartbeatInterval = 5 * time.Second
-	minProbeHarvesterTimeout               = 1 * time.Second
-)
-
-// defaultPidFile is the fallback pid-file path used when the loaded config
-// leaves pidFile empty, so the running process never operates with an empty
-// pid-file path.
-const defaultPidFile = "./pids/admin.pid"
 
 const (
 	// DefaultProbeMetadataCacheMaxAge is how fresh cached metadata must be to answer a probe.
@@ -70,11 +48,37 @@ const (
 	// refreshes rather than one it is late on.
 	DefaultProbeMetadataTombstoneAge = 24 * time.Hour
 
+	// minProbeGseConnTimeout is the lower bound enforced by clampProbeGseConnTimeout
+	// when probeGse.connTimeout is empty, invalid, or below this duration.
+	minProbeGseConnTimeout = 5 * time.Second
+
+	// minProbeHarvesterInterval / minProbeHarvesterTimeout are lower bounds enforced at admin load
+	// for ProbeMysql / ProbeRedis / ProbeProxyAdmin Interval / Timeout fields. Values that are
+	// zero or below the minimum are normalized so probe never receives 0s and starts a
+	// zero-interval ticker.
+	// minProbeHarvesterHeartbeatInterval / minProbeHarvesterReplHeartbeatInterval are the floors
+	// for heartbeatInterval / replDelayInterval on probeMysql and probeProxyAdmin.
+	// Empty YAML values are not clamped here: viper's duration decoder rejects them and Load returns
+	// an error before clamp runs, so callers must always supply a parseable Go duration string.
+	minProbeHarvesterInterval              = 5 * time.Second
+	minProbeHarvesterHeartbeatInterval     = 1 * time.Second
+	minProbeHarvesterReplHeartbeatInterval = 5 * time.Second
+	minProbeHarvesterTimeout               = 1 * time.Second
+
+	// defaultPidFile is the fallback pid-file path used when the loaded config
+	// leaves pidFile empty, so the running process never operates with an empty
+	// pid-file path.
+	defaultPidFile = "./pids/admin.pid"
+
 	// minProbeMetadataCacheMaxAge keeps the freshness window above a single sync cycle. Below
 	// it, ordinary sync jitter would look like staleness and send every request to DBM.
 	minProbeMetadataCacheMaxAge = 1 * time.Minute
 )
 
+// Cfg is the package-level applied configuration for startup and single-command paths
+// (migrate, start/stop/health). After admin hot reload, concurrent readers must use Snapshot().
+// Assigning to Cfg directly (for example viper.Unmarshal(&config.Cfg) or test mutation) does not
+// update the snapshot; call Apply to keep Cfg and Snapshot in step.
 var Cfg = Configuration{
 	Name:    "admin",
 	PidFile: defaultPidFile,
@@ -93,6 +97,29 @@ var Cfg = Configuration{
 		MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
 		MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
 	},
+}
+
+// snapshot mirrors Cfg for lock-free concurrent reads. Apply keeps the two in step.
+var snapshot atomic.Pointer[Configuration]
+
+func init() {
+	initial := Cfg
+	snapshot.Store(&initial)
+}
+
+// Apply installs next as the applied configuration.
+func Apply(next Configuration) {
+	Cfg = next
+	applied := next
+	snapshot.Store(&applied)
+}
+
+// Snapshot returns the configuration currently applied, without racing against hot reload.
+func Snapshot() Configuration {
+	if applied := snapshot.Load(); applied != nil {
+		return *applied
+	}
+	return Cfg
 }
 
 // DiscoveryConfig discovery configuration
@@ -115,6 +142,8 @@ type ApmConfig struct {
 }
 
 // GrpcConfig grpc configuration
+// GrpcConfig holds admin gRPC server settings used as a reload fingerprint.
+// Fields must remain comparable scalars so NeedsRebuild can use == safely.
 type GrpcConfig struct {
 	ListenAddress         string        `yaml:"listenAddress"         mapstructure:"listenAddress"`
 	ServerPingTime        time.Duration `yaml:"serverPingTime"        mapstructure:"serverPingTime"`
@@ -222,6 +251,15 @@ type ProbeProxyAdminConfig struct {
 	Timeout           time.Duration `yaml:"timeout"           mapstructure:"timeout"`
 }
 
+// ProbeHarvesterCred is a generic harvester credential block for newly added DB types.
+// Keys under ProbeHarvesters map to ProbeConfigPayload.Harvesters (pass-through).
+type ProbeHarvesterCred struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
+}
+
 // ProbeHealthConfig defaults for probe health-check write verification; admin loads from YAML
 // and passes to probe. DiskWriteDirs lists the directories the probe health command writes a
 // marker file into to verify the local disk is writable; empty means fall back to the default
@@ -232,23 +270,24 @@ type ProbeHealthConfig struct {
 
 // Configuration admin's configuration
 type Configuration struct {
-	Name            string                `yaml:"name"            mapstructure:"name"`
-	Version         string                `yaml:"version"         mapstructure:"version"`
-	PidFile         string                `yaml:"pidFile"         mapstructure:"pidFile"`
-	DocFileDir      string                `yaml:"docFileDir"      mapstructure:"docFileDir"`
-	Discovery       DiscoveryConfig       `yaml:"discovery"       mapstructure:"discovery"`
-	Apm             ApmConfig             `yaml:"apm"             mapstructure:"apm"`
-	Grpc            GrpcConfig            `yaml:"grpc"            mapstructure:"grpc"`
-	Web             WebConfig             `yaml:"web"             mapstructure:"web"`
-	DbmApis         []DbmApi              `yaml:"dbmApi"          mapstructure:"dbmApi"`
-	Storage         StorageConfig         `yaml:"storage"         mapstructure:"storage"`
-	Log             LogConfig             `yaml:"log"             mapstructure:"log"`
-	ProbeGse        ProbeGseConfig        `yaml:"probeGse"        mapstructure:"probeGse"`
-	ProbeMysql      ProbeMysqlConfig      `yaml:"probeMysql"      mapstructure:"probeMysql"`
-	ProbeRedis      ProbeRedisConfig      `yaml:"probeRedis"      mapstructure:"probeRedis"`
-	ProbeProxyAdmin ProbeProxyAdminConfig `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
-	ProbeMetadata   ProbeMetadataConfig   `yaml:"probeMetadata"   mapstructure:"probeMetadata"`
-	ProbeHealth     ProbeHealthConfig     `yaml:"probeHealth"     mapstructure:"probeHealth"`
+	Name            string                        `yaml:"name"            mapstructure:"name"`
+	Version         string                        `yaml:"version"         mapstructure:"version"`
+	PidFile         string                        `yaml:"pidFile"         mapstructure:"pidFile"`
+	DocFileDir      string                        `yaml:"docFileDir"      mapstructure:"docFileDir"`
+	Discovery       DiscoveryConfig               `yaml:"discovery"       mapstructure:"discovery"`
+	Apm             ApmConfig                     `yaml:"apm"             mapstructure:"apm"`
+	Grpc            GrpcConfig                    `yaml:"grpc"            mapstructure:"grpc"`
+	Web             WebConfig                     `yaml:"web"             mapstructure:"web"`
+	DbmApis         []DbmApi                      `yaml:"dbmApi"          mapstructure:"dbmApi"`
+	Storage         StorageConfig                 `yaml:"storage"         mapstructure:"storage"`
+	Log             LogConfig                     `yaml:"log"             mapstructure:"log"`
+	ProbeGse        ProbeGseConfig                `yaml:"probeGse"        mapstructure:"probeGse"`
+	ProbeMysql      ProbeMysqlConfig              `yaml:"probeMysql"      mapstructure:"probeMysql"`
+	ProbeRedis      ProbeRedisConfig              `yaml:"probeRedis"      mapstructure:"probeRedis"`
+	ProbeProxyAdmin ProbeProxyAdminConfig         `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
+	ProbeHarvesters map[string]ProbeHarvesterCred `yaml:"probeHarvesters" mapstructure:"probeHarvesters"`
+	ProbeMetadata   ProbeMetadataConfig           `yaml:"probeMetadata"   mapstructure:"probeMetadata"`
+	ProbeHealth     ProbeHealthConfig             `yaml:"probeHealth"     mapstructure:"probeHealth"`
 }
 
 // clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,
@@ -272,16 +311,16 @@ func clampProbeGseConnTimeout(raw string) string {
 	return s
 }
 
-// clampProbeHarvesterInterval returns at least min; values that are zero or below min
-// are normalized to min. name is the harvester field label (e.g. "probeMysql") used
-// only for the warn log.
-func clampProbeHarvesterInterval(name string, d, min time.Duration) time.Duration {
-	if d < min {
+// clampProbeHarvesterInterval returns at least floor; values that are zero or below floor
+// are normalized to floor. name is the harvester field label (e.g. "probeMysql.interval")
+// used only for the warn log.
+func clampProbeHarvesterInterval(name string, d, floor time.Duration) time.Duration {
+	if d < floor {
 		logger.Warn(
 			"probe harvester interval below minimum, normalizing, name: %s, given: %s, minimum: %s",
-			name, d, min,
+			name, d, floor,
 		)
-		return min
+		return floor
 	}
 	return d
 }
@@ -300,50 +339,128 @@ func clampProbeHarvesterTimeout(name string, d time.Duration) time.Duration {
 	return d
 }
 
-// Load loads admin configuration from file
-func Load(configFilePath string) error {
-	viper.SetConfigName("admin")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
+// Parse reads admin configuration from path without mutating the package-level Cfg
+// or the global viper instance.
+func Parse(configFilePath string) (Configuration, error) {
+	v := newConfigViper()
 
 	if configFilePath != "" {
-		viper.SetConfigFile(configFilePath)
+		v.SetConfigFile(configFilePath)
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
+		return Configuration{}, err
+	}
+
+	return unmarshalConfig(v)
+}
+
+// ParseBytes parses an in-memory YAML document into a Configuration.
+func ParseBytes(data []byte) (Configuration, error) {
+	v := newConfigViper()
+
+	if err := v.ReadConfig(bytes.NewReader(data)); err != nil {
+		return Configuration{}, err
+	}
+
+	return unmarshalConfig(v)
+}
+
+func newConfigViper() *viper.Viper {
+	v := viper.New()
+	v.SetConfigName("admin")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./etc")
+	return v
+}
+
+func unmarshalConfig(v *viper.Viper) (Configuration, error) {
+	next := defaultConfiguration()
+	if err := v.Unmarshal(&next); err != nil {
+		return Configuration{}, err
+	}
+	postProcess(&next)
+	return next, nil
+}
+
+func defaultConfiguration() Configuration {
+	return Configuration{
+		Name:    "admin",
+		PidFile: defaultPidFile,
+		Log: LogConfig{
+			Path:      "./logs/admin.log",
+			Level:     logger.InfoLevel.String(),
+			FileCount: 10,
+			FileSize:  100,
+		},
+		Grpc: GrpcConfig{
+			ServerPingTime:        constant.DefaultServerPingTime,
+			PingTimeout:           constant.DefaultPingTimeout,
+			KeepAliveMinTime:      constant.DefaultKeepAliveMiniTime,
+			PermitWithoutStream:   true,
+			MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
+			MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
+		},
+	}
+}
+
+// postProcess applies clamps and nil/empty normalization on a not-yet-published config.
+func postProcess(cfg *Configuration) {
+	if cfg.PidFile == "" {
+		cfg.PidFile = defaultPidFile
+	}
+	cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(cfg.ProbeGse.ConnTimeout)
+	clampProbeHarvesterDurations(cfg)
+	cfg.ProbeMetadata = normalizeProbeMetadata(cfg.ProbeMetadata)
+	normalizeReferenceFields(cfg)
+}
+
+// normalizeReferenceFields rebuilds map/slice fields so nil and empty compare equal
+// and later readers never mutate a shared backing array/map.
+func normalizeReferenceFields(cfg *Configuration) {
+	if cfg.ProbeHarvesters == nil {
+		cfg.ProbeHarvesters = map[string]ProbeHarvesterCred{}
+	} else {
+		cloned := make(map[string]ProbeHarvesterCred, len(cfg.ProbeHarvesters))
+		for k, v := range cfg.ProbeHarvesters {
+			cloned[k] = v
+		}
+		cfg.ProbeHarvesters = cloned
+	}
+
+	if cfg.DbmApis == nil {
+		cfg.DbmApis = []DbmApi{}
+	} else {
+		cloned := make([]DbmApi, len(cfg.DbmApis))
+		copy(cloned, cfg.DbmApis)
+		cfg.DbmApis = cloned
+	}
+
+	if cfg.ProbeHealth.DiskWriteDirs == nil {
+		cfg.ProbeHealth.DiskWriteDirs = []string{}
+	} else {
+		cloned := make([]string, len(cfg.ProbeHealth.DiskWriteDirs))
+		copy(cloned, cfg.ProbeHealth.DiskWriteDirs)
+		cfg.ProbeHealth.DiskWriteDirs = cloned
+	}
+}
+
+// Load loads admin configuration from file into the package-level Cfg.
+func Load(configFilePath string) error {
+	next, err := Parse(configFilePath)
+	if err != nil {
 		return err
 	}
-
-	if err := viper.Unmarshal(&Cfg); err != nil {
-		return err
-	}
-
-	if Cfg.PidFile == "" {
-		Cfg.PidFile = defaultPidFile
-	}
-
-	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
-
-	Cfg.ProbeMysql.Interval = clampProbeHarvesterInterval(
-		"probeMysql.interval", Cfg.ProbeMysql.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeMysql.HeartbeatInterval = clampProbeHarvesterInterval(
-		"probeMysql.heartbeatInterval", Cfg.ProbeMysql.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
-	Cfg.ProbeMysql.ReplDelayInterval = clampProbeHarvesterInterval(
-		"probeMysql.replDelayInterval", Cfg.ProbeMysql.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
-	Cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql.timeout", Cfg.ProbeMysql.Timeout)
-	Cfg.ProbeRedis.Interval = clampProbeHarvesterInterval(
-		"probeRedis.interval", Cfg.ProbeRedis.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis.timeout", Cfg.ProbeRedis.Timeout)
-	Cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.interval", Cfg.ProbeProxyAdmin.Interval, minProbeHarvesterInterval)
-	Cfg.ProbeProxyAdmin.HeartbeatInterval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.heartbeatInterval", Cfg.ProbeProxyAdmin.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
-	Cfg.ProbeProxyAdmin.ReplDelayInterval = clampProbeHarvesterInterval(
-		"probeProxyAdmin.replDelayInterval", Cfg.ProbeProxyAdmin.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
-	Cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin.timeout", Cfg.ProbeProxyAdmin.Timeout)
-	Cfg.ProbeMetadata = normalizeProbeMetadata(Cfg.ProbeMetadata)
-
+	Apply(next)
 	return nil
+}
+
+// RetainIdentity copies fields that must not change across a hot reload from old into next.
+func RetainIdentity(old, next Configuration) Configuration {
+	next.Name = old.Name
+	next.Version = old.Version
+	next.PidFile = old.PidFile
+	return next
 }
 
 // normalizeProbeMetadata fills in the defaults and enforces the freshness floor. Unlike the
@@ -375,4 +492,44 @@ func normalizeProbeMetadata(cfg ProbeMetadataConfig) ProbeMetadataConfig {
 	}
 
 	return cfg
+}
+
+// clampProbeHarvesterDurations normalizes every probe harvester interval / timeout on cfg
+// against its floor, so probe never receives a zero or too-aggressive cadence.
+// The ProbeHarvesters map is rebuilt rather than mutated in place to avoid concurrent
+// map read/write with GenProbeConfig.
+func clampProbeHarvesterDurations(cfg *Configuration) {
+	cfg.ProbeMysql.Interval = clampProbeHarvesterInterval(
+		"probeMysql.interval", cfg.ProbeMysql.Interval, minProbeHarvesterInterval)
+	cfg.ProbeMysql.HeartbeatInterval = clampProbeHarvesterInterval(
+		"probeMysql.heartbeatInterval", cfg.ProbeMysql.HeartbeatInterval, minProbeHarvesterHeartbeatInterval)
+	cfg.ProbeMysql.ReplDelayInterval = clampProbeHarvesterInterval(
+		"probeMysql.replDelayInterval", cfg.ProbeMysql.ReplDelayInterval, minProbeHarvesterReplHeartbeatInterval)
+	cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql.timeout", cfg.ProbeMysql.Timeout)
+
+	cfg.ProbeRedis.Interval = clampProbeHarvesterInterval(
+		"probeRedis.interval", cfg.ProbeRedis.Interval, minProbeHarvesterInterval)
+	cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis.timeout", cfg.ProbeRedis.Timeout)
+
+	cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.interval", cfg.ProbeProxyAdmin.Interval, minProbeHarvesterInterval)
+	cfg.ProbeProxyAdmin.HeartbeatInterval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.heartbeatInterval", cfg.ProbeProxyAdmin.HeartbeatInterval,
+		minProbeHarvesterHeartbeatInterval)
+	cfg.ProbeProxyAdmin.ReplDelayInterval = clampProbeHarvesterInterval(
+		"probeProxyAdmin.replDelayInterval", cfg.ProbeProxyAdmin.ReplDelayInterval,
+		minProbeHarvesterReplHeartbeatInterval)
+	cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin.timeout", cfg.ProbeProxyAdmin.Timeout)
+
+	if len(cfg.ProbeHarvesters) == 0 {
+		return
+	}
+	rebuilt := make(map[string]ProbeHarvesterCred, len(cfg.ProbeHarvesters))
+	for name, cred := range cfg.ProbeHarvesters {
+		cred.Interval = clampProbeHarvesterInterval(
+			"probeHarvesters."+name+".interval", cred.Interval, minProbeHarvesterInterval)
+		cred.Timeout = clampProbeHarvesterTimeout("probeHarvesters."+name+".timeout", cred.Timeout)
+		rebuilt[name] = cred
+	}
+	cfg.ProbeHarvesters = rebuilt
 }

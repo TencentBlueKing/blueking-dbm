@@ -33,10 +33,31 @@ var (
 	version   = ""
 )
 
+// Info describes the build information injected via -ldflags at link time.
+// All fields are empty strings when the binary is built without those ldflags.
+type Info struct {
+	BuildTime string
+	GitTag    string
+	GitHash   string
+	Version   string
+}
+
+// Get returns the build information injected at link time.
+func Get() Info {
+	return Info{
+		BuildTime: buildTime,
+		GitTag:    gitTag,
+		GitHash:   gitHash,
+		Version:   version,
+	}
+}
+
+// Print writes the service name and build information to stdout.
 func Print(service string) {
+	info := Get()
 	fmt.Printf("%s\n", service)
-	fmt.Printf("\tBuildTime:\t%s\n", buildTime)
-	fmt.Printf("\tGitTag:\t\t%s\n", gitTag)
-	fmt.Printf("\tGitHash:\t%s\n", gitHash)
-	fmt.Printf("\tVersion:\t%s\n", version)
+	fmt.Printf("\tBuildTime:\t%s\n", info.BuildTime)
+	fmt.Printf("\tGitTag:\t\t%s\n", info.GitTag)
+	fmt.Printf("\tGitHash:\t%s\n", info.GitHash)
+	fmt.Printf("\tVersion:\t%s\n", info.Version)
 }

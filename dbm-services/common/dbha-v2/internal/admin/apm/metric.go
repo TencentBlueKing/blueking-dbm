@@ -32,10 +32,14 @@ const (
 	MetricLabelMethod = "method"
 	MetricLabelPath   = "path"
 	MetricLabelStatus = "status"
+	MetricLabelResult = "result"
 	// MetricLabelReason explains why a probe config request could not be answered from the
 	// local metadata cache. It is deliberately a small fixed set of values: labelling by ip or
 	// bk_cloud_id would create one time series per machine.
-	MetricLabelReason = "reason"
+	MetricLabelReason   = "reason"
+	MetricLabelGRPCCode = "grpc_code"
+	MetricLabelCode     = "code"
+	metricLabelUnknown  = "unknown"
 )
 
 var (
@@ -47,53 +51,119 @@ var (
 	// ProbeMetadataFallbackTotal counts probe config requests served from the DBM API instead
 	// of the local cache. Probes now ask periodically, so a rise here means admin is amplifying
 	// that traffic onto DBM and is the signal to look at metadata sync lag.
-	ProbeMetadataFallbackTotal *haapm.HaCounter
+	ProbeMetadataFallbackTotal  *haapm.HaCounter
+	ConfigReloadSuccess         *haapm.HaGauge
+	ConfigReloadFailure         *haapm.HaGauge
+	ConfigReloadDurationMs      *haapm.HaGauge
+	ConfigReloadSlotCount       *haapm.HaGauge
+	ConfigReloadLastSuccessUnix *haapm.HaGauge
+	GRPCRequestsTotal           *haapm.HaCounter
+	GRPCRequestDurationMs       *haapm.HaHistogram
+	GRPCRequestSizeBytes        *haapm.HaHistogram
+	GRPCResponseSizeBytes       *haapm.HaHistogram
+	GRPCRequestErrorsTotal      *haapm.HaCounter
+	GRPCProbeConfigResultTotal  *haapm.HaCounter
 )
 
 func init() {
-	// API request total counter
+	initAPIMetrics()
+	initReloadMetrics()
+	initGRPCMetrics()
+}
+
+func initAPIMetrics() {
 	APIRequestsTotal = haapm.NewHaCounter(
 		"api_requests_total",
 		"Total number of API requests",
 		MetricLabelMethod, MetricLabelPath, MetricLabelStatus,
 	)
-
-	// API request duration histogram
 	APIRequestDurationMs = haapm.NewHaHistogramWithBuckets(
 		"api_request_duration_ms",
 		"API request duration (milliseconds)",
 		haapm.DefaultDurationBuckets,
 		MetricLabelMethod, MetricLabelPath,
 	)
-
-	// API request size histogram
 	APIRequestSizeBytes = haapm.NewHaHistogramWithBuckets(
 		"api_request_size_bytes",
 		"API request size (bytes)",
 		haapm.DefaultSizeBuckets,
 		MetricLabelMethod, MetricLabelPath,
 	)
-
-	// API response size histogram
 	APIResponseSizeBytes = haapm.NewHaHistogramWithBuckets(
 		"api_response_size_bytes",
 		"API response size (bytes)",
 		haapm.DefaultSizeBuckets,
 		MetricLabelMethod, MetricLabelPath,
 	)
-
-	// API request errors counter
 	APIRequestErrorsTotal = haapm.NewHaCounter(
 		"api_request_errors_total",
 		"Total number of API request errors",
 		MetricLabelMethod, MetricLabelPath,
 	)
-
-	// Probe metadata cache fallback counter
 	ProbeMetadataFallbackTotal = haapm.NewHaCounter(
 		"probe_metadata_fallback_total",
 		"Total number of probe config requests that fell back to the DBM metadata API",
 		MetricLabelReason,
+	)
+}
+
+func initReloadMetrics() {
+	ConfigReloadSuccess = haapm.NewHaGauge(
+		"config_reload_success",
+		"Whether the latest admin config reload completed without slot failures",
+	)
+	ConfigReloadFailure = haapm.NewHaGauge(
+		"config_reload_failure",
+		"Whether the latest admin config reload had a parse, validation, or slot failure",
+	)
+	ConfigReloadDurationMs = haapm.NewHaGauge(
+		"config_reload_duration_ms",
+		"Duration of the latest admin config reload in milliseconds",
+	)
+	ConfigReloadSlotCount = haapm.NewHaGauge(
+		"config_reload_slot_count",
+		"Number of resource slots processed by result",
+		MetricLabelResult,
+	)
+	ConfigReloadLastSuccessUnix = haapm.NewHaGauge(
+		"config_reload_last_success_unix",
+		"Unix timestamp of the last admin config reload that completed without failures",
+	)
+}
+
+func initGRPCMetrics() {
+	GRPCRequestsTotal = haapm.NewHaCounter(
+		"grpc_requests_total",
+		"Total number of admin gRPC requests including successes and failures",
+		MetricLabelMethod, MetricLabelGRPCCode,
+	)
+	GRPCRequestDurationMs = haapm.NewHaHistogramWithBuckets(
+		"grpc_request_duration_ms",
+		"Admin gRPC request duration (milliseconds)",
+		haapm.DefaultDurationBuckets,
+		MetricLabelMethod,
+	)
+	GRPCRequestSizeBytes = haapm.NewHaHistogramWithBuckets(
+		"grpc_request_size_bytes",
+		"Admin gRPC request size (bytes)",
+		haapm.DefaultSizeBuckets,
+		MetricLabelMethod,
+	)
+	GRPCResponseSizeBytes = haapm.NewHaHistogramWithBuckets(
+		"grpc_response_size_bytes",
+		"Admin gRPC response size (bytes)",
+		haapm.DefaultSizeBuckets,
+		MetricLabelMethod,
+	)
+	GRPCRequestErrorsTotal = haapm.NewHaCounter(
+		"grpc_request_errors_total",
+		"Total number of admin gRPC requests that returned a non-OK status",
+		MetricLabelMethod,
+	)
+	GRPCProbeConfigResultTotal = haapm.NewHaCounter(
+		"grpc_probe_config_result_total",
+		"Total GetProbeConfig replies grouped by bounded business result code",
+		MetricLabelCode,
 	)
 }
 
@@ -114,5 +184,16 @@ func InitAPM(serviceID, serviceName string) {
 		APIResponseSizeBytes,
 		APIRequestErrorsTotal,
 		ProbeMetadataFallbackTotal,
+		ConfigReloadSuccess,
+		ConfigReloadFailure,
+		ConfigReloadDurationMs,
+		ConfigReloadSlotCount,
+		ConfigReloadLastSuccessUnix,
+		GRPCRequestsTotal,
+		GRPCRequestDurationMs,
+		GRPCRequestSizeBytes,
+		GRPCResponseSizeBytes,
+		GRPCRequestErrorsTotal,
+		GRPCProbeConfigResultTotal,
 	)
 }
