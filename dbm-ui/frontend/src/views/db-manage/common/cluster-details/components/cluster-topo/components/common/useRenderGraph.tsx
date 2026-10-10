@@ -34,8 +34,6 @@ import { ClusterTypes } from '@common/const';
 import { ipPort } from '@common/regex';
 import { dbTippy } from '@common/tippy';
 
-import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
-
 import { ExtensionCategory, Graph, type GraphData as GraphDataG6, type NodeData, NodeEvent, register } from '@antv/g6';
 
 import { GraphData, type NodeConfig } from './graphData';
@@ -257,7 +255,6 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
           k8sClusterName: props.clusterData.k8s_cluster_name!,
           namespace: props.clusterData.namespace!,
           podName: address,
-          ...getExclusiveClusterParams(props.clusterData),
         });
       }
 

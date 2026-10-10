@@ -132,8 +132,6 @@
   import DbTable from '@components/db-table/IndexNew.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
-  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
-
   import { ClusterTypes } from '@/common/const';
 
   import { URL_K8S_OPERATION_MEMO_KEY } from '../../constants';
@@ -184,7 +182,6 @@
       clusterName: props.clusterData.cluster_name,
       k8sClusterName: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
-      ...getExclusiveClusterParams(props.clusterData),
     });
 
   const fetchData = () => {

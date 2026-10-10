@@ -25,16 +25,23 @@
         </DbCard>
         <DbCard :title="t('部署环境')">
           <K8SApplyMode v-model="formData.details.apply_mode" />
-          <K8SCityCode v-model="formData.details.city_code" />
+          <K8SCityCode
+            v-model="formData.details.city_code"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id" />
           <K8SClusterName
             v-model="formData.details.k8s_cluster_name"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id"
             :region-code="formData.details.city_code" />
         </DbCard>
         <DbCard :title="t('资源配置')">
           <K8SVersion
             v-model="formData.details.db_version"
             v-model:major-version="formData.details.major_version"
-            addon-type="victoriametrics" />
+            addon-type="victoriametrics"
+            :apply-mode="formData.details.apply_mode"
+            :bk-biz-id="formData.bk_biz_id" />
           <DbFormItem :label="t('部署模式')">
             <BkRadioGroup
               v-model="topoName"
