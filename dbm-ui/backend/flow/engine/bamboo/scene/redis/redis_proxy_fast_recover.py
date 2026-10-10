@@ -187,6 +187,13 @@ class RedisProxyFastRecoverFlow(object):
             ClusterType.TendisTwemproxyRedisInstance,
         ]:
             one_proxy = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING.value).first()
+            if not one_proxy:
+                # 故障场景下可能所有 proxy 都不是 RUNNING 状态，此时降级取任意一台 proxy
+                one_proxy = cluster.proxyinstance_set.first()
+            if not one_proxy:
+                raise Exception(
+                    "cluster {} has no proxy instance, cannot check twemproxy backends", cluster.immute_domain
+                )
             act_kwargs.exec_ip = one_proxy.machine.ip
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
             sub_pipeline.add_act(
