@@ -10,5 +10,6 @@ func Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		{Method: http.MethodPost, Path: "add_priv", HandlerFunc: AddPriv},
 		{Method: http.MethodPost, Path: "clone_instance_priv", HandlerFunc: CloneInstancePriv},
+		{Method: http.MethodPost, Path: "add_mysql_temp_account", HandlerFunc: AddMySQLTempAccount},
 	}
 }

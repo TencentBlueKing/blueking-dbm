@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -22,6 +23,17 @@ type checksumTableFilter struct {
 	includeTableRegex *regexp.Regexp
 	hasIncludeDb      bool
 	hasIncludeTable   bool
+}
+
+func (f *checksumTableFilter) String() string {
+	return fmt.Sprintf(
+		"ignoreDbs=%v, includeDbs=%v, ignoreDbRegex=%v, includeDbRegex=%v, "+
+			"ignoreTablesAll=%v, ignoreTablesByDb=%v, includeTablesAll=%v, includeTablesByDb=%v, "+
+			"ignoreTableRegex=%v, includeTableRegex=%v, hasIncludeDb=%v, hasIncludeTable=%v",
+		f.ignoreDbs, f.includeDbs, f.ignoreDbRegex, f.includeDbRegex,
+		f.ignoreTablesAll, f.ignoreTablesByDb, f.includeTablesAll, f.includeTablesByDb,
+		f.ignoreTableRegex, f.includeTableRegex, f.hasIncludeDb, f.hasIncludeTable,
+	)
 }
 
 func newChecksumTableFilter(filter config.Filter) (*checksumTableFilter, error) {
@@ -74,6 +86,7 @@ func newChecksumTableFilter(filter config.Filter) (*checksumTableFilter, error) 
 		f.hasIncludeTable = true
 	}
 
+	slog.Info("new checksum table filter created", slog.String("filter", f.String()), slog.Any("config", filter))
 	return f, nil
 }
 
@@ -180,7 +193,9 @@ func (r *Checker) hasCheckableTables() (bool, error) {
 			slog.Error("scan checkable tables", slog.String("error", err.Error()))
 			return false, err
 		}
+		slog.Info("base table found", slog.String("db", db), slog.String("tbl", tbl))
 		if filter.isCheckable(db, tbl) {
+			slog.Info("checkable table found", slog.String("db", db), slog.String("tbl", tbl))
 			return true, nil
 		}
 	}

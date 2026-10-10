@@ -39,7 +39,28 @@ func (r *Checker) moveResult() error {
 
 	columnsStr := strings.Join(columns, ",")
 	// 为了兼容 flashback, 这里拼上库前缀
-	_, err = r.conn.ExecContext(
+	// 这里拿个新的conn, 因为有可能过了很久, 原来的 r.conn 已经失效了
+	conn, err := r.db.Connx(context.Background())
+	if err != nil {
+		slog.Info("fetch connection", slog.String("error", err.Error()))
+		return err
+	}
+	_, err = conn.ExecContext(
+		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
+	)
+	if err != nil {
+		slog.Error("set transaction isolation level", slog.String("error", err.Error()))
+		return err
+	}
+	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
+	if err != nil {
+		slog.Error(
+			"set binlog format to statement", slog.String("error", err.Error()),
+		)
+		return err
+	}
+
+	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
 			`REPLACE INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ? AND master_ip = ? AND master_port = ?`,
