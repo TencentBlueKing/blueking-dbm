@@ -18,6 +18,7 @@ from django.test import TestCase
 from pipeline.component_framework.component import Component
 from pipeline.component_framework.test import ComponentTestCase, ExecuteAssertion, ScheduleAssertion
 
+from backend.components.bknodeman.client import BKNodeManJobStatusError
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
@@ -25,7 +26,7 @@ from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyAutoCont
 from backend.tests.flow.components.collections.base import BaseComponentPatcher, Patcher
 from backend.tests.flow.components.collections.mysql.utils import MySQLComponentBaseTest
 from backend.tests.mock_data.components import cc
-from backend.tests.mock_data.components.nodeman import JOB_ID, MockResponse, NodemanApiMock
+from backend.tests.mock_data.components.nodeman import JOB_ID, NodemanApiMock
 
 logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
@@ -76,11 +77,11 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
     def get_patchers(self) -> List[Patcher]:
         """自定义patchers，模拟504错误重试场景"""
         patchers = super().get_patchers()
-        # 模拟job_details._send返回504状态码
+        # 模拟查询任务状态返回504状态码
         patchers.append(
             BaseComponentPatcher(
-                target="backend.components.bknodeman.client.BKNodeManApi.job_details._send",
-                return_value=MockResponse(504),
+                target="backend.components.bknodeman.client.BKNodeManApi.get_job_status",
+                side_effect=BKNodeManJobStatusError("Gateway Timeout", status_code=504),
             )
         )
         # 模拟operate_plugin返回固定job_id
@@ -176,11 +177,11 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
             )
         )
 
-        # 模拟job_details._send返回504状态码
+        # 模拟查询任务状态返回504状态码
         max_retry_patchers.append(
             BaseComponentPatcher(
-                target="backend.components.bknodeman.client.BKNodeManApi.job_details._send",
-                return_value=MockResponse(504),
+                target="backend.components.bknodeman.client.BKNodeManApi.get_job_status",
+                side_effect=BKNodeManJobStatusError("Gateway Timeout", status_code=504),
             )
         )
 
