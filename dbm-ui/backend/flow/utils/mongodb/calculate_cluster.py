@@ -81,6 +81,42 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
     return machines
 
 
+def _host_identity(machine) -> tuple:
+    if isinstance(machine, dict):
+        return machine["ip"], machine["bk_cloud_id"]
+    return machine.ip, machine.bk_cloud_id
+
+
+def allocate_shard_ports(
+    shard_num: int,
+    start_port: int,
+    machine_groups: list,
+    shards_per_group: int,
+    mongos_hosts: set,
+    mongos_port: int,
+    always_skip: set,
+) -> list:
+    """按分片顺序分配端口。
+
+    always_skip 中的端口（config 端口、已占用端口）一律避开。
+    mongos 端口仅当该分片的机器与 mongos 同机时避开。
+    """
+
+    ports = []
+    port = start_port
+    for i in range(shard_num):
+        group = machine_groups[i // shards_per_group]
+        shard_hosts = {_host_identity(machine) for machine in group}
+        forbidden = set(always_skip)
+        if shard_hosts & mongos_hosts:
+            forbidden.add(mongos_port)
+        while port in forbidden:
+            port += 1
+        ports.append(port)
+        port += 1
+    return ports
+
+
 def cluster_shard_get_machine(
     all_machine: list, shard_info: list, node_count: int, node_replicaset_count: int, disaster_tolerance_level: str
 ):
@@ -197,7 +233,6 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     payload_clusters["key_file"] = "{}-{}".format(app, payload["cluster_name"])
     config_port = MongoDBClusterDefaultPort.CONFIG_PORT.value  # 设置常量
     shard_port = MongoDBClusterDefaultPort.SHARD_START_PORT.value  # 以这个27001开始
-    shard_port_not_use = [payload["proxy_port"], config_port]
     node_count = len(payload["nodes"]["mongodb"][0])
     # 一个副本集的副本数量
     payload_clusters["node_count"] = node_count
@@ -265,20 +300,27 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
         config["nodes"].append({"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"]})
     payload_clusters["config"] = config
     # shards
-    # 获取shard的id，port
+    # 获取shard的id，port。mongos 端口可给 shardsvr 用，除非两者同机。
+    mongos_hosts = {_host_identity(machine) for machine in payload["nodes"]["mongos"]}
+    shard_ports = allocate_shard_ports(
+        shard_num=payload["shard_num"],
+        start_port=shard_port,
+        machine_groups=payload["nodes"]["mongodb"],
+        shards_per_group=node_replica_count,
+        mongos_hosts=mongos_hosts,
+        mongos_port=payload["proxy_port"],
+        always_skip={config_port},
+    )
     shard_info = []
-    for i in range(payload["shard_num"]):
-        if shard_port in shard_port_not_use:
-            shard_port += 1
+    for i, assigned_port in enumerate(shard_ports):
         shard_info.append(
             {
                 "set_id": "{}-s{}".format(payload_clusters["cluster_id"], str(i + 1)),
-                "port": shard_port,
+                "port": assigned_port,
                 "cacheSizeGB": shard_avg_mem_size_gb,
                 "oplogSizeMB": shard_oplog_size_mb,
             }
         )
-        shard_port += 1
 
     payload_clusters["shards"], payload_clusters["add_shards"] = cluster_shard_get_machine(
         all_machine=payload["nodes"]["mongodb"],
@@ -407,7 +449,8 @@ def calculate_cluster_add_shard(payload: dict) -> dict:
         cluster_info["cluster_name"] = cluster_name
 
         # 获取 mongos
-        mongos = cluster_info_from_db.get_mongos()[0]
+        mongos_nodes = cluster_info_from_db.get_mongos()
+        mongos = mongos_nodes[0]
         cluster_info["mongos"] = {}
         cluster_info["mongos"]["port"] = mongos.port
         cluster_info["mongos"]["nodes"] = [
@@ -417,28 +460,33 @@ def calculate_cluster_add_shard(payload: dict) -> dict:
                 "port": mongos.port,
             }
         ]
-        # 获取 shard 和 config 的端口
-        shard_port_not_use = []
-        for shard in cluster_info_from_db.get_shards():
-            shard_port_not_use.append(shard.members[0].port)
-        shard_port = max(shard_port_not_use) + 1
-        shard_num = len(shard_port_not_use)
-        shard_port_not_use.append(cluster_info_from_db.get_config().members[0].port)
+        # 获取 shard 和 config 的端口。新增 shardsvr 可复用 mongos 端口，除非同机。
+        existing_ports = [shard.members[0].port for shard in cluster_info_from_db.get_shards()]
+        shard_port = max(existing_ports) + 1
+        shard_num = len(existing_ports)
+        config_port = cluster_info_from_db.get_config().members[0].port
+        mongos_hosts = {_host_identity(node) for node in mongos_nodes}
+        shard_ports = allocate_shard_ports(
+            shard_num=add_shards_num,
+            start_port=shard_port,
+            machine_groups=cluster["mongo_add_shards"],
+            shards_per_group=node_replicaset_count,
+            mongos_hosts=mongos_hosts,
+            mongos_port=mongos.port,
+            always_skip=set(existing_ports) | {config_port},
+        )
 
         # 获取新增shard的set_id port
         shard_info = []
-        for i in range(add_shards_num):
-            if shard_port in shard_port_not_use:
-                shard_port += 1
+        for i, assigned_port in enumerate(shard_ports):
             shard_info.append(
                 {
                     "set_id": "{}-s{}".format(cluster_name, str(shard_num + i + 1)),
-                    "port": shard_port,
+                    "port": assigned_port,
                     "cacheSizeGB": shard_avg_mem_size_gb,
                     "oplogSizeMB": shard_oplog_size_mb,
                 }
             )
-            shard_port += 1
         node_count = len(cluster["mongo_add_shards"][0])
         cluster_info["node_count"] = node_count
 
