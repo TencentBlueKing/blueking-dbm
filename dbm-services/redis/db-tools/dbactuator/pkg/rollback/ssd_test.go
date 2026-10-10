@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func touch(t *testing.T, dir string, names ...string) {
@@ -199,13 +200,63 @@ func TestSSDDataDirFromConf(t *testing.T) {
 	}
 }
 
-func TestCountReplies(t *testing.T) {
+func writeOut(t *testing.T, content string) string {
+	t.Helper()
 	out := filepath.Join(t.TempDir(), "out")
-	if err := os.WriteFile(out, []byte("OK\n(error) ERR wrong\n(integer) 1\n\"v\"\n"), 0644); err != nil {
+	if err := os.WriteFile(out, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if total, failed := countReplies(out); total != 4 || failed != 1 {
-		t.Fatalf("total=%d failed=%d", total, failed)
+	return out
+}
+
+func TestReadRepliesSkipsAuthReply(t *testing.T) {
+	st, err := readReplies(writeOut(t, "OK\nOK\n(error) ERR wrong\n(integer) 1\n\"v\"\n"))
+	if err != nil || st.Lines != 4 || st.Errors != 1 || len(st.Samples) != 1 {
+		t.Fatalf("st=%+v err=%v", st, err)
+	}
+}
+
+func TestReadRepliesFailsOnAuth(t *testing.T) {
+	for name, content := range map[string]string{
+		"wrong password": "(error) WRONGPASS invalid password\nOK\n",
+		"no reply":       "",
+	} {
+		if _, err := readReplies(writeOut(t, content)); err == nil {
+			t.Fatalf("%s: want error", name)
+		}
+	}
+}
+
+func TestReadRepliesCapsSamples(t *testing.T) {
+	st, err := readReplies(writeOut(t, "OK\n"+strings.Repeat("(error) BUSYKEY exists\n", 8)))
+	if err != nil || st.Lines != 8 || st.Errors != 8 || len(st.Samples) != replyErrorSamples {
+		t.Fatalf("st=%+v err=%v", st, err)
+	}
+	var total replyStats
+	total.add(st)
+	total.add(st)
+	if total.Lines != 16 || total.Errors != 16 || len(total.Samples) != replyErrorSamples {
+		t.Fatalf("total=%+v", total)
+	}
+}
+
+func TestReplayEndIncludesRecoverAtSecond(t *testing.T) {
+	recoverAt := time.Date(2026, 10, 1, 12, 0, 0, 0, time.Local)
+	if got, want := replayEndMs(recoverAt), recoverAt.UnixMilli()+1000; got != want {
+		t.Fatalf("got %d, want %d", got, want)
+	}
+}
+
+func TestAuthLineQuotesPassword(t *testing.T) {
+	cases := map[string]string{
+		"plain":       "AUTH \"plain\"\n",
+		`a"b\c d`:     `AUTH "a\"b\\c d"` + "\n",
+		"tab\there\n": `AUTH "tab\x09here\x0a"` + "\n",
+	}
+	for password, want := range cases {
+		if got := authLine(password); got != want {
+			t.Fatalf("%q: got %q, want %q", password, got, want)
+		}
 	}
 }
 

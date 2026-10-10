@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from .plan_cleanup import clean_orphan_redis_rollback_plans
 from .task import (
     init_redis_rollback_candidates,
     redis_rollback_exercise,
@@ -17,6 +18,7 @@ from .task import (
 from .weekly_ai_summary import redis_rollback_exercise_weekly_ai_summary
 
 __all__ = [
+    "clean_orphan_redis_rollback_plans",
     "init_redis_rollback_candidates",
     "redis_rollback_exercise",
     "redis_rollback_exercise_ticket_anomaly_detect",

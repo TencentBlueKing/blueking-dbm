@@ -17,6 +17,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.redis.rollback.constants import ROLLBACK_CLUSTER_TYPES
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -97,3 +98,8 @@ class RedisRollbackFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisRollbackParamBuilder  # type: ignore
     inner_flow_name = _("Redis 备份恢复")  # type: ignore
     resource_batch_apply_builder = RedisRollbackResourceParamBuilder  # type: ignore
+
+    def patch_ticket_detail(self):
+        plan_ids = [info["plan_id"] for info in self.ticket.details["infos"] if info.get("plan_id")]
+        RollbackPlan.bind_ticket(plan_ids, self.ticket.id)
+        super().patch_ticket_detail()
