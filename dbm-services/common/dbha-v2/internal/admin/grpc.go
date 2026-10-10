@@ -98,7 +98,7 @@ func (g *AdminGrpcService) storageUnaryInterceptor() grpc.UnaryServerInterceptor
 
 // Heartbeat admin server heartbeat
 func (g *AdminGrpcService) Heartbeat(
-	ctx context.Context, req *proto.HeartbeatRequest,
+	_ context.Context, _ *proto.HeartbeatRequest,
 ) (*proto.HeartbeatResponse, error) {
 	logger.Info("admin heartbeat request")
 	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
