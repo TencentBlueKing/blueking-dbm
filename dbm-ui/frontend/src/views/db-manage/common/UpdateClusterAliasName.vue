@@ -68,7 +68,6 @@
 
   import { DBTypes } from '@common/const';
 
-  import { getExclusiveClusterParams } from '../utils/exclusiveClusterParams';
   import { getClusterMetaUpdater } from '../utils/updateK8sClusterMeta';
 
   interface Props {
@@ -101,7 +100,6 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_alias: params.new_alias,
           cluster_id: params.cluster_id,
-          ...getExclusiveClusterParams(props.data),
         });
       }
       return updateClusterAlias(params);

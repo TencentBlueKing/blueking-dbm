@@ -33,8 +33,6 @@
   import { retrieveVictoriametricsClusterInstanceDetail } from '@services/source/victoriametricsCluster';
   import { retrieveVictoriametricsSelectInstanceDetail } from '@services/source/victoriametricsSelect';
 
-  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
-
   import { getOffset } from '@utils';
 
   import { ClusterTypes } from '@/common/const';
@@ -86,7 +84,6 @@
       k8sClusterName: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
       podName: props.podName,
-      ...getExclusiveClusterParams(props.clusterData),
     });
 
     nextTick(() => {

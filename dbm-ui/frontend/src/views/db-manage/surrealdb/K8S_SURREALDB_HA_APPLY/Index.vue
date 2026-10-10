@@ -37,9 +37,7 @@
             required />
         </DbCard>
         <DbCard :title="t('部署环境')">
-          <K8SApplyMode
-            v-model="formData.details.apply_mode"
-            :cluster-type="ClusterTypes.K8S_SURREALDB_HA" />
+          <K8SApplyMode v-model="formData.details.apply_mode" />
           <K8SCityCode
             v-model="formData.details.city_code"
             :apply-mode="formData.details.apply_mode"
