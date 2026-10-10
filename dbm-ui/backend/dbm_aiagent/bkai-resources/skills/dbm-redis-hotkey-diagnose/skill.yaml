@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-redis-hotkey-diagnose
+  name: Redis热点Key排查
+
+spec:
+  generate_type: space
+  is_public: false

@@ -1,0 +1,32 @@
+# AIDEV Agent Package — DBM
+# 同步示例:
+#   bkai-init validate -f backend/dbm_aiagent/bkai-resources/bkai.yaml --space "$BKAI_SPACE_ID"
+#   bkai-init sync -f backend/dbm_aiagent/bkai-resources/bkai.yaml \
+#     --tenant-id system --space "$BKAI_SPACE_ID" --confirm --publish --publish_config_only=1
+apiVersion: bkai.tencent.com/v1
+kind: AgentPackage
+
+metadata:
+  name: bk-dbm
+  version: "1.0.1"
+
+# 声明本次需要同步的资源路径（相对本文件所在目录）
+# Collection / Skill / 知识库 / 子智能体需先于主智能体
+resources:
+  - collections/dbm_ai_role.yaml
+  - collections/dbm_redis_role.yaml
+  - skills/dbm-common-cluster-base-info
+  - skills/dbm-common-ticket-op
+  - skills/dbm-redis-hotkey-diagnose
+  - skills/dbm-redis-latency-diagnose
+  - skills/dbm-mysql-slow-query-tuning
+  - skills/dbm-mysql-alarm-analyzer
+  - skills/dbm-mysql-processlist-analyzer
+  - skills/dbm-mysql-cluster-skew-report
+  - skills/dbm-mysql-perf-compare-report
+  - knowledgebases/dbm_userguide
+  - knowledgebases/dbm_ticket_knowledge
+  - agents/ai-tendis-agent.yaml
+  - agents/ai-mysql-slowlog.yaml
+  - agents/ai-mysql-inspect.yaml
+  - agents/ai-dbm.yaml

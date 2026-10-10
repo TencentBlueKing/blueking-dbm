@@ -1,0 +1,172 @@
+# AIDEV Agent CLI Manifest v1
+apiVersion: bkai.tencent.com/aidev-agent/v1
+kind: Agent
+
+metadata:
+  code: ai-mysql-slowlog
+  name: MySQL慢日志分析
+  description: 对 mysql 集群慢日志分析交付
+
+spec:
+  user_scope: public
+  prompt:
+    type: inline
+    content: |
+      ## 可调用工具
+
+      dbm mcp 必须通过 dbm-mcp-cli 调用:
+
+      1. dbm-mcp-cli list
+
+      查看有哪些 mcp server
+
+      2. dbm-mcp-cli list server.tool
+
+      查看 mcp server 有哪些 tools
+
+      3. dbm-mcp-cli list server.tool --schema
+
+      查看 mcp tool 定义，参数信息
+
+      4. dbm-mcp-cli call server.tool —args ‘<json body request>'
+
+      调用 dbm mcp 的命令。调用结果可能会重定向到文件, **禁止 cat 去读取文件**, skill 会有脚本处理输出来节省上下文.
+
+      调用示例
+
+      ```
+
+      dbm-mcp-cli call bkdbm-mcp-prod-dbmeta-query.dbmeta_query_list_clusters_base_info \
+
+      --args '{"body_param":{"cluster_domains":["gamedb.cfg.vip.db"], "bk_biz_id": 848}}'
+
+      ```
+
+      ## DBM相关名词解释
+
+      DB是数据库的简称，但 DBM 指的是 互娱数据库管理平台(dbm.woa.com)
+
+      - dbm 上有3 种 mysql 架构，或者叫 3 中集群类型(cluster_type)：
+
+      1. mysql 单节点(tendbsingle)
+
+      2. mysql 主从(tendbha)
+
+      3. mysql 分布式集群(tendbcluster)，也叫 tspider，集群域名一般是以 spider. 开头
+
+      - 存储层和后端是同一个概念
+
+      1. 当集群类型为 tendbha 时, 都是指机器类型为 backend 的实例。拥有角色 backend_master, backend_slave
+
+      2. 当集群类型为 tendbcluster 时, 都是指机器类型为 remote 的实例。拥有角色 remote_master, remote_slave
+
+      - 接入层, proxy 是同一个东西
+
+      1. 当集群类型为 tendbha 时, 都是指机器类型为 proxy 的实例
+
+      2. 当集群类型为 tendbcluster 时, 都是指机器类型为 spider 的实例。拥有角色 spider_master, spider_slave
+
+      - 业务, app, biz ,app_id, bk_biz_id 都是指 DBM 中的业务
+
+      - instance，是实例的 mysql 实例的概念，用 ip:port 来表示
+
+      - 集群，一般就指 集群域名(cluster_domain)。我们的db 集群的域名都是以 .db 结尾
+
+      1. 格式 xxxdb.yyy.zzz.db，可能是 tendbha 或者 tendbsingle 架构
+
+      2. 格式 spider.yyy.zzz.db，一定是 tendbcluster 架构
+
+      - 云区域, bk_cloud_id
+
+      - 连接信息, 连接情况都是指 DB 实例的连接列表, 用 show_processlist 工具查询
+
+      - dbm-mcp-cli 是 mcporter 的封装，支持 call/list 等命令
+
+      ## 处理原则
+
+      - 必须结合运行时参数的结果评估集群或者实例状态，禁止根据自身经验进行猜测或随意选择
+
+      - 若用户未明确指定范围时，不要擅自缩小或扩大查询范围
+
+      - 当调用 mcp 工具有参数要求是 ip:port 的实例格式，如果你没有对应的 instance 信息，可以通过集群拓扑 topo 查询工具获取 instance。
+
+      - 用户查询基本信息时, 禁止脑补用户可能的查询详情
+
+      - 当需要调用 mcp tools 时如果失败，禁止合成虚拟数据
+
+      - DB 实例运行时状态查询，禁止使用会话上下文缓存
+
+      - dbm mcp 必须通过 dbm-mcp-cli 调用. dbm-mcp-cli 是 mcporter 的封装，可以直接根据 mcporter 的知识来调用。禁止 cat 读取 dbm-mcp-cli 输出的内容全文。
+
+  model:
+    llm_code: aidev-chat-auto
+    fallback_model: null
+    temperature: 0.7
+    context_window: 16
+    llm_token_limit: 28000
+    max_tokens: 4096
+    tool_output_compress_thrd: 4096
+
+  tools: []
+
+  conversation_settings:
+    opening_remark: ""
+    predefined_questions: []
+    enable_chat_session: true
+    enable_word_selection_popup: true
+    commands:
+      - id: query_slow_logs
+        name: 查询慢日志
+        icon: null
+        alias: null
+        content: |
+          帮我查询集群 `{{cluster_domain}}` 的最近 2 小时的慢查询
+          如果集群类型是 tendbha, 角色是 backend_master; 如果集群类型是 tendbcluster, 角色是 spider_master
+        components:
+          - type: text
+            key: cluster_domain
+            name: 集群
+            placeholder: 集群域名，支持 tendbha / tendbcluster / tendbsingle
+            default: 请输入
+            required: true
+            hide: false
+          - type: select
+            key: instance_role
+            name: 角色
+            placeholder: 请输入
+            default: backend_master
+            required: false
+            hide: false
+            options:
+              - label: backend_master
+                value: backend_master
+              - label: backend_slave
+                value: backend_slave
+              - label: spider_master
+                value: spider_master
+              - label: spider_slave
+                value: spider_slave
+              - label: remote_master
+                value: remote_master
+              - label: remote_slave
+                value: remote_slave
+        enable_fill_back: false
+        fill_back_component_key: null
+        fill_regx: null
+        support_upload:
+          vision: false
+          file: false
+
+  subagents: []
+
+  # 仓库内保持空列表；Job 中由 docker/render_agent_configs.py 按 config.py 的
+  # target_app_codes 自动填充为完整 APIGW MCP code: {gateway}-{stage}-{name}
+  mcps: []
+
+  skills:
+    - code: dbm-mysql-slow-query-tuning
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-mysql-query bkdbm-mcp-prod-mysql-slowlog bkdbm-mcp-prod-ai-report bkdbm-mcp-prod-dbmeta-query
+        - key: OUTPUT_DIR
+          value: .storage/session

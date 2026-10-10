@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-mysql-perf-compare-report
+  name: MySQL性能对比报告
+
+spec:
+  generate_type: space
+  is_public: false

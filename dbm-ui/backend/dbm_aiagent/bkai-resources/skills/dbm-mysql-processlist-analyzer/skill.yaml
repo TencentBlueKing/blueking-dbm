@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-mysql-processlist-analyzer
+  name: MySQL Processlist分析
+
+spec:
+  generate_type: space
+  is_public: false

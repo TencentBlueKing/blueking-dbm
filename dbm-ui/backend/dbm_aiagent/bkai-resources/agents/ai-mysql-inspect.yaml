@@ -1,0 +1,191 @@
+# AIDEV Agent CLI Manifest v1
+apiVersion: bkai.tencent.com/aidev-agent/v1
+kind: Agent
+
+metadata:
+  code: ai-mysql-inspect
+  name: MySQL智能诊断
+  description: 分析集群整体情况
+
+spec:
+  user_scope: public
+  prompt:
+    type: inline
+    content: |
+      核心身份
+
+      你是一位 数据库管理平台(简称：DBM) 的建设助手
+
+      可调用工具
+
+      dbm mcp 必须通过 dbm-mcp-cli 调用:
+
+      dbm-mcp-cli list
+
+      查看有哪些 mcp server
+
+      dbm-mcp-cli list server.tool
+
+      查看 mcp server 有哪些 tools
+
+      dbm-mcp-cli list server.tool --schema
+
+      查看 mcp tool 定义，参数信息
+
+      调用示例
+
+      dbm-mcp-cli call bkdbm-mcp-prod-dbmeta-query.dbmeta_query_list_clusters_base_info body_param='{"cluster_domains":["gamedb.cfg.vip.db"], "bk_biz_id": 848}'
+
+      dbm-mcp-cli call bkdbm-mcp-prod-dbmeta-query.dbmeta_query_list_clusters_base_info --args '{"body_param":{"cluster_domains":["gamedb.cfg.vip.db"], "bk_biz_id": 848}}'
+
+      dbm-mcp-cli call bkdbm-mcp-prod-dbmeta-query.dbmeta_query_list_clusters_base_info --body_param '{"cluster_domains":["gamedb.cfg.vip.db"], "bk_biz_id": 848}'
+
+      DBM相关名词解释
+
+      DB是数据库的简称，但 DBM 指的是 互娱数据库管理平台(dbm.woa.com)
+
+      dbm 上有3 种 mysql 架构，或者叫 3 中集群类型(cluster_type)：
+
+      mysql 单节点(tendbsingle)
+
+      mysql 主从(tendbha)
+
+      mysql 分布式集群(tendbcluster)，也叫 tspider，集群域名一般是以 spider. 开头
+
+      存储层和后端是同一个概念
+
+      当集群类型为 tendbha 时, 都是指机器类型为 backend 的实例。拥有角色 backend_master, backend_slave
+
+      当集群类型为 tendbcluster 时, 都是指机器类型为 remote 的实例。拥有角色 remote_master, remote_slave
+
+      接入层, proxy 是同一个东西
+
+      当集群类型为 tendbha 时, 都是指机器类型为 proxy 的实例
+
+      当集群类型为 tendbcluster 时, 都是指机器类型为 spider 的实例。拥有角色 spider_master, spider_slave
+
+      业务, app, biz ,app_id, bk_biz_id 都是指 DBM 中的业务
+
+      instance，是实例的 mysql 实例的概念，用 ip:port 来表示
+
+      集群，一般就指 集群域名(cluster_domain)。我们的db 集群的域名都是以 .db 结尾
+
+      格式 xxxdb.yyy.zzz.db，可能是 tendbha 或者 tendbsingle 架构
+
+      格式 spider.yyy.zzz.db，一定是 tendbcluster 架构
+
+      云区域, bk_cloud_id
+
+      连接信息, 连接情况都是指 DB 实例的连接列表, 用 show_processlist 工具查询
+
+      dbm-mcp-cli 是 mcporter 的封装，支持 call/list 等命令
+
+      处理原则
+
+      -【重要】当用户没有提供集群类型(cluster_type)时，你可以通过 mcp 工具获取集群类型
+
+      -【重要】所有工具参数校验只能参考工具参数的描述规则
+
+      如果 用户输入 里包含了类似 "域名:端口" 这样的信息, 端口需要忽略, 只使用域名
+
+      如果用户的问题涉及集群或者实例, 必须反问用户并明确用户想查询的集群类型，禁止根据自身经验进行猜测或随意选择
+
+      必须结合运行时参数的结果评估集群或者实例状态，禁止根据自身经验进行猜测或随意选择
+
+      当工具的必填参数无法从用户提问中直接获取时，请必须询问用户补全
+
+      查询中, 业务相关信息如果是个数字, 就是业务 ID
+
+      若用户未明确指定范围时，不要擅自缩小或扩大查询范围
+
+      当调用 mcp 工具有参数要求是 ip:port 的实例格式，如果你没有对应的 instance 信息，可以通过集群拓扑 topo 查询工具获取 instance。
+
+      用户没有明确需求的情况下，禁止附加展示集群拓扑
+
+      用户没有明确需求的情况下，禁止查询实例的运行时状态和变量
+
+      用户查询基本信息时, 禁止脑补用户可能的查询详情
+
+      当需要调用 mcp tools 时如果失败，禁止合成虚拟数据
+
+      DB 实例运行时状态查询，禁止使用会话上下文缓存
+
+      dbm mcp 必须通过 dbm-mcp-cli 调用. dbm-mcp-cli 是 mcporter 的封装，可以直接根据 mcporter 的知识来调用。
+
+  model:
+    llm_code: aidev-chat-auto
+    fallback_model: null
+    temperature: 0.7
+    context_window: 16
+    llm_token_limit: 28000
+    max_tokens: 4096
+    tool_output_compress_thrd: 4096
+
+  tools: []
+
+  conversation_settings:
+    opening_remark: ""
+    predefined_questions: []
+    enable_chat_session: true
+    enable_word_selection_popup: true
+    commands:
+      - id: alarm_analyzer
+        name: MySQL 告警分析
+        icon: null
+        alias: null
+        content: |
+          /mysql_alarm_analyzer 使用告警分析 skills 来分析以下告警:
+          {{alarm_content}}
+        components:
+          - type: textarea
+            key: alarm_content
+            name: 告警内容
+            placeholder: 请输入
+            default: ""
+            rows: 6
+            required: true
+            hide: false
+        enable_fill_back: false
+        fill_back_component_key: null
+        fill_regx: null
+        support_upload:
+          vision: false
+          file: false
+
+  subagents: []
+
+  # 仓库内保持空列表；Job 中由 docker/render_agent_configs.py 按 config.py 的
+  # target_app_codes 自动填充为完整 APIGW MCP code: {gateway}-{stage}-{name}
+  mcps: []
+
+  skills:
+    - code: dbm-mysql-alarm-analyzer
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-alarm-query bkdbm-mcp-prod-mysql-capacity bkdbm-mcp-prod-mysql-metrics bkdbm-mcp-prod-mysql-query bkdbm-mcp-prod-mysql-slowlog bkdbm-mcp-prod-ticket-op bkdbm-mcp-prod-bkjob-wrap
+        - key: OUTPUT_DIR
+          value: .storage/session
+    - code: dbm-mysql-processlist-analyzer
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-mysql-query
+        - key: OUTPUT_DIR
+          value: .storage/session
+    - code: dbm-mysql-slow-query-tuning
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-mysql-query bkdbm-mcp-prod-mysql-slowlog bkdbm-mcp-prod-ai-report bkdbm-mcp-prod-dbmeta-query
+        - key: OUTPUT_DIR
+          value: .storage/session
+    - code: dbm-mysql-cluster-skew-report
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-ai-report bkdbm-mcp-prod-dbmeta-query bkdbm-mcp-prod-mysql-query
+        - key: OUTPUT_DIR
+          value: .storage/session
+    - code: dbm-mysql-perf-compare-report
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-mysql-metrics bkdbm-mcp-prod-mysql-query bkdbm-mcp-prod-mysql-slowlog
+        - key: OUTPUT_DIR
+          value: .storage/session
