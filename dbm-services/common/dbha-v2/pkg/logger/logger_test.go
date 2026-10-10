@@ -28,6 +28,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -36,8 +37,10 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-// mockLogger implements Logger interface for testing
+// mockLogger implements Logger interface for testing.
+// mu guards fields written by log methods when tests exercise concurrent SetLogger/Log.
 type mockLogger struct {
+	mu          sync.Mutex
 	debugCalled bool
 	infoCalled  bool
 	warnCalled  bool
@@ -56,30 +59,40 @@ func (m *mockLogger) OriginLogger() *zap.Logger {
 }
 
 func (m *mockLogger) Debug(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.debugCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Info(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.infoCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Warn(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.warnCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Error(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.errorCalled = true
 	m.lastFormat = format
 	m.lastArgs = args
 }
 
 func (m *mockLogger) Fatal(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.fatalCalled = true
 	m.lastFormat = format
 	m.lastArgs = args

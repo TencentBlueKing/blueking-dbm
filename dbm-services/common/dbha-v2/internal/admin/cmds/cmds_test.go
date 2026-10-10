@@ -57,14 +57,11 @@ func TestReloadSignalPidFileRejectsInvalidYAML(t *testing.T) {
 	}
 }
 
-func TestReloadSignalPidFileIgnoresNextPidFile(t *testing.T) {
-	saved := config.Cfg
-	t.Cleanup(func() { config.Cfg = saved })
-	config.Cfg.PidFile = filepath.Join(t.TempDir(), "cli.pid")
-
+func TestReloadSignalPidFileUsesYamlPidFile(t *testing.T) {
+	want := filepath.Join(t.TempDir(), "custom.pid")
 	path := filepath.Join(t.TempDir(), "admin.yaml")
 	content := `
-pidFile: /tmp/next.pid
+pidFile: ` + want + `
 discovery:
   endpoint: "127.0.0.1:2379"
 storage:
@@ -85,10 +82,35 @@ log:
 	if err != nil {
 		t.Fatalf("valid config should signal, errmsg: %s", err)
 	}
-	if pidFile != config.Cfg.PidFile {
-		t.Fatalf("pid file: %s, want current Cfg.PidFile", pidFile)
+	if pidFile != want {
+		t.Fatalf("pid file: %s, want yaml pidFile: %s", pidFile, want)
 	}
-	if pidFile == "/tmp/next.pid" {
-		t.Fatal("must not use next.PidFile from yaml")
+}
+
+func TestReloadSignalPidFileDefaultsWhenYamlOmitsPidFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "admin.yaml")
+	content := `
+discovery:
+  endpoint: "127.0.0.1:2379"
+storage:
+  endpoint: "127.0.0.1:3306"
+apm:
+  listenAddress: "127.0.0.1:19090"
+grpc:
+  listenAddress: "127.0.0.1:15051"
+web:
+  listenAddress: "127.0.0.1:18080"
+log:
+  level: info
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write config failed, errmsg: %s", err)
+	}
+	pidFile, err := reloadSignalPidFile(path)
+	if err != nil {
+		t.Fatalf("valid config should signal, errmsg: %s", err)
+	}
+	if pidFile != "./pids/admin.pid" {
+		t.Fatalf("pid file: %s, want default ./pids/admin.pid", pidFile)
 	}
 }

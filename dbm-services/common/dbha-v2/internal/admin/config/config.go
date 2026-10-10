@@ -75,6 +75,10 @@ const (
 	minProbeMetadataCacheMaxAge = 1 * time.Minute
 )
 
+// Cfg is the package-level applied configuration for startup and single-command paths
+// (migrate, start/stop/health). After admin hot reload, concurrent readers must use Snapshot().
+// Assigning to Cfg directly (for example viper.Unmarshal(&config.Cfg) or test mutation) does not
+// update the snapshot; call Apply to keep Cfg and Snapshot in step.
 var Cfg = Configuration{
 	Name:    "admin",
 	PidFile: defaultPidFile,
@@ -138,6 +142,8 @@ type ApmConfig struct {
 }
 
 // GrpcConfig grpc configuration
+// GrpcConfig holds admin gRPC server settings used as a reload fingerprint.
+// Fields must remain comparable scalars so NeedsRebuild can use == safely.
 type GrpcConfig struct {
 	ListenAddress         string        `yaml:"listenAddress"         mapstructure:"listenAddress"`
 	ServerPingTime        time.Duration `yaml:"serverPingTime"        mapstructure:"serverPingTime"`
