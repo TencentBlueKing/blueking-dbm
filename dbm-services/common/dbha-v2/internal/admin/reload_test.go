@@ -27,16 +27,22 @@ package admin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/slot"
 	"dbm-services/common/dbha-v2/pkg/dbcred"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	"go.uber.org/zap"
 )
 
 type fakeSlot struct {
@@ -131,7 +137,6 @@ dbmApi:
 		configPath: path,
 		shutdown:   make(chan struct{}),
 	}
-	lastReloadOutcome = reloadOutcome{}
 	service.reloadOnce()
 
 	if watcher.calls() != 1 {
@@ -140,7 +145,7 @@ dbmApi:
 	if watcher.lastAPI() != "http://127.0.0.1:8000/pass" {
 		t.Fatalf("configured api: %s", watcher.lastAPI())
 	}
-	if lastReloadOutcome.failed {
+	if service.lastReloadOutcome().failed {
 		t.Fatal("ConfigureAll must not flip reload outcome to failed")
 	}
 
@@ -250,92 +255,77 @@ log:
 	if got.Name != "stable-name" {
 		t.Fatalf("identity changed during reload, name: %s", got.Name)
 	}
-	if !lastReloadOutcome.failed {
+	if !service.lastReloadOutcome().failed {
 		t.Fatal("slot failure should mark reload failed")
 	}
 
 	failing.err = nil
 	service.reloadOnce()
-	if lastReloadOutcome.failed {
+	outcome := service.lastReloadOutcome()
+	if outcome.failed {
 		t.Fatal("retry after slot success should mark reload success")
 	}
-	if !equalStrings(lastReloadOutcome.successNames, []string{"storage"}) {
-		t.Fatalf("success names: %v", lastReloadOutcome.successNames)
+	if !equalStrings(outcome.successNames, []string{"storage"}) {
+		t.Fatalf("success names: %v", outcome.successNames)
 	}
 }
 
 func TestReloadIndependentSlotTimeoutContinues(t *testing.T) {
-	savedTotal, savedSlot := reloadTotalTimeout, reloadSlotTimeout
-	t.Cleanup(func() {
-		reloadTotalTimeout = savedTotal
-		reloadSlotTimeout = savedSlot
-	})
-	reloadTotalTimeout = 70 * time.Millisecond
-	reloadSlotTimeout = 200 * time.Millisecond
-
 	service, events := newReloadTestService(t, []slot.Ops{
 		&fakeSlot{name: "slow", needsBuild: true, minWork: 45 * time.Millisecond},
 		&fakeSlot{name: "next", needsBuild: true, minWork: 45 * time.Millisecond},
 	})
+	service.reloadTotalTimeout = 70 * time.Millisecond
+	service.reloadSlotTimeout = 200 * time.Millisecond
 	service.reloadOnce()
 	if !equalStrings(*events, []string{"build:slow", "build:next"}) {
 		t.Fatalf("events: %v, want both slots rebuilt under independent slot timeout", *events)
 	}
-	if lastReloadOutcome.failed {
+	if service.lastReloadOutcome().failed {
 		t.Fatal("both slots should succeed with independent timeouts")
 	}
 }
 
 func TestReloadSlotTimeoutFailsThatSlotThenContinues(t *testing.T) {
-	savedTotal, savedSlot := reloadTotalTimeout, reloadSlotTimeout
-	t.Cleanup(func() {
-		reloadTotalTimeout = savedTotal
-		reloadSlotTimeout = savedSlot
-	})
-	reloadTotalTimeout = time.Second
-	reloadSlotTimeout = 30 * time.Millisecond
-
 	service, events := newReloadTestService(t, []slot.Ops{
 		&fakeSlot{name: "slow", needsBuild: true, minWork: 80 * time.Millisecond},
 		&fakeSlot{name: "next", needsBuild: true},
 	})
+	service.reloadTotalTimeout = time.Second
+	service.reloadSlotTimeout = 30 * time.Millisecond
 	service.reloadOnce()
 	if !equalStrings(*events, []string{"build:next"}) {
 		t.Fatalf("events: %v, want only next rebuilt after slow timeout", *events)
 	}
-	if !lastReloadOutcome.failed {
+	outcome := service.lastReloadOutcome()
+	if !outcome.failed {
 		t.Fatal("timed-out slot should mark reload failed")
 	}
-	if !equalStrings(lastReloadOutcome.failureNames, []string{"slow"}) {
-		t.Fatalf("failure names: %v, want slow", lastReloadOutcome.failureNames)
+	if !equalStrings(outcome.failureNames, []string{"slow"}) {
+		t.Fatalf("failure names: %v, want slow", outcome.failureNames)
 	}
-	if !equalStrings(lastReloadOutcome.successNames, []string{"next"}) {
-		t.Fatalf("success names: %v, want next", lastReloadOutcome.successNames)
+	if !equalStrings(outcome.successNames, []string{"next"}) {
+		t.Fatalf("success names: %v, want next", outcome.successNames)
 	}
 }
 
 func TestReloadTotalBudgetSkipsRemainingSlots(t *testing.T) {
-	savedTotal, savedSlot := reloadTotalTimeout, reloadSlotTimeout
-	t.Cleanup(func() {
-		reloadTotalTimeout = savedTotal
-		reloadSlotTimeout = savedSlot
-	})
-	reloadTotalTimeout = 40 * time.Millisecond
-	reloadSlotTimeout = 200 * time.Millisecond
-
 	service, events := newReloadTestService(t, []slot.Ops{
 		&fakeSlot{name: "first", needsBuild: true, minWork: 50 * time.Millisecond},
 		&fakeSlot{name: "second", needsBuild: true, minWork: 10 * time.Millisecond},
 	})
+	service.reloadTotalTimeout = 40 * time.Millisecond
+	service.reloadSlotTimeout = 200 * time.Millisecond
 	service.reloadOnce()
 	if !equalStrings(*events, []string{"build:first"}) {
 		t.Fatalf("events: %v, want only first slot rebuilt", *events)
 	}
-	if !lastReloadOutcome.failed {
+	outcome := service.lastReloadOutcome()
+	if !outcome.failed {
 		t.Fatal("skipped remaining slot should mark reload failed")
 	}
-	if !equalStrings(lastReloadOutcome.failureNames, []string{"second"}) {
-		t.Fatalf("failure names: %v, want second", lastReloadOutcome.failureNames)
+	if !equalStrings(outcome.failureNames, []string{"second"}) {
+		t.Fatalf("failure names: %v, want second", outcome.failureNames)
 	}
 }
 
@@ -350,11 +340,85 @@ func TestReloadOnceAfterShutdownDoesNotReportSuccess(t *testing.T) {
 		configPath: filepath.Join(t.TempDir(), "missing.yaml"),
 		shutdown:   shutdown,
 	}
-	lastReloadOutcome = reloadOutcome{}
 	service.reloadOnce()
-	if !lastReloadOutcome.failed {
+	if !service.lastReloadOutcome().failed {
 		t.Fatal("reloadOnce after shutdown must not report success")
 	}
+}
+
+// TestReloadOutcomeReadConcurrentWithWorker ensures lastOutcome is safe when the reload
+// worker writes while another goroutine reads. A missing config makes reloadOnce fail early
+// without Apply, so the test does not race on package-level config state.
+func TestReloadOutcomeReadConcurrentWithWorker(t *testing.T) {
+	shutdown := make(chan struct{})
+	service := &Service{
+		configPath:       filepath.Join(t.TempDir(), "missing.yaml"),
+		reloadC:          make(chan struct{}, 1),
+		reloadWorkerDone: make(chan struct{}),
+		shutdown:         shutdown,
+	}
+	go service.runReloadWorker()
+	t.Cleanup(func() {
+		close(shutdown)
+		<-service.reloadWorkerDone
+	})
+
+	service.requestReload()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if service.lastReloadOutcome().failed {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("timed out waiting for failed reload outcome from worker")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func TestReportReloadMetricsWarnsOnRecordFailure(t *testing.T) {
+	prev := logger.Log()
+	capture := &warnCaptureLogger{}
+	logger.SetLogger(capture)
+	t.Cleanup(func() { logger.SetLogger(prev) })
+
+	apm.ConfigReloadSuccess.UpdateLabel(map[string]string{"x": "y"})
+	reportReloadMetrics(time.Now(), reloadOutcome{})
+
+	messages := capture.warnMessages()
+	for _, msg := range messages {
+		if strings.Contains(msg, "config_reload_success") {
+			return
+		}
+	}
+	t.Fatalf("expected warn for config_reload_success, got: %v", messages)
+}
+
+type warnCaptureLogger struct {
+	mu   sync.Mutex
+	warn []string
+}
+
+func (l *warnCaptureLogger) OriginLogger() *zap.Logger { return zap.NewNop() }
+
+func (l *warnCaptureLogger) Debug(string, ...any) {}
+func (l *warnCaptureLogger) Info(string, ...any)  {}
+func (l *warnCaptureLogger) Error(string, ...any) {}
+func (l *warnCaptureLogger) Fatal(string, ...any) {}
+
+func (l *warnCaptureLogger) Warn(format string, args ...any) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.warn = append(l.warn, fmt.Sprintf(format, args...))
+}
+
+func (l *warnCaptureLogger) warnMessages() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	out := make([]string, len(l.warn))
+	copy(out, l.warn)
+	return out
 }
 
 func newReloadTestService(t *testing.T, slots []slot.Ops) (*Service, *[]string) {

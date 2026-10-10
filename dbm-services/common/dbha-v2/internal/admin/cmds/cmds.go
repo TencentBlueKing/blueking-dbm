@@ -136,7 +136,9 @@ func reloadSignalPidFile(configPath string) (string, error) {
 	if err := config.Validate(next); err != nil {
 		return "", err
 	}
-	return config.Cfg.PidFile, nil
+	// Reload does not call config.Load, so Cfg still holds compile-time defaults.
+	// Use next.PidFile (postProcess fills the default when yaml omits pidFile).
+	return next.PidFile, nil
 }
 
 func isConfigFileMissing(err error) bool {

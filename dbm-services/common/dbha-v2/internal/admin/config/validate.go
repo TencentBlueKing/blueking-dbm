@@ -111,7 +111,8 @@ func validateListenAddress(field, raw string) []string {
 		}
 	}
 
-	host, port, err := net.SplitHostPort(addr)
+	// Empty host (for example ":8080") means listen on all interfaces and is valid.
+	_, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return []string{fmt.Sprintf("%s must be host:port", field)}
 	}
@@ -121,7 +122,6 @@ func validateListenAddress(field, raw string) []string {
 	if _, err := net.LookupPort("tcp", port); err != nil {
 		return []string{fmt.Sprintf("%s has invalid port", field)}
 	}
-	_ = host
 	return nil
 }
 
