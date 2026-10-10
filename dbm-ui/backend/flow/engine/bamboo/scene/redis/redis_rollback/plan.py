@@ -10,13 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+
+from django.utils import timezone
 
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint, index_segments
 from backend.db_services.redis.rollback.constants import SCOPE_CLUSTER, SELECT_MODE_BY_TIME
 from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
 from backend.db_services.redis.rollback.shards import ShardRef
+
+ORPHAN_PLAN_TTL = timedelta(days=1)
 
 
 @dataclass
@@ -191,13 +195,27 @@ class RollbackPlan:
         data["dest_hosts"] = [DestHost(**host) for host in data.get("dest_hosts") or []]
         return cls(**data)
 
-    def save(self, plan_id: Optional[int] = None) -> int:
+    def save(self, plan_id: Optional[int] = None, ticket_id: Optional[int] = None) -> int:
+        fields = {"plan": self.to_dict()}
+        if ticket_id:
+            fields["ticket_id"] = int(ticket_id)
         if plan_id:
-            TbTendisRollbackPlan.objects.filter(id=plan_id).update(plan=self.to_dict())
+            TbTendisRollbackPlan.objects.filter(id=plan_id).update(**fields)
             return plan_id
-        return TbTendisRollbackPlan.objects.create(
-            bk_biz_id=self.bk_biz_id, cluster_id=self.cluster_id, plan=self.to_dict()
-        ).id
+        return TbTendisRollbackPlan.objects.create(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster_id, **fields).id
+
+    @staticmethod
+    def bind_ticket(plan_ids: List[int], ticket_id: int) -> None:
+        TbTendisRollbackPlan.objects.filter(id__in=plan_ids).update(ticket_id=ticket_id)
+
+    @staticmethod
+    def delete_orphans() -> int:
+        """Plans saved by ticket validation that never became a ticket. Plans bound to a ticket stay:
+        construction records keep only a binlog digest and point to the plan for the full list."""
+        deleted, _ = TbTendisRollbackPlan.objects.filter(
+            ticket_id__isnull=True, create_at__lt=timezone.now() - ORPHAN_PLAN_TTL
+        ).delete()
+        return deleted
 
     @classmethod
     def load(cls, plan_id: int) -> "RollbackPlan":

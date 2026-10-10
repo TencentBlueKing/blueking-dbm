@@ -87,12 +87,6 @@ func NewFullbackPull(sourceIP, filehead, rollbackTime,
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
-	if ret.RollbackDstTime.After(time.Now()) == true {
-		//未来时间
-		ret.Err = fmt.Errorf("rollbackTime:%s > time.Now()", ret.RollbackDstTime)
-		mylog.Logger.Error(ret.Err.Error())
-		return ret
-	}
 	ret.ResultFullbackup = []*TendisFullBackItem{}
 	ret.ResultFullbackMap = make(map[string]*TendisFullBackItem)
 	mylog.Logger.Info("FileHead:%s", ret.FileHead)

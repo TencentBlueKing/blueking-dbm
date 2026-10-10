@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"strconv"
@@ -185,7 +186,11 @@ func (task *RedisDataStructure) Run() (err error) {
 
 	wg := sync.WaitGroup{}
 	genChan := make(chan *datastructure.TendisInsRecoverTask)
-	limit := 3 // 并发度
+	// 每个端口的解析、灌入各约占 1 核, 3 路在多核临时机上会让后面的端口白白排队
+	limit := max(3, runtime.GOMAXPROCS(0)/2)
+	limit = min(limit, len(recoverTasks))
+	task.runtime.Logger.Info("recover concurrency:%d,ports:%d,cpus:%d",
+		limit, len(recoverTasks), runtime.GOMAXPROCS(0))
 	for worker := 0; worker < limit; worker++ {
 		wg.Add(1)
 		go func() {

@@ -87,15 +87,19 @@ class RedisRollbackFlow:
         return pipeline.run_pipeline()
 
     @staticmethod
-    def _load_plan(cluster: Cluster, info: dict, dest_ips: List[str]) -> Tuple[int, RollbackPlan]:
+    def _load_plan(
+        cluster: Cluster, info: dict, dest_ips: List[str], ticket_id: Optional[int] = None
+    ) -> Tuple[int, RollbackPlan]:
         """Runs the plan approved at submission, packed onto the hosts actually applied for.
 
         Tickets submitted before plans were persisted have no ``plan_id`` and are planned here once.
+        Writing ``ticket_id`` here too covers tickets that never went through ``patch_ticket_detail``,
+        such as updated ones, so the orphan cleanup never removes a plan a flow runs.
         """
         plan_id = info.get("plan_id")
         if not plan_id:
             plan = RollbackPlanner(cluster, info).build(dest_ips=dest_ips, pack=True)
-            return plan.save(), plan
+            return plan.save(ticket_id=ticket_id), plan
 
         plan = RollbackPlan.load(plan_id)
         problems = confirm_backup_tasks(
@@ -106,12 +110,12 @@ class RedisRollbackFlow:
                 context={"message": "; ".join(m for messages in problems.values() for m in messages)}
             )
         RollbackPlanner.pack_dest_hosts(plan, dest_ips, len(dest_ips))
-        return plan.save(plan_id), plan
+        return plan.save(plan_id, ticket_id=ticket_id), plan
 
     def build_cluster_rollback(self, info: dict):
         cluster = Cluster.objects.get(id=info["cluster_id"])
         dest_ips = [host["ip"] for host in info.get("redis") or []]
-        plan_id, plan = self._load_plan(cluster, info, dest_ips)
+        plan_id, plan = self._load_plan(cluster, info, dest_ips, ticket_id=self.data.get("uid"))
         is_drill = self.data.get("is_rollback_drill", False)
         cluster_ticket_data = deepcopy(self.data)
         cluster_ticket_data.update(
