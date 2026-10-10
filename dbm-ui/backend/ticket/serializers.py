@@ -120,6 +120,8 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
     )
     # 单据配置/单据上下文
     config = TicketConfigSerializer(help_text=_("单据配置"), required=False)
+    # 单据版本号
+    version = serializers.SerializerMethodField(help_text=_("内容版本号"), read_only=True)
 
     class Meta:
         model = Ticket
@@ -163,6 +165,13 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
     def get_db_app_abbr(self, obj):
         return self.context["ticket_ctx"].app_abbr_map.get(obj.bk_biz_id) or ""
 
+    def get_version(self, obj):
+        # list 接口共用该序列化器，但只有 retrieve 才需要查表返回真实版本号，避免列表查询逐条查询快照表
+        view = self.context.get("view")
+        if view and view.action == "list":
+            return None
+        return TicketSnapshot.objects.filter(ticket_id=obj.id).count()
+
 
 class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializer):
     status = serializers.SerializerMethodField(help_text=_("流程状态"))
@@ -177,6 +186,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     flow_output = serializers.SerializerMethodField(help_text=_("流程输出数据"))
     output_data = serializers.SerializerMethodField(help_text=_("流程输出数据V2"))
     remark = serializers.SerializerMethodField(help_text=_("备注"))
+    modify_mode = serializers.SerializerMethodField(help_text=_("改单模式"))
 
     def to_representation(self, instance):
         self.ticket_flow = TicketFlowManager(ticket=instance.ticket).get_ticket_flow_cls(flow_type=instance.flow_type)(
@@ -232,6 +242,10 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
 
     def get_remark(self, obj):
         return obj.context.get("remark") if obj.context else ""
+
+    def get_modify_mode(self, obj):
+        snapshot = TicketSnapshot.objects.filter(flow_id=obj.id).order_by("-create_at", "-id").first()
+        return snapshot.mode if snapshot else ""
 
     @property
     def translated_fields(self):
