@@ -23,7 +23,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
+from backend.db_services.redis.util import cal_proxy_servers, is_redis_cluster_protocal
 from backend.flow.consts import DEFAULT_DB_MODULE_ID
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -348,13 +348,7 @@ class RedisSlotsMigrateFlow(object):
             cluster_type = cluster_info["cluster_type"]
             redis_master_set = cluster_info["redis_master_set"]
             redis_slave_set = cluster_info["redis_slave_set"]
-            servers = []
-            if is_twemproxy_proxy_type(cluster_type):
-                for seg in redis_master_set:
-                    ip_port, seg_range = str.split(seg)
-                    servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))
-            else:
-                servers = redis_master_set + redis_slave_set
+            servers = cal_proxy_servers(cluster_type, cluster_name, redis_master_set, redis_slave_set)
             master_ip = list(set([ip.split(":")[0] for ip in redis_master_set]))
 
             passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)

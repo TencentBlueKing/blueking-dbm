@@ -4,11 +4,169 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.db_meta.enums import ClusterType
+from backend.db_services.redis.util import (
+    cal_proxy_servers,
+    is_predixy_proxy_type,
+    is_predixy_standalone_type,
+    is_redis_cluster_protocal,
+    is_seg_range_shard_type,
+    is_tendisplus_instance_type,
+)
+from backend.flow.engine.bamboo.scene.redis import redis_cluster_data_copy as copy_module
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.plugins.components.collections.redis import redis_dts as dts_module
+from backend.flow.plugins.components.collections.redis.redis_dts import NewDstClusterInstallJobAndWatchStatus
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+
+
+def test_predixy_standalone_proxy_and_backend_routing():
+    standalone = ClusterType.TendisPredixyTendisplusInstance.value
+    cluster = ClusterType.TendisPredixyTendisplusCluster.value
+    twemproxy = ClusterType.TendisTwemproxyRedisInstance.value
+    masters = ["1.1.1.1:30000 0-209999", "1.1.1.1:30001 210000-419999"]
+    slaves = ["1.1.1.2:30000", "1.1.1.2:30001"]
+
+    assert is_predixy_proxy_type(standalone) and is_tendisplus_instance_type(standalone)
+    assert is_predixy_standalone_type(standalone) and is_seg_range_shard_type(standalone)
+    assert not is_redis_cluster_protocal(standalone)
+    assert cal_proxy_servers(standalone, "demo", masters, slaves) == masters
+    assert cal_proxy_servers(cluster, "demo", ["1.1.1.1:30000"], slaves) == ["1.1.1.1:30000", *slaves]
+    assert cal_proxy_servers(twemproxy, "demo", masters, slaves) == [
+        "1.1.1.1:30000 demo 0-209999 1",
+        "1.1.1.1:30001 demo 210000-419999 1",
+    ]
+
+
+def test_predixy_standalone_type_update_and_rollback_proxy_servers():
+    flow = object.__new__(RedisClusterDataCopyFlow)
+    standalone = ClusterType.TendisPredixyTendisplusInstance.value
+    cluster = ClusterType.TendisPredixyTendisplusCluster.value
+
+    assert flow._RedisClusterDataCopyFlow__get_domain_prefix_by_cluster_type(standalone) == "tendisplus"
+    assert flow._RedisClusterDataCopyFlow__get_domain_prefix_by_cluster_type(cluster) == "tendisplus"
+    assert flow._RedisClusterDataCopyFlow__is_proxy_type_update(standalone, cluster)
+    assert flow._RedisClusterDataCopyFlow__is_proxy_type_update(cluster, standalone)
+    assert not flow._RedisClusterDataCopyFlow__is_proxy_type_update(
+        cluster, ClusterType.TendisPredixyRedisCluster.value
+    )
+
+    structure_flow = RedisDataStructureFlow(root_id="test", data={})
+    assert structure_flow.cal_predixy_standalone_serveres(
+        ["1.1.1.1:30000 0-209999", "1.1.1.1:30001 210000-419999"],
+        [("1.1.1.1:30000", "2.2.2.2:30000"), ("1.1.1.1:30001", "2.2.2.2:30001")],
+    ) == ["2.2.2.2:30000 0-209999", "2.2.2.2:30001 210000-419999"]
+
+
+@pytest.mark.parametrize(
+    "target_type, expected_databases, expected_prefix",
+    [
+        (ClusterType.TendisPredixyTendisplusInstance.value, 2, "tendisplus"),
+        (ClusterType.TendisPredixyTendisplusCluster.value, 1, "tendislite"),
+    ],
+)
+def test_predixy_type_update_dst_install_parameters(monkeypatch, target_type, expected_databases, expected_prefix):
+    src_type = (
+        ClusterType.TendisPredixyTendisplusCluster.value
+        if target_type == ClusterType.TendisPredixyTendisplusInstance.value
+        else ClusterType.TendisPredixyTendisplusInstance.value
+    )
+    monkeypatch.setattr(
+        copy_module,
+        "get_cluster_info_by_id",
+        lambda **kwargs: {
+            "bk_cloud_id": 0,
+            "cluster_name": "source",
+            "cluster_type": src_type,
+            "cluster_version": "TendisPlus-2",
+            "cluster_password": "proxy-password",
+            "redis_password": "redis-password",
+            "redis_databases": 1,
+            "region": "test",
+            "cluster_port": 50000,
+        },
+    )
+    monkeypatch.setattr(copy_module.AppCache.objects, "get", lambda **kwargs: MagicMock(db_app_abbr="app"))
+    monkeypatch.setattr(
+        copy_module.Cluster.objects,
+        "get",
+        lambda **kwargs: MagicMock(disaster_tolerance_level="NONE", zone_list=[]),
+    )
+    flow = object.__new__(RedisClusterDataCopyFlow)
+    flow.data = {"bk_biz_id": 100, "created_by": "tester"}
+    install_param = flow.get_dst_cluster_install_param(
+        {
+            "src_cluster": 1,
+            "cluster_shard_num": 2,
+            "target_cluster_type": target_type,
+            "max_disk": 1024,
+            "maxmemory": 1024,
+            "proxy": [],
+            "backend_group": [],
+            "resource_spec": {},
+        }
+    )
+    assert install_param["redis_databases"] == expected_databases
+    assert install_param["cluster_domain"].startswith(expected_prefix)
+    assert install_param["cluster_type"] == target_type
+
+
+@pytest.mark.parametrize(
+    "cluster_type, standalone",
+    [
+        (ClusterType.TendisPredixyTendisplusInstance.value, True),
+        (ClusterType.TendisPredixyTendisplusCluster.value, False),
+    ],
+)
+def test_dts_dst_predixy_install_uses_backend_protocol(monkeypatch, cluster_type, standalone):
+    standalone_flow, cluster_flow = MagicMock(), MagicMock()
+    monkeypatch.setattr(dts_module, "PredixyTendisPlusInsApplyFlow", standalone_flow)
+    monkeypatch.setattr(dts_module, "TendisPlusApplyFlow", cluster_flow)
+    monkeypatch.setattr(dts_module, "generate_root_id", lambda: "install-flow")
+    monkeypatch.setattr(NewDstClusterInstallJobAndWatchStatus, "log_info", lambda *args: None)
+    install_param = {
+        "bk_biz_id": 100,
+        "bk_cloud_id": 0,
+        "created_by": "tester",
+        "cluster_port": 50000,
+        "cluster_domain": "target.test.db",
+        "cluster_name": "target",
+        "cluster_alias": "target",
+        "cluster_type": cluster_type,
+        "region": "test",
+        "shard_num": 2,
+        "backend_group": [],
+        "maxmemory": 1024,
+        "db_version": "TendisPlus-2",
+        "redis_databases": 2,
+        "cluster_password": "proxy-password",
+        "redis_password": "redis-password",
+        "proxy": [],
+        "resource_spec": {},
+        "disaster_tolerance_level": "NONE",
+        "zone_list": [],
+    }
+    trans_data = MagicMock(dst_cluster_install_flow_id="")
+    inputs = {
+        "kwargs": {"cluster": {"dst_install_param": install_param}},
+        "global_data": {"uid": "test"},
+        "trans_data": trans_data,
+    }
+    data = MagicMock()
+    data.get_one_of_inputs.side_effect = inputs.__getitem__
+    data.outputs = {}
+
+    assert NewDstClusterInstallJobAndWatchStatus._execute(MagicMock(), data, None)
+    assert trans_data.dst_cluster_install_flow_id == "install-flow"
+    if standalone:
+        standalone_flow.return_value.deploy_predixy_tendisplus_ins_flow.assert_called_once_with()
+        cluster_flow.assert_not_called()
+    else:
+        cluster_flow.return_value.deploy_predixy_cluster_flow.assert_called_once_with()
+        standalone_flow.assert_not_called()
 
 
 def _make_disk_check_act(new_temp_ip, full_size, binlog_size=0, binlog_count=0):
