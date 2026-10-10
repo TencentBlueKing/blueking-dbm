@@ -53,19 +53,6 @@ from backend.ticket.models import Flow
 
 logger = logging.getLogger("flow")
 
-#: 语义预设注册表：kwargs["preset"] 字符串 -> 预设 Serializer 类。
-#: 新增语义预设时，先在 backend/flow/utils/mysql/flow_output_presets/ 目录扩展 Serializer，
-#: 再在此登记一行即可；键约定为语义短名（无 mysql_ 前缀）。
-_PRESET_REGISTRY: Dict[str, Type[BaseFlowOutputSerializer]] = {
-    "cluster_apply": ClusterApplySummarySerializer,
-    "instance_change": InstanceChangeSummarySerializer,
-    "auth_result": AuthResultSummarySerializer,
-    "precheck": PrecheckResultSummarySerializer,
-    "sql_exec": SqlExecResultSummarySerializer,
-    "message": MessageSummarySerializer,
-    "pt_table_sync": PtTableSyncSummarySerializer,
-}
-
 
 class MysqlFlowOutputSummaryService(BaseService):
     """mysql/spider 流程输出摘要通用 Service。
@@ -93,6 +80,19 @@ class MysqlFlowOutputSummaryService(BaseService):
       - 重复主键写入 -> 依赖 insert_data 的主键合并分支覆盖旧行，天然幂等（详见预设 Serializer docstring）。
     """
 
+    #: 语义预设注册表：kwargs["preset"] 字符串 -> 预设 Serializer 类。
+    #: 新增语义预设时，先在 backend/flow/utils/mysql/flow_output_presets/ 目录扩展 Serializer，
+    #: 再在此登记一行即可；键约定为语义短名（无 mysql_ 前缀）。
+    _PRESET_REGISTRY: Dict[str, Type[BaseFlowOutputSerializer]] = {
+        "cluster_apply": ClusterApplySummarySerializer,
+        "instance_change": InstanceChangeSummarySerializer,
+        "auth_result": AuthResultSummarySerializer,
+        "precheck": PrecheckResultSummarySerializer,
+        "sql_exec": SqlExecResultSummarySerializer,
+        "message": MessageSummarySerializer,
+        "pt_table_sync": PtTableSyncSummarySerializer,
+    }
+
     def _execute(self, data, parent_data) -> bool:
         kwargs: Dict = data.get_one_of_inputs("kwargs") or {}
         preset_key: str = kwargs.get("preset", "") or ""
@@ -100,9 +100,9 @@ class MysqlFlowOutputSummaryService(BaseService):
         root_id: str = self.runtime_attrs.get("root_pipeline_id")
 
         # 1) 校验 preset 合法性
-        slz_cls = _PRESET_REGISTRY.get(preset_key)
+        slz_cls = self._PRESET_REGISTRY.get(preset_key)
         if slz_cls is None:
-            self.log_error(_("摘要预设 preset=[{}] 未登记，可选值：{}").format(preset_key, sorted(_PRESET_REGISTRY)))
+            self.log_error(_("摘要预设 preset=[{}] 未登记，可选值：{}").format(preset_key, sorted(self._PRESET_REGISTRY)))
             return False
 
         # 2) items 为空视为 no-op，不阻塞流程

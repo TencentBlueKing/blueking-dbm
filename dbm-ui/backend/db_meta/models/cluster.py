@@ -286,6 +286,8 @@ class Cluster(AuditedModel):
                 return DEFAULT_QDRANT_PORT
             elif self.cluster_type in [ClusterType.K8sSurrealdbSingle, ClusterType.K8sSurrealdbHa]:
                 return DEFAULT_SURREALDB_PORT
+            elif self.cluster_type in [ClusterType.SqlserverHA, ClusterType.SqlserverSingle]:
+                return self.storageinstance_set.first().port
         except (AttributeError, IndexError, Exception):
             logger.warning(_("无法访问集群[]的访问端口，请检查实例信息").format(self.name))
             return 0
