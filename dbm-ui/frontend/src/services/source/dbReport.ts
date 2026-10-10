@@ -31,3 +31,16 @@ export function getReportShare(params: { record_id: string }) {
     update_at: string;
   }>(`/db_report/share/${params.record_id}/`);
 }
+
+/**
+ * 查询集群健康报告，不传 date 时返回最新一天的报告
+ */
+export function getClusterHealthReport(params: { bk_biz_id: number; cluster_domain: string; date?: string }) {
+  return http.get<{
+    available_dates: string[];
+    has_report: boolean;
+    report_id: string;
+    report_status: 'not_connected' | 'not_generated' | 'generated';
+    report_to_time: string;
+  }>('/db_report/cluster_health_report/', params);
+}
