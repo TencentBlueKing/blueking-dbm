@@ -24,7 +24,7 @@ from backend.flow.utils.mysql.dts.migrate_plan import DtsMigratePlan, DtsTaskCon
 
 CLUSTER_NAME = "dts-ywaq-sz-svr"
 TASK_NAME = "mysql-dts-2410626-1004160"
-EXPECTED_DATA_DIR = "/data/dts/dts-ywaq-sz-svr/exported_data/mysql-dts-2410626-1004160"
+EXPECTED_DATA_DIR = "/data/dts/dts-ywaq-sz-svr/exported_data.mysql-dts-2410626-1004160"
 
 
 def _plan(**kwargs) -> DtsMigratePlan:

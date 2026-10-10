@@ -278,6 +278,22 @@ def _append_rm_rf_if_exists(lines: list[str], path: str) -> None:
     lines.append("fi")
 
 
+def _append_exported_data_cleanup(lines: list[str], seen: set, deploy_path: str) -> None:
+    """删除该部署目录下的 ``exported_data.{任务名}``。"""
+    deploy_path = (deploy_path or "").rstrip("/")
+    if not deploy_path:
+        return
+    glob_key = f"{deploy_path}/exported_data.*"
+    if glob_key in seen:
+        return
+    seen.add(glob_key)
+    quoted_parent = shlex.quote(deploy_path)
+    lines.append("shopt -s nullglob")
+    lines.append(f"for dump_dir in {quoted_parent}/exported_data.*; do")
+    lines.append('  rm -rf -- "$dump_dir"')
+    lines.append("done")
+
+
 def render_clean_ticket_dump_script(dump_dirs: list[str]) -> str:
     """删除本单 builtin dump 目录（缺目录视为成功）。不删 myloader 备份目录。"""
     lines = ["set -euo pipefail"]
@@ -294,7 +310,7 @@ def render_clean_cluster_relay_and_dump_script(
     worker_node_names: list[str],
     extra_exported_data_dirs: list[str] | None = None,
 ) -> str:
-    """下架时显式删除各 worker ``{node}-data`` 与整棵 ``exported_data``。缺目录不失败。"""
+    """下架时显式删除各 worker ``{node}-data`` 与 ``exported_data.{任务名}``。缺目录不失败。"""
     lines = ["set -euo pipefail"]
     deploy_path = (deploy_path or "").rstrip("/")
     seen = set()
@@ -306,16 +322,9 @@ def render_clean_cluster_relay_and_dump_script(
             continue
         seen.add(relay_dir)
         _append_rm_rf_if_exists(lines, relay_dir)
-    exported = f"{deploy_path}/exported_data"
-    if exported not in seen:
-        seen.add(exported)
-        _append_rm_rf_if_exists(lines, exported)
+    _append_exported_data_cleanup(lines, seen, deploy_path)
     for extra in extra_exported_data_dirs or []:
-        extra_path = (extra or "").rstrip("/")
-        if not extra_path or extra_path in seen:
-            continue
-        seen.add(extra_path)
-        _append_rm_rf_if_exists(lines, extra_path)
+        _append_exported_data_cleanup(lines, seen, extra or "")
     lines.append("echo cleaned dts relay and exported_data")
     return "\n".join(lines) + "\n"
 

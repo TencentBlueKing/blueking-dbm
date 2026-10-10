@@ -182,8 +182,9 @@ class MysqlDtsCleanupNoDropTest(SimpleTestCase):
         relay_act = next(c for c in sub.add_act.call_args_list if str(c.kwargs.get("act_name")) == relay_name)
         script = relay_act.kwargs["kwargs"]["shell_script"]
         self.assertIn("/custom/dts/dm-worker-1-data", script)
-        self.assertIn("/custom/dts/exported_data", script)
-        self.assertIn("/data/dts/dts-prod/exported_data", script)
+        self.assertIn("/custom/dts/exported_data.*", script)
+        self.assertIn("/data/dts/dts-prod/exported_data.*", script)
+        self.assertNotIn("[[ -e /custom/dts/exported_data ", script)
         self.assertNotIn("/data/dbbak/", script)
 
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")

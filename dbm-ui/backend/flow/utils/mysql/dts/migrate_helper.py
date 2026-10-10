@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import NamedTuple
 
 from django.utils.translation import gettext as _
 
@@ -202,44 +203,65 @@ def assign_source_workers(
             src.myloader.dest_worker_ip = ip
 
 
-def _append_grant_target(targets: dict[str, DtsGrantTarget], cluster: Cluster, ip: str, port: int):
+def _append_grant_target(
+    targets: dict[str, DtsGrantTarget],
+    cluster: Cluster,
+    ip: str,
+    port: int,
+    *,
+    allow_backup_admin: bool = True,
+):
     address = "{}{}{}".format(ip, IP_PORT_DIVIDER, port)
     targets[address] = DtsGrantTarget(
         bk_cloud_id=cluster.bk_cloud_id,
         address=address,
         cluster_id=cluster.id,
         major_version=cluster.major_version or "",
+        allow_backup_admin=allow_backup_admin,
     )
 
 
-def _collect_target_grant_endpoints(cluster: Cluster, migrate_type: str) -> list[tuple[str, int]]:
-    endpoints: list[tuple[str, int]] = []
+class TargetGrantSpec(NamedTuple):
+    """一个目标授权点。"""
+
+    ip: str
+    port: int
+    allow_backup_admin: bool
+
+
+def _collect_target_grant_specs(cluster: Cluster, migrate_type: str) -> list[TargetGrantSpec]:
+    """目标授权点。
+
+    Spider 与 tdbctl 是 MariaDB，不授 BACKUP_ADMIN。存储主库按集群版本决定。
+    """
+    specs: list[TargetGrantSpec] = []
     if migrate_type == MigrateType.HA_TO_CLUSTER.value or cluster.cluster_type == ClusterType.TenDBCluster.value:
         spider_masters = list(
             cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
         )
         for proxy in spider_masters:
-            endpoints.append((proxy.machine.ip, proxy.port))
+            specs.append(TargetGrantSpec(proxy.machine.ip, proxy.port, allow_backup_admin=False))
         # tdbctl 为中控主从复制，仅对 Primary 授权（勿对所有 spider 的 admin_port / 从中控授权）
         if spider_masters:
-            endpoints.append(_resolve_tdbctl_endpoint(cluster, spider_masters[0]))
+            ctl_ip, ctl_port = _resolve_tdbctl_endpoint(cluster, spider_masters[0])
+            specs.append(TargetGrantSpec(ctl_ip, ctl_port, allow_backup_admin=False))
         for storage in cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_MASTER):
-            endpoints.append((storage.machine.ip, storage.port))
-        if not endpoints:
+            specs.append(TargetGrantSpec(storage.machine.ip, storage.port, allow_backup_admin=True))
+        if not specs:
             proxy = cluster.proxyinstance_set.first()
             if proxy:
-                endpoints.append((proxy.machine.ip, proxy.port))
+                specs.append(TargetGrantSpec(proxy.machine.ip, proxy.port, allow_backup_admin=False))
     elif cluster.cluster_type == ClusterType.TenDBSingle.value:
         orphan = cluster.storageinstance_set.filter(instance_role=InstanceRole.ORPHAN).first()
         if not orphan:
             orphan = cluster.storageinstance_set.first()
         if not orphan:
             raise ValueError(_("集群 {} 未找到可用的目标实例").format(cluster.id))
-        endpoints.append((orphan.machine.ip, orphan.port))
+        specs.append(TargetGrantSpec(orphan.machine.ip, orphan.port, allow_backup_admin=True))
     else:
         master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-        endpoints.append((master.machine.ip, master.port))
-    return endpoints
+        specs.append(TargetGrantSpec(master.machine.ip, master.port, allow_backup_admin=True))
+    return specs
 
 
 def collect_migrate_grant_targets(plan: DtsMigratePlan) -> list[DtsGrantTarget]:
@@ -251,8 +273,14 @@ def collect_migrate_grant_targets(plan: DtsMigratePlan) -> list[DtsGrantTarget]:
             ip, port = resolve_source_endpoint(source_spec, cluster)
             _append_grant_target(targets, cluster, ip, port)
         target_cluster = Cluster.objects.get(id=task_spec.target_cluster_id)
-        for ip, port in _collect_target_grant_endpoints(target_cluster, plan.migrate_type):
-            _append_grant_target(targets, target_cluster, ip, port)
+        for spec in _collect_target_grant_specs(target_cluster, plan.migrate_type):
+            _append_grant_target(
+                targets,
+                target_cluster,
+                spec.ip,
+                spec.port,
+                allow_backup_admin=spec.allow_backup_admin,
+            )
     return list(targets.values())
 
 
