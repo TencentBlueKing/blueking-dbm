@@ -13,9 +13,8 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow import StaticIntervalGenerator
 from pipeline.exceptions import PipelineError
 
-from backend import env
 from backend.components import CCApi
-from backend.components.bknodeman.client import BKNodeManApi
+from backend.components.bknodeman.client import BKNodeManApi, BKNodeManJobStatusError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
@@ -23,7 +22,6 @@ class InstallNodemanPluginService(BaseService):
     """安装节点管理插件"""
 
     RETRY_ERROR_CODES = [502, 504]  # 重试的错误码
-    HTTP_STATUS_OK = 200  # HTTP请求成功的状态码
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(10)
@@ -70,7 +68,7 @@ class InstallNodemanPluginService(BaseService):
         )
         data.outputs.job_id = job["job_id"]
         data.outputs.poll_count = 0  # 每次execute重置轮询计数器
-        self.log_info(_("安装插件任务: {}/#/task-list/detail/{}").format(env.BK_NODEMAN_URL, data.outputs.job_id))
+        self.log_info(_("安装插件任务: {}").format(BKNodeManApi.get_job_url(data.outputs.job_id)))
 
     def _schedule(self, data, parent_data, callback_data=None):
         job_id = data.get_one_of_outputs("job_id")
@@ -88,43 +86,30 @@ class InstallNodemanPluginService(BaseService):
                 )
             )
             return False
-        # 调用 API 并设置 raw=True, raise_exception=False，遇到特定错误码时重试
-        raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
-        # 检查网络状态
-        if raw_response.status_code == self.HTTP_STATUS_OK:
-            try:
-                # 网络请求成功，解析响应内容
-                response = raw_response.json()
-                status = response.get("data", {}).get("status")
-                if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
-                    self.log_info(f"installing plugin, job id is {job_id}")
-                    return True
-                if status == BKNodeManApi.JobStatusType.SUCCESS:
-                    self.log_info("install plugin successfully")
-                    self.finish_schedule()
-                    return True
-                else:
-                    self.log_error("install plugin failed")
-                    return False
-            except (KeyError, TypeError, ValueError) as e:
-                self.log_error(_("解析响应出错: {}，响应内容: {}").format(str(e), raw_response.text))
+        try:
+            status = BKNodeManApi.get_job_status(job_id)
+        except BKNodeManJobStatusError as err:
+            # 遇到网关类错误码时重试
+            if err.status_code not in self.RETRY_ERROR_CODES:
+                self.log_error(_("获取任务详情失败: {}").format(err.message))
                 return False
-        elif raw_response.status_code in self.RETRY_ERROR_CODES:
             retry_count += 1
             if retry_count <= max_retries:
                 data.outputs.retry_count = retry_count
                 self.log_info(f"retrying job {job_id}, retry count: {retry_count}")
                 return True
-            else:
-                self.log_error(_("已经达到最大重试次数{}次").format(max_retries))
-                return False
-        else:
-            self.log_error(
-                _("获取任务详情失败: {}").format(
-                    f"code: {raw_response.status_code}, message: {raw_response.text or raw_response.reason}"
-                )
-            )
+            self.log_error(_("已经达到最大重试次数{}次").format(max_retries))
             return False
+
+        if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
+            self.log_info(f"installing plugin, job id is {job_id}")
+            return True
+        if status == BKNodeManApi.JobStatusType.SUCCESS:
+            self.log_info("install plugin successfully")
+            self.finish_schedule()
+            return True
+        self.log_error(f"install plugin failed, job status is {status}")
+        return False
 
 
 class InstallNodemanPluginServiceComponent(Component):
