@@ -19,7 +19,12 @@ from pipeline.core.flow.activity import StaticIntervalGenerator
 
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components.mysql_backup.client import RedisBackupApi
-from backend.db_services.redis.rollback.constants import DISK_USED_PLUS_NEED_RATIO_FAIL, DISK_USED_RATIO_FAIL
+from backend.db_services.redis.rollback.constants import (
+    DISK_USED_PLUS_NEED_RATIO_FAIL,
+    DISK_USED_RATIO_FAIL,
+    DOWNLOAD_BATCH_SIZE,
+)
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.utils.string import format_size
 
@@ -126,10 +131,18 @@ class RedisRollbackDiskPrecheckComponent(Component):
 
 
 class RedisRollbackDownloadService(BaseService):
-    """Download all backup files for one dest_ip in a single RedisBackupApi.download call."""
+    """Download all backup files of one dest_ip, submitted in bills of DOWNLOAD_BATCH_SIZE task_ids."""
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(15)
+
+    @staticmethod
+    def _download_targets(kwargs):
+        """``(task_ids, bytes)`` from the persisted plan; nodes built before plans were persisted carry them."""
+        if kwargs.get("plan_id"):
+            host = RollbackPlan.load(kwargs["plan_id"]).dest_host(kwargs["dest_ip"])
+            return host.task_ids, host.download_bytes
+        return kwargs["task_ids"], kwargs.get("download_bytes")
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -141,58 +154,66 @@ class RedisRollbackDownloadService(BaseService):
         if not backup_dir:
             self.log_error(_("{} 缺少备份目录信息，无法确定下载路径").format(kwargs["dest_ip"]))
             return False
-        dest_dir = backup_dir.rstrip("/") + "/dbbak/recover_redis"
+        task_ids, total_bytes = self._download_targets(kwargs)
         params = {
             "bk_cloud_id": kwargs["bk_cloud_id"],
-            "taskid_list": kwargs["task_ids"],
             "dest_ip": kwargs["dest_ip"],
             "login_user": kwargs["login_user"],
             "login_passwd": kwargs["login_passwd"],
-            "dest_dir": dest_dir,
+            "dest_dir": backup_dir.rstrip("/") + "/dbbak/recover_redis",
             "reason": kwargs.get("reason") or "redis rollback",
         }
         self.log_debug({k: v for k, v in params.items() if k != "login_passwd"})
-        response = RedisBackupApi.download(params=params)
-        backup_bill_id = response.get("bill_id", -1)
-        if backup_bill_id <= 0:
-            return False
-        total_bytes = kwargs.get("download_bytes")
+        bill_ids = []
+        for start in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE):
+            response = RedisBackupApi.download(
+                params={**params, "taskid_list": task_ids[start : start + DOWNLOAD_BATCH_SIZE]}
+            )
+            bill_id = response.get("bill_id", -1)
+            if bill_id <= 0:
+                # A retry resubmits every batch: bamboo rebuilds outputs on each execute.
+                self.log_error(_("提交下载失败: {}；已提交且仍在下载的单号: {}").format(response, bill_ids))
+                return False
+            bill_ids.append(bill_id)
         self.log_info(
-            _("下载备份到 {dest_ip}: files={file_count}, size={total_size}, bill={bill_id}").format(
+            _("下载备份到 {dest_ip}: files={file_count}, size={total_size}, bills={bill_ids}").format(
                 dest_ip=kwargs["dest_ip"],
-                file_count=len(kwargs["task_ids"]),
+                file_count=len(task_ids),
                 total_size=format_size(total_bytes) if total_bytes is not None else _("未知"),
-                bill_id=backup_bill_id,
+                bill_ids=bill_ids,
             )
         )
-        data.outputs.backup_bill_id = backup_bill_id
+        data.outputs.backup_bill_ids = bill_ids
         return True
 
     def _schedule(self, data, parent_data, callback_data=None):
-        backup_bill_id = data.get_one_of_outputs("backup_bill_id")
-        result_response = RedisBackupApi.download_result({"bill_id": backup_bill_id})
-        if result_response is None or "total" not in result_response:
-            self.log_debug("result response fail")
-            self.finish_schedule()
-            return False
-        total = result_response["total"]
-        if total["todo"] == 0 and total["doing"] == 0 and total["fail"] == 0:
-            self.log_info(_("{} 下载成功").format(backup_bill_id))
+        bill_ids = data.get_one_of_outputs("backup_bill_ids") or [data.get_one_of_outputs("backup_bill_id")]
+        todo = doing = 0
+        for bill_id in bill_ids:
+            result_response = RedisBackupApi.download_result({"bill_id": bill_id})
+            if result_response is None or "total" not in result_response:
+                self.log_error(_("{} 查询下载结果失败").format(bill_id))
+                self.finish_schedule()
+                return False
+            total = result_response["total"]
+            if total["fail"] > 0:
+                self.log_error(_("{} 下载失败").format(bill_id))
+                self.finish_schedule()
+                return False
+            todo += total["todo"]
+            doing += total["doing"]
+        if todo == 0 and doing == 0:
+            self.log_info(_("{} 下载成功").format(bill_ids))
             self.finish_schedule()
             return True
-        if total["fail"] > 0:
-            self.log_error(_("{} 下载失败").format(backup_bill_id))
-            self.finish_schedule()
-            return False
         last_todo = data.get_one_of_outputs("last_todo")
         last_doing = data.get_one_of_outputs("last_doing")
         last_log_ts = data.get_one_of_outputs("last_progress_log_ts") or 0
         now = time.time()
-        progress_changed = total["todo"] != last_todo or total["doing"] != last_doing
-        if progress_changed or (now - last_log_ts) >= _PROGRESS_LOG_INTERVAL_SEC:
-            self.log_info(_("{} 下载中: todo={} doing={}").format(backup_bill_id, total["todo"], total["doing"]))
-            data.outputs.last_todo = total["todo"]
-            data.outputs.last_doing = total["doing"]
+        if todo != last_todo or doing != last_doing or (now - last_log_ts) >= _PROGRESS_LOG_INTERVAL_SEC:
+            self.log_info(_("{} 下载中: todo={} doing={}").format(bill_ids, todo, doing))
+            data.outputs.last_todo = todo
+            data.outputs.last_doing = doing
             data.outputs.last_progress_log_ts = now
         return True
 

@@ -20,6 +20,8 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.constants import (
+    BACKUP_ROLE_MASTER,
+    BACKUP_ROLE_SLAVE,
     SINGLE_INSTANCE_SHARD_VALUE,
     SWITCHED_SHARD_VALUE,
     TWEMPROXY_SHARD_MIN,
@@ -29,6 +31,7 @@ from backend.db_services.redis.rollback.constants import (
 logger = logging.getLogger("flow")
 
 _RANGE_SEPARATOR = re.compile(r"[\s,]+")
+_ROLE_IN_FILENAME = re.compile(r"-redis-({}|{})-".format(BACKUP_ROLE_MASTER, BACKUP_ROLE_SLAVE))
 
 
 @dataclass
@@ -111,6 +114,27 @@ def extract_identify_prefix(backup_identify: str) -> str:
 
 def ip_port(ip: str, port: int) -> str:
     return "{}{}{}".format(ip, IP_PORT_DIVIDER, port)
+
+
+def source_role(role: Optional[str], file_name: str) -> str:
+    """Role at backup time. BKLog rows may lack it; dbmon also embeds it in the file name."""
+    role = (role or "").strip().lower()
+    if role in (BACKUP_ROLE_MASTER, BACKUP_ROLE_SLAVE):
+        return role
+    matched = _ROLE_IN_FILENAME.search(file_name or "")
+    return matched.group(1) if matched else ""
+
+
+def source_is_current(record: dict, current: Optional[ShardRef]) -> bool:
+    """True only if the backup source still holds the role it had at backup time.
+
+    Membership alone is not enough: after a failover the old slave is the current master.
+    """
+    if not current:
+        return False
+    expected = {BACKUP_ROLE_MASTER: current.current_master, BACKUP_ROLE_SLAVE: current.current_slave}
+    instance = expected.get(record.get("source_role") or "")
+    return bool(instance) and instance == ip_port(record.get("source_ip"), record.get("server_port"))
 
 
 class ShardResolver:

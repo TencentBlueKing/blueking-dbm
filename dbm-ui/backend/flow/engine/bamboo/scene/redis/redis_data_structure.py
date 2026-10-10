@@ -809,10 +809,10 @@ class RedisDataStructureFlow(object):
             trans_files = GetFileList(db_type=DBType.Redis)
             if is_twemproxy_proxy_type(cluster_type):
                 act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
-                proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
+                proxy_payload = RedisActPayload.rollback_twemproxy_payload.__name__
             elif is_predixy_proxy_type(cluster_type):
                 act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
-                proxy_payload = RedisActPayload.add_predixy_payload.__name__
+                proxy_payload = RedisActPayload.rollback_predixy_payload.__name__
             else:
                 raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
 

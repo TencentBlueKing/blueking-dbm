@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from unittest.mock import MagicMock
 
+import pytest
+
 from backend.db_meta.enums import ClusterType
 
 
@@ -64,15 +66,41 @@ def test_download_uses_each_hosts_own_backup_dir():
     assert dest_dirs["4.4.4.4"] == (False, None)
 
 
-def test_proxy_routing_covers_every_plan_item():
-    """Temporary proxy must configure backends for all plan items (including placeholders)."""
-    import inspect
+def _proxy_plan(cluster_type):
+    from types import SimpleNamespace
 
-    from backend.flow.engine.bamboo.scene.redis.redis_rollback import flow as rollback_flow
+    from backend.db_services.redis.rollback.shards import ShardRef
 
-    source = inspect.getsource(rollback_flow.RedisRollbackFlow._deploy_proxy)
-    assert "for item in plan.items" in source
-    assert "is_placeholder" not in source
+    items = [
+        SimpleNamespace(dest_ip="2.2.2.2", dest_port=30000, shard=ShardRef("0-209999"), is_placeholder=False),
+        SimpleNamespace(dest_ip="3.3.3.3", dest_port=30000, shard=ShardRef("210000-419999"), is_placeholder=True),
+    ]
+    return SimpleNamespace(cluster_type=cluster_type, items=items)
+
+
+def test_proxy_servers_cover_every_plan_item_including_placeholders():
+    from backend.flow.engine.bamboo.scene.redis.redis_rollback.flow import RedisRollbackFlow
+
+    func, servers = RedisRollbackFlow._proxy_servers(_proxy_plan(ClusterType.TendisTwemproxyRedisInstance.value))
+    assert func == "rollback_twemproxy_payload"
+    assert servers == ["2.2.2.2:30000 admin 0-209999 1", "3.3.3.3:30000 admin 210000-419999 1"]
+
+    func, servers = RedisRollbackFlow._proxy_servers(_proxy_plan(ClusterType.TwemproxyTendisSSDInstance.value))
+    assert func == "rollback_twemproxy_payload"
+
+    func, servers = RedisRollbackFlow._proxy_servers(_proxy_plan(ClusterType.TendisPredixyRedisCluster.value))
+    assert func == "rollback_predixy_payload"
+    assert servers == ["2.2.2.2:30000", "3.3.3.3:30000"]
+
+    with pytest.raises(NotImplementedError):
+        RedisRollbackFlow._proxy_servers(_proxy_plan(ClusterType.TendisRedisInstance.value))
+
+
+def test_old_proxy_payload_names_resolve_to_the_renamed_functions():
+    from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+
+    assert getattr(RedisActPayload, "add_twemproxy_payload") is RedisActPayload.rollback_twemproxy_payload
+    assert getattr(RedisActPayload, "add_predixy_payload") is RedisActPayload.rollback_predixy_payload
 
 
 def test_flow_installs_inside_recover_act_and_uses_dedicated_cc_module():
@@ -218,7 +246,7 @@ def test_twemproxy_payload_reads_servers_from_node_params(monkeypatch):
     )
 
     servers = ["2.2.2.2:30000 admin 0-419999 1"]
-    payload = payload_builder.add_twemproxy_payload(ip="2.2.2.2", params={"servers": servers})
+    payload = payload_builder.rollback_twemproxy_payload(ip="2.2.2.2", params={"servers": servers})
     assert payload["payload"]["servers"] == servers
 
 

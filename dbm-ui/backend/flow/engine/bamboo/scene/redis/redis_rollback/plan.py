@@ -10,16 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from backend.db_services.redis.rollback.constants import (
-    FILTER_MODE_DELETE_MATCHED,
-    FILTER_MODE_KEEP_MATCHED,
-    SCOPE_CLUSTER,
-    SELECT_MODE_BY_TIME,
-)
+from django.utils import timezone
+
+from backend.db_services.redis.rollback.binlogs import binlog_fingerprint, index_segments
+from backend.db_services.redis.rollback.constants import SCOPE_CLUSTER, SELECT_MODE_BY_TIME
+from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
 from backend.db_services.redis.rollback.shards import ShardRef
+
+ORPHAN_PLAN_TTL = timedelta(days=1)
 
 
 @dataclass
@@ -43,27 +44,7 @@ class BinlogRef:
     size: int
     source_ip: str
     source_port: int
-
-
-@dataclass
-class KeyFilterSpec:
-    white_regex: str = ""
-    black_regex: str = ""
-    filter_mode: str = ""
-
-    @property
-    def enabled(self) -> bool:
-        return bool(self.white_regex or self.black_regex)
-
-    @classmethod
-    def from_ticket(cls, white: str = "", black: str = "") -> "KeyFilterSpec":
-        white = (white or "").strip()
-        black = (black or "").strip()
-        if not white and not black:
-            return cls()
-        if white:
-            return cls(white_regex=white, black_regex=black, filter_mode=FILTER_MODE_KEEP_MATCHED)
-        return cls(white_regex=".*", black_regex=black, filter_mode=FILTER_MODE_DELETE_MATCHED)
+    index: int = 0
 
 
 @dataclass
@@ -76,6 +57,8 @@ class RollbackItem:
     dest_port: int
     full_files: List[FullBackupRef] = field(default_factory=list)
     binlog_files: List[BinlogRef] = field(default_factory=list)
+    # Index gaps let through by allow_binlog_nonconsecutive: {missing_count, missing}.
+    binlog_gaps: Optional[Dict[str, Any]] = None
     # 未勾选的批次分片：只拉起空实例占住这段 slot，让临时 Proxy 的后端有所指
     is_placeholder: bool = False
 
@@ -86,6 +69,45 @@ class RollbackItem:
     @property
     def task_ids(self) -> List[str]:
         return [f.task_id for f in self.full_files] + [b.task_id for b in self.binlog_files]
+
+    @property
+    def binlog_digest(self) -> Dict[str, Any]:
+        names = [b.file_name for b in self.binlog_files]
+        digest = {
+            "count": len(names),
+            "first": names[0] if names else "",
+            "last": names[-1] if names else "",
+            "fingerprint": binlog_fingerprint(names) if names else "",
+            "segments": index_segments([b.index for b in self.binlog_files]),
+        }
+        if self.binlog_gaps:
+            digest["gaps"] = dict(self.binlog_gaps)
+        return digest
+
+    def actuator_instance(self) -> Dict[str, Any]:
+        """One port of the actuator payload. Binlogs go as a digest the actuator checks its local files against."""
+        binlogs = self.binlog_files
+        return {
+            "source_ip": self.source_ip,
+            "source_port": self.source_port,
+            "dest_port": self.dest_port,
+            "full_files": [f.file_name for f in self.full_files],
+            "binlog_range": {
+                "first_index": binlogs[0].index if binlogs else 0,
+                "last_index": binlogs[-1].index if binlogs else 0,
+            },
+            "binlog_count": len(binlogs),
+            "binlog_fingerprint": self.binlog_digest["fingerprint"],
+            "binlog_segments": self.binlog_digest["segments"],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RollbackItem":
+        data = dict(data)
+        data["shard"] = ShardRef(**data["shard"])
+        data["full_files"] = [FullBackupRef(**f) for f in data.get("full_files") or []]
+        data["binlog_files"] = [BinlogRef(**b) for b in data.get("binlog_files") or []]
+        return cls(**data)
 
 
 @dataclass
@@ -116,30 +138,85 @@ class RollbackPlan:
     topology_changed: bool = False
     items: List[RollbackItem] = field(default_factory=list)
     dest_hosts: List[DestHost] = field(default_factory=list)
-    key_filter: KeyFilterSpec = field(default_factory=KeyFilterSpec)
+    allow_binlog_nonconsecutive: bool = False
     warnings: List[str] = field(default_factory=list)
 
+    @property
+    def locked_rounds(self) -> List[Dict[str, str]]:
+        """Rounds chosen for each restored shard, fixed into the ticket so the flow reuses them."""
+        return [
+            {"shard_value": item.shard.shard_value, "round_key": item.full_files[0].round_key}
+            for item in self.items
+            if not item.is_placeholder
+        ]
+
+    def dest_host(self, ip: str) -> DestHost:
+        return next(host for host in self.dest_hosts if host.ip == ip)
+
+    def actuator_instances(self, ip: str) -> List[Dict[str, Any]]:
+        return [item.actuator_instance() for item in self.items if item.dest_ip == ip]
+
     def to_rollback_detail(self) -> Dict[str, Any]:
+        """Per-shard summary for the task record; the full file lists stay in the persisted plan."""
         shards = []
         for item in self.items:
-            shards.append(
-                {
-                    "shard_value": item.shard.shard_value,
-                    "source_ip": item.source_ip,
-                    "source_port": item.source_port,
-                    "source_is_current": item.source_is_current,
-                    "dest_ip": item.dest_ip,
-                    "dest_port": item.dest_port,
-                    "task_ids": item.task_ids,
-                    "file_names": [f.file_name for f in item.full_files],
-                    "is_placeholder": item.is_placeholder,
-                }
-            )
+            shard = {
+                "shard_value": item.shard.shard_value,
+                "source_ip": item.source_ip,
+                "source_port": item.source_port,
+                "source_is_current": item.source_is_current,
+                "dest_ip": item.dest_ip,
+                "dest_port": item.dest_port,
+                "task_ids": [f.task_id for f in item.full_files],
+                "file_names": [f.file_name for f in item.full_files],
+                "is_placeholder": item.is_placeholder,
+            }
+            if item.binlog_files:
+                shard["binlog"] = item.binlog_digest
+            shards.append(shard)
         return {
             "shards": shards,
-            "key_filter": asdict(self.key_filter),
             "locator_source": self.locator_source,
             "topology_changed": self.topology_changed,
             "shard_keyed": self.shard_keyed,
             "warnings": list(self.warnings),
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data["recover_at"] = self.recover_at.isoformat() if self.recover_at else None
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RollbackPlan":
+        data = dict(data)
+        data["recover_at"] = datetime.fromisoformat(data["recover_at"]) if data.get("recover_at") else None
+        data["items"] = [RollbackItem.from_dict(item) for item in data.get("items") or []]
+        data["dest_hosts"] = [DestHost(**host) for host in data.get("dest_hosts") or []]
+        return cls(**data)
+
+    def save(self, plan_id: Optional[int] = None, ticket_id: Optional[int] = None) -> int:
+        fields = {"plan": self.to_dict()}
+        if ticket_id:
+            fields["ticket_id"] = int(ticket_id)
+        if plan_id:
+            TbTendisRollbackPlan.objects.filter(id=plan_id).update(**fields)
+            return plan_id
+        return TbTendisRollbackPlan.objects.create(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster_id, **fields).id
+
+    @staticmethod
+    def bind_ticket(plan_ids: List[int], ticket_id: int) -> None:
+        TbTendisRollbackPlan.objects.filter(id__in=plan_ids).update(ticket_id=ticket_id)
+
+    @staticmethod
+    def delete_orphans() -> int:
+        """Plans saved by ticket validation that never became a ticket. Plans bound to a ticket stay:
+        construction records keep only a binlog digest and point to the plan for the full list."""
+        deleted, _ = TbTendisRollbackPlan.objects.filter(
+            ticket_id__isnull=True, create_at__lt=timezone.now() - ORPHAN_PLAN_TTL
+        ).delete()
+        return deleted
+
+    @classmethod
+    def load(cls, plan_id: int) -> "RollbackPlan":
+        return cls.from_dict(TbTendisRollbackPlan.objects.get(id=plan_id).plan)

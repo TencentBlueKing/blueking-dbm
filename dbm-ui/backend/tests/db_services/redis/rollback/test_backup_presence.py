@@ -6,6 +6,7 @@ import pytest
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.backup_presence import BACKUP_QUERY_BATCH_SIZE, confirm_backup_tasks
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.locator import binlog_record
 from backend.db_services.redis.rollback.shards import round_key_from_filename
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
 
@@ -120,7 +121,7 @@ def test_precheck_api_failure_fails_the_whole_plan():
 
 def test_build_skips_placeholder_task_ids():
     planner = _planner()
-    planner.info = {"backup_identify": "SCHEDULED-1", "shards": [{"shard_value": "0-104999"}]}
+    planner.info = {"backup_identify": "SCHEDULED-1", "shard_values": ["0-104999"]}
     planner.resolver.from_db_meta = MagicMock(return_value=[])
     planner.locator.locate_full_by_identify = MagicMock(
         return_value=[_record("0-104999", "a.aof.zst"), _record("105000-209999", "b.aof.zst")]
@@ -132,14 +133,33 @@ def test_build_skips_placeholder_task_ids():
     assert query.call_args.args[0]["task_ids"] == ["task-a.aof.zst"]
 
 
-def test_build_also_confirms_listed_binlog_task_ids():
-    """When the plan includes binlog task_ids, query both full and binlog tasks."""
+def test_build_also_confirms_ssd_binlog_task_ids():
+    """The binlog chain Gate C picks is asked about together with the full backup."""
     planner = _planner()
+    planner.cluster.cluster_type = ClusterType.TwemproxyTendisSSDInstance.value
     planner.resolver.from_db_meta = MagicMock(return_value=[])
-    planner.locator.locate_full_by_identify = MagicMock(
-        return_value=[dict(_record("0-104999", "a.aof.zst"), binlog_task_ids=["binlog-9"])]
+    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.tar")])
+    planner.locator.locate_binlogs = MagicMock(
+        return_value=[
+            binlog_record(
+                "binlog-1.1.1.9-30000-0000001-20260101005000.log.zst",
+                "binlog-1",
+                1,
+                "1.1.1.9",
+                30000,
+                "2026-01-01T00:50:00+00:00",
+            ),
+            binlog_record(
+                "binlog-1.1.1.9-30000-0000002-20260101011000.log.zst",
+                "binlog-2",
+                1,
+                "1.1.1.9",
+                30000,
+                "2026-01-01T01:10:00+00:00",
+            ),
+        ]
     )
     query = MagicMock(side_effect=lambda params: [_ok(task_id) for task_id in params["task_ids"]])
     with patch(_PATCH, query):
         planner.build(pack=False)
-    assert query.call_args.args[0]["task_ids"] == ["task-a.aof.zst", "binlog-9"]
+    assert query.call_args.args[0]["task_ids"] == ["task-a.tar", "binlog-1", "binlog-2"]

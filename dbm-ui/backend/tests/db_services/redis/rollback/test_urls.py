@@ -33,6 +33,7 @@ ROLLBACK_ROOT = "/apis/redis/bizs/{}/rollback/".format(BIZ_ID)
         (ROLLBACK_ROOT + "batches/list_batches/", "post", BackupBatchViewSet, "list_batches"),
         (ROLLBACK_ROOT + "batches/batch_details/", "post", BackupBatchViewSet, "batch_details"),
         (ROLLBACK_ROOT + "batches/precheck/", "post", BackupBatchViewSet, "precheck"),
+        (ROLLBACK_ROOT + "batches/shard_route/", "post", BackupBatchViewSet, "shard_route"),
     ],
 )
 def test_rollback_routes_resolve_to_expected_views(path, method, view_cls, action):

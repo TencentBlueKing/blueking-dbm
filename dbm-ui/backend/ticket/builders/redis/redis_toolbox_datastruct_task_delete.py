@@ -33,32 +33,64 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
     """数据构造与实例销毁"""
 
     class InfoSerializer(DisplayInfoSerializer):
-        related_rollback_bill_id = serializers.CharField(help_text=_("关联单据ID"))
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+        task_id = serializers.IntegerField(help_text=_("构造记录主键"), required=False)
+        related_rollback_bill_id = serializers.CharField(help_text=_("关联单据ID"), required=False)
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=False)
 
         def validate(self, attr):
             """业务逻辑校验"""
             attr = super().validate(attr)
-            # 判断集群是否存在
+            bk_biz_id = self.context["bk_biz_id"]
+            if attr.get("task_id"):
+                task = self._task_by_id(bk_biz_id, attr["task_id"])
+            else:
+                task = self._task_by_bill(bk_biz_id, attr)
+            attr["task_id"] = task.id
+            attr["prod_cluster"] = task.prod_cluster
+            attr["cluster_id"] = task.prod_cluster_id
+            attr["bk_cloud_id"] = task.bk_cloud_id
+            attr["related_rollback_bill_id"] = task.related_rollback_bill_id
+            return attr
+
+        @staticmethod
+        def _task_by_id(bk_biz_id: int, task_id: int) -> TbTendisRollbackTasks:
+            try:
+                task = TbTendisRollbackTasks.objects.get(id=task_id, bk_biz_id=bk_biz_id)
+            except TbTendisRollbackTasks.DoesNotExist:
+                raise serializers.ValidationError(_("构造记录{}不存在").format(task_id))
+            if task.destroyed_status != DestroyedStatus.NOT_DESTROYED:
+                raise serializers.ValidationError(_("构造记录{}不是未销毁状态").format(task_id))
+            return task
+
+        @staticmethod
+        def _task_by_bill(bk_biz_id: int, attr: dict) -> TbTendisRollbackTasks:
+            missing = [key for key in ("related_rollback_bill_id", "cluster_id", "bk_cloud_id") if key not in attr]
+            if missing:
+                raise serializers.ValidationError(_("未提供 task_id 时必须提供 {}").format(", ".join(missing)))
             try:
                 prod_cluster = Cluster.objects.get(id=attr["cluster_id"])
             except Cluster.DoesNotExist:
                 raise serializers.ValidationError(_("目标集群{}不存在，请确认.").format(attr["cluster_id"]))
 
-            # 判断构造实例是否存在
-            tasks = TbTendisRollbackTasks.objects.filter(
-                related_rollback_bill_id=attr.get("related_rollback_bill_id"),
-                prod_cluster=prod_cluster.immute_domain,
-                bk_cloud_id=attr.get("bk_cloud_id"),
-                destroyed_status=DestroyedStatus.NOT_DESTROYED,
+            tasks = list(
+                TbTendisRollbackTasks.objects.filter(
+                    bk_biz_id=bk_biz_id,
+                    related_rollback_bill_id=attr["related_rollback_bill_id"],
+                    prod_cluster=prod_cluster.immute_domain,
+                    bk_cloud_id=attr["bk_cloud_id"],
+                    destroyed_status=DestroyedStatus.NOT_DESTROYED,
+                )[:2]
             )
-            if not tasks.exists():
+            if not tasks:
                 raise serializers.ValidationError(_("集群{}: 没有找到未销毁的实例.").format(prod_cluster.immute_domain))
-
-            # 填写域名
-            attr["prod_cluster"] = prod_cluster.immute_domain
-            return attr
+            if len(tasks) > 1:
+                raise serializers.ValidationError(
+                    _("集群{}: 单据{}下有多条未销毁的构造记录，请改传 task_id").format(
+                        prod_cluster.immute_domain, attr["related_rollback_bill_id"]
+                    )
+                )
+            return tasks[0]
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
     skip_connections_check = serializers.BooleanField(help_text=_("跳过请求检查"), default=False)
@@ -79,13 +111,7 @@ class RedisDataStructureTaskDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     def patch_datastruct_delete_nodes(self):
         drop_machine_filters = []
         for info in self.ticket.details["infos"]:
-            # 获取销毁任务
-            task = TbTendisRollbackTasks.objects.get(
-                related_rollback_bill_id=info.get("related_rollback_bill_id"),
-                prod_cluster=info["prod_cluster"],
-                bk_cloud_id=info.get("bk_cloud_id"),
-                destroyed_status=DestroyedStatus.NOT_DESTROYED,
-            )
+            task = TbTendisRollbackTasks.objects.get(id=info["task_id"])
             # 过滤销毁实例的主机
             filters = [
                 Q(bk_biz_id=task.bk_biz_id, bk_cloud_id=task.bk_cloud_id, ip=instance.split(":")[0])
