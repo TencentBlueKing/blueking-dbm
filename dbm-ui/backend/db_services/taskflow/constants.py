@@ -13,4 +13,12 @@ import re
 MAX_AUTO_RETRY_TIMES = 5
 RETRY_INTERVAL = 30
 
+# BKLog节点日志的全局稳定排序
+BKLOG_SORT_LIST = [
+    ["dtEventTimeStamp", "asc"],
+    ["gseIndex", "asc"],
+    ["iterationIndex", "asc"],
+]
+BKLOG_SEARCH_PAGE_SIZE = 10000
+
 LOG_START_STRIP_PATTERN = re.compile(r"^\[.*?\] ")

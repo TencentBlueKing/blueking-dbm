@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from rest_framework.fields import empty
 
 from backend.db_meta.models import AppCache
 from backend.flow.consts import PipelineStatus, StateType
@@ -109,12 +110,42 @@ class GetSpecifiedNodeSerializer(serializers.Serializer):
     status = serializers.ChoiceField(help_text=_("节点状态"), choices=StateType.get_choices(), required=True)
 
 
+class CommaSeparatedListField(serializers.ListField):
+    """逗号分隔的列表参数，如 search_after=1718613905000,19170867,25
+
+    原生 ListField/ListSerializer 对 QueryDict 走 HTML 表单解析，只认 search_after.0=x&search_after.1=y，
+    遇到 search_after=1,2,3 会直接丢弃该字段，因此这里自行取值并按逗号拆分。
+    """
+
+    def get_value(self, dictionary):
+        dictionary = dictionary.data if hasattr(dictionary, "data") else dictionary
+        value = (
+            dictionary.getlist(self.field_name) if hasattr(dictionary, "getlist") else dictionary.get(self.field_name)
+        )
+        # 未传或传空值时返回 empty 哨兵，让 DRF 跳过该字段(等价于不传)；返回 None 会被当成显式的 null
+        if not value or value == [""]:
+            return empty
+        return value
+
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            data = data.split(",")
+        elif len(data) == 1 and isinstance(data[0], str) and "," in data[0]:
+            data = data[0].split(",")
+        return [str(item).strip() for item in data if str(item).strip()]
+
+
 class VersionSerializer(NodeSerializer):
     version_id = serializers.CharField(help_text=_("版本ID"))
     download = serializers.BooleanField(help_text=_("是否下载日志"), default=False)
     labels = serializers.CharField(help_text=_("标签过滤,逗号分割"), required=False)
     offset = serializers.IntegerField(help_text=_("分页起始位置,从0开始"), required=False, min_value=0, default=0)
     limit = serializers.IntegerField(help_text=_("分页大小,0表示不分页"), required=False, min_value=0, default=0)
+    search_after = CommaSeparatedListField(
+        help_text=_("日志游标，逗号分隔，如 1718613905000,19170867,25"),
+        child=serializers.CharField(),
+        required=False,
+    )
 
 
 class BatchDownloadSerializer(serializers.Serializer):

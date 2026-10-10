@@ -113,21 +113,42 @@ class TestTaskflowApi:
             url, data={"node_id": self.node_id, "version_id": self.version_id, "offset": 0, "limit": 1}
         ).data
 
-        assert set(data.keys()) == {"has_data", "next", "previous", "results"}
+        assert set(data.keys()) == {"has_data", "next", "search_after", "results"}
         assert data["has_data"] is True
         assert len(data["results"]) == 1
-        # 有数据时返回下一页链接，无上一页
-        assert data["next"] is not None and "offset=1" in data["next"]
-        assert data["previous"] is None
+        # 有数据时返回下一页游标，游标取自最后一条命中记录
+        assert data["search_after"] == [int(now.timestamp() * 1000), 1, 1]
+        assert data["next"] is not None and "search_after=" in data["next"]
 
-        # offset超出总数时，results为空，不再返回next，而是返回回退上一页的previous
+        # offset超出总数时，results为空，无下一页游标
         data = client.get(
             url, data={"node_id": self.node_id, "version_id": self.version_id, "offset": 100, "limit": 1}
         ).data
         assert data["results"] == []
         assert data["has_data"] is False
         assert data["next"] is None
-        assert data["previous"] is not None and "offset=99" in data["previous"]
+        assert data["search_after"] is None
+
+    @patch("backend.db_services.taskflow.handlers.TaskFlowHandler.get_node_histories")
+    @patch("backend.db_services.taskflow.handlers.TaskFlowHandler.bklog_esquery_search")
+    @patch.object(TaskFlowViewSet, "permission_classes")
+    @patch.object(TaskFlowViewSet, "get_permissions", lambda x: [])
+    def test_node_log_without_data(self, mocked_permission_classes, mock_esquery, mock_get_histories, init_taskflow):
+        """测试节点日志 - 无日志数据时返回占位提示，has_data为False"""
+        mocked_permission_classes.return_value = [AllowAny]
+        now = timezone.now()
+        mock_get_histories.return_value = [
+            {"version": self.version_id, "started_time": now - timedelta(hours=1), "finished_time": now}
+        ]
+        # 日志平台无任何命中，此时会返回"日志上报中，请稍后查看"占位日志
+        mock_esquery.return_value = []
+
+        url = f"/apis/taskflow/{self.root_id}/node_log/"
+        data = client.get(url, data={"node_id": self.node_id, "version_id": self.version_id}).data
+
+        assert data["has_data"] is False
+        assert len(data["results"]) == 1
+        assert data["next"] is None
 
     @staticmethod
     def generate_log_hit(timestamp, gse_index: int, iteration_index: int, message: str) -> dict:
