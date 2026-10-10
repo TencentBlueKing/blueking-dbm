@@ -81,6 +81,14 @@ class NodemanApiMock(object):
         return {"code": 0, "result": True, "data": {"status": cls.JobStatusType.SUCCESS}}
 
     @classmethod
+    def get_job_status(cls, job_id):
+        return cls.JobStatusType.SUCCESS
+
+    @classmethod
+    def get_job_url(cls, job_id):
+        return f"http://bknodeman.example.com/#/task-list/detail/{job_id}"
+
+    @classmethod
     def operate_plugin(cls, params=None, **kwargs):
         """模拟插件安装API，返回固定job_id"""
         return {"job_id": JOB_ID, "job_url": f"http://bknodeman.example.com/#/task-list/detail/{JOB_ID}"}

@@ -26,8 +26,8 @@ from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
 from backend.bk_web.constants import LogLabel
 from backend.components import JobApi
-from backend.components.mysqldtsapi.log_context import flow_log_context
 from backend.components.exception import DataAPIException
+from backend.components.mysqldtsapi.log_context import flow_log_context
 from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
 from backend.exceptions import ApiError

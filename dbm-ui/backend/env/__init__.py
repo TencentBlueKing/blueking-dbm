@@ -162,6 +162,10 @@ BK_PAAS_URL = get_type_env(key="BK_PAAS_URL", _type=str, default="http://paas.ex
 BK_CMDB_URL = get_type_env(key="BK_CMDB_URL", _type=str, default=BK_PAAS_URL.replace("paas", "cmdb"))
 BK_JOB_URL = get_type_env(key="BK_JOB_HOST", _type=str, default=None)
 BK_NODEMAN_URL = get_type_env(key="BK_NODEMAN_URL", _type=str, default="http://apps.example.com/bk--nodeman")
+BK_NODEMGR_URL = get_type_env(key="BK_NODEMGR_URL", _type=str, default="http://apps.example.com/bk--nodemgr")
+
+# 节点管理 API 版本，可选 v2/v3
+BKNODEMAN_API_VERSION = get_type_env(key="BKNODEMAN_API_VERSION", _type=str, default="v2")
 BK_SCR_URL = get_type_env(key="BK_SCR_URL", _type=str, default="http://scr.example.com")
 BK_HCM_URL = get_type_env(key="BK_HCM_URL", _type=str, default="")
 BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
