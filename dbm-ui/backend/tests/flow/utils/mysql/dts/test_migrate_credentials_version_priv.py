@@ -54,6 +54,26 @@ class ResolveDtsMigrateGlobalPrivTest(SimpleTestCase):
         self.assertNotIn("BACKUP_ADMIN", by_addr["127.0.0.2:3306"])
         self.assertIn("BACKUP_ADMIN", by_addr["127.0.0.3:3306"])
         self.assertNotIn("SUPER", by_addr["127.0.0.3:3306"])
-        for act in acts:
-            self.assertEqual(act["kwargs"]["dml_ddl_priv"], DTS_MIGRATE_DML_DDL_PRIV)
-            self.assertIn("REFERENCES", act["kwargs"]["dml_ddl_priv"])
+
+    def test_mysql_80_spider_omits_backup_admin(self):
+        priv = resolve_dts_migrate_global_priv("MySQL-8.0", allow_backup_admin=False)
+        self.assertEqual(priv, DTS_MIGRATE_GLOBAL_PRIV)
+        self.assertNotIn("BACKUP_ADMIN", priv)
+        acts = build_dts_add_user_parallel_acts(
+            dts_user="dts_u",
+            dts_password="dts_p",
+            grant_hosts=["127.0.0.1"],
+            grant_targets=[
+                DtsGrantTarget(
+                    bk_cloud_id=0,
+                    address="127.0.0.4:25000",
+                    cluster_id=1,
+                    major_version="MySQL-8.0",
+                    allow_backup_admin=False,
+                ),
+            ],
+        )
+        self.assertEqual(len(acts), 1)
+        self.assertNotIn("BACKUP_ADMIN", acts[0]["kwargs"]["global_priv"])
+        self.assertEqual(acts[0]["kwargs"]["dml_ddl_priv"], DTS_MIGRATE_DML_DDL_PRIV)
+        self.assertIn("REFERENCES", acts[0]["kwargs"]["dml_ddl_priv"])

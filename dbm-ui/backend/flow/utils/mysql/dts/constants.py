@@ -89,7 +89,12 @@ def get_default_deploy_path(cluster_name: str) -> str:
 
 
 def get_full_migrate_data_dir(cluster_name: str, task_name: str) -> str:
-    return f"{get_default_deploy_path(cluster_name)}/exported_data/{task_name}"
+    """builtin dump 目录。
+
+    mysql-dts 对本地 data_dir 会再追加 ``.{任务名}``，路径已以该后缀结尾则不再追加。
+    因此这里直接写成 ``exported_data.{task_name}``，避免落成 ``exported_data/{task}.{task}``。
+    """
+    return f"{get_default_deploy_path(cluster_name)}/exported_data.{task_name}"
 
 
 def get_myloader_backup_dir(root_id: str, source_name: str) -> str:

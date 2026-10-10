@@ -64,12 +64,13 @@ def parse_dts_migrate_major_version(major_version: str) -> int:
     return mysql_version_parse(major_version)
 
 
-def resolve_dts_migrate_global_priv(major_version: str) -> str:
+def resolve_dts_migrate_global_priv(major_version: str, *, allow_backup_admin: bool = True) -> str:
     """按实例主版本拼 DTS 临时账号 GLOBAL 权限串。
 
     - 基础：DTS_MIGRATE_GLOBAL_PRIV
     - ver < 5.6：追加 SUPER
-    - ver >= 8.0：追加 BACKUP_ADMIN
+    - ver >= 8.0 且 allow_backup_admin：追加 BACKUP_ADMIN
+    - Spider / tdbctl 传 allow_backup_admin=False：MariaDB 不认识 BACKUP_ADMIN
     - ver == 0：抛 ValueError（主闸在单据 Serializer；此处为防御）
     """
     ver = parse_dts_migrate_major_version(major_version)
@@ -79,7 +80,7 @@ def resolve_dts_migrate_global_priv(major_version: str) -> str:
     privs = [DTS_MIGRATE_GLOBAL_PRIV]
     if ver < ver_56:
         privs.append("SUPER")
-    if ver >= ver_80:
+    if allow_backup_admin and ver >= ver_80:
         privs.append("BACKUP_ADMIN")
     return ", ".join(privs)
 
@@ -90,6 +91,7 @@ class DtsGrantTarget:
     address: str
     cluster_id: int
     major_version: str = ""
+    allow_backup_admin: bool = True
 
 
 def generate_dts_migrate_username() -> str:
@@ -179,7 +181,9 @@ def build_dts_add_user_parallel_acts(
                         address=target.address,
                         dbname="%",
                         dml_ddl_priv=DTS_MIGRATE_DML_DDL_PRIV,
-                        global_priv=resolve_dts_migrate_global_priv(target.major_version),
+                        global_priv=resolve_dts_migrate_global_priv(
+                            target.major_version, allow_backup_admin=target.allow_backup_admin
+                        ),
                     )
                 ),
             }

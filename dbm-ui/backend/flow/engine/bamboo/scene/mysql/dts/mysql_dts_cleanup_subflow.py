@@ -98,7 +98,7 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
     1) 停任务/Source（需 Master 在线）
     2) 停本机 dm-worker / dm-master 进程（Worker 必须先离线，否则 offline_worker 报 46005）
     3) 调用 OpenAPI 注销节点注册（Master 可能已停，失败按可忽略处理）
-    4) 显式清理 worker relay 目录与整棵 exported_data（不跟 clean_data_dir 勾选）
+    4) 显式清理 worker relay 目录与 exported_data.{任务名}（不跟 clean_data_dir 勾选）
     5) 按选项删除整棵部署目录
     6) 复用 ClearCrontab 停 mysql-crond 并删除周边目录（不下发 dbactuator）
     7) 清理元数据
@@ -162,8 +162,7 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
     if exec_targets:
         extra_exported = []
         if inp.cluster_name:
-            default_exported = f"{get_default_deploy_path(inp.cluster_name).rstrip('/')}/exported_data"
-            extra_exported.append(default_exported)
+            extra_exported.append(get_default_deploy_path(inp.cluster_name).rstrip("/"))
         worker_names = [n.get("name") or "" for n in (inp.worker_nodes or [])]
         sub.add_act(
             act_name=_("清理 DTS relay 与 exported_data"),

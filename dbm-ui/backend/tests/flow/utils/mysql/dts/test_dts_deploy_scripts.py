@@ -195,12 +195,14 @@ class DtsCleanupCacheScriptTest(unittest.TestCase):
         script = render_clean_cluster_relay_and_dump_script(
             "/custom/dts",
             ["dm-worker-1", "dm-worker-2"],
-            extra_exported_data_dirs=["/data/dts/dts-prod/exported_data"],
+            extra_exported_data_dirs=["/data/dts/dts-prod"],
         )
         self.assertIn("/custom/dts/dm-worker-1-data", script)
         self.assertIn("/custom/dts/dm-worker-2-data", script)
-        self.assertIn("/custom/dts/exported_data", script)
-        self.assertIn("/data/dts/dts-prod/exported_data", script)
+        self.assertIn("/custom/dts/exported_data.*", script)
+        self.assertIn("/data/dts/dts-prod/exported_data.*", script)
+        self.assertNotIn("[[ -e /custom/dts/exported_data ", script)
+        self.assertNotIn("[[ -e /data/dts/dts-prod/exported_data ", script)
         self.assertNotIn("/data/dbbak/", script)
 
     def test_cluster_script_missing_dirs_is_success(self):

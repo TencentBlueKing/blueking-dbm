@@ -9,7 +9,7 @@ from backend.flow.utils.mysql.dts.constants import MigrateType
 from backend.flow.utils.mysql.dts.migrate_helper import (
     _build_cluster_target_config,
     _build_mysql_target_config,
-    _collect_target_grant_endpoints,
+    _collect_target_grant_specs,
     _collect_target_gtid_probe_endpoints,
     build_dts_task_request,
     resolve_cluster_target_spider_endpoint,
@@ -186,7 +186,7 @@ class TargetEndpointTest(SimpleTestCase):
             ClusterType.TenDBSingle.value,
             [_ins("127.0.0.20", 20000, InstanceRole.ORPHAN.value)],
         )
-        endpoints = _collect_target_grant_endpoints(cluster, migrate_type="mysql_to_mysql")
+        endpoints = [(spec.ip, spec.port) for spec in _collect_target_grant_specs(cluster, "mysql_to_mysql")]
         self.assertEqual(endpoints, [("127.0.0.20", 20000)])
 
     def test_single_target_config_uses_orphan(self):
@@ -227,13 +227,24 @@ class TargetEndpointTest(SimpleTestCase):
         )
         cluster.tendbcluster_ctl_primary_address.return_value = "127.0.0.15:26000"
 
-        endpoints = _collect_target_grant_endpoints(cluster, MigrateType.HA_TO_CLUSTER.value)
+        endpoints = [
+            (spec.ip, spec.port) for spec in _collect_target_grant_specs(cluster, MigrateType.HA_TO_CLUSTER.value)
+        ]
 
         self.assertIn(("127.0.0.15", 25000), endpoints)
         self.assertIn(("127.0.0.141", 25000), endpoints)
         self.assertIn(("127.0.0.40", 20000), endpoints)
         self.assertEqual([e for e in endpoints if e[1] == 26000], [("127.0.0.15", 26000)])
         self.assertNotIn(("127.0.0.141", 26000), endpoints)
+
+        specs = {
+            (spec.ip, spec.port): spec.allow_backup_admin
+            for spec in _collect_target_grant_specs(cluster, MigrateType.HA_TO_CLUSTER.value)
+        }
+        self.assertFalse(specs[("127.0.0.15", 25000)])
+        self.assertFalse(specs[("127.0.0.141", 25000)])
+        self.assertFalse(specs[("127.0.0.15", 26000)])
+        self.assertTrue(specs[("127.0.0.40", 20000)])
 
     def test_cluster_target_grant_tdbctl_fallback_uses_admin_port(self):
         """Primary 探测失败时，回退到首个 spider_master 的 admin_port（元数据端口，非硬编码）。"""
@@ -250,7 +261,9 @@ class TargetEndpointTest(SimpleTestCase):
         )
         cluster.tendbcluster_ctl_primary_address.side_effect = RuntimeError("rpc failed")
 
-        endpoints = _collect_target_grant_endpoints(cluster, MigrateType.HA_TO_CLUSTER.value)
+        endpoints = [
+            (spec.ip, spec.port) for spec in _collect_target_grant_specs(cluster, MigrateType.HA_TO_CLUSTER.value)
+        ]
 
         self.assertIn(("127.0.0.16", 25000), endpoints)
         self.assertIn(("127.0.0.16", 26111), endpoints)
