@@ -27,13 +27,14 @@ from backend.ticket.constants import (
     ClusterType,
     FlowType,
     TicketFlowStatus,
+    TicketModifyType,
     TicketStatus,
     TicketType,
     TodoStatus,
     TodoType,
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.models import Flow, Ticket, Todo
+from backend.ticket.models import Flow, Ticket, TicketSnapshot, Todo
 from backend.ticket.todos import TodoActionType
 from backend.ticket.yasg_slz import todo_operate_example
 from backend.utils.time import calculate_cost_time, strptime
@@ -67,11 +68,14 @@ class TicketDetailsSerializer(serializers.Serializer):
         # 更新上下文信息
         slz.context.update(self.context)
         slz.context.update({"ticket_type": ticket_type})
-        slz.context.update({"bk_biz_id": self.context["request"].data.get("bk_biz_id")})
+        slz.context.update(
+            {"bk_biz_id": self.context.get("bk_biz_id") or self.context["request"].data.get("bk_biz_id")}
+        )
         return slz
 
     def get_context_ticket_type(self):
-        return self.context["request"].data["ticket_type"]
+        # 优先取上下文注入的 ticket_type(改单场景由 TicketModifySerializer 注入)，否则从请求体取(建单场景)
+        return self.context.get("ticket_type") or self.context["request"].data["ticket_type"]
 
     def validate(self, attrs):
         ticket_type = self.get_context_ticket_type()
@@ -540,3 +544,63 @@ class CheckDomainRepeatSerializer(serializers.Serializer):
     db_module_id = serializers.IntegerField(help_text=_("DB模块ID"), required=False, default=None)
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"), default="")
     domains = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField())
+
+
+class TicketModifySerializer(serializers.Serializer):
+    """改单提交请求体：三种模式共用，diff 由前端计算后随 change_count 传入"""
+
+    mode = serializers.ChoiceField(choices=TicketModifyType.get_choices(), help_text=_("改单模式"))
+    # details = serializers.JSONField(help_text=_("改单后的单据详情"))
+    details = TicketDetailsSerializer(help_text=_("改单后的单据详情"))
+    remark = serializers.CharField(help_text=_("改单说明"), required=False, allow_blank=True, default="")
+    version = serializers.IntegerField(help_text=_("内容版本号(乐观锁)"), required=False, allow_null=True)
+    change_count = serializers.IntegerField(help_text=_("差异字段数"), required=False, default=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 改单请求体不含 ticket_type/bk_biz_id，从被改单据解析后注入上下文，
+        # 供 details 字段(TicketDetailsSerializer)按对应单据类型+业务做深度校验
+        ticket_info = self._get_ticket_info()
+        if ticket_info:
+            self.context["ticket_type"] = ticket_info["ticket_type"]
+            self.context["bk_biz_id"] = ticket_info["bk_biz_id"]
+
+    def _get_ticket_info(self):
+        view = self.context.get("view")
+        pk = view.kwargs.get("pk") if view else None
+        if not pk:
+            return None
+        return Ticket.objects.filter(id=pk).values("ticket_type", "bk_biz_id").first()
+
+    def validate(self, attrs):
+        # details 已由 TicketDetailsSerializer 按被改单据类型完成深度校验，
+        # 模式级业务校验(权限/状态/乐观锁)在 modify.TicketModifyHandler 内完成
+        return attrs
+
+
+class TicketVersionSerializer(serializers.Serializer):
+    ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分隔)"))
+
+
+class TicketSnapshotSerializer(serializers.ModelSerializer):
+    """改单快照"""
+
+    mode_display = serializers.SerializerMethodField(help_text=_("改单模式名称"))
+
+    class Meta:
+        model = TicketSnapshot
+        fields = [
+            "id",
+            "ticket_id",
+            "flow_id",
+            "mode",
+            "mode_display",
+            "operator",
+            "remark",
+            "details",
+            "change_count",
+            "create_at",
+        ]
+
+    def get_mode_display(self, obj):
+        return TicketModifyType.get_choice_label(obj.mode)

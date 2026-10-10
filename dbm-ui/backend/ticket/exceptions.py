@@ -82,3 +82,33 @@ class TicketResourceApplyException(TicketBaseException):
     ERROR_CODE = "010"
     MESSAGE = _("单据资源申请参数异常")
     MESSAGE_TPL = _("单据资源申请参数异常")
+
+
+class TicketContentChangedException(TicketBaseException):
+    ERROR_CODE = "011"
+    MESSAGE = _("单据内容已被修改，请刷新后重试")
+    MESSAGE_TPL = _("单据内容已被修改，请刷新后重试")
+
+
+class TicketContentVersionMissingException(TicketBaseException):
+    ERROR_CODE = "014"
+    MESSAGE = _("缺少单据内容版本号，请刷新后重试")
+    MESSAGE_TPL = _("缺少单据内容版本号，请刷新后重试")
+
+
+class TicketModifyForbiddenException(TicketBaseException):
+    ERROR_CODE = "012"
+    MESSAGE = _("无权修改该单据")
+    MESSAGE_TPL = _("无权修改该单据")
+
+
+class TicketModifyStatusException(TicketBaseException):
+    ERROR_CODE = "013"
+    MESSAGE = _("当前单据状态不支持改单")
+    MESSAGE_TPL = _("当前单据状态[{status}]不支持改单")
+
+
+class TicketAlreadyApprovedException(TicketBaseException):
+    ERROR_CODE = "015"
+    MESSAGE = _("该单据已被审批，无法重新编辑")
+    MESSAGE_TPL = _("该单据已被审批，无法重新编辑")
