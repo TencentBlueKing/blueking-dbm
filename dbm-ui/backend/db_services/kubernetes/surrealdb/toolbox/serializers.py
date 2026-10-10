@@ -22,6 +22,7 @@ class GetAddonVersionsSerializer(serializers.Serializer):
 
 
 class GetK8sClusterConfigSerializer(serializers.Serializer):
+    bkBizId = serializers.IntegerField(help_text=_("业务id"), required=True)
     isPublic = serializers.BooleanField(help_text=_("是否公有集群"), required=True)
 
     class Meta:
