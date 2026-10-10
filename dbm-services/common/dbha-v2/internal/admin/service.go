@@ -27,6 +27,7 @@ package admin
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/admin/apm"
@@ -60,14 +61,19 @@ type Service struct {
 	reloadC          chan struct{}
 	reloadWorkerDone chan struct{}
 	shutdown         chan struct{}
-	infoMu           sync.Mutex
-	closeOnce        sync.Once
-	apmSlot          *slot.Slot[haapm.Server]
-	discoverySlot    *slot.Slot[discoveryResource]
-	storageSlot      *slot.Slot[storageResource]
-	webSlot          *slot.Slot[hanet.GinHTTPServer]
-	grpcSlot         *grpcSlot
-	slots            []slot.Ops
+	// lastOutcome stores the most recent reloadOnce result for tests; written by the reload worker.
+	lastOutcome atomic.Pointer[reloadOutcome]
+	// reloadTotalTimeout / reloadSlotTimeout override defaults when > 0 (tests inject short budgets).
+	reloadTotalTimeout time.Duration
+	reloadSlotTimeout  time.Duration
+	infoMu             sync.Mutex
+	closeOnce          sync.Once
+	apmSlot            *slot.Slot[haapm.Server]
+	discoverySlot      *slot.Slot[discoveryResource]
+	storageSlot        *slot.Slot[storageResource]
+	webSlot            *slot.Slot[hanet.GinHTTPServer]
+	grpcSlot           *grpcSlot
+	slots              []slot.Ops
 }
 
 // Name returns the process name from the current executable (same as Makefile binary name).

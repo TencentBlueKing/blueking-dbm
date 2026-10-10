@@ -29,7 +29,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"reflect"
 	"sync"
 	"time"
 
@@ -69,7 +68,8 @@ func (l *wrapListener) Accept() (net.Conn, error) {
 			return nil, net.ErrClosed
 		default:
 		}
-		if netError, temporary := err.(net.Error); temporary && netError.Timeout() {
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
 			continue
 		}
 		return nil, err
@@ -87,6 +87,9 @@ type grpcGeneration struct {
 	done     chan struct{}
 }
 
+// grpcSlot owns one admin gRPC server generation.
+// NeedsRebuild, Rebuild, and Close are called only by the single reload worker or the
+// shutdown path; overlapping NeedsRebuild/Rebuild lock acquisitions rely on that serial use.
 type grpcSlot struct {
 	owner               *Service
 	mu                  sync.Mutex
@@ -104,7 +107,7 @@ func (s *grpcSlot) Name() string { return "grpc" }
 func (s *grpcSlot) NeedsRebuild(next config.Configuration) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.current == nil || !reflect.DeepEqual(s.fp, next.Grpc)
+	return s.current == nil || s.fp != next.Grpc
 }
 
 func (s *grpcSlot) Rebuild(ctx context.Context, next config.Configuration) error {
@@ -209,7 +212,7 @@ func (s *grpcSlot) closeGeneration(ctx context.Context, generation *grpcGenerati
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	timeoutCtx, cancel := context.WithTimeout(ctx, reloadSlotTimeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, s.owner.slotTimeout())
 	defer cancel()
 
 	stopDone := make(chan struct{})

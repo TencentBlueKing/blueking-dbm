@@ -34,13 +34,14 @@ import (
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/slot"
 	"dbm-services/common/dbha-v2/pkg/dbcred"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/safe"
 )
 
-var (
-	reloadTotalTimeout = 30 * time.Second
-	reloadSlotTimeout  = 8 * time.Second
+const (
+	defaultReloadTotalTimeout = 30 * time.Second
+	defaultReloadSlotTimeout  = 8 * time.Second
 )
 
 type reloadOutcome struct {
@@ -61,14 +62,13 @@ const (
 	slotSkipReasonSkipped         slotSkipReason = "skipped"
 )
 
+// logFileFP is a comparable fingerprint of log file settings that require process restart.
+// Fields must stay comparable scalars so == detects changes without reflect.DeepEqual.
 type logFileFP struct {
 	Path      string
 	FileCount int
 	FileSize  int
 }
-
-// lastReloadOutcome is the most recent reloadOnce result; tests assert it instead of scraping gauges.
-var lastReloadOutcome reloadOutcome
 
 func (s *Service) requestReload() {
 	if s.reloadC == nil {
@@ -98,12 +98,36 @@ func (s *Service) runReloadWorker() {
 	}
 }
 
+// lastReloadOutcome returns the most recent reloadOnce result for tests.
+// It returns a zero value when reload has never completed.
+func (s *Service) lastReloadOutcome() reloadOutcome {
+	if outcome := s.lastOutcome.Load(); outcome != nil {
+		return *outcome
+	}
+	return reloadOutcome{}
+}
+
+func (s *Service) totalTimeout() time.Duration {
+	if s.reloadTotalTimeout > 0 {
+		return s.reloadTotalTimeout
+	}
+	return defaultReloadTotalTimeout
+}
+
+func (s *Service) slotTimeout() time.Duration {
+	if s.reloadSlotTimeout > 0 {
+		return s.reloadSlotTimeout
+	}
+	return defaultReloadSlotTimeout
+}
+
 // reloadOnce parses, validates, and applies config while rebuilding affected resource slots.
 func (s *Service) reloadOnce() {
 	started := time.Now()
 	outcome := reloadOutcome{}
 	defer func() {
-		lastReloadOutcome = outcome
+		stored := outcome
+		s.lastOutcome.Store(&stored)
 		reportReloadMetrics(started, outcome)
 	}()
 
@@ -171,7 +195,7 @@ func (s *Service) reloadOnce() {
 }
 
 func (s *Service) rebuildAffectedSlots(next config.Configuration, outcome *reloadOutcome) {
-	totalCtx, cancel := context.WithTimeout(context.Background(), reloadTotalTimeout)
+	totalCtx, cancel := context.WithTimeout(context.Background(), s.totalTimeout())
 	defer cancel()
 
 	for index, resourceSlot := range s.slots {
@@ -188,7 +212,7 @@ func (s *Service) rebuildAffectedSlots(next config.Configuration, outcome *reloa
 			continue
 		}
 
-		slotCtx, slotCancel := context.WithTimeout(context.Background(), reloadSlotTimeout)
+		slotCtx, slotCancel := context.WithTimeout(context.Background(), s.slotTimeout())
 		err := resourceSlot.Rebuild(slotCtx, next)
 		slotCancel()
 
@@ -249,7 +273,7 @@ func warnRestartRequiredLogFiles(oldCfg, next config.Configuration) {
 	oldFP := logFileFP{Path: oldCfg.Log.Path, FileCount: oldCfg.Log.FileCount, FileSize: oldCfg.Log.FileSize}
 	nextFP := logFileFP{Path: next.Log.Path, FileCount: next.Log.FileCount, FileSize: next.Log.FileSize}
 
-	if !reflect.DeepEqual(oldFP, nextFP) {
+	if oldFP != nextFP {
 		logger.Warn("config block changed, restart required, block: log.file")
 	}
 }
@@ -263,21 +287,42 @@ func reportReloadMetrics(started time.Time, outcome reloadOutcome) {
 		failure = 1
 	}
 
-	_ = apm.ConfigReloadSuccess.Set(success)
-	_ = apm.ConfigReloadFailure.Set(failure)
-	_ = apm.ConfigReloadDurationMs.Set(float64(time.Since(started).Milliseconds()))
-
-	_ = apm.ConfigReloadSlotCount.SetWithLabels(
-		map[string]string{apm.MetricLabelResult: "success"},
-		float64(outcome.slotSuccess),
+	recordReloadMetric(apm.ConfigReloadSuccess, apm.ConfigReloadSuccess.Set(success))
+	recordReloadMetric(apm.ConfigReloadFailure, apm.ConfigReloadFailure.Set(failure))
+	recordReloadMetric(
+		apm.ConfigReloadDurationMs,
+		apm.ConfigReloadDurationMs.Set(float64(time.Since(started).Milliseconds())),
 	)
-
-	_ = apm.ConfigReloadSlotCount.SetWithLabels(
-		map[string]string{apm.MetricLabelResult: "failure"},
-		float64(outcome.slotFailure),
+	recordReloadMetric(
+		apm.ConfigReloadSlotCount,
+		apm.ConfigReloadSlotCount.SetWithLabels(
+			map[string]string{apm.MetricLabelResult: "success"},
+			float64(outcome.slotSuccess),
+		),
+	)
+	recordReloadMetric(
+		apm.ConfigReloadSlotCount,
+		apm.ConfigReloadSlotCount.SetWithLabels(
+			map[string]string{apm.MetricLabelResult: "failure"},
+			float64(outcome.slotFailure),
+		),
 	)
 
 	if !outcome.failed {
-		_ = apm.ConfigReloadLastSuccessUnix.Set(float64(time.Now().Unix()))
+		recordReloadMetric(
+			apm.ConfigReloadLastSuccessUnix,
+			apm.ConfigReloadLastSuccessUnix.Set(float64(time.Now().Unix())),
+		)
 	}
+}
+
+func recordReloadMetric(gauge *haapm.HaGauge, err error) {
+	if err == nil || gauge == nil {
+		return
+	}
+	name := "config_reload"
+	if metric := gauge.ToMetric(); metric != nil && metric.Name != "" {
+		name = metric.Name
+	}
+	logger.Warn("failed to record %s, errmsg: %s", name, err)
 }
