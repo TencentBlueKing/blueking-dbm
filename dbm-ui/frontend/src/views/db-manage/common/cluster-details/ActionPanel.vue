@@ -113,6 +113,17 @@
               :data="clusterData" />
           </BkTabPanel>
         </slot>
+        <BkTabPanel
+          v-if="isHealthReportConnected"
+          :key="clusterData.id"
+          :label="t('健康报告')"
+          name="healthReport">
+          <HealthReport
+            v-if="activePanel === 'healthReport'"
+            :key="clusterData.id"
+            :cluster-data="clusterData"
+            @panel-change="handleReportPanelChange" />
+        </BkTabPanel>
         <slot
           v-if="!clusterType.includes('k8s')"
           name="record">
@@ -170,6 +181,7 @@
   import SurrealdbHaModel from '@services/model/surrealdb/surrealdb-ha';
   import SurrealdbSingleModel from '@services/model/surrealdb/surrealdb-single';
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getClusterHealthReport } from '@services/source/dbReport';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import type { ClusterListNode } from '@services/types';
 
@@ -180,6 +192,7 @@
   import AlarmSubscription from './components/AlarmSubscription.vue';
   import BaseInfo from './components/BaseInfo.vue';
   import ClusterTopo from './components/cluster-topo/Index.vue';
+  import HealthReport from './components/health-report/Index.vue';
   import HostList from './components/HostList.vue';
   import Instancelist from './components/InstanceList.vue';
   import K8SOperationRecord from './components/k8s-operation-record/Index.vue';
@@ -188,6 +201,7 @@
   import TicketRecord from './components/TicketRecord.vue';
   import {
     URL_CLUSTER_DETAIL_MEMO_KEY,
+    URL_HEALTH_REPORT_DATE_KEY,
     URL_HOST_MEMO_KEY,
     URL_INSTANCE_MEMO_KEY,
     URL_K8S_OPERATION_MEMO_KEY,
@@ -264,7 +278,12 @@
   const tabcontentheight = ref('0');
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
-  const isLoading = computed(() => !isFixedTab.value && isPanelLoading.value);
+  // URL 直接指定健康报告 Tab 时，需等接入状态返回才能判定 Tab 是否存在
+  const isLoading = computed(
+    () =>
+      (!isFixedTab.value && isPanelLoading.value) ||
+      (activePanel.value === 'healthReport' && isHealthReportProbeLoading.value),
+  );
   const isAbleSubscribe = computed(() => metricsMap.value[props.clusterData.cluster_type]?.list?.length > 0);
 
   type ExludeClusterTypes =
@@ -290,9 +309,44 @@
     manual: true,
   });
 
+  // 不带日期探测一次，只用接入状态决定健康报告 Tab 是否渲染
+  const {
+    data: healthReportProbe,
+    loading: isHealthReportProbeLoading,
+    run: fetchHealthReportProbe,
+  } = useRequest(getClusterHealthReport, {
+    manual: true,
+    onSuccess(data) {
+      // 未接入时 Tab 不渲染，停在健康报告的落到默认 Tab
+      if (data.report_status === 'not_connected' && activePanel.value === 'healthReport') {
+        handlePanelChange('');
+      }
+    },
+  });
+
+  const isHealthReportConnected = computed(
+    () => !!healthReportProbe.value && healthReportProbe.value.report_status !== 'not_connected',
+  );
+
+  // 与模板中各 Tab 的渲染条件保持一致，用于忽略报告里指向不存在 Tab 的跳转
+  const renderedPanelList = computed(() => [
+    'topo',
+    'info',
+    'instance',
+    ...(props.clusterType.includes('k8s') ? ['operation'] : ['host', 'paramConfig', 'record']),
+    ...(monitorPanelList.value?.urls.map((item) => item.id) || []),
+    ...(isAbleSubscribe.value ? ['alarmSubscription'] : []),
+  ]);
+
   watch(
     () => props.clusterData.id,
     () => {
+      if (props.clusterData.id) {
+        fetchHealthReportProbe({
+          bk_biz_id: props.clusterData.bk_biz_id,
+          cluster_domain: props.clusterData.master_domain,
+        });
+      }
       // 部分仪表盘暂时没数据，若请求会报错
       if (
         props.clusterData.id &&
@@ -313,6 +367,16 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  // 换集群时丢弃上一个集群的数据日期，打开新集群最新一份；首次加载保留，以便外部带入的日期生效
+  watch(
+    () => props.clusterData.id,
+    () => {
+      router.replace({
+        query: removeSearchParam(URL_HEALTH_REPORT_DATE_KEY, false),
+      });
     },
   );
 
@@ -340,6 +404,7 @@
             URL_PARAM_CONF_TAB_KEY,
             URL_RECORD_MEMO_KEY,
             URL_K8S_OPERATION_MEMO_KEY,
+            URL_HEALTH_REPORT_DATE_KEY,
           ],
           false,
         ),
@@ -348,6 +413,12 @@
     });
     activePanel.value = value;
     visitedPanels.add(value);
+  };
+
+  const handleReportPanelChange = (value: string) => {
+    if (renderedPanelList.value.includes(value)) {
+      handlePanelChange(value);
+    }
   };
 
   onMounted(() => {
@@ -361,7 +432,7 @@
     setTimeout(() => {
       router.replace({
         query: {
-          ...removeSearchParam([URL_HOST_MEMO_KEY, URL_INSTANCE_MEMO_KEY], false),
+          ...removeSearchParam([URL_HOST_MEMO_KEY, URL_INSTANCE_MEMO_KEY, URL_HEALTH_REPORT_DATE_KEY], false),
           [URL_CLUSTER_DETAIL_MEMO_KEY]: '',
         },
       });
