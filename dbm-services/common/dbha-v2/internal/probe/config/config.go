@@ -308,16 +308,16 @@ func postProcess(cfg *Configuration) {
 func clampCollect(cfg *Configuration) {
 	// A non-positive worker count is unusable: apply the default so the pool runs
 	// with a working cap instead of silently ignoring the setting.
-	if cfg.Collect.CollectTaskGoroutines < 0 {
-		logger.Warn("collect.collectTaskGoroutines is negative, fall back to the default value, "+
+	if cfg.Collect.CollectTaskGoroutines <= 0 {
+		logger.Warn("collect.collectTaskGoroutines is not positive, fall back to the default value, "+
 			"configured: %d, default: %d", cfg.Collect.CollectTaskGoroutines, defaultCollectTaskGoroutines)
 		cfg.Collect.CollectTaskGoroutines = defaultCollectTaskGoroutines
 	}
 
-	// A negative interval is unusable: apply the default so the sampler runs on a
-	// working cadence instead of silently ignoring the setting.
-	if cfg.Collect.HostMetricInterval < 0 {
-		logger.Warn("collect.hostMetricInterval is negative, fall back to the default value, "+
+	// A non-positive interval is unusable: apply the default so the sampler runs on
+	// a working cadence instead of silently ignoring the setting.
+	if cfg.Collect.HostMetricInterval <= 0 {
+		logger.Warn("collect.hostMetricInterval is not positive, fall back to the default value, "+
 			"configured: %s, default: %s", cfg.Collect.HostMetricInterval, defaultHostMetricInterval)
 		cfg.Collect.HostMetricInterval = defaultHostMetricInterval
 	}
