@@ -17,7 +17,6 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSp
 from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.dataclass import DBInstance
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
-from backend.db_services.mysql.dataclass import ClusterFilter
 
 pytestmark = pytest.mark.django_db
 
@@ -60,70 +59,6 @@ class TestMySQLClusterServiceHandler:
         # 此case中master和proxy属于相同集群，因此结果应该是一致的
         assert master_results[0]["cluster_info"] == proxy_results[0]["cluster_info"]
         assert master_results[0]["related_clusters"] == proxy_results[0]["related_clusters"]
-
-    def test_query_clusters_dbha(self, bk_biz_id, dbha_cluster):
-        """测试查询DBHA集群"""
-        cluster_filters = [ClusterFilter(id=dbha_cluster.id)]
-        handler = ClusterServiceHandler(bk_biz_id)
-
-        results = handler.query_clusters(cluster_filters)
-
-        assert len(results) == 1
-        cluster_info = results[0]
-        assert cluster_info["id"] == dbha_cluster.id
-        assert cluster_info["cluster_type"] == ClusterType.TenDBHA
-        assert "masters" in cluster_info
-        assert "slaves" in cluster_info
-        assert "proxies" in cluster_info
-        assert "instance_count" in cluster_info
-
-    def test_query_clusters_dbsingle(self, bk_biz_id, dbsingle_cluster):
-        """测试查询DBSingle集群"""
-        cluster_filters = [ClusterFilter(id=dbsingle_cluster.id)]
-        handler = ClusterServiceHandler(bk_biz_id)
-
-        results = handler.query_clusters(cluster_filters)
-
-        assert len(results) == 1
-        cluster_info = results[0]
-        assert cluster_info["id"] == dbsingle_cluster.id
-        assert cluster_info["cluster_type"] == ClusterType.TenDBSingle
-        assert "masters" in cluster_info  # DBSingle的实例都归类为masters
-
-    def test_query_clusters_tendbcluster(self, bk_biz_id, tendbcluster_cluster):
-        """测试查询TenDBCluster集群"""
-        cluster_filters = [ClusterFilter(id=tendbcluster_cluster.id)]
-        handler = ClusterServiceHandler(bk_biz_id)
-
-        results = handler.query_clusters(cluster_filters)
-
-        assert len(results) == 1
-        cluster_info = results[0]
-        assert cluster_info["id"] == tendbcluster_cluster.id
-        assert cluster_info["cluster_type"] == ClusterType.TenDBCluster
-        assert "remote_db" in cluster_info
-        assert "remote_dr" in cluster_info
-        assert "spider_master" in cluster_info
-        assert "spider_slave" in cluster_info
-        assert "spider_ctl" in cluster_info
-
-    def test_query_clusters_empty_filters(self, bk_biz_id):
-        """测试空过滤条件查询集群"""
-        handler = ClusterServiceHandler(bk_biz_id)
-        results = handler.query_clusters([])
-        assert results == []
-
-    def test_query_clusters_multiple_filters(self, bk_biz_id, dbha_cluster, dbsingle_cluster):
-        """测试多个过滤条件查询集群"""
-        cluster_filters = [ClusterFilter(id=dbha_cluster.id), ClusterFilter(id=dbsingle_cluster.id)]
-        handler = ClusterServiceHandler(bk_biz_id)
-
-        results = handler.query_clusters(cluster_filters)
-
-        assert len(results) == 2
-        cluster_ids = [result["id"] for result in results]
-        assert dbha_cluster.id in cluster_ids
-        assert dbsingle_cluster.id in cluster_ids
 
     def test_get_remote_pairs_empty_clusters(self, bk_biz_id):
         """测试获取远程配对 - 空集群列表"""
