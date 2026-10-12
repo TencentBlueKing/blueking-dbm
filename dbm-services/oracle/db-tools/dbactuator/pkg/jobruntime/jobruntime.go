@@ -99,9 +99,12 @@ func (r *JobGenericRuntime) SetLogger() {
 	r.Logger.Sync()
 	mylog.SetDefaultLogger(r.Logger)
 
-	// 修改日志目录owner
-	chownCmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, logDir)
+	chownCmd := fmt.Sprintf("chown -R %s:%s %s", consts.OracleAccount, consts.OracleGroup, logDir)
 	cmd := exec.Command("bash", "-c", chownCmd)
+	cmd.Run()
+
+	chownCmd = fmt.Sprintf("chown -R %s:%s %s", consts.OracleAccount, consts.OracleGroup, r.BaseDir)
+	cmd = exec.Command("bash", "-c", chownCmd)
 	cmd.Run()
 }
 

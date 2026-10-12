@@ -175,6 +175,17 @@ class _DRSApi(object):
             before_request=self._inject_sqlserver_connect_timeout,
         )
 
+        # Oracle 只读查询（仅 SELECT/WITH），请求需额外传 service_name
+        self.oracle_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="v2/oracle/rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("oracle 远程执行(只读账号)"),
+            before_request=self._inject_sqlserver_connect_timeout,
+        )
+
         self.webconsole_rpc = ProxyAPI(
             method="POST",
             base=self.BASE_DOMAIN,

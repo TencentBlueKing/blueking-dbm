@@ -189,7 +189,8 @@ func (e *InstallInstanceFromExisting) PreCheck() error {
 
 func (e *InstallInstanceFromExisting) CopyOrapw() error {
 	orapwFile := filepath.Join(consts.DefaultOracleHome, "dbs", fmt.Sprintf("orapw%s", e.Params.OracleSID))
-	cmd := fmt.Sprintf("cp -p %s %s", e.Params.Orapw, orapwFile)
+	cmd := fmt.Sprintf("cp -p %s %s && chown %s:%s %s",
+		e.Params.Orapw, orapwFile, consts.OracleAccount, consts.DBAGroup, orapwFile)
 	out, err := util.RunBashCmd(cmd, "", nil, 60*time.Second)
 	if err != nil {
 		e.Runtime.Logger.Error("copy orapw fail: %s, output: %s", err, out)
@@ -354,7 +355,7 @@ func (e *InstallInstanceFromExisting) ConfigTnsNames() error {
 		"{{db_unique_name}}", e.Params.MasterDbUniqueName,
 		"{{host}}", e.Params.MasterHost,
 		"{{port}}", strconv.Itoa(consts.ListenerPort),
-		"{{oracle_sid}}", e.Params.OracleSID,
+		"{{oracle_sid}}", consts.CommonServiceName,
 	).Replace(string(tplBytes))
 
 	// 追加写入，避免覆盖已有条目；文件不存在则创建
@@ -393,7 +394,7 @@ func (e *InstallInstanceFromExisting) ConfigTnsNames() error {
 			"{{db_unique_name}}", e.Params.OldMasterDbUniqueName,
 			"{{host}}", e.Params.OldMasterHost,
 			"{{port}}", strconv.Itoa(consts.ListenerPort),
-			"{{oracle_sid}}", e.Params.OracleSID,
+			"{{oracle_sid}}", consts.CommonServiceName,
 		).Replace(string(tplBytes))
 		if _, err = f.WriteString(contentOldMaster + "\n"); err != nil {
 			e.Runtime.Logger.Error("append content to %s fail, error:%s", tnsFile, err)

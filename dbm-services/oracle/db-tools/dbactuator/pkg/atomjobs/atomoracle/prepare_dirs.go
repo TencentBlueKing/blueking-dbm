@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -33,6 +34,8 @@ type SymlinkPlan struct {
 	Link string `json:"link"`
 	// RealPath 软链接目标绝对路径
 	RealPath string `json:"real_path"`
+	// ParentDirs Link 不存在的父目录（由浅到深），需在 ln -s 前创建，否则 ln 会报 No such file or directory
+	ParentDirs []string `json:"parent_dirs,omitempty"`
 	// SubDirs 软链接下的用户子目录（真实路径形式，如 /data2/rman/backup）
 	SubDirs []string `json:"sub_dirs,omitempty"`
 	// SkipLn 幂等标记：true 表示 Link 已存在且指向一致，无需 ln -s
@@ -107,6 +110,14 @@ func (e *InstallOracle) fillSymlinkPlans(plan *DirPlan) error {
 	// Link -> 在 plan.Symlinks 中的下标（用于跨 userPath 去重 + 追加 SubDirs）
 	linkIdx := make(map[string]int)
 
+	// 所有计划中的 Link，计算父目录时遇到它们即停止（它们会在脚本中先于更深的 Link 被创建）
+	plannedLinks := make(map[string]struct{})
+	for _, links := range e.Params.LinkPlans {
+		for _, info := range links {
+			plannedLinks[filepath.Clean(info.Link)] = struct{}{}
+		}
+	}
+
 	for _, userPath := range userPaths {
 		links := e.Params.LinkPlans[userPath]
 		if len(links) == 0 {
@@ -140,10 +151,18 @@ func (e *InstallOracle) fillSymlinkPlans(plan *DirPlan) error {
 			if err != nil {
 				return err
 			}
+			var parentDirs []string
+			if needSymlink {
+				parentDirs, err = missingParentDirs(info.Link, plannedLinks)
+				if err != nil {
+					return err
+				}
+			}
 			plan.Symlinks = append(plan.Symlinks, SymlinkPlan{
-				Link:     info.Link,
-				RealPath: info.RealPath,
-				SkipLn:   !needSymlink,
+				Link:       info.Link,
+				RealPath:   info.RealPath,
+				ParentDirs: parentDirs,
+				SkipLn:     !needSymlink,
 			})
 			linkIdx[info.Link] = len(plan.Symlinks) - 1
 		}
@@ -246,6 +265,11 @@ func renderDirScript(plan *DirPlan) string {
 				b.WriteString(fmt.Sprintf("# symlink %s already points to %s, skip ln -s\n",
 					sp.Link, sp.RealPath))
 			} else {
+				for _, parent := range sp.ParentDirs {
+					b.WriteString(fmt.Sprintf("mkdir -p -m %s %s\n", consts.DirModeStr, shellQuote(parent)))
+					b.WriteString(fmt.Sprintf("chown %s:%s %s\n",
+						plan.User, plan.Group, shellQuote(parent)))
+				}
 				b.WriteString(fmt.Sprintf("ln -s %s %s\n",
 					shellQuote(sp.RealPath), shellQuote(sp.Link)))
 			}
@@ -340,6 +364,31 @@ func checkSymlinkState(link, expected string) (needSymlink bool, err error) {
 		return false, fmt.Errorf("symlink %s points to %s, expected %s", link, curAbs, expected)
 	}
 	return false, nil
+}
+
+// missingParentDirs 返回 link 不存在的父目录列表（由浅到深）
+// 向上逐级检查，遇到已存在的节点、计划中的其他软链接或根目录即停止；
+// 已存在的父节点必须是目录或软链接，否则报错
+func missingParentDirs(link string, plannedLinks map[string]struct{}) ([]string, error) {
+	missing := make([]string, 0)
+	for cur := filepath.Dir(filepath.Clean(link)); cur != filepath.Dir(cur); cur = filepath.Dir(cur) {
+		if _, ok := plannedLinks[cur]; ok {
+			break
+		}
+		info, err := os.Lstat(cur)
+		if err == nil {
+			if !info.IsDir() && info.Mode()&os.ModeSymlink == 0 {
+				return nil, fmt.Errorf("parent %s of link %s exists but is not a directory", cur, link)
+			}
+			break
+		}
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("lstat fail, path:%s, error:%s", cur, err)
+		}
+		missing = append(missing, cur)
+	}
+	slices.Reverse(missing)
+	return missing, nil
 }
 
 // checkTopDirAllowed 用允许白名单正则校验路径的顶层目录

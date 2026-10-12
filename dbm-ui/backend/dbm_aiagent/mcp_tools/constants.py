@@ -78,6 +78,7 @@ class DBMMcpTools(StrStructuredEnum):
     ES_READONLY_API = EnumField("es-readonly-api", "es-readonly-api")
     DORIS_METRICS = EnumField("doris-metrics", "doris-metrics")
     DORIS_QUERY_META = EnumField("doris-query-meta", "doris-query-meta")
+    ORACLE_QUERY = EnumField("oracle-query", _("Oracle 查询"))
 
 
 class DBMMCPTags(StrStructuredEnum):

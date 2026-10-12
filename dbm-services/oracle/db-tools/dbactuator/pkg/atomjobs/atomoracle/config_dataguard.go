@@ -163,12 +163,17 @@ func ConfigTnsNames(log *logger.Logger, slaveDbUniqueName, slaveHost string,
 		log.Error("read embedded %s fail, error:%s", staticembed.TnsNamesFileName, err)
 		return fmt.Errorf("read embedded %s fail, error:%s", staticembed.TnsNamesFileName, err)
 	}
-
+	// 动态监听统一使用常量 serviceName；静态监听使用 oracleSID 作为 serviceName
+	serviceName := consts.CommonServiceName
+	if slavePort == consts.StatisticListenerPort {
+		serviceName = oracleSID
+	}
+	log.Info("config tnsnames.ora, serviceName:%s", serviceName)
 	content := strings.NewReplacer(
 		consts.TnsPlaceholderDBUniqueName, slaveDbUniqueName,
 		consts.TnsPlaceholderHost, slaveHost,
 		consts.TnsPlaceholderPort, strconv.Itoa(slavePort),
-		consts.TnsPlaceholderOracleSID, oracleSID,
+		consts.TnsPlaceholderOracleSID, serviceName,
 	).Replace(string(tplBytes))
 
 	// 追加写入，避免覆盖已有条目；文件不存在则创建
