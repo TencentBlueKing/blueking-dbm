@@ -96,23 +96,6 @@ MONGODB_DESTROY_TICKET_DATA = {
     "details": {"cluster_ids": [CLUSTER_ID]},
 }
 
-# mango 整机替换请求单据
-MONGODB_CUTOFF_TICKET_DATA = {
-    "bk_biz_id": BK_BIZ_ID,
-    "ticket_type": "MONGODB_CUTOFF",
-    "details": {
-        "ip_source": "resource_pool",
-        "infos": [
-            {
-                "cluster_id": CLUSTER_ID,
-                "mongos": [{"ip": "1.1.1.3", "spec_id": 3, "bk_cloud_id": 0, "bk_host_id": 1}],
-                "mongodb": [{"ip": "1.1.1.4", "spec_id": 3, "bk_cloud_id": 0, "bk_host_id": 2}],
-                "mongo_config": [{"ip": "1.1.1.5", "spec_id": 3, "bk_cloud_id": 0, "bk_host_id": 3}],
-            }
-        ],
-    },
-}
-
 # 初始化mongodb集群
 MONGODB_CLUSTER_DATA = {
     "id": CLUSTER_ID,

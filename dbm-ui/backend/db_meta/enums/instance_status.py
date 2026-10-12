@@ -19,6 +19,8 @@ class InstanceStatus(StrStructuredEnum):
     AVAILABLE = EnumField("available", _("available"))
     RESTORING = EnumField("restoring", _("restoring"))
     UPGRADING = EnumField("upgrading", _("upgrading"))
+    # 流程占用中：自愈替换/拉起、滚动重启等有意占住实例，周期同步不改回 running
+    OPERATING = EnumField("operating", _("operating"))
 
 
 class MongoDBStorageInstanceStatus(IntStructuredEnum):

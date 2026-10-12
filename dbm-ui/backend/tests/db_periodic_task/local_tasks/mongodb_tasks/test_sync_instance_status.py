@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -472,3 +473,174 @@ class TestInstanceChangeReport:
         record_batch_ops.append.assert_called_once()
         report = record_batch_ops.append.call_args[0][0]
         assert report.msg == "PRIMARY(1) -> SECONDARY(2)"
+
+
+class TestSyncInstanceStatusFlapAndRestore:
+    def test_missing_my_state_keeps_down(self, sync_instance_status_module):
+        ext = SimpleNamespace(
+            state_code=MongoDBStorageInstanceStatus.DOWN.value,
+            instance=SimpleNamespace(machine=SimpleNamespace(ip="127.0.0.1"), port=27017),
+        )
+        chain = MagicMock()
+        chain.exclude.return_value = chain
+        chain.select_related.return_value = chain
+        chain.distinct.return_value = chain
+        chain.count.return_value = 1
+        chain.iterator.return_value = [ext]
+        with patch.object(
+            sync_instance_status_module.MongoDBStorageInstanceExt.objects, "filter", return_value=chain
+        ), patch.object(sync_instance_status_module, "_instant_fetch_metric", return_value=[]):
+            changed = sync_instance_status_module.SyncStorageInstanceStatusTask().fetch_changed_instance_list()
+        assert changed == []
+
+    def test_missing_my_state_marks_primary_unknown(self, sync_instance_status_module):
+        ext = SimpleNamespace(
+            state_code=MongoDBStorageInstanceStatus.PRIMARY.value,
+            instance=SimpleNamespace(machine=SimpleNamespace(ip="127.0.0.1"), port=27017),
+        )
+        chain = MagicMock()
+        chain.exclude.return_value = chain
+        chain.select_related.return_value = chain
+        chain.distinct.return_value = chain
+        chain.count.return_value = 1
+        chain.iterator.return_value = [ext]
+        with patch.object(
+            sync_instance_status_module.MongoDBStorageInstanceExt.objects, "filter", return_value=chain
+        ), patch.object(sync_instance_status_module, "_instant_fetch_metric", return_value=[]):
+            changed = sync_instance_status_module.SyncStorageInstanceStatusTask().fetch_changed_instance_list()
+        assert len(changed) == 1
+        assert changed[0]["new_state_code"] == MongoDBStorageInstanceStatus.UNKNOWN.value
+        assert changed[0]["new_state"] == "UNKNOWN"
+
+    def test_peer_overlay_does_not_downgrade_down_to_unknown(self, sync_instance_status_module):
+        ext = _make_mock_ext(state_code=MongoDBStorageInstanceStatus.DOWN.value, state="DOWN")
+        record_batch_ops = MagicMock()
+        targets = [
+            {
+                "ip": "127.0.0.1",
+                "port": 27017,
+                "state_code": MongoDBStorageInstanceStatus.UNKNOWN.value,
+                "state": "UNKNOWN",
+                "shard": "rs0",
+                "peer_count": 2,
+            }
+        ]
+        with patch.object(
+            sync_instance_status_module, "_load_ext_map_by_ip_ports", return_value={"127.0.0.1:27017": ext}
+        ), patch.object(sync_instance_status_module, "_bulk_update_ext_records", return_value=0) as bulk_update:
+            updated = sync_instance_status_module.SyncStorageInstanceStatusTask().apply_peer_member_updates(
+                targets, record_batch_ops, 20260706
+            )
+        assert updated == 0
+        bulk_update.assert_called_once_with([])
+        record_batch_ops.append.assert_not_called()
+        assert ext.state_code == MongoDBStorageInstanceStatus.DOWN.value
+
+    def test_shard_refresh_collects_unavailable_secondary(self, sync_instance_status_module):
+        ext = _make_mock_ext(state_code=2, state="SECONDARY")
+        ext.instance.id = 9
+        ext.instance.status = "unavailable"
+        bucket = set()
+        metric_val = [
+            {
+                "bk_target_ip": "127.0.0.1",
+                "instance_port": 27017,
+                "value": 2,
+                "shard": "rs0",
+            }
+        ]
+        with patch.object(sync_instance_status_module, "_instant_fetch_metric", return_value=metric_val), patch.object(
+            sync_instance_status_module, "_load_ext_map_by_ip_ports", return_value={"127.0.0.1:27017": ext}
+        ), patch.object(sync_instance_status_module, "_bulk_update_ext_records", return_value=0):
+            sync_instance_status_module.SyncStorageInstanceStatusTask().check_and_update_shards(
+                ["mongo.example.db:rs0"], MagicMock(), 20260706, secondary_status_ids=bucket
+            )
+        assert bucket == {9}
+
+    def test_state_change_queues_sync_log(self, sync_instance_status_module):
+        ext = _make_mock_ext(state_code=8, state="DOWN")
+        ext.instance.id = 9
+        ext.instance.status = "unavailable"
+        record_batch_ops = MagicMock()
+        instance_list = [
+            {
+                "instance": "127.0.0.1:27017",
+                "old_state_code": 8,
+                "new_state_code": 2,
+                "new_state": "SECONDARY",
+                "new_shard_name": "rs0",
+            }
+        ]
+        bucket = set()
+        with patch.object(
+            sync_instance_status_module, "_load_ext_map_by_ip_ports", return_value={"127.0.0.1:27017": ext}
+        ), patch.object(sync_instance_status_module, "_bulk_update_ext_records", return_value=1), patch.object(
+            sync_instance_status_module, "_bulk_create_sync_logs"
+        ) as bulk_logs:
+            sync_instance_status_module.SyncStorageInstanceStatusTask().check_and_update_instance(
+                instance_list, record_batch_ops, 20260706, secondary_status_ids=bucket
+            )
+        assert bucket == {9}
+        rows = bulk_logs.call_args[0][0]
+        assert rows[0].source == "stale_my_state"
+        assert rows[0].message == "DOWN(8) -> SECONDARY(2)"
+        assert rows[0].instance_id == 9
+
+    def test_restore_secondary_sets_running(self, sync_instance_status_module):
+        cluster = SimpleNamespace(id=100, bk_biz_id=3, bk_cloud_id=0, immute_domain="mongo.example.db")
+        ext = SimpleNamespace(state="SECONDARY", state_code=2, shard_name="rs0", instance=None)
+        inst = SimpleNamespace(
+            id=9,
+            status="unavailable",
+            port=27017,
+            machine=SimpleNamespace(ip="127.0.0.1", bk_host_id=3),
+            cluster=SimpleNamespace(first=lambda: cluster),
+            mongodbstorageinstanceext=ext,
+        )
+        ext.instance = inst
+        select_qs = MagicMock()
+        select_qs.select_related.return_value.prefetch_related.return_value = [inst]
+        update_qs = MagicMock()
+        update_qs.update.return_value = 1
+
+        def _filter(*_args, **kwargs):
+            if "mongodbstorageinstanceext__state_code" in kwargs:
+                return select_qs
+            return update_qs
+
+        with patch.object(
+            sync_instance_status_module.StorageInstance.objects, "filter", side_effect=_filter
+        ), patch.object(sync_instance_status_module, "_bulk_create_sync_logs") as bulk_logs:
+            updated = sync_instance_status_module.SyncStorageInstanceStatusTask().restore_secondary_instance_status(
+                {9}
+            )
+        assert updated == 1
+        update_qs.update.assert_called_once_with(status="running")
+        row = bulk_logs.call_args[0][0][0]
+        assert row.source == "secondary_status"
+        assert row.old_status == "unavailable"
+        assert row.new_status == "running"
+        assert row.message == "status unavailable -> running"
+
+    def test_restore_empty_skips_query(self, sync_instance_status_module):
+        with patch.object(sync_instance_status_module.StorageInstance.objects, "filter") as objects_filter:
+            updated = sync_instance_status_module.SyncStorageInstanceStatusTask().restore_secondary_instance_status(
+                set()
+            )
+        assert updated == 0
+        objects_filter.assert_not_called()
+
+    def test_restore_skips_operating_instances(self, sync_instance_status_module):
+        """operating 是流程占用，成员即使是 SECONDARY 也不改回 running。"""
+        select_qs = MagicMock()
+        select_qs.select_related.return_value.prefetch_related.return_value = []
+
+        def _filter(*_args, **kwargs):
+            assert kwargs.get("status") == "unavailable"
+            return select_qs
+
+        with patch.object(sync_instance_status_module.StorageInstance.objects, "filter", side_effect=_filter):
+            updated = sync_instance_status_module.SyncStorageInstanceStatusTask().restore_secondary_instance_status(
+                {9}
+            )
+        assert updated == 0

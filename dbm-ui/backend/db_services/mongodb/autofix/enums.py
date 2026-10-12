@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
@@ -68,6 +69,15 @@ class MongoAutofixLogEvent(StrStructuredEnum):
     STATUS = EnumField("status", _("状态变更"))
     IGNORE = EnumField("ignore", _("忽略"))
     ERROR = EnumField("error", _("异常"))
+
+
+class MongoSyncInstanceStatusSource(StrStructuredEnum):
+    """mongodb_sync_instance_status_task 修改记录来源"""
+
+    SHARD_MY_STATE = EnumField("shard_my_state", _("shard my_state"))
+    STALE_MY_STATE = EnumField("stale_my_state", _("过期实例 my_state"))
+    PEER_OVERLAY = EnumField("peer_overlay", _("旁观者 overlay"))
+    SECONDARY_STATUS = EnumField("secondary_status", _("Secondary 恢复实例状态"))
 
 
 # deal_status 非终态：同 IP 禁止并发 Core

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 import time
 from datetime import datetime
@@ -31,6 +32,7 @@ from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import (
     create_mongo_fix_status_ticket,
     create_mongo_manual_ticket,
     is_mongos_core,
+    maybe_execute_group_replace,
     mongo_create_ticket,
 )
 from backend.db_services.mongodb.autofix.triage import (
@@ -356,16 +358,40 @@ def _probe_drs_login(
     return all_ok, auth_err
 
 
-def _mark_instances_unavailable(ip: str, ports: List[int], bk_host_id: int = 0) -> None:
+def _mark_instances_status(ip: str, ports: List[int], status: str, bk_host_id: int = 0) -> None:
     for model in (StorageInstance, ProxyInstance):
         qs = model.objects.filter(machine__ip=ip)
         if ports:
             qs = qs.filter(port__in=ports)
         if bk_host_id:
             qs = qs.filter(machine__bk_host_id=bk_host_id)
+        updated = qs.update(status=status)
+        logger.info(
+            "mongo autofix pre mark status=%s model=%s ip=%s ports=%s count=%s",
+            status,
+            model.__name__,
+            ip,
+            ports,
+            updated,
+        )
+
+
+def _mark_instances_operating(ip: str, ports: List[int], bk_host_id: int = 0) -> None:
+    """流程占用：替换/拉起进行中，周期同步不会把 operating 改回 running。"""
+    _mark_instances_status(ip, ports, InstanceStatus.OPERATING.value, bk_host_id=bk_host_id)
+
+
+def _revert_instances_operating_to_unavailable(ip: str, ports: List[int], bk_host_id: int = 0) -> None:
+    """跟单创建失败时，把刚打上的 operating 改回 unavailable，交给同步任务再判断是否恢复。"""
+    for model in (StorageInstance, ProxyInstance):
+        qs = model.objects.filter(machine__ip=ip, status=InstanceStatus.OPERATING.value)
+        if ports:
+            qs = qs.filter(port__in=ports)
+        if bk_host_id:
+            qs = qs.filter(machine__bk_host_id=bk_host_id)
         updated = qs.update(status=InstanceStatus.UNAVAILABLE.value)
         logger.info(
-            "mongo autofix pre mark UNAVAILABLE model=%s ip=%s ports=%s count=%s",
+            "mongo autofix pre revert OPERATING->UNAVAILABLE model=%s ip=%s ports=%s count=%s",
             model.__name__,
             ip,
             ports,
@@ -425,6 +451,36 @@ def _create_replace_followup(core, cluster_ids):
     return mongo_create_ticket(core, cluster_ids, mongos_list=[], mongod_list=mongod_list)
 
 
+def _create_action_followup(core, action, cluster_ids, confirm_result, creator):
+    """按 action 创建跟单并回写 Core。返回 (ticket, ok)；ok=False 表示未知 action。"""
+    if action == ACTION_REPLACE:
+        followup_ticket = _create_replace_followup(core, cluster_ids)
+        core.refresh_from_db()
+        core.confirm_result = confirm_result
+        if not followup_ticket:
+            core.deal_status = MongoAutofixStatus.FAIL.value
+            core.status_version = "empty_resource_spec_or_create_fail"
+        core.save(update_fields=["confirm_result", "deal_status", "status_version", "update_at"])
+        return followup_ticket, True
+    if action == ACTION_RELOAD:
+        followup_ticket = create_mongo_ensure_start_ticket(core, creator=creator)
+    elif action == ACTION_FIX_STATUS:
+        followup_ticket = create_mongo_fix_status_ticket(core, creator=creator)
+    else:
+        core.deal_status = MongoAutofixStatus.FAIL.value
+        core.confirm_result = confirm_result
+        core.save(update_fields=["confirm_result", "deal_status", "update_at"])
+        return None, False
+    if followup_ticket:
+        core.ticket_id = followup_ticket.id
+        core.deal_status = MongoAutofixStatus.TICKETED.value
+    else:
+        core.deal_status = MongoAutofixStatus.FAIL.value
+    core.confirm_result = confirm_result
+    core.save(update_fields=["confirm_result", "ticket_id", "deal_status", "update_at"])
+    return followup_ticket, True
+
+
 class MongoAutofixPreTriageService(BaseService):
     """PRE triage: disk/GSE/DRS → follow-up ticket."""
 
@@ -436,10 +492,14 @@ class MongoAutofixPreTriageService(BaseService):
             self.log_error("mongo autofix pre: empty infos")
             return False
 
+        all_ok = True
         for info in infos:
-            if not self._handle_one(info, global_data):
-                return False
-        return True
+            ok = self._handle_one(info, global_data)
+            # 同组还有 PRE 未结束时替换单先挂起；这里在状态落库后决定是否开工
+            maybe_execute_group_replace(info.get("autofix_core_id"))
+            if not ok:
+                all_ok = False
+        return all_ok
 
     def _handle_one(self, info: dict, global_data: dict) -> bool:
         core_id = info.get("autofix_core_id")
@@ -532,49 +592,18 @@ class MongoAutofixPreTriageService(BaseService):
                 return False
             return True
 
-        # REPLACE/RELOAD 才打 UNAVAILABLE；login_ok 修状态不要先把健康实例打挂
+        # REPLACE/RELOAD 打 operating；login_ok 修状态不要先把健康实例打挂
+        marked_operating = False
         if action in (ACTION_REPLACE, ACTION_RELOAD):
-            _mark_instances_unavailable(ip=ip, ports=ports, bk_host_id=bk_host_id)
+            _mark_instances_operating(ip=ip, ports=ports, bk_host_id=bk_host_id)
+            marked_operating = True
 
         creator = global_data.get("created_by") or "admin"
         pre_ticket_id = global_data.get("uid") or core.pre_ticket_id
-        followup_ticket = None
         # PRE 仍持有集群互斥锁时，先放行后续替换/重启
         _unlock_pre_for_followup(pre_ticket_id, cluster_ids, log_fn=self.log_info)
         try:
-            if action == ACTION_REPLACE:
-                followup_ticket = _create_replace_followup(core, cluster_ids)
-                core.refresh_from_db()
-                core.confirm_result = confirm_result
-                if not followup_ticket:
-                    core.deal_status = MongoAutofixStatus.FAIL.value
-                    core.status_version = "empty_resource_spec_or_create_fail"
-                core.save(update_fields=["confirm_result", "deal_status", "status_version", "update_at"])
-            elif action == ACTION_RELOAD:
-                followup_ticket = create_mongo_ensure_start_ticket(core, creator=creator)
-                if followup_ticket:
-                    core.ticket_id = followup_ticket.id
-                    core.deal_status = MongoAutofixStatus.TICKETED.value
-                else:
-                    core.deal_status = MongoAutofixStatus.FAIL.value
-                core.confirm_result = confirm_result
-                core.save(update_fields=["confirm_result", "ticket_id", "deal_status", "update_at"])
-            elif action == ACTION_FIX_STATUS:
-                followup_ticket = create_mongo_fix_status_ticket(core, creator=creator)
-                if followup_ticket:
-                    core.ticket_id = followup_ticket.id
-                    core.deal_status = MongoAutofixStatus.TICKETED.value
-                else:
-                    core.deal_status = MongoAutofixStatus.FAIL.value
-                core.confirm_result = confirm_result
-                core.save(update_fields=["confirm_result", "ticket_id", "deal_status", "update_at"])
-            else:
-                core.deal_status = MongoAutofixStatus.FAIL.value
-                core.confirm_result = confirm_result
-                core.save(update_fields=["confirm_result", "deal_status", "update_at"])
-                self.log_error(f"unknown action={action}")
-                write_autofix_log(MongoAutofixLogEvent.ERROR, f"unknown action={action}", core=core)
-                return False
+            followup_ticket, known = _create_action_followup(core, action, cluster_ids, confirm_result, creator)
         except Exception as exc:  # noqa: BLE001
             self.log_error(f"create follow-up ticket fail: {exc}")
             core.confirm_result = confirm_result
@@ -582,6 +611,12 @@ class MongoAutofixPreTriageService(BaseService):
             core.status_version = str(exc)[:64]
             core.save(update_fields=["confirm_result", "deal_status", "status_version", "update_at"])
             write_autofix_log(MongoAutofixLogEvent.ERROR, f"create follow-up fail: {exc}", core=core)
+            if marked_operating:
+                _revert_instances_operating_to_unavailable(ip=ip, ports=ports, bk_host_id=bk_host_id)
+            return False
+        if not known:
+            self.log_error(f"unknown action={action}")
+            write_autofix_log(MongoAutofixLogEvent.ERROR, f"unknown action={action}", core=core)
             return False
 
         if followup_ticket:
@@ -593,6 +628,8 @@ class MongoAutofixPreTriageService(BaseService):
             )
         elif core.deal_status == MongoAutofixStatus.FAIL.value:
             write_autofix_log(MongoAutofixLogEvent.ERROR, "follow-up ticket create failed", core=core)
+            if marked_operating:
+                _revert_instances_operating_to_unavailable(ip=ip, ports=ports, bk_host_id=bk_host_id)
 
         _link_pre_related_ticket(pre_ticket_id, followup_ticket, log_fn=self.log_info)
         return True

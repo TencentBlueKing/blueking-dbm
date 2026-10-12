@@ -123,16 +123,23 @@ def watch_mongod_backend_fault():
 
 @register_periodic_task(run_every=crontab(minute="*/2"))
 def watch_mongod_autofix_flow():
-    """盯 PRE / 修复替换单据状态，回写 MongoAutofixCore.deal_status."""
+    """盯 PRE / 修复替换单据状态，回写 MongoAutofixCore.deal_status；并兜底启动挂起过久的替换单。"""
+    from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import start_hung_grouped_replace_tickets
+
     cores = MongoAutofixCore.objects.filter(deal_status__in=MONGO_AUTOFIX_ACTIVE_STATUSES)
-    if not cores.exists():
-        return
-    for core in cores.iterator(chunk_size=100):
-        try:
-            _sync_core_from_tickets(core)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("watch_mongod_autofix_flow core=%s err=%s", core.id, exc)
-            core.deal_status = MongoAutofixStatus.FAIL.value
-            core.status_version = str(exc)[:64]
-            core.save(update_fields=["deal_status", "status_version", "update_at"])
-            write_autofix_log(MongoAutofixLogEvent.ERROR, f"sync status failed: {exc}", core=core)
+    if cores.exists():
+        for core in cores.iterator(chunk_size=100):
+            try:
+                _sync_core_from_tickets(core)
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("watch_mongod_autofix_flow core=%s err=%s", core.id, exc)
+                core.deal_status = MongoAutofixStatus.FAIL.value
+                core.status_version = str(exc)[:64]
+                core.save(update_fields=["deal_status", "status_version", "update_at"])
+                write_autofix_log(MongoAutofixLogEvent.ERROR, f"sync status failed: {exc}", core=core)
+    try:
+        started = start_hung_grouped_replace_tickets()
+        if started:
+            logger.info("watch_mongod_autofix_flow started hung replace tickets=%s", started)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("watch_mongod_autofix_flow start hung replace err=%s", exc)

@@ -16,7 +16,7 @@ from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_XX_LONG
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType
 
-from .enums import MongoAutofixLogEvent, MongoAutofixStatus
+from .enums import MongoAutofixLogEvent, MongoAutofixStatus, MongoSyncInstanceStatusSource
 
 
 class MongoAutofixCtl(AuditedModel):
@@ -111,3 +111,39 @@ class MongoAutofixLog(AuditedModel):
         db_table = "tb_mongodb_autofix_log"
         ordering = ("-id",)
         index_together = [("core_id", "event"), ("bk_biz_id", "ip")]
+
+
+class MongoSyncInstanceStatusLog(AuditedModel):
+    """mongodb_sync_instance_status_task 对成员 state、实例 status 的修改记录。"""
+
+    bk_cloud_id = models.IntegerField(verbose_name=_("云区域ID"), default=0)
+    bk_biz_id = models.IntegerField(verbose_name=_("业务ID"), default=0)
+    cluster_id = models.IntegerField(verbose_name=_("集群ID"), default=0)
+    immute_domain = models.CharField(verbose_name=_("集群域名"), max_length=LEN_LONG, blank=True, default="")
+    instance_id = models.BigIntegerField(verbose_name=_("实例ID"), db_index=True, default=0)
+    ip = models.GenericIPAddressField(verbose_name=_("实例IP"), db_index=True, null=True, blank=True)
+    port = models.IntegerField(verbose_name=_("端口"), default=0)
+    bk_host_id = models.IntegerField(verbose_name=_("机器ID"), default=0)
+    shard = models.CharField(verbose_name=_("分片"), max_length=LEN_LONG, blank=True, default="")
+    old_state = models.CharField(verbose_name=_("原成员状态"), max_length=LEN_NORMAL, blank=True, default="")
+    old_state_code = models.IntegerField(verbose_name=_("原成员状态码"), default=-1)
+    new_state = models.CharField(verbose_name=_("新成员状态"), max_length=LEN_NORMAL, blank=True, default="")
+    new_state_code = models.IntegerField(verbose_name=_("新成员状态码"), default=-1)
+    old_status = models.CharField(verbose_name=_("原实例状态"), max_length=LEN_NORMAL, blank=True, default="")
+    new_status = models.CharField(verbose_name=_("新实例状态"), max_length=LEN_NORMAL, blank=True, default="")
+    source = models.CharField(
+        verbose_name=_("来源"),
+        choices=MongoSyncInstanceStatusSource.get_choices(),
+        max_length=LEN_NORMAL,
+        db_index=True,
+    )
+    message = models.CharField(verbose_name=_("变更说明"), max_length=LEN_XX_LONG, blank=True, default="")
+
+    class Meta:
+        verbose_name = _("MongoDB实例状态同步记录 (tb_mongodb_sync_instance_status_log)")
+        verbose_name_plural = _("MongoDB实例状态同步记录 (tb_mongodb_sync_instance_status_log)")
+        db_table = "tb_mongodb_sync_instance_status_log"
+        ordering = ("-id",)
+        indexes = [
+            models.Index(fields=["bk_biz_id", "ip"], name="idx_mgo_sync_biz_ip"),
+        ]

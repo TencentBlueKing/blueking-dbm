@@ -14,9 +14,11 @@ MongoDB 进程拉起（MONGODB_INSTANCE_ENSURE_START）
   不是工具箱手工提单；与「MongoDB 实例重启」(MONGODB_INSTANCE_RELOAD) 无关。
 - 产品入口：不挂 MongoDB 工具箱菜单 / 前端路由；勿在 toolboxMenuList、routes 中注册。
 - 行为：ensure_start（已监听则跳过，否则 start+wait）→ meta RUNNING → start_dbmon
-  → service_status_check → fix_service_status（与节点状态修复对齐）。
+  → service_status_check → fix_service_status（与节点状态修复对齐）
+  → 若集群全部实例均为 running，则把集群 status 改回 normal。
   不屏蔽 dbmon；无 stop、无 UNAVAILABLE 闪断。
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Optional
@@ -37,6 +39,9 @@ from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 impo
 from backend.flow.plugins.components.collections.mongodb.fix_instance_status import (
     ExecFixInstanceStatusOperationComponent,
 )
+from backend.flow.plugins.components.collections.mongodb.restore_cluster_status import (
+    RestoreMongoClusterStatusComponent,
+)
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 from backend.flow.utils.mongodb.restart_target_resolver import (
@@ -56,7 +61,8 @@ class MongoDBInstanceEnsureFlow:
     MongoDB 进程拉起 Flow。
 
     前置：MONGODB_AUTOFIX_PRE（autofix）process_bad 跟单；不提供工具箱入口。
-    步骤：ensure_start → meta RUNNING → start_dbmon → service_status_check → fix_service_status。
+    步骤：ensure_start → meta RUNNING → start_dbmon → service_status_check → fix_service_status
+    → 全部实例 running 时恢复集群 status 为 normal。
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -242,6 +248,13 @@ class MongoDBInstanceEnsureFlow:
         for target in sorted(targets, key=lambda n: (n.ip, n.port)):
             pipeline.add_sub_pipeline(
                 sub_flow=self._build_node_ensure_subflow(actuator_workdir, target, credentials_map)
+            )
+        cluster_ids = sorted({int(target.cluster_id) for target in targets if target.cluster_id})
+        if cluster_ids:
+            pipeline.add_act(
+                act_name=_("MongoDB-恢复集群状态"),
+                act_component_code=RestoreMongoClusterStatusComponent.code,
+                kwargs={"cluster_ids": cluster_ids},
             )
         pipeline.run_pipeline()
 

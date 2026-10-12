@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
@@ -51,7 +52,10 @@ class MongoAutofixCoreAdmin(admin.ModelAdmin):
             _("集群"),
             {"fields": ("bk_cloud_id", "bk_biz_id", "cluster_id", "cluster_ids", "cluster_type", "immute_domain")},
         ),
-        (_("故障机"), {"fields": ("ip", "bk_host_id", "ports", "roles", "fault_machines", "bk_city", "bk_sub_zone_id")}),
+        (
+            _("故障机"),
+            {"fields": ("ip", "bk_host_id", "ports", "roles", "fault_machines", "bk_city", "bk_sub_zone_id")},
+        ),
         (
             _("自愈状态"),
             {
@@ -106,6 +110,28 @@ class MongoAutofixLogAdmin(admin.ModelAdmin):
     )
     list_filter = ("event", "deal_status", "bk_biz_id", "bk_cloud_id")
     search_fields = ("ip", "immute_domain", "message", "core_id", "pre_ticket_id", "ticket_id")
+    readonly_fields = ("create_at", "update_at")
+    ordering = ("-id",)
+    list_per_page = 50
+
+
+@admin.register(models.MongoSyncInstanceStatusLog)
+class MongoSyncInstanceStatusLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "immute_domain",
+        "ip",
+        "port",
+        "source",
+        "old_state",
+        "new_state",
+        "old_status",
+        "new_status",
+        "message",
+        "create_at",
+    )
+    list_filter = ("source", "new_state", "new_status", "bk_biz_id", "bk_cloud_id")
+    search_fields = ("ip", "immute_domain", "message", "instance_id", "shard")
     readonly_fields = ("create_at", "update_at")
     ordering = ("-id",)
     list_per_page = 50

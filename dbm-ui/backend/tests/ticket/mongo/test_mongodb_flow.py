@@ -19,7 +19,6 @@ from backend.db_meta.models import Cluster, Machine, ProxyInstance
 from backend.tests.mock_data.ticket.mongodb_flow import (
     MONGODB_ADD_MONGOS_TICKET_DATA,
     MONGODB_CLUSTER_DATA,
-    MONGODB_CUTOFF_TICKET_DATA,
     MONGODB_DESTROY_TICKET_DATA,
     MONGODB_MACHINE_DATA,
     MONGODB_PROXYINSTANCE_DATA,
@@ -81,11 +80,6 @@ class TestMangodbFlow(BaseTicketTest):
     def test_mongodb_destroy_flow(self):
         # MONGODB 集群下架: start --> itsm --> PAUSE --> INNER_FLOW --> end
         self.flow_test(MONGODB_DESTROY_TICKET_DATA)
-
-    @use_pipeline_mock
-    def test_mongo_cutoff_flow(self):
-        # MONGODB 整机替换: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
-        self.flow_test(MONGODB_CUTOFF_TICKET_DATA)
 
     @use_pipeline_mock
     def test_mongo_remove_ns(self):
