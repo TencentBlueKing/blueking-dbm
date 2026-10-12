@@ -123,8 +123,8 @@ class MongoRollingRestartSubTask:
             admin_password,
         )
 
-        # stop 前将 meta status 置为非 running，避免巡检/HA 误判
-        cls._add_change_status_act(sb, target, InstanceStatus.UNAVAILABLE.value, instance_kind)
+        # stop 前写成 operating，避免巡检/HA 误判；同步任务不会把它改回 running
+        cls._add_change_status_act(sb, target, InstanceStatus.OPERATING.value, instance_kind)
 
         stop_extra = {
             "graceful_stop": not force,

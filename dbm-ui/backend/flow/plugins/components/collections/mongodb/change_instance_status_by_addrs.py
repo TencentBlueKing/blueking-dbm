@@ -25,6 +25,7 @@ _ALLOWED_STATUS = {
     InstanceStatus.UNAVAILABLE.value,
     InstanceStatus.RUNNING.value,
     InstanceStatus.UPGRADING.value,
+    InstanceStatus.OPERATING.value,
 }
 _INSTANCE_KIND_STORAGE = "storage"
 _INSTANCE_KIND_PROXY = "proxy"

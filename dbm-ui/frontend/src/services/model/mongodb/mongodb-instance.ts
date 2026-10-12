@@ -44,6 +44,7 @@ export default class MongodbInstance extends InstanceBase {
   static statusMap: Record<string, string> = {
     running: t('正常'),
     unavailable: t('异常'),
+    operating: t('操作中'),
   };
 
   static themes: Record<string, string> = {

@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import datetime
 import logging
 from typing import Optional, Union
 
+from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
@@ -20,21 +23,38 @@ from backend import env
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.core import notify
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix import ctl as autofix_ctl
-from backend.db_services.mongodb.autofix.enums import MongoAutofixStatus
+from backend.db_services.mongodb.autofix.enums import (
+    MONGO_AUTOFIX_ACTIVE_STATUSES,
+    MongoAutofixConfirmResult,
+    MongoAutofixStatus,
+)
 from backend.db_services.mongodb.autofix.models import MongoAutofixCore
 from backend.db_services.mongodb.autofix.remark import autofix_core_tag
+from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.db_services.redis.autofix.enums import AutofixStatus
 from backend.db_services.redis.autofix.models import RedisAutofixCore
 from backend.ticket.builders.common.constants import OperaObjType
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
+
+# PRE 判定为整机替换的确认结果。同组里这些 Core 才并进同一张替换单。
+REPLACE_CONFIRM_RESULTS = frozenset(
+    {
+        MongoAutofixConfirmResult.DISK_RO.value,
+        MongoAutofixConfirmResult.MACHINE_DEAD.value,
+        MongoAutofixConfirmResult.DISK_DEAD.value,
+    }
+)
+_UNTRIAGED_STATUS = frozenset({MongoAutofixStatus.DETECTED.value, MongoAutofixStatus.PRE_RUNNING.value})
+# 同组未分诊 Core 超过该时间不再挡住替换单开工；挂起的替换单也按此时间兜底启动
+GROUP_WAIT_MINUTES = 30
 
 
 def _apply_followup_approval_flags(details: dict) -> dict:
@@ -161,6 +181,179 @@ def is_mongos_core(core: MongoAutofixCore) -> bool:
     return any(str(role).lower() == MachineType.MONGOS.value for role in (core.roles or []))
 
 
+def _shard_names_by_host(cluster_id: int, host_ids: set) -> dict:
+    """一次查出多台机器各自的全部分片名。"""
+    host_ids = {int(hid) for hid in host_ids if hid}
+    if not cluster_id or not host_ids:
+        return {}
+    insts = list(
+        StorageInstance.objects.filter(cluster__id=cluster_id, machine__bk_host_id__in=host_ids)
+        .select_related("machine")
+        .only("id", "machine__bk_host_id")
+    )
+    if not insts:
+        return {hid: frozenset() for hid in host_ids}
+    _, mapping = MongoDBListRetrieveResource.query_storage_shard(Q(id__in=[inst.id for inst in insts]))
+    by_host = {hid: set() for hid in host_ids}
+    for inst in insts:
+        name = mapping.get(inst.id) or ""
+        if name:
+            by_host[inst.machine.bk_host_id].add(name)
+    return {hid: frozenset(names) for hid, names in by_host.items()}
+
+
+def _format_shard_group(kind: str, cluster_id: int, shards) -> str:
+    return f"{kind}:{cluster_id}:{','.join(sorted(shards))}"
+
+
+def _parse_shards_from_group(affinity_group: str) -> set:
+    if affinity_group.count(":") < 2:
+        return set()
+    rest = affinity_group.split(":", 2)[2]
+    if not rest:
+        return set()
+    return {name for name in rest.split(",") if name}
+
+
+def _group_kind_for_machine_type(machine_type: str) -> str:
+    if machine_type == MachineType.MONOG_CONFIG.value:
+        return "config"
+    return "shard"
+
+
+def _core_machine_type(core: MongoAutofixCore) -> str:
+    for item in core.fault_machines or []:
+        if isinstance(item, dict) and item.get("machine_type"):
+            return item["machine_type"]
+    if is_mongos_core(core):
+        return MachineType.MONGOS.value
+    if core.bk_host_id:
+        machine = Machine.objects.filter(bk_host_id=core.bk_host_id).only("machine_type").first()
+        if machine:
+            return machine.machine_type
+    return ""
+
+
+def _merge_connected_shard_groups(items: list) -> dict:
+    """
+    items: [(key, frozenset shards), ...]
+    分片集合有交集（含经第三方连通）的归为一组，返回 key -> 连通块内全部 shards。
+    """
+    parent = {item[0]: item[0] for item in items}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    for i, (key_a, shards_a) in enumerate(items):
+        for key_b, shards_b in items[i + 1 :]:
+            if shards_a & shards_b:
+                union(key_a, key_b)
+    components = {}
+    for key, shards in items:
+        root = find(key)
+        components.setdefault(root, set()).update(shards)
+    return {key: frozenset(components[find(key)]) for key, _ in items}
+
+
+def affinity_group_for_machine(cluster: Cluster, machine_type: str, bk_host_id: int, shards=None) -> str:
+    """反亲和组：mongos/副本集按集群；分片 mongodb/config 按该机全部分片（可传入已查好的 shards）。"""
+    cid = cluster.id
+    if machine_type == MachineType.MONGOS.value:
+        return f"mongos:{cid}"
+    if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+        return f"replicaset:{cid}"
+    if shards is None:
+        shards = _shard_names_by_host(cid, {bk_host_id}).get(bk_host_id or 0, frozenset())
+    kind = _group_kind_for_machine_type(machine_type)
+    return _format_shard_group(kind, cid, shards)
+
+
+def affinity_group_for_core(core: MongoAutofixCore, cluster=None, shards_by_host=None) -> str:
+    machine_type = _core_machine_type(core)
+    if cluster is None:
+        cluster = Cluster.objects.filter(id=core.cluster_id).first()
+    if cluster is None:
+        kind = "mongos" if machine_type == MachineType.MONGOS.value else "shard"
+        return f"{kind}:{core.cluster_id}:"
+    shards = None
+    if shards_by_host is not None and core.bk_host_id:
+        shards = shards_by_host.get(core.bk_host_id, frozenset())
+    return affinity_group_for_machine(cluster, machine_type, core.bk_host_id or 0, shards=shards)
+
+
+def ensure_affinity_groups(cluster_id: int, mongos_list: list, mongod_list: list) -> None:
+    """给故障机重算 affinity_group。并单后必须重算，避免第一台留在旧的单分片键上。"""
+    if not cluster_id:
+        return
+    cluster = Cluster.objects.filter(id=cluster_id).first()
+    if cluster is None:
+        return
+    for host in mongos_list or []:
+        host["affinity_group"] = f"mongos:{cluster.id}"
+    mongod_list = mongod_list or []
+    if not mongod_list:
+        return
+    if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+        for host in mongod_list:
+            host["affinity_group"] = f"replicaset:{cluster.id}"
+        return
+    host_ids = {host.get("bk_host_id") for host in mongod_list if host.get("bk_host_id")}
+    shards_by_host = _shard_names_by_host(cluster.id, host_ids)
+    by_kind = {"shard": [], "config": []}
+    for idx, host in enumerate(mongod_list):
+        machine_type = host.get("instance_type") or host.get("machine_type") or ""
+        kind = _group_kind_for_machine_type(machine_type)
+        shards = shards_by_host.get(host.get("bk_host_id") or 0, frozenset())
+        by_kind[kind].append((idx, shards))
+    for kind, items in by_kind.items():
+        if not items:
+            continue
+        merged = _merge_connected_shard_groups([(idx, shards) for idx, shards in items])
+        for idx, _shards in items:
+            mongod_list[idx]["affinity_group"] = _format_shard_group(kind, cluster.id, merged[idx])
+
+
+def machine_as_current_host(machine) -> dict:
+    return {
+        "ip": machine.ip,
+        "bk_host_id": machine.bk_host_id,
+        "sub_zone": machine.bk_sub_zone or "0",
+        "sub_zone_id": str(machine.bk_sub_zone_id or 0),
+        "rack_id": str(machine.bk_rack_id or 0),
+    }
+
+
+def survivor_current_hosts(cluster: Cluster, affinity_group: str, fault_host_ids: set) -> list:
+    """同组里排除本次故障机后，仍然留在集群中的机器。多分片组只取这些分片上的存活机。"""
+    shards = _parse_shards_from_group(affinity_group)
+    if affinity_group.startswith("mongos:"):
+        insts = list(ProxyInstance.objects.select_related("machine").filter(cluster=cluster))
+    else:
+        insts = list(StorageInstance.objects.select_related("machine").filter(cluster=cluster))
+        if affinity_group.startswith("config:"):
+            insts = [inst for inst in insts if inst.machine.machine_type == MachineType.MONOG_CONFIG.value]
+        elif affinity_group.startswith("shard:"):
+            insts = [inst for inst in insts if inst.machine.machine_type == MachineType.MONGODB.value]
+        if shards and insts and affinity_group.startswith(("shard:", "config:")):
+            _, mapping = MongoDBListRetrieveResource.query_storage_shard(Q(id__in=[inst.id for inst in insts]))
+            insts = [inst for inst in insts if mapping.get(inst.id) in shards]
+    machines = {}
+    for inst in insts:
+        machine = inst.machine
+        if machine.bk_host_id in fault_host_ids:
+            continue
+        machines[machine.bk_host_id] = machine
+    return [machine_as_current_host(machine) for machine in machines.values()]
+
+
 def build_mongos_list_from_core(core: MongoAutofixCore) -> list:
     """从 MongoAutofixCore 组装 mongos_list（供 MONGODB_AUTOFIX 申请资源）。"""
     return build_mongod_list_from_core(core)
@@ -219,6 +412,7 @@ def build_mongod_list_from_core(core: MongoAutofixCore) -> list:
             "instance_type": machine.machine_type,
             "labels": list(env.MONGODB_AUTOFIX_RESOURCE_LABELS or []),
             "label_names": list(env.MONGODB_AUTOFIX_RESOURCE_LABEL_NAMES or []),
+            "affinity_group": affinity_group_for_core(core),
         }
     ]
 
@@ -434,13 +628,322 @@ def create_mongo_manual_ticket(core: MongoAutofixCore, creator: Optional[str] = 
     return ticket
 
 
+def _extend_hosts(base: list, extra: list) -> None:
+    seen = {host.get("ip") for host in base}
+    for host in extra:
+        ip = host.get("ip")
+        if ip and ip not in seen:
+            base.append(host)
+            seen.add(ip)
+
+
+def _core_needs_replace_slot(core: MongoAutofixCore, current_id: int) -> bool:
+    """当前 Core 一定占位。其它 Core 仅在已确认替换且还没有替换单时并入。"""
+    if core.id == current_id:
+        return True
+    if (core.confirm_result or "") not in REPLACE_CONFIRM_RESULTS:
+        return False
+    return not core.ticket_id or core.ticket_id <= 0
+
+
+def _core_is_untriaged(core: MongoAutofixCore) -> bool:
+    """未分诊且仍在等待窗口内。超过 GROUP_WAIT_MINUTES 不再挡住替换单。"""
+    if core.deal_status not in _UNTRIAGED_STATUS:
+        return False
+    if (core.confirm_result or "") in REPLACE_CONFIRM_RESULTS:
+        return False
+    update_at = getattr(core, "update_at", None)
+    if update_at is None:
+        return True
+    if timezone.is_naive(update_at):
+        update_at = timezone.make_aware(update_at)
+    return timezone.now() - update_at <= datetime.timedelta(minutes=GROUP_WAIT_MINUTES)
+
+
+def _resource_flow(ticket: Ticket):
+    return ticket.flows.filter(flow_type=FlowType.RESOURCE_BATCH_APPLY.value).first()
+
+
+def _resource_pending(ticket: Ticket) -> bool:
+    flow = _resource_flow(ticket)
+    if not flow or (flow.details or {}).get("resource_apply_status"):
+        return False
+    return flow.status == TicketFlowStatus.PENDING.value
+
+
+def _same_group_cores(core: MongoAutofixCore) -> list:
+    """同反亲和组活跃 Core。分片机器按分片集合连通块归并，避免一台多 shard 被拆开。"""
+    locked = list(
+        MongoAutofixCore.objects.select_for_update()
+        .filter(
+            bk_biz_id=core.bk_biz_id,
+            cluster_id=core.cluster_id,
+            deal_status__in=MONGO_AUTOFIX_ACTIVE_STATUSES,
+        )
+        .order_by("id")
+    )
+    cluster = Cluster.objects.filter(id=core.cluster_id).first()
+    if cluster is None:
+        group = affinity_group_for_core(core)
+        return [item for item in locked if affinity_group_for_core(item) == group], group
+
+    if cluster.cluster_type == ClusterType.MongoReplicaSet.value or is_mongos_core(core):
+        group = affinity_group_for_core(core, cluster=cluster)
+        return [item for item in locked if affinity_group_for_core(item, cluster=cluster) == group], group
+
+    host_ids = {item.bk_host_id for item in locked if item.bk_host_id}
+    shards_by_host = _shard_names_by_host(cluster.id, host_ids)
+    typed = []
+    for item in locked:
+        machine_type = _core_machine_type(item)
+        kind = _group_kind_for_machine_type(machine_type)
+        shards = shards_by_host.get(item.bk_host_id or 0, frozenset())
+        typed.append((item, kind, shards))
+    current_type = _core_machine_type(core)
+    current_kind = _group_kind_for_machine_type(current_type)
+    same_kind = [(item, shards) for item, kind, shards in typed if kind == current_kind]
+    if not same_kind:
+        group = affinity_group_for_core(core, cluster=cluster, shards_by_host=shards_by_host)
+        return [core], group
+    merged = _merge_connected_shard_groups([(item.id, shards) for item, shards in same_kind])
+    component_shards = merged.get(core.id, shards_by_host.get(core.bk_host_id or 0, frozenset()))
+    group = _format_shard_group(current_kind, cluster.id, component_shards)
+    same = [item for item, shards in same_kind if merged.get(item.id) == component_shards]
+    return same, group
+
+
+def _hosts_of_cores(cores: list) -> tuple:
+    mongos_list, mongod_list = [], []
+    for core in cores:
+        if is_mongos_core(core):
+            _extend_hosts(mongos_list, build_mongos_list_from_core(core))
+        else:
+            _extend_hosts(mongod_list, build_mongod_list_from_core(core))
+    return mongos_list, mongod_list
+
+
+def applied_hosts_as_current(ticket: Ticket) -> list:
+    """已申请到的新机器，供后续同组申请当作 current_hosts。"""
+    inner = ticket.flows.filter(flow_type=FlowType.INNER_FLOW.value).first()
+    if not inner:
+        return []
+    infos = ((inner.details or {}).get("ticket_data") or {}).get("infos") or []
+    found, seen = [], set()
+    for info in infos:
+        hosts = list(info.get("mongos_list") or []) + list(info.get("mongod_list") or [])
+        for host in hosts:
+            for applied in info.get(host.get("ip")) or []:
+                host_id = applied.get("bk_host_id")
+                if not host_id or host_id in seen:
+                    continue
+                seen.add(host_id)
+                found.append(
+                    {
+                        "ip": applied.get("ip"),
+                        "bk_host_id": host_id,
+                        "sub_zone": applied.get("sub_zone") or "0",
+                        "sub_zone_id": str(applied.get("sub_zone_id") or 0),
+                        "rack_id": str(applied.get("rack_id") or 0),
+                    }
+                )
+    return found
+
+
+def _refresh_open_replace_ticket(ticket: Ticket, mongos_list: list, mongod_list: list) -> None:
+    """资源申请尚未开始时，把后到的故障机并进同一张单。"""
+    from backend.ticket.builders.mongodb.mongo_autofix import MongoDBAutofixResourceParamBuilder
+
+    details = ticket.details
+    info = details["infos"][0]
+    _extend_hosts(info.setdefault("mongos_list", []), mongos_list)
+    _extend_hosts(info.setdefault("mongod_list", []), mongod_list)
+    ensure_affinity_groups((info.get("cluster_ids") or [0])[0], info["mongos_list"], info["mongod_list"])
+    ticket.details = details
+    ticket.save(update_fields=["details", "update_at"])
+
+    resource_flow = _resource_flow(ticket)
+    if resource_flow:
+        resource_flow.details = MongoDBAutofixResourceParamBuilder(ticket).get_params()
+        resource_flow.save(update_fields=["details", "update_at"])
+    inner = ticket.flows.filter(flow_type=FlowType.INNER_FLOW.value).first()
+    if inner:
+        inner_details = inner.details
+        inner_info = inner_details["ticket_data"]["infos"][0]
+        _extend_hosts(inner_info.setdefault("mongos_list", []), mongos_list)
+        _extend_hosts(inner_info.setdefault("mongod_list", []), mongod_list)
+        ensure_affinity_groups(
+            (inner_info.get("cluster_ids") or [0])[0], inner_info["mongos_list"], inner_info["mongod_list"]
+        )
+        inner.details = inner_details
+        inner.save(update_fields=["details", "update_at"])
+
+
+def _bind_replace_cores(cores: list, ticket: Ticket) -> None:
+    for core in cores:
+        if core.ticket_id == ticket.id and core.deal_status == MongoAutofixStatus.TICKETED.value:
+            continue
+        core.ticket_id = ticket.id
+        core.deal_status = MongoAutofixStatus.TICKETED.value
+        core.save(update_fields=["ticket_id", "deal_status", "update_at"])
+
+
+def prepare_grouped_replace(core: MongoAutofixCore, mongos_list: list, mongod_list: list) -> dict:
+    """同反亲和组并成一张替换单。资源未申请时后到的 Core 挂到该单，不再单独申请。"""
+    with transaction.atomic():
+        same, group = _same_group_cores(core)
+        locked_self = next((item for item in same if item.id == core.id), None)
+        if locked_self and locked_self.ticket_id and locked_self.ticket_id > 0:
+            ticket = (
+                Ticket.objects.select_for_update()
+                .filter(id=locked_self.ticket_id, ticket_type=TicketType.MONGODB_AUTOFIX.value)
+                .first()
+            )
+            if ticket:
+                return {"ticket": ticket}
+        open_tickets = []
+        for item in same:
+            if item.ticket_id and item.ticket_id > 0 and item.ticket_id not in open_tickets:
+                open_tickets.append(item.ticket_id)
+        pending_cores = [item for item in same if _core_needs_replace_slot(item, core.id)]
+        if all(item.id != core.id for item in pending_cores):
+            pending_cores.append(core)
+        extra_mongos, extra_mongod = _hosts_of_cores([item for item in pending_cores if item.id != core.id])
+        _extend_hosts(mongos_list, extra_mongos)
+        _extend_hosts(mongod_list, extra_mongod)
+        auto_execute = not any(_core_is_untriaged(item) for item in same if item.id != core.id)
+        for ticket_id in open_tickets:
+            ticket = (
+                Ticket.objects.select_for_update()
+                .filter(id=ticket_id, ticket_type=TicketType.MONGODB_AUTOFIX.value)
+                .first()
+            )
+            if not ticket or not _resource_pending(ticket):
+                continue
+            _refresh_open_replace_ticket(ticket, mongos_list, mongod_list)
+            _bind_replace_cores(pending_cores, ticket)
+            logger.info("mongodb autofix join replace ticket=%s group=%s", ticket.id, group)
+            return {"ticket": ticket}
+        prior = []
+        for ticket_id in open_tickets:
+            ticket = Ticket.objects.filter(id=ticket_id).first()
+            if ticket:
+                prior.extend(applied_hosts_as_current(ticket))
+        return {
+            "ticket": None,
+            "mongos_list": mongos_list,
+            "mongod_list": mongod_list,
+            "prior_current_hosts": prior,
+            "bind_cores": [item for item in pending_cores if item.id != core.id],
+            "auto_execute": auto_execute,
+        }
+
+
+def _claim_pending_replace_ticket(ticket: Ticket) -> bool:
+    """资源流仍 PENDING 且未开工时打上 grouped_execute_started，返回是否应启动。"""
+    if not ticket or not _resource_pending(ticket):
+        return False
+    details = ticket.details or {}
+    if details.get("grouped_execute_started"):
+        return False
+    details["grouped_execute_started"] = True
+    ticket.details = details
+    ticket.save(update_fields=["details", "update_at"])
+    return True
+
+
+def maybe_execute_group_replace(core_id) -> None:
+    """同组 PRE 都结束后，启动还挂起的替换单。"""
+    if not core_id:
+        return
+    try:
+        core = MongoAutofixCore.objects.filter(id=core_id).first()
+        if not core:
+            return
+        to_start = []
+        with transaction.atomic():
+            same, group = _same_group_cores(core)
+            if any(_core_is_untriaged(item) for item in same):
+                logger.info("mongodb autofix replace wait group=%s core=%s", group, core_id)
+                return
+            ticket_ids = []
+            for item in same:
+                if item.ticket_id and item.ticket_id > 0 and item.ticket_id not in ticket_ids:
+                    ticket_ids.append(item.ticket_id)
+            for ticket_id in ticket_ids:
+                ticket = (
+                    Ticket.objects.select_for_update()
+                    .filter(id=ticket_id, ticket_type=TicketType.MONGODB_AUTOFIX.value)
+                    .first()
+                )
+                if _claim_pending_replace_ticket(ticket):
+                    to_start.append(ticket)
+        from backend.ticket.flow_manager.manager import TicketFlowManager
+
+        for ticket in to_start:
+            logger.info("mongodb autofix start grouped replace ticket=%s", ticket.id)
+            TicketFlowManager(ticket).run_next_flow()
+    except Exception:  # noqa: BLE001
+        logger.exception("mongodb autofix start grouped replace fail core=%s", core_id)
+
+
+def start_hung_grouped_replace_tickets(older_than_minutes: int = GROUP_WAIT_MINUTES) -> int:
+    """
+    周期兜底：资源流仍 PENDING、未置 grouped_execute_started、且创建超过 N 分钟的替换单，主动开工。
+    """
+    from backend.ticket.flow_manager.manager import TicketFlowManager
+
+    cutoff = timezone.now() - datetime.timedelta(minutes=older_than_minutes)
+    candidates = list(
+        Ticket.objects.filter(
+            ticket_type=TicketType.MONGODB_AUTOFIX.value,
+            create_at__lte=cutoff,
+        )
+        .order_by("id")
+        .only("id", "details", "create_at")[:200]
+    )
+    started = 0
+    for candidate in candidates:
+        try:
+            to_run = None
+            with transaction.atomic():
+                ticket = (
+                    Ticket.objects.select_for_update()
+                    .filter(id=candidate.id, ticket_type=TicketType.MONGODB_AUTOFIX.value)
+                    .first()
+                )
+                if _claim_pending_replace_ticket(ticket):
+                    to_run = ticket
+            if to_run:
+                logger.info("mongodb autofix start hung replace ticket=%s", to_run.id)
+                TicketFlowManager(to_run).run_next_flow()
+                started += 1
+        except Exception:  # noqa: BLE001
+            logger.exception("mongodb autofix start hung replace fail ticket=%s", candidate.id)
+    return started
+
+
 def mongo_create_ticket(
     cluster: Union[RedisAutofixCore, MongoAutofixCore],
     cluster_ids: list,
     mongos_list: list,
     mongod_list: list,
 ):
-    """mongodb自愈创建单据 以cluster为维度。成功返回 Ticket，规格为空或失败返回 None。"""
+    """mongodb自愈创建单据。Mongo Core 按反亲和组并单。成功返回 Ticket，规格为空或失败返回 None。"""
+
+    prior_current_hosts = []
+    bind_cores = []
+    auto_execute = True
+    if isinstance(cluster, MongoAutofixCore):
+        prepared = prepare_grouped_replace(cluster, mongos_list, mongod_list)
+        if prepared.get("ticket"):
+            return prepared["ticket"]
+        mongos_list = prepared["mongos_list"]
+        mongod_list = prepared["mongod_list"]
+        prior_current_hosts = prepared["prior_current_hosts"]
+        bind_cores = prepared["bind_cores"]
+        auto_execute = prepared["auto_execute"]
+    if cluster_ids:
+        ensure_affinity_groups(cluster_ids[0], mongos_list, mongod_list)
 
     # 获取dba
     mongodb_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=cluster.bk_biz_id, db_type=DBType.MongoDB.value)
@@ -479,6 +982,7 @@ def mongo_create_ticket(
                 "cluster_type": cluster_type,
                 "mongos_list": mongos_list,
                 "mongod_list": mongod_list,
+                "prior_current_hosts": prior_current_hosts,
             }
         ],
     }
@@ -499,6 +1003,7 @@ def mongo_create_ticket(
             bk_biz_id=cluster.bk_biz_id,
             remark=remark,
             details=details,
+            auto_execute=auto_execute,
         )
 
         # 发送自愈消息提醒
@@ -519,6 +1024,8 @@ def mongo_create_ticket(
     # 回写自愈核心表
     if ticket:
         cluster.ticket_id = ticket.id
+        if isinstance(cluster, MongoAutofixCore):
+            _bind_replace_cores(bind_cores, ticket)
     update_fields = ["ticket_id", "status_version", "deal_status"]
     if not isinstance(cluster, MongoAutofixCore):
         # RedisAutofixCore 历史逻辑用字符串时间

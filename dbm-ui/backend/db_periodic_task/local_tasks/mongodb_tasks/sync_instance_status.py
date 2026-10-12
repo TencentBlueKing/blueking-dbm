@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import datetime
 import logging
@@ -23,8 +24,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from backend import env
+from backend.bk_web.constants import LEN_LONG, LEN_XX_LONG
 from backend.components import BKMonitorV3Api
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_meta.enums.instance_status import MongoDBStorageInstanceStatus
 from backend.db_meta.models import Cluster, MongoDBStorageInstanceExt, StorageInstance
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
@@ -33,6 +35,8 @@ from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mongodb_check_sub_type import StorageInstanceStatusCheckSubType
 from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.db_report.repo.task_record_repo import get_report_day_from_time
+from backend.db_services.mongodb.autofix.enums import MongoSyncInstanceStatusSource
+from backend.db_services.mongodb.autofix.models import MongoSyncInstanceStatusLog
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
@@ -302,6 +306,117 @@ def _make_change_report(
     )
 
 
+def _missing_my_state_marks_unknown(old_state_code: int) -> bool:
+    """exporter 不再上报 my_state 时，是否把成员状态写成 UNKNOWN。
+
+    机器宕机后本机 exporter 消失。若库里已经是 DOWN/UNKNOWN，再写成 UNKNOWN
+    会在随后的旁观者 overlay 里被写回 DOWN，状态在两者之间来回改。
+    """
+    return old_state_code not in (
+        MongoDBStorageInstanceStatus.DOWN.value,
+        MongoDBStorageInstanceStatus.UNKNOWN.value,
+    )
+
+
+def _should_apply_peer_state(old_state_code: int, new_state_code: int) -> bool:
+    """旁观者 overlay 是否落库。UNKNOWN 不能把已确认的 DOWN 降回去。"""
+    if old_state_code == new_state_code:
+        return False
+    if (
+        old_state_code == MongoDBStorageInstanceStatus.DOWN.value
+        and new_state_code == MongoDBStorageInstanceStatus.UNKNOWN.value
+    ):
+        return False
+    return True
+
+
+def _collect_secondary_status_candidate(ext: MongoDBStorageInstanceExt, new_state_code: int, bucket: set[int]) -> None:
+    """本轮 my_state 确认为 SECONDARY 且实例 status 为 unavailable 时，记入待恢复集合。"""
+    if new_state_code != MongoDBStorageInstanceStatus.SECONDARY.value:
+        return
+    instance = getattr(ext, "instance", None)
+    if instance is None:
+        return
+    if getattr(instance, "status", None) != InstanceStatus.UNAVAILABLE.value:
+        return
+    instance_id = getattr(instance, "id", None)
+    if not instance_id:
+        return
+    bucket.add(int(instance_id))
+
+
+def _cluster_of_ext(ext: MongoDBStorageInstanceExt):
+    instance = getattr(ext, "instance", None)
+    if instance is None:
+        return None
+    cluster_rel = getattr(instance, "cluster", None)
+    first = getattr(cluster_rel, "first", None)
+    if not callable(first):
+        return None
+    try:
+        return first()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_sync_log(
+    ext: MongoDBStorageInstanceExt,
+    *,
+    source: str,
+    shard: str,
+    old_state: str,
+    old_state_code: int,
+    new_state: str,
+    new_state_code: int,
+    old_status: str = "",
+    new_status: str = "",
+) -> MongoSyncInstanceStatusLog:
+    cluster = _cluster_of_ext(ext)
+    instance = ext.instance
+    machine = getattr(instance, "machine", None)
+    ip = getattr(machine, "ip", None) or None
+    if not old_status and not new_status:
+        current_status = str(getattr(instance, "status", "") or "")
+        old_status = current_status
+        new_status = current_status
+    if old_state_code != new_state_code:
+        message = f"{old_state}({old_state_code}) -> {new_state}({new_state_code})"
+    elif old_status != new_status:
+        message = f"status {old_status} -> {new_status}"
+    else:
+        message = ""
+    return MongoSyncInstanceStatusLog(
+        creator="system",
+        updater="system",
+        bk_cloud_id=int(getattr(cluster, "bk_cloud_id", 0) or 0),
+        bk_biz_id=int(getattr(cluster, "bk_biz_id", 0) or 0),
+        cluster_id=int(getattr(cluster, "id", 0) or 0),
+        immute_domain=str(getattr(cluster, "immute_domain", "") or ""),
+        instance_id=int(getattr(instance, "id", 0) or 0),
+        ip=ip,
+        port=int(getattr(instance, "port", 0) or 0),
+        bk_host_id=int(getattr(machine, "bk_host_id", 0) or 0),
+        shard=(shard or "")[:LEN_LONG],
+        old_state=old_state or "",
+        old_state_code=old_state_code,
+        new_state=new_state or "",
+        new_state_code=new_state_code,
+        old_status=old_status or "",
+        new_status=new_status or "",
+        source=source,
+        message=message[:LEN_XX_LONG],
+    )
+
+
+def _bulk_create_sync_logs(rows: list[MongoSyncInstanceStatusLog]) -> None:
+    if not rows:
+        return
+    try:
+        MongoSyncInstanceStatusLog.objects.bulk_create(rows, batch_size=500)
+    except Exception as exc:  # noqa: BLE001 — 记日志失败不影响状态同步
+        logger.warning("mongodb sync instance status log write failed: %s", exc)
+
+
 class SyncStorageInstanceStatusTask:
     """同步storage实例的status到db_meta表中"""
 
@@ -311,7 +426,8 @@ class SyncStorageInstanceStatusTask:
         # step2: 旁观者异常圈定 shard，用 my_state 刷新存活节点
         # step3: 最近更新时间较旧的非 SECONDARY，检查并更新.
         # step4: 异常旁观者 overlay DOWN/UNKNOWN（在 my_state 之后，避免陈旧值覆盖）
-        # step5: 更新的记录写到mongodb巡检表. """
+        # step5: 本轮 my_state 确认为 SECONDARY 的实例，把 status 从 unavailable 改回 running
+        # step6: 更新的记录写到mongodb巡检表，修改明细写入 tb_mongodb_sync_instance_status_log. """
 
     check_type: str
 
@@ -390,6 +506,7 @@ class SyncStorageInstanceStatusTask:
 
             # step2: 旁观者异常圈定 shard，先用 my_state 刷新存活节点
             peer_targets: list[dict] = []
+            secondary_status_ids: set[int] = set()
             try:
                 peer_targets = self.fetch_peer_member_targets(
                     minutes=5, cluster_domain=cluster_domain, bk_biz_id=bk_biz_id
@@ -405,7 +522,12 @@ class SyncStorageInstanceStatusTask:
                 # 限定范围手工执行：即使无旁观者异常，也按作用域拉全量指标刷新
                 if scoped and not shard_list:
                     shard_list = self._list_shard_keys_for_scope(cluster_domain=cluster_domain, bk_biz_id=bk_biz_id)
-                self.check_and_update_shards(shard_list, record_batch_ops, report_day)
+                self.check_and_update_shards(
+                    shard_list,
+                    record_batch_ops,
+                    report_day,
+                    secondary_status_ids=secondary_status_ids,
+                )
             except Exception as e:
                 logger.error(f"fetch_peer_member_targets error: {e}")
 
@@ -427,7 +549,12 @@ class SyncStorageInstanceStatusTask:
                 dev_debug(
                     f"SyncStorageInstanceStatusTask fetch_changed_instance_list: {len(changed_instance_list)} instances"
                 )
-                self.check_and_update_instance(changed_instance_list, record_batch_ops, report_day)
+                self.check_and_update_instance(
+                    changed_instance_list,
+                    record_batch_ops,
+                    report_day,
+                    secondary_status_ids=secondary_status_ids,
+                )
             except Exception as e:
                 traceback.print_exc()
                 logger.error(f"fetch_changed_instance_list error: {e}")
@@ -437,6 +564,13 @@ class SyncStorageInstanceStatusTask:
                 self.apply_peer_member_updates(peer_targets, record_batch_ops, report_day)
             except Exception as e:
                 logger.error(f"apply_peer_member_updates error: {e}")
+
+            # step5: 旁观者 overlay 之后，只恢复本轮 my_state 仍为 SECONDARY 的实例 status
+            try:
+                restored = self.restore_secondary_instance_status(secondary_status_ids)
+                dev_debug(f"SyncStorageInstanceStatusTask restore_secondary_instance_status: {restored}")
+            except Exception as e:
+                logger.error(f"restore_secondary_instance_status error: {e}")
 
             record_batch_ops.bulk_create()
         finally:
@@ -483,11 +617,17 @@ class SyncStorageInstanceStatusTask:
         return list(shard_keys)
 
     def check_and_update_shards(
-        self, cluster_domain_shard_list: list, record_batch_ops: RecordBatchOps, report_day: int
+        self,
+        cluster_domain_shard_list: list,
+        record_batch_ops: RecordBatchOps,
+        report_day: int,
+        secondary_status_ids: set[int] | None = None,
     ):
         """
         以shard为单位，检查并更新 instance的ext表
         """
+        if secondary_status_ids is None:
+            secondary_status_ids = set()
         shards_by_cluster = _group_shards_by_cluster(cluster_domain_shard_list)
         for cluster_domain, shard_list in shards_by_cluster.items():
             for shard_batch in _chunk_list(shard_list, SHARD_METRIC_BATCH_SIZE):
@@ -509,6 +649,7 @@ class SyncStorageInstanceStatusTask:
                 ext_map = _load_ext_map_by_ip_ports(ip_ports)
                 now = timezone.now()
                 ext_updates = []
+                sync_logs = []
                 for item in metric_val:
                     instance_ip = item["bk_target_ip"]
                     instance_port = int(item["instance_port"])
@@ -521,16 +662,29 @@ class SyncStorageInstanceStatusTask:
                         )
                         continue
                     value = int(item["value"])
+                    _collect_secondary_status_candidate(ext, value, secondary_status_ids)
                     if ext.state_code == value:
                         continue
                     old_state = ext.state
                     old_state_code = ext.state_code
                     status = MongoDBStorageInstanceStatus.get_status_by_value(value)
+                    shard = item.get("shard", "")
+                    sync_logs.append(
+                        _make_sync_log(
+                            ext,
+                            source=MongoSyncInstanceStatusSource.SHARD_MY_STATE.value,
+                            shard=shard,
+                            old_state=old_state,
+                            old_state_code=old_state_code,
+                            new_state=status.name,
+                            new_state_code=status.value,
+                        )
+                    )
                     report = _make_change_report(
                         ext,
                         report_day=report_day,
                         sub_type=self.check_type,
-                        shard=item.get("shard", ""),
+                        shard=shard,
                         old_state=old_state,
                         old_state_code=old_state_code,
                         new_state=status.name,
@@ -541,10 +695,11 @@ class SyncStorageInstanceStatusTask:
                     ext.update_at = now
                     ext.state_code = status.value
                     ext.state = status.name
-                    ext.shard_name = item.get("shard", "")
+                    ext.shard_name = shard
                     ext_updates.append(ext)
 
                 updated_count = _bulk_update_ext_records(ext_updates)
+                _bulk_create_sync_logs(sync_logs)
                 dev_debug(
                     "check_and_update_shards updated {} ext rows for cluster_domain={} shards={}".format(
                         updated_count,
@@ -553,10 +708,18 @@ class SyncStorageInstanceStatusTask:
                     )
                 )
 
-    def check_and_update_instance(self, instance_list: list, record_batch_ops: RecordBatchOps, report_day: int):
+    def check_and_update_instance(
+        self,
+        instance_list: list,
+        record_batch_ops: RecordBatchOps,
+        report_day: int,
+        secondary_status_ids: set[int] | None = None,
+    ):
         """
         检查并更新cluster的状态
         """
+        if secondary_status_ids is None:
+            secondary_status_ids = set()
         pending_updates = []
         for one_instance in instance_list:
             addr = one_instance["instance"]
@@ -579,21 +742,35 @@ class SyncStorageInstanceStatusTask:
         ext_map = _load_ext_map_by_ip_ports([parsed for parsed, _, _, _ in pending_updates])
         now = timezone.now()
         ext_updates = []
+        sync_logs = []
         for (ip, port), new_state_code, new_state, new_shard_name in pending_updates:
             addr_key = _instance_addr_key(ip, port)
             ext = ext_map.get(addr_key)
             if ext is None:
                 logger.warning(f"missing MongoDBStorageInstanceExt for instance {addr_key}, skip")
                 continue
+            _collect_secondary_status_candidate(ext, new_state_code, secondary_status_ids)
             if ext.state_code == new_state_code:
                 continue
             old_state = ext.state
             old_state_code = ext.state_code
+            shard = new_shard_name or ext.shard_name or ""
+            sync_logs.append(
+                _make_sync_log(
+                    ext,
+                    source=MongoSyncInstanceStatusSource.STALE_MY_STATE.value,
+                    shard=shard,
+                    old_state=old_state,
+                    old_state_code=old_state_code,
+                    new_state=new_state,
+                    new_state_code=new_state_code,
+                )
+            )
             report = _make_change_report(
                 ext,
                 report_day=report_day,
                 sub_type=self.check_type,
-                shard=new_shard_name or ext.shard_name or "",
+                shard=shard,
                 old_state=old_state,
                 old_state_code=old_state_code,
                 new_state=new_state,
@@ -609,6 +786,7 @@ class SyncStorageInstanceStatusTask:
             ext_updates.append(ext)
 
         updated_count = _bulk_update_ext_records(ext_updates)
+        _bulk_create_sync_logs(sync_logs)
         dev_debug(f"check_and_update_instance updated {updated_count} ext rows")
 
     def fetch_changed_instance_list(
@@ -679,7 +857,8 @@ class SyncStorageInstanceStatusTask:
                     )
                 metric_val_dict[one_metric["instance"]] = one_metric["value"]
 
-            # 如果某个instance返回的内容为空，则认为该instance已经宕机，需要更新状态为UNAVAILABLE
+            # 本机 exporter 消失时，缺 my_state 视为不可达。
+            # 已经是 DOWN/UNKNOWN 则保持：再写成 UNKNOWN 会和旁观者 overlay 的 DOWN 来回覆盖。
             for one_addr in current_state_code_dict.keys():
                 if one_addr not in metric_val_dict:
                     if one_addr in skipped_empty_shard:
@@ -688,10 +867,13 @@ class SyncStorageInstanceStatusTask:
                             "skip UNKNOWN state update for this round"
                         )
                         continue
+                    old_code = current_state_code_dict[one_addr]
+                    if not _missing_my_state_marks_unknown(old_code):
+                        continue
                     changed_instance_list.append(
                         {
                             "instance": one_addr,
-                            "old_state_code": current_state_code_dict[one_addr],
+                            "old_state_code": old_code,
                             "new_state_code": MongoDBStorageInstanceStatus.UNKNOWN.value,
                             "new_state": MongoDBStorageInstanceStatus.UNKNOWN.name,
                             "new_shard_name": None,
@@ -786,6 +968,7 @@ class SyncStorageInstanceStatusTask:
         ext_map = _load_ext_map_by_ip_ports(ip_ports)
         now = timezone.now()
         ext_updates = []
+        sync_logs = []
         for target in targets:
             addr_key = _instance_addr_key(target["ip"], target["port"])
             ext = ext_map.get(addr_key)
@@ -793,12 +976,23 @@ class SyncStorageInstanceStatusTask:
                 logger.warning("apply_peer_member_updates: missing Ext for %s, skip", addr_key)
                 continue
             new_state_code = int(target["state_code"])
-            if ext.state_code == new_state_code:
+            if not _should_apply_peer_state(ext.state_code, new_state_code):
                 continue
             old_state = ext.state
             old_state_code = ext.state_code
             new_state = target["state"]
             new_shard = target.get("shard") or ext.shard_name or ""
+            sync_logs.append(
+                _make_sync_log(
+                    ext,
+                    source=MongoSyncInstanceStatusSource.PEER_OVERLAY.value,
+                    shard=new_shard,
+                    old_state=old_state,
+                    old_state_code=old_state_code,
+                    new_state=new_state,
+                    new_state_code=new_state_code,
+                )
+            )
             report = _make_change_report(
                 ext,
                 report_day=report_day,
@@ -826,7 +1020,49 @@ class SyncStorageInstanceStatusTask:
                 new_state_code,
                 target.get("peer_count"),
             )
-        return _bulk_update_ext_records(ext_updates)
+        updated_count = _bulk_update_ext_records(ext_updates)
+        _bulk_create_sync_logs(sync_logs)
+        return updated_count
+
+    def restore_secondary_instance_status(self, instance_ids: set[int]) -> int:
+        """成员 state 仍是 SECONDARY 时，把 StorageInstance.status 从 unavailable 改回 running。"""
+        if not instance_ids:
+            return 0
+        instances = list(
+            StorageInstance.objects.filter(
+                id__in=instance_ids,
+                status=InstanceStatus.UNAVAILABLE.value,
+                mongodbstorageinstanceext__state_code=MongoDBStorageInstanceStatus.SECONDARY.value,
+            )
+            .select_related("machine", "mongodbstorageinstanceext")
+            .prefetch_related("cluster")
+        )
+        if not instances:
+            return 0
+        ids = [inst.id for inst in instances]
+        StorageInstance.objects.filter(id__in=ids, status=InstanceStatus.UNAVAILABLE.value).update(
+            status=InstanceStatus.RUNNING.value
+        )
+        logs = []
+        for inst in instances:
+            ext = inst.mongodbstorageinstanceext
+            ext.instance = inst
+            logs.append(
+                _make_sync_log(
+                    ext,
+                    source=MongoSyncInstanceStatusSource.SECONDARY_STATUS.value,
+                    shard=ext.shard_name or "",
+                    old_state=ext.state,
+                    old_state_code=ext.state_code,
+                    new_state=ext.state,
+                    new_state_code=ext.state_code,
+                    old_status=InstanceStatus.UNAVAILABLE.value,
+                    new_status=InstanceStatus.RUNNING.value,
+                )
+            )
+        _bulk_create_sync_logs(logs)
+        logger.info("restore_secondary_instance_status updated %s instances", len(ids))
+        return len(ids)
 
     def fetch_latest_changes(
         self, minutes: int = 5, cluster_domain: str | None = None, bk_biz_id: int | None = None
