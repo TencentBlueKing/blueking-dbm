@@ -55,7 +55,7 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         action = BuilderFactory.get_ticket_iam_action(ticket_type)
         actions = [action] if action else []
         # 只考虑关联一种资源
-        resource_meta = action.related_resource_types[0] if action else None
+        resource_meta = action.related_resource_types[0] if action.related_resource_types else None
 
         # TODO: 暂时屏蔽对influxdb的鉴权
         # if resource_meta == ResourceEnum.INFLUXDB:

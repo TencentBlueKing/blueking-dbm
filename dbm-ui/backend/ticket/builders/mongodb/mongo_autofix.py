@@ -8,14 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Cluster, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -55,8 +57,36 @@ class MongoDBAutofixFlowParamBuilder(builders.FlowParamBuilder):
 
 class MongoDBAutofixResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
-        # 补充城市和亲和性（与 cutoff 一致）；resource_spec 以故障 IP 为 group
-        self.patch_info_affinity_location(replace_zone=True)
+        def _get_exclusive_hosts():
+            common_filters = Q(machine__machine_type=remain_machine_type, cluster=cluster) & ~Q(
+                machine__ip__in=off_host_ips
+            )
+            storage_insts = list(StorageInstance.objects.select_related("machine").filter(common_filters))
+            proxy_insts = list(ProxyInstance.objects.select_related("machine").filter(common_filters))
+            for inst in storage_insts + proxy_insts:
+                exclusive_hosts.append(inst.machine)
+
+        for info in self.ticket_data["infos"]:
+            cluster = Cluster.objects.get(info["cluster_ids"][0])
+            off_host_ips = []
+            remain_machine_type = ""
+            exclusive_hosts = []
+            if info.get("mongos_list"):
+                remain_machine_type = "mongos"
+                off_host_ips = [host["ip"] for host in info["mongos_list"]]
+
+            elif info.get("mongod_list"):
+                remain_machine_type = "mongodb"
+                off_host_ips = [host["ip"] for host in info["mongod_list"]]
+
+            _get_exclusive_hosts()
+            tolerance = get_mongodb_cluster_tolerance(cluster.disaster_tolerance_level, remain_machine_type)
+            for group_key in info["resource_spec"]:
+                if group_key in off_host_ips:
+                    self.patch_common_affinity(
+                        info, group_key, cluster, exclusive_hosts=exclusive_hosts, tolerance=tolerance
+                    )
+
         super().format()
 
     def post_callback(self):
