@@ -28,8 +28,7 @@ saas:
     resources: {}
     replicaCount: 1
     gunicornWorker: 8
-    threads: 8
-    timeout: 120
+    timeout: 300
     maxRequests: 5000
     maxRequestsJitter: 500
     autoscaling:
