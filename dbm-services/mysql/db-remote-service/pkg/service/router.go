@@ -5,6 +5,7 @@ import (
 	mysqlRpc "dbm-services/mysql/db-remote-service/pkg/v2/mysql/rpc"
 	mysqlWs "dbm-services/mysql/db-remote-service/pkg/v2/mysql/websocket"
 	mysqlDtsRpc "dbm-services/mysql/db-remote-service/pkg/v2/mysql_dts/rpc"
+	oracleRpc "dbm-services/mysql/db-remote-service/pkg/v2/oracle/rpc"
 	proxyRpc "dbm-services/mysql/db-remote-service/pkg/v2/proxy/rpc"
 	sqlserverRpc "dbm-services/mysql/db-remote-service/pkg/v2/sqlserver/rpc"
 	sqlserverWs "dbm-services/mysql/db-remote-service/pkg/v2/sqlserver/websocket"
@@ -69,4 +70,8 @@ func v2Group(engine *gin.Engine) {
 	sqlserver.GET("/ws", sqlserverWs.AdminHandler)
 	sqlserver.GET("/data-read-ws", sqlserverWs.DataReadHandler)
 	sqlserver.GET("/sys-read-ws", sqlserverWs.SySReadHandler)
+
+	// Oracle 只读查询 (仅 SELECT/WITH), 供 DBM AI agent MCP 等只读诊断场景使用
+	oracle := v2.Group("/oracle")
+	oracle.POST("/rpc", oracleRpc.ReadHandler)
 }

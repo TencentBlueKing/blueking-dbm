@@ -25,7 +25,7 @@ with cf_split as (
                         'db_create_online_log_dest_4','db_create_online_log_dest_5')
            and value is not null
          union
-         select regexp_replace(regexp_substr(upper(value),'LOCATION=[^ ,]+'),'LOCATION=','')
+         select regexp_replace(regexp_substr(value, 'LOCATION=[^ ,]+', 1, 1, 'i'), '^LOCATION=', '', 1, 1, 'i')
          from v$parameter
          where name like 'log_archive_dest\_%' escape '\'
              and value is not null

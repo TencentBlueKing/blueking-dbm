@@ -742,6 +742,26 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
+    {
+        "name": "oracle-query",
+        "description": """Oracle database read-only query tools, including:
+        1. basic info (instance overview, version, init parameters)
+        2. instance status health check
+        3. session & activity (active sessions, blocking chain, long running queries)
+        4. performance analysis (top SQL by CPU/IO, wait events, SQL plan)
+        5. capacity (tablespace, undo, SGA/PGA)
+        6. health check (alert log errors)
+        7. AWR reports (snapshots list, generate AWR HTML report, gated by ORACLE_ENABLE_AWR)""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["oracle-query"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
 ]
 
 __all__ = [

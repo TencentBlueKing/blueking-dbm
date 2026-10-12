@@ -101,6 +101,7 @@ where dest_id between 4 and 9
 	StatisticListenerPort = 1522
 	ListenerPort          = 1521
 	SqlplusDefaultTimeout = 5 * time.Minute
+	CommonServiceName     = "CFDB"
 )
 
 // 与 tnsnames.ora / DG 配置相关的常量与占位符定义，集中管理避免散落在函数体内
