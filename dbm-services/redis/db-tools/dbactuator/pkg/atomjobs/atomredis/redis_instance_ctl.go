@@ -3,7 +3,6 @@ package atomredis
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -29,43 +28,6 @@ func knownRedisStorageClusterType(dbType string) bool {
 		consts.IsClusterDbType(dbType) ||
 		consts.IsTwemproxyClusterType(dbType) ||
 		consts.IsPredixyClusterType(dbType)
-}
-
-// writeRedisConfFile 先写临时文件再 rename, 避免截断后写一半.
-// 权限沿用原 redis.conf, 避免升级把线上已有的 mode 改掉.
-func writeRedisConfFile(confFile string, confData []byte) error {
-	perm := os.FileMode(0644)
-	if info, err := os.Stat(confFile); err == nil {
-		perm = info.Mode().Perm()
-	}
-	tmpFile := confFile + ".tmp"
-	if err := os.WriteFile(tmpFile, confData, perm); err != nil {
-		return fmt.Errorf("write redis conf tmp(%s) failed,err:%v", tmpFile, err)
-	}
-	if err := os.Chmod(tmpFile, perm); err != nil {
-		_ = os.Remove(tmpFile)
-		return fmt.Errorf("chmod redis conf tmp(%s) to %v failed,err:%v", tmpFile, perm, err)
-	}
-	if err := os.Rename(tmpFile, confFile); err != nil {
-		_ = os.Remove(tmpFile)
-		return fmt.Errorf("rename redis conf tmp(%s) to %s failed,err:%v", tmpFile, confFile, err)
-	}
-	return chownMysqlOrErr(confFile)
-}
-
-// chownMysqlOrErr 把文件属主改成 mysql.
-// 本机没有 mysql 用户, 或当前不是 root(改不了属主, 单测常见), 跳过.
-func chownMysqlOrErr(path string) error {
-	if _, err := user.Lookup(consts.MysqlAaccount); err != nil {
-		return nil
-	}
-	if os.Geteuid() != 0 {
-		return nil
-	}
-	if err := util.LocalDirChownMysql(path); err != nil {
-		return fmt.Errorf("chown %s to %s failed,err:%v", path, consts.MysqlAaccount, err)
-	}
-	return nil
 }
 
 // readLocalRedisPkgBaseName 读 /usr/local/redis 软链当前指向的包名, 形如 redis-6.2.7.

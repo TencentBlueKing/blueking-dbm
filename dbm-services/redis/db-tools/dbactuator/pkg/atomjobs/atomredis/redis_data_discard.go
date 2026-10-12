@@ -7,8 +7,10 @@ import (
 	"sort"
 	"time"
 
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
@@ -43,12 +45,6 @@ var localDataFileEntries = []localDataFileEntry{
 	{"appenddirname", "appendonlydir"},
 }
 
-// discardedDataFile 一份被挪走的数据文件/目录
-type discardedDataFile struct {
-	origin string
-	moved  string
-}
-
 // discardingLocalData 该端口本次是否空载起进程
 func (job *RedisVersionUpdate) discardingLocalData(port int) bool {
 	return job.discardPorts[port]
@@ -70,7 +66,7 @@ func (job *RedisVersionUpdate) planLocalDataDiscard() {
 		}
 		job.discardPorts[port] = true
 		job.runtime.Logger.Info("port(%d) will start with an empty dataset and full sync from %s",
-			port, expect.masterAddr())
+			port, expect.MasterAddr())
 	}
 }
 
@@ -100,10 +96,10 @@ func (job *RedisVersionUpdate) whyKeepLocalData(port int, expect replSnapshot) s
 			return fmt.Sprintf("runtime db type is %s,not cache", dbType)
 		}
 	}
-	if !expect.isSlave() {
+	if !expect.IsSlave() {
 		return "instance is not expected to replicate from anyone after restart"
 	}
-	if err := job.checkSyncMasterHealthy(port, expect.masterAddr()); err != nil {
+	if err := job.checkSyncMasterHealthy(port, expect.MasterAddr()); err != nil {
 		return err.Error()
 	}
 	return ""
@@ -152,25 +148,29 @@ func (job *RedisVersionUpdate) checkSyncMasterHealthy(port int, masterAddr strin
 
 // localDataFileNames 本地数据文件/目录的名字, 以及它们所在的数据目录.
 //
-// 名字从配置文件里取而不是写死: 取错了等于没挪走, 进程照样会把旧数据加载起来.
-// 重建配置之后新旧两份配置都要看 —— 跨大版本升级时它们用的可能不是同一套名字.
-func (job *RedisVersionUpdate) localDataFileNames(port int) (dataDir string, names []string, err error) {
-	confFile, err := getRedisConfFileForRegen(port)
-	if err != nil {
-		return "", nil, err
-	}
-	confTexts, err := job.localDataConfTexts(port, confFile)
-	if err != nil {
-		return "", nil, err
+// 名字从配置里取而不是写死: 取错了等于没挪走, 进程照样会把旧数据加载起来.
+// 重建配置时新旧两份配置都要看 —— 跨大版本升级时它们用的可能不是同一套名字.
+// 不重建配置(plan 为 nil)时看磁盘上展开 include 之后的那份.
+func (job *RedisVersionUpdate) localDataFileNames(port int, plan *redisconf.Plan) (
+	dataDir string, names []string, err error) {
+	var confTexts []string
+	if plan != nil {
+		confTexts = []string{plan.NewConf, plan.OldConf}
+	} else {
+		eff, loadErr := redisconf.LoadEffective(port)
+		if loadErr != nil {
+			return "", nil, loadErr
+		}
+		confTexts = []string{eff.Expanded}
 	}
 	nameSet := make(map[string]struct{}, len(localDataFileEntries))
 	for _, confText := range confTexts {
-		directives := parseRedisConfDirectives(confText)
+		directives := redisconf.ParseDirectives(confText)
 		if dataDir == "" {
-			dataDir = unquoteConfValue(directives.lastValue("dir"))
+			dataDir = redisconf.Unquote(directives.LastValue("dir"))
 		}
 		for _, entry := range localDataFileEntries {
-			name := unquoteConfValue(directives.lastValue(entry.confName))
+			name := redisconf.Unquote(directives.LastValue(entry.confName))
 			if name == "" {
 				name = entry.defaultVal
 			}
@@ -183,7 +183,7 @@ func (job *RedisVersionUpdate) localDataFileNames(port int) (dataDir string, nam
 		}
 	}
 	if dataDir == "" {
-		return "", nil, fmt.Errorf("port(%d) conf(%s) has no dir directive", port, confFile)
+		return "", nil, fmt.Errorf("port(%d) conf has no dir directive", port)
 	}
 	for name := range nameSet {
 		names = append(names, name)
@@ -192,115 +192,99 @@ func (job *RedisVersionUpdate) localDataFileNames(port int) (dataDir string, nam
 	return dataDir, names, nil
 }
 
-// localDataConfTexts 找数据文件名要看的配置文本: 当前的 redis.conf, 以及本次重建前的旧配置.
-//
-// dbfilename 之类可能只写在 include 进来的 instance.conf 里, 所以都要按展开后的内容看.
-// 旧配置优先用重建时记下的展开结果: 那时 instance.conf 已随重建挪走, 再拿备份文件去展开
-// 只会找不到被引用的文件.
-func (job *RedisVersionUpdate) localDataConfTexts(port int, confFile string) ([]string, error) {
-	data, err := os.ReadFile(confFile)
-	if err != nil {
-		return nil, fmt.Errorf("read conf(%s) failed,err:%v", confFile, err)
-	}
-	texts := []string{job.expandedOrRaw(port, confFile, string(data))}
-	if oldConf, ok := job.regenOldConfs[port]; ok {
-		return append(texts, oldConf), nil
-	}
-	backupFile, ok := job.confBackupFiles[port]
-	if !ok {
-		return texts, nil
-	}
-	data, err = os.ReadFile(backupFile)
-	if err != nil {
-		return nil, fmt.Errorf("read conf(%s) failed,err:%v", backupFile, err)
-	}
-	return append(texts, job.expandedOrRaw(port, confFile, string(data))), nil
-}
-
-// expandedOrRaw 展开 include, 展开不了时退回原文. include 相对路径按 redis.conf 所在目录解析
-func (job *RedisVersionUpdate) expandedOrRaw(port int, confFile, confText string) string {
-	expanded, _, err := expandRedisConfIncludes(confFile, confText)
-	if err != nil {
-		job.runtime.Logger.Warn("port(%d) expand includes failed,use conf as is,err:%v", port, err)
-		return confText
-	}
-	return expanded
-}
-
-// moveAsideLocalData 把本地 RDB/AOF 改名挪开, 停实例之后、拉起之前调用.
+// localDataMoveAside 本端口要挪走的本地 RDB/AOF, 作为一个停机后的落盘动作.
 //
 // 只动数据文件: nodes.conf 是 cluster 的节点身份, redis.conf 是刚重建好的配置, 都不能碰.
-func (job *RedisVersionUpdate) moveAsideLocalData(port int) error {
-	if !job.discardingLocalData(port) {
-		return nil
-	}
-	dataDir, names, err := job.localDataFileNames(port)
+func (job *RedisVersionUpdate) localDataMoveAside(port int, plan *redisconf.Plan) (*localDataMoveAside, error) {
+	dataDir, names, err := job.localDataFileNames(port, plan)
 	if err != nil {
-		job.runtime.Logger.Error("%s", err)
-		return err
+		return nil, err
 	}
+	return &localDataMoveAside{port: port, dataDir: dataDir, names: names}, nil
+}
+
+// movedDataFile 一份被挪走的数据文件/目录
+type movedDataFile struct {
+	origin string
+	moved  string
+}
+
+// localDataMoveAside 把本地数据改名挪开; Undo 放回去, Finalize 在同步好之后删掉
+type localDataMoveAside struct {
+	port    int
+	dataDir string
+	names   []string
+	moved   []movedDataFile
+}
+
+func (m *localDataMoveAside) String() string {
+	return fmt.Sprintf("move aside local data of port(%d) in %s", m.port, m.dataDir)
+}
+
+// NeedsStopped 挪走正在被进程写的文件, 进程下一次 rewrite/save 又会写回来
+func (m *localDataMoveAside) NeedsStopped() bool { return true }
+
+func (m *localDataMoveAside) Apply(log *logger.Logger) error {
 	suffix := ".upgrade_bak_" + time.Now().Format(consts.FilenameTimeLayout)
-	for _, name := range names {
-		origin := filepath.Join(dataDir, name)
+	for _, name := range m.names {
+		origin := filepath.Join(m.dataDir, name)
 		if !util.FileExists(origin) {
 			continue
 		}
 		moved := origin + suffix
-		if err = os.Rename(origin, moved); err != nil {
-			err = fmt.Errorf("port(%d) move aside %s failed,err:%v", port, origin, err)
-			job.runtime.Logger.Error("%s", err)
+		if err := os.Rename(origin, moved); err != nil {
+			err = fmt.Errorf("port(%d) move aside %s failed,err:%v", m.port, origin, err)
 			// 已挪走的要放回去, 否则实例会带着半套数据起来
-			if restoreErr := job.restoreDiscardedLocalData(port); restoreErr != nil {
-				job.runtime.Logger.Error("port(%d) restore local data failed,err:%v", port, restoreErr)
+			if restoreErr := m.Undo(log); restoreErr != nil {
+				log.Error("port(%d) restore local data failed,err:%v", m.port, restoreErr)
 			}
 			return err
 		}
-		job.discardedFiles[port] = append(job.discardedFiles[port], discardedDataFile{origin: origin, moved: moved})
-		job.runtime.Logger.Info("port(%d) moved aside %s -> %s", port, origin, filepath.Base(moved))
+		m.moved = append(m.moved, movedDataFile{origin: origin, moved: moved})
+		log.Info("port(%d) moved aside %s -> %s", m.port, origin, filepath.Base(moved))
 	}
-	if len(job.discardedFiles[port]) == 0 {
-		job.runtime.Logger.Info("port(%d) no local data file found in %s,nothing to move aside", port, dataDir)
+	if len(m.moved) == 0 {
+		log.Info("port(%d) no local data file found in %s,nothing to move aside", m.port, m.dataDir)
 	}
 	return nil
 }
 
-// restoreDiscardedLocalData 把挪走的数据放回去, 新版本进程起不来时用
-func (job *RedisVersionUpdate) restoreDiscardedLocalData(port int) error {
-	moved := job.discardedFiles[port]
-	for idx := len(moved) - 1; idx >= 0; idx-- {
-		item := moved[idx]
+// Undo 把挪走的数据放回去, 新版本进程起不来时用
+func (m *localDataMoveAside) Undo(log *logger.Logger) error {
+	for len(m.moved) > 0 {
+		item := m.moved[len(m.moved)-1]
 		// 上一次启动尝试可能已经写出了同名的新文件, 先清掉再放回原来那份
 		if util.FileExists(item.origin) {
 			if err := os.RemoveAll(item.origin); err != nil {
-				return fmt.Errorf("port(%d) remove %s failed,err:%v", port, item.origin, err)
+				return fmt.Errorf("port(%d) remove %s failed,err:%v", m.port, item.origin, err)
 			}
 		}
 		if err := os.Rename(item.moved, item.origin); err != nil {
-			return fmt.Errorf("port(%d) restore %s failed,err:%v", port, item.origin, err)
+			return fmt.Errorf("port(%d) restore %s failed,err:%v", m.port, item.origin, err)
 		}
-		job.runtime.Logger.Info("port(%d) restored %s", port, item.origin)
+		log.Info("port(%d) restored %s", m.port, item.origin)
+		m.moved = m.moved[:len(m.moved)-1]
 	}
-	delete(job.discardedFiles, port)
 	return nil
 }
 
-// cleanupDiscardedLocalData 同步完成后删掉挪走的那份数据.
+// Finalize 同步完成后删掉挪走的那份数据.
 //
 // 删不掉不算升级失败: 数据已经从主库同步回来了, 留下的只是一份占磁盘的旧文件.
-func (job *RedisVersionUpdate) cleanupDiscardedLocalData(port int) {
-	for _, item := range job.discardedFiles[port] {
+func (m *localDataMoveAside) Finalize(log *logger.Logger) {
+	for _, item := range m.moved {
 		if err := os.RemoveAll(item.moved); err != nil {
-			job.runtime.Logger.Warn("port(%d) remove %s failed,err:%v", port, item.moved, err)
+			log.Warn("port(%d) remove %s failed,err:%v", m.port, item.moved, err)
 			continue
 		}
-		job.runtime.Logger.Info("port(%d) removed %s", port, item.moved)
+		log.Info("port(%d) removed %s", m.port, item.moved)
 	}
-	delete(job.discardedFiles, port)
+	m.moved = nil
 }
 
 // restoreClusterFailoverPermission 同步完成后恢复本节点被选为新主的资格.
 //
-// 空载起进程期间由 applyClusterNoFailoverToConf 禁掉了自动 failover: 一个刚被清空、
+// 空载起进程期间由 redisconf.StepClusterNoFailover 禁掉了自动 failover: 一个刚被清空、
 // 还在全量同步的从库若此时被选上, 它负责的 slot 会连带数据一起变空, 而且没有任何报错.
 // 现在数据已经追齐, 必须改回去 —— 留着不改, 这个节点在往后每一次真实故障里都不会顶上.
 func (job *RedisVersionUpdate) restoreClusterFailoverPermission(port int) error {
@@ -345,13 +329,13 @@ func (job *RedisVersionUpdate) restoreClusterFailoverPermission(port int) error 
 func clusterNoFailoverFromRuntime(cli *myredis.RedisClient) (name, val string, err error) {
 	var lastErr error
 	foundName, foundVal := "", ""
-	for _, confName := range clusterNoFailoverDirectiveNames {
+	for _, confName := range redisconf.ClusterNoFailoverDirectiveNames {
 		got, getErr := cli.ConfigGet(confName)
 		if getErr != nil {
 			lastErr = getErr
 			continue
 		}
-		cur := unquoteConfValue(got[confName])
+		cur := redisconf.Unquote(got[confName])
 		if cur == "yes" {
 			return confName, cur, nil
 		}

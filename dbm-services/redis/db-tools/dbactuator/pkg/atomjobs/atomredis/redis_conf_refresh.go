@@ -13,6 +13,7 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 )
 
 const (
@@ -194,7 +195,7 @@ func (job *RedisConfRefresh) Run() (err error) {
 	// 必须在渲染之前: restart 模式下 masterauth 是随渲染结果一起写进文件的
 	job.resolveMasterAuthTargets()
 
-	plans := make(map[int]*regenConfPlan, len(job.params.Ports))
+	plans := make(map[int]*redisconf.Plan, len(job.params.Ports))
 	for _, port := range job.params.Ports {
 		plan, buildErr := job.buildPortPlan(port)
 		if buildErr != nil {
@@ -202,6 +203,9 @@ func (job *RedisConfRefresh) Run() (err error) {
 			return buildErr
 		}
 		plans[port] = plan
+	}
+	if err = job.checkOfflineChanges(plans); err != nil {
+		return err
 	}
 
 	switch job.params.ApplyMode {
@@ -221,13 +225,14 @@ func (job *RedisConfRefresh) addrOf(port int) string {
 }
 
 // regenRequest 把刷新任务的参数映射成一次重建请求. 期望永远是停机前快照, 不改拓扑.
-func (job *RedisConfRefresh) regenRequest(port int) confRegenRequest {
-	req := confRegenRequest{
+func (job *RedisConfRefresh) regenRequest(port int) redisconf.Request {
+	req := redisconf.Request{
 		IP:               job.params.IP,
 		Port:             port,
 		PkgBaseName:      job.localPkgBaseName,
 		ClusterType:      job.params.ClusterType,
 		InstCount:        job.instCount,
+		Steps:            redisconf.RefreshSteps,
 		Expect:           job.replSnapshots[port],
 		DiscardLocalData: false,
 		Logger:           job.runtime.Logger,
@@ -271,11 +276,11 @@ func (job *RedisConfRefresh) masterOnTargetPassword(port int, newPassword string
 	addr := job.addrOf(port)
 	// 按运行态判角色, 不按 payload 的 role: 切换过后 payload 可能已经对不上了
 	snap := job.replSnapshots[port]
-	if !snap.isSlave() {
+	if !snap.IsSlave() {
 		// 主库没有 masterauth 要跟; 实例没在跑时也抓不到快照, 那种现场同样维持现状
 		return false
 	}
-	masterAddr := net.JoinHostPort(snap.masterHost, snap.masterPort)
+	masterAddr := net.JoinHostPort(snap.MasterHost, snap.MasterPort)
 	accepted, err := masterAcceptsPassword(masterAddr, newPassword)
 	switch {
 	case err != nil:
@@ -293,9 +298,9 @@ func (job *RedisConfRefresh) masterOnTargetPassword(port int, newPassword string
 	return true
 }
 
-func (job *RedisConfRefresh) buildPortPlan(port int) (*regenConfPlan, error) {
+func (job *RedisConfRefresh) buildPortPlan(port int) (*redisconf.Plan, error) {
 	item, ok := job.params.PortConfConfigs[strconv.Itoa(port)]
-	plan, err := buildRegenPlan(job.regenRequest(port), item, ok)
+	plan, err := redisconf.LoadAndPlan(job.regenRequest(port), item, ok)
 	if err != nil {
 		return nil, err
 	}
@@ -348,14 +353,14 @@ func (job *RedisConfRefresh) captureSnapshots() error {
 			job.runtime.Logger.Warn("redis(%s) not connected,skip repl snapshot", addr)
 			continue
 		}
-		snap, err := captureReplSnapshot(cli)
+		snap, err := captureReplSnapshot(cli, job.params.ClusterType)
 		if err != nil {
 			job.runtime.Logger.Error("%s", err)
 			return err
 		}
 		job.replSnapshots[port] = snap
 		job.runtime.Logger.Info("redis(%s) repl state:role=%s,master=%q",
-			addr, snap.role, snap.masterAddr())
+			addr, snap.Role, snap.MasterAddr())
 	}
 	return nil
 }
@@ -366,11 +371,49 @@ func (job *RedisConfRefresh) allInstDisconnect() {
 	}
 }
 
-func (job *RedisConfRefresh) applyConfFile(plans map[int]*regenConfPlan) error {
+// applyConfFile 只落盘. 能走到迁移节点文件的只有没在跑的实例, 它还没用新位置起来过,
+// 旧节点文件要留着, 不 Finalize.
+func (job *RedisConfRefresh) applyConfFile(plans map[int]*redisconf.Plan) error {
 	for _, port := range job.params.Ports {
-		if err := job.writePlanIfChanged(port, plans[port]); err != nil {
+		plan := plans[port]
+		applied, err := job.writePlanIfChanged(port, plan)
+		if err != nil {
 			return err
 		}
+		if plan.NodesMove != nil && !applied.Empty() {
+			job.runtime.Logger.Warn("port(%d) nodes file copied to %s,legacy %s kept until the instance "+
+				"starts with the new conf,remove it by hand afterwards", port, plan.NodesMove.To, plan.NodesMove.From)
+		}
+	}
+	return nil
+}
+
+// checkOfflineChanges 落盘之前、实例还在跑时把迁移节点文件的前提核一遍.
+//
+// 要迁移的节点文件必须就是运行中进程的身份, 否则拉起后它会以另一个 node id 加入集群,
+// 等 settleReplication 拦下时 gossip 已经传出去了.
+//
+// 只写文件的模式不会停进程, 计划里有必须停机才能做的动作而进程还在跑时直接失败: 运行中的
+// redis 随时会把节点文件写回旧位置, 拷过去的那份立刻过期. restart 模式会先停再落盘, 不受此限.
+func (job *RedisConfRefresh) checkOfflineChanges(plans map[int]*redisconf.Plan) error {
+	if job.params.ApplyMode == ApplyModeConfigSet {
+		return nil
+	}
+	for _, port := range job.params.Ports {
+		plan := plans[port]
+		err := redisconf.CheckNodesFileIdentity(plan, job.replSnapshots[port].NodeID, job.runtime.Logger)
+		if err != nil {
+			job.runtime.Logger.Error("%s", err)
+			return err
+		}
+		if job.params.ApplyMode != ApplyModeConfFile ||
+			!plan.NeedsStopped() || job.addrMapCli[job.addrOf(port)] == nil {
+			continue
+		}
+		err = fmt.Errorf("port(%d) refresh needs the process stopped (%s),use apply_mode=%s",
+			port, plan.NodesMove, ApplyModeRestart)
+		job.runtime.Logger.Error("%s", err)
+		return err
 	}
 	return nil
 }
@@ -378,22 +421,24 @@ func (job *RedisConfRefresh) applyConfFile(plans map[int]*regenConfPlan) error {
 // writePlanIfChanged 渲染结果与现状不同才写.
 //
 // 带 include 的配置即使展开后与渲染结果一致也要写: 只有写成自成一体的文件、挪走 instance.conf,
-// 那些优先认 instance.conf 的工具才不会继续往一个将来没人加载的文件里写.
-func (job *RedisConfRefresh) writePlanIfChanged(port int, plan *regenConfPlan) error {
-	if confDirectivesEqual(plan.oldConfData, plan.confData) && !plan.hasInclude() {
+// 那些优先认 instance.conf 的工具才不会继续往一个将来没人加载的文件里写. 要迁移节点文件时同理.
+// 返回的 Applied 在实例带着新配置起好之后要 Finalize; 没写时为 nil.
+func (job *RedisConfRefresh) writePlanIfChanged(port int, plan *redisconf.Plan) (*redisconf.Applied, error) {
+	if redisconf.DirectivesEqual(plan.OldConf, plan.NewConf) && !plan.HasInclude() && plan.NodesMove == nil {
 		job.runtime.Logger.Info("port(%d) conf already matches rendered plan,skip write", port)
-		return nil
+		return nil, nil
 	}
-	backupFile, _, err := writeRegenConfPlan(plan, port, job.runtime.Logger)
+	applied, err := redisconf.ApplyChanges(plan.Changes(), job.runtime.Logger)
 	if err != nil {
-		return err
+		job.runtime.Logger.Error("port(%d) %v", port, err)
+		return nil, err
 	}
 	job.runtime.Logger.Info("port(%d) conf written,backup:%s (restore is manual if start later fails)",
-		port, backupFile)
-	return nil
+		port, applied.ConfBackup())
+	return applied, nil
 }
 
-func (job *RedisConfRefresh) applyConfigSetMode(plans map[int]*regenConfPlan) error {
+func (job *RedisConfRefresh) applyConfigSetMode(plans map[int]*redisconf.Plan) error {
 	// 改密码排在最前: 之后的比对都用新密码的连接进行, requirepass 也就不再是一条差异
 	if err := job.applyPasswordChanges(); err != nil {
 		return err
@@ -404,7 +449,7 @@ func (job *RedisConfRefresh) applyConfigSetMode(plans map[int]*regenConfPlan) er
 		if cli == nil {
 			return fmt.Errorf("redis(%s) not connected,cannot config_set", addr)
 		}
-		if err := applyConfigSet(cli, plans[port].confData, job.runtime.Logger); err != nil {
+		if err := redisconf.ApplyConfigSet(cli, plans[port].NewConf, job.runtime.Logger); err != nil {
 			job.runtime.Logger.Error("port(%d) %v", port, err)
 			return err
 		}
@@ -450,8 +495,8 @@ func (job *RedisConfRefresh) applyPasswordChangePort(port int, newPassword strin
 	if err != nil {
 		return fmt.Errorf("redis(%s) config get requirepass failed,err:%v", addr, err)
 	}
-	runtimePass, _ := confRuntimeLookup(got, "requirepass")
-	passChanged := unquoteConfValue(runtimePass) != newPassword
+	runtimePass, _ := redisconf.RuntimeLookup(got, "requirepass")
+	passChanged := redisconf.Unquote(runtimePass) != newPassword
 	if !authChanged && !passChanged {
 		job.runtime.Logger.Info("redis(%s) already runs with the target password,skip change", addr)
 		return nil
@@ -493,8 +538,8 @@ func (job *RedisConfRefresh) followMasterAuth(cli *myredis.RedisClient, port int
 	if err != nil {
 		return false, fmt.Errorf("redis(%s) config get masterauth failed,err:%v", addr, err)
 	}
-	current, _ := confRuntimeLookup(got, "masterauth")
-	if unquoteConfValue(current) == newPassword {
+	current, _ := redisconf.RuntimeLookup(got, "masterauth")
+	if redisconf.Unquote(current) == newPassword {
 		return false, nil
 	}
 	if _, err = cli.ConfigSet("masterauth", newPassword); err != nil {
@@ -554,7 +599,7 @@ func decideRestartAction(running, confEqual, runtimeMatch bool) restartAction {
 	return restartBounce
 }
 
-func (job *RedisConfRefresh) applyRestart(plans map[int]*regenConfPlan) error {
+func (job *RedisConfRefresh) applyRestart(plans map[int]*redisconf.Plan) error {
 	for _, port := range job.params.Ports {
 		if err := job.applyRestartPort(port, plans[port]); err != nil {
 			return err
@@ -563,15 +608,15 @@ func (job *RedisConfRefresh) applyRestart(plans map[int]*regenConfPlan) error {
 	return nil
 }
 
-func (job *RedisConfRefresh) applyRestartPort(port int, plan *regenConfPlan) error {
+func (job *RedisConfRefresh) applyRestartPort(port int, plan *redisconf.Plan) error {
 	addr := job.addrOf(port)
 	cli := job.addrMapCli[addr]
 	running := cli != nil
-	confEqual := confDirectivesEqual(plan.oldConfData, plan.confData)
+	confEqual := redisconf.DirectivesEqual(plan.OldConf, plan.NewConf)
 	runtimeMatch := false
 	if running {
 		var matchErr error
-		runtimeMatch, matchErr = runtimeMatchesPlan(cli, plan.confData)
+		runtimeMatch, matchErr = redisconf.RuntimeMatches(cli, plan.NewConf)
 		if matchErr != nil {
 			job.runtime.Logger.Warn("port(%d) runtime match check failed,will restart,err:%v", port, matchErr)
 			runtimeMatch = false
@@ -584,21 +629,28 @@ func (job *RedisConfRefresh) applyRestartPort(port int, plan *regenConfPlan) err
 	switch action {
 	case restartSkip:
 		// 生效配置没变, 不必重启; 但 include 布局仍要落成自成一体的文件
-		if plan.hasInclude() {
-			if err := job.writePlanIfChanged(port, plan); err != nil {
+		if plan.HasInclude() {
+			if _, err := job.writePlanIfChanged(port, plan); err != nil {
 				return err
 			}
 		}
 		return settleReplication(cli, job.replSnapshots[port], job.params.Role,
 			syncWaitTimeoutOrDefault(job.params.SyncWaitTimeoutSeconds), job.runtime.Logger)
 	case restartStart:
-		if err := job.writePlanIfChanged(port, plan); err != nil {
+		applied, err := job.writePlanIfChanged(port, plan)
+		if err != nil {
 			return err
 		}
-		return job.startAndSettle(port)
+		return job.startAndSettle(port, applied)
 	case restartBounce:
-		if err := job.writePlanIfChanged(port, plan); err != nil {
-			return err
+		var applied *redisconf.Applied
+		var err error
+		// 节点文件要等进程停了再迁: redis 关闭时还会把节点表写一遍
+		writeAfterStop := plan.NeedsStopped()
+		if !writeAfterStop {
+			if applied, err = job.writePlanIfChanged(port, plan); err != nil {
+				return err
+			}
 		}
 		if err := backupCacheMasterBeforeStop(job.params.Role, addr, cli, job.runtime.Logger); err != nil {
 			return err
@@ -606,7 +658,12 @@ func (job *RedisConfRefresh) applyRestartPort(port int, plan *regenConfPlan) err
 		if err := job.stopRedisForRestart(port, plan); err != nil {
 			return err
 		}
-		return job.startAndSettle(port)
+		if writeAfterStop {
+			if applied, err = job.writePlanIfChanged(port, plan); err != nil {
+				return err
+			}
+		}
+		return job.startAndSettle(port, applied)
 	default:
 		return fmt.Errorf("port(%d) unknown restart action", port)
 	}
@@ -617,16 +674,18 @@ func (job *RedisConfRefresh) applyRestartPort(port int, plan *regenConfPlan) err
 //
 // 旧配置没声明 requirepass 时退回按文件读取的老路径: 密码可能在 instance.conf 里,
 // 那种现场只有 GetRedisPasswdFromConfFile 找得到.
-func (job *RedisConfRefresh) stopRedisForRestart(port int, plan *regenConfPlan) error {
-	oldDirectives := parseRedisConfDirectives(plan.oldConfData)
-	if !oldDirectives.has("requirepass") {
+func (job *RedisConfRefresh) stopRedisForRestart(port int, plan *redisconf.Plan) error {
+	oldDirectives := redisconf.ParseDirectives(plan.OldConf)
+	if !oldDirectives.Has("requirepass") {
 		return stopRedisViaScript(job.params.IP, port, job.runtime.Logger)
 	}
 	return stopRedisViaScriptWithPassword(job.params.IP, port,
-		unquoteConfValue(oldDirectives.lastValue("requirepass")), job.runtime.Logger)
+		redisconf.Unquote(oldDirectives.LastValue("requirepass")), job.runtime.Logger)
 }
 
-func (job *RedisConfRefresh) startAndSettle(port int) error {
+// startAndSettle 拉起并钉住复制; 成功后对本次落盘做收尾(如删掉迁移前的节点文件).
+// 起不来时不收尾, 旧节点文件跟着 .bak 配置一起留给 DBA 手工回滚.
+func (job *RedisConfRefresh) startAndSettle(port int, applied *redisconf.Applied) error {
 	cli, err := startRedisAndWaitRepl(job.params.IP, port, job.replSnapshots[port],
 		job.params.Role, syncWaitTimeoutOrDefault(job.params.SyncWaitTimeoutSeconds), job.runtime.Logger)
 	if cli != nil {
@@ -638,6 +697,7 @@ func (job *RedisConfRefresh) startAndSettle(port int) error {
 			"port(%d) failed to start with refreshed conf,left new conf in place for DBA,err:%v", port, err)
 		return err
 	}
+	applied.Finalize(job.runtime.Logger)
 	return nil
 }
 

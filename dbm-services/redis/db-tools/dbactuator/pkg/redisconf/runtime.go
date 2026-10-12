@@ -1,4 +1,4 @@
-package atomredis
+package redisconf
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// redisConfRuntime 运行态配置读写. *myredis.RedisClient 满足此接口, 测试用假客户端也满足.
-type redisConfRuntime interface {
+// Runtime 运行态配置读写. *myredis.RedisClient 满足此接口, 测试用假客户端也满足.
+type Runtime interface {
 	ConfigGet(confName string) (map[string]string, error)
 	ConfigSet(confName string, val string) (string, error)
 }
@@ -48,13 +48,13 @@ func classifyConfSetKind(name string) confSetKind {
 func joinDirectiveValues(values []string) string {
 	parts := make([]string, 0, len(values))
 	for _, v := range values {
-		parts = append(parts, unquoteConfValue(strings.TrimSpace(v)))
+		parts = append(parts, Unquote(strings.TrimSpace(v)))
 	}
 	return strings.Join(parts, " ")
 }
 
-// confRuntimeLookup 从 CONFIG GET 的返回里取出取值. 空 map 表示这条指令运行态查不到.
-func confRuntimeLookup(got map[string]string, name string) (value string, found bool) {
+// RuntimeLookup 从 CONFIG GET 的返回里取出取值. 空 map 表示这条指令运行态查不到.
+func RuntimeLookup(got map[string]string, name string) (value string, found bool) {
 	if len(got) == 0 {
 		return "", false
 	}
@@ -72,14 +72,14 @@ func confRuntimeLookup(got map[string]string, name string) (value string, found 
 	return "", false
 }
 
-// sameConfRuntimeValueFor 按指令名比较. 路径类指令还要走 samePathValue, 容忍软链别名.
+// sameConfRuntimeValueFor 按指令名比较. 路径类指令还要走 SamePathValue, 容忍软链别名.
 func sameConfRuntimeValueFor(name, rendered, runtime string) bool {
 	if sameConfRuntimeValue(rendered, runtime) {
 		return true
 	}
 	switch name {
 	case "dir", "pidfile", "logfile", "unixsocket":
-		return samePathValue(rendered, runtime)
+		return SamePathValue(rendered, runtime)
 	}
 	return false
 }
@@ -88,8 +88,8 @@ func sameConfRuntimeValueFor(name, rendered, runtime string) bool {
 //
 // 容忍: 引号、大小写、yes/no vs 1/0、redis 内存单位 (256mb == 268435456).
 func sameConfRuntimeValue(rendered, runtime string) bool {
-	a := unquoteConfValue(strings.TrimSpace(rendered))
-	b := unquoteConfValue(strings.TrimSpace(runtime))
+	a := Unquote(strings.TrimSpace(rendered))
+	b := Unquote(strings.TrimSpace(runtime))
 	if a == b {
 		return true
 	}
@@ -212,8 +212,8 @@ type confRuntimeDiff struct {
 }
 
 // inspectConfRuntime 把渲染结果里的每条指令和运行态比一遍.
-func inspectConfRuntime(cli redisConfRuntime, confData string) ([]confRuntimeDiff, error) {
-	directives := parseRedisConfDirectives(confData)
+func inspectConfRuntime(cli Runtime, confData string) ([]confRuntimeDiff, error) {
+	directives := ParseDirectives(confData)
 	names := sortedDirectiveNames(directives)
 	diffs := make([]confRuntimeDiff, 0, len(names))
 	for _, name := range names {
@@ -223,7 +223,7 @@ func inspectConfRuntime(cli redisConfRuntime, confData string) ([]confRuntimeDif
 		if err != nil {
 			return nil, fmt.Errorf("config get %s failed,err:%v", name, err)
 		}
-		runtime, found := confRuntimeLookup(got, name)
+		runtime, found := RuntimeLookup(got, name)
 		if found && sameConfRuntimeValueFor(name, rendered, runtime) {
 			continue
 		}
@@ -237,11 +237,11 @@ func inspectConfRuntime(cli redisConfRuntime, confData string) ([]confRuntimeDif
 	return diffs, nil
 }
 
-// runtimeMatchesPlan 运行态是否已经和渲染结果对齐.
+// RuntimeMatches 运行态是否已经和渲染结果对齐.
 //
 // skip 项(密码/主从/maxmemory) 和查不到的项不参与: 前者不是这次刷新该改的,
 // 后者 CONFIG SET 也动不了. 可 SET 或必须重启才能改的项有差异, 就还没到位.
-func runtimeMatchesPlan(cli redisConfRuntime, confData string) (bool, error) {
+func RuntimeMatches(cli Runtime, confData string) (bool, error) {
 	diffs, err := inspectConfRuntime(cli, confData)
 	if err != nil {
 		return false, err
@@ -258,12 +258,12 @@ func runtimeMatchesPlan(cli redisConfRuntime, confData string) (bool, error) {
 	return true, nil
 }
 
-// applyConfigSet 按分类把运行态收敛到渲染结果. 不写配置文件.
+// ApplyConfigSet 按分类把运行态收敛到渲染结果. 不写配置文件.
 //
 // skip 项有差异只打 warn, 永不 SET.
 // 查不到的指令跳过 (CONFIG GET 空, 没法 SET 也没法证伪).
 // CONFIG SET 失败原样返回, 并提示改用 restart 模式.
-func applyConfigSet(cli redisConfRuntime, confData string, log *logger.Logger) error {
+func ApplyConfigSet(cli Runtime, confData string, log *logger.Logger) error {
 	diffs, err := inspectConfRuntime(cli, confData)
 	if err != nil {
 		return err

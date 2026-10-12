@@ -15,6 +15,7 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 )
 
 func newRefreshJob(ip string, ports []int, mode string) *RedisConfRefresh {
@@ -32,7 +33,7 @@ func newRefreshJob(ip string, ports []int, mode string) *RedisConfRefresh {
 }
 
 func TestRedisConfRefreshInit(t *testing.T) {
-	item := RedisConfRenderItem{ConfConfigs: map[string]string{"port": "{{port}}"}}
+	item := redisconf.RenderItem{ConfConfigs: map[string]string{"port": "{{port}}"}}
 	cases := []struct {
 		name    string
 		payload RedisConfRefreshParams
@@ -44,7 +45,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:     consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:       ApplyModeConfFile,
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": item},
 			},
 		},
 		{
@@ -53,7 +54,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:     consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:       "nope",
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": item},
 			},
 			wantErr: "ApplyMode",
 		},
@@ -63,7 +64,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000, 30001}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:     consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:       ApplyModeRestart,
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": item},
 			},
 			wantErr: "missing from port_conf_configs",
 		},
@@ -73,7 +74,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:     consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:       ApplyModeConfFile,
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": {ConfConfigs: map[string]string{}}},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": {ConfConfigs: map[string]string{}}},
 			},
 			wantErr: "missing from port_conf_configs",
 		},
@@ -83,7 +84,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: "predixy",
 				ClusterType:     consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:       ApplyModeConfFile,
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": item},
 			},
 			wantErr: "not support",
 		},
@@ -93,7 +94,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:         consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:           ApplyModeConfigSet,
-				PortConfConfigs:     map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs:     map[string]redisconf.RenderItem{"30000": item},
 				PortTargetPasswords: map[string]string{"30000": "newpasswd"},
 			},
 		},
@@ -104,7 +105,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:         consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:           ApplyModeConfFile,
-				PortConfConfigs:     map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs:     map[string]redisconf.RenderItem{"30000": item},
 				PortTargetPasswords: map[string]string{"30000": "newpasswd"},
 			},
 			wantErr: "port_target_passwords requires apply_mode",
@@ -116,7 +117,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:         consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:           ApplyModeRestart,
-				PortConfConfigs:     map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs:     map[string]redisconf.RenderItem{"30000": item},
 				PortTargetPasswords: map[string]string{"30000": "newpasswd"},
 			},
 		},
@@ -127,7 +128,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:         consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:           ApplyModeConfFile,
-				PortConfConfigs:     map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs:     map[string]redisconf.RenderItem{"30000": item},
 				PortTargetPasswords: map[string]string{"30000": ""},
 			},
 			wantErr: "port_target_passwords requires apply_mode",
@@ -138,7 +139,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:         consts.TendisTypeTwemproxyRedisInstance,
 				ApplyMode:           ApplyModeConfigSet,
-				PortConfConfigs:     map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs:     map[string]redisconf.RenderItem{"30000": item},
 				PortTargetPasswords: map[string]string{"30001": "newpasswd"},
 			},
 			wantErr: "not in ports",
@@ -148,7 +149,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 			payload: RedisConfRefreshParams{
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ApplyMode:       ApplyModeConfFile,
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": item},
 			},
 			wantErr: "ClusterType",
 		},
@@ -158,7 +159,7 @@ func TestRedisConfRefreshInit(t *testing.T) {
 				IP: "1.1.1.1", Ports: []int{30000}, Role: consts.MetaRoleRedisSlave,
 				ClusterType:     "NotARedisType",
 				ApplyMode:       ApplyModeConfFile,
-				PortConfConfigs: map[string]RedisConfRenderItem{"30000": item},
+				PortConfConfigs: map[string]redisconf.RenderItem{"30000": item},
 			},
 			wantErr: "unknown cluster_type",
 		},
@@ -195,7 +196,7 @@ func TestRedisConfRefreshRegenRequest(t *testing.T) {
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeRestart)
 	job.params.ClusterType = consts.TendisTypeTwemproxyRedisInstance
 	job.replSnapshots[30000] = replSnapshot{
-		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
 
 	req := job.regenRequest(30000)
@@ -205,11 +206,11 @@ func TestRedisConfRefreshRegenRequest(t *testing.T) {
 	if req.DiscardLocalData {
 		t.Error("refresh job must not discard local data")
 	}
-	if req.Expect.wanted {
+	if req.Expect.Wanted {
 		t.Error("refresh job must not override topology")
 	}
-	if req.Expect.masterAddr() != "1.1.1.2:30000" {
-		t.Errorf("Expect.master=%q, want snapshot", req.Expect.masterAddr())
+	if req.Expect.MasterAddr() != "1.1.1.2:30000" {
+		t.Errorf("Expect.master=%q, want snapshot", req.Expect.MasterAddr())
 	}
 	if req.InstCount != 1 {
 		t.Errorf("InstCount=%d", req.InstCount)
@@ -249,10 +250,10 @@ func TestRedisConfRefreshBuildPortPlanChangesPassword(t *testing.T) {
 
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfigSet)
 	job.params.ClusterType = consts.TendisTypeTwemproxyRedisInstance
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(instDir)}
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": targetConfItem(instDir)}
 	job.params.PortTargetPasswords = map[string]string{"30000": "newpasswd"}
 	job.replSnapshots[30000] = replSnapshot{
-		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
 
 	plan, err := job.buildPortPlan(30000)
@@ -260,12 +261,12 @@ func TestRedisConfRefreshBuildPortPlanChangesPassword(t *testing.T) {
 		t.Fatalf("buildPortPlan err:%v", err)
 	}
 	for _, want := range []string{"requirepass newpasswd", "masterauth newpasswd"} {
-		if !strings.Contains(plan.confData, want) {
-			t.Errorf("plan missing %q:\n%s", want, plan.confData)
+		if !strings.Contains(plan.NewConf, want) {
+			t.Errorf("plan missing %q:\n%s", want, plan.NewConf)
 		}
 	}
-	if strings.Contains(plan.confData, "xxxxpasswd") {
-		t.Errorf("old password left in the plan:\n%s", plan.confData)
+	if strings.Contains(plan.NewConf, "xxxxpasswd") {
+		t.Errorf("old password left in the plan:\n%s", plan.NewConf)
 	}
 }
 
@@ -335,7 +336,7 @@ func refreshJobWithMaster(t *testing.T, mode string, master *fakeRedis, role str
 	job.params.PortTargetPasswords = map[string]string{"30000": newPass}
 	masterHost, masterPort := master.hostPort()
 	job.replSnapshots[30000] = replSnapshot{
-		addr: "1.1.1.1:30000", role: role, masterHost: masterHost, masterPort: masterPort,
+		Addr: "1.1.1.1:30000", Role: role, MasterHost: masterHost, MasterPort: masterPort,
 	}
 	return job
 }
@@ -460,9 +461,9 @@ func TestFollowMasterAuth(t *testing.T) {
 func TestStopRedisForRestartTakesPasswordFromPlan(t *testing.T) {
 	t.Setenv("REDIS_DATA_DIR", t.TempDir())
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeRestart)
-	plan := &regenConfPlan{
-		oldConfData: "port 30000\nrequirepass \"" + oldPass + "\"\n",
-		confData:    "port 30000\nrequirepass " + newPass + "\n",
+	plan := &redisconf.Plan{
+		OldConf: "port 30000\nrequirepass \"" + oldPass + "\"\n",
+		NewConf: "port 30000\nrequirepass " + newPass + "\n",
 	}
 	if err := stopRedisViaScript(job.params.IP, 30000, job.runtime.Logger); err == nil {
 		t.Fatal("reading the password from disk should have failed here,test cannot tell the paths apart")
@@ -472,7 +473,7 @@ func TestStopRedisForRestartTakesPasswordFromPlan(t *testing.T) {
 	}
 
 	// 旧配置没声明 requirepass 时(密码可能在 instance.conf 里)退回读文件的老路径
-	plan.oldConfData = "port 30000\n"
+	plan.OldConf = "port 30000\n"
 	if err := job.stopRedisForRestart(30000, plan); err == nil {
 		t.Error("without requirepass on disk it should fall back to reading the conf file")
 	}
@@ -488,29 +489,29 @@ func TestRedisConfRefreshBuildPortPlanCarriesLocal(t *testing.T) {
 
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfFile)
 	job.params.ClusterType = consts.TendisTypeTwemproxyRedisInstance
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(instDir)}
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": targetConfItem(instDir)}
 	job.replSnapshots[30000] = replSnapshot{
-		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
 
 	plan, err := job.buildPortPlan(30000)
 	if err != nil {
 		t.Fatalf("buildPortPlan err:%v", err)
 	}
-	if !strings.Contains(plan.confData, "requirepass xxxxpasswd") {
-		t.Errorf("password not taken from disk\n%s", plan.confData)
+	if !strings.Contains(plan.NewConf, "requirepass xxxxpasswd") {
+		t.Errorf("password not taken from disk\n%s", plan.NewConf)
 	}
-	if !strings.Contains(plan.confData, "replicaof 1.1.1.2 30000") {
-		t.Errorf("replicaof not carried from local\n%s", plan.confData)
+	if !strings.Contains(plan.NewConf, "replicaof 1.1.1.2 30000") {
+		t.Errorf("replicaof not carried from local\n%s", plan.NewConf)
 	}
-	if !strings.Contains(plan.confData, "maxmemory 8589934592") {
-		t.Errorf("maxmemory not carried from local\n%s", plan.confData)
+	if !strings.Contains(plan.NewConf, "maxmemory 8589934592") {
+		t.Errorf("maxmemory not carried from local\n%s", plan.NewConf)
 	}
-	if !strings.Contains(plan.confData, "replica-lazy-flush yes") {
-		t.Errorf("delivered directive missing\n%s", plan.confData)
+	if !strings.Contains(plan.NewConf, "replica-lazy-flush yes") {
+		t.Errorf("delivered directive missing\n%s", plan.NewConf)
 	}
-	if strings.Contains(plan.confData, "slave-lazy-flush") {
-		t.Errorf("stale directive should be dropped\n%s", plan.confData)
+	if strings.Contains(plan.NewConf, "slave-lazy-flush") {
+		t.Errorf("stale directive should be dropped\n%s", plan.NewConf)
 	}
 }
 
@@ -521,12 +522,12 @@ func TestWritePlanIfChangedSkipWhenEqual(t *testing.T) {
 		t.Fatal(err)
 	}
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfFile)
-	plan := &regenConfPlan{
-		confFile:    confFile,
-		oldConfData: string(orig),
-		confData:    "port 30000\ndir \"/data/redis/30000/data\"\n", // quote-only, still equal
+	plan := &redisconf.Plan{
+		ConfFile: confFile,
+		OldConf:  string(orig),
+		NewConf:  "port 30000\ndir \"/data/redis/30000/data\"\n", // quote-only, still equal
 	}
-	if err = job.writePlanIfChanged(30000, plan); err != nil {
+	if _, err = job.writePlanIfChanged(30000, plan); err != nil {
 		t.Fatalf("writePlanIfChanged err:%v", err)
 	}
 	got, err := os.ReadFile(confFile)
@@ -548,51 +549,51 @@ func TestWritePlanIfChangedSkipWhenEqual(t *testing.T) {
 func TestWritePlanIfChangedWritesWhenDifferent(t *testing.T) {
 	confFile := setupInstanceConf(t, 30000, "port 30000\ntimeout 10\n")
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfFile)
-	plan := &regenConfPlan{
-		confFile:    confFile,
-		oldConfData: "port 30000\ntimeout 10\n",
-		confData:    "port 30000\ntimeout 60\n",
+	plan := &redisconf.Plan{
+		ConfFile: confFile,
+		OldConf:  "port 30000\ntimeout 10\n",
+		NewConf:  "port 30000\ntimeout 60\n",
 	}
-	if err := job.writePlanIfChanged(30000, plan); err != nil {
+	if _, err := job.writePlanIfChanged(30000, plan); err != nil {
 		t.Fatalf("writePlanIfChanged err:%v", err)
 	}
 	got, err := os.ReadFile(confFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != plan.confData {
+	if string(got) != plan.NewConf {
 		t.Errorf("conf not written, got:\n%s", got)
 	}
 }
 
 // includeLayoutPlan 一份展开后与渲染结果完全一致、但磁盘原文带 include 的计划
-func includeLayoutPlan(t *testing.T) (plan *regenConfPlan, instConf string) {
+func includeLayoutPlan(t *testing.T) (plan *redisconf.Plan, instConf string) {
 	t.Helper()
 	confFile := setupInstanceConf(t, 30000, "placeholder\n")
 	instConf = filepath.Join(filepath.Dir(confFile), "instance.conf")
 	raw := "port 30000\ninclude " + instConf + "\n"
 	writeTestFile(t, confFile, raw)
 	writeTestFile(t, instConf, "requirepass xxxxpasswd\n")
-	expanded, includes, err := expandRedisConfIncludes(confFile, raw)
+	expanded, includes, err := redisconf.ExpandIncludes(confFile, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &regenConfPlan{
-		confFile:       confFile,
-		oldConfData:    expanded,
-		rawOldConfData: raw,
-		includedFiles:  includes,
-		confData:       expanded,
+	return &redisconf.Plan{
+		ConfFile:   confFile,
+		OldConf:    expanded,
+		RawOldConf: raw,
+		Includes:   includes,
+		NewConf:    expanded,
 	}, instConf
 }
 
 func TestWritePlanIfChangedWritesIncludeLayoutEvenWhenEqual(t *testing.T) {
 	plan, instConf := includeLayoutPlan(t)
 	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfFile)
-	if err := job.writePlanIfChanged(30000, plan); err != nil {
+	if _, err := job.writePlanIfChanged(30000, plan); err != nil {
 		t.Fatalf("writePlanIfChanged err:%v", err)
 	}
-	if got := readTestFile(t, plan.confFile); got != plan.confData {
+	if got := readTestFile(t, plan.ConfFile); got != plan.NewConf {
 		t.Errorf("include layout should be flattened,got:\n%s", got)
 	}
 	if _, err := os.Stat(instConf); !os.IsNotExist(err) {
@@ -621,7 +622,7 @@ func TestApplyRestartPortIncludeLayoutWritesWithoutBounce(t *testing.T) {
 	if local.got("SHUTDOWN") {
 		t.Error("include alone should not bounce the instance")
 	}
-	if got := readTestFile(t, plan.confFile); got != plan.confData {
+	if got := readTestFile(t, plan.ConfFile); got != plan.NewConf {
 		t.Errorf("include layout should be flattened on skip,got:\n%s", got)
 	}
 	if _, err = os.Stat(instConf); !os.IsNotExist(err) {
@@ -653,5 +654,63 @@ func TestDecideRestartAction(t *testing.T) {
 func TestRedisConfRefreshName(t *testing.T) {
 	if NewRedisConfRefresh().Name() != "redis_conf_refresh" {
 		t.Errorf("Name()=%q", NewRedisConfRefresh().Name())
+	}
+}
+
+func TestRefreshConfFileRejectsNodesFileMoveWhileRunning(t *testing.T) {
+	stopped := &redisconf.Plan{Port: 30000}
+	moving := &redisconf.Plan{
+		Port:      30000,
+		NodesMove: &redisconf.NodesFileMove{From: "/data/redis/30000/data/nodes-30000.conf", To: "/data/redis/30000/data/nodes.conf"},
+	}
+
+	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeConfFile)
+	if err := job.checkOfflineChanges(map[int]*redisconf.Plan{30000: moving}); err != nil {
+		t.Errorf("instance not running: nodes file can be moved in conf_file mode,err:%v", err)
+	}
+
+	job.addrMapCli[job.addrOf(30000)] = &myredis.RedisClient{}
+	if err := job.checkOfflineChanges(map[int]*redisconf.Plan{30000: stopped}); err != nil {
+		t.Errorf("plan without stopped-only changes should pass,err:%v", err)
+	}
+	err := job.checkOfflineChanges(map[int]*redisconf.Plan{30000: moving})
+	if err == nil || !strings.Contains(err.Error(), "apply_mode=restart") {
+		t.Errorf("err = %v, want conf_file refused while the process is up", err)
+	}
+
+	// restart 模式会先停再落盘
+	job.params.ApplyMode = ApplyModeRestart
+	if err = job.checkOfflineChanges(map[int]*redisconf.Plan{30000: moving}); err != nil {
+		t.Errorf("restart mode should handle the move itself,err:%v", err)
+	}
+}
+
+func TestRefreshRefusesNodesFileNotMatchingRunningIdentity(t *testing.T) {
+	const fileNodeID = "e7d1eecce10fd6bb5eb35b9f99a514335d9ba9ca"
+	moving := &redisconf.Plan{
+		Port: 30000,
+		NodesMove: &redisconf.NodesFileMove{
+			From: "/data/redis/30000/data/nodes-30000.conf", To: "/data/redis/30000/data/nodes.conf", NodeID: fileNodeID,
+		},
+	}
+	plans := map[int]*redisconf.Plan{30000: moving}
+
+	job := newRefreshJob("1.1.1.1", []int{30000}, ApplyModeRestart)
+	job.replSnapshots[30000] = replSnapshot{Addr: "1.1.1.1:30000", NodeID: "07c37dfeb235213a872192d90877d0cd55635b91"}
+	err := job.checkOfflineChanges(plans)
+	if err == nil || !strings.Contains(err.Error(), "refuse to migrate") {
+		t.Fatalf("err = %v, want node id mismatch caught before stop", err)
+	}
+
+	job.replSnapshots[30000] = replSnapshot{Addr: "1.1.1.1:30000", NodeID: fileNodeID}
+	if err = job.checkOfflineChanges(plans); err != nil {
+		t.Errorf("matching node id should pass,err:%v", err)
+	}
+
+	// config_set 不落盘, 不迁节点文件
+	job.params.ApplyMode = ApplyModeConfigSet
+	job.replSnapshots[30000] = replSnapshot{Addr: "1.1.1.1:30000", NodeID: "07c37dfeb235213a872192d90877d0cd55635b91"}
+	if err = job.checkOfflineChanges(plans); err != nil {
+		t.Errorf("config_set should not check nodes file,err:%v", err)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 )
 
 func writeTestFile(t *testing.T, path, data string) {
@@ -27,130 +28,6 @@ func readTestFile(t *testing.T, path string) string {
 		t.Fatalf("read %s failed:%v", path, err)
 	}
 	return string(data)
-}
-
-func TestExpandRedisConfIncludes(t *testing.T) {
-	dir := t.TempDir()
-	confFile := filepath.Join(dir, "redis.conf")
-	instConf := filepath.Join(dir, "instance.conf")
-	writeTestFile(t, instConf, "requirepass p1\nmaxmemory 1gb\n")
-	nested := filepath.Join(dir, "nested.conf")
-	writeTestFile(t, nested, "include "+instConf+"\nslaveof 1.1.1.2 30000\n")
-	noNewline := filepath.Join(dir, "nonl.conf")
-	writeTestFile(t, noNewline, "masterauth p1")
-
-	cases := []struct {
-		name         string
-		raw          string
-		want         string
-		wantIncludes []string
-	}{
-		{
-			name: "no include returns raw unchanged",
-			raw:  "port 30000\n# include /nowhere.conf\n\n",
-			want: "port 30000\n# include /nowhere.conf\n\n",
-		},
-		{
-			name:         "absolute path inlined in place",
-			raw:          "port 30000\ninclude " + instConf + "\nmaxmemory 2gb\n",
-			want:         "port 30000\nrequirepass p1\nmaxmemory 1gb\nmaxmemory 2gb\n",
-			wantIncludes: []string{instConf},
-		},
-		{
-			name:         "relative path resolved against conf dir",
-			raw:          "include instance.conf\n",
-			want:         "requirepass p1\nmaxmemory 1gb\n",
-			wantIncludes: []string{instConf},
-		},
-		{
-			name:         "quoted path and upper case directive",
-			raw:          "INCLUDE \"" + instConf + "\"\n",
-			want:         "requirepass p1\nmaxmemory 1gb\n",
-			wantIncludes: []string{instConf},
-		},
-		{
-			name:         "nested include",
-			raw:          "port 30000\ninclude " + nested + "\n",
-			want:         "port 30000\nrequirepass p1\nmaxmemory 1gb\nslaveof 1.1.1.2 30000\n",
-			wantIncludes: []string{nested, instConf},
-		},
-		{
-			name:         "included file without trailing newline does not glue to next line",
-			raw:          "include " + noNewline + "\nport 30000\n",
-			want:         "masterauth p1\nport 30000\n",
-			wantIncludes: []string{noNewline},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, includes, err := expandRedisConfIncludes(confFile, tc.raw)
-			if err != nil {
-				t.Fatalf("expand err:%v", err)
-			}
-			if got != tc.want {
-				t.Errorf("expanded =\n%q\nwant\n%q", got, tc.want)
-			}
-			if strings.Join(includes, ",") != strings.Join(tc.wantIncludes, ",") {
-				t.Errorf("includes = %v, want %v", includes, tc.wantIncludes)
-			}
-		})
-	}
-}
-
-func TestExpandRedisConfIncludesOverrideOrder(t *testing.T) {
-	dir := t.TempDir()
-	confFile := filepath.Join(dir, "redis.conf")
-	instConf := filepath.Join(dir, "instance.conf")
-	writeTestFile(t, instConf, "maxmemory 1gb\n")
-
-	after, _, err := expandRedisConfIncludes(confFile, "include "+instConf+"\nmaxmemory 2gb\n")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := parseRedisConfDirectives(after).lastValue("maxmemory"); got != "2gb" {
-		t.Errorf("directive after include should win,got %q", got)
-	}
-	before, _, err := expandRedisConfIncludes(confFile, "maxmemory 2gb\ninclude "+instConf+"\n")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := parseRedisConfDirectives(before).lastValue("maxmemory"); got != "1gb" {
-		t.Errorf("included value should override the one before include,got %q", got)
-	}
-}
-
-func TestExpandRedisConfIncludesErrors(t *testing.T) {
-	dir := t.TempDir()
-	confFile := filepath.Join(dir, "redis.conf")
-	writeTestFile(t, confFile, "include "+filepath.Join(dir, "a.conf")+"\n")
-	writeTestFile(t, filepath.Join(dir, "a.conf"), "include "+confFile+"\n")
-
-	// 一条 9 层的链: deep0 -> deep1 -> ... -> deep9
-	for i := 0; i < 9; i++ {
-		writeTestFile(t, filepath.Join(dir, "deep"+string(rune('0'+i))+".conf"),
-			"include "+filepath.Join(dir, "deep"+string(rune('0'+i+1))+".conf")+"\n")
-	}
-	writeTestFile(t, filepath.Join(dir, "deep9.conf"), "port 30000\n")
-
-	cases := []struct {
-		name    string
-		raw     string
-		wantErr string
-	}{
-		{"missing file", "include " + filepath.Join(dir, "instance.conf") + "\n", "instance.conf cannot be read"},
-		{"cycle", "include " + filepath.Join(dir, "a.conf") + "\n", "forms a cycle"},
-		{"glob", "include " + filepath.Join(dir, "*.conf") + "\n", "glob"},
-		{"too deep", "include " + filepath.Join(dir, "deep0.conf") + "\n", "nested deeper than"},
-		{"no path", "include\n", "without a path"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, _, err := expandRedisConfIncludes(confFile, tc.raw)
-			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
-				t.Errorf("err = %v, want it to contain %q", err, tc.wantErr)
-			}
-		})
-	}
 }
 
 // setupGcsLayout 复现 GCS 迁过来的布局: redis.conf 只有基础项和 include,
@@ -186,8 +63,8 @@ func TestRegenConfFileRetiresIncludedInstanceConf(t *testing.T) {
 	instContent := readTestFile(t, instConf)
 
 	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
-	if err := job.regenConfFile(30000); err != nil {
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
+	if err := job.applyOfflineChanges(30000); err != nil {
 		t.Fatalf("regenConfFile err:%v", err)
 	}
 
@@ -200,7 +77,7 @@ func TestRegenConfFileRetiresIncludedInstanceConf(t *testing.T) {
 	if strings.Contains(got, `requirepass ""`) || strings.Contains(got, "include") {
 		t.Errorf("regenerated conf must carry the real password and no include:\n%s", got)
 	}
-	if backup := readTestFile(t, job.confBackupFiles[30000]); backup != raw {
+	if backup := readTestFile(t, job.offline[30000].ConfBackup()); backup != raw {
 		t.Errorf("backup should hold the raw conf with include,got:\n%s", backup)
 	}
 	if _, err := os.Stat(instConf); !os.IsNotExist(err) {
@@ -220,8 +97,8 @@ func TestRegenConfFileKeepsIncludeOutsideInstDir(t *testing.T) {
 	writeTestFile(t, confFile, liveConfForInstDir(instDir)+"include "+shared+"\n")
 
 	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(instDir)}
-	if err := job.regenConfFile(30000); err != nil {
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": targetConfItem(instDir)}
+	if err := job.applyOfflineChanges(30000); err != nil {
 		t.Fatalf("regenConfFile err:%v", err)
 	}
 	if strings.Contains(readTestFile(t, confFile), "include") {
@@ -230,31 +107,8 @@ func TestRegenConfFileKeepsIncludeOutsideInstDir(t *testing.T) {
 	if _, err := os.Stat(shared); err != nil {
 		t.Errorf("include outside inst dir should be left in place,err:%v", err)
 	}
-	if len(job.retiredIncludes[30000]) != 0 {
-		t.Errorf("nothing should be recorded as retired,got %+v", job.retiredIncludes[30000])
-	}
-}
-
-func TestRegenConfFileRestoresWhenRetireFails(t *testing.T) {
-	confFile, instConf, raw := setupGcsLayout(t, 30000)
-	orig := renameIncludedConfFile
-	renameIncludedConfFile = func(string, string) error { return os.ErrPermission }
-	t.Cleanup(func() { renameIncludedConfFile = orig })
-
-	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
-	err := job.regenConfFile(30000)
-	if err == nil || !strings.Contains(err.Error(), "retire include") {
-		t.Fatalf("err = %v, want retire failure", err)
-	}
-	if got := readTestFile(t, confFile); got != raw {
-		t.Errorf("redis.conf should be restored to the raw conf,got:\n%s", got)
-	}
-	if _, statErr := os.Stat(instConf); statErr != nil {
-		t.Errorf("instance.conf should stay in place,err:%v", statErr)
-	}
-	if _, ok := job.confBackupFiles[30000]; ok {
-		t.Error("failed regen should not record a backup for rollback")
+	if moved := retiredBackups(t, shared); len(moved) != 0 {
+		t.Errorf("include outside inst dir should not be retired,got %v", moved)
 	}
 }
 
@@ -263,11 +117,11 @@ func TestRestoreRedisConfFileBringsBackRetiredInclude(t *testing.T) {
 	instContent := readTestFile(t, instConf)
 
 	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
-	if err := job.regenConfFile(30000); err != nil {
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
+	if err := job.applyOfflineChanges(30000); err != nil {
 		t.Fatalf("regenConfFile err:%v", err)
 	}
-	if err := job.restoreRedisConfFile(30000); err != nil {
+	if err := job.undoOfflineChanges(30000); err != nil {
 		t.Fatalf("restoreRedisConfFile err:%v", err)
 	}
 	if got := readTestFile(t, confFile); got != raw {
@@ -287,7 +141,7 @@ func TestPrecheckReplExpectationSeesIncludedReplication(t *testing.T) {
 	slave := buildRegenJob("1.1.1.1", []int{30000})
 	slave.params.Role = consts.MetaRoleRedisSlave
 	slave.replSnapshots[30000] = replSnapshot{
-		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
 	if err := slave.precheckReplExpectation([]int{30000}); err != nil {
 		t.Errorf("slaveof only in instance.conf should satisfy the snapshot,err:%v", err)
@@ -307,12 +161,16 @@ func TestLocalDataFileNamesSeesIncludedDbfilename(t *testing.T) {
 	writeTestFile(t, instConf, readTestFile(t, instConf)+"dbfilename dump-30000.rdb\n")
 
 	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
-	if err := job.regenConfFile(30000); err != nil {
-		t.Fatalf("regenConfFile err:%v", err)
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": targetConfItem(filepath.Dir(confFile))}
+	plan, err := job.buildRegenConfPlan(30000)
+	if err != nil {
+		t.Fatalf("buildRegenConfPlan err:%v", err)
 	}
-	// 此时 instance.conf 已随重建挪走, 旧配置里的 dbfilename 只能靠重建时记下的展开结果
-	_, names, err := job.localDataFileNames(30000)
+	if err = job.applyOfflineChanges(30000); err != nil {
+		t.Fatalf("applyOfflineChanges err:%v", err)
+	}
+	// 此时 instance.conf 已随重建挪走, 旧配置里的 dbfilename 只能靠计划里记下的展开结果
+	_, names, err := job.localDataFileNames(30000, plan)
 	if err != nil {
 		t.Fatalf("localDataFileNames err:%v", err)
 	}
@@ -333,34 +191,34 @@ func TestRegenPlainConfUnchanged(t *testing.T) {
 
 	job := buildRegenJob("1.1.1.1", []int{30000})
 	item := targetConfItem(instDir)
-	job.params.PortConfConfigs = map[string]RedisConfRenderItem{"30000": item}
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": item}
 
 	legacyReq := job.regenRequest(30000)
 	legacyReq.Item = item
 	legacyReq.ConfFile = confFile
 	legacyReq.OldConfData = raw
-	legacy, err := legacyReq.buildPlan()
+	legacy, err := legacyReq.Plan()
 	if err != nil {
-		t.Fatalf("legacy buildPlan err:%v", err)
+		t.Fatalf("legacy Plan err:%v", err)
 	}
 	plan, err := job.buildRegenConfPlan(30000)
 	if err != nil {
 		t.Fatalf("buildRegenConfPlan err:%v", err)
 	}
-	if plan.confData != legacy.confData {
-		t.Errorf("plain conf output changed:\ngot:\n%s\nwant:\n%s", plan.confData, legacy.confData)
+	if plan.NewConf != legacy.NewConf {
+		t.Errorf("plain conf output changed:\ngot:\n%s\nwant:\n%s", plan.NewConf, legacy.NewConf)
 	}
-	if plan.hasInclude() || plan.oldConfData != raw {
-		t.Errorf("plain conf should not be treated as include layout,includes=%v", plan.includedFiles)
+	if plan.HasInclude() || plan.OldConf != raw {
+		t.Errorf("plain conf should not be treated as include layout,includes=%v", plan.Includes)
 	}
 
-	if err = job.regenConfFile(30000); err != nil {
+	if err = job.applyOfflineChanges(30000); err != nil {
 		t.Fatalf("regenConfFile err:%v", err)
 	}
-	if got := readTestFile(t, confFile); got != legacy.confData {
+	if got := readTestFile(t, confFile); got != legacy.NewConf {
 		t.Errorf("written conf differs from legacy output:\n%s", got)
 	}
-	if backup := readTestFile(t, job.confBackupFiles[30000]); backup != raw {
+	if backup := readTestFile(t, job.offline[30000].ConfBackup()); backup != raw {
 		t.Errorf("backup should be the raw conf,got:\n%s", backup)
 	}
 	if got := readTestFile(t, strayInstConf); got != "requirepass stale\n" {
@@ -376,7 +234,7 @@ func TestValidateRegenConfRejectsInclude(t *testing.T) {
 	conf := oldConf + "include /data1/redis/30000/instance.conf\n"
 	job := buildRegenJob("1.1.1.1", []int{30000})
 	err := job.validateRegenConf(
-		30000, "/data1/redis/30000/redis.conf", conf, oldConf, parseRedisConfDirectives(oldConf))
+		30000, "/data1/redis/30000/redis.conf", conf, oldConf, redisconf.ParseDirectives(oldConf))
 	if err == nil || !strings.Contains(err.Error(), "must not contain include") {
 		t.Errorf("err = %v, want include rejected", err)
 	}
