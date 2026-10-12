@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 )
 
 // TestLocalInstCountIgnoresShutdownDirs blockcache 的分母只数活着的实例目录.
@@ -81,14 +82,14 @@ func TestSettleUnsettledPortsSkipsAlreadySettled(t *testing.T) {
 }
 
 func TestPrecheckSyncMasters(t *testing.T) {
-	deliveredConf := map[string]RedisConfRenderItem{
+	deliveredConf := map[string]redisconf.RenderItem{
 		"30000": {ConfConfigs: map[string]string{"port": "{{port}}"}},
 	}
 	cases := []struct {
 		name        string
 		clusterType string
 		syncMasters map[string]string
-		confConfigs map[string]RedisConfRenderItem
+		confConfigs map[string]redisconf.RenderItem
 		flush       bool
 		wantErr     string
 	}{
@@ -210,7 +211,7 @@ func TestVersionUpdateRegenGcsLayout(t *testing.T) {
 			setup: func(job *RedisVersionUpdate) {
 				job.params.Role = consts.MetaRoleRedisSlave
 				job.replSnapshots[30000] = replSnapshot{
-					addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+					Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 				}
 			},
 			wantRepl: "1.1.1.2 30000",
@@ -234,7 +235,7 @@ func TestVersionUpdateRegenGcsLayout(t *testing.T) {
 			writeTestFile(t, instConf, tc.instConf)
 
 			job := buildRegenJob("1.1.1.1", []int{30000})
-			job.params.PortConfConfigs = map[string]RedisConfRenderItem{
+			job.params.PortConfConfigs = map[string]redisconf.RenderItem{
 				"30000": targetConfItem(filepath.Dir(confFile)),
 			}
 			tc.setup(job)
@@ -247,24 +248,141 @@ func TestVersionUpdateRegenGcsLayout(t *testing.T) {
 			if err := job.precheckConfRegen([]int{30000}); err != nil {
 				t.Fatalf("precheckConfRegen err:%v", err)
 			}
-			if err := job.regenConfFile(30000); err != nil {
+			if err := job.applyOfflineChanges(30000); err != nil {
 				t.Fatalf("regenConfFile err:%v", err)
 			}
 
 			got := readTestFile(t, confFile)
-			directives := parseRedisConfDirectives(got)
-			if pass := unquoteConfValue(directives.lastValue("requirepass")); pass != "xxxxpasswd" {
+			directives := redisconf.ParseDirectives(got)
+			if pass := redisconf.Unquote(directives.LastValue("requirepass")); pass != "xxxxpasswd" {
 				t.Errorf("requirepass = %q, want the password from instance.conf:\n%s", pass, got)
 			}
-			if auth := unquoteConfValue(directives.lastValue("masterauth")); auth != "xxxxpasswd" {
+			if auth := redisconf.Unquote(directives.LastValue("masterauth")); auth != "xxxxpasswd" {
 				t.Errorf("masterauth = %q, want the password from instance.conf:\n%s", auth, got)
 			}
-			if _, repl := effectiveReplicationOf(got); repl != tc.wantRepl {
+			if _, repl := redisconf.EffectiveReplicationOf(got); repl != tc.wantRepl {
 				t.Errorf("replication = %q, want %q:\n%s", repl, tc.wantRepl, got)
 			}
 			if strings.Contains(got, `requirepass ""`) {
 				t.Errorf("regenerated conf must not drop the password:\n%s", got)
 			}
 		})
+	}
+}
+
+// setupLegacyNodesFileCluster 一个 cluster 实例: 旧配置用 cluster-config-file 指向 nodes-30000.conf,
+// dir 下没有 nodes.conf. 返回配置文件、旧节点文件和缺省节点文件的路径
+func setupLegacyNodesFileCluster(t *testing.T, nodeID string) (job *RedisVersionUpdate, confFile, legacy, canonical string) {
+	t.Helper()
+	confFile = setupInstanceConf(t, 30000, "placeholder\n")
+	instDir := filepath.Dir(confFile)
+	dataDir := filepath.Join(instDir, "data")
+	legacy = filepath.Join(dataDir, "nodes-30000.conf")
+	canonical = filepath.Join(dataDir, "nodes.conf")
+	writeTestFile(t, confFile, strings.Join([]string{
+		"bind 1.1.1.1",
+		"port 30000",
+		"requirepass \"xxxxpasswd\"",
+		"masterauth \"xxxxpasswd\"",
+		"dir " + dataDir,
+		"cluster-enabled yes",
+		"cluster-config-file nodes-30000.conf",
+	}, "\n")+"\n")
+	writeTestFile(t, legacy, nodeID+" 1.1.1.1:30000@40000 myself,master - 0 0 1 connected 0-16383\n"+
+		"vars currentEpoch 1 lastVoteEpoch 0\n")
+
+	job = buildRegenJob("1.1.1.1", []int{30000})
+	job.params.ClusterType = consts.TendisTypePredixyRedisCluster
+	item := targetConfItem(instDir)
+	item.ConfConfigs["cluster-enabled"] = "yes"
+	item.ConfConfigs["cluster-config-file"] = "nodes.conf"
+	job.params.PortConfConfigs = map[string]redisconf.RenderItem{"30000": item}
+	return job, confFile, legacy, canonical
+}
+
+func TestUpgradeMigratesLegacyClusterConfigFile(t *testing.T) {
+	const nodeID = "e7d1eecce10fd6bb5eb35b9f99a514335d9ba9ca"
+	job, confFile, legacy, canonical := setupLegacyNodesFileCluster(t, nodeID)
+	job.replSnapshots[30000] = replSnapshot{Addr: "1.1.1.1:30000", Role: consts.RedisMasterRole, NodeID: nodeID}
+
+	if err := job.precheckConfRegen([]int{30000}); err != nil {
+		t.Fatalf("precheckConfRegen err:%v", err)
+	}
+	if err := job.applyOfflineChanges(30000); err != nil {
+		t.Fatalf("applyOfflineChanges err:%v", err)
+	}
+	if got := readTestFile(t, confFile); strings.Contains(got, "cluster-config-file") {
+		t.Errorf("regenerated conf should use the default nodes file:\n%s", got)
+	}
+	if got := readTestFile(t, canonical); got != readTestFile(t, legacy) {
+		t.Errorf("nodes.conf should carry the legacy identity:\n%s", got)
+	}
+
+	// 起不来时撤销: 配置回到原文, 复制出来的 nodes.conf 也要去掉, 旧配置照旧读 nodes-30000.conf
+	if err := job.undoOfflineChanges(30000); err != nil {
+		t.Fatalf("undoOfflineChanges err:%v", err)
+	}
+	if got := readTestFile(t, confFile); !strings.Contains(got, "cluster-config-file nodes-30000.conf") {
+		t.Errorf("conf should be restored:\n%s", got)
+	}
+	if _, err := os.Stat(canonical); !os.IsNotExist(err) {
+		t.Errorf("copied nodes.conf should be removed by undo,stat err:%v", err)
+	}
+}
+
+func TestUpgradeRefusesNodesFileNotMatchingRunningIdentity(t *testing.T) {
+	job, confFile, _, canonical := setupLegacyNodesFileCluster(t, "e7d1eecce10fd6bb5eb35b9f99a514335d9ba9ca")
+	raw := readTestFile(t, confFile)
+	job.replSnapshots[30000] = replSnapshot{
+		Addr: "1.1.1.1:30000", Role: consts.RedisMasterRole, NodeID: "07c37dfeb235213a872192d90877d0cd55635b91",
+	}
+
+	err := job.precheckConfRegen([]int{30000})
+	if err == nil || !strings.Contains(err.Error(), "refuse to migrate") {
+		t.Fatalf("err = %v, want node id mismatch caught before stop", err)
+	}
+	if got := readTestFile(t, confFile); got != raw {
+		t.Error("precheck must not touch the conf")
+	}
+	if _, statErr := os.Stat(canonical); !os.IsNotExist(statErr) {
+		t.Error("precheck must not copy the nodes file")
+	}
+}
+
+func TestUpgradeRefusesMissingLegacyNodesFile(t *testing.T) {
+	job, _, legacy, _ := setupLegacyNodesFileCluster(t, "e7d1eecce10fd6bb5eb35b9f99a514335d9ba9ca")
+	if err := os.Remove(legacy); err != nil {
+		t.Fatal(err)
+	}
+	err := job.precheckConfRegen([]int{30000})
+	if err == nil || !strings.Contains(err.Error(), "new cluster node") {
+		t.Errorf("err = %v, want refusal when the legacy nodes file is gone", err)
+	}
+}
+
+func TestPhaseErrCarriesPortAndPhase(t *testing.T) {
+	job := buildRegenJob("1.1.1.1", []int{30000})
+	base := fmt.Errorf("boom")
+	if got := job.phaseErr(30000, base); got != base {
+		t.Errorf("port without phase should return the error as is, got %v", got)
+	}
+	job.enterPhase(30000, phaseOffline)
+	got := job.phaseErr(30000, base)
+	if got == nil || got.Error() != "port(30000) offline phase: boom" {
+		t.Errorf("phaseErr = %v", got)
+	}
+	if job.phaseErr(30000, nil) != nil {
+		t.Error("nil error should stay nil")
+	}
+}
+
+func TestRegenConfAndStartRedisReportsOfflinePhase(t *testing.T) {
+	job, _, legacy, _ := setupLegacyNodesFileCluster(t, "e7d1eecce10fd6bb5eb35b9f99a514335d9ba9ca")
+	if err := os.Remove(legacy); err != nil {
+		t.Fatal(err)
+	}
+	err := job.phaseErr(30000, job.regenConfAndStartRedis(30000))
+	if err == nil || !strings.HasPrefix(err.Error(), "port(30000) offline phase:") {
+		t.Errorf("err = %v, want it tagged with the offline phase", err)
 	}
 }

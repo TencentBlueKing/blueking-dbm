@@ -1,4 +1,4 @@
-package atomredis
+package redisconf
 
 import (
 	"strings"
@@ -18,7 +18,7 @@ func TestDiffRedisConfDirectives(t *testing.T) {
 		"replica-lazy-flush yes",
 		"disable-thp yes",
 	}, "\n") + "\n"
-	got := diffRedisConfDirectives(oldConf, newConf)
+	got := DiffDirectives(oldConf, newConf)
 
 	// 改名要归成一条, 而不是拆成一加一减淹没真正的增删
 	if !strings.Contains(got, "[renamed] 1 item(s)") {
@@ -44,7 +44,7 @@ func TestDiffRedisConfDirectives(t *testing.T) {
 	}
 
 	// 仅顺序不同不应产生噪音
-	if !strings.Contains(diffRedisConfDirectives("a 1\nb 2\n", "b 2\na 1\n"), "no directive level change") {
+	if !strings.Contains(DiffDirectives("a 1\nb 2\n", "b 2\na 1\n"), "no directive level change") {
 		t.Error("reordering should not be reported as a change")
 	}
 }
@@ -65,16 +65,16 @@ func TestDiffRedisConfDirectivesIgnoresQuotingOnly(t *testing.T) {
 		"logfile /data/redis/30000/redis.log",
 	}, "\n") + "\n"
 
-	if got := diffRedisConfDirectives(oldConf, newConf); !strings.Contains(got, "no directive level change") {
+	if got := DiffDirectives(oldConf, newConf); !strings.Contains(got, "no directive level change") {
 		t.Errorf("quote-only difference reported as change\ngot:\n%s", got)
 	}
 	// 引号里的内容真变了还是要报出来, 且展示时两边都不带引号
-	got := diffRedisConfDirectives("dbfilename \"dump.rdb\"\n", "dbfilename other.rdb\n")
+	got := DiffDirectives("dbfilename \"dump.rdb\"\n", "dbfilename other.rdb\n")
 	if !strings.Contains(got, "dbfilename: dump.rdb => other.rdb") {
 		t.Errorf("real value change should be shown unquoted\ngot:\n%s", got)
 	}
 	// 空值仍要看得出来
-	got = diffRedisConfDirectives("port 30000\n", "port 30000\naof_rewrite_cpulist \"\"\n")
+	got = DiffDirectives("port 30000\n", "port 30000\naof_rewrite_cpulist \"\"\n")
 	if !strings.Contains(got, "aof_rewrite_cpulist \"\"") {
 		t.Errorf("empty value should stay visible as \"\"\ngot:\n%s", got)
 	}
@@ -103,16 +103,16 @@ func TestConfDirectivesEqual(t *testing.T) {
 		"client-output-buffer-limit normal 256mb 512mb 300",
 		"client-output-buffer-limit slave 2048mb 2048mb 300",
 	}, "\n") + "\n"
-	if !confDirectivesEqual(live, reordered) {
+	if !DirectivesEqual(live, reordered) {
 		t.Error("reordered/quoted conf should equal the rewrite form")
 	}
-	if !confDirectivesEqual(live, live) {
+	if !DirectivesEqual(live, live) {
 		t.Error("identical conf should equal")
 	}
-	if confDirectivesEqual(live, strings.Replace(live, "maxmemory 8589934592", "maxmemory 1", 1)) {
+	if DirectivesEqual(live, strings.Replace(live, "maxmemory 8589934592", "maxmemory 1", 1)) {
 		t.Error("value change should not equal")
 	}
-	if confDirectivesEqual("port 30000\n", "port 30000\ntimeout 60\n") {
+	if DirectivesEqual("port 30000\n", "port 30000\ntimeout 60\n") {
 		t.Error("added directive should not equal")
 	}
 }
@@ -120,21 +120,21 @@ func TestConfDirectivesEqual(t *testing.T) {
 func TestConfDirectivesEqualToleratesRewriteNormalization(t *testing.T) {
 	// config rewrite 会把 256mb 折算成字节数、把布尔归一成 yes/no: 纯写法差异不算变更,
 	// 否则每次 refresh 都会误判有差异而多写一次文件
-	if !confDirectivesEqual("maxmemory 268435456\nappendonly yes\n", "maxmemory 256mb\nappendonly 1\n") {
+	if !DirectivesEqual("maxmemory 268435456\nappendonly yes\n", "maxmemory 256mb\nappendonly 1\n") {
 		t.Error("rewrite normalization should not count as a change")
 	}
 	// 凭据类指令不做归一化: 大小写不同就是不同
-	if confDirectivesEqual("requirepass Abc\n", "requirepass abc\n") {
+	if DirectivesEqual("requirepass Abc\n", "requirepass abc\n") {
 		t.Error("password compare must stay strict")
 	}
 	// 长得像内存单位的密码也不能被折算成字节数
-	if confDirectivesEqual("requirepass 1k\n", "requirepass 1024\n") {
+	if DirectivesEqual("requirepass 1k\n", "requirepass 1024\n") {
 		t.Error("password must not be treated as a memory size")
 	}
-	if !confDirectivesEqual("slave-read-only yes\n", "replica-read-only yes\n") {
+	if !DirectivesEqual("slave-read-only yes\n", "replica-read-only yes\n") {
 		t.Error("alias pair should equal")
 	}
-	if confDirectivesEqual("slave-read-only yes\n", "replica-read-only no\n") {
+	if DirectivesEqual("slave-read-only yes\n", "replica-read-only no\n") {
 		t.Error("alias pair with different values should not equal")
 	}
 }
@@ -147,7 +147,7 @@ func TestDiffRedisConfDirectivesMasksSecrets(t *testing.T) {
 	}, "\n") + "\n"
 	newConf := "requirepass newsecretpass\nmasteruser someuser\n"
 
-	got := diffRedisConfDirectives(oldConf, newConf)
+	got := DiffDirectives(oldConf, newConf)
 	for _, secret := range []string{"oldsecretpass", "newsecretpass", "someuser",
 		"2b5136ae19bf035d763608129cad3f27"} {
 		if strings.Contains(got, secret) {

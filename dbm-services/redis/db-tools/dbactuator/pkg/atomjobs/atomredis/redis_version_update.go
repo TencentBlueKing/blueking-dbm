@@ -16,8 +16,12 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/common"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
+
+// RedisConfRenderItem 单个端口的目标版本配置, 见 redisconf.RenderItem
+type RedisConfRenderItem = redisconf.RenderItem
 
 // RedisVersionUpdateParams redis 版本更新参数
 type RedisVersionUpdateParams struct {
@@ -97,18 +101,15 @@ type RedisVersionUpdate struct {
 	runtime          *jobruntime.JobGenericRuntime
 	params           RedisVersionUpdateParams
 	localPkgBaseName string
-	// confBackupFiles port -> 本次重建配置前的备份文件, 供起不来时回滚
-	confBackupFiles map[int]string
-	// retiredIncludes port -> 随重建一起挪走的 include 文件, 回滚配置前要先挪回
-	retiredIncludes map[int][]retiredConfFile
-	// regenOldConfs port -> 本次重建前展开 include 后的旧配置, 找本地数据文件名时用
-	regenOldConfs map[int]string
+	// offline port -> 停机后已经落盘的动作(写配置、退役 include、迁移节点文件、挪走数据),
+	// 起不来时整体撤销, 同步好之后收尾
+	offline map[int]*redisconf.Applied
+	// phases port -> 走到的阶段, 见 upgradePhase
+	phases map[int]upgradePhase
 	// replSnapshots port -> 停机前的复制状态, 拉起后据此钉死"角色和主库都没变"
 	replSnapshots map[int]replSnapshot
 	// discardPorts port -> 本次是否空载起进程(挪走本地 RDB/AOF), 停机前一次算好
 	discardPorts map[int]bool
-	// discardedFiles port -> 已挪走的数据文件, 起不来时放回去, 同步好后删掉
-	discardedFiles map[int][]discardedDataFile
 	// settledPorts port -> 本次已经钉过复制状态并恢复过 failover 资格.
 	// 重启循环里做完就记上, 末尾的兜底循环据此跳过, 否则同一个端口会被收尾两遍.
 	settledPorts map[int]bool
@@ -156,11 +157,10 @@ func (job *RedisVersionUpdate) Init(m *jobruntime.JobGenericRuntime) error {
 		job.runtime.Logger.Error("%s", err)
 		return err
 	}
-	job.confBackupFiles = make(map[int]string, len(job.params.Ports))
-	job.retiredIncludes = make(map[int][]retiredConfFile, len(job.params.Ports))
+	job.offline = make(map[int]*redisconf.Applied, len(job.params.Ports))
+	job.phases = make(map[int]upgradePhase, len(job.params.Ports))
 	job.replSnapshots = make(map[int]replSnapshot, len(job.params.Ports))
 	job.discardPorts = make(map[int]bool, len(job.params.Ports))
-	job.discardedFiles = make(map[int][]discardedDataFile, len(job.params.Ports))
 	job.settledPorts = make(map[int]bool, len(job.params.Ports))
 	return nil
 }
@@ -176,8 +176,7 @@ func (job *RedisVersionUpdate) Run() (err error) {
 		// 对RedisInstance + redis_master 升级,单独处理
 		return job.upgradeRedisInstanceMaster()
 	}
-	// 本地redis连接测试. allInstsAbleToConnect 做的就是同一件事, 而且把 client 留了下来,
-	// 不必先跑一遍 LocalRedisConnectTest 再连第二遍
+	// 本地redis连接测试.
 	err = job.allInstsAbleToConnect()
 	if err != nil {
 		return err
@@ -244,13 +243,12 @@ func (job *RedisVersionUpdate) Run() (err error) {
 		defer util.StartBkDbmon()
 	}
 	for _, port := range restartPorts {
-		err = job.beforeStopRedis(port)
-		if err != nil {
-			return err
+		job.enterPhase(port, phaseStop)
+		if err = job.beforeStopRedis(port); err != nil {
+			return job.phaseErr(port, err)
 		}
-		err = job.stopRedis(port)
-		if err != nil {
-			return err
+		if err = job.stopRedis(port); err != nil {
+			return job.phaseErr(port, err)
 		}
 	}
 	if pkgNeedsSwitch {
@@ -260,14 +258,12 @@ func (job *RedisVersionUpdate) Run() (err error) {
 		}
 	}
 	for _, port := range restartPorts {
-		err = job.regenConfAndStartRedis(port)
-		if err != nil {
-			return err
+		if err = job.regenConfAndStartRedis(port); err != nil {
+			return job.phaseErr(port, err)
 		}
 		if job.params.FlushAfterUpgrade {
-			err = job.flushDataAfterStart(port)
-			if err != nil {
-				return err
+			if err = job.flushDataAfterStart(port); err != nil {
+				return job.phaseErr(port, err)
 			}
 		}
 	}
@@ -312,7 +308,7 @@ func (job *RedisVersionUpdate) replExpectation(port int) replSnapshot {
 		job.runtime.Logger.Warn("%s", err)
 		return job.replSnapshots[port]
 	}
-	return resolveReplExpectation(
+	return redisconf.ResolveReplExpectation(
 		net.JoinHostPort(job.params.IP, strconv.Itoa(port)), host, portStr, job.replSnapshots[port])
 }
 
@@ -342,7 +338,7 @@ func (job *RedisVersionUpdate) precheckSyncMasters() error {
 			continue
 		}
 		if consts.IsClusterDbType(job.params.ClusterType) {
-			// cluster 架构的主从关系在 nodes.conf 里, 这里只当拉起后的校验期望用
+			// cluster 架构的主从关系在 nodes.conf/rocksdb 里, 这里只当拉起后的校验期望用
 			continue
 		}
 		item, ok := job.params.PortConfConfigs[strconv.Itoa(port)]
@@ -389,14 +385,14 @@ func (job *RedisVersionUpdate) captureAllReplSnapshots() error {
 			job.runtime.Logger.Error("%s", err)
 			return err
 		}
-		snap, err := captureReplSnapshot(cli)
+		snap, err := captureReplSnapshot(cli, job.params.ClusterType)
 		if err != nil {
 			job.runtime.Logger.Error("%s", err)
 			return err
 		}
 		job.replSnapshots[port] = snap
-		job.runtime.Logger.Info("redis(%s) repl state before restart:role=%s,master=%q",
-			addr, snap.role, snap.masterAddr())
+		job.runtime.Logger.Info("redis(%s) repl state before restart:role=%s,master=%q,node_id=%q",
+			addr, snap.Role, snap.MasterAddr(), snap.NodeID)
 	}
 	return nil
 }
@@ -411,7 +407,7 @@ func (job *RedisVersionUpdate) precheckReplExpectation(ports []int) error {
 		return nil
 	}
 	for _, port := range ports {
-		input, err := loadRegenInput(port)
+		eff, err := redisconf.LoadEffective(port)
 		if err != nil {
 			// 老部署可能只有 instance.conf, 或 include 解析不了. 降级为只做拉起后断言,
 			// 不让"只换二进制"的存量路径失败; 要重建配置的端口会在 precheckConfRegen 被拦下
@@ -419,8 +415,8 @@ func (job *RedisVersionUpdate) precheckReplExpectation(ports []int) error {
 			continue
 		}
 		// 主从关系可能只写在 include 进来的 instance.conf 里, 必须看展开后的配置
-		if err = job.checkConfReplExpectation(port, input.expanded); err != nil {
-			err = fmt.Errorf("port(%d) conf(%s) %v", port, input.confFile, err)
+		if err = job.checkConfReplExpectation(port, eff.Expanded); err != nil {
+			err = fmt.Errorf("port(%d) conf(%s) %v", port, eff.File, err)
 			job.runtime.Logger.Error("%s", err)
 			return err
 		}
@@ -435,14 +431,14 @@ func (job *RedisVersionUpdate) precheckReplExpectation(ports []int) error {
 // 退化成按元数据角色判断 —— master 的配置文件里不该有生效的 replicaof.
 func (job *RedisVersionUpdate) checkConfReplExpectation(port int, confData string) error {
 	if host, _, _ := job.params.syncMasterAddr(port); host != "" {
-		// 这份配置马上会被整份重建, 里面的主从关系由 applyReplExpectationToConf 写定,
-		// 磁盘上的旧内容不影响结果; 渲染结果由 checkRegenConfReplication 校验
+		// 这份配置马上会被整份重建, 里面的主从关系由 redisconf.StepReplicaOf 写定,
+		// 磁盘上的旧内容不影响结果; 渲染结果由重建时的 replication 不变量校验
 		job.runtime.Logger.Info("port(%d) skip conf level replication precheck,replicaof will be regenerated", port)
 		return nil
 	}
 	snap := job.replSnapshots[port]
-	if snap.captured() {
-		return snap.checkConfMatchesExpectation(confData, job.params.ClusterType)
+	if snap.Captured() {
+		return snap.CheckConfMatchesExpectation(confData, job.params.ClusterType)
 	}
 	if consts.IsClusterDbType(job.params.ClusterType) {
 		// cluster 实例的配置文件里本来就没有 replicaof, 没什么可比的
@@ -454,7 +450,7 @@ func (job *RedisVersionUpdate) checkConfReplExpectation(port int, confData strin
 			port, job.params.Role)
 		return nil
 	}
-	if _, confTarget := effectiveReplicationOf(confData); confTarget != "" {
+	if _, confTarget := redisconf.EffectiveReplicationOf(confData); confTarget != "" {
 		return fmt.Errorf("meta role is %s, but conf file declares replication of %q, "+
 			"restart would turn a master into a replica", job.params.Role, confTarget)
 	}
@@ -510,9 +506,9 @@ func (job *RedisVersionUpdate) upgradeRedisInstanceMaster() (err error) {
 			if !isAlive {
 				continue
 			}
-			err = job.stopRedis(port)
-			if err != nil {
-				return err
+			job.enterPhase(port, phaseStop)
+			if err = job.stopRedis(port); err != nil {
+				return job.phaseErr(port, err)
 			}
 		}
 		// 更新 /usr/local/redis 软链接
@@ -535,24 +531,23 @@ func (job *RedisVersionUpdate) upgradeRedisInstanceMaster() (err error) {
 			return probeErr
 		}
 		if inUse {
+			job.enterPhase(port, phaseStop)
 			if err = job.ensurePortConnected(port); err != nil {
-				return err
+				return job.phaseErr(port, err)
 			}
 			if err = job.beforeStopRedis(port); err != nil {
-				return err
+				return job.phaseErr(port, err)
 			}
 			if err = job.stopRedis(port); err != nil {
-				return err
+				return job.phaseErr(port, err)
 			}
 		}
-		err = job.regenConfAndStartRedis(port)
-		if err != nil {
-			return err
+		if err = job.regenConfAndStartRedis(port); err != nil {
+			return job.phaseErr(port, err)
 		}
 		if job.params.FlushAfterUpgrade {
-			err = job.flushDataAfterStart(port)
-			if err != nil {
-				return err
+			if err = job.flushDataAfterStart(port); err != nil {
+				return job.phaseErr(port, err)
 			}
 		}
 	}
@@ -576,25 +571,27 @@ func (job *RedisVersionUpdate) localInstCount() uint64 {
 //
 // 与 RedisConfRefresh.regenRequest 对照: 升级填目标介质、允许改拓扑(sync_masters)、
 // 空载起进程时暂时禁掉 cluster failover; 刷新配置则用当前软链、保持停机前快照、不挪数据.
-func (job *RedisVersionUpdate) regenRequest(port int) confRegenRequest {
-	return confRegenRequest{
+// 两者的差异体现在各自的改写步骤列表上, 见 redisconf.UpgradeSteps.
+func (job *RedisVersionUpdate) regenRequest(port int) redisconf.Request {
+	return redisconf.Request{
 		IP:               job.params.IP,
 		Port:             port,
 		PkgBaseName:      job.params.GePkgBaseName(),
 		ClusterType:      job.params.ClusterType,
 		InstCount:        job.localInstCount(),
+		Steps:            redisconf.UpgradeSteps,
 		Expect:           job.replExpectation(port),
 		DiscardLocalData: job.discardingLocalData(port),
 		Logger:           job.runtime.Logger,
 	}
 }
 
-// buildRegenConfPlan 组装本端口的重建请求, 跑完渲染与校验.
+// buildRegenConfPlan 组装本端口的重建请求, 跑完渲染、改写与校验.
 //
 // 返回 (nil, nil) 表示该端口无需重建, 保持"只换二进制"的旧行为.
-func (job *RedisVersionUpdate) buildRegenConfPlan(port int) (*regenConfPlan, error) {
+func (job *RedisVersionUpdate) buildRegenConfPlan(port int) (*redisconf.Plan, error) {
 	item, ok := job.params.PortConfConfigs[strconv.Itoa(port)]
-	return buildRegenPlan(job.regenRequest(port), item, ok)
+	return redisconf.LoadAndPlan(job.regenRequest(port), item, ok)
 }
 
 // precheckConfRegen 在停实例、切软链之前先把目标配置渲染并校验一遍.
@@ -608,6 +605,9 @@ func (job *RedisVersionUpdate) precheckConfRegen(ports []int) error {
 	checked := make([]int, 0, len(ports))
 	for _, port := range ports {
 		plan, err := job.buildRegenConfPlan(port)
+		if err == nil {
+			err = redisconf.CheckNodesFileIdentity(plan, job.replSnapshots[port].NodeID, job.runtime.Logger)
+		}
 		if err != nil {
 			job.runtime.Logger.Error("%s", err)
 			return err
@@ -626,89 +626,78 @@ func (job *RedisVersionUpdate) precheckConfRegen(ports []int) error {
 	return nil
 }
 
-// regenConfFile 用目标版本的 dbconfig 重建实例配置文件.
-//
-// PortConfConfigs 中没有该端口时直接返回 nil, 保持"只换二进制"的旧行为.
-func (job *RedisVersionUpdate) regenConfFile(port int) (err error) {
+// offlineChanges 本端口停机后要落盘的动作: 重建配置带来的那些, 加上空载起进程要挪走的数据
+func (job *RedisVersionUpdate) offlineChanges(port int) ([]redisconf.Change, error) {
 	plan, err := job.buildRegenConfPlan(port)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if plan == nil {
+	var changes []redisconf.Change
+	if plan != nil {
+		changes = plan.Changes()
+	} else {
 		job.runtime.Logger.Info("port(%d) no target version conf delivered,skip conf regenerate", port)
-		return nil
 	}
-	backupFile, retired, err := writeRegenConfPlan(plan, port, job.runtime.Logger)
+	if job.discardingLocalData(port) {
+		moveAside, err := job.localDataMoveAside(port, plan)
+		if err != nil {
+			job.runtime.Logger.Error("%s", err)
+			return nil, err
+		}
+		changes = append(changes, moveAside)
+	}
+	return changes, nil
+}
+
+// applyOfflineChanges 执行本端口停机后的落盘动作. 中途失败时已做的会被撤销
+func (job *RedisVersionUpdate) applyOfflineChanges(port int) error {
+	changes, err := job.offlineChanges(port)
 	if err != nil {
 		return err
 	}
-	job.confBackupFiles[port] = backupFile
-	if job.regenOldConfs == nil {
-		job.regenOldConfs = make(map[int]string)
+	applied, err := redisconf.ApplyChanges(changes, job.runtime.Logger)
+	if err != nil {
+		job.runtime.Logger.Error("port(%d) %v", port, err)
+		return err
 	}
-	job.regenOldConfs[port] = plan.oldConfData
-	if len(retired) > 0 {
-		if job.retiredIncludes == nil {
-			job.retiredIncludes = make(map[int][]retiredConfFile)
-		}
-		job.retiredIncludes[port] = retired
+	if job.offline == nil {
+		job.offline = make(map[int]*redisconf.Applied)
 	}
+	job.offline[port] = applied
 	return nil
 }
 
-// restoreRedisConfFile 回滚配置文件.
-// 用目标版本配置起不来时, 把旧配置放回去再重试一次, 最差退化到旧行为.
-//
-// 旧配置可能 include 了随重建挪走的文件, 必须先挪回来: 否则放回去的 include 指向一个
-// 不存在的文件, redis 连旧配置都起不来.
-func (job *RedisVersionUpdate) restoreRedisConfFile(port int) error {
-	backupFile, ok := job.confBackupFiles[port]
-	if !ok || backupFile == "" {
-		return fmt.Errorf("port(%d) no conf backup to restore", port)
-	}
-	confFile, err := getRedisConfFileForRegen(port)
-	if err != nil {
-		return err
-	}
-	if err = restoreRetiredConfFiles(job.retiredIncludes[port], job.runtime.Logger); err != nil {
+// undoOfflineChanges 撤销本端口停机后的落盘动作, 磁盘回到停机时的样子
+func (job *RedisVersionUpdate) undoOfflineChanges(port int) error {
+	if err := job.offline[port].Undo(job.runtime.Logger); err != nil {
 		return fmt.Errorf("port(%d) %v", port, err)
 	}
-	delete(job.retiredIncludes, port)
-	backupBytes, err := os.ReadFile(backupFile)
-	if err != nil {
-		return fmt.Errorf("read conf backup(%s) failed,err:%v", backupFile, err)
-	}
-	if err = writeRedisConfFile(confFile, backupBytes); err != nil {
-		return fmt.Errorf("restore conf(%s) from %s failed,err:%v", confFile, backupFile, err)
-	}
-	delete(job.confBackupFiles, port)
-	delete(job.regenOldConfs, port)
+	delete(job.offline, port)
 	return nil
 }
 
-// regenConfAndStartRedis 重建目标版本配置文件、按需挪走本地数据后拉起实例.
+// regenConfAndStartRedis 停机后落盘(重建配置、退役 include、迁移节点文件、挪走数据)再拉起实例.
 //
-// 新配置起不来时, 把旧配置和本地数据都放回去再试一次: 最差退化成"只换二进制"的旧行为,
+// 新配置起不来时, 把落盘的动作整体撤销再试一次: 最差退化成"只换二进制"的旧行为,
 // 而不是留下一个起不来、数据还被挪走了的实例.
 func (job *RedisVersionUpdate) regenConfAndStartRedis(port int) (err error) {
-	if err = job.regenConfFile(port); err != nil {
+	job.enterPhase(port, phaseOffline)
+	if err = job.applyOfflineChanges(port); err != nil {
 		return err
 	}
-	if err = job.moveAsideLocalData(port); err != nil {
-		return err
-	}
+	job.enterPhase(port, phaseStart)
 	err = job.startRedis(port)
 	if err == nil {
-		// startRedis 里已经等到复制链路 UP, 挪走的那份数据不再需要
-		job.cleanupDiscardedLocalData(port)
+		job.enterPhase(port, phaseSettle)
+		// startRedis 里已经钉过节点身份、等到复制链路 UP, 挪走的数据和旧节点文件都不再需要
+		job.offline[port].Finalize(job.runtime.Logger)
 		if err = job.restoreClusterFailoverPermission(port); err != nil {
 			return err
 		}
 		job.markSettled(port)
 		return nil
 	}
-	_, hasConfBackup := job.confBackupFiles[port]
-	if !hasConfBackup && len(job.discardedFiles[port]) == 0 {
+	if job.offline[port].Empty() {
 		// 既没重建配置也没挪数据, 没什么可回滚的
 		return err
 	}
@@ -723,17 +712,11 @@ func (job *RedisVersionUpdate) regenConfAndStartRedis(port int) (err error) {
 		// 进程已经起来了(失败在同步状态等后续检查), 回滚只会掩盖真实问题
 		return wrapSyncWaitErr(err)
 	}
-	job.runtime.Logger.Warn("redis(%s:%d) start failed with regenerated conf,err:%v,restore old conf/data and retry",
+	job.runtime.Logger.Warn("redis(%s:%d) start failed with regenerated conf,err:%v,undo offline changes and retry",
 		job.params.IP, port, err)
-	if restoreErr := job.restoreDiscardedLocalData(port); restoreErr != nil {
-		job.runtime.Logger.Error("redis(%s:%d) restore local data failed,err:%v", job.params.IP, port, restoreErr)
+	if undoErr := job.undoOfflineChanges(port); undoErr != nil {
+		job.runtime.Logger.Error("redis(%s:%d) %v", job.params.IP, port, undoErr)
 		return err
-	}
-	if hasConfBackup {
-		if restoreErr := job.restoreRedisConfFile(port); restoreErr != nil {
-			job.runtime.Logger.Error("redis(%s:%d) restore conf failed,err:%v", job.params.IP, port, restoreErr)
-			return err
-		}
 	}
 	return job.startRedis(port)
 }
@@ -1127,6 +1110,37 @@ func (job *RedisVersionUpdate) startRedis(port int) (err error) {
 	return wrapSyncWaitErr(err)
 }
 
+// upgradePhase 单个端口在本次升级中走到的阶段. 全部端口的 precheck 在任何 stop 之前做完,
+// 之后每个端口依次 stop -> offline(停机后落盘) -> start -> settle
+type upgradePhase string
+
+const (
+	phaseStop    upgradePhase = "stop"
+	phaseOffline upgradePhase = "offline"
+	phaseStart   upgradePhase = "start"
+	phaseSettle  upgradePhase = "settle"
+)
+
+func (job *RedisVersionUpdate) enterPhase(port int, phase upgradePhase) {
+	if job.phases == nil {
+		job.phases = make(map[int]upgradePhase)
+	}
+	job.phases[port] = phase
+	job.runtime.Logger.Info("port(%d) enters %s phase", port, phase)
+}
+
+// phaseErr 给报错带上端口和阶段: 中途失败时一眼看出磁盘和进程停在哪一步
+func (job *RedisVersionUpdate) phaseErr(port int, err error) error {
+	if err == nil {
+		return nil
+	}
+	phase, ok := job.phases[port]
+	if !ok {
+		return err
+	}
+	return fmt.Errorf("port(%d) %s phase: %w", port, phase, err)
+}
+
 // markSettled 记下该端口已经收过尾, 末尾的兜底循环据此跳过
 func (job *RedisVersionUpdate) markSettled(port int) {
 	if job.settledPorts == nil {
@@ -1145,8 +1159,9 @@ func (job *RedisVersionUpdate) settleUnsettledPorts() error {
 		if job.settledPorts[port] {
 			continue
 		}
+		job.enterPhase(port, phaseSettle)
 		if err := job.ensureInstanceSettled(port); err != nil {
-			return err
+			return job.phaseErr(port, err)
 		}
 	}
 	return nil

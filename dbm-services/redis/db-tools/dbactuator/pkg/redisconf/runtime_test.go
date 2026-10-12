@@ -1,4 +1,4 @@
-package atomredis
+package redisconf
 
 import (
 	"fmt"
@@ -98,7 +98,7 @@ func TestApplyConfigSet(t *testing.T) {
 			"timeout":     "10",
 		}}
 		conf := "requirepass newpass\nmaxmemory 200\ntimeout 10\n"
-		if err := applyConfigSet(cli, conf, log); err != nil {
+		if err := ApplyConfigSet(cli, conf, log); err != nil {
 			t.Fatalf("err:%v", err)
 		}
 		for _, s := range cli.sets {
@@ -113,7 +113,7 @@ func TestApplyConfigSet(t *testing.T) {
 			get:    map[string]string{"dir": "/old/data"},
 			setErr: map[string]error{"dir": fmt.Errorf("ERR Unsupported CONFIG parameter: dir")},
 		}
-		err := applyConfigSet(cli, "dir /new/data\n", log)
+		err := ApplyConfigSet(cli, "dir /new/data\n", log)
 		if err == nil || !strings.Contains(err.Error(), "apply_mode=restart") {
 			t.Errorf("err=%v, want restart-mode hint", err)
 		}
@@ -121,7 +121,7 @@ func TestApplyConfigSet(t *testing.T) {
 
 	t.Run("rename-command unqueryable does not fail", func(t *testing.T) {
 		cli := &fakeConfClient{get: map[string]string{}}
-		if err := applyConfigSet(cli, "rename-command config confxx\ntimeout 10\n", log); err != nil {
+		if err := ApplyConfigSet(cli, "rename-command config confxx\ntimeout 10\n", log); err != nil {
 			t.Errorf("unqueryable rename-command should skip, err:%v", err)
 		}
 		if len(cli.sets) != 0 {
@@ -132,7 +132,7 @@ func TestApplyConfigSet(t *testing.T) {
 	t.Run("save join compared as one value", func(t *testing.T) {
 		cli := &fakeConfClient{get: map[string]string{"save": "3600 1 300 100"}}
 		conf := "save 3600 1\nsave 300 100\n"
-		if err := applyConfigSet(cli, conf, log); err != nil {
+		if err := ApplyConfigSet(cli, conf, log); err != nil {
 			t.Fatalf("err:%v", err)
 		}
 		if len(cli.sets) != 0 {
@@ -143,7 +143,7 @@ func TestApplyConfigSet(t *testing.T) {
 	t.Run("unchanged not set, changed set", func(t *testing.T) {
 		cli := &fakeConfClient{get: map[string]string{"timeout": "10", "tcp-keepalive": "300"}}
 		conf := "timeout 60\ntcp-keepalive 300\n"
-		if err := applyConfigSet(cli, conf, log); err != nil {
+		if err := ApplyConfigSet(cli, conf, log); err != nil {
 			t.Fatalf("err:%v", err)
 		}
 		if len(cli.sets) != 1 || cli.sets[0][0] != "timeout" || cli.sets[0][1] != "60" {
@@ -153,7 +153,7 @@ func TestApplyConfigSet(t *testing.T) {
 
 	t.Run("already matches", func(t *testing.T) {
 		cli := &fakeConfClient{get: map[string]string{"timeout": "60"}}
-		if err := applyConfigSet(cli, "timeout 60\n", log); err != nil {
+		if err := ApplyConfigSet(cli, "timeout 60\n", log); err != nil {
 			t.Fatalf("err:%v", err)
 		}
 		if len(cli.sets) != 0 {
@@ -169,7 +169,7 @@ func TestRuntimeMatchesPlanIgnoresSkipList(t *testing.T) {
 		"timeout":     "60",
 	}}
 	conf := "requirepass otherpass\nmaxmemory 1\ntimeout 60\n"
-	ok, err := runtimeMatchesPlan(cli, conf)
+	ok, err := RuntimeMatches(cli, conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestRuntimeMatchesPlanIgnoresSkipList(t *testing.T) {
 	}
 
 	cli.get["timeout"] = "10"
-	ok, err = runtimeMatchesPlan(cli, conf)
+	ok, err = RuntimeMatches(cli, conf)
 	if err != nil {
 		t.Fatal(err)
 	}

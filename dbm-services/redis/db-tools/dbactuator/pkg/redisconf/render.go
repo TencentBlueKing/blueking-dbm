@@ -1,4 +1,4 @@
-package atomredis
+package redisconf
 
 import (
 	"fmt"
@@ -11,11 +11,18 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
-// RedisConfRenderParams 渲染 redis.conf 所需的实例维度事实, 尚未经过推导.
+// LoadModuleItem 加载module信息
+type LoadModuleItem struct {
+	MajorVersion string `json:"major_version"`
+	ModuleName   string `json:"module_name"`
+	SoFile       string `json:"so_file"`
+}
+
+// RenderParams 渲染 redis.conf 所需的实例维度事实, 尚未经过推导.
 //
 // dbconfig 中的配置项值可能仍是 {{address}} / {{port}} 这类占位符 (plat 级模板继承下来的),
 // 由本结构体提供实例真实值, 经 Resolve 推导成占位符取值后完成替换.
-type RedisConfRenderParams struct {
+type RenderParams struct {
 	IP        string
 	Port      int
 	Password  string
@@ -37,12 +44,12 @@ type confPlaceholder struct {
 	value string
 }
 
-// RedisConfRenderValues 已完成推导的占位符取值, 按替换顺序排列.
+// RenderValues 已完成推导的占位符取值, 按替换顺序排列.
 //
 // 用有序切片而非 map: map 遍历是随机序, 若某个取值本身含 {{}} 会让替换结果不稳定.
-type RedisConfRenderValues []confPlaceholder
+type RenderValues []confPlaceholder
 
-// BuildRedisConfTemplate 把 dbconfig 的配置项 map 拼成 redis.conf 文本 (仍含 {{}} 占位符).
+// BuildTemplate 把 dbconfig 的配置项 map 拼成 redis.conf 文本 (仍含 {{}} 占位符).
 //
 // 注意: 可重复出现的指令 (rename-command / client-output-buffer-limit / save 等) 在 dbconfig 中
 // 是"一个配置项 + 值内嵌换行并重复 key 前缀"的形式, 例如
@@ -53,7 +60,7 @@ type RedisConfRenderValues []confPlaceholder
 //
 // 配置项按 key 排序输出, 保证同一份 dbconfig 渲染结果稳定 (便于升级场景 diff 复核).
 // module 相关行固定追加在末尾, 以保证 libB2RedisModule 的 "appendonly no" 覆盖 dbconfig 取值.
-func BuildRedisConfTemplate(confConfigs map[string]string, modules []LoadModuleItem, pkgBaseName string) string {
+func BuildTemplate(confConfigs map[string]string, modules []LoadModuleItem, pkgBaseName string) string {
 	keys := make([]string, 0, len(confConfigs))
 	for key := range confConfigs {
 		keys = append(keys, key)
@@ -117,7 +124,7 @@ func BuildRedisConfTemplate(confConfigs map[string]string, modules []LoadModuleI
 // Resolve 把实例事实推导成占位符取值.
 //
 // 环境探测(读本机内存)集中在这里, 渲染阶段因此不再依赖运行环境, 也不会失败.
-func (p RedisConfRenderParams) Resolve() (RedisConfRenderValues, error) {
+func (p RenderParams) Resolve() (RenderValues, error) {
 	clusterEnabled := "no"
 	if consts.IsClusterDbType(p.DbType) {
 		clusterEnabled = "yes"
@@ -132,7 +139,7 @@ func (p RedisConfRenderParams) Resolve() (RedisConfRenderValues, error) {
 	if password == "" {
 		password = `""`
 	}
-	values := RedisConfRenderValues{
+	values := RenderValues{
 		{"{{address}}", p.IP},
 		{"{{port}}", strconv.Itoa(p.Port)},
 		{"{{password}}", password},
@@ -153,7 +160,7 @@ func (p RedisConfRenderParams) Resolve() (RedisConfRenderValues, error) {
 }
 
 // tendisplusRocksValues 按本机实例数分摊算出 rocksdb 的 blockcache / write buffer
-func (p RedisConfRenderParams) tendisplusRocksValues() (RedisConfRenderValues, error) {
+func (p RenderParams) tendisplusRocksValues() (RenderValues, error) {
 	instCount := p.InstCount
 	if instCount == 0 {
 		instCount = 1
@@ -166,18 +173,18 @@ func (p RedisConfRenderParams) tendisplusRocksValues() (RedisConfRenderValues, e
 	if err != nil {
 		return nil, err
 	}
-	return RedisConfRenderValues{
+	return RenderValues{
 		{"{{rocks_blockcachemb}}", strconv.FormatUint(instBlockcache, 10)},
 		{"{{rocks_write_buffer_size}}", strconv.FormatUint(writeBufferSize, 10)},
 	}, nil
 }
 
-// RenderRedisConfData 把模板中的 {{}} 占位符替换成实例真实值.
+// RenderData 把模板中的 {{}} 占位符替换成实例真实值.
 //
 // 这里不校验是否还有未替换的占位符: 历史模板 (如 TendisCache-3.2 的 {{masterauth}}) 存在
 // 渲染器不认识的占位符, 安装路径一直是原样写入的, 不能在此改变行为.
 // 需要严格校验的调用方 (升级重建配置) 请额外调用 CheckUnresolvedPlaceholder.
-func RenderRedisConfData(tmpl string, values RedisConfRenderValues) string {
+func RenderData(tmpl string, values RenderValues) string {
 	confData := tmpl
 	for _, ph := range values {
 		confData = strings.ReplaceAll(confData, ph.name, ph.value)

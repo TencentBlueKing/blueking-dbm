@@ -1,4 +1,4 @@
-package atomredis
+package redisconf
 
 import (
 	"fmt"
@@ -81,7 +81,7 @@ func maskConfValue(name, value string) string {
 func joinMaskedValues(name string, values []string) string {
 	shown := make([]string, 0, len(values))
 	for _, value := range values {
-		display := unquoteConfValue(strings.TrimSpace(value))
+		display := Unquote(strings.TrimSpace(value))
 		if display == "" {
 			display = "\"\"" // 空值保留 "" 的写法, 否则日志里看不出这项有值
 		}
@@ -102,8 +102,8 @@ func sameConfValues(name string, oldValues, newValues []string) bool {
 		return false
 	}
 	for i := range oldValues {
-		oldVal := unquoteConfValue(strings.TrimSpace(oldValues[i]))
-		newVal := unquoteConfValue(strings.TrimSpace(newValues[i]))
+		oldVal := Unquote(strings.TrimSpace(oldValues[i]))
+		newVal := Unquote(strings.TrimSpace(newValues[i]))
 		if oldVal == newVal {
 			continue
 		}
@@ -114,13 +114,13 @@ func sameConfValues(name string, oldValues, newValues []string) bool {
 	return true
 }
 
-// confDirectivesEqual 按指令维度判断两份配置是否等价.
+// DirectivesEqual 按指令维度判断两份配置是否等价.
 //
 // 不比字节: CONFIG REWRITE 会重排、加引号, 重跑任务时旧文件和刚渲染的结果
 // 字节上几乎总是不同, 但指令集合相同就该当成已经到位.
-func confDirectivesEqual(a, b string) bool {
-	oldDirectives := parseRedisConfDirectives(a)
-	newDirectives := parseRedisConfDirectives(b)
+func DirectivesEqual(a, b string) bool {
+	oldDirectives := ParseDirectives(a)
+	newDirectives := ParseDirectives(b)
 	handled := make(map[string]bool)
 	for _, name := range sortedDirectiveNames(oldDirectives, newDirectives) {
 		if handled[name] {
@@ -140,7 +140,7 @@ func confDirectivesEqual(a, b string) bool {
 }
 
 // confValuesWithAlias 取指令取值, 本名字没有时回落到版本间别名.
-func confValuesWithAlias(directives confDirectives, name, alias string) []string {
+func confValuesWithAlias(directives Directives, name, alias string) []string {
 	if vals := directives[name]; len(vals) > 0 {
 		return vals
 	}
@@ -151,7 +151,7 @@ func confValuesWithAlias(directives confDirectives, name, alias string) []string
 }
 
 // sortedDirectiveNames 新旧配置里出现过的全部指令名, 排序后返回, 保证日志稳定
-func sortedDirectiveNames(directiveSets ...confDirectives) []string {
+func sortedDirectiveNames(directiveSets ...Directives) []string {
 	names := make([]string, 0)
 	seen := make(map[string]bool)
 	for _, directives := range directiveSets {
@@ -166,10 +166,10 @@ func sortedDirectiveNames(directiveSets ...confDirectives) []string {
 	return names
 }
 
-// diffRedisConfDirectives 按指令维度给出新旧配置差异.
-func diffRedisConfDirectives(oldConf, newConf string) string {
-	oldDirectives := parseRedisConfDirectives(oldConf)
-	newDirectives := parseRedisConfDirectives(newConf)
+// DiffDirectives 按指令维度给出新旧配置差异.
+func DiffDirectives(oldConf, newConf string) string {
+	oldDirectives := ParseDirectives(oldConf)
+	newDirectives := ParseDirectives(newConf)
 	names := sortedDirectiveNames(oldDirectives, newDirectives)
 
 	added := make(map[string]bool)

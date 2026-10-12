@@ -2,50 +2,57 @@ package atomredis
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"testing"
+	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/redis/db-tools/dbactuator/models/myredis"
+	"dbm-services/redis/db-tools/dbactuator/mylog"
 
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 )
 
 func TestNewReplSnapshot(t *testing.T) {
-	slave := newReplSnapshot("1.1.1.1:30000", map[string]string{
+	slave := redisconf.NewReplState("1.1.1.1:30000", map[string]string{
 		"role":               consts.RedisSlaveRole,
 		"master_host":        "1.1.1.2",
 		"master_port":        "30000",
 		"master_link_status": consts.MasterLinkStatusUP,
 	})
-	if !slave.captured() || !slave.isSlave() {
+	if !slave.Captured() || !slave.IsSlave() {
 		t.Fatalf("slave snapshot = %+v", slave)
 	}
-	if got := slave.masterAddr(); got != "1.1.1.2:30000" {
+	if got := slave.MasterAddr(); got != "1.1.1.2:30000" {
 		t.Errorf("masterAddr = %q, want 1.1.1.2:30000", got)
 	}
 	// 配置文件里是空格分隔的两段, 不是 host:port
-	if got := slave.confReplTarget(); got != "1.1.1.2 30000" {
+	if got := slave.ConfReplTarget(); got != "1.1.1.2 30000" {
 		t.Errorf("confReplTarget = %q, want \"1.1.1.2 30000\"", got)
 	}
 
-	master := newReplSnapshot("1.1.1.1:30000", map[string]string{"role": consts.RedisMasterRole})
-	if !master.captured() || master.isSlave() {
+	master := redisconf.NewReplState("1.1.1.1:30000", map[string]string{"role": consts.RedisMasterRole})
+	if !master.Captured() || master.IsSlave() {
 		t.Fatalf("master snapshot = %+v", master)
 	}
-	if master.masterAddr() != "" || master.confReplTarget() != "" {
+	if master.MasterAddr() != "" || master.ConfReplTarget() != "" {
 		t.Errorf("master snapshot should have no master, got %+v", master)
 	}
 
 	// 实例已被上游关掉时拿不到 INFO, 快照为空: 调用方据此退化, 不能当成 master
 	var absent replSnapshot
-	if absent.captured() {
+	if absent.Captured() {
 		t.Error("zero value snapshot should not be treated as captured")
 	}
 }
 
 func TestReplSnapshotCheckConfMatchesExpectation(t *testing.T) {
 	slaveSnap := replSnapshot{
-		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
-	masterSnap := replSnapshot{addr: "1.1.1.1:30000", role: consts.RedisMasterRole}
+	masterSnap := replSnapshot{Addr: "1.1.1.1:30000", Role: consts.RedisMasterRole}
 
 	cases := []struct {
 		name        string
@@ -115,7 +122,7 @@ func TestReplSnapshotCheckConfMatchesExpectation(t *testing.T) {
 			if clusterType == "" {
 				clusterType = consts.TendisTypeTwemproxyRedisInstance
 			}
-			err := tc.snap.checkConfMatchesExpectation(tc.conf, clusterType)
+			err := tc.snap.CheckConfMatchesExpectation(tc.conf, clusterType)
 			if tc.wantErr == "" {
 				if err != nil {
 					t.Fatalf("unexpected err:%v", err)
@@ -135,54 +142,54 @@ func TestReplSnapshotCheckConfMatchesExpectation(t *testing.T) {
 func TestReplExpectationPrefersSyncMaster(t *testing.T) {
 	// old_master 升级后要跟随 new_master: 拿停机前的快照(它当时是主)去校验会把正确结果判成失败
 	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.replSnapshots[30000] = replSnapshot{addr: "1.1.1.1:30000", role: consts.RedisMasterRole}
+	job.replSnapshots[30000] = replSnapshot{Addr: "1.1.1.1:30000", Role: consts.RedisMasterRole}
 	job.params.SyncMasters = map[string]string{"30000": "1.1.1.2:30000"}
 
 	expect := job.replExpectation(30000)
-	if !expect.captured() || !expect.isSlave() {
+	if !expect.Captured() || !expect.IsSlave() {
 		t.Fatalf("expectation = %+v, want a replica expectation", expect)
 	}
-	if got := expect.masterAddr(); got != "1.1.1.2:30000" {
+	if got := expect.MasterAddr(); got != "1.1.1.2:30000" {
 		t.Errorf("masterAddr = %q, want 1.1.1.2:30000", got)
 	}
-	if got := expect.originPhrase("role"); got != "role expected after upgrade" {
+	if got := expect.OriginPhrase("role"); got != "role expected after upgrade" {
 		t.Errorf("originPhrase = %q", got)
 	}
 
 	// 没抓到快照也一样成立: 旧 master 多半已被切换 act 关掉了
 	job.replSnapshots = map[int]replSnapshot{}
-	if expect = job.replExpectation(30000); !expect.captured() {
+	if expect = job.replExpectation(30000); !expect.Captured() {
 		t.Errorf("expectation without snapshot = %+v, want a replica expectation", expect)
 	}
 
 	// 端口没在 sync_masters 里时退回停机前快照
 	job.replSnapshots[30001] = replSnapshot{
-		addr: "1.1.1.1:30001", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30001",
+		Addr: "1.1.1.1:30001", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30001",
 	}
-	if expect = job.replExpectation(30001); expect.wanted {
+	if expect = job.replExpectation(30001); expect.Wanted {
 		t.Errorf("port without sync master should keep the captured snapshot, got %+v", expect)
 	}
 }
 
 func TestExpectSyncMasterCheckConf(t *testing.T) {
-	expect := expectSyncMaster("1.1.1.1:30000", "1.1.1.2", "30000")
+	expect := redisconf.ExpectSyncMaster("1.1.1.1:30000", "1.1.1.2", "30000")
 
-	if err := expect.checkConfMatchesExpectation(
+	if err := expect.CheckConfMatchesExpectation(
 		"port 30000\nreplicaof 1.1.1.2 30000\n", consts.TendisTypeTwemproxyRedisInstance); err != nil {
 		t.Errorf("conf pointing at the new master rejected:%v", err)
 	}
 	// 最该拦住的: 渲染出来的 replicaof 指向了另一台同密码、还活着的主
-	err := expect.checkConfMatchesExpectation(
+	err := expect.CheckConfMatchesExpectation(
 		"port 30000\nreplicaof 3.3.3.3 30000\n", consts.TendisTypeTwemproxyRedisInstance)
 	if err == nil || !strings.Contains(err.Error(), "must replicate from 1.1.1.2:30000 after upgrade") {
 		t.Errorf("err = %v, want wrong-master error", err)
 	}
-	err = expect.checkConfMatchesExpectation("port 30000\n", consts.TendisTypeTwemproxyRedisInstance)
+	err = expect.CheckConfMatchesExpectation("port 30000\n", consts.TendisTypeTwemproxyRedisInstance)
 	if err == nil || !strings.Contains(err.Error(), "must replicate from") {
 		t.Errorf("err = %v, want missing-replication error", err)
 	}
 	// cluster 架构的主从关系在 nodes.conf 里, 配置文件里没有可比的东西
-	if err = expect.checkConfMatchesExpectation(
+	if err = expect.CheckConfMatchesExpectation(
 		"port 30000\n", consts.TendisTypePredixyRedisCluster); err != nil {
 		t.Errorf("cluster type should be skipped:%v", err)
 	}
@@ -239,5 +246,37 @@ func TestWrapSyncWaitErrOnInfoFailure(t *testing.T) {
 	err := wrapSyncWaitErr(fmt.Errorf("addr=1.1.1.1:30000 info replication failed,master_link_status:unknown,err:timeout"))
 	if err == nil || !strings.Contains(err.Error(), "不要直接跳过") {
 		t.Errorf("err=%v, want skip hint", err)
+	}
+}
+
+func TestCaptureAndAssertClusterNodeID(t *testing.T) {
+	const nodeID = "e7d1eecce10fd6bb5eb35b9f99a514335d9ba9ca"
+	testLogger := logger.New(io.Discard, false, logger.InfoLevel)
+	mylog.SetDefaultLogger(testLogger)
+	fake := newFakeRedis(t, "xxxxpasswd")
+	fake.info = "role:master\r\nconnected_slaves:0\r\n"
+	fake.nodes = nodeID + " " + fake.addr() + "@40000 myself,master - 0 0 1 connected 0-16383\n"
+	cli, err := myredis.NewRedisClient(fake.addr(), "xxxxpasswd", 0, consts.TendisTypeRedisInstance, 2*time.Second)
+	if err != nil {
+		t.Fatalf("connect fake redis:%v", err)
+	}
+	t.Cleanup(func() { cli.Close() })
+
+	snap, err := captureReplSnapshot(cli, consts.TendisTypePredixyRedisCluster)
+	if err != nil || snap.NodeID != nodeID {
+		t.Fatalf("cluster snapshot = (%+v,%v), want node id %s", snap, err, nodeID)
+	}
+	// 主从版没有节点身份, 也不该去问 CLUSTER NODES
+	if snap, err = captureReplSnapshot(cli, consts.TendisTypeTwemproxyRedisInstance); err != nil || snap.NodeID != "" {
+		t.Errorf("non cluster snapshot = (%+v,%v), want no node id", snap, err)
+	}
+
+	if err = assertNodeIDUnchanged(cli, nodeID); err != nil {
+		t.Errorf("same node id rejected:%v", err)
+	}
+	// 节点文件没带过来: 拉起后是一个新 id 的孤立 master
+	err = assertNodeIDUnchanged(cli, "07c37dfeb235213a872192d90877d0cd55635b91")
+	if err == nil || !strings.Contains(err.Error(), "lost its cluster identity") {
+		t.Errorf("err = %v, want identity loss caught", err)
 	}
 }

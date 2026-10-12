@@ -1,4 +1,4 @@
-package atomredis
+package redisconf
 
 import (
 	"strconv"
@@ -19,7 +19,7 @@ func TestBuildRedisConfTemplateExpandsRepeatableDirectives(t *testing.T) {
 		"save": "",
 		"port": "{{port}}",
 	}
-	got := BuildRedisConfTemplate(confConfigs, nil, "redis-6.2.7")
+	got := BuildTemplate(confConfigs, nil, "redis-6.2.7")
 
 	if want, count := "rename-command", strings.Count(got, "rename-command "); count != 5 {
 		t.Errorf("%s lines = %d, want 5\ngot:\n%s", want, count, got)
@@ -36,9 +36,9 @@ func TestBuildRedisConfTemplateExpandsRepeatableDirectives(t *testing.T) {
 func TestBuildRedisConfTemplateIsSorted(t *testing.T) {
 	// 渲染结果需稳定可 diff: Go map 遍历是随机序, 必须按 key 排序输出
 	confConfigs := map[string]string{"zset-max-ziplist-entries": "128", "appendonly": "no", "maxmemory": "{{maxmemory}}"}
-	first := BuildRedisConfTemplate(confConfigs, nil, "redis-6.2.7")
+	first := BuildTemplate(confConfigs, nil, "redis-6.2.7")
 	for i := 0; i < 20; i++ {
-		if got := BuildRedisConfTemplate(confConfigs, nil, "redis-6.2.7"); got != first {
+		if got := BuildTemplate(confConfigs, nil, "redis-6.2.7"); got != first {
 			t.Fatalf("render not deterministic:\n%s\nvs\n%s", first, got)
 		}
 	}
@@ -50,7 +50,7 @@ func TestBuildRedisConfTemplateIsSorted(t *testing.T) {
 
 func TestBuildRedisConfTemplateModules(t *testing.T) {
 	confConfigs := map[string]string{"appendonly": "yes", "loadmodule": "ignored"}
-	got := BuildRedisConfTemplate(confConfigs, []LoadModuleItem{{SoFile: "libB2RedisModule.so"}}, "redis-6.2.7")
+	got := BuildTemplate(confConfigs, []LoadModuleItem{{SoFile: "libB2RedisModule.so"}}, "redis-6.2.7")
 
 	// dbconfig 里的 loadmodule 项不参与渲染, module 只从 LoadModulesDetail 来
 	if strings.Contains(got, "loadmodule ignored") {
@@ -68,28 +68,28 @@ func TestBuildRedisConfTemplateModules(t *testing.T) {
 
 func TestBuildRedisConfTemplateSkipsReplDisklessSyncOnRedis2817(t *testing.T) {
 	confConfigs := map[string]string{"repl-diskless-sync": "no", "port": "{{port}}"}
-	if got := BuildRedisConfTemplate(confConfigs, nil, "redis-2.8.17-rocksdb-v1.3.10"); strings.Contains(
+	if got := BuildTemplate(confConfigs, nil, "redis-2.8.17-rocksdb-v1.3.10"); strings.Contains(
 		got, "repl-diskless-sync") {
 		t.Errorf("repl-diskless-sync must be skipped for redis-2.8.17\ngot:\n%s", got)
 	}
-	if got := BuildRedisConfTemplate(confConfigs, nil, "redis-6.2.7"); !strings.Contains(
+	if got := BuildTemplate(confConfigs, nil, "redis-6.2.7"); !strings.Contains(
 		got, "repl-diskless-sync no") {
 		t.Errorf("repl-diskless-sync must be kept for redis-6\ngot:\n%s", got)
 	}
 }
 
 // mustRender 走完整的 "推导 -> 替换" 两步
-func mustRender(t *testing.T, tmpl string, p RedisConfRenderParams) string {
+func mustRender(t *testing.T, tmpl string, p RenderParams) string {
 	t.Helper()
 	values, err := p.Resolve()
 	if err != nil {
 		t.Fatalf("Resolve err:%v", err)
 	}
-	return RenderRedisConfData(tmpl, values)
+	return RenderData(tmpl, values)
 }
 
 // placeholderNames 取出已推导的占位符名字, 用于断言某些占位符压根没被算出来
-func placeholderNames(values RedisConfRenderValues) []string {
+func placeholderNames(values RenderValues) []string {
 	names := make([]string, 0, len(values))
 	for _, ph := range values {
 		names = append(names, ph.name)
@@ -99,7 +99,7 @@ func placeholderNames(values RedisConfRenderValues) []string {
 
 func TestRenderRedisConfDataEmptyPasswordQuoted(t *testing.T) {
 	// 空密码必须渲染成 "": 裸 requirepass 没有参数, redis 解析配置文件直接报错
-	got := mustRender(t, "requirepass {{password}}\nmasterauth {{password}}\n", RedisConfRenderParams{
+	got := mustRender(t, "requirepass {{password}}\nmasterauth {{password}}\n", RenderParams{
 		IP:      "1.1.1.1",
 		Port:    30000,
 		InstDir: "/data1/redis/30000",
@@ -122,7 +122,7 @@ func TestRenderRedisConfData(t *testing.T) {
 		"maxmemory {{maxmemory}}",
 	}, "\n") + "\n"
 
-	got := mustRender(t, tmpl, RedisConfRenderParams{
+	got := mustRender(t, tmpl, RenderParams{
 		IP:        "1.1.1.1",
 		Port:      30000,
 		Password:  "xxxx",
@@ -144,7 +144,7 @@ func TestRenderRedisConfData(t *testing.T) {
 }
 
 func TestRenderRedisConfDataMaxMemoryDefaultsToZero(t *testing.T) {
-	got := mustRender(t, "maxmemory {{maxmemory}}\n", RedisConfRenderParams{Port: 30000})
+	got := mustRender(t, "maxmemory {{maxmemory}}\n", RenderParams{Port: 30000})
 	if got != "maxmemory 0\n" {
 		t.Errorf("rendered = %q, want %q", got, "maxmemory 0\n")
 	}
@@ -159,7 +159,7 @@ func TestRenderRedisConfDataClusterEnabled(t *testing.T) {
 	}
 	for dbType, want := range cases {
 		got := mustRender(t, "cluster-enabled {{cluster_enabled}}\n",
-			RedisConfRenderParams{Port: 30000, DbType: dbType})
+			RenderParams{Port: 30000, DbType: dbType})
 		if strings.TrimSpace(got) != "cluster-enabled "+want {
 			t.Errorf("dbType(%s) rendered %q, want cluster-enabled %s", dbType, strings.TrimSpace(got), want)
 		}
@@ -169,7 +169,7 @@ func TestRenderRedisConfDataClusterEnabled(t *testing.T) {
 func TestRenderRedisConfDataKeepsUnknownPlaceholder(t *testing.T) {
 	// 历史模板存在渲染器不认识的占位符(如 TendisCache-3.2 的 {{masterauth}}),
 	// 安装路径一直是原样写入, 渲染器不能改这个行为
-	got := mustRender(t, "masterauth {{masterauth}}\n", RedisConfRenderParams{Port: 30000})
+	got := mustRender(t, "masterauth {{masterauth}}\n", RenderParams{Port: 30000})
 	if got != "masterauth {{masterauth}}\n" {
 		t.Errorf("rendered = %q, want placeholder kept as-is", got)
 	}
@@ -184,7 +184,7 @@ func TestResolveSkipsRocksValuesForNonTendisplus(t *testing.T) {
 	for _, dbType := range []string{
 		"TwemproxyRedisInstance", "PredixyRedisCluster", "TwemproxyTendisSSDInstance",
 	} {
-		values, err := RedisConfRenderParams{Port: 30000, DbType: dbType, InstCount: 4}.Resolve()
+		values, err := RenderParams{Port: 30000, DbType: dbType, InstCount: 4}.Resolve()
 		if err != nil {
 			t.Fatalf("dbType(%s) Resolve err:%v", dbType, err)
 		}
@@ -199,7 +199,7 @@ func TestResolveSkipsRocksValuesForNonTendisplus(t *testing.T) {
 func TestRenderRedisConfDataTendisplusRocksValues(t *testing.T) {
 	tmpl := "rocks.blockcachemb {{rocks_blockcachemb}}\nrocks.write_buffer_size {{rocks_write_buffer_size}}\n"
 	for _, dbType := range []string{"PredixyTendisplusCluster", "TwemproxyTendisplusInstance"} {
-		got := mustRender(t, tmpl, RedisConfRenderParams{Port: 30000, DbType: dbType, InstCount: 4})
+		got := mustRender(t, tmpl, RenderParams{Port: 30000, DbType: dbType, InstCount: 4})
 		if err := CheckUnresolvedPlaceholder(got); err != nil {
 			t.Fatalf("dbType(%s) rocks placeholder left unresolved:%v", dbType, err)
 		}

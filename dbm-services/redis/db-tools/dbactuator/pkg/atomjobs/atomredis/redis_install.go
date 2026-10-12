@@ -15,6 +15,7 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/common"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 	"dbm-services/redis/db-tools/dbactuator/pkg/report"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
@@ -40,11 +41,7 @@ type RedisInstallParams struct {
 }
 
 // LoadModuleItem 加载module信息
-type LoadModuleItem struct {
-	MajorVersion string `json:"major_version"`
-	ModuleName   string `json:"module_name"`
-	SoFile       string `json:"so_file"`
-}
+type LoadModuleItem = redisconf.LoadModuleItem
 
 // RedisInstall redis install atomjob
 type RedisInstall struct {
@@ -524,7 +521,7 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 	if job.RedisConfTemplate != "" {
 		return nil
 	}
-	job.RedisConfTemplate = BuildRedisConfTemplate(
+	job.RedisConfTemplate = redisconf.BuildTemplate(
 		job.params.RedisConfConfigs, job.params.LoadModulesDetail, job.params.GePkgBaseName())
 	return nil
 }
@@ -543,7 +540,7 @@ func (job *RedisInstall) GenerateConfigFile(port int) (err error) {
 
 	instDir := filepath.Join(job.RealDataDir, strconv.Itoa(port))
 	instConfFile := filepath.Join(instDir, "redis.conf")
-	renderValues, err := RedisConfRenderParams{
+	renderValues, err := redisconf.RenderParams{
 		IP:        job.params.IP,
 		Port:      port,
 		Password:  job.params.Password,
@@ -557,7 +554,7 @@ func (job *RedisInstall) GenerateConfigFile(port int) (err error) {
 		job.runtime.Logger.Error("%s", err)
 		return err
 	}
-	confData := RenderRedisConfData(job.RedisConfTemplate, renderValues)
+	confData := redisconf.RenderData(job.RedisConfTemplate, renderValues)
 	err = os.WriteFile(instConfFile, []byte(confData), os.ModePerm)
 	if err != nil {
 		job.runtime.Logger.Error("os.WriteFile failed,err:%v,config_file:%s,confData:%s", err, instConfFile, confData)

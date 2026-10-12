@@ -19,6 +19,7 @@ type fakeRedis struct {
 	ln       net.Listener
 	password string // 期望的密码, 空串表示实例没设密码
 	info     string // INFO 的返回内容
+	nodes    string // CLUSTER NODES 的返回内容
 	mu       sync.Mutex
 	config   map[string]string // CONFIG GET/SET 的存储
 	commands []string          // 收到过的命令, 用来断言"到底做没做那一步"
@@ -111,6 +112,8 @@ func (f *fakeRedis) dispatch(conn net.Conn, cmd string, args []string) {
 		io.WriteString(conn, "+PONG\r\n")
 	case cmd == "INFO":
 		io.WriteString(conn, fmt.Sprintf("$%d\r\n%s\r\n", len(f.info), f.info))
+	case cmd == "CLUSTER" && len(args) >= 2 && strings.EqualFold(args[1], "nodes"):
+		io.WriteString(conn, fmt.Sprintf("$%d\r\n%s\r\n", len(f.nodes), f.nodes))
 	case cmd == "CONFIG" && len(args) >= 3 && strings.EqualFold(args[1], "get"):
 		f.mu.Lock()
 		val := f.config[strings.ToLower(args[2])]

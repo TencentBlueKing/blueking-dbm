@@ -11,6 +11,7 @@ import (
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/redisconf"
 )
 
 // writeInstanceData 在实例数据目录里造出一份"重启会被加载"的现场
@@ -53,11 +54,27 @@ func setupDiscardJob(t *testing.T, port int, confBody string, dataFiles ...strin
 	return job, dataDir
 }
 
+// movedAsideEntries 数据目录里被挪开的那些文件/目录
+func movedAsideEntries(t *testing.T, dataDir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dataDir)
+	if err != nil {
+		t.Fatalf("read data dir failed:%v", err)
+	}
+	var moved []string
+	for _, entry := range entries {
+		if strings.Contains(entry.Name(), "upgrade_bak") {
+			moved = append(moved, entry.Name())
+		}
+	}
+	return moved
+}
+
 func TestMoveAsideLocalDataAndCleanup(t *testing.T) {
 	job, dataDir := setupDiscardJob(t, 30000, "appendonly yes\n", "dump.rdb", "appendonly.aof", "nodes.conf")
 
-	if err := job.moveAsideLocalData(30000); err != nil {
-		t.Fatalf("moveAsideLocalData err:%v", err)
+	if err := job.applyOfflineChanges(30000); err != nil {
+		t.Fatalf("applyOfflineChanges err:%v", err)
 	}
 	for _, name := range []string{"dump.rdb", "appendonly.aof"} {
 		if _, err := os.Stat(filepath.Join(dataDir, name)); !os.IsNotExist(err) {
@@ -68,22 +85,13 @@ func TestMoveAsideLocalDataAndCleanup(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dataDir, "nodes.conf")); err != nil {
 		t.Errorf("nodes.conf must stay in place:%v", err)
 	}
-	if got := len(job.discardedFiles[30000]); got != 2 {
-		t.Fatalf("moved %d files, want 2:%+v", got, job.discardedFiles[30000])
+	if moved := movedAsideEntries(t, dataDir); len(moved) != 2 {
+		t.Fatalf("moved %d files, want 2:%+v", len(moved), moved)
 	}
 
-	job.cleanupDiscardedLocalData(30000)
-	entries, err := os.ReadDir(dataDir)
-	if err != nil {
-		t.Fatalf("read data dir failed:%v", err)
-	}
-	for _, entry := range entries {
-		if strings.Contains(entry.Name(), "upgrade_bak") {
-			t.Errorf("moved aside file %s not cleaned up", entry.Name())
-		}
-	}
-	if _, ok := job.discardedFiles[30000]; ok {
-		t.Error("discarded files entry should be dropped after cleanup")
+	job.offline[30000].Finalize(job.runtime.Logger)
+	if moved := movedAsideEntries(t, dataDir); len(moved) != 0 {
+		t.Errorf("moved aside files not cleaned up:%v", moved)
 	}
 }
 
@@ -91,15 +99,15 @@ func TestRestoreDiscardedLocalData(t *testing.T) {
 	// 新版本起不来时要退回"带着原数据重启"的老行为, 数据必须逐字节回到原处
 	job, dataDir := setupDiscardJob(t, 30000, "", "dump.rdb")
 
-	if err := job.moveAsideLocalData(30000); err != nil {
-		t.Fatalf("moveAsideLocalData err:%v", err)
+	if err := job.applyOfflineChanges(30000); err != nil {
+		t.Fatalf("applyOfflineChanges err:%v", err)
 	}
 	// 上一次启动尝试写出了一份新的同名文件, 回滚时要被原来那份覆盖
 	if err := os.WriteFile(filepath.Join(dataDir, "dump.rdb"), []byte("half written"), 0644); err != nil {
 		t.Fatalf("write failed:%v", err)
 	}
-	if err := job.restoreDiscardedLocalData(30000); err != nil {
-		t.Fatalf("restoreDiscardedLocalData err:%v", err)
+	if err := job.undoOfflineChanges(30000); err != nil {
+		t.Fatalf("undoOfflineChanges err:%v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(dataDir, "dump.rdb"))
 	if err != nil {
@@ -108,8 +116,8 @@ func TestRestoreDiscardedLocalData(t *testing.T) {
 	if string(got) != "dump.rdb" {
 		t.Errorf("restored content = %q, want the original one", got)
 	}
-	if len(job.discardedFiles[30000]) != 0 {
-		t.Error("discarded files entry should be dropped after restore")
+	if moved := movedAsideEntries(t, dataDir); len(moved) != 0 {
+		t.Errorf("no moved aside copy should remain after undo:%v", moved)
 	}
 }
 
@@ -117,11 +125,14 @@ func TestMoveAsideLocalDataNoopWhenNotDiscarding(t *testing.T) {
 	job, dataDir := setupDiscardJob(t, 30000, "", "dump.rdb")
 	job.discardPorts = map[int]bool{}
 
-	if err := job.moveAsideLocalData(30000); err != nil {
-		t.Fatalf("moveAsideLocalData err:%v", err)
+	if err := job.applyOfflineChanges(30000); err != nil {
+		t.Fatalf("applyOfflineChanges err:%v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dataDir, "dump.rdb")); err != nil {
 		t.Errorf("data must stay untouched when not discarding:%v", err)
+	}
+	if !job.offline[30000].Empty() {
+		t.Error("nothing should be applied when not discarding and no conf delivered")
 	}
 }
 
@@ -135,16 +146,11 @@ func TestLocalDataFileNamesCoversBothConfSpellings(t *testing.T) {
 	if err := os.WriteFile(confFile, []byte(newConf), 0644); err != nil {
 		t.Fatalf("write conf failed:%v", err)
 	}
-	backupFile := confFile + ".bak"
 	oldConf := "port 30000\ndir " + dataDir + "\nappendfilename \"appendonly.aof\"\ndbfilename dump-30000.rdb\n"
-	if err := os.WriteFile(backupFile, []byte(oldConf), 0644); err != nil {
-		t.Fatalf("write backup conf failed:%v", err)
-	}
 
 	job := buildRegenJob("1.1.1.1", []int{30000})
-	job.confBackupFiles[30000] = backupFile
-
-	gotDir, names, err := job.localDataFileNames(30000)
+	plan := &redisconf.Plan{Port: 30000, ConfFile: confFile, OldConf: oldConf, NewConf: newConf}
+	gotDir, names, err := job.localDataFileNames(30000, plan)
 	if err != nil {
 		t.Fatalf("localDataFileNames err:%v", err)
 	}
@@ -167,9 +173,9 @@ func TestLocalDataFileNamesCoversBothConfSpellings(t *testing.T) {
 
 func TestWhyKeepLocalDataGates(t *testing.T) {
 	slaveSnap := replSnapshot{
-		addr: "1.1.1.1:30000", role: consts.RedisSlaveRole, masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: "1.1.1.1:30000", Role: consts.RedisSlaveRole, MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
-	masterSnap := replSnapshot{addr: "1.1.1.1:30000", role: consts.RedisMasterRole}
+	masterSnap := replSnapshot{Addr: "1.1.1.1:30000", Role: consts.RedisMasterRole}
 
 	cases := []struct {
 		name        string
@@ -230,11 +236,11 @@ func TestRestoreClusterFailoverPermissionWithoutMemoryFlags(t *testing.T) {
 		t.Fatalf("non-cluster should no-op:%v", err)
 	}
 
-	// cluster 且没有 client: 即使 discardPorts / confBackupFiles 都是空的, 也不能短路成成功.
+	// cluster 且没有 client: 即使 discardPorts / offline 都是空的, 也不能短路成成功.
 	// 重试时内存旗标就是空的, 必须去读运行态, 没 client 就该失败.
 	job.params.ClusterType = consts.TendisTypePredixyRedisCluster
 	job.discardPorts = map[int]bool{}
-	job.confBackupFiles = map[int]string{}
+	job.offline = map[int]*redisconf.Applied{}
 	err := job.restoreClusterFailoverPermission(30000)
 	if err == nil {
 		t.Fatal("cluster with no client should fail, not be skipped by empty discardPorts")
@@ -261,8 +267,8 @@ func TestWhyKeepLocalDataRuntimeTendisplus(t *testing.T) {
 	t.Cleanup(func() { cli.Close() })
 	job.AddrMapCli = map[string]*myredis.RedisClient{fmt.Sprintf("%s:%d", host, port): cli}
 	job.replSnapshots[port] = replSnapshot{
-		addr: fmt.Sprintf("%s:%d", host, port), role: consts.RedisSlaveRole,
-		masterHost: "1.1.1.2", masterPort: "30000",
+		Addr: fmt.Sprintf("%s:%d", host, port), Role: consts.RedisSlaveRole,
+		MasterHost: "1.1.1.2", MasterPort: "30000",
 	}
 	reason := job.whyKeepLocalData(port, job.replExpectation(port))
 	if !strings.Contains(reason, "not cache") {
