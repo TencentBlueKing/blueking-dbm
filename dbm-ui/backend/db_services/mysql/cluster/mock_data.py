@@ -28,18 +28,6 @@ FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA = [
     {"bk_host_id": 2, "cluster_info": {}, "related_clusters": []},
 ]
 
-QUERY_CLUSTERS_REQUEST_DATA = {
-    "cluster_filters": [
-        {"immute_domain": "test.db1"},
-        {"immute_domain": "test.db2"},
-    ]
-}
-
-QUERY_CLUSTERS_RESPONSE_DATA = [
-    {"id": 1, "immute_domain": "test.db1", "...": "..."},
-    {"id": 2, "immute_domain": "test.db2", "...": "..."},
-]
-
 GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA = [
     {"ip": "1.1.1.1", "bk_host_id": 1, "bk_cloud_id": 0, "bk_biz_id": 2000522222},
     {"ip": "1.1.1.2", "bk_host_id": 2, "bk_cloud_id": 0, "bk_biz_id": 2000522222},
