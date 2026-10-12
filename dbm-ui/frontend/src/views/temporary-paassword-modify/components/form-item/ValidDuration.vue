@@ -3,25 +3,25 @@
     :label="t('有效时长')"
     property="validDuration"
     required>
-    <BkComposeFormItem>
+    <div class="valid-duration">
       <BkInput
         v-model="modelValue"
+        class="valid-duration-input"
         :clearable="false"
         :min="1"
         :precision="0"
-        style="width: 300px"
         type="number" />
       <DbSelect
         v-model="validDurationType"
-        :clearable="false"
-        style="width: 88px">
+        class="valid-duration-type"
+        :clearable="false">
         <DbOption
           v-for="item in validDurationList"
           :key="item.value"
           :label="item.label"
           :value="item.value" />
       </DbSelect>
-    </BkComposeFormItem>
+    </div>
     <div class="anticipated-effective-time">{{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}</div>
   </BkFormItem>
 </template>
@@ -60,7 +60,26 @@
   });
 </script>
 <style scoped lang="less">
+  .valid-duration {
+    display: flex;
+
+    .valid-duration-input {
+      width: 300px;
+      border-right: none;
+      border-radius: 2px 0 0 2px;
+    }
+
+    .valid-duration-type {
+      width: 88px;
+
+      :deep(.dbm-select-input-box) {
+        border-radius: 0 2px 2px 0;
+      }
+    }
+  }
+
   .anticipated-effective-time {
+    margin-top: 8px;
     font-size: 12px;
     line-height: 12px;
   }
