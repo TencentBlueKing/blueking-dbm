@@ -111,6 +111,7 @@ def build_dts_cutover_payload(
     约束：传紧凑 sync_scope，**默认不传**展开后的海量 lock_tables[]；
     本期不对目标端加锁，故无 target_endpoints。
     停任务走 Master HTTP API（与 status 查询同通道），不依赖本机 dmctl。
+    持锁窗口内的 stop 由 actuator 固定为服务端 15s、HTTP 20s，不使用 api_timeout_sec。
     持锁追平在 actuator 内按「加锁 master 快照」判定，因此必须带上 checksum_passed（或 skip_checksum）。
     """
     if not master_addr:
