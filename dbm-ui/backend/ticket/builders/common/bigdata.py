@@ -282,7 +282,8 @@ class BigDataScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
         super(BigDataScaleUpResourceParamBuilder, self).format()
         # 补充亲和性和位置参数
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
-        self.patch_affinity_location(cluster, self.ticket_data["resource_spec"])
+        for group_key in self.ticket_data["resource_spec"]:
+            self.patch_common_affinity(self.ticket_data, group_key, cluster, no_need_tolerance=True)
         # 补充云区域信息
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
@@ -292,7 +293,8 @@ class BigDataReplaceResourceParamBuilder(BaseOperateResourceParamBuilder):
         super(BigDataReplaceResourceParamBuilder, self).format()
         # 补充亲和性和位置参数
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
-        self.patch_affinity_location(cluster, self.ticket_data["resource_spec"])
+        for group_key in self.ticket_data["resource_spec"]:
+            self.patch_common_affinity(self.ticket_data, group_key, cluster, no_need_tolerance=True)
         # 补充云区域信息
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
