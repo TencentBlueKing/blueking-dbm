@@ -40,8 +40,3 @@ type DatabaseConfig struct {
 type DbsDatabaseConfig struct {
 	DatabaseConfig `envPrefix:"DBS_MYSQL_"`
 }
-
-// AuthDatabaseConfig auth 元数据库配置信息
-type AuthDatabaseConfig struct {
-	DatabaseConfig `envPrefix:"AUTH_MYSQL_"`
-}
