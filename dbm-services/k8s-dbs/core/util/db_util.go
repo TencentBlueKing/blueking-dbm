@@ -43,20 +43,15 @@ var (
 )
 
 type database struct {
-	DbsGormDb  *gorm.DB
-	AuthGormDb *gorm.DB
+	DbsGormDb *gorm.DB
 }
 
-func dbConfig() (*config.DbsDatabaseConfig, *config.AuthDatabaseConfig, error) {
+func dbConfig() (*config.DbsDatabaseConfig, error) {
 	dbsDbCfg := &config.DbsDatabaseConfig{}
 	if err := env.Parse(dbsDbCfg); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse dbsDbCfg environment variables: %w", err)
+		return nil, fmt.Errorf("failed to parse dbsDbCfg environment variables: %w", err)
 	}
-	authDbCfg := &config.AuthDatabaseConfig{}
-	if err := env.Parse(authDbCfg); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse authDbCfg environment variables: %w", err)
-	}
-	return dbsDbCfg, authDbCfg, nil
+	return dbsDbCfg, nil
 }
 
 // initDatabase 通用的数据库初始化函数
@@ -100,7 +95,7 @@ func initDatabase(cfg *config.DatabaseConfig, dbName string) (*gorm.DB, error) {
 
 func (d *database) Init() error {
 	once.Do(func() {
-		dbsDbCfg, authDbCfg, err := dbConfig()
+		dbsDbCfg, err := dbConfig()
 		if err != nil {
 			initErr = fmt.Errorf("failed to load config: %w", err)
 			slog.Error("Failed to load config", "err", err)
@@ -115,15 +110,6 @@ func (d *database) Init() error {
 			return
 		}
 		Db.DbsGormDb = dbsDb
-
-		// 初始化 Auth 数据库
-		authDb, err := initDatabase(&authDbCfg.DatabaseConfig, "auth")
-		if err != nil {
-			initErr = err
-			slog.Error("Failed to initialize auth database", "err", err)
-			return
-		}
-		Db.AuthGormDb = authDb
 	})
 	return initErr
 }
