@@ -22,17 +22,40 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
+const (
+	// stopWhileLockedServerTimeout 持锁窗口内让 Master 放弃停止的上限。
+	stopWhileLockedServerTimeout = 15 * time.Second
+	// stopWhileLockedHTTPTimeout 略长于服务端，避免套接字比 Master 更晚放弃。
+	stopWhileLockedHTTPTimeout = 20 * time.Second
+)
+
 // StopTaskRequest POST /api/v1/tasks/{task}/stop 请求体（与 OpenAPI 对齐）。
 type StopTaskRequest struct {
 	SourceNameList  []string `json:"source_name_list,omitempty"`
 	TimeoutDuration string   `json:"timeout_duration,omitempty"`
 }
 
+// StopTaskWhileLocked 在源表读锁仍被持有时停止任务。
+// 服务端 timeout_duration=15s，HTTP 客户端 20s。失败由调用方立即返回并 unlock，不在持锁状态下重试。
+func StopTaskWhileLocked(dtsMasterAddr, taskName string) error {
+	return doStopTask(dtsMasterAddr, taskName, stopWhileLockedHTTPTimeout, &StopTaskRequest{
+		TimeoutDuration: stopWhileLockedServerTimeout.String(),
+	})
+}
+
 // StopTask 调用 Master HTTP API 停止任务（与 status 查询同一通道，不走 dmctl）。
 // POST http://{dts_master_addr}/api/v1/tasks/{task_name}/stop
+// 持锁切流请用 StopTaskWhileLocked。本函数的 timeoutSec 仅供无锁调用方使用。
 func StopTask(dtsMasterAddr, taskName string, timeoutSec int, reqBody *StopTaskRequest) error {
 	if timeoutSec <= 0 {
 		timeoutSec = 600
+	}
+	return doStopTask(dtsMasterAddr, taskName, time.Duration(timeoutSec)*time.Second, reqBody)
+}
+
+func doStopTask(dtsMasterAddr, taskName string, httpTimeout time.Duration, reqBody *StopTaskRequest) error {
+	if httpTimeout <= 0 {
+		httpTimeout = stopWhileLockedHTTPTimeout
 	}
 	u, err := buildMasterAPIURL(dtsMasterAddr, fmt.Sprintf("/api/v1/tasks/%s/stop", url.PathEscape(taskName)))
 	if err != nil {
@@ -50,14 +73,14 @@ func StopTask(dtsMasterAddr, taskName string, timeoutSec int, reqBody *StopTaskR
 		bodyReader = bytes.NewReader([]byte("{}"))
 	}
 
-	client := &http.Client{Timeout: time.Duration(timeoutSec) * time.Second}
+	client := &http.Client{Timeout: httpTimeout}
 	req, err := http.NewRequest(http.MethodPost, u, bodyReader)
 	if err != nil {
 		return fmt.Errorf("构造 stop 请求失败: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	logger.Info("调用 DTS API 停止任务: POST %s (timeout=%ds)", u, timeoutSec)
+	logger.Info("调用 DTS API 停止任务: POST %s (timeout=%s)", u, httpTimeout)
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("停止任务 API 调用失败: %w", err)

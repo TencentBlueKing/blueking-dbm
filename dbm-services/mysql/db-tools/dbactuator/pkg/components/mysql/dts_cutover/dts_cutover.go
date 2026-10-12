@@ -11,6 +11,7 @@
 // Package dts_cutover 在 DTS Master 主机上执行 MySQL DTS 安全切换：
 // 预检（源连通/表存在/子任务 Running，并在加锁前轮询到 SBM==0）→ 源端迁移表读锁 → 拍 master 位点快照并短时持锁复核 → Master HTTP API stop → 采位点 → 源端 unlock。
 // 加锁前预检 1s×30。持锁复核 0.5s×60。持锁条件：SBM==0 且 syncer≥加锁瞬间 master 快照（不用实时 master≥syncer）。
+// 持锁停止使用固定短超时（服务端 15s，HTTP 20s）。Stop 失败立即返回，由 defer unlock 释放源表读锁。
 // 本期不对目标端加锁，不做域名/Proxy 切换。停任务与查状态统一走 Master OpenAPI。
 package dts_cutover
 
@@ -49,7 +50,7 @@ type Params struct {
 	CatchupRecheck int `json:"catchup_recheck"`
 	// CatchupPollMax：持锁复核最大次数（含首次），默认 60；间隔 0.5s
 	CatchupPollMax int `json:"catchup_poll_max"`
-	// ApiTimeoutSec：stop API 超时；兼容旧字段 dmctl_timeout_sec
+	// ApiTimeoutSec 保留给旧 payload。持锁停止不读它，固定走 StopTaskWhileLocked。
 	ApiTimeoutSec   int `json:"api_timeout_sec"`
 	DmctlTimeoutSec int `json:"dmctl_timeout_sec"` // deprecated: 同 ApiTimeoutSec
 	// 编排透传。cutover 不读校验结果，也不据此改变追平。
@@ -224,7 +225,7 @@ func (c *Comp) Run() error {
 		return perr
 	}
 
-	if err := StopTask(p.DtsMasterAddr, p.TaskName, p.ApiTimeoutSec, nil); err != nil {
+	if err := StopTaskWhileLocked(p.DtsMasterAddr, p.TaskName); err != nil {
 		return fmt.Errorf("持锁后停止 DTS 任务失败（将 unlock）: %w", err)
 	}
 
