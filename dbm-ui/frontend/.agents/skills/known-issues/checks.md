@@ -30,6 +30,8 @@
   `TableColumn` 的 `width` / `min-width`（不含 `EditableColumn`）
 - [有样式的容器不能由 `$slots.x` 决定渲染](doc/slot-wrapper-container.md) —— 改 `components/bkui-vue/**`
   里带 class 的 `v-if="$slots.xxx"` 容器，或给自研基础组件新增插槽出口
+- [BkComposeFormItem 里放本地 Db* 组件，第二个控件会掉到下一行](doc/compose-form-item-db-component.md)
+  —— 往 `<BkComposeFormItem>` 里放 `DbSelect` / `DbInput` / `DbTagInput`，或用它做「输入 + 单位」这类并排布局
 
 ## B 类：只报告，改法未定
 
