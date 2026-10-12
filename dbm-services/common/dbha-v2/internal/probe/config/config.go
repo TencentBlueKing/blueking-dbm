@@ -117,7 +117,7 @@ func (a AdminConfig) SyncEnabled() bool {
 // CollectConfig controls the machine-wide collection concurrency.
 type CollectConfig struct {
 	CollectTaskGoroutines int           `yaml:"collectTaskGoroutines" mapstructure:"collectTaskGoroutines"`
-	HostMetricInterval    time.Duration `yaml:"hostMetricInterval" mapstructure:"hostMetricInterval"`
+	HostMetricInterval    time.Duration `yaml:"hostMetricInterval"    mapstructure:"hostMetricInterval"`
 }
 
 // IsZero reports whether the block carries nothing worth writing to disk.
