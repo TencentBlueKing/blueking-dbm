@@ -65,15 +65,19 @@ func TestClampCollect(t *testing.T) {
 			cfg.Collect.CollectTaskGoroutines)
 	}
 
-	// An unset block must stay zero, otherwise a probe.yaml written before the
-	// block existed would gain it on the next render.
+	// A non-positive block is unusable, so clamp replaces it with the defaults:
+	// the probe then runs on a working configuration instead of silently ignoring
+	// the setting. Defaults are resolved here rather than left for the use-time
+	// accessors, so a bad value is fixed in one place and reported once.
 	unset := Configuration{}
 	clampCollect(&unset)
-	if unset.Collect.CollectTaskGoroutines != 0 {
-		t.Errorf("an unset collect task count must stay zero, got: %d", unset.Collect.CollectTaskGoroutines)
+	if unset.Collect.CollectTaskGoroutines != defaultCollectTaskGoroutines {
+		t.Errorf("an unset collect task count must fall back to the default, got: %d, want: %d",
+			unset.Collect.CollectTaskGoroutines, defaultCollectTaskGoroutines)
 	}
-	if !unset.Collect.IsZero() {
-		t.Errorf("an unset collect block must stay zero, got: %+v", unset.Collect)
+	if unset.Collect.HostMetricInterval != defaultHostMetricInterval {
+		t.Errorf("an unset host metric interval must fall back to the default, got: %v, want: %v",
+			unset.Collect.HostMetricInterval, defaultHostMetricInterval)
 	}
 }
 
@@ -116,8 +120,16 @@ func TestWithCollectKeepsLocalValues(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rendered config does not parse, errmsg: %s", err)
 	}
-	if parsed.Collect != local.Collect {
-		t.Errorf("collect block lost, got: %+v, want: %+v", parsed.Collect, local.Collect)
+	// The configured worker count survives. The unset interval does not: parsing
+	// runs clampCollect, which replaces a non-positive value with the default, so
+	// it comes back as the default rather than as the zero the local config held.
+	if parsed.Collect.CollectTaskGoroutines != local.Collect.CollectTaskGoroutines {
+		t.Errorf("collect task count lost, got: %d, want: %d",
+			parsed.Collect.CollectTaskGoroutines, local.Collect.CollectTaskGoroutines)
+	}
+	if parsed.Collect.HostMetricInterval != defaultHostMetricInterval {
+		t.Errorf("unset host metric interval = %v, want the default %v",
+			parsed.Collect.HostMetricInterval, defaultHostMetricInterval)
 	}
 }
 
