@@ -294,48 +294,37 @@ def get_rebalance_throttle_bounds(cluster_id: int, on_skip: Optional[Callable[[s
     }
 
 
-# 每台broker带宽规格(Mbps)的表达式。利用率那条promql的分母、以及单独查带宽（动态限速上限要用到
-# 绝对值取min，光靠比值拿不到）用的都是这一份，抽成常量是为了：
-#   ① 窗口、聚合算子只在一处定义，改窗口时不会漏掉另一边；
-#   ② 两边必须是同一个算子。原来分母写的是 avg by (bk_target_ip)、这里写的是 max by——按"每台机器
-#      一条series"的现状两者等价，但一旦这个指标带上网卡/设备之类的维度，就会出现"利用率分母按平均、
-#      动态上限按最大"的口径分裂：同一台机器两边算出来的带宽不是同一个值。统一取 max，跟分子
-#      speed_recv_bit/speed_sent_bit 的 max by (bk_target_ip) 也一致（那两个确实是多网卡，取最忙的）。
-# script_dbm_bandwidth 是通用带宽采集脚本指标（对应/etc/dbm_bandwidth），不带cluster_domain/
-# instance_role维度，只能按bk_target_ip在Python侧与本集群broker IP列表关联。
-# 窗口3m：这个值是装机时按机型写一次、之后不变的常量，avg_over_time的窗口宽窄不影响取值（都是
-# 那个常量），宽窗口只是多一分"窗口里至少有一个样本"的容错
-BANDWIDTH_PROMQL = "max by (bk_target_ip) (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[3m]))"
+# 每台broker带宽规格(Mbps)的表达式。跟线上 Grafana 用的那条逐字一致（同一个聚合算子、同一个窗口、
+# 同一个指标），利用率那条promql的分母直接复用这一份，避免两处口径分裂。
+# script_dbm_bandwidth 是通用带宽采集脚本指标（对应 /etc/dbm_bandwidth），不带 cluster_domain/
+# instance_role 维度，只能按 bk_target_ip 在 Python 侧与本集群 broker IP 列表关联。
+BANDWIDTH_PROMQL = "avg by (bk_target_ip) (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[1m]))"
+
+# 诊断用（只读、不参与任何决策）：裸查这个指标在最近 _FRESHNESS_PROBE_MINUTES 分钟里有没有数据、
+# 最新一个采样点离现在多久。用来把两种"查不到"分开：
+#   ① 指标在该业务下压根没有数据            -> 裸查也是 0 条；
+#   ② 采集停了/上报很慢，近5分钟窗口为空     -> 裸查有数据，但最新点很旧（这个指标是常量，历史点会一直在）。
+# 存在这个探针是因为：查询窗口只有5分钟，而 Grafana 上通常拉的是几小时，两边都"查不到"时没法区分原因。
+_FRESHNESS_PROBE_MINUTES = 60
+_BANDWIDTH_RAW_METRIC = "bkmonitor:script_dbm_bandwidth:dbm_bandwidth"
 
 
 def _utilization_promql(labels: str) -> str:
     """
-    利用率在监控侧一条promql里算完（拆成多次查询时，各次返回的是"自己那个时刻的最新点"，
-    彼此之间有查询耗时差，用不同时刻的流量和带宽相除本身就不严谨）。
-    speed_recv_bit/speed_sent_bit已经是bit/s（Kafka Dashboard验证过的指标，见
-    backend/bk_dataview/dashboards/json/kafka.json），不是bytes/s的计数器，不能再套rate()，
-    换算Mbit/s时也不能再乘8——之前误当成bytes_recv/bytes_sent计数器用rate()包一层，
-    单位和指标名都是错的。
-    单位基准：分子 /1e6 换算成Mbit/s，分母 script_dbm_bandwidth 本身就是Mbps
-    （对应 DeviceClass.bandwidth 的"Mbps"，见 db_meta/models/machine.py:270），
-    两者口径一致，相除即利用率。原来用 /1024/1024 得到的是Mibit/s，再除以十进制的Mbps
-    会让利用率系统性偏高约4.9%（1024²/1e6），相对85%/80%两个水位不是可忽略的量。
-    recv/sent/bandwidth都套3m的avg_over_time。窗口长度不是随便取的：实测这两类指标
-    （bkmonitor:dbm_system:net:speed_*_bit 和 script_dbm_bandwidth:dbm_bandwidth）的
-    采样周期都是60s——用 count_over_time(m[1m]) 在30分钟窗口上逐step统计，每台机器
-    min=avg=max=1，也就是[1m]窗口里恰好只有一个样本。这种时候avg_over_time等于没平滑
-    （平均值就是那个原始值本身），单点抖动会直接推动50MB/s的步进调整，而且余量为零——
-    一旦相位漂移或漏采一个点，该step立刻变null。[3m]能装下3个样本，才是真的平滑，
-    并且能容忍漏掉1~2个点。代价是最多3分钟的滞后，相对sidecar本身2分钟一轮可以忽略。
-    分母直接复用 BANDWIDTH_PROMQL，保证跟"单独查带宽"那条是同一个算子、同一个窗口。
-    匹配用 on(bk_target_ip)（两侧标签集不同，默认的全标签匹配会匹配不上），右侧是按IP唯一
-    的聚合结果，所以是 group_left。注意 group_left 后面直接跟右操作数、不加括号——加了括号
-    会被解析成 grouping label 列表而不是右操作数（仓库既有写法见
-    bk_dataview/dashboards/json/hdfs.json、doris.json 的 "group_left avg by (...)"）。
+    利用率在监控侧一条promql里算完：拆成多次查询时，各次返回的是"自己那个时刻的最新点"，
+    彼此之间有查询耗时差，用不同时刻的流量和带宽相除本身就不严谨。
+    speed_recv_bit/speed_sent_bit 已经是 bit/s（Kafka Dashboard 验证过的指标，见
+    backend/bk_dataview/dashboards/json/kafka.json），不是 bytes/s 的计数器，不能再套 rate()，
+    换算时也不能再乘 8——之前误当成 bytes_recv/bytes_sent 计数器用 rate() 包一层，单位和指标名都是错的。
+
+    **这条表达式跟线上 Grafana 用的那条逐字一致**（同样的聚合算子、窗口、单位、向量匹配写法）：
+    既然线上那条能出图，就不要在这里掺自己的"改进"（加 avg_over_time 平滑、换 /1e6 单位、换窗口），
+    否则一旦查不出数据，就分不清是查询写法的问题还是数据本身的问题。要改口径就两边一起改。
+    分母直接复用 BANDWIDTH_PROMQL，保证跟"单独查带宽"那条是同一份表达式。
     """
-    sent = f"max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_sent_bit{{{labels}}}[3m]))"
-    recv = f"max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_recv_bit{{{labels}}}[3m]))"
-    return f"({sent} + {recv}) / 1000000 / on(bk_target_ip) group_left {BANDWIDTH_PROMQL}"
+    sent = f"max by (bk_target_ip) (bkmonitor:dbm_system:net:speed_sent_bit{{{labels}}})"
+    recv = f"max by (bk_target_ip) (bkmonitor:dbm_system:net:speed_recv_bit{{{labels}}})"
+    return f"({sent} + {recv}) / 1024 / 1024 / on(bk_target_ip) group_left(cluster_domain) ({BANDWIDTH_PROMQL})"
 
 
 def _query_steps_by_ip(
@@ -454,6 +443,29 @@ def _collect_broker_stats(
     return results, missing
 
 
+def _probe_bandwidth_freshness(bk_biz_id: int, now: datetime) -> str:
+    """
+    只读诊断：裸查带宽指标在最近 _FRESHNESS_PROBE_MINUTES 分钟里的数据情况，返回一句人话。
+    不参与调速决策，只用来在日志里区分"该业务下指标没数据"和"数据陈旧导致窄窗口为空"。
+    """
+    end_timestamp = int(timezone2timestamp(now))
+    start_timestamp = int(timezone2timestamp(now - timedelta(minutes=_FRESHNESS_PROBE_MINUTES)))
+    try:
+        series_count, steps = _query_steps_by_ip(bk_biz_id, _BANDWIDTH_RAW_METRIC, start_timestamp, end_timestamp)
+    except Exception as err:  # pylint: disable=broad-except
+        return _("裸查带宽指标失败：{}").format(err)
+
+    latest = max((step for ip_steps in steps.values() for step in ip_steps), default=None)
+    if latest is None:
+        return _("近{}分钟裸查该指标0条series（该业务下没有这个指标的数据）").format(_FRESHNESS_PROBE_MINUTES)
+    # 采样点时间戳单位不确定（秒或毫秒），按量级判断，别猜
+    if latest > 10**12:
+        age_minutes = round((end_timestamp * 1000 - latest) / 1000 / 60, 1)
+    else:
+        age_minutes = round((end_timestamp - latest) / 60, 1)
+    return _("近{}分钟裸查该指标{}条series，最新采样点距今{}分钟").format(_FRESHNESS_PROBE_MINUTES, series_count, age_minutes)
+
+
 def get_broker_bandwidth_utilization(
     cluster_id: int, on_missing: Optional[Callable[[str], None]] = None
 ) -> List[Dict]:
@@ -482,8 +494,11 @@ def get_broker_bandwidth_utilization(
     app_abbr = str(AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id) or "")
     base_labels = f'cluster_domain="{cluster.immute_domain}",instance_role="broker"'
 
+    # 监控数据的业务空间就是集群自己的业务
+    biz_id = cluster.bk_biz_id
+
     utilization_series_count, utilization_steps = _query_steps_by_ip(
-        cluster.bk_biz_id, _utilization_promql(f'app="{app_abbr}",{base_labels}'), start_timestamp, end_timestamp
+        biz_id, _utilization_promql(f'app="{app_abbr}",{base_labels}'), start_timestamp, end_timestamp
     )
     # app的取值口径一旦跟监控series上的实际值对不上（业务改名、只有部分机器标签缺失等），
     # 加了app会让部分甚至全部broker查不到数据、功能静默失效。cluster_domain本身已能唯一定位集群，
@@ -491,7 +506,7 @@ def get_broker_bandwidth_utilization(
     # （数据本来就全缺时这里也会触发，紧接着的缺失明细才是结论）
     if len(utilization_steps) < len(broker_ips):
         without_app_series_count, without_app_steps = _query_steps_by_ip(
-            cluster.bk_biz_id, _utilization_promql(base_labels), start_timestamp, end_timestamp
+            biz_id, _utilization_promql(base_labels), start_timestamp, end_timestamp
         )
         if len(without_app_steps) > len(utilization_steps):
             _report_skip(
@@ -508,7 +523,7 @@ def get_broker_bandwidth_utilization(
             utilization_series_count, utilization_steps = without_app_series_count, without_app_steps
 
     bandwidth_series_count, bandwidth_steps = _query_steps_by_ip(
-        cluster.bk_biz_id, BANDWIDTH_PROMQL, start_timestamp, end_timestamp
+        biz_id, BANDWIDTH_PROMQL, start_timestamp, end_timestamp
     )
 
     # 两条查询参数相同、step网格本该一致，完全错开属于异常情况（比如两条指标来自不同的采集源/
@@ -532,16 +547,26 @@ def get_broker_bandwidth_utilization(
     results, missing = _collect_broker_stats(broker_ips, utilization_steps, bandwidth_steps, aligned_step)
 
     if missing:
+        freshness = _probe_bandwidth_freshness(biz_id, now)
         _report_skip(
-            _("集群{}有{}/{}台broker带宽监控数据不完整，缺失明细: {}" "（利用率查询{}条series、带宽查询{}条series，对齐step={}，app标签={}）").format(
+            _(
+                "集群{}有{}/{}台broker带宽监控数据不完整，缺失明细: {}"
+                "（利用率查询{}条series、带宽查询{}条series，业务={}，集群域名={}，{}；"
+                "对齐step={}，app标签={}；查询窗口{}~{} interval=60 down_sample_range=3m type=range）"
+            ).format(
                 cluster_id,
                 len(missing),
                 len(broker_ips),
                 dict(sorted(missing.items())),
                 utilization_series_count,
                 bandwidth_series_count,
+                biz_id,
+                cluster.immute_domain,
+                freshness,
                 aligned_step if aligned_step is not None else _("<无可用step>"),
                 app_abbr or _("<未使用>"),
+                start_timestamp,
+                end_timestamp,
             ),
             on_missing,
         )

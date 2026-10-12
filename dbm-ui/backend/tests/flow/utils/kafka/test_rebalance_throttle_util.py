@@ -341,10 +341,9 @@ class TestGetBrokerBandwidthUtilization:
     @patch.object(mod, "BKMonitorV3Api")
     @patch.object(mod, "Cluster")
     def test_utilization_promql_golden(self, mock_cluster_cls, mock_bkmonitor, mock_app_cache):
-        """整条promql做golden断言：group_left后跟右操作数时不能加括号（加了会被解析成grouping label
-        列表而不是右操作数，query直接语法报错、被sidecar的except吞掉，自动调速彻底失效）；
-        分子用/1e6对齐DeviceClass.bandwidth的Mbps口径；三侧都套3m平滑（实测采集周期60s，
-        [1m]窗口里只有一个样本、等于没平滑）。子串断言看不出这些问题。"""
+        """整条promql做golden断言：必须与线上 Grafana 用的那条逐字一致（同样的聚合算子、窗口、单位、
+        向量匹配写法）——线上那条能出图，就不要在这里掺自己的"改进"，否则一旦查不出数据就分不清
+        是查询写法的问题还是数据本身的问题。子串断言看不出这种偏差，所以锁整条文本。"""
         cluster = MagicMock(immute_domain="kafka.test.db", bk_biz_id=10001)
         broker1 = MagicMock()
         broker1.machine.ip = "127.0.0.1"
@@ -363,15 +362,13 @@ class TestGetBrokerBandwidthUtilization:
         mod.get_broker_bandwidth_utilization(100)
 
         labels = 'app="dba",cluster_domain="kafka.test.db",instance_role="broker"'
+        # 必须与线上 Grafana 那条逐字一致
         expected = (
-            f"(max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_sent_bit{{{labels}}}[3m]))"
-            f" + max by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:net:speed_recv_bit{{{labels}}}[3m])))"
-            " / 1000000 / on(bk_target_ip) group_left max by (bk_target_ip)"
-            " (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[3m]))"
+            f"(max by (bk_target_ip) (bkmonitor:dbm_system:net:speed_sent_bit{{{labels}}})"
+            f" + max by (bk_target_ip) (bkmonitor:dbm_system:net:speed_recv_bit{{{labels}}}))"
+            " / 1024 / 1024 / on(bk_target_ip) group_left(cluster_domain) " + f"({mod.BANDWIDTH_PROMQL})"
         )
         assert promqls[0] == expected
-        # 右操作数前不能有括号
-        assert "group_left (" not in promqls[0]
         # 分母必须字面复用 BANDWIDTH_PROMQL，不能另写一份：否则"利用率分母"和"单独查带宽"
         # 可能用上不同的聚合算子/窗口，同一台机器两边算出来的带宽就不是同一个值了
         assert mod.BANDWIDTH_PROMQL in promqls[0]
@@ -518,7 +515,7 @@ class TestGetBrokerBandwidthUtilization:
         # 两种step各覆盖1台，取更新的那个(2000)，此时127.0.0.2算"采集延迟"
         assert "'127.0.0.2': '对齐step上bandwidth无数据（采集延迟）'" in detail, detail
         assert "'127.0.0.3': 'bandwidth指标整个窗口无数据'" in detail, detail
-        assert "利用率查询2条series、带宽查询2条series" in detail, detail
+        assert "利用率查询2条series、带宽查询2条series，业务=10001" in detail, detail
         assert "对齐step=2000" in detail, detail
 
     @patch.object(mod, "AppCache")
@@ -547,7 +544,7 @@ class TestGetBrokerBandwidthUtilization:
 
         # 覆盖率完整时不该多打一次"退回不带app"的查询，恰好两次
         assert len(promqls) == 2
-        assert promqls[1] == "max by (bk_target_ip) (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[3m]))"
+        assert promqls[1] == "avg by (bk_target_ip) (avg_over_time(bkmonitor:script_dbm_bandwidth:dbm_bandwidth[1m]))"
         # 测试里的分流依赖"利用率那条含speed_recv_bit"，哪天不再包含这个指标名，这里会先炸
         assert "speed_recv_bit" in promqls[0] and "speed_recv_bit" not in promqls[1]
 
@@ -584,7 +581,7 @@ class TestGetBrokerBandwidthUtilization:
         detail = reported[0]
         assert "1/2台broker带宽监控数据不完整" in detail
         assert "{'127.0.0.2': 'bandwidth指标整个窗口无数据'}" in detail
-        assert "利用率查询1条series、带宽查询1条series" in detail
+        assert "利用率查询1条series、带宽查询1条series，业务=10001" in detail
         assert "对齐step=1000" in detail
         assert "app标签=dba" in detail
 
