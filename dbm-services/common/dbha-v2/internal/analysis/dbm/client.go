@@ -370,7 +370,15 @@ func (c *Client) DeleteFromPolaris(bkCloudId int, servname string, servtoken str
 
 	logger.Debug("delete from polaris response, instance: %s, resp_len: %d", ins, len(response))
 
-	// TODO: parse response and check if result is success
+	polarisDeleteResp := &PolarisDeleteResponse{}
+	if err := json.Unmarshal(response, polarisDeleteResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal polaris delete response, errmsg: %s", err.Error())
+	}
+
+	if !polarisDeleteResp.Result {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to unbind instance (%s) from polaris, errmsg: %s", ins, polarisDeleteResp.Message)
+	}
 
 	return nil
 }

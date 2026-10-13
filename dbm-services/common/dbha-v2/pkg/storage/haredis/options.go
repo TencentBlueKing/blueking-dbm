@@ -25,6 +25,7 @@
 package haredis
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -41,6 +42,14 @@ type options struct {
 	dialTimeout  time.Duration
 	readTimeout  time.Duration
 	writeTimeout time.Duration
+}
+
+// safeConnectionSummary returns a log-safe description of the connection options.
+func (o options) safeConnectionSummary() string {
+	return fmt.Sprintf(
+		"addr=%s:%d, db=%d, passwd=<secret>, passwd_len=%d, dial_timeout=%s, read_timeout=%s, write_timeout=%s",
+		o.ip, o.port, o.db, len(o.password), o.dialTimeout, o.readTimeout, o.writeTimeout,
+	)
 }
 
 type funcOptions struct {

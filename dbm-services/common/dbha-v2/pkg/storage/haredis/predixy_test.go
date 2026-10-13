@@ -52,6 +52,9 @@ Connections:0
 	if servers[1].Server != "127.0.0.2:30000" || servers[1].CurrentIsFail != 1 {
 		t.Fatalf("unexpected second server: %+v", servers[1])
 	}
+	if servers[0].Slot != "" || servers[1].Slot != "" {
+		t.Fatalf("slot should stay empty when INFO Servers omits it: %+v %+v", servers[0], servers[1])
+	}
 
 	md5a := servers.MD5String()
 	reordered := ParsePredixyInfoServers(`# Servers
@@ -71,5 +74,56 @@ Connections:1
 `)
 	if reordered.MD5String() != md5a {
 		t.Fatalf("md5 should be stable regardless of order")
+	}
+
+	one := PredixyServerList{servers[0]}
+	if servers.MD5String() == one.MD5String() {
+		t.Fatalf("missing slot must not collapse distinct servers into one digest")
+	}
+}
+
+func TestParsePredixyInfoServersSlot(t *testing.T) {
+	raw := `# Servers
+Server:127.0.0.1:30000
+Slots:200-300,0-100
+Role:master
+CurrentIsFail:0
+
+Server:127.0.0.2:30000
+Slots:1
+Role:master
+CurrentIsFail:0
+`
+	servers := ParsePredixyInfoServers(raw)
+	if len(servers) != 2 || servers[0].Slot != "200-300,0-100" || servers[1].Slot != "1" {
+		t.Fatalf("unexpected slots: %+v", servers)
+	}
+
+	reorderedServers := ParsePredixyInfoServers(`# Servers
+Server:127.0.0.2:30000
+Slots:1
+Role:master
+CurrentIsFail:0
+
+Server:127.0.0.1:30000
+Slots:200-300,0-100
+Role:master
+CurrentIsFail:0
+`)
+	if servers.MD5String() != reorderedServers.MD5String() {
+		t.Fatalf("server order must not change the digest")
+	}
+
+	withoutSlot := ParsePredixyInfoServers(`# Servers
+Server:127.0.0.1:30000
+Role:master
+CurrentIsFail:0
+
+Server:127.0.0.2:30000
+Role:master
+CurrentIsFail:0
+`)
+	if servers.MD5String() == withoutSlot.MD5String() {
+		t.Fatalf("slots must change the backend digest once Predixy starts reporting them")
 	}
 }
