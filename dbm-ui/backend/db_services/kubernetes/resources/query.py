@@ -51,11 +51,13 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
 
     cluster_types = []
     instance_roles = []
-    # 支持部署模式(共享集群/独占集群)下发的集群类型，不在白名单内的集群类型(如VM)不下发 isPublic/bkBizId
+    # 支持部署模式(共享集群/独占集群)下发的集群类型，不在白名单内的集群类型不下发 isPublic/bkBizId
     deploy_mode_cluster_types = [
         ClusterType.K8sQdrantHa,
         ClusterType.K8sSurrealdbHa,
         ClusterType.K8sSurrealdbSingle,
+        ClusterType.K8sVictoriametricsCluster,
+        ClusterType.K8sVictoriametricsSelect,
     ]
     fields = [
         {"name": _("集群名"), "key": "cluster_name"},
