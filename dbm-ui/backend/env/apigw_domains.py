@@ -58,4 +58,6 @@ CELERY_SERVICE_APIGW_DOMAIN = get_type_env(key="CELERY_SERVICE_APIGW_DOMAIN", _t
 
 # 外部访问代理地址
 EXTERNAL_PROXY_DOMAIN = get_type_env(key="EXTERNAL_PROXY_DOMAIN", _type=str, default="http://bk-dbm")
+# WS 网关可单独部署；默认复用 HTTP 外部代理的网关地址及路径前缀。
+EXTERNAL_PROXY_WS_DOMAIN = get_type_env(key="EXTERNAL_PROXY_WS_DOMAIN", _type=str, default=EXTERNAL_PROXY_DOMAIN)
 STATSDB_DOMAIN = get_type_env(key="STATSDB_DOMAIN", _type=str)

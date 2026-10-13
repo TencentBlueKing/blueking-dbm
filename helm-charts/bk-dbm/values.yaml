@@ -176,6 +176,18 @@ dbm:
         pathType: ImplementationSpecific
     tls: []
 
+  ingressWs:
+    enabled: true
+    className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /ws
+        pathType: Prefix
+    tls: []
+
   ingressBackendApi:
     enabled: true
     className: ""
@@ -213,6 +225,11 @@ dbm:
     backendApi:
       enabled: true
       replicaCount: 1
+    ws:
+      enabled: true
+      replicaCount: 1
+      workers: 4
+      terminationGracePeriodSeconds: 60
     celeryBeat:
       enabled: true
       replicaCount: 1
