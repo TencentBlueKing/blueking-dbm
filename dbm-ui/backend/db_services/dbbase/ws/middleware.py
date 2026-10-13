@@ -43,7 +43,10 @@ class ApiGatewayJWTAuthMiddleware(object):
     async def __call__(self, scope, receive, send):
         request = _WebSocketJWTRequest(scope)
         try:
-            jwt = self.provider.provide(request)
+
+            # JWT 校验会同步查询数据库读取网关公钥，必须放到数据库工作线程执行。
+            # 使用 Channels 包装器，在调用结束后清理线程中的数据库连接。
+            jwt = await database_sync_to_async(self.provider.provide, thread_sensitive=True)(request)
         except JWTTokenInvalid:
             await send({"type": "websocket.close", "code": 4401})
             return
@@ -110,8 +113,18 @@ class DBMWebSocketOriginValidator(object):
         self.origin_validator = OriginValidator(inner, allowed_origins)
 
     async def __call__(self, scope, receive, send):
-        if scope.get("bkapi_jwt_verified") and not _get_header(scope, "origin"):
+
+        origin = _get_header(scope, "origin")
+        if scope.get("bkapi_jwt_verified") and not origin:
             return await self.inner(scope, receive, send)
+        if origin:
+            try:
+                # 在 Channels 匹配来源前，读取 port 属性以校验端口格式和范围。
+                parsed_origin = urlparse(origin)
+                _ = parsed_origin.port
+            except ValueError:
+                await send({"type": "websocket.close"})
+                return
         return await self.origin_validator(scope, receive, send)
 
 
