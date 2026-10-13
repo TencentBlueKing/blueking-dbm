@@ -22,6 +22,7 @@ from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ResourceInvalidError
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders.common.base import fetch_cluster_ids
 
 
@@ -247,23 +248,44 @@ class PasswordPolicyPermission(ResourceActionPermission):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
+def get_cluster_webconsole_permission_meta(cluster_id):
+    # 根据集群 ID 获取集群信息，并推导该集群类型对应的 WebConsole 鉴权动作和资源类型。
+    cluster = Cluster.objects.get(id=cluster_id)
+    db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+    try:
+        # 不同组件的 WebConsole 权限动作命名形如 mysql_webconsole、redis_webconsole。
+        action = getattr(ActionEnum, f"{db_type}_webconsole".upper())
+        resource_meta = getattr(ResourceEnum, db_type.upper())
+    except AttributeError:
+        # 如果当前组件没有定义对应的 WebConsole 动作或资源类型，说明暂不支持该类型鉴权。
+        raise NotImplementedError
+    return cluster, action, resource_meta
+
+
+def check_cluster_webconsole_permission(username, cluster_id, is_raise_exception=True):
+    # 供 WebSocket Consumer 等非 DRF 权限类场景直接调用，校验用户是否有该集群 WebConsole 权限。
+    _cluster, action, resource_meta = get_cluster_webconsole_permission_meta(cluster_id)
+    # IAM 鉴权需要具体资源实例，这里用 cluster_id 构造当前集群资源。
+    resource = resource_meta.create_instance(cluster_id)
+    return Permission(username=username).is_allowed(
+        action=action, resources=[resource], is_raise_exception=is_raise_exception
+    )
+
+
 class ClusterWebconsolePermission(ResourceActionPermission):
     """
     集群webconsole相关鉴权
     """
 
     def inst_ids_getter(self, request, view):
+        # DRF 权限流程入口：从请求体读取 cluster_id，并设置本次鉴权要使用的动作和资源类型。
         data = request.data
-        cluster = Cluster.objects.get(id=data["cluster_id"])
-        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
-        # 根据不同的组件类型获得对应的动作和资源类型
-        try:
-            self.actions = [getattr(ActionEnum, f"{db_type}_webconsole".upper())]
-            self.resource_meta = getattr(ResourceEnum, db_type.upper())
-        except AttributeError:
-            raise NotImplementedError
+        _cluster, action, resource_meta = get_cluster_webconsole_permission_meta(data["cluster_id"])
+        self.actions = [action]
+        self.resource_meta = resource_meta
 
-        return [cluster.id]
+        # 返回需要鉴权的资源实例 ID 列表，后续 ResourceActionPermission 会用它构造 IAM 资源。
+        return [data["cluster_id"]]
 
     def __init__(self):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
