@@ -164,16 +164,22 @@ dbm:
     className: ""
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: 1024m
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        set_real_ip_from 0.0.0.0/0;
-        real_ip_header X-Forwarded-For;
-        real_ip_recursive on;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
     hostname: "bkdbm.example.com"
     paths:
       - path: /bkdbm(/|$)(.*)
         pathType: ImplementationSpecific
+    tls: []
+
+  ingressWs:
+    enabled: true
+    className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /ws
+        pathType: Prefix
     tls: []
 
   ingressBackendApi:
@@ -181,12 +187,6 @@ dbm:
     className: ""
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: 1024m
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        set_real_ip_from 0.0.0.0/0;
-        real_ip_header X-Forwarded-For;
-        real_ip_recursive on;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
       # ===== 新增：子路径模式去掉 /bkdbm 前缀 =====
       nginx.ingress.kubernetes.io/rewrite-target: /$2
       nginx.ingress.kubernetes.io/use-regex: "true"
@@ -213,6 +213,11 @@ dbm:
     backendApi:
       enabled: true
       replicaCount: 1
+    ws:
+      enabled: true
+      replicaCount: 1
+      workers: 4
+      terminationGracePeriodSeconds: 60
     celeryBeat:
       enabled: true
       replicaCount: 1

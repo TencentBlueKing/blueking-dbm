@@ -21,6 +21,7 @@ from backend.components.db_remote_service.mysql_replication_compat import (
 
 from ..domains import DRS_APIGW_DOMAIN
 from ..proxy_api import ProxyAPI
+from ..ws_api import ProxyWSAPI
 
 
 class _DRSApi(object):
@@ -74,13 +75,53 @@ class _DRSApi(object):
             default_timeout=self.DRS_TIMEOUT,
         )
 
-        self.v2_mysql_ws = ProxyAPI(
-            method="POST",
+        self.v2_mysql_ws = ProxyWSAPI(
+            method="GET",
             base=self.BASE_DOMAIN,
             url="v2/mysql/ws",
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("MySQL V2 远程执行"),
+            default_timeout=self.DRS_TIMEOUT,
+        )
+
+        self.v2_webconsole_ws = ProxyWSAPI(
+            method="GET",
+            base=self.BASE_DOMAIN,
+            url="v2/webconsole/ws",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("webconsole 远程执行(只读账号)"),
+            default_timeout=self.DRS_TIMEOUT,
+        )
+
+        self.v2_sqlserver_ws = ProxyWSAPI(
+            method="GET",
+            base=self.BASE_DOMAIN,
+            url="v2/sqlserver/ws",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("SQLServer WS 远程执行"),
+            default_timeout=self.DRS_TIMEOUT,
+        )
+
+        self.v2_sqlserver_data_read_ws = ProxyWSAPI(
+            method="GET",
+            base=self.BASE_DOMAIN,
+            url="v2/sqlserver/data-read-ws",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("SQLServer WS 远程执行(业务库只读账号)"),
+            default_timeout=self.DRS_TIMEOUT,
+        )
+
+        self.v2_sqlserver_sys_read_ws = ProxyWSAPI(
+            method="GET",
+            base=self.BASE_DOMAIN,
+            url="v2/sqlserver/sys-read-ws",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("SQLServer WS 远程执行(系统库只读账号)"),
             default_timeout=self.DRS_TIMEOUT,
         )
 
