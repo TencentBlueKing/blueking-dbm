@@ -22,8 +22,11 @@
           style="width: 450px"
           type="card"
           @change="handleFlashbackTypeChange">
+          <BkRadioButton label="BUILD_INTO_NEW_CLUSTER">
+            {{ t('新机构造回档') }}
+          </BkRadioButton>
           <BkRadioButton label="ROLLBACK_FLASHBACK">
-            {{ t('构造回档') }}
+            {{ t('原地构造回档') }}
           </BkRadioButton>
           <BkRadioButton label="TABLE_FLASHBACK">
             {{ t('库表闪回回档') }}
@@ -78,6 +81,10 @@
         query: {
           type,
         },
+      });
+    } else if (type === 'BUILD_INTO_NEW_CLUSTER') {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST,
       });
     } else if (type === 'ROLLBACK_FLASHBACK') {
       router.push({

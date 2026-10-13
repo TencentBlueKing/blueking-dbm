@@ -10,6 +10,7 @@
 
 ## A 类：命中即修
 
+- [单据详情与提单入口对齐并复用同族展示](doc/ticket-detail-entry-alignment.md) —— 新增或修改 `ticket-center/common/ticket-detail/components/task-info/com-factory/**`，涉及 `backupinfo` 或目标规格展示
 - [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
   `.validate()`，且返回值被当布尔判断
 - [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md) —— `<BkPagination>` /
