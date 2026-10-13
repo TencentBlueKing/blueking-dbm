@@ -22,6 +22,37 @@ global:
   ## 租户配置
   enableMultiTenantMode: false
   tenantId: ""
+  ## 蓝鲸 KMS 凭证管理（通过 ESO 同步为 Secret）
+  ## 开启后 dbm、dbmedium 从 KMS 信封读取账号密码，信封格式见 KMS 凭证 bk_dbm_runtime_config
+  kms:
+    enabled: false
+    ## ESO CRD 版本，需与集群中安装的 ESO 一致
+    esoApiVersion: "external-secrets.io/v1"
+    ## SecretStore 登录 OpenBao 使用的 ServiceAccount，需与 KMS 凭证 auth.serviceAccount.nameList 一致
+    serviceAccount:
+      create: true
+      name: bk-dbm-kms
+    ## KMS 托管的 OpenBao 服务地址，开启 KMS 时必填，例如 https://openbao.bk-kms.svc:8200；HTTPS 由 URL 协议决定
+    server: ""
+    ## OpenBao KV v2 密钥引擎挂载路径
+    path: "secret"
+    authMountPath: "kubernetes"
+    ## KMS 生成的 role：{tenant}.scope.{scope}.secret.{name}
+    role: "default.scope.blueking.secret.bk_dbm_runtime_config"
+    ## 凭证路径：{tenant}/scope/{scope}/secret/{name}，凭证中需包含 private_key 和 envelope 两个属性
+    credentialKey: "default/scope/blueking/secret/bk_dbm_runtime_config"
+    refreshInterval: "1h"
+    ## ESO 生成的 Secret 名称
+    secretName: bk-dbm-kms
+    tls:
+      ## 是否使用自定义 CA / mTLS；关闭时 HTTPS 仍使用系统信任根
+      enabled: false
+      ## 与本 release 位于同一命名空间的已有证书 Secret
+      existingSecret: ""
+      certCAFilename: "ca.pem"
+      ## 默认仅验证服务端证书；启用 mTLS 时必须同时配置客户端证书和私钥
+      certFilename: ""
+      certKeyFilename: ""
 
 # bk public
 bk:
@@ -164,7 +195,8 @@ dbm:
     bkAppCode: "bk_dbm"
     bkAppToken: "bk_dbm_token"
     bkSaasUrl: "https://bkdbm.example.com/"
-    brokerUrl: "redis://localhost:6379/0"
+    # 留空时由 externalRedis 拼接（db 编号见 externalRedis.brokerDb）
+    brokerUrl: ""
     # 蓝鲸数据库管理平台
     dbaAppBkBizId: "dba_biz"
     dbmApigwDomain: "http://bk-dbm"
@@ -853,6 +885,9 @@ externalRedis:
   host: localhost
   port: 6379
   password: ""
+  ## dbm 未配置 dbm.envs.brokerUrl / cacheUrl 时，按以下 db 编号拼接连接串
+  brokerDb: 0
+  cacheDb: 1
 
 ## 第三方 kafka 配置
 ## 未配置（enabled=false 或 brokers 为空）时，自动回落到存量兼容配置：

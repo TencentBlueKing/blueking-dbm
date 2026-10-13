@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from urllib.parse import quote
+
 from bkcrypto.constants import AsymmetricCipherType, SymmetricCipherType
 
 from .apigw_domains import *  # pylint: disable=wildcard-import
@@ -33,7 +35,18 @@ RIO_TOKEN = get_type_env(key="RIO_TOKEN", default="", _type=str)
 REDIS_HOST = get_type_env(key="REDIS_HOST", _type=str, default="localhost")
 REDIS_PORT = get_type_env(key="REDIS_PORT", _type=int, default=6379)
 REDIS_PASSWORD = get_type_env(key="REDIS_PASSWORD", _type=str, default="")
-REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/1"
+# 未显式配置 BROKER_URL / CACHE_URL 时，按以下 db 编号拼接
+BROKER_REDIS_DB = get_type_env(key="BROKER_REDIS_DB", _type=int, default=0)
+CACHE_REDIS_DB = get_type_env(key="CACHE_REDIS_DB", _type=int, default=1)
+
+
+def build_redis_url(db: int) -> str:
+    # 密码需 URL 编码，否则含 @ / : 等字符时连接串解析错误；redis-py 与 kombu 解析时会解码
+    auth = f":{quote(REDIS_PASSWORD, safe='')}@" if REDIS_PASSWORD else ""
+    return f"redis://{auth}{REDIS_HOST}:{REDIS_PORT}/{db}"
+
+
+REDIS_URL = build_redis_url(1)
 # aidev redis缓存配置
 MESSAGE_REDIS_URL = get_type_env(key="MESSAGE_REDIS_URL", _type=str, default=REDIS_URL)
 
@@ -47,8 +60,14 @@ DISPATCH_REDIS_URL_LIST = [url for url in get_type_env(key="DISPATCH_REDIS_URLS"
     REDIS_URL
 ]
 
-BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
-CACHE_URL = get_type_env(key="CACHE_URL", default=REDIS_URL, _type=str)
+
+def get_redis_url_env(key: str, db: int) -> str:
+    """显式配置优先；未配置或配置为空字符串时由 REDIS_* 拼接"""
+    return get_type_env(key=key, default="", _type=str) or build_redis_url(db)
+
+
+BROKER_URL = get_redis_url_env("BROKER_URL", BROKER_REDIS_DB)
+CACHE_URL = get_redis_url_env("CACHE_URL", CACHE_REDIS_DB)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
 ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", _type=bool, default=False)

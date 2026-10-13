@@ -245,6 +245,10 @@ initContainers:
     {{- else }}
     - "python main.py --type upload --db {{ $db_type }} && python main.py --type sync --db {{ $db_type }}"
     {{- end }}
+  {{- with include "bk-dbm.kms.envs" $root | trim }}
+  env:
+    {{- . | nindent 4 }}
+  {{- end }}
   envFrom:
     {{- if $root.Values.dbmedium.extraEnvVarsCM }}
     - configMapRef:
@@ -255,16 +259,27 @@ initContainers:
   volumeMounts:
     - mountPath: /install
       name: medium-install
+    {{- with include "bk-dbm.kms.volumeMounts" $root | trim }}{{ . | nindent 4 }}{{ end }}
 {{- end }}
 
 {{- define "dbm.container_env" -}}
 env:
   {{- include "dbm.envs" . | trim | nindent 2 }}
+  {{- with include "bk-dbm.kms.envs" . | trim }}{{ . | nindent 2 }}{{ end }}
 envFrom:
   {{- if .Values.extraEnvVarsCM }}
   - configMapRef:
       name: {{ .Values.extraEnvVarsCM }}
   {{- end }}
+{{- with include "bk-dbm.kms.volumeMounts" . | trim }}
+volumeMounts:
+  {{- . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/* Pod 级 volumes，供原本没有 volumes 的 Deployment / Job 使用 */}}
+{{- define "dbm.podVolumes" -}}
+{{- include "bk-dbm.kms.podVolumes" . | trim }}
 {{- end }}
 
 {{/*
