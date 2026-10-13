@@ -16,6 +16,11 @@ from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.dbm_aiagent.agent.constants import FLOW_LOG_AI_ANALYSIS_KEY
 from backend.utils.redis import RedisConn
 
+# worker 加载 CELERY_IMPORTS 时执行。ai的异步任务不在自动发现路径上，
+# 只在投递函数内部导入的话，其他 worker 进程会把消息当成未注册任务丢弃。
+if env.ENABLE_DBM_AI:
+    import backend.dbm_aiagent.agent.services.log_analysis.tasks  # noqa: F401
+
 
 @register_periodic_task(run_every=crontab(minute="*"))
 def periodic_pipeline_log_ai_analysis():
