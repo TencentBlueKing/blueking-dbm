@@ -2,12 +2,13 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from apigw_manager.apigw.providers import JWTTokenInvalid
 from asgiref.sync import async_to_sync
+from django.test import override_settings
 
 from backend import env
 from backend.components.ws_api import ProxyWSAPI
-from backend.db_services.dbbase.ws import middleware as ws_middleware
 from backend.db_services.dbbase.ws.consumers import WebConsoleConsumer, _WebSocketRequest
 from backend.db_services.dbbase.ws.middleware import (
     ApiGatewayJWTAuthMiddleware,
@@ -155,10 +156,10 @@ def test_apigw_jwt_middleware_sets_scope_user():
 
 
 def test_ws_allowed_origins_uses_csrf_trusted_origins_and_saas_host():
-    with patch.object(ws_middleware.settings, "WS_ALLOWED_ORIGINS", None), patch.object(
-        ws_middleware.settings,
-        "CSRF_TRUSTED_ORIGINS",
-        ["https://trusted.example.com", "https://*.dbm.example.com"],
+
+    with override_settings(
+        WS_ALLOWED_ORIGINS=None,
+        CSRF_TRUSTED_ORIGINS=["https://trusted.example.com", "https://*.dbm.example.com"],
     ), patch.object(env, "BK_SAAS_HOST", "https://dbm.example.com/path/"):
         origins = get_ws_allowed_origins()
 
@@ -171,8 +172,10 @@ def test_ws_allowed_origins_uses_csrf_trusted_origins_and_saas_host():
 
 
 def test_ws_allowed_origins_prefers_ws_allowed_origins():
-    with patch.object(ws_middleware.settings, "WS_ALLOWED_ORIGINS", ["https://ws.example.com"]), patch.object(
-        ws_middleware.settings, "CSRF_TRUSTED_ORIGINS", ["https://csrf.example.com"]
+
+    with override_settings(
+        WS_ALLOWED_ORIGINS=["https://ws.example.com"],
+        CSRF_TRUSTED_ORIGINS=["https://csrf.example.com"],
     ), patch.object(env, "BK_SAAS_HOST", "https://dbm.example.com/"):
         origins = get_ws_allowed_origins()
 
@@ -213,3 +216,29 @@ def test_apigw_jwt_middleware_rejects_invalid_jwt():
 
     send.assert_awaited_once_with({"type": "websocket.close", "code": 4401})
     middleware.inner.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://dev.paas3-dev.bktencent.com:80001",
+        "http://dev.paas3-dev.bktencent.com:abc",
+        "http://[invalid",
+    ],
+)
+@pytest.mark.parametrize("verified_jwt", [False, True])
+def test_ws_origin_validator_rejects_malformed_origin(origin, verified_jwt):
+    validator = DBMWebSocketOriginValidator.__new__(DBMWebSocketOriginValidator)
+    validator.inner = AsyncMock()
+    validator.origin_validator = AsyncMock()
+    send = AsyncMock()
+    scope = {
+        "headers": [(b"origin", origin.encode("latin1"))],
+        "bkapi_jwt_verified": verified_jwt,
+    }
+
+    async_to_sync(validator)(scope, AsyncMock(), send)
+
+    send.assert_awaited_once_with({"type": "websocket.close"})
+    validator.inner.assert_not_awaited()
+    validator.origin_validator.assert_not_awaited()

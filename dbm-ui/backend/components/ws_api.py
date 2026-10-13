@@ -147,10 +147,7 @@ class WebSocketSession(object):
 
         ssl_context = None
         if _is_secure_url(self.url):
-            ssl_context = ssl._create_unverified_context()  # noqa: S323
-            if self.api.use_client_cert(self.params):
-                client_crt, client_key = await sync_to_async(self.api._fetch_client_crt, thread_sensitive=True)()
-                ssl_context.load_cert_chain(client_crt, client_key)
+            ssl_context = await self.api.build_ssl_context(self.params)
 
         return await websockets.connect(self.url, additional_headers=headers, ssl=ssl_context)
 
@@ -181,6 +178,14 @@ class WebSocketAPI(DataAPI):
 
     def use_client_cert(self, params):
         return self.ssl
+
+    async def build_ssl_context(self, params):
+        """构造内部服务连接的 TLS 上下文，证书本地化仍在线程中执行。"""
+        context = ssl._create_unverified_context()  # noqa: S323
+        if self.use_client_cert(params):
+            client_crt, client_key = await sync_to_async(self._fetch_client_crt, thread_sensitive=True)()
+            context.load_cert_chain(client_crt, client_key)
+        return context
 
     def _set_ws_session_headers(
         self,
