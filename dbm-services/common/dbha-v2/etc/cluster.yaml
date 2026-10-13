@@ -201,6 +201,11 @@ dbmServices:
     timeout: 10s
     token: ""
 
+  dbmApiDomainDelete:
+    api: http://127.0.0.1:80/apis/proxypass/dns/domain/delete/
+    timeout: 10s
+    token: ""
+
   dbmApiClbGetTargetPrivateIps:
     api: http://127.0.0.1:80/apis/proxypass/nameservice/clb_get_target_private_ips/
     timeout: 10s

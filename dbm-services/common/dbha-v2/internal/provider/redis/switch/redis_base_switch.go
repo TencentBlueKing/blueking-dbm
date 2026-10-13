@@ -30,6 +30,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	redispasswd "dbm-services/common/dbha-v2/internal/provider/redis/passwd"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -38,7 +39,7 @@ import (
 type RedisBaseSwitchInstance struct {
 	switchcore.BaseSwitchInstance
 
-	Password         string
+	Password         string        // password of current instance
 	passwordResolved bool          // indicates whether the password has been resolved
 	Timeout          time.Duration // timeout for redis commands execution
 }
@@ -60,26 +61,28 @@ func (sw *RedisBaseSwitchInstance) initBaseInfoFromMetadata(metadata *dbm.DbInst
 	sw.Timeout = redisCommandTimeout()
 }
 
-// applyPassword prefetches the password while the instance is being built.
+// applyPassword prefetches the instance password while the instance is being built.
 func (sw *RedisBaseSwitchInstance) applyPassword(machineType haprobe.DbmMetadataMachineType) {
-	passwd, err := redispasswd.GetDbInstPasswd(sw.BkCloudID, sw.ClusterID, machineType)
-	if err != nil {
-		logger.Error("get redis switch passwd failed,err:%s,info:%s", err.Error(), sw.GetInstanceInfo())
+	if err := sw.resolvePassword(machineType); err != nil {
+		logger.Error("failed to apply password, err:%s", err.Error())
 		return
 	}
-	sw.Password = passwd
-	sw.passwordResolved = true
 }
 
-// ensurePassword resolves the password right before it is used.
+// ensurePassword resolves the instance password right before it is used.
 func (sw *RedisBaseSwitchInstance) ensurePassword() error {
 	if sw.passwordResolved {
 		return nil
 	}
+	return sw.resolvePassword(sw.MachineType)
+}
 
-	passwd, err := redispasswd.GetDbInstPasswd(sw.BkCloudID, sw.ClusterID, sw.MachineType)
+func (sw *RedisBaseSwitchInstance) resolvePassword(machineType haprobe.DbmMetadataMachineType) error {
+	passwd, err := redispasswd.GetDbInstPasswd(sw.BkCloudID, sw.ClusterID, machineType)
 	if err != nil {
-		return err
+		return gerrors.Newf(gerrors.Failure,
+			"failed to get redis password, clusterId:%d, machineType:%s, err:%s",
+			sw.ClusterID, machineType, err.Error())
 	}
 
 	sw.Password = passwd

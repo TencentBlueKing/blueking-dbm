@@ -37,8 +37,10 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
+	redispasswd "dbm-services/common/dbha-v2/internal/provider/redis/passwd"
 	"dbm-services/common/dbha-v2/pkg/converter"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/pkg/storage/haredis"
 )
@@ -47,6 +49,8 @@ const (
 	maxLastIOSecondsAgo      = 600
 	twemproxySwitchMaxRetry  = 10
 	twemproxySwitchRetryWait = 500 * time.Millisecond
+	predixySwitchMaxRetry    = 10
+	predixySwitchRetryWait   = 500 * time.Millisecond
 )
 
 var (
@@ -54,9 +58,33 @@ var (
 	_ switchcore.InstanceNewMasterProvider = (*RedisStorageSwitchInstance)(nil)
 )
 
+// proxyPasswdParam describes which proxy passwords a storage switch should load.
+type proxyPasswdParam struct {
+	machineType     haprobe.DbmMetadataMachineType
+	needAdminPasswd bool
+	needPasswd      bool
+}
+
+func getProxyPasswdParam(clusterType haprobe.DbmMetadataClusterType) proxyPasswdParam {
+	switch clusterType {
+	case haprobe.DbmMetadataClusterTypePredixyTendisplusInstance:
+		return proxyPasswdParam{
+			machineType:     haprobe.DbmMetadataMachineTypePredixy,
+			needAdminPasswd: true,
+			needPasswd:      true,
+		}
+	default:
+		return proxyPasswdParam{}
+	}
+}
+
 // RedisStorageSwitchInstance handles tendiscache/tendisssd/tendisplus master-slave switch.
 type RedisStorageSwitchInstance struct {
 	RedisBaseSwitchInstance
+
+	ProxyPasswd           string // data-port password of the proxy layer
+	ProxyAdminPasswd      string // admin password of the proxy layer
+	proxyPasswordResolved bool
 
 	ProxyList    []dbm.DbmMetadataProxyInstance
 	SlaveList    []dbm.DbmMetadataSlaveInfo
@@ -75,7 +103,54 @@ func NewRedisStorageSwitchInstance(metadata *dbm.DbInstMetadata) (*RedisStorageS
 	}
 	ins.initBaseInfoFromMetadata(metadata)
 	ins.applyPassword(metadata.MachineType)
+	ins.applyProxyPassword()
 	return ins, nil
+}
+
+// applyProxyPassword prefetches proxy credentials while the storage instance is being built.
+// Clusters whose getProxyPasswdParam sets neither flag are skipped.
+func (ins *RedisStorageSwitchInstance) applyProxyPassword() {
+	if err := ins.resolveProxyPasswords(); err != nil {
+		logger.Error("failed to apply proxy password, err:%s", err.Error())
+	}
+}
+
+// ensureProxyPassword resolves proxy credentials right before they are used.
+func (ins *RedisStorageSwitchInstance) ensureProxyPassword() error {
+	if ins.proxyPasswordResolved {
+		return nil
+	}
+	return ins.resolveProxyPasswords()
+}
+
+func (ins *RedisStorageSwitchInstance) resolveProxyPasswords() error {
+	param := getProxyPasswdParam(ins.ClusterType)
+	if !param.needPasswd && !param.needAdminPasswd {
+		ins.proxyPasswordResolved = true
+		return nil
+	}
+
+	if param.needPasswd {
+		proxyPasswd, err := redispasswd.GetDbInstPasswd(ins.BkCloudID, ins.ClusterID, param.machineType)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure,
+				"failed to get proxy password, clusterId:%d, machineType:%s, err:%s",
+				ins.ClusterID, param.machineType, err.Error())
+		}
+		ins.ProxyPasswd = proxyPasswd
+	}
+
+	if param.needAdminPasswd {
+		adminPasswd, adminErr := redispasswd.GetProxyAdminPasswd(ins.BkCloudID, ins.ClusterID)
+		if adminErr != nil {
+			return gerrors.Newf(gerrors.Failure,
+				"failed to get proxy admin password, clusterId:%d, err:%s", ins.ClusterID, adminErr.Error())
+		}
+		ins.ProxyAdminPasswd = adminPasswd
+	}
+
+	ins.proxyPasswordResolved = true
+	return nil
 }
 
 // errorToString returns the error message as string.
@@ -104,6 +179,45 @@ func (ins *RedisStorageSwitchInstance) GetTwemProxyBackends(
 			"failed to create twemproxy admin client, ip:%s, adminPort:%d, err:%s", ip, adminPort, err.Error())
 	}
 	return cli.GetServerMap()
+}
+
+// buildPredixyConn connects to a predixy data port.
+// admin selects ProxyAdminPasswd; otherwise ProxyPasswd is used.
+func (ins *RedisStorageSwitchInstance) buildPredixyConn(ip string, port int, admin bool) (*haredis.Client, error) {
+	if err := ins.ensureProxyPassword(); err != nil {
+		return nil, err
+	}
+
+	passwd := ins.ProxyPasswd
+	if admin {
+		passwd = ins.ProxyAdminPasswd
+	}
+
+	cmdTimeout := ins.Timeout
+	if cmdTimeout <= 0 {
+		cmdTimeout = redisCommandTimeout()
+	}
+	return haredis.NewClient(
+		haredis.OptionIP(ip),
+		haredis.OptionPort(port),
+		haredis.OptionPassword(passwd),
+		haredis.OptionDB(redisSwitchDB),
+		haredis.OptionDialTimeout(switchcore.DbConnectTimeout()),
+		haredis.OptionReadWriteTimeout(cmdTimeout),
+	)
+}
+
+// GetPredixyBackends runs INFO servers on the predixy data port.
+func (ins *RedisStorageSwitchInstance) GetPredixyBackends(
+	ip string, port int,
+) (haredis.PredixyServerList, error) {
+	cli, err := ins.buildPredixyConn(ip, port, false)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure,
+			"failed to connect predixy, ip:%s, port:%d, err:%s", ip, port, err.Error())
+	}
+	defer cli.Close()
+	return haredis.GetPredixyInfoServers(cli)
 }
 
 // unbindFailedTwemproxyFromNameService re-queries metadata and unbinds one failed twemproxy.
@@ -180,6 +294,77 @@ func (ins *RedisStorageSwitchInstance) unbindFailedTwemproxyFromNameService(
 	return nil
 }
 
+// unbindFailedPredixyFromNameService unbinds a failed predixy from name services.
+func (ins *RedisStorageSwitchInstance) unbindFailedPredixyFromNameService(
+	bkCloudID int, proxy dbm.DbmMetadataProxyInstance,
+) error {
+	ins.ReportLogf(switchlogger.SwitchInfo,
+		"try to unbind failure predixy from name service, ip:%s, port:%d, status:%s",
+		proxy.Ip, proxy.Port, proxy.Status)
+
+	timeout := config.Cfg.Workflow.DbmApiMetadata.Timeout
+	if timeout <= 0 {
+		timeout = defaultRedisSwitchTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	_, infos, err := ins.DbmClient.QueryMetadataFromDbm(ctx, bkCloudID, []string{proxy.Ip})
+	if err != nil {
+		retErr := gerrors.Newf(gerrors.Failure,
+			"failed to query metadata of failure predixy, ip:%s, port:%d, err:%s",
+			proxy.Ip, proxy.Port, err.Error())
+		ins.ReportLogf(switchlogger.SwitchWarn, "%s", retErr.Error())
+		return retErr
+	}
+
+	var meta *dbm.DbInstMetadata
+	for _, info := range infos {
+		if info == nil {
+			continue
+		}
+		if info.IP == proxy.Ip && info.Port == proxy.Port &&
+			info.MachineType == haprobe.DbmMetadataMachineTypePredixy {
+			meta = info
+			break
+		}
+	}
+	if meta == nil {
+		retErr := gerrors.Newf(gerrors.Failure,
+			"failed to find predixy metadata from query metadata, ip:%s, port:%d",
+			proxy.Ip, proxy.Port)
+		ins.ReportLogf(switchlogger.SwitchWarn, "%s", retErr.Error())
+		return retErr
+	}
+
+	proxyIns, err := NewPredixySwitchInstance(meta)
+	if err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to create predixy switch instance, err:%s", err.Error())
+		ins.ReportLogf(switchlogger.SwitchWarn, "%s", retErr.Error())
+		return retErr
+	}
+	proxyIns.copySwitchContextFrom(&ins.RedisBaseSwitchInstance)
+
+	if proxyIns.GetStatus() == dbm.Unavailable {
+		ins.ReportLogf(switchlogger.SwitchInfo,
+			"skip unbinding failure predixy from name service for unavailable status, predixy: %s",
+			proxyIns.GetInstanceInfo())
+		return nil
+	}
+
+	if !proxyIns.unbindFromAllEntries() {
+		retErr := gerrors.Newf(gerrors.Failure,
+			"failed to unbind failure predixy from name service, predixy: %s",
+			proxyIns.GetInstanceInfo())
+		ins.ReportLogf(switchlogger.SwitchWarn, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully unbind failure predixy from name service, predixy: %s",
+		proxyIns.GetInstanceInfo())
+	return nil
+}
+
 // ProcessFailedTwemproxies unbinds unreachable twemproxies from name services.
 func (ins *RedisStorageSwitchInstance) ProcessFailedTwemproxies(
 	failedProxies []dbm.DbmMetadataProxyInstance,
@@ -208,6 +393,39 @@ func (ins *RedisStorageSwitchInstance) ProcessFailedTwemproxies(
 		failedListStr, _ := converter.ToJsonLine(unbindFailed)
 		return gerrors.Newf(gerrors.Failure,
 			"failed to process some twemproxies, total:%d, success:%d, failed:%d, failedList:%s",
+			len(failedProxies), successCnt, len(unbindFailed), failedListStr)
+	}
+	return nil
+}
+
+// ProcessFailedPredixies unbinds unreachable predixies from name services.
+func (ins *RedisStorageSwitchInstance) ProcessFailedPredixies(
+	failedProxies []dbm.DbmMetadataProxyInstance,
+) error {
+	if len(failedProxies) == 0 {
+		ins.ReportLogf(switchlogger.SwitchInfo, "no failed predixies to process")
+		return nil
+	}
+
+	predixyListStr, _ := converter.ToJsonLine(failedProxies)
+	ins.ReportLogf(switchlogger.SwitchInfo,
+		"there are failed predixies need to process, total:%d, predixyList:%s",
+		len(failedProxies), predixyListStr)
+
+	successCnt := 0
+	unbindFailed := make([]dbm.DbmMetadataProxyInstance, 0)
+	for _, proxy := range failedProxies {
+		if err := ins.unbindFailedPredixyFromNameService(ins.BkCloudID, proxy); err != nil {
+			unbindFailed = append(unbindFailed, proxy)
+			continue
+		}
+		successCnt++
+	}
+
+	if len(unbindFailed) > 0 {
+		failedListStr, _ := converter.ToJsonLine(unbindFailed)
+		return gerrors.Newf(gerrors.Failure,
+			"failed to process some predixies, total:%d, success:%d, failed:%d, failedList:%s",
 			len(failedProxies), successCnt, len(unbindFailed), failedListStr)
 	}
 	return nil
@@ -263,6 +481,10 @@ func (ins *RedisStorageSwitchInstance) CheckTwemproxyBackends() error {
 		"twemproxy backends query done, total:%d, skipped:%d, success:%d, failed:%d",
 		len(ins.ProxyList), skipped, len(proxyServers), len(failedProxies))
 
+	if len(proxyServers) < 1 {
+		return gerrors.Newf(gerrors.Failure, "failed to query backends from all the running twemproxies")
+	}
+
 	if err := ins.ProcessFailedTwemproxies(failedProxies); err != nil {
 		ins.ReportLogf(switchlogger.SwitchWarn,
 			"not all failed twemproxies are processed successfully, err:%s", err.Error())
@@ -293,6 +515,93 @@ func (ins *RedisStorageSwitchInstance) CheckTwemproxyBackends() error {
 	}
 
 	ins.ReportLogf(switchlogger.SwitchInfo, "backends settings for all running twemproxy are consistent")
+	return nil
+}
+
+// CheckPredixyBackends checks backend consistency of running predixies via INFO servers.
+// The digest uses server and slot. Slot may be empty until Predixy starts reporting it.
+func (ins *RedisStorageSwitchInstance) CheckPredixyBackends() error {
+	var wg sync.WaitGroup
+	var proxyLock sync.Mutex
+	failedProxies := make([]dbm.DbmMetadataProxyInstance, 0)
+	proxyServers := map[string]haredis.PredixyServerList{}
+	skipped := 0
+
+	for _, proxy := range ins.ProxyList {
+		wg.Add(1)
+		go func(proxyInfo dbm.DbmMetadataProxyInstance) {
+			defer wg.Done()
+			servers, queryErr := ins.GetPredixyBackends(proxyInfo.Ip, proxyInfo.Port)
+
+			proxyLock.Lock()
+			defer proxyLock.Unlock()
+
+			if queryErr != nil {
+				if !ins.ProxyStatusIsRunning(proxyInfo) {
+					skipped++
+					ins.ReportLogf(switchlogger.SwitchWarn,
+						"skip not running predixy after backend query failed, ip:%s, port:%d, status:%s, err:%s",
+						proxyInfo.Ip, proxyInfo.Port, proxyInfo.Status, queryErr.Error())
+					return
+				}
+
+				ins.ReportLogf(switchlogger.SwitchWarn, "failed to query backends from predixy, ip:%s, port:%d, err:%s",
+					proxyInfo.Ip, proxyInfo.Port, queryErr.Error())
+				failedProxies = append(failedProxies, proxyInfo)
+				return
+			}
+
+			if !ins.ProxyStatusIsRunning(proxyInfo) {
+				skipped++
+				ins.ReportLogf(switchlogger.SwitchInfo,
+					"skip not running predixy after backend query success, ip:%s, port:%d, status:%s, backendMD5:%s",
+					proxyInfo.Ip, proxyInfo.Port, proxyInfo.Status, servers.MD5String())
+				return
+			}
+
+			proxyAddr := fmt.Sprintf("%s:%d", proxyInfo.Ip, proxyInfo.Port)
+			proxyServers[proxyAddr] = servers
+		}(proxy)
+	}
+	wg.Wait()
+
+	ins.ReportLogf(switchlogger.SwitchInfo,
+		"predixy backends query done, total:%d, skipped:%d, success:%d, failed:%d",
+		len(ins.ProxyList), skipped, len(proxyServers), len(failedProxies))
+
+	if len(proxyServers) < 1 {
+		return gerrors.Newf(gerrors.Failure, "failed to query backends from all the running predixies")
+	}
+
+	if err := ins.ProcessFailedPredixies(failedProxies); err != nil {
+		ins.ReportLogf(switchlogger.SwitchWarn,
+			"not all failed predixies are processed successfully, err:%s", err.Error())
+	} else {
+		ins.ReportLogf(switchlogger.SwitchInfo, "successfully processed all the failed predixies")
+	}
+
+	proxyMd5Map := map[string][]string{}
+	for addr, servers := range proxyServers {
+		pmd5 := servers.MD5String()
+		proxyMd5Map[pmd5] = append(proxyMd5Map[pmd5], addr)
+	}
+	proxyMd5MapStr, _ := converter.ToJsonLine(proxyMd5Map)
+	ins.ReportLogf(switchlogger.SwitchInfo, "predixy backends servers md5 summary: %s", proxyMd5MapStr)
+
+	if len(proxyMd5Map) != 1 {
+		ins.ReportLogf(switchlogger.SwitchWarn, "expected one predixy backend md5, but got %d", len(proxyMd5Map))
+		for oneMd5, proxyAddrList := range proxyMd5Map {
+			if len(proxyAddrList) > 0 {
+				ins.ReportLogf(switchlogger.SwitchWarn,
+					"check inconsistent predixy backends, md5:%s, backends:%s, proxyCount:%d",
+					oneMd5, proxyServers[proxyAddrList[0]].BackendString(), len(proxyAddrList))
+			}
+		}
+		return gerrors.Newf(gerrors.Failure,
+			"expected the same predixy backend md5, but got different md5s, md5Count:%d", len(proxyMd5Map))
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "backends settings for all running predixy are consistent")
 	return nil
 }
 
@@ -446,14 +755,21 @@ func (ins *RedisStorageSwitchInstance) CheckRedisStorageMaster() (switchcore.Swi
 		}
 	}
 
+	// PredixyTendisplusInstance rewrites predixy backends the same way twemproxy does.
+	if isPredixyInstanceClusterType(ins.ClusterType) {
+		if err := ins.CheckPredixyBackends(); err != nil {
+			ins.ReportLogf(switchlogger.SwitchWarn, "predixy backends check unpass, err:%s", err.Error())
+			return switchcore.SwitchCheckUnpass, err
+		}
+	}
+
 	// check the replication sync status of the slave
 	if err := ins.CheckSlaveSyncStatus(); err != nil {
 		ins.ReportLogf(switchlogger.SwitchWarn, "slave sync check unpass, err: %s", err.Error())
 		return switchcore.SwitchCheckUnpass, err
 	}
 
-	ins.ReportLogf(switchlogger.SwitchInfo,
-		"redis switch precheck: lock file and check twemproxy and sync status ok; next ^_^")
+	ins.ReportLogf(switchlogger.SwitchInfo, "redis switch precheck passed, ready to switch")
 	return switchcore.SwitchRequired, nil
 }
 
@@ -595,7 +911,120 @@ func (ins *RedisStorageSwitchInstance) SwitchTwemproxyBackends(
 	return nil
 }
 
-// DoSwitch promotes the first slave with SLAVEOF NO ONE, then switches twemproxy backends if needed.
+// DoSwitchPredixyBackend sends "admin change $from $to" and retries on send/read errors.
+func (ins *RedisStorageSwitchInstance) DoSwitchPredixyBackend(
+	ip string, port int, from, to string, maxRetry int,
+) error {
+	if maxRetry <= 0 {
+		maxRetry = predixySwitchMaxRetry
+	}
+
+	var err error
+	for i := 0; i < maxRetry; i++ {
+		cli, connErr := ins.buildPredixyConn(ip, port, true)
+		if connErr != nil {
+			err = connErr
+		} else {
+			err = haredis.PredixyAdminChange(cli, from, to)
+			cli.Close()
+			if err == nil {
+				return nil
+			}
+		}
+
+		ins.ReportLogf(switchlogger.SwitchWarn,
+			"failed to switch predixy backends, ip:%s, port:%d, from:%s, to:%s, retry:%d, err:%s",
+			ip, port, from, to, i+1, err.Error())
+		if i+1 < maxRetry {
+			time.Sleep(predixySwitchRetryWait)
+		}
+	}
+	return err
+}
+
+// SwitchPredixyBackends points every predixy from the old master to the new master.
+func (ins *RedisStorageSwitchInstance) SwitchPredixyBackends(
+	masterIp string, masterPort int, slaveIp string, slavePort int,
+) error {
+	var wg sync.WaitGroup
+	var proxyLock sync.Mutex
+	failedProxies := make([]dbm.DbmMetadataProxyInstance, 0)
+	successCnt := 0
+	notRunningCnt := 0
+
+	masterAddr := fmt.Sprintf("%s:%d", masterIp, masterPort)
+	slaveAddr := fmt.Sprintf("%s:%d", slaveIp, slavePort)
+	ins.ReportLogf(switchlogger.SwitchInfo,
+		"start to switch predixy backends, from:%s, to:%s, proxyTotalCount:%d",
+		masterAddr, slaveAddr, len(ins.ProxyList))
+
+	for _, proxy := range ins.ProxyList {
+		if !ins.ProxyStatusIsRunning(proxy) {
+			notRunningCnt++
+		}
+
+		wg.Add(1)
+		go func(proxyInfo dbm.DbmMetadataProxyInstance) {
+			defer wg.Done()
+			predixyInfo := fmt.Sprintf("ip:%s, port:%d, status:%s", proxyInfo.Ip, proxyInfo.Port, proxyInfo.Status)
+			switchInfo := fmt.Sprintf("%s -> %s", masterAddr, slaveAddr)
+
+			switchErr := ins.DoSwitchPredixyBackend(
+				proxyInfo.Ip, proxyInfo.Port, masterAddr, slaveAddr, predixySwitchMaxRetry)
+
+			proxyLock.Lock()
+			defer proxyLock.Unlock()
+
+			if switchErr != nil {
+				ins.ReportLogf(switchlogger.SwitchWarn,
+					"failed to switch predixy backends, predixy:%s, backendSwitch:%s, err:%s",
+					predixyInfo, switchInfo, switchErr.Error())
+				failedProxies = append(failedProxies, proxyInfo)
+				return
+			}
+
+			ins.ReportLogf(switchlogger.SwitchInfo,
+				"successfully switched predixy backends, predixy:%s, backendSwitch:%s",
+				predixyInfo, switchInfo)
+			successCnt++
+		}(proxy)
+	}
+	wg.Wait()
+
+	failedListStr, _ := converter.ToJsonLine(failedProxies)
+	ins.ReportLogf(switchlogger.SwitchInfo,
+		"predixy backends switch done, total:%d, notRunning:%d, success:%d, failed:%d, failedList:%s",
+		len(ins.ProxyList), notRunningCnt, successCnt, len(failedProxies), failedListStr)
+
+	if successCnt == len(ins.ProxyList) {
+		ins.ReportLogf(switchlogger.SwitchInfo,
+			"successfully switched backends for all predixies, from:%s, to:%s", masterAddr, slaveAddr)
+		return nil
+	}
+
+	runningFailed := make([]dbm.DbmMetadataProxyInstance, 0)
+	for _, proxy := range failedProxies {
+		if ins.ProxyStatusIsRunning(proxy) {
+			runningFailed = append(runningFailed, proxy)
+		}
+	}
+
+	if len(runningFailed) > 0 {
+		runningFailedStr, _ := converter.ToJsonLine(runningFailed)
+		retErr := gerrors.Newf(gerrors.Failure,
+			"failed to switch backends for some running predixies, failedCount:%d, failedList:%s",
+			len(runningFailed), runningFailedStr)
+		ins.ReportLogf(switchlogger.SwitchWarn, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchWarn,
+		"failed to switch backends for some not running predixies, ignore and continue, failedCount:%d, failedList:%s",
+		len(failedProxies), failedListStr)
+	return nil
+}
+
+// DoSwitch promotes the first slave with SLAVEOF NO ONE, then switches proxy backends if needed.
 func (ins *RedisStorageSwitchInstance) DoSwitch() error {
 	ins.ReportLogf(switchlogger.SwitchInfo, "try to switch redis instance, instance info: %s", ins.GetInstanceInfo())
 
@@ -634,6 +1063,12 @@ func (ins *RedisStorageSwitchInstance) DoSwitch() error {
 
 	if isTwemproxyClusterType(ins.ClusterType) {
 		if err := ins.SwitchTwemproxyBackends(ins.IP, ins.Port, slaveIp, slavePort); err != nil {
+			return err
+		}
+	}
+
+	if isPredixyInstanceClusterType(ins.ClusterType) {
+		if err := ins.SwitchPredixyBackends(ins.IP, ins.Port, slaveIp, slavePort); err != nil {
 			return err
 		}
 	}

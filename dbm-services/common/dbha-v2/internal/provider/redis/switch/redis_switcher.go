@@ -51,9 +51,15 @@ var (
 		haprobe.DbmMetadataClusterTypeTwemproxyRedis,
 		haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
 	}
+
+	// predixyInstanceClusterTypes are master-slave clusters behind Predixy.
+	// Their storage switch rewrites Predixy backends, unlike cluster-protocol types.
+	predixyInstanceClusterTypes = []haprobe.DbmMetadataClusterType{
+		haprobe.DbmMetadataClusterTypePredixyTendisplusInstance,
+	}
 )
 
-// isClusterProtocolClusterType reports whether the cluster elects a new master by itself.
+// isClusterProtocolClusterType reports whether the storage layer adopts cluster protocol.
 func isClusterProtocolClusterType(clusterType haprobe.DbmMetadataClusterType) bool {
 	return slices.Contains(clusterProtocolClusterTypes, clusterType)
 }
@@ -61,6 +67,11 @@ func isClusterProtocolClusterType(clusterType haprobe.DbmMetadataClusterType) bo
 // isTwemproxyClusterType reports whether the proxy layer is twemproxy.
 func isTwemproxyClusterType(clusterType haprobe.DbmMetadataClusterType) bool {
 	return slices.Contains(twemproxyClusterTypes, clusterType)
+}
+
+// isPredixyInstanceClusterType reports whether storage switch must rewrite Predixy backends.
+func isPredixyInstanceClusterType(clusterType haprobe.DbmMetadataClusterType) bool {
+	return slices.Contains(predixyInstanceClusterTypes, clusterType)
 }
 
 // Redis implements the Switcher interface for Redis database instances.
@@ -178,6 +189,11 @@ func (r *Redis) Switch(ctx context.Context, req *switcher.Request) *switcher.Res
 		logger.Error("Redis switcher failed to create switch logger: %s", newLoggerErr)
 	}
 	defer releaseLoggers()
+
+	// Analysis still defaults switching strategies to host scope, but Redis only supports
+	// instance-level switching. Override the incoming scope until analysis assigns Redis
+	// instances a default strategy of ActionScopeTypeDbInstance; remove this line afterward.
+	req.ActionScope = hamodel.ActionScopeTypeDbInstance
 
 	switch req.ActionScope {
 	case hamodel.ActionScopeTypeDbInstance:

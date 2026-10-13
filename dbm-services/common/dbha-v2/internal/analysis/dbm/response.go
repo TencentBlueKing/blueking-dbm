@@ -179,3 +179,9 @@ type DomainDeleteResponse struct {
 type ClbDeleteResponse struct {
 	ResponseCommonInfo
 }
+
+// PolarisDeleteResponse represents the response structure for Polaris unbind.
+// data is omitted intentionally: DBM may return number, string, or object; we only check result.
+type PolarisDeleteResponse struct {
+	ResponseCommonInfo
+}

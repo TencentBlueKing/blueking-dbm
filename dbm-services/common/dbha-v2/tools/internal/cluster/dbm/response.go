@@ -154,6 +154,18 @@ type DomainPutResponse struct {
 	} `json:"data"`
 }
 
+// DomainDeleteResponse represents the response structure for deleting instances from a domain
+type DomainDeleteResponse struct {
+	Result    bool   `json:"result"`
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
+	Data      struct {
+		Detail  []InstanceInfoInDomain `json:"detail"`
+		RowsNum int                    `json:"rowsNum"`
+	} `json:"data"`
+}
+
 // ClbGetTargetPrivateIpsResponse represents the response for querying CLB bound instances.
 type ClbGetTargetPrivateIpsResponse struct {
 	Result    bool   `json:"result"`
