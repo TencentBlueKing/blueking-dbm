@@ -1009,6 +1009,26 @@ files = [
 ]
 
 [[package]]
+name = "channels"
+version = "4.3.2"
+description = "Brings async, event-driven capabilities to Django."
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "channels-4.3.2-py3-none-any.whl", hash = "sha256:fef47e9055a603900cf16cef85f050d522d9ac4b3daccf24835bd9580705c176"},
+    {file = "channels-4.3.2.tar.gz", hash = "sha256:f2bb6bfb73ad7fb4705041d07613c7b4e69528f01ef8cb9fb6c21d9295f15667"},
+]
+
+[package.dependencies]
+asgiref = ">=3.9.0,<4"
+Django = ">=4.2"
+
+[package.extras]
+daphne = ["daphne (>=4.0.0)"]
+tests = ["async-timeout", "coverage (>=4.5,<5.0)", "pytest", "pytest-asyncio", "pytest-django", "selenium"]
+types = ["types-channels"]
+
+[[package]]
 name = "chardet"
 version = "5.2.0"
 description = "Universal encoding detector for Python 3"
@@ -7460,4 +7480,8 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
+<<<<<<< HEAD
 content-hash = "b59a1d7b2251eca18bb0e82424fd951c2667efaa9f6671dd97cefd933dbed9a2"
+=======
+content-hash = "3f82591cae64c131dd352e84b15845b3dcab0230eecaba59abd1f1ecb5110a78"
+>>>>>>> ed9f764ac (feat(backend): DRS v2版本支持websocket协议 #21029)
