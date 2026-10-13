@@ -253,6 +253,11 @@ class DBConsoleSerializer(serializers.Serializer):
         return attrs
 
 
+class SupportWebconsoleModeResponseSerializer(serializers.Serializer):
+    http = serializers.BooleanField(default=True, help_text=_("是否启用 WebConsole HTTP 模式，默认开启"))
+    websocket = serializers.BooleanField(help_text=_("是否启用 WebConsole WebSocket 模式"))
+
+
 class WebConsoleResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": [{"title1": "xxx", "title2": "xxx"}]}
