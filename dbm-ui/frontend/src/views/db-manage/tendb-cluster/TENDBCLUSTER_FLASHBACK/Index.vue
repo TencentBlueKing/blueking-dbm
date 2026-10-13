@@ -22,8 +22,11 @@
           style="width: 450px"
           type="card"
           @change="handleFlashbackTypeChange">
+          <BkRadioButton label="BUILD_INTO_NEW_CLUSTER">
+            {{ t('新机构造回档') }}
+          </BkRadioButton>
           <BkRadioButton label="ROLLBACK_FLASHBACK">
-            {{ t('构造回档') }}
+            {{ t('原地构造回档') }}
           </BkRadioButton>
           <BkRadioButton label="TABLE_FLASHBACK">
             {{ t('库表闪回回档') }}
@@ -82,31 +85,22 @@
   };
 
   const handleFlashbackTypeChange = (type: string) => {
-    if (type === 'ROLLBACK_FLASHBACK') {
-      switchSiblingRoute(
-        () =>
-          router.push({
-            name: TicketTypes.TENDBCLUSTER_ROLLBACK,
-          }),
-        rollbackFlashbackType,
-      );
-      return;
+    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_FLASHBACK,
+        query: {
+          type,
+        },
+      });
+    } else if (type === 'BUILD_INTO_NEW_CLUSTER') {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST,
+      });
+    } else if (type === 'ROLLBACK_FLASHBACK') {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_ROLLBACK,
+      });
     }
-    /**
-     * 库表闪回 / 记录级闪回是同一路由只改 query，路由守卫不拦截；切换会卸载当前闪回表单，
-     * 这里先做离开确认，确认后才切换展示内容，取消时选项还原、已填内容保留
-     */
-    leaveConfirm()
-      .then(() => {
-        renderType.value = type as keyof typeof comMap;
-        router.push({
-          name: TicketTypes.TENDBCLUSTER_FLASHBACK,
-          query: {
-            type,
-          },
-        });
-      })
-      .catch(rollbackFlashbackType);
   };
 
   defineExpose({

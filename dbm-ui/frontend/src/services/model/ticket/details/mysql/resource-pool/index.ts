@@ -11,3 +11,4 @@ export * from './proxyRescue';
 export * from './proxySwitch';
 export * from './restoreSlave';
 export * from './rollBackCluster';
+export * from './rollbackNewHost';

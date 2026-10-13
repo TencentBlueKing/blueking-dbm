@@ -3,7 +3,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('回档：在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回。')" />
+      :title="t('回档：按备份记录或指定时间恢复数据，支持新机构造、原地构造、库表闪回与记录级闪回。')" />
     <BkForm
       ref="formRef"
       class="mb-24 toolbox-form"
@@ -20,9 +20,13 @@
         <BkRadioGroup
           v-model="formData.rollbackType"
           style="width: 450px"
-          type="card">
+          type="card"
+          @change="handleFlashbackTypeChange">
+          <BkRadioButton label="BUILD_INTO_NEW_CLUSTER">
+            {{ t('新机构造回档') }}
+          </BkRadioButton>
           <BkRadioButton label="BUILD_INTO_METACLUSTER">
-            {{ t('构造回档') }}
+            {{ t('原地构造回档') }}
           </BkRadioButton>
           <BkRadioButton label="TABLE_FLASHBACK">
             {{ t('库表闪回回档') }}
@@ -317,33 +321,20 @@
     return false;
   };
 
-  /**
-   * 切换回档类型：闪回类型跳到闪回页面，离开确认被取消时选项还原为变化前的值。
-   * 回填、重置、还原选项引起的变化不是闪回类型，不会跳转
-   */
-  watch(
-    () => formData.rollbackType,
-    (type, oldType) => {
-      if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
-        switchSiblingRoute(
-          () =>
-            router.push({
-              name: TicketTypes.TENDBCLUSTER_FLASHBACK,
-              query: {
-                type,
-              },
-            }),
-          () => {
-            formData.rollbackType = oldType;
-          },
-        );
-      } else if (type === 'ROLLBACK_FLASHBACK') {
-        router.push({
-          name: TicketTypes.TENDBCLUSTER_ROLLBACK,
-        });
-      }
-    },
-  );
+  const handleFlashbackTypeChange = (type: string) => {
+    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_FLASHBACK,
+        query: {
+          type,
+        },
+      });
+    } else if (type === 'BUILD_INTO_NEW_CLUSTER') {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST,
+      });
+    }
+  };
 
   const handleChangeRowData = (row: RowData) => {
     if (isTicketLoaded) {
