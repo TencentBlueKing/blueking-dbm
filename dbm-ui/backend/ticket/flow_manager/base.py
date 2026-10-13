@@ -143,11 +143,11 @@ class BaseTicketFlow(ABC):
         else:
             logger.error(traceback.format_exc())
 
-        # 记录AI错误日志分析
-        if env.ENABLE_DBM_AI:
+        # 记录AI错误日志分析。任务按 flow_obj_id 查 Flow 并写入结果，不能传 Flow 主键。
+        if env.ENABLE_DBM_AI and self.flow_obj.flow_obj_id:
             from backend.dbm_aiagent.agent.services.log_analysis.tasks import ticket_flow_log_ai_analysis
 
-            ticket_flow_log_ai_analysis.apply_async(args=(self.flow_obj.id,))
+            ticket_flow_log_ai_analysis.apply_async(args=(self.flow_obj.flow_obj_id,))
 
     def run_status_handler(self, flow_obj_id: str):
         """run成功时，更新相关状态为RUNNING中"""
