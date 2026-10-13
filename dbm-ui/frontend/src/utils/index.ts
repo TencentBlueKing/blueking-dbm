@@ -30,6 +30,7 @@ export * from './downloadUrl';
 export * from './encode';
 export * from './execCopy';
 export * from './exportExcelFile';
+export * from './fetchAllPages';
 export * from './formatJSON';
 export * from './generateId';
 export * from './getBusinessHref';

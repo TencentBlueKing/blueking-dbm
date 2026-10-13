@@ -14,6 +14,11 @@
 <template>
   <div class="db-log-main">
     <div
+      v-if="prependLoading"
+      class="prepend-loading">
+      {{ loadingText }}
+    </div>
+    <div
       v-if="loading"
       class="loading-main">
       <BkLoading
@@ -55,7 +60,11 @@
   interface Props {
     loading?: boolean;
     loadingText?: string;
+    // 向上加载更早内容时的顶部加载态
+    prependLoading?: boolean;
   }
+
+  type Emits = (e: 'atTop') => void;
 
   interface Exposes {
     appendLog: (list: NodeLog[]) => void;
@@ -64,14 +73,18 @@
     getValue: () => string[];
     getVisibleRows: () => number;
     init: () => void;
+    prependLog: (list: NodeLog[]) => void;
     resizeFit: () => void;
     setLog: (list: NodeLog[]) => void;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     loading: false,
     loadingText: t('日志加载中...'),
+    prependLoading: false,
   });
+
+  const emit = defineEmits<Emits>();
 
   let terminal: Terminal | null;
   let fitAddon: FitAddon | null;
@@ -79,6 +92,10 @@
   let isPinnedToBottom = true;
   let localLogList: NodeLog[] = [];
   let logicalLineNumbers: number[] = []; // 逻辑行与实际行的映射
+
+  // 清屏 + 清回滚 + 光标归位，必须与内容拼在同一次 write 里原子执行：
+  // terminal.clear() 是同步的且会把光标行（最后一行日志）保留在缓冲区顶部，与异步 write 之间会渲染出「最后一行顶到第一行」的闪烁帧
+  const CLEAR_SCREEN = '\x1b[2J\x1b[3J\x1b[H';
 
   const initTerm = () => {
     terminal = new Terminal({
@@ -98,6 +115,7 @@
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(linkAddon);
     terminal.open(document.getElementById('nodeLogTermContent')!);
+    lastViewportY = -1;
 
     // 劫持键盘事件
     terminal.attachCustomKeyEventHandler((e) => {
@@ -158,10 +176,54 @@
     lineNumbers.innerHTML = numbersHtml;
   };
 
-  const checkTermScroll = () => {
-    isTermAtTop.value = terminal?.buffer.active.viewportY === 0;
+  // 最近一次程序化写入（setLog/appendLog/prependLog）的时间戳
+  // 写入解析/渲染是异步的，滚动事件可能在标记复位后才补发；用时间窗抑制，与事件到达顺序无关
+  let lastWriteAt = 0;
+  // 写入后该时间窗内的触顶不算用户主动滚到顶部
+  const AT_TOP_SUPPRESS_MS = 300;
+
+  // 上一次检查时的视口位置，模块级同步更新，emit 判断不依赖可能过期的 reactive 状态
+  let lastViewportY = -1;
+  // 触顶去抖：稳定停留在顶部才触发，瞬时抖动（0↔1 的视口振荡）不算
+  let atTopTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /**
+   * @param allowEmit 是否允许触发 atTop，由调用点在调用时刻固化意图：
+   *   - 追加日志回调传 false（追加引发的滚动不算用户触顶）
+   *   - onScroll 默认 true，写入后的时间窗由 lastWriteAt 兜底抑制
+   */
+  const checkTermScroll = (allowEmit = true) => {
     const buffer = terminal?.buffer.active;
-    isTermAtBottom.value = (buffer?.viewportY || 0) + (terminal?.rows || 0) >= (buffer?.length || 0);
+    // 每次现读视口位置，与上次读到的位置做数值对比，不经过任何中间状态
+    const viewportY = buffer?.viewportY ?? 0;
+    const prevViewportY = lastViewportY;
+    lastViewportY = viewportY;
+
+    // isTermAtTop 仅用于 UI（快捷按钮置灰），不参与 emit 判断
+    isTermAtTop.value = viewportY === 0;
+    isTermAtBottom.value = viewportY + (terminal?.rows || 0) >= (buffer?.length || 0);
+
+    if (atTopTimer) {
+      clearTimeout(atTopTimer);
+      atTopTimer = undefined;
+    }
+
+    // 视口从非顶部位置移动到顶部：停留 150ms 仍稳定在顶部才触发
+    // loading 期间内容即将重写、写入后时间窗内的滚动都不算用户主动触顶
+    if (
+      viewportY === 0 &&
+      prevViewportY > 0 &&
+      !props.loading &&
+      allowEmit &&
+      Date.now() - lastWriteAt > AT_TOP_SUPPRESS_MS
+    ) {
+      atTopTimer = setTimeout(() => {
+        const stableY = terminal?.buffer.active.viewportY ?? -1;
+        if (stableY === 0 && !props.loading && Date.now() - lastWriteAt > AT_TOP_SUPPRESS_MS) {
+          emit('atTop');
+        }
+      }, 150);
+    }
   };
 
   const handleClearLog = () => {
@@ -197,15 +259,16 @@
    * 设置日志（切换版本 / 全屏重放）
    */
   const handleSetLog = (list: NodeLog[] = []) => {
-    handleClearLog();
     localLogList = list;
     ensureScrollback();
+    // 刚打开 / 切换版本都是新内容，定位到最下面
+    isPinnedToBottom = true;
     const transferList = formatLogData(list);
     const content = transferList.join('\r\n');
-    // write 是异步解析，滚动调整必须在回调里做（此时数据才真正进入缓冲区）
-    terminal?.write(content, () => {
+    // 清屏与重写在同一次 write 内原子完成，避免 clear() 与异步 write 之间闪烁
+    terminal?.write(`${CLEAR_SCREEN}${content}`, () => {
+      lastWriteAt = Date.now();
       fitAddon?.fit();
-      // 刚打开 / 切换版本都是新内容，定位到最下面
       if (isPinnedToBottom) {
         terminal?.scrollToBottom();
       }
@@ -235,6 +298,7 @@
     // write 是异步解析，滚动调整必须在回调里做（此时数据才真正进入缓冲区）
     const anchorY = terminal?.buffer.active.viewportY ?? 0;
     terminal?.write(content, () => {
+      lastWriteAt = Date.now();
       if (isPinnedToBottom) {
         terminal?.scrollToBottom();
       } else {
@@ -246,7 +310,7 @@
       }
       updateLogicalLineNumbers();
       updateLineNumbers();
-      checkTermScroll();
+      checkTermScroll(false);
     });
   };
 
@@ -256,8 +320,41 @@
    */
   const getVisibleRows = () => fitAddon?.proposeDimensions()?.rows ?? terminal?.rows ?? 0;
 
+  /**
+   * 向前插入更早的日志
+   * xterm 只能在缓冲区末尾追加，向上插入只能整段重写：
+   * 清屏后按「更早内容 + 已有内容」顺序原子重放，再把视口定位到新加载内容的最后一条
+   */
+  const handlePrependLog = (list: NodeLog[] = []) => {
+    if (!list.length || !terminal) {
+      return;
+    }
+
+    const oldBufferLength = terminal.buffer.active.length;
+
+    localLogList = [...list, ...localLogList];
+    ensureScrollback();
+
+    // 清屏与重写在同一次 write 内原子完成，避免 clear() 与异步 write 之间出现「最后一行顶到第一行」的闪烁
+    terminal?.write(`${CLEAR_SCREEN}${formatLogData(localLogList).join('\r\n')}`, () => {
+      lastWriteAt = Date.now();
+      // 旧内容逐字节相同，其在新缓冲区中的整体偏移 = 新片占用的行数，新片占 [0, delta)
+      const delta = (terminal?.buffer.active.length ?? 0) - oldBufferLength;
+      // 视口最后一行 = 新加载内容的最后一条；新片不足一屏时贴顶
+      const targetY = Math.max(delta - (terminal?.rows ?? 0), 0);
+      terminal?.scrollToLine(targetY);
+      updateLogicalLineNumbers();
+      updateLineNumbers();
+      checkTermScroll(false);
+    });
+  };
+
   const destroyTerm = () => {
     isPinnedToBottom = true;
+    if (atTopTimer) {
+      clearTimeout(atTopTimer);
+      atTopTimer = undefined;
+    }
     terminal?.clear();
     terminal?.dispose();
     fitAddon?.dispose();
@@ -271,7 +368,8 @@
     fitAddon?.fit();
     updateLogicalLineNumbers();
     updateLineNumbers();
-    checkTermScroll();
+    // fit 引发的视口变化不是用户滚动
+    checkTermScroll(false);
   };
 
   onMounted(() => {
@@ -291,6 +389,7 @@
     },
     getVisibleRows,
     init: initTerm,
+    prependLog: handlePrependLog,
     resizeFit() {
       fitAddon?.fit();
     },
@@ -328,15 +427,35 @@
 
     .loading-main {
       position: absolute;
+      z-index: 1;
       display: flex;
       width: 100%;
       height: 100%;
       justify-content: center;
       align-items: center;
+      // 半透明遮罩：盖住底层日志内容，突出加载态
+      background: rgb(26 26 26 / 25%);
 
       .bk-loading-indicator {
         align-items: center;
       }
+    }
+
+    // 向上加载更早内容的顶部条：字号字体颜色与日志内容一致
+    .prepend-loading {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      z-index: 1;
+      display: flex;
+      height: 32px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #c4c6cc;
+      background: rgb(26 26 26 / 90%);
+      align-items: center;
+      justify-content: center;
     }
 
     .quick-switch {
