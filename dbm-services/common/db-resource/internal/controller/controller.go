@@ -78,6 +78,7 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 		r.POST("/cc/async", c.RunAsyncCmdb)
 		r.POST("/cc/sync/os/info", c.SyncOsInfo)
 		r.POST("/cc/sync/netdevice", c.FlushNetDeviceInfo)
+		r.POST("/cc/sync/cloud", c.SyncCloudLocation)
 		// r.POST("/cc/sync/disk", manage.RefreshDiskInfo)
 	}
 }
@@ -105,6 +106,15 @@ func (c BackStageHandler) SyncOsInfo(r *gin.Context) {
 	err := task.SyncOsNameInfo()
 	if err != nil {
 		logger.Error("SyncOsNameInfo failed %v", err)
+	}
+	c.SendResponse(r, nil, "async success")
+}
+
+// SyncCloudLocation 从 CMDB 回刷云地域、云可用区、云主机实例 ID
+func (c BackStageHandler) SyncCloudLocation(r *gin.Context) {
+	err := task.SyncCloudLocation()
+	if err != nil {
+		logger.Error("sync cloud location failed %v", err)
 	}
 	c.SendResponse(r, nil, "async success")
 }
