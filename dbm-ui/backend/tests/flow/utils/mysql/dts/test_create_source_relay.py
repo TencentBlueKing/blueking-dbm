@@ -10,7 +10,9 @@ from backend.components.mysqldtsapi.types import (
     PurgeConfig,
     RelayConfig,
     Source,
+    SourceDumpFrom,
 )
+from backend.flow.plugins.components.collections.mysql.dts.migrate.register_source import _require_dump_from_echo
 from backend.flow.utils.mysql.dts.migrate_helper import build_create_source_request, task_mode_runs_incremental
 from backend.flow.utils.mysql.dts.migrate_plan import SourceSpec, SyncScope
 
@@ -38,8 +40,9 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
         return SourceSpec(cluster_id=1, source_name="src-1", sync_scope=SyncScope())
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_all_enables_relay_and_default_purge(self, _ep, _gtid):
+    def test_all_enables_relay_and_default_purge(self, _ep, _dump, _gtid):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p", task_mode="all")
         self.assertIsNotNone(req.source.relay_config)
         self.assertTrue(req.source.relay_config.enable_relay)
@@ -48,16 +51,18 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
         self.assertEqual(req.source.purge.remain_space, 50)
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_incremental_enables_relay(self, _ep, _gtid):
+    def test_incremental_enables_relay(self, _ep, _dump, _gtid):
         req = build_create_source_request(
             self._src(), self._cluster(), user="u", password="p", task_mode="incremental"
         )
         self.assertTrue(req.source.relay_config.enable_relay)
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_full_does_not_enable_relay(self, _ep, _gtid):
+    def test_full_does_not_enable_relay(self, _ep, _dump, _gtid):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p", task_mode="full")
         self.assertTrue(req.source.relay_config is None or req.source.relay_config.enable_relay is False)
         self.assertEqual(req.source.purge.interval, 600)
@@ -65,10 +70,38 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
         self.assertEqual(req.source.purge.remain_space, 50)
 
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_default_task_mode_enables_relay(self, _ep, _gtid):
+    def test_default_task_mode_enables_relay(self, _ep, _dump, _gtid):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p")
         self.assertTrue(req.source.relay_config.enable_relay)
+
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=("127.0.0.3", 3306))
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
+    def test_slave_export_is_dump_from_object(self, _ep, _dump, _gtid):
+        req = build_create_source_request(self._src(), self._cluster(), user="u", password="p")
+        self.assertEqual(req.source.host, "127.0.0.2")
+        self.assertEqual(req.source.dump_from.host, "127.0.0.3")
+        self.assertEqual(req.source.dump_from.port, 3306)
+        self.assertEqual(req.source.dump_from.user, "u")
+        self.assertEqual(req.source.dump_from.password, "p")
+        dumped = MySQLDTSApi._dump_create_source(req)
+        self.assertEqual(
+            dumped["source"]["dump_from"],
+            {"host": "127.0.0.3", "port": 3306, "user": "u", "password": "p"},
+        )
+        self.assertNotIn("dump_host", dumped["source"])
+        self.assertNotIn("dump_port", dumped["source"])
+
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=("127.0.0.2", 3306))
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
+    def test_same_address_omits_dump_from(self, _ep, _dump, _gtid):
+        req = build_create_source_request(self._src(), self._cluster(), user="u", password="p")
+        self.assertIsNone(req.source.dump_from)
+        dumped = MySQLDTSApi._dump_create_source(req)
+        self.assertNotIn("dump_from", dumped["source"])
 
 
 class DumpCreateSourceRelayTest(SimpleTestCase):
@@ -96,6 +129,27 @@ class DumpCreateSourceRelayTest(SimpleTestCase):
         self.assertNotIn("purge", dumped["source"])
         self.assertFalse(relay.get("relay_binlog_name"))
         self.assertFalse(relay.get("relay_binlog_gtid"))
+
+
+class DumpFromEchoTest(SimpleTestCase):
+    def test_response_keeps_dump_from(self):
+        want = SourceDumpFrom(host="127.0.0.3", port=3306, user="u", password="p")
+        got = GetSourceResponse(
+            source_name="s1",
+            host="127.0.0.2",
+            port=3306,
+            user="u",
+            enable_gtid=False,
+            enable=True,
+            dump_from={"host": "127.0.0.3", "port": 3306, "user": "u"},
+        )
+        _require_dump_from_echo(want, got.dump_from)
+
+    def test_missing_dump_from_fails(self):
+        want = SourceDumpFrom(host="127.0.0.3", port=3306, user="u", password="p")
+        with self.assertRaises(ValueError) as ctx:
+            _require_dump_from_echo(want, None)
+        self.assertIn("127.0.0.3:3306", str(ctx.exception))
 
 
 class GetSourceResponseRelayNullTest(SimpleTestCase):

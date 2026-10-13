@@ -51,6 +51,8 @@ def _resolve_temp_account(inp: MysqlDtsMigrateSubflowInput):
                         address=item["address"],
                         cluster_id=int(item.get("cluster_id") or 0),
                         major_version=item.get("major_version") or "",
+                        allow_backup_admin=item.get("allow_backup_admin", True),
+                        primary_tdbctl=bool(item.get("primary_tdbctl", False)),
                     )
                 )
         return inp.dts_user, inp.dts_password, list(inp.grant_hosts), grant_targets

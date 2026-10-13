@@ -6,6 +6,7 @@ from django.test import SimpleTestCase
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
 from backend.flow.utils.mysql.dts.checksum_helper import _scope_to_checksum_patterns, build_dts_checksum_ticket_info
+from backend.flow.utils.mysql.dts.migrate_helper import build_dts_routine_checksum_verify_kwargs
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec, SourceSpec, SyncScope
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode
 from backend.ticket.builders.mysql.mysql_checksum import MySQLChecksumFlowBuilder
@@ -331,7 +332,7 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
         self.assertEqual((master["ip"], master["port"]), ("127.0.0.10", 20000))
 
     @patch("backend.flow.utils.mysql.dts.checksum_helper.Cluster")
-    def test_checksum_follows_backend_slave_role(self, mock_cluster_cls):
+    def test_checksum_stays_on_backend_master_when_source_instance_role_is_slave(self, mock_cluster_cls):
         src = self._ha_src_cluster()
         dst, unused_remote, unused_primary, unused_secondary = self._cluster_dst()
         mock_cluster_cls.objects.get.side_effect = [src, dst]
@@ -351,7 +352,63 @@ class DtsChecksumTargetSpiderAlignTest(SimpleTestCase):
         )
         info = build_dts_checksum_ticket_info(task_spec=task_spec, bk_biz_id=21)
         master = info["details"]["infos"][0]["master"]
-        self.assertEqual((master["ip"], master["port"]), ("127.0.0.11", 20000))
+        self.assertEqual((master["ip"], master["port"]), ("127.0.0.10", 20000))
+        self.assertEqual(master["instance_inner_role"], InstanceInnerRole.MASTER.value)
+
+    @patch("backend.flow.utils.mysql.dts.checksum_helper.Cluster")
+    def test_slave_backup_locale_checksum_stays_on_backend_master(self, mock_cluster_cls):
+        src = self._ha_src_cluster()
+        dst, unused_remote, unused_primary, unused_secondary = self._cluster_dst()
+        mock_cluster_cls.objects.get.side_effect = [src, dst]
+        task_spec = DtsTaskSpec(
+            task_name="ha-to-cluster-source-role-slave",
+            target_cluster_id=200,
+            target_spider="127.0.0.5:25000",
+            sources=[
+                SourceSpec(
+                    cluster_id=100,
+                    source_name="src-100",
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+                    backup_locale="slave",
+                )
+            ],
+        )
+        info = build_dts_checksum_ticket_info(task_spec=task_spec, bk_biz_id=21)
+        master = info["details"]["infos"][0]["master"]
+        self.assertEqual((master["ip"], master["port"]), ("127.0.0.10", 20000))
+        self.assertNotEqual(master["ip"], "127.0.0.12")
+        self.assertEqual(master["instance_inner_role"], InstanceInnerRole.MASTER.value)
+
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.Cluster")
+    def test_routine_checksum_ignores_slave_source_host(self, mock_cluster_cls):
+        src = self._ha_src_cluster()
+        target_master = _make_storage_instance(
+            inst_id=20, ip="127.0.0.20", port=20000, role=InstanceRole.BACKEND_MASTER.value
+        )
+        dst = _cluster(cluster_id=200, cluster_type=ClusterType.TenDBHA.value, storages=[target_master])
+        clusters = {100: src, 200: dst}
+
+        def _get_cluster(*args, **kwargs):
+            return clusters[kwargs["id"]]
+
+        mock_cluster_cls.objects.get.side_effect = _get_cluster
+        task_spec = DtsTaskSpec(
+            task_name="ha-routine",
+            target_cluster_id=200,
+            sources=[
+                SourceSpec(
+                    cluster_id=100,
+                    source_name="src-100",
+                    sync_scope=SyncScope(do_dbs=["db_a"], do_tables=[{"schema": "*", "table": "*"}]),
+                    source_host="127.0.0.12:20000",
+                    backup_locale="slave",
+                )
+            ],
+        )
+        kwargs = build_dts_routine_checksum_verify_kwargs(task_spec)
+        self.assertEqual(
+            kwargs["checksum_instance_tuples"], [{"master": "127.0.0.10:20000", "slave": "127.0.0.20:20000"}]
+        )
 
     @patch("backend.flow.utils.mysql.dts.checksum_helper.Cluster")
     def test_ae4_ha_to_ha_still_uses_backend_master(self, mock_cluster_cls):
