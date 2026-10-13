@@ -3,8 +3,7 @@ import dayjs from 'dayjs';
 export interface NodeLog {
   levelname: string;
   message: string;
-  // 后端按字符串返回时间戳
-  timestamp: number | string;
+  timestamp: number;
 }
 
 export const formatLogData = (data: NodeLog[] = [], isSetColor = true) => {
