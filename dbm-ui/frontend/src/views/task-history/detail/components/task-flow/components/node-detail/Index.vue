@@ -180,10 +180,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { forceFailflowNode, getNodeLogPage, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
+  import { forceFailflowNode, getNodeLog, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
-
-  import { useFetchAllPages } from '@hooks';
 
   import { useSystemEnviron, useUserProfile } from '@stores';
 
@@ -199,7 +197,7 @@
     NODE_STATUS_META,
   } from '@views/task-history/detail/utils';
 
-  import { messageSuccess } from '@utils';
+  import { fetchAllPages, messageSuccess } from '@utils';
 
   import AiBluekingImage from '@images/ai-blueking.svg';
 
@@ -237,9 +235,6 @@
   );
 
   const { sendMessage, show } = useAiBluekingState();
-
-  // 日志解析需要把该节点版本的全量日志交给 AI，按分片取全量
-  const { runAsync: runFetchAllNodeLogs } = useFetchAllPages(getNodeLogPage);
 
   // 准备中与执行中同色，与画布、搜索树保持一致
   const STATUS_THEME_MAP = {
@@ -365,9 +360,8 @@
 
   const handleAiLogAnalysis = async () => {
     aiLogAnalysisLoading.value = true;
-
     try {
-      const logList = await runFetchAllNodeLogs({
+      const logList = await fetchAllPages(getNodeLog, {
         labels: 'not_for_ai',
         node_id: props.node.id,
         root_id: props.rootId,
