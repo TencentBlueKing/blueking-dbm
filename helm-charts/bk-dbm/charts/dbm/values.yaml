@@ -74,6 +74,21 @@ saas:
       maxReplicas: 100
       targetCPUUtilizationPercentage: 80
       targetMemoryUtilizationPercentage: 80
+  ws:
+    enabled: true
+    resources: {}
+    replicaCount: 1
+    workers: 4
+    timeoutKeepAlive: 75
+    wsPingInterval: 30
+    wsPingTimeout: 30
+    terminationGracePeriodSeconds: 60
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
   celeryWorker:
     enabled: true
     resources: {}
@@ -98,3 +113,18 @@ saas:
     enabled: true
     resources: {}
     replicaCount: 1
+
+ingressWs:
+  enabled: false
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: "qcloud"
+    # 复用现网 CLB 时，在此配置 kubernetes.io/ingress.existLbId。
+    # 使用 ClusterIP 后端时，如集群支持 CLB 直连 Pod，可启用以下配置：
+    # ingress.cloud.tencent.com/direct-access: "true"
+    # 空闲超时在 CLB 侧配置；应用默认每 30 秒发送一次 WebSocket Ping。
+  hostname: ""
+  paths:
+    - path: /ws
+      pathType: Prefix
+  tls: []
