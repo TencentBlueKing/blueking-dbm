@@ -3,19 +3,25 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
+from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
-from backend.flow.utils.mysql.dts.constants import MigrateType
+from backend.db_meta.models import StorageInstance
+from backend.flow.utils.mysql.dts.constants import DtsLifecycleMode, MigrateTopology, MigrateType
+from backend.flow.utils.mysql.dts.migrate_credentials import DtsGrantTarget
 from backend.flow.utils.mysql.dts.migrate_helper import (
     _build_cluster_target_config,
     _build_mysql_target_config,
     _collect_target_grant_specs,
     _collect_target_gtid_probe_endpoints,
     build_dts_task_request,
+    collect_migrate_grant_targets,
+    resolve_cluster_master_endpoint,
     resolve_cluster_target_spider_endpoint,
+    resolve_dump_endpoint,
     resolve_source_endpoint,
 )
-from backend.flow.utils.mysql.dts.migrate_plan import SourceSpec, SyncScope
+from backend.flow.utils.mysql.dts.migrate_plan import DtsMigratePlan, DtsTaskConfig, DtsTaskSpec, SourceSpec, SyncScope
 
 
 def _role_value(role):
@@ -32,6 +38,19 @@ class _StorageQS:
             items = [s for s in items if s.instance_role == kwargs["instance_role"]]
         if "is_stand_by" in kwargs:
             items = [s for s in items if getattr(s, "is_stand_by", False) == kwargs["is_stand_by"]]
+        if "status" in kwargs:
+            wanted = getattr(kwargs["status"], "value", kwargs["status"])
+            items = [
+                s for s in items if getattr(getattr(s, "status", None), "value", getattr(s, "status", None)) == wanted
+            ]
+        return _StorageQS(items)
+
+    def order_by(self, *fields):
+        items = list(self._storages)
+        for field in reversed(fields):
+            reverse = str(field).startswith("-")
+            name = str(field)[1:] if reverse else str(field)
+            items.sort(key=lambda item, field_name=name: getattr(item, field_name), reverse=reverse)
         return _StorageQS(items)
 
     def exists(self):
@@ -73,12 +92,15 @@ class _ProxyQS:
         return iter(self._proxies)
 
 
-def _ins(ip: str, port: int, role: str, is_stand_by: bool = False):
+def _ins(ip: str, port: int, role: str, is_stand_by: bool = False, status: str = "running", ins_id: int = 1):
     return SimpleNamespace(
+        id=ins_id,
         machine=SimpleNamespace(ip=ip),
         port=port,
         instance_role=role,
         is_stand_by=is_stand_by,
+        status=status,
+        version="5.7.20",
     )
 
 
@@ -179,6 +201,288 @@ class ResolveSourceEndpointTest(SimpleTestCase):
         ip, port = resolve_source_endpoint(spec, cluster)
         self.assertEqual((ip, port), ("127.0.0.13", 20000))
 
+    def test_explicit_master_uses_backend_master(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True, ins_id=2),
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value, ins_id=1),
+            ],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="master")
+        self.assertEqual(resolve_source_endpoint(spec, cluster), ("127.0.0.10", 20000))
+
+    def test_explicit_master_on_single_uses_orphan(self):
+        cluster = _cluster(
+            ClusterType.TenDBSingle.value,
+            [_ins("127.0.0.10", 20000, InstanceRole.ORPHAN.value)],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="master")
+        self.assertEqual(resolve_source_endpoint(spec, cluster), ("127.0.0.10", 20000))
+
+    def test_slave_picks_lowest_running_standby(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.13", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True, ins_id=8),
+                _ins(
+                    "127.0.0.14",
+                    20000,
+                    InstanceRole.BACKEND_SLAVE.value,
+                    is_stand_by=True,
+                    status="unavailable",
+                    ins_id=1,
+                ),
+                _ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True, ins_id=3),
+                _ins("127.0.0.11", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=False, ins_id=2),
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value, ins_id=4),
+            ],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="slave")
+        self.assertEqual(resolve_source_endpoint(spec, cluster), ("127.0.0.10", 20000))
+        self.assertEqual(resolve_dump_endpoint(spec, cluster), ("127.0.0.12", 20000))
+
+    def test_slave_with_no_running_standby_fails_without_instance_id_hint(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value, ins_id=1),
+                _ins(
+                    "127.0.0.12",
+                    20000,
+                    InstanceRole.BACKEND_SLAVE.value,
+                    is_stand_by=True,
+                    status="unavailable",
+                    ins_id=2,
+                ),
+            ],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="slave")
+        with self.assertRaises(ValueError) as ctx:
+            resolve_source_endpoint(spec, cluster)
+        self.assertNotIn("source_instance_id", str(ctx.exception))
+
+    def test_slave_on_single_fails(self):
+        cluster = _cluster(
+            ClusterType.TenDBSingle.value,
+            [_ins("127.0.0.10", 20000, InstanceRole.ORPHAN.value)],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="slave")
+        with self.assertRaises(ValueError) as ctx:
+            resolve_source_endpoint(spec, cluster)
+        self.assertNotIn("source_instance_id", str(ctx.exception))
+
+    def test_role_on_cluster_fails_without_shard_pick(self):
+        cluster = _cluster(
+            ClusterType.TenDBCluster.value,
+            [_ins("127.0.0.14", 20000, InstanceRole.REMOTE_MASTER.value)],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="master")
+        with patch("backend.flow.utils.mysql.dts.migrate_helper._pick_shard_remote_instance") as mock_pick:
+            with self.assertRaises(ValueError) as ctx:
+                resolve_source_endpoint(spec, cluster)
+        self.assertIn("backup_local", str(ctx.exception))
+        self.assertNotIn("分片", str(ctx.exception))
+        mock_pick.assert_not_called()
+
+    def test_empty_role_on_cluster_still_uses_remote_master(self):
+        cluster = _cluster(
+            ClusterType.TenDBCluster.value,
+            [_ins("127.0.0.14", 20000, InstanceRole.REMOTE_MASTER.value, ins_id=2)],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="")
+        self.assertEqual(resolve_source_endpoint(spec, cluster), ("127.0.0.14", 20000))
+        self.assertEqual(resolve_cluster_master_endpoint(cluster), ("127.0.0.14", 20000))
+
+    def test_master_role_with_instance_id_fails(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [_ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value)],
+        )
+        spec = SourceSpec(
+            cluster_id=1,
+            source_name="s1",
+            sync_scope=SyncScope(),
+            backup_local="master",
+            source_instance_id=9,
+        )
+        with self.assertRaises(ValueError) as ctx:
+            resolve_source_endpoint(spec, cluster)
+        self.assertIn("source_instance_id", str(ctx.exception))
+
+    def test_unknown_role_fails(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [_ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value)],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(), backup_local="primary")
+        with self.assertRaises(ValueError) as ctx:
+            resolve_source_endpoint(spec, cluster)
+        self.assertIn("master", str(ctx.exception))
+
+    def test_cluster_master_endpoint_ignores_source_fields(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True, ins_id=2),
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value, ins_id=1),
+            ],
+        )
+        self.assertEqual(resolve_cluster_master_endpoint(cluster), ("127.0.0.10", 20000))
+
+    def test_missing_source_instance_id_is_value_error(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [_ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value)],
+        )
+        spec = SourceSpec(cluster_id=7, source_name="s1", sync_scope=SyncScope(), source_instance_id=9)
+        with patch(
+            "backend.flow.utils.mysql.dts.migrate_helper.StorageInstance.objects.get",
+            side_effect=StorageInstance.DoesNotExist("missing"),
+        ):
+            with self.assertRaises(ValueError) as ctx:
+                resolve_source_endpoint(spec, cluster)
+        self.assertIn("9", str(ctx.exception))
+        self.assertIn("不存在", str(ctx.exception))
+
+    def test_duplicate_backup_local_is_value_error(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.11", 20000, InstanceRole.BACKEND_SLAVE.value, ins_id=2),
+                _ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, ins_id=3),
+            ],
+        )
+        spec = SourceSpec(
+            cluster_id=7,
+            source_name="s1",
+            sync_scope=SyncScope(),
+            source_instance_role=InstanceRole.BACKEND_SLAVE.value,
+        )
+        with patch.object(
+            cluster.storageinstance_set,
+            "get",
+            side_effect=StorageInstance.MultipleObjectsReturned("many"),
+        ):
+            with self.assertRaises(ValueError) as ctx:
+                resolve_source_endpoint(spec, cluster)
+        self.assertIn(InstanceRole.BACKEND_SLAVE.value, str(ctx.exception))
+        self.assertIn("多条", str(ctx.exception))
+
+    def test_submit_missing_instance_is_validation_error(self):
+        from backend.ticket.builders.mysql.dts.mysql_dts_tickets import _validate_resolved_source_endpoints
+
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [_ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value)],
+        )
+        cluster.id = 7
+        spec = SourceSpec(cluster_id=7, source_name="s1", sync_scope=SyncScope(), source_instance_id=9)
+        plan = SimpleNamespace(task_specs=[SimpleNamespace(sources=[spec])])
+        with patch(
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
+            return_value=[cluster],
+        ), patch(
+            "backend.flow.utils.mysql.dts.migrate_helper.StorageInstance.objects.get",
+            side_effect=StorageInstance.DoesNotExist("missing"),
+        ):
+            with self.assertRaises(serializers.ValidationError) as ctx:
+                _validate_resolved_source_endpoints([plan])
+        self.assertIn("9", str(ctx.exception))
+
+
+class GrantTargetRoleTest(SimpleTestCase):
+    def _plan(self, backup_local: str) -> DtsMigratePlan:
+        return DtsMigratePlan(
+            topology=MigrateTopology.ONE_TO_ONE.value,
+            migrate_type=MigrateType.MYSQL_TO_MYSQL.value,
+            dts_cluster_id=1,
+            dts_lifecycle=DtsLifecycleMode.USE_EXISTING.value,
+            auto_deploy_dts=False,
+            deploy_subflow_inp=None,
+            cleanup_after_migrate=False,
+            recycle_dts_hosts=False,
+            dts_task_config=DtsTaskConfig(),
+            task_specs=[
+                DtsTaskSpec(
+                    task_name="task-a",
+                    target_cluster_id=2,
+                    sources=[
+                        SourceSpec(
+                            cluster_id=1,
+                            source_name="s1",
+                            sync_scope=SyncScope(),
+                            backup_local=backup_local,
+                        )
+                    ],
+                    dts_task_config=DtsTaskConfig(),
+                )
+            ],
+            worker_count_required=1,
+        )
+
+    def _clusters(self):
+        source = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value, ins_id=1),
+                _ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True, ins_id=2),
+            ],
+        )
+        source.id = 1
+        target = _cluster(
+            ClusterType.TenDBHA.value,
+            [_ins("127.0.0.20", 20000, InstanceRole.BACKEND_MASTER.value, ins_id=3)],
+        )
+        target.id = 2
+        return {1: source, 2: target}
+
+    def test_slave_grants_master_and_standby(self):
+        clusters = self._clusters()
+
+        def _get_cluster(*args, **kwargs):
+            return clusters[kwargs["id"]]
+
+        with patch(
+            "backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get",
+            side_effect=_get_cluster,
+        ):
+            targets = collect_migrate_grant_targets(self._plan("slave"))
+        addresses = {item.address for item in targets}
+        self.assertIn("127.0.0.10:20000", addresses)
+        self.assertIn("127.0.0.12:20000", addresses)
+        self.assertTrue(all(isinstance(item, DtsGrantTarget) for item in targets))
+
+    def test_master_grants_only_resolved_master(self):
+        clusters = self._clusters()
+
+        def _get_cluster(*args, **kwargs):
+            return clusters[kwargs["id"]]
+
+        with patch(
+            "backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get",
+            side_effect=_get_cluster,
+        ):
+            targets = collect_migrate_grant_targets(self._plan("master"))
+        addresses = {item.address for item in targets}
+        self.assertIn("127.0.0.10:20000", addresses)
+        self.assertNotIn("127.0.0.12:20000", addresses)
+
+    def test_empty_role_grants_only_resolved_master(self):
+        clusters = self._clusters()
+
+        def _get_cluster(*args, **kwargs):
+            return clusters[kwargs["id"]]
+
+        with patch(
+            "backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get",
+            side_effect=_get_cluster,
+        ):
+            targets = collect_migrate_grant_targets(self._plan(""))
+        addresses = {item.address for item in targets}
+        self.assertIn("127.0.0.10:20000", addresses)
+        self.assertNotIn("127.0.0.12:20000", addresses)
+
 
 class TargetEndpointTest(SimpleTestCase):
     def test_single_target_grant_uses_orphan(self):
@@ -186,8 +490,10 @@ class TargetEndpointTest(SimpleTestCase):
             ClusterType.TenDBSingle.value,
             [_ins("127.0.0.20", 20000, InstanceRole.ORPHAN.value)],
         )
-        endpoints = [(spec.ip, spec.port) for spec in _collect_target_grant_specs(cluster, "mysql_to_mysql")]
+        specs = _collect_target_grant_specs(cluster, "mysql_to_mysql")
+        endpoints = [(spec.ip, spec.port) for spec in specs]
         self.assertEqual(endpoints, [("127.0.0.20", 20000)])
+        self.assertFalse(specs[0].primary_tdbctl)
 
     def test_single_target_config_uses_orphan(self):
         cluster = _cluster(
@@ -238,13 +544,17 @@ class TargetEndpointTest(SimpleTestCase):
         self.assertNotIn(("127.0.0.141", 26000), endpoints)
 
         specs = {
-            (spec.ip, spec.port): spec.allow_backup_admin
+            (spec.ip, spec.port): spec
             for spec in _collect_target_grant_specs(cluster, MigrateType.HA_TO_CLUSTER.value)
         }
-        self.assertFalse(specs[("127.0.0.15", 25000)])
-        self.assertFalse(specs[("127.0.0.141", 25000)])
-        self.assertFalse(specs[("127.0.0.15", 26000)])
-        self.assertTrue(specs[("127.0.0.40", 20000)])
+        self.assertFalse(specs[("127.0.0.15", 25000)].allow_backup_admin)
+        self.assertFalse(specs[("127.0.0.141", 25000)].allow_backup_admin)
+        self.assertFalse(specs[("127.0.0.15", 26000)].allow_backup_admin)
+        self.assertTrue(specs[("127.0.0.40", 20000)].allow_backup_admin)
+        self.assertFalse(specs[("127.0.0.15", 25000)].primary_tdbctl)
+        self.assertFalse(specs[("127.0.0.141", 25000)].primary_tdbctl)
+        self.assertTrue(specs[("127.0.0.15", 26000)].primary_tdbctl)
+        self.assertFalse(specs[("127.0.0.40", 20000)].primary_tdbctl)
 
     def test_cluster_target_grant_tdbctl_fallback_uses_admin_port(self):
         """Primary 探测失败时，回退到首个 spider_master 的 admin_port（元数据端口，非硬编码）。"""
@@ -268,6 +578,13 @@ class TargetEndpointTest(SimpleTestCase):
         self.assertIn(("127.0.0.16", 25000), endpoints)
         self.assertIn(("127.0.0.16", 26111), endpoints)
         self.assertIn(("127.0.0.41", 20000), endpoints)
+        flags = {
+            (spec.ip, spec.port): spec.primary_tdbctl
+            for spec in _collect_target_grant_specs(cluster, MigrateType.HA_TO_CLUSTER.value)
+        }
+        self.assertFalse(flags[("127.0.0.16", 25000)])
+        self.assertTrue(flags[("127.0.0.16", 26111)])
+        self.assertFalse(flags[("127.0.0.41", 20000)])
 
 
 class TargetGtidProbeEndpointTest(SimpleTestCase):

@@ -34,6 +34,11 @@ _RENAME_TARGET_CLUSTER_TYPES = {
     ClusterType.TenDBCluster.value,
 }
 
+_MISSING_OUTER_SOURCE_ROLE = object()
+_SOURCE_ROLE_MASTER = "master"
+_SOURCE_ROLE_SLAVE = "slave"
+_SOURCE_ROLES = (_SOURCE_ROLE_MASTER, _SOURCE_ROLE_SLAVE)
+
 # 多行 deploy cluster_name 随机后缀（与 source_name 相同：uuid4 hex 前 12 位）
 DEPLOY_CLUSTER_NAME_RAND_LEN = 12
 _DEPLOY_CLUSTER_NAME_RAND_RE = re.compile(rf"-[0-9a-f]{{{DEPLOY_CLUSTER_NAME_RAND_LEN}}}$")
@@ -164,6 +169,7 @@ class SourceSpec:
     source_instance_id: int | None = None
     source_instance_role: str | None = None
     source_host: str | None = None
+    backup_local: str = ""
     myloader: MyloaderSpec | None = None
     # 内部字段：供 expand_tendbcluster_source_specs / assign_source_workers 使用，不由现网 HA 单据填写
     shard_index: int | None = None
@@ -398,6 +404,39 @@ def _parse_deploy_subflow_inp(details: dict[str, Any]) -> MysqlDtsDeploySubflowI
     )
 
 
+def _blank_backup_local(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    if text not in _SOURCE_ROLES:
+        raise ValueError(_("backup_local 只能是 master 或 slave"))
+    return text
+
+
+def merge_backup_local(outer: Any, local: Any) -> str:
+    """外层和这一个源上的 backup_local 收成一个值。两边都有且不同则失败。"""
+    outer_role = _blank_backup_local(outer)
+    local_role = _blank_backup_local(local)
+    if outer_role and local_role and outer_role != local_role:
+        raise ValueError(_("外层 backup_local（{}）与源上的 backup_local（{}）不一致").format(outer_role, local_role))
+    return local_role or outer_role
+
+
+def reject_role_on_myloader(full_load_engine: str, backup_local: str) -> None:
+    """myloader 的全量来自备份。生效角色有值会让人以为导出和复制拆开了。"""
+    if (full_load_engine or "") != FullLoadEngine.MYLOADER.value:
+        return
+    if (backup_local or "").strip():
+        raise ValueError(_("full_load.engine 为 myloader 时不能指定 backup_local"))
+
+
+def _guard_backup_locals(task_cfg: DtsTaskConfig, sources: list[SourceSpec]) -> None:
+    for source in sources:
+        reject_role_on_myloader(task_cfg.full_load_engine, source.backup_local)
+
+
 def _generate_default_source_name(cluster_id: int | str, used_names: set[str] | None = None) -> str:
     """内部默认 source_name：``source-{cluster_id}-{uuid4 hex 前12位}``，同单内唯一。
 
@@ -428,6 +467,7 @@ def _parse_source_spec(
         source_instance_id=raw.get("source_instance_id"),
         source_instance_role=raw.get("source_instance_role"),
         source_host=raw.get("source_host"),
+        backup_local=raw.get("backup_local") or "",
         myloader=myloader,
     )
 
@@ -436,6 +476,7 @@ def _build_one_to_one_plan(details: dict[str, Any], *, require_task_name: bool =
     spec = details["one_to_one"]
     task_cfg = _parse_dts_task_config(details.get("dts_task_config"))
     src = _parse_source_spec(spec["src_info"], task_myloader=task_cfg.myloader)
+    _guard_backup_locals(task_cfg, [src])
     task_spec = DtsTaskSpec(
         task_name=_resolve_task_name(spec.get("task_name"), require=require_task_name),
         target_cluster_id=spec["dst_info"]["cluster_id"],
@@ -453,6 +494,7 @@ def _build_many_to_one_plan(details: dict[str, Any], *, require_task_name: bool 
     sources = [
         _parse_source_spec(src, task_myloader=task_cfg.myloader, used_names=used_names) for src in spec["src_infos"]
     ]
+    _guard_backup_locals(task_cfg, sources)
     task_spec = DtsTaskSpec(
         task_name=_resolve_task_name(spec.get("task_name"), require=require_task_name),
         target_cluster_id=spec["dst_info"]["cluster_id"],
@@ -471,6 +513,7 @@ def _build_one_to_many_plan(details: dict[str, Any], *, require_task_name: bool 
     task_specs = []
     for dst in spec["dst_infos"]:
         src = _parse_source_spec(src_info, task_myloader=task_cfg.myloader, used_names=used_names)
+        _guard_backup_locals(task_cfg, [src])
         task_specs.append(
             DtsTaskSpec(
                 task_name=_resolve_task_name(dst.get("task_name"), require=require_task_name),
@@ -673,7 +716,9 @@ def iter_migrate_row_details(details: dict[str, Any]) -> list[dict[str, Any]]:
     return expanded
 
 
-def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
+def normalize_migrate_ticket_details(
+    details: dict[str, Any], *, outer_backup_local: Any = _MISSING_OUTER_SOURCE_ROLE
+) -> dict[str, Any]:
     """将分层单据 details 归一化为 build_migrate_plan 使用的扁平结构。
 
     分层契约：
@@ -683,6 +728,9 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
     """
     if not _is_layered_ticket_details(details):
         return details
+
+    if outer_backup_local is _MISSING_OUTER_SOURCE_ROLE:
+        outer_backup_local = details.get("backup_local")
 
     dts_resource = details.get("dts_resource") or {}
     migrate = details.get("migrate") or {}
@@ -724,20 +772,20 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
         block = migrate.get("one_to_one") or {}
         flat["one_to_one"] = {
             "task_name": block.get("task_name"),
-            "src_info": _normalize_source_block(block.get("source") or {}),
+            "src_info": _normalize_source_block(block.get("source") or {}, outer_backup_local),
             "dst_info": _normalize_target_block(block.get("target") or {}),
         }
     elif topology == MigrateTopology.MANY_TO_ONE.value:
         block = migrate.get("many_to_one") or {}
         flat["many_to_one"] = {
             "task_name": block.get("task_name"),
-            "src_infos": [_normalize_source_block(s) for s in (block.get("sources") or [])],
+            "src_infos": [_normalize_source_block(s, outer_backup_local) for s in (block.get("sources") or [])],
             "dst_info": _normalize_target_block(block.get("target") or {}),
         }
     elif topology == MigrateTopology.ONE_TO_MANY.value:
         block = migrate.get("one_to_many") or {}
         flat["one_to_many"] = {
-            "src_info": _normalize_source_block(block.get("source") or {}),
+            "src_info": _normalize_source_block(block.get("source") or {}, outer_backup_local),
             "dst_infos": [_normalize_target_block(t) for t in (block.get("targets") or [])],
         }
     else:
@@ -760,14 +808,16 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
     return flat
 
 
-def _normalize_source_block(raw: dict[str, Any]) -> dict[str, Any]:
-    # source_name 非建单契约字段，解析阶段由 _parse_source_spec 内部生成
+def _normalize_source_block(raw: dict[str, Any], outer_backup_local: Any = None) -> dict[str, Any]:
+    # source_name 非建单契约字段，解析阶段由 _parse_source_spec 内部生成。
+    # 收口结果写在返回的新 dict 上，不改源块原文。
     return {
         "cluster_id": raw.get("cluster_id"),
         "sync_scope": raw.get("sync_scope") or {},
         "source_instance_id": raw.get("source_instance_id"),
         "source_instance_role": raw.get("source_instance_role"),
         "source_host": raw.get("source_host"),
+        "backup_local": merge_backup_local(outer_backup_local, raw.get("backup_local")),
         "myloader": raw.get("myloader"),
     }
 
@@ -783,14 +833,24 @@ def _normalize_target_block(raw: dict[str, Any]) -> dict[str, Any]:
 def build_migrate_plans(ticket_details: dict[str, Any], *, require_task_name: bool = True) -> list[DtsMigratePlan]:
     """构建迁移计划列表。多行 infos 切成 N 个独立 plan；单行走长度为 1 的列表。"""
     if ticket_details.get("infos"):
+        outer_backup_local = ticket_details.get("backup_local")
         return [
-            build_migrate_plan(row_details, require_task_name=require_task_name)
+            build_migrate_plan(
+                row_details,
+                require_task_name=require_task_name,
+                outer_backup_local=outer_backup_local,
+            )
             for row_details in iter_migrate_row_details(ticket_details)
         ]
     return [build_migrate_plan(ticket_details, require_task_name=require_task_name)]
 
 
-def build_migrate_plan(ticket_details: dict[str, Any], *, require_task_name: bool = True) -> DtsMigratePlan:
+def build_migrate_plan(
+    ticket_details: dict[str, Any],
+    *,
+    require_task_name: bool = True,
+    outer_backup_local: Any = _MISSING_OUTER_SOURCE_ROLE,
+) -> DtsMigratePlan:
     """构建迁移计划。
 
     require_task_name:
@@ -799,8 +859,10 @@ def build_migrate_plan(ticket_details: dict[str, Any], *, require_task_name: boo
     """
     if ticket_details.get("infos"):
         raise ValueError(_("多行 infos 请使用 build_migrate_plans"))
+    if outer_backup_local is _MISSING_OUTER_SOURCE_ROLE:
+        outer_backup_local = ticket_details.get("backup_local")
     details = (
-        normalize_migrate_ticket_details(ticket_details)
+        normalize_migrate_ticket_details(ticket_details, outer_backup_local=outer_backup_local)
         if _is_layered_ticket_details(ticket_details)
         else ticket_details
     )
@@ -851,6 +913,7 @@ def _source_spec_from_dict(raw: dict | SourceSpec, used_names: set[str] | None =
         source_instance_id=raw.get("source_instance_id"),
         source_instance_role=raw.get("source_instance_role"),
         source_host=raw.get("source_host"),
+        backup_local=raw.get("backup_local") or "",
         myloader=_parse_myloader_spec(raw.get("myloader")),
         shard_index=raw.get("shard_index"),
         shard_count=raw.get("shard_count"),

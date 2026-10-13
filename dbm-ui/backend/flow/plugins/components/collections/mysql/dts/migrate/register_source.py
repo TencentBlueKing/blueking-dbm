@@ -80,6 +80,10 @@ class MysqlDtsRegisterSourceService(BaseService):
                 )
             )
             resp = MySQLDTSApi.create_source(master_addr, request, bk_cloud_id=int(bk_cloud_id))
+            got_dump = ((resp.dump_host or ""), int(resp.dump_port or 0))
+            want_dump = (request.source.dump_host, int(request.source.dump_port or 0))
+            if request.source.dump_host and got_dump != want_dump:
+                raise ValueError(_("建源回读没有导出地址 {}:{}").format(request.source.dump_host, request.source.dump_port))
             source_name = resp.source_name or source_spec.source_name
             registered.append(source_name)
             self.log_info(_("注册 DTS Source 成功: {}").format(source_name))

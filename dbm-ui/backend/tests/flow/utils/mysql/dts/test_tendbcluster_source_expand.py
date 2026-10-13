@@ -121,6 +121,20 @@ class ExpandTendbclusterSourceTest(SimpleTestCase):
         result = expand_tendbcluster_source_specs(src)
         self.assertEqual(result, [src])
 
+    @patch("backend.flow.utils.mysql.dts.migrate_helper._pick_shard_remote_instance")
+    @patch("backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get")
+    def test_backup_local_fails_before_shard_pick(self, mock_get, mock_pick):
+        cluster = MagicMock()
+        cluster.id = 100
+        cluster.cluster_type = ClusterType.TenDBCluster.value
+        mock_get.return_value = cluster
+        src = SourceSpec(cluster_id=100, source_name="remote", sync_scope=SyncScope(), backup_local="slave")
+        with self.assertRaises(ValueError) as ctx:
+            expand_tendbcluster_source_specs(src)
+        self.assertIn("backup_local", str(ctx.exception))
+        self.assertNotIn("分片", str(ctx.exception))
+        mock_pick.assert_not_called()
+
 
 class BuildCreateSourceSpiderTest(SimpleTestCase):
     @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=True)

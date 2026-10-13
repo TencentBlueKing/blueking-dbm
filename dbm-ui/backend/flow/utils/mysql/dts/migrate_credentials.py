@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 
+from backend.flow.consts import PrivRole
 from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_MIGRATE_USER_MAX_LENGTH,
     MYSQL_DTS_MIGRATE_USER_PREFIX,
@@ -92,6 +93,8 @@ class DtsGrantTarget:
     cluster_id: int
     major_version: str = ""
     allow_backup_admin: bool = True
+    # 仅 Primary 中控。创建传 role=tdbctl，删除才加 set tc_admin=0。
+    primary_tdbctl: bool = False
 
 
 def generate_dts_migrate_username() -> str:
@@ -168,24 +171,27 @@ def build_dts_add_user_parallel_acts(
     """组装并行 AddUserComponent acts（每个授权目标实例一个）。"""
     acts = []
     for target in grant_targets:
+        kwargs = asdict(
+            AddTempUserKwargs(
+                bk_cloud_id=target.bk_cloud_id,
+                hosts=list(grant_hosts),
+                user=dts_user,
+                psw=dts_password,
+                address=target.address,
+                dbname="%",
+                dml_ddl_priv=DTS_MIGRATE_DML_DDL_PRIV,
+                global_priv=resolve_dts_migrate_global_priv(
+                    target.major_version, allow_backup_admin=target.allow_backup_admin
+                ),
+            )
+        )
+        if target.primary_tdbctl:
+            kwargs["role"] = PrivRole.TDBCTL.value
         acts.append(
             {
                 "act_name": _("创建 DTS 临时用户 {}@{}").format(dts_user, target.address),
                 "act_component_code": _MYSQL_ADD_USER_COMPONENT_CODE,
-                "kwargs": asdict(
-                    AddTempUserKwargs(
-                        bk_cloud_id=target.bk_cloud_id,
-                        hosts=list(grant_hosts),
-                        user=dts_user,
-                        psw=dts_password,
-                        address=target.address,
-                        dbname="%",
-                        dml_ddl_priv=DTS_MIGRATE_DML_DDL_PRIV,
-                        global_priv=resolve_dts_migrate_global_priv(
-                            target.major_version, allow_backup_admin=target.allow_backup_admin
-                        ),
-                    )
-                ),
+                "kwargs": kwargs,
             }
         )
     return acts
@@ -215,6 +221,8 @@ def build_dts_drop_user_parallel_acts(
                 )
             )
             kwargs["ignore_errors"] = ignore_errors
+            kwargs["disable_binlog"] = True
+            kwargs["primary_tdbctl"] = bool(target.get("primary_tdbctl"))
             acts.append(
                 {
                     "act_name": _("删除 DTS 临时用户 {}@{}@{}").format(dts_user, host, address),

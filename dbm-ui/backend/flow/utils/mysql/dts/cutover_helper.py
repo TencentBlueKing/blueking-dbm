@@ -65,6 +65,23 @@ def merge_task_sync_scopes(task_spec: DtsTaskSpec) -> dict[str, Any]:
     return sync_scope_to_dict(task_spec.sources[0].sync_scope)
 
 
+def _cutover_source_endpoint(
+    source_spec,
+    cluster: Cluster,
+    dts_user: str,
+    dts_password: str,
+) -> dict[str, Any]:
+    host, port = resolve_source_endpoint(source_spec, cluster)
+    return {
+        "host": host,
+        "port": port,
+        "user": dts_user,
+        "password": dts_password,
+        "source_name": source_spec.source_name,
+        "sync_scope": sync_scope_to_dict(source_spec.sync_scope),
+    }
+
+
 def build_source_endpoints_for_cutover(
     *,
     task_spec: DtsTaskSpec,
@@ -77,17 +94,7 @@ def build_source_endpoints_for_cutover(
     endpoints: list[dict[str, Any]] = []
     for source_spec in task_spec.sources:
         cluster = Cluster.objects.get(id=source_spec.cluster_id)
-        host, port = resolve_source_endpoint(source_spec, cluster)
-        endpoints.append(
-            {
-                "host": host,
-                "port": port,
-                "user": dts_user,
-                "password": dts_password,
-                "source_name": source_spec.source_name,
-                "sync_scope": sync_scope_to_dict(source_spec.sync_scope),
-            }
-        )
+        endpoints.append(_cutover_source_endpoint(source_spec, cluster, dts_user, dts_password))
     if not endpoints:
         raise ValueError(_("cutover 组装失败：source_endpoints 为空"))
     return endpoints
