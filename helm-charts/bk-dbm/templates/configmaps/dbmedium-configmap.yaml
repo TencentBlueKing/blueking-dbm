@@ -6,6 +6,7 @@ metadata:
     {{- if .Values.commonLabels }}
     {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
     {{- end }}
+# TODO: global.kms.enabled=true 时，dbmedium 从 KMS 信封读取账号密码，届时可不再渲染 APP_TOKEN、BKREPO_USERNAME/PASSWORD
 data:
   DJANGO_SETTINGS_MODULE: "settings"
   PYTHONUNBUFFERED: "1"
