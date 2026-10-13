@@ -13,9 +13,7 @@
 
 import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
 
-import { fetchAllPages } from '@utils';
-
-export type ILogItem = ServiceReturnType<typeof getNodeLog>['results'][number];
+export type ILogItem = ServiceReturnType<typeof getNodeLog>[number];
 
 /**
  * 计算执行文件成功、失败个数
@@ -34,7 +32,7 @@ export default function () {
   let lastLogLength = 0;
   let logTimer: NodeJS.Timeout;
   const fetchLog = (rootId: string, nodeId: string) => {
-    fetchAllPages(getNodeLog, {
+    getNodeLog({
       node_id: nodeId,
       root_id: rootId,
       version_id: versionId,

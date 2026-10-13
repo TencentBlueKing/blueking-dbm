@@ -186,32 +186,16 @@ export function getRetryNodeHistories(params: { node_id: string; root_id: string
 }
 
 /**
- * 节点日志分片响应
- * has_data 为 true 表示还有下一页；search_after 为本次分片的游标，下次请求原样带回即拿到下一片
+ * 节点日志
  */
-interface NodeLogResponse {
-  has_data: boolean;
-  results: {
-    levelname: string;
-    message: string;
-    // 后端按字符串返回时间戳
-    timestamp: number | string;
-  }[];
-  search_after: (number | string)[];
-}
-
-/**
- * 节点日志分片（POST，search_after 游标分页：首片不传 search_after，之后带上上一片返回的游标）
- */
-export function getNodeLog(params: {
-  labels?: string;
-  limit?: number;
-  node_id: string;
-  root_id: string;
-  search_after?: (number | string)[];
-  version_id: string;
-}) {
-  return http.post<NodeLogResponse>(`${path}/${params.root_id}/node_log/`, params);
+export function getNodeLog(params: { labels?: string; node_id: string; root_id: string; version_id: string }) {
+  return http.get<
+    {
+      levelname: string;
+      message: string;
+      timestamp: number;
+    }[]
+  >(`${path}/${params.root_id}/node_log/`, params);
 }
 
 /**

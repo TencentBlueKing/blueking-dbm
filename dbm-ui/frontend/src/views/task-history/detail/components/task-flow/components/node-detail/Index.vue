@@ -197,7 +197,7 @@
     NODE_STATUS_META,
   } from '@views/task-history/detail/utils';
 
-  import { fetchAllPages, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import AiBluekingImage from '@images/ai-blueking.svg';
 
@@ -361,7 +361,7 @@
   const handleAiLogAnalysis = async () => {
     aiLogAnalysisLoading.value = true;
     try {
-      const logList = await fetchAllPages(getNodeLog, {
+      const logList = await getNodeLog({
         labels: 'not_for_ai',
         node_id: props.node.id,
         root_id: props.rootId,
