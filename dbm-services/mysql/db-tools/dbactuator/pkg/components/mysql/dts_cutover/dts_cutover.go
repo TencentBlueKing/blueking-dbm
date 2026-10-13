@@ -165,7 +165,14 @@ func (c *Comp) Run() error {
 		return err
 	}
 	p := c.Params
-	logger.Info("持锁复核按 SBM=0 且 syncer>=加锁 master 快照 skip_checksum=%t", p.SkipChecksum)
+	logger.Info(
+		"DTS cutover 开始 task=%s sources=%d recheck=%d poll_max=%d skip_checksum=%t",
+		p.TaskName, len(p.SourceEndpoints), p.CatchupRecheck, p.CatchupPollMax, p.SkipChecksum,
+	)
+
+	for _, ep := range p.SourceEndpoints {
+		logger.Info("锁定 %s:%d，DTS 也从这台读 binlog source_name=%s", ep.Host, ep.Port, ep.SourceName)
+	}
 
 	locks := make([]*SourceLockConn, 0, len(p.SourceEndpoints))
 	defer func() {
@@ -205,7 +212,7 @@ func (c *Comp) Run() error {
 		return fmt.Errorf("建立加锁位点快照失败（不执行 stop）: %w", serr)
 	}
 	for src, coord := range lockSnapshots {
-		logger.Info("加锁位点快照 source=%s master=(%s, %d)", src, coord.File, coord.Position)
+		logger.Info("加锁位点快照 source=%s binlog=(%s, %d)", src, coord.File, coord.Position)
 	}
 
 	statusItems, perr := pollUntilCaughtUp(
@@ -225,6 +232,7 @@ func (c *Comp) Run() error {
 		return perr
 	}
 
+	logger.Info("持锁复核通过，开始停止任务 task=%s", p.TaskName)
 	if err := StopTaskWhileLocked(p.DtsMasterAddr, p.TaskName); err != nil {
 		return fmt.Errorf("持锁后停止 DTS 任务失败（将 unlock）: %w", err)
 	}

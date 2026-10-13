@@ -126,10 +126,20 @@ class RelayStatus(BaseModel):
 # ============================================================
 
 
+class SourceDumpFrom(BaseModel):
+    """全量导出用的从库。增量仍从 Source.host 拉。"""
+
+    host: str = Field(description=_("从库地址"))
+    port: int = Field(description=_("从库端口"))
+    user: str = Field(description=_("从库用户名"))
+    password: str | None = Field(default=None, description=_("从库密码，更新时省略则保留旧密码"))
+
+
 class Source(BaseModel):
     source_name: str = Field(description=_("数据源名称, 全局唯一"))
-    host: str = Field(description=_("上游 MySQL 地址"))
-    port: int = Field(description=_("上游 MySQL 端口"))
+    host: str = Field(description=_("复制使用的主库地址"))
+    port: int = Field(description=_("复制使用的主库端口"))
+    dump_from: SourceDumpFrom | None = Field(default=None, description=_("全量导出的从库，空则从主库导出"))
     user: str = Field(description=_("用户名"))
     password: str | None = Field(default=None, description=_("密码"))
     enable_gtid: bool = Field(description=_("是否启用 GTID"))
@@ -187,6 +197,7 @@ class GetSourceResponse(BaseModel):
     source_name: str
     host: str
     port: int
+    dump_from: SourceDumpFrom | None = None
     user: str
     password: str | None = Field(default="", description=_("密码(始终返回混淆值)"))
     enable_gtid: bool

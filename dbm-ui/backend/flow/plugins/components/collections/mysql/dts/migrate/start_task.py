@@ -20,6 +20,30 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 logger = logging.getLogger("flow")
 
 
+def _resolve_dmctl_source_names(kwargs, trans_data) -> list[str]:
+    """优先用已注册的 source 名。没有时才用 kwargs 里的名单。空字符串不输出。"""
+    ctx = getattr(trans_data, "migrate_context", None)
+    registered = []
+    if ctx is not None:
+        registered = [name for name in (getattr(ctx, "registered_source_names", None) or []) if name]
+    if registered:
+        return registered
+    return [name for name in (kwargs.get("source_name_list") or []) if name]
+
+
+def _dmctl_probe_commands(master_addr: str, task_name: str, source_names: list[str]) -> list[str]:
+    """只读排查命令。不包含 pause-task、stop-task、resume-task。"""
+    prefix = f"dmctl --master-addr {master_addr}"
+    commands = [
+        f"{prefix} query-status {task_name}",
+        f"{prefix} operate-source show",
+        f"{prefix} get-config task {task_name}",
+    ]
+    for source_name in source_names:
+        commands.append(f"{prefix} get-config source {source_name}")
+    return commands
+
+
 class MysqlDtsStartTaskService(BaseService):
     """启动 DTS 迁移任务。"""
 
@@ -59,6 +83,9 @@ class MysqlDtsStartTaskService(BaseService):
                 )
             )
         source_name_list = kwargs.get("source_name_list")
+        self.log_info(_("DTS 排查命令，可直接复制"))
+        for command in _dmctl_probe_commands(master_addr, task_name, _resolve_dmctl_source_names(kwargs, trans_data)):
+            self.log_info(command)
         request = StartTaskRequest(source_name_list=source_name_list) if source_name_list else None
         MySQLDTSApi.start_task(master_addr, task_name, request, bk_cloud_id=int(bk_cloud_id))
         self.log_info(_("启动 DTS 任务成功: {}").format(task_name))

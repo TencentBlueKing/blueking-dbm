@@ -18,8 +18,8 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.mysql.dts.migrate_helper import (
     _resolve_non_cluster_target_write_instance,
+    resolve_cluster_master_endpoint,
     resolve_cluster_target_spider_endpoint,
-    resolve_source_endpoint,
 )
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec, SyncScope
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode
@@ -112,7 +112,7 @@ def build_dts_checksum_ticket_info(*, task_spec: DtsTaskSpec, bk_biz_id: int) ->
     source_spec = task_spec.sources[0]
     src_cluster = Cluster.objects.get(id=source_spec.cluster_id)
     dst_cluster = Cluster.objects.get(id=task_spec.target_cluster_id)
-    host, port = resolve_source_endpoint(source_spec, src_cluster)
+    host, port = resolve_cluster_master_endpoint(src_cluster)
     master_ins = _resolve_storage_by_endpoint(src_cluster, host, port)
     if dst_cluster.cluster_type == ClusterType.TenDBCluster.value:
         spider_host, spider_port = resolve_cluster_target_spider_endpoint(dst_cluster, task_spec.target_spider)

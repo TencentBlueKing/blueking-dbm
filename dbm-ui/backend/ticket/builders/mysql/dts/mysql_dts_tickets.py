@@ -31,7 +31,7 @@ from backend.flow.utils.mysql.dts.constants import (
     validate_dts_deploy_path,
 )
 from backend.flow.utils.mysql.dts.migrate_credentials import parse_dts_migrate_major_version
-from backend.flow.utils.mysql.dts.migrate_helper import resolve_destroy_cluster_ids
+from backend.flow.utils.mysql.dts.migrate_helper import resolve_destroy_cluster_ids, resolve_source_endpoint
 from backend.flow.utils.mysql.dts.migrate_plan import (
     TICKET_LIFECYCLE_FIELDS,
     build_migrate_plan,
@@ -104,6 +104,15 @@ class MyloaderSpecSerializer(serializers.Serializer):
     extraargs = serializers.CharField(required=False, allow_blank=True, help_text=_("额外参数（可选）"))
     dest_worker_ip = serializers.CharField(required=False, allow_blank=True, help_text=_("全备下发目标 DTS Worker IP（可选）"))
     shard_id = serializers.IntegerField(required=False, allow_null=True, help_text=_("TenDBCluster 分片 ID（可选）"))
+
+
+def _clean_ticket_backup_locale(value):
+    text = "" if value is None else str(value).strip()
+    if not text:
+        return ""
+    if text not in ("master", "slave"):
+        raise serializers.ValidationError(gettext_runtime("backup_locale 只能是 master 或 slave"))
+    return text
 
 
 class MigrateSourceSerializer(serializers.Serializer):
@@ -329,6 +338,12 @@ class DtsResourceSpecRoleSerializer(serializers.Serializer):
 class MysqlMigrateRowSerializer(serializers.Serializer):
     """多行 infos 中的一行：资源来源 + 拓扑；生命周期写在单据顶层。"""
 
+    backup_locale = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text=_("该行从哪台导出，取 master 或 slave。留空沿用整单，都空则默认 slave"),
+    )
     dts_resource = MysqlMigrateRowResourceSerializer(help_text=_("DTS 资源（集群来源）"))
     migrate = MigrateSpecSerializer(help_text=_("迁移拓扑与源/目标"))
     task = TaskSpecSerializer(required=False, help_text=_("任务运行参数"))
@@ -339,6 +354,9 @@ class MysqlMigrateRowSerializer(serializers.Serializer):
         help_text=_("行内资源规格（deploy 部署时按角色 master/worker 申请；多行共用一套 deploy 时需一致）"),
     )
 
+    def validate_backup_locale(self, value):
+        return _clean_ticket_backup_locale(value)
+
 
 class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
     """迁移单据分层入参：dts_resource + migrate + task，或多行 infos。"""
@@ -346,6 +364,12 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
     dts_resource = DtsResourceSerializer(required=False, help_text=_("DTS 资源（集群来源与生命周期）"))
     migrate = MigrateSpecSerializer(required=False, help_text=_("迁移拓扑与源/目标"))
     task = TaskSpecSerializer(required=False, help_text=_("任务运行参数"))
+    backup_locale = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text=_("整单从哪台导出，取 master 或 slave。复制仍走主库，留空默认 slave"),
+    )
     infos = MysqlMigrateRowSerializer(many=True, required=False, help_text=_("多行独立 one_to_one"))
     destroy_after_migrate = serializers.BooleanField(
         required=False,
@@ -377,33 +401,41 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
         help_text=_("集群信息"),
     )
 
+    def validate_backup_locale(self, value):
+        return _clean_ticket_backup_locale(value)
+
     def validate(self, attrs):
         # 仅做结构校验：此时尚无 ticket.id，不要求最终 task_name（创单后由 patch 回写）
         # 勿写入 attrs：DtsMigratePlan 不可 JSON 序列化，会污染 Ticket.details
         infos = attrs.get("infos") or []
-        if infos:
-            if attrs.get("dts_resource") or attrs.get("migrate"):
-                raise serializers.ValidationError(gettext_runtime("有 infos 时不要再传顶层 migrate / dts_resource"))
-            _validate_infos_one_to_one(infos)
-            _validate_infos_row_lifecycle_forbidden(_raw_ticket_details(self, attrs))
-            _validate_infos_deploy_hosts_unique(infos)
-            attrs.update(resolve_ticket_lifecycle(attrs))
-            plans = build_migrate_plans(
-                {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
-                require_task_name=False,
-            )
-        else:
-            if not attrs.get("migrate"):
-                raise serializers.ValidationError(gettext_runtime("必须提供migrate，或多行 infos"))
-            _validate_single_row_top_lifecycle_forbidden(_raw_ticket_details(self, attrs))
-            plans = [
-                build_migrate_plan(
+        try:
+            _reject_source_level_backup_locale(_raw_ticket_details(self, attrs))
+            if infos:
+                if attrs.get("dts_resource") or attrs.get("migrate"):
+                    raise serializers.ValidationError(gettext_runtime("有 infos 时不要再传顶层 migrate / dts_resource"))
+                _validate_infos_one_to_one(infos)
+                _validate_infos_row_lifecycle_forbidden(_raw_ticket_details(self, attrs))
+                _validate_infos_deploy_hosts_unique(infos)
+                attrs.update(resolve_ticket_lifecycle(attrs))
+                plans = build_migrate_plans(
                     {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
                     require_task_name=False,
                 )
-            ]
+            else:
+                if not attrs.get("migrate"):
+                    raise serializers.ValidationError(gettext_runtime("必须提供migrate，或多行 infos"))
+                _validate_single_row_top_lifecycle_forbidden(_raw_ticket_details(self, attrs))
+                plans = [
+                    build_migrate_plan(
+                        {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
+                        require_task_name=False,
+                    )
+                ]
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         self.context["migrate_plans"] = plans
         self.context["migrate_plan"] = plans[0]
+        _validate_resolved_source_endpoints(plans)
         for plan in plans:
             _validate_migrate_grant_cluster_versions(plan)
         has_infos = bool(infos)
@@ -566,6 +598,38 @@ def _validate_resource_pool_deploy(attrs: dict) -> None:
 _MYSQL_TO_MYSQL_ALLOWED_TYPES = {ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value}
 
 
+def _source_backup_locale_filled(source) -> bool:
+    if not isinstance(source, dict) or "backup_locale" not in source:
+        return False
+    text = "" if source.get("backup_locale") is None else str(source.get("backup_locale")).strip()
+    return bool(text)
+
+
+def _reject_source_level_backup_locale(details) -> None:
+    """backup_locale 只写在单据 details 或 infos 行上。source 上的非空值直接失败。"""
+    if not isinstance(details, dict):
+        return
+    migrates = []
+    if isinstance(details.get("migrate"), dict):
+        migrates.append(details["migrate"])
+    for row in details.get("infos") or []:
+        if isinstance(row, dict) and isinstance(row.get("migrate"), dict):
+            migrates.append(row["migrate"])
+    sources = []
+    for migrate in migrates:
+        for key in ("one_to_one", "one_to_many"):
+            block = migrate.get(key)
+            if isinstance(block, dict) and isinstance(block.get("source"), dict):
+                sources.append(block["source"])
+        many = migrate.get("many_to_one")
+        if isinstance(many, dict):
+            for source in many.get("sources") or []:
+                if isinstance(source, dict):
+                    sources.append(source)
+    if any(_source_backup_locale_filled(source) for source in sources):
+        raise serializers.ValidationError(gettext_runtime("backup_locale 请写在单据 details 或 infos 上，不要写在 source 上"))
+
+
 def _raw_ticket_details(serializer, attrs) -> dict:
     """取原始 details，用于检查 DRF 会丢弃的行内生命周期字段。
 
@@ -672,6 +736,21 @@ def _iter_plan_sources(plans):
         for spec in plan.task_specs:
             for source in spec.sources:
                 yield idx, spec, source
+
+
+def _validate_resolved_source_endpoints(plans) -> None:
+    """提单时解析每个源的导出地址。角色选不到实例就失败，不等到 Flow。"""
+    cluster_ids = {source.cluster_id for unused_idx, unused_spec, source in _iter_plan_sources(plans)}
+    clusters = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+    for unused_idx, spec, source in _iter_plan_sources(plans):
+        cluster = clusters.get(source.cluster_id)
+        if cluster is None:
+            raise serializers.ValidationError(gettext_runtime("集群 {} 不存在").format(source.cluster_id))
+        engine = getattr(getattr(spec, "dts_task_config", None), "full_load_engine", "") or ""
+        try:
+            resolve_source_endpoint(source, cluster, engine)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
 
 def _validate_sync_scope_nonempty(plans, *, has_infos: bool) -> None:

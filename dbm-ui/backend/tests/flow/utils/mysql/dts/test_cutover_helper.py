@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.flow.utils.mysql.dts.cutover_helper import (
     build_dts_cutover_payload,
+    build_source_endpoints_for_cutover,
     merge_task_sync_scopes,
     sync_scope_to_dict,
 )
@@ -78,6 +81,8 @@ class CutoverHelperTest(SimpleTestCase):
         self.assertNotIn("target_endpoints", payload)
         self.assertEqual(len(payload["source_endpoints"]), 1)
         self.assertEqual(payload["source_endpoints"][0]["host"], "127.0.0.10")
+        self.assertNotIn("replica", payload["source_endpoints"][0])
+        self.assertNotIn("backup_locale", payload["source_endpoints"][0])
         self.assertIn("sync_scope", payload["source_endpoints"][0])
 
     def test_build_payload_requires_master_addr(self):
@@ -124,3 +129,108 @@ class CutoverHelperTest(SimpleTestCase):
                 checksum_passed=False,
                 skip_checksum=False,
             )
+
+
+class _RoleQS:
+    def __init__(self, items):
+        self._items = list(items)
+
+    def filter(self, **kwargs):
+        items = self._items
+        if "instance_role" in kwargs:
+            wanted = getattr(kwargs["instance_role"], "value", kwargs["instance_role"])
+            items = [item for item in items if getattr(item.instance_role, "value", item.instance_role) == wanted]
+        if "is_stand_by" in kwargs:
+            items = [item for item in items if item.is_stand_by is kwargs["is_stand_by"]]
+        if "status" in kwargs:
+            wanted = getattr(kwargs["status"], "value", kwargs["status"])
+            items = [item for item in items if getattr(item.status, "value", item.status) == wanted]
+        return _RoleQS(items)
+
+    def order_by(self, *fields):
+        items = list(self._items)
+        for field in reversed(fields):
+            name = str(field)[1:] if str(field).startswith("-") else str(field)
+            items.sort(key=lambda item, field_name=name: getattr(item, field_name))
+        return _RoleQS(items)
+
+    def first(self):
+        return self._items[0] if self._items else None
+
+
+def _role_instance(ip, port, role, ins_id, is_stand_by=False):
+    return SimpleNamespace(
+        id=ins_id,
+        machine=SimpleNamespace(ip=ip),
+        port=port,
+        instance_role=role,
+        is_stand_by=is_stand_by,
+        status="running",
+    )
+
+
+def _ha_cluster():
+    cluster = MagicMock()
+    cluster.id = 1
+    cluster.cluster_type = ClusterType.TenDBHA.value
+    cluster.storageinstance_set = _RoleQS(
+        [
+            _role_instance("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value, 1),
+            _role_instance("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, 2, is_stand_by=True),
+        ]
+    )
+    return cluster
+
+
+def _role_task(backup_locale, task_mode):
+    return DtsTaskSpec(
+        task_name="task-a",
+        target_cluster_id=2,
+        sources=[
+            SourceSpec(
+                cluster_id=1,
+                source_name="src1",
+                sync_scope=SyncScope(do_dbs=["app"], do_tables=[{"schema": "*", "table": "*"}]),
+                backup_locale=backup_locale,
+            )
+        ],
+        dts_task_config=DtsTaskConfig(task_mode=task_mode),
+    )
+
+
+class CutoverSourceRoleTest(SimpleTestCase):
+    def _endpoints(self, backup_locale, task_mode):
+        with patch(
+            "backend.flow.utils.mysql.dts.cutover_helper.Cluster.objects.get",
+            return_value=_ha_cluster(),
+        ):
+            return build_source_endpoints_for_cutover(
+                task_spec=_role_task(backup_locale, task_mode),
+                dts_user="dts_migrate_x",
+                dts_password="secret",
+            )
+
+    def test_slave_locks_master_without_replica(self):
+        endpoint = self._endpoints("slave", "all")[0]
+        self.assertEqual(endpoint["host"], "127.0.0.10")
+        self.assertEqual(endpoint["port"], 20000)
+        self.assertNotIn("replica", endpoint)
+        self.assertEqual(endpoint["user"], "dts_migrate_x")
+        self.assertEqual(endpoint["password"], "secret")
+        self.assertNotIn("backup_locale", endpoint)
+
+    def test_slave_full_also_locks_master(self):
+        endpoint = self._endpoints("slave", "full")[0]
+        self.assertEqual((endpoint["host"], endpoint["port"]), ("127.0.0.10", 20000))
+        self.assertNotIn("replica", endpoint)
+        self.assertNotIn("backup_locale", endpoint)
+
+    def test_master_has_no_replica(self):
+        endpoint = self._endpoints("master", "incremental")[0]
+        self.assertEqual((endpoint["host"], endpoint["port"]), ("127.0.0.10", 20000))
+        self.assertNotIn("replica", endpoint)
+
+    def test_empty_role_has_no_replica(self):
+        endpoint = self._endpoints("", "all")[0]
+        self.assertEqual((endpoint["host"], endpoint["port"]), ("127.0.0.10", 20000))
+        self.assertNotIn("replica", endpoint)

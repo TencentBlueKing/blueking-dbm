@@ -78,6 +78,54 @@ def _rename_layered_details(*, src=100, dst=200, dts_cluster_id=1, **overrides):
     return data
 
 
+class _LooseStorageQS:
+    """空角色解析也能拿到一台存储实例，避免提单校验在假集群上 AttributeError。"""
+
+    def __init__(self):
+        self._ins = SimpleNamespace(
+            id=1,
+            machine=SimpleNamespace(ip="127.0.0.10"),
+            port=20000,
+            instance_role="backend_master",
+            is_stand_by=True,
+            status="running",
+            version="5.7.20",
+        )
+
+    def filter(self, **kwargs):
+        return self
+
+    def order_by(self, *args, **kwargs):
+        return self
+
+    def first(self):
+        return self._ins
+
+    def get(self, **kwargs):
+        return self._ins
+
+
+def _healthy_replica_rpc(params):
+    """假集群的主库和备库都是 127.0.0.10:20000，复制状态按这台回。"""
+    return [
+        {
+            "error_msg": "",
+            "cmd_results": [
+                {
+                    "table_data": [
+                        {
+                            "Master_Host": "127.0.0.10",
+                            "Master_Port": 20000,
+                            "Slave_IO_Running": "Yes",
+                            "Slave_SQL_Running": "Yes",
+                        }
+                    ]
+                }
+            ],
+        }
+    ]
+
+
 def _rename_cluster_filter_side_effect(*args, **kwargs):
     """重命名单：100/200=HA，201=Cluster，300=Cluster 源（用于拒单）。"""
     type_by_id = {
@@ -90,8 +138,10 @@ def _rename_cluster_filter_side_effect(*args, **kwargs):
     return [
         SimpleNamespace(
             id=i,
+            bk_cloud_id=0,
             major_version="MySQL-5.7",
             cluster_type=type_by_id.get(i, ClusterType.TenDBHA.value),
+            storageinstance_set=_LooseStorageQS(),
         )
         for i in ids
     ]
@@ -181,11 +231,13 @@ def _grant_cluster_filter_side_effect(*args, **kwargs):
     return [
         SimpleNamespace(
             id=i,
+            bk_cloud_id=0,
             major_version="MySQL-5.7",
             cluster_type=ClusterType.TenDBHA.value,
             bk_biz_id=1,
             db_module_id=1,
             immute_domain="c{}.db".format(i),
+            storageinstance_set=_LooseStorageQS(),
         )
         for i in ids
     ]
@@ -215,6 +267,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
                 validator_prefix + ".get_cluster_config",
                 return_value={"mysqld": {"default_storage_engine": "innodb"}},
             ),
+            patch(validator_prefix + ".DRSApi.rpc_mysql_replica_compat", side_effect=_healthy_replica_rpc),
         ]
         for patcher in (cluster_patcher, db_patcher, table_patcher, *structure_patchers):
             self.addCleanup(patcher.stop)
@@ -390,6 +443,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
                     id=i,
                     major_version="",
                     cluster_type=ClusterType.TenDBHA.value,
+                    storageinstance_set=_LooseStorageQS(),
                 )
                 for i in (kw.get("id__in") or [])
             ],
@@ -872,6 +926,102 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         )
         self.assertTrue(slz.is_valid(), slz.errors)
 
+    def test_backup_locale_rejects_unknown_value(self):
+        details = _minimal_layered_details()
+        details["backup_locale"] = "primary"
+        slz = MysqlMigrateBaseDetailSerializer(data=details)
+        self.assertFalse(slz.is_valid())
+        self.assertIn("backup_locale", str(slz.errors))
+
+    def test_blank_backup_locale_defaults_to_slave(self):
+        details = _minimal_layered_details()
+        details["backup_locale"] = "  "
+        slz = MysqlMigrateBaseDetailSerializer(data=details)
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertEqual(slz.context["migrate_plan"].task_specs[0].sources[0].backup_locale, "slave")
+
+    def test_myloader_ignores_backup_locale(self):
+        details = _minimal_layered_details()
+        details["backup_locale"] = "slave"
+        details["task"]["full_load"] = {"engine": FullLoadEngine.MYLOADER.value}
+        slz = MysqlMigrateBaseDetailSerializer(data=details)
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertEqual(slz.context["migrate_plan"].task_specs[0].sources[0].backup_locale, "slave")
+
+    def test_many_to_one_slave_accepted_on_ticket(self):
+        slz = MysqlMigrateBaseDetailSerializer(
+            data={
+                "backup_locale": "slave",
+                "dts_resource": {"dts_cluster_id": 1},
+                "migrate": {
+                    "topology": MigrateTopology.MANY_TO_ONE.value,
+                    "many_to_one": {
+                        "sources": [
+                            {"cluster_id": 100, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
+                            {"cluster_id": 101, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
+                        ],
+                        "target": {"cluster_id": 200},
+                    },
+                },
+                "task": {"task_mode": "all", "full_load": {"engine": FullLoadEngine.BUILTIN.value}},
+            }
+        )
+        self.assertTrue(slz.is_valid(), slz.errors)
+        roles = [source.backup_locale for source in slz.context["migrate_plan"].task_specs[0].sources]
+        self.assertEqual(roles, ["slave", "slave"])
+
+    def test_many_to_one_masters_not_rejected_for_role(self):
+        slz = MysqlMigrateBaseDetailSerializer(
+            data={
+                "backup_locale": "master",
+                "dts_resource": {"dts_cluster_id": 1},
+                "migrate": {
+                    "topology": MigrateTopology.MANY_TO_ONE.value,
+                    "many_to_one": {
+                        "sources": [
+                            {"cluster_id": 100, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
+                            {"cluster_id": 101, "sync_scope": {"db_patterns": ["db_a"], "table_patterns": ["*"]}},
+                        ],
+                        "target": {"cluster_id": 200},
+                    },
+                },
+                "task": {"task_mode": "all", "full_load": {"engine": FullLoadEngine.BUILTIN.value}},
+            }
+        )
+        self.assertTrue(slz.is_valid(), slz.errors)
+        roles = [source.backup_locale for source in slz.context["migrate_plan"].task_specs[0].sources]
+        self.assertEqual(roles, ["master", "master"])
+
+    def test_one_source_slave_accepted_on_ticket(self):
+        details = _minimal_layered_details()
+        details["backup_locale"] = "slave"
+        slz = MysqlMigrateBaseDetailSerializer(data=details)
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertEqual(slz.context["migrate_plan"].task_specs[0].sources[0].backup_locale, "slave")
+
+    def test_outer_slave_conflicts_with_infos_master(self):
+        row = _minimal_layered_details()
+        row["backup_locale"] = "master"
+        slz = MysqlMigrateBaseDetailSerializer(data={"backup_locale": "slave", "infos": [row]})
+        self.assertFalse(slz.is_valid())
+        self.assertIn("不一致", str(slz.errors))
+
+    def test_infos_row_backup_locale_reaches_plan(self):
+        row = _minimal_layered_details()
+        row["backup_locale"] = "slave"
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [row]})
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertEqual(slz.validated_data["infos"][0]["backup_locale"], "slave")
+        self.assertEqual(slz.context["migrate_plan"].task_specs[0].sources[0].backup_locale, "slave")
+        self.assertNotIn("backup_locale", slz.validated_data["infos"][0]["migrate"]["one_to_one"]["source"])
+
+    def test_source_backup_locale_rejected(self):
+        details = _minimal_layered_details()
+        details["migrate"]["one_to_one"]["source"]["backup_locale"] = "slave"
+        slz = MysqlMigrateBaseDetailSerializer(data=details)
+        self.assertFalse(slz.is_valid())
+        self.assertIn("source", str(slz.errors))
+
 
 def _mock_cluster(cluster_id: int, cluster_type: str, proxies=None):
     class _MockProxyQS:
@@ -992,7 +1142,12 @@ class MigrateTargetSpiderSerializerTest(SimpleTestCase):
             if "id__in" in kwargs:
                 # 版本校验：返回源 100 + 目标 200
                 return [
-                    SimpleNamespace(id=100, major_version="MySQL-5.7", cluster_type=ClusterType.TenDBHA.value),
+                    SimpleNamespace(
+                        id=100,
+                        major_version="MySQL-5.7",
+                        cluster_type=ClusterType.TenDBHA.value,
+                        storageinstance_set=_LooseStorageQS(),
+                    ),
                     cluster,
                 ]
             return SimpleNamespace(first=lambda: cluster)
@@ -1132,11 +1287,16 @@ class MysqlRenameMigrateSerializerTest(SimpleTestCase):
             "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_table_with_pattern",
             return_value=["t_old"],
         )
-        for patcher in (cluster_patcher, db_patcher, table_patcher):
+        replica_patcher = patch(
+            "backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator.DRSApi.rpc_mysql_replica_compat",
+            side_effect=_healthy_replica_rpc,
+        )
+        for patcher in (cluster_patcher, db_patcher, table_patcher, replica_patcher):
             self.addCleanup(patcher.stop)
         cluster_patcher.start()
         self.mock_show_databases = db_patcher.start()
         self.mock_show_tables = table_patcher.start()
+        replica_patcher.start()
 
     def test_db_rename_valid_writes_mysql_to_mysql(self):
         slz = MysqlRenameMigrateDetailSerializer(data=_rename_layered_details())
@@ -2510,6 +2670,7 @@ class MysqlDtsMigrateStructurePrecheckTest(SimpleTestCase):
             patch(prefix + ".query_target_collations", side_effect=self._target_collations),
             patch(prefix + ".query_non_table_objects", side_effect=self._non_table),
             patch(prefix + ".get_cluster_config", side_effect=self._config),
+            patch(prefix + ".DRSApi.rpc_mysql_replica_compat", side_effect=_healthy_replica_rpc),
         ]
         for patcher in patchers:
             self.addCleanup(patcher.stop)
@@ -2520,11 +2681,13 @@ class MysqlDtsMigrateStructurePrecheckTest(SimpleTestCase):
         return [
             SimpleNamespace(
                 id=cluster_id,
+                bk_cloud_id=0,
                 bk_biz_id=1,
                 immute_domain="c{}.db".format(cluster_id),
                 major_version="MySQL-5.7",
                 db_module_id=1,
                 cluster_type=ClusterType.TenDBHA.value,
+                storageinstance_set=_LooseStorageQS(),
             )
             for cluster_id in ids
         ]

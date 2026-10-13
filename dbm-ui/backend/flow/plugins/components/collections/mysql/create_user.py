@@ -70,20 +70,22 @@ class AddUserService(BaseService):
 
         try:
             operator = global_data.get("created_by") or global_data.get("creator") or ""
-            DBPrivManagerApi.add_priv_without_account_rule(
-                params={
-                    "bk_cloud_id": kwargs["bk_cloud_id"],
-                    "bk_biz_id": global_data["bk_biz_id"],
-                    "operator": operator,
-                    "user": kwargs["user"],
-                    "psw": kwargs["psw"],
-                    "hosts": kwargs["hosts"],
-                    "dbname": kwargs["dbname"],
-                    "dml_ddl_priv": kwargs["dml_ddl_priv"],
-                    "global_priv": kwargs["global_priv"],
-                    "address": kwargs["address"],
-                }
-            )
+            params = {
+                "bk_cloud_id": kwargs["bk_cloud_id"],
+                "bk_biz_id": global_data["bk_biz_id"],
+                "operator": operator,
+                "user": kwargs["user"],
+                "psw": kwargs["psw"],
+                "hosts": kwargs["hosts"],
+                "dbname": kwargs["dbname"],
+                "dml_ddl_priv": kwargs["dml_ddl_priv"],
+                "global_priv": kwargs["global_priv"],
+                "address": kwargs["address"],
+            }
+            role = kwargs.get("role") or ""
+            if role:
+                params["role"] = role
+            DBPrivManagerApi.add_priv_without_account_rule(params=params)
             self.log_info(_("在「{}」创建临时用户「{}@{}」成功").format(kwargs["address"], kwargs["user"], kwargs["hosts"]))
         except Exception as e:  # pylint: disable=broad-except
             self.log_error(_("创建用户接口异常，相关信息: {}").format(e))

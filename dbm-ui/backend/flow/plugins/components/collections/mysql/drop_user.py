@@ -15,6 +15,33 @@ from backend.components import DRSApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
+def drop_user_cmds(user: str, host: str, disable_binlog: bool, primary_tdbctl: bool = False) -> list:
+    """创建临时账号时权限组件已经关掉 binlog。删除若写进主库 binlog，会在从库上打出 1396。
+
+    primary_tdbctl 只给 Primary 中控。Spider 业务端口和普通 MySQL 不认识 tc_admin，
+    这条失败会被当成删除失败。
+    """
+    drop_sql = "drop user `{}`@`{}`;".format(user, host)
+    if not disable_binlog:
+        return [drop_sql]
+    cmds = ["set session sql_log_bin = 0;"]
+    if primary_tdbctl:
+        cmds.append("set tc_admin = 0;")
+    cmds.append(drop_sql)
+    cmds.append("set session sql_log_bin = 1;")
+    return cmds
+
+
+def first_cmd_error(address_result: dict) -> tuple:
+    """多条语句时取第一条失败的命令。只看第一条会把后面的 drop 错误当成成功。"""
+    top_err = address_result.get("error_msg") or ""
+    for item in address_result.get("cmd_results") or []:
+        cmd_err = item.get("error_msg") or ""
+        if cmd_err:
+            return top_err, cmd_err, item.get("cmd") or ""
+    return top_err, "", ""
+
+
 def is_ignorable_drop_user_error(error_msg: str) -> bool:
     """用户不存在等场景视为可忽略。"""
     if not error_msg:
@@ -37,24 +64,24 @@ class DropUserService(BaseService):
         ignore_errors=True 时，用户不存在等错误仅告警不失败（DTS 清理等场景）
         """
         kwargs = data.get_one_of_inputs("kwargs")
-        sql = "drop user `{}`@`{}`;".format(kwargs["user"], kwargs["host"])
         address = kwargs["address"]
         ignore_errors = kwargs.get("ignore_errors", False)
+        disable_binlog = bool(kwargs.get("disable_binlog", False))
+        primary_tdbctl = bool(kwargs.get("primary_tdbctl", False))
+        cmds = drop_user_cmds(kwargs["user"], kwargs["host"], disable_binlog, primary_tdbctl)
 
         try:
             resp = DRSApi.rpc(
                 {
                     "addresses": [address],
-                    "cmds": [sql],
-                    "force": False,
+                    "cmds": cmds,
+                    # drop 失败时仍要执行最后的 set sql_log_bin=1，避免连接复用后 binlog 一直关着
+                    "force": disable_binlog,
                     "bk_cloud_id": kwargs["bk_cloud_id"],
                 }
             )
 
-            top_err = resp[0].get("error_msg") or ""
-            cmd_err = ""
-            if resp[0].get("cmd_results"):
-                cmd_err = resp[0]["cmd_results"][0].get("error_msg") or ""
+            top_err, cmd_err, failed_cmd = first_cmd_error(resp[0])
             err = top_err or cmd_err
             if err:
                 if ignore_errors and is_ignorable_drop_user_error(err):
@@ -63,9 +90,7 @@ class DropUserService(BaseService):
                 if top_err:
                     self.log_error(_("在「{}」执行sql失败，相关信息: {}").format(address, top_err))
                 else:
-                    self.log_error(
-                        _("在「{}」执行sql{}失败，相关信息: {}").format(address, resp[0]["cmd_results"][0]["cmd"], cmd_err)
-                    )
+                    self.log_error(_("在「{}」执行sql{}失败，相关信息: {}").format(address, failed_cmd, cmd_err))
                 return False
 
         except Exception as e:  # pylint: disable=broad-except

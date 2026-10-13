@@ -21,11 +21,7 @@ from backend.flow.utils.mysql.dts.migrate_credentials import (
     generate_dts_migrate_credentials,
     generate_dts_migrate_username,
 )
-from backend.flow.utils.mysql.dts.migrate_helper import (
-    _build_table_migrate_rules,
-    _merge_system_ignore_dbs,
-    sync_scope_to_table_filter,
-)
+from backend.flow.utils.mysql.dts.migrate_helper import _build_table_migrate_rules, sync_scope_to_table_filter
 from backend.flow.utils.mysql.dts.migrate_plan import (
     SyncScope,
     TableRoute,
@@ -313,7 +309,7 @@ class SyncScopeMappingTest(SimpleTestCase):
         )
         tf = sync_scope_to_table_filter(scope)
         self.assertEqual(tf.do_dbs, ["dts_ut_db_a", "dts_ut_db_b"])
-        self.assertEqual(tf.ignore_dbs, _merge_system_ignore_dbs(["dts_ut_db_a", "dts_ut_db_b"], ["dts_ut_db_b"]))
+        self.assertEqual(tf.ignore_dbs, ["dts_ut_db_b"])
         self.assertEqual(_build_table_migrate_rules("src-ut", scope), [])
 
     def test_s7_empty_scope_yields_no_filter_or_rules(self):
@@ -363,7 +359,7 @@ class SyncScopeMappingTest(SimpleTestCase):
         tf = sync_scope_to_table_filter(scope)
         self.assertEqual(scope.do_dbs, ["db%"])
         self.assertEqual(tf.do_dbs, ["db*"])
-        self.assertEqual(tf.ignore_dbs, _merge_system_ignore_dbs(["db%"], ["db3", "db4"]))
+        self.assertEqual(tf.ignore_dbs, ["db3", "db4"])
         self.assertEqual([(item.schema, item.table) for item in tf.do_tables], [("*", "tb*")])
         self.assertEqual([(item.schema, item.table) for item in tf.ignore_tables], [("*", "tb1*")])
         self.assertEqual(_build_table_migrate_rules("src-1", scope), [])
@@ -379,16 +375,15 @@ class SyncScopeMappingTest(SimpleTestCase):
         tf = sync_scope_to_table_filter(scope)
         self.assertEqual(tf.do_dbs, ["~^pre.*mid$"])
 
-    def test_system_dbs_merged_into_table_filter_ignore(self):
+    def test_system_dbs_not_injected_into_ignore(self):
         tf = sync_scope_to_table_filter(SyncScope(do_dbs=["app"], do_tables=[{"schema": "*", "table": "*"}]))
-        self.assertIn("db_infobase", tf.ignore_dbs)
-        self.assertIn("test", tf.ignore_dbs)
-        self.assertIn("mysql", tf.ignore_dbs)
+        self.assertEqual(tf.ignore_dbs, [])
 
-    def test_exact_test_db_kept_out_of_ignore(self):
-        tf = sync_scope_to_table_filter(SyncScope(do_dbs=["test"], do_tables=[{"schema": "*", "table": "*"}]))
-        self.assertNotIn("test", tf.ignore_dbs)
-        self.assertIn("db_infobase", tf.ignore_dbs)
+    def test_user_ignore_kept_without_system_dbs(self):
+        tf = sync_scope_to_table_filter(
+            SyncScope(do_dbs=["test"], do_tables=[{"schema": "*", "table": "*"}], ignore_dbs=["mysql"])
+        )
+        self.assertEqual(tf.ignore_dbs, ["mysql"])
 
     def test_same_name_star_instance_table_filter(self):
         tf = sync_scope_to_table_filter(SyncScope(do_dbs=["*"], do_tables=[{"schema": "*", "table": "*"}]))

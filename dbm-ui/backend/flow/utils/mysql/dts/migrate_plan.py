@@ -34,6 +34,11 @@ _RENAME_TARGET_CLUSTER_TYPES = {
     ClusterType.TenDBCluster.value,
 }
 
+_MISSING_OUTER_SOURCE_ROLE = object()
+_SOURCE_ROLE_MASTER = "master"
+_SOURCE_ROLE_SLAVE = "slave"
+_SOURCE_ROLES = (_SOURCE_ROLE_MASTER, _SOURCE_ROLE_SLAVE)
+
 # 多行 deploy cluster_name 随机后缀（与 source_name 相同：uuid4 hex 前 12 位）
 DEPLOY_CLUSTER_NAME_RAND_LEN = 12
 _DEPLOY_CLUSTER_NAME_RAND_RE = re.compile(rf"-[0-9a-f]{{{DEPLOY_CLUSTER_NAME_RAND_LEN}}}$")
@@ -164,6 +169,7 @@ class SourceSpec:
     source_instance_id: int | None = None
     source_instance_role: str | None = None
     source_host: str | None = None
+    backup_locale: str = ""
     myloader: MyloaderSpec | None = None
     # 内部字段：供 expand_tendbcluster_source_specs / assign_source_workers 使用，不由现网 HA 单据填写
     shard_index: int | None = None
@@ -398,6 +404,32 @@ def _parse_deploy_subflow_inp(details: dict[str, Any]) -> MysqlDtsDeploySubflowI
     )
 
 
+def _blank_backup_locale(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    if text not in _SOURCE_ROLES:
+        raise ValueError(_("backup_locale 只能是 master 或 slave"))
+    return text
+
+
+def merge_backup_locale(outer: Any, local: Any) -> str:
+    """单据 details.backup_locale 和这一行 infos.backup_locale 收成一个值。两边都有且不同则失败。"""
+    outer_role = _blank_backup_locale(outer)
+    local_role = _blank_backup_locale(local)
+    if outer_role and local_role and outer_role != local_role:
+        raise ValueError(_("外层 backup_locale（{}）与 infos 的 backup_locale（{}）不一致").format(outer_role, local_role))
+    return local_role or outer_role
+
+
+def _reject_source_backup_locale(raw: dict[str, Any]) -> None:
+    """source 不是 backup_locale 的入参位置。空值忽略，非空失败。"""
+    if _blank_backup_locale(raw.get("backup_locale")):
+        raise ValueError(_("backup_locale 请写在单据 details 或 infos 上，不要写在 source 上"))
+
+
 def _generate_default_source_name(cluster_id: int | str, used_names: set[str] | None = None) -> str:
     """内部默认 source_name：``source-{cluster_id}-{uuid4 hex 前12位}``，同单内唯一。
 
@@ -428,6 +460,7 @@ def _parse_source_spec(
         source_instance_id=raw.get("source_instance_id"),
         source_instance_role=raw.get("source_instance_role"),
         source_host=raw.get("source_host"),
+        backup_locale=raw.get("backup_locale") or "",
         myloader=myloader,
     )
 
@@ -673,7 +706,9 @@ def iter_migrate_row_details(details: dict[str, Any]) -> list[dict[str, Any]]:
     return expanded
 
 
-def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
+def normalize_migrate_ticket_details(
+    details: dict[str, Any], *, outer_backup_locale: Any = _MISSING_OUTER_SOURCE_ROLE
+) -> dict[str, Any]:
     """将分层单据 details 归一化为 build_migrate_plan 使用的扁平结构。
 
     分层契约：
@@ -683,6 +718,9 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
     """
     if not _is_layered_ticket_details(details):
         return details
+
+    if outer_backup_locale is _MISSING_OUTER_SOURCE_ROLE:
+        outer_backup_locale = details.get("backup_locale")
 
     dts_resource = details.get("dts_resource") or {}
     migrate = details.get("migrate") or {}
@@ -724,20 +762,20 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
         block = migrate.get("one_to_one") or {}
         flat["one_to_one"] = {
             "task_name": block.get("task_name"),
-            "src_info": _normalize_source_block(block.get("source") or {}),
+            "src_info": _normalize_source_block(block.get("source") or {}, outer_backup_locale),
             "dst_info": _normalize_target_block(block.get("target") or {}),
         }
     elif topology == MigrateTopology.MANY_TO_ONE.value:
         block = migrate.get("many_to_one") or {}
         flat["many_to_one"] = {
             "task_name": block.get("task_name"),
-            "src_infos": [_normalize_source_block(s) for s in (block.get("sources") or [])],
+            "src_infos": [_normalize_source_block(s, outer_backup_locale) for s in (block.get("sources") or [])],
             "dst_info": _normalize_target_block(block.get("target") or {}),
         }
     elif topology == MigrateTopology.ONE_TO_MANY.value:
         block = migrate.get("one_to_many") or {}
         flat["one_to_many"] = {
-            "src_info": _normalize_source_block(block.get("source") or {}),
+            "src_info": _normalize_source_block(block.get("source") or {}, outer_backup_locale),
             "dst_infos": [_normalize_target_block(t) for t in (block.get("targets") or [])],
         }
     else:
@@ -760,14 +798,18 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
     return flat
 
 
-def _normalize_source_block(raw: dict[str, Any]) -> dict[str, Any]:
-    # source_name 非建单契约字段，解析阶段由 _parse_source_spec 内部生成
+def _normalize_source_block(raw: dict[str, Any], backup_locale: Any = None) -> dict[str, Any]:
+    # source_name 非建单契约字段，解析阶段由 _parse_source_spec 内部生成。
+    # backup_locale 来自单据 details 或 infos 行，已经收口。source 上的非空值直接失败。
+    # 收口结果写在返回的新 dict 上，不改源块原文。
+    _reject_source_backup_locale(raw)
     return {
         "cluster_id": raw.get("cluster_id"),
         "sync_scope": raw.get("sync_scope") or {},
         "source_instance_id": raw.get("source_instance_id"),
         "source_instance_role": raw.get("source_instance_role"),
         "source_host": raw.get("source_host"),
+        "backup_locale": _blank_backup_locale(backup_locale),
         "myloader": raw.get("myloader"),
     }
 
@@ -783,14 +825,27 @@ def _normalize_target_block(raw: dict[str, Any]) -> dict[str, Any]:
 def build_migrate_plans(ticket_details: dict[str, Any], *, require_task_name: bool = True) -> list[DtsMigratePlan]:
     """构建迁移计划列表。多行 infos 切成 N 个独立 plan；单行走长度为 1 的列表。"""
     if ticket_details.get("infos"):
-        return [
-            build_migrate_plan(row_details, require_task_name=require_task_name)
-            for row_details in iter_migrate_row_details(ticket_details)
-        ]
+        outer_backup_locale = ticket_details.get("backup_locale")
+        plans = []
+        for row_details in iter_migrate_row_details(ticket_details):
+            resolved = merge_backup_locale(outer_backup_locale, row_details.get("backup_locale"))
+            plans.append(
+                build_migrate_plan(
+                    row_details,
+                    require_task_name=require_task_name,
+                    outer_backup_locale=resolved,
+                )
+            )
+        return plans
     return [build_migrate_plan(ticket_details, require_task_name=require_task_name)]
 
 
-def build_migrate_plan(ticket_details: dict[str, Any], *, require_task_name: bool = True) -> DtsMigratePlan:
+def build_migrate_plan(
+    ticket_details: dict[str, Any],
+    *,
+    require_task_name: bool = True,
+    outer_backup_locale: Any = _MISSING_OUTER_SOURCE_ROLE,
+) -> DtsMigratePlan:
     """构建迁移计划。
 
     require_task_name:
@@ -799,8 +854,10 @@ def build_migrate_plan(ticket_details: dict[str, Any], *, require_task_name: boo
     """
     if ticket_details.get("infos"):
         raise ValueError(_("多行 infos 请使用 build_migrate_plans"))
+    if outer_backup_locale is _MISSING_OUTER_SOURCE_ROLE:
+        outer_backup_locale = ticket_details.get("backup_locale")
     details = (
-        normalize_migrate_ticket_details(ticket_details)
+        normalize_migrate_ticket_details(ticket_details, outer_backup_locale=outer_backup_locale)
         if _is_layered_ticket_details(ticket_details)
         else ticket_details
     )
@@ -851,6 +908,7 @@ def _source_spec_from_dict(raw: dict | SourceSpec, used_names: set[str] | None =
         source_instance_id=raw.get("source_instance_id"),
         source_instance_role=raw.get("source_instance_role"),
         source_host=raw.get("source_host"),
+        backup_locale=raw.get("backup_locale") or "",
         myloader=_parse_myloader_spec(raw.get("myloader")),
         shard_index=raw.get("shard_index"),
         shard_count=raw.get("shard_count"),
