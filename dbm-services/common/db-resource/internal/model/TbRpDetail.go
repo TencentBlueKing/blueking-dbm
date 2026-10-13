@@ -416,9 +416,9 @@ func GetExistTbRpDetailHostIds(ids []int) ([]int, error) {
 }
 
 // InUseStatusList 资源池中视为"已被占用"的状态集合,这些状态下的主机不可被删除
-var InUseStatusList = []string{Preselected, Prepoccupied, Used, UsedByOther}
+var InUseStatusList = []string{Preselected, Prepoccupied, Used}
 
-// GetInUseTbRpDetailHostIds 查询入参 ids 中处于"已被占用"状态(Preselected/Prepoccupied/Used/UsedByOther)的 bk_host_id 列表
+// GetInUseTbRpDetailHostIds 查询入参 ids 中处于"已被占用"状态(Preselected/Prepoccupied/Used)的 bk_host_id 列表
 func GetInUseTbRpDetailHostIds(ids []int) ([]int, error) {
 	var inUseIds []int
 	err := DB.Self.Table(TbRpDetailName()).
