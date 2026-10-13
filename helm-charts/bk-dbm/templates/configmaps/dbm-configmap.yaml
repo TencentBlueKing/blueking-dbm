@@ -10,6 +10,8 @@ metadata:
     {{- if .Values.commonLabels }}
     {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
     {{- end }}
+# TODO: global.kms.enabled=true 时，dbm 从 KMS 信封读取账号密码，
+#       届时可不再渲染 APP_TOKEN、*_USER/*_PASSWORD、REDIS_PASSWORD、BKREPO_*、BKM_DBM_TOKEN、REVERSE_REPORT_KAFKA_USERNAME/PASSWORD
 data:
   DB_NAME: "{{ $dbmDB.name }}"
   DB_HOST: "{{ $dbmDB.host }}"
@@ -31,9 +33,17 @@ data:
   APP_TOKEN: "{{ .Values.dbm.envs.bkAppToken }}"
   BK_DOMAIN: "{{ .Values.global.bkDomain }}"
   BK_SAAS_HOST: "{{ .Values.dbm.envs.bkSaasUrl }}"
-  BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
-  # 缓存 redis 地址（多租户需与其它租户区分 db，避免组件缓存跨租户串号）。留空则后端回退到默认 REDIS_URL
-  CACHE_URL: "{{ .Values.dbm.envs.cacheUrl | default "" }}"
+  # broker / 缓存 redis 地址：显式配置时使用；留空则后端按 REDIS_* 与下方 db 编号拼接
+  # 多租户需与其它租户区分缓存 db，避免组件缓存跨租户串号
+  {{- with .Values.dbm.envs.brokerUrl }}
+  BROKER_URL: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.dbm.envs.cacheUrl }}
+  CACHE_URL: {{ . | quote }}
+  {{- end }}
+  {{- /* db 编号允许为 0，不能用 default 兜底 */}}
+  BROKER_REDIS_DB: "{{ ternary 0 .Values.externalRedis.brokerDb (kindIs "invalid" .Values.externalRedis.brokerDb) }}"
+  CACHE_REDIS_DB: "{{ ternary 1 .Values.externalRedis.cacheDb (kindIs "invalid" .Values.externalRedis.cacheDb) }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
   CORS_ALLOWED_ORIGINS: "{{ .Values.dbm.envs.corsAllowedOrigins | default "" }}"
   WINDOW_SSH_PORT: "{{ .Values.dbm.envs.windowSSHPort | default 36000 }}"
