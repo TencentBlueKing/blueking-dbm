@@ -162,6 +162,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK, t('回档'), {
       dbConsole: 'tendbCluster.toolbox.rollback',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST, t('回档'), {
+      dbConsole: 'tendbCluster.toolbox.rollback',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST, t('构造'), {
       dbConsole: 'tendbCluster.toolbox.fixpointExist',
     }),

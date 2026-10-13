@@ -6,13 +6,13 @@
 export enum MachineTypes {
   MYSQL_BACKEND = 'backend', // 后端存储
   MYSQL_PROXY = 'proxy', // Proxy
-  // SINGLE = 'single',
+  SINGLE = 'single', // 单节点（machine_specs 的 machine_type 口径，不同于规格口径的 backend）
 }
 // spider
 export enum MachineTypes {
+  SPIDER = 'spider', // 接入层（machine_specs 的 machine_type 口径，不同于规格口径的 proxy）
   TENDBCLUSTER_BACKEND = 'backend', // 后端存储
   TENDBCLUSTER_PROXY = 'proxy', // 接入层Master
-  // SPIDER = 'spider',
   TENDBCLUSTER_REMOTE = 'remote', // 后端存储 remote 端
 }
 // redis

@@ -3,6 +3,7 @@ export * from './migrateUpgrade';
 export * from './nodeRebalance';
 export * from './restoreSlave';
 export * from './rollBackCluster';
+export * from './rollbackNewHost';
 export * from './spiderAddNodes';
 export * from './spiderConfUpDown';
 export * from './spiderLayerDr';

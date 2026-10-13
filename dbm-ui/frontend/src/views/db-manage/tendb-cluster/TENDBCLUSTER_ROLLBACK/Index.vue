@@ -3,7 +3,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('回档：在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回。')" />
+      :title="t('回档：按备份记录或指定时间恢复数据，支持新机构造、原地构造、库表闪回与记录级闪回。')" />
     <BkForm
       ref="formRef"
       class="mb-24 toolbox-form"
@@ -22,8 +22,11 @@
           style="width: 450px"
           type="card"
           @change="handleFlashbackTypeChange">
+          <BkRadioButton label="BUILD_INTO_NEW_CLUSTER">
+            {{ t('新机构造回档') }}
+          </BkRadioButton>
           <BkRadioButton label="BUILD_INTO_METACLUSTER">
-            {{ t('构造回档') }}
+            {{ t('原地构造回档') }}
           </BkRadioButton>
           <BkRadioButton label="TABLE_FLASHBACK">
             {{ t('库表闪回回档') }}
@@ -326,9 +329,9 @@
           type,
         },
       });
-    } else if (type === 'ROLLBACK_FLASHBACK') {
+    } else if (type === 'BUILD_INTO_NEW_CLUSTER') {
       router.push({
-        name: TicketTypes.TENDBCLUSTER_ROLLBACK,
+        name: TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST,
       });
     }
   };

@@ -17,7 +17,8 @@ export const getMachineTypeName = (machineType: string) => machineTypeNameMap[ma
 
 type SpecStatus = 'disabled' | 'unbound' | 'normal';
 
-const isUnbound = (spec: MachineSpec) =>
+/** 未绑定规格：后端未绑定机器 spec_name 为「未绑定」且 enable 为 null */
+export const isUnbound = (spec: MachineSpec) =>
   spec.enable === null || spec.spec_ids.length === 0 || spec.spec_name === t('未绑定');
 
 const getSpecStatus = (spec: MachineSpec): SpecStatus => {
