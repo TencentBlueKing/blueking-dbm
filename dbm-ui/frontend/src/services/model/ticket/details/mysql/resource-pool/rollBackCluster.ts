@@ -40,6 +40,10 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
     cluster_id: number;
     databases: string[];
     databases_ignore: string[];
+    /** 资源标签名称列表，新机构造回档（MYSQL_ROLLBACK_NEW_HOST）使用 */
+    label_names?: string[];
+    /** 资源标签 id 列表，新机构造回档（MYSQL_ROLLBACK_NEW_HOST）使用 */
+    labels?: string[];
     resource_spec: {
       rollback_host: {
         count: number;

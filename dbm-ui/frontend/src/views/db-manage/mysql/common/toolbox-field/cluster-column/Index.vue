@@ -67,6 +67,11 @@
      * 选择器tab集群类型
      */
     clusterTypes?: ClusterTypesOf<DBTypes.MYSQL>[];
+    // 手输与回填在表格校验中拦截。
+    disableRule?: {
+      handler: (data: TendbhaModel) => boolean;
+      tip: string;
+    };
     field?: string;
     label?: string;
     minWidth?: number;
@@ -97,6 +102,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     clusterTypes: () => [...clusterTypesByDBType[DBTypes.MYSQL]],
+    disableRule: undefined,
     field: 'cluster.master_domain',
     label: t('目标集群'),
     minWidth: 350,
@@ -132,7 +138,7 @@
     ) as TendbhaModel[],
   }));
 
-  const rules = [
+  const rules = computed(() => [
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
@@ -149,7 +155,17 @@
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
-  ];
+    ...(props.disableRule
+      ? [
+          {
+            message: props.disableRule.tip,
+            trigger: 'blur',
+            validator: (value: string) =>
+              !value || !modelValue.value.id || !props.disableRule!.handler(modelValue.value),
+          },
+        ]
+      : []),
+  ]);
 
   const handleShowSelector = () => {
     showSelector.value = true;
