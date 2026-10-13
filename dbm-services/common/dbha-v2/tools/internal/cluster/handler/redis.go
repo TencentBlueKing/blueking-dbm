@@ -49,11 +49,17 @@ const (
 	redisSlaveOfDB = 0
 
 	// redisSyncWaitTimeout bounds how long a slave may take to report master_link_status:up.
-	redisSyncWaitTimeout  = 90 * time.Second
-	redisSyncPollInterval = 2 * time.Second
+	redisSyncWaitTimeout  = 5 * time.Second
+	redisSyncPollInterval = 1 * time.Second
 
 	twemproxyChangeMaxRetry  = 3
 	twemproxyChangeRetryWait = 1 * time.Second
+	predixyChangeMaxRetry    = 3
+	predixyChangeRetryWait   = 1 * time.Second
+
+	// tendisplusCleanAllCmd is flushall after rename-command.
+	// Tendisplus rejects SLAVEOF host port while any kvstore still has data.
+	tendisplusCleanAllCmd = "cleanall"
 )
 
 // RedisClusterHandler resets the redis clusters that dbha-v2 switches.
@@ -62,7 +68,6 @@ const (
 // (PredixyRedisCluster / PredixyTendisplusCluster) elect a new master by themselves and
 // dbha-v2 never switches their storage, so this handler never issues CLUSTER commands
 // against them and only restores their predixy name-service bindings.
-// Predixy backends are likewise left alone: the switch does not rewrite predixy.conf either.
 type RedisClusterHandler struct {
 	baseHandler
 	// clusterType is empty to cover every redis cluster, or one canonical type name.
@@ -224,12 +229,19 @@ func promoteShardMaster(master config.InstanceAddress, passwd string) error {
 }
 
 // attachShardSlave points one slave at the configured master and waits for the link to come up.
-func attachShardSlave(slave, master config.InstanceAddress, passwd string) error {
+// emptyStore is set for Tendisplus: the node must run SLAVEOF NO ONE and cleanall before SLAVEOF host port.
+func attachShardSlave(slave, master config.InstanceAddress, passwd string, emptyStore bool) error {
 	cli, err := connectRedis(slave.Host, slave.Port, passwd)
 	if err != nil {
 		return err
 	}
 	defer cli.Close()
+
+	if emptyStore {
+		if err := emptyTendisplusStore(cli, slave); err != nil {
+			return err
+		}
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), redisCommandTimeout)
 	defer cancel()
@@ -241,6 +253,40 @@ func attachShardSlave(slave, master config.InstanceAddress, passwd string) error
 	}
 
 	return waitSlaveLinkUp(cli, slave, master)
+}
+
+// emptyTendisplusStore makes the future slave writable and clears its kvstore.
+// A replica is read-only, so cleanall is sent only after SLAVEOF NO ONE.
+func emptyTendisplusStore(cli *haredis.Client, slave config.InstanceAddress) error {
+	ctx, cancel := context.WithTimeout(context.Background(), redisCommandTimeout)
+	defer cancel()
+
+	if _, err := cli.DB().SlaveOf(ctx, "no", "one").Result(); err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to run SLAVEOF NO ONE before %s on node(%s:%d), errmsg: %s",
+			tendisplusCleanAllCmd, slave.Host, slave.Port, err.Error())
+	}
+
+	infoMap, err := redisReplicationInfo(cli)
+	if err != nil {
+		return err
+	}
+	if role := infoMap["role"]; role != "master" {
+		return gerrors.Newf(gerrors.Failure,
+			"node(%s:%d) is still in role %q after SLAVEOF NO ONE, %s skipped",
+			slave.Host, slave.Port, role, tendisplusCleanAllCmd)
+	}
+
+	raw, err := cli.DB().Do(ctx, tendisplusCleanAllCmd).Result()
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to run %s on node(%s:%d), errmsg: %s",
+			tendisplusCleanAllCmd, slave.Host, slave.Port, err.Error())
+	}
+	if rsp := strings.ToUpper(strings.TrimSpace(haredis.ReplyString(raw))); rsp != haredis.RedisReplyOK {
+		return gerrors.Newf(gerrors.Failure, "%s response on node(%s:%d) is not %s: %s",
+			tendisplusCleanAllCmd, slave.Host, slave.Port, haredis.RedisReplyOK, rsp)
+	}
+	return nil
 }
 
 // waitSlaveLinkUp polls INFO replication until the slave reports a live link to the expected master.
@@ -273,7 +319,8 @@ func waitSlaveLinkUp(cli *haredis.Client, slave, master config.InstanceAddress) 
 }
 
 // restoreShardReplication rebuilds one master-slave group as described in the config file.
-func restoreShardReplication(shard *config.RedisShard, passwd string) error {
+// emptyStore clears each Tendisplus slave before pointing it at the configured master.
+func restoreShardReplication(shard *config.RedisShard, passwd string, emptyStore bool) error {
 	if err := promoteShardMaster(shard.Master, passwd); err != nil {
 		return err
 	}
@@ -282,12 +329,18 @@ func restoreShardReplication(shard *config.RedisShard, passwd string) error {
 		if slave.Host == shard.Master.Host && slave.Port == shard.Master.Port {
 			continue
 		}
-		if err := attachShardSlave(slave, shard.Master, passwd); err != nil {
+		if err := attachShardSlave(slave, shard.Master, passwd, emptyStore); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// mustEmptySlaveStore reports whether SLAVEOF host port must be preceded by cleanall.
+// PredixyTendisplusInstance is the only master-slave type whose storage is Tendisplus.
+func mustEmptySlaveStore(clusterType haprobe.DbmMetadataClusterType) bool {
+	return clusterType == config.ClusterTypePredixyTendisplusInstance
 }
 
 // restoreReplicationTopology rebuilds every shard concurrently.
@@ -300,6 +353,7 @@ func restoreShardReplication(shard *config.RedisShard, passwd string) error {
 // it took after the switch. Reset restores the topology the config file declares, so this
 // belongs on a test bed, not on a cluster holding data worth keeping.
 func (hdl *RedisClusterHandler) restoreReplicationTopology(cluster *config.RedisCluster, passwd string) error {
+	emptyStore := mustEmptySlaveStore(cluster.ClusterType)
 	sem := make(chan struct{}, getClusterMaxConcurrency())
 	errCh := make(chan error, len(cluster.Shards))
 	var wg sync.WaitGroup
@@ -312,7 +366,7 @@ func (hdl *RedisClusterHandler) restoreReplicationTopology(cluster *config.Redis
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			if err := restoreShardReplication(shard, passwd); err != nil {
+			if err := restoreShardReplication(shard, passwd, emptyStore); err != nil {
 				errCh <- err
 			}
 		}(&cluster.Shards[i])
@@ -411,8 +465,9 @@ func findShardNodeOfRole(shard config.RedisShard, roleMap map[string]haprobe.Dbm
 	return config.InstanceAddress{}, false
 }
 
-// buildTwemproxyBackendMap maps every node of the cluster to the master its shard should serve.
-func buildTwemproxyBackendMap(cluster *config.RedisCluster) map[string]string {
+// buildShardBackendMap maps every node of the cluster to the master its shard should serve.
+// Twemproxy reset and PredixyTendisplusInstance reset both look up the current backend address here.
+func buildShardBackendMap(cluster *config.RedisCluster) map[string]string {
 	backendMap := make(map[string]string)
 	for i := range cluster.Shards {
 		shard := &cluster.Shards[i]
@@ -452,10 +507,35 @@ func changeTwemproxyBackend(host string, adminPort int, from, to string) error {
 		host, adminPort, from, to, twemproxyChangeMaxRetry, err.Error())
 }
 
+// changePredixyBackend sends "admin change $from $to" on the predixy data port.
+// The client authenticates with redis_proxy_admin.
+func changePredixyBackend(host string, port int, adminPasswd, from, to string) error {
+	var err error
+	for i := 0; i < predixyChangeMaxRetry; i++ {
+		cli, connErr := connectRedis(host, port, adminPasswd)
+		if connErr != nil {
+			err = connErr
+		} else {
+			err = haredis.PredixyAdminChange(cli, from, to)
+			cli.Close()
+			if err == nil {
+				return nil
+			}
+		}
+		if i+1 < predixyChangeMaxRetry {
+			time.Sleep(predixyChangeRetryWait)
+		}
+	}
+
+	return gerrors.Newf(gerrors.Failure,
+		"failed to change backend of predixy(%s:%d) from %s to %s after %d tries, errmsg: %s",
+		host, port, from, to, predixyChangeMaxRetry, err.Error())
+}
+
 // resetTwemproxyBackends points every twemproxy segment back at its configured shard master.
 // The segment id is irrelevant here: the current backend address alone identifies the shard.
 func (hdl *RedisClusterHandler) resetTwemproxyBackends(cluster *config.RedisCluster) error {
-	backendMap := buildTwemproxyBackendMap(cluster)
+	backendMap := buildShardBackendMap(cluster)
 
 	for _, proxy := range cluster.Proxy {
 		cli, err := haredis.NewTwemproxyAdminClient(
@@ -501,14 +581,172 @@ func (hdl *RedisClusterHandler) resetTwemproxyBackends(cluster *config.RedisClus
 	return nil
 }
 
+// resetPredixyBackends points every predixy backend back at its configured shard master.
+// Slot is irrelevant here: admin change matches the backend address, and that address
+// alone identifies the shard. The same address is changed once even if several entries share it.
+func (hdl *RedisClusterHandler) resetPredixyBackends(cluster *config.RedisCluster) error {
+	backendMap := buildShardBackendMap(cluster)
+
+	proxyPass, err := hdl.proxyPassword(cluster)
+	if err != nil {
+		return err
+	}
+	adminPass, err := hdl.proxyAdminPassword(cluster)
+	if err != nil {
+		return err
+	}
+
+	for _, proxy := range cluster.Proxy {
+		cli, err := connectRedis(proxy.Host, proxy.Port, proxyPass)
+		if err != nil {
+			return err
+		}
+
+		servers, err := haredis.GetPredixyInfoServers(cli)
+		cli.Close()
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure,
+				"failed to get backends of predixy(%s:%d), errmsg: %s",
+				proxy.Host, proxy.Port, err.Error())
+		}
+
+		moves := make(map[string]string)
+		for _, server := range servers {
+			if server == nil || server.Server == "" {
+				continue
+			}
+			curAddr := server.Server
+			wantAddr, ok := backendMap[curAddr]
+			if !ok {
+				return gerrors.Newf(gerrors.Failure,
+					"predixy(%s:%d) serves slot %s from %s, which belongs to no shard in the config file",
+					proxy.Host, proxy.Port, server.Slot, curAddr)
+			}
+			if curAddr != wantAddr {
+				moves[curAddr] = wantAddr
+			}
+		}
+
+		for curAddr, wantAddr := range moves {
+			if err := changePredixyBackend(proxy.Host, proxy.Port, adminPass, curAddr, wantAddr); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// resetRedisInstanceDomain removes every non-master instance from the main domain and
+// registers the configured shard masters. RedisInstance binds the main domain directly
+// to storage masters; HA switch or manual metadata repair may leave a promoted slave on
+// the domain when DNS was not updated by tendis_cluster_swap.
+func (hdl *RedisClusterHandler) resetRedisInstanceDomain(cluster *config.RedisCluster) error {
+	if cluster.Domain == "" || len(cluster.Shards) == 0 {
+		return nil
+	}
+
+	desiredMasters := make([]config.InstanceAddress, 0, len(cluster.Shards))
+	desiredMasterSet := make(map[string]struct{}, len(cluster.Shards))
+	for _, shard := range cluster.Shards {
+		desiredMasters = append(desiredMasters, shard.Master)
+		desiredMasterSet[redisAddr(shard.Master.Host, shard.Master.Port)] = struct{}{}
+	}
+
+	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomainInCloud(cluster.BkCloudId, cluster.Domain)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to get all instances of domain %s, errmsg: %s",
+			cluster.Domain, err.Error())
+	}
+
+	for _, inst := range instInfoList {
+		addr := redisAddr(inst.Ip, inst.Port)
+		if _, ok := desiredMasterSet[addr]; ok {
+			continue
+		}
+		if err := hdl.dbmClient.DeleteInstanceFromDomainInCloud(
+			cluster.BkCloudId, inst.Ip, inst.Port, cluster.Domain, cluster.BkBizId); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to delete instance(%s:%d) from domain %s, errmsg: %s",
+				inst.Ip, inst.Port, cluster.Domain, err.Error())
+		}
+	}
+
+	return hdl.addNodesToDomainInCloud(cluster.BkCloudId, desiredMasters, cluster.Domain, cluster.BkBizId)
+}
+
+// resetMasterSlaveSteps runs reset steps 2-4.
+// Cluster-protocol types elect a new master by themselves, and a cluster with no shards
+// has nothing to restore, so both skip these steps.
+func (hdl *RedisClusterHandler) resetMasterSlaveSteps(cluster *config.RedisCluster) error {
+	if config.IsClusterProtocolRedisClusterType(cluster.ClusterType) {
+		logResetf("reset step 2-4: skip restore storage topology, domain: %s, cluster_type: %s, "+
+			"reason: cluster-protocol type", cluster.Domain, cluster.ClusterType)
+		return nil
+	}
+	if len(cluster.Shards) == 0 {
+		logResetf("reset step 2-4: skip restore storage topology, domain: %s, reason: no shards configured",
+			cluster.Domain)
+		return nil
+	}
+
+	passwd, err := hdl.storagePassword(cluster)
+	if err != nil {
+		logResetStep(2, "failed to restore master-slave topology, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
+		return err
+	}
+
+	if err := hdl.restoreReplicationTopology(cluster, passwd); err != nil {
+		logResetStep(2, "failed to restore master-slave topology, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
+		return err
+	}
+	logResetStep(2, "successfully restored master-slave topology, domain: %s", cluster.Domain)
+
+	if err := hdl.correctShardRoles(cluster); err != nil {
+		logResetStep(3, "failed to correct instance roles in dbm, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
+		return err
+	}
+	logResetStep(3, "successfully corrected instance roles in dbm, domain: %s", cluster.Domain)
+
+	return hdl.resetProxyBackends(cluster)
+}
+
+// resetProxyBackends points proxy backends back at the configured shard masters.
+// RedisInstance has no proxy backends to rewrite.
+func (hdl *RedisClusterHandler) resetProxyBackends(cluster *config.RedisCluster) error {
+	switch {
+	case config.IsTwemproxyRedisClusterType(cluster.ClusterType):
+		if err := hdl.resetTwemproxyBackends(cluster); err != nil {
+			logResetStep(4, "failed to reset twemproxy backends, domain: %s, errmsg: %s",
+				cluster.Domain, err.Error())
+			return err
+		}
+		logResetStep(4, "successfully reset twemproxy backends, domain: %s", cluster.Domain)
+	case cluster.ClusterType == config.ClusterTypePredixyTendisplusInstance:
+		if err := hdl.resetPredixyBackends(cluster); err != nil {
+			logResetStep(4, "failed to reset predixy backends, domain: %s, errmsg: %s",
+				cluster.Domain, err.Error())
+			return err
+		}
+		logResetStep(4, "successfully reset predixy backends, domain: %s", cluster.Domain)
+	default:
+		logResetStep(4, "skip reset proxy backends, domain: %s, cluster_type: %s, "+
+			"reason: no proxy backend to reset", cluster.Domain, cluster.ClusterType)
+	}
+	return nil
+}
+
 // resetSingleRedisCluster resets a single redis cluster.
 // Step 1: update all instances status to unavailable
 // Step 2: restore the master-slave topology (skipped for cluster-protocol types)
 // Step 3: correct the instance roles in dbm metadata (skipped for cluster-protocol types)
-// Step 4: point twemproxy backends back at the configured masters (twemproxy clusters only)
+// Step 4: point proxy backends back at the configured masters (twemproxy clusters and PredixyTendisplusInstance)
 // Step 5: update all instances status to running
 // Step 6: add proxies back to the cluster domain
 // Step 7: reset clb binding (optional; skip when clb is omitted or empty)
+// Step 8: restore RedisInstance main domain binding (RedisInstance only)
 func (hdl *RedisClusterHandler) resetSingleRedisCluster(cluster *config.RedisCluster) error {
 	hdl.printOneCluster(cluster)
 	logResetf("start to reset cluster, domain: %s, cluster_type: %s", cluster.Domain, cluster.ClusterType)
@@ -522,48 +760,8 @@ func (hdl *RedisClusterHandler) resetSingleRedisCluster(cluster *config.RedisClu
 	}
 	logResetStep(1, "successfully updated all instances status to unavailable, domain: %s", cluster.Domain)
 
-	switch {
-	case config.IsClusterProtocolRedisClusterType(cluster.ClusterType):
-		logResetf("reset step 2-4: skip restore storage topology, domain: %s, cluster_type: %s, "+
-			"reason: elects a new master by itself", cluster.Domain, cluster.ClusterType)
-
-	case len(cluster.Shards) == 0:
-		logResetf("reset step 2-4: skip restore storage topology, domain: %s, reason: no shards configured",
-			cluster.Domain)
-
-	default:
-		passwd, err := hdl.storagePassword(cluster)
-		if err != nil {
-			logResetStep(2, "failed to restore master-slave topology, domain: %s, errmsg: %s",
-				cluster.Domain, err.Error())
-			return err
-		}
-
-		if err := hdl.restoreReplicationTopology(cluster, passwd); err != nil {
-			logResetStep(2, "failed to restore master-slave topology, domain: %s, errmsg: %s",
-				cluster.Domain, err.Error())
-			return err
-		}
-		logResetStep(2, "successfully restored master-slave topology, domain: %s", cluster.Domain)
-
-		if err := hdl.correctShardRoles(cluster); err != nil {
-			logResetStep(3, "failed to correct instance roles in dbm, domain: %s, errmsg: %s",
-				cluster.Domain, err.Error())
-			return err
-		}
-		logResetStep(3, "successfully corrected instance roles in dbm, domain: %s", cluster.Domain)
-
-		if config.IsTwemproxyRedisClusterType(cluster.ClusterType) {
-			if err := hdl.resetTwemproxyBackends(cluster); err != nil {
-				logResetStep(4, "failed to reset twemproxy backends, domain: %s, errmsg: %s",
-					cluster.Domain, err.Error())
-				return err
-			}
-			logResetStep(4, "successfully reset twemproxy backends, domain: %s", cluster.Domain)
-		} else {
-			logResetStep(4, "skip reset twemproxy backends, domain: %s, cluster_type: %s, "+
-				"reason: no twemproxy layer", cluster.Domain, cluster.ClusterType)
-		}
+	if err := hdl.resetMasterSlaveSteps(cluster); err != nil {
+		return err
 	}
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatusInCloud(
@@ -596,6 +794,15 @@ func (hdl *RedisClusterHandler) resetSingleRedisCluster(cluster *config.RedisClu
 			return err
 		}
 		logResetStep(7, "successfully reset clb binding, domain: %s", cluster.Domain)
+	}
+
+	if cluster.ClusterType == config.ClusterTypeRedisInstance {
+		if err := hdl.resetRedisInstanceDomain(cluster); err != nil {
+			logResetStep(8, "failed to restore RedisInstance main domain binding, domain: %s, errmsg: %s",
+				cluster.Domain, err.Error())
+			return err
+		}
+		logResetStep(8, "successfully restored RedisInstance main domain binding, domain: %s", cluster.Domain)
 	}
 
 	return nil
@@ -745,6 +952,21 @@ func (hdl *RedisClusterHandler) proxyPassword(cluster *config.RedisCluster) (str
 	if err != nil {
 		return "", gerrors.Newf(gerrors.Failure,
 			"failed to get proxy password of cluster %s (clusterId=%d), errmsg: %s",
+			cluster.Domain, cluster.ClusterId, err.Error())
+	}
+	return passwd, nil
+}
+
+func (hdl *RedisClusterHandler) proxyAdminPassword(cluster *config.RedisCluster) (string, error) {
+	if cluster.ClusterId <= 0 {
+		return "", gerrors.Newf(gerrors.Failure,
+			"clusterId is required to query the proxy admin password of cluster %s", cluster.Domain)
+	}
+
+	passwd, err := hdl.dbmClient.QueryRedisProxyAdminPassword(cluster.BkCloudId, cluster.ClusterId)
+	if err != nil {
+		return "", gerrors.Newf(gerrors.Failure,
+			"failed to get proxy admin password of cluster %s (clusterId=%d), errmsg: %s",
 			cluster.Domain, cluster.ClusterId, err.Error())
 	}
 	return passwd, nil
@@ -1144,6 +1366,57 @@ func (hdl *RedisClusterHandler) collectOneClusterMasterSlaveReplication(
 	return clusterRepl, nil
 }
 
+// storageNodeStatusByAddr returns DBM status keyed by ip:port for configured storage nodes.
+func (hdl *RedisClusterHandler) storageNodeStatusByAddr(cluster *config.RedisCluster) (map[string]string, error) {
+	nodes := redisConfiguredStorageNodes(cluster)
+	hosts := uniqueHosts(nodes)
+	if len(hosts) == 0 {
+		return map[string]string{}, nil
+	}
+
+	metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(cluster.BkCloudId, hosts)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
+			cluster.Domain, err.Error())
+	}
+
+	statusByAddr := make(map[string]string, len(nodes))
+	for _, meta := range metadataList {
+		if meta.Cluster != cluster.Domain {
+			continue
+		}
+		statusByAddr[redisAddr(meta.IP, meta.Port)] = meta.Status
+	}
+	return statusByAddr, nil
+}
+
+// pickFirstRunningStorageNode sorts configured storage nodes by ip:port and returns the first
+// one whose DBM status is running.
+func (hdl *RedisClusterHandler) pickFirstRunningStorageNode(cluster *config.RedisCluster) (
+	config.InstanceAddress, bool, error) {
+
+	nodes := redisConfiguredStorageNodes(cluster)
+	if len(nodes) == 0 {
+		return config.InstanceAddress{}, false, nil
+	}
+
+	sort.Slice(nodes, func(i, j int) bool {
+		return redisAddr(nodes[i].Host, nodes[i].Port) < redisAddr(nodes[j].Host, nodes[j].Port)
+	})
+
+	statusByAddr, err := hdl.storageNodeStatusByAddr(cluster)
+	if err != nil {
+		return config.InstanceAddress{}, false, err
+	}
+
+	for _, node := range nodes {
+		if statusByAddr[redisAddr(node.Host, node.Port)] == string(dbm.StatusRunning) {
+			return node, true, nil
+		}
+	}
+	return config.InstanceAddress{}, false, nil
+}
+
 func (hdl *RedisClusterHandler) collectOneClusterClusterNodesReplication(
 	cluster *config.RedisCluster) (*ClusterRedisClusterNodesInfo, error) {
 	clusterNodes := &ClusterRedisClusterNodesInfo{
@@ -1151,9 +1424,16 @@ func (hdl *RedisClusterHandler) collectOneClusterClusterNodesReplication(
 		Nodes:   make([]haredis.ClusterNode, 0),
 	}
 
-	nodes := redisConfiguredStorageNodes(cluster)
-	if len(nodes) == 0 {
-		return clusterNodes, nil
+	queryNode, ok, err := hdl.pickFirstRunningStorageNode(cluster)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		if len(redisConfiguredStorageNodes(cluster)) == 0 {
+			return clusterNodes, nil
+		}
+		return nil, gerrors.Newf(gerrors.Failure,
+			"no running storage instance to query CLUSTER NODES for cluster %s", cluster.Domain)
 	}
 
 	passwd, err := hdl.storagePassword(cluster)
@@ -1161,52 +1441,20 @@ func (hdl *RedisClusterHandler) collectOneClusterClusterNodesReplication(
 		return nil, err
 	}
 
-	type nodesResult struct {
-		source string
-		nodes  []haredis.ClusterNode
-		err    error
+	source := redisAddr(queryNode.Host, queryNode.Port)
+	cli, err := connectRedis(queryNode.Host, queryNode.Port, passwd)
+	if err != nil {
+		return nil, err
 	}
-	resultCh := make(chan nodesResult, len(nodes))
-	sem := make(chan struct{}, getClusterMaxConcurrency())
+	defer cli.Close()
 
-	for _, node := range nodes {
-		sem <- struct{}{}
-		go func(host string, port int) {
-			defer func() { <-sem }()
-			source := redisAddr(host, port)
-			cli, connErr := connectRedis(host, port, passwd)
-			if connErr != nil {
-				resultCh <- nodesResult{source: source, err: connErr}
-				return
-			}
-			defer cli.Close()
-
-			parsed, queryErr := haredis.GetClusterNodes(cli)
-			resultCh <- nodesResult{source: source, nodes: parsed, err: queryErr}
-		}(node.Host, node.Port)
+	parsed, err := haredis.GetClusterNodes(cli)
+	if err != nil {
+		return nil, err
 	}
 
-	var lastErr error
-	best := nodesResult{}
-	for range nodes {
-		result := <-resultCh
-		if result.err != nil {
-			lastErr = result.err
-			continue
-		}
-		if len(result.nodes) > len(best.nodes) {
-			best = result
-		}
-	}
-	if len(best.nodes) == 0 {
-		if lastErr != nil {
-			return nil, lastErr
-		}
-		return clusterNodes, nil
-	}
-
-	clusterNodes.QueriedFrom = best.source
-	clusterNodes.Nodes = best.nodes
+	clusterNodes.QueriedFrom = source
+	clusterNodes.Nodes = parsed
 	return clusterNodes, nil
 }
 
@@ -1281,6 +1529,7 @@ func predixyRoutingServersForShow(servers haredis.PredixyServerList) []PredixyRo
 		}
 		out = append(out, PredixyRoutingServer{
 			Server:        server.Server,
+			Slot:          server.Slot,
 			Role:          server.Role,
 			CurrentIsFail: server.CurrentIsFail,
 		})

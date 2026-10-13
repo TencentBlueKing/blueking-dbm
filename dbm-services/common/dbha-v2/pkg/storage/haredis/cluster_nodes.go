@@ -26,8 +26,9 @@ package haredis
 
 import (
 	"context"
-	"fmt"
 	"strings"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
 // ClusterNode is one line from CLUSTER NODES.
@@ -100,7 +101,7 @@ func clusterNodeRole(flags, masterID, slots string) string {
 // GetClusterNodes connects to a redis-compatible node and runs CLUSTER NODES.
 func GetClusterNodes(cli *Client) ([]ClusterNode, error) {
 	if cli == nil {
-		return nil, fmt.Errorf("nil redis client")
+		return nil, gerrors.New(gerrors.InvalidParameter, "nil redis client")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cli.opts.readTimeout)

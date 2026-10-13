@@ -32,11 +32,16 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
 // PredixyServer is one backend entry from Predixy INFO Servers.
 type PredixyServer struct {
-	Server        string `json:"server"`
+	Server string `json:"server"`
+	// Slot is the raw INFO Servers "Slots" value. Segments inside it are already ascending.
+	// It may be empty when the running Predixy omits it, and an empty value still participates in the backend MD5.
+	Slot          string `json:"slot,omitempty"`
 	Role          string `json:"role,omitempty"`
 	Group         string `json:"group,omitempty"`
 	DC            string `json:"dc,omitempty"`
@@ -80,28 +85,30 @@ func ParsePredixyInfoServers(info string) PredixyServerList {
 			continue
 		}
 		key, value := kv[0], strings.TrimSpace(kv[1])
-		switch key {
-		case "Server":
+		switch strings.ToLower(key) {
+		case "server":
 			item.Server = value
-		case "Role":
+		case "slots", "slot":
+			item.Slot = value
+		case "role":
 			item.Role = value
-		case "Group":
+		case "group":
 			item.Group = value
-		case "DC":
+		case "dc":
 			item.DC = value
-		case "CurrentIsFail":
+		case "currentisfail":
 			item.CurrentIsFail, _ = strconv.Atoi(value)
-		case "Connections":
+		case "connections":
 			item.Connections, _ = strconv.Atoi(value)
-		case "Connect":
+		case "connect":
 			item.Connect, _ = strconv.Atoi(value)
-		case "Requests":
+		case "requests":
 			item.Requests, _ = strconv.ParseUint(value, 10, 64)
-		case "Responses":
+		case "responses":
 			item.Responses, _ = strconv.ParseUint(value, 10, 64)
-		case "SendBytes":
+		case "sendbytes":
 			item.SendBytes, _ = strconv.ParseUint(value, 10, 64)
-		case "RecvBytes":
+		case "recvbytes":
 			item.RecvBytes, _ = strconv.ParseUint(value, 10, 64)
 		}
 	}
@@ -109,25 +116,64 @@ func ParsePredixyInfoServers(info string) PredixyServerList {
 	return rets
 }
 
-// MD5String returns the hex MD5 of sorted "server|current_is_fail" pairs.
-func (l PredixyServerList) MD5String() string {
+// backendByteArray returns a stable JSON encoding of "slots|server" pairs, sorted descending.
+// Slots is hashed as the raw string. Segments inside it are already ascending.
+// A missing Slots value is kept as an empty string so every server still contributes.
+func (l PredixyServerList) backendByteArray() []byte {
 	pairs := make([]string, 0, len(l))
 	for _, item := range l {
 		if item == nil {
 			continue
 		}
-		pairs = append(pairs, fmt.Sprintf("%s|%d", item.Server, item.CurrentIsFail))
+		pairs = append(pairs, fmt.Sprintf("%s|%s", item.Slot, item.Server))
 	}
-	sort.Strings(pairs)
-
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i] > pairs[j]
+	})
 	out, _ := json.Marshal(pairs)
-	return fmt.Sprintf("%x", md5.Sum(out))
+	return out
+}
+
+// BackendString returns the stable encoding hashed by MD5String.
+func (l PredixyServerList) BackendString() string {
+	return string(l.backendByteArray())
+}
+
+// MD5String returns the hex MD5 of sorted "slots|server" pairs.
+// Slots is the raw string and may be empty when it is omitted.
+// CurrentIsFail is not part of the digest.
+// cluster show routing and the PredixyTendisplusInstance switch both use this value.
+func (l PredixyServerList) MD5String() string {
+	return fmt.Sprintf("%x", md5.Sum(l.backendByteArray()))
+}
+
+// PredixyAdminChange runs "admin change <from> <to>" on an authenticated Predixy client.
+// The client must be logged in with the predixy admin password.
+// A nil error means the reply, after trimming space and uppercasing, is exactly "OK".
+func PredixyAdminChange(cli *Client, from, to string) error {
+	if cli == nil {
+		return gerrors.New(gerrors.InvalidParameter, "nil redis client")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), cli.opts.readTimeout)
+	defer cancel()
+
+	raw, err := cli.DB().Do(ctx, "admin", "change", from, to).Result()
+	if err != nil {
+		return err
+	}
+
+	rsp := ReplyString(raw)
+	if strings.ToUpper(strings.TrimSpace(rsp)) != RedisReplyOK {
+		return gerrors.Newf(gerrors.Failure, "predixy admin change response is not %s: %s", RedisReplyOK, rsp)
+	}
+	return nil
 }
 
 // GetPredixyInfoServers connects to a Predixy data port and runs INFO Servers.
 func GetPredixyInfoServers(cli *Client) (PredixyServerList, error) {
 	if cli == nil {
-		return nil, fmt.Errorf("nil redis client")
+		return nil, gerrors.New(gerrors.InvalidParameter, "nil redis client")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cli.opts.readTimeout)

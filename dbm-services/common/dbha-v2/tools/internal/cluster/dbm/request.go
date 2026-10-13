@@ -120,6 +120,14 @@ type DomainPutRequest struct {
 	InstancesToAdd []InstancesOfDomain `json:"domains"`
 }
 
+// DomainDeleteRequest represents the request structure for deleting instances from a domain
+type DomainDeleteRequest struct {
+	App               string              `json:"app"`
+	BkCloudID         int                 `json:"bk_cloud_id"`
+	DbCloudToken      string              `json:"db_cloud_token"`
+	InstancesToDelete []InstancesOfDomain `json:"domains"`
+}
+
 // ClbGetTargetPrivateIpsRequest represents the request for querying CLB bound instances.
 type ClbGetTargetPrivateIpsRequest struct {
 	BkCloudID      int    `json:"bk_cloud_id"`
