@@ -28,6 +28,7 @@ import (
 	"fmt"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -57,6 +58,8 @@ func NewClient(opts ...Option) (*Client, error) {
 	if cli.opts.port <= 0 {
 		return nil, gerrors.Newf(gerrors.InvalidParameter, "invalid redis port: %d", cli.opts.port)
 	}
+
+	logger.Debug("redis client connecting, %s", cli.opts.safeConnectionSummary())
 
 	cli.rdb = redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%d", cli.opts.ip, cli.opts.port),

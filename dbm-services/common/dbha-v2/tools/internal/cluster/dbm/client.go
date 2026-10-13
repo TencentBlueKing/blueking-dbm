@@ -338,6 +338,53 @@ func (c *Client) AddInstanceToDomainInCloud(bkCloudId int, ip string, port int, 
 	return nil
 }
 
+// DeleteInstanceFromDomain removes an instance from a specific domain
+func (c *Client) DeleteInstanceFromDomain(ip string, port int, domain string, bkBizId int) error {
+	return c.DeleteInstanceFromDomainInCloud(0, ip, port, domain, bkBizId)
+}
+
+// DeleteInstanceFromDomainInCloud removes an instance from a domain within the given cloud area
+func (c *Client) DeleteInstanceFromDomainInCloud(bkCloudId int, ip string, port int, domain string, bkBizId int) error {
+	apiCfg := config.ClusterConfig.DbmServices.DbmApiDomainDelete
+	if apiCfg.Api == "" {
+		return gerrors.New(gerrors.InvalidParameter,
+			"dbmApiDomainDelete.api is empty, please configure it in cluster.yaml")
+	}
+
+	req := DomainDeleteRequest{
+		App:          strconv.Itoa(bkBizId),
+		BkCloudID:    bkCloudId,
+		DbCloudToken: apiCfg.Token,
+		InstancesToDelete: []InstancesOfDomain{
+			{
+				DomainName: domain,
+				Instances:  []string{fmt.Sprintf("%s#%d", ip, port)},
+			},
+		},
+	}
+
+	resp, err := c.SendRequest(apiCfg.Api, hanet.HttpMethodDelete, req, apiCfg.Timeout)
+	if err != nil {
+		return err
+	}
+
+	domainDeleteRes := &DomainDeleteResponse{}
+	if err := json.Unmarshal(resp, domainDeleteRes); err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to unmarshal response: %s", err.Error())
+	}
+
+	if !domainDeleteRes.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", domainDeleteRes.Message)
+	}
+
+	if domainDeleteRes.Data.RowsNum != 1 {
+		errMsg := fmt.Sprintf("rowsAffected = %d, failed to delete instance (%s:%d) (app=%s) from domain (%s)",
+			domainDeleteRes.Data.RowsNum, ip, port, strconv.Itoa(bkBizId), domain)
+		return gerrors.New(gerrors.Failure, errMsg)
+	}
+	return nil
+}
+
 // GetClbTargetPrivateIps queries private IPs bound to a CLB listener.
 func (c *Client) GetClbTargetPrivateIps(clb *config.ClbConfig) ([]string, error) {
 	apiCfg := config.ClusterConfig.DbmServices.DbmApiClbGetTargetPrivateIps

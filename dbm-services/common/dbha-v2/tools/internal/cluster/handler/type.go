@@ -187,8 +187,10 @@ type TwemproxyRoutingInfo struct {
 }
 
 // PredixyRoutingServer is one backend entry exposed by show routing.
+// MD5 is computed from Slot and Server. Slot is empty when Predixy does not report it yet.
 type PredixyRoutingServer struct {
 	Server        string `json:"server"`
+	Slot          string `json:"slot"`
 	Role          string `json:"role"`
 	CurrentIsFail int    `json:"current_is_fail"`
 }

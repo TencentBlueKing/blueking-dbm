@@ -75,6 +75,7 @@ type DbmApis struct {
 	DbmApiQueryRedisPassword      APIConfig `yaml:"dbmApiQueryRedisPassword"`
 	DbmApiDomainGet               APIConfig `yaml:"dbmApiDomainGet"`
 	DbmApiDomainPut               APIConfig `yaml:"dbmApiDomainPut"`
+	DbmApiDomainDelete            APIConfig `yaml:"dbmApiDomainDelete"`
 	DbmApiClbGetTargetPrivateIps  APIConfig `yaml:"dbmApiClbGetTargetPrivateIps"`
 	DbmApiClbRegisterPartTarget   APIConfig `yaml:"dbmApiClbRegisterPartTarget"`
 	DbmApiClbDeregisterPartTarget APIConfig `yaml:"dbmApiClbDeregisterPartTarget"`
