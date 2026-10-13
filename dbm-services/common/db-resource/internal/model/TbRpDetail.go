@@ -133,6 +133,12 @@ type TbRpDetail struct {
 	IDCName string `gorm:"column:idc_name;type:varchar(128);not null;default:'';comment:'IDC名称'" json:"idc_name"`
 	//  IDC ID cc idc_id
 	IDCID int `gorm:"column:idc_id;type:int(11);not null;default:0;comment:'IDC ID'" json:"idc_id"`
+	// BkCloudRegion 云地域，CMDB 主机属性 bk_cloud_region
+	BkCloudRegion string `gorm:"column:bk_cloud_region;type:varchar(64);not null;default:'';comment:'云地域'" json:"bk_cloud_region"`
+	// BkCloudZone 云可用区，CMDB 主机属性 bk_cloud_zone
+	BkCloudZone string `gorm:"column:bk_cloud_zone;type:varchar(64);not null;default:'';comment:'云可用区'" json:"bk_cloud_zone"`
+	// BkCloudInstID 云主机实例 ID，CMDB 主机属性 bk_cloud_inst_id
+	BkCloudInstID string `gorm:"column:bk_cloud_inst_id;type:varchar(64);not null;default:'';comment:'云主机实例ID'" json:"bk_cloud_inst_id"`
 	//  存放机架ID,判断是否是同机架
 	RackID string `gorm:"column:rack_id;type:varchar(64);not null" json:"rack_id"`
 	//  网络设备ID, 判断是同交换机

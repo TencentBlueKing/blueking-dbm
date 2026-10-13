@@ -94,6 +94,9 @@ func InitCCClient() {
 		"bk_os_name",
 		"idc_id",
 		"idc_name",
+		"bk_cloud_region",
+		"bk_cloud_zone",
+		"bk_cloud_inst_id",
 	}
 }
 

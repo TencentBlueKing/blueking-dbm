@@ -287,6 +287,9 @@ func AsyncBkCmdbAttributes() (err error) {
 		if cmutil.IsNotEmpty(ccInfo.BkSvrOwnerAssetID) {
 			updates["bk_svr_owner_asset_id"] = ccInfo.BkSvrOwnerAssetID
 		}
+		for key, value := range cloudLocationUpdates(ccInfo) {
+			updates[key] = value
+		}
 		if ccInfo.BkDisk > 0 {
 			updates["total_storage_cap"] = ccInfo.BkDisk
 		}
@@ -364,6 +367,58 @@ func FlushNetDeviceInfo() (err error) {
 				}).Error
 			if err != nil {
 				logger.Warn("request cmdb api failed %s", err.Error())
+			}
+		}
+	}
+	return nil
+}
+
+// cloudLocationUpdates 取出 CMDB 云地域、云可用区、云主机实例 ID。空字符串不写入，避免覆盖库内已有值。
+func cloudLocationUpdates(host *cc.Host) map[string]interface{} {
+	updates := map[string]interface{}{}
+	if cmutil.IsNotEmpty(host.BkCloudRegion) {
+		updates["bk_cloud_region"] = host.BkCloudRegion
+	}
+	if cmutil.IsNotEmpty(host.BkCloudZone) {
+		updates["bk_cloud_zone"] = host.BkCloudZone
+	}
+	if cmutil.IsNotEmpty(host.BkCloudInstID) {
+		updates["bk_cloud_inst_id"] = host.BkCloudInstID
+	}
+	return updates
+}
+
+// SyncCloudLocation 按每台主机所属业务，从 CMDB 回刷云地域、云可用区和云主机实例 ID。
+func SyncCloudLocation() (err error) {
+	var rsList []model.TbRpDetail
+	err = model.DB.Self.Table(model.TbRpDetailName()).Select("ip", "bk_biz_id").Find(&rsList).Error
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		logger.Error("query resource list failed, err %w ", err)
+		return err
+	}
+	bizHostMap := make(map[int][]string)
+	for _, rs := range rsList {
+		bizHostMap[rs.BkBizId] = append(bizHostMap[rs.BkBizId], rs.IP)
+	}
+	for bizId, hosts := range bizHostMap {
+		ccInfos, _, queryErr := bk.BatchQueryHostsInfo(bizId, hosts)
+		if queryErr != nil {
+			logger.Warn("query cloud location from cmdb failed %s", queryErr.Error())
+			continue
+		}
+		for _, ccInfo := range ccInfos {
+			updates := cloudLocationUpdates(ccInfo)
+			if len(updates) == 0 {
+				continue
+			}
+			updateErr := model.DB.Self.Table(model.TbRpDetailName()).
+				Where("ip = ? and bk_biz_id = ?", ccInfo.InnerIP, bizId).
+				Updates(updates).Error
+			if updateErr != nil {
+				logger.Warn("update cloud location failed %s", updateErr.Error())
 			}
 		}
 	}

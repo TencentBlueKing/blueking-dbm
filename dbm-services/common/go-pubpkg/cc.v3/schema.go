@@ -75,6 +75,9 @@ type Host struct {
 	BkMem              int         `json:"bk_mem,omitempty"`
 	BkDisk             int         `json:"bk_disk"`
 	BkCloudId          int         `json:"bk_cloud_id"`
+	BkCloudRegion      string      `json:"bk_cloud_region,omitempty"`
+	BkCloudZone        string      `json:"bk_cloud_zone,omitempty"`
+	BkCloudInstID      string      `json:"bk_cloud_inst_id,omitempty"`
 	BkAgentId          string      `json:"bk_agent_id,omitempty"`
 	BkOsType           string      `json:"bk_os_type"`
 	BkOsVersion        string      `json:"bk_os_version"` // 操作系统版本
