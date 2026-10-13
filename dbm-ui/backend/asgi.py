@@ -11,8 +11,24 @@ specific language governing permissions and limitations under the License.
 
 import os
 
+from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
+from django.db.backends.mysql.features import DatabaseFeatures
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config")
+from blueking.mysql_patch import PatchFeatures
 
-application = get_asgi_application()
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.prod")
+
+DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
+
+django_asgi_app = get_asgi_application()
+
+from backend.db_services.dbbase.ws.middleware import DBMWebSocketAuthMiddleware  # noqa: E402
+from backend.db_services.dbbase.ws.routing import websocket_urlpatterns  # noqa: E402
+
+application = ProtocolTypeRouter(
+    {
+        "http": django_asgi_app,
+        "websocket": DBMWebSocketAuthMiddleware(URLRouter(websocket_urlpatterns)),
+    }
+)

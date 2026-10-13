@@ -74,6 +74,7 @@ from backend.db_services.dbbase.serializers import (
     QueryGlobalMachineSerializer,
     RemoveClusterTagKeysSerializer,
     ResourceAdministrationSerializer,
+    SupportWebconsoleModeResponseSerializer,
     UpdateClusterAliasSerializer,
     UpdateClusterTagsSerializer,
     WebConsoleResponseSerializer,
@@ -107,6 +108,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "verify_duplicated_cluster_name",
             "query_cluster_instance_count",
             "check_instances",
+            "support_webconsole_mode",
         ): [],
         (
             "simple_query_cluster",
@@ -575,6 +577,16 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询 WebConsole WebSocket 模式是否启用"),
+        responses={status.HTTP_200_OK: SupportWebconsoleModeResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def support_webconsole_mode(self, request):
+        # 仅返回部署配置，不探测 WS 服务，也不代表当前用户具备集群操作权限。
+        return Response({"http": env.ENABLE_WEBCONSOLE_HTTP, "websocket": env.ENABLE_WEBCONSOLE_WEBSOCKET})
 
     @common_swagger_auto_schema(
         operation_summary=_("webconsole查询"),

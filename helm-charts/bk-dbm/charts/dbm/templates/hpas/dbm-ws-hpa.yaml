@@ -1,0 +1,40 @@
+{{- if .Values.saas.ws.autoscaling.enabled }}
+apiVersion: {{ include "dbm.capabilities.hpa.apiVersion" (dict "context" .) }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dbm.dbm-ws.fullname" . }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dbm.dbm-ws.fullname" . }}
+  minReplicas: {{ .Values.saas.ws.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.saas.ws.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.saas.ws.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        {{- if semverCompare "<1.23-0" .Capabilities.KubeVersion.GitVersion }}
+        targetAverageUtilization: {{ .Values.saas.ws.autoscaling.targetCPUUtilizationPercentage }}
+        {{- else }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.saas.ws.autoscaling.targetCPUUtilizationPercentage }}
+        {{- end }}
+    {{- end }}
+    {{- if .Values.saas.ws.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        {{- if semverCompare "<1.23-0" .Capabilities.KubeVersion.GitVersion }}
+        targetAverageUtilization: {{ .Values.saas.ws.autoscaling.targetMemoryUtilizationPercentage }}
+        {{- else }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.saas.ws.autoscaling.targetMemoryUtilizationPercentage }}
+        {{- end }}
+    {{- end }}
+{{- end }}
