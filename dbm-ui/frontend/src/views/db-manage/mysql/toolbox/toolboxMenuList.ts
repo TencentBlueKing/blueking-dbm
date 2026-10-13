@@ -78,10 +78,10 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         name: t('构造'),
       },
       {
-        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
+        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK, TicketTypes.MYSQL_ROLLBACK_NEW_HOST],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        desc: t('在源集群回滚数据'),
-        id: TicketTypes.MYSQL_ROLLBACK,
+        desc: t('按备份记录或指定时间恢复数据'),
+        id: TicketTypes.MYSQL_ROLLBACK_NEW_HOST,
         name: t('回档'),
       },
     ],

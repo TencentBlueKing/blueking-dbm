@@ -174,6 +174,7 @@ const mysqlToolboxRouter = {
     }),
     createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档'), { dbConsole: 'mysql.toolbox.flashback' }),
     createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档'), { dbConsole: 'mysql.toolbox.flashback' }),
+    createRouteItem(TicketTypes.MYSQL_ROLLBACK_NEW_HOST, t('回档'), { dbConsole: 'mysql.toolbox.flashback' }),
     createRouteItem(TicketTypes.MYSQL_MIGRATE_SINGLE, t('单节点迁移'), { dbConsole: 'mysql.toolbox.migrateSingle' }),
     createRouteItem(TicketTypes.MYSQL_OPEN_AREA, t('开区模版'), { dbConsole: 'mysql.toolbox.openareaTemplate' }),
     createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级'), { dbConsole: 'mysql.toolbox.versionUpgrade' }), // 接入层升级
