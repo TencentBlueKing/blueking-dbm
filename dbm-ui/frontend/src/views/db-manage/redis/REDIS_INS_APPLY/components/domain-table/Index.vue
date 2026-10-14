@@ -41,6 +41,8 @@
   import { getRedisMachineList } from '@services/source/redis';
   import { checkDomainRepeat } from '@services/source/ticket.tsx';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx, ipv4 } from '@common/regex';
 
@@ -89,6 +91,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，域名只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const rules = {
     cluster_name: [
@@ -209,6 +213,7 @@
                   theme: 'light',
                   trigger: 'click',
                 }}
+                disabled={isAdjustApply}
                 maxlength={63}
                 model-value={domains.value[rowIndex]?.cluster_name}
                 show-word-limit
@@ -243,7 +248,7 @@
           <div class='table-custom-label'>
             {t('主访问入口')}
             <span class='required-mark'>*</span>
-            {tableData.value.length !== 0 && (
+            {tableData.value.length !== 0 && !isAdjustApply && (
               <span v-bk-tooltips={t('批量编辑')}>
                 <ClusterNameBatchEdit
                   appAbbr={props.appAbbr}
@@ -269,6 +274,7 @@
             label-width={0}
             property={`details.infos.${rowIndex}.databases`}>
             <db-input
+              disabled={isAdjustApply}
               max={16}
               min={2}
               model-value={domains.value[rowIndex]?.databases}
@@ -283,7 +289,7 @@
           <div class='table-custom-label'>
             Databases
             <span class='required-mark'>*</span>
-            {tableData.value.length !== 0 && (
+            {tableData.value.length !== 0 && !isAdjustApply && (
               <span v-bk-tooltips={t('批量编辑')}>
                 <DatabasesBatchEdit onChange={handleBatchDatabases} />
               </span>

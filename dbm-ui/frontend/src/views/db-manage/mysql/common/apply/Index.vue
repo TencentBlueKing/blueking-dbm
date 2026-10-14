@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="apply-instance">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -47,6 +48,7 @@
             <DbInput
               v-model="formData.details.start_proxy_port"
               class="inline-box"
+              :disabled="modifyState.isAdjustApply"
               :max="65535"
               :min="1025"
               type="number" />
@@ -59,6 +61,7 @@
             <DbInput
               v-model="formData.details.start_mysql_port"
               class="inline-box"
+              :disabled="modifyState.isAdjustApply"
               :max="65535"
               :min="1025"
               type="number" />
@@ -80,6 +83,7 @@
             <DbInput
               v-model="formData.details.cluster_count"
               class="inline-box"
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               :placeholder="t('请输入')"
               type="number"
@@ -93,6 +97,7 @@
             <DbInput
               v-model="formData.details.inst_num"
               class="inline-box"
+              :disabled="modifyState.isAdjustApply"
               :max="formData.details.cluster_count"
               :min="1"
               type="number"
@@ -315,6 +320,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -322,6 +328,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <div>
@@ -330,7 +337,7 @@
           :loading="baseState.isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
@@ -340,7 +347,7 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleResetFormdata"
-          :disabled="baseState.isSubmitting" />
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -374,6 +381,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { ComputedRef } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -396,6 +404,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -477,9 +487,10 @@
   });
 
   // 基础设置
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
 
-  useTicketDetail<Mysql.SingleApply>(TicketTypes.MYSQL_SINGLE_APPLY, {
+  const singleTicketDetail = useTicketDetail<Mysql.SingleApply>(TicketTypes.MYSQL_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
@@ -521,7 +532,8 @@
           },
         };
         Object.assign(formData.details, {
-          inst_num: details.domains.length / backend.count,
+          // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+          inst_num: details.inst_num || details.domains.length / backend.count,
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
@@ -538,7 +550,7 @@
     },
   });
 
-  useTicketDetail<Mysql.HaApply>(TicketTypes.MYSQL_HA_APPLY, {
+  const haTicketDetail = useTicketDetail<Mysql.HaApply>(TicketTypes.MYSQL_HA_APPLY, {
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
@@ -592,7 +604,8 @@
           },
         };
         Object.assign(formData.details, {
-          inst_num: details.domains.length / backendGroup.count,
+          // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+          inst_num: details.inst_num || details.domains.length / backendGroup.count,
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
@@ -933,6 +946,86 @@
   };
 
   /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = _.cloneDeep(formData.details);
+    const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+
+    // 单机架构无 Proxy，不上送负载均衡字段
+    if (isSingleType) {
+      delete details.apply_clb;
+    }
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+      if (isSingleType) {
+        return {
+          ...details,
+          resource_spec: {
+            backend: {
+              ...details.resource_spec.single,
+              ...specSingleRef.value.getData(),
+              ...regionAndDisasterParams,
+              count: hostNums.value,
+              label_names: details.resource_spec.single.labels.map((item: { value: string }) => item.value),
+              labels: details.resource_spec.single.labels.map((item: { id: number }) => String(item.id)),
+            },
+          },
+        };
+      }
+
+      return {
+        ...details,
+        // disaster_tolerance_level: affinity,
+        resource_spec: {
+          backend_group: {
+            ...details.resource_spec.backend,
+            ...specBackendRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Math.floor(hostNums.value / 2),
+            label_names: details.resource_spec.backend.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.backend.labels.map((item: { id: number }) => String(item.id)),
+          },
+          proxy: {
+            ...details.resource_spec.proxy,
+            ...specProxyRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: hostNums.value,
+            label_names: details.resource_spec.proxy.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.proxy.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      };
+    }
+
+    delete details.resource_spec;
+    return {
+      ...details,
+      // disaster_tolerance_level: affinity,
+      nodes: {
+        backend: formatNodes(formData.details.nodes.backend),
+        proxy: formatNodes(formData.details.nodes.proxy),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value || !regionRequirementsRef.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool') {
+      const specRefList = isSingleType ? [specSingleRef.value] : [specBackendRef.value, specProxyRef.value];
+      if (!specRefList.every(Boolean)) {
+        return false;
+      }
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
+  /**
    * 提交申请
    */
   const formRef = ref();
@@ -943,68 +1036,6 @@
       .catch(() => false);
     if (validate) {
       baseState.isSubmitting = true;
-
-      const getDetails = () => {
-        const details: Record<string, any> = _.cloneDeep(formData.details);
-        const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-
-        // 单机架构无 Proxy，不上送负载均衡字段
-        if (isSingleType) {
-          delete details.apply_clb;
-        }
-
-        if (formData.details.ip_source === 'resource_pool') {
-          delete details.nodes;
-          if (isSingleType) {
-            return {
-              ...details,
-              resource_spec: {
-                backend: {
-                  ...details.resource_spec.single,
-                  ...specSingleRef.value.getData(),
-                  ...regionAndDisasterParams,
-                  count: hostNums.value,
-                  label_names: details.resource_spec.single.labels.map((item: { value: string }) => item.value),
-                  labels: details.resource_spec.single.labels.map((item: { id: number }) => String(item.id)),
-                },
-              },
-            };
-          }
-
-          return {
-            ...details,
-            // disaster_tolerance_level: affinity,
-            resource_spec: {
-              backend_group: {
-                ...details.resource_spec.backend,
-                ...specBackendRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Math.floor(hostNums.value / 2),
-                label_names: details.resource_spec.backend.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.backend.labels.map((item: { id: number }) => String(item.id)),
-              },
-              proxy: {
-                ...details.resource_spec.proxy,
-                ...specProxyRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: hostNums.value,
-                label_names: details.resource_spec.proxy.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.proxy.labels.map((item: { id: number }) => String(item.id)),
-              },
-            },
-          };
-        }
-
-        delete details.resource_spec;
-        return {
-          ...details,
-          // disaster_tolerance_level: affinity,
-          nodes: {
-            backend: formatNodes(formData.details.nodes.backend),
-            proxy: formatNodes(formData.details.nodes.proxy),
-          },
-        };
-      };
 
       const params = {
         ...formData,
@@ -1024,6 +1055,11 @@
   };
 
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      (isSingleType ? singleTicketDetail : haTicketDetail)?.refresh();
+      return;
+    }
     _.merge(formData, getFormData());
     nextTick(() => {
       window.changeConfirm = false;

@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="spider-apply-instance-page">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -50,6 +51,7 @@
             <DbInput
               v-model="formData.details.spider_port"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :max="65535"
               :min="3306"
               style="width: 185px"
@@ -143,6 +145,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -150,6 +153,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -157,12 +161,12 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetFormdata"
-        :disabled="baseState.isSubmitting" />
+        :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -175,7 +179,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -197,6 +201,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import { checkDbConsole } from '@utils';
@@ -266,10 +272,11 @@
   });
 
   // 基础设置
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<TendbCluster.Apply>(TicketTypes.TENDBCLUSTER_APPLY, {
+  const applyTicketDetail = useTicketDetail<TendbCluster.Apply>(TicketTypes.TENDBCLUSTER_APPLY, {
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
@@ -299,13 +306,24 @@
       });
 
       if (details.ip_source === 'resource_pool') {
-        const { spider } = details.resource_spec!;
+        const { backend_group: backendGroup, spider } = details.resource_spec!;
+        const backendGroupLabels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: backendGroup.label_names[labelIndex],
+        }));
         const spiderLabels = (spider.labels || []).map((labelItem, labelIndex) => ({
           id: Number(labelItem),
           value: spider.label_names[labelIndex],
         }));
         const resourceSpec = {
-          backend_group: formData.details.resource_spec.backend_group,
+          backend_group: {
+            ...formData.details.resource_spec.backend_group,
+            capacity: backendGroup.capacity,
+            count: backendGroup.count,
+            future_capacity: backendGroup.future_capacity,
+            labels: backendGroupLabels,
+            spec_id: backendGroup.spec_id,
+          },
           spider: {
             count: spider.count,
             labels: spiderLabels,
@@ -317,6 +335,7 @@
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
+        specBackendRef.value?.setInitCustom(details.remote_shard_num);
         nextTick(() => {
           regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
@@ -390,51 +409,72 @@
 
   /** 重置表单 */
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      applyTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;
     });
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = _.cloneDeep(formData.details);
+    // 集群容量需求不需要提交
+    // delete details.resource_spec.backend_group.capacity;
+    // delete details.resource_spec.backend_group.future_capacity;
+
+    const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+    const specBackendInfo = specBackendRef.value!.getData();
+
+    return {
+      ...details,
+      cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
+      // disaster_tolerance_level: details.resource_spec.backend_group.affinity,
+      remote_shard_num: Number(specBackendInfo.cluster_shard_num) / specBackendInfo.machine_pair!,
+      resource_spec: {
+        backend_group: {
+          ...details.resource_spec.backend_group,
+          ...regionAndDisasterParams,
+          count: specBackendInfo.machine_pair,
+          label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+          labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
+          spec_info: specBackendInfo,
+        },
+        spider: {
+          ...details.resource_spec.spider,
+          ...specProxyRef.value.getData(),
+          ...regionAndDisasterParams,
+          count: Number(details.resource_spec.spider.count),
+          label_names: details.resource_spec.spider.labels.map((item: { value: string }) => item.value),
+          labels: details.resource_spec.spider.labels.map((item: { id: number }) => String(item.id)),
+        },
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (!regionRequirementsRef.value || !specBackendRef.value || !specProxyRef.value) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = async () => {
     await formRef.value?.validate();
 
     baseState.isSubmitting = true;
 
-    const getDetails = () => {
-      const details: Record<string, any> = _.cloneDeep(formData.details);
-      // 集群容量需求不需要提交
-      // delete details.resource_spec.backend_group.capacity;
-      // delete details.resource_spec.backend_group.future_capacity;
-
-      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-      const specBackendInfo = specBackendRef.value!.getData();
-
-      return {
-        ...details,
-        cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
-        // disaster_tolerance_level: details.resource_spec.backend_group.affinity,
-        remote_shard_num: Number(specBackendInfo.cluster_shard_num) / specBackendInfo.machine_pair!,
-        resource_spec: {
-          backend_group: {
-            ...details.resource_spec.backend_group,
-            ...regionAndDisasterParams,
-            count: specBackendInfo.machine_pair,
-            label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
-            labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
-            spec_info: specBackendInfo,
-          },
-          spider: {
-            ...details.resource_spec.spider,
-            ...specProxyRef.value.getData(),
-            ...regionAndDisasterParams,
-            count: Number(details.resource_spec.spider.count),
-            label_names: details.resource_spec.spider.labels.map((item: { value: string }) => item.value),
-            labels: details.resource_spec.spider.labels.map((item: { id: number }) => String(item.id)),
-          },
-        },
-      };
-    };
     const params = {
       ...formData,
       config: {

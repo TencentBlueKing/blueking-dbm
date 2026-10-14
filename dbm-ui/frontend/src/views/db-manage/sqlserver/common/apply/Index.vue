@@ -1,6 +1,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="apply-sqlserver-instance">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -34,6 +35,7 @@
             <DbInput
               v-model="formData.details.start_mssql_port"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               :max="65535"
               :min="1025"
               type="number" />
@@ -46,6 +48,7 @@
             <DbInput
               v-model="formData.details.cluster_count"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               :placeholder="t('请输入')"
               type="number" />
@@ -57,6 +60,7 @@
             <DbInput
               v-model="formData.details.inst_num"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               :max="Math.max(formData.details.cluster_count, 1)"
               :min="1"
               type="number" />
@@ -179,6 +183,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -186,6 +191,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <div>
@@ -194,7 +200,7 @@
           :loading="baseState.isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
@@ -205,7 +211,7 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleResetFormdata"
-          :disabled="baseState.isSubmitting" />
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -240,7 +246,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -261,6 +267,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -270,11 +278,12 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
 
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
+  const singleTicketDetail = useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -317,7 +326,8 @@
         };
         const subzoneIds = details.resource_spec!.backend.location_spec.sub_zone_ids || [];
         Object.assign(formData.details, {
-          inst_num: details.domains.length / backend.count,
+          // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+          inst_num: details.inst_num || details.domains.length / backend.count,
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
@@ -334,7 +344,7 @@
     },
   });
 
-  useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, {
+  const haTicketDetail = useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -377,7 +387,8 @@
         };
         const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
         Object.assign(formData.details, {
-          inst_num: details.domains.length / backendGroup.count,
+          // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+          inst_num: details.inst_num || details.domains.length / backendGroup.count,
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
@@ -627,42 +638,58 @@
     }));
 
   /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const { details } = formData;
+
+    const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
+    if (details.ip_source === 'resource_pool') {
+      return {
+        ...details,
+        nodes: undefined,
+        resource_spec: {
+          [resourceSpecKey]: {
+            ...specBackendRef.value!.getData(),
+            ...regionRequirementsRef.value!.getValue(),
+            count: resourceSpecbackendGroupCount.value,
+            label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
+            spec_cluster_type: clusterType,
+            spec_id: details.resource_spec.backend_group.spec_id,
+            spec_machine_type: clusterType,
+          },
+        },
+      };
+    }
+
+    return {
+      ...details,
+      nodes: {
+        backend: formatNodes(details.nodes.backend),
+      },
+      resource_spec: undefined,
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool' && (!specBackendRef.value || !regionRequirementsRef.value)) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
+  /**
    * 提交申请
    */
   const handleSubmit = async () => {
     await formRef.value.validate();
     baseState.isSubmitting = true;
-    const getDetails = () => {
-      const { details } = formData;
-
-      const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
-      if (details.ip_source === 'resource_pool') {
-        return {
-          ...details,
-          nodes: undefined,
-          resource_spec: {
-            [resourceSpecKey]: {
-              ...specBackendRef.value!.getData(),
-              ...regionRequirementsRef.value!.getValue(),
-              count: resourceSpecbackendGroupCount.value,
-              label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
-              spec_cluster_type: clusterType,
-              spec_id: details.resource_spec.backend_group.spec_id,
-              spec_machine_type: clusterType,
-            },
-          },
-        };
-      }
-
-      return {
-        ...details,
-        nodes: {
-          backend: formatNodes(details.nodes.backend),
-        },
-        resource_spec: undefined,
-      };
-    };
     const params = {
       ...formData,
       config: {
@@ -682,6 +709,11 @@
    * 重置表单
    */
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      (isSingleType ? singleTicketDetail : haTicketDetail)?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;

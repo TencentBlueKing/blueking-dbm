@@ -319,6 +319,13 @@
 
       return customSchemaRef.value?.getInfo();
     },
+    // 单据没有保存部署方案的选择，回填时按自定义方案还原：规格、组数、标签随 modelValue 回填，单机分片数等自定义方案挂载后补上
+    setInitCustom(shardNum: number) {
+      applySchema.value = APPLY_SCHEME.CUSTOM;
+      nextTick(() => {
+        customSchemaRef.value?.setShardNum(shardNum);
+      });
+    },
   });
 </script>
 

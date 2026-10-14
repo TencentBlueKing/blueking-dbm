@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="redis-cluster-apply mb-16">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         class="apply-form"
@@ -47,6 +48,7 @@
             required>
             <BkRadioGroup
               v-model="formData.details.cluster_type"
+              :disabled="modifyState.isAdjustApply"
               @change="handleChangeClusterType">
               <BkPopover
                 v-for="item of renderRedisClusterTypes"
@@ -95,6 +97,7 @@
             <DbInput
               v-model="formData.details.proxy_port"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :max="60000"
               :min="50000"
               style="width: 185px"
@@ -322,12 +325,14 @@
                     :required="false">
                     <BkCheckbox
                       v-model="formData.details.apply_clb"
-                      v-db-console="'common.clb'">
+                      v-db-console="'common.clb'"
+                      :disabled="modifyState.isAdjustApply">
                       CLB
                     </BkCheckbox>
                     <BkCheckbox
                       v-model="formData.details.apply_polaris"
-                      v-db-console="'common.polaris'">
+                      v-db-console="'common.polaris'"
+                      :disabled="modifyState.isAdjustApply">
                       {{ t('北极星') }}
                     </BkCheckbox>
                   </BkFormItem>
@@ -364,6 +369,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -371,6 +377,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -383,12 +390,12 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetFormdata"
-        :disabled="baseState.isSubmitting" />
+        :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -409,7 +416,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -437,6 +444,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
@@ -458,7 +467,8 @@
   };
 
   // 基础设置
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
   const { t } = useI18n();
   const funControllerStore = useFunController();
@@ -467,7 +477,7 @@
 
   const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
 
-  useTicketDetail<Redis.ClusterApply>(TicketTypes.REDIS_CLUSTER_APPLY, {
+  const clusterTicketDetail = useTicketDetail<Redis.ClusterApply>(TicketTypes.REDIS_CLUSTER_APPLY, {
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
@@ -495,6 +505,8 @@
         disaster_tolerance_level: details.disaster_tolerance_level,
         ip_source: details.ip_source,
         proxy_port: details.proxy_port,
+        // 后端保存了访问密码；不回填时改单要重新输入，还会多出一项变更
+        proxy_pwd: details.proxy_pwd,
       });
 
       if (details.ip_source === 'resource_pool') {
@@ -510,7 +522,9 @@
         const resourceSpec = {
           backend_group: {
             ...formData.details.resource_spec.backend_group,
+            count: backendGroup.count,
             labels: backendGroupLabels,
+            spec_id: backendGroup.spec_id,
           },
           proxy: {
             count: proxy.count,
@@ -523,6 +537,8 @@
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
+        // 集群容量需求不保存，后端存储无法按自动推荐方案还原，统一按自定义方案还原；缺少方案明细时单机分片数留空待填
+        specBackendRef.value?.setInitCustom((backendGroup.spec_info?.cluster_shard_num ?? 0) / backendGroup.count);
         nextTick(() => {
           regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
@@ -836,6 +852,11 @@
 
   /** 重置表单 */
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      clusterTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;
@@ -946,60 +967,77 @@
     isShowRecommendArchitectrue.value = true;
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = _.cloneDeep(formData.details);
+    const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+      // 集群容量需求不需要提交
+      delete details.resource_spec.backend_group.capacity;
+      delete details.resource_spec.backend_group.future_capacity;
+
+      const specBackendInfo = specBackendRef.value.getData();
+      return {
+        ...details,
+        cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
+        // disaster_tolerance_level: affinity,
+        resource_spec: {
+          backend_group: {
+            ...details.resource_spec.backend_group,
+            ...regionAndDisasterParams,
+            count: Number(specBackendInfo.machine_pair),
+            label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
+            spec_info: specBackendInfo,
+          },
+          proxy: {
+            ...details.resource_spec.proxy,
+            ...specProxyRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.proxy.count),
+            label_names: details.resource_spec.proxy.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.proxy.labels.map((item: { id: number }) => String(item.id)),
+            spec_cluster_type: typeInfos.value.cluster_type,
+            spec_machine_type: typeInfos.value.machine_type,
+          },
+        },
+      };
+    }
+
+    delete details.resource_spec;
+    return {
+      ...details,
+      // disaster_tolerance_level: affinity,
+      nodes: {
+        master: formatNodes(formData.details.nodes.master),
+        proxy: formatNodes(formData.details.nodes.proxy),
+        slave: formatNodes(formData.details.nodes.slave),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value || !regionRequirementsRef.value) {
+      return false;
+    }
+    // 后端存储的自定义方案组件随方案切换挂载，挂载前 getData 返回空
+    if (formData.details.ip_source === 'resource_pool' && (!specProxyRef.value || !specBackendRef.value?.getData())) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = async () => {
     await formRef.value?.validate();
 
     baseState.isSubmitting = true;
 
-    const getDetails = () => {
-      const details: Record<string, any> = _.cloneDeep(formData.details);
-      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-
-      if (formData.details.ip_source === 'resource_pool') {
-        delete details.nodes;
-        // 集群容量需求不需要提交
-        delete details.resource_spec.backend_group.capacity;
-        delete details.resource_spec.backend_group.future_capacity;
-
-        const specBackendInfo = specBackendRef.value.getData();
-        return {
-          ...details,
-          cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
-          // disaster_tolerance_level: affinity,
-          resource_spec: {
-            backend_group: {
-              ...details.resource_spec.backend_group,
-              ...regionAndDisasterParams,
-              count: Number(specBackendInfo.machine_pair),
-              label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
-              spec_info: specBackendInfo,
-            },
-            proxy: {
-              ...details.resource_spec.proxy,
-              ...specProxyRef.value.getData(),
-              ...regionAndDisasterParams,
-              count: Number(details.resource_spec.proxy.count),
-              label_names: details.resource_spec.proxy.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.proxy.labels.map((item: { id: number }) => String(item.id)),
-              spec_cluster_type: typeInfos.value.cluster_type,
-              spec_machine_type: typeInfos.value.machine_type,
-            },
-          },
-        };
-      }
-
-      delete details.resource_spec;
-      return {
-        ...details,
-        // disaster_tolerance_level: affinity,
-        nodes: {
-          master: formatNodes(formData.details.nodes.master),
-          proxy: formatNodes(formData.details.nodes.proxy),
-          slave: formatNodes(formData.details.nodes.slave),
-        },
-      };
-    };
     const params = {
       ...formData,
       config: {

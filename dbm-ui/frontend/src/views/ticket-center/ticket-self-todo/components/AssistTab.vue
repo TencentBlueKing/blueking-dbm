@@ -59,6 +59,7 @@
 
     return (
       ticketCount.value.pending.APPROVE +
+      ticketCount.value.pending.CONFIRM_PENDING +
       ticketCount.value.pending.FAILED +
       ticketCount.value.pending.RESOURCE_REPLENISH +
       ticketCount.value.pending.INNER_TODO +
@@ -73,6 +74,7 @@
 
     return (
       ticketCount.value.to_help.APPROVE +
+      ticketCount.value.to_help.CONFIRM_PENDING +
       ticketCount.value.to_help.FAILED +
       ticketCount.value.to_help.RESOURCE_REPLENISH +
       ticketCount.value.to_help.INNER_TODO +

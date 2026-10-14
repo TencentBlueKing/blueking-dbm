@@ -91,6 +91,9 @@
   const handleRevoke = () =>
     batchProcessTicket({
       action: 'TERMINATE',
+      params: {
+        versions: { [props.data.id]: props.data.version },
+      },
       ticket_ids: [props.data.id],
     }).then(() => {
       eventBus.emit('refreshTicketStatus');

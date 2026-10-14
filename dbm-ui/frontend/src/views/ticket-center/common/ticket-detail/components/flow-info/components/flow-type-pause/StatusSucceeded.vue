@@ -1,6 +1,7 @@
 <template>
   <StatusSucceeded
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template #title>
       <I18nT
@@ -13,12 +14,14 @@
       <TodoList
         v-if="data.todos.length > 0"
         :data="data.todos"
-        :flow-data="data" />
+        :flow-data="data"
+        :modify-records="modifyRecords" />
     </template>
   </StatusSucceeded>
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import StatusSucceeded from '../flow-type-common/StatusSucceeded.vue';
@@ -26,6 +29,7 @@
 
   interface Props {
     data: FlowMode;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<any>;
   }
 

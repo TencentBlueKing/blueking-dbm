@@ -19,6 +19,7 @@
     <DbSelect
       class="item-input"
       :clearable="false"
+      :disabled="isAdjustApply"
       filterable
       :input-search="false"
       :loading="isLoading"
@@ -92,6 +93,8 @@
 
   import { createGroup, getGroupList } from '@services/source/influxdbGroup';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { clusterNameSymbolRegx } from '@common/regex';
 
   interface Emits {
@@ -115,6 +118,8 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  // 调整申请模式只放开资源申请条件，分组只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   let isInit = true;
   const localGroupId = ref<number | string>('');

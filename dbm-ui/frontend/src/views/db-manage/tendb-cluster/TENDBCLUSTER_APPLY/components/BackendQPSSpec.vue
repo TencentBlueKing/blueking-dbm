@@ -439,7 +439,10 @@
   watch(
     () => sliderProps.value,
     _.debounce(() => {
-      modelValue.value.spec_id = '';
+      // 自定义方案的规格不从推荐列表里选，回填容量触发的 QPS 范围刷新不能把它清掉
+      if (applyType.value === 'auto') {
+        modelValue.value.spec_id = '';
+      }
       if (sliderProps.value[1] > 0) {
         fetchFilterClusterSpec();
       } else {
@@ -526,6 +529,11 @@
         };
       }
       return {};
+    },
+    // 单据没有保存部署方案的选择，回填时按自定义方案还原：规格、组数随 modelValue 回填，单机分片数在这里补上
+    setInitCustom(remoteShardNum: number) {
+      applyType.value = 'custom';
+      shardNum.value = remoteShardNum;
     },
   });
 </script>

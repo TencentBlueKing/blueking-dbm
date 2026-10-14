@@ -27,13 +27,21 @@
     <div
       v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
       class="mt-12">
-      <ProcessResourceReplenish :todo-data="data">
+      <ProcessResourceReplenish
+        :data="ticketData"
+        :todo-data="data">
         <BkButton
           class="w-88"
           theme="primary">
           {{ t('重试') }}
         </BkButton>
       </ProcessResourceReplenish>
+      <BkButton
+        v-if="isTicketModifiable(ticketData.ticket_type)"
+        class="w-88 ml-8"
+        @click="handleAdjustApply">
+        {{ t('调整申请') }}
+      </BkButton>
     </div>
   </div>
 </template>
@@ -41,6 +49,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import { useUserProfile } from '@stores';
@@ -48,6 +57,8 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import ProcessResourceReplenish from '@views/ticket-center/common/action-confirm/ProcessResourceReplenish.vue';
+  import { isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
+  import useOpenTicketModify from '@views/ticket-center/common/ticket-modify/useOpenTicketModify';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
@@ -57,8 +68,14 @@
     ticketData: TicketModel;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
+  const openTicketModify = useOpenTicketModify();
+
+  // 调整申请与「重试」同权，入口放在同一个可见块里
+  const handleAdjustApply = () => {
+    openTicketModify(props.ticketData, TicketModifyRecordModel.MODE_ADJUST_APPLY);
+  };
 </script>

@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="apply-instance">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -39,6 +40,7 @@
             <DbSelect
               v-model="formData.details.db_version"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               filterable
               :input-search="false"
               :loading="getVersionsLoading">
@@ -56,6 +58,7 @@
             <DbInput
               v-model="formData.details.start_port"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :max="28999"
               :min="27000"
               show-clear-only-hover
@@ -70,6 +73,7 @@
             <DbInput
               v-model="formData.details.replica_count"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -82,6 +86,7 @@
             <DbInput
               v-model="formData.details.node_replica_count"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -163,6 +168,7 @@
             <DbInput
               v-model="formData.details.oplog_percent"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -186,6 +192,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -193,6 +200,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -200,12 +208,12 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetFormdata"
-        :disabled="baseState.isSubmitting" />
+        :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -217,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -238,6 +246,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import DomainTable from './components/DomainTable.vue';
@@ -290,10 +300,11 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Mongodb.ReplicasetApply>(TicketTypes.MONGODB_REPLICASET_APPLY, {
+  const replicasetTicketDetail = useTicketDetail<Mongodb.ReplicasetApply>(TicketTypes.MONGODB_REPLICASET_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -439,37 +450,58 @@
   };
 
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      replicasetTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;
     });
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const { details } = formData;
+    return {
+      ...details,
+      resource_spec: {
+        mongo_machine_set: {
+          // spec_id: details.resource_spec.spec_id,
+          ...specRef.value!.getData(),
+          ...regionRequirementsRef.value!.getValue(),
+          count: details.node_count,
+          label_names: details.resource_spec.mongo_machine_set.labels.map((item: { value: string }) => item.value),
+          labels: details.resource_spec.mongo_machine_set.labels.map((item: { id: number }) => String(item.id)),
+        },
+      },
+      spec_id: details.resource_spec.mongo_machine_set.spec_id,
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value || !specRef.value || !regionRequirementsRef.value) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = async () => {
     await formRef.value!.validate();
 
     baseState.isSubmitting = true;
 
-    const { details } = formData;
     const params = {
       ...formData,
       config: {
         send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
       },
-      details: {
-        ...details,
-        resource_spec: {
-          mongo_machine_set: {
-            // spec_id: details.resource_spec.spec_id,
-            ...specRef.value!.getData(),
-            ...regionRequirementsRef.value!.getValue(),
-            count: details.node_count,
-            label_names: details.resource_spec.mongo_machine_set.labels.map((item: { value: string }) => item.value),
-            labels: details.resource_spec.mongo_machine_set.labels.map((item: { id: number }) => String(item.id)),
-          },
-        },
-        spec_id: details.resource_spec.mongo_machine_set.spec_id,
-      },
+      details: getDetails(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据

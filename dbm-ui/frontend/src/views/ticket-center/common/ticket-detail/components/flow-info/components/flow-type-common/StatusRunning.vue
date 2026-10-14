@@ -17,7 +17,8 @@
         <TodoList
           v-if="renderTodoList.length > 0"
           :data="renderTodoList"
-          :flow-data="data" />
+          :flow-data="data"
+          :modify-records="modifyRecords" />
         <span v-else>
           <I18nT
             keypath="m_耗时_t"
@@ -38,6 +39,10 @@
           </template>
         </span>
       </slot>
+      <ModifyRecordList
+        :flow-id="data.id"
+        :modify-records="modifyRecords"
+        :ticket-detail="ticketDetail" />
       <RenderErrorMessage
         v-if="data.err_msg"
         :data="data"
@@ -55,6 +60,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
@@ -65,10 +71,12 @@
   import TodoList from '../todo-list/Index.vue';
 
   import Abstract from './components/abstract/Index.vue';
+  import ModifyRecordList from './components/ModifyRecordList.vue';
   import RenderErrorMessage from './components/render-error-message/Index.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<unknown>;
   }
 

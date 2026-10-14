@@ -1,6 +1,7 @@
 <template>
   <StatusSucceeded
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template #title>
       {{ data.flow_type_display }}
@@ -9,7 +10,8 @@
       <TodoList
         v-if="data.todos.length > 0"
         :data="data.todos"
-        :flow-data="data" />
+        :flow-data="data"
+        :modify-records="modifyRecords" />
       <span v-else>
         <I18nT
           keypath="m_耗时_t"
@@ -31,6 +33,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import { useEventBus } from '@hooks';
@@ -46,6 +49,7 @@
 
   interface Props {
     data: FlowMode;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<any>;
   }
 
