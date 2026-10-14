@@ -1,6 +1,7 @@
 <template>
   <StatusSucceeded
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template #content>
       <I18nT
@@ -41,6 +42,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -59,6 +61,7 @@
         status: string;
       }
     >;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel;
   }
 

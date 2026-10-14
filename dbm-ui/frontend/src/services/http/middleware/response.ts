@@ -35,7 +35,8 @@ const redirectLogin = (loginUrl: string) => {
       loginUrl: `${domain}?is_from_logout=1&c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_STATIC_PATH}login-success.html`)}`,
     });
   } else {
-    window.location.href = `${domain}?is_from_logout=1&c_url=${decodeURIComponent(window.location.href)}`;
+    // 回跳地址必须编码，否则其中第一个 & 之后的参数会被当成登录页的参数丢掉
+    window.location.href = `${domain}?is_from_logout=1&c_url=${encodeURIComponent(window.location.href)}`;
   }
 };
 
@@ -127,7 +128,10 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
       case 8718002:
         break;
       default:
-        if (!error.response.config.payload.catchError) {
+        if (
+          !error.response.config.payload.catchError &&
+          !error.response.config.payload.catchErrorCodes?.includes(Number(error.code))
+        ) {
           messageError(error.message);
         }
     }

@@ -221,7 +221,10 @@
   const { t } = useI18n();
 
   const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
-  const backendGroupSpec = props.ticketDetails.details.resource_spec.backend_group.spec_info;
+  // 手动部署的单据没有 resource_spec，模板里规格展示仅在资源池部署分支渲染
+  const backendGroupSpec =
+    props.ticketDetails.details.resource_spec?.backend_group?.spec_info ??
+    ({} as Redis.ClusterApply['resource_spec']['backend_group']['spec_info']);
 
   const previewState = reactive({
     isShow: false,

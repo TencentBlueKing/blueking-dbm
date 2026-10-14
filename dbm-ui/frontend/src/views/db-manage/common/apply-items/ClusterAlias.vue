@@ -21,7 +21,7 @@
       v-model="modelValue"
       class="item-input"
       clearable
-      :disabled="!bizId"
+      :disabled="!bizId || isAdjustApply"
       :maxlength="100"
       :placeholder="t('请输入集群别名')"
       show-word-limit />
@@ -33,6 +33,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { useTicketModifyState } from '@hooks';
 
   // import { verifyDuplicatedClusterName } from '@services/source/dbbase';
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
@@ -48,6 +50,8 @@
   const modelValue = defineModel<string>();
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const rules = [
     {

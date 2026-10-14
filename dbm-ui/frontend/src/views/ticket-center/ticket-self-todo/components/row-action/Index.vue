@@ -9,6 +9,7 @@
   import StatusApprove from './StatusApprove.vue';
   import StatusFailed from './StatusFailed.vue';
   import StatusInnerTodo from './StatusInnerTodo.vue';
+  import StatusModifyConfirm from './StatusModifyConfirm.vue';
   import StatusResourceReplenish from './StatusResourceReplenish.vue';
   import StatusTimer from './StatusTimer.vue';
   import StatusTodo from './StatusTodo.vue';
@@ -21,6 +22,7 @@
 
   const comMap = {
     [TicketModel.STATUS_APPROVE]: StatusApprove,
+    [TicketModel.STATUS_CONFIRM_PENDING]: StatusModifyConfirm,
     [TicketModel.STATUS_FAILED]: StatusFailed,
     [TicketModel.STATUS_INNER_TODO]: StatusInnerTodo,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenish,

@@ -27,6 +27,11 @@
         :data="todoItem"
         :flow-data="flowData"
         :ticket-data="ticketData" />
+      <TypeConfirmModify
+        :data="todoItem"
+        :flow-data="flowData"
+        :modify-records="modifyRecords"
+        :ticket-data="ticketData" />
     </template>
   </div>
 </template>
@@ -34,9 +39,11 @@
   import { useRequest } from 'vue-request';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import { getTicketDetails } from '@services/source/ticket';
 
   import TypeApprove from './type-approve/Index.vue';
+  import TypeConfirmModify from './type-confirm-modify/Index.vue';
   import TypeInnerApprove from './type-inner-approve/Index.vue';
   import TypeItsm from './type-itsm/Index.vue';
   import TypeResourceHCMReplenish from './type-resource-hcm-replenish/Index.vue';
@@ -46,6 +53,7 @@
   interface Props {
     data: FlowMode['todos'];
     flowData: FlowMode<any, any, any>;
+    modifyRecords: TicketModifyRecordModel[];
   }
 
   const props = defineProps<Props>();

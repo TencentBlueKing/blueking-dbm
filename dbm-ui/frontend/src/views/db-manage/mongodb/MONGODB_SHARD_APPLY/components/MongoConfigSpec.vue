@@ -15,6 +15,7 @@
   <div class="mongo-config-spec">
     <ApplySchema
       v-model="applySchema"
+      :disabled="isAdjustApply"
       @change="handleApplySchemaChange" />
     <template v-if="applySchema === APPLY_SCHEME.AUTO">
       <BkFormItem
@@ -23,6 +24,7 @@
         required>
         <DbInput
           v-model="modelValue.capacity"
+          :disabled="isAdjustApply"
           :min="0"
           type="number"
           @change="handleCapacityChange" />
@@ -74,6 +76,7 @@
                   :key="index"
                   v-model="modelValue.spec_id"
                   class="spec-radio"
+                  :disabled="isAdjustApply"
                   :label="data.spec_id"
                   @click="() => handleRowClick({ row: data })">
                   <div
@@ -193,6 +196,7 @@
         required>
         <DbInput
           v-model="modelValue.shard_node_count"
+          :disabled="isAdjustApply"
           :min="0"
           type="number" />
       </BkFormItem>
@@ -202,6 +206,7 @@
         required>
         <DbInput
           v-model="modelValue.shards_num"
+          :disabled="isAdjustApply"
           :min="0"
           type="number" />
       </BkFormItem>
@@ -211,6 +216,7 @@
         required>
         <DbInput
           v-model="modelValue.shard_machine_group"
+          :disabled="isAdjustApply"
           :min="0"
           type="number" />
         <span class="input-desc">{{ t('组') }}</span>
@@ -257,6 +263,8 @@
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
+
+  import { useTicketModifyState } from '@hooks';
 
   import { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 
@@ -310,6 +318,8 @@
   const specData = defineModel<ReturnType<ComponentExposed<typeof SpecSelector>['getData']>>('specData');
 
   const { t } = useI18n();
+  // 调整申请模式只放开规格、标签与机器组数，每个 Shard 节点数与集群 Shard 数（分片拓扑）只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const specRef = useTemplateRef('specRef');
   const specSelectorRef = useTemplateRef('specSelectorRef');
@@ -446,6 +456,10 @@
   fetchFilterClusterSpec();
 
   const handleRowClick = ({ row }: { row: TableRowData }) => {
+    // 调整申请只能改规格与资源标签：自动推荐方案的一行同时决定规格与组数，选行会连带改数量，整张方案表只读
+    if (isAdjustApply) {
+      return;
+    }
     Object.assign(modelValue.value, {
       count: row.machine_num,
       shard_machine_group: row.machine_pair,

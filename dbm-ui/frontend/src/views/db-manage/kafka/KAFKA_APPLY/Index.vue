@@ -15,6 +15,7 @@
   <SmartAction
     class="apply-kafka-page"
     :offset-target="getSmartActionOffsetTarget">
+    <TicketModifyAlert />
     <DbForm
       ref="formRef"
       auto-label-width
@@ -58,6 +59,7 @@
           <DbInput
             v-model="formData.details.port"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             show-clear-only-hover
             style="width: 185px"
@@ -70,7 +72,9 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formData.details.ip_source">
+          <BkRadioGroup
+            v-model="formData.details.ip_source"
+            :disabled="modifyState.isAdjustApply">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -228,6 +232,7 @@
                   required>
                   <DbInput
                     v-model="formData.details.resource_spec.broker.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="1"
                     type="number" />
                 </BkFormItem>
@@ -252,6 +257,7 @@
           <DbInput
             v-model="formData.details.partition_num"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             show-clear-only-hover
             style="width: 185px"
@@ -264,6 +270,7 @@
           <DbInput
             v-model="formData.details.retention_hours"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             show-clear-only-hover
             style="width: 185px"
@@ -279,6 +286,7 @@
           <DbInput
             v-model="formData.details.retention_bytes"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="-1"
             show-clear-only-hover
             style="width: 185px"
@@ -294,6 +302,7 @@
           <DbInput
             v-model="formData.details.replication_num"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             show-clear-only-hover
             style="width: 185px"
@@ -328,6 +337,7 @@
           property="remark">
           <DbInput
             v-model="formData.remark"
+            :disabled="modifyState.isAdjustApply"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -335,6 +345,7 @@
         </BkFormItem>
       </DbCard>
     </DbForm>
+    <TicketModifyRemark />
     <template #action>
       <div>
         <BkButton
@@ -342,12 +353,13 @@
           style="width: 88px"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
-          :disabled="baseState.isSubmitting" />
+          :content="modifyState.resetContent"
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -360,7 +372,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { inject, reactive } from 'vue';
+  import { type ComputedRef, inject, reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -382,6 +394,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -389,7 +403,7 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  useTicketDetail<Kafka.Apply>(TicketTypes.KAFKA_APPLY, {
+  const kafkaTicketDetail = useTicketDetail<Kafka.Apply>(TicketTypes.KAFKA_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -398,9 +412,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -437,6 +451,10 @@
           });
         }, {});
         const subzoneIds = details.resource_spec!.zookeeper.location_spec.sub_zone_ids || [];
+        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
+        if (subzoneIds.length > 0) {
+          formData.details.disaster_tolerance_level = Affinity.NONE;
+        }
         Object.assign(formData.details, {
           resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
           sub_zone_ids: subzoneIds,
@@ -582,7 +600,8 @@
     { deep: true, flush: 'post' },
   );
 
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   const zookeeperDisableDialogSubmitMethod = (hostList: Array<any>) =>
@@ -637,56 +656,75 @@
     formData.details.nodes.broker = formatIpData(data);
   };
 
+  const mapIpField = (ipList: Array<HostInfo>) =>
+    ipList.map((item) => ({
+      bk_biz_id: item.biz.id,
+      bk_cloud_id: item.cloud_area.id,
+      bk_host_id: item.host_id,
+      ip: item.ip,
+    }));
+
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = _.cloneDeep(formData.details);
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+      return {
+        ...details,
+        resource_spec: {
+          broker: {
+            ...details.resource_spec.broker,
+            ...specBrokerRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.broker.count),
+            label_names: details.resource_spec.broker.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.broker.labels.map((item: { id: number }) => String(item.id)),
+          },
+          zookeeper: {
+            ...details.resource_spec.zookeeper,
+            ...specZookeeperRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.zookeeper.count),
+            label_names: details.resource_spec.zookeeper.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.zookeeper.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      };
+    }
+
+    delete details.resource_spec;
+    return {
+      ...details,
+      nodes: {
+        broker: mapIpField(formData.details.nodes.broker),
+        zookeeper: mapIpField(formData.details.nodes.zookeeper),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool') {
+      const specRefList = [specBrokerRef.value, specZookeeperRef.value];
+      if (!regionRequirementsRef.value || !specRefList.every(Boolean)) {
+        return false;
+      }
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   // 提交
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: Array<HostInfo>) =>
-        ipList.map((item) => ({
-          bk_biz_id: item.biz.id,
-          bk_cloud_id: item.cloud_area.id,
-          bk_host_id: item.host_id,
-          ip: item.ip,
-        }));
-
-      const getDetails = () => {
-        const details: Record<string, any> = _.cloneDeep(formData.details);
-
-        if (formData.details.ip_source === 'resource_pool') {
-          delete details.nodes;
-          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-          return {
-            ...details,
-            resource_spec: {
-              broker: {
-                ...details.resource_spec.broker,
-                ...specBrokerRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.broker.count),
-                label_names: details.resource_spec.broker.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.broker.labels.map((item: { id: number }) => String(item.id)),
-              },
-              zookeeper: {
-                ...details.resource_spec.zookeeper,
-                ...specZookeeperRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.zookeeper.count),
-                label_names: details.resource_spec.zookeeper.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.zookeeper.labels.map((item: { id: number }) => String(item.id)),
-              },
-            },
-          };
-        }
-
-        delete details.resource_spec;
-        return {
-          ...details,
-          nodes: {
-            broker: mapIpField(formData.details.nodes.broker),
-            zookeeper: mapIpField(formData.details.nodes.zookeeper),
-          },
-        };
-      };
 
       const params = {
         ...formData,
@@ -706,6 +744,11 @@
 
   // 重置表单
   const handleReset = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      kafkaTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, genDefaultFormData());
     formRef.value.clearValidate();
     nextTick(() => {

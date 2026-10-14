@@ -1,6 +1,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="apply-sqlserver-instance">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -34,6 +35,7 @@
             <DbInput
               v-model="formData.details.start_mssql_port"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               :max="65535"
               :min="1025"
               type="number" />
@@ -46,6 +48,7 @@
             <DbInput
               v-model="formData.details.cluster_count"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               :placeholder="t('请输入')"
               type="number" />
@@ -57,6 +60,7 @@
             <DbInput
               v-model="formData.details.inst_num"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               :max="Math.max(formData.details.cluster_count, 1)"
               :min="1"
               type="number" />
@@ -79,6 +83,7 @@
             required>
             <BkRadioGroup
               v-model="formData.details.ip_source"
+              :disabled="modifyState.isAdjustApply"
               class="item-input">
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
@@ -179,6 +184,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -186,6 +192,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <div>
@@ -194,7 +201,7 @@
           :loading="baseState.isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
@@ -205,7 +212,8 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleResetFormdata"
-          :disabled="baseState.isSubmitting" />
+          :content="modifyState.resetContent"
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -240,12 +248,12 @@
 </template>
 
 <script setup lang="tsx">
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import type { Sqlserver } from '@services/model/ticket/ticket';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase, useTicketDetail } from '@hooks';
@@ -261,6 +269,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -270,131 +280,141 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
 
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
-
-      Object.assign(formData, {
-        bk_biz_id: ticketDetail.bk_biz_id,
-        config: {
-          send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
-          },
-        },
-        remark: ticketDetail.remark,
-      });
-      Object.assign(formData.details, {
-        bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
-        cluster_count: details.domains.length,
-        db_version: details.db_version,
-        disaster_tolerance_level: details.disaster_tolerance_level,
-        domains: details.domains,
-        ip_source: details.ip_source,
-        start_mssql_port: details.start_mssql_port,
-      });
-
-      if (details.ip_source === 'resource_pool') {
-        const { backend } = details.resource_spec!;
-        const labels = (backend.labels || []).map((labelItem, labelIndex) => ({
-          id: Number(labelItem),
-          value: backend.label_names[labelIndex],
-        }));
-        const resourceSpec = {
-          backend_group: {
-            ...formData.details.resource_spec.backend_group,
-            count: backend.count,
-            labels,
-            spec_id: backend.spec_id,
-          },
-        };
-        const subzoneIds = details.resource_spec!.backend.location_spec.sub_zone_ids || [];
-        Object.assign(formData.details, {
-          inst_num: details.domains.length / backend.count,
-          resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
-        });
-      }
-
-      nextTick(() => {
-        Object.assign(formData.details, {
-          db_module_id: details.db_module_id,
-        });
-      });
-    },
-  });
-
-  useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
-
-      Object.assign(formData, {
-        bk_biz_id: ticketDetail.bk_biz_id,
-        config: {
-          send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
-          },
-        },
-        remark: ticketDetail.remark,
-      });
-      Object.assign(formData.details, {
-        bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
-        cluster_count: details.domains.length,
-        db_version: details.db_version,
-        disaster_tolerance_level: details.disaster_tolerance_level,
-        domains: details.domains,
-        ip_source: details.ip_source,
-        start_mssql_port: details.start_mssql_port,
-      });
-
-      if (details.ip_source === 'resource_pool') {
-        const { backend_group: backendGroup } = details.resource_spec!;
-        const labels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
-          id: Number(labelItem),
-          value: backendGroup.label_names[labelIndex],
-        }));
-        const resourceSpec = {
-          backend_group: {
-            ...formData.details.resource_spec.backend_group,
-            count: backendGroup.count,
-            labels,
-            spec_id: backendGroup.spec_id,
-          },
-        };
-        const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
-        Object.assign(formData.details, {
-          inst_num: details.domains.length / backendGroup.count,
-          resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
-        });
-      }
-
-      nextTick(() => {
-        Object.assign(formData.details, {
-          db_module_id: details.db_module_id,
-        });
-      });
-    },
-  });
-
   const isSingleType = route.name === TicketTypes.SQLSERVER_SINGLE_APPLY;
+
+  /**
+   * 单节点部署单据回填
+   */
+  const fillSingleTicket = (ticketDetail: TicketModel<Sqlserver.SingleApply>) => {
+    const { details } = ticketDetail;
+    const { send_msg_config: sendMsgConfig } = ticketDetail.config;
+
+    Object.assign(formData, {
+      bk_biz_id: ticketDetail.bk_biz_id,
+      config: {
+        send_msg_config: {
+          is_send: sendMsgConfig?.is_send ?? true,
+          msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+          receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+        },
+      },
+      remark: ticketDetail.remark,
+    });
+    Object.assign(formData.details, {
+      bk_cloud_id: details.bk_cloud_id,
+      city_code: details.city_code,
+      cluster_count: details.domains.length,
+      db_version: details.db_version,
+      disaster_tolerance_level: details.disaster_tolerance_level,
+      domains: details.domains,
+      ip_source: details.ip_source,
+      start_mssql_port: details.start_mssql_port,
+    });
+
+    if (details.ip_source === 'resource_pool') {
+      const { backend } = details.resource_spec!;
+      const labels = (backend.labels || []).map((labelItem, labelIndex) => ({
+        id: Number(labelItem),
+        value: backend.label_names[labelIndex],
+      }));
+      const resourceSpec = {
+        backend_group: {
+          ...formData.details.resource_spec.backend_group,
+          count: backend.count,
+          labels,
+          spec_id: backend.spec_id,
+        },
+      };
+      const subzoneIds = details.resource_spec!.backend.location_spec.sub_zone_ids || [];
+      Object.assign(formData.details, {
+        // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+        inst_num: details.inst_num || details.domains.length / backend.count,
+        resource_spec: resourceSpec,
+        sub_zone_ids: subzoneIds,
+      });
+      nextTick(() => {
+        regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+      });
+    }
+
+    nextTick(() => {
+      Object.assign(formData.details, {
+        db_module_id: details.db_module_id,
+      });
+    });
+  };
+
+  /**
+   * 主从部署单据回填
+   */
+  const fillHaTicket = (ticketDetail: TicketModel<Sqlserver.HaApply>) => {
+    const { details } = ticketDetail;
+    const { send_msg_config: sendMsgConfig } = ticketDetail.config;
+
+    Object.assign(formData, {
+      bk_biz_id: ticketDetail.bk_biz_id,
+      config: {
+        send_msg_config: {
+          is_send: sendMsgConfig?.is_send ?? true,
+          msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+          receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+        },
+      },
+      remark: ticketDetail.remark,
+    });
+    Object.assign(formData.details, {
+      bk_cloud_id: details.bk_cloud_id,
+      city_code: details.city_code,
+      cluster_count: details.domains.length,
+      db_version: details.db_version,
+      disaster_tolerance_level: details.disaster_tolerance_level,
+      domains: details.domains,
+      ip_source: details.ip_source,
+      start_mssql_port: details.start_mssql_port,
+    });
+
+    if (details.ip_source === 'resource_pool') {
+      const { backend_group: backendGroup } = details.resource_spec!;
+      const labels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
+        id: Number(labelItem),
+        value: backendGroup.label_names[labelIndex],
+      }));
+      const resourceSpec = {
+        backend_group: {
+          ...formData.details.resource_spec.backend_group,
+          count: backendGroup.count,
+          labels,
+          spec_id: backendGroup.spec_id,
+        },
+      };
+      const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
+      Object.assign(formData.details, {
+        // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+        inst_num: details.inst_num || details.domains.length / backendGroup.count,
+        resource_spec: resourceSpec,
+        sub_zone_ids: subzoneIds,
+      });
+      nextTick(() => {
+        regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+      });
+    }
+
+    nextTick(() => {
+      Object.assign(formData.details, {
+        db_module_id: details.db_module_id,
+      });
+    });
+  };
+
+  // 单节点与主从部署共用本页，只注册当前页面单据类型的回填；两种都注册时，类型不符的那个会提示「单据类型与当前页面不符」
+  const ticketDetailRequest = isSingleType
+    ? useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, { onSuccess: fillSingleTicket })
+    : useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, { onSuccess: fillHaTicket });
   const clusterType = isSingleType ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA;
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -581,6 +601,16 @@
     },
   );
 
+  // 批量编辑按输入行数整体替换 domains，行数变化要同步回集群数量，避免与资源申请量不一致
+  watch(
+    () => formData.details.domains.length,
+    (len) => {
+      if (len > 0) {
+        formData.details.cluster_count = len;
+      }
+    },
+  );
+
   const backendHost = (hostList: Array<HostInfo>) =>
     hostList.length !== hostNums.value ? t('xx共需n台', { n: hostNums.value, title: 'Master / Slave' }) : false;
 
@@ -627,42 +657,62 @@
     }));
 
   /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    // 模块名只用于变更对比展示，后端按 db_module_id 重新取，提交时忽略该字段
+    const details = {
+      ...formData.details,
+      db_module_name: moduleAliasName.value,
+    };
+
+    const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
+    if (details.ip_source === 'resource_pool') {
+      return {
+        ...details,
+        nodes: undefined,
+        resource_spec: {
+          [resourceSpecKey]: {
+            ...specBackendRef.value!.getData(),
+            ...regionRequirementsRef.value!.getValue(),
+            count: resourceSpecbackendGroupCount.value,
+            label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
+            spec_cluster_type: clusterType,
+            spec_id: details.resource_spec.backend_group.spec_id,
+            spec_machine_type: clusterType,
+          },
+        },
+      };
+    }
+
+    return {
+      ...details,
+      nodes: {
+        backend: formatNodes(details.nodes.backend),
+      },
+      resource_spec: undefined,
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool' && (!specBackendRef.value || !regionRequirementsRef.value)) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
+  /**
    * 提交申请
    */
   const handleSubmit = async () => {
     await formRef.value.validate();
     baseState.isSubmitting = true;
-    const getDetails = () => {
-      const { details } = formData;
-
-      const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
-      if (details.ip_source === 'resource_pool') {
-        return {
-          ...details,
-          nodes: undefined,
-          resource_spec: {
-            [resourceSpecKey]: {
-              ...specBackendRef.value!.getData(),
-              ...regionRequirementsRef.value!.getValue(),
-              count: resourceSpecbackendGroupCount.value,
-              label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
-              spec_cluster_type: clusterType,
-              spec_id: details.resource_spec.backend_group.spec_id,
-              spec_machine_type: clusterType,
-            },
-          },
-        };
-      }
-
-      return {
-        ...details,
-        nodes: {
-          backend: formatNodes(details.nodes.backend),
-        },
-        resource_spec: undefined,
-      };
-    };
     const params = {
       ...formData,
       config: {
@@ -682,6 +732,11 @@
    * 重置表单
    */
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      ticketDetailRequest?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;

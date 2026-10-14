@@ -13,11 +13,11 @@
 
 <template>
   <InfoItem :label="t('发送交付通知')">
-    {{ data.is_send ? t('是') : t('否') }}
+    {{ data?.is_send ? t('是') : t('否') }}
   </InfoItem>
   <InfoItem
-    v-if="data.is_send"
-    :label="t('收件人')">
+    v-if="data?.is_send"
+    :label="t('额外收件人')">
     {{ receiverUsername || '--' }}
   </InfoItem>
 </template>
@@ -30,7 +30,8 @@
   import { Item as InfoItem } from './info-list/Index.vue';
 
   interface Props {
-    data: {
+    data?: {
+      default_receiver_username?: string;
       is_send: boolean;
       msg_type: MessageTypes[];
       receiver__username: string;
@@ -41,5 +42,13 @@
 
   const { t } = useI18n();
 
-  const receiverUsername = (props.data.receiver__username?.split(',') ?? []).filter(Boolean).slice(2).join('，');
+  const receiverList = (props.data?.receiver__username?.split(',') ?? []).filter(Boolean);
+  /**
+   * 只展示额外收件人
+   * 新单据有 default_receiver_username，receiver__username 即额外收件人；
+   * 旧单据没有该字段，receiver__username 前两位是提单人与主DBA，需剔除
+   */
+  const receiverUsername = (
+    props.data?.default_receiver_username === undefined ? receiverList.slice(2) : receiverList
+  ).join('，');
 </script>

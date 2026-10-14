@@ -73,7 +73,8 @@
         <TicketDetail
           v-if="ticketId"
           smart-action-teleport-to=".dbm-table-detail-dialog-content"
-          :ticket-id="ticketId" />
+          :ticket-id="ticketId"
+          @status-change="handleStatusChange" />
       </div>
     </PermissionCatch>
   </div>
@@ -84,7 +85,7 @@
   import { useRouter } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketDetails, getTicketStatus } from '@services/source/ticket';
+  import { getTicketDetails } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
@@ -93,8 +94,6 @@
   import TicketDetail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
   import { execCopy, getSelfDomain, utcTimeToSeconds } from '@utils';
-
-  import { useTimeoutFn } from '@vueuse/core';
 
   interface Props {
     ticketId?: number;
@@ -118,33 +117,16 @@
       manual: true,
       onSuccess(data) {
         ticketData.value = data;
-        loopFetchTicketStatus();
       },
     },
   );
 
-  const { refresh: refreshTicketStatus } = useRequest(
-    () =>
-      getTicketStatus({
-        ticket_ids: `${props.ticketId}`,
-      }),
-    {
-      manual: true,
-      onSuccess(data) {
-        if (!data[`${props.ticketId}`]) {
-          return;
-        }
-        ticketData.value!.status = data[`${props.ticketId}`] as TicketModel['status'];
-        if (!ticketData.value!.isFinished) {
-          loopFetchTicketStatus();
-        }
-      },
-    },
-  );
-
-  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
-    refreshTicketStatus();
-  }, 3000);
+  // 状态由内层详情统一轮询后抛上来，头部的状态标签和计时器跟着更新
+  const handleStatusChange = (status: TicketModel['status']) => {
+    if (ticketData.value) {
+      ticketData.value.status = status;
+    }
+  };
 
   watch(
     () => props.ticketId,

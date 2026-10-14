@@ -20,6 +20,7 @@
       v-model="modelValue"
       class="item-input"
       :clearable="false"
+      :disabled="isAdjustApply"
       filterable
       :input-search="false"
       :loading="isLoading">
@@ -38,6 +39,8 @@
 
   import { getAddonVersions } from '@services/source/kubernetesToolbox';
 
+  import { useTicketModifyState } from '@hooks';
+
   interface Props {
     addonType: ServiceParameters<typeof getAddonVersions>['addonType'];
     applyMode: string;
@@ -55,6 +58,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   // 独占集群（isPublic=false）时按业务 ID 取该业务独占的可用版本
   const isPublic = computed(() => props.applyMode !== 'ExclusiveMode');
