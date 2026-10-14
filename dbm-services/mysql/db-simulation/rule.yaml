@@ -18,12 +18,16 @@ CommandRule:
     desc: "高危命令"
     item:
       [
+        "rename_table",
+        "alter_procedure",
+        "alter_function",
+        "alter_event",
+        "truncate",
         "drop_table",
         "drop_index",
         "lock_tables",
         "analyze",
         "drop_db",
-        "rename_table",
         "drop_procedure",
         "drop_view",
         "drop_trigger",
@@ -32,6 +36,7 @@ CommandRule:
         "drop_event",
         "drop_compression_dictionary",
         "optimize",
+        "alter_tablespace",
       ]
 
   BanCommandRule:
