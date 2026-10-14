@@ -34,10 +34,10 @@ from backend.ticket.builders.mysql.dts.mysql_dts_tickets import (
     MysqlToMysqlMigrateFlowParamBuilder,
     _maybe_create_destroy_after_migrate,
     _patch_migrate_task_names,
-    _validate_infos_deploy_hosts_unique,
     _validate_mysql_to_mysql_cluster_types,
 )
 from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketFlowStatus, TicketStatus, TicketType
+from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.ticket.serializers import TicketDetailsSerializer
 from backend.utils.excel import ExcelHandler
 
@@ -49,31 +49,6 @@ def _minimal_deploy(**overrides):
         "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
         "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
     }
-    data.update(overrides)
-    return data
-
-
-def _minimal_pool_deploy(**overrides):
-    """资源池模式的 deploy：master/worker 主机由资源申请回填，提单入参不带主机。"""
-    data = {
-        "cluster_name": "dts-test",
-        "bk_cloud_id": 0,
-    }
-    data.update(overrides)
-    return data
-
-
-def _pool_deploy_row(**deploy_overrides):
-    """资源池模式下一行 deploy：主机由资源申请回填，规格按行提供 worker.spec_id。"""
-    return _minimal_layered_details(
-        dts_resource={"deploy": _minimal_pool_deploy(**deploy_overrides)},
-        resource_spec={"worker": {"spec_id": 1, "count": 1}},
-    )
-
-
-def _pool_deploy_ticket(**overrides):
-    """资源池模式下带 deploy 的单行 infos 单据（生命周期字段写在单据顶层）。"""
-    data = {"infos": [_pool_deploy_row()]}
     data.update(overrides)
     return data
 
@@ -120,6 +95,32 @@ def _rename_cluster_filter_side_effect(*args, **kwargs):
         )
         for i in ids
     ]
+
+
+def _pool_deploy(**overrides):
+    """资源池部署不传主机，机器由 resource_spec 申请后回填。"""
+    data = {
+        "cluster_name": "dts-test",
+        "bk_cloud_id": 0,
+    }
+    data.update(overrides)
+    return data
+
+
+def _pool_resource_spec():
+    """本分支 deploy 要求 infos 行内同时给出 master 与 worker 规格。"""
+    role = {"spec_id": 1, "count": 1}
+    return {"master": dict(role), "worker": dict(role)}
+
+
+def _deploy_infos_row(*, dts_resource=None, migrate=None):
+    row = _minimal_layered_details(
+        dts_resource=dts_resource if dts_resource is not None else {"deploy": _pool_deploy()},
+    )
+    if migrate is not None:
+        row["migrate"] = migrate
+    row["resource_spec"] = _pool_resource_spec()
+    return row
 
 
 def _minimal_layered_details(**overrides):
@@ -182,6 +183,9 @@ def _grant_cluster_filter_side_effect(*args, **kwargs):
             id=i,
             major_version="MySQL-5.7",
             cluster_type=ClusterType.TenDBHA.value,
+            bk_biz_id=1,
+            db_module_id=1,
+            immute_domain="c{}.db".format(i),
         )
         for i in ids
     ]
@@ -202,11 +206,23 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
             "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_table_with_pattern",
             return_value=["tb_a"],
         )
-        for patcher in (cluster_patcher, db_patcher, table_patcher):
+        validator_prefix = "backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator"
+        structure_patchers = [
+            patch(validator_prefix + ".query_source_charset_collations", return_value=[]),
+            patch(validator_prefix + ".query_target_collations", return_value=[]),
+            patch(validator_prefix + ".query_non_table_objects", return_value=[]),
+            patch(
+                validator_prefix + ".get_cluster_config",
+                return_value={"mysqld": {"default_storage_engine": "innodb"}},
+            ),
+        ]
+        for patcher in (cluster_patcher, db_patcher, table_patcher, *structure_patchers):
             self.addCleanup(patcher.stop)
         cluster_patcher.start()
         self.mock_show_databases = db_patcher.start()
         self.mock_show_tables = table_patcher.start()
+        for patcher in structure_patchers:
+            patcher.start()
 
     def test_migrate_serializer_builds_plan(self):
         slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
@@ -351,7 +367,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_no_mode_deploy_defaults_destroy_true_cleanup_false(self):
-        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket())
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()]})
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertFalse(slz.validated_data["infos"][0]["dts_resource"].get("mode"))
         self.assertTrue(slz.validated_data["destroy_after_migrate"])
@@ -361,25 +377,9 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertEqual(plan.dts_lifecycle, DtsLifecycleMode.DEPLOY.value)
 
     def test_no_mode_deploy_cleanup_false(self):
-        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket(cleanup_after_migrate=False))
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()], "cleanup_after_migrate": False})
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
-
-    def test_single_row_deploy_rejected(self):
-        """资源池模式下 deploy 主机由资源申请回填，单行（无 infos）没有行内 resource_spec 落点 → 拒单。"""
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(dts_resource={"deploy": _minimal_pool_deploy()})
-        )
-        self.assertFalse(slz.is_valid())
-        self.assertIn("resource_spec", str(slz.errors))
-
-    def test_infos_deploy_without_worker_spec_rejected(self):
-        """有 deploy 的行未提供行内 resource_spec.worker → 拒单。"""
-        slz = MysqlMigrateBaseDetailSerializer(
-            data={"infos": [_minimal_layered_details(dts_resource={"deploy": _minimal_pool_deploy()})]}
-        )
-        self.assertFalse(slz.is_valid())
-        self.assertIn("resource_spec.worker", str(slz.errors))
 
     def test_grant_cluster_empty_major_version_rejected(self):
         """AE8：授权目标集群 major_version 为空 → 拒单。"""
@@ -435,14 +435,18 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
 
     def test_destroy_after_migrate_true_on_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket(destroy_after_migrate=True))
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()], "destroy_after_migrate": True})
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertTrue(slz.validated_data["destroy_after_migrate"])
         self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_destroy_and_cleanup_both_true_valid(self):
         slz = MysqlMigrateBaseDetailSerializer(
-            data=_pool_deploy_ticket(destroy_after_migrate=True, cleanup_after_migrate=True)
+            data={
+                "infos": [_deploy_infos_row()],
+                "destroy_after_migrate": True,
+                "cleanup_after_migrate": True,
+            }
         )
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertTrue(slz.validated_data["destroy_after_migrate"])
@@ -450,7 +454,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertTrue(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_destroy_after_migrate_false_ok_on_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(data=_pool_deploy_ticket(destroy_after_migrate=False))
+        slz = MysqlMigrateBaseDetailSerializer(data={"infos": [_deploy_infos_row()], "destroy_after_migrate": False})
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertFalse(slz.validated_data["destroy_after_migrate"])
 
@@ -724,31 +728,19 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertIn("交叉", str(slz.errors))
 
     def test_infos_colocated_master_worker_same_row_ok(self):
-        """同行 master/worker 同机部署合法，不按交叉拒单。
-
-        资源池模式下主机由资源申请回填（提单入参不带 master_hosts/worker_hosts），
-        故直接校验回填后行内主机的去重规则。
-        """
-        infos = [
-            {
-                "dts_resource": {
-                    "deploy": _minimal_deploy(
-                        master_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                        worker_hosts=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                    )
-                }
-            },
-            {
-                "dts_resource": {
-                    "deploy": _minimal_deploy(
-                        cluster_name="dts-test-b",
-                        master_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
-                        worker_hosts=[{"ip": "127.0.0.4", "bk_cloud_id": 0}],
-                    )
-                }
-            },
-        ]
-        self.assertIsNone(_validate_infos_deploy_hosts_unique(infos))
+        """资源池部署不传主机。两行 resource_spec 一致，不按交叉拒单。"""
+        slz = MysqlMigrateBaseDetailSerializer(
+            data={
+                "infos": [
+                    _deploy_infos_row(),
+                    _deploy_infos_row(
+                        dts_resource={"deploy": _pool_deploy(cluster_name="dts-test-b")},
+                        migrate=_one_to_one_migrate(101, 201, ["db_a"]),
+                    ),
+                ]
+            }
+        )
+        self.assertTrue(slz.is_valid(), slz.errors)
 
     def test_infos_same_src_dst_same_db_rejected(self):
         """AE2：同源同目标同库 → 拒单。"""
@@ -2486,3 +2478,151 @@ class MySQLDtsChecksumFlowBuilderTest(SimpleTestCase):
         self.assertFalse(dts_builder.need_itsm)
         self.assertTrue(base_builder.need_itsm)
         self.assertTrue(dts_builder.need_timer)
+
+
+def _structure_error_text(exc) -> str:
+    return str(exc.errors)
+
+
+class MysqlDtsMigrateStructurePrecheckTest(SimpleTestCase):
+    def setUp(self):
+        super().setUp()
+        self.engines = {"c100.db": "innodb", "c200.db": "innodb"}
+        self.source_collations = [("utf8mb4", "utf8mb4_general_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_general_ci")]
+        self.non_table_objects = []
+        prefix = "backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator"
+        patchers = [
+            patch(
+                "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
+                side_effect=_grant_cluster_filter_side_effect,
+            ),
+            patch(
+                "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_database_with_pattern",
+                return_value=["db_a"],
+            ),
+            patch(
+                "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_table_with_pattern",
+                return_value=["tb_a"],
+            ),
+            patch(prefix + ".Cluster.objects.filter", side_effect=self._clusters),
+            patch(prefix + ".query_source_charset_collations", side_effect=self._source_collations),
+            patch(prefix + ".query_target_collations", side_effect=self._target_collations),
+            patch(prefix + ".query_non_table_objects", side_effect=self._non_table),
+            patch(prefix + ".get_cluster_config", side_effect=self._config),
+        ]
+        for patcher in patchers:
+            self.addCleanup(patcher.stop)
+            patcher.start()
+
+    def _clusters(self, *args, **kwargs):
+        ids = list(kwargs.get("id__in") or [])
+        return [
+            SimpleNamespace(
+                id=cluster_id,
+                bk_biz_id=1,
+                immute_domain="c{}.db".format(cluster_id),
+                major_version="MySQL-5.7",
+                db_module_id=1,
+                cluster_type=ClusterType.TenDBHA.value,
+            )
+            for cluster_id in ids
+        ]
+
+    def _config(self, domain_name, db_version, module_id, namespace, bk_biz_id):
+        return {"mysqld": {"default_storage_engine": self.engines[domain_name]}}
+
+    def _source_collations(self, cluster_id, sync_scope, bk_biz_id):
+        return list(self.source_collations)
+
+    def _target_collations(self, cluster_id, bk_biz_id):
+        return list(self.target_collations)
+
+    def _non_table(self, cluster_id, sync_scope, bk_biz_id):
+        return list(self.non_table_objects)
+
+    def _serializer(self, details):
+        return MysqlToMysqlMigrateDetailSerializer(
+            data=details,
+            context={"ticket_type": TicketType.MYSQL_DTS_DATA_MIGRATE, "bk_biz_id": 1},
+        )
+
+    def _raise_text(self, details) -> str:
+        slz = self._serializer(details)
+        with self.assertRaises(TicketParamsVerifyException) as ctx:
+            slz.is_valid()
+        for item in ctx.exception.errors:
+            self.assertEqual(item["field"], "cluster_id")
+            self.assertIn("errors", item)
+            self.assertNotIn("non_field_errors", item)
+        return _structure_error_text(ctx.exception)
+
+    def test_missing_source_collation_rejected(self):
+        self.source_collations = [("utf8mb4", "utf8mb4_0900_ai_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_general_ci")]
+        text = self._raise_text(_minimal_layered_details())
+        self.assertIn("utf8mb4_0900_ai_ci", text)
+        self.assertIn("db_a.tb_a", text)
+
+    def test_collation_present_on_target_passes(self):
+        self.source_collations = [("utf8mb4", "utf8mb4_0900_ai_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_0900_ai_ci")]
+        slz = self._serializer(_minimal_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+
+    def test_engine_case_difference_passes(self):
+        self.engines = {"c100.db": "InnoDB", "c200.db": "innodb"}
+        slz = self._serializer(_minimal_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+
+    def test_engine_mismatch_rejected(self):
+        self.engines = {"c100.db": "innodb", "c200.db": "rocksdb"}
+        text = self._raise_text(_minimal_layered_details())
+        self.assertIn("innodb", text)
+        self.assertIn("rocksdb", text)
+        self.assertIn("100", text)
+        self.assertIn("200", text)
+
+    def test_non_table_objects_rejected(self):
+        self.non_table_objects = [("PROCEDURE", "db_a.sp_demo"), ("FUNCTION", "db_a.fn_demo")]
+        text = self._raise_text(_minimal_layered_details())
+        self.assertIn("存储过程", text)
+        self.assertIn("函数", text)
+        self.assertIn("db_a.sp_demo", text)
+        self.assertIn("db_a.fn_demo", text)
+        self.assertIn("check_non_table_object", text)
+
+    def test_check_non_table_object_false_keeps_charset_and_engine(self):
+        self.non_table_objects = [("PROCEDURE", "db_a.sp_demo"), ("FUNCTION", "db_a.fn_demo")]
+        self.source_collations = [("utf8mb4", "utf8mb4_0900_ai_ci", "db_a.tb_a")]
+        self.target_collations = [("utf8mb4", "utf8mb4_general_ci")]
+        self.engines = {"c100.db": "innodb", "c200.db": "rocksdb"}
+        details = _minimal_layered_details()
+        details["check_non_table_object"] = False
+        text = self._raise_text(details)
+        self.assertIn("utf8mb4_0900_ai_ci", text)
+        self.assertIn("db_a.tb_a", text)
+        self.assertIn("innodb", text)
+        self.assertIn("rocksdb", text)
+        self.assertNotIn("存储过程", text)
+        self.assertNotIn("db_a.sp_demo", text)
+
+    def test_three_builders_use_scene_validator(self):
+        from backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator import (
+            MysqlDtsMigrateFlowValidator,
+        )
+        from backend.flow.engine.controller.mysql import MySQLController
+
+        scenes = (
+            MySQLController.mysql_to_mysql_migrate_scene,
+            MySQLController.mysql_ha_to_cluster_migrate_scene,
+            MySQLController.mysql_rename_migrate_scene,
+        )
+        builders = (
+            MysqlToMysqlMigrateFlowBuilder,
+            MysqlHaToClusterMigrateFlowBuilder,
+            MysqlRenameMigrateFlowBuilder,
+        )
+        for scene, builder in zip(scenes, builders):
+            self.assertIs(scene.validator, MysqlDtsMigrateFlowValidator)
+            self.assertIs(builder.validator, scene.validator)
