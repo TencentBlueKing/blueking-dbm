@@ -72,7 +72,73 @@ RUN_DF_SMOKE_TEST=1 go test -vet=off ./pkg/atomjobs/atommongodb/... -run '^TestD
 
 生产/运行时代码中的 `os.Getenv`（如 `MONGO_DATA_DIR`、`MONGO_BACKUP_DIR`、`REDIS`_*、`PROCESS_EXEC_USER` 等）见 `pkg/consts/` 等；**一般不作为 `go test` 的前置条件**，除非某测试将来显式依赖这些数据目录（当前测试未引用）。
 
-## 6. E2E 脚本（`tests/e2e/*.sh`）
+## 6. 本地冒烟：mongo / mongosh 选择
+
+不启动 MongoDB，也不访问资源池。用一个只有 `mongod` 和 `mongosh`、没有 `mongo` 的临时 8.0 安装目录，逐一初始化本次涉及的 actuator 任务并断言任务实际选择了 mongosh：
+
+- 用户、复制集与分片任务：`add_user`、`delete_user`、`init_replicaset`、`replicaset_stepdown`、`mongod_replace`、`mongod_node_hidden`、`add_shard_to_cluster`、`remove_shard_from_cluster`、`cluster_balancer`。
+- 实例与升级任务：`mongo_restart`、`mongo_start_process`、`mongo_deinstall`、`mongo_deferred_deinstall`、`mongo_execute_script`、`mongodb_instance_op`、`mongo_set_fcv`、`mongo_upgrade_rs_protocol`。
+- 安装任务：`mongod_install`、`mongos_install` 在非 tlinux4 本机验证依赖准备步骤安全跳过；真实 `tos` / `dnf` 留给 tlinux4 E2E。
+
+同时覆盖主版本 `4.4` 使用 mongo、`>= 5` 使用 mongosh，以及 `8.0` 安装目录没有 mongo。
+
+```bash
+cd dbm-services/mongodb/db-tools/dbactuator
+tests/smoke/mongo_shell_local.sh
+```
+
+如果本机 `/usr/local/mongodb/bin/mongod` 存在，脚本还会核对真实安装包里的客户端和主版本一致。
+
+## 7. 核心原子任务集成测试（`tests/integration/`）
+
+在本地用真实 MongoDB 4.4.30 进程，把核心 actuator 原子任务各跑一遍。不覆盖备份/PITR/dbmon/导出等外部依赖任务，但会对照 `mongo-dbactuator debug --list` 做覆盖清单校验，新增未分类任务会失败。
+
+### 命令
+
+```bash
+cd dbm-services/mongodb/db-tools/dbactuator
+sudo tests/integration/run_core_atoms.sh              # 全量核心集成
+sudo tests/integration/run_core_atoms.sh --preflight  # 只检查前置条件
+sudo tests/integration/run_core_atoms.sh --cleanup-only
+sudo tests/integration/run_core_atoms.sh --keep-on-failure
+```
+
+### 前置条件
+
+- root
+- Go、python3、rg、netstat、ip
+- OS 用户 `mysql`（可用 `TEST_OS_INIT_USER` 覆盖）
+- 介质 `/data/install/mongodb-linux-x86_64-rhel70-4.4.30.tar.gz`，md5=`0856af7ed34231d4b533581c11d9ebe6`
+- 可写目录 `/data/mongo_actuator_lab`（可用 `TEST_LAB_ROOT` 覆盖）
+
+### 默认拓扑与端口
+
+| 沙箱 | IP | 端口 |
+|------|----|------|
+| 复制集 3+1 | `127.0.0.71`–`.74` | `27517`–`27520` |
+| configsvr x3 | `127.0.0.81`–`.83` | `27617`–`27619` |
+| shard1 x3 | `127.0.0.91`–`.93` | `27717`–`27719` |
+| shard2 x3 | `127.0.0.94`–`.96` | `27817`–`27819` |
+| mongos | `127.0.0.97` | `27917` |
+
+端口必须落在 actuator 允许范围 `[27000, 29999]`。
+
+脚本会自动给 `lo` 添加上述别名。数据/二进制/工作目录默认在 `/data/mongo_actuator_lab/<run_id>/`。
+
+### 覆盖范围
+
+必跑（22）：`os_mongo_init`、`mongodb_hello`、`mongod_install`、`mongos_install`、`init_replicaset`、`add_user`、`delete_user`、`mongo_execute_script`、`replicaset_stepdown`、`mongod_node_hidden`、`mongo_restart`、`mongo_start`、`mongodb_instance_op`、`mongo_set_fcv`、`mongo_upgrade_rs_protocol`、`replace_package`（同版本幂等）、`mongod_replace`、`mongo_deferred_deinstall`、`add_shard_to_cluster`、`cluster_balancer`、`remove_shard_from_cluster`、`mongo_deinstall`。
+
+显式跳过（7）：`mongodb_backup`、`mongodb_restore`、`mongodb_pitr_restore`、`mongodb_pitr_rebuild`、`mongodb_remove_ns`、`install_dbmon`、`mongodb_data_export`。
+
+### 破坏面与恢复
+
+- 会改 `vm.swappiness` / `kernel.pid_max`（退出时尽量恢复）。
+- 会在 `/data/install` 使用现有介质，并在 lab 目录下写数据/日志。
+- 失败默认清理实例；`--keep-on-failure` 保留现场，之后用 `--cleanup-only`（可设 `TEST_RUN_DIR`）清理。
+- 产物：`work/coverage.tsv`、`work/logs/`。
+
+## 8. E2E 脚本（`tests/e2e/*.sh`）
 
 以下脚本需要在 `dbm-services/mongodb/db-tools/dbactuator` 目录执行，且通常要求 `root`（脚本内部会检查 `EUID`）：
 

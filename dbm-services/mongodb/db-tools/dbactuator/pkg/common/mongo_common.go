@@ -916,7 +916,8 @@ func CheckBalancer(mongoBin string, ip string, port int, username string, passwo
 // CheckBalancerRunning 检查balancer是否正在运行
 func CheckBalancerRunning(mongoBin string, ip string, port int, username string, password string) (string,
 	error) {
-	result, err := runMongoAuthEval(mongoBin, username, password, ip, port, "sh.isBalancerRunning()")
+	eval := `var r=sh.isBalancerRunning(); print(typeof r==="boolean" ? r : !!r.inBalancerRound)`
+	result, err := runMongoAuthEval(mongoBin, username, password, ip, port, eval)
 	if err != nil {
 		return "", err
 	}
@@ -926,7 +927,7 @@ func CheckBalancerRunning(mongoBin string, ip string, port int, username string,
 // GetShardChunkNum 获取每个分片的chunk数量
 func GetShardChunkNum(mongoBin string, ip string, port int, username string, password string) (string,
 	error) {
-	eval := `db.getSiblingDB("config").chunks.aggregate([{ $group: { _id: "$shard", count: { $sum: 1 } } }]).forEach(printjson)`
+	eval := `var r=db.getSiblingDB("config").chunks.aggregate([{ $group: { _id: "$shard", count: { $sum: 1 } } }]).toArray().map(function(x){return {_id:x._id,count:Number(x.count)}}); print(JSON.stringify(r))`
 	return runMongoAuthEval(mongoBin, username, password, ip, port, eval)
 }
 

@@ -27,7 +27,6 @@ type MongoStartProcess struct {
 	BinDir             string
 	DataDir            string
 	DbpathDir          string
-	Mongo              string
 	OsUser             string // MongoDB安装在哪个用户下
 	OsGroup            string
 	ConfParams         *StartProcessConfParams
@@ -74,7 +73,6 @@ func (s *MongoStartProcess) Init(runtime *jobruntime.JobGenericRuntime) error {
 	s.DataDir = consts.GetMongoDataDir()
 	s.OsUser = consts.GetProcessUser()
 	s.OsGroup = consts.GetProcessUserGroup()
-	s.Mongo = filepath.Join(s.BinDir, "mongodb", "bin", "mongo")
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {

@@ -130,7 +130,12 @@ func (i *InitiateReplicaset) Init(runtime *jobruntime.JobGenericRuntime) error {
 	i.runtime = runtime
 	i.runtime.Logger.Info("start to init")
 	i.BinDir = consts.GetMongoBinDir()
-	i.Mongo = filepath.Join(i.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(i.BinDir)
+	if err != nil {
+		i.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	i.Mongo = mongoBin
 	i.OsUser = consts.GetProcessUser()
 
 	// 获取MongoDB配置文件参数

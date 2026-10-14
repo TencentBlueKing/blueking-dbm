@@ -526,7 +526,10 @@ func (s *instOpJob) decideAndCheckUpgradePhase() (bool, error) {
 // 滚动升级期间整集群可能发生选主/瞬时连接失败，因此重试 3 次（间隔 2s）后再判失败，
 // 避免单次抖动让 alreadyTarget 判错而误跳过未升级节点。
 func (s *instOpJob) getRunningVersionMajorMinor() (string, error) {
-	mongoBin := filepath.Join(consts.GetMongoBinDir(), "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(consts.GetMongoBinDir())
+	if err != nil {
+		return "", fmt.Errorf("resolve mongo shell: %w", err)
+	}
 	const maxAttempts = 3
 	var lastErr error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
@@ -597,7 +600,10 @@ func (s *instOpJob) doPrecheckUpgrade() error {
 	if s.ConfParams.CurrentVersion == "" {
 		return fmt.Errorf("currentVersion is required for precheck_upgrade")
 	}
-	mongoBin := filepath.Join(consts.GetMongoBinDir(), "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(consts.GetMongoBinDir())
+	if err != nil {
+		return fmt.Errorf("resolve mongo shell: %w", err)
+	}
 	expectedMajor := versionMajorMinor(s.ConfParams.CurrentVersion)
 	ip := s.ConfParams.IP
 	port := s.ConfParams.Port

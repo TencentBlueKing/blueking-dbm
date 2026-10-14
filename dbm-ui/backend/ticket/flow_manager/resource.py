@@ -326,6 +326,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                     labels=role_spec.get("labels", []),
                     os_type=role_spec.get("os_type"),
                     os_names=role_spec.get("os_names"),
+                    exclude_os_name=bool(role_spec.get("exclude_os_name")),
                     location_spec=role_spec.get("location_spec"),
                     tolerance=role_spec.get("tolerance", 0),
                     current_hosts=role_spec.get("current_hosts", []),

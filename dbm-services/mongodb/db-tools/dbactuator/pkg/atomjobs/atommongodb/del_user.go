@@ -3,7 +3,6 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -81,7 +80,12 @@ func (d *DelUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 	d.runtime = runtime
 	d.runtime.Logger.Info("start to init")
 	d.BinDir = consts.GetMongoBinDir()
-	d.Mongo = filepath.Join(d.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(d.BinDir)
+	if err != nil {
+		d.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	d.Mongo = mongoBin
 	d.OsUser = consts.GetProcessUser()
 
 	// 获取MongoDB配置文件参数

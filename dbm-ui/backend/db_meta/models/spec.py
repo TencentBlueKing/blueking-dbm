@@ -100,6 +100,7 @@ class Spec(AuditedModel):
         current_hosts=None,
         os_names=None,
         os_type=None,
+        exclude_os_name=False,
     ):
         # 如果没有城市信息，default表示无城市信息
         if location_spec and location_spec["city"] == "default":
@@ -133,6 +134,8 @@ class Spec(AuditedModel):
             "tolerance": tolerance,
             "current_hosts": current_hosts or [],
         }
+        if exclude_os_name:
+            apply_params["exclude_os_name"] = True
         # 对于机型和规格，优先以机型为准，机型不存在则用规格申请
         if self.device_class:
             apply_params.update(device_class=self.device_class)
@@ -172,6 +175,7 @@ class Spec(AuditedModel):
         current_hosts=None,
         os_names=None,
         os_type=None,
+        exclude_os_name=False,
     ):
         """
         根据规格和分组要求，获取资源申请参数
@@ -190,6 +194,7 @@ class Spec(AuditedModel):
         @param current_hosts: 存量主机，和tolerance一起使用可以让资源池整体分配机型
         @param os_names: 操作系统名称
         @param os_type: 操作系统类型
+        @param exclude_os_name: 为 True 时 os_names 是黑名单
         """
         group_count_list = [group_count] * (count // group_count)
         if count % group_count:
@@ -204,6 +209,7 @@ class Spec(AuditedModel):
                 labels=labels,
                 os_names=os_names,
                 os_type=os_type,
+                exclude_os_name=exclude_os_name,
                 location_spec=location_spec,
                 tolerance=tolerance,
                 current_hosts=current_hosts,

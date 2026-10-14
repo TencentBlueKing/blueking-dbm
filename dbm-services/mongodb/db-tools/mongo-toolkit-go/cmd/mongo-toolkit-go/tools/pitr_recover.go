@@ -67,7 +67,7 @@ func recoverMain() {
 	log.Printf("TODO: check dst connect ok and dst db is empty")
 
 	// Check for required dependencies 其它工具在mongotools目录下. 不在这里检查
-	depOk := prepareDep([]string{"mongo"})
+	depOk := prepareDep([]string{pitr.MongoShellBin()})
 	if !depOk && !dryRun {
 		pitr.ExitFailed("exit, because some dep not exists")
 		os.Exit(1)

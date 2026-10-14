@@ -43,7 +43,6 @@ type DeInstall struct {
 	LogPortDir       string
 	DbPathRenameDir  string
 	LogPathRenameDir string
-	Mongo            string
 	OsUser           string
 	ServiceStatus    bool
 	IPInfo           string
@@ -112,7 +111,6 @@ func (d *DeInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取各种目录
 	d.InstallPath = filepath.Join(d.BinDir, "mongodb")
-	d.Mongo = filepath.Join(d.BinDir, "mongodb", "bin", "mongo")
 	strPort := strconv.Itoa(d.ConfParams.Port)
 	d.PortDir = filepath.Join(d.DataDir, "mongodata", strPort)
 	d.DbpathDir = filepath.Join(d.DataDir, "mongodata", strPort, "db")

@@ -7,7 +7,6 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -95,7 +94,12 @@ func (v *MongoSetFCV) Init(runtime *jobruntime.JobGenericRuntime) error {
 	v.runtime = runtime
 	v.runtime.Logger.Info("start to init")
 	v.BinDir = consts.GetMongoBinDir()
-	v.Mongo = filepath.Join(v.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(v.BinDir)
+	if err != nil {
+		v.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	v.Mongo = mongoBin
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(v.runtime.PayloadDecoded), &v.ConfParams); err != nil {

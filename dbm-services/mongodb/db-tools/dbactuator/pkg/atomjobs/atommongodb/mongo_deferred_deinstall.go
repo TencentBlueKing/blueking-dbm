@@ -126,7 +126,12 @@ func (d *DeferredDeInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return fmt.Errorf("get parameters of deferred deInstall fail by json.Unmarshal, error:%s", err)
 	}
 
-	d.Mongo = filepath.Join(d.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(d.BinDir)
+	if err != nil {
+		d.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	d.Mongo = mongoBin
 	strPort := strconv.Itoa(d.ConfParams.Port)
 	d.PortDir = filepath.Join(d.DataDir, "mongodata", strPort)
 	strTime := time.Now().Format("20060102150405")

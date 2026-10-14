@@ -222,13 +222,8 @@ assert_port_stopped() {
   exit 1
 }
 
-mongo_shell_bin() {
-  if [[ -x "${BIN_DIR}/mongodb/bin/mongo" ]]; then
-    echo "${BIN_DIR}/mongodb/bin/mongo"
-  else
-    echo "${BIN_DIR}/mongodb/bin/mongosh"
-  fi
-}
+# 与 actuator 一致：优先 mongosh，没有则用 mongo。
+source "${ROOT_DIR}/tests/e2e/mongo_shell.sh"
 
 assert_primary_noauth() {
   echo "==> Assert rs primary (noauth)"

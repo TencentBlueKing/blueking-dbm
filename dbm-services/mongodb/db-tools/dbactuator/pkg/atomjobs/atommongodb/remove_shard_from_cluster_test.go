@@ -175,6 +175,16 @@ func TestCheckMovePrimaryOK(t *testing.T) {
 	if err := checkMovePrimaryOK(""); err != nil {
 		t.Fatalf("empty stdout should be OK (legacy shell), got %v", err)
 	}
+	// mongosh pretty-print is not strict JSON; treat ok: 1 as success.
+	mongoshStdout := `{
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1791963103, i: 35 })
+  }
+}`
+	if err := checkMovePrimaryOK(mongoshStdout); err != nil {
+		t.Fatalf("mongosh pretty-print should be OK, got %v", err)
+	}
 }
 
 func TestBalancerShouldWaitForBalance(t *testing.T) {

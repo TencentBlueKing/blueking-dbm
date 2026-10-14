@@ -215,6 +215,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     PLATFORM_ALERT_GROUP_INFO = EnumField("PLATFORM_ALERT_GROUP_INFO", _("平台内置兜底告警组信息"))
     # MongoDB PITR 查询备份记录时，单次 BKLog 查询包含的分片数
     MONGODB_PITR_SET_QUERY_BATCH = EnumField("MONGODB_PITR_SET_QUERY_BATCH", _("MongoDB PITR单次查询分片数"))
+    # 默认关闭。tlinux4 机器优先留给 MongoDB 8.0；打开后 7.0 及以下也可以申请 tlinux4。
+    MONGODB_LEGACY_ALLOW_TLINUX4 = EnumField("MONGODB_LEGACY_ALLOW_TLINUX4", _("MongoDB 7.0及以下允许申请tlinux4"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):
@@ -394,6 +396,12 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.PACKAGE_SUPPORT_SYSTEMS.value, "dict", DEFAULT_PACKAGE_SUPPORT_SYSTEMS, _("介质支持的操作系统")],
     [SystemSettingsEnum.INIT_OS_TIMESYNC.value, "bool", False, _("机器初始化时间同步开关")],
     [SystemSettingsEnum.MONGODB_PITR_SET_QUERY_BATCH.value, "int", 80, _("MongoDB PITR单次查询分片数")],
+    [
+        SystemSettingsEnum.MONGODB_LEGACY_ALLOW_TLINUX4.value,
+        "bool",
+        False,
+        _("MongoDB 7.0及以下允许申请tlinux4，默认关闭以留给8.0"),
+    ],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

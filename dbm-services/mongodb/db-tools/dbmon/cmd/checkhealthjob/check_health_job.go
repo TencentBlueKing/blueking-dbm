@@ -90,7 +90,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	startTime := time.Now()
 
 	loginTimeout := getLoginTimeout(svrItem, logger)
-	err := checkService(mongoBin, loginTimeout, svrItem, logger)
+	err := checkService(installedMongoShellBin(), loginTimeout, svrItem, logger)
 	logger.Info("checkService result", zap.Int("loginTimeout", loginTimeout), zap.Any("err", err))
 	if err == nil {
 		return
@@ -140,7 +140,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 		logger.Warn("startMongo failed", zap.Error(err))
 	}
 	startTime = time.Now()
-	job.Err = checkService(mongoBin, loginTimeout, svrItem, logger)
+	job.Err = checkService(installedMongoShellBin(), loginTimeout, svrItem, logger)
 	logger.Info(fmt.Sprintf("checkService again,  cost %0.1f seconds, err: %v",
 		time.Since(startTime).Seconds(), job.Err))
 	if job.Err == nil {
@@ -307,6 +307,54 @@ func checkPortInUse(port int) (bool, error) {
 	})
 
 	return idx >= 0, nil
+}
+
+// installedMongoShellBin 优先使用 mongosh，没有可执行的 mongosh 时使用 mongo。
+// checkhealth 每分钟对每个实例调用一次，选择结果按二进制身份缓存。
+func installedMongoShellBin() string {
+	key := installedShellCacheKey()
+	installedShellCacheMu.Lock()
+	defer installedShellCacheMu.Unlock()
+	if installedShellCache.bin != "" && installedShellCache.key == key {
+		return installedShellCache.bin
+	}
+	bin := resolveInstalledMongoShellBin()
+	installedShellCache = installedShellCacheEntry{key: key, bin: bin}
+	return bin
+}
+
+type installedShellCacheEntry struct {
+	key string
+	bin string
+}
+
+var (
+	installedShellCacheMu sync.Mutex
+	installedShellCache   installedShellCacheEntry
+	shellExecutable       = func(path string) bool {
+		info, err := os.Stat(path)
+		return err == nil && !info.IsDir() && info.Mode()&0o111 != 0
+	}
+)
+
+func installedShellCacheKey() string {
+	var b strings.Builder
+	for _, bin := range []string{mongoshBin, mongoBin} {
+		info, err := os.Stat(bin)
+		if err != nil {
+			fmt.Fprintf(&b, "%s:missing;", bin)
+			continue
+		}
+		fmt.Fprintf(&b, "%s:%d:%d;", bin, info.ModTime().UnixNano(), info.Size())
+	}
+	return b.String()
+}
+
+func resolveInstalledMongoShellBin() string {
+	if shellExecutable(mongoshBin) {
+		return mongoshBin
+	}
+	return mongoBin
 }
 
 // checkService 尝试登录

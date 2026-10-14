@@ -95,3 +95,46 @@ func TestCheckServiceAuthenticationFailed(t *testing.T) {
 	assert.ErrorIs(t, err, errAuthenticationFailed)
 
 }
+
+func TestInstalledMongoShellBinPrefersMongoshAndCaches(t *testing.T) {
+	oldExecutable := shellExecutable
+	t.Cleanup(func() {
+		shellExecutable = oldExecutable
+		installedShellCacheMu.Lock()
+		installedShellCache = installedShellCacheEntry{}
+		installedShellCacheMu.Unlock()
+	})
+	resetShellCache := func() {
+		installedShellCacheMu.Lock()
+		installedShellCache = installedShellCacheEntry{}
+		installedShellCacheMu.Unlock()
+	}
+	resetShellCache()
+
+	calls := 0
+	hasMongosh := true
+	shellExecutable = func(path string) bool {
+		calls++
+		return hasMongosh && path == mongoshBin
+	}
+
+	if got := installedMongoShellBin(); got != mongoshBin {
+		t.Fatalf("shell=%s, want %s", got, mongoshBin)
+	}
+	if got := installedMongoShellBin(); got != mongoshBin {
+		t.Fatalf("cached shell=%s, want %s", got, mongoshBin)
+	}
+	if calls != 1 {
+		t.Fatalf("executable checks=%d, want 1", calls)
+	}
+
+	resetShellCache()
+	hasMongosh = false
+	calls = 0
+	if got := installedMongoShellBin(); got != mongoBin {
+		t.Fatalf("fallback shell=%s, want %s", got, mongoBin)
+	}
+	if calls != 1 {
+		t.Fatalf("fallback checks=%d, want 1", calls)
+	}
+}

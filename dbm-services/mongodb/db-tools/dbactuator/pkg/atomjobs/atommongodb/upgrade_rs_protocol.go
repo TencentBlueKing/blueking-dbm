@@ -6,7 +6,6 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -151,7 +150,12 @@ func (v *MongoUpgradeRsProtocol) Init(runtime *jobruntime.JobGenericRuntime) err
 	v.runtime = runtime
 	v.runtime.Logger.Info("start to init mongo_upgrade_rs_protocol")
 	v.BinDir = consts.GetMongoBinDir()
-	v.Mongo = filepath.Join(v.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(v.BinDir)
+	if err != nil {
+		v.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	v.Mongo = mongoBin
 
 	if err := json.Unmarshal([]byte(v.runtime.PayloadDecoded), &v.ConfParams); err != nil {
 		v.runtime.Logger.Error("unmarshal mongo_upgrade_rs_protocol payload fail, error:%s", err)

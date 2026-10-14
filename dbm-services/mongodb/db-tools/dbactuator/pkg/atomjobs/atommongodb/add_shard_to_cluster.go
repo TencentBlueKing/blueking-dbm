@@ -84,7 +84,12 @@ func (a *AddShardToCluster) Init(runtime *jobruntime.JobGenericRuntime) error {
 	a.runtime = runtime
 	a.runtime.Logger.Info("start to init")
 	a.BinDir = consts.GetMongoBinDir()
-	a.Mongo = filepath.Join(a.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(a.BinDir)
+	if err != nil {
+		a.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	a.Mongo = mongoBin
 	a.ConfFilePath = filepath.Join("/", "tmp", "addShardToCluster.js")
 	a.OsUser = consts.GetProcessUser()
 

@@ -434,7 +434,12 @@ func (r *MongoDReplace) Init(runtime *jobruntime.JobGenericRuntime) error {
 	r.runtime = runtime
 	r.runtime.Logger.Info("start to init")
 	r.BinDir = consts.GetMongoBinDir()
-	r.Mongo = filepath.Join(r.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(r.BinDir)
+	if err != nil {
+		r.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	r.Mongo = mongoBin
 	r.OsUser = consts.GetProcessUser()
 	r.DataDir = consts.GetMongoDataDir()
 

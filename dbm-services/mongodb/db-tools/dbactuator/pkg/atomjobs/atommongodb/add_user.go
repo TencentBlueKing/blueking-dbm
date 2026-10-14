@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -109,7 +108,12 @@ func (u *AddUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 	u.runtime = runtime
 	u.runtime.Logger.Info("start to init")
 	u.BinDir = consts.GetMongoBinDir()
-	u.Mongo = filepath.Join(u.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(u.BinDir)
+	if err != nil {
+		u.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	u.Mongo = mongoBin
 	u.OsUser = consts.GetProcessUser()
 
 	// 获取MongoDB配置文件参数
