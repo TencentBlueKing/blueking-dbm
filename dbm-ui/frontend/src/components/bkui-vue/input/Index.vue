@@ -313,7 +313,7 @@
     return Math.min(Math.max(toPrecision(num), props.min), props.max);
   };
 
-  const getInputValue = (event: Event) => (event.target as HTMLInputElement).value.trim();
+  const getInputValue = (event: Event) => (event.target as HTMLInputElement).value;
 
   // 修正后的值与 modelValue 相同时 vue 不会更新 DOM，需手动同步避免输入框显示与实际值不一致
   const syncNativeValue = (value: string | number) => {
