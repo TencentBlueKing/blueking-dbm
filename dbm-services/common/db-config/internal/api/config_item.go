@@ -163,6 +163,7 @@ type RecoverDefaultConfItemsReq struct {
 	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	BaseLevelDef
 	BaseConfFileDef
+	UpLevelInfo
 	ConfNames []string `json:"conf_names" form:"conf_names"`
 	// CancelRender bool     `json:"cancel_render" form:"cancel_render"`
 }

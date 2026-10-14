@@ -162,7 +162,10 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 		if c.OPType != constvar.OPTypeRemove {
 			afterImage = model.NewConfItemFromModel(c.Config)
 		} else {
-			flagVisible := configNamesDef[c.Config.ConfName].FlagVisible
+			var flagVisible int8
+			if nameDef, ok := configNamesDef[c.Config.ConfName]; ok && nameDef != nil {
+				flagVisible = nameDef.FlagVisible
+			}
 			if len(upLevelConfItems[c.Config.ConfName]) == 0 && flagVisible == 0 {
 				c.OPType = "cancel_render"
 			} else {
