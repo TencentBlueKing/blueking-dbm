@@ -19,6 +19,10 @@ import { getTicketDetails } from '@services/source/ticket';
 
 import { TicketTypes } from '@common/const';
 
+import { messageError } from '@utils';
+
+import { t } from '@locales/index';
+
 export function useTicketDetail<T extends DetailBase>(
   ticketType: TicketTypes,
   options: {
@@ -32,7 +36,8 @@ export function useTicketDetail<T extends DetailBase>(
     return;
   }
 
-  useRequest(
+  // refresh 重新拉取并回填，改单模式的「重置」用它回到单据当前内容
+  const { refresh } = useRequest(
     (params) =>
       getTicketDetails(params, {
         cache: 1000,
@@ -42,6 +47,7 @@ export function useTicketDetail<T extends DetailBase>(
       defaultParams: [{ id: Number(ticketId) }],
       onSuccess(ticketData) {
         if (ticketType !== ticketData.ticket_type) {
+          messageError(t('单据类型与当前页面不符'));
           return;
         }
         options.onSuccess(ticketData as TicketModel<T>);
@@ -49,4 +55,8 @@ export function useTicketDetail<T extends DetailBase>(
       },
     },
   );
+
+  return {
+    refresh,
+  };
 }

@@ -1,6 +1,7 @@
 <template>
   <StatusFailed
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template #title>
       <I18nT
@@ -35,6 +36,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
@@ -45,6 +47,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<unknown>;
   }
 

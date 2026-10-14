@@ -31,6 +31,8 @@
   import { checkDomainRepeat } from '@services/source/ticket.tsx';
   import type { HostInfo } from '@services/types';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex.ts';
 
@@ -75,6 +77,8 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，域名只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const isMysqlSingle = computed(() => props.ticketType === TicketTypes.MYSQL_SINGLE_APPLY);
   /**
@@ -162,7 +166,7 @@
         title: () => (
           <span>
             {t('主访问入口')}
-            {tableData.value.length === 0 ? null : (
+            {tableData.value.length === 0 || isAdjustApply ? null : (
               <BatchEdit
                 appName={props.formdata.details.db_app_abbr}
                 moduleAliasName={props.moduleAliasName}
@@ -247,6 +251,7 @@
                 theme: 'light',
                 trigger: 'click',
               }}
+              disabled={isAdjustApply}
               maxlength={63}
               model-value={props.formdata.details.domains[rowIndex]?.key}
               placeholder={t('请输入')}

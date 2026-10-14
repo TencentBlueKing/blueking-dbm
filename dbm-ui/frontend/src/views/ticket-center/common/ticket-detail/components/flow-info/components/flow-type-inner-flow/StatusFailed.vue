@@ -1,6 +1,7 @@
 <template>
   <StatusFailed
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template #content>
       <template v-if="isNeedOperation">
@@ -56,6 +57,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -70,6 +72,7 @@
 
   interface Props {
     data: FlowMode;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<unknown>;
   }
 

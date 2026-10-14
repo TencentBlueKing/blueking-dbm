@@ -22,6 +22,7 @@
   const backgroundcolor = computed(() => {
     const colorMap = {
       [TicketModel.STATUS_APPROVE]: '#DAE9FD',
+      [TicketModel.STATUS_CONFIRM_PENDING]: '#FDEED8',
       [TicketModel.STATUS_FAILED]: '#EA3636',
       [TicketModel.STATUS_INNER_TODO]: '#FDEED8',
       [TicketModel.STATUS_RESOURCE_REPLENISH]: '#DFF5FD',
@@ -38,6 +39,7 @@
   const fontdcolor = computed(() => {
     const colorMap = {
       [TicketModel.STATUS_APPROVE]: '#267BCF',
+      [TicketModel.STATUS_CONFIRM_PENDING]: '#E38B02',
       [TicketModel.STATUS_FAILED]: '#FFFFFF',
       [TicketModel.STATUS_INNER_TODO]: '#E38B02',
       [TicketModel.STATUS_RESOURCE_REPLENISH]: '#2F96A7',

@@ -4,6 +4,7 @@
       ref="passwordInputRef"
       v-model="modelValue"
       class="password-input"
+      :disabled="isAdjustApply"
       :placeholder="t('请输入')"
       type="password"
       @blur="handlePasswordBlur"
@@ -14,7 +15,7 @@
         disabled: !buttonDisabled,
       }"
       class="password-generate-button"
-      :disabled="isLoading || buttonDisabled"
+      :disabled="isLoading || buttonDisabled || isAdjustApply"
       outline
       theme="primary"
       @click="handleAutoGeneration">
@@ -59,6 +60,8 @@
     verifyPasswordStrength,
   } from '@services/source/permission';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { DBTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
@@ -91,6 +94,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，密码只读；回填的密码仍会触发强度校验并抛出结果
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   let tippyInstance: Instance;
   let publicKey = '';

@@ -85,7 +85,7 @@
     line-height: 1;
 
     &.is-hover {
-      :deep(.user-selector-clear) {
+      :deep(.dbm-user-selector-clear) {
         visibility: visible;
       }
     }

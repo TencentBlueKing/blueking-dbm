@@ -25,15 +25,23 @@
       {{ utcDisplayTime(data.done_at) }}
     </div>
     <div
-      v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
+      v-if="isOperable"
       class="mt-12">
-      <ProcessResourceReplenish :todo-data="data">
+      <ProcessResourceReplenish
+        :data="ticketData"
+        :todo-data="data">
         <BkButton
           class="w-88"
           theme="primary">
           {{ t('重试') }}
         </BkButton>
       </ProcessResourceReplenish>
+      <BkButton
+        v-if="isTicketModifiable(ticketData.ticket_type)"
+        class="w-88 ml-8"
+        @click="handleAdjustApply">
+        {{ t('调整申请') }}
+      </BkButton>
     </div>
   </div>
 </template>
@@ -41,6 +49,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import { useUserProfile } from '@stores';
@@ -48,6 +57,8 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import ProcessResourceReplenish from '@views/ticket-center/common/action-confirm/ProcessResourceReplenish.vue';
+  import { isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
+  import useOpenTicketModify from '@views/ticket-center/common/ticket-modify/useOpenTicketModify';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
@@ -57,8 +68,25 @@
     ticketData: TicketModel;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
+  const openTicketModify = useOpenTicketModify();
+
+  /**
+   * 重试、调整申请的可见判据
+   * 补货待办只在自身「重试」成功时关闭；资源申请经其他途径（如调整申请后重新申请）成功时，待办可能仍是待处理，
+   * 此时再重试或调整申请都没有意义，流程已成功就不再给入口
+   */
+  const isOperable = computed(
+    () =>
+      props.flowData.status !== FlowMode.STATUS_SUCCEEDED &&
+      (isSuperuser || props.data.operators.includes(username) || props.ticketData.todo_helpers.includes(username)),
+  );
+
+  // 调整申请与「重试」同权，入口放在同一个可见块里
+  const handleAdjustApply = () => {
+    openTicketModify(props.ticketData, TicketModifyRecordModel.MODE_ADJUST_APPLY);
+  };
 </script>

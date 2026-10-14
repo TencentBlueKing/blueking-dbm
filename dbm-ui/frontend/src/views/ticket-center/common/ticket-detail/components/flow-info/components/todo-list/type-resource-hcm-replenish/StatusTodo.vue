@@ -27,7 +27,9 @@
     <div
       v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
       class="mt-12">
-      <ProcessResourceReplenish :todo-data="data">
+      <ProcessResourceReplenish
+        :data="ticketData"
+        :todo-data="data">
         <BkButton
           class="w-88"
           theme="primary">

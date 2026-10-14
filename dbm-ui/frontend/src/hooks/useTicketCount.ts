@@ -13,6 +13,7 @@ const run = () => {
     MY_APPROVE: 0,
     pending: {
       APPROVE: 0,
+      CONFIRM_PENDING: 0,
       FAILED: 0,
       INNER_HELP: 0,
       INNER_TODO: 0,
@@ -24,6 +25,7 @@ const run = () => {
     TIMER: 0,
     to_help: {
       APPROVE: 0,
+      CONFIRM_PENDING: 0,
       FAILED: 0,
       INNER_HELP: 0,
       INNER_TODO: 0,

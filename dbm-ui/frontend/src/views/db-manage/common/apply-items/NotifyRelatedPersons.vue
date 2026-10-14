@@ -18,6 +18,7 @@
       required>
       <div class="notify-wrapper">
         <BkSwitcher
+          :disabled="isDisabled"
           :model-value="modelValue.is_send"
           theme="primary"
           @change="handleSwitchChange" />
@@ -31,9 +32,10 @@
     <DbFormItem
       v-if="modelValue.is_send"
       class="mb-24"
-      :label="t('收件人')">
+      :label="t('额外收件人')">
       <MemberSelector
         v-model="personList"
+        :disabled="isDisabled"
         style="width: 435px" />
     </DbFormItem>
   </div>
@@ -45,6 +47,8 @@
   import { useRequest } from 'vue-request';
 
   import { getAdmins } from '@services/source/dbadmin';
+
+  import { useTicketModifyState } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -66,6 +70,9 @@
   }>({ required: true });
 
   const { t } = useI18n();
+  const modifyState = useTicketModifyState();
+  // 重新编辑、代为修改可改交付通知（随改单接口的 config 提交），调整申请只能改资源条件，只读
+  const isDisabled = Boolean(modifyState?.isAdjustApply);
   const { username } = useUserProfile();
 
   const personList = ref<string[]>([]);
@@ -95,6 +102,13 @@
     },
   );
 
+  // 提单人：改单时取单据的提单人，代为修改的操作人是审批人，不能把审批人当成提单人
+  const creator = computed(() => modifyState?.ticketData.value?.creator || username);
+  // 主 DBA：业务主 DBA 优先，没有时取平台默认 DBA
+  const mainDba = computed(
+    () => bizAdminData.value?.data?.[0]?.users[0] || defaultAdminData.value?.data?.[0]?.users[0] || '',
+  );
+
   watch(
     () => modelValue.value.is_send,
     () => {
@@ -104,12 +118,20 @@
     },
   );
 
+  /**
+   * 回填收件人：receiver__username 只存额外收件人，原样回填
+   * 旧单据（没有 default_receiver_username）存的是「提单人 + 主DBA + 追加收件人」去重后的完整名单，无法区分谁是追加的，
+   * 按名字或位置剔除都会丢人，所以同样原样回填
+   */
   watch(
     () => modelValue.value.receiver__username,
-    () => {
-      if (modelValue.value.receiver__username.length > 0) {
-        personList.value = modelValue.value.receiver__username.slice(2);
+    (receivers) => {
+      if (receivers.length > 0) {
+        personList.value = receivers.filter(Boolean);
       }
+    },
+    {
+      immediate: true,
     },
   );
 
@@ -122,16 +144,6 @@
     modelValue.value = newValue;
   };
 
-  /**
-   * 提单人 + 主DBA + 收件人(与提单人、主DBA 合并去重)
-   */
-  const receiverUsername = () => {
-    const defaultDba = defaultAdminData.value?.data?.[0]?.users[0];
-    const bizMainDba = bizAdminData.value?.data?.[0]?.users[0] || '';
-    const mainDbA = bizMainDba || defaultDba;
-    return _.uniq([username, mainDbA, ...personList.value]);
-  };
-
   defineExpose({
     getValue() {
       if (!modelValue.value.is_send) {
@@ -139,7 +151,10 @@
       }
       return {
         ...modelValue.value,
-        receiver__username: receiverUsername().join(','),
+        // 默认收件人：提单人 + 主DBA
+        default_receiver_username: _.uniq([creator.value, mainDba.value].filter(Boolean)).join(','),
+        // 额外收件人：仅用户追加的，没有追加时传空字符串
+        receiver__username: _.uniq(personList.value.filter(Boolean)).join(','),
       };
     },
   });

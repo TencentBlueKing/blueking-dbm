@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="qdrant-apply">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -64,6 +65,7 @@
           <DbFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -71,6 +73,7 @@
           </DbFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -78,11 +81,11 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"
-        :disabled="baseState.isSubmitting"
+        :disabled="baseState.isSubmitting || isModifyUnchanged"
         @click="handleResetFormdata">
         {{ t('重置') }}
       </BkButton>
@@ -122,6 +125,8 @@
   import K8SCityCode from '@views/db-manage/common/apply-items/K8SCityCode.vue';
   import K8SClusterName from '@views/db-manage/common/apply-items/K8SClusterName.vue';
   import K8SVersion from '@views/db-manage/common/apply-items/K8SVersion.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import QdrantSpecConfig, { getDefaultQdrantConfig } from './components/QdrantSpecConfig.vue';
@@ -152,12 +157,13 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
   const userProfile = useUserProfile();
   const bizStore = useGlobalBizs();
 
-  useTicketDetail<Qdrant.HaApply>(TicketTypes.K8S_QDRANT_HA_APPLY, {
+  const qdrantTicketDetail = useTicketDetail<Qdrant.HaApply>(TicketTypes.K8S_QDRANT_HA_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
@@ -172,6 +178,7 @@
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
+        creator: details.creator,
         db_app_abbr: details.db_app_abbr,
         db_version: details.db_version,
         k8s_cluster_name: details.k8s_cluster_name,
@@ -213,9 +220,20 @@
   const handleResetFormdata = () => {
     InfoBox({
       cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
+      content: modifyState.resetContent || t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
+        // 改单模式下重置回到单据当前内容
+        if (modifyState.isModify) {
+          qdrantTicketDetail?.refresh();
+          return true;
+        }
+        // 管控区域固定取 0 号，只在页面加载时取一次，重置不能清掉
+        const { bk_cloud_id: bkCloudId, bk_cloud_region: bkCloudRegion } = formData.details;
         Object.assign(formData, initData());
+        Object.assign(formData.details, {
+          bk_cloud_id: bkCloudId,
+          bk_cloud_region: bkCloudRegion,
+        });
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -225,38 +243,50 @@
     });
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
+
+    const { qdrant } = details;
+    const qdrantItem = qdrant![0];
+
+    Object.assign(details, {
+      bk_biz_name: bizStore.getBizInfoById(Number(formData.bk_biz_id))?.name || '',
+      component_list: [
+        {
+          ...qdrantItem,
+          request_cpu: `${qdrantItem.request_cpu}`,
+          request_memory: `${qdrantItem.request_memory}Gi`,
+          storage: `${qdrantItem.storage}Gi`,
+        },
+      ],
+      // 改单不改变申请人，沿用回填的单据申请人
+      creator: modifyState.isModify ? details.creator : userProfile.username,
+      // 部署类型落库为 is_public，独占集群为 false
+      is_public: details.apply_mode !== 'ExclusiveMode',
+      remark: formData.remark,
+    });
+
+    delete details.apply_mode;
+    delete details.qdrant;
+
+    return details;
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」
+  const isModifyUnchanged = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = async () => {
     await formRef.value!.validate();
 
     baseState.isSubmitting = true;
-
-    const getDetails = () => {
-      const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
-
-      const { qdrant } = details;
-      const qdrantItem = qdrant![0];
-
-      Object.assign(details, {
-        bk_biz_name: bizStore.getBizInfoById(Number(formData.bk_biz_id))?.name || '',
-        component_list: [
-          {
-            ...qdrantItem,
-            request_cpu: `${qdrantItem.request_cpu}`,
-            request_memory: `${qdrantItem.request_memory}Gi`,
-            storage: `${qdrantItem.storage}Gi`,
-          },
-        ],
-        creator: userProfile.username,
-        // 部署类型落库为 is_public，独占集群为 false
-        is_public: details.apply_mode !== 'ExclusiveMode',
-        remark: formData.remark,
-      });
-
-      delete details.apply_mode;
-      delete details.qdrant;
-
-      return details;
-    };
 
     const params = {
       ...formData,

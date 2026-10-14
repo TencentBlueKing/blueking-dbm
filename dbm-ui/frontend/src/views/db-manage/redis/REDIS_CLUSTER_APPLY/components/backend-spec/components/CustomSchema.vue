@@ -35,7 +35,7 @@
       <DbInput
         v-model="modelValue.count"
         clearable
-        :disabled="isTendisInstance"
+        :disabled="isTendisInstance || isAdjustApply"
         :min="countMin"
         show-clear-only-hover
         style="width: 314px"
@@ -50,7 +50,7 @@
       <DbInput
         v-model="shardNum"
         clearable
-        :disabled="shardNumDisabled || isTendisInstance"
+        :disabled="shardNumDisabled || isTendisInstance || isAdjustApply"
         :min="1"
         show-clear-only-hover
         style="width: 314px"
@@ -85,6 +85,8 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
@@ -117,6 +119,7 @@
       cluster_shard_num: number;
       machine_pair: number;
     } & ReturnType<ComponentExposed<typeof SpecSelector>['getData']>;
+    setShardNum(value: number): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -125,6 +128,8 @@
   const modelValue = defineModel<ModelValue>({ required: true });
 
   const { t } = useI18n();
+  // 调整申请模式只放开规格、标签与组数，单机分片数决定集群分片拓扑，只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const shardNumRules = [
     {
@@ -198,6 +203,10 @@
         cluster_shard_num: Number(clusterShardNum.value),
         machine_pair: Number(modelValue.value.count),
       };
+    },
+    // 单据只保存集群分片数，回填时由外部按「集群分片数 / 机器组数」写入单机分片数
+    setShardNum(value: number) {
+      shardNum.value = value;
     },
   });
 </script>
