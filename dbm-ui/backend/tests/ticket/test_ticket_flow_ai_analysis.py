@@ -68,10 +68,7 @@ def test_run_error_skips_ai_analysis_without_flow_obj_id(mocked_task):
 
 def test_worker_imports_ai_log_tasks_at_module_level():
     """任务模块必须在 worker 启动导入本文件时被加载，不能只留在函数体内。"""
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "db_periodic_task/local_tasks/ai_tasks/log_analysis.py"
-    )
+    path = Path(__file__).resolve().parents[2] / "db_periodic_task/local_tasks/ai_tasks/log_analysis.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     imported = []
     for node in tree.body:
