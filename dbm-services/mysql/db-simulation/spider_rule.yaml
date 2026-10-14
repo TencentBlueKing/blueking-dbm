@@ -4,6 +4,11 @@ CommandRule:
     desc: "高危命令"
     item:
       [
+        "rename_table",
+        "alter_procedure",
+        "alter_function",
+        "alter_event",
+        "truncate",
         "drop_db",
         "drop_table",
         "drop_index",
