@@ -77,5 +77,5 @@ dependencies:
 - name: tenant-router
   repository: file://charts/tenant-router
   version: 0.1.0
-digest: sha256:641d9f3bb5640c9100f3df799f3d2d4276b20e03538f3b71aebb6625b873f029
-generated: "2026-09-20T19:58:36.448434+08:00"
+digest: sha256:c502b35f1f3355ede9db353a148a0cd2b5ab917801ae3bf26d55f937f7e454a7
+generated: "2026-10-14T15:49:28.594925+08:00"
