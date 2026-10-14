@@ -67,7 +67,7 @@ class MongoDBAutofixResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder)
                 exclusive_hosts.append(inst.machine)
 
         for info in self.ticket_data["infos"]:
-            cluster = Cluster.objects.get(info["cluster_ids"][0])
+            cluster = Cluster.objects.get(id=info["cluster_ids"][0])
             off_host_ips = []
             remain_machine_type = ""
             exclusive_hosts = []
