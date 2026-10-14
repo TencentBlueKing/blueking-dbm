@@ -91,7 +91,8 @@
       fontFamily: 'Consolas, monospace',
       fontSize: 12,
       lineHeight: 1,
-      scrollback: 1000,
+      // 日志可能多达 10MB（约 10~20 万行），scrollback 太小会导致历史行被丢弃
+      scrollback: 200000,
       theme: {
         background: '#1A1A1A', // 背景色
         foreground: '#C4C6CC', // 默认字体颜色
