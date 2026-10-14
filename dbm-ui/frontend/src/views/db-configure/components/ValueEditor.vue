@@ -62,7 +62,7 @@
     type="textarea" />
 
   <!-- 文本输入框 / 密码输入框（BYTES / DURATION / REGEX / GOVALIDATE / 无约束 / 加密参数） -->
-  <BkInput
+  <DbmInput
     v-else
     ref="textInputRef"
     v-model="modelValue"
@@ -75,6 +75,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { batchSplitRegex } from '@common/regex';
+
+  import DbmInput from '@components/bkui-vue/input/Index.vue';
 
   // 约束类型枚举
   enum ConstraintType {
