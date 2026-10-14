@@ -465,6 +465,7 @@ detector:
     user: ${SSH_USER}
     password: ${SSH_PASSWORD}
     timeout: 10s
+    maxUptime: 300
 
 monitor:
   dataID: ${MON_DATA_ID}
