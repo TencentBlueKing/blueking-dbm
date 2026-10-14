@@ -7480,8 +7480,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-<<<<<<< HEAD
-content-hash = "b59a1d7b2251eca18bb0e82424fd951c2667efaa9f6671dd97cefd933dbed9a2"
-=======
 content-hash = "3f82591cae64c131dd352e84b15845b3dcab0230eecaba59abd1f1ecb5110a78"
->>>>>>> ed9f764ac (feat(backend): DRS v2版本支持websocket协议 #21029)
