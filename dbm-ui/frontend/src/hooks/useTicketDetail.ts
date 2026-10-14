@@ -32,7 +32,8 @@ export function useTicketDetail<T extends DetailBase>(
     return;
   }
 
-  useRequest(
+  // refresh 重新拉取并回填，改单模式的「重置」用它回到单据当前内容
+  const { refresh } = useRequest(
     (params) =>
       getTicketDetails(params, {
         cache: 1000,
@@ -49,4 +50,8 @@ export function useTicketDetail<T extends DetailBase>(
       },
     },
   );
+
+  return {
+    refresh,
+  };
 }

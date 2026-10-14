@@ -117,6 +117,7 @@
       cluster_shard_num: number;
       machine_pair: number;
     } & ReturnType<ComponentExposed<typeof SpecSelector>['getData']>;
+    setShardNum(value: number): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -198,6 +199,10 @@
         cluster_shard_num: Number(clusterShardNum.value),
         machine_pair: Number(modelValue.value.count),
       };
+    },
+    // 单据只保存集群分片数，回填时由外部按「集群分片数 / 机器组数」写入单机分片数
+    setShardNum(value: number) {
+      shardNum.value = value;
     },
   });
 </script>

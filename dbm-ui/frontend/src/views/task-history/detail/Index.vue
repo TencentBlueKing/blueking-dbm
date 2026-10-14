@@ -143,7 +143,13 @@
   import OperationRecord from './components/OperationRecord.vue';
   import RouteHeader from './components/RouteHeader.vue';
   import TaskFlow from './components/task-flow/Index.vue';
-  import { countNodeStatus, type FlowDetail, parseFlow, superUserModeInjectionKey } from './utils';
+  import {
+    countNodeStatus,
+    type FlowDetail,
+    parseFlow,
+    superUserModeInjectionKey,
+    ticketIdInjectionKey,
+  } from './utils';
 
   const route = useRoute();
   const router = useRouter();
@@ -176,6 +182,7 @@
 
   // 专家模式跨了 4 层组件，逐层透传等于每层都要声明一遍自己不关心的 model
   provide(superUserModeInjectionKey, isSuperUserMode);
+  provide(ticketIdInjectionKey, ticketId);
 
   watch(activePanelId, async () => {
     if (activePanelId.value !== 'task_flow' || isInitCanvas) {

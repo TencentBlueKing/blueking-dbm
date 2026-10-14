@@ -52,7 +52,8 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data?: TicketModel<unknown>;
+    data: TicketModel<unknown>;
+    // 传入时只处理这条待办，否则按单据处理
     todoData?: FlowMode<unknown>['todos'][number];
   }
 
@@ -73,25 +74,28 @@
     return terminateForm
       .value!.validate()
       .then(() => {
-        if (props.data) {
-          return batchProcessTicket({
-            action: 'TERMINATE',
-            params: terminateFormMode,
-            ticket_ids: [props.data.id],
-          });
-        }
         if (props.todoData) {
           return batchProcessTodo({
             action: 'TERMINATE',
             operations: [
               {
-                params: terminateFormMode,
+                params: {
+                  ...terminateFormMode,
+                  version: props.data.version,
+                },
                 todo_id: props.todoData.id,
               },
             ],
           });
         }
-        return Promise.reject();
+        return batchProcessTicket({
+          action: 'TERMINATE',
+          params: {
+            ...terminateFormMode,
+            versions: { [props.data.id]: props.data.version },
+          },
+          ticket_ids: [props.data.id],
+        });
       })
       .then(() => {
         messageSuccess(t('操作成功'));

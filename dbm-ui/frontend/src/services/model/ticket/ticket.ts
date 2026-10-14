@@ -50,9 +50,11 @@ const STATUS_TODO = 'TODO';
 const STATUS_INNER_TODO = 'INNER_TODO';
 const STATUS_PENDING = 'PENDING';
 const STATUS_REVOKED = 'REVOKED';
+const STATUS_CONFIRM_PENDING = 'CONFIRM_PENDING';
 
 export default class Ticket<T extends unknown | DetailBase = unknown> {
   static STATUS_APPROVE = STATUS_APPROVE;
+  static STATUS_CONFIRM_PENDING = STATUS_CONFIRM_PENDING;
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_INNER_TODO = STATUS_INNER_TODO;
   static STATUS_PENDING = STATUS_PENDING;
@@ -66,6 +68,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
 
   static statusTextMap = {
     [STATUS_APPROVE]: t('待审批'),
+    [STATUS_CONFIRM_PENDING]: t('待确认修改'),
     [STATUS_FAILED]: t('已失败'),
     [STATUS_INNER_TODO]: t('待继续'),
     [STATUS_PENDING]: t('待调度'),
@@ -113,6 +116,8 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   todo_operators: string[];
   update_at: string;
   updater: string;
+  // 单据列表接口返回 null，列表场景需用 get_ticket_version 补齐；详情未返回表示还没改过单
+  version: number | null;
 
   constructor(payload = {} as Ticket<T>) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -137,6 +142,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     this.todo_operators = payload.todo_operators || [];
     this.update_at = payload.update_at;
     this.updater = payload.updater;
+    this.version = payload.version ?? null;
     this.related_object = payload.related_object || {
       objects: [],
       title: '',

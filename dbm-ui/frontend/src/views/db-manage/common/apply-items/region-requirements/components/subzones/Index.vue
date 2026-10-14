@@ -180,8 +180,10 @@
   );
 
   defineExpose<Expose>({
+    // 回填时城市或容灾的变化会先触发上面的 watch 清空园区，这里一并写回，界面与提交值才一致
     setInitSubzone(subzoneIds: number[]) {
-      subzoneRef.value!.setInitSubzone?.(subzoneIds);
+      modelValue.value.sub_zone_ids = subzoneIds;
+      subzoneRef.value?.setInitSubzone?.(subzoneIds);
     },
   });
 </script>

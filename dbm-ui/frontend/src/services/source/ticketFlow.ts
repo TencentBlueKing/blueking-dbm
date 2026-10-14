@@ -13,7 +13,7 @@
 
 import FlowMode from '@services/model/ticket/flow';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/tickets';
 
@@ -53,6 +53,7 @@ export function getTicketCount() {
     MY_APPROVE: number;
     pending: {
       APPROVE: number;
+      CONFIRM_PENDING: number;
       FAILED: number;
       INNER_HELP: number;
       INNER_TODO: number;
@@ -64,6 +65,7 @@ export function getTicketCount() {
     TIMER: 0;
     to_help: {
       APPROVE: number;
+      CONFIRM_PENDING: number;
       FAILED: number;
       INNER_HELP: number;
       INNER_TODO: number;
@@ -74,24 +76,30 @@ export function getTicketCount() {
   }>(`${path}/get_tickets_count/`);
 }
 
-// 批量处理单据的待办
-export function batchProcessTicket(params: {
-  action: 'APPROVE' | 'TERMINATE' | 'DELIVER' | 'SKIP' | 'CHANGE';
-  params?: Record<string, any>;
-  ticket_ids: number[];
-}) {
-  return http.post(`${path}/batch_process_ticket/`, params);
+// 批量处理单据的待办，versions 为各单据操作者所见的内容版本，后端据此拦截被他人改过的单据
+export function batchProcessTicket(
+  params: {
+    action: 'APPROVE' | 'TERMINATE' | 'DELIVER' | 'SKIP' | 'CHANGE';
+    params: { versions: Record<number, number | null> } & Record<string, any>;
+    ticket_ids: number[];
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.post(`${path}/batch_process_ticket/`, params, payload);
 }
 
-// 批量待办处理
-export function batchProcessTodo(params: {
-  action: 'APPROVE' | 'TERMINATE' | 'SKIP' | 'CHANGE';
-  operations: {
-    params?: Record<string, any>;
-    todo_id: number;
-  }[];
-}) {
-  return http.post(`${path}/batch_process_todo/`, params);
+// 批量待办处理，version 为操作者所见的单据内容版本
+export function batchProcessTodo(
+  params: {
+    action: 'APPROVE' | 'TERMINATE' | 'SKIP' | 'CHANGE';
+    operations: {
+      params: { version: number | null } & Record<string, any>;
+      todo_id: number;
+    }[];
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.post(`${path}/batch_process_todo/`, params, payload);
 }
 
 // 获取单据关联任务流程信息

@@ -73,6 +73,7 @@
     </DbPopconfirm>
     <ModifyTimer
       :flow-data="flowData"
+      :ticket-data="ticketData"
       :todo-data="data">
       <BkButton class="ml-8">{{ t('修改定时') }}</BkButton>
     </ModifyTimer>
@@ -114,7 +115,9 @@
       action: 'SKIP',
       operations: [
         {
-          params: {},
+          params: {
+            version: props.ticketData.version,
+          },
           todo_id: props.data.id,
         },
       ],

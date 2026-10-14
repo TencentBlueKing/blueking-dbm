@@ -43,7 +43,7 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTickets } from '@services/source/ticket';
+  import { getTickets, getTicketVersion } from '@services/source/ticket';
 
   import useDetailPreCheck from '@views/ticket-center/common/hooks/use-detail-precheck';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
@@ -70,8 +70,28 @@
     getTickets({
       ...params,
       is_assist: Boolean(Number(route.params.assist)),
+      // 待确认修改 Tab 未手动排序时按更新时间倒序
+      ordering:
+        ticketStatus.value === TicketModel.STATUS_CONFIRM_PENDING && !params.ordering ? '-update_at' : params.ordering,
       status: ticketStatus.value,
       todo: 'running',
+    }).then((data) => {
+      if (data.results.length < 1) {
+        return data;
+      }
+      // 列表接口不返回内容版本，行内与批量操作要带上列表加载时的版本
+      return getTicketVersion({
+        ticket_ids: data.results.map((item) => item.id).join(','),
+      })
+        .then((versionMap) => {
+          data.results.forEach((item) => {
+            Object.assign(item, {
+              version: versionMap[item.id] ?? null,
+            });
+          });
+          return data;
+        })
+        .catch(() => data);
     });
 
   const dataTableRef = useTemplateRef('dataTable');

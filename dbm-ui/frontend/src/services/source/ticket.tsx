@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import TicketModifyRecordModel, { type TicketModifyMode } from '@services/model/ticket/modify-record';
 import TicketModel from '@services/model/ticket/ticket';
 import TicketClusterDisableTodoModel from '@services/model/ticket-cluster-disable-todo/TicketClusterDisableTodo';
 import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
@@ -368,6 +369,40 @@ export function getTicketStatus(params: { ticket_ids: string }) {
 }
 
 /**
+ * 单据改单（代为修改 / 重新编辑 / 调整申请）
+ */
+export function modifyTicket(
+  params: {
+    change_count: number;
+    details: unknown;
+    id: number;
+    mode: TicketModifyMode;
+    remark: string;
+    version: number | null;
+  },
+  payload = {} as IRequestPayload,
+) {
+  const { id, ...realParams } = params;
+  return http.post(`${path}/${id}/modify/`, realParams, payload);
+}
+
+/**
+ * 单据全部改单记录
+ */
+export function getTicketModifyRecords(params: { id: number }) {
+  return http
+    .get<TicketModifyRecordModel[]>(`${path}/${params.id}/modify_records/`)
+    .then((data) => data.map((item) => new TicketModifyRecordModel(item)));
+}
+
+/**
+ * 单据内容版本，ticket_ids 多个用逗号分隔；还没改过单的单据版本可能为空
+ */
+export function getTicketVersion(params: { ticket_ids: string }) {
+  return http.get<Record<string, number | null>>(`${path}/get_ticket_version/`, params);
+}
+
+/**
  * 删除单据流程规则
  */
 export function deleteTicketFlowConfig(params: { config_ids: number[] }) {
@@ -468,7 +503,8 @@ export function revokeTicketFlow(params: { flow_id: number; ticketId: number }) 
 export function ticketBatchProcessTodo(params: {
   action: 'APPROVE' | 'TERMINATE';
   operations: {
-    params: Record<string, never>; // 暂时为空对象
+    // 单据内容版本，后端据此拦截被他人改过的单据
+    params: { version: number | null };
     todo_id: number;
   }[];
 }) {

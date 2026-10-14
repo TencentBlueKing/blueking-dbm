@@ -15,6 +15,7 @@
   <SmartAction
     class="apply-riak-page"
     :offset-target="getSmartActionOffsetTarget">
+    <TicketModifyAlert />
     <DbForm
       ref="formRef"
       auto-label-width
@@ -177,6 +178,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
+            :disabled="modifyState.isModify"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -184,6 +186,7 @@
         </BkFormItem>
       </DbCard>
     </DbForm>
+    <TicketModifyRemark />
     <template #action>
       <div>
         <BkButton
@@ -191,12 +194,12 @@
           style="width: 88px"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
-          :disabled="baseState.isSubmitting" />
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -208,7 +211,7 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -229,6 +232,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   // 目前固定为此版本
@@ -269,10 +274,11 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Riak.Apply>(TicketTypes.RIAK_CLUSTER_APPLY, {
+  const riakTicketDetail = useTicketDetail<Riak.Apply>(TicketTypes.RIAK_CLUSTER_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
@@ -381,41 +387,62 @@
     }
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details = {
+      ...formData.details,
+      db_module_name: moduleAliasName.value,
+    };
+
+    if (formData.details.ip_source === 'resource_pool') {
+      Object.assign(details, {
+        resource_spec: {
+          riak: {
+            ...specRef.value.getData(),
+            ...regionRequirementsRef.value!.getValue(),
+            count: formData.details.resource_spec.riak.count,
+            label_names: formData.details.resource_spec.riak.labels.map((item: { value: string }) => item.value),
+            labels: formData.details.resource_spec.riak.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      });
+    } else {
+      Object.assign(details, {
+        nodes: {
+          riak: formData.details.nodes.map((nodeItem) => ({
+            bk_cloud_id: nodeItem.cloud_id,
+            bk_host_id: nodeItem.host_id,
+            ip: nodeItem.ip,
+          })),
+        },
+      });
+    }
+
+    return details;
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool' && (!specRef.value || !regionRequirementsRef.value)) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
 
       const params = {
         ...formData,
-        details: {
-          ...formData.details,
-          db_module_name: moduleAliasName.value,
-        },
+        details: getDetails(),
       };
-
-      if (formData.details.ip_source === 'resource_pool') {
-        Object.assign(params.details, {
-          resource_spec: {
-            riak: {
-              ...specRef.value.getData(),
-              ...regionRequirementsRef.value!.getValue(),
-              count: formData.details.resource_spec.riak.count,
-              label_names: formData.details.resource_spec.riak.labels.map((item: { value: string }) => item.value),
-              labels: formData.details.resource_spec.riak.labels.map((item: { id: number }) => String(item.id)),
-            },
-          },
-        });
-      } else {
-        Object.assign(params.details, {
-          nodes: {
-            riak: formData.details.nodes.map((nodeItem) => ({
-              bk_cloud_id: nodeItem.cloud_id,
-              bk_host_id: nodeItem.host_id,
-              ip: nodeItem.ip,
-            })),
-          },
-        });
-      }
 
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
       if (bizState.hasEnglishName) {
@@ -427,6 +454,11 @@
   };
 
   const handleReset = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      riakTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, genDefaultFormData());
     formRef.value.clearValidate();
     nextTick(() => {

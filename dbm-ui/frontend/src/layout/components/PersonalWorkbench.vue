@@ -152,6 +152,7 @@
 
     return (
       ticketCount.value.pending.APPROVE +
+      ticketCount.value.pending.CONFIRM_PENDING +
       ticketCount.value.pending.FAILED +
       ticketCount.value.pending.RESOURCE_REPLENISH +
       ticketCount.value.pending.INNER_TODO +

@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="qdrant-apply">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -66,6 +67,7 @@
           <DbFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -73,6 +75,7 @@
           </DbFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -80,7 +83,7 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"
@@ -124,6 +127,8 @@
   import K8SCityCode from '@views/db-manage/common/apply-items/K8SCityCode.vue';
   import K8SClusterName from '@views/db-manage/common/apply-items/K8SClusterName.vue';
   import K8SVersion from '@views/db-manage/common/apply-items/K8SVersion.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import QdrantSpecConfig, { getDefaultQdrantConfig } from './components/QdrantSpecConfig.vue';
@@ -154,12 +159,13 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
   const userProfile = useUserProfile();
   const bizStore = useGlobalBizs();
 
-  useTicketDetail<Qdrant.HaApply>(TicketTypes.K8S_QDRANT_HA_APPLY, {
+  const qdrantTicketDetail = useTicketDetail<Qdrant.HaApply>(TicketTypes.K8S_QDRANT_HA_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
@@ -174,6 +180,7 @@
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
+        creator: details.creator,
         db_app_abbr: details.db_app_abbr,
         db_version: details.db_version,
         k8s_cluster_name: details.k8s_cluster_name,
@@ -217,6 +224,11 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
+        // 改单模式下重置回到单据当前内容
+        if (modifyState.isModify) {
+          qdrantTicketDetail?.refresh();
+          return true;
+        }
         Object.assign(formData, initData());
         nextTick(() => {
           window.changeConfirm = false;
@@ -248,7 +260,8 @@
             storage: `${qdrantItem.storage}Gi`,
           },
         ],
-        creator: userProfile.username,
+        // 改单不改变申请人，沿用回填的单据申请人
+        creator: modifyState.isModify ? details.creator : userProfile.username,
         // 部署类型落库为 is_public，独占集群为 false
         is_public: details.apply_mode !== 'ExclusiveMode',
         remark: formData.remark,

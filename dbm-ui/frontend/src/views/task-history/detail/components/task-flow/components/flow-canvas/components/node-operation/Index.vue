@@ -46,6 +46,7 @@
   import { ticketBatchProcessTodo } from '@services/source/ticket';
 
   import { type Node } from '@views/task-history/detail/components/task-flow/components/flow-canvas/utils';
+  import { fetchTicketVersion, ticketIdInjectionKey } from '@views/task-history/detail/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -63,6 +64,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const ticketId = inject(ticketIdInjectionKey)!;
 
   /** 每种操作只有文案、按钮主题和请求不同，气泡本身是同一个 */
   const operationConfigMap: Record<
@@ -79,15 +81,19 @@
       confirmText: t('继续执行'),
       // 待继续节点才画得出「确认继续」图标，走到这里 todoId 一定有值
       request: (node) =>
-        ticketBatchProcessTodo({
-          action: 'APPROVE',
-          operations: [
-            {
-              params: {},
-              todo_id: node.todoId,
-            },
-          ],
-        }),
+        fetchTicketVersion(ticketId.value).then((version) =>
+          ticketBatchProcessTodo({
+            action: 'APPROVE',
+            operations: [
+              {
+                params: {
+                  version,
+                },
+                todo_id: node.todoId,
+              },
+            ],
+          }),
+        ),
       subTitle: t('继续后将立即完成当前节点，并执行后续节点'),
       theme: 'primary',
       title: t('确认继续执行当前待继续节点？'),

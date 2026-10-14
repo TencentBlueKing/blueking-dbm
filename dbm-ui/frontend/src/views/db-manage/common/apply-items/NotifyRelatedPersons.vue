@@ -18,6 +18,7 @@
       required>
       <div class="notify-wrapper">
         <BkSwitcher
+          :disabled="isAdjustApply"
           :model-value="modelValue.is_send"
           theme="primary"
           @change="handleSwitchChange" />
@@ -34,6 +35,7 @@
       :label="t('收件人')">
       <MemberSelector
         v-model="personList"
+        :disabled="isAdjustApply"
         style="width: 435px" />
     </DbFormItem>
   </div>
@@ -45,6 +47,8 @@
   import { useRequest } from 'vue-request';
 
   import { getAdmins } from '@services/source/dbadmin';
+
+  import { useTicketModifyState } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -66,6 +70,8 @@
   }>({ required: true });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
   const { username } = useUserProfile();
 
   const personList = ref<string[]>([]);

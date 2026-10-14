@@ -15,6 +15,8 @@
   import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
@@ -39,6 +41,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，域名只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   /**
    * 表单展示数据
@@ -133,6 +137,7 @@
                   theme: 'light',
                   trigger: 'click',
                 }}
+                disabled={isAdjustApply}
                 maxlength={63}
                 model-value={domains.value[rowIndex]?.key}
                 placeholder={t('请输入')}
@@ -155,7 +160,7 @@
         title: () => (
           <span>
             {props.isSqlserverSingle ? t('域名') : t('主域名')}
-            {tableData.value.length !== 0 && (
+            {tableData.value.length !== 0 && !isAdjustApply && (
               <span v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}>
                 <BatchEdit
                   appName={props.dbAppAbbr}

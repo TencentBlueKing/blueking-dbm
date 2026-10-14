@@ -11,6 +11,7 @@
       v-model="modelValue"
       class="item-input"
       :clearable="false"
+      :disabled="isAdjustApply"
       filterable
       :input-search="false"
       :loading="moduleLoading"
@@ -42,7 +43,7 @@
           style="padding: 0 12px">
           <BkButton
             class="create-module"
-            :disabled="!bizId"
+            :disabled="!bizId || isAdjustApply"
             text
             @click="handleCreateModule">
             <DbIcon
@@ -105,6 +106,8 @@
   import { getModules } from '@services/source/cmdb';
   import { getLevelConfig } from '@services/source/configs';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { clusterTypeInfos, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import useBase from '@components/auth-component/use-base';
@@ -129,6 +132,8 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const { dbType } = clusterTypeInfos[props.clusterType];
 

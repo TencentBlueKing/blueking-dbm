@@ -49,6 +49,7 @@ export * from './useTaskCount';
 export * from './useTicketCount';
 export * from './useTicketDetail';
 export * from './useTicketMessage';
+export * from './useTicketModify';
 export * from './useTimeZoneFormat';
 export * from './useUrlSearach';
 export * from './useValidtor';

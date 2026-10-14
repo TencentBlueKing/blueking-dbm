@@ -1,19 +1,22 @@
 <template>
   <StatusRunning
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template #content>
       <slot name="content">
         <TodoList
           v-if="data.todos.length > 0"
           :data="data.todos"
-          :flow-data="data" />
+          :flow-data="data"
+          :modify-records="modifyRecords" />
       </slot>
     </template>
   </StatusRunning>
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import StatusRunning from '../flow-type-common/StatusRunning.vue';
@@ -29,6 +32,7 @@
         status: string;
       }
     >;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<any>;
   }
 
