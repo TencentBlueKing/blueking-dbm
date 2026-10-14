@@ -15,6 +15,7 @@
   <SmartAction
     class="apply-es-page"
     :offset-target="getSmartActionOffsetTarget">
+    <TicketModifyAlert />
     <DbForm
       ref="formRef"
       auto-label-width
@@ -58,6 +59,7 @@
           <DbInput
             v-model="formData.details.http_port"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             show-clear-only-hover
             style="width: 185px"
@@ -67,7 +69,9 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formData.details.ip_source">
+          <BkRadioGroup
+            v-model="formData.details.ip_source"
+            :disabled="modifyState.isAdjustApply">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -208,6 +212,7 @@
                   required>
                   <DbInput
                     v-model="formData.details.resource_spec.master.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="3"
                     type="number" />
                   <span class="input-desc">{{ t('至少3台_且为奇数') }}</span>
@@ -249,6 +254,7 @@
                     <span style="flex-shrink: 0">
                       <DbInput
                         v-model="formData.details.resource_spec.client.count"
+                        :disabled="modifyState.isAdjustApply"
                         :min="0"
                         type="number" />
                     </span>
@@ -260,12 +266,14 @@
                   :required="false">
                   <BkCheckbox
                     v-model="formData.details.apply_clb"
-                    v-db-console="'common.clb'">
+                    v-db-console="'common.clb'"
+                    :disabled="modifyState.isAdjustApply">
                     CLB
                   </BkCheckbox>
                   <BkCheckbox
                     v-model="formData.details.apply_polaris"
-                    v-db-console="'common.polaris'">
+                    v-db-console="'common.polaris'"
+                    :disabled="modifyState.isAdjustApply">
                     {{ t('北极星') }}
                   </BkCheckbox>
                 </BkFormItem>
@@ -312,6 +320,7 @@
                   required>
                   <DbInput
                     v-model="formData.details.resource_spec.hot.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -350,6 +359,7 @@
                   property="details.resource_spec.cold.count">
                   <DbInput
                     v-model="formData.details.resource_spec.cold.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -379,6 +389,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
+            :disabled="modifyState.isAdjustApply"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -386,6 +397,7 @@
         </BkFormItem>
       </DbCard>
     </DbForm>
+    <TicketModifyRemark />
     <template #action>
       <div>
         <BkButton
@@ -393,12 +405,13 @@
           style="width: 88px"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
-          :disabled="baseState.isSubmitting" />
+          :content="modifyState.resetContent"
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -411,7 +424,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -433,6 +446,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import WithInstanceHostTable, {
     type IHostTableDataWithInstance,
   } from '@views/db-manage/common/big-data-host-table/es-host-table/index.vue';
@@ -445,7 +460,7 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  useTicketDetail<Es.Apply>(TicketTypes.ES_APPLY, {
+  const esTicketDetail = useTicketDetail<Es.Apply>(TicketTypes.ES_APPLY, {
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
@@ -454,9 +469,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -489,8 +504,13 @@
           });
         }, {});
         const subzoneIds = details.resource_spec!.master.location_spec.sub_zone_ids || [];
+        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
+        if (subzoneIds.length > 0) {
+          formData.details.disaster_tolerance_level = Affinity.NONE;
+        }
         Object.assign(formData.details, {
-          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
+          // 改单「重置」也走这段回填；数量为 0 的角色不提交，单据里没有的角色要回到默认值，否则会留着改过的规格与数量
+          resource_spec: Object.assign(genDefaultFormData().details.resource_spec, resourceSpec),
           sub_zone_ids: subzoneIds,
         });
         nextTick(() => {
@@ -687,7 +707,8 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
@@ -809,6 +830,110 @@
     formData.details.nodes.cold = formatIpDataWidthInstance(data);
   };
 
+  const mapIpField = (ipList: Array<HostInfo>) =>
+    ipList.map((item) => ({
+      bk_biz_id: item.biz.id,
+      bk_cloud_id: item.cloud_area.id,
+      bk_host_id: item.host_id,
+      ip: item.ip,
+    }));
+  const mapIpFieldWithInstance = (ipList: Array<IHostTableDataWithInstance>) =>
+    ipList.map((item) => ({
+      bk_biz_id: item.biz.id,
+      bk_cloud_id: item.cloud_area.id,
+      bk_host_id: item.host_id,
+      instance_num: item.instance_num,
+      ip: item.ip,
+    }));
+
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = _.cloneDeep(formData.details);
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+
+      const result: Record<string, any> = {
+        ...details,
+        resource_spec: {
+          master: {
+            ...details.resource_spec.master,
+            ...specMasterRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.master.count),
+            label_names: details.resource_spec.master.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.master.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      };
+
+      const clientCount = Number(details.resource_spec.client.count);
+      const hotCount = Number(details.resource_spec.hot.count);
+      const coldCount = Number(details.resource_spec.cold.count);
+      if (clientCount > 0) {
+        result.resource_spec.client = {
+          ...details.resource_spec.client,
+          ...specClientRef.value.getData(),
+          ...regionAndDisasterParams,
+          count: clientCount,
+          label_names: details.resource_spec.client.labels.map((item: { value: string }) => item.value),
+          labels: details.resource_spec.client.labels.map((item: { id: number }) => String(item.id)),
+        };
+      }
+      if (hotCount > 0) {
+        result.resource_spec.hot = {
+          ...details.resource_spec.hot,
+          ...specHotRef.value.getData(),
+          ...regionAndDisasterParams,
+          count: hotCount,
+          label_names: details.resource_spec.hot.labels.map((item: { value: string }) => item.value),
+          labels: details.resource_spec.hot.labels.map((item: { id: number }) => String(item.id)),
+        };
+      }
+      if (coldCount > 0) {
+        result.resource_spec.cold = {
+          ...details.resource_spec.cold,
+          ...specColdRef.value.getData(),
+          ...regionAndDisasterParams,
+          count: coldCount,
+          label_names: details.resource_spec.cold.labels.map((item: { value: string }) => item.value),
+          labels: details.resource_spec.cold.labels.map((item: { id: number }) => String(item.id)),
+        };
+      }
+      return result;
+    }
+
+    delete details.resource_spec;
+    return {
+      ...details,
+      nodes: {
+        client: mapIpField(formData.details.nodes.client),
+        cold: mapIpFieldWithInstance(formData.details.nodes.cold),
+        hot: mapIpFieldWithInstance(formData.details.nodes.hot),
+        master: mapIpField(formData.details.nodes.master),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool') {
+      const specRefList = [specMasterRef.value, specClientRef.value, specHotRef.value, specColdRef.value];
+      if (!regionRequirementsRef.value || !specRefList.every(Boolean)) {
+        return false;
+      }
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   // 提交
   const handleSubmit = () => {
     isClickSubmit.value = true;
@@ -817,92 +942,6 @@
         return Promise.reject(t('请确保冷节点和热节点的总数至少为一台'));
       }
       baseState.isSubmitting = true;
-
-      const mapIpField = (ipList: Array<HostInfo>) =>
-        ipList.map((item) => ({
-          bk_biz_id: item.biz.id,
-          bk_cloud_id: item.cloud_area.id,
-          bk_host_id: item.host_id,
-          ip: item.ip,
-        }));
-      const mapIpFieldWithInstance = (ipList: Array<IHostTableDataWithInstance>) =>
-        ipList.map((item) => ({
-          bk_biz_id: item.biz.id,
-          bk_cloud_id: item.cloud_area.id,
-          bk_host_id: item.host_id,
-          instance_num: item.instance_num,
-          ip: item.ip,
-        }));
-
-      const getDetails = () => {
-        const details: Record<string, any> = _.cloneDeep(formData.details);
-
-        if (formData.details.ip_source === 'resource_pool') {
-          delete details.nodes;
-
-          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-
-          const result: Record<string, any> = {
-            ...details,
-            resource_spec: {
-              master: {
-                ...details.resource_spec.master,
-                ...specMasterRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.master.count),
-                label_names: details.resource_spec.master.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.master.labels.map((item: { id: number }) => String(item.id)),
-              },
-            },
-          };
-
-          const clientCount = Number(details.resource_spec.client.count);
-          const hotCount = Number(details.resource_spec.hot.count);
-          const coldCount = Number(details.resource_spec.cold.count);
-          if (clientCount > 0) {
-            result.resource_spec.client = {
-              ...details.resource_spec.client,
-              ...specClientRef.value.getData(),
-              ...regionAndDisasterParams,
-              count: clientCount,
-              label_names: details.resource_spec.client.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.client.labels.map((item: { id: number }) => String(item.id)),
-            };
-          }
-          if (hotCount > 0) {
-            result.resource_spec.hot = {
-              ...details.resource_spec.hot,
-              ...specHotRef.value.getData(),
-              ...regionAndDisasterParams,
-              count: hotCount,
-              label_names: details.resource_spec.hot.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.hot.labels.map((item: { id: number }) => String(item.id)),
-            };
-          }
-          if (coldCount > 0) {
-            result.resource_spec.cold = {
-              ...details.resource_spec.cold,
-              ...specColdRef.value.getData(),
-              ...regionAndDisasterParams,
-              count: coldCount,
-              label_names: details.resource_spec.cold.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec.cold.labels.map((item: { id: number }) => String(item.id)),
-            };
-          }
-          return result;
-        }
-
-        delete details.resource_spec;
-        return {
-          ...details,
-          nodes: {
-            client: mapIpField(formData.details.nodes.client),
-            cold: mapIpFieldWithInstance(formData.details.nodes.cold),
-            hot: mapIpFieldWithInstance(formData.details.nodes.hot),
-            master: mapIpField(formData.details.nodes.master),
-          },
-        };
-      };
 
       const params = {
         ...formData,
@@ -922,6 +961,11 @@
 
   // 重置表单
   const handleReset = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      esTicketDetail?.refresh();
+      return;
+    }
     isClickSubmit.value = false;
     Object.assign(formData, genDefaultFormData());
     formRef.value.clearValidate();

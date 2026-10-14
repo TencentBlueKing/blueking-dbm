@@ -33,7 +33,8 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data?: TicketModel<unknown>;
+    data: TicketModel<unknown>;
+    // 传入时只处理这条待办，否则按单据处理
     todoData?: FlowMode<unknown>['todos'][number];
   }
 
@@ -54,25 +55,28 @@
 
     return Promise.resolve()
       .then(() => {
-        if (props.data) {
-          return batchProcessTicket({
-            action: 'APPROVE',
-            params: approveFormMode,
-            ticket_ids: [props.data.id],
-          });
-        }
         if (props.todoData) {
           return batchProcessTodo({
             action: 'APPROVE',
             operations: [
               {
-                params: approveFormMode,
+                params: {
+                  ...approveFormMode,
+                  version: props.data.version,
+                },
                 todo_id: props.todoData.id,
               },
             ],
           });
         }
-        return Promise.reject();
+        return batchProcessTicket({
+          action: 'APPROVE',
+          params: {
+            ...approveFormMode,
+            versions: { [props.data.id]: props.data.version },
+          },
+          ticket_ids: [props.data.id],
+        });
       })
       .then(() => {
         messageSuccess(t('操作成功'));

@@ -4,6 +4,7 @@
     required>
     <BkRadioGroup
       v-model="modelValue"
+      :disabled="disabled"
       style="width: 314px"
       @change="handleChange">
       <BkRadioButton
@@ -34,8 +35,16 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  interface Props {
+    // 是否只读；由调用方按场景决定，申请页调整申请模式下传 true，工具箱页不传
+    disabled?: boolean;
+  }
+
   type Emits = (e: 'change') => void;
 
+  withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<APPLY_SCHEME>({

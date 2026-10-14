@@ -2,6 +2,7 @@
   <Component
     :is="renderCom"
     :data="data"
+    :modify-records="modifyRecords"
     :ticket-detail="ticketDetail">
     <template
       v-if="
@@ -20,6 +21,7 @@
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -30,6 +32,7 @@
 
   interface Props {
     data: FlowMode<unknown>;
+    modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<unknown>;
   }
 

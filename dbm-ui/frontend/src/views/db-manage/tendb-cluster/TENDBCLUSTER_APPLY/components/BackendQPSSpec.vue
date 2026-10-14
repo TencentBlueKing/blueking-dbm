@@ -5,6 +5,7 @@
       required>
       <BkRadioGroup
         v-model="applyType"
+        :disabled="isAdjustApply"
         style="width: 314px">
         <BkRadioButton
           label="auto"
@@ -30,6 +31,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="1"
           :model-value="modelValue.capacity"
           type="number"
@@ -44,6 +46,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
           type="number"
@@ -57,7 +60,7 @@
         required>
         <BkSlider
           v-model="sliderProps.value"
-          :disable="sliderProps.disabled"
+          :disable="sliderProps.disabled || isAdjustApply"
           :formatter-label="formatterLabel"
           :max-value="sliderProps.max"
           :min-value="sliderProps.min"
@@ -146,6 +149,7 @@
         <DbInput
           v-model="modelValue.count"
           clearable
+          :disabled="isAdjustApply"
           :min="1"
           show-clear-only-hover
           type="number" />
@@ -156,6 +160,7 @@
         required>
         <DbInput
           v-model="shardNum"
+          :disabled="isAdjustApply"
           :min="1"
           type="number" />
       </BkFormItem>
@@ -202,6 +207,8 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec, queryQPSRange } from '@services/source/dbresourceSpec';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
@@ -233,6 +240,8 @@
   const modelValue = defineModel<ModelValue>({ required: true });
 
   const { t } = useI18n();
+  // 调整申请模式只放开规格、标签与组数；回填固定落在自定义方案，部署方案与单机分片数（决定集群分片拓扑）只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const specRef = ref();
   const specSelectorRef = ref<InstanceType<typeof SpecSelector>>();
@@ -255,6 +264,7 @@
         <bk-radio
           v-model={modelValue.value.spec_id}
           class='spec-radio'
+          disabled={isAdjustApply}
           label={row.spec_id}>
           <div
             v-overflow-tips
@@ -439,7 +449,10 @@
   watch(
     () => sliderProps.value,
     _.debounce(() => {
-      modelValue.value.spec_id = '';
+      // 自定义方案的规格不从推荐列表里选，回填容量触发的 QPS 范围刷新不能把它清掉
+      if (applyType.value === 'auto') {
+        modelValue.value.spec_id = '';
+      }
       if (sliderProps.value[1] > 0) {
         fetchFilterClusterSpec();
       } else {
@@ -488,6 +501,10 @@
   );
 
   const handleRowClick = ({ row }: { row: TableRowData }) => {
+    // 调整申请只能改规格与资源标签：自动推荐方案的一行同时决定规格与组数，选行会连带改数量，整张方案表只读
+    if (isAdjustApply) {
+      return;
+    }
     modelValue.value.spec_id = row.spec_id;
   };
 
@@ -526,6 +543,11 @@
         };
       }
       return {};
+    },
+    // 单据没有保存部署方案的选择，回填时按自定义方案还原：规格、组数随 modelValue 回填，单机分片数在这里补上
+    setInitCustom(remoteShardNum: number) {
+      applyType.value = 'custom';
+      shardNum.value = remoteShardNum;
     },
   });
 </script>

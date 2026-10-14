@@ -2,17 +2,17 @@
   <!-- eslint-disable vue/space-unary-ops -->
   <div
     v-if="isSelector"
-    class="user-selector"
+    class="dbm-user-selector"
     v-bind="$attrs"
     :style="{
       height: fixedHeight ? selectorHeight + 'px' : 'auto',
     }"
     @click="focus"
     @mousedown="shouldUpdate = false">
-    <div class="user-selector-layout">
+    <div class="dbm-user-selector-layout">
       <div
         ref="containerRef"
-        class="user-selector-container"
+        class="dbm-user-selector-container"
         :class="{
           focus: isFocus,
           disabled: disabled,
@@ -29,33 +29,36 @@
           <span
             v-for="(user, index) in localValueUsers"
             :key="user.username"
-            class="user-selector-selected"
+            class="dbm-user-selector-selected"
             @click.stop
             @mousedown.left.stop="handleSelectedMousedown($event, index)"
             @mouseenter="handleSelectedMouseenter($event, user)"
             @mouseleave="handleSelectedMouseleave($event, user)"
             @mouseup.left.stop="handleSelectedMouseup($event, index)">
             <template v-if="renderTag">
-              <RenderTag
-                :index="index"
-                :user="user"
-                :username="user.username" />
+              <!-- 自定义 tag 也包进 value 容器，超出 tag 最大宽度时显示省略号 -->
+              <span class="dbm-user-selector-selected-value">
+                <RenderTag
+                  :index="index"
+                  :user="user"
+                  :username="user.username" />
+              </span>
             </template>
 
             <template v-else>
               <RenderAvatar
                 v-if="tagType === 'avatar'"
-                class="user-selector-selected-avatar"
+                class="dbm-user-selector-selected-avatar"
                 :url-method="avatarUrl"
                 :user="user" />
-              <span class="user-selector-selected-value">
+              <span class="dbm-user-selector-selected-value">
                 {{ getDisplayText(user) }}
               </span>
             </template>
 
             <i
               v-if="tagClearable && tagType === 'tag' && !disabled"
-              class="user-selector-selected-clear bk-biz-components-icon bk-biz-icon-close"
+              class="dbm-user-selector-selected-clear bk-biz-components-icon bk-biz-icon-close"
               @click.stop.prevent="handleRemoveSelected(user, index)"
               @mousedown.left.stop="handleRemoveMouseDown"
               @mouseup.left.stop />
@@ -64,7 +67,7 @@
         <span
           v-show="isFocus"
           ref="inputRef"
-          class="user-selector-input"
+          class="dbm-user-selector-input"
           contenteditable
           spellcheck="false"
           @blur="handleBlur"
@@ -75,13 +78,13 @@
       </div>
       <i
         v-if="fastClear && !disabled && localValue.length"
-        class="user-selector-clear bk-dbm db-icon-close-circle-shape"
+        class="dbm-user-selector-clear bk-dbm db-icon-close-circle-shape"
         @click.stop="handleFastClear" />
     </div>
   </div>
   <span
     v-else
-    class="user-selector user-selector-info">
+    class="dbm-user-selector dbm-user-selector-info">
     {{ userInfo }}
   </span>
 </template>
@@ -111,6 +114,8 @@
   import 'tippy.js/dist/tippy.css';
   import 'tippy.js/themes/light.css';
   import '@icon-cool/bk-icon-bk-biz-components';
+  // 在 script 中直接引入（而非 <style> 内 @import），改样式时开发服务才能热更新
+  import './style.css';
   export default defineComponent({
     name: 'BkUserSelector',
     components: {
@@ -467,7 +472,7 @@
       const getPopoverInstance = () => {
         if (!popoverInstance.value) {
           popoverInstance.value = Tippy(inputRef.value, {
-            theme: 'light user-selector-popover',
+            theme: 'light dbm-user-selector-popover',
             appendTo: document.body,
             trigger: 'manual',
             placement: 'bottom-start',
@@ -862,7 +867,7 @@
         }
       };
 
-      const getSelectedDOM = () => Array.from(containerRef.value.querySelectorAll('.user-selector-selected'));
+      const getSelectedDOM = () => Array.from(containerRef.value.querySelectorAll('.dbm-user-selector-selected'));
 
       const moveInput = (step, option = {}) => {
         inputIndex.value = inputIndex.value + step;
@@ -973,7 +978,7 @@
           return overflowTagNode.value;
         }
         const node = document.createElement('span');
-        node.className = 'user-selector-overflow-tag';
+        node.className = 'dbm-user-selector-overflow-tag';
         overflowTagNode.value = node;
       };
       const removeOverflowTagNode = () => {
@@ -1132,7 +1137,3 @@
     },
   });
 </script>
-
-<style lang="css">
-  @import './style.css';
-</style>

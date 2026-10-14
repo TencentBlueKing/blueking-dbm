@@ -42,6 +42,7 @@ const TODO_TYPE_INNER_APPROVE = 'INNER_APPROVE';
 const TODO_TYPE_RESOURCE_REPLENISH = 'RESOURCE_REPLENISH';
 const TODO_TYPE_RESOURCE_HCM_REPLENISH = 'RESOURCE_HCM_REPLENISH';
 const TODO_TYPE_TIMER = 'TIMER';
+const TODO_TYPE_CONFIRM_MODIFY = 'CONFIRM_MODIFY';
 
 const TODO_STATUS_TODO = 'TODO';
 const TODO_STATUS_RUNNING = 'RUNNING';
@@ -72,6 +73,7 @@ export default class Flow<
   static TODO_STATUS_TODO = TODO_STATUS_TODO;
 
   static TODO_TYPE_APPROVE = TODO_TYPE_APPROVE;
+  static TODO_TYPE_CONFIRM_MODIFY = TODO_TYPE_CONFIRM_MODIFY;
   static TODO_TYPE_INNER_APPROVE = TODO_TYPE_INNER_APPROVE;
   static TODO_TYPE_INNER_FAILED = TODO_TYPE_INNER_FAILED;
   static TODO_TYPE_ITSM = TODO_TYPE_ITSM;
@@ -106,6 +108,8 @@ export default class Flow<
   flow_type: string;
   flow_type_display: string;
   id: number;
+  // 该步骤内发生过的改单模式，未改过单为空
+  modify_mode?: 'ON_BEHALF' | 'RE_EDIT' | 'ADJUST_APPLY';
   output_data: {
     hidden: boolean; // 为true则不展示，适用于excel下载的上下文
     remark?: string;
@@ -155,6 +159,7 @@ export default class Flow<
     this.flow_type = payload.flow_type;
     this.flow_type_display = payload.flow_type_display;
     this.id = payload.id;
+    this.modify_mode = payload.modify_mode;
     this.output_data = payload.output_data || [];
     this.retry_type = payload.retry_type;
     this.start_time = payload.start_time;

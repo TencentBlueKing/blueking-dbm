@@ -15,6 +15,7 @@
   <SmartAction
     class="apply-doris-page"
     :offset-target="getSmartActionOffsetTarget">
+    <TicketModifyAlert />
     <DbForm
       ref="formRef"
       auto-label-width
@@ -58,6 +59,7 @@
           <DbInput
             v-model="formData.details.query_port"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :max="65535"
             :min="1024"
             show-clear-only-hover
@@ -72,6 +74,7 @@
           <DbInput
             v-model="formData.details.http_port"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :max="65535"
             :min="1024"
             show-clear-only-hover
@@ -83,7 +86,9 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formData.details.ip_source">
+          <BkRadioGroup
+            v-model="formData.details.ip_source"
+            :disabled="modifyState.isAdjustApply">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -300,6 +305,7 @@
                   property="details.resource_spec.observer.count">
                   <DbInput
                     v-model="formData.details.resource_spec.observer.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -344,6 +350,7 @@
                   property="details.resource_spec.hot.count">
                   <DbInput
                     v-model="formData.details.resource_spec.hot.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -382,6 +389,7 @@
                   property="details.resource_spec.warm.count">
                   <DbInput
                     v-model="formData.details.resource_spec.warm.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -391,7 +399,9 @@
               v-db-console="'common.dorisColdResource'"
               :label="t('启用低频存储')"
               required>
-              <BkSwitcher v-model="formData.details.enable_cold_storage" />
+              <BkSwitcher
+                v-model="formData.details.enable_cold_storage"
+                :disabled="modifyState.isAdjustApply" />
             </BkFormItem>
             <BkFormItem :label="t('总容量')">
               <DbInput
@@ -417,6 +427,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
+            :disabled="modifyState.isAdjustApply"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -424,6 +435,7 @@
         </BkFormItem>
       </DbCard>
     </DbForm>
+    <TicketModifyRemark />
     <template #action>
       <div>
         <BkButton
@@ -431,12 +443,13 @@
           :loading="baseState.isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
-          :disabled="baseState.isSubmitting" />
+          :content="modifyState.resetContent"
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -450,7 +463,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { Doris } from '@services/model/ticket/ticket';
@@ -472,6 +485,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -483,7 +498,7 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  useTicketDetail<Doris.Apply>(TicketTypes.DORIS_APPLY, {
+  const dorisTicketDetail = useTicketDetail<Doris.Apply>(TicketTypes.DORIS_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -492,9 +507,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -506,6 +521,7 @@
         cluster_name: details.cluster_name,
         db_version: details.db_version,
         disaster_tolerance_level: details.disaster_tolerance_level,
+        enable_cold_storage: details.enable_cold_storage,
         http_port: details.http_port,
         ip_source: details.ip_source,
         query_port: details.query_port,
@@ -536,8 +552,13 @@
           });
         }, {});
         const subzoneIds = details.resource_spec!.follower.location_spec.sub_zone_ids || [];
+        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
+        if (subzoneIds.length > 0) {
+          formData.details.disaster_tolerance_level = Affinity.NONE;
+        }
         Object.assign(formData.details, {
-          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
+          // 单据只保存数量大于 0 的角色，以默认值为底，改单「重置」时才能清掉用户新填的角色
+          resource_spec: Object.assign(genDefaultFormData().details.resource_spec, resourceSpec),
           sub_zone_ids: subzoneIds,
         });
         nextTick(() => {
@@ -836,7 +857,8 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
   // 切换业务，需要重置 IP 相关的选择
@@ -898,6 +920,113 @@
     formData.details.nodes[nodeType] = data;
   };
 
+  const getNodeList = (ipList: Array<HostInfo>) =>
+    ipList.map((item) => ({
+      bk_biz_id: item.biz.id,
+      bk_cloud_id: item.cloud_area.id,
+      bk_host_id: item.host_id,
+      ip: item.ip,
+    }));
+
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const { details }: { details: Record<string, any> } = _.cloneDeep(formData);
+
+    if (!checkDbConsole('common.dorisColdResource')) {
+      delete details.enable_cold_storage;
+    }
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+
+      const result = {
+        ...details,
+        resource_spec: {
+          follower: {
+            ...details.resource_spec.follower,
+            ...specFollowerRef.value!.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.follower.count),
+            label_names: details.resource_spec.follower.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.follower.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      };
+
+      const observerCount = Number(details.resource_spec.observer.count);
+      const hotCount = Number(details.resource_spec.hot.count);
+      const warmCount = Number(details.resource_spec.warm.count);
+      if (observerCount > 0) {
+        Object.assign(result.resource_spec, {
+          observer: {
+            ...details.resource_spec.observer,
+            ...specObserverRef.value!.getData(),
+            ...regionAndDisasterParams,
+            count: observerCount,
+            label_names: details.resource_spec.observer.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.observer.labels.map((item: { id: number }) => String(item.id)),
+          },
+        });
+      }
+      if (hotCount > 0) {
+        Object.assign(result.resource_spec, {
+          hot: {
+            ...details.resource_spec.hot,
+            ...specHotRef.value!.getData(),
+            ...regionAndDisasterParams,
+            count: hotCount,
+            label_names: details.resource_spec.hot.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.hot.labels.map((item: { id: number }) => String(item.id)),
+          },
+        });
+      }
+      if (warmCount > 0) {
+        Object.assign(result.resource_spec, {
+          warm: {
+            ...details.resource_spec.warm,
+            ...specWarmRef.value!.getData(),
+            ...regionAndDisasterParams,
+            count: warmCount,
+            label_names: details.resource_spec.warm.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.warm.labels.map((item: { id: number }) => String(item.id)),
+          },
+        });
+      }
+      return result;
+    }
+
+    delete details.resource_spec;
+
+    return {
+      ...details,
+      nodes: {
+        follower: getNodeList(formData.details.nodes.follower),
+        hot: getNodeList(formData.details.nodes.hot),
+        observer: getNodeList(formData.details.nodes.observer),
+        warm: getNodeList(formData.details.nodes.warm),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool') {
+      const specRefList = [specFollowerRef.value, specObserverRef.value, specHotRef.value, specWarmRef.value];
+      if (!regionRequirementsRef.value || !specRefList.every(Boolean)) {
+        return false;
+      }
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   // 提交
   const handleSubmit = () => {
     isClickSubmit.value = true;
@@ -906,95 +1035,6 @@
         return Promise.reject(t('请保证温/热节点至少存在一种'));
       }
       baseState.isSubmitting = true;
-
-      const getNodeList = (ipList: Array<HostInfo>) =>
-        ipList.map((item) => ({
-          bk_biz_id: item.biz.id,
-          bk_cloud_id: item.cloud_area.id,
-          bk_host_id: item.host_id,
-          ip: item.ip,
-        }));
-
-      const getDetails = () => {
-        const { details }: { details: Record<string, any> } = _.cloneDeep(formData);
-
-        if (!checkDbConsole('common.dorisColdResource')) {
-          delete details.enable_cold_storage;
-        }
-
-        if (formData.details.ip_source === 'resource_pool') {
-          delete details.nodes;
-
-          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-
-          const result = {
-            ...details,
-            resource_spec: {
-              follower: {
-                ...details.resource_spec.follower,
-                ...specFollowerRef.value!.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.follower.count),
-                label_names: details.resource_spec.follower.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.follower.labels.map((item: { id: number }) => String(item.id)),
-              },
-            },
-          };
-
-          const observerCount = Number(details.resource_spec.observer.count);
-          const hotCount = Number(details.resource_spec.hot.count);
-          const warmCount = Number(details.resource_spec.warm.count);
-          if (observerCount > 0) {
-            Object.assign(result.resource_spec, {
-              observer: {
-                ...details.resource_spec.observer,
-                ...specObserverRef.value!.getData(),
-                ...regionAndDisasterParams,
-                count: observerCount,
-                label_names: details.resource_spec.observer.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.observer.labels.map((item: { id: number }) => String(item.id)),
-              },
-            });
-          }
-          if (hotCount > 0) {
-            Object.assign(result.resource_spec, {
-              hot: {
-                ...details.resource_spec.hot,
-                ...specHotRef.value!.getData(),
-                ...regionAndDisasterParams,
-                count: hotCount,
-                label_names: details.resource_spec.hot.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.hot.labels.map((item: { id: number }) => String(item.id)),
-              },
-            });
-          }
-          if (warmCount > 0) {
-            Object.assign(result.resource_spec, {
-              warm: {
-                ...details.resource_spec.warm,
-                ...specWarmRef.value!.getData(),
-                ...regionAndDisasterParams,
-                count: warmCount,
-                label_names: details.resource_spec.warm.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.warm.labels.map((item: { id: number }) => String(item.id)),
-              },
-            });
-          }
-          return result;
-        }
-
-        delete details.resource_spec;
-
-        return {
-          ...details,
-          nodes: {
-            follower: getNodeList(formData.details.nodes.follower),
-            hot: getNodeList(formData.details.nodes.hot),
-            observer: getNodeList(formData.details.nodes.observer),
-            warm: getNodeList(formData.details.nodes.warm),
-          },
-        };
-      };
 
       const params = {
         ...formData,
@@ -1014,6 +1054,11 @@
 
   // 重置表单
   const handleReset = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      dorisTicketDetail?.refresh();
+      return;
+    }
     isClickSubmit.value = false;
     Object.assign(formData, genDefaultFormData());
     formRef.value!.clearValidate();

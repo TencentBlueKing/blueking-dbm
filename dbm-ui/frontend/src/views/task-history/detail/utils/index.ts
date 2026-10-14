@@ -14,3 +14,4 @@
 export * from './nodeStatus';
 export * from './parseFlow';
 export * from './superUserMode';
+export * from './ticketVersion';

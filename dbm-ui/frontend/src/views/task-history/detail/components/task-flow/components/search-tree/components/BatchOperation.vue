@@ -160,7 +160,12 @@
   import { batchForceFailTaskflowNode, batchRetryNodes, batchSkipTaskflowNode } from '@services/source/taskflow';
   import { batchProcessTodo } from '@services/source/ticketFlow';
 
-  import { superUserModeInjectionKey, type TreeNode } from '@views/task-history/detail/utils';
+  import {
+    fetchTicketVersion,
+    superUserModeInjectionKey,
+    ticketIdInjectionKey,
+    type TreeNode,
+  } from '@views/task-history/detail/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -186,6 +191,7 @@
   const { t } = useI18n();
 
   const isSuperUserMode = inject(superUserModeInjectionKey)!;
+  const ticketId = inject(ticketIdInjectionKey)!;
 
   const formRef = ref<InstanceType<typeof BkForm>>();
   const isCheckAll = ref(false);
@@ -242,12 +248,16 @@
   };
 
   const handleConfirmTodo = () => {
-    runBatchProcessTodo({
-      action: 'APPROVE',
-      operations: props.data.map((item) => ({
-        params: {},
-        todo_id: item.todoId,
-      })),
+    fetchTicketVersion(ticketId.value).then((version) => {
+      runBatchProcessTodo({
+        action: 'APPROVE',
+        operations: props.data.map((item) => ({
+          params: {
+            version,
+          },
+          todo_id: item.todoId,
+        })),
+      });
     });
   };
 
