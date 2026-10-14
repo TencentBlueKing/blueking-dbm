@@ -67,11 +67,10 @@
   };
 
   defineExpose<Expose>({
+    // 空数组即随机园区，界面同步回随机，否则重置后仍显示之前选中的园区
     setInitSubzone(subzoneIds: number[]) {
-      if (subzoneIds.length > 0) {
-        isRandom.value = false;
-        subzoneLocalValue.value = subzoneIds;
-      }
+      isRandom.value = subzoneIds.length < 1;
+      subzoneLocalValue.value = subzoneIds;
     },
   });
 </script>

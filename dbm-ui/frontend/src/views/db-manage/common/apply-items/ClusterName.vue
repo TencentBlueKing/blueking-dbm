@@ -23,6 +23,7 @@
         v-model="modelValue"
         class="item-input"
         clearable
+        :disabled="isAdjustApply"
         :maxlength="63"
         :placeholder="t('请输入集群标识')"
         show-word-limit />
@@ -49,6 +50,8 @@
 
   import { checkDomainRepeat } from '@services/source/ticket';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
@@ -71,6 +74,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const rules = [
     {

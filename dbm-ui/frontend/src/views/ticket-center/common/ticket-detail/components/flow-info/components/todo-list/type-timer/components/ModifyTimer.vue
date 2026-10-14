@@ -37,6 +37,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
   import { batchProcessTodo } from '@services/source/ticketFlow';
 
   import { useEventBus, useTimeZoneFormat } from '@hooks';
@@ -48,6 +49,7 @@
       run_time: string;
       trigger_time: string;
     }>;
+    ticketData: TicketModel;
     todoData: FlowMode<unknown>['todos'][number];
   }
 
@@ -75,6 +77,7 @@
         {
           params: {
             trigger_time: formatDateToUTC(formMode.trigger_time),
+            version: props.ticketData.version,
           },
           todo_id: props.todoData.id,
         },

@@ -35,10 +35,9 @@
   };
 
   defineExpose<Expose>({
+    // 空数组时同步清空界面，否则重置后仍显示之前选中的园区
     setInitSubzone(subzoneIds: number[]) {
-      if (subzoneIds.length > 0) {
-        localValue.value = subzoneIds[0];
-      }
+      localValue.value = subzoneIds[0];
     },
   });
 </script>

@@ -28,8 +28,14 @@
               :ticket-data="ticketData" />
             <TaskInfo
               :key="ticketId"
-              :data="ticketData" />
-            <FlowInfos :data="ticketData" />
+              :data="ticketData"
+              :modify-records="modifyRecords" />
+            <FlowInfos
+              :data="ticketData"
+              :modify-records="modifyRecords" />
+            <ContentUpdatedDialog
+              :data="ticketData"
+              @refresh="refreshTicketData" />
           </div>
           <template
             v-if="ticketData"
@@ -39,6 +45,9 @@
               :data="ticketData"
               :text="false"
               theme="" />
+            <TicketReEdit
+              class="mr-8"
+              :data="ticketData" />
             <TicketRevoke
               class="mr-8"
               :data="ticketData" />
@@ -55,18 +64,21 @@
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketDetails } from '@services/source/ticket';
+  import { getTicketDetails, getTicketModifyRecords } from '@services/source/ticket';
 
   import { useEventBus } from '@hooks';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
 
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
+  import TicketReEdit from '@views/ticket-center/common/TicketReEdit.vue';
   import TicketRevoke from '@views/ticket-center/common/TicketRevoke.vue';
   import TicketTerminate from '@views/ticket-center/common/TicketTerminate.vue';
 
   import BaseInfo from './components/BaseInfo.vue';
+  import ContentUpdatedDialog from './components/ContentUpdatedDialog.vue';
   import FlowInfos from './components/flow-info/Index.vue';
   import TaskInfo from './components/task-info/Index.vue';
 
@@ -88,6 +100,17 @@
 
   const isLoading = ref(true);
   const ticketData = shallowRef<TicketModel>();
+  const modifyRecords = shallowRef<TicketModifyRecordModel[]>([]);
+
+  const fetchModifyRecords = (ticketId: number) => {
+    getTicketModifyRecords({ id: ticketId }).then((data) => {
+      if (ticketId !== props.ticketId) {
+        return;
+      }
+      // 接口返回顺序即版本递增，变更对比按索引取后一版，不重新排序
+      modifyRecords.value = data;
+    });
+  };
 
   const { runAsync: fetchTicketDetails } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
@@ -101,6 +124,7 @@
           return;
         }
         ticketData.value = data;
+        fetchModifyRecords(data.id);
       },
     },
   );
@@ -111,6 +135,7 @@
       if (props.ticketId) {
         isLoading.value = true;
         ticketData.value = undefined;
+        modifyRecords.value = [];
         fetchTicketDetails({
           id: props.ticketId,
         }).finally(() => {

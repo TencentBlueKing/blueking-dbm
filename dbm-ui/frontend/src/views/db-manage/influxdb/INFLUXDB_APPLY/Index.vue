@@ -15,6 +15,7 @@
   <SmartAction
     class="apply-influxdb"
     :offset-target="getSmartActionOffsetTarget">
+    <TicketModifyAlert />
     <DbForm
       ref="formRef"
       auto-label-width
@@ -135,6 +136,7 @@
           <DbInput
             v-model="formData.details.port"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             style="width: 185px"
             type="number" />
@@ -147,6 +149,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
+            :disabled="modifyState.isModify"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -154,6 +157,7 @@
         </BkFormItem>
       </DbCard>
     </DbForm>
+    <TicketModifyRemark />
     <template #action>
       <div>
         <BkButton
@@ -161,12 +165,12 @@
           style="width: 88px"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
-          :disabled="baseState.isSubmitting" />
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -179,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -199,6 +203,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import GroupItem from './components/GroupItem.vue';
@@ -241,10 +247,11 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Influxdb.Apply>(TicketTypes.INFLUXDB_APPLY, {
+  const influxdbTicketDetail = useTicketDetail<Influxdb.Apply>(TicketTypes.INFLUXDB_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
@@ -261,6 +268,8 @@
         ip_source: details.ip_source,
         port: details.port,
       });
+      // 提交的 group_name 只在分组下拉选择时由 change 事件写入，回填 group_id 不会触发，需一并回填
+      groupName.value = details.group_name;
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
@@ -277,6 +286,11 @@
           });
         }, {});
         Object.assign(formData.details.resource_spec, resourceSpec);
+        const subzoneIds = details.resource_spec!.influxdb.location_spec.sub_zone_ids || [];
+        formData.details.sub_zone_ids = subzoneIds;
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
       }
     },
   });
@@ -342,47 +356,62 @@
     formData.details.nodes.influxdb = data;
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = {
+      ...formData.details,
+      group_name: groupName.value,
+    };
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+      return {
+        ...details,
+        resource_spec: {
+          influxdb: {
+            ...details.resource_spec.influxdb,
+            ...specRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.influxdb.count),
+            label_names: details.resource_spec.influxdb.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.influxdb.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      };
+    }
+
+    delete details.resource_spec;
+    return {
+      ...details,
+      nodes: {
+        influxdb: formData.details.nodes.influxdb.map((item) => ({
+          bk_biz_id: item.biz.id,
+          bk_cloud_id: item.cloud_area.id,
+          bk_host_id: item.host_id,
+          ip: item.ip,
+        })),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool' && (!specRef.value || !regionRequirementsRef.value)) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-
-      const getDetails = () => {
-        const details: Record<string, any> = {
-          ...markRaw(formData.details),
-          group_name: groupName.value,
-        };
-
-        if (formData.details.ip_source === 'resource_pool') {
-          delete details.nodes;
-          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-          return {
-            ...details,
-            resource_spec: {
-              influxdb: {
-                ...details.resource_spec.influxdb,
-                ...specRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.influxdb.count),
-                label_names: details.resource_spec.influxdb.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.influxdb.labels.map((item: { id: number }) => String(item.id)),
-              },
-            },
-          };
-        }
-
-        delete details.resource_spec;
-        return {
-          ...details,
-          nodes: {
-            influxdb: formData.details.nodes.influxdb.map((item) => ({
-              bk_biz_id: item.biz.id,
-              bk_cloud_id: item.cloud_area.id,
-              bk_host_id: item.host_id,
-              ip: item.ip,
-            })),
-          },
-        };
-      };
 
       const params = {
         ...formData,
@@ -402,6 +431,11 @@
    * 重置表单
    */
   const handleReset = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      influxdbTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, getInitFormdata());
     formRef.value.clearValidate();
     nextTick(() => {

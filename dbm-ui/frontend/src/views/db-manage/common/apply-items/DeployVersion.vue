@@ -3,6 +3,7 @@
     <DbSelect
       v-model="modelValue"
       class="item-input"
+      :disabled="isAdjustApply"
       filterable
       :input-search="false"
       :loading="loading"
@@ -30,6 +31,8 @@
 
   import { listPackages } from '@services/source/package';
 
+  import { useTicketModifyState } from '@hooks';
+
   interface Props {
     dbType: string;
     placeholder?: string;
@@ -43,6 +46,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const {
     data: dbVersionList,
@@ -51,7 +56,8 @@
   } = useRequest(listPackages, {
     manual: true,
     onSuccess(packageList) {
-      if (packageList.length > 0) {
+      // 已有值且仍在列表里时保留：回填的版本可能先于列表返回，不能被推荐版本覆盖
+      if (packageList.length > 0 && !packageList.includes(modelValue.value)) {
         const defaultVersion = packageList[0];
         modelValue.value = defaultVersion;
       }

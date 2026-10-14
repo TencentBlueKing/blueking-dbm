@@ -35,20 +35,30 @@
     <div
       v-if="isCanOperation"
       class="mt-12">
-      <ProcessPass :todo-data="data">
+      <ProcessPass
+        :data="ticketData"
+        :todo-data="data">
         <BkButton
           class="w-88"
           theme="primary">
           {{ t('通过') }}
         </BkButton>
       </ProcessPass>
-      <ProcessRefuse :todo-data="data">
+      <ProcessRefuse
+        :data="ticketData"
+        :todo-data="data">
         <BkButton
           class="w-88 ml-8"
           theme="danger">
           {{ t('拒绝') }}
         </BkButton>
       </ProcessRefuse>
+      <BkButton
+        v-if="isTicketModifiable(ticketData.ticket_type)"
+        class="w-88 ml-8"
+        @click="handleOnBehalf">
+        {{ t('代为修改') }}
+      </BkButton>
     </div>
   </div>
 </template>
@@ -56,6 +66,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import { useUserProfile } from '@stores';
@@ -64,6 +75,8 @@
 
   import ProcessPass from '@views/ticket-center/common/action-confirm/ProcessPass.vue';
   import ProcessRefuse from '@views/ticket-center/common/action-confirm/ProcessRefuse.vue';
+  import { isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
+  import useOpenTicketModify from '@views/ticket-center/common/ticket-modify/useOpenTicketModify';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
@@ -77,11 +90,17 @@
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
+  const openTicketModify = useOpenTicketModify();
 
+  // 代为修改与「通过 / 拒绝」同一权限判据
   const isCanOperation = computed(
     () =>
       props.data.operators.includes(username) ||
       props.ticketData.todo_helpers.includes(username) ||
       (isSuperuser && props.ticketData.todo_helpers.includes('admin')),
   );
+
+  const handleOnBehalf = () => {
+    openTicketModify(props.ticketData, TicketModifyRecordModel.MODE_ON_BEHALF);
+  };
 </script>

@@ -39,6 +39,7 @@
     return (
       localTicketData.value &&
       [
+        TicketModel.STATUS_CONFIRM_PENDING,
         TicketModel.STATUS_FAILED,
         TicketModel.STATUS_INNER_TODO,
         TicketModel.STATUS_RESOURCE_REPLENISH,

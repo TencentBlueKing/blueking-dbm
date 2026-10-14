@@ -30,6 +30,8 @@
 
   import { checkDomainRepeat } from '@services/source/ticket.tsx';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes } from '@common/const/clusterTypes.ts';
   import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
@@ -57,6 +59,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，域名设置只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const rules = {
     set_id: [
@@ -154,6 +158,7 @@
               theme: 'light',
               trigger: 'click',
             }}
+            disabled={isAdjustApply}
             maxlength={63}
             model-value={domains.value[rowIndex]?.set_id}
             placeholder={t('请输入')}
@@ -170,7 +175,7 @@
       title: () => (
         <div class='table-custom-label'>
           {t('集群ID')}
-          {tableData.value.length !== 0 && (
+          {tableData.value.length !== 0 && !isAdjustApply && (
             <span v-bk-tooltips={t('批量录入')}>
               <ClusterIdBatchEdit onChange={(value) => handleBatchEdit(value, 'set_id')} />
             </span>
@@ -189,6 +194,7 @@
           label-width={0}
           property={`details.replica_sets.${rowIndex}.name`}>
           <db-input
+            disabled={isAdjustApply}
             model-value={domains.value[rowIndex]?.name}
             placeholder={t('请输入')}
             onInput={(value: string) => handleChangeCellValue(value, rowIndex, 'name')}
@@ -200,7 +206,7 @@
       title: () => (
         <div class='table-custom-label'>
           {t('集群名称')}
-          {tableData.value.length !== 0 && (
+          {tableData.value.length !== 0 && !isAdjustApply && (
             <span v-bk-tooltips={t('批量录入')}>
               <ClusterNameBatchEdit onChange={(value) => handleBatchEdit(value, 'name')} />
             </span>

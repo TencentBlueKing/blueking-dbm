@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="surrealdb-single-apply">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -60,6 +61,7 @@
           <DbFormItem :label="t('部署模式')">
             <BkRadioGroup
               v-model="topoName"
+              :disabled="modifyState.isAdjustApply"
               style="width: 270px"
               type="card">
               <BkRadioButton label="single">
@@ -77,6 +79,7 @@
           <DbFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
+              :disabled="modifyState.isModify"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -84,6 +87,7 @@
           </DbFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -91,7 +95,7 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"
@@ -135,6 +139,8 @@
   import K8SCityCode from '@views/db-manage/common/apply-items/K8SCityCode.vue';
   import K8SClusterName from '@views/db-manage/common/apply-items/K8SClusterName.vue';
   import K8SVersion from '@views/db-manage/common/apply-items/K8SVersion.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import AddonSpecPlan, { getDefaultSurrealConfig } from './components/AddonSpecPlan.vue';
@@ -165,12 +171,13 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
   const userProfile = useUserProfile();
   const bizStore = useGlobalBizs();
 
-  useTicketDetail<SurrealDB.SingleApply>(TicketTypes.K8S_SURREALDB_SINGLE_APPLY, {
+  const singleTicketDetail = useTicketDetail<SurrealDB.SingleApply>(TicketTypes.K8S_SURREALDB_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
@@ -185,6 +192,7 @@
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
+        creator: details.creator,
         db_app_abbr: details.db_app_abbr,
         db_version: details.db_version,
         k8s_cluster_name: details.k8s_cluster_name,
@@ -194,7 +202,7 @@
             component_name: 'surreal',
             replicas: surrealItem.replicas,
             request_cpu: Number(surrealItem.request_cpu),
-            request_memory: Number(surrealItem.request_cpu.replace('Gi', '')),
+            request_memory: Number(surrealItem.request_memory.replace('Gi', '')),
             storage: Number(surrealItem.storage.replace('Gi', '')),
           },
         ],
@@ -229,6 +237,11 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
+        // 改单模式下重置回到单据当前内容
+        if (modifyState.isModify) {
+          singleTicketDetail?.refresh();
+          return true;
+        }
         Object.assign(formData, initData());
         nextTick(() => {
           window.changeConfirm = false;
@@ -260,7 +273,8 @@
             storage: `${surrealItem.storage}Gi`,
           },
         ],
-        creator: userProfile.username,
+        // 改单不改变申请人，沿用回填的单据申请人
+        creator: modifyState.isModify ? details.creator : userProfile.username,
         // 部署类型落库为 is_public，独占集群为 false
         is_public: details.apply_mode !== 'ExclusiveMode',
         remark: formData.remark,

@@ -19,7 +19,13 @@
     <BkLoading
       :loading="isBizLoading"
       style="width: 435px">
+      <!-- 改单模式下所属业务只读 -->
+      <DbInput
+        v-if="modifyState"
+        disabled
+        :model-value="currentBizDisplay" />
       <DbAppSelectWithPermission
+        v-else
         :list="bizList"
         :model-value="currentBiz"
         :permission-action-id="perrmisionActionId"
@@ -57,6 +63,8 @@
   import { getBizs } from '@services/source/cmdb';
   import type { BizItem } from '@services/types';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { bizCodeRegx } from '@common/regex';
 
   import DbAppSelectWithPermission from '@components/db-app-select/WithPermission.vue';
@@ -87,6 +95,7 @@
   const { t } = useI18n();
 
   const route = useRoute();
+  const modifyState = useTicketModifyState();
 
   const currentBiz = shallowRef<IAppItem>();
   const bizList = shallowRef<IAppItem[]>([]);
@@ -96,6 +105,15 @@
   let syncedBizId: number | undefined;
 
   const dbAppAbbrPlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+
+  // 与业务选择器的回显格式一致
+  const currentBizDisplay = computed(() => {
+    if (!currentBiz.value) {
+      return '';
+    }
+    const { bk_biz_id: id, english_name: englishName, name } = currentBiz.value;
+    return `${name} (#${id}${englishName ? `, ${englishName}` : ''})`;
+  });
 
   const { loading: isBizLoading } = useRequest(getBizs, {
     defaultParams: [

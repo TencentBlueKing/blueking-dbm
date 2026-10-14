@@ -59,6 +59,8 @@
 
   import { useEventBus } from '@hooks';
 
+  import { approvalRequestPayload, handleApprovalError } from '@views/ticket-center/common/ticket-modify/utils';
+
   import { messageSuccess } from '@utils';
 
   import StatusApproveAction from './StatusApproveAction.vue';
@@ -115,23 +117,30 @@
   };
 
   const handleSubmit = () => {
+    // 只有批量审批按「已被提单人重新编辑」提示版本冲突，其它操作沿用请求层提示
+    const isApprove = props.ticketStatus === TicketModel.STATUS_APPROVE;
     isSubmiting.value = true;
     formRef
       .value!.validate()
       .then(() =>
-        batchProcessTicket({
-          action: formData.action,
-          params: {
-            remark: formData.remark,
+        batchProcessTicket(
+          {
+            action: formData.action,
+            params: {
+              remark: formData.remark,
+              versions: Object.fromEntries(props.ticketList.map((item) => [item.id, item.version])),
+            },
+            ticket_ids: props.ticketList.map((item) => item.id),
           },
-          ticket_ids: props.ticketList.map((item) => item.id),
-        }),
+          isApprove ? approvalRequestPayload : {},
+        ),
       )
       .then(() => {
         isShow.value = false;
         messageSuccess(t('操作成功'));
         eventBus.emit('refreshTicketStatus');
       })
+      .catch((error) => (isApprove ? handleApprovalError(error) : Promise.reject(error)))
       .finally(() => {
         isSubmiting.value = false;
       });

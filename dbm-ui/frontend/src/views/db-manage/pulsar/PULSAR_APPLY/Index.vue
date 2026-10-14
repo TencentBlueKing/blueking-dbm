@@ -15,6 +15,7 @@
   <SmartAction
     class="apply-pulsar"
     :offset-target="getSmartActionOffsetTarget">
+    <TicketModifyAlert />
     <DbForm
       ref="formRef"
       auto-label-width
@@ -57,6 +58,7 @@
           <DbInput
             v-model="formData.details.port"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             style="width: 185px"
             type="number" />
@@ -320,6 +322,7 @@
           <DbInput
             v-model="formData.details.partition_num"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             style="width: 185px"
             type="number" />
@@ -331,6 +334,7 @@
           <DbInput
             v-model="formData.details.retention_hours"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             style="width: 185px"
             type="number" />
@@ -343,6 +347,7 @@
           <DbInput
             v-model="formData.details.replication_num"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :max="ackQuorumMax"
             :min="2"
             style="width: 185px"
@@ -356,6 +361,7 @@
           <DbInput
             v-model="formData.details.ack_quorum"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :max="formData.details.replication_num || 2"
             :min="1"
             style="width: 185px"
@@ -377,6 +383,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
+            :disabled="modifyState.isModify"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -384,6 +391,7 @@
         </BkFormItem>
       </DbCard>
     </DbForm>
+    <TicketModifyRemark />
     <template #action>
       <div>
         <BkButton
@@ -391,12 +399,12 @@
           style="width: 88px"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ modifyState.submitText || t('提交') }}
         </BkButton>
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
-          :disabled="baseState.isSubmitting" />
+          :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -410,7 +418,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { inject } from 'vue';
+  import { type ComputedRef, inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -432,6 +440,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -507,10 +517,11 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Pulsar.Apply>(TicketTypes.PULSAR_APPLY, {
+  const pulsarTicketDetail = useTicketDetail<Pulsar.Apply>(TicketTypes.PULSAR_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -737,66 +748,84 @@
     formData.details.nodes.broker = data;
   };
 
+  const mapIpField = (ipList: HostInfo[]) =>
+    ipList.map((item) => ({
+      bk_biz_id: item.biz.id,
+      bk_cloud_id: item.cloud_area.id,
+      bk_host_id: item.host_id,
+      ip: item.ip,
+    }));
+
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const details: Record<string, any> = _.cloneDeep(formData.details);
+
+    if (formData.details.ip_source === 'resource_pool') {
+      delete details.nodes;
+      const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
+      return {
+        ...details,
+        resource_spec: {
+          bookkeeper: {
+            ...details.resource_spec.bookkeeper,
+            ...specBookkeeperRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.bookkeeper.count),
+            label_names: details.resource_spec.bookkeeper.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.bookkeeper.labels.map((item: { id: number }) => String(item.id)),
+          },
+          broker: {
+            ...details.resource_spec.broker,
+            ...specBrokerRef.value.getData(),
+            ...regionAndDisasterParams,
+
+            count: Number(details.resource_spec.broker.count),
+            label_names: details.resource_spec.broker.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.broker.labels.map((item: { id: number }) => String(item.id)),
+          },
+          zookeeper: {
+            ...details.resource_spec.zookeeper,
+            ...specZookeeperRef.value.getData(),
+            ...regionAndDisasterParams,
+            count: Number(details.resource_spec.zookeeper.count),
+            label_names: details.resource_spec.zookeeper.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.zookeeper.labels.map((item: { id: number }) => String(item.id)),
+          },
+        },
+      };
+    }
+
+    delete details.resource_spec;
+    return {
+      ...details,
+      nodes: {
+        bookkeeper: mapIpField(formData.details.nodes.bookkeeper),
+        broker: mapIpField(formData.details.nodes.broker),
+        zookeeper: mapIpField(formData.details.nodes.zookeeper),
+      },
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.ip_source === 'resource_pool') {
+      const specRefList = [specBookkeeperRef.value, specBrokerRef.value, specZookeeperRef.value];
+      if (!regionRequirementsRef.value || !specRefList.every(Boolean)) {
+        return false;
+      }
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: HostInfo[]) =>
-        ipList.map((item) => ({
-          bk_biz_id: item.biz.id,
-          bk_cloud_id: item.cloud_area.id,
-          bk_host_id: item.host_id,
-          ip: item.ip,
-        }));
-
-      const getDetails = () => {
-        const details: Record<string, any> = _.cloneDeep(formData.details);
-
-        if (formData.details.ip_source === 'resource_pool') {
-          delete details.nodes;
-          const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-          return {
-            ...details,
-            resource_spec: {
-              bookkeeper: {
-                ...details.resource_spec.bookkeeper,
-                ...specBookkeeperRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.bookkeeper.count),
-                label_names: details.resource_spec.bookkeeper.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.bookkeeper.labels.map((item: { id: number }) => String(item.id)),
-              },
-              broker: {
-                ...details.resource_spec.broker,
-                ...specBrokerRef.value.getData(),
-                ...regionAndDisasterParams,
-
-                count: Number(details.resource_spec.broker.count),
-                label_names: details.resource_spec.broker.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.broker.labels.map((item: { id: number }) => String(item.id)),
-              },
-              zookeeper: {
-                ...details.resource_spec.zookeeper,
-                ...specZookeeperRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: Number(details.resource_spec.zookeeper.count),
-                label_names: details.resource_spec.zookeeper.labels.map((item: { value: string }) => item.value),
-                labels: details.resource_spec.zookeeper.labels.map((item: { id: number }) => String(item.id)),
-              },
-            },
-          };
-        }
-
-        delete details.resource_spec;
-        return {
-          ...details,
-          nodes: {
-            bookkeeper: mapIpField(formData.details.nodes.bookkeeper),
-            broker: mapIpField(formData.details.nodes.broker),
-            zookeeper: mapIpField(formData.details.nodes.zookeeper),
-          },
-        };
-      };
-
       const params = {
         ...formData,
         config: {
@@ -817,6 +846,11 @@
    * 重置表单
    */
   const handleReset = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      pulsarTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, getInitFormdata());
     formRef.value.clearValidate();
     nextTick(() => {

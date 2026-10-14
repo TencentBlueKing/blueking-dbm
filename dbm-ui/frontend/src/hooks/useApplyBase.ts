@@ -15,24 +15,33 @@ import { Message } from 'bkui-vue';
 import InfoBox from 'bkui-vue/lib/info-box';
 import { useI18n } from 'vue-i18n';
 
+import TicketModifyRecordModel from '@services/model/ticket/modify-record';
+import TicketModel from '@services/model/ticket/ticket';
 import { createAppAbbr } from '@services/source/cmdb';
+import { getTicketStatus, modifyTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types';
 
 import { useCreateTicket } from '@hooks';
 
-import { getBusinessHref } from '@utils';
+import { type RequestErrorBody, TICKET_MODIFY_ERROR_CODE } from '@views/ticket-center/common/ticket-modify/constants';
+
+import { getBusinessHref, messageError, messageWarn } from '@utils';
+
+import { useTicketModify } from './useTicketModify';
 
 /**
  * 申请服务基础信息设置
  */
 export const useApplyBase = () => {
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
 
   const { run: createTicketRun } = useCreateTicket(undefined, {
     isToolbox: false,
     successMessage: false,
   });
+  const modifyState = useTicketModify();
 
   // 业务相关状态
   const bizState = reactive({
@@ -47,9 +56,18 @@ export const useApplyBase = () => {
   let prevBizId: number | undefined;
 
   /**
-   * 取消申请
+   * 取消申请；改单模式下返回单据详情
    */
   function handleCancel() {
+    if (modifyState.isModify) {
+      router.push({
+        name: 'ticketDetail',
+        params: {
+          ticketId: Number(route.query.ticketId),
+        },
+      });
+      return;
+    }
     router.push({ name: 'serviceApply' });
   }
 
@@ -95,11 +113,99 @@ export const useApplyBase = () => {
     });
   }
 
+  /**
+   * 改单提交被拦截：身份、状态、内容三类提示可区分，留在工具页
+   * 其余错误码未接管，已由请求层提示
+   */
+  function handleModifyError(error: unknown, ticketId: number) {
+    const code = (error as RequestErrorBody | undefined)?.code;
+    if (code === TICKET_MODIFY_ERROR_CODE.NO_PERMISSION) {
+      messageError(t('您没有该单据的改单权限'));
+      return;
+    }
+    if (code === TICKET_MODIFY_ERROR_CODE.CONTENT_CHANGED) {
+      messageError(t('单据内容已被他人修改'));
+      return;
+    }
+    if (code === TICKET_MODIFY_ERROR_CODE.STATUS_UNSUPPORTED || code === TICKET_MODIFY_ERROR_CODE.APPROVED) {
+      getTicketStatus({
+        ticket_ids: `${ticketId}`,
+      }).then((data) => {
+        const status = data[ticketId] as keyof typeof TicketModel.statusTextMap;
+        messageError(t('单据状态已变更为{status}', { status: TicketModel.statusTextMap[status] || status }));
+      });
+    }
+  }
+
+  /**
+   * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到单据详情
+   */
+  function handleModifyTicket(details: unknown) {
+    const ticketData = modifyState.ticketData.value;
+    const { mode } = modifyState;
+    if (!ticketData || !mode) {
+      baseState.isSubmitting = false;
+      return;
+    }
+    modifyState
+      .validateRemark()
+      .then(() => {
+        const diffList = modifyState.getDiffList(details);
+        if (diffList.length < 1) {
+          messageWarn(t('没有改动'));
+          return;
+        }
+        return modifyState.openConfirm(diffList).then((isConfirmed) => ({ diffList, isConfirmed }));
+      })
+      .then((result) => {
+        if (!result?.isConfirmed) {
+          return;
+        }
+        const { diffList } = result;
+        return modifyTicket(
+          {
+            change_count: diffList.length,
+            details,
+            id: ticketData.id,
+            mode,
+            remark: mode === TicketModifyRecordModel.MODE_RE_EDIT ? '' : modifyState.modifyRemark.value,
+            // 直接提交进入时单据详情返回的版本；详情未返回版本表示还没改过单，传 1
+            version: ticketData.version ?? 1,
+          },
+          {
+            catchErrorCodes: Object.values(TICKET_MODIFY_ERROR_CODE),
+          },
+        )
+          .then(() => {
+            Message({
+              message: t('提交成功'),
+              theme: 'success',
+            });
+            window.changeConfirm = false;
+            router.replace({
+              name: 'ticketDetail',
+              params: {
+                ticketId: ticketData.id,
+              },
+            });
+          })
+          .catch((error) => handleModifyError(error, ticketData.id));
+      })
+      .finally(() => {
+        baseState.isSubmitting = false;
+      });
+  }
+
   function handleCreateTicket(formdata: any) {
     const params = { ...formdata };
     delete params.sub_zone_ids;
     delete params.sub_zone_names;
     delete params.city_name;
+
+    if (modifyState.isModify) {
+      handleModifyTicket(params.details);
+      return;
+    }
 
     createTicketRun(params)
       .then((ticketId) => {
@@ -127,5 +233,6 @@ export const useApplyBase = () => {
     handleCancel,
     handleCreateAppAbbr,
     handleCreateTicket,
+    modifyState,
   };
 };
