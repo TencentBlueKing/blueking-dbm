@@ -18,6 +18,7 @@ from backend import env
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import BizSettingsEnum, DBType
 from backend.configuration.models import BizSettings
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -155,8 +156,16 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     @classmethod
     def patch_sqlfile_grammar_check_info(cls, ticket, cluster_type):
         sqlfile_list = itertools.chain(*[set(obj["sql_files"]) for obj in ticket.details["execute_objects"]])
+        # 补充版本信息
+        cluster_ids = ticket.details.get("cluster_ids") or []
+        versions = Cluster.objects.filter(id__in=cluster_ids).values_list("major_version", flat=True)
         check_info = SQLSimulationApi.grammar_check(
-            params={"path": ticket.details["path"], "files": list(sqlfile_list), "cluster_type": cluster_type}
+            params={
+                "path": ticket.details["path"],
+                "files": list(sqlfile_list),
+                "cluster_type": cluster_type,
+                "versions": list(set(versions)),
+            }
         )
         ticket.details.update(grammar_check_info=check_info)
 
