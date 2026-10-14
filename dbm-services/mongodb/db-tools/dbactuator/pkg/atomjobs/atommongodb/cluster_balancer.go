@@ -3,10 +3,8 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/mycmd"
@@ -41,6 +39,30 @@ type Balancer struct {
 type ChunkNum struct {
 	ID    string `json:"_id"`
 	Count int    `json:"count"`
+}
+
+func parseBalancerBool(result string) (bool, error) {
+	flag, err := strconv.ParseBool(result)
+	if err != nil {
+		return false, fmt.Errorf("parse balancer status %q fail: %w", result, err)
+	}
+	return flag, nil
+}
+
+func chunkDistributionUnbalanced(result string) (bool, error) {
+	var chunkNums []ChunkNum
+	if err := json.Unmarshal([]byte(result), &chunkNums); err != nil {
+		return false, fmt.Errorf("parse shard chunk number %q fail: %w", result, err)
+	}
+	if len(chunkNums) <= 1 {
+		return false, nil
+	}
+	counts := make([]int, 0, len(chunkNums))
+	for _, chunkNum := range chunkNums {
+		counts = append(counts, chunkNum.Count)
+	}
+	sort.Ints(counts)
+	return counts[len(counts)-1]-counts[0] >= 6, nil
 }
 
 // NewBalancer 实例化结构体
@@ -92,7 +114,12 @@ func (b *Balancer) Init(runtime *jobruntime.JobGenericRuntime) error {
 	b.runtime = runtime
 	b.runtime.Logger.Info("start to init")
 	b.BinDir = consts.GetMongoBinDir()
-	b.Mongo = filepath.Join(b.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(b.BinDir)
+	if err != nil {
+		b.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	b.Mongo = mongoBin
 	b.OsUser = consts.GetProcessUser()
 
 	// 获取MongoDB配置文件参数
@@ -134,7 +161,10 @@ func (b *Balancer) execScript() error {
 		b.runtime.Logger.Error("get cluster balancer status fail, error:%s", err)
 		return fmt.Errorf("get cluster balancer status fail, error:%s", err)
 	}
-	flag, _ := strconv.ParseBool(result)
+	flag, err := parseBalancerBool(result)
+	if err != nil {
+		return err
+	}
 	b.runtime.Logger.Info("get balancer status successfully")
 	if flag == b.ConfParams.Open {
 		b.runtime.Logger.Info("balancer status has been %t", b.ConfParams.Open)
@@ -170,13 +200,17 @@ func (b *Balancer) execScript() error {
 		b.runtime.Logger.Error("get cluster balancer status fail, error:%s", err)
 		return fmt.Errorf("get cluster balancer status fail, error:%s", err)
 	}
-	flag, _ = strconv.ParseBool(result)
+	flag, err = parseBalancerBool(result)
+	if err != nil {
+		return err
+	}
 	b.runtime.Logger.Info("check balancer status successfully")
 	if flag == b.ConfParams.Open {
 		b.runtime.Logger.Info("set balancer status:%t successfully", b.ConfParams.Open)
+		return nil
 	}
-
-	return nil
+	// 设置后的状态和请求不一致就失败。以前这里返回 nil，调用方会把没改成的均衡器当成成功。
+	return fmt.Errorf("set balancer status:%t fail, actual status:%t", b.ConfParams.Open, flag)
 }
 
 // checkBalanceStatus 开启数据均衡检查数据是否已均衡  1.迁移队列是否为空 2.chunk分布是否均衡
@@ -193,7 +227,10 @@ func (b *Balancer) checkBalanceStatus() error {
 			b.runtime.Logger.Error("get balancer running status fail, error:%s", err)
 			return fmt.Errorf("get balancer running status fail, error:%s", err)
 		}
-		flagBalancerRunning, _ := strconv.ParseBool(resultBalancerRunning)
+		flagBalancerRunning, err := parseBalancerBool(resultBalancerRunning)
+		if err != nil {
+			return err
+		}
 		b.runtime.Logger.Info("get balancer running status:%t", flagBalancerRunning)
 
 		// 2.chunk分布是否均衡
@@ -205,26 +242,9 @@ func (b *Balancer) checkBalanceStatus() error {
 			return fmt.Errorf("get chunk number fail, error:%s", err)
 		}
 		b.runtime.Logger.Info("get chunk number:\n%s", resultChunkNumString)
-		var flagChunkNum bool
-		if resultChunkNumString != "" {
-			var countSlice []int
-			chunkNumSlice := strings.Split(resultChunkNumString, "\n")
-			for _, v := range chunkNumSlice {
-				chunkNum := ChunkNum{}
-				json.Unmarshal([]byte(v), &chunkNum)
-				countSlice = append(countSlice, chunkNum.Count)
-			}
-			sort.Ints(countSlice)
-			minValue := countSlice[0]
-			maxValue := countSlice[len(countSlice)-1]
-			if maxValue-minValue < 6 {
-				flagChunkNum = false
-			} else {
-				flagChunkNum = true
-			}
-
-		} else {
-			flagChunkNum = false
+		flagChunkNum, err := chunkDistributionUnbalanced(resultChunkNumString)
+		if err != nil {
+			return err
 		}
 
 		// 判断

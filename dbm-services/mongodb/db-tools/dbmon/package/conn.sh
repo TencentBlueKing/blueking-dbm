@@ -20,14 +20,19 @@ if [ ! "$port"  ];then
 fi
 shift
 
+# 主版本 >= 5 不再使用 mongo shell。
 mongo_bin=mongo
-if [ "$1" == "shell" ];then
-  shift
-elif [ "$1" == "mongo" ];then
-  mongo_bin=mongo
-  shift
-elif [ "$1" == "mongosh" ];then
-  mongo_bin=mongosh
+if [ -x /usr/local/mongodb/bin/mongod ]; then
+  ver=$(/usr/local/mongodb/bin/mongod -version 2>/dev/null | awk '/db version/{print $3}' | sed 's/^v//')
+  major=${ver%%.*}
+  if [ -n "$major" ] && [ "$major" -ge 5 ] 2>/dev/null; then
+    mongo_bin=mongosh
+  fi
+fi
+if [ "$1" == "shell" ] || [ "$1" == "mongo" ] || [ "$1" == "mongosh" ]; then
+  if [ "$mongo_bin" != "mongosh" ] && [ "$1" == "mongosh" ]; then
+    mongo_bin=mongosh
+  fi
   shift
 fi
 

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -178,7 +177,11 @@ var debugCmd = &cobra.Command{
 			if mongoBinRoot == "" {
 				mongoBinRoot = consts.GetMongoBinDir()
 			}
-			mongoBin := filepath.Join(mongoBinRoot, "mongodb", "bin", "mongo")
+			mongoBin, resolveErr := common.ResolveMongoShellBin(mongoBinRoot)
+			if resolveErr != nil {
+				fmt.Fprintf(os.Stderr, "resolve mongo shell failed: %v\n", resolveErr)
+				os.Exit(1)
+			}
 			var (
 				ok  bool
 				err error

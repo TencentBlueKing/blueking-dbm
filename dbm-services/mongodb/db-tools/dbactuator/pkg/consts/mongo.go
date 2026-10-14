@@ -1,12 +1,5 @@
 package consts
 
-import (
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
-	"path"
-
-	"github.com/pkg/errors"
-)
-
 // MongoVersionV24 TODO
 const MongoVersionV24 = "2.4"
 
@@ -30,19 +23,3 @@ const MongoVersionV42 = "4.2"
 
 // MongoVersionV100 TODO
 const MongoVersionV100 = "100.7" // >= 4.4 https://www.mongodb.com/docs/database-tools/
-// GetMongoShellBin 根据版本号获取mongodump的二进制文件名
-// 2.x : 不支持
-// others: mongodump.100
-func GetMongoShellBin(version *mymongo.MongoVersion) (bin string, err error) {
-	if version == nil {
-		return "", errors.New("version is nil")
-	}
-	if version.Major >= 6 {
-		bin = "mongosh"
-	} else {
-		bin = "mongo"
-	}
-
-	bin = path.Join(GetMongoBinDir(), "mongodb", "bin", bin)
-	return
-}

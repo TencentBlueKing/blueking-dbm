@@ -185,9 +185,56 @@ func DoCommand(bin string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
 	return ret.Stdout, ret.Stderr, err
 }
 
+// MongoShellBin 返回本机客户端路径。安装包主版本 >= 5 时使用 mongosh。
+func MongoShellBin() string {
+	for _, bin := range []string{"/usr/local/mongodb/bin/mongod", "/usr/local/mongodb/bin/mongos"} {
+		out, err := exec.Command(bin, "-version").CombinedOutput()
+		if err != nil {
+			continue
+		}
+		major := mongoMajorFromVersionOutput(string(out))
+		name := "mongo"
+		if major >= 5 {
+			name = "mongosh"
+		} else if major <= 0 {
+			continue
+		}
+		abs := "/usr/local/mongodb/bin/" + name
+		if _, statErr := os.Stat(abs); statErr == nil {
+			return abs
+		}
+		return name
+	}
+	if _, err := os.Stat("/usr/local/mongodb/bin/mongosh"); err == nil {
+		if _, statErr := os.Stat("/usr/local/mongodb/bin/mongo"); statErr != nil {
+			return "/usr/local/mongodb/bin/mongosh"
+		}
+	}
+	return "mongo"
+}
+
+func mongoMajorFromVersionOutput(text string) int {
+	for _, line := range strings.Split(text, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		if fields[0] != "db" && fields[0] != "mongos" {
+			continue
+		}
+		ver := strings.TrimPrefix(fields[2], "v")
+		major, err := strconv.Atoi(strings.Split(ver, ".")[0])
+		if err != nil {
+			return 0
+		}
+		return major
+	}
+	return 0
+}
+
 // GetVersion Get mongo version by mongo shell
 func GetVersion(conn *mymongo.MongoHost) (*mymongo.MongoVersion, error) {
-	bin := "mongo"
+	bin := MongoShellBin()
 	var args []string
 	args = append(args, "--quiet", fmt.Sprintf("%s:%s/admin", conn.Host, conn.Port),
 		"--eval", "db.version()")

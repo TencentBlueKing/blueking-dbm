@@ -621,7 +621,11 @@ func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	sb.WriteString(js)
 	sb.WriteString("\n")
 	jsCode := sb.String()
-	o, err := mycmd.New(filepath.Join(getMongoBinRootDir(), "mongodb", "bin", "mongo"), "--nodb", "--eval", jsCode).
+	shellBin, err := ResolveMongoShellBin(getMongoBinRootDir())
+	if err != nil {
+		return errors.Wrap(err, "ExecJs")
+	}
+	o, err := mycmd.New(shellBin, "--nodb", "--eval", jsCode).
 		Run3(time.Second*time.Duration(timeout), bytes.NewBuffer(nil), bytes.NewBuffer(nil))
 
 	if err != nil {

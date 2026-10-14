@@ -38,8 +38,7 @@ type ExecScriptConfParams struct {
 	AdminPassword  string   `json:"adminPassword" validate:"required"`
 	// ClusterName 集群名称，用于结果文件命名（与脚本编号一起区分多集群/多脚本结果）
 	ClusterName string `json:"clusterName"`
-	// DbVersion 实例主版本（如 mongodb-3.0.15 / 3.0.15）。多版本共享主机上
-	// /usr/local/mongodb 可能指向其它版本，不能用来选 mongo/mongosh。
+	// DbVersion 保留 payload 字段。客户端按安装目录里的 mongosh/mongo 选择，不使用这个版本。
 	DbVersion    string `json:"dbVersion"`
 	RepoUrl      string `json:"repoUrl"`
 	RepoUsername string `json:"repoUsername"`
@@ -63,7 +62,6 @@ type ExecScript struct {
 	ScriptFilePathList []string
 	ResultFilePathList []string
 	ConfParams         *ExecScriptConfParams
-	MainVersion        float64
 }
 
 // NewExecScript 实例化结构体
@@ -84,7 +82,7 @@ func (e *ExecScript) Run() error {
 			"skip runScripts: done markers and result files exist under %s, upload only",
 			e.ExecuteDir)
 	} else {
-		if err := e.resolveMongoShellByVersion(); err != nil {
+		if err := e.resolveMongoShell(); err != nil {
 			return err
 		}
 		if err := e.createScriptFile(); err != nil {
@@ -128,9 +126,10 @@ func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return fmt.Errorf("get parameters of execScript fail by json.Unmarshal, error:%s", err)
 	}
 
-	// Init 阶段统一用 mongo（环境保证 ≥5 也带 mongo）；Run 里再按版本切 mongosh
-	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", "mongo")
 	e.ExecuteDir = filepath.Join(consts.PackageSavePath, "dbactuator-"+e.ConfParams.TaskId)
+	if err := e.resolveMongoShell(); err != nil {
+		return err
+	}
 
 	strPort := strconv.Itoa(e.ConfParams.Port)
 	if e.ConfParams.ScriptFile {
@@ -243,57 +242,17 @@ func (e *ExecScript) createScriptFile() error {
 	return e.chownExecuteDir()
 }
 
-// resolveMongoShellByVersion 获取主版本并选择 mongo shell 客户端。
-// 优先使用 payload.dbVersion / 实例探测版本；不要用 BinDir 下 mongod -version。
-func (e *ExecScript) resolveMongoShellByVersion() error {
-	version := strings.TrimSpace(e.ConfParams.DbVersion)
-	if version != "" {
-		e.runtime.Logger.Info("resolveMongoShellByVersion use payload dbVersion:%s", version)
-	} else {
-		probed, err := e.probeInstanceVersion()
-		if err != nil {
-			e.runtime.Logger.Warn(
-				"probe instance version fail (%v), fallback to binDir mongod -version", err)
-			version, err = common.CheckMongoVersion(e.BinDir, "mongod")
-			if err != nil {
-				e.runtime.Logger.Error("get mongo service main version fail, error:%s", err)
-				return fmt.Errorf("get mongo service main version fail, error:%s", err)
-			}
-		} else {
-			version = probed
-			e.runtime.Logger.Info("resolveMongoShellByVersion probed instance version:%s", version)
-		}
-	}
-	mainVersion, err := strconv.ParseFloat(versionMajorMinor(version), 64)
+// resolveMongoShell 选择客户端。优先使用可执行的 mongosh，没有则用 mongo。
+// 不执行 mongod/mongos -version。
+func (e *ExecScript) resolveMongoShell() error {
+	shellBin, err := common.ResolveMongoShellBin(e.BinDir)
 	if err != nil {
-		e.runtime.Logger.Error("parse mongo service major.minor version fail, version:%s, error:%s", version, err)
-		return fmt.Errorf("parse mongo service major.minor version fail, version:%s, error:%s", version, err)
+		e.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
 	}
-	e.MainVersion = mainVersion
-	mongoExeName := "mongo"
-	if e.MainVersion >= 5.0 {
-		mongoExeName = "mongosh"
-	}
-	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", mongoExeName)
-	e.runtime.Logger.Info(
-		"resolveMongoShellByVersion successfully, mongoExeName:%s, mainVersion:%f", mongoExeName, mainVersion)
+	e.Mongo = shellBin
+	e.runtime.Logger.Info("resolveMongoShell successfully, mongo:%s", e.Mongo)
 	return nil
-}
-
-// probeInstanceVersion 用 Init 阶段的 mongo 客户端探测实例版本
-func (e *ExecScript) probeInstanceVersion() (string, error) {
-	ret, err := e.newMongoCmd("--eval", "db.version()").Run(60 * time.Second)
-	if err != nil {
-		return "", fmt.Errorf(
-			"probe instance version fail: exit=%d err=%v stdout=%q stderr=%q",
-			ret.ExitCode, err, ret.GetStdout(), ret.GetStderr(),
-		)
-	}
-	version := strings.TrimSpace(ret.GetStdout())
-	if version == "" {
-		return "", fmt.Errorf("probe instance version returned empty")
-	}
-	return version, nil
 }
 
 // normalizeScriptCompatibility 执行前兼容老 mongo shell 脚本写法

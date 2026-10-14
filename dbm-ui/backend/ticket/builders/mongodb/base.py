@@ -21,6 +21,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.utils.mongodb.db_table_filter import MongoDbTableFilter
+from backend.flow.utils.mongodb.os_constraint import apply_mongodb_os_constraint
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
@@ -211,6 +212,12 @@ class BaseMongoDBOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
 
     def format(self):
         super().format()
+
+    def get_params(self):
+        # 子类 format() 往往不调用 super()，操作系统条件在格式化完成后再写入申请参数。
+        ticket_data = super().get_params()
+        apply_mongodb_os_constraint(ticket_data)
+        return ticket_data
 
     def post_callback(self):
         pass

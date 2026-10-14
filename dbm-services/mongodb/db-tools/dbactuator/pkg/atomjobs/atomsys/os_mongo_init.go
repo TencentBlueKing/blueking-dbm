@@ -79,8 +79,34 @@ func (o *OsMongoInit) Name() string {
 	return "os_mongo_init"
 }
 
+// ensureTlinux4CompatOpenSSL10 在 tlinux4 上准备 MongoDB 依赖的 OpenSSL 1.0 兼容库。
+// 包已安装时不再改 DNS。调用方是 MongoDB 机器初始化，同一台机器只做一次。
+func (o *OsMongoInit) ensureTlinux4CompatOpenSSL10() error {
+	if !common.IsTlinux4() {
+		o.runtime.Logger.Info("not tlinux4, skip compat-openssl10")
+		return nil
+	}
+	if _, err := mycmd.New("rpm", "-q", "compat-openssl10").Run(30 * time.Second); err == nil {
+		o.runtime.Logger.Info("compat-openssl10 already installed, skip")
+		return nil
+	}
+	o.runtime.Logger.Info("tlinux4: tos -f dns")
+	if _, err := mycmd.New("tos", "-f", "dns").Run(2 * time.Minute); err != nil {
+		return fmt.Errorf("tos -f dns: %w", err)
+	}
+	o.runtime.Logger.Info("tlinux4: dnf install -y compat-openssl10")
+	if _, err := mycmd.New("dnf", "install", "-y", "compat-openssl10").Run(10 * time.Minute); err != nil {
+		return fmt.Errorf("dnf install compat-openssl10: %w", err)
+	}
+	return nil
+}
+
 // Run 执行函数
 func (o *OsMongoInit) Run() error {
+	if err := o.ensureTlinux4CompatOpenSSL10(); err != nil {
+		o.runtime.Logger.Error("ensure tlinux4 compat-openssl10 fail, error:%s", err)
+		return err
+	}
 	// 获取初始化脚本
 	o.runtime.Logger.Info("start to make init script content")
 	data := common.MongoShellInit

@@ -89,7 +89,12 @@ func (r *MongoRestart) Init(runtime *jobruntime.JobGenericRuntime) error {
 	r.DataDir = consts.GetMongoDataDir()
 	r.OsUser = consts.GetProcessUser()
 	r.OsGroup = consts.GetProcessUserGroup()
-	r.Mongo = filepath.Join(r.BinDir, "mongodb", "bin", "mongo")
+	mongoBin, err := common.ResolveMongoShellBin(r.BinDir)
+	if err != nil {
+		r.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	r.Mongo = mongoBin
 
 	if err := json.Unmarshal([]byte(r.runtime.PayloadDecoded), &r.ConfParams); err != nil {
 		return errors.Wrap(err, "unmarshal mongo restart parameters")

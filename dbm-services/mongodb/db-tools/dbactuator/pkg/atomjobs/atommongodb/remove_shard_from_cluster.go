@@ -3,12 +3,12 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/mycmd"
+	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 
@@ -103,13 +103,18 @@ func (r *RemoveShardFromCluster) Init(runtime *jobruntime.JobGenericRuntime) err
 	r.runtime = runtime
 	r.runtime.Logger.Info("start to init remove_shard_from_cluster")
 	r.BinDir = consts.GetMongoBinDir()
-	r.Mongo = filepath.Join(r.BinDir, "mongodb", "bin", "mongo")
 	r.OsUser = consts.GetProcessUser()
 
 	if err := json.Unmarshal([]byte(r.runtime.PayloadDecoded), &r.ConfParams); err != nil {
 		r.runtime.Logger.Error("get parameters of removeShardFromCluster fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of removeShardFromCluster fail by json.Unmarshal, error:%s", err)
 	}
+	mongoBin, err := common.ResolveMongoShellBin(r.BinDir)
+	if err != nil {
+		r.runtime.Logger.Error("resolve mongo shell fail, error:%s", err)
+		return fmt.Errorf("resolve mongo shell fail, error:%s", err)
+	}
+	r.Mongo = mongoBin
 	if r.ConfParams.MaxWaitSec <= 0 {
 		r.ConfParams.MaxWaitSec = removeShardDefaultMaxWaitSeconds
 	}
@@ -326,8 +331,10 @@ func (r *RemoveShardFromCluster) movePrimary(dbName, toShard string) error {
 	if err != nil {
 		return fmt.Errorf("marshal target shard fail: %w", err)
 	}
+	// print only ok/errmsg via JSON.stringify so mongosh BSON pretty-print (ok: 1, Timestamp(...))
+	// does not break Go json.Unmarshal.
 	evalScript := fmt.Sprintf(
-		`db.adminCommand({movePrimary: %s, to: %s})`,
+		`var __r=db.adminCommand({movePrimary: %s, to: %s}); print(JSON.stringify({ok: __r.ok, errmsg: (__r.errmsg||"")}))`,
 		string(dbJSON), string(toJSON),
 	)
 	timeout := time.Duration(r.ConfParams.MovePrimaryTimeoutSec) * time.Second
@@ -375,7 +382,9 @@ func checkMovePrimaryOK(stdout string) error {
 		snippet := output[start : end+1]
 		if err2 := json.Unmarshal([]byte(snippet), &result); err2 != nil {
 			lower := strings.ToLower(snippet)
-			if strings.Contains(lower, `"ok" : 1`) || strings.Contains(lower, `"ok":1`) {
+			// mongo shell Extended JSON / mongosh pretty-print (ok: 1)
+			if strings.Contains(lower, `"ok" : 1`) || strings.Contains(lower, `"ok":1`) ||
+				strings.Contains(lower, "ok: 1") || strings.Contains(lower, "ok:1") {
 				return nil
 			}
 			return err2
@@ -522,7 +531,15 @@ func parseShardCount(stdout string) (int, error) {
 
 func (r *RemoveShardFromCluster) execRemoveShard(shardName string) (*removeShardResult, error) {
 	// removeShard must be issued repeatedly until completed; use adminCommand JSON form.
-	evalScript := fmt.Sprintf(`db.adminCommand({removeShard: "%s"})`, shardName)
+	// JSON.stringify a slim object so mongosh pretty-print / BSON helpers stay parseable.
+	shardJSON, err := json.Marshal(shardName)
+	if err != nil {
+		return nil, fmt.Errorf("marshal shard name fail: %w", err)
+	}
+	evalScript := fmt.Sprintf(
+		`var __r=db.adminCommand({removeShard: %s}); var __remaining=__r.remaining ? {chunks:Number(__r.remaining.chunks||0),dbs:Number(__r.remaining.dbs||0)} : null; print(JSON.stringify({ok: __r.ok, state: (__r.state||""), msg: (__r.msg||""), shard: (__r.shard||""), errmsg: (__r.errmsg||""), remaining: __remaining}))`,
+		string(shardJSON),
+	)
 	stdout, err := r.runMongoEval(evalScript, 120*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("execute removeShard fail: %w", err)

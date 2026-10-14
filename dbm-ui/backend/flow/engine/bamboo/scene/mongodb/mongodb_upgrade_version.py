@@ -18,7 +18,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstancePhase
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -29,9 +29,11 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.upgrade_version import Mo
 from backend.flow.plugins.components.collections.mongodb.mongo_update_version import MongoUpdateVersionComponent
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
+from backend.flow.utils.mongodb.os_constraint import MONGODB_TLINUX4_OS_NAMES
 from backend.flow.utils.mongodb.version_utils import (
     _resolve_package_full_version,
     compare_mongodb_versions,
+    extract_mongodb_version_tuple,
     get_cluster_live_instance_version,
     is_mongodb_major_minor_only,
     lookup_mongodb_package,
@@ -182,6 +184,12 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                     if key not in seen_nodes:
                         seen_nodes.add(key)
                         self._unique_ticket_nodes.append(node)
+            if any(
+                extract_mongodb_version_tuple(plan["dest_version"])[:2] >= (8, 0)
+                for item in self.cluster_infos
+                for plan in item["hop_plans"]
+            ):
+                self._validate_tlinux4_hosts(self._unique_ticket_nodes)
         self._validate_hosts_multi_instance_all_clusters_in_ticket(
             cluster_infos=self.cluster_infos,
             ticket_cluster_ids=set(cluster_id_list),
@@ -191,6 +199,24 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             "MongoUpgradeVersionFlow payload normalized, clusters=%s",
             [i["cluster"].cluster_id for i in self.cluster_infos],
         )
+
+    @staticmethod
+    def _validate_tlinux4_hosts(nodes: List[MongoNode]) -> None:
+        """MongoDB 8.0 requires glibc >= 2.28; in DBM only tlinux4 hosts are supported."""
+        hosts = {(node.bk_cloud_id, node.ip) for node in nodes}
+        machines = Machine.objects.filter(
+            ip__in=[ip for _, ip in hosts], bk_cloud_id__in=[cloud_id for cloud_id, _ in hosts]
+        ).only("ip", "bk_cloud_id", "bk_os_name")
+        host_os = {(machine.bk_cloud_id, machine.ip): machine.bk_os_name for machine in machines}
+        invalid = [
+            "{}(cloud={}, os={})".format(ip, cloud_id, host_os.get((cloud_id, ip)) or "unknown")
+            for cloud_id, ip in sorted(hosts)
+            if host_os.get((cloud_id, ip)) not in MONGODB_TLINUX4_OS_NAMES
+        ]
+        if invalid:
+            raise serializers.ValidationError(
+                _("MongoDB 8.0 仅支持在 tlinux4 主机上原地升级，不兼容主机：{}").format(", ".join(invalid))
+            )
 
     @staticmethod
     def _validate_hosts_multi_instance_all_clusters_in_ticket(

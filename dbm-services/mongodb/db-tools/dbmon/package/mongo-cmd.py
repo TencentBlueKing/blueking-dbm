@@ -13,8 +13,40 @@ import yaml
 
 # python 3.6.8
 MONGO_CMD_PATH = ""
+MONGOSH_CMD_PATH = ""
 MONGOSTAT_CMD_PATH = ""
 MONOTOP_CMD_PATH = ""
+
+def installed_mongo_major():
+    """Return the major version of the installed mongod, or None."""
+    mongod = "/usr/local/mongodb/bin/mongod"
+    if not os.path.isfile(mongod):
+        return None
+    try:
+        out = subprocess.check_output([mongod, "-version"], stderr=subprocess.STDOUT, universal_newlines=True)
+    except Exception:
+        return None
+    matched = re.search(r"(?:db version|mongos version)\s+v?(\d+)", out)
+    if not matched:
+        return None
+    return int(matched.group(1))
+
+
+def default_shell():
+    """Prefer mongosh when installed; otherwise use the legacy mongo shell."""
+    if MONGOSH_CMD_PATH and os.path.isfile(MONGOSH_CMD_PATH):
+        return "mongosh"
+    if MONGO_CMD_PATH and os.path.isfile(MONGO_CMD_PATH):
+        return "mongo"
+    major = installed_mongo_major()
+    if major is not None and major >= 5:
+        return "mongosh"
+    return "mongo"
+
+
+def default_shell_path():
+    return MONGOSH_CMD_PATH if default_shell() == "mongosh" else MONGO_CMD_PATH
+
 
 def signal_handler(signal, frame):
     print ("done")
@@ -124,10 +156,11 @@ class mongo_instance:
     # python 3.6.8 用List[str] 不使用list[str]
     def exec_cmd(self, cmd: List[str]):
         auth_args = self.get_auth_args()
+        shell_path = default_shell_path()
         if len(auth_args) > 0:
-            cmdline = [MONGO_CMD_PATH, "--quiet", *auth_args, "--port", str(self.port), "--eval", " ".join(cmd)]
+            cmdline = [shell_path, "--quiet", *auth_args, "--port", str(self.port), "--eval", " ".join(cmd)]
         else:
-            cmdline = [MONGO_CMD_PATH, "--quiet", "--port", str(self.port), "--eval", " ".join(cmd)]
+            cmdline = [shell_path, "--quiet", "--port", str(self.port), "--eval", " ".join(cmd)]
         self.print_cmdline(cmdline)
         time_start = datetime.now()
         result = subprocess.run(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
@@ -263,12 +296,12 @@ def main():
             instance.exec_mongostat()
         elif cmd_list[0] == "mongotop":
             instance.exec_mongotop()
-        elif cmd_list[0] == "shell":
-            instance.exec_shell()
-        elif cmd_list[0] == "mongo":
-            instance.exec_shell("mongo")
-        elif cmd_list[0] == "mongosh":
-            instance.exec_shell("mongosh")
+        elif cmd_list[0] in ("shell", "mongo", "mongosh"):
+            # 优先使用已安装的 mongosh；没有 mongosh 时回退到 mongo。
+            shell = default_shell()
+            if cmd_list[0] == "mongosh":
+                shell = "mongosh"
+            instance.exec_shell(shell)
         else:
             instance.exec_cmd(cmd_list)
 
