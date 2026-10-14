@@ -94,7 +94,7 @@
   const dataSource = (params: ServiceParameters<typeof getRedisInstances>) =>
     getRedisInstances({
       ...params,
-      cluster_type: clusterRedisTypeList,
+      cluster_type: clusterRedisTypeList.join(','),
     });
 
   const getTableInstance = () => instanceTableRef.value;
