@@ -385,17 +385,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
 		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
-
-		// Populate the v1 dimensions to support self-healing tickets.
-		monitorEvent.Dimension.SwitchInfoServerIpV1 = inst.IP
-		monitorEvent.Dimension.SwitchInfoServerPortV1 = inst.Port
-		monitorEvent.Dimension.SwitchInfoInstanceRoleV1 = string(inst.InstanceRole)
-		monitorEvent.Dimension.SwitchInfoBkBizIdV1 = strconv.Itoa(inst.BkBizID)
-		monitorEvent.Dimension.SwitchInfoClusterDomainV1 = inst.Cluster
-		monitorEvent.Dimension.SwitchInfoMachineTypeV1 = string(inst.MachineType)
-		monitorEvent.Dimension.SwitchInfoIdcV1 = strconv.Itoa(inst.BkIdcCityID)
-		monitorEvent.Dimension.SwitchInfoStatusV1 = string(inst.Status)
-		monitorEvent.Dimension.SwitchInfoCheckIdV1 = generateDoubleCheckID(req.SwitchID, inst.BkCloudID, inst.IP)
+		fillSwitchV1Dimensions(monitorEvent, inst, req.SwitchID)
 
 		if newMaster, ok := rsp.GetMySqlNewMasterInfo(instKey); ok {
 			monitorEvent.Dimension.SwitchInfoNewMasterHost = newMaster.Host
@@ -430,9 +420,25 @@ func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
 		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+		fillSwitchV1Dimensions(monitorEvent, inst, req.SwitchID)
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
 		}
 	}
+}
+
+// fillSwitchV1Dimensions writes the v1 switch dimensions shared by success and failure alarms.
+// inst must be non-nil. switchID is the current switch request id and may be empty.
+// new_master_* stays unset; the success path adds those keys only when a new master exists.
+func fillSwitchV1Dimensions(event *monitor.EventData, inst *dbm.DbInstMetadata, switchID string) {
+	event.Dimension.SwitchInfoServerIpV1 = inst.IP
+	event.Dimension.SwitchInfoServerPortV1 = inst.Port
+	event.Dimension.SwitchInfoInstanceRoleV1 = string(inst.InstanceRole)
+	event.Dimension.SwitchInfoBkBizIdV1 = strconv.Itoa(inst.BkBizID)
+	event.Dimension.SwitchInfoClusterDomainV1 = inst.Cluster
+	event.Dimension.SwitchInfoMachineTypeV1 = string(inst.MachineType)
+	event.Dimension.SwitchInfoIdcV1 = strconv.Itoa(inst.BkIdcCityID)
+	event.Dimension.SwitchInfoStatusV1 = string(inst.Status)
+	event.Dimension.SwitchInfoCheckIdV1 = generateDoubleCheckID(switchID, inst.BkCloudID, inst.IP)
 }

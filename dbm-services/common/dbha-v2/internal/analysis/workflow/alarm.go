@@ -26,6 +26,7 @@ package workflow
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -33,7 +34,12 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
+
+// sshCheckFailedStatus matches the v1 SSH connectivity failure status.
+const sshCheckFailedStatus = "SSH_check_failed"
 
 // AlarmNotifier posts alarm events to the monitoring platform.
 type AlarmNotifier struct{}
@@ -65,6 +71,7 @@ func (n *AlarmNotifier) TriggerWithDetectorResponse(procName string, status proc
 	monitorEvent.Dimension.DetectorProcStatus = status
 	monitorEvent.Dimension.DbEventName = resp.DbEventName
 	monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason.Str()
+	fillDetectV1Dimensions(monitorEvent, resp.Meta)
 
 	logger.Info("the workflow triggers an alarm, db-inst: %d:%s:%d content: %s",
 		resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port, content)
@@ -90,5 +97,23 @@ func (n *AlarmNotifier) TriggerWithBizId(bizId int, content string) {
 
 	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 		logger.Warn("%s", err)
+	}
+}
+
+// fillDetectV1Dimensions writes the v1 detect dimensions onto a detector alarm.
+// meta must be non-nil. status is SSH_check_failed only for dbha_doublecheck_ssh_fail.
+// idc is left unset because v1 detect events do not carry that key.
+func fillDetectV1Dimensions(event *monitor.EventData, meta *hamodel.DbmMetadata) {
+	event.Dimension.BkCloudId = meta.BkCloudID
+	event.Dimension.SwitchInfoBkBizIdV1 = strconv.Itoa(meta.BkBizID)
+	event.Dimension.SwitchInfoServerIpV1 = meta.IP
+	event.Dimension.SwitchInfoServerPortV1 = meta.Port
+	event.Dimension.SwitchInfoClusterDomainV1 = meta.Cluster
+	event.Dimension.SwitchInfoMachineTypeV1 = string(meta.MachineType)
+	event.Dimension.SwitchInfoDetectClusterType = string(meta.ClusterType)
+	event.Dimension.SwitchInfoInstanceRoleV1 = string(meta.InstanceRole)
+
+	if event.Name == haprobe.DbEventNameDoubleCheckSshFailureV1.String() {
+		event.Dimension.SwitchInfoStatusV1 = sshCheckFailedStatus
 	}
 }
