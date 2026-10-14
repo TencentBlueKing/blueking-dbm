@@ -228,6 +228,7 @@ func (cf *Config) RecoverDefaultConfigItems(ctx *gin.Context) {
 		SaveConfItemsReq: api.SaveConfItemsReq{
 			BKBizID:      r.BKBizID,
 			BaseLevelDef: r.BaseLevelDef,
+			UpLevelInfo:  r.UpLevelInfo,
 			ConfFileInfo: api.ConfFileDef{
 				BaseConfFileDef: r.BaseConfFileDef,
 			},

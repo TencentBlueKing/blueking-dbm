@@ -550,6 +550,10 @@ class DBConfigHandler:
         }
         """
         params.update(namespace=self.meta_cluster_type, conf_type=self.conf_type)
+        # 对于层级是集群的，直接补充对应的模块信息
+        if params.get("level_name") == LevelName.CLUSTER:
+            cluster = Cluster.objects.get(immute_domain=params["level_value"])
+            params["level_info"] = {"module": str(cluster.db_module_id)}
         return DBConfigApi.recover_default_conf_item(params)
 
     def list_level_values(self, bk_biz_id: int, conf_file: str, level_name: str) -> List[Dict]:

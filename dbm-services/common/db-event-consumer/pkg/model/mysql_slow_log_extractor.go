@@ -18,7 +18,7 @@ var slowLogTimeRe = regexp.MustCompile(`Time: (\S+\s{1,2}\S+)`)
 var slowLogTimeNewRe = regexp.MustCompile(`Time:\s+(\d{4}-\d{2}-\d{2}\S+)`)
 
 // slowLogUserRe 匹配 User@Host 行，提取用户名和客户端 IP
-// 示例: # User@Host: igame[igame] @  [1.2.3.4]  Id: 86728544
+// 示例: # User@Host: testuser[testuser] @  [1.2.3.4]  Id: 86728544
 var slowLogUserRe = regexp.MustCompile(`User@Host: ([^\[]+|\[[^[]+\]).*?@ (\S*) \[(.*)\]`)
 
 // slowLogSchemaRe 匹配 Schema 行
@@ -46,7 +46,7 @@ var slowLogUsedbRe = regexp.MustCompile(`^(?i)use `)
 // data 示例:
 //
 //	# Time: 2025-03-10T12:57:05.123456Z
-//	# User@Host: igame[igame] @  [1.2.3.4]  Id: 86728544
+//	# User@Host: testuser[testuser] @  [1.2.3.4]  Id: 86728544
 //	# Schema: mydb  Last_errno: 0  Killed: 0
 //	# Query_time: 1.216848  Lock_time: 0.000076  Rows_sent: 20  Rows_examined: 357580  Rows_affected: 0
 //	# Bytes_sent: 3818
@@ -271,7 +271,7 @@ func parseSlowLogUser(line string, result *SlowLog) {
 	if len(m) < 3 {
 		return
 	}
-	// m[1] 可能是 "igame[igame] " 或 "[igame]"，取 [ 之前的部分作为用户名
+	// m[1] 可能是 "testuser[testuser] " 或 "[testuser]"，取 [ 之前的部分作为用户名
 	user := strings.TrimSpace(m[1])
 	if idx := strings.Index(user, "["); idx >= 0 {
 		user = strings.TrimSpace(user[:idx])
