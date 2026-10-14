@@ -22,6 +22,7 @@
     multiple
     multiple-mode="tag"
     :placeholder="placeholder"
+    show-select-all
     @change="handleChange">
     <DbOption
       v-for="option in options"
