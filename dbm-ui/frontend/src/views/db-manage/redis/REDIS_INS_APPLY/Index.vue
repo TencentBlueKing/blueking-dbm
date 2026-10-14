@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="apply-instance">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -29,7 +30,8 @@
         </DbCard>
         <RegionRequirementsRedisHaAppend
           v-if="isAppend"
-          v-model="formData.details" />
+          v-model="formData.details"
+          @cloud-change="handleCloudChange" />
         <RegionRequirements
           v-else
           ref="regionRequirements"
@@ -40,7 +42,9 @@
             :label="t('部署方式')"
             property="details.apply_mode"
             required>
-            <BkRadioGroup v-model="formData.details.apply_mode">
+            <BkRadioGroup
+              v-model="formData.details.apply_mode"
+              :disabled="modifyState.isAdjustApply">
               <BkRadio
                 key="new"
                 label="new">
@@ -71,6 +75,7 @@
             <DbInput
               v-model="formData.details.cluster_count"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -85,6 +90,7 @@
             <DbInput
               v-model="formData.details.group_count"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :max="formData.details.cluster_count"
               :min="1"
               show-clear-only-hover
@@ -98,6 +104,7 @@
             required>
             <DbInput
               v-model="formData.details.port"
+              :disabled="modifyState.isAdjustApply"
               :max="65535"
               :min="1025"
               style="width: 185px"
@@ -121,6 +128,7 @@
             required>
             <BkRadioGroup
               v-model="formData.details.ip_source"
+              :disabled="modifyState.isAdjustApply"
               class="item-input">
               <BkRadioButton
                 key="resource_pool"
@@ -196,6 +204,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -203,6 +212,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -215,12 +225,13 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetFormdata"
-        :disabled="baseState.isSubmitting" />
+        :content="modifyState.resetContent"
+        :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -234,7 +245,7 @@
 <script setup lang="ts">
   import { Form } from 'bkui-vue';
   import _ from 'lodash';
-  import type { UnwrapRef } from 'vue';
+  import type { ComputedRef, UnwrapRef } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -257,6 +268,8 @@
   import RegionRequirementsRedisHaAppend from '@views/db-manage/common/apply-items/region-requirements/RedisHaAppend.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -306,11 +319,12 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
 
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Redis.InsApply>(TicketTypes.REDIS_INS_APPLY, {
+  const insTicketDetail = useTicketDetail<Redis.InsApply>(TicketTypes.REDIS_INS_APPLY, {
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
@@ -320,9 +334,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -336,6 +350,8 @@
         disaster_tolerance_level: details.disaster_tolerance_level,
         infos: details.infos,
         port: details.port,
+        // 后端保存了访问密码；不回填时改单要重新输入，还会多出一项变更
+        redis_pwd: details.redis_pwd,
       });
 
       if (details.ip_source === 'resource_pool') {
@@ -481,8 +497,9 @@
     [() => formData.details.resource_spec.backend_group.spec_id, machineCount],
     ([newSpecId]) => {
       nextTick(() => {
-        if (newSpecId) {
-          const { mem } = specRef.value!.getData();
+        // 追加部署模式下规格选择器已卸载（单据回填的规格仍在），不计算 Maxmemory
+        if (newSpecId && specRef.value) {
+          const { mem } = specRef.value.getData();
           const capicity = ((mem?.min ?? 0) * 0.9 * machineCount.value) / formData.details.cluster_count;
           maxMemory.value = `${capicity.toFixed(2)}G`;
         } else {
@@ -529,6 +546,24 @@
       immediate: true,
     },
   );
+
+  // 全新部署的 infos 不带主机字段；切到追加部署时补齐，表格渲染与提交都按完整形状处理
+  watch(isAppend, (value) => {
+    if (value) {
+      for (const infoItem of formData.details.infos) {
+        infoItem.masterHost ??= {
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          ip: '',
+        };
+        infoItem.slaveHost ??= {
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          ip: '',
+        };
+      }
+    }
+  });
 
   const verifyResult = (isPass: boolean) => {
     passwordIsPass.value = isPass;
@@ -583,66 +618,86 @@
   };
 
   const handleResetFormdata = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      insTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;
     });
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
+
+    if (details.apply_mode === 'new') {
+      Object.assign(details, {
+        infos: details.infos!.map((infoItem) => ({
+          cluster_name: infoItem.cluster_name,
+          databases: infoItem.databases,
+        })),
+        resource_spec: {
+          backend_group: {
+            ...specRef.value!.getData(),
+            ...regionRequirementsRef.value!.getValue(),
+            count: Math.ceil(machineCount.value),
+            label_names: details.resource_spec!.backend_group.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec!.backend_group.labels.map((item: { id: number }) => String(item.id)),
+            spec_id: details.resource_spec!.backend_group.spec_id,
+          },
+        },
+      });
+    } else {
+      delete details.port;
+      // delete details.city_code;
+      delete details.db_version;
+      delete details.resource_spec;
+
+      Object.assign(details, {
+        infos: details.infos!.map((infoItem) => ({
+          backend_group: {
+            master: infoItem.masterHost,
+            slave: infoItem.slaveHost,
+          },
+          cluster_name: infoItem.cluster_name,
+          databases: infoItem.databases,
+        })),
+      });
+    }
+
+    delete details.cluster_count;
+    delete details.group_count;
+    delete details.apply_mode;
+    delete details.city_name;
+
+    return {
+      ...details,
+      append_apply: isAppend.value,
+      ip_source: isAppend.value ? 'manual_input' : 'resource_pool',
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (formData.details.apply_mode === 'new' && (!specRef.value || !regionRequirementsRef.value)) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = async () => {
     await formRef.value!.validate();
 
     baseState.isSubmitting = true;
-
-    const getDetails = () => {
-      const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
-
-      if (details.apply_mode === 'new') {
-        Object.assign(details, {
-          infos: details.infos!.map((infoItem) => ({
-            cluster_name: infoItem.cluster_name,
-            databases: infoItem.databases,
-          })),
-          resource_spec: {
-            backend_group: {
-              ...specRef.value!.getData(),
-              ...regionRequirementsRef.value!.getValue(),
-              count: Math.ceil(machineCount.value),
-              label_names: details.resource_spec!.backend_group.labels.map((item: { value: string }) => item.value),
-              labels: details.resource_spec!.backend_group.labels.map((item: { id: number }) => String(item.id)),
-              spec_id: details.resource_spec!.backend_group.spec_id,
-            },
-          },
-        });
-      } else {
-        delete details.port;
-        // delete details.city_code;
-        delete details.db_version;
-        delete details.resource_spec;
-
-        Object.assign(details, {
-          infos: details.infos!.map((infoItem) => ({
-            backend_group: {
-              master: infoItem.masterHost,
-              slave: infoItem.slaveHost,
-            },
-            cluster_name: infoItem.cluster_name,
-            databases: infoItem.databases,
-          })),
-        });
-      }
-
-      delete details.cluster_count;
-      delete details.group_count;
-      delete details.apply_mode;
-      delete details.city_name;
-
-      return {
-        ...details,
-        append_apply: isAppend.value,
-        ip_source: isAppend.value ? 'manual_input' : 'resource_pool',
-      };
-    };
 
     const params = {
       ...formData,

@@ -16,18 +16,24 @@
     v-model:collapse="isCardCollapse"
     mode="collapse"
     :title="t('实施进度')">
-    <RenderFlow :ticket-detail="data" />
+    <!-- 待办里的单据只在挂载时请求一次，内容版本变了要整体重建，否则审批仍带旧版本提交 -->
+    <RenderFlow
+      :key="data.version ?? 0"
+      :modify-records="modifyRecords"
+      :ticket-detail="data" />
   </DbCard>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
   import RenderFlow from './RenderFlow.vue';
 
   interface Props {
     data: TicketModel<unknown>;
+    modifyRecords: TicketModifyRecordModel[];
   }
 
   defineOptions({

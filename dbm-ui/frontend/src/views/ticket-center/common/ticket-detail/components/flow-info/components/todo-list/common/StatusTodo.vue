@@ -36,7 +36,9 @@
       {{ utcDisplayTime(data.done_at) }}
     </div>
     <template v-if="data.operators.includes(username) || ticketData.todo_helpers.includes(username)">
-      <ProcessApproveExce :todo-data="data">
+      <ProcessApproveExce
+        :data="ticketData"
+        :todo-data="data">
         <BkButton
           class="w-88 mt-12"
           theme="primary">

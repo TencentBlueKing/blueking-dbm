@@ -6,18 +6,23 @@
     <CardCheckbox
       v-model="modelValue"
       :desc="t('独立 BCS 集群资源，物理隔离，适合对性能/安全有严格要求的场景')"
+      :disabled="isAdjustApply"
+      :disabled-tooltips="t('暂不支持')"
       :title="t('独占集群')"
       true-value="ExclusiveMode" />
     <CardCheckbox
       v-model="modelValue"
       class="ml-8"
       :desc="t('共享 BCS 集群资源，弹性调度，适合常规业务场景')"
+      :disabled="isAdjustApply"
       :title="t('共享集群')"
       true-value="SharedMode" />
   </DbFormItem>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { useTicketModifyState } from '@hooks';
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
@@ -26,4 +31,6 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 </script>

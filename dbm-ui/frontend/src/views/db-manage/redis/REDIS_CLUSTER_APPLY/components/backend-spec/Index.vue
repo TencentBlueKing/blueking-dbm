@@ -1,6 +1,8 @@
 <template>
   <div class="redis-backend-spec">
-    <ApplySchema v-model="applySchema" />
+    <ApplySchema
+      v-model="applySchema"
+      :disabled="isAdjustApply" />
     <template v-if="applySchema === APPLY_SCHEME.AUTO">
       <BkFormItem
         :label="targetCapacityTitle"
@@ -8,6 +10,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="1"
           :model-value="modelValue.capacity"
           style="width: 314px"
@@ -21,6 +24,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
           style="width: 314px"
@@ -96,6 +100,8 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
@@ -130,6 +136,8 @@
   const applySchema = defineModel<APPLY_SCHEME>('applySchema', { required: true });
 
   const { t } = useI18n();
+  // 调整申请模式下按自定义方案回填，切换部署方案会连带改掉分片拓扑，只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const specRef = ref();
   const customSchemaRef = ref<InstanceType<typeof CustomSchema>>();
@@ -156,6 +164,7 @@
         <bk-radio
           v-model={modelValue.value.spec_id}
           class='spec-radio'
+          disabled={isAdjustApply}
           label={row.spec_id}>
           {row.spec_name}
         </bk-radio>
@@ -304,6 +313,10 @@
   }, 100);
 
   const handleRowClick = ({ row }: { row: TableRowData }) => {
+    // 调整申请只能改规格与资源标签：自动推荐方案的一行同时决定规格与组数，选行会连带改数量，整张方案表只读
+    if (isAdjustApply) {
+      return;
+    }
     modelValue.value.spec_id = row.spec_id;
   };
 
@@ -318,6 +331,13 @@
       }
 
       return customSchemaRef.value?.getInfo();
+    },
+    // 单据没有保存部署方案的选择，回填时按自定义方案还原：规格、组数、标签随 modelValue 回填，单机分片数等自定义方案挂载后补上
+    setInitCustom(shardNum: number) {
+      applySchema.value = APPLY_SCHEME.CUSTOM;
+      nextTick(() => {
+        customSchemaRef.value?.setShardNum(shardNum);
+      });
     },
   });
 </script>

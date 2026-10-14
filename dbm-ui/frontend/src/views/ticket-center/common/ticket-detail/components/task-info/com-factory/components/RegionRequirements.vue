@@ -28,12 +28,14 @@
 
   interface Props {
     details: {
-      bk_cloud_name: string;
-      city_code: string;
-      resource_spec: {
+      bk_cloud_name?: string;
+      // 追加部署类单据没有 city_code
+      city_code?: string;
+      // 手动部署的单据没有 resource_spec
+      resource_spec?: {
         [key: string]: {
           affinity: string;
-          location_spec: {
+          location_spec?: {
             city: string;
             include_or_exclue?: boolean;
             sub_zone_ids?: number[];
@@ -47,8 +49,9 @@
 
   const { t } = useI18n();
 
-  const { affinity, location_spec: locationSpec } = Object.values(props.details.resource_spec)[0];
-  const { sub_zone_ids: subZoneIds } = locationSpec;
+  const firstSpec = Object.values(props.details.resource_spec ?? {})[0];
+  const affinity = firstSpec?.affinity;
+  const subZoneIds = firstSpec?.location_spec?.sub_zone_ids;
 
   const affinityText = affinityMap[affinity as Affinity] || '--';
 

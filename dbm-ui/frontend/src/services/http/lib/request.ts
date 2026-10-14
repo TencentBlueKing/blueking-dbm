@@ -31,6 +31,8 @@ export interface Config {
   payload?: {
     cache?: string | number | boolean;
     catchError?: boolean;
+    // 只有这些业务错误码不弹全局提示，交给调用方处理；其余错误码照常提示
+    catchErrorCodes?: number[];
     onUploadProgress?: (params: CancelTokenSource) => void;
     permission?: 'page' | 'dialog' | 'catch';
     timeout?: number;
