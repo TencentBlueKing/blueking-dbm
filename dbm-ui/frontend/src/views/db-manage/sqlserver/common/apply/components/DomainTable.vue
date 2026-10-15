@@ -199,7 +199,9 @@
    * 批量编辑域名
    */
   const handleBatchEditDomains = (newDomainList: string[]) => {
-    domains.value = newDomainList.map((newDomainItem) => ({
+    // 与单条编辑一致保留原对象上的其它字段（回填单据带后端补的 master / slave），只改 key，否则改单时值没变也算一项差异
+    domains.value = newDomainList.map((newDomainItem, index) => ({
+      ...domains.value[index],
       key: newDomainItem,
     }));
   };

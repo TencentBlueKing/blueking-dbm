@@ -50,7 +50,7 @@
       <DbInput
         v-model="shardNum"
         clearable
-        :disabled="shardNumDisabled || isTendisInstance"
+        :disabled="shardNumDisabled || isTendisInstance || isAdjustApply"
         :min="1"
         show-clear-only-hover
         style="width: 314px"
@@ -84,6 +84,8 @@
   import _ from 'lodash';
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
+
+  import { useTicketModifyState } from '@hooks';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
@@ -126,6 +128,8 @@
   const modelValue = defineModel<ModelValue>({ required: true });
 
   const { t } = useI18n();
+  // 调整申请模式只放开规格、标签与组数，单机分片数决定集群分片拓扑，只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const shardNumRules = [
     {

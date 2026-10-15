@@ -262,12 +262,14 @@
                   :required="false">
                   <BkCheckbox
                     v-model="formData.details.apply_clb"
-                    v-db-console="'common.clb'">
+                    v-db-console="'common.clb'"
+                    :disabled="modifyState.isAdjustApply">
                     CLB
                   </BkCheckbox>
                   <BkCheckbox
                     v-model="formData.details.apply_polaris"
-                    v-db-console="'common.polaris'">
+                    v-db-console="'common.polaris'"
+                    :disabled="modifyState.isAdjustApply">
                     {{ t('北极星') }}
                   </BkCheckbox>
                 </BkFormItem>
@@ -495,6 +497,10 @@
           });
         }, {});
         const subzoneIds = details.resource_spec!.master.location_spec.sub_zone_ids || [];
+        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
+        if (subzoneIds.length > 0) {
+          formData.details.disaster_tolerance_level = Affinity.NONE;
+        }
         Object.assign(formData.details, {
           // 改单「重置」也走这段回填；数量为 0 的角色不提交，单据里没有的角色要回到默认值，否则会留着改过的规格与数量
           resource_spec: Object.assign(genDefaultFormData().details.resource_spec, resourceSpec),

@@ -522,7 +522,10 @@
         const resourceSpec = {
           backend_group: {
             ...formData.details.resource_spec.backend_group,
+            // 回填按自定义方案还原，容量只在自动推荐方案使用；改单「重置」时要清掉用户填过的容量，否则容量 watch 会清空回填的规格
+            capacity: '',
             count: backendGroup.count,
+            future_capacity: '',
             labels: backendGroupLabels,
             spec_id: backendGroup.spec_id,
           },

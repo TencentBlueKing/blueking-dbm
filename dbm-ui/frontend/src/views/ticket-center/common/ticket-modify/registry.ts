@@ -60,6 +60,7 @@ export const RESOURCE_SPEC_DIFF: Required<Pick<DiffOptions, 'formatters' | 'igno
 const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' | 'labels'>> = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
+    apply_clb: (value) => (value ? 'CLB' : '--'),
     city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
     domains: (value) => formatValue((value as DomainList)?.map((item) => item.key)),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
@@ -76,6 +77,7 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
     'resource_spec.proxy.location_spec',
   ],
   labels: {
+    apply_clb: t('负载均衡'),
     bk_cloud_id: t('管控区域'),
     city_code: t('地域'),
     cluster_count: t('集群数量'),
@@ -140,6 +142,7 @@ const SQLSERVER_APPLY_DIFF: DiffOptions = {
 const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
+    apply_clb: (value) => (value ? 'CLB' : '--'),
     city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
     // backend_group 同层没有 spec_name，规格名在部署方案明细 spec_info 里
     'resource_spec.backend_group.spec_id': (value, snapshot) =>
@@ -157,6 +160,7 @@ const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
     'resource_spec.spider.location_spec',
   ],
   labels: {
+    apply_clb: t('负载均衡'),
     bk_cloud_id: t('管控区域'),
     city_code: t('地域'),
     cluster_alias: t('集群别名'),
@@ -362,9 +366,11 @@ const MONGODB_SHARD_APPLY_DIFF: DiffOptions = {
 };
 
 /**
- * 大数据部署（ES / Kafka / HDFS / Pulsar / Doris）的公共口径：地域、容灾以顶层字段为准，各角色共用一份地域园区，
+ * 大数据部署（ES / Kafka / HDFS / Pulsar / Doris）的公共口径：地域以顶层字段为准，各角色共用一份地域园区，
  * 园区只按一个必选角色计。随之带出的 city_name / affinity / location_spec.city、规格带出的 capacity、
- * 由所属业务带出的业务代号不计入差异；各角色数量由用户填写，计入差异。顶层 sub_zone_ids / sub_zone_names 不重复计
+ * 由所属业务带出的业务代号不计入差异；各角色数量由用户填写，计入差异。顶层 sub_zone_ids / sub_zone_names 不重复计。
+ * 后端把容灾级别统一改写为尽量分散，选「无容灾要求」的唯一效果是带上园区，已由 location_spec.sub_zone_ids 体现，
+ * 容灾级别本身不计入差异
  */
 const BIG_DATA_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths'>> = {
   formatters: {
@@ -376,6 +382,7 @@ const BIG_DATA_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePath
     ...RESOURCE_SPEC_DIFF.ignorePaths,
     'city_name',
     'db_app_abbr',
+    'disaster_tolerance_level',
     'resource_spec.*.affinity',
     'resource_spec.*.capacity',
     'resource_spec.*.location_spec.city',
@@ -388,7 +395,11 @@ const BIG_DATA_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePath
  * ES 部署：园区按必选的 master 计；client / hot / cold 为可选角色，数量为 0 时不提交，增删角色按并集比较
  */
 const ES_APPLY_DIFF: DiffOptions = {
-  formatters: BIG_DATA_APPLY_DIFF.formatters,
+  formatters: {
+    ...BIG_DATA_APPLY_DIFF.formatters,
+    apply_clb: (value) => (value ? 'CLB' : '--'),
+    apply_polaris: (value) => (value ? t('北极星') : '--'),
+  },
   ignorePaths: [
     ...BIG_DATA_APPLY_DIFF.ignorePaths,
     'resource_spec.client.location_spec',
@@ -396,12 +407,13 @@ const ES_APPLY_DIFF: DiffOptions = {
     'resource_spec.hot.location_spec',
   ],
   labels: {
+    apply_clb: t('负载均衡'),
+    apply_polaris: t('负载均衡'),
     bk_cloud_id: t('管控区域'),
     city_code: t('地域'),
     cluster_alias: t('集群别名'),
     cluster_name: t('集群标识'),
     db_version: t('ES版本'),
-    disaster_tolerance_level: t('容灾要求'),
     http_port: t('访问端口'),
     'nodes.client': t('Client节点'),
     'nodes.cold': t('冷节点'),
@@ -436,7 +448,6 @@ const KAFKA_APPLY_DIFF: DiffOptions = {
     cluster_alias: t('集群别名'),
     cluster_name: t('集群标识'),
     db_version: t('kafka版本'),
-    disaster_tolerance_level: t('容灾要求'),
     'nodes.broker': t('Broker节点'),
     'nodes.zookeeper': t('Zookeeper节点'),
     partition_num: t('Partition数量'),
@@ -470,7 +481,6 @@ const HDFS_APPLY_DIFF: DiffOptions = {
     cluster_alias: t('集群别名'),
     cluster_name: t('集群标识'),
     db_version: t('Hadoop版本'),
-    disaster_tolerance_level: t('容灾要求'),
     'nodes.datanode': t('DataNode节点'),
     // NameNode / Zookeeper/JournalNode 是组件名，申请页也未翻译
     'nodes.namenode': 'NameNode',
@@ -504,7 +514,6 @@ const PULSAR_APPLY_DIFF: DiffOptions = {
     cluster_alias: t('集群别名'),
     cluster_name: t('集群标识'),
     db_version: t('Pulsar版本'),
-    disaster_tolerance_level: t('容灾要求'),
     'nodes.bookkeeper': t('Bookkeeper节点'),
     'nodes.broker': t('Broker节点'),
     'nodes.zookeeper': t('Zookeeper节点'),
@@ -546,7 +555,6 @@ const DORIS_APPLY_DIFF: DiffOptions = {
     cluster_alias: t('集群别名'),
     cluster_name: t('集群标识'),
     db_version: t('Doris版本'),
-    disaster_tolerance_level: t('容灾要求'),
     enable_cold_storage: t('启用低频存储'),
     http_port: t('http端口'),
     'nodes.follower': t('Follower节点'),

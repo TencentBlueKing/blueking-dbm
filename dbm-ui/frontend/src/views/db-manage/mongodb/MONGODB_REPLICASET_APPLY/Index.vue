@@ -339,7 +339,8 @@
         const { mongo_machine_set: mongoMachineSet } = details.resource_spec;
         const labels = (mongoMachineSet.labels || []).map((labelItem, labelIndex) => ({
           id: Number(labelItem),
-          value: mongoMachineSet.label_names[labelIndex],
+          // MCP / API 建的单据可能没有 label_names、location_spec，标签名由标签选择器按 id 补齐
+          value: mongoMachineSet.label_names?.[labelIndex],
         }));
         const resourceSpec = {
           mongo_machine_set: {
@@ -348,7 +349,7 @@
             spec_id: mongoMachineSet.spec_id,
           },
         };
-        const subzoneIds = mongoMachineSet.location_spec.sub_zone_ids || [];
+        const subzoneIds = mongoMachineSet.location_spec?.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
