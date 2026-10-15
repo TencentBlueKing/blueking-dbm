@@ -79,6 +79,12 @@ class RollbackPrecheckSerializer(serializers.Serializer):
         required=False,
         allow_empty=True,
     )
+    recovery_time_point = DBTimezoneField(
+        help_text=_("回档目标时刻，支持 binlog 的集群在所选全备基础上回放到该时刻；Cache 集群忽略"),
+        required=False,
+        allow_blank=True,
+        default="",
+    )
     allow_binlog_nonconsecutive = serializers.BooleanField(
         help_text=_("允许 binlog 序号不连续（接受缺失这段写入）"), required=False, default=False
     )

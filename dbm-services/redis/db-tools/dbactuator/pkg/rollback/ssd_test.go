@@ -240,6 +240,122 @@ func TestReadRepliesCapsSamples(t *testing.T) {
 	}
 }
 
+func TestReplayStartPos(t *testing.T) {
+	full := []string{"100-TENDISSSD-FULL-slave-1.1.1.1-30002-20261014-050012-33886.tar"}
+	noSeq := []string{"100-TENDISSSD-FULL-slave-1.1.1.1-30002-20261014-050012.tar"}
+	seq := func(v uint64, err error) func() (uint64, error) {
+		return func() (uint64, error) { return v, err }
+	}
+	down := fmt.Errorf("connection refused")
+	cases := map[string]struct {
+		endSeq func() (uint64, error)
+		files  []string
+		want   uint64
+	}{
+		"restored end seq equals name":    {seq(33886, nil), full, 33887},
+		"restored end seq ahead of name":  {seq(33890, nil), full, 33891},
+		"restored end seq behind name":    {seq(33000, nil), full, 33887},
+		"binlogsize fails, use name":      {seq(0, down), full, 33887},
+		"binlogsize returns 0, use name":  {seq(0, nil), full, 33887},
+		"name has no seq, use binlogsize": {seq(33886, nil), noSeq, 33887},
+	}
+	for name, tc := range cases {
+		got, err := replayStartPos(portLog{}, tc.endSeq, tc.files)
+		if err != nil || got != tc.want {
+			t.Fatalf("%s: got %d err=%v, want %d", name, got, err, tc.want)
+		}
+	}
+	if _, err := replayStartPos(portLog{}, seq(0, down), noSeq); err == nil {
+		t.Fatal("want error when neither source has a seq")
+	}
+}
+
+func writeCmd(t *testing.T, content string) string {
+	t.Helper()
+	cmd := filepath.Join(t.TempDir(), "binlog.log.cmd")
+	if err := os.WriteFile(cmd, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	return cmd
+}
+
+func TestCheckParsedCommandsFailsOnUnknownLogType(t *testing.T) {
+	// From ticket 2571128: a DEL of a 210k-member set followed by SET on TendisSSD v1.3.10.
+	content := `"sadd" "rb_asyncdel_test" "m1"` + "\n" +
+		`"del" "rb_asyncdel_test"` + "\n" +
+		"Wrong log type: 17 !!!\n" +
+		`failed"set" "rb_asyncdel_after" "1"` + "\n"
+	err := checkParsedCommands(writeCmd(t, content))
+	if err == nil {
+		t.Fatal("want error")
+	}
+	for _, want := range []string{"1 records of unknown log type [17]", "glued 1 commands", "first at line 3"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("err=%v, want %q", err, want)
+		}
+	}
+}
+
+func TestCheckParsedCommandsFailsOnGluedLineAlone(t *testing.T) {
+	if err := checkParsedCommands(writeCmd(t, `"set" "a" "1"`+"\n"+`failed"set" "b" "1"`)); err == nil {
+		t.Fatal("want error for a glued line without a newline at EOF")
+	}
+}
+
+func TestCheckParsedCommandsAcceptsQuotedCommands(t *testing.T) {
+	// Markers inside values or past a long line's first buffer are not line starts.
+	long := `"set" "k" "` + strings.Repeat("x", 200*1024) + `failed"` + "\n"
+	content := `"set" "Wrong log type: 17" "failed"` + "\n" + long + `"del" "k"` + "\n"
+	if err := checkParsedCommands(writeCmd(t, content)); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkParsedCommands(writeCmd(t, "")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadRepliesClassifiesErrors(t *testing.T) {
+	content := "OK\n" +
+		strings.Repeat("(error) ERR invalid expire time in setex\n", 6) +
+		"(error) WRONGTYPE Operation against a key holding the wrong kind of value\n" +
+		"(error) ERR unknown command 'failedset'\n" +
+		"OK\n"
+	st, err := readReplies(writeOut(t, content))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Lines != 9 || st.Errors != 8 || st.Expected != 6 {
+		t.Fatalf("st=%+v", st)
+	}
+	wantKinds := map[string]int{expectedReplyError: 6, "WRONGTYPE": 1, "ERR unknown command": 1}
+	if fmt.Sprint(st.Kinds) != fmt.Sprint(wantKinds) {
+		t.Fatalf("kinds=%v, want %v", st.Kinds, wantKinds)
+	}
+	samples := st.samples()
+	if len(samples) != replyErrorSamples || !strings.Contains(samples[0], "WRONGTYPE") ||
+		!strings.Contains(samples[1], "failedset") || !strings.Contains(samples[2], expectedReplyError) {
+		t.Fatalf("attention samples must come first: %q", samples)
+	}
+
+	var total replyStats
+	total.add(st)
+	total.add(st)
+	if total.Errors != 16 || total.Expected != 12 || total.Kinds[expectedReplyError] != 12 ||
+		len(total.samples()) != replyErrorSamples {
+		t.Fatalf("total=%+v", total)
+	}
+	if !strings.Contains(total.summary(), "4 need attention, 12 expected") {
+		t.Fatalf("summary=%s", total.summary())
+	}
+}
+
+func TestReadRepliesOnlyExpectedErrors(t *testing.T) {
+	st, err := readReplies(writeOut(t, "OK\nOK\n(error) ERR invalid expire time in 'set' command\n"))
+	if err != nil || st.Errors != 1 || st.Expected != 1 || len(st.Samples) != 0 || len(st.samples()) != 1 {
+		t.Fatalf("st=%+v err=%v", st, err)
+	}
+}
+
 func TestReplayEndIncludesRecoverAtSecond(t *testing.T) {
 	recoverAt := time.Date(2026, 10, 1, 12, 0, 0, 0, time.Local)
 	if got, want := replayEndMs(recoverAt), recoverAt.UnixMilli()+1000; got != want {

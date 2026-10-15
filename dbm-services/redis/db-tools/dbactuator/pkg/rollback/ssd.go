@@ -37,7 +37,7 @@ const ssdCmdTimeout = 2 * time.Hour
 var (
 	// binlog-{ip}-{port}-{index}-{yyyymmddHHMMSS}.log.zst; legacy GCS names carry no ip.
 	ssdBinlogReg = regexp.MustCompile(`^binlog-(?:(\d{1,3}(?:\.\d{1,3}){3})-)?(\d+)-(\d+)-\d{14}\.log\.(?:zst|lzo)$`)
-	// ...-TENDISSSD-FULL-{role}-{ip}-{port}-{yyyymmdd}-{HHMMSS}-{seq}.tar[.split.NNN], seq being the binlog start position.
+	// ...-TENDISSSD-FULL-{role}-{ip}-{port}-{yyyymmdd}-{HHMMSS}-{seq}.tar[.split.NNN], seq being binlogsize's end seq.
 	ssdFullSeqReg = regexp.MustCompile(`-\d{8}-\d{6}-(\d+)(?:\.tar)?(?:\.split\.\d+)?$`)
 )
 
@@ -46,14 +46,19 @@ type ssdRestorer struct {
 	Job
 }
 
-// DoRollback verifies local binlogs against the payload digest before touching any instance,
-// then restores, starts and replays each port independently.
+// DoRollback verifies local binlogs against the payload digest before touching any instance.
+// Then every port goes through unpack, restore, start and replay on its own, the ports with the
+// most binlog bytes first, so later ports unpack while earlier ones replay.
 func (r *ssdRestorer) DoRollback() error {
 	recoverAt, err := time.Parse(time.RFC3339, r.RecoverAt)
 	if err != nil {
 		return fmt.Errorf("invalid recover_at %q: %v", r.RecoverAt, err)
 	}
-	redo, err := r.resolvePending()
+	limits := HostLimits(r.MaxConcurrency)
+	report := newHostReport(r.DestIP, "tendisssd", r.Instances)
+	defer report.logResult()
+
+	redo, err := r.resolvePending(report)
 	if err != nil {
 		return err
 	}
@@ -61,32 +66,71 @@ func (r *ssdRestorer) DoRollback() error {
 		mylog.Logger.Info("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
 		return nil
 	}
-	mylog.Logger.Info("RedisRollback(ssd) dest_ip=%s dest_dir=%s redo=%d total=%d recover_at=%s",
-		r.DestIP, r.SaveDir, len(redo), len(r.Instances), r.RecoverAt)
 
 	binlogs := make(map[int][]string, len(redo))
+	plans := make(map[int]portPlan, len(redo))
 	for _, inst := range redo {
 		if binlogs[inst.DestPort], err = LocalBinlogs(r.SaveDir, inst); err != nil {
+			report.port(inst.DestPort).finish(err)
 			return err
 		}
+		var full []string
+		for _, name := range inst.FullFiles {
+			full = append(full, filepath.Join(r.SaveDir, filepath.Base(name)))
+		}
+		plans[inst.DestPort] = portPlan{fullBytes: totalSize(full), binlogs: len(binlogs[inst.DestPort]),
+			binlogBytes: totalSize(binlogs[inst.DestPort])}
 	}
+	sortLongestFirst(redo, plans)
+
 	if err = r.Host.InstallTools(); err != nil {
-		return err
-	}
-	backups, err := r.stageBackups(redo)
-	if err != nil {
 		return err
 	}
 	if err = r.Host.Prepare(portsOf(redo)); err != nil {
 		return err
 	}
-	return RunBounded(len(redo), StageConcurrency(), func(i int) error {
+	for _, inst := range redo {
+		plan := plans[inst.DestPort]
+		plan.memory = SSDMemory(confFile(r.Host.InstanceDir(inst.DestPort)))
+		plans[inst.DestPort] = plan
+	}
+	replaying := limits.Replay(len(redo))
+	report.logPlan(limits, plans, r.UnpackDir)
+	mylog.Logger.Info("RedisRollback(ssd) dest=%s recover_at=%s replay=%d parse=%d lookahead=%d order=%v",
+		r.DestIP, r.RecoverAt, replaying, limits.Parse(replaying), parseLookahead, portsOf(redo))
+
+	window := newMemWindow(limits.MemAvailable, len(redo))
+	replaySlots := make(chan struct{}, replaying)
+	parsePool := make(chan struct{}, limits.Parse(replaying))
+	var wg sync.WaitGroup
+	var errs errCollector
+	errs.add(RunBounded(len(redo), limits.Unpack, func(i int) error {
 		inst := redo[i]
-		if err := r.restore(inst, backups[inst.DestPort], binlogs[inst.DestPort], recoverAt); err != nil {
-			mylog.Logger.Error("RedisRollback(ssd) %s:%d: %v", r.DestIP, inst.DestPort, err)
+		p := report.port(inst.DestPort)
+		if err := r.prepare(inst, p, window); err != nil {
+			p.finish(err)
 			return err
 		}
+		// Replay elsewhere so this slot unpacks the next port meanwhile.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			replaySlots <- struct{}{}
+			err := r.replayAndMark(inst, p, binlogs[inst.DestPort], recoverAt, parsePool)
+			<-replaySlots
+			p.finish(err)
+			errs.add(err)
+		}()
 		return nil
+	}))
+	wg.Wait()
+	return errs.err
+}
+
+// sortLongestFirst orders ports by binlog bytes, largest first, to shorten the host's total time.
+func sortLongestFirst(instances []InstanceRestore, plans map[int]portPlan) {
+	sort.SliceStable(instances, func(i, j int) bool {
+		return plans[instances[i].DestPort].binlogBytes > plans[instances[j].DestPort].binlogBytes
 	})
 }
 
@@ -95,7 +139,7 @@ func (r *ssdRestorer) fingerprint(inst InstanceRestore) string {
 }
 
 // resolvePending skips ports already restored to the same point; any other running port is redone.
-func (r *ssdRestorer) resolvePending() ([]InstanceRestore, error) {
+func (r *ssdRestorer) resolvePending(report *hostReport) ([]InstanceRestore, error) {
 	var redo []InstanceRestore
 	for _, inst := range r.Instances {
 		instDir := r.Host.InstanceDir(inst.DestPort)
@@ -105,7 +149,8 @@ func (r *ssdRestorer) resolvePending() ([]InstanceRestore, error) {
 		}
 		if inUse {
 			if IsDone(instDir, r.fingerprint(inst)) {
-				mylog.Logger.Info("dest_port=%d already rolled back to the same point, skip", inst.DestPort)
+				newPortLog(r.DestIP, inst).Info("already rolled back to the same point, skip")
+				report.skipped(inst.DestPort)
 				continue
 			}
 			ClearDone(instDir)
@@ -118,62 +163,70 @@ func (r *ssdRestorer) resolvePending() ([]InstanceRestore, error) {
 	return redo, nil
 }
 
-// stageBackups unpacks full backups and returns each port's backup root. Placeholders are skipped.
-func (r *ssdRestorer) stageBackups(pending []InstanceRestore) (map[int]string, error) {
-	roots := make(map[int]string, len(pending))
-	var mu sync.Mutex
-	err := RunBounded(len(pending), StageConcurrency(), func(i int) error {
-		inst := pending[i]
-		if len(inst.FullFiles) == 0 {
-			return nil
-		}
-		files, err := resolveFiles(r.SaveDir, inst)
-		if err != nil {
-			return err
-		}
-		workDir, err := unpackBackup(r.SaveDir, files)
-		if err != nil {
-			return err
-		}
-		root, err := ssdBackupRoot(workDir)
-		if err != nil {
-			return err
-		}
-		mu.Lock()
-		roots[inst.DestPort] = root
-		mu.Unlock()
-		return nil
-	})
-	return roots, err
-}
-
-// restore rebuilds, starts and replays one port, then marks it done and frees its downloads.
-func (r *ssdRestorer) restore(inst InstanceRestore, backupRoot string, binlogs []string, recoverAt time.Time) error {
+// prepare unpacks and restores rocksdb, then starts the instance once its caches fit in memory.
+// The unpacked backup goes as soon as rocksdb is rebuilt, so only the ports unpacking hold both
+// on the data disk. Placeholders without backup files start empty.
+func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWindow) error {
+	log := newPortLog(r.DestIP, inst)
 	instDir := r.Host.InstanceDir(inst.DestPort)
-	if backupRoot != "" {
-		if err := restoreRocksdb(r.Host.MediaName(), backupRoot, ssdDataDir(instDir)); err != nil {
+	workDir := r.portWorkDir(inst.DestPort)
+	if len(inst.FullFiles) > 0 {
+		var root string
+		err := p.timed(stageUnpack, func() error {
+			files, err := resolveFiles(r.SaveDir, inst)
+			if err != nil {
+				return err
+			}
+			p.add(stageDownload, downloadSpan(files))
+			log.Info("unpack files=%v into %s", inst.FullFiles, workDir)
+			if err = unpackBackup(files, workDir); err != nil {
+				return err
+			}
+			root, err = ssdBackupRoot(workDir)
 			return err
+		})
+		if err != nil {
+			log.Error("unpack failed: %v", err)
+			return err
+		}
+		err = p.timed(stageRestore, func() error {
+			return restoreRocksdb(log, r.Host.MediaName(), root, ssdDataDir(instDir), workDir)
+		})
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		// rocksdb now holds a copy; a retry unpacks again from the downloads.
+		if err = os.RemoveAll(workDir); err != nil {
+			log.Warn("remove unpacked backup %s failed: %v", workDir, err)
 		}
 	}
-	if err := r.Host.Start(inst.DestPort); err != nil {
+	if err := window.reserve(SSDMemory(confFile(instDir))); err != nil {
+		err = fmt.Errorf("start %s:%d: %v", r.DestIP, inst.DestPort, err)
+		log.Error("%v", err)
 		return err
 	}
+	return p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) })
+}
+
+// replayAndMark replays inst's binlogs, then marks it done and frees its downloads.
+func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs []string, recoverAt time.Time,
+	pool chan struct{}) error {
+	log := newPortLog(r.DestIP, inst)
 	if len(binlogs) > 0 {
-		startPos, err := fullStartPos(inst.FullFiles)
-		if err != nil {
-			return err
-		}
 		workDir := filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d", inst.DestPort))
-		if err = r.replay(inst.DestPort, startPos, recoverAt, binlogs, workDir); err != nil {
+		if err := r.replay(log, p, inst, recoverAt, binlogs, workDir, pool); err != nil {
+			log.Error("%v", err)
 			return err
 		}
-		defer os.RemoveAll(workDir)
+		_ = os.RemoveAll(workDir)
 	}
+	instDir := r.Host.InstanceDir(inst.DestPort)
 	if err := MarkDone(instDir, r.fingerprint(inst)); err != nil {
 		return err
 	}
-	if err := CleanupStaged(r.SaveDir, inst); err != nil {
-		mylog.Logger.Warn("RedisRollback cleanup staged files for %d failed: %v", inst.DestPort, err)
+	if err := CleanupStaged(r.SaveDir, r.portWorkDir(inst.DestPort), inst); err != nil {
+		log.Warn("cleanup staged files failed: %v", err)
 	}
 	for _, f := range binlogs {
 		_ = os.Remove(f)
@@ -181,9 +234,12 @@ func (r *ssdRestorer) restore(inst InstanceRestore, backupRoot string, binlogs [
 	return nil
 }
 
-// replay applies binlogs in index order. Like v1, error replies are counted and logged rather
-// than failing the port, unless every reply of a file is an error.
-func (r *ssdRestorer) replay(port int, startPos uint64, recoverAt time.Time, binlogs []string, workDir string) error {
+// replay applies binlogs in index order while later ones are parsed ahead on the host's pool.
+// Like v1, error replies are counted and logged rather than failing the port, unless every reply
+// of a file is an error.
+func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, recoverAt time.Time,
+	binlogs []string, workDir string, pool chan struct{}) error {
+	port := inst.DestPort
 	addr := fmt.Sprintf("%s:%d", r.DestIP, port)
 	password, err := myredis.GetRedisPasswdFromConfFile(port)
 	if err != nil {
@@ -193,50 +249,167 @@ func (r *ssdRestorer) replay(port int, startPos uint64, recoverAt time.Time, bin
 	if err != nil {
 		return err
 	}
+	startPos, err := replayStartPos(log, func() (uint64, error) {
+		size, err := cli.TendisSSDBinlogSize()
+		return size.EndSeq, err
+	}, inst.FullFiles)
 	cli.Close()
+	if err != nil {
+		return err
+	}
 	if err = os.MkdirAll(workDir, 0755); err != nil {
 		return err
 	}
 
 	endMs := replayEndMs(recoverAt)
+	logFile := func(i int) string {
+		base := filepath.Base(binlogs[i])
+		return filepath.Join(workDir, strings.TrimSuffix(base, filepath.Ext(base)))
+	}
 	var total replyStats
-	for _, f := range binlogs {
-		base := filepath.Base(f)
-		if err = decompressFile(f, filepath.Join(workDir, base)); err != nil {
-			return fmt.Errorf("decompress %s: %v", base, err)
+	parse := func(i int) error {
+		start := time.Now()
+		defer func() { p.add(stageParse, time.Since(start)) }()
+		base := filepath.Base(binlogs[i])
+		if err := decompressFile(binlogs[i], filepath.Join(workDir, base)); err != nil {
+			return corrupted(base, err)
 		}
-		logFile := filepath.Join(workDir, strings.TrimSuffix(base, filepath.Ext(base)))
-		cmdFile, outFile := logFile+".cmd", logFile+".out"
-
-		if err = parseBinlog(logFile, cmdFile, startPos, endMs); err != nil {
+		cmdFile := logFile(i) + ".cmd"
+		if err := parseBinlog(logFile(i), cmdFile, startPos, endMs); err != nil {
 			return fmt.Errorf("parse binlog %s failed: %v", base, err)
 		}
-		if err = applyCommands(r.DestIP, port, password, cmdFile, outFile); err != nil {
+		_ = os.Remove(logFile(i))
+		if err := checkParsedCommands(cmdFile); err != nil {
+			return fmt.Errorf("parse binlog %s: %v", base, err)
+		}
+		return nil
+	}
+	apply := func(i int) error {
+		start := time.Now()
+		defer func() { p.add(stageApply, time.Since(start)) }()
+		base := filepath.Base(binlogs[i])
+		cmdFile, outFile := logFile(i)+".cmd", logFile(i)+".out"
+		if err := applyCommands(r.DestIP, port, password, cmdFile, outFile); err != nil {
 			return fmt.Errorf("apply binlog %s failed: %v", base, err)
 		}
 		stats, err := readReplies(outFile)
 		if err != nil {
 			return fmt.Errorf("apply binlog %s: %v", base, err)
 		}
-		mylog.Logger.Info("%s applied %s: %d reply lines, %d errors, samples %q",
-			addr, base, stats.Lines, stats.Errors, stats.Samples)
+		log.Info("applied %s: %s", base, stats.summary())
 		if stats.Lines > 0 && stats.Errors == stats.Lines {
 			return fmt.Errorf("apply binlog %s: all %d replies are errors, samples %q",
-				base, stats.Lines, stats.Samples)
+				base, stats.Lines, stats.samples())
 		}
 		total.add(stats)
-		_ = os.Remove(logFile)
 		_ = os.Remove(cmdFile)
 		_ = os.Remove(outFile)
+		return nil
 	}
-	if total.Errors > 0 {
-		mylog.Logger.Warn("%s replayed %d binlogs with %d error replies in %d reply lines, "+
-			"writes behind these errors may be missing, samples %q",
-			addr, len(binlogs), total.Errors, total.Lines, total.Samples)
+	err = runPipeline(len(binlogs), parseLookahead, pool, parse, apply)
+	p.replayed(len(binlogs), total)
+	if err != nil {
+		return err
+	}
+	if total.Errors > total.Expected {
+		log.Warn("replayed %d binlogs, writes behind unexpected errors may be missing: %s",
+			len(binlogs), total.summary())
 	} else {
-		mylog.Logger.Info("%s replayed %d binlogs, %d reply lines, no errors", addr, len(binlogs), total.Lines)
+		log.Info("replayed %d binlogs: %s", len(binlogs), total.summary())
 	}
 	return nil
+}
+
+// replayStartPos is the first binlog seq not yet in the restored snapshot. The seq in the full
+// backup name is the last one already written when the backup began, so replay starts after it.
+// The restored instance's own end seq is preferred; both are logged when they differ.
+func replayStartPos(log portLog, endSeq func() (uint64, error), fullFiles []string) (uint64, error) {
+	nameSeq, nameErr := fullStartPos(fullFiles)
+	seq, err := endSeq()
+	if err == nil && seq == 0 {
+		err = fmt.Errorf("binlogsize returned end seq 0")
+	}
+	switch {
+	case err != nil && nameErr != nil:
+		return 0, fmt.Errorf("no replay start position, binlogsize: %v; %v", err, nameErr)
+	case err != nil:
+		log.Warn("binlogsize unavailable (%v), start replay after full backup seq %d", err, nameSeq)
+		return nameSeq + 1, nil
+	case nameErr != nil:
+		log.Warn("%v, start replay after restored end seq %d", nameErr, seq)
+		return seq + 1, nil
+	case seq < nameSeq:
+		// Everything up to nameSeq is in the snapshot; starting earlier would replay it again.
+		log.Warn("restored end seq %d is behind full backup seq %d, start replay after %d", seq, nameSeq, nameSeq)
+		return nameSeq + 1, nil
+	case seq > nameSeq:
+		log.Warn("restored end seq %d is ahead of full backup seq %d, start replay after %d", seq, nameSeq, seq)
+	default:
+		log.Info("restored end seq %d matches full backup, start replay after it", seq)
+	}
+	return seq + 1, nil
+}
+
+var wrongLogTypeReg = regexp.MustCompile(`^Wrong log type: (\d+)`)
+
+const (
+	wrongLogTypePrefix = "Wrong log type"
+	// tredisbinlog prints "failed" without a newline after an unknown record, so the next
+	// command is glued to it and lost.
+	failedPrefix = "failed"
+)
+
+// checkParsedCommands fails on records tredisbinlog cannot convert, e.g. ASYNCDEL(17) behind a
+// large-key DEL. Parsed commands are quoted, so no command line starts with either marker.
+func checkParsedCommands(cmdFile string) error {
+	f, err := os.Open(cmdFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	reader := bufio.NewReaderSize(f, 64*1024)
+	types := map[string]bool{}
+	var unknown, glued, firstLine, lineNo int
+	atStart := true
+	for {
+		chunk, err := reader.ReadSlice('\n')
+		if atStart && len(chunk) > 0 {
+			lineNo++
+			hit := true
+			switch {
+			case bytes.HasPrefix(chunk, []byte(wrongLogTypePrefix)):
+				unknown++
+				if m := wrongLogTypeReg.FindSubmatch(chunk); m != nil {
+					types[string(m[1])] = true
+				}
+			case bytes.HasPrefix(chunk, []byte(failedPrefix)):
+				glued++
+			default:
+				hit = false
+			}
+			if hit && firstLine == 0 {
+				firstLine = lineNo
+			}
+		}
+		atStart = err != bufio.ErrBufferFull
+		if err == io.EOF {
+			break
+		}
+		if err != nil && err != bufio.ErrBufferFull {
+			return err
+		}
+	}
+	if unknown == 0 && glued == 0 {
+		return nil
+	}
+	kinds := make([]string, 0, len(types))
+	for t := range types {
+		kinds = append(kinds, t)
+	}
+	sort.Strings(kinds)
+	return fmt.Errorf("tredisbinlog met %d records of unknown log type %v and glued %d commands to %q, "+
+		"first at line %d; the glued commands would be lost. Type 17 is the ASYNCDEL behind a large-key DEL",
+		unknown, kinds, glued, failedPrefix, firstLine)
 }
 
 // replayEndMs is the --end-datetime for recoverAt. The bound is exclusive, so like v1 it is one
@@ -259,7 +432,8 @@ func parseBinlog(logFile, cmdFile string, startPos uint64, endMs int64) error {
 	var stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = out, &stderr
 	if err = cmd.Run(); err != nil || strings.Contains(stderr.String(), "ERR:") {
-		return fmt.Errorf("%v %s", err, stderr.String())
+		return fmt.Errorf("%v %s", err, keepOutput(filepath.Dir(cmdFile), filepath.Base(logFile)+".parse.err",
+			stderr.Bytes()))
 	}
 	return nil
 }
@@ -284,7 +458,8 @@ func applyCommands(ip string, port int, password, cmdFile, outFile string) error
 	cmd.Stdin = io.MultiReader(strings.NewReader(authLine(password)), in)
 	cmd.Stdout, cmd.Stderr = out, &stderr
 	if err = cmd.Run(); err != nil {
-		return fmt.Errorf("%v %s", err, stderr.String())
+		return fmt.Errorf("%v %s", err, keepOutput(filepath.Dir(outFile), filepath.Base(outFile)+".err",
+			stderr.Bytes()))
 	}
 	return nil
 }
@@ -374,7 +549,7 @@ func BinlogFingerprint(names []string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// fullStartPos parses the binlog start position the full backup was taken at.
+// fullStartPos parses the last binlog seq written when the full backup began.
 func fullStartPos(files []string) (uint64, error) {
 	for _, f := range files {
 		if m := ssdFullSeqReg.FindStringSubmatch(filepath.Base(f)); m != nil {
@@ -439,8 +614,9 @@ func ssdToolEnv() []string {
 	}
 }
 
-// restoreRocksdb replaces dataDir/rocksdb with the one rebuilt from backupRoot.
-func restoreRocksdb(media, backupRoot, dataDir string) error {
+// restoreRocksdb replaces dataDir/rocksdb with the one rebuilt from backupRoot. The tool's output
+// is kept in workDir.
+func restoreRocksdb(log portLog, media, backupRoot, dataDir, workDir string) error {
 	tool, err := ssdRestoreTool(media)
 	if err != nil {
 		return err
@@ -450,10 +626,11 @@ func restoreRocksdb(media, backupRoot, dataDir string) error {
 		return err
 	}
 	cmd := strings.Join(ssdToolEnv(), " ") + " " + fmt.Sprintf(tool, backupRoot, rocksdbDir)
-	mylog.Logger.Info("restore rocksdb: %s", cmd)
+	log.Info("restore rocksdb: %s", cmd)
 	out, err := util.RunBashCmd(cmd, "", nil, ssdCmdTimeout)
 	if err != nil || strings.Contains(out, "ERR:") {
-		return fmt.Errorf("restore rocksdb from %s failed: %v %s", backupRoot, err, out)
+		return fmt.Errorf("restore rocksdb from %s failed: %v %s", backupRoot, err,
+			keepOutput(workDir, "restore.out", []byte(out)))
 	}
 	if !util.FileExists(rocksdbDir) {
 		return fmt.Errorf("restore rocksdb from %s produced no %s", backupRoot, rocksdbDir)
@@ -463,23 +640,96 @@ func restoreRocksdb(media, backupRoot, dataDir string) error {
 
 const replyErrorSamples = 5
 
+// expectedReplyError marks keys that expired between recover_at and the replay: tredisbinlog
+// turns their absolute expiry into a TTL relative to now, which is no longer positive.
+const expectedReplyError = "invalid expire time"
+
 // replyStats counts redis-cli --no-raw output lines, not commands: an array reply spans
 // several lines, so the error ratio means little and only an all-error file fails the port.
+// Errors includes Expected; Kinds counts every error by errorKind.
 type replyStats struct {
-	Lines   int
-	Errors  int
-	Samples []string
+	Lines           int
+	Errors          int
+	Expected        int
+	Kinds           map[string]int
+	Samples         []string
+	ExpectedSamples []string
+}
+
+func (s *replyStats) record(line string) {
+	s.Errors++
+	kind := errorKind(line)
+	if s.Kinds == nil {
+		s.Kinds = map[string]int{}
+	}
+	s.Kinds[kind]++
+	if kind == expectedReplyError {
+		s.Expected++
+		s.ExpectedSamples = appendSample(s.ExpectedSamples, line)
+		return
+	}
+	s.Samples = appendSample(s.Samples, line)
 }
 
 func (s *replyStats) add(o replyStats) {
 	s.Lines += o.Lines
 	s.Errors += o.Errors
-	for _, line := range o.Samples {
-		if len(s.Samples) >= replyErrorSamples {
-			break
+	s.Expected += o.Expected
+	for kind, n := range o.Kinds {
+		if s.Kinds == nil {
+			s.Kinds = map[string]int{}
 		}
-		s.Samples = append(s.Samples, line)
+		s.Kinds[kind] += n
 	}
+	for _, line := range o.Samples {
+		s.Samples = appendSample(s.Samples, line)
+	}
+	for _, line := range o.ExpectedSamples {
+		s.ExpectedSamples = appendSample(s.ExpectedSamples, line)
+	}
+}
+
+// samples puts errors that need attention first and fills the rest with expected ones.
+func (s *replyStats) samples() []string {
+	out := append([]string{}, s.Samples...)
+	for _, line := range s.ExpectedSamples {
+		out = appendSample(out, line)
+	}
+	return out
+}
+
+func (s *replyStats) summary() string {
+	if s.Errors == 0 {
+		return fmt.Sprintf("%d reply lines, no errors", s.Lines)
+	}
+	return fmt.Sprintf("%d reply lines, %d errors (%d need attention, %d expected %q), kinds %v, samples %q",
+		s.Lines, s.Errors, s.Errors-s.Expected, s.Expected, expectedReplyError, s.Kinds, s.samples())
+}
+
+func appendSample(samples []string, line string) []string {
+	if len(samples) >= replyErrorSamples {
+		return samples
+	}
+	return append(samples, line)
+}
+
+// errorKind groups an "(error) ..." reply by its prefix: the error code, plus the next two
+// words for the generic ERR code, e.g. "ERR unknown command" or "WRONGTYPE".
+func errorKind(line string) string {
+	msg := strings.TrimSpace(strings.TrimPrefix(line, "(error)"))
+	if strings.Contains(msg, expectedReplyError) {
+		return expectedReplyError
+	}
+	words := strings.Fields(msg)
+	switch {
+	case len(words) == 0:
+		return "(empty)"
+	case words[0] != "ERR":
+		return words[0]
+	case len(words) > 3:
+		words = words[:3]
+	}
+	return strings.Join(words, " ")
 }
 
 // readReplies summarizes out, whose first line answers the AUTH applyCommands prepends.
@@ -502,10 +752,7 @@ func readReplies(out string) (replyStats, error) {
 		line := scanner.Text()
 		st.Lines++
 		if strings.HasPrefix(line, "(error)") {
-			st.Errors++
-			if len(st.Samples) < replyErrorSamples {
-				st.Samples = append(st.Samples, line)
-			}
+			st.record(line)
 		}
 	}
 	return st, scanner.Err()

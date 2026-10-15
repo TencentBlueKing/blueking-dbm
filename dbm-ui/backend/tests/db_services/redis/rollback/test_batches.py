@@ -5,6 +5,7 @@ import pytest
 from rest_framework import serializers as drf_serializers
 
 from backend.db_services.redis.rollback.batches import BackupBatchService
+from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.serializers import BackupBatchQuerySerializer
 from backend.db_services.redis.rollback.shards import ShardRef
 
@@ -229,6 +230,15 @@ def test_batch_details_keeps_all_split_files():
     assert shard["is_complete"] is True
     assert shard["size"] == 12
     assert len(shard["files"]) == 2
+
+
+def test_batch_details_raises_when_identify_not_found():
+    service = _service([], by_identify=True)
+
+    with pytest.raises(RollbackPlanError) as exc:
+        service.batch_details("SCHEDULED-MISSING")
+
+    assert "SCHEDULED-MISSING" in str(exc.value.message)
 
 
 # --- query window guard -----------------------------------------------------------------------

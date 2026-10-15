@@ -9,24 +9,11 @@
 package rollback
 
 import (
-	"runtime"
 	"sync"
 )
 
-// StageConcurrency bounds parallel decompression, which is CPU and disk heavy.
-func StageConcurrency() int {
-	n := runtime.NumCPU() / 2
-	if n > 4 {
-		n = 4
-	}
-	if n < 1 {
-		n = 1
-	}
-	return n
-}
-
-// RunBounded calls fn(0..n-1) with at most limit calls in flight and returns the first error.
-// Calls already started still run to completion.
+// RunBounded calls fn(0..n-1) in order with at most limit calls in flight and returns the first
+// error. No call starts after an error; calls already started still run to completion.
 func RunBounded(n, limit int, fn func(i int) error) error {
 	if limit < 1 {
 		limit = 1
@@ -38,13 +25,14 @@ func RunBounded(n, limit int, fn func(i int) error) error {
 	)
 	sem := make(chan struct{}, limit)
 	for i := 0; i < n; i++ {
+		sem <- struct{}{}
 		mu.Lock()
 		failed := firstErr != nil
 		mu.Unlock()
 		if failed {
+			<-sem
 			break
 		}
-		sem <- struct{}{}
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -60,4 +48,61 @@ func RunBounded(n, limit int, fn func(i int) error) error {
 	}
 	wg.Wait()
 	return firstErr
+}
+
+// runPipeline parses items ahead on pool, a slot pool shared by every port of the host, and
+// applies them strictly in index order. At most lookahead items are parsed but not yet applied.
+// The first parse or apply error stops it: nothing after the failed item is applied.
+func runPipeline(n, lookahead int, pool chan struct{}, parse, apply func(i int) error) error {
+	if n == 0 {
+		return nil
+	}
+	if lookahead < 1 {
+		lookahead = 1
+	}
+	results := make([]chan error, n)
+	for i := range results {
+		results[i] = make(chan error, 1)
+	}
+	tokens := make(chan struct{}, lookahead)
+	stop := make(chan struct{})
+	producerDone := make(chan struct{})
+	var parsing sync.WaitGroup
+
+	go func() {
+		defer close(producerDone)
+		for i := 0; i < n; i++ {
+			select {
+			case tokens <- struct{}{}:
+			case <-stop:
+				return
+			}
+			select {
+			case pool <- struct{}{}:
+			case <-stop:
+				return
+			}
+			parsing.Add(1)
+			go func(i int) {
+				defer parsing.Done()
+				defer func() { <-pool }()
+				results[i] <- parse(i)
+			}(i)
+		}
+	}()
+
+	var err error
+	for i := 0; i < n; i++ {
+		if err = <-results[i]; err != nil {
+			break
+		}
+		if err = apply(i); err != nil {
+			break
+		}
+		<-tokens
+	}
+	close(stop)
+	<-producerDone
+	parsing.Wait()
+	return err
 }

@@ -19,6 +19,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.constants import BACKUP_BATCH_DEFAULT_WINDOW_DAYS
+from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.locator import BackupLocator
 from backend.db_services.redis.rollback.shards import (
     ShardResolver,
@@ -152,7 +153,10 @@ class BackupBatchService:
 
     def batch_details(self, backup_identify: str, shard_values: Optional[Sequence[str]] = None) -> Dict[str, Any]:
         """Expand one batch into each shard's selected full backup, for custom shard selection."""
-        records, unsharded = split_unsharded(self.locator.locate_full_by_identify(backup_identify))
+        found = self.locator.locate_full_by_identify(backup_identify)
+        if not found:
+            raise RollbackPlanError(context={"message": _("找不到 backup_identify={} 的成功全备").format(backup_identify)})
+        records, unsharded = split_unsharded(found)
         records = self._filter_shards(records, shard_values)
         current_by_shard = self._current_by_shard()
         return {
