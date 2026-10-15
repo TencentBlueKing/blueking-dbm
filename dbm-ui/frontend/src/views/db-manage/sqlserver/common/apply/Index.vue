@@ -292,9 +292,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -353,9 +353,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -588,6 +588,16 @@
         if (count < len) {
           formData.details.domains.splice(count);
         }
+      }
+    },
+  );
+
+  // 批量编辑按输入行数整体替换 domains，行数变化要同步回集群数量，避免与资源申请量不一致
+  watch(
+    () => formData.details.domains.length,
+    (len) => {
+      if (len > 0) {
+        formData.details.cluster_count = len;
       }
     },
   );

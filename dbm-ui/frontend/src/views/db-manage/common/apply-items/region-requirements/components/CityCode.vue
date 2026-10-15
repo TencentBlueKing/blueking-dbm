@@ -118,14 +118,12 @@
     }
   });
 
-  watch(
-    () => modelValue.value.city_code,
-    () => {
-      modelValue.value.city_name = allList.value.find(
-        (cityItem) => cityItem.city_code === modelValue.value.city_code,
-      )?.city_name;
-    },
-  );
+  // 依赖 allList：回填先于城市列表返回时，列表就绪后要重算城市名
+  watch([allList, () => modelValue.value.city_code], () => {
+    modelValue.value.city_name = allList.value.find(
+      (cityItem) => cityItem.city_code === modelValue.value.city_code,
+    )?.city_name;
+  });
 
   const handleShowInternalListClick = () => {
     showInternalList.value = !showInternalList.value;

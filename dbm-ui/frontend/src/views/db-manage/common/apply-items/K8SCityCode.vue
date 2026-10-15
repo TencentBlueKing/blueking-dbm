@@ -20,7 +20,8 @@
       required>
       <BkRadioGroup
         v-model="modelValue"
-        class="region-group">
+        class="region-group"
+        :disabled="isAdjustApply">
         <div class="region-group-item-box">
           <div
             v-for="info of cityData"
@@ -43,6 +44,8 @@
 
   import { getRegions } from '@services/source/kubernetesToolbox';
 
+  import { useTicketModifyState } from '@hooks';
+
   interface Props {
     applyMode?: string;
     bkBizId?: number | string;
@@ -57,6 +60,8 @@
   });
 
   const { t } = useI18n();
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   // 独占集群（isPublic=false）时按业务 ID 取该业务独占的可用区域
   const isPublic = computed(() => props.applyMode !== 'ExclusiveMode');
