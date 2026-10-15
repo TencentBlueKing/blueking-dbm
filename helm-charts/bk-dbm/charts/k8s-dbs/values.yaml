@@ -161,3 +161,8 @@ svcMonitor:
   enabled: false
   labels: {}
   interval: "15s"
+
+# KMS 开关与 Secret 统一由父 Chart 的 global.kms 管理。
+kms:
+  # 信封只读目录；k8s-dbs 不创建 ESO 对象或 ServiceAccount。
+  credentialDir: /etc/secrets/k8s-dbs-kms

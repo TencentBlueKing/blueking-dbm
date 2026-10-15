@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"k8s-dbs/common/util"
+	"k8s-dbs/config"
 	infreq "k8s-dbs/infrastructure/request"
 
 	"github.com/pkg/errors"
@@ -36,22 +37,32 @@ import (
 // DbmAPIService DBM API 服务
 type DbmAPIService struct {
 	syncDataAPIURL              string // 内部直连地址（同步用），来自 DBM_SYNCDATA_API_URL
-	innerBkAppCode              string // 统一凭据，用于同步 Cookie 和鉴权 Header，来自 INNER_BK_APP_CODE
-	innerBkAppSecret            string // 统一凭据，来自 INNER_BK_APP_SECRET
+	innerBkAppCode              string // 统一凭据，用于同步 Cookie 和鉴权 Header，来自 KMS 或 INNER_BK_APP_CODE
+	innerBkAppSecret            string // 统一凭据，来自 KMS 或 INNER_BK_APP_SECRET
 	dbmIAMSimpleCheckAllowedURL string // IAM simple_check_allowed 完整接口地址，来自 DBM_IAM_SIMPLE_CHECK_ALLOWED_URL
 }
 
 var (
-	instance *DbmAPIService
-	once     sync.Once
+	instance      *DbmAPIService
+	dbmAPIInitErr error
+	once          sync.Once
 )
 
-// InitDbmAPIService 初始化DBM API服务（仅从环境变量加载配置）
-func InitDbmAPIService() {
+// InitDbmAPIService 初始化 DBM API 服务，启用 KMS 时使用启动凭据。
+func InitDbmAPIService() error {
 	once.Do(func() {
 		syncDataAPIURL := env.GetString("DBM_SYNCDATA_API_URL", "localhost:8080")
 		innerBkAppCode := env.GetString("INNER_BK_APP_CODE", "")
 		innerBkAppSecret := env.GetString("INNER_BK_APP_SECRET", "")
+		credentials, err := config.LoadRuntimeCredentials()
+		if err != nil {
+			dbmAPIInitErr = err
+			return
+		}
+		if credentials != nil {
+			innerBkAppCode = credentials.BkAppIDSecret.Default.AppCode
+			innerBkAppSecret = credentials.BkAppIDSecret.Default.AppSecret
+		}
 		dbmIAMSimpleCheckAllowedURL := env.GetString("DBM_IAM_SIMPLE_CHECK_ALLOWED_URL", "")
 
 		if syncDataAPIURL == "" {
@@ -74,11 +85,16 @@ func InitDbmAPIService() {
 			"syncDataAPIURL", syncDataAPIURL,
 			"dbmIAMSimpleCheckAllowedURL", dbmIAMSimpleCheckAllowedURL)
 	})
+	return dbmAPIInitErr
 }
 
 // GetDbmAPIService 获取DBM API服务实例
 func GetDbmAPIService() *DbmAPIService {
-	InitDbmAPIService() // once.Do 内部幂等，首次后为 no-op
+	if err := InitDbmAPIService(); err != nil {
+		// Startup validates credentials first. Protect callers constructing a
+		// client outside that entry point without falling back to plaintext.
+		panic(err)
+	}
 	return instance
 }
 
@@ -87,7 +103,7 @@ func NewDbmAPIService() *DbmAPIService {
 	return GetDbmAPIService()
 }
 
-// sendDBMRequest 发送DBM同步请求，使用环境变量中的凭据（Cookie 认证）
+// sendDBMRequest 发送DBM同步请求，使用启动凭据（Cookie 认证）
 func (d *DbmAPIService) sendDBMRequest(url string, request interface{}) (infresp.DbmAPIResponse, error) {
 	options := &util.RequestOptions{
 		Cookies: map[string]string{

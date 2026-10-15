@@ -34,7 +34,7 @@ import (
 )
 
 // SimpleCheckAllowed 调用 DBM 的 /iam/simple_check_allowed/ 接口做鉴权。
-// bkAppCode/bkAppSecret 来自环境变量 INNER_BK_APP_CODE / INNER_BK_APP_SECRET。
+// bkAppCode/bkAppSecret 来自 KMS 启动凭据或环境变量 INNER_BK_APP_CODE / INNER_BK_APP_SECRET。
 // is_raise_exception=true 时，无权限会返回 code=9900403 + permission 和 apply_url。
 // 返回值：
 //   - allowed=true, applyData=nil  → 有权限
