@@ -71,7 +71,6 @@ class RedisSingleInsMigrateBuilder(builders.FlowParamBuilder):
 class RedisSingleInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        # self.patch_info_affinity_location(roles=["backend_group"])
         self.patch_info_common_affinity(role="backend_group", tolerance=0)
 
     def fetch_cluster_map(self, ticket_data):

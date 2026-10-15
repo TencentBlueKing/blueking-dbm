@@ -266,6 +266,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         exclusive_hosts: List[Machine] = None,
         tolerance: float = 0,
         no_need_affinity: bool = False,
+        no_need_tolerance: bool = False,
     ):
         """
         针对扩容、替换、部署场景，补充亲和性参数
@@ -275,6 +276,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         @param exclusive_hosts: 互斥主机(要求园区/机架亲和性)
         @param tolerance: 亲和性容忍度
         @param no_need_affinity: 是否需要亲和性
+        @param no_need_tolerance: 是否需要亲和性容忍度
         """
 
         # 补充云区域和业务信息
@@ -311,9 +313,10 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         resource_spec[role].update(
             affinity=affinity,
             location_spec={"city": cluster.region, "sub_zone_ids": cluster.zone_list or []},
-            tolerance=tolerance,
             current_hosts=current_hosts,
         )
+        if not no_need_tolerance:
+            resource_spec[role].update(tolerance=tolerance)
 
     def patch_info_common_affinity(
         self,
@@ -391,51 +394,6 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
             )
             exclusive_hosts = cluster__remain_hosts_map.get(cluster.id, [])
             self.patch_common_affinity(info, role, cluster, exclusive_hosts, cluster_tolerance, no_need_affinity)
-
-    def patch_info_affinity_location(self, roles=None, replace_zone=None):
-        """
-        批量节点变更的时候，补充亲和性和位置参数
-        TODO: 暂定废弃，改用patch_common_affinity/patch_info_common_affinity
-        """
-        from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_host_ips
-
-        machine_zone_map = {}
-        # 处理替换指定园区
-        if replace_zone:
-            host_ips = fetch_host_ips(self.ticket_data["infos"])
-            machine_zone_map = {host.ip: host.bk_sub_zone_id for host in Machine.objects.filter(ip__in=host_ips)}
-
-        cluster_ids = fetch_cluster_ids(self.ticket_data["infos"])
-        cluster_id_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-        for info in self.ticket_data["infos"]:
-            cluster = cluster_id_map[fetch_cluster_ids(info)[0]]
-            affinity = cluster.disaster_tolerance_level
-            if (
-                affinity
-                in [AffinityEnum.CROS_SUBZONE, AffinityEnum.CROSS_SUBZONE_STRONG, AffinityEnum.CROSS_SUBZONE_WEAK]
-                and machine_zone_map
-            ):
-                replace_zone = [machine_zone_map[fetch_host_ips(info["old_nodes"])[0]]]
-            else:
-                replace_zone = []
-            self.patch_affinity_location(cluster, info["resource_spec"], roles, replace_zone)
-            # 工具箱操作，补充业务和云区域ID
-            info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
-
-    @classmethod
-    def patch_affinity_location(cls, cluster, resource_spec, roles=None, replace_zone: list = None):
-        """
-        节点变更的时候，补充亲和性和位置参数
-        TODO: 暂定废弃，改用patch_common_affinity/patch_info_common_affinity
-        """
-
-        bk_sub_zone_ids = replace_zone or cluster.zone_list
-        resource_role = roles or resource_spec.keys()
-        for role in resource_role:
-            resource_spec[role]["affinity"] = cluster.disaster_tolerance_level
-            resource_spec[role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
-            if bk_sub_zone_ids:
-                resource_spec[role]["location_spec"].update(sub_zone_ids=bk_sub_zone_ids, include_or_exclue=True)
 
 
 class RecycleCleanMachineParamBuilder(FlowParamBuilder):
