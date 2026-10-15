@@ -734,7 +734,16 @@ func (ins *RedisStorageSwitchInstance) CheckSlaveSyncStatus() error {
 		return err
 	}
 
-	lastIOseconds, _ := strconv.Atoi(replic["master_last_io_seconds_ago"])
+	lastIORaw := replic["master_last_io_seconds_ago"]
+	lastIOseconds, err := strconv.Atoi(lastIORaw)
+	if err != nil {
+		ins.ReportLogf(switchlogger.SwitchWarn,
+			"failed to parse master_last_io_seconds_ago, skip this check and continue, "+
+				"slaveIp: %s, slavePort: %d, master_last_io_seconds_ago: %s, err: %s",
+			slaveIp, slavePort, lastIORaw, err.Error())
+		return nil
+	}
+
 	if lastIOseconds > maxLastIOSecondsAgo {
 		retErr := gerrors.Newf(gerrors.Failure,
 			"master_last_io_seconds_ago of slave exceeds allowed time, "+
