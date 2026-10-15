@@ -630,11 +630,13 @@ func WithAdmin(admin AdminConfig) GenOption {
 // without this a rewrite triggered by an admin-side change would drop the block
 // and silently fall back to the defaults.
 //
-// A zero-valued block is left out entirely, mirroring WithClient, so configs that
-// predate the field round-trip unchanged.
+// A zero-valued block is left out entirely, mirroring WithClient. A block equal to
+// DefaultCollectConfig is treated the same way: those are defaults, not operator
+// settings, and writing them freezes them in the file and makes the first run and
+// the second run produce different bytes.
 func WithCollect(collect CollectConfig) GenOption {
 	return func(cfg *probeYAML) {
-		if collect.IsZero() {
+		if collect.IsZero() || collect == DefaultCollectConfig() {
 			return
 		}
 		rendered := &probeCollectYAML{
