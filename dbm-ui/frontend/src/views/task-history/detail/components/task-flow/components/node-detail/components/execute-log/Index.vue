@@ -47,7 +47,17 @@
       ref="dbLogRef"
       :loading="logState.loading"
       :loading-text="autoOpenAiLog ? t('日志加载中，加载完成将自动解析日志') : t('日志加载中...')"
-      style="height: calc(100% - 42px)" />
+      :style="{ height: tooLarge ? 'calc(100% - 70px)' : 'calc(100% - 42px)' }" />
+    <div
+      v-if="tooLarge"
+      class="log-export-tip">
+      {{ t('日志过大，完整内容请下载') }}
+      <a
+        :download="`${nodeData.id}.log`"
+        :href="exportLogUrl">
+        {{ t('导出完整日志') }}
+      </a>
+    </div>
   </div>
 </template>
 
@@ -71,7 +81,7 @@
 
   import ExecuteHistory from './components/ExecuteHistory.vue';
 
-  type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
+  type NodeLog = ServiceReturnType<typeof getNodeLog>['result'][number];
 
   interface Props {
     autoOpenAiLog: boolean;
@@ -89,6 +99,15 @@
   });
   const emits = defineEmits<Emits>();
 
+  // node_log 接口带 download=true，后端返回附件，浏览器直接保存
+  const exportLogUrl = computed(() => {
+    const params = new URLSearchParams({
+      node_id: nodeData.value.id,
+      version_id: currentData.value.version,
+    });
+    return `/apis/taskflow/${props.rootId}/node_log/?${params.toString()}&download=true`;
+  });
+
   const getNodeLogRequest = (isInit?: boolean) => {
     if (!currentData.value.version) {
       return;
@@ -104,9 +123,10 @@
     return (
       getNodeLog(params)
         .then((data) => {
-          logState.data = data;
+          tooLarge.value = data.too_large;
+          logState.data = data.result;
           // 请求可能在组件卸载后才返回
-          dbLogRef.value?.setLog(data);
+          dbLogRef.value?.setLog(logState.data);
         })
         // 报错提示已由请求层统一给出。这里必须吞掉：useTimeoutPoll 的回调一旦抛错，轮询就再也不会续上
         .catch(() => {})
@@ -140,6 +160,8 @@
     data: [] as NodeLog[],
     loading: false,
   });
+  // 后端标记日志过大（页面仅展示部分），用于追加导出提示行
+  const tooLarge = ref(false);
 
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
@@ -201,6 +223,7 @@
     return messageList.join('\n');
   };
 
+  // 页面下载：保存当前展示的日志文本
   const handleDownLoaderLog = () => {
     const content = getLogContent();
     downloadText(`${nodeData.value.id}.log`, content);
@@ -223,6 +246,22 @@
   .log-content {
     width: 100%;
     height: 100%;
+
+    .log-export-tip {
+      display: flex;
+      height: 28px;
+      padding: 0 16px;
+      font-size: 12px;
+      color: #ff9c01;
+      background: #3f3223;
+      align-items: center;
+
+      a {
+        margin-left: 4px;
+        color: #3a84ff;
+        cursor: pointer;
+      }
+    }
 
     .log-tools {
       display: flex;

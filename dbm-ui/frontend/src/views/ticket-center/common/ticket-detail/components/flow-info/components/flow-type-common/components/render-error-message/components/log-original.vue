@@ -19,20 +19,33 @@
         </div>
       </ScrollFaker>
     </div>
-    <div
-      v-bk-loading="{ loading: isLoadingLogContent }"
-      class="log-content">
-      <ScrollFaker :key="activeNode?.node_id">
-        <h1 style="font-size: 12px; font-weight: bold">{{ activeNode?.node_name }}</h1>
-        <div
-          v-bk-xss-html="renderLogContent"
-          style="word-break: break-all; white-space: pre-wrap" />
-      </ScrollFaker>
+    <div class="log-main">
+      <div
+        v-bk-loading="{ loading: isLoadingLogContent }"
+        class="log-content">
+        <ScrollFaker :key="activeNode?.node_id">
+          <h1 style="font-size: 12px; font-weight: bold">{{ activeNode?.node_name }}</h1>
+          <div
+            v-bk-xss-html="renderLogContent"
+            style="word-break: break-all; white-space: pre-wrap" />
+        </ScrollFaker>
+      </div>
+      <div
+        v-if="isTooLarge"
+        class="log-export-tip">
+        {{ t('日志过大，完整内容请下载') }}
+        <a
+          :download="`${activeNode?.node_id}.log`"
+          :href="exportLogUrl">
+          {{ t('导出完整日志') }}
+        </a>
+      </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import Dayjs from 'dayjs';
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import FlowMode from '@services/model/ticket/flow';
@@ -44,11 +57,16 @@
   type Emits = (e: 'elementHeightChange', height: number) => void;
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  const { t } = useI18n();
   const rootRef = useTemplateRef<HTMLDivElement>('root');
   const activeNode = ref<{
     node_id: string;
     node_name: string;
+    version_id: string;
   }>();
+
+  // 后端标记日志过大（页面仅展示部分），底部展示导出入口
+  const isTooLarge = ref(false);
 
   const renderLogContent = computed(() => {
     if (props.data.err_msg) {
@@ -57,7 +75,7 @@
     if (props.data.err_msg || !logContent.value) {
       return '';
     }
-    return logContent.value
+    return logContent.value.result
       .map(
         (item) =>
           `<span style="font-weight: 500">[${Dayjs(Number(item.timestamp)).format('YYYY-MM-DD HH:mm:ss')} ${item.levelname}]</span> ${item.message}`,
@@ -86,10 +104,26 @@
     run: runGetNodeLog,
   } = useRequest(getNodeLog, {
     manual: true,
+    onSuccess: (data) => {
+      isTooLarge.value = data.too_large;
+    },
   });
+
+  // 日志内容渲染完成后滚动到底部；等两轮渲染确保 ScrollFaker 完成尺寸计算
+  const scrollLogToBottom = () => {
+    nextTick(() => {
+      setTimeout(() => {
+        const scrollEl = rootRef.value?.querySelector<HTMLElement>('.log-content .scroll-faker-content');
+        if (scrollEl) {
+          scrollEl.scrollTop = scrollEl.scrollHeight;
+        }
+      });
+    });
+  };
 
   watch(renderLogContent, () => {
     nextTick(() => {
+      scrollLogToBottom();
       emits('elementHeightChange', rootRef.value?.getBoundingClientRect().height || 0);
     });
   });
@@ -102,6 +136,18 @@
       version_id: node.version_id,
     });
   };
+
+  // node_log 接口带 download=true，后端返回附件，浏览器直接保存
+  const exportLogUrl = computed(() => {
+    if (!activeNode.value) {
+      return 'javascript:';
+    }
+    const params = new URLSearchParams({
+      node_id: activeNode.value.node_id,
+      version_id: activeNode.value.version_id,
+    });
+    return `/apis/taskflow/${props.data.flow_obj_id}/node_log/?${params.toString()}&download=true`;
+  });
 </script>
 <style lang="postcss">
   .ticket-detail-flow-info-render-error-message-log-original {
@@ -149,11 +195,35 @@
       }
     }
 
-    .log-content {
+    .log-main {
+      display: flex;
       max-height: inherit;
-      min-height: 48px;
+      min-width: 0;
       padding-left: 16px;
+      flex-direction: column;
       flex: 1;
+
+      .log-content {
+        max-height: inherit;
+        min-height: 48px;
+        flex: 1;
+      }
+    }
+
+    .log-export-tip {
+      display: flex;
+      height: 28px;
+      padding: 0 16px 0 0;
+      font-size: 12px;
+      color: #ff9c01;
+      background: #fff4e2;
+      align-items: center;
+
+      a {
+        margin-left: 4px;
+        color: #3a84ff;
+        cursor: pointer;
+      }
     }
   }
 </style>
