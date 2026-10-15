@@ -147,6 +147,7 @@ def test_actuator_instance_sends_a_digest_instead_of_file_names():
     instance = _plan(binlog_count=3).actuator_instances("2.2.2.2")[0]
     names = ["binlog-1.1.1.1-30000-{:07d}-20260101000000.log.zst".format(i) for i in (1000, 1001, 1002)]
     assert instance == {
+        "shard_value": "0-419999",
         "source_ip": "1.1.1.1",
         "source_port": 30000,
         "dest_port": 30000,
@@ -161,7 +162,9 @@ def test_actuator_instance_sends_a_digest_instead_of_file_names():
 def _rollback_payload(plan):
     builder = RedisActPayload.__new__(RedisActPayload)
     builder.bk_biz_id = "3"
-    builder.get_redis_install_4_scene = MagicMock(return_value={"payload": {"db_type": plan.cluster_type}})
+    builder.get_redis_install_4_scene = MagicMock(
+        return_value={"payload": {"db_type": plan.cluster_type, "password": "src", "redis_conf_configs": {}}}
+    )
     with patch.object(RollbackPlan, "load", return_value=plan):
         return builder.redis_rollback_payload(
             ip="2.2.2.2",

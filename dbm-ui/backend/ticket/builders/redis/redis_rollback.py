@@ -22,6 +22,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import Rollba
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
@@ -41,8 +42,17 @@ class RedisRollbackDetailSerializer(RedisBaseOperateDetailSerializer):
             required=False,
             allow_empty=True,
         )
+        recovery_time_point = DBTimezoneField(
+            help_text=_("回档目标时刻，支持 binlog 的集群在所选全备基础上回放到该时刻；Cache 集群忽略"),
+            required=False,
+            allow_blank=True,
+            default="",
+        )
         allow_binlog_nonconsecutive = serializers.BooleanField(
             help_text=_("允许 binlog 序号不连续（接受缺失这段写入）"), required=False, default=False
+        )
+        max_concurrency = serializers.IntegerField(
+            help_text=_("临时压低单机各阶段并发，0 为按主机硬件自动"), required=False, default=0, min_value=0
         )
 
         def validate(self, attr):

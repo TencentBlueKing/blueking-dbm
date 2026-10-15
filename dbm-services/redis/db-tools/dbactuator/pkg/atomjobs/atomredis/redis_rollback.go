@@ -17,11 +17,13 @@ import (
 
 // RedisRollbackParams holds parameters for redis rollback.
 type RedisRollbackParams struct {
-	DestIP    string                     `json:"dest_ip" validate:"required"`
-	DestDir   string                     `json:"dest_dir"`
-	RecoverAt string                     `json:"recover_at"`
-	Install   json.RawMessage            `json:"install"`
-	Instances []rollback.InstanceRestore `json:"instances" validate:"required"`
+	DestIP    string `json:"dest_ip" validate:"required"`
+	DestDir   string `json:"dest_dir"`
+	RecoverAt string `json:"recover_at"`
+	// MaxConcurrency only lowers the per-stage limits sized from the host; 0 leaves them.
+	MaxConcurrency int                        `json:"max_concurrency"`
+	Install        json.RawMessage            `json:"install"`
+	Instances      []rollback.InstanceRestore `json:"instances" validate:"required"`
 }
 
 // RedisRollback restores redis instances from backup files, dispatching on the storage engine.
@@ -80,11 +82,13 @@ func (job *RedisRollback) Run() error {
 		return err
 	}
 	restorer, err := rollback.New(install.params.DbType, rollback.Job{
-		DestIP:    job.params.DestIP,
-		SaveDir:   job.params.DestDir,
-		RecoverAt: job.params.RecoverAt,
-		Instances: job.params.Instances,
-		Host:      &rollbackHost{install: install, ip: job.params.DestIP, runtime: job.runtime},
+		DestIP:         job.params.DestIP,
+		SaveDir:        job.params.DestDir,
+		UnpackDir:      rollbackUnpackDir(install),
+		RecoverAt:      job.params.RecoverAt,
+		MaxConcurrency: job.params.MaxConcurrency,
+		Instances:      job.params.Instances,
+		Host:           &rollbackHost{install: install, ip: job.params.DestIP, runtime: job.runtime},
 	})
 	if err != nil {
 		job.runtime.Logger.Error("RedisRollback: %v", err)
@@ -106,6 +110,15 @@ func (job *RedisRollback) initInstall() (*RedisInstall, error) {
 		return nil, err
 	}
 	return install, nil
+}
+
+// rollbackUnpackDir sits next to the instances' own dir, e.g. /data1/recover_redis beside
+// /data1/redis, so unpacked data is on their filesystem.
+func rollbackUnpackDir(install *RedisInstall) string {
+	if install.RealDataDir != "" {
+		return filepath.Join(filepath.Dir(install.RealDataDir), "recover_redis")
+	}
+	return rollback.DefaultUnpackDir()
 }
 
 // rollbackHost implements rollback.Host on top of RedisInstall.

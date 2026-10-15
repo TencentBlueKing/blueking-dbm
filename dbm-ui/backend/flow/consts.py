@@ -590,6 +590,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
     ROLLBACK = EnumField("rollback", _("rollback"))
+    ROLLBACK_VERIFY = EnumField("rollback_verify", _("rollback_verify"))
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
     VERSION_UPDATE = EnumField("version_update", _("version_update"))
     PROXY_VERSION_UPGRADE = EnumField("proxy_version_upgrade", _("proxy_version_upgrade"))

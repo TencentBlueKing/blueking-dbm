@@ -9,18 +9,59 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import hashlib
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from django.utils import timezone
 
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint, index_segments
-from backend.db_services.redis.rollback.constants import SCOPE_CLUSTER, SELECT_MODE_BY_TIME
+from backend.db_services.redis.rollback.constants import (
+    COMPRESSED_SUFFIXES,
+    MEMORY_RATIO_AOF,
+    MEMORY_RATIO_RDB,
+    MEMORY_RESERVE_DIVISOR,
+    REPLAY_PARSE_LOOKAHEAD,
+    SCOPE_CLUSTER,
+    SELECT_MODE_BY_TIME,
+    UNPACK_RATIO,
+)
 from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
 from backend.db_services.redis.rollback.shards import ShardRef
 
 ORPHAN_PLAN_TTL = timedelta(days=1)
+MANIFEST_FILE_PREFIX = "rollback_manifest_"
+MANIFEST_NO_MD5 = "-"
+
+
+def unpacked_size(file_name: str, size: int) -> int:
+    if file_name.endswith(COMPRESSED_SUFFIXES):
+        return int(size) * UNPACK_RATIO
+    return int(size)
+
+
+def load_memory(files: Iterable[Tuple[str, int]]) -> int:
+    """Estimated resident memory of a Cache instance loading these full backup files."""
+    total = 0.0
+    for name, size in files:
+        ratio = MEMORY_RATIO_AOF if ".aof" in name else MEMORY_RATIO_RDB
+        total += unpacked_size(name, size) * ratio
+    return int(total)
+
+
+def memory_budget(available: int) -> int:
+    """What the actuator admits instances into out of ``available`` bytes."""
+    return available - available // MEMORY_RESERVE_DIVISOR
+
+
+def stage_slots(cpu: int, max_concurrency: int, ports: int) -> int:
+    """Ports unpacking, or replaying, at once on a host, as the actuator sizes both stages.
+    An unknown CPU count is taken as every port at once."""
+    slots = cpu // 2 if cpu > 0 else ports
+    if max_concurrency > 0:
+        slots = min(slots, max_concurrency)
+    return max(1, min(slots, ports))
 
 
 @dataclass
@@ -71,6 +112,28 @@ class RollbackItem:
         return [f.task_id for f in self.full_files] + [b.task_id for b in self.binlog_files]
 
     @property
+    def memory_bytes(self) -> int:
+        return load_memory((f.file_name, f.size) for f in self.full_files)
+
+    @property
+    def unpacked_bytes(self) -> int:
+        return sum(unpacked_size(f.file_name, f.size) for f in self.full_files)
+
+    @property
+    def binlog_unpacked_bytes(self) -> int:
+        return sum(unpacked_size(b.file_name, b.size) for b in self.binlog_files)
+
+    @property
+    def replay_scratch_bytes(self) -> int:
+        """Peak of the binlogs this port keeps beside its downloads while replaying: each holds
+        the commands parsed from it, and while parsing its decompressed copy too."""
+        sizes = []
+        for b in self.binlog_files:
+            unpacked = unpacked_size(b.file_name, b.size)
+            sizes.append(unpacked * 2 if b.file_name.endswith(COMPRESSED_SUFFIXES) else unpacked)
+        return sum(sorted(sizes, reverse=True)[:REPLAY_PARSE_LOOKAHEAD])
+
+    @property
     def binlog_digest(self) -> Dict[str, Any]:
         names = [b.file_name for b in self.binlog_files]
         digest = {
@@ -88,6 +151,7 @@ class RollbackItem:
         """One port of the actuator payload. Binlogs go as a digest the actuator checks its local files against."""
         binlogs = self.binlog_files
         return {
+            "shard_value": self.shard.shard_value,
             "source_ip": self.source_ip,
             "source_port": self.source_port,
             "dest_port": self.dest_port,
@@ -117,6 +181,8 @@ class DestHost:
     task_ids: List[str] = field(default_factory=list)
     download_bytes: int = 0
     unpacked_bytes: int = 0
+    # Cache only: what its instances hold once loaded; 0 skips the memory precheck.
+    memory_bytes: int = 0
 
 
 @dataclass
@@ -140,6 +206,8 @@ class RollbackPlan:
     dest_hosts: List[DestHost] = field(default_factory=list)
     allow_binlog_nonconsecutive: bool = False
     warnings: List[str] = field(default_factory=list)
+    # Caps the actuator's per-stage concurrency; 0 lets it size each stage from the host.
+    max_concurrency: int = 0
 
     @property
     def locked_rounds(self) -> List[Dict[str, str]]:
@@ -156,7 +224,7 @@ class RollbackPlan:
     def actuator_instances(self, ip: str) -> List[Dict[str, Any]]:
         return [item.actuator_instance() for item in self.items if item.dest_ip == ip]
 
-    def to_rollback_detail(self) -> Dict[str, Any]:
+    def to_rollback_detail(self, plan_id: Optional[int] = None) -> Dict[str, Any]:
         """Per-shard summary for the task record; the full file lists stay in the persisted plan."""
         shards = []
         for item in self.items:
@@ -175,6 +243,7 @@ class RollbackPlan:
                 shard["binlog"] = item.binlog_digest
             shards.append(shard)
         return {
+            "plan_id": plan_id,
             "shards": shards,
             "locator_source": self.locator_source,
             "topology_changed": self.topology_changed,
@@ -220,3 +289,55 @@ class RollbackPlan:
     @classmethod
     def load(cls, plan_id: int) -> "RollbackPlan":
         return cls.from_dict(TbTendisRollbackPlan.objects.get(id=plan_id).plan)
+
+
+def host_disk_needs(items: List[RollbackItem], is_ssd: bool, cpu: int, max_concurrency: int) -> Tuple[int, int]:
+    """Peak ``(backup disk, data disk)`` bytes of one host's restore.
+
+    Downloads stay on the backup disk until their port is done; full backups are unpacked onto
+    the data disk. An SSD port also holds its unpacked backup beside the rocksdb rebuilt from it
+    until the rebuild ends, replayed writes grow rocksdb, and replaying ports keep binlogs
+    decompressed and parsed on the backup disk.
+    """
+    real = [item for item in items if not item.is_placeholder]
+    backup = sum(item.download_bytes for item in real)
+    data = sum(item.unpacked_bytes for item in real)
+    if not is_ssd or not real:
+        return backup, data
+    slots = stage_slots(cpu, max_concurrency, len(real))
+    data += sum(sorted((item.unpacked_bytes for item in real), reverse=True)[:slots])
+    data += sum(item.binlog_unpacked_bytes for item in real)
+    backup += sum(sorted((item.replay_scratch_bytes for item in real), reverse=True)[:slots])
+    return backup, data
+
+
+@dataclass
+class RollbackManifest:
+    file_name: str
+    content: str
+    fingerprint: str
+    count: int
+
+
+def rollback_manifest(plan: RollbackPlan, plan_id: int, ip: str) -> RollbackManifest:
+    """The files one host must hold before restoring, as pushed next to the downloads.
+
+    One ``<file_name> <size> <md5>`` line per file, ``-`` when the md5 is unknown, which is
+    always for now. A ``#`` header carries the line count and the sha256 of the lines, which
+    the verify payload repeats so a stale or truncated manifest is caught.
+    """
+    lines = []
+    for item in plan.items:
+        if item.dest_ip != ip:
+            continue
+        lines.extend("{} {} {}".format(f.file_name, int(f.size or 0), MANIFEST_NO_MD5) for f in item.full_files)
+        lines.extend("{} {} {}".format(b.file_name, int(b.size or 0), MANIFEST_NO_MD5) for b in item.binlog_files)
+    body = "".join(line + "\n" for line in lines)
+    fingerprint = hashlib.sha256(body.encode()).hexdigest()
+    header = "# redis rollback manifest plan={} files={} sha256={}\n".format(plan_id, len(lines), fingerprint)
+    return RollbackManifest(
+        file_name="{}{}".format(MANIFEST_FILE_PREFIX, plan_id),
+        content=header + body,
+        fingerprint=fingerprint,
+        count=len(lines),
+    )

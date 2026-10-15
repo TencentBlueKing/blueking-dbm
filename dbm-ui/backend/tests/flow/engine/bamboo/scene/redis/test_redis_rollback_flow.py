@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -24,11 +24,26 @@ def test_disk_needs_split_or_shared_filesystem():
 
     backup = {"mount_on": "/data"}
     data = {"mount_on": "/data1"}
-    split = disk_needs(backup, data, download_bytes=100, unpacked_bytes=300)
-    assert [(disk["mount_on"], need) for _, disk, need in split] == [("/data", 400), ("/data1", 300)]
+    split = disk_needs(backup, data, backup_bytes=100, data_bytes=300, same_fs=False)
+    assert [(disk["mount_on"], need) for _, disk, need in split] == [("/data", 100), ("/data1", 300)]
 
-    shared = disk_needs(backup, {"mount_on": "/data"}, download_bytes=100, unpacked_bytes=300)
+    shared = disk_needs(backup, {"mount_on": "/data"}, backup_bytes=100, data_bytes=300, same_fs=True)
     assert [(disk["mount_on"], need) for _, disk, need in shared] == [("/data", 400)]
+
+
+@pytest.mark.parametrize(
+    "host_disk,data_mount,same",
+    [
+        ({"redis_backup_dir_dev": "2049", "redis_data_dir_dev": "2049"}, "/data1", True),
+        ({"redis_backup_dir_dev": "2049", "redis_data_dir_dev": "2050"}, "/data", False),
+        ({}, "/data", True),
+        ({}, "/data1", False),
+    ],
+)
+def test_same_filesystem_by_device_then_mount(host_disk, data_mount, same):
+    from backend.flow.plugins.components.collections.redis.redis_rollback import same_filesystem
+
+    assert same_filesystem(host_disk, {"mount_on": "/data"}, {"mount_on": data_mount}) is same
 
 
 def test_download_uses_each_hosts_own_backup_dir():
@@ -172,29 +187,24 @@ def test_actuator_component_runs_with_rollback_context():
     assert payload == {"dest_ip": "2.2.2.2"}
 
 
-def test_rollback_payload_embeds_install_params():
+def _rollback_payload(payload_builder, instances):
+    from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
     from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 
-    payload_builder = RedisActPayload.__new__(RedisActPayload)
-    payload_builder.bk_biz_id = "3"
-    install_payload = {"payload": {"ip": "2.2.2.2", "ports": [30000]}}
-    payload_builder.get_redis_install_4_scene = MagicMock(return_value=install_payload)
-
-    payload = RedisActPayload.redis_rollback_payload(
-        payload_builder,
-        ip="2.2.2.2",
-        params={
-            "dest_ip": "2.2.2.2",
-            "immute_domain": "cache.example.db",
-            "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
-            "db_version": "Redis-6",
-            "instances": [{"source_ip": "1.1.1.1", "source_port": 30000, "dest_port": 30000, "full_files": ["a"]}],
-        },
-    )
-    assert payload["payload"]["install"]["ports"] == [30000]
-    install_params = payload_builder.get_redis_install_4_scene.call_args.kwargs["params"]
-    assert install_params["ports"] == [30000]
-    assert install_params["exec_ip"] == "2.2.2.2"
+    plan = MagicMock(recover_at=None, max_concurrency=0)
+    plan.actuator_instances.return_value = instances
+    with patch.object(RollbackPlan, "load", return_value=plan):
+        return RedisActPayload.redis_rollback_payload(
+            payload_builder,
+            ip="2.2.2.2",
+            params={
+                "plan_id": 7,
+                "dest_ip": "2.2.2.2",
+                "immute_domain": "cache.example.db",
+                "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
+                "db_version": "Redis-6",
+            },
+        )
 
 
 def test_rollback_payload_installs_empty_instances_too():
@@ -203,51 +213,23 @@ def test_rollback_payload_installs_empty_instances_too():
 
     payload_builder = RedisActPayload.__new__(RedisActPayload)
     payload_builder.bk_biz_id = "3"
-    payload_builder.get_redis_install_4_scene = MagicMock(return_value={"payload": {}})
+    payload_builder.get_redis_install_4_scene = MagicMock(
+        return_value={"payload": {"ports": [30000, 30001], "password": "src", "redis_conf_configs": {}}}
+    )
 
-    payload = RedisActPayload.redis_rollback_payload(
+    payload = _rollback_payload(
         payload_builder,
-        ip="2.2.2.2",
-        params={
-            "dest_ip": "2.2.2.2",
-            "immute_domain": "cache.example.db",
-            "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
-            "db_version": "Redis-6",
-            "instances": [
-                {"source_ip": "1.1.1.1", "source_port": 30000, "dest_port": 30000, "full_files": ["a"]},
-                {"source_ip": "1.1.1.2", "source_port": 30001, "dest_port": 30001, "full_files": []},
-            ],
-        },
+        [
+            {"source_ip": "1.1.1.1", "source_port": 30000, "dest_port": 30000, "full_files": ["a"]},
+            {"source_ip": "1.1.1.2", "source_port": 30001, "dest_port": 30001, "full_files": []},
+        ],
     )
 
     install_params = payload_builder.get_redis_install_4_scene.call_args.kwargs["params"]
     assert install_params["ports"] == [30000, 30001]
+    assert install_params["exec_ip"] == "2.2.2.2"
+    assert payload["payload"]["install"]["ports"] == [30000, 30001]
     assert [inst["dest_port"] for inst in payload["payload"]["instances"]] == [30000, 30001]
-
-
-def test_twemproxy_payload_reads_servers_from_node_params(monkeypatch):
-    """The shared payload builder is created at 初始化配置, before the proxy node sets servers."""
-    from backend.flow.utils.redis import redis_act_playload
-    from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-
-    monkeypatch.setattr(
-        redis_act_playload.Package, "get_latest_package", MagicMock(return_value=MagicMock(name="pkg", md5="m"))
-    )
-    payload_builder = RedisActPayload.__new__(RedisActPayload)
-    payload_builder.cluster = {
-        "bk_biz_id": 3,
-        "domain_name": "cache.example.db",
-        "proxy_port": 50000,
-        "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
-    }
-    payload_builder.proxy_version = "Twemproxy-latest"
-    payload_builder._RedisActPayload__get_cluster_config = MagicMock(
-        return_value={"redis_password": "r", "password": "p"}
-    )
-
-    servers = ["2.2.2.2:30000 admin 0-419999 1"]
-    payload = payload_builder.rollback_twemproxy_payload(ip="2.2.2.2", params={"servers": servers})
-    assert payload["payload"]["servers"] == servers
 
 
 def test_rollback_dbmon_keeps_only_heartbeat_and_maxmemory():

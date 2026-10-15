@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
@@ -36,6 +37,8 @@ type BinlogRange struct {
 // InstanceRestore is one dest port and the backup it is restored from.
 // Binlogs arrive as a digest only; the files themselves are found in the save dir.
 type InstanceRestore struct {
+	// ShardValue only labels logs.
+	ShardValue        string      `json:"shard_value"`
 	SourceIP          string      `json:"source_ip"`
 	SourcePort        int         `json:"source_port"`
 	DestPort          int         `json:"dest_port" validate:"required"`
@@ -71,11 +74,15 @@ type Host interface {
 
 // Job is one host's rollback request.
 type Job struct {
-	DestIP    string
-	SaveDir   string
-	RecoverAt string
-	Instances []InstanceRestore
-	Host      Host
+	DestIP  string
+	SaveDir string
+	// UnpackDir holds one work dir per port on the instance data disk, so a restore on the same
+	// filesystem is a rename instead of a copy.
+	UnpackDir      string
+	RecoverAt      string
+	MaxConcurrency int
+	Instances      []InstanceRestore
+	Host           Host
 }
 
 // Restorer restores every instance of a Job for one storage engine.
@@ -87,6 +94,9 @@ type Restorer interface {
 func New(dbType string, job Job) (Restorer, error) {
 	if job.SaveDir == "" {
 		job.SaveDir = DefaultSaveDir()
+	}
+	if job.UnpackDir == "" {
+		job.UnpackDir = DefaultUnpackDir()
 	}
 	switch {
 	case consts.IsRedisInstanceDbType(dbType):
@@ -101,6 +111,16 @@ func New(dbType string, job Job) (Restorer, error) {
 // DefaultSaveDir returns the staging directory for downloaded backups.
 func DefaultSaveDir() string {
 	return filepath.Join(consts.GetRedisBackupDir(), recoverSubDir)
+}
+
+// DefaultUnpackDir is on the disk of $REDIS_DATA_DIR, where instances keep their data.
+func DefaultUnpackDir() string {
+	return filepath.Join(consts.GetRedisDataDir(), unpackSubDir)
+}
+
+// portWorkDir is where one port's full backup is unpacked.
+func (j Job) portWorkDir(port int) string {
+	return filepath.Join(j.UnpackDir, strconv.Itoa(port))
 }
 
 // Fingerprint computes a deterministic fingerprint for backup files.

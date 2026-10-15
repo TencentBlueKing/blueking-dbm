@@ -11,6 +11,7 @@ from backend.db_services.redis.rollback.constants import (
     infer_select_mode,
 )
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.serializers import RollbackPrecheckSerializer
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.destroy import RedisRollbackDestroyFlow
 from backend.ticket.builders.redis.base import ClusterValidateMixin
 from backend.ticket.builders.redis.redis_rollback import RedisRollbackDetailSerializer
@@ -163,6 +164,45 @@ def test_ticket_surfaces_planner_error():
             assert False, "expected ValidationError"
         except ValidationError as exc:
             assert "待构造分片数" in str(exc)
+
+
+def test_ticket_passes_recovery_time_point_to_planner():
+    planner_inputs = []
+
+    def _planner(cluster, info):
+        planner_inputs.append(info.get("recovery_time_point"))
+        return MagicMock(build=MagicMock(return_value=MagicMock(locked_rounds=[])))
+
+    target = "2026-01-01T10:00:00+08:00"
+    serializer = RedisRollbackDetailSerializer.InfoSerializer(data=_ticket_info(recovery_time_point=target))
+    _unused, cluster = _cache_serializer()
+    with patch("backend.ticket.builders.redis.redis_rollback.Cluster") as cluster_model, patch(
+        "backend.ticket.builders.redis.redis_rollback.RollbackPlanner", side_effect=_planner
+    ), patch.object(ClusterValidateMixin, "check_cluster_phase", side_effect=lambda cluster_id: cluster_id):
+        cluster_model.objects.get.return_value = cluster
+        assert serializer.is_valid(), serializer.errors
+
+    assert planner_inputs == [target]
+    assert serializer.validated_data["recovery_time_point"] == target
+
+
+def test_ticket_recovery_time_point_defaults_to_blank():
+    serializer = _validate_ticket_data(_ticket_info())
+    assert not serializer.errors, serializer.errors
+    assert serializer.validated_data["recovery_time_point"] == ""
+
+
+def test_precheck_passes_recovery_time_point():
+    target = "2026-01-01T10:00:00+08:00"
+    serializer = RollbackPrecheckSerializer(
+        data={"cluster_id": 1, "backup_identify": "SCHEDULED-1", "recovery_time_point": target}
+    )
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["recovery_time_point"] == target
+
+    serializer = RollbackPrecheckSerializer(data={"cluster_id": 1, "recovery_time_point": target})
+    assert serializer.is_valid() is False
+    assert "backup_identify" in serializer.errors
 
 
 def test_ticket_requires_backup_identify():

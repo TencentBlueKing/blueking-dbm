@@ -51,8 +51,13 @@ ROLLBACK_CLUSTER_TYPES = CACHE_CLUSTER_TYPES + SSD_CLUSTER_TYPES
 # window is widened on both sides to be sure it holds the files around each end of the chain.
 BINLOG_LOOKUP_MARGIN_HOURS = 6
 
+# BKLog window for one batch: from the hour stamped in its identify.
+BACKUP_IDENTIFY_WINDOW_DAYS = 1
+
 SHARD_ROUTE_MAX_KEYS = 50
 SHARD_ROUTE_CONCURRENCY = 8
+# Shards whose binlogs are looked up at once; each costs a report_db query and a BKLog search.
+BINLOG_LOCATE_CONCURRENCY = 4
 
 # Task ids per download bill. The backup system's cap is unconfirmed; kept well below the 100
 # queryTasks is known to accept.
@@ -98,5 +103,19 @@ IDENTIFY_UNKNOWN = "UNKNOWN"
 
 # Conservative unpacked/compressed size ratio for backup files, used by the disk precheck.
 UNPACK_RATIO = 3
+COMPRESSED_SUFFIXES = (".zst", ".gz", ".lzo")
 DISK_USED_RATIO_FAIL = 85
 DISK_USED_PLUS_NEED_RATIO_FAIL = 0.9
+
+# Resident memory of a Cache instance per byte of its unpacked data file. Measured RSS / RDB is
+# 1.85 on production slaves; AOF is kept separate as it replays commands while loading.
+MEMORY_RATIO_RDB = 2.0
+MEMORY_RATIO_AOF = 2.0
+# Unpacking runs NumCPU / 2 ports at a time, so fewer cores per instance means queueing.
+CPU_PER_INSTANCE_HINT = 2
+
+# Mirrors of the actuator's rollback limits (dbactuator pkg/rollback): the window it admits
+# instances into is MemAvailable less a tenth (memReserveDivisor), and a replaying port keeps at
+# most this many binlogs decompressed or parsed on disk (parseLookahead).
+MEMORY_RESERVE_DIVISOR = 10
+REPLAY_PARSE_LOOKAHEAD = 4

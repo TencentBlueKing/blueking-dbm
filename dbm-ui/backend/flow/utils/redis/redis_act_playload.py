@@ -39,6 +39,7 @@ from backend.db_services.redis.maxmemory_set.util import (
 from backend.db_services.redis.redis_dts.models.tb_tendis_dts_switch_backup import TbTendisDtsSwitchBackup
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail, get_redis_modules_detail
+from backend.db_services.redis.rollback.credentials import rollback_temp_password, with_temp_passwords
 from backend.db_services.redis.util import (
     cal_proxy_servers,
     is_predixy_proxy_type,
@@ -61,7 +62,7 @@ from backend.flow.consts import (
     NameSpaceEnum,
     RedisActuatorActionEnum,
 )
-from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan, rollback_manifest
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cache_backup_mode,
@@ -1001,6 +1002,14 @@ class RedisActPayload(object):
             return params["servers"]
         return self.cluster["servers"]
 
+    @staticmethod
+    def __rollback_proxy_config(proxy_config: dict, **kwargs) -> dict:
+        """v2 passes ``temp_password_plan_id`` so its temp proxy gets derived passwords; v1 keeps the source ones."""
+        plan_id = (kwargs.get("params") or {}).get("temp_password_plan_id")
+        if plan_id:
+            return with_temp_passwords(proxy_config, plan_id)
+        return proxy_config
+
     def rollback_predixy_payload(self, **kwargs) -> dict:
         """Installs predixy for a rollback temp cluster (v1 REDIS_DATA_STRUCTURE, v2 REDIS_ROLLBACK).
 
@@ -1010,8 +1019,11 @@ class RedisActPayload(object):
         self.proxy_pkg = Package.get_latest_package(
             version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
         )
-        proxy_config = self.__get_cluster_config(
-            self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+        proxy_config = self.__rollback_proxy_config(
+            self.__get_cluster_config(
+                self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            ),
+            **kwargs,
         )
 
         return {
@@ -1060,8 +1072,11 @@ class RedisActPayload(object):
         self.proxy_pkg = Package.get_latest_package(
             version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
         )
-        proxy_config = self.__get_cluster_config(
-            self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+        proxy_config = self.__rollback_proxy_config(
+            self.__get_cluster_config(
+                self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            ),
+            **kwargs,
         )
 
         return {
@@ -2279,11 +2294,10 @@ class RedisActPayload(object):
         persisted carry ``instances`` and ``recover_at`` themselves instead of ``plan_id``.
         """
         params = kwargs["params"]
-        instances, recover_at = params.get("instances") or [], params.get("recover_at") or ""
-        if params.get("plan_id"):
-            plan = RollbackPlan.load(params["plan_id"])
-            instances = plan.actuator_instances(params["dest_ip"])
-            recover_at = plan.recover_at.isoformat() if plan.recover_at else ""
+        plan = RollbackPlan.load(params["plan_id"])
+        instances = plan.actuator_instances(params["dest_ip"])
+        recover_at = plan.recover_at.isoformat() if plan.recover_at else ""
+        max_concurrency = plan.max_concurrency
         ports = [instance["dest_port"] for instance in instances]
         install_payload = self.get_redis_install_4_scene(
             params={
@@ -2297,6 +2311,9 @@ class RedisActPayload(object):
                 "inst_num": 0,
             }
         )["payload"]
+        temp_password = rollback_temp_password(install_payload["password"], params["plan_id"])
+        install_payload["password"] = temp_password
+        install_payload["redis_conf_configs"] = {**install_payload["redis_conf_configs"], "requirepass": temp_password}
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ROLLBACK.value,
@@ -2304,8 +2321,24 @@ class RedisActPayload(object):
                 "dest_ip": params["dest_ip"],
                 "dest_dir": params.get("dest_dir") or "",
                 "recover_at": recover_at,
+                "max_concurrency": max_concurrency,
                 "install": install_payload,
                 "instances": instances,
+            },
+        }
+
+    def redis_rollback_verify_payload(self, **kwargs) -> dict:
+        """Checks the downloaded files against the manifest pushed for this host; no file list in the payload."""
+        params = kwargs["params"]
+        manifest = rollback_manifest(RollbackPlan.load(params["plan_id"]), params["plan_id"], params["dest_ip"])
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ROLLBACK_VERIFY.value,
+            "payload": {
+                "dest_ip": params["dest_ip"],
+                "dest_dir": params.get("dest_dir") or "",
+                "manifest_file": manifest.file_name,
+                "fingerprint": manifest.fingerprint,
             },
         }
 
