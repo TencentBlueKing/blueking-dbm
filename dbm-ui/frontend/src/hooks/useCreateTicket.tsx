@@ -36,6 +36,8 @@ interface CreateTicketOptions {
 interface RunFormDataBase<T> {
   /** 默认当前业务 window.PROJECT_CONFIG.BIZ_ID */
   bk_biz_id?: number;
+  /** 单据附加配置（如 send_msg_config），可选透传 */
+  config?: Record<string, unknown>;
   details: T;
   ignore_duplication?: boolean;
   remark?: string;
@@ -102,6 +104,8 @@ export function useCreateTicket<T>(
       bk_biz_id: formData.bk_biz_id ?? window.PROJECT_CONFIG.BIZ_ID,
       details: formData.details,
       ignore_duplication: formData.ignore_duplication,
+      // 单据附加配置（如通知相关人员 send_msg_config），调用方有传才带上
+      ...(formData.config ? { config: formData.config } : {}),
       remark: formData.remark || '',
       ticket_type: finalTicketType,
     };
