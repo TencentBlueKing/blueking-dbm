@@ -463,12 +463,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return Response(TicketSerializer(ticket, context=self.get_serializer_context()).data)
 
     @common_swagger_auto_schema(
-        operation_summary=_("改单记录"),
+        operation_summary=_("获取改单记录"),
         responses={status.HTTP_200_OK: TicketSnapshotSerializer(many=True)},
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=True, filter_class=None, pagination_class=None)
-    def modify_records(self, request, pk):
+    def get_modify_records(self, request, pk):
         """单据改单快照记录，用于前端渲染变更对比抽屉"""
         ticket = self.get_object()
         records = TicketSnapshot.objects.filter(ticket_id=ticket.id).order_by("id")
