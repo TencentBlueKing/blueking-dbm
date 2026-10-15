@@ -22,7 +22,7 @@ import (
 // iamChecker 抽象 IAM 鉴权操作
 type iamChecker interface {
 	// SimpleCheckAllowed 调用 DBM simple_check_allowed 做鉴权。
-	// bkAppCode/bkAppSecret 由实现方从环境变量 INNER_BK_APP_CODE / INNER_BK_APP_SECRET 获取。
+	// bkAppCode/bkAppSecret 由实现方从 KMS 或环境变量 INNER_BK_APP_CODE / INNER_BK_APP_SECRET 获取。
 	// 返回：allowed, applyData（无权限时非 nil）, err
 	SimpleCheckAllowed(username, actionID string, bkBizID int, resourceID string) (bool, *infresp.ApplyData, error)
 }
