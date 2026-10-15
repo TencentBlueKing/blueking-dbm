@@ -251,7 +251,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import type { Sqlserver } from '@services/model/ticket/ticket';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase, useTicketDetail } from '@hooks';
@@ -283,129 +283,136 @@
 
   const serviceApply = inject(serviceApplyKey);
 
-  const singleTicketDetail = useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
-
-      Object.assign(formData, {
-        bk_biz_id: ticketDetail.bk_biz_id,
-        config: {
-          send_msg_config: {
-            is_send: sendMsgConfig?.is_send ?? true,
-            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
-          },
-        },
-        remark: ticketDetail.remark,
-      });
-      Object.assign(formData.details, {
-        bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
-        cluster_count: details.domains.length,
-        db_version: details.db_version,
-        disaster_tolerance_level: details.disaster_tolerance_level,
-        domains: details.domains,
-        ip_source: details.ip_source,
-        start_mssql_port: details.start_mssql_port,
-      });
-
-      if (details.ip_source === 'resource_pool') {
-        const { backend } = details.resource_spec!;
-        const labels = (backend.labels || []).map((labelItem, labelIndex) => ({
-          id: Number(labelItem),
-          value: backend.label_names[labelIndex],
-        }));
-        const resourceSpec = {
-          backend_group: {
-            ...formData.details.resource_spec.backend_group,
-            count: backend.count,
-            labels,
-            spec_id: backend.spec_id,
-          },
-        };
-        const subzoneIds = details.resource_spec!.backend.location_spec.sub_zone_ids || [];
-        Object.assign(formData.details, {
-          // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
-          inst_num: details.inst_num || details.domains.length / backend.count,
-          resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
-        });
-      }
-
-      nextTick(() => {
-        Object.assign(formData.details, {
-          db_module_id: details.db_module_id,
-        });
-      });
-    },
-  });
-
-  const haTicketDetail = useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { send_msg_config: sendMsgConfig } = ticketDetail.config;
-
-      Object.assign(formData, {
-        bk_biz_id: ticketDetail.bk_biz_id,
-        config: {
-          send_msg_config: {
-            is_send: sendMsgConfig?.is_send ?? true,
-            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
-          },
-        },
-        remark: ticketDetail.remark,
-      });
-      Object.assign(formData.details, {
-        bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
-        cluster_count: details.domains.length,
-        db_version: details.db_version,
-        disaster_tolerance_level: details.disaster_tolerance_level,
-        domains: details.domains,
-        ip_source: details.ip_source,
-        start_mssql_port: details.start_mssql_port,
-      });
-
-      if (details.ip_source === 'resource_pool') {
-        const { backend_group: backendGroup } = details.resource_spec!;
-        const labels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
-          id: Number(labelItem),
-          value: backendGroup.label_names[labelIndex],
-        }));
-        const resourceSpec = {
-          backend_group: {
-            ...formData.details.resource_spec.backend_group,
-            count: backendGroup.count,
-            labels,
-            spec_id: backendGroup.spec_id,
-          },
-        };
-        const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
-        Object.assign(formData.details, {
-          // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
-          inst_num: details.inst_num || details.domains.length / backendGroup.count,
-          resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
-        });
-      }
-
-      nextTick(() => {
-        Object.assign(formData.details, {
-          db_module_id: details.db_module_id,
-        });
-      });
-    },
-  });
-
   const isSingleType = route.name === TicketTypes.SQLSERVER_SINGLE_APPLY;
+
+  /**
+   * 单节点部署单据回填
+   */
+  const fillSingleTicket = (ticketDetail: TicketModel<Sqlserver.SingleApply>) => {
+    const { details } = ticketDetail;
+    const { send_msg_config: sendMsgConfig } = ticketDetail.config;
+
+    Object.assign(formData, {
+      bk_biz_id: ticketDetail.bk_biz_id,
+      config: {
+        send_msg_config: {
+          is_send: sendMsgConfig?.is_send ?? true,
+          msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+          receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+        },
+      },
+      remark: ticketDetail.remark,
+    });
+    Object.assign(formData.details, {
+      bk_cloud_id: details.bk_cloud_id,
+      city_code: details.city_code,
+      cluster_count: details.domains.length,
+      db_version: details.db_version,
+      disaster_tolerance_level: details.disaster_tolerance_level,
+      domains: details.domains,
+      ip_source: details.ip_source,
+      start_mssql_port: details.start_mssql_port,
+    });
+
+    if (details.ip_source === 'resource_pool') {
+      const { backend } = details.resource_spec!;
+      const labels = (backend.labels || []).map((labelItem, labelIndex) => ({
+        id: Number(labelItem),
+        value: backend.label_names[labelIndex],
+      }));
+      const resourceSpec = {
+        backend_group: {
+          ...formData.details.resource_spec.backend_group,
+          count: backend.count,
+          labels,
+          spec_id: backend.spec_id,
+        },
+      };
+      const subzoneIds = details.resource_spec!.backend.location_spec.sub_zone_ids || [];
+      Object.assign(formData.details, {
+        // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+        inst_num: details.inst_num || details.domains.length / backend.count,
+        resource_spec: resourceSpec,
+        sub_zone_ids: subzoneIds,
+      });
+      nextTick(() => {
+        regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+      });
+    }
+
+    nextTick(() => {
+      Object.assign(formData.details, {
+        db_module_id: details.db_module_id,
+      });
+    });
+  };
+
+  /**
+   * 主从部署单据回填
+   */
+  const fillHaTicket = (ticketDetail: TicketModel<Sqlserver.HaApply>) => {
+    const { details } = ticketDetail;
+    const { send_msg_config: sendMsgConfig } = ticketDetail.config;
+
+    Object.assign(formData, {
+      bk_biz_id: ticketDetail.bk_biz_id,
+      config: {
+        send_msg_config: {
+          is_send: sendMsgConfig?.is_send ?? true,
+          msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+          receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+        },
+      },
+      remark: ticketDetail.remark,
+    });
+    Object.assign(formData.details, {
+      bk_cloud_id: details.bk_cloud_id,
+      city_code: details.city_code,
+      cluster_count: details.domains.length,
+      db_version: details.db_version,
+      disaster_tolerance_level: details.disaster_tolerance_level,
+      domains: details.domains,
+      ip_source: details.ip_source,
+      start_mssql_port: details.start_mssql_port,
+    });
+
+    if (details.ip_source === 'resource_pool') {
+      const { backend_group: backendGroup } = details.resource_spec!;
+      const labels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
+        id: Number(labelItem),
+        value: backendGroup.label_names[labelIndex],
+      }));
+      const resourceSpec = {
+        backend_group: {
+          ...formData.details.resource_spec.backend_group,
+          count: backendGroup.count,
+          labels,
+          spec_id: backendGroup.spec_id,
+        },
+      };
+      const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
+      Object.assign(formData.details, {
+        // 后端保存了 inst_num；按集群数反推在除不尽时会得到小数，改单会因此多出一项变更
+        inst_num: details.inst_num || details.domains.length / backendGroup.count,
+        resource_spec: resourceSpec,
+        sub_zone_ids: subzoneIds,
+      });
+      nextTick(() => {
+        regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+      });
+    }
+
+    nextTick(() => {
+      Object.assign(formData.details, {
+        db_module_id: details.db_module_id,
+      });
+    });
+  };
+
+  // 单节点与主从部署共用本页，只注册当前页面单据类型的回填；两种都注册时，类型不符的那个会提示「单据类型与当前页面不符」
+  const ticketDetailRequest = isSingleType
+    ? useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, { onSuccess: fillSingleTicket })
+    : useTicketDetail<Sqlserver.HaApply>(TicketTypes.SQLSERVER_HA_APPLY, { onSuccess: fillHaTicket });
   const clusterType = isSingleType ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA;
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -721,7 +728,7 @@
   const handleResetFormdata = () => {
     // 改单模式下重置回到单据当前内容
     if (modifyState.isModify) {
-      (isSingleType ? singleTicketDetail : haTicketDetail)?.refresh();
+      ticketDetailRequest?.refresh();
       return;
     }
     Object.assign(formData, initData());

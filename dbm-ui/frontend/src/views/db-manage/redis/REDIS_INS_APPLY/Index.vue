@@ -30,7 +30,8 @@
         </DbCard>
         <RegionRequirementsRedisHaAppend
           v-if="isAppend"
-          v-model="formData.details" />
+          v-model="formData.details"
+          @cloud-change="handleCloudChange" />
         <RegionRequirements
           v-else
           ref="regionRequirements"
@@ -494,8 +495,9 @@
     [() => formData.details.resource_spec.backend_group.spec_id, machineCount],
     ([newSpecId]) => {
       nextTick(() => {
-        if (newSpecId) {
-          const { mem } = specRef.value!.getData();
+        // 追加部署模式下规格选择器已卸载（单据回填的规格仍在），不计算 Maxmemory
+        if (newSpecId && specRef.value) {
+          const { mem } = specRef.value.getData();
           const capicity = ((mem?.min ?? 0) * 0.9 * machineCount.value) / formData.details.cluster_count;
           maxMemory.value = `${capicity.toFixed(2)}G`;
         } else {

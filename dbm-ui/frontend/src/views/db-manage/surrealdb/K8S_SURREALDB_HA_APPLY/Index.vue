@@ -101,7 +101,7 @@
       </BkButton>
       <BkButton
         class="ml-8 w-88"
-        :disabled="baseState.isSubmitting"
+        :disabled="baseState.isSubmitting || isModifyUnchanged"
         @click="handleResetFormdata">
         {{ t('重置') }}
       </BkButton>
@@ -276,7 +276,13 @@
           haTicketDetail?.refresh();
           return true;
         }
+        // 管控区域固定取 0 号，只在页面加载时取一次，重置不能清掉
+        const { bk_cloud_id: bkCloudId, bk_cloud_region: bkCloudRegion } = formData.details;
         Object.assign(formData, initData());
+        Object.assign(formData.details, {
+          bk_cloud_id: bkCloudId,
+          bk_cloud_region: bkCloudRegion,
+        });
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -286,54 +292,65 @@
     });
   };
 
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
+    const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
+
+    const { pd, surreal, tikv } = details;
+    const surrealItem = surreal![0];
+    const pdItem = pd![0];
+    const tikvItem = tikv![0];
+
+    Object.assign(details, {
+      bk_biz_name: bizStore.getBizInfoById(Number(formData.bk_biz_id))?.name || '',
+      component_list: [
+        {
+          ...surrealItem,
+          request_cpu: `${surrealItem.request_cpu}`,
+          request_memory: `${surrealItem.request_memory}Gi`,
+        },
+        {
+          ...pdItem,
+          request_cpu: `${pdItem.request_cpu}`,
+          request_memory: `${pdItem.request_memory}Gi`,
+          storage: `${pdItem.storage}Gi`,
+        },
+        {
+          ...tikvItem,
+          request_cpu: `${tikvItem.request_cpu}`,
+          request_memory: `${tikvItem.request_memory}Gi`,
+          storage: `${tikvItem.storage}Gi`,
+        },
+      ],
+      // 改单不改变申请人，沿用回填的单据申请人
+      creator: modifyState.isModify ? details.creator : userProfile.username,
+      // 部署类型落库为 is_public，独占集群为 false
+      is_public: details.apply_mode !== 'ExclusiveMode',
+      remark: formData.remark,
+    });
+
+    delete details.apply_mode;
+    delete details.surreal;
+    delete details.pd;
+    delete details.tikv;
+
+    return details;
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」
+  const isModifyUnchanged = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
   const handleSubmit = async () => {
     await formRef.value!.validate();
 
     baseState.isSubmitting = true;
-
-    const getDetails = () => {
-      const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
-
-      const { pd, surreal, tikv } = details;
-      const surrealItem = surreal![0];
-      const pdItem = pd![0];
-      const tikvItem = tikv![0];
-
-      Object.assign(details, {
-        bk_biz_name: bizStore.getBizInfoById(Number(formData.bk_biz_id))?.name || '',
-        component_list: [
-          {
-            ...surrealItem,
-            request_cpu: `${surrealItem.request_cpu}`,
-            request_memory: `${surrealItem.request_memory}Gi`,
-          },
-          {
-            ...pdItem,
-            request_cpu: `${pdItem.request_cpu}`,
-            request_memory: `${pdItem.request_memory}Gi`,
-            storage: `${pdItem.storage}Gi`,
-          },
-          {
-            ...tikvItem,
-            request_cpu: `${tikvItem.request_cpu}`,
-            request_memory: `${tikvItem.request_memory}Gi`,
-            storage: `${tikvItem.storage}Gi`,
-          },
-        ],
-        // 改单不改变申请人，沿用回填的单据申请人
-        creator: modifyState.isModify ? details.creator : userProfile.username,
-        // 部署类型落库为 is_public，独占集群为 false
-        is_public: details.apply_mode !== 'ExclusiveMode',
-        remark: formData.remark,
-      });
-
-      delete details.apply_mode;
-      delete details.surreal;
-      delete details.pd;
-      delete details.tikv;
-
-      return details;
-    };
 
     const params = {
       ...formData,

@@ -275,7 +275,8 @@
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
           const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
             id: Number(labelItem),
-            value: specInfo.label_names[labelIndex],
+            // 后端不补 label_names，API 建的单据可能没有，标签名由标签选择器按 id 补齐
+            value: specInfo.label_names?.[labelIndex],
           }));
           return Object.assign(prev, {
             [specType]: {

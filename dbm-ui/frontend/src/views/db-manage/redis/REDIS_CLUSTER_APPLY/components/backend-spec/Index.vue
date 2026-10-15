@@ -1,6 +1,8 @@
 <template>
   <div class="redis-backend-spec">
-    <ApplySchema v-model="applySchema" />
+    <ApplySchema
+      v-model="applySchema"
+      :disabled="isAdjustApply" />
     <template v-if="applySchema === APPLY_SCHEME.AUTO">
       <BkFormItem
         :label="targetCapacityTitle"
@@ -96,6 +98,8 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
@@ -130,6 +134,8 @@
   const applySchema = defineModel<APPLY_SCHEME>('applySchema', { required: true });
 
   const { t } = useI18n();
+  // 调整申请模式下按自定义方案回填，切换部署方案会连带改掉分片拓扑，只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const specRef = ref();
   const customSchemaRef = ref<InstanceType<typeof CustomSchema>>();

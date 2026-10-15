@@ -18,7 +18,7 @@
       required>
       <div class="notify-wrapper">
         <BkSwitcher
-          :disabled="isAdjustApply"
+          :disabled="isModify"
           :model-value="modelValue.is_send"
           theme="primary"
           @change="handleSwitchChange" />
@@ -35,7 +35,7 @@
       :label="t('收件人')">
       <MemberSelector
         v-model="personList"
-        :disabled="isAdjustApply"
+        :disabled="isModify"
         style="width: 435px" />
     </DbFormItem>
   </div>
@@ -70,8 +70,8 @@
   }>({ required: true });
 
   const { t } = useI18n();
-  // 调整申请模式只放开资源申请条件，本项只读
-  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
+  // 交付通知在单据 config 里，改单接口只提交 details，改了也不会生效，改单模式下一律只读
+  const isModify = Boolean(useTicketModifyState());
   const { username } = useUserProfile();
 
   const personList = ref<string[]>([]);

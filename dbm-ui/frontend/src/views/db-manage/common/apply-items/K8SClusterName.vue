@@ -67,12 +67,18 @@
     return (bcsClusterData?.value || []).find((item) => item.regionCode === props.regionCode)?.k8sClusterList || [];
   });
 
+  // 当前列表对应的部署类型；切换部署类型后新列表返回前，旧列表不能用来判断已选集群是否失效
+  let loadedIsPublic: boolean | undefined;
+
   const {
     data: bcsClusterData,
     loading: isLoading,
     run,
   } = useRequest(getBcsClusters, {
     manual: true,
+    onSuccess(_data, [params]) {
+      loadedIsPublic = params.isPublic;
+    },
   });
 
   watch(
@@ -92,8 +98,9 @@
 
   // 部署类型/地域变化后已选集群可能不在新列表中，清空避免提交失效数据
   watch(bcsClusterList, (list) => {
-    // 列表未返回时不清空：回填会先把值写入，regionCode 变化会让空列表抢先触发误判
-    if (!bcsClusterData.value) {
+    // 列表未返回时不清空：回填会先把值写入，regionCode 变化会让空列表抢先触发误判；
+    // 列表还是另一种部署类型的（如改单「重置」同时改回部署类型与地域）也不清空，等新列表返回再判断
+    if (!bcsClusterData.value || loadedIsPublic !== isPublic.value) {
       return;
     }
     if (modelValue.value && !list.some((item) => item.clusterName === modelValue.value)) {

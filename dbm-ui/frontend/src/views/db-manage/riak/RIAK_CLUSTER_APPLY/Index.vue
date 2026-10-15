@@ -286,11 +286,18 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
       });
+      // 建单后后端把集群名改写为「集群名-模块名」；再次提单要去掉后缀，否则提交后会再拼一次。
+      // 改单与单据当前内容对比，保持原值，避免多出一项集群名变更
+      const moduleSuffix = `-${details.db_module_name}`;
+      const clusterName =
+        !modifyState.isModify && details.db_module_name && details.cluster_name.endsWith(moduleSuffix)
+          ? details.cluster_name.slice(0, -moduleSuffix.length)
+          : details.cluster_name;
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
-        cluster_name: details.cluster_name,
+        cluster_name: clusterName,
         db_module_id: details.db_module_id,
         db_version: details.db_version,
         disaster_tolerance_level: details.disaster_tolerance_level,
@@ -302,7 +309,8 @@
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
           const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
             id: Number(labelItem),
-            value: specInfo.label_names[labelIndex],
+            // 后端不补 label_names / location_spec，API 建的单据可能没有，标签名由标签选择器按 id 补齐
+            value: specInfo.label_names?.[labelIndex],
           }));
           return Object.assign(prev, {
             [specType]: {
@@ -312,7 +320,7 @@
             },
           });
         }, {});
-        const subzoneIds = riak.location_spec.sub_zone_ids || [];
+        const subzoneIds = riak.location_spec?.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
           sub_zone_ids: subzoneIds,
