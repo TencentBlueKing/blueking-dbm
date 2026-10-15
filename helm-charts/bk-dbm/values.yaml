@@ -23,7 +23,7 @@ global:
   enableMultiTenantMode: false
   tenantId: ""
   ## 蓝鲸 KMS 凭证管理（通过 ESO 同步为 Secret）
-  ## 开启后 dbm、dbmedium 从 KMS 信封读取账号密码，信封格式见 KMS 凭证 bk_dbm_runtime_config
+  ## 开启后 dbm、dbmedium、k8s-dbs 从 KMS 信封读取账号密码，信封格式见 KMS 凭证 bk_dbm_runtime_config
   kms:
     enabled: false
     ## ESO CRD 版本，需与集群中安装的 ESO 一致
@@ -183,7 +183,7 @@ dbm:
     create: true
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
-    name: "dbm"
+    name: "bk-dbm-kms"
 
   service:
     port: 80
