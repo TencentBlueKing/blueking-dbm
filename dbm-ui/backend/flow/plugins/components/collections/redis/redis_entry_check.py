@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -24,7 +26,7 @@ from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.db_services.redis.util import is_have_proxy
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils import dns_manage
-from backend.flow.utils.clb_manage import get_clb_by_ip
+from backend.flow.utils.clb_manage import CLBManage
 from backend.flow.utils.polaris_manage import GetPolarisManageByName
 from backend.flow.utils.redis.redis_report_utils import RedisReportWriter, safe_write_meta_reports
 from backend.utils.redis import RedisConn
@@ -32,6 +34,26 @@ from backend.utils.redis import RedisConn
 # Default batch size and interval for scheduled processing
 DEFAULT_BATCH_SIZE = 15
 DEFAULT_BATCH_INTERVAL = 2  # seconds between batches
+
+# Name service limits describe_target_health to 20 QPS; keep headroom.
+CLB_DESCRIBE_HEALTH_QPS = 15
+
+
+class CallIntervalGate:
+    """Process-wide gate that spaces consecutive calls at least 1/qps seconds apart."""
+
+    def __init__(self, qps: int):
+        self.min_interval = 1.0 / qps
+        self._lock = threading.Lock()
+        self._next_allowed = 0.0
+
+    def acquire(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            if self._next_allowed > now:
+                time.sleep(self._next_allowed - now)
+                now = self._next_allowed
+            self._next_allowed = now + self.min_interval
 
 
 class RedisEntryCheckService(BaseService):
@@ -43,6 +65,9 @@ class RedisEntryCheckService(BaseService):
     """
 
     __need_schedule__ = True
+
+    # Class-level so the limit holds across batches: the engine re-instantiates the service on every schedule tick.
+    clb_health_gate = CallIntervalGate(CLB_DESCRIBE_HEALTH_QPS)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -83,6 +108,7 @@ class RedisEntryCheckService(BaseService):
                 "proxyinstance_set__machine",
                 "storageinstance_set__machine",
                 "clusterentry_set",
+                "clusterentry_set__clbentrydetail_set",
             )
         }
 
@@ -115,35 +141,79 @@ class RedisEntryCheckService(BaseService):
             )
             return set(), error_msg
 
-    def _get_clb_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
+    def _get_clb_ips(
+        self, cluster: Cluster, entry: ClusterEntry
+    ) -> Tuple[Set[str], Optional[str], List[str], Optional[str]]:
         """
-        Get IPs registered in CLB for a given entry
+        Get IPs registered in CLB for a given entry, plus unhealthy listener RS.
 
         Args:
             cluster: Cluster object
             entry: ClusterEntry object with CLB type
 
         Returns:
-            Tuple of (Set of IP addresses in CLB (ports stripped), error message if any)
+            Tuple of (Set of IP addresses in CLB (ports stripped), error message if any,
+            unhealthy listener RS as ip:port, health query error message if any)
         """
+        # Read the prefetched details; entry.detail would run ORM queries inside worker threads.
+        clb_detail = next(iter(entry.clbentrydetail_set.all()), None)
+        if clb_detail is None:
+            return set(), _("CLB entry detail not found"), [], None
+
+        clb_manager = CLBManage(clb_detail.clb_id, clb_detail.clb_ip, clb_detail.listener_id, clb_detail.clb_region)
+
+        raw_rs: List[str] = []
+        fetch_error = None
         try:
-            clb_detail = entry.detail
-            # Use helper function to get CLBManage instance
-            clb_manager = get_clb_by_ip(clb_detail["clb_ip"])
-
-            # Use CLBManage to get registered IPs
-            raw_ips = clb_manager.get_clb_rs()
-            # CLB returns IPs with ports (e.g., "1.1.1.1:30000"), strip the port
-            return {ip.split(":")[0] for ip in raw_ips}, None
-
+            raw_rs = clb_manager.get_clb_rs()
         except Exception as e:
-            error_msg = _("Failed to get CLB targets: {}").format(str(e))
+            fetch_error = _("Failed to get CLB targets: {}").format(str(e))
             self.log_exception(
                 _("Failed to get CLB targets for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
-            return set(), error_msg
+
+        unhealthy_rs: List[str] = []
+        health_error = None
+        if clb_detail.clb_id and clb_detail.clb_region:
+            abnormal_rs, health_error = self._get_clb_abnormal_rs(cluster, entry, clb_manager)
+            # Health is reported per load balancer; only RS on this listener count for this entry.
+            unhealthy_rs = sorted(set(raw_rs) & abnormal_rs)
+
+        # CLB returns IPs with ports (e.g., "1.1.1.1:30000"), strip the port
+        return {ip.split(":")[0] for ip in raw_rs}, fetch_error, unhealthy_rs, health_error
+
+    def _get_clb_abnormal_rs(
+        self, cluster: Cluster, entry: ClusterEntry, clb_manager: CLBManage
+    ) -> Tuple[Set[str], Optional[str]]:
+        """
+        Query CLB target health under the process-wide QPS gate.
+
+        Returns:
+            Tuple of (abnormal ip:port set of the whole load balancer, error message if the query failed)
+        """
+        try:
+            self.clb_health_gate.acquire()
+            health = clb_manager.describe_target_health()
+        except Exception as e:
+            self.log_exception(
+                _("Failed to query CLB target health for cluster {} entry {}: {}").format(
+                    cluster.immute_domain, entry.entry, str(e)
+                )
+            )
+            return set(), _("CLB target health query failed: {}").format(str(e))
+
+        # describe_target_health returns {} when code != 0 or data is missing.
+        if not isinstance(health, dict) or not isinstance(health.get("abnormalips"), list):
+            self.log_warning(
+                _("Invalid CLB target health response for cluster {} entry {}: {}").format(
+                    cluster.immute_domain, entry.entry, health
+                )
+            )
+            return set(), _("CLB target health query failed: empty or invalid response")
+
+        return {str(rs) for rs in health["abnormalips"]}, None
 
     def _get_polaris_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
@@ -216,6 +286,8 @@ class RedisEntryCheckService(BaseService):
         # Get actual IPs from the entry system
         actual_ips = set()
         fetch_error = None
+        unhealthy_rs: List[str] = []
+        health_error = None
 
         match entry_type:
             case ClusterEntryType.DNS.value:
@@ -224,7 +296,7 @@ class RedisEntryCheckService(BaseService):
                     return None
                 actual_ips, fetch_error = self._get_dns_ips(cluster, entry)
             case ClusterEntryType.CLB.value:
-                actual_ips, fetch_error = self._get_clb_ips(cluster, entry)
+                actual_ips, fetch_error, unhealthy_rs, health_error = self._get_clb_ips(cluster, entry)
             case ClusterEntryType.POLARIS.value:
                 actual_ips, fetch_error = self._get_polaris_ips(cluster, entry)
             case ClusterEntryType.CLBDNS.value:
@@ -236,35 +308,41 @@ class RedisEntryCheckService(BaseService):
                 )
                 return None
 
-        # If there was an error fetching IPs, report it
+        error_detail = {
+            "cluster_id": cluster.id,
+            "cluster_name": cluster.immute_domain,
+            "entry_type": entry_type,
+            "entry_name": entry.entry,
+        }
+        has_finding = False
+
         if fetch_error:
-            error_detail = {
-                "cluster_id": cluster.id,
-                "cluster_name": cluster.immute_domain,
-                "entry_type": entry_type,
-                "entry_name": entry.entry,
-                "error": fetch_error,
-            }
-            return error_detail
+            # If there was an error fetching IPs, report it instead of a membership diff
+            error_detail["error"] = fetch_error
+            has_finding = True
+        else:
+            # Compare expected vs actual
+            missing_ips = expected_ips - actual_ips
+            extra_ips = actual_ips - expected_ips
+            if missing_ips or extra_ips:
+                error_detail.update(
+                    {
+                        "expected_ips": sorted(list(expected_ips)),
+                        "actual_ips": sorted(list(actual_ips)),
+                        "missing_ips": sorted(list(missing_ips)),
+                        "extra_ips": sorted(list(extra_ips)),
+                    }
+                )
+                has_finding = True
 
-        # Compare expected vs actual
-        missing_ips = expected_ips - actual_ips
-        extra_ips = actual_ips - expected_ips
+        if unhealthy_rs:
+            error_detail["unhealthy_rs"] = unhealthy_rs
+            has_finding = True
+        if health_error:
+            error_detail["health_error"] = health_error
+            has_finding = True
 
-        if missing_ips or extra_ips:
-            error_detail = {
-                "cluster_id": cluster.id,
-                "cluster_name": cluster.immute_domain,
-                "entry_type": entry_type,
-                "entry_name": entry.entry,
-                "expected_ips": sorted(list(expected_ips)),
-                "actual_ips": sorted(list(actual_ips)),
-                "missing_ips": sorted(list(missing_ips)),
-                "extra_ips": sorted(list(extra_ips)),
-            }
-            return error_detail
-
-        return None
+        return error_detail if has_finding else None
 
     @staticmethod
     def _build_entry_report_row(cluster: Cluster, all_error_details: list) -> Dict:
@@ -284,18 +362,21 @@ class RedisEntryCheckService(BaseService):
             entry_type = error_detail["entry_type"]
             entry_name = error_detail["entry_name"]
 
-            if "error" in error_detail:
-                description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, error_detail["error"]))
-                continue
-
             missing_ips = error_detail.get("missing_ips", [])
             extra_ips = error_detail.get("extra_ips", [])
+            unhealthy_rs = error_detail.get("unhealthy_rs", [])
 
             entry_desc_parts = []
+            if "error" in error_detail:
+                entry_desc_parts.append(error_detail["error"])
             if missing_ips:
                 entry_desc_parts.append(_("missing: {}").format(", ".join(missing_ips)))
             if extra_ips:
                 entry_desc_parts.append(_("extra: {}").format(", ".join(extra_ips)))
+            if unhealthy_rs:
+                entry_desc_parts.append(_("unhealthy: {}").format(", ".join(unhealthy_rs)))
+            if error_detail.get("health_error"):
+                entry_desc_parts.append(error_detail["health_error"])
 
             if entry_desc_parts:
                 description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, "; ".join(entry_desc_parts)))
