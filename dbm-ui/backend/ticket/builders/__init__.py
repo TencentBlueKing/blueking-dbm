@@ -605,7 +605,7 @@ class TicketFlowBuilder:
             flow_alias=_("单据审批"),
         )
 
-    def build_tail_flows(self):
+    def build_flows_after_itsm(self):
         """
         构建审批节点之后的尾巴流程(定时/人工确认/资源申请/inner)，返回未落库的 Flow 实例列表
         用于改单后用新的 ticket.details 覆盖 pending 尾巴
@@ -648,10 +648,10 @@ class TicketFlowBuilder:
                 ),
             )
 
-        flows.extend(self.build_post_resource_flows())
+        flows.extend(self.build_flows_after_resource())
         return flows
 
-    def build_post_resource_flows(self):
+    def build_flows_after_resource(self):
         """
         构建资源申请节点之后的流程(inner/自定义)，返回未落库的 Flow 实例列表。
         用于「调整申请」时覆盖资源申请节点及其之后的节点。
@@ -680,7 +680,7 @@ class TicketFlowBuilder:
         itsm_flow = self.build_itsm_flow()
         if itsm_flow:
             flows.append(itsm_flow)
-        flows.extend(self.build_tail_flows())
+        flows.extend(self.build_flows_after_itsm())
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
