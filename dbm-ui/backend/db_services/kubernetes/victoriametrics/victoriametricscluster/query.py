@@ -85,29 +85,25 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
             dns_to_clb,
             **kwargs,
         )
-        cluster_info["storage_entry"] = cls._get_storage_entry(cluster)
+        cluster_info["storage_entry"] = cls._get_storage_entry(cluster, cluster_info.get("cluster_spec"))
         return cluster_info
 
     @classmethod
-    def _get_storage_entry(cls, cluster: Cluster, context: dict = None) -> str:
-        """vmstorage 存储入口：统一域名 + 按实例序号从 8000 递增的端口"""
-        context = context or cls.get_cluster_context(cluster)
-        pods = (
-            KubernetesApi.component_pods(
-                {
-                    "k8sClusterName": context["k8s_cluster_name"],
-                    "clusterName": context["cluster_name"],
-                    "namespace": context["namespace"],
-                    "componentName": COMPONENT_VMSTORAGE,
-                },
-                use_admin=True,
-            )
-            or {}
+    def _get_storage_entry(cls, cluster: Cluster, cluster_spec: dict = None) -> str:
+        """vmstorage 存储入口：统一域名 + 按实例序号从 8000 递增的端口
+
+        副本数取自集群组件规格（cluster_describe 返回的 spec.componentList），
+        不实时调用 component_pods，避免列表/详情接口因逐 Pod 补充资源信息而响应缓慢。
+        """
+        replicas = next(
+            (
+                component.get("replicas") or 0
+                for component in ((cluster_spec or {}).get("componentList") or [])
+                if component.get("componentName") == COMPONENT_VMSTORAGE
+            ),
+            0,
         )
-        storage_count = len(pods.get("result") or [])
-        return "\n".join(
-            f"{cluster.immute_domain}:{VMSTORAGE_NODE_START_PORT + index}" for index in range(storage_count)
-        )
+        return "\n".join(f"{cluster.immute_domain}:{VMSTORAGE_NODE_START_PORT + index}" for index in range(replicas))
 
     @classmethod
     def _list_instances(
@@ -184,7 +180,19 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
             )
             or {}
         )
-        result["storage_entry"] = cls._get_storage_entry(cluster, context) if enable else ""
+        if enable:
+            # 与列表/详情同口径：通过 cluster_describe 获取组件规格计算存储入口，避免实时查询 Pod
+            component_spec = cls.get_component_spec(
+                {
+                    "k8sClusterName": context["k8s_cluster_name"],
+                    "clusterName": context["cluster_name"],
+                    "namespace": context["namespace"],
+                    "bk_username": bk_username,
+                }
+            )
+            result["storage_entry"] = cls._get_storage_entry(cluster, (component_spec or {}).get("spec"))
+        else:
+            result["storage_entry"] = ""
         return result
 
     @classmethod
