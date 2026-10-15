@@ -78,13 +78,43 @@ func getProxyPasswdParam(clusterType haprobe.DbmMetadataClusterType) proxyPasswd
 	}
 }
 
+// proxyPasswdCache stores the proxy-layer passwords of one storage switch.
+// get and set are safe for concurrent callers.
+type proxyPasswdCache struct {
+	mu       sync.Mutex
+	data     string
+	admin    string
+	resolved bool
+}
+
+// set stores both passwords and marks the cache ready.
+func (c *proxyPasswdCache) set(data, admin string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.data = data
+	c.admin = admin
+	c.resolved = true
+}
+
+// get returns the data-port password, or the admin password when admin is true.
+// The second result is false until set has completed.
+func (c *proxyPasswdCache) get(admin bool) (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.resolved {
+		return "", false
+	}
+	if admin {
+		return c.admin, true
+	}
+	return c.data, true
+}
+
 // RedisStorageSwitchInstance handles tendiscache/tendisssd/tendisplus master-slave switch.
 type RedisStorageSwitchInstance struct {
 	RedisBaseSwitchInstance
 
-	ProxyPasswd           string // data-port password of the proxy layer
-	ProxyAdminPasswd      string // admin password of the proxy layer
-	proxyPasswordResolved bool
+	proxyPasswd proxyPasswdCache
 
 	ProxyList    []dbm.DbmMetadataProxyInstance
 	SlaveList    []dbm.DbmMetadataSlaveInfo
@@ -117,7 +147,7 @@ func (ins *RedisStorageSwitchInstance) applyProxyPassword() {
 
 // ensureProxyPassword resolves proxy credentials right before they are used.
 func (ins *RedisStorageSwitchInstance) ensureProxyPassword() error {
-	if ins.proxyPasswordResolved {
+	if _, ok := ins.proxyPasswd.get(false); ok {
 		return nil
 	}
 	return ins.resolveProxyPasswords()
@@ -125,11 +155,7 @@ func (ins *RedisStorageSwitchInstance) ensureProxyPassword() error {
 
 func (ins *RedisStorageSwitchInstance) resolveProxyPasswords() error {
 	param := getProxyPasswdParam(ins.ClusterType)
-	if !param.needPasswd && !param.needAdminPasswd {
-		ins.proxyPasswordResolved = true
-		return nil
-	}
-
+	var dataPasswd, adminPasswd string
 	if param.needPasswd {
 		proxyPasswd, err := redispasswd.GetDbInstPasswd(ins.BkCloudID, ins.ClusterID, param.machineType)
 		if err != nil {
@@ -137,19 +163,19 @@ func (ins *RedisStorageSwitchInstance) resolveProxyPasswords() error {
 				"failed to get proxy password, clusterId:%d, machineType:%s, err:%s",
 				ins.ClusterID, param.machineType, err.Error())
 		}
-		ins.ProxyPasswd = proxyPasswd
+		dataPasswd = proxyPasswd
 	}
 
 	if param.needAdminPasswd {
-		adminPasswd, adminErr := redispasswd.GetProxyAdminPasswd(ins.BkCloudID, ins.ClusterID)
+		passwd, adminErr := redispasswd.GetProxyAdminPasswd(ins.BkCloudID, ins.ClusterID)
 		if adminErr != nil {
 			return gerrors.Newf(gerrors.Failure,
 				"failed to get proxy admin password, clusterId:%d, err:%s", ins.ClusterID, adminErr.Error())
 		}
-		ins.ProxyAdminPasswd = adminPasswd
+		adminPasswd = passwd
 	}
 
-	ins.proxyPasswordResolved = true
+	ins.proxyPasswd.set(dataPasswd, adminPasswd)
 	return nil
 }
 
@@ -182,16 +208,13 @@ func (ins *RedisStorageSwitchInstance) GetTwemProxyBackends(
 }
 
 // buildPredixyConn connects to a predixy data port.
-// admin selects ProxyAdminPasswd; otherwise ProxyPasswd is used.
+// admin selects the admin password; otherwise the data-port password is used.
 func (ins *RedisStorageSwitchInstance) buildPredixyConn(ip string, port int, admin bool) (*haredis.Client, error) {
 	if err := ins.ensureProxyPassword(); err != nil {
 		return nil, err
 	}
 
-	passwd := ins.ProxyPasswd
-	if admin {
-		passwd = ins.ProxyAdminPasswd
-	}
+	passwd, _ := ins.proxyPasswd.get(admin)
 
 	cmdTimeout := ins.Timeout
 	if cmdTimeout <= 0 {
