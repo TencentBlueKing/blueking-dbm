@@ -26,6 +26,7 @@ package redisswitch
 
 import (
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	redispasswd "dbm-services/common/dbha-v2/internal/provider/redis/passwd"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
@@ -39,6 +40,16 @@ func init() {
 	dbtype.RegisterSwitchAlarmEvents(haprobe.DbTypeRedis, dbtype.SwitchAlarmEvents{
 		Success: haprobe.DbEventNameRedisSwitchSuccessV1,
 		Failure: haprobe.DbEventNameRedisSwitchFailureV1,
+	})
+
+	// Register the cluster instances that are never switched, but still trigger detection and alarming.
+	failure.RegisterNonSwitchableMatcher(haprobe.DbTypeRedis, func(inst *failure.Instance) bool {
+		if inst == nil {
+			return false
+		}
+
+		return isClusterProtocolClusterType(inst.ClusterType) &&
+			inst.MachineType != haprobe.DbmMetadataMachineTypePredixy
 	})
 
 	// Register the config loader for the password service.

@@ -28,6 +28,7 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,6 +40,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/pkg/constant"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/process"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -173,6 +175,12 @@ func verifyWriteDirs(dirs []string) error {
 
 // HealthCmdRunE prints probe health info (base + db types) to stdout, optionally as JSON.
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
+	// With -j no log line may reach the merged output: the analysis double-check combines
+	// stderr into stdout (CombinedOutput), so a fallback line would break the JSON parsing.
+	if JsonFormatter {
+		logger.SetFallbackOutput(io.Discard)
+	}
+
 	if err := config.Load(ConfigFilePath); err != nil {
 		baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
 		if !JsonFormatter {
