@@ -51,6 +51,14 @@ func dbConfig() (*config.DbsDatabaseConfig, error) {
 	if err := env.Parse(dbsDbCfg); err != nil {
 		return nil, fmt.Errorf("failed to parse dbsDbCfg environment variables: %w", err)
 	}
+	credentials, err := config.LoadRuntimeCredentials()
+	if err != nil {
+		return nil, err
+	}
+	if credentials != nil {
+		dbsDbCfg.User = credentials.MySQL.K8sDbs.Username
+		dbsDbCfg.Password = credentials.MySQL.K8sDbs.Password
+	}
 	return dbsDbCfg, nil
 }
 
