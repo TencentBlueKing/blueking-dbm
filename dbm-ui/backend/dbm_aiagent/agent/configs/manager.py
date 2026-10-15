@@ -22,7 +22,7 @@ from backend.components import bk
 from backend.components.base import DataAPI
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.env import DEFAULT_USERNAME
+from backend.env import BK_TENANT_ID, DEFAULT_USERNAME
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
@@ -83,6 +83,9 @@ class DBMAgentResourceManager(LLMOverrideResourceManager):
                 auth = {"access_token": settings.DBM_APP_ACCESS_TOKEN}
                 config["headers"] = {"X-Bkapi-Authorization": json.dumps(auth)}
                 config["headers"]["X-Bkapi-Timeout"] = str(settings.BK_APIGW_MCP_TIMEOUT)
+                # 全局租户模式的应用调用网关时必须携带租户 ID
+                if BK_TENANT_ID:
+                    config["headers"]["X-Bk-Tenant-Id"] = BK_TENANT_ID
                 config.pop("credential_type")
 
         return agent_config
@@ -144,6 +147,9 @@ class DBMAgentResourceManager(LLMOverrideResourceManager):
     def get_paas_sbx_client(self, executor_info: dict, **kwargs):
         """修改paas sandbox的鉴权配置"""
         client = super().get_paas_sbx_client(executor_info, **kwargs)
+        # 全局租户模式的应用调用网关时必须携带租户 ID
+        if BK_TENANT_ID:
+            client.update_headers({"X-Bk-Tenant-Id": BK_TENANT_ID})
         if executor_info.get("executor", "") not in ["", "admin", DEFAULT_USERNAME]:
             return client
         # 手动修改url里面的app_code为项目app_code，保持应用鉴权一致性

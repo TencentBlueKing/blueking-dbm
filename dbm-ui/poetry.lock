@@ -16,13 +16,13 @@ pydantic = ">=2.11.2"
 
 [[package]]
 name = "aidev-agent"
-version = "2.4.0"
+version = "2.4.0.post1"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_agent-2.4.0-py3-none-any.whl", hash = "sha256:153ee4d64a6e63300ead66c6d094769bce090b8a40f3a3a5ffbacd05fcbe4120"},
-    {file = "aidev_agent-2.4.0.tar.gz", hash = "sha256:89c51a8343f0f2623ca99b77effae1295ae21d92e88d3332262886fd5db6f8ca"},
+    {file = "aidev_agent-2.4.0.post1-py3-none-any.whl", hash = "sha256:50917f85da8607c548869a1cb0e8b5c5b96a44da33ecef1967dbc76cf8d2cbf7"},
+    {file = "aidev_agent-2.4.0.post1.tar.gz", hash = "sha256:5c445fa5d177b85effcba609d24a25acabef049881184ba512559c243cc9965c"},
 ]
 
 [package.dependencies]
@@ -61,17 +61,17 @@ opentelemetry = ["opentelemetry-api (==1.33.1)", "opentelemetry-exporter-otlp (=
 
 [[package]]
 name = "aidev-bkplugin"
-version = "2.4.0"
+version = "2.4.0.post1"
 description = "AiDev Agent Bkplugin builtin functions"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_bkplugin-2.4.0-py3-none-any.whl", hash = "sha256:c3c811eb950210c83f93f316e08f5ece7bced7c592e01f4807af1152013edaed"},
-    {file = "aidev_bkplugin-2.4.0.tar.gz", hash = "sha256:e07415834e97dface80f8fa26a47b977daac20589a0b15b688ced4de7ec09e11"},
+    {file = "aidev_bkplugin-2.4.0.post1-py3-none-any.whl", hash = "sha256:066afcd9c4e5c921a9039b491539a5ad75233b45b4af73b3d11ada7a05d26295"},
+    {file = "aidev_bkplugin-2.4.0.post1.tar.gz", hash = "sha256:da7657e0716ea714bb165666ae5dfda52f64431bf883ce3203547ee00498da5a"},
 ]
 
 [package.dependencies]
-aidev-agent = ">=2.4.0"
+aidev-agent = ">=2.4.0post1"
 blueapps = ">=4.15.1,<5.0"
 django = ">=4.2.28,<5.0"
 
@@ -7460,4 +7460,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "b59a1d7b2251eca18bb0e82424fd951c2667efaa9f6671dd97cefd933dbed9a2"
+content-hash = "8bf0e4714a9f17c8424d484fc581321c1e1c5bcdbefcce7163273a4752f080f7"
