@@ -33,6 +33,10 @@ from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate_sub import (
     redis_specifed_slots_migrate,
 )
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.redis_submit_backup_ticket import (
+    DEFAULT_AUTO_TERMINATE_SECONDS,
+    RedisSubmitBackupTicketComponent,
+)
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
@@ -232,6 +236,24 @@ class RedisSlotsMigrateFlow(object):
             )
 
         redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
+
+        # 扩容完成后，自动提交一张 Redis 备份单据（3 小时内 DBA 未点执行则自动终止）
+        if sub_pipelines_multi_cluster:
+            redis_pipeline_all.add_act(
+                act_name=_("自动提交Redis备份单据"),
+                act_component_code=RedisSubmitBackupTicketComponent.code,
+                kwargs={
+                    "cluster_ids": [int(info["cluster_id"]) for info in self.data["infos"]],
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "created_by": self.data.get("created_by"),
+                    "backup_target": "slave",
+                    "backup_type": "normal_backup",
+                    "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
+                    "parent_ticket_id": self.data.get("uid"),
+                    "remark": _("Redis 集群增加分片数完成后自动提交备份单据"),
+                },
+            )
+
         redis_pipeline_all.run_pipeline()
 
     def redis_migrate_4_contraction_flow(self):
@@ -300,6 +322,24 @@ class RedisSlotsMigrateFlow(object):
             )
 
         redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
+
+        # 缩容完成后，自动提交一张 Redis 备份单据（3 小时内 DBA 未点执行则自动终止）
+        if sub_pipelines_multi_cluster:
+            redis_pipeline_all.add_act(
+                act_name=_("自动提交Redis备份单据"),
+                act_component_code=RedisSubmitBackupTicketComponent.code,
+                kwargs={
+                    "cluster_ids": [int(info["cluster_id"]) for info in self.data["infos"]],
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "created_by": self.data.get("created_by"),
+                    "backup_target": "slave",
+                    "backup_type": "normal_backup",
+                    "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
+                    "parent_ticket_id": self.data.get("uid"),
+                    "remark": _("Redis 集群减少分片数完成后自动提交备份单据"),
+                },
+            )
+
         redis_pipeline_all.run_pipeline()
 
     def __get_cluster_info(self, bk_biz_id: int, cluster_id: int) -> dict:
