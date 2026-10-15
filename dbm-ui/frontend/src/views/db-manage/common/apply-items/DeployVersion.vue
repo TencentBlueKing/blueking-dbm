@@ -57,7 +57,8 @@
     manual: true,
     onSuccess(packageList) {
       // 已有值且仍在列表里时保留：回填的版本可能先于列表返回，不能被推荐版本覆盖
-      if (packageList.length > 0 && !packageList.includes(modelValue.value)) {
+      // 调整申请模式下版本只读，原版本安装包已下架也保留，否则会悄悄改掉非资源字段且无法改回
+      if (packageList.length > 0 && !packageList.includes(modelValue.value) && !(isAdjustApply && modelValue.value)) {
         const defaultVersion = packageList[0];
         modelValue.value = defaultVersion;
       }

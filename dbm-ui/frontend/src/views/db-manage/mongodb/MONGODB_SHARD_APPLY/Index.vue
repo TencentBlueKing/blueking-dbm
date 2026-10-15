@@ -372,7 +372,8 @@
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
           const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
             id: Number(labelItem),
-            value: specInfo.label_names[labelIndex],
+            // MCP / API 建的单据可能没有 label_names、location_spec，标签名由标签选择器按 id 补齐
+            value: specInfo.label_names?.[labelIndex],
           }));
           return Object.assign(prev, {
             [specType]: {
@@ -385,7 +386,7 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.mongo_config.location_spec.sub_zone_ids || [];
+        const subzoneIds = details.resource_spec!.mongo_config.location_spec?.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
@@ -402,7 +403,9 @@
           shards_num: details.shard_num,
         });
         // 自动推荐方案的容量必填，自定义方案提交的容量为 0
-        applySchema.value = mongodbSpec.capacity ? APPLY_SCHEME.AUTO : APPLY_SCHEME.CUSTOM;
+        // 调整申请只放开规格与机器组数，自动推荐方案选规格会连带改 Shard 数，按自定义方案回填（容量原样提交）
+        applySchema.value =
+          mongodbSpec.capacity && !modifyState.isAdjustApply ? APPLY_SCHEME.AUTO : APPLY_SCHEME.CUSTOM;
         // 提交时 ShardSvr 的规格详情取自 specData，原本只在选择部署方案时写入
         mongoConfigSpecData.value = mongodbSpec;
         nextTick(() => {

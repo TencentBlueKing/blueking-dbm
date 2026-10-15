@@ -5,6 +5,7 @@
       required>
       <BkRadioGroup
         v-model="applyType"
+        :disabled="isAdjustApply"
         style="width: 314px">
         <BkRadioButton
           label="auto"
@@ -156,6 +157,7 @@
         required>
         <DbInput
           v-model="shardNum"
+          :disabled="isAdjustApply"
           :min="1"
           type="number" />
       </BkFormItem>
@@ -202,6 +204,8 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec, queryQPSRange } from '@services/source/dbresourceSpec';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
@@ -233,6 +237,8 @@
   const modelValue = defineModel<ModelValue>({ required: true });
 
   const { t } = useI18n();
+  // 调整申请模式只放开规格、标签与组数；回填固定落在自定义方案，部署方案与单机分片数（决定集群分片拓扑）只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const specRef = ref();
   const specSelectorRef = ref<InstanceType<typeof SpecSelector>>();

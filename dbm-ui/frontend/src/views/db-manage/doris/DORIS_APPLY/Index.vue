@@ -394,7 +394,9 @@
               v-db-console="'common.dorisColdResource'"
               :label="t('启用低频存储')"
               required>
-              <BkSwitcher v-model="formData.details.enable_cold_storage" />
+              <BkSwitcher
+                v-model="formData.details.enable_cold_storage"
+                :disabled="modifyState.isAdjustApply" />
             </BkFormItem>
             <BkFormItem :label="t('总容量')">
               <DbInput
@@ -544,6 +546,10 @@
           });
         }, {});
         const subzoneIds = details.resource_spec!.follower.location_spec.sub_zone_ids || [];
+        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
+        if (subzoneIds.length > 0) {
+          formData.details.disaster_tolerance_level = Affinity.NONE;
+        }
         Object.assign(formData.details, {
           // 单据只保存数量大于 0 的角色，以默认值为底，改单「重置」时才能清掉用户新填的角色
           resource_spec: Object.assign(genDefaultFormData().details.resource_spec, resourceSpec),

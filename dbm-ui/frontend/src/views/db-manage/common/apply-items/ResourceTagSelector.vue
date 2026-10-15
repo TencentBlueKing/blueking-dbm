@@ -150,6 +150,12 @@
       return acc;
     }, []);
     if (!list.length) {
+      // 外部把值改回空（如改单「重置」回到通用无标签）时，下拉框里还留着之前选的标签，要一起复位；
+      // 用户自己清空选择时 ids 里没有具体标签，保持原样
+      if (!data.length && ids.value.some((id) => id !== DEFAULT_TAG_ID)) {
+        ids.value = [DEFAULT_TAG_ID];
+        tagTheme.value = 'success';
+      }
       return;
     }
     ids.value = list.map((item) => item.id);
