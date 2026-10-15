@@ -92,6 +92,10 @@
 
   // 部署类型/地域变化后已选集群可能不在新列表中，清空避免提交失效数据
   watch(bcsClusterList, (list) => {
+    // 列表未返回时不清空：回填会先把值写入，regionCode 变化会让空列表抢先触发误判
+    if (!bcsClusterData.value) {
+      return;
+    }
     if (modelValue.value && !list.some((item) => item.clusterName === modelValue.value)) {
       modelValue.value = '';
     }

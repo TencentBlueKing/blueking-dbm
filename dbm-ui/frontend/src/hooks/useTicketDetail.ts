@@ -19,6 +19,10 @@ import { getTicketDetails } from '@services/source/ticket';
 
 import { TicketTypes } from '@common/const';
 
+import { messageError } from '@utils';
+
+import { t } from '@locales/index';
+
 export function useTicketDetail<T extends DetailBase>(
   ticketType: TicketTypes,
   options: {
@@ -43,6 +47,7 @@ export function useTicketDetail<T extends DetailBase>(
       defaultParams: [{ id: Number(ticketId) }],
       onSuccess(ticketData) {
         if (ticketType !== ticketData.ticket_type) {
+          messageError(t('单据类型与当前页面不符'));
           return;
         }
         options.onSuccess(ticketData as TicketModel<T>);
