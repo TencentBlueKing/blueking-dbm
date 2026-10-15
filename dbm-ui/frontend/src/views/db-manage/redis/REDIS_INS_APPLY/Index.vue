@@ -331,9 +331,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -542,6 +542,24 @@
       immediate: true,
     },
   );
+
+  // 全新部署的 infos 不带主机字段；切到追加部署时补齐，表格渲染与提交都按完整形状处理
+  watch(isAppend, (value) => {
+    if (value) {
+      for (const infoItem of formData.details.infos) {
+        infoItem.masterHost ??= {
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          ip: '',
+        };
+        infoItem.slaveHost ??= {
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          ip: '',
+        };
+      }
+    }
+  });
 
   const verifyResult = (isPass: boolean) => {
     passwordIsPass.value = isPass;

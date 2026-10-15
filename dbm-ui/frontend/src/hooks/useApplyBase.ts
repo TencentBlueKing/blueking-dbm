@@ -145,6 +145,7 @@ export const useApplyBase = () => {
     const { mode } = modifyState;
     if (!ticketData || !mode) {
       baseState.isSubmitting = false;
+      messageError(t('单据信息加载失败，请刷新后重试'));
       return;
     }
     modifyState

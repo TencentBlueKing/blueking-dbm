@@ -13,10 +13,10 @@
 
 <template>
   <InfoItem :label="t('发送交付通知')">
-    {{ data.is_send ? t('是') : t('否') }}
+    {{ data?.is_send ? t('是') : t('否') }}
   </InfoItem>
   <InfoItem
-    v-if="data.is_send"
+    v-if="data?.is_send"
     :label="t('收件人')">
     {{ receiverUsername || '--' }}
   </InfoItem>
@@ -30,7 +30,7 @@
   import { Item as InfoItem } from './info-list/Index.vue';
 
   interface Props {
-    data: {
+    data?: {
       is_send: boolean;
       msg_type: MessageTypes[];
       receiver__username: string;
@@ -41,5 +41,5 @@
 
   const { t } = useI18n();
 
-  const receiverUsername = (props.data.receiver__username?.split(',') ?? []).filter(Boolean).slice(2).join('，');
+  const receiverUsername = (props.data?.receiver__username?.split(',') ?? []).filter(Boolean).slice(2).join('，');
 </script>

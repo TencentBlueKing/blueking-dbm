@@ -141,14 +141,19 @@ export const useTicketModify = () => {
         cache: 1000,
         permission: 'catch',
       },
-    ).then((data) => {
-      if (!checkEntry(data)) {
+    )
+      .then((data) => {
+        if (!checkEntry(data)) {
+          backToDetail();
+          return;
+        }
+        // 与页面回填共用同一份缓存响应，页面会就地改其中的对象（如域名），对比基准要深拷贝一份
+        ticketData.value = _.cloneDeep(data);
+      })
+      .catch(() => {
+        // 拉取失败无法回填也无法对比，回到单据详情页（请求层已提示错误）
         backToDetail();
-        return;
-      }
-      // 与页面回填共用同一份缓存响应，页面会就地改其中的对象（如域名），对比基准要深拷贝一份
-      ticketData.value = _.cloneDeep(data);
-    });
+      });
   }
 
   const openConfirm = (diffList: DiffItem[]) =>

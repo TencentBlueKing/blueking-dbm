@@ -318,7 +318,7 @@
             property={`details.infos.${rowIndex}.masterHost.ip`}
             rules={rules['masterHost.ip']}>
             <db-input
-              model-value={domains.value[rowIndex]?.masterHost.ip}
+              model-value={domains.value[rowIndex]?.masterHost?.ip}
               placeholder={t('请输入或选择')}
               onChange={(value: string) => handleHostIpChange(value, rowIndex)}>
               {{
@@ -365,7 +365,7 @@
             property={`details.infos.${rowIndex}.slaveHost.ip`}
             rules={rules['slaveHost.ip']}>
             <db-input
-              model-value={domains.value[rowIndex]?.slaveHost.ip}
+              model-value={domains.value[rowIndex]?.slaveHost?.ip}
               placeholder={t('选择主库主机后自动生成')}
               readonly
             />

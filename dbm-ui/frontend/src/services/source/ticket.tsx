@@ -391,7 +391,7 @@ export function modifyTicket(
  */
 export function getTicketModifyRecords(params: { id: number }) {
   return http
-    .get<TicketModifyRecordModel[]>(`${path}/${params.id}/modify_records/`)
+    .get<TicketModifyRecordModel[]>(`${path}/${params.id}/get_modify_records/`)
     .then((data) => data.map((item) => new TicketModifyRecordModel(item)));
 }
 

@@ -247,7 +247,6 @@
           </div>
         </Transition>
 
-
         <BkFormItem
           :label="t('Partition数量')"
           property="details.partition_num"
@@ -300,6 +299,7 @@
           <DbInput
             v-model="formData.details.replication_num"
             clearable
+            :disabled="modifyState.isAdjustApply"
             :min="1"
             show-clear-only-hover
             style="width: 185px"
@@ -408,9 +408,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
