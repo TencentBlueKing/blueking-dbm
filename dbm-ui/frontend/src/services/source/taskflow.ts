@@ -189,13 +189,14 @@ export function getRetryNodeHistories(params: { node_id: string; root_id: string
  * 节点日志
  */
 export function getNodeLog(params: { labels?: string; node_id: string; root_id: string; version_id: string }) {
-  return http.get<
-    {
+  return http.get<{
+    result: {
       levelname: string;
       message: string;
       timestamp: number;
-    }[]
-  >(`${path}/${params.root_id}/node_log/`, params);
+    }[];
+    too_large: boolean;
+  }>(`${path}/${params.root_id}/node_log/`, params);
 }
 
 /**
