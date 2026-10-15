@@ -138,7 +138,7 @@ func TestFillDetectV1DimensionsForDoubleCheckSSH(t *testing.T) {
 
 // TestFillDetectV1DimensionsSkipsSSHStatusForOtherEvents asserts fillDetectV1Dimensions
 // leaves SSH status empty for events other than double-check SSH failure, while still
-// filling bk_cloud_id and leaving idc empty.
+// filling bk_cloud_id, writing an empty role as N/A, and leaving idc empty.
 func TestFillDetectV1DimensionsSkipsSSHStatusForOtherEvents(t *testing.T) {
 	meta := &hamodel.DbmMetadata{
 		BkCloudID: 4,
@@ -158,5 +158,35 @@ func TestFillDetectV1DimensionsSkipsSSHStatusForOtherEvents(t *testing.T) {
 	}
 	if event.Dimension.SwitchInfoIdcV1 != "" {
 		t.Fatalf("idc: %s", event.Dimension.SwitchInfoIdcV1)
+	}
+	if event.Dimension.SwitchInfoInstanceRoleV1 != emptyInstanceRole {
+		t.Fatalf("instance_role: %s", event.Dimension.SwitchInfoInstanceRoleV1)
+	}
+}
+
+// TestFillDetectV1DimensionsUsesNAForEmptyInstanceRole asserts an empty detect role
+// is reported as N/A, matching v1 GetDBRole, while a set role is kept.
+func TestFillDetectV1DimensionsUsesNAForEmptyInstanceRole(t *testing.T) {
+	emptyRole := &hamodel.DbmMetadata{
+		BkCloudID: 4,
+		IP:        "127.0.0.1",
+		Port:      3306,
+	}
+	emptyEvent := &monitor.EventData{Name: haprobe.DbEventNameDoubleCheckSshFailureV1.String()}
+	fillDetectV1Dimensions(emptyEvent, emptyRole)
+	if emptyEvent.Dimension.SwitchInfoInstanceRoleV1 != emptyInstanceRole {
+		t.Fatalf("empty instance_role: %s", emptyEvent.Dimension.SwitchInfoInstanceRoleV1)
+	}
+
+	setRole := &hamodel.DbmMetadata{
+		BkCloudID:    4,
+		IP:           "127.0.0.1",
+		Port:         3306,
+		InstanceRole: haprobe.MySQLStorageSlave,
+	}
+	setEvent := &monitor.EventData{Name: haprobe.DbEventNameProbeOffline.String()}
+	fillDetectV1Dimensions(setEvent, setRole)
+	if setEvent.Dimension.SwitchInfoInstanceRoleV1 != string(haprobe.MySQLStorageSlave) {
+		t.Fatalf("instance_role: %s", setEvent.Dimension.SwitchInfoInstanceRoleV1)
 	}
 }
