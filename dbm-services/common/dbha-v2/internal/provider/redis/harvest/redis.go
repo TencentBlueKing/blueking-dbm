@@ -210,17 +210,17 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 		data.Host = hostStatus
 	}
 
-	// Skip the storage layer of clusters that only probe their proxy layer.
-	if c.shouldSkipStorage() {
-		logger.Debug("skip storage detection, cluster: %s, machine: %s", c.clusterType, c.machineType)
-		return
-	}
-
 	dbEvent, err := c.open(ctx)
 	if err != nil {
 		dbEvent.BkCloudID = r.bkCloudID
 		data.Events = []*haprobe.DbEvent{dbEvent}
 		logger.Error("failed to open the collector for the db: %s, errmsg: %s", c.endpoint, err)
+		return
+	}
+
+	// Skip the storage status collection; only the db connection is probed.
+	if c.shouldSkipStorage() {
+		logger.Debug("skip storage status detection, cluster: %s, machine: %s", c.clusterType, c.machineType)
 		return
 	}
 

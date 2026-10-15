@@ -141,12 +141,13 @@ func logAnalysisProviderSelfCheck() error {
 	logger.Info(
 		"analysis provider self-check, registered_db_types: %s, provider_owned_db_types: %s, "+
 			"switcher_db_types: %s, parser_db_types: %s, special_match_events: %s, "+
-			"dns_guard_machine_types: %s, metric_db_types: %s",
+			"non_switchable_db_types: %s, dns_guard_machine_types: %s, metric_db_types: %s",
 		joinDbTypes(dbtype.RegisteredDbTypes()),
 		joinDbTypes(dbtype.ProviderOwnedDbTypes()),
 		joinDbTypes(switcherTypes),
 		joinDbTypes(parserTypes),
 		joinDbEventNames(failure.RegisteredSpecialMatchEvents()),
+		joinDbTypes(failure.RegisteredNonSwitchableDbTypes()),
 		joinMachineTypes(dbtype.DnsSingleAddressGuardMachineTypes()),
 		joinDbTypes(apm.MetricRegisteredDbTypes()),
 	)

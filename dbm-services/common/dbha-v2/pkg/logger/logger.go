@@ -26,6 +26,7 @@
 package logger
 
 import (
+	"io"
 	"log"
 	"os"
 	"sync/atomic"
@@ -95,6 +96,17 @@ func currentLogger() Logger {
 		return nil
 	}
 	return h.l
+}
+
+// SetFallbackOutput redirects the records written before a logger is installed. The
+// facade falls back to the stdlib log, which defaults to stderr, so a caller that needs
+// its own output to stay clean can discard them (io.Discard). It affects the calling
+// process only.
+func SetFallbackOutput(w io.Writer) {
+	if w == nil {
+		return
+	}
+	log.SetOutput(w)
 }
 
 func fallbackPrint(format string, args ...any) {
