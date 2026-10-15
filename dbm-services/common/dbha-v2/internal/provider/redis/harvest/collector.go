@@ -265,7 +265,9 @@ func (c *collector) isStorageInstance() bool {
 	}
 }
 
-// shouldSkipStorage PredixyRedisCluster / PredixyTendisplusCluster only probe their proxy layer.
+// shouldSkipStorage reports whether the storage status collection must be skipped.
+// PredixyRedisCluster / PredixyTendisplusCluster skip the storage status collection, but
+// their db connection is still probed.
 func (c *collector) shouldSkipStorage() bool {
 	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeStorage &&
 		(c.clusterType == haprobe.DbmMetadataClusterTypePredixyRedisCluster ||

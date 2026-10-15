@@ -31,6 +31,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
@@ -217,6 +218,16 @@ func (h *DetectorHandler) LivenessDoubleCheck(bizId int, missedInsts []detector.
 			InstanceRole:      resp.Meta.InstanceRole,
 			CheckStartTime:    resp.CheckStartTime,
 			CheckFinishedTime: resp.CheckFinishedTime,
+		}
+
+		// These instances are already detected and alarmed above, but they must never reach
+		// strategy matching, so drop them before entering the sliding window.
+		if failure.NonSwitchableOf(inst) {
+			logger.Info("skip pushing the instance into the switch window: the instance is not switchable, "+
+				"inst: %s, dbType: %s, clusterType: %s, machineType: %s, event: %s",
+				instanceKey(inst.BkCloudID, inst.IP, inst.Port),
+				inst.DbType, inst.ClusterType, inst.MachineType, inst.EventName)
+			continue
 		}
 
 		if h.windowMgr.Push(bizId, inst, now) {

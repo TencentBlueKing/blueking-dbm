@@ -376,6 +376,14 @@ func RetainIdentity(old, next Configuration) Configuration {
 	return next
 }
 
+// DefaultCollectConfig returns the collect settings applied when they are not configured.
+func DefaultCollectConfig() CollectConfig {
+	return CollectConfig{
+		CollectTaskGoroutines: defaultCollectTaskGoroutines,
+		HostMetricInterval:    defaultHostMetricInterval,
+	}
+}
+
 func defaultConfiguration() Configuration {
 	return Configuration{
 		Name:    "probe",
@@ -386,6 +394,7 @@ func defaultConfiguration() Configuration {
 			FileCount: 10,
 			FileSize:  100,
 		},
+		Collect: DefaultCollectConfig(),
 	}
 }
 

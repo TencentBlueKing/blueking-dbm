@@ -143,6 +143,35 @@ func TestWithCollectSkipsZeroBlock(t *testing.T) {
 	}
 }
 
+// TestWithCollectSkipsDefaultBlock is the other half of TestWithCollectSkipsZeroBlock: an
+// unset block reaches WithCollect as the defaults, because Parse fills them in, so it must
+// not be rendered either.
+func TestWithCollectSkipsDefaultBlock(t *testing.T) {
+	local := Configuration{Collect: DefaultCollectConfig()}
+	rendered, err := GenProbeYAML(newMirrorPayload(), LocalFields(local)...)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	if containsSeq(rendered, "collect:") {
+		t.Error("a collect block equal to the defaults should not be rendered")
+	}
+}
+
+// TestParseWithoutCollectBlockYieldsTheDefaults pins the invariant WithCollect relies on:
+// a config that omits the collect block must parse back exactly equal to
+// DefaultCollectConfig. Otherwise WithCollect would render the defaults on the second run
+// and the file would stop converging.
+func TestParseWithoutCollectBlockYieldsTheDefaults(t *testing.T) {
+	parsed, err := ParseBytes([]byte("name: probe\n"))
+	if err != nil {
+		t.Fatalf("parse failed, errmsg: %s", err)
+	}
+	if parsed.Collect != DefaultCollectConfig() {
+		t.Errorf("collect parsed from an unset block = %+v, want %+v",
+			parsed.Collect, DefaultCollectConfig())
+	}
+}
+
 // containsSeq reports whether s contains sub.
 func containsSeq(s, sub string) bool {
 	for i := 0; i+len(sub) <= len(s); i++ {
