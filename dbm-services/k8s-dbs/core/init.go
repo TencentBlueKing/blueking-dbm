@@ -21,12 +21,16 @@ limitations under the License.
 package core
 
 import (
+	"k8s-dbs/config"
 	"k8s-dbs/core/util"
 	"log/slog"
 )
 
 // Init 集群管理核心服务初始化
 func Init() error {
+	if _, err := config.LoadRuntimeCredentials(); err != nil {
+		return err
+	}
 	if err := InitDB(); err != nil {
 		return err
 	}
