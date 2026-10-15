@@ -155,7 +155,7 @@ class TicketModifyHandler:
                 details={"operators": [ticket.creator], "auto_confirm": auto_confirm},
             ),
         )
-        cls._rebuild_pending_tail(ticket, builder.build_tail_flows(), confirm_flow)
+        cls._rebuild_pending_tail(ticket, builder.build_flows_after_itsm(), confirm_flow)
 
         if auto_confirm:
             # 提单人自身具备审批权限时的代为修改：提交即同步完成确认，不产待办/通知
@@ -204,10 +204,10 @@ class TicketModifyHandler:
         if builder.need_itsm:
             # 需要重审：在确认修改节点之后插入新一轮审批节点，覆盖尾巴
             itsm_flow = cls._insert_flow_after(ticket, confirm_flow, builder.build_itsm_flow())
-            cls._rebuild_pending_tail(ticket, builder.build_tail_flows(), itsm_flow)
+            cls._rebuild_pending_tail(ticket, builder.build_flows_after_itsm(), itsm_flow)
         else:
             # 免审批：直接覆盖尾巴并执行
-            cls._rebuild_pending_tail(ticket, builder.build_tail_flows(), confirm_flow)
+            cls._rebuild_pending_tail(ticket, builder.build_flows_after_itsm(), confirm_flow)
 
         TicketFlowManager(ticket=ticket).run_next_flow()
 
@@ -229,7 +229,7 @@ class TicketModifyHandler:
             TicketHandler.operate_itsm_ticket(ticket.id, action=OperateNodeActionType.WITHDRAW, operator=operator)
             cls._freeze_flow(itsm_flow)
             cls._close_flow_todos(itsm_flow, operator)
-            cls._rebuild_pending_tail(ticket, builder.build_tail_flows(), itsm_flow)
+            cls._rebuild_pending_tail(ticket, builder.build_flows_after_itsm(), itsm_flow)
 
             TicketFlowManager(ticket=ticket).run_next_flow()
             return
@@ -238,7 +238,7 @@ class TicketModifyHandler:
         cls._recreate_itsm_ticket(ticket, itsm_flow, operator, builder)
 
         # 用新内容覆盖 pending 尾巴(不冻结、不插节点，单据仍待审批)
-        cls._rebuild_pending_tail(ticket, builder.build_tail_flows(), itsm_flow)
+        cls._rebuild_pending_tail(ticket, builder.build_flows_after_itsm(), itsm_flow)
 
         # 通知审批人：内容已被重新编辑(复用现网「进入待审批」通知)
         cls._notify_approvers(ticket)
@@ -272,7 +272,7 @@ class TicketModifyHandler:
         resource_flow.save(update_fields=["details", "update_at"])
 
         # 覆盖资源申请节点及其之后的 flow(inner/自定义)，而非仅覆盖资源申请节点
-        cls._rebuild_pending_tail(ticket, builder.build_post_resource_flows(), resource_flow)
+        cls._rebuild_pending_tail(ticket, builder.build_flows_after_resource(), resource_flow)
 
         TicketFlowManager.get_ticket_flow_cls(resource_flow.flow_type)(resource_flow).retry()
 
@@ -341,7 +341,7 @@ class TicketModifyHandler:
 
         建单时 create_ticket 依次执行 patch_ticket_detail -> init_ticket_flows，
         改单同样要先 patch 再重建 flow：新 details 中依赖后端派生的字段(集群/规格/实例/主机信息、
-        db_version/charset 等)在此刷新，后续 build_tail_flows/get_params 才能读到完整内容。
+        db_version/charset 等)在此刷新，后续 build_flows_after_itsm/get_params 才能读到完整内容。
         返回补丁后的 builder，供调用方据此重建尾巴 flow。
         """
         ticket.details = details
