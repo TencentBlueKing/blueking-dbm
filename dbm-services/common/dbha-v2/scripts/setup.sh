@@ -191,6 +191,8 @@ collect_analysis() {
     prompt SSH_USER "SSH user"  "${SSH_USER:-root}"
     prompt_secret SSH_PASSWORD "SSH password" \
         "${SSH_PASSWORD:-}"
+    prompt SSH_MAX_UPTIME "Machine uptime threshold in seconds (0 disables)" \
+        "${SSH_MAX_UPTIME:-300}"
 
     echo ""
     echo "  -- Probe install path (for remote health check) --"
@@ -465,7 +467,7 @@ detector:
     user: ${SSH_USER}
     password: ${SSH_PASSWORD}
     timeout: 10s
-    maxUptime: 300
+    maxUptime: ${SSH_MAX_UPTIME}
 
 monitor:
   dataID: ${MON_DATA_ID}
