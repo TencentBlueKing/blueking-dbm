@@ -81,50 +81,6 @@ type PolarisDeleteRequest struct {
 	IPs          []string `json:"ips"`
 }
 
-// SwapMySQLRoleInstance represents a single MySQL instance for role swapping
-type SwapMySQLRoleInstance struct {
-	IP   string `json:"ip"`
-	Port int    `json:"port"`
-}
-
-// SwapMySQLRolePayload contains two instances for MySQL role swapping
-// Note: instance1 and instance2 should be a MySQL master-slave pair.
-// instance1 should be backend_master, instance2 should be backend_slave.
-type SwapMySQLRolePayload struct {
-	Instance1 SwapMySQLRoleInstance `json:"instance1"`
-	Instance2 SwapMySQLRoleInstance `json:"instance2"`
-}
-
-// SwapMySQLRoleRequest represents the request for swapping MySQL master-slave roles
-type SwapMySQLRoleRequest struct {
-	BkCloudID    int                    `json:"bk_cloud_id"`
-	DbCloudToken string                 `json:"db_cloud_token"`
-	Payloads     []SwapMySQLRolePayload `json:"payloads"`
-}
-
-// DumperSwitchInstance represents the instance information for binlog dumper switching
-type DumperSwitchInstance struct {
-	Ip             string `json:"ip"`
-	Port           int    `json:"port"`
-	BinlogFile     string `json:"binlog_file"`
-	BinlogPosition uint64 `json:"binlog_position"`
-}
-
-// DumperSwitchInfo contains cluster domain and dumper instances for switching
-type DumperSwitchInfo struct {
-	ClusterDomain   string                 `json:"cluster_domain"`
-	SwitchInstances []DumperSwitchInstance `json:"switch_instances"`
-}
-
-// DumperSwitchRequest represents the request for switching binlog dumper configuration
-type DumperSwitchRequest struct {
-	BkCloudID    int                `json:"bk_cloud_id"`
-	DbCloudToken string             `json:"db_cloud_token"`
-	BKBizID      string             `json:"bk_biz_id"`
-	IsSafe       bool               `json:"is_safe"`
-	SwitchInfos  []DumperSwitchInfo `json:"infos"`
-}
-
 // UpdateInstanceStatusPayload contains instance information for status update
 type UpdateInstanceStatusPayload struct {
 	IP     string `json:"ip"`

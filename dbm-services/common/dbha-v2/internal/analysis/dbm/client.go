@@ -370,96 +370,14 @@ func (c *Client) DeleteFromPolaris(bkCloudId int, servname string, servtoken str
 
 	logger.Debug("delete from polaris response, instance: %s, resp_len: %d", ins, len(response))
 
-	// TODO: parse response and check if result is success
-
-	return nil
-}
-
-// SwapMySQLRole swaps master-slave roles between two MySQL instances
-func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, slaveIp string, slavePort int) error {
-	payload := SwapMySQLRolePayload{
-		Instance1: SwapMySQLRoleInstance{
-			IP:   masterIp,
-			Port: masterPort,
-		},
-		Instance2: SwapMySQLRoleInstance{
-			IP:   slaveIp,
-			Port: slavePort,
-		},
+	polarisDeleteResp := &PolarisDeleteResponse{}
+	if err := json.Unmarshal(response, polarisDeleteResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal polaris delete response, errmsg: %s", err.Error())
 	}
 
-	req := SwapMySQLRoleRequest{
-		BkCloudID:    bkCloudId,
-		DbCloudToken: config.Cfg.Workflow.DbmApiSwapMysqlRole.Token,
-		Payloads:     []SwapMySQLRolePayload{payload},
-	}
-
-	logger.Debug(
-		"swap mysql role request, bk_cloud_id: %d, master: %s:%d, slave: %s:%d",
-		bkCloudId,
-		masterIp,
-		masterPort,
-		slaveIp,
-		slavePort,
-	)
-
-	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiSwapMysqlRole.Api, hanet.HttpMethodPost,
-		req, config.Cfg.Workflow.DbmApiSwapMysqlRole.Timeout)
-	if err != nil {
-		logger.Error("failed to swap role of master(%s:%d) and slave(%s:%d), errmsg: %s",
-			masterIp, masterPort, slaveIp, slavePort, err.Error())
-		return err
-	}
-
-	logger.Debug("swap mysql role response, master: %s:%d, slave: %s:%d, resp_len: %d",
-		masterIp, masterPort, slaveIp, slavePort, len(response))
-
-	swapResp := &SwapRoleResponse{}
-	if err := json.Unmarshal(response, swapResp); err != nil {
-		return err
-	}
-
-	if !swapResp.Result {
-		return gerrors.Newf(gerrors.Failure, "request failed: %s", swapResp.Message)
-	}
-
-	return nil
-}
-
-// SwitchBinlogDumper switches binlog dumper configuration for an application
-func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []DumperSwitchInfo) error {
-	req := DumperSwitchRequest{
-		BkCloudID:    bkCloudId,
-		DbCloudToken: config.Cfg.Workflow.DbmApiDumperSwitch.Token,
-		IsSafe:       true,
-		BKBizID:      app,
-		SwitchInfos:  switchInfos,
-	}
-
-	logger.Debug(
-		"switch binlogdumper request, bk_cloud_id: %d, bk_biz_id: %s, switch_count: %d",
-		bkCloudId,
-		app,
-		len(switchInfos),
-	)
-
-	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiDumperSwitch.Api, hanet.HttpMethodPost,
-		req, config.Cfg.Workflow.DbmApiDumperSwitch.Timeout)
-	if err != nil {
-		logger.Error("failed to switch binlogdumper, errmsg: %s", err.Error())
-		return err
-	}
-
-	logger.Debug("switch binlogdumper response, bk_biz_id: %s, resp_len: %d", app, len(response))
-
-	dumperSwitchResp := &DumperSwitchResponse{}
-	if err := json.Unmarshal(response, dumperSwitchResp); err != nil {
-		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal dumper switch response, errmsg: %s", err.Error())
-	}
-
-	if !dumperSwitchResp.Result {
+	if !polarisDeleteResp.Result {
 		return gerrors.Newf(gerrors.Failure,
-			"failed to switch binlogdumper, bk_biz_id: %s, errmsg: %s", app, dumperSwitchResp.Message)
+			"failed to unbind instance (%s) from polaris, errmsg: %s", ins, polarisDeleteResp.Message)
 	}
 
 	return nil

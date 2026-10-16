@@ -95,7 +95,7 @@ type Workflow struct {
 	windowMgr         *BizWindowManager
 	popSwitchSem      chan struct{}
 	lockTracker       *InProcessLockTracker // makes the per-biz etcd switch lock reentrant within this AM
-	swSnapshotLogger  logger.Logger
+	swSnapshotLogger  logger.Logger         // switching-snapshot-* log file; nil disables file snapshots
 }
 
 // New creates a workflow instance. discovery and registryPrefix are used to list and watch
@@ -114,9 +114,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 			myServiceID:  myServiceID,
 		},
 
-		switchers: map[haprobe.DbType]switcher.Switcher{
-			haprobe.DbTypeMySql: &switcher.Mysql{},
-		},
+		switchers: switcher.Build(),
 
 		discoveryCli:     cli,
 		discovery:        disc,
@@ -224,11 +222,14 @@ func (w *Workflow) Run(ctx context.Context) error {
 	return nil
 }
 
-// runDbTableStatsLoop periodically counts rows updated within dbTableStatsInterval
-// in the DbmMetadata and DbhaDataStatus tables, grouped by db_type,
-// and reports them as gauges. It exits on workflow quit or ctx cancellation.
+// runDbTableStatsLoop periodically reports statistics collected within dbTableStatsInterval as
+// gauges: DbmMetadata rows by db_type, and DbhaDataStatus instances and IPs by db_type.
+// It exits on quit or ctx cancellation.
 func (w *Workflow) runDbTableStatsLoop(ctx context.Context) {
 	defer w.wg.Done()
+
+	// Report once first, then enter the interval loop.
+	w.reportDbTableUpdatedStats(ctx)
 
 	timer := time.NewTimer(dbTableStatsInterval)
 	defer timer.Stop()
@@ -445,7 +446,7 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 // acquires the switch lock via lockTracker (reentrant within this AM, mutually
 // exclusive across AMs), pops matured entries, marks instances as inflight,
 // groups by (BkCloudID, DbType), and dispatches each group for switching.
-func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizID int) {
+func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
 	start := time.Now()
 	defer func() {
 		// report the pop-switch business time consuming
@@ -457,20 +458,20 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizID int) {
 		}
 	}()
 
-	unlock, err := w.lockTracker.Acquire(ctx, w.metadataReader, bizID)
+	unlock, err := w.lockTracker.Acquire(ctx, w.metadataReader, bizId)
 	if err != nil {
-		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizID, err)
+		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizId, err)
 		return
 	}
 	defer unlock()
 
-	entries := w.windowMgr.PopAndMarkStart(bizID, time.Now())
+	entries := w.windowMgr.PopAndMarkStart(bizId, time.Now())
 	if len(entries) == 0 {
 		return
 	}
 
-	logger.Info("popped %d matured entries for biz %d", len(entries), bizID)
-	groups := groupEntriesByCloudAndDbType(bizID, entries)
+	logger.Info("popped %d matured entries for biz %d", len(entries), bizId)
+	groups := groupEntriesByCloudAndDbType(bizId, entries)
 
 	var failureGroupFns []func()
 	for _, group := range groups {
@@ -481,15 +482,13 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizID int) {
 
 	wait := safe.GoWaits(failureGroupFns,
 		safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
-			logger.Error("panic in pop and switch for biz, biz_id: %d, errmsg: %s", bizID, pi.Reason)
+			logger.Error("panic in pop and switch for biz, biz_id: %d, errmsg: %s", bizId, pi.Reason)
 		}))
 
 	wait()
 }
 
 func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) {
-	// Keep the original failure instance data: after strategy matching each failure group holds a
-	// different subset of instances, so the traceable original failure instance info must be kept.
 	group.OriginInstances = group.Instances
 
 	groupInstKeys := collectGroupInstanceKeys(group)
@@ -507,8 +506,6 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
-	// Exclude stale (already-switched) instances before strategy matching, so that the match counts only
-	// the actually-switchable instances.
 	availableInsts := excludeUnavailableInstances(group.Instances, req)
 	if len(availableInsts) == 0 {
 		logger.Info("no available instances after excluding unavailable, dbType: %s, cloudId: %d, instances: %d",
@@ -516,7 +513,6 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
-	// match strategies against the available (non-stale) instances only
 	matchResult := w.switchExecutor.MatchStrategies(ctx, &FailureGroup{
 		BkBizID:         group.BkBizID,
 		BkCloudID:       group.BkCloudID,
@@ -528,19 +524,14 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
-	// split the matched groups into switch/notify tasks in priority order
 	tasks := w.buildGroupTasks(req, matchResult.Groups)
-
-	// create snapshot loggers once and share them across all tasks of this group
 	snapshotLoggers := NewSwitchSnapshotLoggers(w.swSnapshotLogger)
-
 	defer func() {
-		for _, l := range snapshotLoggers {
-			l.Close()
+		for _, snapshotLogger := range snapshotLoggers {
+			snapshotLogger.Close()
 		}
 	}()
 
-	// execute all tasks (switch + notify) in parallel
 	fns := make([]func(), 0, len(tasks))
 	for _, task := range tasks {
 		fns = append(fns, func() {
@@ -548,67 +539,52 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		})
 	}
 
-	wait := safe.GoWaits(fns, safe.WithLabel("handleFailureGroup"), safe.WithOnPanic(func(pi safe.PanicInfo) {
-		logger.Error("panic in handle failure group, biz_id: %d, errmsg: %s",
-			group.BkBizID, pi.Reason)
+	wait := safe.GoWaits(fns, safe.WithLabel("failure-group-tasks"), safe.WithOnPanic(func(pi safe.PanicInfo) {
+		logger.Error("panic in failure group handling, biz_id: %d, errmsg: %s", group.BkBizID, pi.Reason)
 	}))
 	wait()
 }
 
-// groupTask is a unit of switch/notify work for one failure group. The action field explicitly
-// identifies whether the task is a switch or a notify.
-//
-// Deduplication is applied here in buildGroupTasks, not in strategy matching: switch tasks are
-// deduplicated by host (a host is switched at most once), while notify tasks are not deduplicated,
-// so the same instance may still appear in multiple notify tasks.
 type groupTask struct {
 	action hamodel.ActionType
 	group  *FailureGroup
-	req    *switcher.Request // only set for switch tasks
+	req    *switcher.Request
 }
 
-// buildGroupTasks splits the matched groups into switch/notify tasks. Switch groups are deduplicated
-// by host: a host already occupied by a higher-priority switch group is skipped to avoid triggering
-// multiple switches on the same host.
 func (w *Workflow) buildGroupTasks(req *switcher.Request, groups []*FailureGroup) []*groupTask {
 	occupiedHosts := make(map[string]struct{})
 	var tasks []*groupTask
 
-	for _, g := range groups {
-		if g.Strategy == nil || g.Strategy.Action != hamodel.ActionTypeSwitch {
-			tasks = append(tasks, &groupTask{action: hamodel.ActionTypeNotify, group: g})
+	for _, group := range groups {
+		if group.Strategy == nil || group.Strategy.Action != hamodel.ActionTypeSwitch {
+			tasks = append(tasks, &groupTask{action: hamodel.ActionTypeNotify, group: group})
 			continue
 		}
 
-		// drop instances whose host was already switched by a higher-priority group
-		remaining := filterHostsNotOccupied(g.Instances, occupiedHosts)
+		remaining := filterHostsNotOccupied(group.Instances, occupiedHosts)
 		if len(remaining) == 0 {
-			logger.Info("skip switch group, all hosts already covered by previous switch, strategyId: %d",
-				g.Strategy.ID)
+			logger.Info("skip switch group, all hosts already covered, strategyId: %d", group.Strategy.ID)
 			continue
 		}
 
-		// reuse the metadata queried up front, keeping only this group's hosts
 		groupReq := filterRequestByHosts(req, remaining)
 		if groupReq == nil || !groupReq.HasDbInstMetadata() {
-			logger.Warn("no db inst metadata for switch group, strategyId: %d", g.Strategy.ID)
+			logger.Warn("no db inst metadata for switch group, strategyId: %d", group.Strategy.ID)
 			continue
 		}
 
-		// mark this group's hosts as occupied for subsequent groups
-		for _, meta := range groupReq.MySqlInstData {
+		for _, meta := range groupReq.InstData {
 			occupiedHosts[hostKey(meta.BkCloudID, meta.IP)] = struct{}{}
 		}
-
 		tasks = append(tasks, &groupTask{
 			action: hamodel.ActionTypeSwitch,
 			group: &FailureGroup{
-				BkBizID:         g.BkBizID,
-				BkCloudID:       g.BkCloudID,
-				DbType:          g.DbType,
-				Strategy:        g.Strategy,
+				BkBizID:         group.BkBizID,
+				BkCloudID:       group.BkCloudID,
+				DbType:          group.DbType,
+				Strategy:        group.Strategy,
 				Instances:       remaining,
-				OriginInstances: g.OriginInstances,
+				OriginInstances: group.OriginInstances,
 			},
 			req: groupReq,
 		})
@@ -617,9 +593,12 @@ func (w *Workflow) buildGroupTasks(req *switcher.Request, groups []*FailureGroup
 	return tasks
 }
 
-// executeSwitchAndNotifyTask executes a single switch/notify task.
-func (w *Workflow) executeSwitchAndNotifyTask(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger, task *groupTask,
-	strategies []*hamodel.DbSwitchingStrategy) {
+func (w *Workflow) executeSwitchAndNotifyTask(
+	ctx context.Context,
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	task *groupTask,
+	strategies []*hamodel.DbSwitchingStrategy,
+) {
 	switch task.action {
 	case hamodel.ActionTypeSwitch:
 		w.handleStrategySwitch(ctx, snapshotLoggers, task.group, task.req, strategies)
@@ -628,19 +607,18 @@ func (w *Workflow) executeSwitchAndNotifyTask(ctx context.Context, snapshotLogge
 	}
 }
 
-// hostKey builds the host identifier from cloud id and IP.
 func hostKey(bkCloudID int, ip string) string {
 	return fmt.Sprintf("%d:%s", bkCloudID, ip)
 }
 
-// filterHostsNotOccupied removes instances whose host has already been occupied by a previous
-// switch group. The removed instances are logged for tracing and dropped silently (their host
-// has already been switched by a previous group).
-func filterHostsNotOccupied(instances []FailureInstanceInfo, occupied map[string]struct{}) []FailureInstanceInfo {
+func filterHostsNotOccupied(
+	instances []FailureInstanceInfo,
+	occupied map[string]struct{},
+) []FailureInstanceInfo {
 	out := make([]FailureInstanceInfo, 0, len(instances))
 	for _, inst := range instances {
 		if _, ok := occupied[hostKey(inst.BkCloudID, inst.IP)]; ok {
-			logger.Info("skip instance, host already switched by previous group, cloudId: %d, ip: %s, port: %d",
+			logger.Info("skip instance, host already switched, cloudId: %d, ip: %s, port: %d",
 				inst.BkCloudID, inst.IP, inst.Port)
 			continue
 		}
@@ -659,56 +637,63 @@ func collectGroupInstanceKeys(group *FailureGroup) []string {
 	return groupInstKeys
 }
 
-// reportNotifySnapshot writes a single notify snapshot record.
-func (w *Workflow) reportNotifySnapshot(snapshotLoggers []snapshotlogger.SnapshotLogger,
-	strategy *hamodel.DbSwitchingStrategy, strategies []*hamodel.DbSwitchingStrategy, group *FailureGroup) {
-
-	snapshotData := NewSwitchingSnapshotData(strategy, strategies, group, nil,
-		hamodel.SnapshotActionTypeNotify, w.swSnapshotLogger)
-
-	start := time.Now()
-	report := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
-	report.ReportNotifySnapshot()
+func (w *Workflow) reportNotifySnapshot(
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	strategy *hamodel.DbSwitchingStrategy,
+	strategies []*hamodel.DbSwitchingStrategy,
+	group *FailureGroup,
+) {
+	snapshotData := NewSwitchingSnapshotData(
+		strategy,
+		strategies,
+		group,
+		nil,
+		hamodel.SnapshotActionTypeNotify,
+		w.swSnapshotLogger,
+	)
+	NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, time.Now()).ReportNotifySnapshot()
 }
 
-// reportWhitelistNotifySnapshot writes a notify snapshot for the instances filtered out by the
-// whitelist, so that non-whitelisted instances still leave a traceable record even when no switch
-// is executed. switchRequestID is the switch id of the request that was intercepted by the whitelist.
-func (w *Workflow) reportWhitelistNotifySnapshot(snapshotLoggers []snapshotlogger.SnapshotLogger, group *FailureGroup,
-	metas []*dbm.DbInstMetadata, switchRequestID string, strategies []*hamodel.DbSwitchingStrategy) {
-
+func (w *Workflow) reportWhitelistNotifySnapshot(
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup,
+	metas []*dbm.DbInstMetadata,
+	switchRequestID string,
+	strategies []*hamodel.DbSwitchingStrategy,
+) {
 	if w.swSnapshotLogger == nil {
 		return
 	}
 
 	notifyReq := &switcher.Request{
-		SwitchID:      generateSwitchID(),
-		ActionScope:   hamodel.ActionScopeTypeNone,
-		DbType:        group.DbType,
-		MySqlInstData: metas,
+		SwitchID:    generateSwitchID(),
+		ActionScope: hamodel.ActionScopeTypeNone,
+		DbType:      group.DbType,
+		InstData:    metas,
 	}
-
-	snapshotData := NewSwitchingSnapshotData(group.Strategy, strategies, group, notifyReq,
-		hamodel.SnapshotActionTypeNotify, w.swSnapshotLogger)
+	snapshotData := NewSwitchingSnapshotData(
+		group.Strategy,
+		strategies,
+		group,
+		notifyReq,
+		hamodel.SnapshotActionTypeNotify,
+		w.swSnapshotLogger,
+	)
 	if snapshotData == nil {
 		return
 	}
 
 	snapshotData.DbSwitchingSnapshotLog.Reason = fmt.Sprintf(
 		"whitelist filtered, notify only, switch request id: %s", switchRequestID)
-
-	start := time.Now()
-	report := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
-	report.ReportNotifySnapshot()
+	NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, time.Now()).ReportNotifySnapshot()
 }
 
-// handleNotifyGroup handles a notify group: writes a notify snapshot and posts an alarm
-// with the instance details of the group. When the group has no strategy (unmatched instances),
-// a strategy-less notification is posted instead.
-func (w *Workflow) handleNotifyGroup(snapshotLoggers []snapshotlogger.SnapshotLogger, group *FailureGroup,
-	strategies []*hamodel.DbSwitchingStrategy) {
+func (w *Workflow) handleNotifyGroup(
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup,
+	strategies []*hamodel.DbSwitchingStrategy,
+) {
 	strategy := group.Strategy
-
 	if strategy != nil && strategy.Action != hamodel.ActionTypeNotify {
 		return
 	}
@@ -717,32 +702,35 @@ func (w *Workflow) handleNotifyGroup(snapshotLoggers []snapshotlogger.SnapshotLo
 
 	var log string
 	if strategy == nil {
-		log = fmt.Sprintf("no matching strategy, execute notification only, cloudId: %d, dbType: %s, instances: [%s]",
+		log = fmt.Sprintf(
+			"no matching strategy, execute notification only, cloudId: %d, dbType: %s, instances: [%s]",
 			group.BkCloudID, group.DbType, FormatInstanceNotifySummary(group.Instances))
 	} else {
-		log = fmt.Sprintf("strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s, "+
-			"instances: [%s]",
-			strategy.Action, strategy.ID, group.BkCloudID, group.DbType, FormatInstanceNotifySummary(group.Instances))
+		log = fmt.Sprintf(
+			"strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s, instances: [%s]",
+			strategy.Action, strategy.ID, group.BkCloudID, group.DbType,
+			FormatInstanceNotifySummary(group.Instances))
 	}
 	logger.Info("%s", log)
-
 	w.alarm.TriggerWithBizId(group.BkBizID, log)
 }
 
-func (w *Workflow) handleStrategySwitch(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger,
-	group *FailureGroup, req *switcher.Request, strategies []*hamodel.DbSwitchingStrategy) {
+func (w *Workflow) handleStrategySwitch(
+	ctx context.Context,
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup,
+	req *switcher.Request,
+	strategies []*hamodel.DbSwitchingStrategy,
+) {
 	strategy := group.Strategy
 	if strategy == nil || strategy.Action != hamodel.ActionTypeSwitch {
-		logger.Warn("switching operation is disabled")
+		logger.Warn("invalid switch task action")
 		return
 	}
 
 	req.ActionScope = strategy.Scope
 	req.SwitchID = generateSwitchID()
 
-	// Whitelist filter for switch: scan-time whitelist filtering does not cover every switch path.
-	// On a host with multiple instances, a fault on a non-whitelisted instance may still enter switching,
-	// so we filter fault instances again here before executing switch.
 	if err := w.filterByWhitelistForSwitch(ctx, snapshotLoggers, group, req, strategies); err != nil {
 		logger.Warn("skip switch because whitelist filter failed, strategyId: %d, errmsg: %s", strategy.ID, err)
 		return
@@ -759,13 +747,19 @@ func (w *Workflow) handleStrategySwitch(ctx context.Context, snapshotLoggers []s
 	if err := apm.TriggerSwitchingInstanceTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   w.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(len(req.MySqlInstData))); err != nil {
+	}, float64(len(req.InstData))); err != nil {
 		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
 	}
 
 	// Build the switching snapshot data
-	snapshotData := NewSwitchingSnapshotData(strategy, strategies, group, req,
-		hamodel.SnapshotActionTypePreSwitch, w.swSnapshotLogger)
+	snapshotData := NewSwitchingSnapshotData(
+		strategy,
+		strategies,
+		group,
+		req,
+		hamodel.SnapshotActionTypePreSwitch,
+		w.swSnapshotLogger,
+	)
 	if snapshotData == nil {
 		logger.Warn("failed to create switching snapshot data, switchId: %s", req.SwitchID)
 	}
@@ -786,8 +780,7 @@ func (w *Workflow) markDoneAll(keys []string) {
 }
 
 // groupEntriesByCloudAndDbType groups window entries by (BkCloudID, DbType) into FailureGroups
-// for batch strategy matching and switching. All entries belong to the same business, so bizID is
-// carried on each group directly.
+// for batch strategy matching and switching.
 func groupEntriesByCloudAndDbType(bizID int, entries []*FailureWindowEntry) []*FailureGroup {
 	groupMap := make(map[string]*FailureGroup)
 	var keys []string
@@ -822,19 +815,24 @@ func instanceKey[T any](bkCloudId int, ip string, port T) string {
 	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
 }
 
-// instanceEventKey distinguishes the same instance matching different events in strategy binding.
 func instanceEventKey(bkCloudID int, ip string, port int, eventName haprobe.DbEventName) string {
 	return fmt.Sprintf("%d:%s:%d:%s", bkCloudID, ip, port, eventName)
 }
 
-// reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for
-// rows updated within the last dbTableStatsInterval, grouped by db_type,
-// and reports each group's count to the corresponding gauge metric.
+// reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for rows
+// updated within the last dbTableStatsInterval and reports each group's count to the
+// corresponding gauge metric.
 func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
+	w.reportMetadataUpdatedStats(ctx)
+	w.reportStatusUpdatedStats(ctx)
+	w.reportStatusIPActiveStats(ctx)
+}
+
+// reportMetadataUpdatedStats reports DbmMetadata rows updated within the latest window, by db_type.
+func (w *Workflow) reportMetadataUpdatedStats(ctx context.Context) {
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	defer cancel()
 
-	// DbmMetadata
 	metaCounts, err := w.hadata.CountDbmMetadataUpdatedWithin(qCtx, dbTableStatsInterval)
 	if err != nil {
 		logger.Warn("failed to count DbmMetadata updated rows, errmsg: %s", err)
@@ -843,36 +841,88 @@ func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
 	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
 	apm.DbmMetadataUpdatedCount.Clear()
 	for _, item := range metaCounts {
-		if item.DbType == haprobe.DbTypeNone {
-			item.DbType = haprobe.DbTypeUnknown
-		}
 		if e := apm.DbmMetadataUpdatedCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        item.DbType.String(),
+			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
 		}, float64(item.Count)); e != nil {
 			logger.Warn("failed to report dbm_metadata_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
 		}
 	}
+}
 
-	// DbhaDataStatus
-	statusCounts, err := w.hadata.CountDbhaDataStatusUpdatedWithin(qCtx, dbTableStatsInterval)
+// reportStatusUpdatedStats reports distinct DbhaDataStatus instances and IPs updated within
+// the latest window, by db_type and harvest_type. Both counts come from a single scan.
+func (w *Workflow) reportStatusUpdatedStats(ctx context.Context) {
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	counts, err := w.hadata.CountDbhaDataStatusUpdatedWithin(qCtx, dbTableStatsInterval)
 	if err != nil {
-		logger.Warn("failed to count DbhaDataStatus updated rows, errmsg: %s", err)
+		logger.Warn("failed to count DbhaDataStatus updated instances and ips, errmsg: %s", err)
 		return
 	}
 	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
 	apm.DbhaDataStatusUpdatedCount.Clear()
-	for _, item := range statusCounts {
-		if item.DbType == haprobe.DbTypeNone {
-			item.DbType = haprobe.DbTypeUnknown
-		}
-		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(map[string]string{
+	apm.DbhaDataStatusUpdatedIPCount.Clear()
+	for _, item := range counts {
+		// Both gauges share the same label set, so one map serves both.
+		labels := map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        item.DbType.String(),
-		}, float64(item.Count)); e != nil {
-			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
+			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+			apm.MetricLabelHarvestType:   string(normalizeHarvestType(item.HarvestType)),
+		}
+		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(labels,
+			float64(item.InstanceCount)); e != nil {
+			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, harvestType: %s, errmsg: %s",
+				item.DbType, item.HarvestType, e)
+		}
+		if e := apm.DbhaDataStatusUpdatedIPCount.SetWithLabels(labels,
+			float64(item.IPCount)); e != nil {
+			logger.Warn("failed to report dbha_data_status_updated_ip_count, dbType: %s, harvestType: %s, errmsg: %s",
+				item.DbType, item.HarvestType, e)
 		}
 	}
+}
+
+// reportStatusIPActiveStats reports distinct IPs that reported DbhaDataStatus within the
+// latest window, by db_type: an active count, not an installed inventory count.
+func (w *Workflow) reportStatusIPActiveStats(ctx context.Context) {
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	ipCounts, err := w.hadata.CountDbhaDataStatusActiveIPWithin(qCtx, dbTableStatsInterval)
+	if err != nil {
+		logger.Warn("failed to count DbhaDataStatus active ips, errmsg: %s", err)
+		return
+	}
+	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
+	apm.DbhaDataStatusActiveIPCount.Clear()
+	for _, item := range ipCounts {
+		if e := apm.DbhaDataStatusActiveIPCount.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+		}, float64(item.Count)); e != nil {
+			logger.Warn("failed to report dbha_data_status_active_ip_count, dbType: %s, errmsg: %s", item.DbType, e)
+		}
+	}
+}
+
+// normalizeDbType maps an empty db_type to DbTypeUnknown so that metrics never expose an empty label.
+func normalizeDbType(dbType haprobe.DbType) haprobe.DbType {
+	if dbType == haprobe.DbTypeNone {
+		return haprobe.DbTypeUnknown
+	}
+	return dbType
+}
+
+// normalizeHarvestType maps a missing harvest_type to the default collection group, matching
+// how legacy reports that carry no harvest_type are stored.
+func normalizeHarvestType(harvestType haprobe.HarvestType) haprobe.HarvestType {
+	if harvestType == "" {
+		return haprobe.HarvestTypeDefault
+	}
+	return harvestType
 }

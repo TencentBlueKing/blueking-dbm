@@ -26,11 +26,11 @@ package handler
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
@@ -39,6 +39,9 @@ import (
 
 const (
 	MySQLProtocol string = "tcp"
+
+	sessionConnectTimeout = 5 * time.Second
+	sessionQueryTimeout   = 10 * time.Second
 )
 
 // ProxyBackendInfo contains proxy backend connection information
@@ -122,7 +125,7 @@ type SlaveStatusInfo struct {
 
 // MysqlBaseHandler is a base handler for mysql
 type MysqlBaseHandler struct {
-	dbmClient *dbm.Client
+	baseHandler
 }
 
 // StopSlave stops slave replication
@@ -344,8 +347,15 @@ type MysqlClusterHandler struct {
 // NewMysqlClusterHandler creates a new MysqlClusterHandler
 func NewMysqlClusterHandler() *MysqlClusterHandler {
 	return &MysqlClusterHandler{
-		MysqlBaseHandler: MysqlBaseHandler{dbmClient: &dbm.Client{}},
+		MysqlBaseHandler: MysqlBaseHandler{baseHandler: newBaseHandler()},
 	}
+}
+
+var _ ClusterHandler = (*MysqlClusterHandler)(nil)
+
+// Reset resets every tendbha cluster in the config file.
+func (hdl *MysqlClusterHandler) Reset() error {
+	return hdl.ResetAllMysqlClusters()
 }
 
 func (hdl *MysqlClusterHandler) printOneCluster(cluster *config.MysqlCluster) {
@@ -474,166 +484,6 @@ func (hdl *MysqlClusterHandler) correctBackendRole(cluster *config.MysqlCluster)
 	return nil
 }
 
-func clbInstanceToIPPort(host string, port int) string {
-	return fmt.Sprintf("%s:%d", host, port)
-}
-
-func clbInstancesToIPPorts(instances []config.InstanceAddress) []string {
-	ips := make([]string, 0, len(instances))
-	for _, inst := range instances {
-		ips = append(ips, clbInstanceToIPPort(inst.Host, inst.Port))
-	}
-	return ips
-}
-
-func diffClbIPPortSets(desired, current []string) (missing, extra []string) {
-	desiredSet := make(map[string]struct{}, len(desired))
-	currentSet := make(map[string]struct{}, len(current))
-
-	for _, ip := range desired {
-		desiredSet[ip] = struct{}{}
-	}
-	for _, ip := range current {
-		currentSet[ip] = struct{}{}
-	}
-
-	for ip := range desiredSet {
-		if _, ok := currentSet[ip]; !ok {
-			missing = append(missing, ip)
-		}
-	}
-	for ip := range currentSet {
-		if _, ok := desiredSet[ip]; !ok {
-			extra = append(extra, ip)
-		}
-	}
-
-	sort.Strings(missing)
-	sort.Strings(extra)
-	return missing, extra
-}
-
-func validateClbConfig(clb *config.ClbConfig) error {
-	if clb.Region == "" {
-		return gerrors.New(gerrors.InvalidParameter, "clb.region is empty, please configure it in cluster.yaml")
-	}
-	if clb.ListenerID == "" {
-		return gerrors.New(gerrors.InvalidParameter, "clb.listenerId is empty, please configure it in cluster.yaml")
-	}
-	if clb.LoadBalancerID == "" {
-		return gerrors.New(gerrors.InvalidParameter,
-			"clb.loadbalancerId is empty, please configure it in cluster.yaml")
-	}
-	return nil
-}
-
-func (hdl *MysqlBaseHandler) syncClbBinding(clb *config.ClbConfig) error {
-	if err := validateClbConfig(clb); err != nil {
-		return err
-	}
-
-	currentIPs, err := hdl.dbmClient.GetClbTargetPrivateIps(clb)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to get clb target private ips (region=%s, listenerId=%s), errmsg: %s",
-			clb.Region, clb.ListenerID, err.Error())
-	}
-
-	desiredIPs := clbInstancesToIPPorts(clb.Instances)
-	missing, extra := diffClbIPPortSets(desiredIPs, currentIPs)
-
-	if err := hdl.dbmClient.RegisterClbPartTarget(clb, missing); err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to register clb targets (region=%s, listenerId=%s), errmsg: %s",
-			clb.Region, clb.ListenerID, err.Error())
-	}
-
-	if err := hdl.dbmClient.DeregisterClbPartTarget(clb, extra); err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to deregister clb targets (region=%s, listenerId=%s), errmsg: %s",
-			clb.Region, clb.ListenerID, err.Error())
-	}
-
-	return nil
-}
-
-func (hdl *MysqlBaseHandler) resetAllClbBindings(clbList []config.ClbConfig) error {
-	for i := range clbList {
-		if err := hdl.syncClbBinding(&clbList[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (hdl *MysqlBaseHandler) queryClbBinding(clb *config.ClbConfig) (ClbBindingInfo, error) {
-	if err := validateClbConfig(clb); err != nil {
-		return ClbBindingInfo{}, err
-	}
-
-	instanceList, err := hdl.dbmClient.GetClbTargetPrivateIps(clb)
-	if err != nil {
-		return ClbBindingInfo{}, err
-	}
-	if instanceList == nil {
-		instanceList = make([]string, 0)
-	}
-
-	return ClbBindingInfo{
-		ClbID:        clb.LoadBalancerID,
-		ListenerID:   clb.ListenerID,
-		Region:       clb.Region,
-		InstanceList: instanceList,
-	}, nil
-}
-
-func (hdl *MysqlBaseHandler) buildClusterClbInfo(domain string, clbConfigs []config.ClbConfig) (ClusterClbInfo, error) {
-	clbList := make([]ClbBindingInfo, 0, len(clbConfigs))
-	for i := range clbConfigs {
-		binding, err := hdl.queryClbBinding(&clbConfigs[i])
-		if err != nil {
-			return ClusterClbInfo{}, gerrors.Newf(gerrors.Failure,
-				"failed to get clb info for cluster(%s), errmsg: %s", domain, err.Error())
-		}
-		clbList = append(clbList, binding)
-	}
-
-	return ClusterClbInfo{
-		Cluster: domain,
-		ClbList: clbList,
-	}, nil
-}
-
-func (hdl *MysqlClusterHandler) addNodesToDomain(instList []config.InstanceAddress, domain string, bkBizId int) error {
-	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(domain)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to get all instances of domain %s, errmsg: %s", domain, err.Error())
-	}
-
-	isInDomain := func(ip string, port int) bool {
-		for _, inst := range instInfoList {
-			if inst.Ip == ip && inst.Port == port {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, inst := range instList {
-		instHost := inst.Host
-		instPort := inst.Port
-		if isInDomain(instHost, instPort) {
-			continue
-		}
-		if err := hdl.dbmClient.AddInstanceToDomain(instHost, instPort, domain, bkBizId); err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to add instance(%s:%d) to domain %s, errmsg: %s",
-				instHost, instPort, domain, err.Error())
-		}
-	}
-
-	return nil
-}
-
 func (hdl *MysqlClusterHandler) addAllNodesToDomain(cluster *config.MysqlCluster) error {
 	poxyList := []config.InstanceAddress{}
 	for _, proxy := range cluster.Proxy {
@@ -666,65 +516,74 @@ func (hdl *MysqlClusterHandler) addAllNodesToDomain(cluster *config.MysqlCluster
 // Step 9: reset clb binding (optional; skip when clb is omitted or empty)
 func (hdl *MysqlClusterHandler) resetSingleMysqlCluster(cluster *config.MysqlCluster) error {
 	hdl.printOneCluster(cluster)
-	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
+	logResetf("start to reset cluster, domain: %s", cluster.Domain)
 	instanceList := hdl.getInstanceList(cluster)
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceList, dbm.StatusUnavailable); err != nil {
-		fmt.Printf("Failed at step 1 <update all instances status to unavailable>, errmsg: %s\n", err.Error())
+		logResetStep(1, "failed to update all instances status to unavailable, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 1 <update all instances status to unavailable> done\n")
+	logResetStep(1, "successfully updated all instances status to unavailable, domain: %s", cluster.Domain)
 
 	if err := hdl.switchAllProxiesBackend(cluster.Proxy, "1.1.1.1", 3306); err != nil {
-		fmt.Printf("Failed at step 2 <refresh all proxies' backends to 1.1.1.1>, errmsg: %s\n", err.Error())
+		logResetStep(2, "failed to refresh all proxies' backends to 1.1.1.1, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 2 <refresh all proxies' backends to 1.1.1.1> done\n")
+	logResetStep(2, "successfully refreshed all proxies' backends to 1.1.1.1, domain: %s", cluster.Domain)
 
 	binlogFile, binlogPos, err := hdl.stopSlaveForMaster(cluster.Master.Host, cluster.Master.Port)
 	if err != nil {
-		fmt.Printf("Failed at step 3 <stop slave for master backend>, errmsg: %s\n", err.Error())
+		logResetStep(3, "failed to stop slave for master backend, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 3 <stop slave for master backend> done\n")
+	logResetStep(3, "successfully stopped slave for master backend, domain: %s", cluster.Domain)
 
 	if err := hdl.changeMasterForAllSlave(cluster.Slave, cluster.Master.Host, cluster.Master.Port,
 		binlogFile, binlogPos); err != nil {
-		fmt.Printf("Failed at step 4 <change master for all slaves>, errmsg: %s\n", err.Error())
+		logResetStep(4, "failed to change master for all slaves, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 4 <change master for all slaves> done\n")
+	logResetStep(4, "successfully changed master for all slaves, domain: %s", cluster.Domain)
 
 	if err := hdl.correctBackendRole(cluster); err != nil {
-		fmt.Printf("Failed at step 5 <correct backend role>, errmsg: %s\n", err.Error())
+		logResetStep(5, "failed to correct backend role, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 5 <correct backend role> done\n")
+	logResetStep(5, "successfully corrected backend role, domain: %s", cluster.Domain)
 
 	if err := hdl.switchAllProxiesBackend(cluster.Proxy, cluster.Master.Host, cluster.Master.Port); err != nil {
-		fmt.Printf("Failed at step 6 <refresh all proxies' backends to master backend>, errmsg: %s\n", err.Error())
+		logResetStep(6, "failed to refresh all proxies' backends to master backend, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 6 <refresh all proxies' backends to master backend> done\n")
+	logResetStep(6, "successfully refreshed all proxies' backends to master backend, domain: %s", cluster.Domain)
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceList, dbm.StatusRunning); err != nil {
-		fmt.Printf("Failed at step 7 <update all instances status to running>, errmsg: %s\n", err.Error())
+		logResetStep(7, "failed to update all instances status to running, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 7 <update all instances status to running> done\n")
+	logResetStep(7, "successfully updated all instances status to running, domain: %s", cluster.Domain)
 
 	if err := hdl.addAllNodesToDomain(cluster); err != nil {
-		fmt.Printf("Failed at step 8 <add nodes to corresponding domain>, errmsg: %s\n", err.Error())
+		logResetStep(8, "failed to add nodes to corresponding domain, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 8 <add nodes to corresponding domain> done\n")
+	logResetStep(8, "successfully added nodes to corresponding domain, domain: %s", cluster.Domain)
 
 	if len(cluster.Clb) > 0 {
 		if err := hdl.resetAllClbBindings(cluster.Clb); err != nil {
-			fmt.Printf("Failed at step 9 <reset clb binding>, errmsg: %s\n", err.Error())
+			logResetStep(9, "failed to reset clb binding, domain: %s, errmsg: %s",
+				cluster.Domain, err.Error())
 			return err
 		}
-		fmt.Printf("Step 9 <reset clb binding> done\n")
+		logResetStep(9, "successfully reset clb binding, domain: %s", cluster.Domain)
 	}
 
 	return nil
@@ -741,34 +600,34 @@ func (hdl *MysqlClusterHandler) ResetAllMysqlClusters() error {
 	}
 
 	if len(config.ClusterConfig.MysqlClusters) <= 0 {
-		fmt.Println("No MySQL clusters to reset")
+		logResetf("no mysql clusters to reset")
 		return nil
 	}
 
 	failCount := 0
-	fmt.Printf("=== Processing MySQL Clusters ===\n\n")
+	logResetClustersStart(resetClusterKindMySQL, len(config.ClusterConfig.MysqlClusters))
 	for _, cluster := range config.ClusterConfig.MysqlClusters {
 		if err := hdl.resetSingleMysqlCluster(&cluster); err != nil {
 			failCount++
-			fmt.Printf("Failed to reset cluster %s, errmsg: %s\n\n", cluster.Domain, err.Error())
+			logResetf("failed to reset cluster, domain: %s, errmsg: %s", cluster.Domain, err.Error())
 			continue
 		}
-		fmt.Printf("Successfully reset cluster %s\n\n", cluster.Domain)
+		logResetf("successfully reset cluster, domain: %s", cluster.Domain)
 	}
-	fmt.Printf("\n=== Resetting MySQL Clusters Done (total: %d, failed: %d, success: %d)===\n",
-		len(config.ClusterConfig.MysqlClusters), failCount, len(config.ClusterConfig.MysqlClusters)-failCount)
+	logResetClustersDone(resetClusterKindMySQL, len(config.ClusterConfig.MysqlClusters),
+		failCount, len(config.ClusterConfig.MysqlClusters)-failCount)
 
 	return nil
 }
 
-// ShowAllMysqlClustersDomain shows domain binding information for all MySQL clusters
-func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
+// CollectMysqlClustersDomain shows domain binding information for all MySQL clusters
+func (hdl *MysqlClusterHandler) CollectMysqlClustersDomain() ([]ClusterDomainInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return printErrorResponse("dbm client is nil")
+		return nil, gerrors.New(gerrors.Failure, "dbm client is nil")
 	}
 
 	clusterDomainInfoList := make([]ClusterDomainInfo, 0)
@@ -782,7 +641,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
 		if cluster.Domain != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
 			if err != nil {
-				return printErrorResponsef("failed to get instances of domain(%s), errmsg: %s",
+				return nil, gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
 					cluster.Domain, err.Error())
 			}
 			instanceList := make([]string, 0)
@@ -798,7 +657,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
 		if cluster.DomainSlave != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.DomainSlave)
 			if err != nil {
-				return printErrorResponsef("failed to get instances of domain(%s), errmsg: %s",
+				return nil, gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
 					cluster.DomainSlave, err.Error())
 			}
 			instanceList := make([]string, 0)
@@ -814,17 +673,22 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
 		clusterDomainInfoList = append(clusterDomainInfoList, clusterDomainInfo)
 	}
 
-	return printJSON(clusterDomainInfoList)
+	return clusterDomainInfoList, nil
 }
 
-// ShowAllMysqlClustersClb shows CLB binding information for all MySQL clusters
-func (hdl *MysqlClusterHandler) ShowAllMysqlClustersClb() error {
+// ShowDomain shows domain binding information for all MySQL clusters.
+func (hdl *MysqlClusterHandler) ShowDomain() ([]ClusterDomainInfo, error) {
+	return hdl.CollectMysqlClustersDomain()
+}
+
+// CollectMysqlClustersClb shows CLB binding information for all MySQL clusters
+func (hdl *MysqlClusterHandler) CollectMysqlClustersClb() ([]ClusterClbInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return printErrorResponse("dbm client is nil")
+		return nil, gerrors.New(gerrors.Failure, "dbm client is nil")
 	}
 
 	clusterClbInfoList := make([]ClusterClbInfo, 0)
@@ -835,22 +699,27 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersClb() error {
 		}
 		info, err := hdl.buildClusterClbInfo(cluster.Domain, cluster.Clb)
 		if err != nil {
-			return printErrorResponse(err.Error())
+			return nil, err
 		}
 		clusterClbInfoList = append(clusterClbInfoList, info)
 	}
 
-	return printJSON(clusterClbInfoList)
+	return clusterClbInfoList, nil
 }
 
-// ShowAllMysqlClustersNodes shows all nodes status and role for all MySQL clusters
-func (hdl *MysqlClusterHandler) ShowAllMysqlClustersNodes() error {
+// ShowClb shows CLB binding information for all MySQL clusters.
+func (hdl *MysqlClusterHandler) ShowClb() ([]ClusterClbInfo, error) {
+	return hdl.CollectMysqlClustersClb()
+}
+
+// CollectMysqlClustersNodes shows all nodes status and role for all MySQL clusters
+func (hdl *MysqlClusterHandler) CollectMysqlClustersNodes() ([]ClusterNodeInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return printErrorResponse("dbm client is nil")
+		return nil, gerrors.New(gerrors.Failure, "dbm client is nil")
 	}
 
 	clusterNodeInfoList := make([]ClusterNodeInfo, 0)
@@ -867,7 +736,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersNodes() error {
 
 		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, ipList)
 		if err != nil {
-			return printErrorResponsef("failed to query metadata for cluster(%s), errmsg: %s",
+			return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
 				cluster.Domain, err.Error())
 		}
 
@@ -892,14 +761,19 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersNodes() error {
 		clusterNodeInfoList = append(clusterNodeInfoList, clusterNodeInfo)
 	}
 
-	return printJSON(clusterNodeInfoList)
+	return clusterNodeInfoList, nil
 }
 
-// ShowAllMysqlClustersReplication shows replication status for all MySQL clusters
+// ShowNodes shows node status and role for all MySQL clusters.
+func (hdl *MysqlClusterHandler) ShowNodes() ([]ClusterNodeInfo, error) {
+	return hdl.CollectMysqlClustersNodes()
+}
+
+// CollectMysqlClustersReplication shows replication status for all MySQL clusters
 // Directly connects to all backend nodes from config file to query replication status
-func (hdl *MysqlClusterHandler) ShowAllMysqlClustersReplication() error {
+func (hdl *MysqlClusterHandler) CollectMysqlClustersReplication() ([]ClusterReplicationInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	clusterReplList := make([]ClusterReplicationInfo, 0)
@@ -936,7 +810,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersReplication() error {
 		for range nodeList {
 			result := <-resultCh
 			if result.err != nil {
-				return printErrorResponse(result.err.Error())
+				return nil, result.err
 			}
 			results[result.index] = result.replInfo
 		}
@@ -948,7 +822,12 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersReplication() error {
 		clusterReplList = append(clusterReplList, clusterRepl)
 	}
 
-	return printJSON(clusterReplList)
+	return clusterReplList, nil
+}
+
+// ShowReplication shows replication status for all MySQL clusters.
+func (hdl *MysqlClusterHandler) ShowReplication() (any, error) {
+	return hdl.CollectMysqlClustersReplication()
 }
 
 // getBackendNodeReplicationInfo gets replication info from a backend node
@@ -982,13 +861,13 @@ func (hdl *MysqlClusterHandler) getBackendNodeReplicationInfo(host string, port 
 	}, nil
 }
 
-// ShowAllMysqlClustersRouting shows proxy routing (backend) information for all MySQL clusters
-func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
+// CollectMysqlClustersRouting shows proxy routing (backend) information for all MySQL clusters
+func (hdl *MysqlClusterHandler) CollectMysqlClustersRouting() ([]MysqlRoutingInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
-	clusterRoutingList := make([]ClusterProxyRoutingInfo, 0)
+	clusterRoutingList := make([]MysqlRoutingInfo, 0)
 
 	for _, cluster := range config.ClusterConfig.MysqlClusters {
 		proxyIPs := make([]string, 0, len(cluster.Proxy))
@@ -998,7 +877,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 
 		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, proxyIPs)
 		if err != nil {
-			return printErrorResponsef("failed to query metadata for cluster(%s), errmsg: %s",
+			return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
 				cluster.Domain, err.Error())
 		}
 
@@ -1009,9 +888,9 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 			}
 		}
 
-		clusterRouting := ClusterProxyRoutingInfo{
+		clusterRouting := MysqlRoutingInfo{
 			Cluster: cluster.Domain,
-			Proxies: make([]ProxyRoutingEntry, 0),
+			Proxies: make([]MysqlProxyRouting, 0),
 		}
 
 		for _, proxy := range cluster.Proxy {
@@ -1019,9 +898,9 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 				continue
 			}
 
-			proxyEntry, err := hdl.getProxyRoutingEntry(proxy.Host, proxy.AdminPort)
+			proxyEntry, err := hdl.getMysqlProxyRouting(proxy.Host, proxy.AdminPort)
 			if err != nil {
-				return printErrorResponse(err.Error())
+				return nil, err
 			}
 			clusterRouting.Proxies = append(clusterRouting.Proxies, *proxyEntry)
 		}
@@ -1029,11 +908,16 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 		clusterRoutingList = append(clusterRoutingList, clusterRouting)
 	}
 
-	return printJSON(clusterRoutingList)
+	return clusterRoutingList, nil
 }
 
-// getProxyRoutingEntry gets routing entry from a proxy
-func (hdl *MysqlClusterHandler) getProxyRoutingEntry(host string, adminPort int) (*ProxyRoutingEntry, error) {
+// ShowRouting shows proxy routing information for all MySQL clusters.
+func (hdl *MysqlClusterHandler) ShowRouting() (any, error) {
+	return hdl.CollectMysqlClustersRouting()
+}
+
+// getMysqlProxyRouting gets routing entry from a mysql proxy
+func (hdl *MysqlClusterHandler) getMysqlProxyRouting(host string, adminPort int) (*MysqlProxyRouting, error) {
 	proxyDB, err := hamysql.NewSqlxDB(
 		hamysql.OptionIP(host),
 		hamysql.OptionPort(adminPort),
@@ -1053,14 +937,14 @@ func (hdl *MysqlClusterHandler) getProxyRoutingEntry(host string, adminPort int)
 			host, adminPort, err.Error())
 	}
 
-	proxyEntry := ProxyRoutingEntry{
+	proxyEntry := MysqlProxyRouting{
 		ProxyIP:        host,
 		ProxyAdminPort: adminPort,
-		Backends:       make([]ProxyBackendEntry, 0),
+		Backends:       make([]MysqlProxyBackend, 0),
 	}
 
 	for _, backend := range backendList {
-		proxyEntry.Backends = append(proxyEntry.Backends, ProxyBackendEntry{
+		proxyEntry.Backends = append(proxyEntry.Backends, MysqlProxyBackend{
 			BackendNdx:   backend.BackendNdx,
 			BackendAddr:  backend.Address,
 			BackendState: backend.State,
@@ -1068,4 +952,166 @@ func (hdl *MysqlClusterHandler) getProxyRoutingEntry(host string, adminPort int)
 	}
 
 	return &proxyEntry, nil
+}
+
+// buildProcesslistSQL builds the processlist query; where is appended as-is for this internal tool
+func buildProcesslistSQL(where string) string {
+	querySQL := "SELECT * FROM information_schema.processlist"
+	if where != "" {
+		querySQL += " WHERE " + where
+	}
+	return querySQL
+}
+
+// queryProcesslist queries information_schema.processlist on a single node
+func (hdl *MysqlBaseHandler) queryProcesslist(node sessionNodeTarget, where string) ([]ProcesslistEntry, error) {
+	opts := []hamysql.Option{
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(node.host),
+		hamysql.OptionPort(node.port),
+		hamysql.OptionUser(node.user),
+		hamysql.OptionPassword(node.password),
+		hamysql.OptionTimeout(sessionConnectTimeout),
+		hamysql.OptionReadTimeout(sessionQueryTimeout),
+		hamysql.OptionWriteTimeout(sessionQueryTimeout),
+	}
+
+	if node.tdbctl {
+		opts = append(opts,
+			hamysql.OptionSkipInitializeWithVersion(false),
+			hamysql.OptionDisableDatetimePrecision(true),
+			hamysql.OptionCharset(""),
+		)
+	}
+
+	db, err := newToolGormDB(opts...)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to node(%s:%d), errmsg: %s",
+			node.host, node.port, err.Error())
+	}
+	defer db.Close()
+
+	entries := make([]ProcesslistEntry, 0)
+	if err := db.DB().Raw(buildProcesslistSQL(where)).Scan(&entries).Error; err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to query processlist on node(%s:%d), errmsg: %s",
+			node.host, node.port, err.Error())
+	}
+
+	return entries, nil
+}
+
+// queryNodesProcesslist queries nodes concurrently, keeping result order and per-node failures in Result/Errmsg
+func (hdl *MysqlBaseHandler) queryNodesProcesslist(nodes []sessionNodeTarget, where string) []InstanceSessionInfo {
+	type sessionResult struct {
+		index int
+		info  InstanceSessionInfo
+	}
+	resultCh := make(chan sessionResult, len(nodes))
+	sem := make(chan struct{}, getClusterMaxConcurrency())
+
+	for i, node := range nodes {
+		sem <- struct{}{}
+
+		info := InstanceSessionInfo{
+			IP:       node.host,
+			Port:     node.port,
+			Sessions: make([]ProcesslistEntry, 0),
+		}
+		send := func() { resultCh <- sessionResult{index: i, info: info} }
+
+		safe.Go(func() {
+			defer func() { <-sem }()
+
+			entries, err := hdl.queryProcesslist(node, where)
+			if err != nil {
+				info.Errmsg = err.Error()
+			} else {
+				info.Result = true
+				info.Sessions = entries
+				info.Total = len(entries)
+			}
+			send()
+		},
+			safe.WithLabel(fmt.Sprintf("query-processlist(%s:%d)", node.host, node.port)),
+
+			safe.WithOnPanic(func(pi safe.PanicInfo) {
+				info.Errmsg = fmt.Sprintf("panic while querying node(%s:%d): %v", node.host, node.port, pi.Reason)
+				send()
+			}),
+		)
+	}
+
+	infos := make([]InstanceSessionInfo, len(nodes))
+	for range nodes {
+		result := <-resultCh
+		infos[result.index] = result.info
+	}
+
+	return infos
+}
+
+// printSessionJSON prints session results; failed instances flip the outermost result to false with nodes in errmsg
+func printSessionJSON(clusterSessionList []ClusterSessionInfo, extraErrmsg string) error {
+	failedNodes := make([]string, 0)
+	for _, cluster := range clusterSessionList {
+		for _, inst := range cluster.Instances {
+			if !inst.Result {
+				failedNodes = append(failedNodes, fmt.Sprintf("%s:%d", inst.IP, inst.Port))
+			}
+		}
+	}
+
+	errmsgParts := make([]string, 0, 2)
+	if extraErrmsg != "" {
+		errmsgParts = append(errmsgParts, extraErrmsg)
+	}
+	if len(failedNodes) > 0 {
+		errmsgParts = append(errmsgParts, fmt.Sprintf("%d node(s) failed to query session: %s",
+			len(failedNodes), strings.Join(failedNodes, ", ")))
+	}
+	if len(errmsgParts) > 0 {
+		return printShowResponse(false, strings.Join(errmsgParts, "; "), clusterSessionList)
+	}
+
+	return printJSON(clusterSessionList)
+}
+
+// CollectMysqlClustersSession shows sessions of master and slave nodes for all MySQL clusters
+func (hdl *MysqlClusterHandler) CollectMysqlClustersSession(where string) ([]ClusterSessionInfo, error) {
+	if config.ClusterConfig == nil {
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
+	}
+
+	clusterSessionList := make([]ClusterSessionInfo, 0)
+	user := config.ClusterConfig.AuthInfo.User
+	password := config.ClusterConfig.AuthInfo.Password
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		nodes := []sessionNodeTarget{{
+			host:     cluster.Master.Host,
+			port:     cluster.Master.Port,
+			user:     user,
+			password: password,
+		}}
+		for _, slave := range cluster.Slave {
+			nodes = append(nodes, sessionNodeTarget{
+				host:     slave.Host,
+				port:     slave.Port,
+				user:     user,
+				password: password,
+			})
+		}
+
+		clusterSessionList = append(clusterSessionList, ClusterSessionInfo{
+			Cluster:   cluster.Domain,
+			Instances: hdl.queryNodesProcesslist(nodes, where),
+		})
+	}
+
+	return clusterSessionList, nil
+}
+
+// ShowSession shows processlist sessions for all MySQL clusters.
+func (hdl *MysqlClusterHandler) ShowSession(where string) ([]ClusterSessionInfo, error) {
+	return hdl.CollectMysqlClustersSession(where)
 }

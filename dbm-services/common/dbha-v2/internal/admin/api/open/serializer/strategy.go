@@ -171,7 +171,9 @@ func CheckDuplicatedName(ctx context.Context, s *strategy.Strategy, id int, bkBi
 }
 
 // BatchCreateCheckDuplicatedName batch create check duplicated name
-func BatchCreateCheckDuplicatedName(ctx context.Context, s *strategy.Strategy, bkBizID int, names []string) (bool, error) {
+func BatchCreateCheckDuplicatedName(
+	ctx context.Context, s *strategy.Strategy, bkBizID int, names []string,
+) (bool, error) {
 	queryMap := map[string]any{
 		"bk_biz_id": bkBizID,
 		"name":      names,

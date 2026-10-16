@@ -88,6 +88,14 @@ func (m *DbInstMetadata) GetTenDBClusterRole() string {
 	return m.InstanceRole
 }
 
+// GetRedisRole returns the role of a redis instance.
+func (m *DbInstMetadata) GetRedisRole() string {
+	if m.InstanceRole != "" {
+		return m.InstanceRole
+	}
+	return m.MachineType
+}
+
 // MetadataResponse represents the response structure for instances metadata query
 type MetadataResponse struct {
 	Result    bool              `json:"result"`
@@ -146,6 +154,18 @@ type DomainPutResponse struct {
 	} `json:"data"`
 }
 
+// DomainDeleteResponse represents the response structure for deleting instances from a domain
+type DomainDeleteResponse struct {
+	Result    bool   `json:"result"`
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
+	Data      struct {
+		Detail  []InstanceInfoInDomain `json:"detail"`
+		RowsNum int                    `json:"rowsNum"`
+	} `json:"data"`
+}
+
 // ClbGetTargetPrivateIpsResponse represents the response for querying CLB bound instances.
 type ClbGetTargetPrivateIpsResponse struct {
 	Result    bool   `json:"result"`
@@ -164,4 +184,23 @@ type ClbPartTargetResponse struct {
 	Message   string `json:"message"`
 	RequestID string `json:"request_id"`
 	Data      int    `json:"data"`
+}
+
+// passwdItem is one returned credential. Password is base64 encoded.
+type passwdItem struct {
+	IP        string `json:"ip"`
+	UserName  string `json:"username"`
+	Password  string `json:"password"`
+	Component string `json:"component"`
+}
+
+// QueryPasswdResponse is the DBM proxy envelope. Only Code is checked: this endpoint
+// does not always carry "result", so relying on it would reject good responses.
+type QueryPasswdResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		Count int          `json:"count"`
+		Items []passwdItem `json:"items"`
+	} `json:"data"`
 }

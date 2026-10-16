@@ -164,7 +164,7 @@ func TestGetMetadataFromDBM_CollapsesConcurrentLookups(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if _, err := getMetadataFromDBM(context.Background(), 0, "127.0.0.1"); err != nil {
+		if _, err := getMetadataFromDBM(context.Background(), 0, "127.0.0.1", Cfg); err != nil {
 			t.Errorf("leading lookup failed, errmsg: %s", err)
 		}
 	}()
@@ -174,7 +174,7 @@ func TestGetMetadataFromDBM_CollapsesConcurrentLookups(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := getMetadataFromDBM(context.Background(), 0, "127.0.0.1"); err != nil {
+			if _, err := getMetadataFromDBM(context.Background(), 0, "127.0.0.1", Cfg); err != nil {
 				t.Errorf("joined lookup failed, errmsg: %s", err)
 			}
 		}()
@@ -208,7 +208,7 @@ func TestGetMetadataFromDBM_HonoursContextDeadline(t *testing.T) {
 	withDbmAPI(t, srv.URL, 300*time.Millisecond)
 
 	start := time.Now()
-	if _, err := getMetadataFromDBM(context.Background(), 1, "127.0.0.1"); err == nil {
+	if _, err := getMetadataFromDBM(context.Background(), 1, "127.0.0.1", Cfg); err == nil {
 		t.Fatal("expected the lookup to fail once the api timeout passed")
 	}
 	if elapsed := time.Since(start); elapsed > 5*time.Second {
@@ -221,7 +221,7 @@ func TestGetMetadataFromDBM_HonoursContextDeadline(t *testing.T) {
 		defer close(done)
 		next, cancelNext := context.WithTimeout(context.Background(), 300*time.Millisecond)
 		defer cancelNext()
-		_, _ = getMetadataFromDBM(next, 1, "127.0.0.1")
+		_, _ = getMetadataFromDBM(next, 1, "127.0.0.1", Cfg)
 	}()
 	select {
 	case <-done:
@@ -248,7 +248,7 @@ func TestGetMetadataFromDBM_CancelledCallerDoesNotFailWaiters(t *testing.T) {
 	leaderCtx, cancelLeader := context.WithCancel(context.Background())
 	leaderErr := make(chan error, 1)
 	go func() {
-		_, err := getMetadataFromDBM(leaderCtx, 2, "127.0.0.1")
+		_, err := getMetadataFromDBM(leaderCtx, 2, "127.0.0.1", Cfg)
 		leaderErr <- err
 	}()
 
@@ -257,7 +257,7 @@ func TestGetMetadataFromDBM_CancelledCallerDoesNotFailWaiters(t *testing.T) {
 
 	waiterErr := make(chan error, 1)
 	go func() {
-		_, err := getMetadataFromDBM(context.Background(), 2, "127.0.0.1")
+		_, err := getMetadataFromDBM(context.Background(), 2, "127.0.0.1", Cfg)
 		waiterErr <- err
 	}()
 

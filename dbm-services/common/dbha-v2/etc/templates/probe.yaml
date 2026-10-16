@@ -34,6 +34,16 @@ admin:
   localIP: "{{PROBE_ADMIN_LOCAL_IP}}"
   syncInterval: {{PROBE_ADMIN_SYNC_INTERVAL}}
 
+# Machine-wide collection settings. Admin never sends this block, so it stays
+# local to the machine and survives config rewrites.
+# collectTaskGoroutines: hard cap on how many instances this machine collects at
+# the same time (the resident pool worker count).
+# hostMetricInterval: how often the process-wide host metric sampler refreshes
+# its snapshot;
+collect:
+  collectTaskGoroutines: 8
+  hostMetricInterval: 10s
+
 harvester:
 {{PROBE_MYSQL_SHARD_BLOCK}}
 {{PROBE_REDIS_SHARD_BLOCK}}

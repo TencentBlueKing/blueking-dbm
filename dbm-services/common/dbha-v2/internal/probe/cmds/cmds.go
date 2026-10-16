@@ -28,6 +28,7 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,7 +38,9 @@ import (
 	"unicode"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/pkg/constant"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/process"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -78,22 +81,18 @@ func procName() string {
 	return process.NameProbe
 }
 
-func mysqlHarvesterHasEndpoints(c *config.MySqlHarvesterConfig) bool {
-	return c != nil && len(c.Endpoints) > 0
-}
-
-func redisHarvesterHasEndpoints(c *config.RedisHarvesterConfig) bool {
-	return c != nil && len(c.Endpoints) > 0
-}
-
 func getConfiguredDbTypes() []haprobe.DbType {
+	seen := map[haprobe.DbType]struct{}{}
 	var dbTypes []haprobe.DbType
-	if mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySql) ||
-		mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySqlProxyAdmin) {
-		dbTypes = append(dbTypes, haprobe.DbTypeMySql)
-	}
-	if redisHarvesterHasEndpoints(config.Cfg.Harvester.Redis) {
-		dbTypes = append(dbTypes, haprobe.DbTypeRedis)
+	for _, e := range harvester.Entries() {
+		if !config.Cfg.Harvester.HasEndpoints(e.BlockName) {
+			continue
+		}
+		if _, ok := seen[e.DbType]; ok {
+			continue
+		}
+		seen[e.DbType] = struct{}{}
+		dbTypes = append(dbTypes, e.DbType)
 	}
 	return dbTypes
 }
@@ -176,6 +175,12 @@ func verifyWriteDirs(dirs []string) error {
 
 // HealthCmdRunE prints probe health info (base + db types) to stdout, optionally as JSON.
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
+	// With -j no log line may reach the merged output: the analysis double-check combines
+	// stderr into stdout (CombinedOutput), so a fallback line would break the JSON parsing.
+	if JsonFormatter {
+		logger.SetFallbackOutput(io.Discard)
+	}
+
 	if err := config.Load(ConfigFilePath); err != nil {
 		baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
 		if !JsonFormatter {
@@ -199,13 +204,14 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Uptime collection: exit with a dedicated code on failure.
-	// TODO: report the collected uptime value in the health JSON output.
-	if _, err := machine.UptimeSeconds(); err != nil {
+	uptime, err := process.SystemUptime()
+	if err != nil {
 		fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
 		os.Exit(process.ExitCodeHealthUptimeFail)
 	}
 
 	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
+	baseHealth.Uptime = int64(uptime.Seconds())
 
 	probeHealth := &ProbeHealthInfo{
 		HealthInfo: baseHealth,

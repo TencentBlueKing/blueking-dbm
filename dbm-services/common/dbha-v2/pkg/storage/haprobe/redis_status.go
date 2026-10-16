@@ -26,25 +26,25 @@ package haprobe
 
 var _ DBTyper = (*RedisStatus)(nil)
 
-// RedisStatus Redis status
+// Redis probe state values used by every Redis probe item.
+const (
+	// RedisStateOk indicates the command executed without error.
+	RedisStateOk = "ok"
+	// RedisStateFailed indicates the command execution failed.
+	RedisStateFailed = "failed"
+)
+
+// RedisStatus Redis status. It aggregates the three probe items: the INFO
+// Replication probe, the SELECT + SET write probe and the TYPE read-only probe.
 type RedisStatus struct {
-	// TendisCache status
-	TendisCacheStatus *RedisTendisCacheStatus `json:"tendiscache_status,omitempty"`
+	// ReplicationStatus is the INFO Replication probe result for storage instances.
+	ReplicationStatus *RedisReplicationStatus `json:"replication_status,omitempty"`
 
-	// TendisSSD status
-	TendisSSDStatus *RedisTendisSSDStatus `json:"tendisssd_status,omitempty"`
+	// HeartbeatStatus is the SELECT + SET write probe result for storage masters.
+	HeartbeatStatus *RedisHeartbeatStatus `json:"heartbeat_status,omitempty"`
 
-	// TendisPlus status
-	TendisPlusStatus *RedisTendisPlusStatus `json:"tendisplus_status,omitempty"`
-
-	// RedisCluster status
-	RedisClusterStatus *RedisClusterStatus `json:"rediscluster_status,omitempty"`
-
-	// Twemproxy status
-	TwemproxyStatus *RedisTwemproxyStatus `json:"twemproxy_status,omitempty"`
-
-	// Predixy status
-	PredixyStatus *RedisPredixyStatus `json:"predixy_status,omitempty"`
+	// ReadCheckStatus is the TYPE read-only probe result for proxy instances.
+	ReadCheckStatus *RedisReadCheckStatus `json:"read_check_status,omitempty"`
 }
 
 // GetDbType Return the Db type name, this function name can't be changed.

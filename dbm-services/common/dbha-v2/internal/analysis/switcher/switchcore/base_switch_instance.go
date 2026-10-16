@@ -176,6 +176,11 @@ func (sw *BaseSwitchInstance) SetSwitchLogger(loggers []switchlogger.DbSwitchLog
 	sw.switchLoggers = loggers
 }
 
+// GetSwitchLogger returns the loggers used for recording switching operations.
+func (sw *BaseSwitchInstance) GetSwitchLogger() []switchlogger.DbSwitchLogger {
+	return sw.switchLoggers
+}
+
 // ReportLog records switching operation logs with specified level
 func (sw *BaseSwitchInstance) ReportLog(level switchlogger.SwitchLogLevel, message string) bool {
 	logTime := time.Now()

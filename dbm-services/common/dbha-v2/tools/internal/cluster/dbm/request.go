@@ -76,6 +76,29 @@ type SwapMySQLRoleRequest struct {
 	Payloads     []SwapMySQLRolePayload `json:"payloads"`
 }
 
+// SwapRedisRoleInstance represents a single Redis instance for role swapping
+type SwapRedisRoleInstance struct {
+	IP   string `json:"ip"`
+	Port int    `json:"port"`
+}
+
+// SwapRedisRolePayload contains the master-slave pair and cluster domain for role swapping.
+// Note: master and slave should be a Redis master-slave pair.
+// master should be the current redis master, slave should be the current redis slave.
+type SwapRedisRolePayload struct {
+	Master SwapRedisRoleInstance `json:"master"`
+	Slave  SwapRedisRoleInstance `json:"slave"`
+	Domain string                `json:"domain"`
+}
+
+// SwapRedisRoleRequest represents the request for swapping Redis master-slave roles.
+// Payload is a single object, not an array.
+type SwapRedisRoleRequest struct {
+	BkCloudID    int                  `json:"bk_cloud_id"`
+	DbCloudToken string               `json:"db_cloud_token"`
+	Payload      SwapRedisRolePayload `json:"payload"`
+}
+
 // DomainGetRequest represents the request structure for getting domain information
 type DomainGetRequest struct {
 	BkCloudID    int      `json:"bk_cloud_id"`
@@ -95,6 +118,14 @@ type DomainPutRequest struct {
 	BkCloudID      int                 `json:"bk_cloud_id"`
 	DbCloudToken   string              `json:"db_cloud_token"`
 	InstancesToAdd []InstancesOfDomain `json:"domains"`
+}
+
+// DomainDeleteRequest represents the request structure for deleting instances from a domain
+type DomainDeleteRequest struct {
+	App               string              `json:"app"`
+	BkCloudID         int                 `json:"bk_cloud_id"`
+	DbCloudToken      string              `json:"db_cloud_token"`
+	InstancesToDelete []InstancesOfDomain `json:"domains"`
 }
 
 // ClbGetTargetPrivateIpsRequest represents the request for querying CLB bound instances.
@@ -124,4 +155,27 @@ type ClbDeregisterPartTargetRequest struct {
 	ListenerID     string   `json:"listenerid"`
 	LoadBalancerID string   `json:"loadbalancerid"`
 	IPs            []string `json:"ips"`
+}
+
+// passwdInstance selects one instance of the password service. Redis cluster
+// credentials are stored per cluster, with the cluster id sitting in the ip field.
+type passwdInstance struct {
+	IP        string `json:"ip"`
+	Port      int    `json:"port"`
+	BkCloudID int    `json:"bk_cloud_id"`
+}
+
+// passwdUser selects which credential of an instance to read.
+type passwdUser struct {
+	UserName  string `json:"username"`
+	Component string `json:"component"`
+}
+
+// QueryPasswdRequest is the body of one password query.
+type QueryPasswdRequest struct {
+	DbCloudToken string           `json:"db_cloud_token"`
+	BkCloudID    int              `json:"bk_cloud_id"`
+	Instances    []passwdInstance `json:"instances"`
+	Users        []passwdUser     `json:"users"`
+	Limit        int              `json:"limit"`
 }
