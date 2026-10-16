@@ -18,6 +18,7 @@ import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
 import AuthRouterLink from '@components/auth-component/router-link.vue';
 import AuthSwitcher from '@components/auth-component/switcher.vue';
+import DbDatePicker from '@components/bkui-vue/date-picker/Index.vue';
 import DbInput from '@components/bkui-vue/input/Index.vue';
 import DbPagination from '@components/bkui-vue/pagination/Index.vue';
 import DbOption from '@components/bkui-vue/select/components/Option.vue';
@@ -74,6 +75,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('EditableTimePicker', EditableTimePicker);
   app.component('OperationColumn', OperationColumn);
   app.component('DbCard', DbCard);
+  app.component('DbDatePicker', DbDatePicker);
   app.component('DbForm', DbForm);
   app.component('DbFormItem', DbFormItem);
   app.component('DbIcon', DbIcon);
