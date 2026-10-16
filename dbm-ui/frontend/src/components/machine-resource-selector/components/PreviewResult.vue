@@ -18,24 +18,19 @@
         class="mr-4"
         type="legend" />
       <span>{{ t('结果预览') }}</span>
-      <BkDropdown
-        class="result-dropdown"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+      <DbDropdown class="result-dropdown">
         <i class="db-icon-more result-trigger" />
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleClear">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleClear">
               {{ t('清空所有') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopy">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopy">
               {{ t('复制所有 IP') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
     </div>
     <BkException
       v-if="isEmpty"

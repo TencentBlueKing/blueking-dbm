@@ -1,6 +1,6 @@
 <template>
   <template v-if="isAbleSubscribe">
-    <BkDropdownItem
+    <div
       v-if="isNotSubscribed"
       v-db-console="`${dbConsolePrefix}.editAlarmSubscription`">
       <OperationBtnStatusTips
@@ -8,7 +8,6 @@
         :disabled="!data.isOffline">
         <AuthButton
           :action-id="permissionId"
-          :class="{ 'is-dropdown-button': isDropdown }"
           :disabled="data.isOffline"
           :permission="data.permission[permissionId]"
           :resource="data.id"
@@ -17,22 +16,21 @@
           {{ t('设置告警订阅') }}
         </AuthButton>
       </OperationBtnStatusTips>
-    </BkDropdownItem>
-    <BkDropdownItem
+    </div>
+    <div
       v-else
       v-db-console="`${dbConsolePrefix}.deleteAlarmSubscription`">
       <OperationBtnStatusTips
         :data="data"
         :disabled="!data.isOffline">
         <BkButton
-          :class="{ 'is-dropdown-button': isDropdown }"
           :disabled="data.isOffline"
           text
           @click="handleClickDelete">
           {{ t('删除告警订阅') }}
         </BkButton>
       </OperationBtnStatusTips>
-    </BkDropdownItem>
+    </div>
   </template>
 </template>
 <script setup lang="tsx" generic="T extends ISupportClusterType">
@@ -55,7 +53,6 @@
   export interface Props<clusterType extends ISupportClusterType> {
     data: { master_domain: string } & ClusterModel<clusterType>;
     dbConsolePrefix?: string;
-    isDropdown?: boolean;
   }
 
   export interface Emits {
@@ -65,7 +62,6 @@
 
   const props = withDefaults(defineProps<Props<T>>(), {
     dbConsolePrefix: '',
-    isDropdown: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -141,11 +137,3 @@
     });
   };
 </script>
-
-<style lang="less">
-  .is-dropdown-button {
-    width: auto !important;
-    padding: 0 !important;
-    margin-left: 16px;
-  }
-</style>

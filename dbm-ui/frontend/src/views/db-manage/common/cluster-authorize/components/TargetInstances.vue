@@ -34,25 +34,21 @@
             </I18nT>
           </div>
         </div>
-        <BkDropdown
+        <DbDropdown
           class="target-cluster-table-dropdown"
-          :popover-options="{
-            clickContentAutoHide: true,
-          }"
-          trigger="click"
           @click.stop>
           <i class="db-icon-more target-cluster-table-trigger" />
           <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem
+            <DbDropdownMenu>
+              <DbDropdownItem
                 v-for="(item, index) of operations"
                 :key="index"
                 @click="item.onClick()">
                 {{ item.label }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
+              </DbDropdownItem>
+            </DbDropdownMenu>
           </template>
-        </BkDropdown>
+        </DbDropdown>
       </div>
       <Transition mode="in-out">
         <div

@@ -39,27 +39,23 @@
         {{ t('已禁用') }}
       </DbTag>
       <slot />
-      <BkDropdown
+      <DbDropdown
         class="ml-4 mr-20"
-        placement="bottom-start"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+        placement="bottom-start">
         <div
           v-bk-tooltips="t('复制')"
           style="font-size: 18px; color: #3a84ff">
           <DbIcon type="links" />
         </div>
         <template #content>
-          <BkDropdownItem @click="handleCopyClusterMasterDomainAndLink">
+          <DbDropdownItem @click="handleCopyClusterMasterDomainAndLink">
             {{ t('集群域名 + 集群链接') }}
-          </BkDropdownItem>
-          <BkDropdownItem @click="handleCopyDetailPageLink">
+          </DbDropdownItem>
+          <DbDropdownItem @click="handleCopyDetailPageLink">
             {{ t('集群链接') }}
-          </BkDropdownItem>
+          </DbDropdownItem>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <RouterLink
         v-if="!isDetailRouterPage"
         style="margin-left: auto"
