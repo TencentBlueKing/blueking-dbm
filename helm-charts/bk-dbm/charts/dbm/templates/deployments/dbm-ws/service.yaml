@@ -1,0 +1,19 @@
+{{- if .Values.saas.ws.enabled | default .Values.enabled -}}
+{{- $fullName := ( include "dbm.dbm-ws.fullname" .) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dbm.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: "{{ $fullName }}"
+{{- end -}}
