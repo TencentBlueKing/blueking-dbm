@@ -57,7 +57,7 @@ class MongoDBReduceShardNodesFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.MONGODB_REDUCE_SHARD_NODES, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE
 )
-class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoDBReduceShardNodesFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBReduceShardNodesDetailSerializer
     inner_flow_builder = MongoDBReduceShardNodesFlowParamBuilder
     inner_flow_name = _("MongoDB 缩容Shard节点数执行")
