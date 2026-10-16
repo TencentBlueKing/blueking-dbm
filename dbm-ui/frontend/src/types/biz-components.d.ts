@@ -6,6 +6,7 @@ declare module 'vue' {
     AuthSwitcher: typeof import('@components/auth-component/switcher.vue').default;
     AuthTemplate: typeof import('@components/auth-component/component.vue').default;
     DbCard: typeof import('@components/db-card/index.vue').default;
+    DbDatePicker: typeof import('@components/bkui-vue/date-picker/Index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
