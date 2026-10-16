@@ -36,12 +36,9 @@
         @click="handleBatchRestart">
         {{ t('重启') }}
       </AuthButton>
-      <BkDropdown
+      <DbDropdown
         class="instance-batch-copy"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+        :disabled="originalData.length === 0">
         <template #default="{ popoverShow }">
           <BkButton
             class="ml-8"
@@ -55,39 +52,39 @@
           </BkButton>
         </template>
         <template #content>
-          <BkDropdownMenu class="dropdown-menu-with-button">
+          <DbDropdownMenu class="dropdown-menu-with-button">
             <AuthTemplate
               :action-id="`${dbType}_manage`"
               :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
               :resource="clusterData.id">
-              <BkDropdownItem>
+              <DbDropdownItem>
                 <BkButton
                   style="width: 105px"
                   text
                   @click="handleVscalingComponentShow">
                   {{ t('升降配置') }}
                 </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem v-if="!(clusterType === ClusterTypes.K8S_SURREALDB_HA && role === 'surreal')">
+              </DbDropdownItem>
+              <DbDropdownItem v-if="!(clusterType === ClusterTypes.K8S_SURREALDB_HA && role === 'surreal')">
                 <BkButton
                   style="width: 105px"
                   text
                   @click="handleVexpansionComponentShow">
                   {{ t('磁盘扩容') }}
                 </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem v-if="[ClusterTypes.K8S_SURREALDB_HA, ClusterTypes.K8S_QDRANT_HA].includes(clusterType)">
+              </DbDropdownItem>
+              <DbDropdownItem v-if="[ClusterTypes.K8S_SURREALDB_HA, ClusterTypes.K8S_QDRANT_HA].includes(clusterType)">
                 <BkButton
                   style="width: 105px"
                   text
                   @click="handleHscalingComponentShow">
                   {{ t('水平扩容') }}
                 </BkButton>
-              </BkDropdownItem>
+              </DbDropdownItem>
             </AuthTemplate>
-          </BkDropdownMenu>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <DbQuickSearch
         v-model="searchValue"
         :data="quickSearchData"

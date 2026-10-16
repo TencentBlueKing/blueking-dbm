@@ -31,50 +31,41 @@
         </AuthButton>
       </template>
       <template v-else>
-        <BkDropdown
-          :popover-options="{
-            clickContentAutoHide: true,
-            renderDirective: 'show',
-          }"
-          trigger="click">
+        <DbDropdown :disabled="selectionHostIdList.length < 1">
           <BkButton :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
           </BkButton>
           <template #content>
-            <BkDropdownMenu>
+            <DbDropdownMenu>
               <AuthTemplate action-id="resource_pool_manage">
-                <BkDropdownItem @click="() => handleShowBatchAssign()">
+                <DbDropdownItem @click="() => handleShowBatchAssign()">
                   {{ t('重新设置资源归属') }}
-                </BkDropdownItem>
-                <BkDropdownItem
+                </DbDropdownItem>
+                <DbDropdownItem
                   :class="isSelectedGlobalResource || !isSelectedSameBiz ? 'disabled-cls' : ''"
                   @click="() => handleShowBatchAddTags()">
                   {{ t('添加资源标签') }}
-                </BkDropdownItem>
-                <BkDropdownItem
+                </DbDropdownItem>
+                <DbDropdownItem
                   v-if="type === ResourcePool.business"
                   @click="handleShowBatchCovertToPublic">
                   {{ t('退回公共资源池') }}
-                </BkDropdownItem>
-                <BkDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </BkDropdownItem>
-                <BkDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </BkDropdownItem>
-                <BkDropdownItem
+                </DbDropdownItem>
+                <DbDropdownItem @click="() => handleShowBatchSetting()"> {{ t('设置主机属性') }} </DbDropdownItem>
+                <DbDropdownItem @click="() => handleShowBatchMoveToFaultPool()"> {{ t('转入故障池') }} </DbDropdownItem>
+                <DbDropdownItem
                   v-if="type !== ResourcePool.business"
                   @click="handleShowBatchMoveToRecyclePool">
                   {{ t('转入待回收池') }}
-                </BkDropdownItem>
-                <BkDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </BkDropdownItem>
+                </DbDropdownItem>
+                <DbDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </DbDropdownItem>
               </AuthTemplate>
-            </BkDropdownMenu>
+            </DbDropdownMenu>
           </template>
-        </BkDropdown>
+        </DbDropdown>
       </template>
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+      <DbDropdown>
         <BkButton
           class="ml-8"
           style="width: 80px">
@@ -82,25 +73,20 @@
           <DbIcon type="down-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopySelectHost">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleCopySelectHost">
               {{ t('已选 IP') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopyAllHost">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopyAllHost">
               {{ copyAllHostText }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopyAllAbnormalHost">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopyAllAbnormalHost">
               {{ t('所有异常 IP') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-          renderDirective: 'show',
-        }"
-        trigger="click">
+      </DbDropdown>
+      <DbDropdown>
         <BkButton
           class="ml-8"
           style="width: 80px">
@@ -108,20 +94,20 @@
           <DbIcon type="down-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
+          <DbDropdownMenu>
             <AuthTemplate action-id="resource_pool_manage">
-              <BkDropdownItem @click="handleExportAll">
+              <DbDropdownItem @click="handleExportAll">
                 {{ isFilter ? t('导出所有（筛选后）') : t('导出所有（全量）') }}
-              </BkDropdownItem>
-              <BkDropdownItem
+              </DbDropdownItem>
+              <DbDropdownItem
                 :class="{ 'disabled-cls': selectionHostIdList.length === 0 }"
                 @click="handleExportSelected">
                 {{ t('导出已选') }}
-              </BkDropdownItem>
+              </DbDropdownItem>
             </AuthTemplate>
-          </BkDropdownMenu>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <BkButton
         class="ml-8"
         @click="handleRefresh">

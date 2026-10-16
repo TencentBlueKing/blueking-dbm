@@ -27,13 +27,13 @@
     <div
       class="more-operate"
       @click.stop>
-      <BkDropdown trigger="click">
+      <DbDropdown>
         <div class="icon-wrapper">
           <DbIcon type="more" />
         </div>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
+          <DbDropdownMenu>
+            <DbDropdownItem>
               <AuthButton
                 action-id="package_manage"
                 :permission="permission"
@@ -42,8 +42,8 @@
                 @click="handleAddVersion">
                 {{ t('添加版本') }}
               </AuthButton>
-            </BkDropdownItem>
-            <BkDropdownItem
+            </DbDropdownItem>
+            <DbDropdownItem
               v-bk-tooltips="{
                 content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
                 placement: 'right',
@@ -58,8 +58,8 @@
                 @click="handleEditName">
                 {{ t('编辑系列') }}
               </AuthButton>
-            </BkDropdownItem>
-            <BkDropdownItem
+            </DbDropdownItem>
+            <DbDropdownItem
               v-bk-tooltips="{
                 content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
                 placement: 'right',
@@ -82,10 +82,10 @@
                   {{ t('删除系列') }}
                 </AuthButton>
               </DbPopconfirm>
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
     </div>
   </div>
   <EditSeries

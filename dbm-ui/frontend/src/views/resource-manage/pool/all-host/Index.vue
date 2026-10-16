@@ -5,11 +5,7 @@
       closable
       :title="t('外部主机导入资源池后将在此被记录。直至在待回收池完成删除操作，相关记录才会被删除')" />
     <div class="operation-wrapper">
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+      <DbDropdown>
         <BkButton>
           {{ t('复制') }}
           <DbIcon
@@ -17,14 +13,14 @@
             type="down-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</BkDropdownItem>
-            <BkDropdownItem @click="handleCopyAllHost">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</DbDropdownItem>
+            <DbDropdownItem @click="handleCopyAllHost">
               {{ `${t('所有 IP')}（${isSearching ? t('筛选后') : t('全量')}）` }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"

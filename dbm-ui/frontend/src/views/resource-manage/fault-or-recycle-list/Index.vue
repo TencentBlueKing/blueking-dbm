@@ -41,12 +41,7 @@
           {{ t('批量删除') }}
         </AuthButton>
       </template>
-      <BkDropdown
-        class="ml-8"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+      <DbDropdown class="ml-8">
         <BkButton>
           {{ t('复制') }}
           <DbIcon
@@ -54,14 +49,14 @@
             type="down-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</BkDropdownItem>
-            <BkDropdownItem @click="handleCopyAllHost">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</DbDropdownItem>
+            <DbDropdownItem @click="handleCopyAllHost">
               {{ `${t('所有 IP')}（${isSearching ? t('筛选后') : t('全量')}）` }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"
