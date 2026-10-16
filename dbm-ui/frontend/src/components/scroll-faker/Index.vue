@@ -145,7 +145,10 @@
       };
     },
     scrollTo: (scrollLeft: number, scrollTop: number) => {
+      // 内容尺寸可能已变化（如日志异步渲染），先重算再同步滚动条，否则滚动条位置和 inner 高度是旧的
+      initState();
       scrollContent.value.scrollTo(scrollLeft, scrollTop);
+      // 编程式滚动不依赖 hover 状态，始终同步自定义滚动条
       verticalScroll.value?.scrollTo(0, scrollTop);
       horizontalScrollbar.value?.scrollTo(scrollLeft, 0);
     },

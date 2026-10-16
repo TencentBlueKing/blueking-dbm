@@ -13,7 +13,7 @@
 
 import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
 
-export type ILogItem = ServiceReturnType<typeof getNodeLog>[number];
+export type ILogItem = ServiceReturnType<typeof getNodeLog>['result'][number];
 
 /**
  * 计算执行文件成功、失败个数
@@ -38,10 +38,10 @@ export default function () {
       version_id: versionId,
     })
       .then((logData) => {
-        if (lastLogLength !== logData.length) {
-          wholeLogList.value = logData as ILogItem[];
+        if (lastLogLength !== logData.result.length) {
+          wholeLogList.value = logData.result as ILogItem[];
         }
-        lastLogLength = logData.length;
+        lastLogLength = logData.result.length;
 
         logTimer = setTimeout(() => {
           fetchLog(rootId, nodeId);

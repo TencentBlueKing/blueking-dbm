@@ -33,10 +33,12 @@
           v-bk-tooltips="t('复制')"
           type="copy"
           @click="handleCopyLog" />
-        <DbIcon
+        <a
           v-bk-tooltips="t('下载')"
-          type="import"
-          @click="handleDownLoaderLog" />
+          :download="`${nodeData.id}.log`"
+          :href="exportLogUrl">
+          <DbIcon type="import" />
+        </a>
         <DbIcon
           v-bk-tooltips="screenIcon.text"
           :type="screenIcon.icon"
@@ -51,11 +53,11 @@
     <div
       v-if="tooLarge"
       class="log-export-tip">
-      {{ t('日志过大，完整内容请下载') }}
+      {{ t('日志过大，页面仅展示部分内容，更多内容请下载') }}
       <a
         :download="`${nodeData.id}.log`"
         :href="exportLogUrl">
-        {{ t('导出完整日志') }}
+        {{ t('完整日志') }}
       </a>
     </div>
   </div>
@@ -75,7 +77,7 @@
     type NodeDisplayStatus,
   } from '@views/task-history/detail/utils';
 
-  import { downloadText, execCopy } from '@utils';
+  import { execCopy } from '@utils';
 
   import { useFullscreen, useTimeoutFn, useTimeoutPoll } from '@vueuse/core';
 
@@ -223,12 +225,6 @@
     return messageList.join('\n');
   };
 
-  // 页面下载：保存当前展示的日志文本
-  const handleDownLoaderLog = () => {
-    const content = getLogContent();
-    downloadText(`${nodeData.value.id}.log`, content);
-  };
-
   const handleChangeDate = (data: ServiceReturnType<typeof getRetryNodeHistories>[number]) => {
     currentData.value = data;
     emits('versionChange', data.version);
@@ -295,7 +291,18 @@
         display: flex;
         align-items: center;
 
-        i {
+        a {
+          display: inline-flex;
+          margin-left: 16px;
+          color: inherit;
+          align-items: center;
+
+          i {
+            margin-left: 0;
+          }
+        }
+
+        > i {
           margin-left: 16px;
           font-size: 16px;
           cursor: pointer;
