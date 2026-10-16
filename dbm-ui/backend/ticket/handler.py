@@ -44,7 +44,7 @@ from backend.ticket.constants import (
     TicketType,
     TodoType,
 )
-from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigException
+from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigException, TodoProcessFailedException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import TodoActionType, TodoActorFactory
@@ -333,7 +333,7 @@ class TicketHandler:
         from backend.ticket.serializers import TodoSerializer
 
         locks = defaultdict(threading.Lock)
-        results = []
+        results, failed_messages = [], []
 
         def process_single(operation):
             todo_id, params = operation["todo_id"], operation["params"]
@@ -353,7 +353,13 @@ class TicketHandler:
                     res = future.result()
                     results.append(res)
                 except Exception as e:
-                    logger.error(_("操作todo任务失败: {}").format(e))
+                    logger.error(_("操作todo任务失败: {err}").format(err=e))
+                    failed_messages.append(_("待办todo处理失败: {err}").format(err=e))
+
+        # 存在处理失败的todo时抛出异常，避免调用方无感知
+        if failed_messages:
+            raise TodoProcessFailedException(errors="; ".join(failed_messages))
+
         return TodoSerializer(results, many=True).data
 
     @classmethod

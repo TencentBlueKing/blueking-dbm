@@ -66,6 +66,12 @@ class TodoDuplicateProcessException(TicketBaseException):
     MESSAGE_TPL = _("重复操作")
 
 
+class TodoProcessFailedException(TicketBaseException):
+    ERROR_CODE = "011"
+    MESSAGE = _("批量处理待办失败")
+    MESSAGE_TPL = _("批量处理待办失败: {errors}")
+
+
 class ApprovalWrongOperatorException(TicketBaseException):
     ERROR_CODE = "008"
     MESSAGE = _("审批处理异常")
