@@ -32,6 +32,7 @@ from backend.flow.utils.mysql.dts.context import DtsHostSpec, MysqlDtsCleanupSub
 from backend.flow.utils.mysql.dts.script_template import (
     render_clean_cluster_relay_and_dump_script,
     render_clean_data_dir_script,
+    render_clean_monitor_jobs_script,
     render_stop_process_script,
 )
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
@@ -96,12 +97,13 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
 
     顺序约束（与 DTS Master API 一致）：
     1) 停任务/Source（需 Master 在线）
-    2) 停本机 dm-worker / dm-master 进程（Worker 必须先离线，否则 offline_worker 报 46005）
-    3) 调用 OpenAPI 注销节点注册（Master 可能已停，失败按可忽略处理）
-    4) 显式清理 worker relay 目录与 exported_data.{任务名}（不跟 clean_data_dir 勾选）
-    5) 按选项删除整棵部署目录
-    6) 复用 ClearCrontab 停 mysql-crond 并删除周边目录（不下发 dbactuator）
-    7) 清理元数据
+    2) 按端口摘掉 mysql-monitor 的 crond 任务（进程仍在，dts_process_up 不会报 0）
+    3) 停本机 dm-worker / dm-master 进程（Worker 必须先离线，否则 offline_worker 报 46005）
+    4) 调用 OpenAPI 注销节点注册（Master 可能已停，失败按可忽略处理）
+    5) 显式清理 worker relay 目录与 exported_data.{任务名}（不跟 clean_data_dir 勾选）
+    6) 按选项删除整棵部署目录
+    7) 复用 ClearCrontab 停 mysql-crond 并删除周边目录（不下发 dbactuator）
+    8) 清理元数据
 
     迁移临时账号（dts_m_*）不在本子流程回收：账号挂在业务源/目标 MySQL 上，
     与 DESTROY 生命周期解耦；成功路径见 mysql_dts_task_clean_subflow，终止见 signal handler。
@@ -137,8 +139,14 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
         },
     )
 
-    # 必须先停进程：Master API offline_worker 要求 Worker 已不在线（否则 46005）
+    # 必须先停进程：Master API offline_worker 要求 Worker 已不在线（否则 46005）。
+    # 停进程前先摘采集，否则 dts-heartbeat 会在端口已关时上报 dts_process_up=0。
     if exec_targets:
+        sub.add_act(
+            act_name=_("摘掉 DTS 端口探测"),
+            act_component_code=MysqlDtsExecShellComponent.code,
+            kwargs=build_dts_exec_shell_kwargs(exec_targets, render_clean_monitor_jobs_script()),
+        )
         sub.add_act(
             act_name=_("停止 DTS 进程"),
             act_component_code=MysqlDtsExecShellComponent.code,

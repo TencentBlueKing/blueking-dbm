@@ -266,6 +266,28 @@ def render_stop_process_script(deploy_path: str) -> str:
     return _render(stop_mysql_dts_process_template, deploy_path=deploy_path)
 
 
+def render_clean_monitor_jobs_script() -> str:
+    """停进程前摘掉该端口的 mysql-monitor crond 任务。缺配置文件则跳过。"""
+    monitor_root = "/home/mysql/mysql-monitor"
+    return "\n".join(
+        [
+            "set -euo pipefail",
+            f"MONITOR_BIN={shlex.quote(monitor_root + '/mysql-monitor')}",
+            f"MONITOR_ROOT={shlex.quote(monitor_root)}",
+            f"for port in {MYSQL_DTS_MASTER_PORT} {MYSQL_DTS_WORKER_PORT}; do",
+            '  cfg="${MONITOR_ROOT}/monitor-config_${port}.yaml"',
+            '  if [[ ! -f "${cfg}" ]]; then',
+            '    echo "skip missing ${cfg}"',
+            "    continue",
+            "  fi",
+            '  "${MONITOR_BIN}" clean -c "${cfg}"',
+            '  echo "cleaned monitor jobs for port ${port}"',
+            "done",
+            "",
+        ]
+    )
+
+
 def render_clean_data_dir_script(deploy_path: str) -> str:
     return _render(clean_mysql_dts_data_dir_template, deploy_path=deploy_path)
 
