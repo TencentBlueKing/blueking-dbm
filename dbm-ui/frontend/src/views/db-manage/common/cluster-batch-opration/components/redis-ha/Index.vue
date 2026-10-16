@@ -1,5 +1,5 @@
 <template>
-  <BkDropdownItem
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !extractTooltip || extractNoPermission,
       content: t('所选集群均已禁用'),
@@ -14,8 +14,8 @@
       @click="handleExtractClick">
       {{ t('提取Key') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !deleteKeyTooltip || deleteKeyNoPermission,
       content: t('所选集群均已禁用'),
@@ -30,8 +30,8 @@
       @click="handleDeleteKeyClick">
       {{ t('删除Key') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !backupTooltip || backupNoPermission,
       content: t('所选集群均已禁用'),
@@ -46,8 +46,8 @@
       @click="handleBackupClick">
       {{ t('备份') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !purgeTooltip || purgeNoPermission,
       content: t('所选集群均已禁用'),
@@ -62,8 +62,8 @@
       @click="handlePurgeClick">
       {{ t('清档') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.batchAddTag'">
+  </DbDropdownItem>
+  <DbDropdownItem v-db-console="'redis.haClusterManage.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
       :no-permission="tagNoPermission"
@@ -71,8 +71,8 @@
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.batchRemoveTag'">
+  </DbDropdownItem>
+  <DbDropdownItem v-db-console="'redis.haClusterManage.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
       :no-permission="tagNoPermission"
@@ -80,8 +80,8 @@
       @click="handleRemoveTagClick">
       {{ t('移除标签') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-if="isClusterTypeAlarmSupported"
     v-bk-tooltips="{
       disabled: !subscriptionTooltip || subscriptionNoPermission,
@@ -97,8 +97,8 @@
       @click="handleEditSubscriptionClick">
       {{ t('设置告警订阅') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-if="isClusterTypeAlarmSupported"
     v-bk-tooltips="{
       disabled: !subscriptionTooltip || subscriptionNoPermission,
@@ -114,8 +114,8 @@
       @click="handleDeleteSubscriptionClick">
       {{ t('删除告警订阅') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !disableTooltip || disableNoPermission,
       content: t('所选集群均已禁用'),
@@ -130,8 +130,8 @@
       @click="handleDisableClick">
       {{ t('禁用') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !enableTooltip || enableNoPermission,
       content: t('所选集群均已启用'),
@@ -146,8 +146,8 @@
       @click="handleEnableClick">
       {{ t('启用') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !deleteTooltip || deleteNoPermission,
       content: t('所选集群均未禁用'),
@@ -162,7 +162,7 @@
       @click="handleDeleteClick">
       {{ t('删除') }}
     </BatchOperationButton>
-  </BkDropdownItem>
+  </DbDropdownItem>
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
     :get-editable="(item) => item.permission?.redis_edit !== false"

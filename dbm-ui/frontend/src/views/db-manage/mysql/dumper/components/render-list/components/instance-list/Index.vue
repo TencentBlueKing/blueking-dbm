@@ -50,11 +50,7 @@
           disabled: hasSelected,
         }"
         class="inline-block">
-        <BkDropdown
-          :popover-options="{
-            clickContentAutoHide: true,
-          }"
-          trigger="click">
+        <DbDropdown :disabled="!hasSelected">
           <BkButton
             class="dropdown-button"
             :disabled="!hasSelected">
@@ -62,22 +58,22 @@
             <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
           <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem @click="handleCopyAll()">
+            <DbDropdownMenu>
+              <DbDropdownItem @click="handleCopyAll()">
                 {{ t('所有IP') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAll(true)">
+              </DbDropdownItem>
+              <DbDropdownItem @click="handleCopyAll(true)">
                 {{ t('所有实例') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopySelected()">
+              </DbDropdownItem>
+              <DbDropdownItem @click="handleCopySelected()">
                 {{ t('已选IP') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopySelected(true)">
+              </DbDropdownItem>
+              <DbDropdownItem @click="handleCopySelected(true)">
                 {{ t('已选实例') }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
+              </DbDropdownItem>
+            </DbDropdownMenu>
           </template>
-        </BkDropdown>
+        </DbDropdown>
       </span>
       <div class="instances-view-operations-right">
         <DbQuickSearch
@@ -779,7 +775,7 @@
     }
   }
 
-  .bk-dropdown-item {
+  .dbm-dropdown-item {
     &.is-disabled {
       color: @disable-color;
       cursor: not-allowed;
