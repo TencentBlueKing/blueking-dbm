@@ -223,7 +223,7 @@ def BuildEntrysManageSubflow(root_id, ticket_data, op_type: str, param: Dict) ->
     sub_process_name = ""
     for ce in cluster_enterys:
         if ce["forward_to_id"]:
-            # 有forward_to_id, 这这条记录不需要操作，只需要操作forward_to_id对应的记录
+            # 有 forward_to_id, 这这条记录不需要操作，只需要操作forward_to_id对应的记录
             continue
         param["entry"] = ce["entry"]
         param["bk_cloud_id"] = cluster.bk_cloud_id

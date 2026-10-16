@@ -1304,3 +1304,60 @@ class MySQLDBMeta(object):
 
         TenDBHAClusterHandler(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id).decommission()
         return True
+
+    def tendb_exchange_domain(self):
+        """
+        交换主从域名
+        """
+        with atomic():
+            src_cluster = Cluster.objects.get(id=self.cluster["source_cluster_id"])
+            dst_cluster = Cluster.objects.get(id=self.cluster["destination_cluster_id"])
+            source_master_entry = ClusterEntry.objects.get(id=self.cluster["source_master_entry_id"])
+            destination_master_entry = ClusterEntry.objects.get(id=self.cluster["destination_master_entry_id"])
+            src_cluster.immute_domain = self.cluster["destination_master_domain"]
+            dst_cluster.immute_domain = self.cluster["source_master_domain"]
+            src_cluster.save()
+            dst_cluster.save()
+            source_master_entry.entry = self.cluster["destination_master_domain"]
+            destination_master_entry.entry = self.cluster["source_master_domain"]
+            source_master_entry.save()
+            destination_master_entry.save()
+            if (
+                src_cluster.cluster_type == ClusterType.TENDBCLUSTER.value
+                or src_cluster.cluster_type == ClusterType.TenDBHA.value
+            ):
+                #  不一定有从库。。。
+                source_slave_entry = ClusterEntry.objects.get(id=self.cluster["source_slave_entry_id"])
+                destination_slave_entry = ClusterEntry.objects.get(id=self.cluster["destination_slave_entry_id"])
+                source_slave_entry.entry = self.cluster["destination_slave_domain"]
+                destination_slave_entry.entry = self.cluster["source_slave_domain"]
+                source_slave_entry.save()
+                destination_slave_entry.save()
+            return True
+
+    def tendb_exchange_clb(self):
+        with atomic():
+            src_cluster = Cluster.objects.get(id=self.cluster["source_cluster_id"])
+            dst_cluster = Cluster.objects.get(id=self.cluster["destination_cluster_id"])
+            ClusterEntry.objects.filter(
+                cluster=src_cluster,
+                cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
+                role=ClusterEntryRole.MASTER_ENTRY,
+            ).update(cluster_id=dst_cluster.id)
+            ClusterEntry.objects.filter(
+                cluster=dst_cluster,
+                cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
+                role=ClusterEntryRole.MASTER_ENTRY,
+            ).update(cluster_id=src_cluster.id)
+            if src_cluster.cluster_type == ClusterType.TENDBCLUSTER.value:
+                ClusterEntry.objects.filter(
+                    cluster=dst_cluster,
+                    cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
+                    role=ClusterEntryRole.SLAVE_ENTRY,
+                ).update(cluster_id=src_cluster.id)
+                ClusterEntry.objects.filter(
+                    cluster=src_cluster,
+                    cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
+                    role=ClusterEntryRole.SLAVE_ENTRY,
+                ).update(cluster_id=dst_cluster.id)
+            return True
