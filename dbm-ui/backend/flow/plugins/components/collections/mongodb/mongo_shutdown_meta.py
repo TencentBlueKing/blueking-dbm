@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 import logging.config
 import traceback
@@ -21,8 +22,9 @@ from pipeline.core.flow.activity import Service
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api import common
+from backend.db_meta.api.cluster.mongocluster.reduce_shard import machine_has_remaining_instance
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.cc_manage import CcManage
 
@@ -137,10 +139,10 @@ class MongosShutdownMetaService(BaseService):
 
                 machine_obj[proxy_obj.machine.ip] = proxy_obj.machine
 
-                # 需要检查， 是否该机器上所有实例都已经清理干净，
-                if ProxyInstance.objects.filter(
-                    machine__ip=proxy_obj.machine.ip, bk_biz_id=cluster.bk_biz_id
-                ).exists():
+                # Proxy 与 Storage 任一还在，都不能回收这台机器
+                if machine_has_remaining_instance(
+                    proxy_obj.machine.ip, cluster.bk_biz_id, proxy_obj.machine.bk_cloud_id
+                ):
                     logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
                 else:
                     logger.info("proxy machine {}".format(proxy_obj.machine))
@@ -170,11 +172,9 @@ class MongosShutdownMetaService(BaseService):
                 logger.info("remove storage instance {} ".format(storage_obj))
                 storage_obj.delete()
 
-            # 需要检查， 是否该机器上所有实例都已经清理干净，
+            # Proxy 与 Storage 任一还在，都不能回收这台机器
             for machine in machines:
-                if StorageInstance.objects.filter(
-                    machine__ip=machine.ip, bk_biz_id=cluster.bk_biz_id, machine__bk_cloud_id=cluster.bk_cloud_id
-                ).exists():
+                if machine_has_remaining_instance(machine.ip, cluster.bk_biz_id, cluster.bk_cloud_id):
                     logger.info("ignore storage machine {} , another instance existed.".format(machine))
                 else:
                     logger.info("storage machine {} ".format(machine))

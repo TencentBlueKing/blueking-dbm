@@ -2064,7 +2064,7 @@ class ActKwargs:
                     "port": port,
                     "domain": domain,
                     "spec_id": add_shard_node["spec"]["id"],
-                    "sepc_config": add_shard_node["spec"],
+                    "spec_config": add_shard_node["spec"],
                     "reuse_machine": reuse_machine,
                 }
                 self.payload["replicaset_set"].append(db_instance)
@@ -2136,7 +2136,7 @@ class ActKwargs:
                                 "port": port,
                                 "domain": "",
                                 "spec_id": host["spec"]["id"],
-                                "sepc_config": host["spec"],
+                                "spec_config": host["spec"],
                                 "reuse_machine": reuse_machine,
                             }
                         )
@@ -2678,6 +2678,32 @@ class ActKwargs:
             },
         }
 
+    @staticmethod
+    def add_shard_machine_specs(resource_spec: Optional[dict]) -> dict:
+        """规格写成 create_mongo_mutil_instances 要的 machine_specs['mongodb']。
+
+        增加分片的 resource_spec 在资源申请后是 get_spec_info()：键为 id，没有 spec_id / spec_config。
+        角色也可能是 mongodb_0。缺这两项时 meta 会把 spec_id 写成 0。
+        """
+        if not isinstance(resource_spec, dict):
+            logger.warning("add shard: unexpected resource_spec type=%s", type(resource_spec).__name__)
+            return {}
+        role_spec = resource_spec.get("mongodb")
+        if not isinstance(role_spec, dict):
+            role_spec = None
+            # 增加分片各机器组来自同一份 mongodb 规格，因此只需取首组。
+            for role, spec in resource_spec.items():
+                if isinstance(role, str) and role.startswith("mongodb_") and isinstance(spec, dict):
+                    role_spec = spec
+                    break
+        if not isinstance(role_spec, dict):
+            logger.warning("add shard: unexpected resource_spec keys=%s", list(resource_spec))
+            return {}
+        if role_spec.get("spec_id") and isinstance(role_spec.get("spec_config"), dict):
+            return {"mongodb": {"spec_id": role_spec["spec_id"], "spec_config": role_spec["spec_config"]}}
+        spec_id = role_spec.get("id") or role_spec.get("spec_id") or 0
+        return {"mongodb": {"spec_id": spec_id, "spec_config": role_spec}}
+
     def get_add_shard_to_meta_kwargs(self, info: dict) -> dict:
         """分片集群新增shard添加关系到meta的kwargs"""
 
@@ -2712,7 +2738,7 @@ class ActKwargs:
             "creator": self.payload["created_by"],
             "storages": storages,
             "bk_cloud_id": self.payload["hosts"][0]["bk_cloud_id"],
-            "machine_specs": info["resource_spec"],  # {"shard_nodes": {"spec_id": 10, "count": 1}}
+            "machine_specs": self.add_shard_machine_specs(info.get("resource_spec")),
         }
 
     def calc_param_migrate(self, info: dict, instance_num: int):

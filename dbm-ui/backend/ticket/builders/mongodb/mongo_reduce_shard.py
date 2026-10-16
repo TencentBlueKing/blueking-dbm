@@ -8,14 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.flow.utils.mongodb.calculate_cluster import collect_reduce_shard_recycle_hosts
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoShardedTicketFlowBuilder
+from backend.ticket.builders.mongodb.base import (
+    BaseMongoDBOperateDetailSerializer,
+    BaseMongoShardedTicketFlowBuilder,
+    assign_recycle_hosts,
+)
 from backend.ticket.constants import TicketType
 
 REDUCE_MODE_BY_SHARD_NAMES = "by_shard_names"
@@ -75,3 +81,12 @@ class MongoDBReduceShardFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBReduceShardDetailSerializer
     inner_flow_builder = MongoDBReduceShardFlowParamBuilder
     inner_flow_name = _("MongoDB 分片集群减少分片")
+    # 下架主机在 patch_ticket_detail 里按空机写入，避免基类再按 old_nodes 打一次 CMDB
+    need_patch_recycle_host_details = False
+
+    def patch_ticket_detail(self):
+        # 仅整机清空的主机进入下架单；机器上仍有实例时不回收
+        hosts = collect_reduce_shard_recycle_hosts(self.ticket.bk_biz_id, self.ticket.details.get("infos") or [])
+        self.ticket.details["old_nodes"] = {"reduced_shard_hosts": hosts}
+        assign_recycle_hosts(self.ticket.details, hosts)
+        super().patch_ticket_detail()
