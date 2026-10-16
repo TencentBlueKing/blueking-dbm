@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import pinyin from 'tiny-pinyin';
+import { pinyin } from 'pinyin-pro';
 
 import type { BizItem } from '@services/types';
 
@@ -28,13 +28,14 @@ export function getBizs(params = {} as { action: string }) {
     res.map((item: BizItem) => {
       const biz = { ...item };
       biz.display_name = item.name;
-      const parseName = pinyin.parse(item.name);
+      // 保持与原 tiny-pinyin 输出一致：汉字转大写拼音，非汉字保留原文
+      const parseName = pinyin(item.name, { toneType: 'none', type: 'all' });
       const names = [];
       const heads = [];
       for (const word of parseName) {
-        const { target, type } = word;
-        names.push(target);
-        heads.push(type === 2 ? target[0] : target);
+        const { first, isZh, origin } = word;
+        names.push(isZh ? word.pinyin.toUpperCase() : origin);
+        heads.push(isZh ? first.toUpperCase() : origin);
       }
       biz.pinyin_head = heads.join('');
       biz.pinyin_name = names.join('');
