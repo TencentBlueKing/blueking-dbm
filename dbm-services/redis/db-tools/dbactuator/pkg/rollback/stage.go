@@ -14,78 +14,79 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
-const recoverSubDir = "dbbak/recover_redis"
+const (
+	recoverSubDir = "dbbak/recover_redis"
+	unpackSubDir  = "recover_redis"
+)
 
 var compressedSuffixes = []string{".zst", ".gz", ".lzo", ".tar", ".tgz"}
 
+// resolveFiles finds inst's full backup files by their exact names. The verify node has already
+// checked every planned file is there, so no other file of the source instance may stand in.
 func resolveFiles(saveDir string, inst InstanceRestore) ([]string, error) {
-	if len(inst.FullFiles) > 0 {
-		var found []string
-		for _, name := range inst.FullFiles {
-			base := filepath.Base(name)
-			p := filepath.Join(saveDir, base)
-			if util.FileExists(p) {
-				found = append(found, p)
-				continue
-			}
-			matches, _ := filepath.Glob(filepath.Join(saveDir, "*"+base+"*"))
-			found = append(found, matches...)
+	var found, missing []string
+	for _, name := range inst.FullFiles {
+		p := filepath.Join(saveDir, filepath.Base(name))
+		if util.FileExists(p) {
+			found = append(found, p)
+			continue
 		}
-		if len(found) == 0 {
-			return nil, fmt.Errorf("no backup files for %s:%d in %s", inst.SourceIP, inst.SourcePort, saveDir)
-		}
-		return uniq(found), nil
+		missing = append(missing, filepath.Base(name))
 	}
-	pattern := fmt.Sprintf("*%s-%d*", inst.SourceIP, inst.SourcePort)
-	matches, err := filepath.Glob(filepath.Join(saveDir, pattern))
-	if err != nil || len(matches) == 0 {
-		return nil, fmt.Errorf("scan backup dir %s for %s:%d failed: %v", saveDir, inst.SourceIP, inst.SourcePort, err)
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("backup files of %s:%d missing in %s: %v", inst.SourceIP, inst.SourcePort,
+			saveDir, missing)
 	}
-	return matches, nil
-}
-
-// stageWorkDir names the per-backup unpack directory from the first (sorted) backup file.
-func stageWorkDir(saveDir, first string) string {
-	if strings.Contains(first, ".split.") {
-		return filepath.Join(saveDir, strings.Split(first, ".split")[0])
+	if len(found) == 0 {
+		return nil, fmt.Errorf("no backup files planned for %s:%d", inst.SourceIP, inst.SourcePort)
 	}
-	prefix := first
-	for _, ext := range compressedSuffixes {
-		prefix = strings.TrimSuffix(prefix, ext)
-	}
-	if prefix == first {
-		prefix = strings.TrimSuffix(first, filepath.Ext(first))
-	}
-	return filepath.Join(saveDir, prefix)
+	return uniq(found), nil
 }
 
 func runStageCmd(cmd string) error {
-	_, err := util.RunLocalCmd("bash", []string{"-c", cmd}, "", nil, 1800*time.Second)
-	return err
+	out, err := util.RunLocalCmd("bash", []string{"-c", cmd}, "", nil, 1800*time.Second)
+	if err != nil {
+		return fmt.Errorf("%v %s", err, out)
+	}
+	return nil
 }
 
-// unpackBackup unpacks straight from the downloaded files into their work dir. The download is
-// never copied, and stays in place so a retry can stage it again.
-func unpackBackup(saveDir string, files []string) (workDir string, err error) {
+// corrupted marks an unpack failure as a broken backup, apart from restore, start or replay failures.
+func corrupted(name string, err error) error {
+	return fmt.Errorf("backup file corrupted (备份文件损坏): %s: %v", name, err)
+}
+
+// unpackBackup unpacks the downloaded files into workDir, which starts empty so a retry never
+// picks up a previous attempt's leftovers. The downloads stay in place for retries.
+func unpackBackup(files []string, workDir string) error {
 	sort.Strings(files)
 	first := filepath.Base(files[0])
-	workDir = stageWorkDir(saveDir, first)
-	if err = os.MkdirAll(workDir, 0755); err != nil {
-		return
+	if err := os.RemoveAll(workDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(workDir, 0755); err != nil {
+		return err
 	}
 
+	if err := requireTools(first); err != nil {
+		return err
+	}
 	src := files[0]
+	var err error
 	switch {
 	case strings.Contains(first, ".split."):
-		prefix := strings.Split(first, ".split")[0]
-		err = runStageCmd(fmt.Sprintf("cd %s && cat %s.split.* | tar x -C %s", saveDir, prefix, workDir))
+		quoted := make([]string, len(files))
+		for i, f := range files {
+			quoted[i] = "'" + f + "'"
+		}
+		err = runStageCmd(fmt.Sprintf("cat %s | tar x -C %s", strings.Join(quoted, " "), workDir))
 	case strings.HasSuffix(first, ".tar.gz") || strings.HasSuffix(first, ".tgz"):
 		err = runStageCmd(fmt.Sprintf("tar -xzf %s -C %s", src, workDir))
 	case strings.HasSuffix(first, ".tar"):
@@ -93,11 +94,14 @@ func unpackBackup(saveDir string, files []string) (workDir string, err error) {
 	default:
 		err = decompressFile(src, filepath.Join(workDir, first))
 	}
-	return
+	if err != nil {
+		return corrupted(first, err)
+	}
+	return nil
 }
 
 // decompressFile writes src decompressed to dst minus its compression suffix, keeping src.
-// Uncompressed files are hard linked so a later mv out of the work dir keeps the download.
+// Uncompressed files are hard linked when on the same filesystem, otherwise copied.
 func decompressFile(src, dst string) error {
 	switch {
 	case strings.HasSuffix(dst, ".zst"):
@@ -121,6 +125,18 @@ func decompressFile(src, dst string) error {
 	}
 }
 
+// requireTools fails on a missing decompressor before unpacking, so it is not blamed on the backup.
+func requireTools(name string) error {
+	for suffix, bin := range map[string]string{".zst": consts.ZstdBin, ".lzo": consts.LzopBin} {
+		if strings.Contains(name, suffix) {
+			if _, err := os.Stat(bin); err != nil {
+				return fmt.Errorf("%s not found: %s", strings.TrimPrefix(suffix, "."), bin)
+			}
+		}
+	}
+	return nil
+}
+
 func isCompressed(name string) bool {
 	for _, ext := range compressedSuffixes {
 		if strings.HasSuffix(name, ext) {
@@ -130,30 +146,64 @@ func isCompressed(name string) bool {
 	return false
 }
 
+// sameDeviceFn is replaced in tests, which cannot mount a second filesystem.
+var sameDeviceFn = sameDevice
+
+// sameDevice compares the filesystems holding two existing paths.
+func sameDevice(a, b string) (bool, error) {
+	sa, err := os.Stat(a)
+	if err != nil {
+		return false, err
+	}
+	sb, err := os.Stat(b)
+	if err != nil {
+		return false, err
+	}
+	da, okA := sa.Sys().(*syscall.Stat_t)
+	db, okB := sb.Sys().(*syscall.Stat_t)
+	if !okA || !okB {
+		return false, fmt.Errorf("no device number for %s or %s", a, b)
+	}
+	return uint64(da.Dev) == uint64(db.Dev), nil
+}
+
+// placeFile moves src to dst: a rename when both are on one filesystem, decided up front from
+// their device numbers, otherwise a copy, which the log explains.
+func placeFile(log portLog, src, dst string) error {
+	same, err := sameDeviceFn(filepath.Dir(src), filepath.Dir(dst))
+	if err == nil && same {
+		return os.Rename(src, dst)
+	}
+	if err != nil {
+		log.Warn("cannot compare filesystems of %s and %s (%v), copying", src, dst, err)
+	} else {
+		log.Warn("%s and %s are on different filesystems, copying", src, dst)
+	}
+	if err = runStageCmd(fmt.Sprintf("cp -f %s %s", src, dst)); err != nil {
+		return err
+	}
+	return os.Remove(src)
+}
+
 // CleanupStaged removes a completed port's unpack directory and its downloaded full-backup files.
-func CleanupStaged(saveDir string, inst InstanceRestore) error {
+func CleanupStaged(saveDir, workDir string, inst InstanceRestore) error {
 	if len(inst.FullFiles) == 0 {
 		return nil
 	}
 	if saveDir == "" {
 		saveDir = DefaultSaveDir()
 	}
-	files, err := resolveFiles(saveDir, inst)
-	if err != nil {
+	if err := os.RemoveAll(workDir); err != nil {
 		return err
 	}
-	sort.Strings(files)
-	if err = os.RemoveAll(stageWorkDir(saveDir, filepath.Base(files[0]))); err != nil {
-		return err
-	}
-	for _, f := range files {
+	for _, name := range inst.FullFiles {
+		f := filepath.Join(saveDir, filepath.Base(name))
 		if st, statErr := os.Stat(f); statErr == nil && !st.IsDir() {
-			if err = os.Remove(f); err != nil {
+			if err := os.Remove(f); err != nil {
 				return err
 			}
 		}
 	}
-	mylog.Logger.Info("cleaned staged backup for dest_port=%d", inst.DestPort)
 	return nil
 }
 

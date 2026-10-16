@@ -248,6 +248,13 @@ def test_single_shard_with_batch_returns_every_batch_shard(batch):
     assert len(result["warnings"]) == 1
 
 
+def test_route_with_missing_identify_raises(batch):
+    batch()
+    with pytest.raises(RollbackPlanError) as exc:
+        _twemproxy().route(["user:1"], backup_identify="SCHEDULED-MISSING")
+    assert "SCHEDULED-MISSING" in str(exc.value.message)
+
+
 def test_one_failing_key_does_not_affect_the_others():
     results = _by_key(_twemproxy().route(["user:1", "boom", "other"]))
 

@@ -158,9 +158,11 @@ def test_locate_binlogs_reads_table_for_the_source_instance_only():
             backup_begin_time=T0,
         ),
     ]
+    locator = _locator()
+    locator._esquery = MagicMock(return_value=[])
     with patch("backend.db_services.redis.rollback.locator.RedisBinlogResult") as model:
         model.objects.using.return_value.filter.return_value = rows
-        records = _locator().locate_binlogs("1.1.1.1", 30000, T0, RECOVER_AT)
+        records = locator.locate_binlogs("1.1.1.1", 30000, T0, RECOVER_AT)
 
     query = model.objects.using.return_value.filter.call_args.kwargs
     assert (query["backup_host"], query["backup_port"]) == ("1.1.1.1", 30000)
@@ -170,7 +172,7 @@ def test_locate_binlogs_reads_table_for_the_source_instance_only():
     ]
 
 
-def test_locate_binlogs_falls_back_to_bklog_and_keeps_the_window():
+def test_locate_binlogs_reads_bklog_and_keeps_the_window():
     locator = _locator()
     logs = [
         {
@@ -316,3 +318,146 @@ def test_cache_cluster_skips_binlog_lookup(backup_files_still_present):
     planner.locator.locate_binlogs.assert_not_called()
     assert plan.items[0].binlog_files == []
     assert "binlog" not in plan.to_rollback_detail()["shards"][0]
+
+
+# --- by_identify with an explicit recovery_time_point -----------------------------
+
+
+def test_ssd_identify_replays_binlogs_up_to_a_later_time(backup_files_still_present):
+    target = RECOVER_AT + timedelta(minutes=30)
+    planner = _ssd_planner(_chain(*FULL_CHAIN), recovery_time_point=target.isoformat())
+    plan = planner.build(pack=False)
+
+    assert plan.recover_at == target
+    assert planner.locator.locate_binlogs.call_args.args[3] == target
+    assert [b.index for b in plan.items[0].binlog_files] == [2, 3, 4, 5, 6]
+
+
+def test_ssd_time_before_full_end_fails_without_binlog_lookup(backup_files_still_present):
+    target = RECOVER_AT - timedelta(minutes=10)
+    planner = _ssd_planner(_chain(*FULL_CHAIN), recovery_time_point=target.isoformat())
+    result = planner.precheck()
+
+    assert result["exist"] is False
+    error = result["shards"][0]["errors"][0]
+    assert "0-419999" in error and "早于" in error and "少于 2" not in error
+    planner.locator.locate_binlogs.assert_not_called()
+    with pytest.raises(RollbackPlanError):
+        planner.build(pack=False)
+
+
+def test_ssd_full_without_end_time_is_bounded_by_its_begin_time(backup_files_still_present):
+    planner = _ssd_planner(_chain(*FULL_CHAIN), recovery_time_point=(T0 + timedelta(minutes=5)).isoformat())
+    planner.locator.locate_full_by_identify.return_value[0]["backup_end_time"] = ""
+    assert planner.precheck()["exist"] is True
+
+    planner = _ssd_planner(_chain(*FULL_CHAIN), recovery_time_point=(T0 - timedelta(minutes=5)).isoformat())
+    planner.locator.locate_full_by_identify.return_value[0]["backup_end_time"] = ""
+    assert "早于" in planner.precheck()["shards"][0]["errors"][0]
+
+
+def test_cache_identify_ignores_recovery_time_point(backup_files_still_present):
+    planner = _ssd_planner(
+        [],
+        cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
+        recovery_time_point=(RECOVER_AT + timedelta(hours=1)).isoformat(),
+    )
+    plan = planner.build(pack=False)
+
+    assert plan.recover_at == RECOVER_AT
+    assert any("recovery_time_point" in warning for warning in plan.warnings)
+    planner.locator.locate_binlogs.assert_not_called()
+
+
+def test_invalid_recovery_time_point_is_a_plan_error():
+    planner = _ssd_planner(_chain(*FULL_CHAIN), recovery_time_point="not-a-time")
+    result = planner.precheck()
+
+    assert result["exist"] is False
+    assert any("recovery_time_point" in error for error in result["errors"])
+    planner.locator.locate_full_by_identify.assert_not_called()
+    planner.locator.locate_binlogs.assert_not_called()
+
+
+# --- binlog lookups run a few shards at a time, results stay in shard order -------
+
+
+def _ssd_multi_planner(shard_count, locate_binlogs, **info):
+    planner = _ssd_planner([], **info)
+    records = []
+    for i in range(shard_count):
+        port = 30000 + i
+        file_name = "3-TENDISSSD-FULL-slave-1.1.1.1-{}-20260101-010000-9.tar".format(port)
+        records.append(
+            {
+                "shard_value": "{}-{}".format(i * 1000, i * 1000 + 999),
+                "source_ip": "1.1.1.1",
+                "server_port": port,
+                "file_name": file_name,
+                "task_id": "full-task-{}".format(i),
+                "size": 100,
+                "backup_identify": "SCHEDULED-1",
+                "backup_begin_time": T0.isoformat(),
+                "backup_end_time": RECOVER_AT.isoformat(),
+                "round_key": round_key_from_filename(file_name),
+            }
+        )
+    planner.locator.locate_full_by_identify = MagicMock(return_value=records)
+    planner.locator.locate_binlogs = locate_binlogs
+    return planner
+
+
+def test_binlog_lookups_are_bounded_and_results_keep_shard_order(backup_files_still_present):
+    import threading
+    import time
+
+    from backend.db_services.redis.rollback.constants import BINLOG_LOCATE_CONCURRENCY
+
+    lock, running, peak = threading.Lock(), [0], [0]
+
+    def locate(source_ip, source_port, full_start, recover_at):
+        with lock:
+            running[0] += 1
+            peak[0] = max(peak[0], running[0])
+        # later ports answer first, so completion order is the reverse of shard order
+        time.sleep(0.002 * (30012 - source_port))
+        with lock:
+            running[0] -= 1
+        chain = GAPPED_CHAIN if source_port % 2 else FULL_CHAIN
+        return [_binlog(index, minutes, port=source_port) for index, minutes in chain]
+
+    planner = _ssd_multi_planner(12, locate, allow_binlog_nonconsecutive=True)
+    with patch("backend.flow.engine.bamboo.scene.redis.redis_rollback.planner.connections") as conns:
+        result = planner.precheck()
+
+    assert 1 < peak[0] <= BINLOG_LOCATE_CONCURRENCY
+    assert conns.close_all.call_count == 12
+    shards = result["shards"]
+    assert len(shards) == 12
+    # warnings follow the shard list, not the order the lookups finished in
+    # each shard got the chain of its own source instance: odd ports were given the gapped one
+    assert [bool(s["binlog_gaps"]) for s in shards] == [bool(s["source_port"] % 2) for s in shards]
+    gapped = [s["shard_value"] for s in shards if s["binlog_gaps"]]
+    gap_warnings = [w for w in result["warnings"] if "allow_binlog_nonconsecutive" in w]
+    assert [w.split(" ")[1] for w in gap_warnings] == gapped
+
+
+def test_binlog_chain_errors_keep_shard_order(backup_files_still_present):
+    def locate(source_ip, source_port, full_start, recover_at):
+        return [_binlog(index, minutes, port=source_port) for index, minutes in GAPPED_CHAIN]
+
+    with patch("backend.flow.engine.bamboo.scene.redis.redis_rollback.planner.connections"):
+        result = _ssd_multi_planner(6, locate).precheck()
+    assert result["exist"] is False
+    assert [s["errors"][0].split(" ")[1] for s in result["shards"]] == [s["shard_value"] for s in result["shards"]]
+
+
+def test_binlog_lookup_failure_still_closes_the_worker_connection(backup_files_still_present):
+    locate = MagicMock(side_effect=RuntimeError("report_db down"))
+    planner = _ssd_multi_planner(4, locate)
+    with patch("backend.flow.engine.bamboo.scene.redis.redis_rollback.planner.connections") as conns:
+        result = planner.precheck()
+    assert result["exist"] is False
+    # lookups not yet started are cancelled; every one that ran closed its connections
+    assert locate.call_count >= 1
+    assert conns.close_all.call_count == locate.call_count

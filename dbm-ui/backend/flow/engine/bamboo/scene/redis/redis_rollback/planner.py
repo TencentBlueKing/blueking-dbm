@@ -9,16 +9,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import heapq
 import logging
+import math
 from collections import OrderedDict, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
+from django.db import connections
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Spec
 from backend.db_services.redis.rollback.backup_presence import confirm_backup_tasks
 from backend.db_services.redis.rollback.batches import (
     describe_records,
@@ -30,6 +34,9 @@ from backend.db_services.redis.rollback.batches import (
 from backend.db_services.redis.rollback.binlogs import select_binlog_chain
 from backend.db_services.redis.rollback.constants import (
     BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
+    BINLOG_LOCATE_CONCURRENCY,
+    CACHE_CLUSTER_TYPES,
+    CPU_PER_INSTANCE_HINT,
     ROLLBACK_CLUSTER_TYPES,
     SCOPE_CLUSTER,
     SCOPE_INSTANCES,
@@ -37,7 +44,6 @@ from backend.db_services.redis.rollback.constants import (
     SELECT_MODE_BY_TASK_ID,
     SELECT_MODE_BY_TIME,
     SSD_CLUSTER_TYPES,
-    UNPACK_RATIO,
     infer_select_mode,
 )
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
@@ -57,9 +63,12 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     FullBackupRef,
     RollbackItem,
     RollbackPlan,
+    load_memory,
+    memory_budget,
 )
 from backend.flow.utils.redis.redis_cluster_nodes import convert_slot_to_str
-from backend.utils.time import str2datetime
+from backend.utils.string import format_size
+from backend.utils.time import datetime2str, str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -96,6 +105,28 @@ def _message_of(exc: RollbackPlanError, default: str = "") -> str:
     return str(getattr(exc, "message", None) or default or _("回档计划校验失败"))
 
 
+def balance_hosts(real: Sequence, placeholders: Sequence, host_count: int, size: Callable[[Any], int]) -> List[list]:
+    """Real shards, already largest first, go to the least-loaded host so download and restore
+    time is balanced; placeholders carry no data and only even out port counts.
+
+    Packing and the ticket-time estimates share it, so an estimate describes the real layout.
+    """
+    buckets: List[list] = [[] for _ in range(host_count)]
+    # (load, ports, index): ties go to the host with fewer ports, then the lower index.
+    hosts = [(0, 0, index) for index in range(host_count)]
+    for item in real:
+        load, ports, index = heapq.heappop(hosts)
+        buckets[index].append(item)
+        heapq.heappush(hosts, (load + size(item), ports + 1, index))
+    by_ports = [(len(bucket), index) for index, bucket in enumerate(buckets)]
+    heapq.heapify(by_ports)
+    for item in placeholders:
+        ports, index = heapq.heappop(by_ports)
+        buckets[index].append(item)
+        heapq.heappush(by_ports, (ports + 1, index))
+    return buckets
+
+
 def host_count_error(host_count: int, restore_count: int) -> Optional[str]:
     """Ensures host count does not exceed shards to be restored.
 
@@ -122,7 +153,6 @@ class ShardEval:
     source_is_current: bool = False
     in_current_topology: bool = False
     is_placeholder: bool = False
-    # Gate C chain in index order; empty for Cache.
     binlogs: List[dict] = field(default_factory=list)
     binlog_gaps: Optional[Dict[str, Any]] = None
     errors: List[str] = field(default_factory=list)
@@ -136,6 +166,14 @@ class ShardEval:
         if self.is_placeholder or not self.round_files:
             return []
         return [str(f.get("task_id") or "") for f in self.round_files] + [b["task_id"] for b in self.binlogs]
+
+    @property
+    def download_bytes(self) -> int:
+        return sum(int(f.get("size") or 0) for f in self.round_files) + sum(int(b["size"] or 0) for b in self.binlogs)
+
+    @property
+    def memory_bytes(self) -> int:
+        return load_memory((f.get("file_name") or "", int(f.get("size") or 0)) for f in self.round_files)
 
 
 @dataclass
@@ -228,6 +266,7 @@ class RollbackPlanner:
             items=items,
             allow_binlog_nonconsecutive=self.allow_binlog_nonconsecutive,
             warnings=list(evaluation.warnings),
+            max_concurrency=int(self.info.get("max_concurrency") or 0),
         )
         if pack:
             dest_ips = list(dest_ips or [])
@@ -247,9 +286,11 @@ class RollbackPlanner:
             "warnings": [],
             "shards": [],
             "binlog_nonconsecutive": False,
+            "estimate": {"capacity": None, "stages": []},
         }
         try:
             evaluation = self._evaluate()
+            capacity = self._capacity(evaluation)
         except Exception:  # pylint: disable=broad-except
             logger.exception("redis rollback precheck failed cluster_id=%s", self.cluster.id)
             result["errors"].append(str(_("回档预检失败，请联系管理员")))
@@ -257,6 +298,22 @@ class RollbackPlanner:
 
         result["errors"] = list(evaluation.errors)
         result["warnings"] = list(evaluation.warnings)
+        if capacity:
+            result["estimate"]["capacity"] = capacity
+            if capacity["cpu_per_instance"] < CPU_PER_INSTANCE_HINT:
+                result["warnings"].append(
+                    str(
+                        _(
+                            "{host_count} 台主机、每台 {cpu} 核，负载最重的主机有 {instances} 个实例，每实例 {per} 核，不足 {hint} 核，解压与恢复可能排队"
+                        ).format(
+                            host_count=capacity["host_count"],
+                            cpu=capacity["cpu_per_host"],
+                            instances=capacity["max_instances_per_host"],
+                            per=capacity["cpu_per_instance"],
+                            hint=CPU_PER_INSTANCE_HINT,
+                        )
+                    )
+                )
         result["shards"] = [self._shard_detail(shard) for shard in evaluation.shards]
         result["binlog_nonconsecutive"] = evaluation.binlog_nonconsecutive
         result["exist"] = evaluation.ok
@@ -341,11 +398,12 @@ class RollbackPlanner:
 
         try:
             evaluation.select_mode = infer_select_mode(self.info)
+            explicit_recover_at = self._explicit_recover_at()
             (
                 evaluation.batch_records,
                 evaluation.recover_at,
                 evaluation.backup_identify,
-            ) = self._select_records(evaluation.select_mode)
+            ) = self._select_records(evaluation.select_mode, explicit_recover_at)
             shard_values = self._shard_selections()
         except RollbackPlanError as exc:
             evaluation.errors.append(_message_of(exc))
@@ -386,12 +444,13 @@ class RollbackPlanner:
             )
 
         if evaluation.select_mode != SELECT_MODE_BY_TIME:
-            self._resolve_recover_at(evaluation)
-        if self.cluster.cluster_type in SSD_CLUSTER_TYPES:
+            self._resolve_recover_at(evaluation, explicit_recover_at)
+        if self._replays_binlog:
             self._check_binlog_chains(evaluation)
         self._confirm_backup_presence(evaluation)
         self._check_layout(evaluation, needs_routing)
         self._check_host_count(evaluation)
+        self._check_memory(evaluation)
         return evaluation
 
     def _evaluate_shard(
@@ -465,9 +524,15 @@ class RollbackPlanner:
         ]
 
     def _check_binlog_chains(self, evaluation: PlanEval) -> None:
-        """Gate C: each restored shard needs an unbroken binlog chain from its own source instance."""
+        """Each restored shard needs an unbroken binlog chain from its own source instance.
+
+        Binlogs are fetched a few shards at a time, as each shard costs a report_db query and a
+        BKLog search; the chains are then checked in shard order so messages come out stable.
+        """
         if evaluation.recover_at is None:
             return
+        recover_at = evaluation.recover_at
+        pending = []
         for shard in evaluation.shards:
             if not shard.ok:
                 continue
@@ -476,13 +541,41 @@ class RollbackPlanner:
             if not starts:
                 shard.errors.append(str(_("分片 {} 无法确定全备开始时间").format(shard.shard_value)))
                 continue
-            full_start = min(starts)
-            binlogs = self.locator.locate_binlogs(
-                shard.source_ip, shard.source_port, full_start, evaluation.recover_at
-            )
+            # A snapshot already holds every write up to its end, so it cannot be wound back to an earlier time.
+            ends = [
+                _parse_dt(f.get("backup_end_time") or f.get("uptime"))
+                or _parse_dt(f.get("backup_begin_time") or f.get("file_last_mtime"))
+                for f in shard.round_files
+            ]
+            full_end = max(end for end in ends if end)
+            if recover_at < full_end:
+                shard.errors.append(
+                    str(
+                        _("分片 {} 回档时刻 {} 早于该分片全备完成时间 {}，请选择不早于全备完成时间的时刻").format(
+                            shard.shard_value, datetime2str(recover_at), datetime2str(full_end)
+                        )
+                    )
+                )
+                continue
+            pending.append((shard, min(starts)))
+        if not pending:
+            return
+
+        def _fetch(job):
+            shard, full_start = job
+            try:
+                return self.locator.locate_binlogs(shard.source_ip, shard.source_port, full_start, recover_at)
+            finally:
+                # Connections are per thread: close the ones this worker opened before it goes away.
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=min(BINLOG_LOCATE_CONCURRENCY, len(pending))) as pool:
+            fetched = list(pool.map(_fetch, pending))
+
+        for (shard, full_start), binlogs in zip(pending, fetched):
             try:
                 shard.binlogs, shard.binlog_gaps = select_binlog_chain(
-                    binlogs, full_start, evaluation.recover_at, self.allow_binlog_nonconsecutive
+                    binlogs, full_start, recover_at, self.allow_binlog_nonconsecutive
                 )
             except RollbackPlanError as exc:
                 shard.errors.append(
@@ -555,8 +648,104 @@ class RollbackPlanner:
         if message:
             evaluation.errors.append(message)
 
-    def _resolve_recover_at(self, evaluation: PlanEval) -> None:
-        """by_identify / by_task_id take the target time from the rounds actually chosen."""
+    @staticmethod
+    def _real_shards(evaluation: PlanEval) -> List[ShardEval]:
+        """Shards that receive data, in the order packing assigns them."""
+        return sorted(
+            (shard for shard in evaluation.shards if shard.ok),
+            key=lambda shard: (-shard.download_bytes, shard.source_ip, shard.source_port),
+        )
+
+    def _simulate(self, evaluation: PlanEval, host_count: int) -> List[List[ShardEval]]:
+        """Packing without IPs, real shards only."""
+        return balance_hosts(self._real_shards(evaluation), [], host_count, lambda shard: shard.download_bytes)
+
+    def _spec(self) -> Optional[Spec]:
+        """Tickets and precheck send ``spec_id``; the flow sees the pool-expanded spec keyed by ``id``."""
+        resource_spec = (self.info.get("resource_spec") or {}).get("redis") or {}
+        spec_id = resource_spec.get("spec_id") or resource_spec.get("id")
+        if not spec_id:
+            return None
+        return Spec.objects.filter(spec_id=spec_id).first()
+
+    def _check_memory(self, evaluation: PlanEval) -> None:
+        """Cache only: the busiest host must hold its shards in memory. SSD data stays on disk.
+
+        The spec's lower memory bound is the only one the resource pool guarantees; a spec matched
+        by device class may differ, which the precheck on the real host settles.
+        """
+        if self.cluster.cluster_type not in CACHE_CLUSTER_TYPES or evaluation.errors:
+            return
+        host_count = self._host_count([])
+        spec = self._spec()
+        mem_gb = float((spec.mem or {}).get("min") or 0) if spec else 0
+        real = self._real_shards(evaluation)
+        if not host_count or not mem_gb or not real or host_count > len(real):
+            return
+
+        limit = memory_budget(int(mem_gb * 1024**3))
+        downloads = [shard.download_bytes for shard in real]
+        memory = [shard.memory_bytes for shard in real]
+
+        def busiest(count: int) -> int:
+            buckets = balance_hosts(range(len(real)), [], count, downloads.__getitem__)
+            return max(sum(memory[i] for i in bucket) for bucket in buckets)
+
+        need = busiest(host_count)
+        if need <= limit:
+            return
+        if max(memory) > limit:
+            hint = _("单分片已超过规格内存，请换更大内存的规格")
+        else:
+            hint = _("至少需要 {} 台").format(self._fewest_hosts(busiest, limit, host_count, sum(memory), len(real)))
+        evaluation.errors.append(
+            str(_("按规格内存 {}G 估算，{} 台主机中负载最重的一台需要约 {} 内存，{}").format(mem_gb, host_count, format_size(need), hint))
+        )
+
+    @staticmethod
+    def _fewest_hosts(busiest: Callable[[int], int], limit: int, host_count: int, total: int, shards: int) -> int:
+        """A host count whose busiest host fits ``limit``, when every shard fits on its own.
+
+        One shard per host always fits, and no fewer than ``total / limit`` hosts can. Packing
+        balances download bytes rather than memory, so the busiest host does not strictly shrink
+        with more hosts and the search may land a host above the least count, never on one that
+        does not fit.
+        """
+        low, high = max(host_count + 1, math.ceil(total / limit)), shards
+        while low < high:
+            middle = (low + high) // 2
+            if busiest(middle) <= limit:
+                high = middle
+            else:
+                low = middle + 1
+        return low
+
+    def _capacity(self, evaluation: PlanEval) -> Optional[Dict[str, Any]]:
+        host_count = self._host_count([])
+        spec = self._spec()
+        cpu = int((spec.cpu or {}).get("min") or 0) if spec else 0
+        real = self._real_shards(evaluation)
+        if not host_count or not cpu or not real:
+            return None
+        instances = max(len(bucket) for bucket in self._simulate(evaluation, min(host_count, len(real))))
+        return {
+            "host_count": host_count,
+            "cpu_per_host": cpu,
+            "max_instances_per_host": instances,
+            "cpu_per_instance": round(cpu / instances, 2),
+        }
+
+    def _resolve_recover_at(self, evaluation: PlanEval, explicit: Optional[datetime]) -> None:
+        """by_identify / by_task_id take the target time from the rounds actually chosen.
+
+        A caller-supplied time only moves the target for clusters that replay binlogs; a Cache
+        cluster restores the snapshot as it is, and the task record must say when that was.
+        """
+        if explicit and self._replays_binlog:
+            evaluation.recover_at = explicit
+            return
+        if explicit:
+            evaluation.warnings.append(str(_("Cache 集群无 binlog，已忽略 recovery_time_point，按所选全备完成时间构造")))
         records = [f for shard in evaluation.shards for f in shard.round_files]
         if not records:
             return
@@ -599,7 +788,22 @@ class RollbackPlanner:
             evaluation.warnings.append(unsharded_warning(unsharded))
         return shard_values
 
-    def _select_records(self, select_mode: str):
+    @property
+    def _replays_binlog(self) -> bool:
+        return self.cluster.cluster_type in SSD_CLUSTER_TYPES
+
+    def _explicit_recover_at(self) -> Optional[datetime]:
+        value = self.info.get("recovery_time_point")
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return _as_utc(value)
+        try:
+            return _as_utc(str2datetime(value))
+        except Exception:  # pylint: disable=broad-except
+            raise RollbackPlanError(context={"message": _("recovery_time_point 不是带时区的合法时间: {}").format(value)})
+
+    def _select_records(self, select_mode: str, explicit_recover_at: Optional[datetime] = None):
         if select_mode == SELECT_MODE_BY_IDENTIFY:
             identify = self.info.get("backup_identify")
             if not identify:
@@ -607,7 +811,7 @@ class RollbackPlanner:
             records = self.locator.locate_full_by_identify(identify)
             if not records:
                 raise RollbackPlanError(context={"message": _("找不到 backup_identify={} 的成功全备").format(identify)})
-            recover_at = self._recover_at_from_records(records)
+            recover_at = explicit_recover_at or self._recover_at_from_records(records)
             return records, recover_at, identify
 
         if select_mode == SELECT_MODE_BY_TASK_ID:
@@ -624,24 +828,19 @@ class RollbackPlanner:
             identifies = {r.get("backup_identify") for r in records if r.get("backup_identify")}
             if len(identifies) > 1:
                 raise RollbackPlanError(context={"message": _("by_task_id 跨 identify: {}").format(sorted(identifies))})
-            recover_at = self._recover_at_from_records(records)
+            recover_at = explicit_recover_at or self._recover_at_from_records(records)
             return records, recover_at, next(iter(identifies), "")
 
-        recovery_time_point = self.info.get("recovery_time_point")
-        if not recovery_time_point:
+        recover_at = explicit_recover_at
+        if not recover_at:
             raise RollbackPlanError(context={"message": _("by_time 模式必须提供 recovery_time_point")})
-        recover_at = _as_utc(
-            str2datetime(recovery_time_point) if isinstance(recovery_time_point, str) else recovery_time_point
-        )
         records = self.locator.list_full_in_window(
             start_time=recover_at - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS), end_time=recover_at
         )
         return records, recover_at, ""
 
-    def _recover_at_from_records(self, records: Sequence[dict]) -> datetime:
-        explicit = self.info.get("recovery_time_point")
-        if explicit:
-            return _as_utc(str2datetime(explicit) if isinstance(explicit, str) else explicit)
+    @staticmethod
+    def _recover_at_from_records(records: Sequence[dict]) -> datetime:
         ends = [_parse_dt(r.get("backup_end_time") or r.get("uptime")) for r in records]
         ends = [e for e in ends if e]
         if not ends:
@@ -666,22 +865,13 @@ class RollbackPlanner:
             # Ticket-time validation: packing feasibility only.
             return
 
-        # Real shards go largest first to the least-loaded host, so download and restore
-        # time is balanced and every host (host_count <= restore_count) gets real work.
-        # Placeholders carry no data and only even out port counts.
-        buckets: List[List[RollbackItem]] = [[] for _ in dest_ips]
-        loads = [0] * len(dest_ips)
         real = sorted(
             (item for item in plan.items if not item.is_placeholder),
             key=lambda it: (-it.download_bytes, it.source_ip, it.source_port),
         )
-        for item in real:
-            index = min(range(len(dest_ips)), key=lambda i: (loads[i], len(buckets[i]), i))
-            buckets[index].append(item)
-            loads[index] += item.download_bytes
-        for item in (item for item in plan.items if item.is_placeholder):
-            index = min(range(len(dest_ips)), key=lambda i: (len(buckets[i]), i))
-            buckets[index].append(item)
+        placeholders = [item for item in plan.items if item.is_placeholder]
+        buckets = balance_hosts(real, placeholders, len(dest_ips), lambda item: item.download_bytes)
+        is_cache = plan.cluster_type in CACHE_CLUSTER_TYPES
 
         items: List[RollbackItem] = []
         dest_hosts: List[DestHost] = []
@@ -700,7 +890,8 @@ class RollbackPlanner:
                     ports=ports,
                     task_ids=task_ids,
                     download_bytes=download_bytes,
-                    unpacked_bytes=download_bytes * UNPACK_RATIO,
+                    unpacked_bytes=sum(item.unpacked_bytes for item in chunk),
+                    memory_bytes=sum(item.memory_bytes for item in chunk) if is_cache else 0,
                 )
             )
             items.extend(chunk)

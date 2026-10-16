@@ -130,7 +130,7 @@ func TestWaitLoadedReturnsOnceLoadingFinishes(t *testing.T) {
 		{"loading": "0"},
 	}}
 
-	if err := waitLoaded(p, "2.2.2.2:30000", time.Second, time.Millisecond); err != nil {
+	if err := waitLoaded(p, portLog{}, "2.2.2.2:30000", time.Second, time.Millisecond); err != nil {
 		t.Fatalf("waitLoaded: %v", err)
 	}
 	if p.calls != 3 {
@@ -141,21 +141,28 @@ func TestWaitLoadedReturnsOnceLoadingFinishes(t *testing.T) {
 func TestWaitLoadedTimesOutWhileStillLoading(t *testing.T) {
 	p := &fakeProber{replies: []map[string]string{{"loading": "1", "loading_loaded_perc": "42.00"}}}
 
-	err := waitLoaded(p, "2.2.2.2:30000", 20*time.Millisecond, time.Millisecond)
+	err := waitLoaded(p, portLog{}, "2.2.2.2:30000", 20*time.Millisecond, time.Millisecond)
 	if err == nil || !strings.Contains(err.Error(), "42.00") {
 		t.Fatalf("expected a timeout reporting progress, got %v", err)
 	}
 }
 
-func TestLoadDeadlineScalesWithSize(t *testing.T) {
-	if LoadDeadline(0) != 5*time.Minute {
-		t.Fatalf("empty data should get the minimum deadline, got %v", LoadDeadline(0))
+func TestLoadDeadlineScalesWithSizeAndFormat(t *testing.T) {
+	if LoadDeadline(0, false) != 5*time.Minute {
+		t.Fatalf("empty data should get the minimum deadline, got %v", LoadDeadline(0, false))
 	}
-	if LoadDeadline(30<<30) != 35*time.Minute {
-		t.Fatalf("30GB should get 35m, got %v", LoadDeadline(30<<30))
+	if LoadDeadline(30<<30, false) != 35*time.Minute {
+		t.Fatalf("30GB should get 35m, got %v", LoadDeadline(30<<30, false))
 	}
-	if LoadDeadline(1<<40) != 2*time.Hour {
-		t.Fatalf("huge data should be capped at 2h, got %v", LoadDeadline(1<<40))
+	if LoadDeadline(1<<40, false) != 2*time.Hour {
+		t.Fatalf("huge data should be capped at 2h, got %v", LoadDeadline(1<<40, false))
+	}
+	// AOF replays commands, about ten times slower per GB
+	if LoadDeadline(30<<30, true) != 5*time.Minute+300*time.Minute {
+		t.Fatalf("30GB AOF should get 5h5m, got %v", LoadDeadline(30<<30, true))
+	}
+	if LoadDeadline(1<<40, true) != 12*time.Hour {
+		t.Fatalf("huge AOF should be capped at 12h, got %v", LoadDeadline(1<<40, true))
 	}
 }
 
@@ -247,8 +254,8 @@ func TestStageDecompressesFromSourceWithoutCopy(t *testing.T) {
 	src := filepath.Join(saveDir, "1.1.1.9-30000-full.rdb.gz")
 	writeGzip(t, src, []byte("REDIS0009"))
 
-	staged, err := StageBackup(saveDir, InstanceRestore{SourceIP: "1.1.1.9", SourcePort: 30000, DestPort: 30000,
-		FullFiles: []string{filepath.Base(src)}})
+	staged, err := StageBackup(saveDir, filepath.Join(t.TempDir(), "30000"), InstanceRestore{SourceIP: "1.1.1.9",
+		SourcePort: 30000, DestPort: 30000, FullFiles: []string{filepath.Base(src)}})
 	if err != nil {
 		t.Fatalf("StageBackup: %v", err)
 	}
@@ -273,7 +280,8 @@ func TestStageLinksUncompressedBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	staged, err := StageBackup(saveDir, InstanceRestore{DestPort: 30000, FullFiles: []string{filepath.Base(src)}})
+	staged, err := StageBackup(saveDir, filepath.Join(t.TempDir(), "30000"),
+		InstanceRestore{DestPort: 30000, FullFiles: []string{filepath.Base(src)}})
 	if err != nil {
 		t.Fatalf("StageBackup: %v", err)
 	}
@@ -295,10 +303,11 @@ func TestParallelStagingKeepsPortsApart(t *testing.T) {
 		insts[i] = InstanceRestore{DestPort: 30000 + i, FullFiles: []string{name}}
 	}
 
+	unpackDir := t.TempDir()
 	staged := make([]StagedBackup, len(insts))
 	if err := RunBounded(len(insts), 2, func(i int) error {
 		var err error
-		staged[i], err = StageBackup(saveDir, insts[i])
+		staged[i], err = StageBackup(saveDir, filepath.Join(unpackDir, fmt.Sprint(insts[i].DestPort)), insts[i])
 		return err
 	}); err != nil {
 		t.Fatalf("parallel staging: %v", err)
@@ -312,30 +321,31 @@ func TestParallelStagingKeepsPortsApart(t *testing.T) {
 }
 
 func TestCleanupStagedOnlyTouchesItsOwnPort(t *testing.T) {
-	saveDir := t.TempDir()
+	saveDir, unpackDir := t.TempDir(), t.TempDir()
 	done := InstanceRestore{DestPort: 30000, FullFiles: []string{"1.1.1.9-30000-full.rdb.gz"}}
 	other := InstanceRestore{DestPort: 30001, FullFiles: []string{"1.1.1.9-30001-full.rdb.gz"}}
+	workDir := func(inst InstanceRestore) string { return filepath.Join(unpackDir, fmt.Sprint(inst.DestPort)) }
 	for _, inst := range []InstanceRestore{done, other} {
 		writeGzip(t, filepath.Join(saveDir, inst.FullFiles[0]), []byte("REDIS0009"))
-		if _, err := StageBackup(saveDir, inst); err != nil {
+		if _, err := StageBackup(saveDir, workDir(inst), inst); err != nil {
 			t.Fatalf("StageBackup: %v", err)
 		}
 	}
 
-	if err := CleanupStaged(saveDir, done); err != nil {
+	if err := CleanupStaged(saveDir, workDir(done), done); err != nil {
 		t.Fatalf("CleanupStaged: %v", err)
 	}
-	for _, p := range []string{done.FullFiles[0], "1.1.1.9-30000-full.rdb"} {
-		if _, err := os.Stat(filepath.Join(saveDir, p)); !os.IsNotExist(err) {
+	for _, p := range []string{filepath.Join(saveDir, done.FullFiles[0]), workDir(done)} {
+		if _, err := os.Stat(p); !os.IsNotExist(err) {
 			t.Fatalf("%s should be removed", p)
 		}
 	}
-	for _, p := range []string{other.FullFiles[0], "1.1.1.9-30001-full.rdb"} {
-		if _, err := os.Stat(filepath.Join(saveDir, p)); err != nil {
+	for _, p := range []string{filepath.Join(saveDir, other.FullFiles[0]), workDir(other)} {
+		if _, err := os.Stat(p); err != nil {
 			t.Fatalf("%s should be kept: %v", p, err)
 		}
 	}
-	if err := CleanupStaged(saveDir, InstanceRestore{DestPort: 30002}); err != nil {
+	if err := CleanupStaged(saveDir, workDir(InstanceRestore{DestPort: 30002}), InstanceRestore{DestPort: 30002}); err != nil {
 		t.Fatalf("placeholder cleanup should be a no-op: %v", err)
 	}
 }

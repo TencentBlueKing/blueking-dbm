@@ -39,7 +39,6 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
@@ -47,6 +46,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.plugins.components.collections.redis.redis_rollback import (
     RedisRollbackDiskPrecheckComponent,
     RedisRollbackDownloadComponent,
+    RedisRollbackPushManifestComponent,
 )
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
@@ -57,23 +57,35 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
 
+# Device numbers tell whether downloads and instance data share a filesystem (unpack is then a
+# rename); MemAvailable lets Cache rollbacks recheck memory on the real host before downloading,
+# and the CPU count sizes how many ports the actuator unpacks and replays at once.
 _DISK_SHELL = """
                 REDIS_DATA_DIR_DATA=`df -k $REDIS_DATA_DIR | grep -iv Filesystem`
                 REDIS_BACKUP_DIR_DATA=`df -k $REDIS_BACKUP_DIR | grep -iv Filesystem`
+                REDIS_DATA_DIR_DEV=`stat -c %d $REDIS_DATA_DIR`
+                REDIS_BACKUP_DIR_DEV=`stat -c %d $REDIS_BACKUP_DIR`
+                MEM_TOTAL_KB=`awk '/^MemTotal:/ {print $2}' /proc/meminfo`
+                MEM_AVAILABLE_KB=`awk '/^MemAvailable:/ {print $2}' /proc/meminfo`
+                CPU_COUNT=`nproc`
                 BACKUP_DIR=`echo $REDIS_BACKUP_DIR`
                 mkdir -p $BACKUP_DIR/dbbak/recover_redis/
                 chown -R  mysql:mysql $BACKUP_DIR/dbbak/recover_redis/
                 echo "<ctx>{\\\"redis_data_dir_data\\\":\\\"${REDIS_DATA_DIR_DATA}\\\", \\
-                \\\"backup_dir\\\":\\\"${BACKUP_DIR}\\\",\\\"redis_backup_dir_data\\\":\\\"${REDIS_BACKUP_DIR_DATA}\\\"}</ctx>"
+                \\\"backup_dir\\\":\\\"${BACKUP_DIR}\\\",\\\"redis_backup_dir_data\\\":\\\"${REDIS_BACKUP_DIR_DATA}\\\", \\
+                \\\"redis_data_dir_dev\\\":\\\"${REDIS_DATA_DIR_DEV}\\\", \\
+                \\\"redis_backup_dir_dev\\\":\\\"${REDIS_BACKUP_DIR_DEV}\\\", \\
+                \\\"mem_total_kb\\\":\\\"${MEM_TOTAL_KB}\\\",\\\"mem_available_kb\\\":\\\"${MEM_AVAILABLE_KB}\\\", \\
+                \\\"cpu_count\\\":\\\"${CPU_COUNT}\\\"}</ctx>"
                 """
 
 
 class RedisRollbackFlow:
     """Redis rollback v2: shard-keyed backup discovery + plan-driven pipeline.
 
-    Pipeline stages: Gate evaluation -> Media transfer -> Disk precheck -> Backup download
-    -> Single-boot restore -> Instance metadata -> Transfer to rollback CC module
-    -> dbmon/proxy deployment -> Key filtering -> Save rollback task record.
+    Pipeline stages: Gate evaluation -> Media transfer -> Disk and memory precheck -> Backup download
+    -> Downloaded file verification -> Single-boot restore -> Instance metadata
+    -> Transfer to rollback CC module -> dbmon/proxy deployment -> Save rollback task record.
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -226,16 +238,11 @@ class RedisRollbackFlow:
         for dest_host in plan.dest_hosts:
             precheck_kwargs = deepcopy(act_kwargs)
             precheck_kwargs.exec_ip = dest_host.ip
-            precheck_kwargs.cluster["download_bytes"] = dest_host.download_bytes
             disk_acts.append(
                 {
                     "act_name": _("redis 回档磁盘预检-{}").format(dest_host.ip),
                     "act_component_code": RedisRollbackDiskPrecheckComponent.code,
-                    "kwargs": {
-                        **asdict(precheck_kwargs),
-                        "download_bytes": dest_host.download_bytes,
-                        "unpacked_bytes": dest_host.unpacked_bytes,
-                    },
+                    "kwargs": {**asdict(precheck_kwargs), "plan_id": plan_id},
                 }
             )
         redis_pipeline.add_parallel_acts(acts_list=disk_acts)
@@ -257,12 +264,11 @@ class RedisRollbackFlow:
                     "set_trans_data_dataclass": RedisRollbackContext.__name__,
                 },
             )
+            self._add_verify_acts(sub, plan_id, dest_host.ip, plan.bk_cloud_id, act_kwargs)
             download_subs.append(sub.build_sub_process(sub_name=_("下载备份-{}").format(dest_host.ip)))
 
+        # Verification replaced the manual confirmation; skip_mannual_confirm is accepted and ignored.
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=download_subs)
-
-        if not self.data.get("skip_mannual_confirm", False):
-            redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         resource_spec = info["resource_spec"]["redis"]
         cluster_dst_instance = [
@@ -332,7 +338,7 @@ class RedisRollbackFlow:
         if not is_drill:
             self._install_dbmon(plan, act_kwargs, redis_pipeline)
 
-        self._deploy_proxy(plan, act_kwargs, dest_ips, redis_pipeline)
+        self._deploy_proxy(plan, plan_id, act_kwargs, dest_ips, redis_pipeline)
 
         prod_instance_range = [
             item.shard.current_master or "{}:{}".format(item.source_ip, item.source_port) for item in plan.items
@@ -368,7 +374,8 @@ class RedisRollbackFlow:
             "rollback_version": ROLLBACK_VERSION,
             "rollback_mode": plan.select_mode,
             "backup_identify": plan.backup_identify or "",
-            "rollback_detail": plan.to_rollback_detail(),
+            "rollback_detail": plan.to_rollback_detail(plan_id),
+            "plan_id": plan_id,
         }
         redis_pipeline.add_act(
             act_name=_("写入构造记录元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(meta_kwargs)
@@ -381,6 +388,31 @@ class RedisRollbackFlow:
                 kwargs=asdict(act_kwargs),
             )
         return redis_pipeline.build_sub_process(sub_name=_("集群[{}]回档").format(plan.immute_domain))
+
+    @staticmethod
+    def _add_verify_acts(sub, plan_id: int, dest_ip: str, bk_cloud_id: int, act_kwargs: ActKwargs) -> None:
+        """Every planned file must be on the host, by exact name and size, before anything is restored."""
+        sub.add_act(
+            act_name=_("下发文件清单到{}").format(dest_ip),
+            act_component_code=RedisRollbackPushManifestComponent.code,
+            kwargs={
+                "bk_cloud_id": bk_cloud_id,
+                "plan_id": plan_id,
+                "dest_ip": dest_ip,
+                "set_trans_data_dataclass": RedisRollbackContext.__name__,
+            },
+        )
+        verify_kwargs = deepcopy(act_kwargs)
+        verify_kwargs.exec_ip = dest_ip
+        verify_kwargs.is_update_trans_data = False
+        verify_kwargs.get_redis_payload_func = RedisActPayload.redis_rollback_verify_payload.__name__
+        # Empty dest_dir: the actuator uses $REDIS_BACKUP_DIR, where the download and the manifest went.
+        verify_kwargs.cluster = {"plan_id": plan_id, "dest_ip": dest_ip, "dest_dir": ""}
+        sub.add_act(
+            act_name=_("校验{}已下载的备份文件").format(dest_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(verify_kwargs),
+        )
 
     @staticmethod
     def _trans_file_acts(plan, act_kwargs, dest_ips) -> list:
@@ -452,7 +484,7 @@ class RedisRollbackFlow:
             return RedisActPayload.rollback_predixy_payload.__name__, servers
         raise NotImplementedError("unsupported proxy for cluster type: {}".format(plan.cluster_type))
 
-    def _deploy_proxy(self, plan, act_kwargs, dest_ips, pipeline):
+    def _deploy_proxy(self, plan, plan_id, act_kwargs, dest_ips, pipeline):
         act_kwargs.new_install_proxy_exec_ip = dest_ips[0]
         if not is_have_proxy(plan.cluster_type):
             return
@@ -460,6 +492,7 @@ class RedisRollbackFlow:
         proxy_kwargs = deepcopy(act_kwargs)
         proxy_kwargs.exec_ip = dest_ips[0]
         proxy_kwargs.cluster["servers"] = servers
+        proxy_kwargs.cluster["temp_password_plan_id"] = plan_id
         proxy_kwargs.get_redis_payload_func = payload_func
         pipeline.add_act(
             act_name=_("{}安装proxy实例").format(dest_ips[0]),

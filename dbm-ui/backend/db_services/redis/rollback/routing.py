@@ -105,9 +105,12 @@ class ShardRouter:
         return {"results": results, "batch_shard_values": list(dict.fromkeys(union)), "warnings": warnings}
 
     def _batch_shards(self, backup_identify: str) -> Tuple[List[Tuple[str, Ranges]], List[str]]:
+        records = BackupLocator(self.cluster).locate_full_by_identify(backup_identify)
+        if not records:
+            raise RollbackPlanError(context={"message": _("找不到 backup_identify={} 的成功全备").format(backup_identify)})
         shards: Dict[str, Ranges] = {}
         warnings: List[str] = []
-        for record in BackupLocator(self.cluster).locate_full_by_identify(backup_identify):
+        for record in records:
             shard_value = record.get("shard_value") or ""
             if not shard_value or shard_value in shards:
                 continue

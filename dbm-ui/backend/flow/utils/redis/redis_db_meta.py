@@ -51,6 +51,8 @@ from backend.db_meta.models import (
     StorageInstanceTuple,
 )
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
+from backend.db_services.redis.rollback.constants import ROLLBACK_VERSION
+from backend.db_services.redis.rollback.credentials import rollback_temp_password
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
 from backend.db_services.redis.util import (
@@ -842,6 +844,11 @@ class RedisDBMeta(object):
         """
 
         passwd_ret = PayloadHandler.redis_get_password_by_domain(self.cluster["domain_name"])
+        redis_password, proxy_password = passwd_ret.get("redis_password"), passwd_ret.get("redis_proxy_password")
+        if self.cluster.get("rollback_version") == ROLLBACK_VERSION:
+            # v2 temp clusters run on passwords derived from the source; the same helper set them up.
+            redis_password = rollback_temp_password(redis_password, self.cluster["plan_id"])
+            proxy_password = rollback_temp_password(proxy_password, self.cluster["plan_id"])
         task = TbTendisRollbackTasks(
             creator=self.ticket_data["created_by"],
             related_rollback_bill_id=self.ticket_data["uid"],
@@ -854,13 +861,13 @@ class RedisDBMeta(object):
             prod_instance_range=self.cluster["prod_instance_range"],
             temp_cluster_type=self.cluster["temp_cluster_type"],
             temp_instance_range=self.cluster["temp_instance_range"],
-            temp_proxy_password=base64.b64encode(passwd_ret.get("redis_proxy_password").encode("utf-8")),
+            temp_proxy_password=base64.b64encode(proxy_password.encode("utf-8")),
             temp_cluster_proxy=self.cluster["temp_cluster_proxy"],
             prod_temp_instance_pairs=self.cluster["prod_temp_instance_pairs"],
             host_count=self.cluster["host_count"],
             recovery_time_point=self.cluster["recovery_time_point"],
             status=self.cluster["status"],
-            temp_redis_password=base64.b64encode(passwd_ret.get("redis_password").encode("utf-8")),
+            temp_redis_password=base64.b64encode(redis_password.encode("utf-8")),
             rollback_version=self.cluster.get("rollback_version") or "datastructure",
             rollback_mode=self.cluster.get("rollback_mode") or "",
             backup_identify=self.cluster.get("backup_identify") or "",

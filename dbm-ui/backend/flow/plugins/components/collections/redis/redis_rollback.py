@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import copy
 import logging
 import time
 import traceback
@@ -18,15 +19,23 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
+from backend.components import JobApi
 from backend.components.mysql_backup.client import RedisBackupApi
+from backend.core import consts
 from backend.db_services.redis.rollback.constants import (
     DISK_USED_PLUS_NEED_RATIO_FAIL,
     DISK_USED_RATIO_FAIL,
     DOWNLOAD_BATCH_SIZE,
+    SSD_CLUSTER_TYPES,
 )
-from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
-from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.utils.string import format_size
+from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
+    RollbackPlan,
+    host_disk_needs,
+    memory_budget,
+    rollback_manifest,
+)
+from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
+from backend.utils.string import base64_encode, format_size
 
 logger = logging.getLogger("flow")
 
@@ -45,19 +54,26 @@ def decode_df_line(disk_line: str) -> dict:
     }
 
 
-def disk_needs(backup_disk: dict, data_disk: dict, download_bytes: int, unpacked_bytes: int) -> list:
-    """Peak usage per filesystem: the backup disk holds the download plus its unpacked copy,
-    the data disk receives the unpacked file. On a shared filesystem the move is a rename."""
-    if backup_disk["mount_on"] == data_disk["mount_on"]:
-        return [(_("备份/数据"), backup_disk, download_bytes + unpacked_bytes)]
+def same_filesystem(host_disk: dict, backup_disk: dict, data_disk: dict) -> bool:
+    """Device numbers decide; hosts reported before they were collected fall back to mount points."""
+    backup_dev, data_dev = host_disk.get("redis_backup_dir_dev"), host_disk.get("redis_data_dir_dev")
+    if backup_dev and data_dev:
+        return str(backup_dev) == str(data_dev)
+    return backup_disk["mount_on"] == data_disk["mount_on"]
+
+
+def disk_needs(backup_disk: dict, data_disk: dict, backup_bytes: int, data_bytes: int, same_fs: bool) -> list:
+    """Peak usage per filesystem; a shared one holds both peaks."""
+    if same_fs:
+        return [(_("备份/数据"), backup_disk, backup_bytes + data_bytes)]
     return [
-        (_("备份"), backup_disk, download_bytes + unpacked_bytes),
-        (_("数据"), data_disk, unpacked_bytes),
+        (_("备份"), backup_disk, backup_bytes),
+        (_("数据"), data_disk, data_bytes),
     ]
 
 
 class RedisRollbackDiskPrecheckService(BaseService):
-    """Gate E: fail before any download when dest host disk is insufficient."""
+    """Gate E: fail before any download when dest host disk, or memory for Cache, is insufficient."""
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -76,21 +92,52 @@ class RedisRollbackDiskPrecheckService(BaseService):
                     self.log_error(_("{} 缺少磁盘信息: {}").format(exec_ip, key))
                     return False
                 disks[key] = decode_df_line(raw)
+            same_fs = same_filesystem(host_disk, disks["redis_backup_dir_data"], disks["redis_data_dir_data"])
+            plan = RollbackPlan.load(kwargs["plan_id"])
+            backup_bytes, data_bytes = host_disk_needs(
+                [item for item in plan.items if item.dest_ip == exec_ip],
+                plan.cluster_type in SSD_CLUSTER_TYPES,
+                int(host_disk.get("cpu_count") or 0),
+                plan.max_concurrency,
+            )
             needs = disk_needs(
-                disks["redis_backup_dir_data"],
-                disks["redis_data_dir_data"],
-                int(kwargs.get("download_bytes") or 0),
-                int(kwargs.get("unpacked_bytes") or 0),
+                disks["redis_backup_dir_data"], disks["redis_data_dir_data"], backup_bytes, data_bytes, same_fs
             )
             for label, disk_info, needed_size in needs:
                 if not self._check(exec_ip, label, disk_info, needed_size):
                     return False
+            if not self._check_memory(exec_ip, host_disk, plan.dest_host(exec_ip).memory_bytes):
+                return False
         except Exception as exc:  # pylint: disable=broad-except
             traceback.print_exc()
             self.log_error("redis rollback disk precheck failed:{}".format(exc))
             return False
 
         self.log_info("redis rollback disk precheck success")
+        return True
+
+    def _check_memory(self, exec_ip, host_disk, memory_bytes) -> bool:
+        """The shards packed here must fit in memory once loaded; the ticket only checked the spec."""
+        if not memory_bytes:
+            return True
+        available_kb = host_disk.get("mem_available_kb")
+        if not available_kb:
+            self.log_error(_("{} 缺少内存信息，无法复核内存").format(exec_ip))
+            return False
+        available, total = int(available_kb) * 1024, int(host_disk.get("mem_total_kb") or 0) * 1024
+        budget = memory_budget(available)
+        self.log_info(
+            _("临时机 {} 内存: 需要 {} / 可用 {} (总量 {}，预留 10% 后可用于加载 {})").format(
+                exec_ip, format_size(memory_bytes), format_size(available), format_size(total), format_size(budget)
+            )
+        )
+        if memory_bytes > budget:
+            self.log_error(
+                _("{} 内存不足: 分到本机的分片加载后约需 {}，预留 10% 后可用 {}").format(
+                    exec_ip, format_size(memory_bytes), format_size(budget)
+                )
+            )
+            return False
         return True
 
     def _check(self, exec_ip, dir_label, disk_info, data_size) -> bool:
@@ -222,3 +269,44 @@ class RedisRollbackDownloadComponent(Component):
     name = __name__
     code = "redis_rollback_download"
     bound_service = RedisRollbackDownloadService
+
+
+class RedisRollbackPushManifestService(BkJobService):
+    """Pushes the host's file manifest, rendered from the persisted plan, next to its downloads.
+
+    The list never enters node kwargs, the actuator payload or a script body: it goes as a file
+    through push_config_file, and only its name and sha256 reach the verify node.
+    """
+
+    def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
+        if trans_data is None or trans_data == "${trans_data}":
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        dest_ip = kwargs["dest_ip"]
+        backup_dir = ((getattr(trans_data, "disk_used", None) or {}).get(dest_ip) or {}).get("backup_dir")
+        if not backup_dir:
+            self.log_error(_("{} 缺少备份目录信息，无法确定清单路径").format(dest_ip))
+            return False
+
+        manifest = rollback_manifest(RollbackPlan.load(kwargs["plan_id"]), kwargs["plan_id"], dest_ip)
+        target_dir = backup_dir.rstrip("/") + "/dbbak/recover_redis"
+        payload = copy.deepcopy(consts.BK_PUSH_CONFIG_PAYLOAD)
+        payload["task_name"] = "{}_{}".format(kwargs["node_name"], kwargs["node_id"])
+        payload["file_target_path"] = target_dir
+        payload["file_list"] = [{"file_name": manifest.file_name, "content": base64_encode(manifest.content)}]
+        payload["target_server"]["ip_list"] = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": dest_ip}]
+        self.log_info(
+            _("下发文件清单 {}/{} 到 {}: {} 个文件, sha256={}").format(
+                target_dir, manifest.file_name, dest_ip, manifest.count, manifest.fingerprint
+            )
+        )
+        data.outputs.ext_result = JobApi.push_config_file(payload, raw=True)
+        data.outputs.exec_ips = [dest_ip]
+        return True
+
+
+class RedisRollbackPushManifestComponent(Component):
+    name = __name__
+    code = "redis_rollback_push_manifest"
+    bound_service = RedisRollbackPushManifestService
