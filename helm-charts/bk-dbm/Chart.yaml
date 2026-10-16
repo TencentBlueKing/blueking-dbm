@@ -99,7 +99,7 @@ dependencies:
   - condition: k8s-dbs.enabled
     name: k8s-dbs
     repository: file://charts/k8s-dbs
-    version: 3.0.5
+    version: 4.0.0-kms
   - condition: tenant-router.enabled
     name: tenant-router
     repository: file://charts/tenant-router
