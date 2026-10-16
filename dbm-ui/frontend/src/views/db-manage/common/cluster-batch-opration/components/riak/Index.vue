@@ -1,5 +1,5 @@
 <template>
-  <BkDropdownItem v-db-console="'riak.clusterManage.batchAddTag'">
+  <DbDropdownItem v-db-console="'riak.clusterManage.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
       :no-permission="tagNoPermission"
@@ -7,8 +7,8 @@
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem v-db-console="'riak.clusterManage.batchRemoveTag'">
+  </DbDropdownItem>
+  <DbDropdownItem v-db-console="'riak.clusterManage.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
       :no-permission="tagNoPermission"
@@ -16,8 +16,8 @@
       @click="handleRemoveTagClick">
       {{ t('移除标签') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-if="isClusterTypeAlarmSupported"
     v-bk-tooltips="{
       disabled: !subscriptionTooltip || subscriptionNoPermission,
@@ -33,8 +33,8 @@
       @click="handleEditSubscriptionClick">
       {{ t('设置告警订阅') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-if="isClusterTypeAlarmSupported"
     v-bk-tooltips="{
       disabled: !subscriptionTooltip || subscriptionNoPermission,
@@ -50,7 +50,7 @@
       @click="handleDeleteSubscriptionClick">
       {{ t('删除告警订阅') }}
     </BatchOperationButton>
-  </BkDropdownItem>
+  </DbDropdownItem>
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
     :get-editable="(item) => item.permission?.riak_edit !== false"

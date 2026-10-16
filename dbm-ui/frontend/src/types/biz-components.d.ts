@@ -7,6 +7,9 @@ declare module 'vue' {
     AuthTemplate: typeof import('@components/auth-component/component.vue').default;
     DbCard: typeof import('@components/db-card/index.vue').default;
     DbDatePicker: typeof import('@components/bkui-vue/date-picker/Index.vue').default;
+    DbDropdown: typeof import('@components/bkui-vue/dropdown/Index.vue').default;
+    DbDropdownItem: typeof import('@components/bkui-vue/dropdown/components/DropdownItem.vue').default;
+    DbDropdownMenu: typeof import('@components/bkui-vue/dropdown/components/DropdownMenu.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;

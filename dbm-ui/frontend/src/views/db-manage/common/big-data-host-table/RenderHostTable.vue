@@ -34,32 +34,27 @@
             {{ t('台') }}
           </span>
         </div>
-        <BkDropdown
-          :popover-options="{
-            clickContentAutoHide: true,
-          }"
-          trigger="click"
-          @click.stop>
+        <DbDropdown @click.stop>
           <div class="extends-action">
             <i class="db-icon-more" />
           </div>
           <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem @click="handleClearAll">
+            <DbDropdownMenu>
+              <DbDropdownItem @click="handleClearAll">
                 {{ t('清除所有') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleClearAbnormal">
+              </DbDropdownItem>
+              <DbDropdownItem @click="handleClearAbnormal">
                 {{ t('清除异常IP') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAll">
+              </DbDropdownItem>
+              <DbDropdownItem @click="handleCopyAll">
                 {{ t('复制所有IP') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAbnormal">
+              </DbDropdownItem>
+              <DbDropdownItem @click="handleCopyAbnormal">
                 {{ t('复制异常IP') }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
+              </DbDropdownItem>
+            </DbDropdownMenu>
           </template>
-        </BkDropdown>
+        </DbDropdown>
       </div>
       <Transition mode="in-out">
         <BkLoading

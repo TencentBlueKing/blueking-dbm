@@ -12,12 +12,7 @@
             class="ml-8"
             :data="ticketData"
             small />
-          <BkDropdown
-            placement="bottom-start"
-            :popover-options="{
-              clickContentAutoHide: true,
-            }"
-            trigger="click">
+          <DbDropdown placement="bottom-start">
             <BkButton
               v-bk-tooltips="t('复制')"
               class="ml-8"
@@ -26,10 +21,10 @@
               <DbIcon type="copy-2" />
             </BkButton>
             <template #content>
-              <BkDropdownItem @click="handleCopyLink">{{ t('单据链接') }}</BkDropdownItem>
-              <BkDropdownItem @click="handleCopyTitleAndLink">{{ t('标题 + 单据链接') }}</BkDropdownItem>
+              <DbDropdownItem @click="handleCopyLink">{{ t('单据链接') }}</DbDropdownItem>
+              <DbDropdownItem @click="handleCopyTitleAndLink">{{ t('标题 + 单据链接') }}</DbDropdownItem>
             </template>
-          </BkDropdown>
+          </DbDropdown>
           <RouterLink
             class="go-detail-btn"
             target="_blank"

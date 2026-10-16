@@ -1,22 +1,18 @@
 <template>
-  <BkDropdown
-    :popover-options="{
-      clickContentAutoHide: true,
-    }"
-    trigger="click">
+  <DbDropdown>
     <template #default="{ popoverShow }">
       <BkButton
-        class="w-86"
+        class="cluster-ip-copy-button w-86"
         :class="{ active: popoverShow }">
         {{ t('复制') }}
         <DbIcon
-          class="ml-4"
+          class="cluster-ip-copy-icon ml-4"
           type="up-big" />
       </BkButton>
     </template>
     <template #content>
-      <BkDropdownMenu class="dropdown-menu-with-button cluster-ip-copy">
-        <BkDropdownItem>
+      <DbDropdownMenu class="dropdown-menu-with-button cluster-ip-copy">
+        <DbDropdownItem>
           <BkButton
             v-bk-tooltips="{
               disabled: selected.length,
@@ -28,8 +24,8 @@
             @click="handleCopy">
             {{ t('已选集群 IP') }}
           </BkButton>
-        </BkDropdownItem>
-        <BkDropdownItem>
+        </DbDropdownItem>
+        <DbDropdownItem>
           <BkButton
             v-bk-tooltips="{
               disabled: selected.length,
@@ -41,10 +37,10 @@
             @click="handleCopyUnavailableIp">
             {{ t('已选集群的异常 IP') }}
           </BkButton>
-        </BkDropdownItem>
-      </BkDropdownMenu>
+        </DbDropdownItem>
+      </DbDropdownMenu>
     </template>
-  </BkDropdown>
+  </DbDropdown>
 </template>
 
 <script setup lang="ts" generic="T extends { allIPList: string[]; allUnavailableIPList: string[] }">
@@ -91,8 +87,21 @@
 </script>
 
 <style lang="less">
+  .cluster-ip-copy-button {
+    .cluster-ip-copy-icon {
+      transition: all 0.2s;
+    }
+
+    // 展开时箭头翻转，与 dropdown-export-excel 一致
+    &.active:not(.is-disabled) {
+      .cluster-ip-copy-icon {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
   .cluster-ip-copy {
-    .bk-dropdown-item {
+    .dbm-dropdown-item {
       .bk-button {
         justify-content: flex-start;
       }

@@ -135,7 +135,6 @@
             <ClusterAlarmSubscribe
               :data="data"
               db-console-prefix="redis.haClusterManage"
-              is-dropdown
               @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
             <div v-db-console="'redis.haClusterManage.queryAccessSource'">
               <OperationBtnStatusTips

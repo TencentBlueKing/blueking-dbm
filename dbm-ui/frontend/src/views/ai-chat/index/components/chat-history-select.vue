@@ -1,10 +1,6 @@
 <template>
-  <BkDropdown
+  <DbDropdown
     class="ml-8"
-    :popover-options="{
-      clickContentAutoHide: true,
-    }"
-    trigger="click"
     @hide="handleHide"
     @show="handleShow">
     <BkButton :loading="isLoading">
@@ -18,10 +14,10 @@
         type="up-big" />
     </BkButton>
     <template #content>
-      <BkDropdownMenu class="chat-history-dropdown-menu">
+      <DbDropdownMenu class="chat-history-dropdown-menu">
         <ScrollFaker class="chat-history-scroll-area">
           <template v-if="sessionList.length > 0">
-            <BkDropdownItem
+            <DbDropdownItem
               v-for="item in sessionList"
               :key="item.sessionCode"
               class="chat-history-item"
@@ -29,7 +25,7 @@
               @click="handleSelect(item.sessionCode)">
               <span class="chat-history-item-name">{{ item.sessionName }}</span>
               <span class="chat-history-item-time">{{ formatDateTime(item.updatedAt!) }}</span>
-            </BkDropdownItem>
+            </DbDropdownItem>
           </template>
           <div
             v-else
@@ -37,9 +33,9 @@
             {{ t('暂无会话记录') }}
           </div>
         </ScrollFaker>
-      </BkDropdownMenu>
+      </DbDropdownMenu>
     </template>
-  </BkDropdown>
+  </DbDropdown>
 </template>
 
 <script setup lang="ts">

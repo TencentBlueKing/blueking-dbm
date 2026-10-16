@@ -23,25 +23,21 @@
           <template #a>{{ count.a }}</template>
         </I18nT>
       </div>
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+      <DbDropdown>
         <DbIcon
           class="more-trigger"
           type="more" />
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleClearAll">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleClearAll">
               {{ t('清空所有') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopyAll">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopyAll">
               {{ t('复制所有集群') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
     </div>
     <BkException
       v-if="isEmpty"

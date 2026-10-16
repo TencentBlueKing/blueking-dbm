@@ -1,10 +1,6 @@
 <template>
   <span class="inline-block">
-    <BkDropdown
-      :popover-options="{
-        clickContentAutoHide: true,
-      }"
-      trigger="click">
+    <DbDropdown>
       <template #default="{ popoverShow }">
         <BkButton
           class="export-dropdown-button"
@@ -14,22 +10,22 @@
         </BkButton>
       </template>
       <template #content>
-        <BkDropdownMenu>
-          <BkDropdownItem @click="() => handleExport('all')">
+        <DbDropdownMenu>
+          <DbDropdownItem @click="() => handleExport('all')">
             {{ isCluster ? t('所有集群') : t('所有实例') }}
-          </BkDropdownItem>
-          <BkDropdownItem
+          </DbDropdownItem>
+          <DbDropdownItem
             v-bk-tooltips="{
               disabled: hasSelected,
               content: isCluster ? t('请选择集群') : t('请选择实例'),
             }"
-            :ext-cls="!hasSelected ? 'export-dropdown-item-disable' : ''"
+            :class="{ 'export-dropdown-item-disable': !hasSelected }"
             @click="() => handleExport('selected')">
             {{ isCluster ? t('已选集群') : t('已选实例') }}
-          </BkDropdownItem>
-        </BkDropdownMenu>
+          </DbDropdownItem>
+        </DbDropdownMenu>
       </template>
-    </BkDropdown>
+    </DbDropdown>
   </span>
 </template>
 

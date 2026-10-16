@@ -59,12 +59,8 @@
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
-      <BkDropdown
+      <DbDropdown
         class="ml-8"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -77,19 +73,19 @@
             type="up-big" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopyAll">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleCopyAll">
               {{ t('复制所有IP') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopeFailed">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopeFailed">
               {{ t('复制异常IP') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopeActive">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopeActive">
               {{ t('复制已选IP') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <DbQuickSearch
         v-model="quickSearchValue"
         :data="quickSearchData"
