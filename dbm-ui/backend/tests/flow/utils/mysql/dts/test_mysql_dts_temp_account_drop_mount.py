@@ -251,6 +251,46 @@ class MysqlDtsCleanupClearMonitorTest(SimpleTestCase):
         self.assertEqual(kwargs["exec_ip"], ["127.0.0.2", "127.0.0.3"])
 
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")
+    def test_clean_port_probe_before_stop_process(self, mock_sub_builder):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow import mysql_dts_cleanup_subflow
+
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+        mysql_dts_cleanup_subflow(self._inp())
+
+        act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
+        clean_name = str(_("摘掉 DTS 端口探测"))
+        stop_name = str(_("停止 DTS 进程"))
+        self.assertLess(act_names.index(clean_name), act_names.index(stop_name))
+
+        clean_act = next(c for c in sub.add_act.call_args_list if str(c.kwargs.get("act_name")) == clean_name)
+        script = clean_act.kwargs["kwargs"]["shell_script"]
+        self.assertEqual(
+            script,
+            "\n".join(
+                [
+                    "set -euo pipefail",
+                    "MONITOR_BIN=/home/mysql/mysql-monitor/mysql-monitor",
+                    "MONITOR_ROOT=/home/mysql/mysql-monitor",
+                    "for port in 18301 18501; do",
+                    '  cfg="${MONITOR_ROOT}/monitor-config_${port}.yaml"',
+                    '  if [[ ! -f "${cfg}" ]]; then',
+                    '    echo "skip missing ${cfg}"',
+                    "    continue",
+                    "  fi",
+                    '  "${MONITOR_BIN}" clean -c "${cfg}"',
+                    '  echo "cleaned monitor jobs for port ${port}"',
+                    "done",
+                    "",
+                ]
+            ),
+        )
+        self.assertEqual(
+            clean_act.kwargs["kwargs"]["exec_targets"],
+            [{"ip": "127.0.0.2", "bk_cloud_id": 0}, {"ip": "127.0.0.3", "bk_cloud_id": 0}],
+        )
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")
     def test_no_hosts_skips_clear_monitor(self, mock_sub_builder):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow import mysql_dts_cleanup_subflow
 
@@ -261,6 +301,7 @@ class MysqlDtsCleanupClearMonitorTest(SimpleTestCase):
         act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
         self.assertNotIn(str(_("下发db-actuator介质")), act_names)
         self.assertNotIn(str(_("清理机器级别配置")), act_names)
+        self.assertNotIn(str(_("摘掉 DTS 端口探测")), act_names)
         sub.add_parallel_acts.assert_not_called()
 
 
