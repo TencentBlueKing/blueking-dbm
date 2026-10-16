@@ -4555,6 +4555,21 @@ BEGIN
         END
     END
     
+    -- Cleanup: always delete the temp Base64 file regardless of success or failure.
+    -- Placed BEFORE the success/failure branch so RAISERROR won't skip it.
+    IF @TmpFile IS NOT NULL AND LEN(@TmpFile) > 0
+    BEGIN
+        DECLARE @CleanupCmd VARCHAR(8000)
+        SET @CleanupCmd = CONVERT(VARCHAR(8000), 'cmd.exe /c del /f /q "' + @TmpFile + '"')
+        BEGIN TRY
+            EXEC master.dbo.xp_cmdshell @CleanupCmd, NO_OUTPUT
+            PRINT 'Temp file cleaned up: ' + @TmpFile
+        END TRY
+        BEGIN CATCH
+            PRINT 'Temp file cleanup failed (ignored): ' + ERROR_MESSAGE()
+        END CATCH
+    END
+    
     IF @Success = 1
     BEGIN
         PRINT 'Report backup result completed successfully.'
