@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-mysql-cluster-skew-report
+  name: MySQL集群负载倾斜报告
+
+spec:
+  generate_type: space
+  is_public: false
