@@ -13,6 +13,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.models import Cluster
 from backend.utils.time import timezone2timestamp
@@ -405,7 +406,8 @@ def query_kafka_detail_metrics(
 
     # 构建查询参数
     query_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-    query_params["bk_biz_id"] = bk_biz_id
+    # 集群校验使用调用方业务，监控查询使用统一的 DBA 数据空间。
+    query_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     query_params["start_time"] = start_timestamp
     query_params["end_time"] = end_timestamp
     query_params["query_configs"][0]["promql"] = promql
@@ -519,7 +521,7 @@ def query_kafka_metrics(
 
         # 构建查询参数
         query_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-        query_params["bk_biz_id"] = bk_biz_id
+        query_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
         query_params["start_time"] = start_timestamp
         query_params["end_time"] = end_timestamp
         query_params["query_configs"][0]["promql"] = promql
