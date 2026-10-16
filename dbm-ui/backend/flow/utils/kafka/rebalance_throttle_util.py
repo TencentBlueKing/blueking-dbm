@@ -494,8 +494,8 @@ def get_broker_bandwidth_utilization(
     app_abbr = str(AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id) or "")
     base_labels = f'cluster_domain="{cluster.immute_domain}",instance_role="broker"'
 
-    # 监控数据的业务空间就是集群自己的业务
-    biz_id = cluster.bk_biz_id
+    # 查询空间与 Grafana 数据源一致；集群业务仅用于 app 标签取值。
+    biz_id = env.DBA_APP_BK_BIZ_ID
 
     utilization_series_count, utilization_steps = _query_steps_by_ip(
         biz_id, _utilization_promql(f'app="{app_abbr}",{base_labels}'), start_timestamp, end_timestamp

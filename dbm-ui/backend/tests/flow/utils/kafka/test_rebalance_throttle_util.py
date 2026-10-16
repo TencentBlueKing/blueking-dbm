@@ -264,6 +264,34 @@ class TestResolveAndValidateExecIp:
 
 
 class TestGetBrokerBandwidthUtilization:
+    @patch.object(mod, "AppCache")
+    @patch.object(mod, "BKMonitorV3Api")
+    @patch.object(mod, "Cluster")
+    def test_all_queries_use_monitor_space(self, mock_cluster_cls, mock_bkmonitor, mock_app_cache, monkeypatch):
+        cluster_biz_id, monitor_biz_id = 10001, 10002
+        monkeypatch.setattr(mod.env, "DBA_APP_BK_BIZ_ID", monitor_biz_id)
+        cluster = MagicMock(immute_domain="kafka.test.db", bk_biz_id=cluster_biz_id)
+        broker = MagicMock()
+        broker.machine.ip = "127.0.0.1"
+        cluster.storageinstance_set.filter.return_value = [broker]
+        mock_cluster_cls.objects.get.return_value = cluster
+        mock_app_cache.get_app_attr.return_value = "test_app"
+        mock_bkmonitor.unify_query.return_value = {"series": []}
+        reported = []
+
+        assert mod.get_broker_bandwidth_utilization(100, on_missing=reported.append) == []
+
+        mock_app_cache.get_app_attr.assert_called_once_with(cluster_biz_id, default=cluster_biz_id)
+        params = [call.args[0] for call in mock_bkmonitor.unify_query.call_args_list]
+        assert len(params) == 4
+        assert all(param["bk_biz_id"] == monitor_biz_id for param in params)
+        promqls = [param["query_configs"][0]["promql"] for param in params]
+        assert 'app="test_app"' in promqls[0]
+        assert "app=" not in promqls[1]
+        assert promqls[2] == mod.BANDWIDTH_PROMQL
+        assert promqls[3] == mod._BANDWIDTH_RAW_METRIC
+        assert f"业务={monitor_biz_id}" in reported[0]
+
     @staticmethod
     def _query_router(utilization_response, bandwidth_response):
         """按promql内容区分两次查询：只查带宽的那条（没有speed_recv_bit）返回bandwidth_response，
@@ -335,7 +363,7 @@ class TestGetBrokerBandwidthUtilization:
         assert not any("bytes_recv" in p or "bytes_sent" in p for p in promqls)
         assert not any("rate(" in p for p in promqls)
         assert len(query_params_list) == 2
-        assert all(params["bk_biz_id"] == 10001 for params in query_params_list)
+        assert all(params["bk_biz_id"] == mod.env.DBA_APP_BK_BIZ_ID for params in query_params_list)
 
     @patch.object(mod, "AppCache")
     @patch.object(mod, "BKMonitorV3Api")
@@ -515,7 +543,7 @@ class TestGetBrokerBandwidthUtilization:
         # 两种step各覆盖1台，取更新的那个(2000)，此时127.0.0.2算"采集延迟"
         assert "'127.0.0.2': '对齐step上bandwidth无数据（采集延迟）'" in detail, detail
         assert "'127.0.0.3': 'bandwidth指标整个窗口无数据'" in detail, detail
-        assert "利用率查询2条series、带宽查询2条series，业务=10001" in detail, detail
+        assert f"利用率查询2条series、带宽查询2条series，业务={mod.env.DBA_APP_BK_BIZ_ID}" in detail, detail
         assert "对齐step=2000" in detail, detail
 
     @patch.object(mod, "AppCache")
@@ -581,7 +609,7 @@ class TestGetBrokerBandwidthUtilization:
         detail = reported[0]
         assert "1/2台broker带宽监控数据不完整" in detail
         assert "{'127.0.0.2': 'bandwidth指标整个窗口无数据'}" in detail
-        assert "利用率查询1条series、带宽查询1条series，业务=10001" in detail
+        assert f"利用率查询1条series、带宽查询1条series，业务={mod.env.DBA_APP_BK_BIZ_ID}" in detail
         assert "对齐step=1000" in detail
         assert "app标签=dba" in detail
 
