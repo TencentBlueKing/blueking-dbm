@@ -373,7 +373,7 @@
         root_id: props.rootId,
         version_id: logVersion.value,
       });
-      const logContent = formatLogData(logList).join('\n');
+      const logContent = formatLogData(logList.result).join('\n');
       await show();
       await sendMessage(props.flowData?.flow_info.ticket_type_display || '', logContent);
     } finally {

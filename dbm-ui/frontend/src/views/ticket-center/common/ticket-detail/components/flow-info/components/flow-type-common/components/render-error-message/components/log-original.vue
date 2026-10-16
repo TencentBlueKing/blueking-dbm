@@ -23,21 +23,24 @@
       <div
         v-bk-loading="{ loading: isLoadingLogContent }"
         class="log-content">
-        <ScrollFaker :key="activeNode?.node_id">
+        <ScrollFaker
+          :key="activeNode?.node_id"
+          ref="scrollFakerRef">
           <h1 style="font-size: 12px; font-weight: bold">{{ activeNode?.node_name }}</h1>
           <div
+            ref="logDetailRef"
             v-bk-xss-html="renderLogContent"
             style="word-break: break-all; white-space: pre-wrap" />
         </ScrollFaker>
       </div>
       <div
         v-if="isTooLarge"
-        class="log-export-tip">
-        {{ t('日志过大，完整内容请下载') }}
+        class="log-export-tip mt-4">
+        {{ t('日志过大，页面仅展示部分内容，更多内容请下载') }}
         <a
           :download="`${activeNode?.node_id}.log`"
           :href="exportLogUrl">
-          {{ t('导出完整日志') }}
+          {{ t('完整日志') }}
         </a>
       </div>
     </div>
@@ -59,6 +62,9 @@
   const emits = defineEmits<Emits>();
   const { t } = useI18n();
   const rootRef = useTemplateRef<HTMLDivElement>('root');
+  const scrollFakerRef = useTemplateRef<{ scrollTo: (scrollLeft: number, scrollTop: number) => void }>(
+    'scrollFakerRef',
+  );
   const activeNode = ref<{
     node_id: string;
     node_name: string;
@@ -109,15 +115,19 @@
     },
   });
 
-  // 日志内容渲染完成后滚动到底部；等两轮渲染确保 ScrollFaker 完成尺寸计算
+  // 日志内容渲染完成后通过 ScrollFaker 的 scrollTo 滚到底部
+  // 传极大值由浏览器钳制到可滚动范围，无需知道 scrollHeight；逐帧校准覆盖 xss 渲染的时序差异
   const scrollLogToBottom = () => {
+    let frameCount = 0;
+    const scrollFrame = () => {
+      scrollFakerRef.value?.scrollTo(0, Number.MAX_SAFE_INTEGER);
+      if (frameCount < 5) {
+        frameCount += 1;
+        requestAnimationFrame(scrollFrame);
+      }
+    };
     nextTick(() => {
-      setTimeout(() => {
-        const scrollEl = rootRef.value?.querySelector<HTMLElement>('.log-content .scroll-faker-content');
-        if (scrollEl) {
-          scrollEl.scrollTop = scrollEl.scrollHeight;
-        }
-      });
+      requestAnimationFrame(scrollFrame);
     });
   };
 
