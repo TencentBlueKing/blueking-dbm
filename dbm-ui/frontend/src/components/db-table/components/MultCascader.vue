@@ -95,6 +95,7 @@
 
   import Checkbox from '@components/tdesign-ui/checkbox';
 
+  import { isLabelMatch } from './common/searchKeyword';
   import useMenuList from './hooks/useMenuList';
 
   export interface IListItem {
@@ -148,7 +149,7 @@
     return list.value.reduce(
       (result, parentItem) => {
         parentItem.children.forEach((childItem) => {
-          if (childItem.label.toLowerCase().includes(keyword)) {
+          if (isLabelMatch(childItem.label, keyword)) {
             result.push({
               ...childItem,
               searchLabel: `${parentItem.label} / ${childItem.label}`,

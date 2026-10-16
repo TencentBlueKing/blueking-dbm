@@ -7195,6 +7195,11 @@ pinia@4.0.3:
   dependencies:
     nostics "^1.1.4"
 
+pinyin-pro@3.29.5:
+  version "3.29.5"
+  resolved "https://mirrors.tencent.com/npm/pinyin-pro/-/pinyin-pro-3.29.5.tgz#4ea24608a9da55487559e47e13aa26af94ed5981"
+  integrity sha512-Fk5YoRmtdHqJWqAuzYVG/NzvzeCbaG+ZEwbY6Nbps3QAIrvQQEtcm49frcyCM8i2b5najnzPDtYqrHRYTTiuwQ==
+
 pkce-challenge@^5.0.0:
   version "5.0.1"
   resolved "https://mirrors.tencent.com/npm/pkce-challenge/-/pkce-challenge-5.0.1.tgz#3b4446865b17b1745e9ace2016a31f48ddf6230d"
@@ -8324,11 +8329,6 @@ throttleit@^1.0.0:
   version "1.0.1"
   resolved "https://mirrors.tencent.com/npm/throttleit/-/throttleit-1.0.1.tgz#304ec51631c3b770c65c6c6f76938b384000f4d5"
   integrity sha512-vDZpf9Chs9mAdfY046mcPt8fg5QSZr37hEH4TXYBnDF+izxgrbRGUAAaBvIk/fJm9aOFCGFd1EsNg5AZCbnQCQ==
-
-tiny-pinyin@1.3.2:
-  version "1.3.2"
-  resolved "https://mirrors.tencent.com/npm/tiny-pinyin/-/tiny-pinyin-1.3.2.tgz#ce31f0f3afc2a80ee9df708fc7f4e914854d534a"
-  integrity sha512-uHNGu4evFt/8eNLldazeAM1M8JrMc1jshhJJfVRARTN3yT8HEEibofeQ7QETWQ5ISBjd6fKtTVBCC/+mGS6FpA==
 
 tiny-warning@^1.0.3:
   version "1.0.3"
