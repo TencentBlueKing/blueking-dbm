@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.es.views.es_bill_mcp import EsBillMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.es.views.es_metrics_mcp import EsMetricsMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.es.views.query_meta import EsQueryMetaMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
@@ -19,5 +20,7 @@ routers = DefaultRouter(trailing_slash=True)
 routers.register(r"", EsQueryMetaMcpToolsViewSet, basename="mcp-es-query-meta")
 # 与 dbm 交互 创建单据类的 操作
 routers.register(r"", EsBillMcpToolsViewSet, basename="mcp-es-bill")
+# 监控指标查询
+routers.register(r"", EsMetricsMcpToolsViewSet, basename="mcp-es-metrics")
 
 urlpatterns = routers.urls
