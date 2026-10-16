@@ -472,7 +472,7 @@
 <style lang="less">
   .version-display-trigger {
     display: flex;
-    height: 32px;
+    min-height: 32px;
     padding-left: 8px;
     cursor: pointer;
     background: #fff;
