@@ -9,6 +9,19 @@ cd $DIR
 nowtime=$(date "+%Y-%m-%d %H:%M:%S")
 confFile="dbmon-config.yaml"
 
+# 清理keylifecycle离线分析遗留的临时keys文件(v.*.keys)
+# 进程被kill时,go代码里的defer清理逻辑不会执行,拉起时由此兜底
+clean_stale_keys_files() {
+    statDir=$(grep 'stat_dir' dbmon-config.yaml 2>/dev/null | awk '{print $2}' | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//')
+    if [[ -z "$statDir" ]]; then
+        statDir="/data/dbbak/keylifecycle"
+    fi
+    if [[ -d "$statDir" ]]; then
+        rm -f $statDir/v.*.keys 2>/dev/null
+        echo "[$nowtime] clean stale keys files in $statDir"
+    fi
+}
+
 httpAddr=$(grep 'http_address' dbmon-config.yaml | awk '{print $2}' | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/$"//')
 httpAddr="http://$httpAddr/health"
 
@@ -16,6 +29,9 @@ if curl $httpAddr >/dev/null 2>&1; then
     echo "[$nowtime] bk-dbmon is running"
     exit 0
 fi
+
+# 走到这里说明进程未运行(异常退出/被kill),启动前清理遗留的临时keys文件
+clean_stale_keys_files
 
 if [[ ! -e $confFile ]]; then
     echo "[$nowtime] $confFile not exists"

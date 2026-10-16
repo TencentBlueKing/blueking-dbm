@@ -277,7 +277,7 @@ func (job *Job) DeleteTooOldBinlogbackup(port int) {
 	var toDoRows []models.RedisBinlogHistorySchema
 	var err error
 	var removeOK bool
-	NDaysAgo := time.Now().Local().AddDate(0, 0, -job.Conf.RedisFullBackup.OldFileLeftDay)
+	NDaysAgo := time.Now().Local().AddDate(0, 0, -job.Conf.RedisBinlogBackup.OldFileLeftDay)
 	Days15Ago := time.Now().Local().AddDate(0, 0, -15)
 	mylog.Logger.Debug(fmt.Sprintf("port:%d start DeleteTooOldBinlogbackup", port))
 
