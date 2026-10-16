@@ -15,14 +15,7 @@
         {{ t('导入策略') }}
       </AuthButton>
       <!-- 导出下拉 -->
-      <BkDropdown
-        class="batch-operation ml-8"
-        :popover-options="{
-          clickContentAutoHide: true,
-          boundary: 'body',
-          renderDirective: 'show',
-        }"
-        trigger="click">
+      <DbDropdown class="batch-operation ml-8">
         <template #default="{ popoverShow }">
           <BkButton>
             {{ t('导出') }}
@@ -33,39 +26,33 @@
           </BkButton>
         </template>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
+          <DbDropdownMenu>
+            <DbDropdownItem>
               <BkButton
                 text
                 @click="handleExportAll">
                 {{ t('导出所有') }}
               </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
+            </DbDropdownItem>
+            <DbDropdownItem>
               <BkButton
                 :disabled="disabled"
                 text
                 @click="handleExportSelected">
                 {{ t('导出已选') }}
               </BkButton>
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <!-- 批量操作下拉 -->
-      <BkDropdown
+      <DbDropdown
         v-bk-tooltips="{
           disabled: !disabled,
           content: t('请选择策略'),
         }"
         class="batch-operation ml-8"
-        :popover-options="{
-          clickContentAutoHide: true,
-          boundary: 'body',
-          renderDirective: 'show',
-          disableOutsideClick: disabled,
-        }"
-        trigger="click">
+        :disabled="disabled">
         <template #default="{ popoverShow }">
           <BkButton :disabled="disabled">
             {{ t('批量操作') }}
@@ -76,42 +63,42 @@
           </BkButton>
         </template>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
+          <DbDropdownMenu>
+            <DbDropdownItem>
               <BkButton
                 :disabled="allDisabledSelected"
                 text
                 @click="handleBatchExecute">
                 {{ t('批量执行') }}
               </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
+            </DbDropdownItem>
+            <DbDropdownItem>
               <BkButton
                 :disabled="allEnabledSelected"
                 text
                 @click="handleBatchEnable">
                 {{ t('批量启用') }}
               </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
+            </DbDropdownItem>
+            <DbDropdownItem>
               <BkButton
                 :disabled="allDisabledSelected"
                 text
                 @click="handleBatchDisable">
                 {{ t('批量禁用') }}
               </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
+            </DbDropdownItem>
+            <DbDropdownItem>
               <BkButton
                 text
                 theme="danger"
                 @click="handleBatchRemove">
                 {{ t('批量删除') }}
               </BkButton>
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <DbQuickSearch
         v-model="searchValue"
         :data="serachData"
@@ -233,7 +220,7 @@
             v-if="row.status === PartitionModel.STATUS_FAILED"
             v-bk-tooltips="t('查看失败日志')"
             class="ml-4"
-            style=" color: #3a84ff;vertical-align: middle; cursor: pointer"
+            style="color: #3a84ff; vertical-align: middle; cursor: pointer"
             type="bk-dbm-icon db-icon-form"
             @click="handleShowFailLog(row)" />
         </template>

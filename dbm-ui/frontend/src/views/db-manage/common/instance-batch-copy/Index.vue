@@ -1,10 +1,5 @@
 <template>
-  <BkDropdown
-    class="instance-batch-copy"
-    :popover-options="{
-      clickContentAutoHide: true,
-    }"
-    trigger="click">
+  <DbDropdown class="instance-batch-copy">
     <template #default="{ popoverShow }">
       <BkButton class="default-btn">
         {{ t('复制') }}{{ typeText }}
@@ -15,8 +10,8 @@
       </BkButton>
     </template>
     <template #content>
-      <BkDropdownMenu class="dropdown-menu-with-button instance-batch-copy-menu">
-        <BkDropdownItem>
+      <DbDropdownMenu class="dropdown-menu-with-button instance-batch-copy-menu">
+        <DbDropdownItem>
           <BkButton
             v-bk-tooltips="{
               disabled: selected.length,
@@ -28,24 +23,24 @@
             @click="handleCopySelected">
             {{ t('已选') }}{{ typeText }}
           </BkButton>
-        </BkDropdownItem>
-        <BkDropdownItem>
+        </DbDropdownItem>
+        <DbDropdownItem>
           <BkButton
             text
             @click="handleCopyUnavailable">
             {{ t('异常') }}{{ typeText }}
           </BkButton>
-        </BkDropdownItem>
-        <BkDropdownItem>
+        </DbDropdownItem>
+        <DbDropdownItem>
           <BkButton
             text
             @click="handleCopyAll">
             {{ t('全部') }}{{ typeText }}
           </BkButton>
-        </BkDropdownItem>
-      </BkDropdownMenu>
+        </DbDropdownItem>
+      </DbDropdownMenu>
     </template>
-  </BkDropdown>
+  </DbDropdown>
 </template>
 
 <script
@@ -110,7 +105,7 @@
   }
 
   .instance-batch-copy-menu {
-    .bk-dropdown-item {
+    .dbm-dropdown-item {
       .bk-button {
         justify-content: flex-start;
       }

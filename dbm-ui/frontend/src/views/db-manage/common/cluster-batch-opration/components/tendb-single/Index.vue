@@ -1,5 +1,5 @@
 <template>
-  <BkDropdownItem
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !batchAuthorizeTooltip || authorizeNoPermission,
       content: t('所选集群均已禁用'),
@@ -14,8 +14,8 @@
       @click="clusterAuthorizeShow = true">
       {{ t('授权') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem v-db-console="'mysql.singleClusterList.batchAddTag'">
+  </DbDropdownItem>
+  <DbDropdownItem v-db-console="'mysql.singleClusterList.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
       :no-permission="tagNoPermission"
@@ -23,8 +23,8 @@
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem v-db-console="'mysql.singleClusterList.batchRemoveTag'">
+  </DbDropdownItem>
+  <DbDropdownItem v-db-console="'mysql.singleClusterList.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
       :no-permission="tagNoPermission"
@@ -32,8 +32,8 @@
       @click="handleRemoveTagClick">
       {{ t('移除标签') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-if="isClusterTypeAlarmSupported"
     v-bk-tooltips="{
       disabled: !subscriptionTooltip || subscriptionNoPermission,
@@ -49,8 +49,8 @@
       @click="handleEditSubscriptionClick">
       {{ t('设置告警订阅') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-if="isClusterTypeAlarmSupported"
     v-bk-tooltips="{
       disabled: !subscriptionTooltip || subscriptionNoPermission,
@@ -66,8 +66,8 @@
       @click="handleDeleteSubscriptionClick">
       {{ t('删除告警订阅') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !disableTooltip || disableNoPermission,
       content: t('所选集群均已禁用'),
@@ -82,8 +82,8 @@
       @click="handleDisableClick">
       {{ t('禁用') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !enableTooltip || enableNoPermission,
       content: t('所选集群均已启用'),
@@ -98,8 +98,8 @@
       @click="handleEnableClick">
       {{ t('启用') }}
     </BatchOperationButton>
-  </BkDropdownItem>
-  <BkDropdownItem
+  </DbDropdownItem>
+  <DbDropdownItem
     v-bk-tooltips="{
       disabled: !deleteTooltip || deleteNoPermission,
       content: t('所选集群均未禁用'),
@@ -114,7 +114,7 @@
       @click="handleDeleteClick">
       {{ t('删除') }}
     </BatchOperationButton>
-  </BkDropdownItem>
+  </DbDropdownItem>
   <ClusterAuthorize
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.MYSQL"

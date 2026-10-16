@@ -22,18 +22,13 @@
         @click="() => handleShowSpecOperation('create')">
         {{ t('新建') }}
       </AuthButton>
-      <BkDropdown
+      <DbDropdown
         v-bk-tooltips="{
           disabled: !disabled,
           content: t('请选择规格'),
         }"
         class="batch-operation ml-8"
-        :disabled="disabled"
-        :popover-options="{
-          clickContentAutoHide: true,
-          renderDirective: 'show',
-        }"
-        trigger="click">
+        :disabled="disabled">
         <template #default="{ popoverShow }">
           <BkButton :disabled="disabled">
             {{ t('批量操作') }}
@@ -44,22 +39,22 @@
           </BkButton>
         </template>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
+          <DbDropdownMenu>
+            <DbDropdownItem>
               <BatchSwithEnable
                 :data-list="selectedList"
                 :db-type="dbType"
                 enable
                 @success="fetchData" />
-            </BkDropdownItem>
-            <BkDropdownItem>
+            </DbDropdownItem>
+            <DbDropdownItem>
               <BatchSwithEnable
                 :data-list="selectedList"
                 :db-type="dbType"
                 :enable="false"
                 @success="fetchData" />
-            </BkDropdownItem>
-            <BkDropdownItem
+            </DbDropdownItem>
+            <DbDropdownItem
               v-bk-tooltips="{
                 content: batchDeleteTooltips,
                 disabled: !batchDeleteTooltips,
@@ -72,37 +67,37 @@
                 @click="handleBacthDelete">
                 {{ t('删除规格') }}
               </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem v-if="isShowReplenish">
+            </DbDropdownItem>
+            <DbDropdownItem v-if="isShowReplenish">
               <BatchSwithReplenish
                 :data-list="selectedList"
                 :db-type="dbType"
                 need-replenish
                 @success="fetchData" />
-            </BkDropdownItem>
-            <BkDropdownItem v-if="isShowReplenish">
+            </DbDropdownItem>
+            <DbDropdownItem v-if="isShowReplenish">
               <BatchSwithReplenish
                 :data-list="selectedList"
                 :db-type="dbType"
                 :need-replenish="false"
                 @success="fetchData" />
-            </BkDropdownItem>
-            <BkDropdownItem v-if="isShowReplenish">
+            </DbDropdownItem>
+            <DbDropdownItem v-if="isShowReplenish">
               <BatchSetRatio
                 :data-list="selectedList"
                 :db-type="dbType"
                 :ratio-map="ratioMap"
                 @success="fetchData" />
-            </BkDropdownItem>
-            <BkDropdownItem>
+            </DbDropdownItem>
+            <DbDropdownItem>
               <BatchEditBizScope
                 :data-list="selectedList"
                 :db-type="dbType"
                 @success="fetchData" />
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <div class="enable-checkbox">
         <BkCheckbox
           v-model="isEnableSpec"

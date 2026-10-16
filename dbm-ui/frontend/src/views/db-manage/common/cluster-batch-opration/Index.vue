@@ -12,15 +12,14 @@
 -->
 
 <template>
-  <BkDropdown
+  <DbDropdown
     :key="renderKey"
     v-bk-tooltips="{
       disabled: !disabled,
       content: t('请选择操作集群'),
     }"
     class="cluster-batch-operation"
-    :popover-options="popoverOptions"
-    trigger="click">
+    :disabled="disabled">
     <template #default="{ popoverShow }">
       <BkButton :disabled="disabled">
         {{ t('批量操作') }}
@@ -31,16 +30,16 @@
       </BkButton>
     </template>
     <template #content>
-      <BkDropdownMenu class="dropdown-menu-with-button">
+      <DbDropdownMenu class="dropdown-menu-with-button">
         <Component
           :is="content"
           v-model:side-slider-show="sideSliderShow"
           :selected="selected"
           @success="handleSuccess">
         </Component>
-      </BkDropdownMenu>
+      </DbDropdownMenu>
     </template>
-  </BkDropdown>
+  </DbDropdown>
 </template>
 
 <script lang="ts">
@@ -119,13 +118,6 @@
 
     return null;
   });
-
-  const popoverOptions = computed(() => ({
-    boundary: 'body',
-    clickContentAutoHide: true,
-    disableOutsideClick: sideSliderShow.value,
-    renderDirective: 'show',
-  }));
 
   watch(sideSliderShow, () => {
     if (!sideSliderShow.value) {
