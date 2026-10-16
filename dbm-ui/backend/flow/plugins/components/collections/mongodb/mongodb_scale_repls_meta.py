@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 import logging.config
 import traceback
@@ -18,6 +19,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.db_meta import api
+from backend.db_meta.api.cluster.mongocluster.reduce_shard import machine_has_remaining_instance
 from backend.db_meta.enums import (
     ClusterEntryType,
     ClusterType,
@@ -51,7 +53,7 @@ class MongoScaleReplsMetaService(BaseService):
       "bk_biz_id":0,
       "scale_out":[
                 {"shard": "S1","ip": "1.a.b.c","port":20000,"spec_id":112,
-                "sepc_config":{},"reuse_machine":False,"role":"m1"}
+                "spec_config":{},"reuse_machine":False,"role":"m1"}
       ],
       "scale_in": [
                 {"shard": "S1","ip": "1.a.b.d","port":20000}
@@ -65,7 +67,7 @@ class MongoScaleReplsMetaService(BaseService):
       "cluster_id":1111,  # 必须的
       "bk_biz_id":0,
       "scale_out":[
-                {"ip": "1.a.b.c","port":20000,"spec_id":112,"sepc_config":{},
+                {"ip": "1.a.b.c","port":20000,"spec_id":112,"spec_config":{},
                 "reuse_machine":False,"role":"m1","domain":"xx.x.a.c"}
       ],
       "scale_in": [
@@ -119,9 +121,7 @@ class MongoScaleReplsMetaService(BaseService):
             cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
             cc_manage.delete_service_instance(bk_instance_ids=[del_obj.bk_instance_id])
             # 可能的话删掉主机信息 # 需要检查， 是否该机器上所有实例都已经清理干净，
-            if StorageInstance.objects.filter(
-                machine__ip=del_obj.machine.ip, bk_biz_id=cluster.bk_biz_id, machine__bk_cloud_id=cluster.bk_cloud_id
-            ).exists():
+            if machine_has_remaining_instance(del_obj.machine.ip, cluster.bk_biz_id, cluster.bk_cloud_id):
                 logger.info("ignore recycle machine {} , another instance existed.".format(del_obj.machine))
             else:
                 logger.info("storage recycle machine {}".format(del_obj.machine))
