@@ -40,12 +40,8 @@
           {{ t('重启') }}
         </BkButton>
       </span>
-      <BkDropdown
+      <DbDropdown
         :disabled="!hasSelectedInstances"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click"
         @hide="() => (isShowGroupMove = false)"
         @show="() => (isShowGroupMove = true)">
         <span
@@ -60,8 +56,8 @@
           </BkButton>
         </span>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem
+          <DbDropdownMenu>
+            <DbDropdownItem
               v-for="item in groupList"
               :key="item.id"
               :class="{
@@ -70,15 +66,11 @@
               }"
               @click="handleGroupMove(item)">
               {{ item.name }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click"
+      </DbDropdown>
+      <DbDropdown
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton
@@ -88,22 +80,22 @@
           <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleCopyAll()">
+          <DbDropdownMenu>
+            <DbDropdownItem @click="handleCopyAll()">
               {{ t('复制所有实例') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopy()">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopy()">
               {{ t('复制已选实例') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopyAll(true)">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopyAll(true)">
               {{ t('复制所有IP') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleCopy(true)">
+            </DbDropdownItem>
+            <DbDropdownItem @click="handleCopy(true)">
               {{ t('复制已选IP') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
       <DropdownExportExcel
         export-type="instance"
         :ids="selectedIds"
@@ -890,7 +882,7 @@
     }
   }
 
-  .bk-dropdown-item {
+  .dbm-dropdown-item {
     &.is-disabled {
       color: @disable-color;
       cursor: not-allowed;

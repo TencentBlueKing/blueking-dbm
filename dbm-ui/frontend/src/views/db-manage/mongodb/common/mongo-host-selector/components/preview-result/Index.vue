@@ -2,28 +2,23 @@
   <div class="mongo-host-selector-preview">
     <div class="preview-header">
       <span>{{ t('结果预览') }}</span>
-      <BkDropdown
-        class="preview-dropdown"
-        :popover-options="{
-          clickContentAutoHide: true,
-        }"
-        trigger="click">
+      <DbDropdown class="preview-dropdown">
         <i class="db-icon-more preview-trigger" />
         <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem
+          <DbDropdownMenu>
+            <DbDropdownItem
               :disabled="list.length === 0"
               @click="handleClear">
               {{ t('清空所有') }}
-            </BkDropdownItem>
-            <BkDropdownItem
+            </DbDropdownItem>
+            <DbDropdownItem
               :disabled="list.length === 0"
               @click="handleCopy">
               {{ t('复制所有IP') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
+            </DbDropdownItem>
+          </DbDropdownMenu>
         </template>
-      </BkDropdown>
+      </DbDropdown>
     </div>
     <BkException
       v-if="list.length === 0"

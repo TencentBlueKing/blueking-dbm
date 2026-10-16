@@ -19,7 +19,7 @@
       <DisplayBox
         cluster-detail-router-name="OracleHaDetail"
         :data="data">
-        <BkDropdownItem v-db-console="'oracle.toolbox.sqlExecute'">
+        <DbDropdownItem v-db-console="'oracle.toolbox.sqlExecute'">
           <OperationBtnStatusTips :data="data">
             <RouterLink
               target="_blank"
@@ -36,7 +36,7 @@
               </BkButton>
             </RouterLink>
           </OperationBtnStatusTips>
-        </BkDropdownItem>
+        </DbDropdownItem>
         <!-- <ClusterDomainDnsRelation :data="data" /> -->
       </DisplayBox>
       <ActionPanel
