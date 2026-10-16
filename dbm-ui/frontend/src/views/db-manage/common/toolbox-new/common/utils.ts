@@ -1,4 +1,4 @@
-import pinyin from 'tiny-pinyin';
+import { match } from 'pinyin-pro';
 
 import type { ToolboxLeafNode, ToolboxMenuNode, ToolboxTreeNode } from './types';
 
@@ -46,8 +46,6 @@ export function isSearchMatched(searchKey: string, name: string): boolean {
   if (name.toLowerCase().includes(keyword)) {
     return true;
   }
-  const pinyinList = pinyin.parse(name).map((item) => item.target.toLowerCase());
-  const fullPinyin = pinyinList.join('');
-  const initials = pinyinList.reduce((result, item) => result + item[0], '');
-  return fullPinyin.includes(keyword) || initials.includes(keyword);
+  // 拼音匹配：每个字可按全拼或拼音前缀连续命中，多音字的各读音都参与匹配
+  return Boolean(match(name, keyword, { continuous: true, precision: 'start' }));
 }

@@ -60,6 +60,7 @@
 
   import { makeMap } from '@utils';
 
+  import { isLabelMatch } from './common/searchKeyword';
   import useMenuList from './hooks/useMenuList';
 
   interface Props {
@@ -112,7 +113,7 @@
       const modelValueMap = makeMap(defaultValue.value.map((item) => item.value));
       return [...defaultValue.value, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
     }
-    return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
+    return _.filter(list.value, (item) => isLabelMatch(item.label, keyword));
   });
 
   watch(filterKey, () => {
