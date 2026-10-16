@@ -260,6 +260,7 @@
     type OptionValue,
     type SelectedItem,
     selectKey,
+    splitSearchKeywords,
     toLowerCase,
   } from './common';
   import Option from './components/Option.vue';
@@ -538,22 +539,32 @@
 
   const selectedLabel = computed(() => selectedTags.value.map((item) => String(item.label)));
 
-  /** 默认搜索规则：自定义过滤 > 拼音（全拼 / 首字母）或文案包含 > 文案包含 */
+  /**
+   * 默认搜索规则：自定义过滤 > 拼音（全拼 / 首字母）或文案包含 > 文案包含。
+   * 搜索词按分隔符拆成多个关键词（与 tag-input 一致），任一关键词命中即可；自定义过滤仍接收原始搜索词
+   */
   const isSearchMatched = (searchKeyword: string, optionName: string, filterData: Record<string, OptionValue> = {}) => {
     if (props.filterOption) {
       return !!props.filterOption(searchKeyword, { ...filterData });
     }
-    const keyword = toLowerCase(searchKeyword);
-    if (props.searchWithPinyin) {
-      const pinyinList = pinyin
-        .parse(optionName)
-        .map((item) => (item.type === 2 ? item.target.toLowerCase() : item.target));
-      const initials = pinyinList.reduce((result, item) => result + item[0], '');
-      if (pinyinList.join('').includes(keyword) || initials.includes(keyword)) {
-        return true;
-      }
+    const keywords = splitSearchKeywords(searchKeyword);
+    if (!keywords.length) {
+      return true;
     }
-    return toLowerCase(optionName).includes(keyword);
+    const lowerName = toLowerCase(optionName);
+    let fullPinyin = '';
+    let initials = '';
+    if (props.searchWithPinyin) {
+      // 非汉字片段保留原文，整体转小写，避免「MySQL主从」这类中英混排因大小写匹配不上 mysqlzhucong
+      const pinyinList = pinyin.parse(optionName).map((item) => item.target.toLowerCase());
+      fullPinyin = pinyinList.join('');
+      initials = pinyinList.reduce((result, item) => result + item[0], '');
+    }
+    return keywords.some(
+      (keyword) =>
+        lowerName.includes(keyword) ||
+        (props.searchWithPinyin && (fullPinyin.includes(keyword) || initials.includes(keyword))),
+    );
   };
 
   // list 模式下的搜索结果；远程搜索时 list 由外部更新，不在本地过滤
