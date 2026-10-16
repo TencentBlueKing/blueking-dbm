@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from collections import defaultdict
 from contextlib import contextmanager
 from typing import Dict, List
@@ -19,6 +20,7 @@ from rest_framework import serializers
 from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.utils.mongodb.db_table_filter import MongoDbTableFilter
 from backend.flow.utils.mongodb.os_constraint import apply_mongodb_os_constraint
@@ -35,6 +37,15 @@ from backend.ticket.builders.common.base import (
 MONGODB_SHARD_GROUP_COUNT = 3
 MONGODB_JS_FILE_PREFIX = "mongodb/script_result/{uid}.{cluster_name}"
 MONGODB_JS_FILE_STORE_PREFIX = "mongodb/scriptfile/{bk_biz_id}"
+
+
+def assign_recycle_hosts(details: dict, hosts: list) -> None:
+    """写入 recycle_hosts。CMDB 失败时抛出，建单事务回滚，重试会重新标准化。"""
+
+    if not hosts:
+        details["recycle_hosts"] = []
+        return
+    details["recycle_hosts"] = ResourceHandler.standardized_resource_host(hosts)
 
 
 class DBTableSerializer(serializers.Serializer):

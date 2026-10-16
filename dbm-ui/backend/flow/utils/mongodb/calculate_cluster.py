@@ -8,13 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+import logging
+from collections import defaultdict
 from copy import deepcopy
 
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.flow.consts import (
     MongoDBClusterDefaultPort,
     MongoDBDomainPrefix,
@@ -23,6 +26,8 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 from backend.flow.utils.mongodb.version_utils import resolve_mongodb_flow_db_version
+
+logger = logging.getLogger("flow")
 
 
 def get_cache_percent(memory_size: int) -> float:
@@ -525,6 +530,103 @@ def _validate_remaining_shard_deployment_balanced(all_shards: list, selected_nam
         raise ValueError(_("剩余分片部署不均衡：仍有实例的主机剩余分片实例数必须一致，当前各主机计数={}").format(dict(sorted(ip_remaining_count.items()))))
 
 
+def _select_reduce_shards(cluster: dict, cluster_info_from_db) -> list:
+    """解析待缩容分片。校验失败抛 ValueError。"""
+
+    cluster_id = cluster["cluster_id"]
+    if cluster_info_from_db is None:
+        raise ValueError(_("集群不存在：{}").format(cluster_id))
+    if cluster_info_from_db.cluster_type != ClusterType.MongoShardedCluster.value:
+        raise ValueError(_("集群{}不是分片集群").format(cluster_id))
+
+    reduce_mode = cluster.get("reduce_mode") or "by_shard_names"
+    all_shards = cluster_info_from_db.get_shards(sort_by_set_name=True)
+    all_shard_names = {shard.set_name for shard in all_shards}
+
+    if reduce_mode == "by_count":
+        reduce_shards_num = int(cluster.get("reduce_shards_num") or 0)
+        if reduce_shards_num < 1:
+            raise ValueError(_("集群{}缩容分片数必须>=1").format(cluster_id))
+        if reduce_shards_num >= len(all_shards):
+            raise ValueError(_("集群{}缩容后至少保留1个分片").format(cluster_id))
+        shard_names = [shard.set_name for shard in all_shards[-reduce_shards_num:]]
+    else:
+        shard_names = list(cluster.get("shard_names") or [])
+        if not shard_names:
+            raise ValueError(_("集群{}的shard_names不能为空").format(cluster_id))
+
+    selected = set(shard_names)
+    if len(selected) != len(shard_names):
+        raise ValueError(_("集群{}的shard_names存在重复").format(cluster_id))
+
+    unknown = selected - all_shard_names
+    if unknown:
+        raise ValueError(_("集群{}存在未知分片：{}").format(cluster_id, sorted(unknown)))
+
+    config = cluster_info_from_db.get_config()
+    if config and config.set_name in selected:
+        raise ValueError(_("集群{}不能缩容 configsvr 分片 {}").format(cluster_id, config.set_name))
+
+    if len(all_shard_names) - len(selected) < 1:
+        raise ValueError(_("集群{}缩容后至少保留1个分片").format(cluster_id))
+
+    _validate_remaining_shard_deployment_balanced(all_shards, selected)
+    return [shard for shard in all_shards if shard.set_name in selected]
+
+
+def collect_reduce_shard_recycle_hosts(bk_biz_id: int, infos: list) -> list:
+    """减少分片后、本业务已无存储实例和 Proxy 实例的主机。供已下架主机处理单使用。"""
+
+    removed_ports = defaultdict(set)
+    try:
+        for cluster in infos or []:
+            cluster_info = MongoRepository().fetch_one_cluster(id=cluster["cluster_id"])
+            for shard in _select_reduce_shards(cluster, cluster_info):
+                for member in shard.members:
+                    removed_ports[(member.ip, int(member.bk_cloud_id))].add(int(member.port))
+    except ValueError as err:
+        logger.warning("skip reduce-shard recycle hosts: %s", err)
+        return []
+
+    if not removed_ports:
+        return []
+
+    ips = list({ip for ip, _cloud_id in removed_ports})
+    rows = StorageInstance.objects.filter(bk_biz_id=bk_biz_id, machine__ip__in=ips).values_list(
+        "machine__ip", "machine__bk_cloud_id", "machine__bk_host_id", "port"
+    )
+    host_id_by_key = {}
+    remaining_host_ids = set()
+    for ip, cloud_id, host_id, port in rows:
+        key = (ip, int(cloud_id))
+        if key not in removed_ports:
+            continue
+        host_id_by_key[key] = host_id
+        if int(port) not in removed_ports[key]:
+            remaining_host_ids.add(host_id)
+
+    # mongos 等接入层在 ProxyInstance 上，混部时不能把还在跑 mongos 的机器当成空机
+    proxy_rows = ProxyInstance.objects.filter(bk_biz_id=bk_biz_id, machine__ip__in=ips).values_list(
+        "machine__ip", "machine__bk_cloud_id", "machine__bk_host_id"
+    )
+    for ip, cloud_id, host_id in proxy_rows:
+        key = (ip, int(cloud_id))
+        if key not in removed_ports:
+            continue
+        host_id_by_key[key] = host_id
+        remaining_host_ids.add(host_id)
+
+    hosts = []
+    seen_host_ids = set()
+    for ip, cloud_id in removed_ports:
+        host_id = host_id_by_key.get((ip, cloud_id))
+        if host_id is None or host_id in remaining_host_ids or host_id in seen_host_ids:
+            continue
+        seen_host_ids.add(host_id)
+        hosts.append({"ip": ip, "bk_host_id": host_id, "bk_cloud_id": cloud_id})
+    return hosts
+
+
 def calculate_cluster_reduce_shard(payload: dict) -> dict:
     """分片集群减少 shard 计算与校验"""
 
@@ -544,46 +646,8 @@ def calculate_cluster_reduce_shard(payload: dict) -> dict:
     cluster_reduce_shard_info = []
     for cluster in payload["infos"]:
         cluster_id = cluster["cluster_id"]
-        reduce_mode = cluster.get("reduce_mode") or "by_shard_names"
-
         cluster_info_from_db = MongoRepository().fetch_one_cluster(id=cluster_id)
-        if cluster_info_from_db is None:
-            raise ValueError(_("集群不存在：{}").format(cluster_id))
-        if cluster_info_from_db.cluster_type != ClusterType.MongoShardedCluster.value:
-            raise ValueError(_("集群{}不是分片集群").format(cluster_id))
-
-        all_shards = cluster_info_from_db.get_shards(sort_by_set_name=True)
-        all_shard_names = {shard.set_name for shard in all_shards}
-
-        if reduce_mode == "by_count":
-            reduce_shards_num = int(cluster.get("reduce_shards_num") or 0)
-            if reduce_shards_num < 1:
-                raise ValueError(_("集群{}缩容分片数必须>=1").format(cluster_id))
-            if reduce_shards_num >= len(all_shards):
-                raise ValueError(_("集群{}缩容后至少保留1个分片").format(cluster_id))
-            shard_names = [shard.set_name for shard in all_shards[-reduce_shards_num:]]
-        else:
-            shard_names = list(cluster.get("shard_names") or [])
-            if not shard_names:
-                raise ValueError(_("集群{}的shard_names不能为空").format(cluster_id))
-
-        selected = set(shard_names)
-        if len(selected) != len(shard_names):
-            raise ValueError(_("集群{}的shard_names存在重复").format(cluster_id))
-
-        unknown = selected - all_shard_names
-        if unknown:
-            raise ValueError(_("集群{}存在未知分片：{}").format(cluster_id, sorted(unknown)))
-
-        config = cluster_info_from_db.get_config()
-        if config and config.set_name in selected:
-            raise ValueError(_("集群{}不能缩容 configsvr 分片 {}").format(cluster_id, config.set_name))
-
-        remaining = len(all_shard_names) - len(selected)
-        if remaining < 1:
-            raise ValueError(_("集群{}缩容后至少保留1个分片").format(cluster_id))
-
-        _validate_remaining_shard_deployment_balanced(all_shards, selected)
+        selected_shards = _select_reduce_shards(cluster, cluster_info_from_db)
 
         bk_cloud_id = cluster.get("bk_cloud_id", cluster_info_from_db.bk_cloud_id)
         mongos = cluster_info_from_db.get_mongos()[0]
@@ -599,9 +663,7 @@ def calculate_cluster_reduce_shard(payload: dict) -> dict:
         storages = []
         old_instances = []
         shard_host_map = {}
-        for shard in all_shards:
-            if shard.set_name not in selected:
-                continue
+        for shard in selected_shards:
             nodes = []
             for member in shard.members:
                 node = {

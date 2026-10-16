@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 import traceback
 from typing import List, Optional
@@ -17,10 +18,23 @@ from django.utils.translation import gettext as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
-from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
+
+
+def machine_has_remaining_instance(ip: str, bk_biz_id: int, bk_cloud_id: int) -> bool:
+    """存储实例或 Proxy（mongos）还在，这台机器就不能回收。"""
+
+    common = {
+        "machine__ip": ip,
+        "bk_biz_id": bk_biz_id,
+        "machine__bk_cloud_id": bk_cloud_id,
+    }
+    if StorageInstance.objects.filter(**common).exists():
+        return True
+    return ProxyInstance.objects.filter(**common).exists()
 
 
 @transaction.atomic
@@ -99,11 +113,7 @@ def cluster_reduce_shard(
                 storage_obj.delete()
 
             for machine in machines:
-                if StorageInstance.objects.filter(
-                    machine__ip=machine.ip,
-                    bk_biz_id=cluster.bk_biz_id,
-                    machine__bk_cloud_id=cluster.bk_cloud_id,
-                ).exists():
+                if machine_has_remaining_instance(machine.ip, cluster.bk_biz_id, cluster.bk_cloud_id):
                     logger.info("ignore recycle machine {}, another instance existed.".format(machine))
                 else:
                     logger.info("storage recycle machine {}".format(machine))

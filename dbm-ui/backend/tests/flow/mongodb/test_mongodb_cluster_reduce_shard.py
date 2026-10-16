@@ -17,6 +17,7 @@ from backend.flow.plugins.components.collections.mongodb.exec_actuator_job impor
 from backend.flow.utils.mongodb.calculate_cluster import (
     _validate_remaining_shard_deployment_balanced,
     calculate_cluster_reduce_shard,
+    collect_reduce_shard_recycle_hosts,
 )
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoNode, ReplicaSet, ShardedCluster
@@ -295,6 +296,91 @@ class TestCalculateClusterReduceShard:
             )
 
 
+def _storage_rows(shards, host_ids, extra_rows=None):
+    rows = []
+    for shard in shards:
+        for member in shard.members:
+            rows.append((member.ip, member.bk_cloud_id, host_ids[member.ip], member.port))
+    rows.extend(extra_rows or [])
+    return rows
+
+
+class TestCollectReduceShardRecycleHosts:
+    host_ids = {
+        "127.0.0.1": 101,
+        "127.0.0.2": 102,
+        "127.0.0.3": 103,
+        "127.0.0.4": 104,
+        "127.0.0.5": 105,
+        "127.0.0.6": 106,
+        "127.0.0.20": 120,
+    }
+
+    def _patch_cluster(self, monkeypatch, rows, proxy_rows=None):
+        cluster = _fake_cluster(_three_groups_six_shards())
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
+            classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
+        )
+        mock_qs = MagicMock()
+        mock_qs.values_list.return_value = rows
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.StorageInstance.objects.filter",
+            lambda **kwargs: mock_qs,
+        )
+        proxy_qs = MagicMock()
+        proxy_qs.values_list.return_value = proxy_rows or []
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.ProxyInstance.objects.filter",
+            lambda **kwargs: proxy_qs,
+        )
+
+    def test_recycle_hosts_are_machines_without_remaining_instance(self, monkeypatch):
+        shards = _three_groups_six_shards()
+        rows = _storage_rows(
+            shards,
+            self.host_ids,
+            extra_rows=[("127.0.0.20", 0, 120, 27019)],
+        )
+        self._patch_cluster(monkeypatch, rows)
+
+        hosts = collect_reduce_shard_recycle_hosts(3, [{"cluster_id": 1001, "shard_names": ["demo-s5", "demo-s6"]}])
+
+        assert {host["ip"] for host in hosts} == {"127.0.0.5", "127.0.0.6"}
+        assert {host["bk_host_id"] for host in hosts} == {105, 106}
+
+    def test_skip_machine_that_still_has_instance(self, monkeypatch):
+        shards = _three_groups_six_shards()
+        rows = _storage_rows(shards, self.host_ids, extra_rows=[("127.0.0.5", 0, 105, 27999)])
+        self._patch_cluster(monkeypatch, rows)
+
+        hosts = collect_reduce_shard_recycle_hosts(
+            3, [{"cluster_id": 1001, "reduce_mode": "by_count", "reduce_shards_num": 2}]
+        )
+
+        assert [host["ip"] for host in hosts] == ["127.0.0.6"]
+
+    def test_skip_machine_that_still_has_mongos(self, monkeypatch):
+        shards = _three_groups_six_shards()
+        rows = _storage_rows(shards, self.host_ids)
+        self._patch_cluster(monkeypatch, rows, proxy_rows=[("127.0.0.5", 0, 105)])
+
+        hosts = collect_reduce_shard_recycle_hosts(3, [{"cluster_id": 1001, "shard_names": ["demo-s5", "demo-s6"]}])
+
+        assert {host["ip"] for host in hosts} == {"127.0.0.6"}
+
+    def test_invalid_selection_returns_empty(self, monkeypatch):
+        cluster = _fake_cluster(_three_groups_six_shards())
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
+            classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
+        )
+
+        hosts = collect_reduce_shard_recycle_hosts(3, [{"cluster_id": 1001, "shard_names": ["demo-s6"]}])
+
+        assert hosts == []
+
+
 class TestReduceShardActKwargs:
     def _kwargs(self):
         act = ActKwargs()
@@ -456,13 +542,15 @@ class TestClusterReduceShardMetaRecycle:
         mock_storage_cls.objects.filter.return_value.exists.return_value = False
         mock_cc = mock_cc_cls.return_value
 
-        cluster_reduce_shard(
-            bk_biz_id=3,
-            cluster_id=1001,
-            storages=[{"shard": "demo-s1", "nodes": [{"ip": "127.0.0.1", "port": 27001}]}],
-            creator="tester",
-            bk_cloud_id=0,
-        )
+        with patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.ProxyInstance") as mock_proxy_cls:
+            mock_proxy_cls.objects.filter.return_value.exists.return_value = False
+            cluster_reduce_shard(
+                bk_biz_id=3,
+                cluster_id=1001,
+                storages=[{"shard": "demo-s1", "nodes": [{"ip": "127.0.0.1", "port": 27001}]}],
+                creator="tester",
+                bk_cloud_id=0,
+            )
 
         mock_cc.recycle_host.assert_called_once_with([101])
         machine.delete.assert_called_once()
@@ -507,6 +595,44 @@ class TestClusterReduceShardMetaRecycle:
     @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.StorageInstanceTuple")
     @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.StorageInstance")
     @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.Cluster")
+    def test_skip_recycle_when_machine_still_has_mongos(
+        self, mock_cluster_cls, mock_storage_cls, _mock_tuple, mock_cc_cls
+    ):
+        from backend.db_meta.api.cluster.mongocluster.reduce_shard import cluster_reduce_shard
+
+        storage, machine = self._storage("127.0.0.1", 27001, 101)
+        cluster = SimpleNamespace(
+            id=1001,
+            bk_biz_id=3,
+            bk_cloud_id=0,
+            cluster_type="MongoShardedCluster",
+            immute_domain="demo.mongodb.db",
+            nosqlstoragesetdtl_set=MagicMock(),
+            storageinstance_set=MagicMock(),
+        )
+        cluster.nosqlstoragesetdtl_set.filter.return_value.delete.return_value = (1, {})
+        cluster.storageinstance_set.get.return_value = storage
+        mock_cluster_cls.objects.get.return_value = cluster
+        mock_storage_cls.objects.filter.return_value.exists.return_value = False
+        mock_cc = mock_cc_cls.return_value
+
+        with patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.ProxyInstance") as mock_proxy_cls:
+            mock_proxy_cls.objects.filter.return_value.exists.return_value = True
+            cluster_reduce_shard(
+                bk_biz_id=3,
+                cluster_id=1001,
+                storages=[{"shard": "demo-s1", "nodes": [{"ip": "127.0.0.1", "port": 27001}]}],
+                creator="tester",
+                bk_cloud_id=0,
+            )
+
+        mock_cc.recycle_host.assert_not_called()
+        machine.delete.assert_not_called()
+
+    @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.CcManage")
+    @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.StorageInstanceTuple")
+    @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.StorageInstance")
+    @patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.Cluster")
     def test_dedupe_machine_recycle_for_same_host(self, mock_cluster_cls, mock_storage_cls, _mock_tuple, mock_cc_cls):
         from backend.db_meta.api.cluster.mongocluster.reduce_shard import cluster_reduce_shard
 
@@ -528,18 +654,20 @@ class TestClusterReduceShardMetaRecycle:
         mock_storage_cls.objects.filter.return_value.exists.return_value = False
         mock_cc = mock_cc_cls.return_value
 
-        cluster_reduce_shard(
-            bk_biz_id=3,
-            cluster_id=1001,
-            storages=[
-                {
-                    "shard": "demo-s1",
-                    "nodes": [{"ip": "127.0.0.1", "port": 27001}, {"ip": "127.0.0.1", "port": 27002}],
-                }
-            ],
-            creator="tester",
-            bk_cloud_id=0,
-        )
+        with patch("backend.db_meta.api.cluster.mongocluster.reduce_shard.ProxyInstance") as mock_proxy_cls:
+            mock_proxy_cls.objects.filter.return_value.exists.return_value = False
+            cluster_reduce_shard(
+                bk_biz_id=3,
+                cluster_id=1001,
+                storages=[
+                    {
+                        "shard": "demo-s1",
+                        "nodes": [{"ip": "127.0.0.1", "port": 27001}, {"ip": "127.0.0.1", "port": 27002}],
+                    }
+                ],
+                creator="tester",
+                bk_cloud_id=0,
+            )
 
         mock_cc.recycle_host.assert_called_once_with([101])
         machine.delete.assert_called_once()
