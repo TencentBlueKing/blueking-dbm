@@ -249,7 +249,7 @@
   import { AngleDown, Close, Search, TextAll } from 'bkui-vue/lib/icon';
   import { useFormItem } from 'bkui-vue/lib/shared';
   import { isEqual } from 'lodash';
-  import pinyin from 'tiny-pinyin';
+  import { match } from 'pinyin-pro';
   import tippy, { type Instance, type Placement, type SingleTarget } from 'tippy.js';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -552,18 +552,11 @@
       return true;
     }
     const lowerName = toLowerCase(optionName);
-    let fullPinyin = '';
-    let initials = '';
-    if (props.searchWithPinyin) {
-      // 非汉字片段保留原文，整体转小写，避免「MySQL主从」这类中英混排因大小写匹配不上 mysqlzhucong
-      const pinyinList = pinyin.parse(optionName).map((item) => item.target.toLowerCase());
-      fullPinyin = pinyinList.join('');
-      initials = pinyinList.reduce((result, item) => result + item[0], '');
-    }
     return keywords.some(
       (keyword) =>
         lowerName.includes(keyword) ||
-        (props.searchWithPinyin && (fullPinyin.includes(keyword) || initials.includes(keyword))),
+        // 拼音匹配：每个字可按全拼或拼音前缀连续命中，多音字的各读音都参与匹配
+        (props.searchWithPinyin && Boolean(match(optionName, keyword, { continuous: true, precision: 'start' }))),
     );
   };
 
