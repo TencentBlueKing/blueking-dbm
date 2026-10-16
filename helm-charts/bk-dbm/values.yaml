@@ -154,6 +154,8 @@ dbm:
     reverseReportKafkaOptions: ""
     dbmEnableAI: false
     bkaiAgentMetricsPushMode: "direct"
+    # 智能体消息队列。非空时注入 MESSAGE_REDIS_URL；留空则不注入，由应用用 REDIS_URL 兜底。
+    MESSAGE_REDIS_URL: ""
 
   ingress:
     enabled: true
