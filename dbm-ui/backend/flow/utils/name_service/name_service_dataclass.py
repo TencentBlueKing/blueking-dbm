@@ -45,6 +45,10 @@ class MySQLClbActKwargs:
 
     # 集群id
     cluster_id: int = None
+    # 业务id，在cluster_id未知(比如集群刚创建，还未拿到cluster_id)时，配合domain_name在执行态解析出cluster_id
+    bk_biz_id: int = None
+    # 集群域名，在cluster_id未知时，配合bk_biz_id在执行态解析出cluster_id
+    domain_name: str = None
     # 操作人员
     creator: str = None
     # spider角色
