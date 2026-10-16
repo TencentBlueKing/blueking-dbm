@@ -133,6 +133,7 @@
   import { Message } from 'bkui-vue';
   import { useFormItem } from 'bkui-vue/lib/shared';
   import { debounce } from 'lodash';
+  import pinyin from 'tiny-pinyin';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
@@ -157,6 +158,8 @@
     /** 是否多选。开启时候选项展示为 checkbox 并支持全选；关闭时为单选 */
     multiple?: boolean;
     placeholder?: string;
+    /** 候选搜索是否支持拼音（全拼 / 首字母）匹配展示名，与 DbSelect 一致 */
+    searchWithPinyin?: boolean;
     /** 自定义批量拆分规则，作用于粘贴 / 回车 / 失焦提交；不传按内置分隔符拆 */
     splitFn?: (value: string) => string[];
     /** 值变化 / 失焦时是否触发所在表单项的校验 */
@@ -179,6 +182,7 @@
     mode: undefined,
     multiple: false,
     placeholder: '',
+    searchWithPinyin: true,
     splitFn: undefined,
     withValidate: true,
   });
@@ -194,7 +198,7 @@
   const { t } = useI18n();
 
   // 批量粘贴分隔符：逗号、分号、竖线、换行、制表符、空格（含中文全角），连续分隔符产生空段后统一丢弃
-  const SEPARATOR_REGEX = /[,，;；、｜|\t\r\n ]/;
+  const SEPARATOR_REGEX = /[,，;；、｜|\t\r\n \u3000]/;
 
   const triggerRef = useTemplateRef('triggerRef');
   const panelRef = useTemplateRef('panelRef');
@@ -238,7 +242,27 @@
   // 候选值展示名映射
   const candidateNameMap = computed(() => new Map(candidateList.value.map((item) => [item.id, item.name])));
 
-  // 关键词包含匹配（不区分大小写，id / 展示名任一命中即可）；多个分隔词按 OR 匹配，无关键词展示全部候选。
+  // 候选项的可搜索文本（id、展示名，开启拼音时追加展示名的全拼与首字母），统一小写。
+  // 跟随候选源预先计算，避免每次输入都对全部候选重新转拼音
+  const candidateSearchTextsList = computed(() =>
+    candidateList.value.map((item) => {
+      const texts = [item.id.toLowerCase(), item.name.toLowerCase()];
+      if (props.searchWithPinyin) {
+        // 非汉字片段保留原文，整体转小写，中英混排的展示名也能按拼音连续匹配
+        const pinyinList = pinyin.parse(item.name).map((segment) => segment.target.toLowerCase());
+        texts.push(
+          pinyinList.join(''),
+          pinyinList.reduce((result, segment) => result + segment[0], ''),
+        );
+      }
+      return {
+        item,
+        texts,
+      };
+    }),
+  );
+
+  // 关键词包含匹配（不区分大小写，id / 展示名 / 拼音任一命中即可）；多个分隔词按 OR 匹配，无关键词展示全部候选。
   // 这里是搜索语义，固定按内置分隔符拆，不跟随 splitFn
   const filteredList = computed(() => {
     const keywords = inputValue.value
@@ -248,11 +272,9 @@
     if (!keywords.length) {
       return candidateList.value;
     }
-    return candidateList.value.filter((item) => {
-      const id = item.id.toLowerCase();
-      const name = item.name.toLowerCase();
-      return keywords.some((keyword) => name.includes(keyword) || id.includes(keyword));
-    });
+    return candidateSearchTextsList.value
+      .filter(({ texts }) => keywords.some((keyword) => texts.some((text) => text.includes(keyword))))
+      .map(({ item }) => item);
   });
 
   // 允许新建时，输入词非候选且未选中，则展示「新建」入口

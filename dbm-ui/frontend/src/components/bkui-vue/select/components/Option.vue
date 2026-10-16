@@ -57,7 +57,7 @@
   import { isEqual } from 'lodash';
   import type { VNode } from 'vue';
 
-  import { optionGroupKey, type OptionValue, selectKey } from '../common';
+  import { optionGroupKey, type OptionValue, selectKey, splitSearchKeywords } from '../common';
 
   interface Props {
     /** 支持 boolean 与 { disabled, tips } 两种配置，后者可在禁用时给出原因 */
@@ -125,32 +125,36 @@
 
   const isHover = computed(() => select?.activeOptionValue === optionID.value);
 
-  // 搜索命中时把展示文案拆成「命中 / 未命中」片段，用于关键字高亮
+  // 搜索命中时把展示文案拆成「命中 / 未命中」片段，用于关键字高亮；多个关键词各自命中的区间都高亮
   const keywordSegments = computed(() => {
     if (!select?.highlightKeyword) {
       return null;
     }
-    const keyword = select.curSearchValue.trim();
+    const keywords = splitSearchKeywords(select.curSearchValue);
     const text = String(optionName.value);
     const lowerText = text.toLowerCase();
-    const lowerKeyword = keyword.toLowerCase();
-    if (!keyword || !lowerText.includes(lowerKeyword)) {
+    // 逐字符标记是否落在任一关键词的命中区间内，重叠区间自然合并
+    const marks = new Array<boolean>(text.length).fill(false);
+    keywords.forEach((keyword) => {
+      let matchIndex = lowerText.indexOf(keyword);
+      while (matchIndex > -1) {
+        marks.fill(true, matchIndex, matchIndex + keyword.length);
+        matchIndex = lowerText.indexOf(keyword, matchIndex + keyword.length);
+      }
+    });
+    if (!marks.includes(true)) {
       return null;
     }
+    // 相邻且命中状态相同的字符合并为一个片段
     const segments: { isKeyword: boolean; text: string }[] = [];
-    let cursor = 0;
-    let matchIndex = lowerText.indexOf(lowerKeyword);
-    while (matchIndex > -1) {
-      if (matchIndex > cursor) {
-        segments.push({ isKeyword: false, text: text.slice(cursor, matchIndex) });
+    marks.forEach((isKeyword, index) => {
+      const lastSegment = segments[segments.length - 1];
+      if (lastSegment && lastSegment.isKeyword === isKeyword) {
+        lastSegment.text += text[index];
+      } else {
+        segments.push({ isKeyword, text: text[index] });
       }
-      segments.push({ isKeyword: true, text: text.slice(matchIndex, matchIndex + keyword.length) });
-      cursor = matchIndex + keyword.length;
-      matchIndex = lowerText.indexOf(lowerKeyword, cursor);
-    }
-    if (cursor < text.length) {
-      segments.push({ isKeyword: false, text: text.slice(cursor) });
-    }
+    });
     return segments;
   });
 
