@@ -31,7 +31,7 @@
         disabled: !reportToTime && !isEmpty,
       }"
       class="ml-8 mr-8">
-      <BkDatePicker
+      <DbDatePicker
         :clearable="false"
         :disabled="isEmpty"
         :disabled-date="disableDate"
