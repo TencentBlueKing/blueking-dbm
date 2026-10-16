@@ -81,6 +81,8 @@
   import { Input, Radio } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
+  import { isLabelMatch } from './common/searchKeyword';
+
   interface Props {
     list: {
       children: {
@@ -124,7 +126,7 @@
     return props.list.reduce(
       (result, parentItem) => {
         parentItem.children.forEach((childItem) => {
-          if (childItem.label.toLowerCase().includes(keyword)) {
+          if (isLabelMatch(childItem.label, keyword)) {
             result.push({
               ...childItem,
               searchLabel: `${parentItem.label} / ${childItem.label}`,

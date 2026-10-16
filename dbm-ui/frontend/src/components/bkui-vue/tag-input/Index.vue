@@ -133,7 +133,7 @@
   import { Message } from 'bkui-vue';
   import { useFormItem } from 'bkui-vue/lib/shared';
   import { debounce } from 'lodash';
-  import pinyin from 'tiny-pinyin';
+  import { match } from 'pinyin-pro';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
@@ -242,24 +242,12 @@
   // 候选值展示名映射
   const candidateNameMap = computed(() => new Map(candidateList.value.map((item) => [item.id, item.name])));
 
-  // 候选项的可搜索文本（id、展示名，开启拼音时追加展示名的全拼与首字母），统一小写。
-  // 跟随候选源预先计算，避免每次输入都对全部候选重新转拼音
+  // 候选项的可搜索文本（id、展示名），统一小写。跟随候选源预先计算，避免每次输入都重新转小写
   const candidateSearchTextsList = computed(() =>
-    candidateList.value.map((item) => {
-      const texts = [item.id.toLowerCase(), item.name.toLowerCase()];
-      if (props.searchWithPinyin) {
-        // 非汉字片段保留原文，整体转小写，中英混排的展示名也能按拼音连续匹配
-        const pinyinList = pinyin.parse(item.name).map((segment) => segment.target.toLowerCase());
-        texts.push(
-          pinyinList.join(''),
-          pinyinList.reduce((result, segment) => result + segment[0], ''),
-        );
-      }
-      return {
-        item,
-        texts,
-      };
-    }),
+    candidateList.value.map((item) => ({
+      item,
+      texts: [item.id.toLowerCase(), item.name.toLowerCase()],
+    })),
   );
 
   // 关键词包含匹配（不区分大小写，id / 展示名 / 拼音任一命中即可）；多个分隔词按 OR 匹配，无关键词展示全部候选。
@@ -273,7 +261,14 @@
       return candidateList.value;
     }
     return candidateSearchTextsList.value
-      .filter(({ texts }) => keywords.some((keyword) => texts.some((text) => text.includes(keyword))))
+      .filter(({ item, texts }) =>
+        keywords.some(
+          (keyword) =>
+            texts.some((text) => text.includes(keyword)) ||
+            // 拼音匹配：每个字可按全拼或拼音前缀连续命中，多音字的各读音都参与匹配
+            (props.searchWithPinyin && Boolean(match(item.name, keyword, { continuous: true, precision: 'start' }))),
+        ),
+      )
       .map(({ item }) => item);
   });
 
