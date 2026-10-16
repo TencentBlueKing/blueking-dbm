@@ -6741,5 +6741,8 @@
   "打开集群详情": "Open Cluster Details",
   "DBA 负责人": "DBA Owner",
   "架构": "Architecture",
+  "选择时间": "Select Time",
+  "选择日期": "Select Date",
+  "分": "Minute",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
