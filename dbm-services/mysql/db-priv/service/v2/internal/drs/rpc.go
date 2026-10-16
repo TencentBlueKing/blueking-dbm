@@ -40,6 +40,7 @@ type drsRequest struct {
 	*/
 	QueryTimeout int64 `form:"query_timeout" json:"query_timeout" url:"query_timeout"` // sql执行超时时间
 	BkCloudId    int64 `form:"bk_cloud_id" json:"bk_cloud_id" url:"bk_cloud_id"`       // mysql服务所在的云域
+	SkipSetNames bool  `form:"skip_set_names" json:"skip_set_names" url:"skip_set_names"`
 }
 
 /*
