@@ -179,7 +179,7 @@
     }
   }
 
-  .bk-dropdown-item {
+  .dbm-dropdown-item {
     &.is-disabled {
       color: @disable-color;
       cursor: not-allowed;

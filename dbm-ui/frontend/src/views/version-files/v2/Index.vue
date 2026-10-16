@@ -50,13 +50,13 @@
             <template #label>
               <div class="tab-label-main">
                 <span>{{ item.name }}</span>
-                <BkDropdown trigger="click">
+                <DbDropdown>
                   <div class="tab-label-more">
                     <DbIcon type="more" />
                   </div>
                   <template #content>
-                    <BkDropdownMenu>
-                      <BkDropdownItem>
+                    <DbDropdownMenu>
+                      <DbDropdownItem>
                         <AuthButton
                           action-id="package_manage"
                           :permission="hasPackageManagePermission"
@@ -65,8 +65,8 @@
                           @click="handleEditPkgType(item)">
                           {{ t('编辑包类型') }}
                         </AuthButton>
-                      </BkDropdownItem>
-                      <BkDropdownItem
+                      </DbDropdownItem>
+                      <DbDropdownItem
                         v-bk-tooltips="{
                           content: t('该包类型存在 n 个版本，请清理后再操作', {
                             n: item.related_versions,
@@ -91,10 +91,10 @@
                             {{ t('删除包类型') }}
                           </AuthButton>
                         </DbPopconfirm>
-                      </BkDropdownItem>
-                    </BkDropdownMenu>
+                      </DbDropdownItem>
+                    </DbDropdownMenu>
                   </template>
-                </BkDropdown>
+                </DbDropdown>
               </div>
             </template>
           </BkTabPanel>

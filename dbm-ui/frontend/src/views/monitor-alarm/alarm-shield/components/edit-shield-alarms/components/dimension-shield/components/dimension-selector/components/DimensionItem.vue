@@ -44,28 +44,23 @@
               :value="item.value" />
           </DbSelect>
         </div>
-        <BkDropdown
-          :disabled="isFixed || disabled"
-          :popover-options="{
-            clickContentAutoHide: true,
-          }"
-          trigger="click">
+        <DbDropdown :disabled="isFixed || disabled">
           <div
             class="operaion-sign"
             :class="{ 'operaion-sign-disabled': isFixed }">
             {{ operationSign.label }}
           </div>
           <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem
+            <DbDropdownMenu>
+              <DbDropdownItem
                 v-for="(item, index) in operationList"
                 :key="index"
                 @click="() => handleChooseSignClick(item)">
                 {{ item.label }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
+              </DbDropdownItem>
+            </DbDropdownMenu>
           </template>
-        </BkDropdown>
+        </DbDropdown>
         <div class="content">
           <DbSelect
             v-model="contentValue"
