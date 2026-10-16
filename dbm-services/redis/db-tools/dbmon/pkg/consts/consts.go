@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.21"
+	BkDbmonVersion = "v0.22"
 )
 
 const (
@@ -168,6 +168,10 @@ const (
 
 	BackupClientStrorageTypeCOS  = "cos"
 	BackupClientStrorageTypeHDFS = "hdfs"
+
+	// DiskUsageCleanThreshold 数据盘空间利用率(%)超过该阈值时,
+	// 发起下一次全备前先清理该实例上一次备份文件和记录
+	DiskUsageCleanThreshold = 43
 )
 
 const (

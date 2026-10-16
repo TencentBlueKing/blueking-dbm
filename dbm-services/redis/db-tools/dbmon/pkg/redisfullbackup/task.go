@@ -179,6 +179,12 @@ func (task *BackupTask) BakcupToLocal() {
 
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) dbType:%s start backup...", task.Addr(), task.DbType))
 
+	// 数据盘利用率超阈值时,先清理上一次备份文件和记录,再发起本次全备
+	task.CheckDiskUsageAndCleanPreviousBackup()
+	if task.Err != nil {
+		return
+	}
+
 	task.PrecheckDisk()
 	if task.Err != nil {
 		return
@@ -259,6 +265,102 @@ func (task *BackupTask) newConnect() {
 		return
 	}
 	return
+}
+
+// CheckDiskUsageAndCleanPreviousBackup 数据盘空间利用率超过阈值(consts.DiskUsageCleanThreshold,默认50%)时,
+// 在发起下一次全备前,先清理该实例的上一次备份文件和记录;
+// 清理完成后检查该备份文件是否已成功上传备份系统,只做检查记录error日志,不截断清理流程
+// 该清理策略只针对tendisplus集群类型生效
+func (task *BackupTask) CheckDiskUsageAndCleanPreviousBackup() {
+	if task.DbType != consts.TendisTypeTendisplusInsance {
+		return
+	}
+	diskUsg, err := util.GetLocalDirDiskUsg(task.BackupDir)
+	if err != nil {
+		task.Err = err
+		return
+	}
+	if diskUsg.UsageRatio <= consts.DiskUsageCleanThreshold {
+		return
+	}
+	mylog.Logger.Info(fmt.Sprintf(
+		"redis(%s) disk(%s) usage:%d%% > %d%%,clean previous backup before next fullbackup",
+		task.Addr(), task.BackupDir, diskUsg.UsageRatio, consts.DiskUsageCleanThreshold))
+
+	// 查询该实例上一次未被清理的备份记录
+	prevRow := models.RedisFullbackupHistorySchema{}
+	err = task.sqdb.Where("server_ip=? and server_port=? and local_file_removed=?",
+		task.ServerIP, task.ServerPort, 0).
+		Order("start_time desc").First(&prevRow).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// 无历史备份记录,无需清理
+			return
+		}
+		task.Err = fmt.Errorf("query previous fullbackup record fail,err:%v", err)
+		mylog.Logger.Error(task.Err.Error())
+		return
+	}
+	// 如果该备份文件正在上传备份系统中,删除文件后上传进程仍持有文件句柄,磁盘空间不会立即释放;
+	// 轮询备份系统上传任务状态,最多等待1小时,待上传结束后再执行删除
+	if prevRow.Status == consts.BackupStatusToBakSystemStart &&
+		prevRow.BackupTaskID != "" && task.backupClient != nil {
+		deadline := time.Now().Local().Add(1 * time.Hour)
+		for time.Now().Local().Before(deadline) {
+			var taskStatus int
+			var statusMsg string
+			taskStatus, statusMsg, err = task.backupClient.TaskStatus(prevRow.BackupTaskID)
+			if err != nil {
+				mylog.Logger.Warn(fmt.Sprintf("redis(%s) query upload task(%s) status fail,err:%v,continue waiting",
+					task.Addr(), prevRow.BackupTaskID, err))
+			} else if taskStatus >= 4 {
+				// taskStatus==4 上传成功;taskStatus>4 上传失败
+				if taskStatus == 4 {
+					prevRow.Status = consts.BackupStatusToBakSysSuccess
+					prevRow.Message = "上传备份系统成功"
+				} else {
+					prevRow.Status = consts.BackupStatusToBakSystemFailed
+					prevRow.Message = fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg)
+				}
+				if saveErr := task.sqdb.Save(&prevRow).Error; saveErr != nil {
+					mylog.Logger.Error(fmt.Sprintf("redis(%s) save fullbackup record fail,err:%v",
+						task.Addr(), saveErr))
+				}
+				break
+			}
+			// 上传中,1分钟后再次查询
+			time.Sleep(1 * time.Minute)
+		}
+		if prevRow.Status == consts.BackupStatusToBakSystemStart {
+			mylog.Logger.Error(fmt.Sprintf(
+				"redis(%s) upload task(%s) still running after 1 hour,file(%s) will be deleted anyway,"+
+					"disk space may not released until upload finished",
+				task.Addr(), prevRow.BackupTaskID, prevRow.BackupFile))
+		}
+	}
+	if util.FileExists(prevRow.BackupFile) {
+		if err = os.Remove(prevRow.BackupFile); err != nil {
+			task.Err = fmt.Errorf("os.Remove fail,err:%v,file:%s", err, prevRow.BackupFile)
+			mylog.Logger.Error(task.Err.Error())
+			return
+		}
+	}
+	// 删除该次备份的记录
+	task.Err = task.sqdb.Delete(&prevRow).Error
+	if task.Err != nil {
+		task.Err = fmt.Errorf("delete previous fullbackup record fail,err:%v", task.Err)
+		mylog.Logger.Error(task.Err.Error())
+		return
+	}
+	// 检查该备份文件是否已成功上传备份系统,只做检查并记录error日志,不截断清理流程
+	if prevRow.Status != consts.BackupStatusToBakSysSuccess {
+		mylog.Logger.Error(fmt.Sprintf(
+			"redis(%s) previous backup file(%s) status(%s) not uploaded to backup system,"+
+				"it has been deleted due to disk(%s) usage %d%%,backup data may lost",
+			task.Addr(), prevRow.BackupFile, prevRow.Status, task.DataDir, diskUsg.UsageRatio))
+	}
+	mylog.Logger.Info(fmt.Sprintf(
+		"redis(%s) previous backup file(%s) and record cleaned", task.Addr(), prevRow.BackupFile))
 }
 
 // PrecheckDisk 磁盘检查
