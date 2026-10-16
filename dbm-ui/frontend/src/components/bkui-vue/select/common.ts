@@ -66,6 +66,16 @@ export const selectKey: InjectionKey<SelectContext> = Symbol('DbSelect');
 /** 关键字匹配统一去首尾空格并转小写 */
 export const toLowerCase = (value: number | string = '') => String(value).trim().toLowerCase();
 
+// 搜索分隔符，与 tag-input 一致：逗号、分号、顿号、竖线、换行、制表符、空格（含中文全角）
+const SEARCH_SEPARATOR_REGEX = /[,，;；、｜|\t\r\n \u3000]/;
+
+/** 把搜索词按分隔符拆成多个关键词（去首尾空格、转小写、丢弃空段），多个关键词按 OR 匹配 */
+export const splitSearchKeywords = (value = '') =>
+  value
+    .split(SEARCH_SEPARATOR_REGEX)
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => item.length > 0);
+
 /** 判断元素是否完整落在滚动容器可视区域内 */
 export const isInViewPort = (el?: HTMLElement, client?: HTMLElement) => {
   if (!el || !client) {
