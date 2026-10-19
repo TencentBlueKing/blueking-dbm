@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import hashlib
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,6 +18,7 @@ from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.components.sql_import.client import SQLSimulationApi
+from backend.core.storages.storage import get_storage
 from backend.db_meta.models import Cluster
 from backend.flow.consts import SYSTEM_DBS
 from backend.flow.engine.bamboo.scene.mysql.common.dbconsole_util import get_dbconsole_read_instance
@@ -26,6 +28,10 @@ logger = logging.getLogger("root")
 
 # mysqldump --where 只需条件表达式；若用户再带 WHERE 关键字，下层会拼成 WHERE WHERE 报错
 _WHERE_PREFIX_RE = re.compile(r"^\s*where\s+", re.IGNORECASE)
+_DIGEST_QUALIFIED_TABLE_RE = re.compile(r"`[^`]+`\s*\.\s*`[^`]+`")
+_DIGEST_DB_RE = re.compile(r"`([^`]+)`\s*\.\s*`[^`]+`")
+_SQL_COMMANDS = {"select", "change_db", "set_option"}
+_EXPORT_MODE_SQL = "sql"
 
 
 class DbConsoleDumpFlowValidator(MysqlBaseValidator):
@@ -42,6 +48,11 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
     INJECT_CHECK_RETRY_TIMES = 1
 
     def __call__(self):
+        if self.data.get("export_mode") == _EXPORT_MODE_SQL:
+            return self._validate_sql_export()
+        return self._validate_where()
+
+    def _validate_where(self):
         where = self.data.get("where")
         if where is None or not str(where).strip():
             return None
@@ -241,3 +252,192 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
     @staticmethod
     def _build_where_error(message: str) -> Dict:
         return {"field": "where", "index": 0, "row_key": "", "errors": message}
+
+    def _validate_sql_export(self):
+        raw, read_err = self._load_sql_bytes()
+        if read_err:
+            return [read_err]
+        try:
+            payload = self._fetch_parsed_queries()
+        except Exception as exc:  # noqa: BLE001
+            return [self._sql_error(_("解析 SQL 文件失败: {}").format(str(exc)), 0)]
+        lines, hash_err = self._queries_for_bytes(raw, payload)
+        if hash_err:
+            return [hash_err]
+        if not isinstance(lines, list):
+            return [self._sql_error(_("解析 SQL 文件失败"), 0)]
+
+        errors: List[dict] = []
+        clean_selects: List[dict] = []
+        for line in lines:
+            line_errors, clean_select = self._inspect_query(line)
+            errors.extend(line_errors)
+            if clean_select:
+                clean_selects.append(line)
+        if not clean_selects:
+            errors.append(self._sql_error(_("没有可导出的 SELECT"), 0))
+        else:
+            errors.extend(self._missing_tables(clean_selects))
+        return errors or None
+
+    def _load_sql_bytes(self) -> Tuple[Optional[bytes], Optional[dict]]:
+        filename = self.data.get("sql_filename") or ""
+        sql_path = (self.data.get("sql_path") or "").rstrip("/")
+        if not filename or not sql_path:
+            return None, self._sql_error(_("SQL 文件路径为空"), 0)
+        full_path = "{}/{}".format(sql_path, filename)
+        try:
+            resp = get_storage().client.batch_download([full_path])
+            if getattr(resp, "status_code", 200) != 200:
+                return None, self._sql_error(_("读取 SQL 文件失败"), 0)
+            raw = resp.content or b""
+        except Exception as exc:  # noqa: BLE001
+            return None, self._sql_error(_("读取 SQL 文件失败: {}").format(str(exc)), 0)
+        if not raw or not raw.strip():
+            return None, self._sql_error(_("SQL 文件为空"), 0)
+        try:
+            raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return None, self._sql_error(_("SQL 文件不是 UTF-8"), 0)
+        return raw, None
+
+    def _queries_for_bytes(self, raw: bytes, payload):
+        if not isinstance(payload, dict):
+            return None, self._sql_error(_("解析 SQL 文件失败"), 0)
+        lines = payload.get("queries")
+        remote = str(payload.get("content_sha256") or "")
+        local = hashlib.sha256(raw).hexdigest()
+        if not remote or local.lower() != remote.lower():
+            return None, self._sql_error(_("SQL 文件在解析前后不一致"), 0)
+        self.data["sql_sha256"] = local
+        if not isinstance(lines, list):
+            return None, self._sql_error(_("解析 SQL 文件失败"), 0)
+        return lines, None
+
+    def _fetch_parsed_queries(self):
+        cluster = Cluster.objects.get(id=self.data.get("cluster_id"))
+        version = getattr(cluster, "major_version", "") or ""
+        return SQLSimulationApi.parse_file_queries(
+            params={
+                "path": self.data.get("sql_path") or "",
+                "files": [self.data.get("sql_filename") or ""],
+                "cluster_type": cluster.cluster_type,
+                "versions": [version] if version else [],
+            }
+        )
+
+    def _inspect_query(self, line: dict) -> Tuple[List[dict], bool]:
+        query_id = line.get("query_id") or 0
+        error_code = line.get("error_code") or 0
+        if error_code:
+            message = line.get("error_msg") or _("语法错误")
+            return [self._sql_error(_("语句 {} 语法错误: {}").format(query_id, message), query_id)], False
+        command = (line.get("command") or "").lower()
+        if command not in _SQL_COMMANDS:
+            return [self._sql_error(_("语句 {} 不是 SELECT、USE 或 SET").format(query_id), query_id)], False
+        if line.get("is_inject"):
+            reason = line.get("reason") or _("未知注入风险")
+            return [self._sql_error(_("语句 {} 存在注入风险: {}").format(query_id, reason), query_id)], False
+        system_err = self._system_db_error(line, query_id)
+        if system_err:
+            return [system_err], False
+        if command != "select":
+            return [], False
+        refs = line.get("table_references") or []
+        if not refs:
+            if _DIGEST_QUALIFIED_TABLE_RE.search(line.get("query_digest_text") or ""):
+                return [self._sql_error(_("语句 {} 的表引用未能解析").format(query_id), query_id)], False
+            return [], True
+        for ref in refs:
+            if not (ref.get("db_name") or ""):
+                return [self._sql_error(_("语句 {} 缺少库名").format(query_id), query_id)], False
+        return [], True
+
+    def _system_db_error(self, line: dict, query_id: int) -> Optional[dict]:
+        names = []
+        if (line.get("command") or "").lower() == "change_db" and line.get("db_name"):
+            names.append(line.get("db_name"))
+        for ref in line.get("table_references") or []:
+            if ref.get("db_name"):
+                names.append(ref.get("db_name"))
+        for match in _DIGEST_DB_RE.finditer(line.get("query_digest_text") or ""):
+            names.append(match.group(1))
+        system = {item.lower() for item in SYSTEM_DBS}
+        for name in names:
+            if name.lower() in system:
+                return self._sql_error(_("语句 {} 引用了系统库 {}").format(query_id, name), query_id)
+        return None
+
+    def _missing_tables(self, selects: List[dict]) -> List[dict]:
+        needed = []
+        for line in selects:
+            query_id = line.get("query_id") or 0
+            for ref in line.get("table_references") or []:
+                needed.append((query_id, ref.get("db_name") or "", ref.get("table_name") or ""))
+        if not needed:
+            return []
+        try:
+            cluster = Cluster.objects.get(id=self.data.get("cluster_id"))
+            address, bk_cloud_id = self._get_read_address(cluster)
+            case_mode = self._read_lower_case(address, bk_cloud_id)
+            found = self._existing_tables(address, bk_cloud_id, needed, case_mode)
+        except Exception as exc:  # noqa: BLE001
+            return [self._sql_error(_("检查库表是否存在失败: {}").format(str(exc)), 0)]
+        errors = []
+        for query_id, db_name, table_name in needed:
+            key = (db_name, table_name) if case_mode == 0 else (db_name.lower(), table_name.lower())
+            if key not in found:
+                errors.append(self._sql_error(_("语句 {} 表 {}.{} 不存在").format(query_id, db_name, table_name), query_id))
+        return errors
+
+    def _read_lower_case(self, address: str, bk_cloud_id: int) -> int:
+        rows = self._rpc_rows(address, bk_cloud_id, ["SELECT @@lower_case_table_names AS v"])
+        if not rows:
+            raise ValueError("lower_case_table_names empty")
+        return int(rows[0].get("v") or rows[0].get("@@lower_case_table_names") or 0)
+
+    def _existing_tables(self, address: str, bk_cloud_id: int, needed: List[Tuple], case_mode: int) -> set:
+        by_db: Dict[str, set] = {}
+        for unused_query_id, db_name, table_name in needed:
+            by_db.setdefault(db_name, set()).add(table_name)
+        cmds = []
+        for db_name, tables in by_db.items():
+            literals = ", ".join(self._quote_literal(table) for table in tables)
+            cmds.append(
+                "SELECT TABLE_SCHEMA, TABLE_NAME FROM information_schema.tables "
+                "WHERE TABLE_SCHEMA = {} AND TABLE_NAME IN ({}) AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')".format(
+                    self._quote_literal(db_name), literals
+                )
+            )
+        found = set()
+        for row in self._rpc_rows(address, bk_cloud_id, cmds):
+            schema = row.get("TABLE_SCHEMA") or row.get("table_schema") or ""
+            name = row.get("TABLE_NAME") or row.get("table_name") or ""
+            if case_mode == 0:
+                found.add((schema, name))
+            else:
+                found.add((schema.lower(), name.lower()))
+        return found
+
+    def _rpc_rows(self, address: str, bk_cloud_id: int, cmds: List[str]) -> List[dict]:
+        res = DRSApi.rpc(
+            {
+                "addresses": [address],
+                "cmds": cmds,
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if not res or res[0].get("error_msg"):
+            err = res[0].get("error_msg") if res else _("空响应")
+            raise ValueError(str(err))
+        rows = []
+        for cmd_result in res[0].get("cmd_results") or []:
+            if cmd_result.get("error_msg"):
+                raise ValueError(cmd_result.get("error_msg"))
+            rows.extend(cmd_result.get("table_data") or [])
+        return rows
+
+    @staticmethod
+    def _sql_error(message: str, query_id: int) -> Dict:
+        return {"field": "sql", "index": query_id, "row_key": str(query_id), "errors": message}
