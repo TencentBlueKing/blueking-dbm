@@ -449,12 +449,17 @@ class DataAPI(object):
             # 后台调用(且不明确用户)，使用管理员/平台身份调用接口
             bkapi_auth_headers["bk_username"] = get_virtual_username()
         elif local_request and local_request.COOKIES:
-            # 根据不同环境，传递认证信息
+            # 前端根据不同环境，传递认证信息
             bkapi_auth_headers["bk_username"] = local_request.user.username
             oath_cookies_params = getattr(settings, "OAUTH_COOKIES_PARAMS", {"bk_token": "bk_token"})
             for key, value in oath_cookies_params.items():
                 if value in local_request.COOKIES:
                     bkapi_auth_headers.update({key: local_request.COOKIES[value]})
+        elif local_request and getattr(local_request, "is_bk_jwt", lambda: False)():
+            # 网关请求，参数未显式指定用户时传递网关用户
+            param_username = params.get("bk_username") if isinstance(params, dict) else None
+            username = param_username or getattr(local_request.user, "username", None)
+            bkapi_auth_headers["bk_username"] = username or bkapi_auth_headers["bk_username"]
         session.headers.update({"X-Bkapi-Authorization": json.dumps(bkapi_auth_headers)})
         # headers 申明重载请求方法
         if self.method_override is not None:
