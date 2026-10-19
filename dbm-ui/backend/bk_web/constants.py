@@ -58,6 +58,7 @@ ROUTING_WHITELIST_PATTERNS = [
     r"/apis/dbbase/simple_query_cluster/",
     r"/apis/dbbase/query_cluster_stat/",
     r"/apis/dbbase/query_cluster_instance_count/",
+    r"/apis/mysql/bizs/[0-9]+/remote_service/show_cluster_tables/",
     # webconsole
     r"/apis/dbbase/webconsole/",
     # 平台设置相关接口

@@ -20,7 +20,6 @@ from datetime import timedelta
 from blueapps.core.celery.celery import app
 from celery import current_app, shared_task
 from django.core.cache import cache
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -176,7 +175,7 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used", immute_domains=None):
         return {}
 
     # now-5/15m ~ now
-    end_time = datetime.datetime.now(timezone.utc)
+    end_time = datetime.datetime.now(datetime.timezone.utc)
     start_time = end_time - datetime.timedelta(minutes=query_template["range"])
 
     params = copy.deepcopy(UNIFY_QUERY_PARAMS)
@@ -297,7 +296,7 @@ def query_cluster_load(cluster_type, clusters, time_range=60) -> (dict, dict):
     common_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
     common_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     # 默认查询前后1h的数据
-    now = datetime.datetime.now(timezone.utc)
+    now = datetime.datetime.now(datetime.timezone.utc)
     common_params["end_time"] = int(now.timestamp())
     common_params["start_time"] = int((now - datetime.timedelta(minutes=time_range)).timestamp())
 
@@ -430,7 +429,7 @@ def send_duty_schedule(db_type):
 
     # 轮值通知天数包含今天，所以-1
     notice_after = notice_cfg["after"] - 1
-    now = datetime.now(timezone.utc)
+    now = datetime.datetime.now(datetime.timezone.utc)
 
     # 获取有效的轮值规则
     duty_rules = DutyRule.objects.filter(db_type=db_type, is_enabled=True)
