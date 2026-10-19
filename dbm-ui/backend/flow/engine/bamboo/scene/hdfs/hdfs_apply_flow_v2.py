@@ -35,6 +35,7 @@ from backend.flow.utils.hdfs.hdfs_context_dataclass import ActKwargs, DnsKwargs,
 from backend.flow.utils.hdfs.hdfs_flow_data_initializer import (
     HdfsFlowDataInitializer,
     get_all_node_ips_in_ticket,
+    get_haproxy_ips,
     get_node_ips_in_ticket_by_role,
     get_webui_ip,
 )
@@ -44,7 +45,7 @@ logger = logging.getLogger("flow")
 
 class HdfsApplyFlowV2(object):
     """
-    构建 V2版本hdfs集群申请流程类
+    构建 HDFS 集群申请流程类，当前部署流程只有这一套（原 V1 流程已下线）
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -54,13 +55,10 @@ class HdfsApplyFlowV2(object):
         """
         self.root_id = root_id
         self.data = data
-        self.flow_data = HdfsFlowDataInitializer.init_apply_data(self.data)
 
     def deploy_hdfs_flow(self):
         """
         定义部署 HDFS集群流程
-        对比V1版本:
-        TODO
         """
         flow_data = HdfsFlowDataInitializer.init_apply_data(ticket_data=self.data)
         # Builder 传参 为封装好角色IP的数据结构
@@ -73,7 +71,9 @@ class HdfsApplyFlowV2(object):
         act_kwargs.file_list = trans_files.hdfs_apply(db_version=flow_data["db_version"])
 
         hdfs_pipeline.add_act(
-            act_name=_("获取集群部署配置"), act_component_code=GetHdfsActPayloadComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("获取集群部署配置"),
+            act_component_code=GetHdfsActPayloadComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         # 获取机器资源 当前trans_data仅用于转模块
@@ -120,19 +120,25 @@ class HdfsApplyFlowV2(object):
         act_kwargs.exec_ip = nn_ips[0]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_nn1_payload.__name__
         hdfs_pipeline.add_act(
-            act_name=_("安装NN1"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("安装NN1"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         act_kwargs.exec_ip = nn_ips[1]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_nn2_payload.__name__
         hdfs_pipeline.add_act(
-            act_name=_("安装NN2"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("安装NN2"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         act_kwargs.exec_ip = nn_ips
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_zkfc_payload.__name__
         hdfs_pipeline.add_act(
-            act_name=_("安装ZKFC"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("安装ZKFC"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         dn_act_list = []
@@ -147,8 +153,8 @@ class HdfsApplyFlowV2(object):
             dn_act_list.append(datanode_act)
         hdfs_pipeline.add_parallel_acts(acts_list=dn_act_list)
 
-        # 安装HAProxy 是单据里不在NameNode角色，只在Zookeeper角色里的任意一个ip（单据里有且必须多于1个）
-        act_kwargs.exec_ip = get_webui_ip(flow_data)
+        # 主域名指向的每台 ZooKeeper 都要装 HAProxy，才能接住 rpc_port 并转到 Active NN
+        act_kwargs.exec_ip = get_haproxy_ips(flow_data)
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_haproxy_payload.__name__
         hdfs_pipeline.add_act(
             act_name=_("安装HAProxy"),
@@ -156,12 +162,12 @@ class HdfsApplyFlowV2(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # 插入haproxy实例信息
+        # extension 表只登记一台 HAProxy 管理地址
         manager_kwargs = BigdataManagerKwargs(
             manager_op_type=ManagerOpType.CREATE,
             db_type=DBType.Hdfs,
             service_type=ManagerServiceType.HA_PROXY,
-            manager_ip=act_kwargs.exec_ip,
+            manager_ip=get_webui_ip(flow_data),
             manager_port=flow_data["http_port"],
         )
         hdfs_pipeline.add_act(
@@ -170,7 +176,7 @@ class HdfsApplyFlowV2(object):
             kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
         )
 
-        # 添加域名 方法内增加版本兼容
+        # 添加域名
         dns_kwargs = DnsKwargs(
             dns_op_type=DnsOpType.CREATE,
             domain_name=flow_data["domain"],
@@ -195,7 +201,9 @@ class HdfsApplyFlowV2(object):
             kwargs=asdict(act_kwargs),
         )
         hdfs_pipeline.add_act(
-            act_name=_("回写集群部署配置"), act_component_code=WriteHdfsConfigV2Component.code, kwargs=asdict(act_kwargs)
+            act_name=_("回写集群部署配置"),
+            act_component_code=WriteHdfsConfigV2Component.code,
+            kwargs=asdict(act_kwargs),
         )
 
         # 写入集群信息摘要，供前端"执行摘要"展示

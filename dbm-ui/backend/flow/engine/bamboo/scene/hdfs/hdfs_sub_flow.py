@@ -10,30 +10,28 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import DnsOpType, ManagerOpType, ManagerServiceType
+from backend.flow.consts import HdfsRoleEnum
 from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.plugins.components.collections.common.bigdata_manager_service import (
-    BigdataManagerComponent,
-    get_manager_ip,
-)
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.hdfs.exec_actuator_script import ExecuteHdfsActuatorScriptComponent
 from backend.flow.plugins.components.collections.hdfs.get_hdfs_payload import GetHdfsActPayloadComponent
 from backend.flow.plugins.components.collections.hdfs.get_hdfs_resource import GetHdfsResourceComponent
 from backend.flow.plugins.components.collections.hdfs.hdfs_db_meta import HdfsDBMetaComponent
-from backend.flow.plugins.components.collections.hdfs.hdfs_dns_manage import HdfsDnsManageComponent
 from backend.flow.plugins.components.collections.hdfs.trans_flies import TransFileComponent
-from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.hdfs.hdfs_act_playload import HdfsActPayload
-from backend.flow.utils.hdfs.hdfs_context_dataclass import ActKwargs, DnsKwargs
-from backend.flow.utils.hdfs.hdfs_flow_data_initializer import get_all_node_ips_in_ticket
+from backend.flow.utils.hdfs.hdfs_context_dataclass import ActKwargs
+from backend.flow.utils.hdfs.hdfs_flow_data_initializer import (
+    get_all_node_ips_in_ticket,
+    get_node_ips_in_ticket_by_role,
+)
 
 logger = logging.getLogger("flow")
 
@@ -41,6 +39,9 @@ logger = logging.getLogger("flow")
 class HdfsOperationFlow(object):
     """
     构建HDFS变更操作流程的常用类，封装扩缩容替换等子流程
+
+    DN 增删不涉及主域名和 HAProxy：存量集群的主域名都已不指向 DN，HAProxy 也都不在 DN 上，
+    所以子流程里不安装 HAProxy、不增删主域名记录、也不迁移 extension 表里的 HAProxy 登记。
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -57,47 +58,61 @@ class HdfsOperationFlow(object):
 
         add_dn_sub_pipeline = SubBuilder(root_id=self.root_id, data=data)
         add_dn_sub_pipeline.add_act(
-            act_name=_("获取集群部署配置"), act_component_code=GetHdfsActPayloadComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("获取集群部署配置"),
+            act_component_code=GetHdfsActPayloadComponent.code,
+            kwargs=asdict(act_kwargs),
         )
         # 获取机器资源 trans_data 用于动态传参
         add_dn_sub_pipeline.add_act(
-            act_name=_("添加DN获取机器信息"), act_component_code=GetHdfsResourceComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("添加DN获取机器信息"),
+            act_component_code=GetHdfsResourceComponent.code,
+            kwargs=asdict(act_kwargs),
         )
         # 增加机器初始化子流程
-        all_new_ips = data["new_dn_ips"]
+        all_new_ips = get_node_ips_in_ticket_by_role(data, HdfsRoleEnum.DataNode.value)
         common_sub_flow = new_machine_common_sub_flow(
             uid=data["uid"], root_id=self.root_id, bk_cloud_id=data["bk_cloud_id"], new_ips=all_new_ips
         )
         if common_sub_flow:
             add_dn_sub_pipeline.add_sub_pipeline(sub_flow=common_sub_flow)
 
-        act_kwargs.exec_ip = data["new_dn_ips"]
+        # 旧节点也要拿到新的 dbactuator，初始化及之后仍只在新 DN 上执行
+        act_kwargs.exec_ip = all_new_ips + data["nn_ips"] + data["dn_ips"]
         add_dn_sub_pipeline.add_act(
             act_name=_("下发hdfs介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
+        act_kwargs.exec_ip = all_new_ips
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_sys_init_payload.__name__
         add_dn_sub_pipeline.add_act(
-            act_name=_("初始化机器"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
-        )
-        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_decompress_package_payload.__name__
-        add_dn_sub_pipeline.add_act(
-            act_name=_("解压缩文件"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
-        )
-        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_render_cluster_config_payload.__name__
-        add_dn_sub_pipeline.add_act(
-            act_name=_("渲染集群配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
-        )
-        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_supervisor_payload.__name__
-        add_dn_sub_pipeline.add_act(
-            act_name=_("安装supervisor"),
+            act_name=_("初始化机器"),
             act_component_code=ExecuteHdfsActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
-        # 旧主机更新hostMapping
-        act_kwargs.exec_ip = data["dn_ips"] + data["nn_ips"]
-        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_update_host_mapping_payload.__name__
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_decompress_package_payload.__name__
         add_dn_sub_pipeline.add_act(
-            act_name=_("更新主机映射"),
+            act_name=_("解压缩文件"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 渲染要用 payload 的 host 替换 {{dn_host}}，而同一份 payload 的 host 固定取 exec_ip[0]，
+        # 批量下发会让所有机器都写成首台 IP，故按机器逐台下发
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_render_cluster_config_payload.__name__
+        render_act_list = []
+        for dn_ip in all_new_ips:
+            act_kwargs.exec_ip = dn_ip
+            render_act_list.append(
+                {
+                    "act_name": _("渲染集群配置-{}").format(dn_ip),
+                    "act_component_code": ExecuteHdfsActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+        add_dn_sub_pipeline.add_parallel_acts(acts_list=render_act_list)
+
+        act_kwargs.exec_ip = all_new_ips
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_supervisor_payload.__name__
+        add_dn_sub_pipeline.add_act(
+            act_name=_("安装supervisor"),
             act_component_code=ExecuteHdfsActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -113,12 +128,13 @@ class HdfsOperationFlow(object):
         act_kwargs.exec_ip = data["nn1_ip"]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_refresh_nodes_payload.__name__
         add_dn_sub_pipeline.add_act(
-            act_name=_("刷新节点配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("刷新节点配置"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
-        act_kwargs.exec_ip = data["new_dn_ips"]
         dn_act_list = []
-        for dn_ip in data["new_dn_ips"]:
+        for dn_ip in all_new_ips:
             act_kwargs.exec_ip = dn_ip
             act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_datanode_payload.__name__
             datanode_act = {
@@ -129,25 +145,8 @@ class HdfsOperationFlow(object):
             dn_act_list.append(datanode_act)
         add_dn_sub_pipeline.add_parallel_acts(acts_list=dn_act_list)
 
-        act_kwargs.exec_ip = data["new_dn_ips"]
-        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_haproxy_payload.__name__
-        add_dn_sub_pipeline.add_act(
-            act_name=_("安装HAProxy"),
-            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-        # 添加新的DN到域名
-        dns_kwargs = DnsKwargs(
-            dns_op_type=DnsOpType.CREATE,
-            domain_name=data["domain"],
-            dns_op_exec_port=data["rpc_port"],
-            bk_cloud_id=data["bk_cloud_id"],
-        )
-        add_dn_sub_pipeline.add_act(
-            act_name=_("添加新DN到域名"),
-            act_component_code=HdfsDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-        )
+        # 新 DN 不装 HAProxy、不加主域名，原因见类注释
+        act_kwargs.exec_ip = all_new_ips
         add_dn_sub_pipeline.add_act(
             act_name=_("添加元数据到DBMeta"), act_component_code=HdfsDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
@@ -157,7 +156,21 @@ class HdfsOperationFlow(object):
         # sub_flow 缩容DN
         del_dn_sub_pipeline = SubBuilder(root_id=self.root_id, data=data)
         del_dn_sub_pipeline.add_act(
-            act_name=_("获取集群部署配置"), act_component_code=GetHdfsActPayloadComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("获取集群部署配置"),
+            act_component_code=GetHdfsActPayloadComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 增删 include/exclude、刷新节点在 NN 上执行，检查退役在 dn_ips[0] 上执行，都依赖新版 dbactuator
+        # （legacy_dn_host 等新字段），先下发；只下发 actuator，避免替换场景重复下发完整介质包
+        trans_actuator_kwargs = replace(
+            act_kwargs,
+            exec_ip=list(dict.fromkeys(data["nn_ips"] + data["dn_ips"][:1])),
+            file_list=GetFileList(db_type=DBType.Hdfs).hdfs_actuator(),
+        )
+        del_dn_sub_pipeline.add_act(
+            act_name=_("下发dbactuator"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(trans_actuator_kwargs),
         )
         act_kwargs.exec_ip = data["nn_ips"]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_add_exclude_payload.__name__
@@ -170,7 +183,9 @@ class HdfsOperationFlow(object):
         act_kwargs.exec_ip = data["nn1_ip"]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_refresh_nodes_payload.__name__
         del_dn_sub_pipeline.add_act(
-            act_name=_("刷新节点配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("刷新节点配置"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
         # 访问某一台DN节点的代理NN WEB服务
         act_kwargs.exec_ip = data["dn_ips"][0]
@@ -193,7 +208,9 @@ class HdfsOperationFlow(object):
         act_kwargs.exec_ip = data["nn1_ip"]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_refresh_nodes_payload.__name__
         del_dn_sub_pipeline.add_act(
-            act_name=_("刷新节点配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("刷新节点配置"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         # 从exclude剔除数据节点
@@ -208,34 +225,16 @@ class HdfsOperationFlow(object):
         act_kwargs.exec_ip = data["nn1_ip"]
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_refresh_nodes_payload.__name__
         del_dn_sub_pipeline.add_act(
-            act_name=_("刷新节点配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("刷新节点配置"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
-        # 检查下架节点上是否安装haproxy
-        manager_ip = get_manager_ip(
-            bk_biz_id=data["bk_biz_id"],
-            db_type=DBType.Hdfs,
-            cluster_name=data["cluster_name"],
-            service_type=ManagerServiceType.HA_PROXY,
-        )
-        if manager_ip in data["del_dn_ips"]:
-            # 更新haproxy实例信息
-            manager_kwargs = BigdataManagerKwargs(
-                manager_op_type=ManagerOpType.UPDATE,
-                db_type=DBType.Hdfs,
-                service_type=ManagerServiceType.HA_PROXY,
-                manager_ip=data["remain_dn_ips"][0],
-                manager_port=data["http_port"],
-            )
-            del_dn_sub_pipeline.add_act(
-                act_name=_("更新haproxy实例信息"),
-                act_component_code=BigdataManagerComponent.code,
-                kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
-            )
-
+        # 下架 DN 不在主域名里，也不承载 HAProxy，无需摘域名或迁移 HAProxy 登记，原因见类注释
         # 缩容后对机器进行清理
+        del_dn_ips = get_node_ips_in_ticket_by_role(data, HdfsRoleEnum.DataNode.value)
         del_dn_ip_acts = []
-        for ip in data["del_dn_ips"]:
+        for ip in del_dn_ips:
             # 停止进程 + 数据清理
             act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_data_clean_payload.__name__
             act_kwargs.exec_ip = ip
@@ -247,18 +246,6 @@ class HdfsOperationFlow(object):
             del_dn_ip_acts.append(act)
 
         del_dn_sub_pipeline.add_parallel_acts(acts_list=del_dn_ip_acts)
-
-        dns_kwargs = DnsKwargs(
-            dns_op_type=DnsOpType.UPDATE,
-            domain_name=data["domain"],
-            dns_op_exec_port=data["rpc_port"],
-            bk_cloud_id=data["bk_cloud_id"],
-        )
-        del_dn_sub_pipeline.add_act(
-            act_name=_("更新域名"),
-            act_component_code=HdfsDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-        )
 
         # 包含将机器CC挪到待回收
         del_dn_sub_pipeline.add_act(
@@ -280,26 +267,42 @@ class HdfsOperationFlow(object):
         # """
         hdfs_common_sub_pipeline = SubBuilder(root_id=root_id, data=data)
         # 修改act对应执行的IP
-        act_kwargs.exec_ip = get_all_node_ips_in_ticket(data)
+        all_ips = get_all_node_ips_in_ticket(data)
+        act_kwargs.exec_ip = all_ips
 
         hdfs_common_sub_pipeline.add_act(
             act_name=_("下发hdfs介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_sys_init_payload.__name__
         hdfs_common_sub_pipeline.add_act(
-            act_name=_("初始化机器"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("初始化机器"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_decompress_package_payload.__name__
         hdfs_common_sub_pipeline.add_act(
-            act_name=_("解压缩文件"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("解压缩文件"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
+        # 渲染要用 payload 的 host 替换 {{dn_host}}，而同一份 payload 的 host 固定取 exec_ip[0]，
+        # 批量下发会让所有机器都写成首台 IP，故按机器逐台下发
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_render_cluster_config_payload.__name__
-        hdfs_common_sub_pipeline.add_act(
-            act_name=_("渲染集群配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
-        )
+        render_act_list = []
+        for ip in all_ips:
+            act_kwargs.exec_ip = ip
+            render_act_list.append(
+                {
+                    "act_name": _("渲染集群配置-{}").format(ip),
+                    "act_component_code": ExecuteHdfsActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+        hdfs_common_sub_pipeline.add_parallel_acts(acts_list=render_act_list)
 
+        act_kwargs.exec_ip = all_ips
         act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_supervisor_payload.__name__
         hdfs_common_sub_pipeline.add_act(
             act_name=_("安装supervisor"),

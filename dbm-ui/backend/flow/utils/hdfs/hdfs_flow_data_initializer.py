@@ -10,12 +10,24 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
-from typing import Any, Dict
+from collections import defaultdict
+from typing import Any, Dict, Tuple
+
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import HdfsRoleEnum, LevelInfoEnum, NameSpaceEnum
+from backend.db_services.dbbase.constants import IpSource
+from backend.flow.consts import HdfsRoleEnum, LevelInfoEnum, NameSpaceEnum, UserName
+from backend.flow.engine.bamboo.scene.hdfs.exceptions import (
+    AuthInfoNullException,
+    HaProxyHostNullException,
+    ReplaceMachineCountException,
+    ReplaceMachineNullException,
+)
+from backend.flow.utils.base.payload_handler import PayloadHandler
 
 logger = logging.getLogger("flow")
 
@@ -52,6 +64,74 @@ class HdfsFlowDataInitializer:
         Returns:
             初始化后的data字典，包含集群的基本信息
         """
+        return cls._init_cluster_data(ticket_data)[0]
+
+    @classmethod
+    def init_scale_up_data(cls, ticket_data: dict) -> Dict[str, Any]:
+        """初始化扩容流程数据。本次上架的 DN 仍在单据 nodes 里，用到时再取。"""
+        return cls._init_dn_change_data(ticket_data)
+
+    @classmethod
+    def init_shrink_data(cls, ticket_data: dict) -> Dict[str, Any]:
+        """初始化缩容流程数据。本次下架的 DN 仍在单据 nodes 里，用到时再取。"""
+        return cls._init_dn_change_data(ticket_data)
+
+    @classmethod
+    def init_replace_data(cls, ticket_data: dict) -> Dict[str, Any]:
+        """初始化 DN 替换流程数据。新旧 DN 留在 new_nodes、old_nodes，由两段子流程分别放进 nodes。"""
+        old_dn_ips = get_node_ips_in_ticket_by_role(
+            {"nodes": ticket_data.get("old_nodes", {})}, HdfsRoleEnum.DataNode.value
+        )
+        new_dn_ips = get_node_ips_in_ticket_by_role(
+            {"nodes": ticket_data.get("new_nodes", {})}, HdfsRoleEnum.DataNode.value
+        )
+        if not old_dn_ips:
+            logger.error(_("没有需要替换的角色IP"))
+            raise ReplaceMachineNullException()
+        if len(old_dn_ips) != len(new_dn_ips):
+            logger.error(_("替换HDFS DataNode角色IP不一致"))
+            raise ReplaceMachineCountException(hdfs_role=HdfsRoleEnum.DataNode)
+
+        data = cls._init_dn_change_data(ticket_data)
+        data["ip_source"] = IpSource.MANUAL_INPUT
+        return data
+
+    @classmethod
+    def _init_dn_change_data(cls, ticket_data: dict) -> Dict[str, Any]:
+        """扩缩容、替换共用：集群基础信息、存量角色 IP、NameNode 主机映射、include/exclude 路径和账号"""
+        data, cluster, hdfs_config = cls._init_cluster_data(ticket_data)
+
+        role_ips = defaultdict(list)
+        for role, ip in StorageInstance.objects.filter(cluster=cluster).values_list("instance_role", "machine__ip"):
+            role_ips[role].append(ip)
+        data["nn_ips"] = role_ips[InstanceRole.HDFS_NAME_NODE.value]
+        data["zk_ips"] = role_ips[InstanceRole.HDFS_ZOOKEEPER.value]
+        data["jn_ips"] = role_ips[InstanceRole.HDFS_JOURNAL_NODE.value]
+        data["dn_ips"] = role_ips[InstanceRole.HDFS_DATA_NODE.value]
+
+        data["nn1_ip"] = hdfs_config["nn1_ip"]
+        data["nn2_ip"] = hdfs_config["nn2_ip"]
+        # 只保留 NameNode 域名。DN 不写入 host_map，渲染时用本机 IP 替换 {{dn_host}}
+        data["all_ip_hosts"] = {data["nn1_ip"]: hdfs_config["nn1_host"], data["nn2_ip"]: hdfs_config["nn2_host"]}
+        data["dfs_include_file"] = hdfs_config["hdfs-site"]["dfs.hosts"]
+        data["dfs_exclude_file"] = hdfs_config["hdfs-site"]["dfs.hosts.exclude"]
+
+        password = PayloadHandler.get_bigdata_password_by_cluster(cluster, 0, UserName.HDFS_DEFAULT)
+        if password:
+            data["username"] = UserName.HDFS_DEFAULT
+            data["password"] = password
+        else:
+            logger.error("cannot get auth info from password service")
+            data["username"] = hdfs_config.get("username", "")
+            data["password"] = hdfs_config.get("password", "")
+        # 密码服务和 dbconfig 都拿不到账号时直接失败，避免把空账号继续传给后续步骤
+        if not data["username"] or not data["password"]:
+            raise AuthInfoNullException()
+        return data
+
+    @classmethod
+    def _init_cluster_data(cls, ticket_data: dict) -> Tuple[Dict[str, Any], Cluster, Dict[str, Any]]:
+        """按 cluster_id 填充集群基础信息，同时返回集群对象和集群级配置供调用方继续取值"""
         data = copy.deepcopy(ticket_data)
 
         # 从cluster_id获取cluster对象
@@ -81,24 +161,9 @@ class HdfsFlowDataInitializer:
         )
         hdfs_config = dbconfig["content"]
         # 从dbconfig获取集群配置的端口信息
-        data["rpc_port"] = hdfs_config["rpc_port"]
-        data["http_port"] = hdfs_config["http_port"]
-        return data
-
-    @classmethod
-    def init_scale_up_data(cls, root_id: str, ticket_data: dict) -> Dict[str, Any]:
-        """初始化扩容流程数据
-
-        Args:
-            root_id: 流程根ID
-            ticket_data: 单据数据
-
-        Returns:
-            初始化后的data字典
-        """
-        data = cls.init_apply_data(root_id, ticket_data)
-
-        return data
+        data["rpc_port"] = int(hdfs_config["rpc_port"])
+        data["http_port"] = int(hdfs_config["http_port"])
+        return data, cluster, hdfs_config
 
 
 def get_node_ips_in_ticket_by_role(data: dict, role: str) -> list:
@@ -132,29 +197,20 @@ def get_all_node_ips_in_dbmeta(cluster_id: int) -> list:
     return storage_ips
 
 
-def get_webui_ip(data: dict) -> str:
-    """
-    获取HAProxy安装IP
-    选择逻辑：单据里不在NameNode角色，只在Zookeeper角色里的任意一个ip
-
-    Args:
-        data: 单据数据
-
-    Returns:
-        HAProxy安装IP
-    """
-    # 获取Zookeeper角色IP列表
+def get_haproxy_ips(data: dict) -> list:
+    """获取 HAProxy 安装 IP，也是主域名映射的 IP：不与 NameNode 同机的全部 ZooKeeper。"""
     zk_ips = get_node_ips_in_ticket_by_role(data, HdfsRoleEnum.ZooKeeper.value)
-    # 获取NameNode角色IP列表
-    nn_ips = get_node_ips_in_ticket_by_role(data, HdfsRoleEnum.NameNode.value)
+    nn_ips = set(get_node_ips_in_ticket_by_role(data, HdfsRoleEnum.NameNode.value))
+    return [ip for ip in zk_ips if ip not in nn_ips]
 
-    # 从Zookeeper IP中排除NameNode IP，选择第一个可用的IP
-    available_zk_ips = [ip for ip in zk_ips if ip not in nn_ips]
-    if available_zk_ips:
-        return available_zk_ips[0]
-    else:
-        # 如果没有可用的Zookeeper IP，使用第一个Zookeeper IP作为备选
-        return zk_ips[0]
+
+def get_webui_ip(data: dict) -> str:
+    """获取写入 extension 表的 HAProxy 管理 IP，取 HAProxy 安装列表中的第一台。"""
+    haproxy_ips = get_haproxy_ips(data)
+    # 正常集群 ZK 3 台、NN 2 台，一定存在与 NN 不同机的 ZK；为空说明单据/集群数据异常，直接报错
+    if not haproxy_ips:
+        raise HaProxyHostNullException()
+    return haproxy_ips[0]
 
 
 def build_nn_domain_mapping(ticket_data: dict) -> Dict[str, str]:

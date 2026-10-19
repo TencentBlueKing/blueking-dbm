@@ -17,6 +17,7 @@ from backend.db_meta.enums.instance_role import InstanceRole
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.common.bigdata import (
     BaseHdfsTicketFlowBuilder,
     BigDataReplaceDetailSerializer,
@@ -27,9 +28,11 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("root")
 
 
-class HdfsReplaceDetailSerializer(BigDataReplaceDetailSerializer):
+class HdfsReplaceDetailSerializer(ParamValidateSerializerMixin, BigDataReplaceDetailSerializer):
     def validate(self, attrs):
-        super().validate(attrs)
+        attrs = super().validate(attrs)
+        # validator 持有全部校验规则，先跑它
+        self.validated_params(attrs)
         # 目前只支持对datanode角色进行替换
         replace_role_set = set(attrs["old_nodes"].keys())
         invalid_role_list = [InstanceRole.HDFS_ZOOKEEPER, InstanceRole.HDFS_NAME_NODE, InstanceRole.HDFS_JOURNAL_NODE]
@@ -57,3 +60,4 @@ class HdfsReplaceFlowBuilder(BaseHdfsTicketFlowBuilder):
     inner_flow_name = _("HDFS 集群替换")
     resource_apply_builder = HdfsResourceParamBuilder
     need_patch_recycle_host_details = True
+    validator = HdfsController.hdfs_replace_scene.validator

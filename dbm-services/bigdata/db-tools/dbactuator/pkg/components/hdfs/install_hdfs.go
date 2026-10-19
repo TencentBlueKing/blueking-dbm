@@ -241,11 +241,7 @@ func (i *InstallHdfsService) InstallDataNode() (err error) {
 	if _, err = osutil.ExecShellCommand(false, "rm -rf /data/hadoopdata/data"); err != nil {
 		logger.Error("delete data dir failed, %v", err)
 	}
-	extraCmd := fmt.Sprintf(`sed -i -e "s/{{dn_host}}/%s/g" %s`, i.Params.HostMap[i.Params.Host],
-		i.HdfsConfDir+"/hdfs-site.xml")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-	}
+	// {{dn_host}} 已由前置的 RenderHdfsConfig 统一替换（作用于整个 conf 目录），此处无需再替换
 	// 更新DN的数据目录配置及初始化
 	hdfsDirs := util2.GetHdfsDataMountDir()
 	hdfsDirStr := ""
@@ -394,14 +390,10 @@ func (i *InstallHdfsService) RenderHdfsConfig() (err error) {
 	}
 	nn1Host := i.Params.HostMap[i.Params.Nn1Ip]
 	nn2Host := i.Params.HostMap[i.Params.Nn2Ip]
-	// 获取本地主机对应的DN域名/主机名
-	hostName, err := util2.GetLocalHostNameByMap(i.Params.HostMap)
-	if err != nil {
-		logger.Error("resolve local DN hostname failed: %v", err)
-		return err
-	}
+	// DN 一律按 IP 登记，host_map 里已不含 DN 条目，直接用 payload 的本机 IP 替换。
+	// 渲染已按机器逐台下发，Host 即本机 IP，无需再枚举网卡推断。
 	// 需要提前修改DN配置，否则NN无法启动 caused by bk-monitor
-	replaceDnHostCmd := fmt.Sprintf(`sed -i -e "s/{{dn_host}}/%s/" %s`, hostName, i.HdfsConfDir+"/*")
+	replaceDnHostCmd := fmt.Sprintf(`sed -i -e "s/{{dn_host}}/%s/" %s`, i.Params.Host, i.HdfsConfDir+"/*")
 	if _, err = osutil.ExecShellCommand(false, replaceDnHostCmd); err != nil {
 		logger.Error("%s execute failed, %v", replaceDnHostCmd, err)
 		return err

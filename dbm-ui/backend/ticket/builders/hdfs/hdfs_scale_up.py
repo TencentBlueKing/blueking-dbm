@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.common.bigdata import (
     BaseHdfsTicketFlowBuilder,
     BigDataScaleDetailSerializer,
@@ -25,8 +26,10 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("root")
 
 
-class HdfsScaleUpDetailSerializer(BigDataScaleDetailSerializer):
-    pass
+class HdfsScaleUpDetailSerializer(ParamValidateSerializerMixin, BigDataScaleDetailSerializer):
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        return self.validated_params(attrs)
 
 
 class HdfsScaleUpFlowParamBuilder(builders.FlowParamBuilder):
@@ -64,3 +67,4 @@ class HdfsScaleUpFlowBuilder(BaseHdfsTicketFlowBuilder):
     inner_flow_builder = HdfsScaleUpFlowParamBuilder
     inner_flow_name = _("HDFS 集群扩容")
     resource_apply_builder = HdfsScaleUpResourceParamBuilder
+    validator = HdfsController.hdfs_expansion_scene.validator

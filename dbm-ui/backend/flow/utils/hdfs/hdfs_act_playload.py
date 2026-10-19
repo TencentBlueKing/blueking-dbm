@@ -413,21 +413,24 @@ class HdfsActPayload(object):
             },
         }
 
-    def get_update_host_mapping_payload(self, **kwargs) -> dict:
-        """
-        拼接更新主机映射的payload参数
-        """
-        update_ip_hosts = dict()
-        for new_dn_ip in self.ticket_data["new_dn_ips"]:
-            update_ip_hosts[new_dn_ip] = self.ticket_data["all_ip_hosts"][new_dn_ip]
+    def __get_update_dfs_host_payload(self, conf_file: str, operation: str, legacy_dn_host: bool, **kwargs) -> dict:
+        extend = {
+            "host": kwargs["ip"],
+            "data_node_hosts": ",".join(get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value)),
+            "conf_file": conf_file,
+            "operation": operation,
+        }
+        # 仅缩容打开。actor 会去 hosts 文件里查这个 DN 实际登记的是 IP 还是存量 dn-<ip> 域名再增删；
+        # 追加 exclude 时还没有记录，需要以 include 作为登记形式的权威来源。扩容追加 include 不能带上
+        if legacy_dn_host:
+            extend["legacy_dn_host"] = True
+            extend["host_source_file"] = self.ticket_data["dfs_include_file"]
         return {
             "db_type": DBActuatorTypeEnum.Hdfs.value,
-            "action": HdfsDBActuatorActionEnum.UpdateHostMapping.value,
+            "action": HdfsDBActuatorActionEnum.UpdateDfsHost.value,
             "payload": {
                 "general": {},
-                "extend": {
-                    "host_map": update_ip_hosts,
-                },
+                "extend": extend,
             },
         }
 
@@ -435,73 +438,33 @@ class HdfsActPayload(object):
         """
         拼接缩容时添加主机到exclude的payload参数
         """
-        return {
-            "db_type": DBActuatorTypeEnum.Hdfs.value,
-            "action": HdfsDBActuatorActionEnum.UpdateDfsHost.value,
-            "payload": {
-                "general": {},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "data_node_hosts": ",".join(self.ticket_data["dn_hosts"]),
-                    "conf_file": self.ticket_data["dfs_exclude_file"],
-                    "operation": UpdateDfsHostOperation.Add.value,
-                },
-            },
-        }
+        return self.__get_update_dfs_host_payload(
+            self.ticket_data["dfs_exclude_file"], UpdateDfsHostOperation.Add.value, legacy_dn_host=True, **kwargs
+        )
 
     def get_remove_exclude_payload(self, **kwargs) -> dict:
         """
         拼接缩容时删除主机到exclude的payload参数
         """
-        return {
-            "db_type": DBActuatorTypeEnum.Hdfs.value,
-            "action": HdfsDBActuatorActionEnum.UpdateDfsHost.value,
-            "payload": {
-                "general": {},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "data_node_hosts": ",".join(self.ticket_data["dn_hosts"]),
-                    "conf_file": self.ticket_data["dfs_exclude_file"],
-                    "operation": UpdateDfsHostOperation.Remove.value,
-                },
-            },
-        }
+        return self.__get_update_dfs_host_payload(
+            self.ticket_data["dfs_exclude_file"], UpdateDfsHostOperation.Remove.value, legacy_dn_host=True, **kwargs
+        )
 
     def get_remove_include_payload(self, **kwargs) -> dict:
         """
         拼接缩容时删除主机到include的payload参数
         """
-        return {
-            "db_type": DBActuatorTypeEnum.Hdfs.value,
-            "action": HdfsDBActuatorActionEnum.UpdateDfsHost.value,
-            "payload": {
-                "general": {},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "data_node_hosts": ",".join(self.ticket_data["dn_hosts"]),
-                    "conf_file": self.ticket_data["dfs_include_file"],
-                    "operation": UpdateDfsHostOperation.Remove.value,
-                },
-            },
-        }
+        return self.__get_update_dfs_host_payload(
+            self.ticket_data["dfs_include_file"], UpdateDfsHostOperation.Remove.value, legacy_dn_host=True, **kwargs
+        )
 
     def get_add_include_payload(self, **kwargs) -> dict:
         """
         拼接扩容时添加主机到include的payload参数
         """
-        return {
-            "db_type": DBActuatorTypeEnum.Hdfs.value,
-            "action": HdfsDBActuatorActionEnum.UpdateDfsHost.value,
-            "payload": {
-                "general": {},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "data_node_hosts": ",".join(self.ticket_data["dn_hosts"]),
-                    "conf_file": self.ticket_data["dfs_include_file"],
-                    "operation": UpdateDfsHostOperation.Add.value,
-                },
-            },
-        }
+        return self.__get_update_dfs_host_payload(
+            self.ticket_data["dfs_include_file"], UpdateDfsHostOperation.Add.value, legacy_dn_host=False, **kwargs
+        )
 
     def get_refresh_nodes_payload(self, **kwargs) -> dict:
         """
@@ -529,7 +492,9 @@ class HdfsActPayload(object):
             "payload": {
                 "general": {},
                 "extend": {
-                    "data_node_hosts": ",".join(self.ticket_data["dn_hosts"]),
+                    "data_node_hosts": ",".join(
+                        get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value)
+                    ),
                     "version": self.ticket_data["db_version"],
                     "http_port": self.ticket_data["http_port"],
                     "username": self.ticket_data["username"],

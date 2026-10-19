@@ -24,12 +24,6 @@ class NormalHdfsFlowException(HdfsFlowBaseException):
     MESSAGE_TPL = _("{message}")
 
 
-class ManualMachineCountException(HdfsFlowBaseException):
-    ERROR_CODE = "002"
-    MESSAGE = _("手动部署选择机器数量异常")
-    MESSAGE_TPL = _("HDFS集群角色{hdfs_role}数量不能为{machine_count}")
-
-
 class ReplaceMachineNullException(HdfsFlowBaseException):
     ERROR_CODE = "003"
     MESSAGE = _("替换旧机器不能为空")
@@ -40,3 +34,15 @@ class ReplaceMachineCountException(HdfsFlowBaseException):
     ERROR_CODE = "004"
     MESSAGE = _("HDFS替换新旧机器数量不一致")
     MESSAGE_TPL = _("HDFS集群替换角色{hdfs_role}数量不一致")
+
+
+class HaProxyHostNullException(HdfsFlowBaseException):
+    ERROR_CODE = "005"
+    MESSAGE = _("没有可用于安装HAProxy的机器")
+    MESSAGE_TPL = _("HDFS集群没有与NameNode不同机的ZooKeeper节点，无法确定HAProxy安装机器")
+
+
+class AuthInfoNullException(HdfsFlowBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("获取HDFS集群账号信息失败")
+    MESSAGE_TPL = _("密码服务和dbconfig均未获取到HDFS集群的用户名或密码")
