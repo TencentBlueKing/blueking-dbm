@@ -85,14 +85,20 @@ def _enrich_es_resource_spec(
         spec.setdefault("location_spec", {"city": city_code, "sub_zone_ids": []})
         spec.setdefault("labels", [])
         spec.setdefault("label_names", [])
-        # 热/冷节点补充单机实例数，默认 1
-        if role in ES_INSTANCE_NUM_ROLES:
-            spec.setdefault("instance_num", 1)
-        # 补充规格名，供前端部署/扩容单据展示规格名称
-        if "spec_name" not in spec and spec.get("spec_id"):
+
+        spec_obj = None
+        need_spec_obj = spec.get("spec_id") and (
+            "spec_name" not in spec or (role in ES_INSTANCE_NUM_ROLES and "instance_num" not in spec)
+        )
+        if need_spec_obj:
             spec_obj = Spec.objects.filter(spec_id=spec["spec_id"]).first()
-            if spec_obj:
-                spec["spec_name"] = spec_obj.spec_name
+
+        # 热/冷节点补充单机实例数，优先取规格表配置，兜底为 1
+        if role in ES_INSTANCE_NUM_ROLES and "instance_num" not in spec:
+            spec["instance_num"] = spec_obj.instance_num if spec_obj and spec_obj.instance_num else 1
+        # 补充规格名，供前端部署/扩容单据展示规格名称
+        if "spec_name" not in spec and spec_obj:
+            spec["spec_name"] = spec_obj.spec_name
 
     return resource_spec
 
