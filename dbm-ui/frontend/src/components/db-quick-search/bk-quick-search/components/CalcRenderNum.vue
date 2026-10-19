@@ -125,12 +125,16 @@
       }
 
       setTimeout(() => {
-        const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
+        // 延时期间组件可能已卸载
+        if (!rootRef.value || !tagRefs.value) {
+          return;
+        }
+        const { width: maxWidth } = rootRef.value.getBoundingClientRect();
         let calcRealNeedRenderTagCount = 0;
         let renderTagTotalWidth = 0;
 
         // 计算 tag 的宽度总和是否超出容器宽度
-        for (const tagInst of tagRefs.value!) {
+        for (const tagInst of tagRefs.value) {
           renderTagTotalWidth += tagInst.$el.getBoundingClientRect().width;
           if (renderTagTotalWidth >= maxWidth - calcRealNeedRenderTagCount * 4 - 20) {
             break;

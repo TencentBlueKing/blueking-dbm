@@ -89,7 +89,8 @@
     value: string | number;
   }
 
-  type IListItem = { children: IResult[] } & IResult;
+  // 远程数据可能是单层结构，children 不一定存在
+  type IListItem = { children?: IResult[] } & IResult;
 
   type Emits = (e: 'change', value: IResult[]) => void;
 
@@ -130,7 +131,7 @@
             value: parentItem.value,
           });
         }
-        parentItem.children.forEach((childItem) => {
+        (parentItem.children ?? []).forEach((childItem) => {
           if (isSearchKeywordMatch(childItem.label, filterKey.value)) {
             result.push({
               ...childItem,
@@ -151,17 +152,18 @@
     );
   });
 
-  const calcParentCheckStatus = (parentData: { children: IResult[] } & IResult) => {
+  const calcParentCheckStatus = (parentData: IListItem) => {
     if (props.checkStrictly) {
       return {
         checked: Boolean(localValueIdMap.value[parentData.value]),
         indeterminate: false,
       };
     }
+    const children = parentData.children ?? [];
     let indeterminate = false;
     // 没有子项时不能算作全选
-    let checked = parentData.children.length > 0;
-    parentData.children.forEach((item) => {
+    let checked = children.length > 0;
+    children.forEach((item) => {
       if (!localValueIdMap.value[item.value]) {
         checked = false;
       }
@@ -220,17 +222,14 @@
         handleExpandParent(list.value[0]);
       } else {
         const currentValue = modelValue.value[0]!.value;
-        for (const parentItem of list.value) {
-          if (props.checkStrictly && parentItem.value === currentValue) {
-            handleExpandParent(parentItem);
-            break;
-          }
-          for (const childItem of parentItem.children) {
-            if (childItem.value === currentValue) {
-              handleExpandParent(parentItem);
-              break;
-            }
-          }
+        // 展开选中值所在的父级（checkStrictly 时父级本身可被选中），命中第一个即结束
+        const matchedParent = list.value.find(
+          (parentItem) =>
+            (props.checkStrictly && parentItem.value === currentValue) ||
+            (parentItem.children ?? []).some((childItem) => childItem.value === currentValue),
+        );
+        if (matchedParent) {
+          handleExpandParent(matchedParent);
         }
       }
       calcPanelWidth();
@@ -260,7 +259,7 @@
       }
     } else {
       // 只能选择叶子节点
-      data.children.forEach((item) => {
+      (data.children ?? []).forEach((item) => {
         if (checked) {
           latestValueMap[item.value] = getResultValue(item, data.label);
         } else {
