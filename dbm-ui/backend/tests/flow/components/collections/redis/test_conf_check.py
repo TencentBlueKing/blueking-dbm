@@ -581,11 +581,12 @@ class TestConfCheckBatchPhases:
             phase=PHASE_RUN_DRS,
             target_infos=[],
             poll_count=0,
+            pending_jobs={},
             drs_chunk_queue=queue,
             drs_cursor=0,
             drs_result_map={},
             drs_error_map={},
-            host_conf_data={},
+            issue_failed_targets={},
         )
 
         assert service._schedule(data, {}) is True
@@ -621,11 +622,12 @@ class TestConfCheckBatchPhases:
             phase=PHASE_RUN_DRS,
             target_infos=[],
             poll_count=0,
+            pending_jobs={},
             drs_chunk_queue=queue,
             drs_cursor=0,
             drs_result_map={},
             drs_error_map={},
-            host_conf_data={},
+            issue_failed_targets={},
         )
         data.get_one_of_inputs.side_effect = lambda key: {
             "kwargs": {
@@ -674,7 +676,7 @@ class TestConfCheckBatchPhases:
         data.outputs = SimpleNamespace(
             phase=PHASE_EVALUATE,
             target_infos=[],
-            host_conf_data={},
+            issue_failed_targets={},
             drs_result_map={},
             drs_error_map={},
             drs_chunk_queue=[],
@@ -689,6 +691,186 @@ class TestConfCheckBatchPhases:
         assert service._schedule(data, {}) is True
         service.finish_schedule.assert_called_once()
         _delete.assert_not_called()
+
+    JOB = {"job_instance_id": 99, "bk_cloud_id": 0, "exec_ip": "1.1.1.1", "conf_targets": []}
+    DRS_QUEUE = [((0, 1, "redis_proxy_password", "INFO SERVERS"), ["1.1.1.9:50000"])]
+    ISSUE_MARKER = {("storage_conf", "2.2.2.2", 30000): {"error": "job_issue_failed: boom"}}
+    LOG_BLOCK = {("storage_conf", "1.1.1.1", 30000): {"disk": "x"}}
+
+    def _scheduled_data(self, **overrides):
+        outputs = dict(
+            phase=PHASE_RUN_DRS,
+            target_infos=[{"checker": "storage_conf", "cluster_id": 1}],
+            poll_count=0,
+            pending_jobs={99: dict(self.JOB)},
+            completed_jobs=[],
+            failed_jobs=[],
+            issue_failed_targets=dict(self.ISSUE_MARKER),
+            drs_chunk_queue=list(self.DRS_QUEUE),
+            drs_cursor=0,
+            drs_result_map={},
+            drs_error_map={},
+        )
+        outputs.update(overrides)
+        return self._make_data(**outputs)
+
+    @staticmethod
+    def _poll_results(*statuses):
+        """_poll_jobs_once side effect for job 99, one status per tick: running / completed / failed."""
+        remaining = list(statuses)
+
+        def poll(pending, completed, failed):
+            status = remaining.pop(0)
+            if status != "running":
+                job = pending.pop(99)
+                (completed if status == "completed" else failed).append(job)
+            return pending, completed, failed, 1
+
+        return poll
+
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._resolve_batch_clusters",
+        return_value=[{"cluster_id": 1, "bk_cloud_id": 0}],
+    )
+    @patch.object(
+        RedisConfCheckBatchService,
+        "runtime_attrs",
+        new_callable=PropertyMock,
+        return_value={"root_pipeline_id": "testroot"},
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._build_target_infos",
+        return_value=([{"checker": "storage_conf"}], {"target_count": 1}),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._build_host_map",
+        return_value={(0, "1.1.1.1"): {"snippets": ["echo"], "conf_targets": []}},
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._build_drs_chunk_queue",
+        return_value=DRS_QUEUE,
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._issue_host_jobs",
+        return_value=([JOB], 0),
+    )
+    def test_execute_runs_drs_before_polling_jobs(self, _issue, _queue, _host_map, _targets, _runtime, _resolve):
+        data = self._make_data()
+        self._make_service()._execute(data, {})
+        assert data.outputs.phase == PHASE_RUN_DRS
+        assert 99 in data.outputs.pending_jobs
+        assert data.outputs.issue_failed_targets == {}
+        assert not hasattr(data.outputs, "host_conf_data")
+
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._evaluate_and_report",
+        return_value=(1, 0),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._collect_host_conf_data",
+        return_value=LOG_BLOCK,
+    )
+    @patch("backend.flow.plugins.components.collections.redis.conf_check.components._poll_jobs_once")
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._get_password_cache_for_drs",
+        return_value=({}, {}),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._run_drs_chunk_slice",
+        return_value=({(0, "INFO SERVERS", "1.1.1.9:50000"): "ok"}, {}),
+    )
+    def test_drs_then_poll_then_inline_evaluate(self, _run_slice, _passwords, poll, collect, evaluate):
+        poll.side_effect = self._poll_results("running", "completed")
+        service = self._make_service()
+        data = self._scheduled_data()
+
+        assert service._schedule(data, {}) is True
+        assert data.outputs.phase == PHASE_POLL_JOBS
+        assert poll.call_count == 1
+        collect.assert_not_called()
+        evaluate.assert_not_called()
+
+        assert service._schedule(data, {}) is True
+        collect.assert_called_once()
+        assert collect.call_args.args[0][0]["job_instance_id"] == 99
+        host_conf_data = evaluate.call_args.args[1]
+        assert host_conf_data == {**self.ISSUE_MARKER, **self.LOG_BLOCK}
+        assert evaluate.call_args.kwargs["drs_result_map"] == {(0, "INFO SERVERS", "1.1.1.9:50000"): "ok"}
+        service.finish_schedule.assert_called_once()
+        assert not hasattr(data.outputs, "host_conf_data")
+        assert data.outputs.issue_failed_targets == self.ISSUE_MARKER
+
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._evaluate_and_report",
+        return_value=(0, 1),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._collect_host_conf_data",
+        return_value={},
+    )
+    @patch("backend.flow.plugins.components.collections.redis.conf_check.components._poll_jobs_once")
+    def test_poll_timeout_marks_jobs_and_evaluates_same_tick(self, poll, collect, evaluate):
+        service = self._make_service()
+        data = self._scheduled_data(phase=PHASE_POLL_JOBS, drs_chunk_queue=[], poll_count=3, issue_failed_targets={})
+
+        assert service._schedule(data, {}) is True
+        poll.assert_not_called()
+        host_conf_data = evaluate.call_args.args[1]
+        assert host_conf_data == {}  # conf_targets empty -> nothing to mark
+        assert data.outputs.failed_jobs[0]["failure_reason"] == "job_timeout"
+        service.finish_schedule.assert_called_once()
+
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._evaluate_and_report",
+        return_value=(0, 1),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._collect_host_conf_data",
+        return_value={},
+    )
+    @patch("backend.flow.plugins.components.collections.redis.conf_check.components._poll_jobs_once")
+    def test_failed_job_targets_marked_in_evaluate(self, poll, collect, evaluate):
+        poll.side_effect = self._poll_results("failed")
+        job = dict(self.JOB, conf_targets=[{"checker": "storage_conf", "port": 30000, "cluster_id": 1}])
+        data = self._scheduled_data(phase=PHASE_POLL_JOBS, drs_chunk_queue=[], pending_jobs={99: job})
+
+        assert self._make_service()._schedule(data, {}) is True
+        host_conf_data = evaluate.call_args.args[1]
+        assert host_conf_data[("storage_conf", "1.1.1.1", 30000)] == {"error": "job_failed"}
+
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._evaluate_and_report",
+        return_value=(1, 0),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._collect_host_conf_data",
+        return_value=LOG_BLOCK,
+    )
+    @patch("backend.flow.plugins.components.collections.redis.conf_check.components._poll_jobs_once")
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._get_password_cache_for_drs",
+        return_value=({}, {}),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._run_drs_chunk_slice",
+        return_value=({}, {}),
+    )
+    def test_outputs_from_previous_phase_order_still_finish(self, _run_slice, _passwords, poll, collect, evaluate):
+        poll.side_effect = self._poll_results("completed")
+        legacy_marker = {("predixy_servers", "1.1.1.9", 50000): {"error": "job_failed"}}
+        data = self._scheduled_data(phase=PHASE_POLL_JOBS)
+        del data.outputs.issue_failed_targets
+        data.outputs.host_conf_data = legacy_marker
+        service = self._make_service()
+
+        assert service._schedule(data, {}) is True
+        assert data.outputs.phase == PHASE_RUN_DRS
+        evaluate.assert_not_called()
+
+        assert service._schedule(data, {}) is True
+        _run_slice.assert_called_once()
+        assert evaluate.call_args.args[1] == {**legacy_marker, **self.LOG_BLOCK}
+        service.finish_schedule.assert_called_once()
 
 
 class TestRedisConfCheckCandidates:
