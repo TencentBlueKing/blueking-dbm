@@ -35,6 +35,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -52,8 +53,9 @@ func NewDetectorHandler(alarm *AlarmNotifier, windowMgr *BizWindowManager, servi
 }
 
 // NotifyEvent sends a notification for the event before liveness double-check.
-func (h *DetectorHandler) NotifyEvent(event *haprobe.DbEvent) {
-	h.alarm.TriggerWithEvent(event)
+// meta carries the instance metadata used to fill the alarm dimensions.
+func (h *DetectorHandler) NotifyEvent(event *haprobe.DbEvent, meta *hamodel.DbmMetadata) {
+	h.alarm.TriggerWithEvent(event, meta)
 }
 
 // ProcessResponse handles a single detector response: alarms and returns ErrDetectorFailure if switching is needed.
