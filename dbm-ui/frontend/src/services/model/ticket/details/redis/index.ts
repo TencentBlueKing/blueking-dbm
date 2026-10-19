@@ -31,6 +31,7 @@ export * from './ProxyKickoff';
 export * from './proxyOpen';
 export * from './proxyScaleDown';
 export * from './purge';
+export * from './redisRollback';
 export * as ResourcePool from './resource-pool/index';
 export * from './shardReduce';
 export * from './slotsMigrate';
