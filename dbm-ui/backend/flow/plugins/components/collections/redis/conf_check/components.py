@@ -490,16 +490,19 @@ def _init_batch_schedule_outputs(
     phase: str,
     target_infos: List[Dict],
     pending_jobs: Dict,
-    host_conf_data: Dict,
+    issue_failed_targets: Dict,
     drs_chunk_queue: List,
 ) -> None:
-    """Persist only state that must survive bamboo schedule ticks between phases."""
+    """
+    Persist only state that must survive bamboo schedule ticks between phases.
+    Host job logs are fetched and parsed in the evaluate tick and never stored here.
+    """
     data.outputs.target_infos = target_infos
     data.outputs.phase = phase
     data.outputs.pending_jobs = pending_jobs
     data.outputs.completed_jobs = []
     data.outputs.failed_jobs = []
-    data.outputs.host_conf_data = host_conf_data
+    data.outputs.issue_failed_targets = issue_failed_targets
     data.outputs.poll_count = 0
     data.outputs.drs_chunk_queue = drs_chunk_queue
     data.outputs.drs_cursor = 0
@@ -707,10 +710,28 @@ def _collapse_conf_check_report_rows(report_rows: List[Dict]) -> List[Dict]:
     return collapsed
 
 
+def _host_conf_data_for_evaluate(data) -> Dict[Tuple[str, str, int], Dict]:
+    """Issue-failure markers + parsed logs of finished jobs, built in memory for the evaluate tick."""
+    # host_conf_data: outputs written before issue_failed_targets existed
+    host_conf_data = dict(
+        getattr(data.outputs, "issue_failed_targets", None) or getattr(data.outputs, "host_conf_data", None) or {}
+    )
+    host_conf_data.update(_collect_host_conf_data(getattr(data.outputs, "completed_jobs", None) or []))
+    for job in getattr(data.outputs, "failed_jobs", None) or []:
+        mark_host_targets(
+            host_conf_data,
+            job["exec_ip"],
+            job.get("conf_targets", []),
+            job.get("failure_reason") or "job_failed",
+        )
+    return host_conf_data
+
+
 class RedisConfCheckBatchService(BaseService):
     """
-    Per-batch conf check in a single scheduled node: issue host scripts in
-    _execute, then poll jobs, pace DRS chunks, evaluate and report in _schedule.
+    Per-batch conf check in a single scheduled node: issue host scripts in _execute,
+    then in _schedule pace DRS chunks, poll host jobs, and once they are done fetch
+    job logs, evaluate and report within the same tick.
 
     kwargs:
         - candidates_key, batch_num, batch_size, total_batches
@@ -756,7 +777,7 @@ class RedisConfCheckBatchService(BaseService):
                 phase=PHASE_EVALUATE,
                 target_infos=[],
                 pending_jobs={},
-                host_conf_data={},
+                issue_failed_targets={},
                 drs_chunk_queue=[],
             )
             return True
@@ -765,16 +786,16 @@ class RedisConfCheckBatchService(BaseService):
         host_map = _build_host_map(target_infos)
         drs_chunk_queue = _build_drs_chunk_queue(target_infos, drs_chunk_size)
 
+        issue_failed_targets: Dict[Tuple[str, str, int], Dict] = {}
         if host_map:
             self.log_info(_("[{}] 准备下发 {} 个主机配置检查脚本").format(node_name, len(host_map)))
-            host_conf_data: Dict[Tuple[str, str, int], Dict] = {}
             job_infos, issue_failure_count = _issue_host_jobs(
                 host_map,
                 flow_id,
                 node_name,
                 self.log_warning,
                 self.log_error,
-                host_conf_data,
+                issue_failed_targets,
             )
             self.log_info(_("[{}] 成功下发 {} 个主机脚本").format(node_name, len(job_infos)))
             if issue_failure_count:
@@ -782,7 +803,6 @@ class RedisConfCheckBatchService(BaseService):
         else:
             self.log_info(_("[{}] 本批次无需下发主机脚本(全部通过DRS采集)").format(node_name))
             job_infos = []
-            host_conf_data = {}
 
         metrics = {
             **metrics,
@@ -792,10 +812,10 @@ class RedisConfCheckBatchService(BaseService):
         }
 
         pending_jobs = {info["job_instance_id"]: info for info in job_infos}
-        if pending_jobs:
-            phase = PHASE_POLL_JOBS
-        elif drs_chunk_queue:
+        if drs_chunk_queue:
             phase = PHASE_RUN_DRS
+        elif pending_jobs:
+            phase = PHASE_POLL_JOBS
         else:
             phase = PHASE_EVALUATE
 
@@ -804,7 +824,7 @@ class RedisConfCheckBatchService(BaseService):
             phase=phase,
             target_infos=target_infos,
             pending_jobs=pending_jobs,
-            host_conf_data=host_conf_data,
+            issue_failed_targets=issue_failed_targets,
             drs_chunk_queue=drs_chunk_queue,
         )
 
@@ -826,54 +846,6 @@ class RedisConfCheckBatchService(BaseService):
         max_retries = kwargs.get("max_retries") or DEFAULT_POLL_MAX_RETRIES
         drs_chunks_per_tick = max(int(kwargs.get("drs_chunks_per_tick") or DEFAULT_DRS_CHUNKS_PER_TICK), 1)
         password_batch_size = max(int(kwargs.get("password_batch_size") or DEFAULT_REDIS_PASSWORD_BATCH_SIZE), 1)
-
-        if phase == PHASE_POLL_JOBS:
-            poll_count = data.outputs.poll_count + 1
-            data.outputs.poll_count = poll_count
-            pending_jobs = data.outputs.pending_jobs
-            completed_jobs = data.outputs.completed_jobs
-            failed_jobs = data.outputs.failed_jobs
-
-            if poll_count > max_retries and pending_jobs:
-                self.log_warning(_("[{}] 轮询超时, {} 个主机脚本未完成").format(node_name, len(pending_jobs)))
-                for job_info in pending_jobs.values():
-                    job_info["failure_reason"] = "job_timeout"
-                    failed_jobs.append(job_info)
-                pending_jobs.clear()
-
-            if pending_jobs:
-                pending_jobs, completed_jobs, failed_jobs, _status_checks = _poll_jobs_once(
-                    pending_jobs, completed_jobs, failed_jobs
-                )
-                data.outputs.pending_jobs = pending_jobs
-                data.outputs.completed_jobs = completed_jobs
-                data.outputs.failed_jobs = failed_jobs
-
-                if pending_jobs:
-                    self.log_info(_("[{}] 轮询#{}: 仍有 {} 个主机脚本运行中").format(node_name, poll_count, len(pending_jobs)))
-                    return True
-
-            host_conf_data = dict(data.outputs.host_conf_data)
-            host_conf_data.update(_collect_host_conf_data(completed_jobs))
-            for job in failed_jobs:
-                mark_host_targets(
-                    host_conf_data,
-                    job["exec_ip"],
-                    job.get("conf_targets", []),
-                    job.get("failure_reason") or "job_failed",
-                )
-            data.outputs.host_conf_data = host_conf_data
-            failed_job_count = len(failed_jobs)
-            data.outputs.completed_jobs = []
-            data.outputs.failed_jobs = []
-            if failed_job_count:
-                self.log_warning(_("[{}] {} 个主机脚本执行失败, 相关配置比对将标记为异常").format(node_name, failed_job_count))
-
-            if data.outputs.drs_chunk_queue:
-                data.outputs.phase = PHASE_RUN_DRS
-                return True
-            data.outputs.phase = PHASE_EVALUATE
-            phase = PHASE_EVALUATE
 
         if phase == PHASE_RUN_DRS:
             drs_chunk_queue = data.outputs.drs_chunk_queue
@@ -899,13 +871,47 @@ class RedisConfCheckBatchService(BaseService):
                 return True
 
             data.outputs.drs_chunk_queue = []
-            data.outputs.phase = PHASE_EVALUATE
+            phase = PHASE_POLL_JOBS if data.outputs.pending_jobs else PHASE_EVALUATE
+            data.outputs.phase = phase
+
+        if phase == PHASE_POLL_JOBS:
+            poll_count = data.outputs.poll_count + 1
+            data.outputs.poll_count = poll_count
+            pending_jobs = data.outputs.pending_jobs
+            completed_jobs = data.outputs.completed_jobs
+            failed_jobs = data.outputs.failed_jobs
+
+            if poll_count > max_retries and pending_jobs:
+                self.log_warning(_("[{}] 轮询超时, {} 个主机脚本未完成").format(node_name, len(pending_jobs)))
+                for job_info in pending_jobs.values():
+                    job_info["failure_reason"] = "job_timeout"
+                    failed_jobs.append(job_info)
+                pending_jobs.clear()
+
+            if pending_jobs:
+                pending_jobs, completed_jobs, failed_jobs, _status_checks = _poll_jobs_once(
+                    pending_jobs, completed_jobs, failed_jobs
+                )
+            data.outputs.pending_jobs = pending_jobs
+            data.outputs.completed_jobs = completed_jobs
+            data.outputs.failed_jobs = failed_jobs
+            if pending_jobs:
+                self.log_info(_("[{}] 轮询#{}: 仍有 {} 个主机脚本运行中").format(node_name, poll_count, len(pending_jobs)))
+                return True
+
+            if failed_jobs:
+                self.log_warning(_("[{}] {} 个主机脚本执行失败, 相关配置比对将标记为异常").format(node_name, len(failed_jobs)))
+            # outputs persisted by the previous (poll -> drs -> evaluate) order may still hold DRS work
+            if data.outputs.drs_chunk_queue:
+                data.outputs.phase = PHASE_RUN_DRS
+                return True
             phase = PHASE_EVALUATE
+            data.outputs.phase = phase
 
         if phase == PHASE_EVALUATE:
             ok, abnormal = _evaluate_and_report(
                 [],
-                data.outputs.host_conf_data,
+                _host_conf_data_for_evaluate(data),
                 creator,
                 target_infos=target_infos,
                 drs_result_map=data.outputs.drs_result_map,
