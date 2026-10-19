@@ -42,6 +42,12 @@ export default <T extends { label: string; value: string | number }>(config: Con
         }
         remoteList.value = data as T[];
       })
+      // 请求失败时清空候选，避免继续展示上一次关键字的结果，也避免未处理的 Promise 拒绝
+      .catch(() => {
+        if (currentRequestId === latestRequestId) {
+          remoteList.value = [];
+        }
+      })
       .finally(() => {
         if (currentRequestId === latestRequestId) {
           isLoading.value = false;
@@ -49,14 +55,18 @@ export default <T extends { label: string; value: string | number }>(config: Con
       });
   };
 
-  watch(
-    filterKey,
-    _.debounce(() => {
-      if (config.remoteMethod && config.remoteSearch) {
-        fetchRemoteList();
-      }
-    }, 300),
-  );
+  const debounceFetchRemoteList = _.debounce(() => {
+    if (config.remoteMethod && config.remoteSearch) {
+      fetchRemoteList();
+    }
+  }, 300);
+
+  watch(filterKey, debounceFetchRemoteList);
+
+  // 面板关闭后不再发出还在防抖中的请求
+  onBeforeUnmount(() => {
+    debounceFetchRemoteList.cancel();
+  });
 
   fetchRemoteList();
 

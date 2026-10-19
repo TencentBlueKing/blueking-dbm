@@ -179,7 +179,7 @@
       return;
     }
 
-    if (event.code === 'Enter') {
+    if (['Enter', 'NumpadEnter'].includes(event.code)) {
       if ((isMacOs && event.metaKey) || (!isMacOs && event.ctrlKey)) {
         handleConfirm();
       }
