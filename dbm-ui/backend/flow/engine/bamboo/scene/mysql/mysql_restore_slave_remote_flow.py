@@ -812,23 +812,23 @@ class MySQLRestoreSlaveRemoteFlow(object):
 
                 if len(domain_add_list) > 0:
                     tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
-                cluster = {
-                    "phase": InstancePhase.ONLINE.value,
-                    "storage_status": InstanceStatus.RUNNING.value,
-                    "storage_id": target_slave.id,
-                    "cluster_id": cluster_model.id,
-                }
-                tendb_migrate_pipeline.add_act(
-                    act_name=_("同步完毕,修改{}元数据".format(target_slave.ip_port)),
-                    act_component_code=MySQLDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
-                            cluster=cluster,
-                            is_update_trans_data=False,
-                        )
-                    ),
-                )
+            cluster = {
+                "phase": InstancePhase.ONLINE.value,
+                "storage_status": InstanceStatus.RUNNING.value,
+                "storage_id": target_slave.id,
+                "cluster_id": cluster_model.id,
+            }
+            tendb_migrate_pipeline.add_act(
+                act_name=_("同步完毕,修改{}元数据".format(target_slave.ip_port)),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
+            )
 
             # 原地重建, 基本可以认为只要重新推送配置
             tendb_migrate_pipeline.add_sub_pipeline(
