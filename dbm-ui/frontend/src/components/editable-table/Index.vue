@@ -162,6 +162,8 @@
 
   const isShowScrollX = ref(true);
   const isUserChange = ref(false);
+  // 离开确认是全局标志，只在本表格置过位时才由本表格复位，避免卸载时清掉页面其它表单的编辑状态
+  let isChangeConfirmOwner = false;
 
   const { columnSizeConfig, handleMouseDown, handleMouseLeave, handleMouseMove } = useResize(
     tableRef,
@@ -201,6 +203,7 @@
     () => {
       if (isUserChange.value) {
         window.changeConfirm = true;
+        isChangeConfirmOwner = true;
       }
       eventBus.emit('editable-table-model-change');
     },
@@ -209,7 +212,11 @@
     },
   );
 
-  const handleUserChange = () => {
+  const handleUserChange = (event: MouseEvent) => {
+    // 滚动时会调用 table.click() 收起浮层，这类脚本派发的点击不算用户操作
+    if (!event.isTrusted) {
+      return;
+    }
     isUserChange.value = true;
   };
 
@@ -231,6 +238,10 @@
 
   const unregisterRow = (rowColumnList: IColumnContext[]) => {
     rowList.value = rowList.value.filter((row) => row !== rowColumnList);
+    // 删行可能只是原地 splice model，不会触发 Column 的重算；等整行的列卸载完成后再重算合并状态
+    setTimeout(() => {
+      runRowspanTask();
+    });
   };
 
   const getColumnRelateRowIndexByInstance = (columnInstance: ComponentInternalInstance) =>
@@ -371,7 +382,12 @@
   });
 
   onBeforeUnmount(() => {
-    window.changeConfirm = false;
+    // 节流的末次调用会在卸载后访问已置空的 ref
+    handleScrollX.cancel();
+    handleContentScroll.cancel();
+    if (isChangeConfirmOwner) {
+      window.changeConfirm = false;
+    }
   });
 
   defineExpose<Expose>({
