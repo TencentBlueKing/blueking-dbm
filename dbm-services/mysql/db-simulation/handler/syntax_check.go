@@ -70,6 +70,7 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 		r.POST("/parse/sql/relation/db", s.ParseSQLRelationDb)
 		r.POST("/parse/sql/statement", s.ParseSQLTables)
 		r.POST("/parse/file/statement", s.ParseSQLFileStatement)
+		r.POST("/parse/file/queries", s.ParseFileQueries)
 		r.POST("/parse/set/dumpall", s.SetDumpAll)
 	}
 }
@@ -465,6 +466,60 @@ func (s *SyntaxHandler) ParseSQLFileStatement(r *gin.Context) {
 		return
 	}
 	s.SendResponse(r, nil, summary)
+}
+
+// ParseFileQueries 按语句解析制品库 SQL 文件，并逐条做注入判定。
+func (s *SyntaxHandler) ParseFileQueries(r *gin.Context) {
+	var param CheckFileParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		return
+	}
+	var versions []string
+	if len(param.Versions) == 0 {
+		versions = []string{""}
+	} else {
+		versions = tmysqlver.Rebuild(param.Versions)
+		if len(versions) == 0 {
+			versions = []string{""}
+		}
+	}
+	localDir := strings.TrimSpace(os.Getenv("DBSIMULATION_LOCAL_SQL_DIR"))
+	isLocal := localDir != "" && param.Path == localDir
+	base := workdir
+	if isLocal {
+		base = localDir
+	}
+	p := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        base,
+		},
+		IsLocalFile: isLocal,
+		Param: syntax.CheckSQLFileParam{
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+			ClusterType:    param.ClusterType,
+			ClusterInfo:    param.ClusterInfo,
+		},
+	}
+	if !isLocal {
+		defer p.DelTempDir()
+	}
+	lines, err := p.DoParseFileQueries(versions[0])
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	sum, hashErr := p.ContentSHA256()
+	if hashErr != nil {
+		s.SendResponse(r, hashErr, nil)
+		return
+	}
+	s.SendResponse(r, nil, syntax.ParseFileQueriesResult{
+		ContentSHA256: sum,
+		Queries:       lines,
+	})
 }
 
 // ParseSQLTables 解析单条 SQL string，返回 []ParseIncludeTableBase

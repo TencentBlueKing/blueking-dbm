@@ -2390,6 +2390,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         if self.cluster.get("dump_center"):
             self.account["admin_user"] = self.cluster["random_account"]
             self.account["admin_pwd"] = self.cluster["random_password"]
+        export_mode = self.ticket_data.get("export_mode") or "table"
+        result_format = self.ticket_data.get("result_format") or "txt"
+        sql_filename = self.ticket_data.get("sql_filename") or ""
+        sql_local_path = ""
+        if export_mode == "sql" and sql_filename:
+            sql_local_path = os.path.join(self.cluster.get("sql_local_dir") or "", sql_filename)
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.MysqlDumpData.value,
@@ -2398,17 +2404,23 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": self.cluster["ip"],
                     "port": self.cluster["port"],
-                    "charset": self.ticket_data["charset"],
+                    "charset": self.ticket_data.get("charset") or "default",
                     "dump_detail": {
-                        "databases": self.ticket_data["databases"],
-                        "tables": self.ticket_data.get("tables"),
-                        "tables_ignore": self.ticket_data.get("tables_ignore"),
+                        "databases": self.ticket_data.get("databases") or [],
+                        "tables": self.ticket_data.get("tables") or [],
+                        "tables_ignore": self.ticket_data.get("tables_ignore") or [],
                         "where": self.ticket_data.get("where"),
-                        "dump_data": self.ticket_data["dump_data"],
-                        "dump_schema": self.ticket_data["dump_schema"],
+                        "dump_data": self.ticket_data.get("dump_data", False),
+                        "dump_schema": self.ticket_data.get("dump_schema", False),
                     },
                     "zip_file_name": f"{self.cluster['dbconsole_dump_file_name']}.zip",
                     "one_db_one_file": False,
+                    "export_mode": export_mode,
+                    "result_format": result_format,
+                    "sql_local_path": sql_local_path,
+                    "sql_sha256": self.ticket_data.get("sql_sha256") or "",
+                    "cluster_type": self.cluster.get("cluster_type") or "",
+                    "mysql_version": self.cluster.get("major_version") or "",
                     "upload_detail": {
                         "bk_cloud_id": bk_cloud_id,
                         "db_cloud_token": db_cloud_token,

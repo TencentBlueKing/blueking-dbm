@@ -101,6 +101,11 @@ class _SQLSimulationApi(BaseApi):
             url="/syntax/parse/file/statement",
             description=_("按文件解析 SQL 语句类型与 ALTER/DROP/TRUNCATE 表"),
         )
+        self.parse_file_queries = self.generate_data_api(
+            method="POST",
+            url="/syntax/parse/file/queries",
+            description=_("按语句解析 SQL 文件"),
+        )
 
 
 SQLSimulationApi = _SQLSimulationApi()
