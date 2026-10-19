@@ -15,7 +15,12 @@ from django.test import SimpleTestCase
 
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.engine.bamboo.scene.mysql.validate.dbconsole_dump_validator import DbConsoleDumpFlowValidator
-from backend.ticket.builders.mysql.mysql_dump_data import MySQLDumpDataDetailSerializer, MySQLDumpDataFlowBuilder
+from backend.ticket.builders.mysql.mysql_dump_data import (
+    MAX_SQL_CONTENT_SIZE,
+    SQL_CONTENT_TRUNCATED_TIP,
+    MySQLDumpDataDetailSerializer,
+    MySQLDumpDataFlowBuilder,
+)
 from backend.ticket.builders.tendbcluster.tendb_dump_data import TendbClusterDumpDataDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -162,6 +167,52 @@ class MySQLDumpDataSerializerTests(SimpleTestCase):
         with patch("backend.ticket.builders.mysql.base.Cluster.objects.filter", return_value=[]):
             serializer = TendbClusterDumpDataDetailSerializer(data=self._table_payload(), context=self.context)
             self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def _builder(self, details):
+        builder = MySQLDumpDataFlowBuilder.__new__(MySQLDumpDataFlowBuilder)
+        builder.ticket = SimpleNamespace(details=details)
+        return builder
+
+    def _sql_details(self):
+        return {
+            "export_mode": "sql",
+            "sql_path": BKREPO_SQLFILE_PATH.format(biz=self.biz_id),
+            "sql_filename": "export.sql",
+        }
+
+    def test_fetch_sql_content_only_in_sql_mode(self):
+        self.assertEqual(self._builder({"export_mode": "table"}).fetch_sql_content(), "")
+        # 缺少sql文件路径时不读取制品库
+        self.assertEqual(self._builder({"export_mode": "sql"}).fetch_sql_content(), "")
+
+    def test_fetch_sql_content_returns_file_content(self):
+        storage = MagicMock()
+        storage.client.batch_download.return_value = SimpleNamespace(status_code=200, content=b"SELECT * FROM t1;")
+        builder = self._builder(self._sql_details())
+        with patch("backend.ticket.builders.mysql.mysql_dump_data.get_storage", return_value=storage):
+            self.assertEqual(builder.fetch_sql_content(), "SELECT * FROM t1;")
+        storage.client.batch_download.assert_called_once_with(["mysql/sqlfile/1/export.sql"])
+
+    def test_fetch_sql_content_failed_returns_empty(self):
+        builder = self._builder(self._sql_details())
+        storage = MagicMock()
+        storage.client.batch_download.return_value = SimpleNamespace(status_code=500, content=b"")
+        with patch("backend.ticket.builders.mysql.mysql_dump_data.get_storage", return_value=storage):
+            self.assertEqual(builder.fetch_sql_content(), "")
+        storage.client.batch_download.side_effect = Exception("bkrepo down")
+        with patch("backend.ticket.builders.mysql.mysql_dump_data.get_storage", return_value=storage):
+            self.assertEqual(builder.fetch_sql_content(), "")
+
+    def test_fetch_sql_content_truncated_when_too_large(self):
+        storage = MagicMock()
+        storage.client.batch_download.return_value = SimpleNamespace(
+            status_code=200, content=b"a" * (MAX_SQL_CONTENT_SIZE + 10)
+        )
+        builder = self._builder(self._sql_details())
+        with patch("backend.ticket.builders.mysql.mysql_dump_data.get_storage", return_value=storage):
+            content = builder.fetch_sql_content()
+        self.assertEqual(len(content), MAX_SQL_CONTENT_SIZE + len(str(SQL_CONTENT_TRUNCATED_TIP)))
+        self.assertTrue(content.endswith(str(SQL_CONTENT_TRUNCATED_TIP)))
 
     def test_sql_charset_defaults_then_disabled(self):
         payload = self._sql_payload()

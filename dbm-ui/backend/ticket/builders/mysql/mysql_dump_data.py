@@ -8,12 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import re
 import time
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
@@ -37,6 +39,11 @@ EXPORT_MODE_SQL = "sql"
 RESULT_FORMAT_TXT = "txt"
 RESULT_FORMAT_CSV = "csv"
 SQL_FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+\.sql$")
+# 单据详情展示的查询SQL上限，超过则截断，避免大文件撑爆单据详情
+MAX_SQL_CONTENT_SIZE = 2 * 1024 * 1024
+SQL_CONTENT_TRUNCATED_TIP = _("\n... SQL文件过大，仅展示部分查询SQL")
+
+logger = logging.getLogger("root")
 
 
 class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -228,6 +235,40 @@ class MySQLDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
         if details.get("export_mode") == EXPORT_MODE_SQL:
             return True
         return bool(details.get("dump_data") or details.get("is_external"))
+
+    def patch_ticket_detail(self):
+        # 按SQL导出时，补充查询SQL(即SQL文件内容)到单据详情，便于详情页/审批时查看
+        if self.ticket.details.get("export_mode") == EXPORT_MODE_SQL:
+            self.ticket.details["sql_content"] = self.fetch_sql_content()
+        super().patch_ticket_detail()
+
+    def fetch_sql_content(self) -> str:
+        """读取制品库中SQL文件的内容，作为单据详情的查询SQL。读取失败不影响提单，返回空串"""
+        if self.ticket.details.get("export_mode") != EXPORT_MODE_SQL:
+            return ""
+
+        sql_filename = self.ticket.details.get("sql_filename") or ""
+        sql_path = (self.ticket.details.get("sql_path") or "").rstrip("/")
+        if not sql_filename or not sql_path:
+            return ""
+
+        full_path = f"{sql_path}/{sql_filename}"
+        try:
+            resp = get_storage().client.batch_download([full_path])
+            if getattr(resp, "status_code", 200) != 200:
+                logger.warning(_("读取SQL文件失败: %s"), full_path)
+                return ""
+            sql_content = resp.content or b""
+        except Exception as err:  # pylint: disable=broad-except
+            logger.warning(_("读取SQL文件失败: %s, 错误信息: %s"), full_path, err)
+            return ""
+
+        truncated = len(sql_content) > MAX_SQL_CONTENT_SIZE
+        # 截断后按replace模式解码，避免末尾多字节字符被截断导致解码失败
+        sql_content = sql_content[:MAX_SQL_CONTENT_SIZE].decode("utf-8", errors="replace")
+        if truncated:
+            sql_content += str(SQL_CONTENT_TRUNCATED_TIP)
+        return sql_content
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
