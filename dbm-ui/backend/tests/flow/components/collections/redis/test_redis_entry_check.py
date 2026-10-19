@@ -120,6 +120,17 @@ def test_abnormal_outside_listener_keeps_report_normal(service, health_gate):
     assert result["report_row"]["state"] == ReportStateType.NORMAL
 
 
+def test_null_abnormalips_when_healthy_keeps_report_normal(service, health_gate):
+    cluster = _proxy_cluster([_clb_entry()])
+    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
+        CLBManage, "describe_target_health", return_value={"totalcount": 15, "abnormalcount": 0, "abnormalips": None}
+    ):
+        result = service._check_single_cluster(cluster)
+
+    assert result["inconsistent"] == 0
+    assert result["report_row"]["state"] == ReportStateType.NORMAL
+
+
 @pytest.mark.parametrize(
     "describe_kwargs",
     [

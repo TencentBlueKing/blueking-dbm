@@ -8,12 +8,12 @@ from typing import Dict, List, Tuple
 from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 
-from .registry import CHECKER_REGISTRY
+from .registry import CHECKER_REGISTRY, checker_overrides
 
 
 def checker_query_filters(config, checker) -> Dict:
     """Merge global config with per-checker customized overrides for candidate selection."""
-    overrides = (getattr(config, "customized", None) or {}).get(checker.name, {})
+    overrides = checker_overrides(getattr(config, "customized", None), checker.name)
     cluster_types = overrides.get("cluster_types") or checker.cluster_types
     global_cluster_types = getattr(config, "cluster_types", None)
     if global_cluster_types:

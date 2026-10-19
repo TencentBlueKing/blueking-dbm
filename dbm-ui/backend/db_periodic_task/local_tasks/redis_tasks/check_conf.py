@@ -60,7 +60,8 @@ class RedisConfCheckConfig:
     drs_chunk_size: int = 20  # amount of addresses per DRS redis_rpc call
     drs_chunks_per_tick: int = 1  # DRS redis_rpc chunks per schedule tick
     password_batch_size: int = 200  # clusters per get_password call when prefetching passwords
-    # Per-checker overrides of global fields, keyed by checker.name (e.g. "role", "predixy_servers").
+    # Per-checker overrides of global fields, keyed by checker.name (e.g. "storage_conf", "predixy_servers").
+    # A legacy "role" entry still applies to storage_conf when storage_conf has no entry of its own.
     # predixy_servers: {"ignore_question_ip_in_memory": false} skips memory servers with ip "?".
     customized: Optional[Dict[str, Dict]] = field(default_factory=dict)
 

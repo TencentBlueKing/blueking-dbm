@@ -8,11 +8,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List, Type
+from typing import Dict, List, Optional, Type
 
 from .base import BaseConfChecker
 
 CHECKER_REGISTRY: List[BaseConfChecker] = []
+
+# Overrides saved in RedisConfCheckConfig.customized under a retired checker's name keep
+# applying to its replacement until the replacement has its own entry.
+RETIRED_CHECKER_NAMES: Dict[str, List[str]] = {"storage_conf": ["role"]}
+
+
+def checker_overrides(customized: Optional[Dict], checker_name: str) -> Dict:
+    customized = customized or {}
+    if checker_name in customized:
+        return customized[checker_name] or {}
+    for retired in RETIRED_CHECKER_NAMES.get(checker_name, []):
+        if retired in customized:
+            return customized[retired] or {}
+    return {}
 
 
 def redis_conf_checker(cls: Type[BaseConfChecker]) -> Type[BaseConfChecker]:
@@ -37,4 +51,4 @@ def get_candidate_cluster_types() -> List[str]:
 # Import every checker module here so @redis_conf_checker runs at import time.
 # New checker modules must be imported here to complete registration.
 from . import predixy_servers_checker as _predixy_servers_checker  # noqa: F401,E402
-from . import role_checker as _role_checker  # noqa: F401,E402
+from . import storage_conf_checker as _storage_conf_checker  # noqa: F401,E402

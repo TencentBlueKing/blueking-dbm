@@ -53,12 +53,14 @@ class BaseConfChecker(abc.ABC):
 
     1. ``collect_targets(cluster)`` -> the instances this checker inspects.
     2. ``host_script_snippet(targets_on_host)`` -> optional bash run on the host
-       (only needed to read on-disk config; all live state comes from DRS). The
-       collect service concatenates every checker's snippet for a host into ONE
-       script and delivers a single job per host.
+       (on-disk config, and live state read through local tools). The collect
+       service concatenates every checker's snippet for a host into ONE script and
+       delivers a single job per host.
     3. ``drs_request(target)`` -> optional ``(command, password_key)`` describing
        the live-state query issued via ``DRSApi.redis_rpc``.
-    4. ``evaluate(target, drs_result, host_block, checker_config, drs_error)`` -> report rows.
+    4. ``prepare_evaluation(targets)`` -> optional batch hook that loads shared
+       context (e.g. per-cluster dbconfig) once and attaches it to ``target.extra``.
+    5. ``evaluate(target, drs_result, host_block, checker_config, drs_error)`` -> report rows.
 
     Adding a new check = subclass this and decorate with ``@redis_conf_checker``.
     """
@@ -95,6 +97,14 @@ class BaseConfChecker(abc.ABC):
         ``password_key`` indexes the dict returned by
         ``PayloadHandler.redis_get_password_by_cluster_id`` (e.g. "redis_password",
         "redis_proxy_password").
+        """
+        return None
+
+    def prepare_evaluation(self, targets: List[CheckTarget]) -> None:
+        """
+        Called once per batch with all of this checker's targets before ``evaluate``.
+        Checkers that need per-cluster context load it here (once per cluster) and
+        attach it to each ``target.extra``; the targets are not persisted afterwards.
         """
         return None
 
