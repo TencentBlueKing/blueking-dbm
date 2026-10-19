@@ -74,8 +74,6 @@
 
   import { useEventBus } from '@hooks';
 
-  import { markSourceChanged, popoverInjectKey, popoverShowInjectKey, releaseSourceChanged } from '@utils';
-
   import Column, { type IColumnElement, type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
   import Block from './edit/Block.vue';
@@ -111,7 +109,7 @@
     clearValidate: () => void;
     validate: () => Promise<boolean>;
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
-    validateByField: (field: string | string[], rowIndex?: number | number[]) => Promise<boolean>;
+    validateByField: (row: string | string[]) => Promise<boolean>;
     validateByRowIndex: (row: number | number[]) => Promise<boolean>;
     viewError: (errorList: { errors: string; field: string; row_key: string | number }[]) => void;
   }
@@ -164,10 +162,8 @@
 
   const isShowScrollX = ref(true);
   const isUserChange = ref(false);
-  // 本表格在离开确认里的编辑来源：卸载时只撤销自己这一份，页面其它表单 / 表格的编辑状态不受影响
-  const changeSource = Symbol('editable-table');
-  // 是否渲染在 DbSideslider / DbDialog 内
-  const isInPopover = inject(popoverInjectKey, false);
+  // 离开确认是全局标志，只在本表格置过位时才由本表格复位，避免卸载时清掉页面其它表单的编辑状态
+  let isChangeConfirmOwner = false;
 
   const { columnSizeConfig, handleMouseDown, handleMouseLeave, handleMouseMove } = useResize(
     tableRef,
@@ -206,8 +202,8 @@
     () => props.model,
     () => {
       if (isUserChange.value) {
-        // 弹层内的修改由弹层管理；页面上的修改在弹层打开期间（如弹层提交后回填）也要记到页面状态上
-        markSourceChanged(changeSource, isInPopover);
+        window.changeConfirm = true;
+        isChangeConfirmOwner = true;
       }
       eventBus.emit('editable-table-model-change');
     },
@@ -223,25 +219,6 @@
     }
     isUserChange.value = true;
   };
-
-  // 已注册行对应的 tr，用于按 DOM 先后关系确定行序
-  const rowElementMap = new WeakMap<IColumnContext[], HTMLElement>();
-
-  // 行的注册顺序不一定与 DOM 顺序一致（整表替换时 Vue 从后往前挂载新行），按 DOM 先后关系插入保证行序正确。
-  // 不能直接拿 DOM 下标当插入位置：逆序挂载时已注册的行数少于 DOM 中的行数，下标会越界追加到末尾
-  /**
-   * 弹层内容不随关闭卸载时（render-directive 为 show），关闭时清掉本次的操作标记，下次打开时重置表格数据不算用户修改。
-   * 不放在打开时清：调用方打开时重置数据的 watch 先于弹层 props 更新执行，那时标记还没清
-   */
-  const popoverShow = inject(popoverShowInjectKey, undefined);
-  if (popoverShow) {
-    watch(popoverShow, (isShow) => {
-      if (!isShow) {
-        isUserChange.value = false;
-        releaseSourceChanged(changeSource);
-      }
-    });
-  }
 
   // 已注册行对应的 tr，用于按 DOM 先后关系确定行序
   const rowElementMap = new WeakMap<IColumnContext[], HTMLElement>();
@@ -322,15 +299,10 @@
     return validateColumnList(columnList);
   };
 
-  // rowIndex 可选：只校验指定行的这些字段，不传时校验整列
-  const validateByField = (field: string | string[], rowIndex?: number | number[]) => {
+  const validateByField = (field: string | string[]) => {
     const fieldList = Array.isArray(field) ? field : [field];
-    const rowIndexList = rowIndex === undefined ? undefined : _.castArray(rowIndex);
 
-    const columnList = rowList.value.reduce<IColumnContext[]>((result, rowItem, index) => {
-      if (rowIndexList && !rowIndexList.includes(index)) {
-        return result;
-      }
+    const columnList = rowList.value.reduce<IColumnContext[]>((result, rowItem) => {
       fieldList.forEach((field) => {
         rowItem.forEach((column) => {
           if (column.props.field && column.props.field === field) {
@@ -421,7 +393,9 @@
     // 节流的末次调用会在卸载后访问已置空的 ref
     handleScrollX.cancel();
     handleContentScroll.cancel();
-    releaseSourceChanged(changeSource);
+    if (isChangeConfirmOwner) {
+      window.changeConfirm = false;
+    }
   });
 
   defineExpose<Expose>({
