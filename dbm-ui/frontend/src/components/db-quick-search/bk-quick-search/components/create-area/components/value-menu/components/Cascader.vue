@@ -91,7 +91,8 @@
     value: string | number;
   }
 
-  type IListItem = { children: IResult[] } & IResult;
+  // 远程数据可能是单层结构，children 不一定存在
+  type IListItem = { children?: IResult[] } & IResult;
 
   type Emits = (e: 'change', value: IResult[]) => void;
 
@@ -132,7 +133,7 @@
             value: parentItem.value,
           });
         }
-        parentItem.children.forEach((childItem) => {
+        (parentItem.children ?? []).forEach((childItem) => {
           if (isSearchKeywordMatch(childItem.label, filterKey.value)) {
             result.push({
               ...childItem,
@@ -194,17 +195,14 @@
         handleExpandParent(list.value[0]);
       } else {
         const currentValue = modelValue.value[0]!.value;
-        for (const parentItem of list.value) {
-          if (parentItem.value === currentValue) {
-            handleExpandParent(parentItem);
-            break;
-          }
-          for (const childItem of parentItem.children) {
-            if (childItem.value === currentValue) {
-              handleExpandParent(parentItem);
-              break;
-            }
-          }
+        // 展开选中值所在的父级（父级本身被选中，或其子级被选中），命中第一个即结束
+        const matchedParent = list.value.find(
+          (parentItem) =>
+            parentItem.value === currentValue ||
+            (parentItem.children ?? []).some((childItem) => childItem.value === currentValue),
+        );
+        if (matchedParent) {
+          handleExpandParent(matchedParent);
         }
       }
       calcPanelWidth();
