@@ -75,8 +75,9 @@
             </slot>
           </BkTabPanel>
         </slot>
+        <!-- ENABLE_EXTERNAL_PROXY 为 true 时是 po 环境，隐藏参数配置 Tab -->
         <slot
-          v-if="!clusterType.includes('k8s')"
+          v-if="isParamConfigVisible"
           name="paramConfig">
           <BkTabPanel
             :key="clusterData.id"
@@ -187,6 +188,8 @@
 
   import { useAlarmSubscribe, useUrlSearch } from '@hooks';
 
+  import { useSystemEnviron } from '@stores';
+
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
   import AlarmSubscription from './components/AlarmSubscription.vue';
@@ -269,6 +272,10 @@
   const router = useRouter();
   const { removeSearchParam } = useUrlSearch();
   const { metricsMap } = useAlarmSubscribe();
+  const { ENABLE_EXTERNAL_PROXY } = useSystemEnviron().urls;
+  const isParamConfigVisible = computed(
+    () => !props.clusterType.includes('k8s') && ENABLE_EXTERNAL_PROXY !== true,
+  );
 
   const isFixedTab = ref(false);
 
@@ -333,7 +340,9 @@
     'topo',
     'info',
     'instance',
-    ...(props.clusterType.includes('k8s') ? ['operation'] : ['host', 'paramConfig', 'record']),
+    ...(props.clusterType.includes('k8s')
+      ? ['operation']
+      : ['host', ...(isParamConfigVisible.value ? ['paramConfig'] : []), 'record']),
     ...(monitorPanelList.value?.urls.map((item) => item.id) || []),
     ...(isAbleSubscribe.value ? ['alarmSubscription'] : []),
   ]);
