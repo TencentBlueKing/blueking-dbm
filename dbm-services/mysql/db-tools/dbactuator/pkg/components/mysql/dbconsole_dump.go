@@ -47,6 +47,12 @@ type DbConsoleDumpParam struct {
 	// 一个db 一个文件导出
 	OneDbOnefile bool   `json:"one_db_one_file"`
 	ZipFileName  string `json:"zip_file_name"`
+	ExportMode   string `json:"export_mode"`
+	ResultFormat string `json:"result_format"`
+	SqlLocalPath string `json:"sql_local_path"`
+	SqlSha256    string `json:"sql_sha256"`
+	ClusterType  string `json:"cluster_type"`
+	MysqlVersion string `json:"mysql_version"`
 }
 
 // DbConsoleDumpDetail 指定导入对象的参数
@@ -73,6 +79,7 @@ type consoleRunTimeCtx struct {
 	dumpCmd          string
 	isSpider         bool // 是否spider中控
 	backupDir        string
+	sqlUpload        func() error
 }
 
 // Example subcommand example input
@@ -137,6 +144,9 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	}
 	sysDbs := computil.GetGcsSystemDatabases(version)
 	c.isSpider = strings.Contains(version, "tdbctl")
+	if c.isSQLExport() {
+		return c.initSQLExport(conn, rootDir)
+	}
 	tbls := c.Params.DumpDetail.Tables
 	if len(tbls) == 0 {
 		tbls = []string{"*"}
@@ -242,6 +252,9 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 
 // Run Command Run
 func (c *DbConsoleDumpComp) Run() (err error) {
+	if c.isSQLExport() {
+		return c.runSQLExport()
+	}
 	logger.Info("start dumping ... ")
 	var dumper mysqlutil.Dumper
 	backupfiles := []string{}
