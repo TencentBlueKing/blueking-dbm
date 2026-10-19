@@ -42,6 +42,7 @@ const redisShardAddRoute = createRouteItem(TicketTypes.REDIS_SHARD_ADD, t('集�
 const redisShardReduceRoute = createRouteItem(TicketTypes.REDIS_SHARD_REDUCE, t('集群分片变更（Slot迁移）'));
 const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
 const redisDataStructureRoute = createRouteItem(TicketTypes.REDIS_DATA_STRUCTURE, t('定点构造'));
+const redisRollbackRoute = createRouteItem(TicketTypes.REDIS_ROLLBACK, t('备份恢复'));
 const redisClusterRollbackDataCopyRoute = createRouteItem(
   TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
   t('以构造实例恢复'),
@@ -120,6 +121,7 @@ const redisMemoryAnalysisListRoute = {
 
 const toolboxDbConsoleRouteMap = {
   'redis.toolbox.backup': redisBackupRoute,
+  'redis.toolbox.backupRecovery': redisRollbackRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
   'redis.toolbox.clusterMigrate': redisClusterMigrateRoute,
   'redis.toolbox.clusterReinstallDbmon': redisClusterReInstallDbmonRoute,

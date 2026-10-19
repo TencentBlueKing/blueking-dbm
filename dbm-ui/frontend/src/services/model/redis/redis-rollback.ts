@@ -19,6 +19,8 @@ export default class RedisRollback {
   static NOT_DESTROYED = 0;
 
   app: string;
+  // 备份批次标识（仅 v2 返回）
+  backup_identify?: string;
   bk_biz_id: number;
   bk_cloud_id: number;
   create_at: string;
@@ -26,7 +28,7 @@ export default class RedisRollback {
   destroyed_status: number;
   host_count: number;
   id: number;
-  isShowInstancesTip: boolean;
+  isShowInstancesTip?: boolean;
   prod_cluster: string;
   prod_cluster_id: number;
   prod_cluster_type: string;
@@ -34,6 +36,10 @@ export default class RedisRollback {
   prod_temp_instance_pairs: string[][];
   recovery_time_point: string;
   related_rollback_bill_id: number;
+  // 构造模式：by_identify 按备份批次
+  rollback_mode?: string;
+  // 构造版本："rollback" 为 v2 备份恢复，"datastructure" 为 v1 数据构造；老记录可能不返回
+  rollback_version?: string;
   specification: {
     count: number;
     cpu: {
@@ -80,6 +86,9 @@ export default class RedisRollback {
     this.prod_cluster_id = payload.prod_cluster_id;
     this.related_rollback_bill_id = payload.related_rollback_bill_id;
     this.recovery_time_point = payload.recovery_time_point;
+    this.rollback_version = payload.rollback_version;
+    this.backup_identify = payload.backup_identify;
+    this.rollback_mode = payload.rollback_mode;
     this.specification = payload.specification;
     this.temp_instance_range = payload.temp_instance_range;
     this.temp_cluster_type = payload.temp_cluster_type;
@@ -99,6 +108,11 @@ export default class RedisRollback {
 
   get isNotDestroyed() {
     return this.destroyed_status === RedisRollback.NOT_DESTROYED;
+  }
+
+  // v2 备份恢复记录
+  get isV2() {
+    return this.rollback_version === 'rollback';
   }
 
   get recoveryTimePointDisplay() {
