@@ -86,6 +86,7 @@ class DBMAgentResourceManager(LLMOverrideResourceManager):
                 # 全局租户模式的应用调用网关时必须携带租户 ID
                 if BK_TENANT_ID:
                     config["headers"]["X-Bk-Tenant-Id"] = BK_TENANT_ID
+                    config["headers"]["X-Bkapi-Allowed-Headers"] = "X-Bk-Tenant-Id"
                 config.pop("credential_type")
 
         return agent_config

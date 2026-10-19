@@ -16,13 +16,13 @@ pydantic = ">=2.11.2"
 
 [[package]]
 name = "aidev-agent"
-version = "2.4.0.post1"
+version = "3.0.0"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_agent-2.4.0.post1-py3-none-any.whl", hash = "sha256:50917f85da8607c548869a1cb0e8b5c5b96a44da33ecef1967dbc76cf8d2cbf7"},
-    {file = "aidev_agent-2.4.0.post1.tar.gz", hash = "sha256:5c445fa5d177b85effcba609d24a25acabef049881184ba512559c243cc9965c"},
+    {file = "aidev_agent-3.0.0-py3-none-any.whl", hash = "sha256:371916c0e2bdc8c534535cd9ebb667590467422907e98d148683791d3236c8e7"},
+    {file = "aidev_agent-3.0.0.tar.gz", hash = "sha256:b5b4b09f0c81b752473960e1d64b7ff012f1603b9bbbd955a354f718dc3bd6b0"},
 ]
 
 [package.dependencies]
@@ -61,18 +61,18 @@ opentelemetry = ["opentelemetry-api (==1.33.1)", "opentelemetry-exporter-otlp (=
 
 [[package]]
 name = "aidev-bkplugin"
-version = "2.4.0.post1"
+version = "3.0.0"
 description = "AiDev Agent Bkplugin builtin functions"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_bkplugin-2.4.0.post1-py3-none-any.whl", hash = "sha256:066afcd9c4e5c921a9039b491539a5ad75233b45b4af73b3d11ada7a05d26295"},
-    {file = "aidev_bkplugin-2.4.0.post1.tar.gz", hash = "sha256:da7657e0716ea714bb165666ae5dfda52f64431bf883ce3203547ee00498da5a"},
+    {file = "aidev_bkplugin-3.0.0-py3-none-any.whl", hash = "sha256:46a714d31aafef69f5e4af598779279b20eda02decc5bd67d864531685e41daf"},
+    {file = "aidev_bkplugin-3.0.0.tar.gz", hash = "sha256:147fcb9d33c0d48ea66a747b076ea0dd20bffd5edc1cd26c65f831a66c1cf455"},
 ]
 
 [package.dependencies]
-aidev-agent = ">=2.4.0post1"
-blueapps = ">=4.15.1,<5.0"
+aidev-agent = ">=3.0.0"
+blueapps = ">=4.16rc5,<4.17.0"
 django = ">=4.2.28,<5.0"
 
 [package.extras]
@@ -732,12 +732,12 @@ uvloop = ["uvloop (>=0.15.2)", "winloop (>=0.5.0)"]
 
 [[package]]
 name = "blueapps"
-version = "4.16rc4"
+version = "4.16rc5"
 description = "development framework for blueking"
 optional = false
 python-versions = "*"
 files = [
-    {file = "blueapps-4.16rc4.tar.gz", hash = "sha256:0547054e65572e4667e26888cf219ff9fc8bfdfe28a9df001ac15152f0bc8616"},
+    {file = "blueapps-4.16rc5.tar.gz", hash = "sha256:5576c9b41615468df6de0f8a672e817e651a6f50c3f3a7c3300ee4f4cee1c9d0"},
 ]
 
 [package.dependencies]
@@ -7460,4 +7460,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "8bf0e4714a9f17c8424d484fc581321c1e1c5bcdbefcce7163273a4752f080f7"
+content-hash = "93438ef5e1b306f45044187bfdd1eededf9365b2fd9621a89e5b1a85744c3e41"
