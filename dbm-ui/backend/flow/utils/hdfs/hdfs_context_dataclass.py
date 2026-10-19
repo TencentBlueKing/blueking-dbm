@@ -49,9 +49,6 @@ class HdfsApplyContext:
     jn_ips: list = field(default_factory=list)
     dn_ips: list = field(default_factory=list)
 
-    # 扩容DN IP列表
-    new_dn_ips: list = field(default_factory=list)
-
     # 代表在资源池这套集群分配到所有的ip
     all_ips: list = field(default_factory=list)
 
@@ -77,10 +74,6 @@ class HdfsApplyContext:
     @staticmethod
     def get_dn_ips_var_name() -> str:
         return "dn_ips"
-
-    @staticmethod
-    def get_new_dn_ips_var_name() -> str:
-        return "new_dn_ips"
 
     @staticmethod
     def get_zk_ips_var_name() -> str:
@@ -112,7 +105,6 @@ class HdfsReplaceContext:
     cur_dn_ips: list = field(default_factory=list)
     cur_all_ips: list = field(default_factory=list)
 
-    new_dn_ips: list = field(default_factory=list)
     new_master_ips: list = field(default_factory=list)
 
     cur_exec_ips: list = field(default_factory=list)
@@ -159,10 +151,6 @@ class HdfsReplaceContext:
     @staticmethod
     def get_all_ips_var_name() -> str:
         return "cur_all_ips"
-
-    @staticmethod
-    def get_new_dn_ips_var_name() -> str:
-        return "new_dn_ips"
 
     @staticmethod
     def get_new_master_ips_var_name() -> str:

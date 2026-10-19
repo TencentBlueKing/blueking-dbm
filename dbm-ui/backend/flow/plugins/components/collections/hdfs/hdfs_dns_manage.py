@@ -17,12 +17,10 @@ from pipeline.core.flow.activity import Service
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DnsOpType, HdfsRoleEnum
+from backend.flow.consts import DnsOpType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.dns_manage import DnsManage
-from backend.flow.utils.hdfs.consts import V2_FLOW_VERSION_KEY
-from backend.flow.utils.hdfs.hdfs_flow_data_initializer import get_node_ips_in_ticket_by_role
-from backend.ticket.constants import TicketType
+from backend.flow.utils.hdfs.hdfs_flow_data_initializer import get_haproxy_ips
 
 logger = logging.getLogger("flow")
 
@@ -30,6 +28,8 @@ logger = logging.getLogger("flow")
 class HdfsDnsManageService(BaseService):
     """
     定义HDFS集群域名管理的活动节点,目前只支持添加域名、删除域名
+    扩缩容/替换不再维护主域名：存量集群的主域名都已不指向 DN，因此不再提供 UPDATE 分支
+    部署流程只有一套（原 V1 已下线），CREATE/CLUSTER_DELETE 均不再按 db_version 分流
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -42,21 +42,13 @@ class HdfsDnsManageService(BaseService):
         dns_op_type = kwargs["dns_op_type"]
         dns_manage = DnsManage(bk_biz_id=global_data["bk_biz_id"], bk_cloud_id=kwargs["bk_cloud_id"])
         if dns_op_type == DnsOpType.CREATE:
-            # 兼容V2版本
-            if V2_FLOW_VERSION_KEY in global_data["db_version"]:
-                for ip, domain in global_data["nn_domain"].items():
-                    nn_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}"]
-                    nn_result = dns_manage.create_domain(instance_list=nn_instance_list, add_domain_name=domain)
-                    if not nn_result:
-                        self.log_error(_("添加NN域名失败, ip: {}, domain: {}").format(ip, domain))
-            # 统一获取接入主域名的DN节点IP，尚未兼容替换单据
-            exec_ips = get_node_ips_in_ticket_by_role(global_data, HdfsRoleEnum.DataNode.value)
-            # 使用旧逻辑获取DN节点IP
-            if not exec_ips:
-                if "new_dn_ips" not in global_data:
-                    exec_ips = global_data["dn_ips"]
-                else:
-                    exec_ips = global_data["new_dn_ips"]
+            # 部署流程只有一套，主域名固定指向 HAProxy 所在机器，由 HAProxy 转发到 Active NN
+            for ip, domain in global_data["nn_domain"].items():
+                nn_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}"]
+                nn_result = dns_manage.create_domain(instance_list=nn_instance_list, add_domain_name=domain)
+                if not nn_result:
+                    self.log_error(_("添加NN域名失败, ip: {}, domain: {}").format(ip, domain))
+            exec_ips = get_haproxy_ips(global_data)
 
             if not exec_ips:
                 self.log_error(_("获取DNS操作IP为空"))
@@ -65,32 +57,24 @@ class HdfsDnsManageService(BaseService):
             add_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in exec_ips]
             result = dns_manage.create_domain(instance_list=add_instance_list, add_domain_name=global_data["domain"])
 
-        elif dns_op_type == DnsOpType.UPDATE:
-            # 兼容 缩容/替换场景
-            if global_data["ticket_type"] == TicketType.HDFS_SCALE_UP.value:
-                exec_ips = global_data["new_dn_ips"]
-                add_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in exec_ips]
-                result = dns_manage.create_domain(
-                    instance_list=add_instance_list, add_domain_name=global_data["domain"]
-                )
-            if global_data["ticket_type"] == TicketType.HDFS_SHRINK.value:
-                exec_ips = global_data["del_dn_ips"]
-                del_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in exec_ips]
-                result = dns_manage.remove_domain_ip(domain=global_data["domain"], del_instance_list=del_instance_list)
-
         elif dns_op_type == DnsOpType.CLUSTER_DELETE:
-            if V2_FLOW_VERSION_KEY in global_data["db_version"]:
-                cluster = Cluster.objects.get(id=global_data["cluster_id"])
-                nn_ips = list(
-                    cluster.storageinstance_set.filter(instance_role=InstanceRole.HDFS_NAME_NODE).values_list(
-                        "machine__ip", flat=True
-                    )
+            # nn1/nn2 未登记进 ClusterEntry，下面的 delete_domain 删不到，需单独回收；
+            # 存量 V1 集群无此记录，回收失败属预期，降级为告警不阻塞销毁
+            cluster = Cluster.objects.get(id=global_data["cluster_id"])
+            nn_ips = list(
+                cluster.storageinstance_set.filter(instance_role=InstanceRole.HDFS_NAME_NODE).values_list(
+                    "machine__ip", flat=True
                 )
-                del_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in nn_ips]
-                del_result = dns_manage.recycle_domain_record(del_instance_list=del_instance_list)
-                if not del_result:
-                    self.log_error(_("回收NN域名记录失败, del_instance_list: {}").format(del_instance_list))
-            # 清理域名
+            )
+            del_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in nn_ips]
+            if del_instance_list:
+                try:
+                    if not dns_manage.recycle_domain_record(del_instance_list=del_instance_list):
+                        self.log_warning(_("回收NN域名记录失败, del_instance_list: {}").format(del_instance_list))
+                except Exception as e:  # pylint: disable=broad-except
+                    # 真实失败也会被咽掉，需人工核对残留记录
+                    self.log_warning(_("回收NN域名记录异常，跳过: {}, {}").format(del_instance_list, e))
+            # 清理主域名，失败需报错退出，不做绕过
             result = dns_manage.delete_domain(cluster_id=global_data["cluster_id"])
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))

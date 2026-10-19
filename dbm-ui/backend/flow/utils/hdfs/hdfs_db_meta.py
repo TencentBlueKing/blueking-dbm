@@ -202,7 +202,7 @@ class HdfsDBMeta(object):
                     }
                 )
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SCALE_UP:
-            for dn_ip in self.ticket_data["new_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value):
                 storage_instances.append(
                     {
                         "ip": dn_ip,
@@ -213,7 +213,7 @@ class HdfsDBMeta(object):
                     }
                 )
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SHRINK:
-            for dn_ip in self.ticket_data["del_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value):
                 storage_instances.append(
                     {
                         "ip": dn_ip,
@@ -251,7 +251,7 @@ class HdfsDBMeta(object):
                         )
                     machines.append(machine)
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SCALE_UP:
-            for dn_ip in self.ticket_data["new_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value):
                 machine = {
                     "ip": dn_ip,
                     "bk_biz_id": bk_biz_id,
@@ -266,15 +266,18 @@ class HdfsDBMeta(object):
                     )
                 machines.append(machine)
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SHRINK:
-            for dn_ip in self.ticket_data["del_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value):
                 machines.append({"ip": dn_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_DATANODE.value})
         return machines
 
     def __generate_replace_storage_instance(self, replace_role: str) -> (list, list):
+        # 仅保留 DataNode：NN/ZK 替换所依赖的 new_nn_ips/old_nn_ips/new_zk_ips/old_zk_ips 已无赋值方，分支已删除
         add_storage_instances = []
         del_storage_instances = []
         if replace_role == HdfsRoleEnum.DataNode.value:
-            for dn_ip in self.ticket_data["new_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(
+                {"nodes": self.ticket_data.get("new_nodes", {})}, HdfsRoleEnum.DataNode.value
+            ):
                 add_storage_instances.append(
                     {
                         "ip": dn_ip,
@@ -284,97 +287,29 @@ class HdfsDBMeta(object):
                         "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
-            for dn_ip in self.ticket_data["del_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(
+                {"nodes": self.ticket_data.get("old_nodes", {})}, HdfsRoleEnum.DataNode.value
+            ):
                 del_storage_instances.append(
                     {
                         "ip": dn_ip,
                         "port": DATANODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_DATA_NODE.value,
                         "name": HdfsRoleEnum.DataNode.value,
-                        "db_version": self.ticket_data.get("db_version", ""),
-                    }
-                )
-        elif replace_role == HdfsRoleEnum.ZooKeeper.value:
-            for zk_ip in self.ticket_data["new_zk_ips"]:
-                add_storage_instances.append(
-                    {
-                        "ip": zk_ip,
-                        "port": ZOOKEEPER_DEFAULT_PORT,
-                        "instance_role": InstanceRole.HDFS_ZOOKEEPER.value,
-                        "name": HdfsRoleEnum.ZooKeeper.value,
-                        "db_version": self.ticket_data.get("db_version", ""),
-                    },
-                )
-                add_storage_instances.append(
-                    {
-                        "ip": zk_ip,
-                        "port": JOURNAL_NODE_DEFAULT_PORT,
-                        "instance_role": InstanceRole.HDFS_JOURNAL_NODE.value,
-                        "name": HdfsRoleEnum.JournalNode.value,
-                        "db_version": self.ticket_data.get("db_version", ""),
-                    },
-                )
-            for zk_ip in self.ticket_data["old_zk_ips"]:
-                del_storage_instances.append(
-                    {
-                        "ip": zk_ip,
-                        "port": ZOOKEEPER_DEFAULT_PORT,
-                        "instance_role": InstanceRole.HDFS_ZOOKEEPER.value,
-                        "name": HdfsRoleEnum.ZooKeeper.value,
-                        "db_version": self.ticket_data.get("db_version", ""),
-                    },
-                )
-                del_storage_instances.append(
-                    {
-                        "ip": zk_ip,
-                        "port": JOURNAL_NODE_DEFAULT_PORT,
-                        "instance_role": InstanceRole.HDFS_JOURNAL_NODE.value,
-                        "name": HdfsRoleEnum.JournalNode.value,
-                        "db_version": self.ticket_data.get("db_version", ""),
-                    },
-                )
-        elif replace_role == HdfsRoleEnum.NameNode.value:
-            for nn_ip in self.ticket_data["new_nn_ips"]:
-                add_storage_instances.append(
-                    {
-                        "ip": nn_ip,
-                        "port": self.ticket_data["rpc_port"],
-                        "instance_role": InstanceRole.HDFS_NAME_NODE.value,
-                        "name": HdfsRoleEnum.NameNode.value,
-                        "db_version": self.ticket_data.get("db_version", ""),
-                    }
-                )
-            for nn_ip in self.ticket_data["old_nn_ips"]:
-                del_storage_instances.append(
-                    {
-                        "ip": nn_ip,
-                        "port": self.ticket_data["rpc_port"],
-                        "instance_role": InstanceRole.HDFS_NAME_NODE.value,
-                        "name": HdfsRoleEnum.NameNode.value,
                         "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         return add_storage_instances, del_storage_instances
 
     def __generate_replace_machine(self, replace_role: str) -> list:
-
+        # 仅保留 DataNode：NN/ZK 替换所依赖的 new_nn_ips/new_zk_ips/master_ips 已无赋值方，分支已删除
         machines = []
         bk_biz_id = self.ticket_data["bk_biz_id"]
         if replace_role == HdfsRoleEnum.DataNode.value:
-            for dn_ip in self.ticket_data["new_dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(
+                {"nodes": self.ticket_data.get("new_nodes", {})}, HdfsRoleEnum.DataNode.value
+            ):
                 machines.append({"ip": dn_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_DATANODE.value})
-        elif replace_role == HdfsRoleEnum.NameNode.value:
-            for nn_ip in self.ticket_data["new_nn_ips"]:
-                if nn_ip not in self.ticket_data["master_ips"]:
-                    machines.append(
-                        {"ip": nn_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_MASTER.value}
-                    )
-        elif replace_role == HdfsRoleEnum.ZooKeeper.value:
-            for zk_ip in self.ticket_data["new_zk_ips"]:
-                if zk_ip not in self.ticket_data["master_ips"]:
-                    machines.append(
-                        {"ip": zk_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_MASTER.value}
-                    )
         return machines
 
     def clear_machines(self):

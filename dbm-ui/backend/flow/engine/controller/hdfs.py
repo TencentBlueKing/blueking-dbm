@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.flow.engine.bamboo.scene.hdfs.hdfs_apply_flow import HdfsApplyFlow
+from backend.flow.engine.bamboo.scene.hdfs.hdfs_apply_flow_v2 import HdfsApplyFlowV2
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_destroy_flow import HdfsDestroyFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_disable_flow import HdfsDisableFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_enable_flow import HdfsEnableFlow
@@ -18,7 +18,11 @@ from backend.flow.engine.bamboo.scene.hdfs.hdfs_reboot_flow import HdfsRebootFlo
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_replace_flow import HdfsReplaceFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_scale_up_flow import HdfsScaleUpFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_shrink_flow import HdfsShrinkFlow
+from backend.flow.engine.bamboo.scene.hdfs.validate.hdfs_replace_validator import HdfsReplaceValidator
+from backend.flow.engine.bamboo.scene.hdfs.validate.hdfs_scale_up_validator import HdfsScaleUpValidator
+from backend.flow.engine.bamboo.scene.hdfs.validate.hdfs_shrink_validator import HdfsShrinkValidator
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class HdfsController(BaseController):
@@ -30,9 +34,10 @@ class HdfsController(BaseController):
         """
         hdfs部署流程
         """
-        flow = HdfsApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = HdfsApplyFlowV2(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_hdfs_flow()
 
+    @validates_with(HdfsScaleUpValidator)
     def hdfs_expansion_scene(self):
         """
         hdfs扩容流程
@@ -61,6 +66,7 @@ class HdfsController(BaseController):
         flow = HdfsDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_hdfs_flow()
 
+    @validates_with(HdfsShrinkValidator)
     def hdfs_shrink_scene(self):
         """
         hdfs缩容
@@ -68,6 +74,7 @@ class HdfsController(BaseController):
         flow = HdfsShrinkFlow(root_id=self.root_id, data=self.ticket_data)
         flow.shrink_hdfs_flow()
 
+    @validates_with(HdfsReplaceValidator)
     def hdfs_replace_scene(self):
         """
         hdfs替换

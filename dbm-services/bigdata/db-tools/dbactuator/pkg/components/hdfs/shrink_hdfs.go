@@ -22,6 +22,14 @@ type UpdateDfsHostParams struct {
 	DataNodeHosts string `json:"data_node_hosts"  validate:"required"`
 	ConfFile      string `json:"conf_file"  validate:"required"`
 	Operation     string `json:"operation"  validate:"required"`
+	// LegacyDnHost 为 true 时，不直接按 IP 增删，而是先去 hosts 文件里查这个 DN 实际登记的是
+	// IP 还是存量 dn-<ip> 域名，再按真实的那一行增删。只在缩容打开，扩容追加 include 保持 false，
+	// 新 DN 一律按 IP 登记。
+	LegacyDnHost bool `json:"legacy_dn_host"`
+	// HostSourceFile 为 dfs.hosts(include) 文件，是 DN 登记形式的权威来源。
+	// 仅 LegacyDnHost 且 Add(追加 exclude) 时使用：exclude 里还没有该 DN，需要以 include 中
+	// 的登记形式为准追加，才能和 NameNode 识别到的 DN 标识对上，退役才会生效。
+	HostSourceFile string `json:"host_source_file"`
 }
 
 // UpdateDfsHostService TODO
@@ -36,24 +44,94 @@ type UpdateDfsHostService struct {
 // UpdateDfsHost TODO
 func (i *UpdateDfsHostService) UpdateDfsHost() (err error) {
 
-	dnHostArr := strings.Split(i.Params.DataNodeHosts, ",")
-	if i.Params.Operation == Add {
-		for _, dnHost := range dnHostArr {
-			executeCmd := fmt.Sprintf("echo \"%s\" >> %s", dnHost, i.Params.ConfFile)
-			if _, err = osutil.ExecShellCommand(false, executeCmd); err != nil {
-				logger.Error("%s execute failed, %v", executeCmd, err)
-			}
+	for _, dnIp := range strings.Split(i.Params.DataNodeHosts, ",") {
+		dnIp = strings.TrimSpace(dnIp)
+		if dnIp == "" {
+			continue
 		}
-	} else if i.Params.Operation == Remove {
-		for _, dnHost := range dnHostArr {
-			executeCmd := fmt.Sprintf("sed -i '/^%s$/d' %s", dnHost, i.Params.ConfFile)
+		dnHost := i.resolveDfsHostLine(dnIp)
+		switch i.Params.Operation {
+		case Add:
+			if dfsHostLineExists(i.Params.ConfFile, dnHost) {
+				logger.Info("dfs host line %s already exists in %s, skip", dnHost, i.Params.ConfFile)
+				continue
+			}
+			executeCmd := fmt.Sprintf("echo %s >> %s", quoteShell(dnHost), quoteShell(i.Params.ConfFile))
 			if _, err = osutil.ExecShellCommand(false, executeCmd); err != nil {
 				logger.Error("%s execute failed, %v", executeCmd, err)
+				return err
 			}
+		case Remove:
+			executeCmd := fmt.Sprintf("sed -i %s %s", quoteShell("/^"+sedLiteral(dnHost)+"$/d"),
+				quoteShell(i.Params.ConfFile))
+			if _, err = osutil.ExecShellCommand(false, executeCmd); err != nil {
+				logger.Error("%s execute failed, %v", executeCmd, err)
+				return err
+			}
+		default:
+			return errors.Errorf("unsupported dfs host operation: %s", i.Params.Operation)
 		}
 	}
 	logger.Info("update dfs hosts successfully")
 	return nil
+}
+
+// resolveDfsHostLine 返回某个 DataNode IP 在 hosts 文件里对应的那一行。
+// 非 legacy 直接用 IP。legacy 时按文件里的真实内容判断登记的是 IP 还是存量 dn-<ip> 域名：
+//   - Add(追加 exclude) 以 HostSourceFile(即 dfs.hosts) 为准，保证与 include 的登记形式一致；
+//   - Remove 以正在操作的 ConfFile 为准，删除文件里真实存在的那一行；
+//   - 两种形式都查不到时兜底用 IP。
+func (i *UpdateDfsHostService) resolveDfsHostLine(dnIp string) string {
+	if !i.Params.LegacyDnHost {
+		return dnIp
+	}
+	refFile := i.Params.ConfFile
+	if i.Params.Operation == Add && i.Params.HostSourceFile != "" {
+		refFile = i.Params.HostSourceFile
+	}
+	// 优先匹配 IP，其次匹配存量 dn-<ip> 域名
+	for _, candidate := range []string{dnIp, legacyDnDomain(dnIp)} {
+		if candidate == "" {
+			continue
+		}
+		if dfsHostLineExists(refFile, candidate) {
+			return candidate
+		}
+	}
+	return dnIp
+}
+
+// legacyDnDomain 返回 IPv4 对应的存量 dn-<ip> 域名，非 IPv4 返回空串。
+func legacyDnDomain(host string) string {
+	if ip := net.ParseIP(host); ip != nil && ip.To4() != nil {
+		return "dn-" + strings.ReplaceAll(ip.To4().String(), ".", "-")
+	}
+	return ""
+}
+
+func dfsHostLineExists(confFile string, host string) bool {
+	checkCmd := fmt.Sprintf("grep -qxF -- %s %s", quoteShell(host), quoteShell(confFile))
+	_, err := osutil.ExecShellCommand(false, checkCmd)
+	return err == nil
+}
+
+func quoteShell(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// sedLiteral 转义 sed 基本正则和分隔符，避免 IP 中的点匹配任意字符。
+func sedLiteral(s string) string {
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`.`, `\.`,
+		`*`, `\*`,
+		`[`, `\[`,
+		`]`, `\]`,
+		`^`, `\^`,
+		`$`, `\$`,
+		`/`, `\/`,
+	)
+	return replacer.Replace(s)
 }
 
 const (

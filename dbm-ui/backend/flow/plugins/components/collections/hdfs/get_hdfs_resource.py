@@ -16,7 +16,6 @@ from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.hdfs.hdfs_context_dataclass as flow_context
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import TicketType
 
 
 class GetHdfsResourceService(BaseService):
@@ -26,28 +25,14 @@ class GetHdfsResourceService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        if global_data["ticket_type"] == TicketType.HDFS_APPLY.value:
-            # DO_NOTHING
-            pass
-        elif global_data["ticket_type"] == TicketType.HDFS_SCALE_UP.value:
-            trans_data.new_dn_ips = global_data["new_dn_ips"]
-        elif global_data["ticket_type"] == TicketType.HDFS_REPLACE:
-            trans_data.cur_nn1_ip = global_data["nn1_ip"]
-            trans_data.cur_nn2_ip = global_data["nn2_ip"]
-            trans_data.cur_zk_ips = global_data["zk_ips"]
-            trans_data.cur_jn_ips = global_data["jn_ips"]
-            trans_data.cur_dn_ips = global_data["dn_ips"]
-            trans_data.cur_all_ips = global_data["all_ips"]
-            trans_data.cur_all_ip_hosts = global_data["all_ip_hosts"]
-            trans_data.master_ips = global_data["master_ips"]
-            trans_data.new_dn_ips = global_data["new_dn_ips"]
+        # 当前 HDFS 的 apply/扩缩容/替换均不在此组件填充 trans_data：
+        # 替换已复用 SCALE_UP/SHRINK 子流程，不会以 HDFS_REPLACE 进入这里
 
         self.log_info(_("获取机器资源成功。 {}").format(trans_data))
         data.outputs["trans_data"] = trans_data

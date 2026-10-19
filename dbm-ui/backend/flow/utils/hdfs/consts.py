@@ -17,9 +17,6 @@ DATANODE_DEFAULT_HTTP_PORT = 50075
 JOURNAL_NODE_DEFAULT_PORT = 8485
 ZOOKEEPER_DEFAULT_PORT = 2181
 
-# 灰度部署流程版本号
-V2_FLOW_VERSION_KEY = "bkbase"
-
 # HDFS集群主节点(active namenode)缓存key前缀
 # 完整key格式: {CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type}
 # 由 db_periodic_task.local_tasks.hdfs.sync_cluster_master 定时任务写入

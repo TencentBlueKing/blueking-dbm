@@ -19,13 +19,14 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
 
-class HdfsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
+class HdfsShrinkDetailSerializer(ParamValidateSerializerMixin, BigDataSingleClusterOpsDetailsSerializer):
     # 目前只支持datanode节点缩容
     class NodesSerializer(serializers.Serializer):
         datanode = serializers.ListField(help_text=_("broker信息列表"), child=serializers.DictField())
@@ -33,7 +34,9 @@ class HdfsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     old_nodes = NodesSerializer(help_text=_("nodes节点信息"))
 
     def validate(self, attrs):
-        super().validate(attrs)
+        attrs = super().validate(attrs)
+        # validator 持有全部校验规则，先跑它，保证集群不存在等情况返回结构化友好错误而非 500
+        self.validated_params(attrs)
 
         role_hash = {
             InstanceRole.HDFS_DATA_NODE: attrs["old_nodes"]["datanode"],
@@ -76,3 +79,4 @@ class HdfsShrinkFlowBuilder(BaseHdfsTicketFlowBuilder):
     inner_flow_builder = HdfsShrinkFlowParamBuilder
     inner_flow_name = _("HDFS 集群缩容")
     need_patch_recycle_host_details = True
+    validator = HdfsController.hdfs_shrink_scene.validator
