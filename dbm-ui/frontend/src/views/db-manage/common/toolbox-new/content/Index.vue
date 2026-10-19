@@ -36,7 +36,8 @@
     <Teleport to="#dbContentTitleAppend">
       <div class="toolbox-page-header">
         <span class="header-title">{{ DBTypeInfos[dbType as DBTypes].name }} {{ t('工具箱') }}</span>
-        <template v-if="selectedValue">
+        <!-- ENABLE_EXTERNAL_PROXY 为 true 时是 po 环境，隐藏工具切换入口 -->
+        <template v-if="selectedValue && ENABLE_EXTERNAL_PROXY !== true">
           <span class="title-divider">|</span>
           <DbSelect
             v-model="selectedValue"
@@ -95,7 +96,7 @@
 
   import { useEventBus } from '@hooks';
 
-  import { useUserProfile } from '@stores';
+  import { useSystemEnviron, useUserProfile } from '@stores';
 
   import { DBTypeInfos, DBTypes, toolboxProfileKeyMap } from '@common/const';
 
@@ -116,6 +117,7 @@
   const eventBus = useEventBus();
   const profileStore = useUserProfile();
   const { profile } = storeToRefs(profileStore);
+  const { ENABLE_EXTERNAL_PROXY } = useSystemEnviron().urls;
 
   const dataList = props.menuList.map((item) => {
     const firstChild = item.children[0];
