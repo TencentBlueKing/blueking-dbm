@@ -275,19 +275,19 @@ dbm:
     installEnable:
       mysql:
         enable: true
-        tag: 1.0.1
+        tag: 1.0.2
       es:
         enable: true
-        tag: 1.0.1
+        tag: 1.0.2
       kafka:
         enable: true
-        tag: 1.0.1
+        tag: 1.0.2
       hdfs:
         enable: true
-        tag: 1.0.1
+        tag: 1.0.2
       redis:
         enable: true
-        tag: 1.0.1
+        tag: 1.0.2
 
 # bk-dbconfig values
 dbconfig:
