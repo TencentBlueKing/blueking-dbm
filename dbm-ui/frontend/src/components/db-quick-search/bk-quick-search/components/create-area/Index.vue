@@ -178,10 +178,15 @@
     hideSuggestMenu();
   };
 
+  // 上一次 keyup 时输入框的值，用于判断 Backspace 是删字符还是删已选 tag
+  let latestInputValue = '';
+
   const restartSelect = () => {
     hideMenuPop();
     localValue.value = genDefaultValue();
     inputValue.value = '';
+    // 输入框已清空，同步重置，否则提交后第一次 Backspace 会被当成删字符
+    latestInputValue = '';
     setTimeout(() => {
       if (props.data.length > 0) {
         showKeyMenu();
@@ -274,7 +279,6 @@
     }
   };
 
-  let latestInputValue = '';
   const handleKeyup = (event: KeyboardEvent) => {
     setTimeout(() => {
       // 在选择面板中选择值，不想要输入框输入
