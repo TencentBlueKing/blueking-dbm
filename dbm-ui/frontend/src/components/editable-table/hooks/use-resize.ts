@@ -198,44 +198,52 @@ export default function (
     };
 
     const handleMouseUp = () => {
-      if (dragging.value) {
-        const { startColumnLeft } = dragState.value;
-        const finalLeft = Number.parseInt(resizeProxy.style.left, 10);
-        const latestColumnWidth = Math.ceil(Math.max(finalLeft - startColumnLeft, 80));
-
-        resizeProxy.style.display = 'none';
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        dragging.value = false;
-
-        const realWidth = Math.max(
-          columnSizeConfig.value[columnKey]!.minWidth || 60,
-          Math.min(latestColumnWidth, columnSizeConfig.value[columnKey]!.maxWidth || 1000000),
-        );
-        const renderColumWidthTotal = Array.from(columnEl.parentElement!.children).reduce((result, element) => {
-          if (element === columnEl) {
-            return result;
-          }
-          return result + element.getBoundingClientRect().width;
-        }, 0);
-
-        const tableWidth = tableRef.value!.getBoundingClientRect().width;
-
-        // 标记为手动调整，后续重新计算列宽时保持不变
-        columnSizeConfig.value[columnKey]!.isUserResized = true;
-        if (renderColumWidthTotal + realWidth < tableWidth) {
-          columnSizeConfig.value[columnKey]!.renderWidth = tableWidth - renderColumWidthTotal;
-        } else {
-          columnSizeConfig.value[columnKey]!.renderWidth = realWidth;
-        }
-      }
-
+      // 先复位全局状态与监听，后续列宽计算出错也不会残留禁止选中、遗留监听
       dragable = false;
-
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.onselectstart = null;
       document.ondragstart = null;
+
+      if (!dragging.value) {
+        return;
+      }
+
+      const { startColumnLeft } = dragState.value;
+      const finalLeft = Number.parseInt(resizeProxy.style.left, 10);
+      const latestColumnWidth = Math.ceil(Math.max(finalLeft - startColumnLeft, 80));
+
+      resizeProxy.style.display = 'none';
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      dragging.value = false;
+
+      // 拖拽过程中列被移除或表格被卸载
+      const columnConfig = columnSizeConfig.value[columnKey];
+      if (!columnConfig || !columnEl.parentElement || !tableRef.value) {
+        return;
+      }
+
+      const realWidth = Math.max(
+        columnConfig.minWidth || 60,
+        Math.min(latestColumnWidth, columnConfig.maxWidth || 1000000),
+      );
+      const renderColumWidthTotal = Array.from(columnEl.parentElement.children).reduce((result, element) => {
+        if (element === columnEl) {
+          return result;
+        }
+        return result + element.getBoundingClientRect().width;
+      }, 0);
+
+      const tableWidth = tableRef.value.getBoundingClientRect().width;
+
+      // 标记为手动调整，后续重新计算列宽时保持不变
+      columnConfig.isUserResized = true;
+      if (renderColumWidthTotal + realWidth < tableWidth) {
+        columnConfig.renderWidth = tableWidth - renderColumWidthTotal;
+      } else {
+        columnConfig.renderWidth = realWidth;
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);

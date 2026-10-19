@@ -24,10 +24,9 @@
   import { tableInjectKey } from './Index.vue';
 
   export const injectKey: InjectionKey<{
-    getColumnIndex: () => number;
     getRowIndex: () => number;
     registerColumn: (column: IColumnContext) => void;
-    unregisterColumn: (columnKey: string) => void;
+    unregisterColumn: (uniqueKey: string) => void;
   }> = Symbol.for('bk-editable-table-row');
 </script>
 <script setup lang="ts">
@@ -37,33 +36,42 @@
 
   const columnList: IColumnContext[] = [];
 
+  // 列组件在 tr 中的 DOM 锚点：td 未渲染（被合并或尚未计算合并状态）时是 v-if 留下的注释节点
+  const getColumnAnchor = (column: IColumnContext) => column.instance.subTree.el as Node | null;
+
+  // 列 key 按列在行内的位置分配，保证同一列在各行一致；列宽、合并计数、表头 data-name 都依赖它
+  const syncColumnKey = () => {
+    columnList.forEach((column, index) => column.updateKey(index));
+  };
+
+  // 列的挂载顺序不一定与 DOM 顺序一致（如 v-if 后加入的列），按 DOM 位置插入保证列序正确
   const registerColumn = (column: IColumnContext) => {
-    const index = _.indexOf(rowRootRef.value!.children, column.el);
+    const anchor = getColumnAnchor(column);
+    const index = anchor
+      ? columnList.findIndex((item) => {
+          const itemAnchor = getColumnAnchor(item);
+          // 找到第一个排在新列之后的已注册列
+          return Boolean(itemAnchor && anchor.compareDocumentPosition(itemAnchor) & Node.DOCUMENT_POSITION_FOLLOWING);
+        })
+      : -1;
     if (index > -1) {
       columnList.splice(index, 0, column);
     } else {
       columnList.push(column);
     }
+    syncColumnKey();
     tableContext?.updateRow();
   };
 
-  const unregisterColumn = (columnKey: string) => {
-    _.remove(columnList, (item) => item.key === columnKey);
+  const unregisterColumn = (uniqueKey: string) => {
+    _.remove(columnList, (item) => item.uniqueKey === uniqueKey);
+    syncColumnKey();
     tableContext?.updateRow();
   };
-
-  const getColumnIndex = (() => {
-    let columnIndex = 0;
-    return () => {
-      columnIndex = columnIndex + 1;
-      return columnIndex;
-    };
-  })();
 
   const getRowIndex = () => tableContext?.getAllColumnList().findIndex((item) => item === columnList) as number;
 
   provide(injectKey, {
-    getColumnIndex,
     getRowIndex,
     registerColumn,
     unregisterColumn,
