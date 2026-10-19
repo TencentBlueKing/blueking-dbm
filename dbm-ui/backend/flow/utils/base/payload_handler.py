@@ -24,6 +24,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
+from backend.db_services.redis.util import is_have_proxy
 from backend.flow.consts import DEFAULT_INSTANCE, ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 from backend.ticket.constants import TicketType
@@ -293,19 +294,21 @@ class PayloadHandler(object):
 
     @staticmethod
     def redis_get_cluster_pass_from_dbconfig(cluster: Cluster):
-        proxy_conf = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": cluster.proxy_version,
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
-        proxy_content = proxy_conf.get("content", {})
+        proxy_content = {}
+        if is_have_proxy(cluster.cluster_type):
+            proxy_conf = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(cluster.bk_biz_id),
+                    "level_name": LevelName.CLUSTER.value,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(cluster.db_module_id)},
+                    "conf_file": cluster.proxy_version,
+                    "conf_type": ConfigTypeEnum.ProxyConf,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )
+            proxy_content = proxy_conf.get("content", {})
 
         redis_conf = DBConfigApi.query_conf_item(
             params={
