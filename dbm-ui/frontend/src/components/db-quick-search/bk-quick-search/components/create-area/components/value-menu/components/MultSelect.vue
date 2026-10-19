@@ -91,10 +91,8 @@
   );
 
   const renderList = computed(() => {
-    if (props.config.remoteSearch) {
-      return list.value;
-    }
     const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
+    // 无关键字时已选项置顶，远程搜索的首屏结果里不一定包含已选项
     if (!keyword) {
       const modelValueMap = makeMap(defaultModelValue.map((item) => item.value));
       const filterList = [...defaultModelValue, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
@@ -106,6 +104,10 @@
       }
 
       return filterList;
+    }
+    // 远程搜索的结果已按关键字过滤
+    if (props.config.remoteSearch) {
+      return list.value;
     }
     return _.filter(list.value, (item) => isSearchKeywordMatch(item.label, filterKey.value));
   });
