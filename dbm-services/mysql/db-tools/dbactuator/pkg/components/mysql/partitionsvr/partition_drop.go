@@ -54,13 +54,13 @@ func (pc *PartitionConfig) ExecuteDropStatement(pd *PartitionDetail, conn *nativ
 	// 记录执行的SQL语句
 	partitionStepInfo.Statement = dropStatement
 
-	// 这里超时退出只是执行退出，mysql内连接无法释放
-	// 先设置会话级超时时间为60秒
-	_, err = conn.ExecWithTimeout(
-		ExecTimeout,
-		fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, dropStatement),
-	)
-
+	// 这里超时退出只是执行退出，mysql内连接无法释放。
+	// 超时或其他错误由 execPartitionStmtWithRetry 重试。
+	dropSQL := fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, dropStatement)
+	err = execPartitionStmtWithRetry(fmt.Sprintf("drop partition `%s`.`%s`", pd.DbName, pd.TbName), func() error {
+		_, execErr := conn.ExecWithTimeout(ExecTimeout, dropSQL)
+		return execErr
+	})
 	if err != nil {
 		partitionStepInfo.Status = false
 		partitionStepInfo.Message = err.Error()

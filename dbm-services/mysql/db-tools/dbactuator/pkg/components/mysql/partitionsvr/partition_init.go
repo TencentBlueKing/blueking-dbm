@@ -104,8 +104,11 @@ func (pc *PartitionConfig) ExecuteInitStatementByPTTool(initStatement string, fo
 func (pc *PartitionConfig) ExecuteInitStatementByDDL(initStatement string, conn *native.DbWorker, partitionStepInfo *PartitionStepInfo) {
 	// 记录执行的SQL语句
 	partitionStepInfo.Statement = initStatement
-	// ddl的初始化只设置锁等待超时时间
-	_, err := conn.ExecMore([]string{fmt.Sprintf("set session lock_wait_timeout=%d", LockWaitTimeout), initStatement})
+	// ddl的初始化只设置锁等待超时时间。超时或其他错误由 execPartitionStmtWithRetry 重试。
+	err := execPartitionStmtWithRetry("init partition ddl", func() error {
+		_, execErr := conn.ExecMore([]string{fmt.Sprintf("set session lock_wait_timeout=%d", LockWaitTimeout), initStatement})
+		return execErr
+	})
 	if err != nil {
 		partitionStepInfo.Message = err.Error()
 	} else {

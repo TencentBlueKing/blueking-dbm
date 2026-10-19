@@ -10,7 +10,11 @@
 
 package partitionsvr
 
-import "time"
+import (
+	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+)
 
 const DiffOneDay = 1
 
@@ -20,8 +24,36 @@ const DiffOneDay = 1
 const ExecTimeout = 300 * time.Second
 
 // 锁等待超时时间 单位：秒
-// 1分钟
-const LockWaitTimeout = 60
+const LockWaitTimeout = 20
+
+// partitionStmtMaxAttempts 添加/删除分区，以及初始化 DDL 的总执行次数（含首次）。
+// 超时或其他错误都会重试，两次尝试间隔 partitionStmtRetryInterval。
+const partitionStmtMaxAttempts = 3
+
+// partitionStmtRetryInterval 添加/删除分区、初始化 DDL 失败后的重试间隔
+const partitionStmtRetryInterval = 40 * time.Second
+
+// execPartitionStmtWithRetry 执行分区语句。任意错误都重试，一共 partitionStmtMaxAttempts 次，
+// 两次尝试间隔 partitionStmtRetryInterval。action 写入重试日志，例如 add partition `db`.`tb`。
+// 返回最后一次执行的错误。
+func execPartitionStmtWithRetry(action string, execFn func() error) error {
+	var err error
+	for attempt := 1; attempt <= partitionStmtMaxAttempts; attempt++ {
+		err = execFn()
+		if err == nil {
+			return nil
+		}
+		if attempt == partitionStmtMaxAttempts {
+			return err
+		}
+		logger.Warn(
+			"%s failed (attempt %d/%d), retry after %s: %s",
+			action, attempt, partitionStmtMaxAttempts, partitionStmtRetryInterval, err.Error(),
+		)
+		time.Sleep(partitionStmtRetryInterval)
+	}
+	return err
+}
 
 // PartitionExecuteResult 分区执行结果
 type PartitionExecuteResult struct {
