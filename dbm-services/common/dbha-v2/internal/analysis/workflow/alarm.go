@@ -42,6 +42,10 @@ import (
 // dbha/ha-module/constvar/constant.go.
 const sshCheckFailedStatus = "SSH_check_failed"
 
+// redisAuthFailedStatus matches v1 constvar.RedisAuthFailed, reported by the v1 agent when
+// the redis detection fails on authentication.
+const redisAuthFailedStatus = "Redis_auth_failed"
+
 // emptyInstanceRole matches v1 GetDBRole when the detect role is empty.
 const emptyInstanceRole = "N/A"
 
@@ -86,7 +90,9 @@ func (n *AlarmNotifier) TriggerWithDetectorResponse(procName string, status proc
 }
 
 // TriggerWithEvent sends a notification for the event before liveness double-check.
-func (n *AlarmNotifier) TriggerWithEvent(event *haprobe.DbEvent) {
+// meta carries the instance metadata used by the v2 and v1 dimensions; a nil meta only
+// skips those dimensions and the notification is still posted.
+func (n *AlarmNotifier) TriggerWithEvent(event *haprobe.DbEvent, meta *hamodel.DbmMetadata) {
 	if event == nil || event.Endpoint == nil {
 		logger.Warn("skip notification: nil event or endpoint")
 		return
@@ -107,6 +113,15 @@ func (n *AlarmNotifier) TriggerWithEvent(event *haprobe.DbEvent) {
 	monitorEvent.Dimension.DbTypeName = event.DbTypeName
 	monitorEvent.Dimension.DbEventName = event.Name
 	monitorEvent.Dimension.DbEventNameReason = event.Reason.Str()
+
+	if meta == nil {
+		logger.Warn("skip the meta dimensions: nil meta, db-inst: %s", target)
+	} else {
+		monitorEvent.Dimension.BkBizId = meta.BkBizID
+		monitorEvent.Dimension.DbClusterType = meta.ClusterType
+		monitorEvent.Dimension.DbMachineType = meta.MachineType
+		fillDetectV1Dimensions(monitorEvent, meta)
+	}
 
 	logger.Info("send a notification before double-check, db-inst: %s, event: %s, content: %s",
 		target, event.Name, event.Message)
@@ -137,7 +152,8 @@ func (n *AlarmNotifier) TriggerWithBizId(bizId int, content string) {
 
 // fillDetectV1Dimensions writes the v1 detect dimensions onto a detector alarm.
 // meta must be non-nil. An empty instance role is written as N/A.
-// status is SSH_check_failed only for dbha_doublecheck_ssh_fail.
+// status is SSH_check_failed for dbha_doublecheck_ssh_fail and Redis_auth_failed for
+// dbha_detect_redis_auth_fail, matching the v1 agent reportMonitor statuses.
 // idc is left unset because v1 detect events do not carry that key.
 func fillDetectV1Dimensions(event *monitor.EventData, meta *hamodel.DbmMetadata) {
 	event.Dimension.BkCloudId = meta.BkCloudID
@@ -149,8 +165,11 @@ func fillDetectV1Dimensions(event *monitor.EventData, meta *hamodel.DbmMetadata)
 	event.Dimension.SwitchInfoDetectClusterType = string(meta.ClusterType)
 	event.Dimension.SwitchInfoInstanceRoleV1 = detectInstanceRole(meta.InstanceRole)
 
-	if event.Name == haprobe.DbEventNameDoubleCheckSshFailureV1.String() {
+	switch event.Name {
+	case haprobe.DbEventNameDoubleCheckSshFailureV1.String():
 		event.Dimension.SwitchInfoStatusV1 = sshCheckFailedStatus
+	case haprobe.DbEventNameDetectRedisAuthFailureV1.String():
+		event.Dimension.SwitchInfoStatusV1 = redisAuthFailedStatus
 	}
 }
 
