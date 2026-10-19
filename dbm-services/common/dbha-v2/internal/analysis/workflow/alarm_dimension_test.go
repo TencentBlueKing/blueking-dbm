@@ -190,3 +190,16 @@ func TestFillDetectV1DimensionsUsesNAForEmptyInstanceRole(t *testing.T) {
 		t.Fatalf("instance_role: %s", setEvent.Dimension.SwitchInfoInstanceRoleV1)
 	}
 }
+
+// TestFillDetectV1DimensionsSetsRedisAuthStatus asserts fillDetectV1Dimensions reports
+// the v1 Redis_auth_failed status for a redis authentication failure event.
+func TestFillDetectV1DimensionsSetsRedisAuthStatus(t *testing.T) {
+	meta := &hamodel.DbmMetadata{BkCloudID: 4, IP: "127.0.0.1", Port: 6379}
+	event := &monitor.EventData{Name: haprobe.DbEventNameDetectRedisAuthFailureV1.String()}
+
+	fillDetectV1Dimensions(event, meta)
+
+	if event.Dimension.SwitchInfoStatusV1 != redisAuthFailedStatus {
+		t.Fatalf("status: %s", event.Dimension.SwitchInfoStatusV1)
+	}
+}
