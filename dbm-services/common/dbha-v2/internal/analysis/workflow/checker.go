@@ -33,6 +33,12 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
+// notifyEvent pairs a db event with its instance metadata for pre-double-check notification.
+type notifyEvent struct {
+	event *haprobe.DbEvent
+	meta  *hamodel.DbmMetadata
+}
+
 // BusinessChecker runs event, host, status, and missed-probe checks for a business.
 // It triggers detector/switch via DetectorHandler.
 type BusinessChecker struct {
@@ -55,9 +61,14 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 	recheckInsts := map[string]struct{}{}
 
 	// notifyEvents collects events to notify before double-check, deduplicated by instance via recheckInsts.
-	notifyEvents := []*haprobe.DbEvent{}
+	notifyEvents := []notifyEvent{}
 
 	for _, event := range dbEvents {
+		if event == nil || event.Endpoint == nil {
+			logger.Warn("skip the db event: nil event or endpoint")
+			continue
+		}
+
 		key := instanceKey(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
 
 		if _, exists := skipDbInsts[key]; exists {
@@ -77,7 +88,7 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 		recheckInsts[key] = struct{}{}
 
 		if _, ok := haprobe.NotifyEventNameList[event.Name]; ok {
-			notifyEvents = append(notifyEvents, event)
+			notifyEvents = append(notifyEvents, notifyEvent{event: event, meta: meta})
 		}
 
 		logger.Warn("recheck the db-inst: %s", key)
@@ -87,8 +98,8 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 		})
 	}
 
-	for _, event := range notifyEvents {
-		c.detector.NotifyEvent(event)
+	for _, notify := range notifyEvents {
+		c.detector.NotifyEvent(notify.event, notify.meta)
 	}
 
 	c.detector.LivenessDoubleCheck(bizId, badInsts)
