@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+import os
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -18,6 +19,7 @@ from django.utils.translation import gettext as _
 from backend.components.db_remote_service.client import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.core import consts
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
@@ -63,6 +65,12 @@ class DbConsoleDumpSqlFlow(object):
         dump_center = DBExtension.get_latest_extension(
             bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.CONSOLE_DUMP_CENTER
         )
+        if (
+            self.data.get("export_mode") == "sql"
+            and (self.data.get("result_format") or "txt") == "csv"
+            and not dump_center
+        ):
+            raise Exception(_("CSV 导出需要配置中转机"))
         if dump_center:
             p = Builder(root_id=self.root_id, data=self.data)
         else:
@@ -114,6 +122,23 @@ class DbConsoleDumpSqlFlow(object):
                 )
             ),
         )
+        if self.data.get("export_mode") == "sql":
+            sql_dir = os.path.join(consts.BK_PKG_INSTALL_PATH, "sqlfile_{}".format(self.uid))
+            flow_context["sql_local_dir"] = sql_dir
+            p.add_act(
+                act_name=_("下发SQL文件"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=exec_ip,
+                        file_target_path=sql_dir,
+                        file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
+                            path=self.data["sql_path"], filelist=[self.data["sql_filename"]]
+                        ),
+                    )
+                ),
+            )
 
         p.add_act(
             act_name=_("运行数据导出任务"),
@@ -146,6 +171,7 @@ class DbConsoleDumpSqlFlow(object):
             "cluster_type": cluster.cluster_type,
             "instance_role": backend_info.instance_role,
             "dbconsole_dump_file_name": self.dbconsole_dump_file_name,
+            "major_version": self.cluster.major_version,
         }
 
     def get_slave_delay_second(self, ip, port, bk_cloud_id) -> str:
