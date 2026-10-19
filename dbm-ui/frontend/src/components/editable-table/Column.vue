@@ -14,7 +14,6 @@
 <template>
   <td
     v-if="isRowspanRender"
-    :key="columnKey"
     ref="root"
     class="bk-editable-table-body-column"
     :class="{
@@ -64,7 +63,7 @@
         name="error"
         v-bind="{ message: validateState.errorMessage }">
         <i
-          v-bk-tooltips="errorTips"
+          v-bk-tooltips="validateState.errorMessage"
           class="bk-dbm db-icon-exclamation-fill" />
       </slot>
     </div>
@@ -126,13 +125,14 @@
 
   export interface IContext {
     clearValidate: () => void;
-    el: HTMLElement;
     instance: ComponentInternalInstance;
     isRowspanRender: Ref<boolean>;
-    key: string;
+    // 由 Row 按列在行内的位置分配
+    readonly key: string;
     props: Props;
     slots: Slots;
     uniqueKey: string;
+    updateKey: (index: number) => void;
     validate: (trigger?: string) => Promise<boolean>;
   }
 
@@ -181,7 +181,8 @@
   const getRowIndex = () => tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
 
   const uniqueKey = `${Date.now()}#${getColumnCount()}`;
-  const columnKey = `bk-editable-table-column-${rowContext?.getColumnIndex()}`;
+  // 注册到 Row 后按列位置分配，同一列在各行一致
+  const columnKey = ref('');
 
   interface IFinalRule {
     message: string | (() => string);
@@ -360,9 +361,6 @@
     return result ? t('无法操作') : '';
   });
 
-  // tooltips 内容以 innerHTML 渲染，错误信息可能来自接口返回，需要转义
-  const errorTips = computed(() => _.escape(validateState.errorMessage));
-
   const calcRowspanRender = (rowspanNumMap: Map<string, number>) => {
     // 判断rowspan 在当前 column生效状态
     const allColumnList = tableContext?.getAllColumnList() || [];
@@ -373,14 +371,14 @@
       }
       const columnItem = rowColumnList[columnIndex]!;
       if (columnItem.props.rowspan && columnItem.props.rowspan > 0) {
-        const rowspanNum = rowspanNumMap.get(columnKey);
+        const rowspanNum = rowspanNumMap.get(columnKey.value);
         // 计数为 0 表示上一组合并已经结束，当前单元格作为新一组的起点渲染
         if (!rowspanNum) {
           isRowspanRender.value = true;
-          rowspanNumMap.set(columnKey, -columnItem.props.rowspan + 1);
+          rowspanNumMap.set(columnKey.value, -columnItem.props.rowspan + 1);
         } else {
           isRowspanRender.value = false;
-          rowspanNumMap.set(columnKey, rowspanNum + 1);
+          rowspanNumMap.set(columnKey.value, rowspanNum + 1);
         }
       } else {
         isRowspanRender.value = true;
@@ -638,13 +636,17 @@
   onMounted(() => {
     rowContext?.registerColumn({
       clearValidate,
-      el: rootRef.value as HTMLElement,
       instance: currentInstance,
       isRowspanRender,
-      key: columnKey,
+      get key() {
+        return columnKey.value;
+      },
       props,
       slots,
       uniqueKey,
+      updateKey: (index: number) => {
+        columnKey.value = `bk-editable-table-column-${index}`;
+      },
       validate,
     });
 
@@ -664,7 +666,7 @@
   });
 
   onBeforeUnmount(() => {
-    rowContext?.unregisterColumn(columnKey);
+    rowContext?.unregisterColumn(uniqueKey);
     registerRules = [];
     loadingValidatorReleaseSet.forEach((release) => release());
     tableContext?.removeRowspanTask(calcRowspanRender);
