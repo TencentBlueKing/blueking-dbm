@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from urllib.parse import urlparse
 
 from apigw_manager.apigw.authentication import ApiGatewayJWTGenericMiddleware
@@ -11,6 +12,8 @@ from django.contrib import auth
 from django.contrib.auth.models import AnonymousUser
 
 from backend import env
+
+logger = logging.getLogger("root")
 
 
 class _WebSocketJWTRequest(object):
@@ -42,19 +45,21 @@ class ApiGatewayJWTAuthMiddleware(object):
 
     async def __call__(self, scope, receive, send):
         request = _WebSocketJWTRequest(scope)
+        request_id = _get_header(scope, "x-bkapi-request-id")
         try:
-
             # JWT 校验会同步查询数据库读取网关公钥，必须放到数据库工作线程执行。
             # 使用 Channels 包装器，在调用结束后清理线程中的数据库连接。
             jwt = await database_sync_to_async(self.provider.provide, thread_sensitive=True)(request)
         except JWTTokenInvalid:
+            # 仅记录失败阶段和请求 ID，禁止打印 JWT、Cookie 或登录 Token。
+            logger.warning("[WS_AUTH] request_id=%s stage=jwt_invalid path=%s", request_id, scope.get("path"))
             await send({"type": "websocket.close", "code": 4401})
             return
 
         scope["bkapi_jwt_verified"] = bool(jwt)
+        jwt_user = (jwt.payload.get("user") or {}).copy() if jwt else {}
         if jwt and not request.user.is_authenticated:
             request.jwt = jwt
-            jwt_user = (jwt.payload.get("user") or {}).copy()
             jwt_user.setdefault("bk_username", jwt_user.pop("username", None))
             scope["user"] = await database_sync_to_async(auth.authenticate)(
                 request,
@@ -62,6 +67,20 @@ class ApiGatewayJWTAuthMiddleware(object):
                 **jwt_user,
             )
 
+        # 验证签名与验证用户身份是两步，分别记录便于定位握手后立即关闭 4401。
+        user = scope.get("user")
+        logger.info(
+            "[WS_AUTH] request_id=%s path=%s jwt_present=%s gateway=%s "
+            "jwt_username=%s jwt_user_verified=%s user=%s authenticated=%s",
+            request_id,
+            scope.get("path"),
+            bool(jwt),
+            getattr(jwt, "gateway_name", ""),
+            jwt_user.get("bk_username") or jwt_user.get("username"),
+            jwt_user.get("verified"),
+            getattr(user, "username", None),
+            bool(user and user.is_authenticated),
+        )
         return await self.inner(scope, receive, send)
 
 
