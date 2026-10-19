@@ -204,8 +204,14 @@ class RedisEntryCheckService(BaseService):
             )
             return set(), _("CLB target health query failed: {}").format(str(e))
 
-        # describe_target_health returns {} when code != 0 or data is missing.
-        if not isinstance(health, dict) or not isinstance(health.get("abnormalips"), list):
+        # describe_target_health returns {} when code != 0 or data is missing;
+        # Go nameservice serializes an empty slice as `"abnormalips": null` (None) when abnormalcount is 0.
+        abnormal_ips = health.get("abnormalips") if isinstance(health, dict) else None
+        if (
+            not isinstance(health, dict)
+            or "abnormalips" not in health
+            or not isinstance(abnormal_ips, (list, type(None)))
+        ):
             self.log_warning(
                 _("Invalid CLB target health response for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, health
@@ -213,7 +219,7 @@ class RedisEntryCheckService(BaseService):
             )
             return set(), _("CLB target health query failed: empty or invalid response")
 
-        return {str(rs) for rs in health["abnormalips"]}, None
+        return {str(rs) for rs in (abnormal_ips or []) if rs}, None
 
     def _get_polaris_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """

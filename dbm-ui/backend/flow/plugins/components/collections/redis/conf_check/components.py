@@ -25,7 +25,7 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env
 from backend.components import DRSApi, JobApi
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
@@ -49,7 +49,7 @@ from .redis_candidates import (
     renew_candidates_key_ttl,
     slice_candidate_cluster_ids,
 )
-from .registry import CHECKER_REGISTRY
+from .registry import CHECKER_REGISTRY, checker_overrides
 
 logger = logging.getLogger("flow")
 
@@ -91,7 +91,9 @@ def _chunks(items: List, size: int):
 
 def _load_batch_clusters(clusters: List[Dict]) -> Dict[int, Cluster]:
     cluster_ids = [info["cluster_id"] for info in clusters]
-    storage_qs = StorageInstance.objects.select_related("machine")
+    storage_qs = StorageInstance.objects.select_related("machine").prefetch_related(
+        Prefetch("as_receiver", queryset=StorageInstanceTuple.objects.select_related("ejector__machine"))
+    )
     proxy_qs = ProxyInstance.objects.select_related("machine")
     return {
         cluster.id: cluster
@@ -147,7 +149,8 @@ def _target_from_info(target_info: Dict) -> CheckTarget:
         bk_cloud_id=target_info.get("target_bk_cloud_id", target_info["bk_cloud_id"]),
         ip=target_info["ip"],
         port=target_info["port"],
-        extra=target_info.get("extra", {}) or {},
+        # copied: prepare_evaluation attaches per-batch context that must not reach data.outputs
+        extra=dict(target_info.get("extra") or {}),
     )
 
 
@@ -625,6 +628,7 @@ def _evaluate_and_report(
             )
 
     eval_tasks = []
+    targets_by_checker: Dict[str, Tuple[object, List[CheckTarget]]] = {}
     for target_info in target_infos:
         checker = _checker_by_name(target_info["checker"])
         if checker is None:
@@ -634,12 +638,19 @@ def _evaluate_and_report(
         command = drs_req[0] if drs_req else None
         host_block = host_conf_data.get((checker.name, target.ip, target.port))
         eval_tasks.append((target_info, checker, target, command, host_block))
+        targets_by_checker.setdefault(checker.name, (checker, []))[1].append(target)
+
+    for checker, checker_targets in targets_by_checker.values():
+        try:
+            checker.prepare_evaluation(checker_targets)
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error(f"checker {checker.name} prepare_evaluation failed: {e}")
 
     report_rows = []
     for target_info, checker, target, command, host_block in eval_tasks:
         drs_result = drs_result_map.get((target.bk_cloud_id, command, target.address)) if command else None
         drs_error = drs_error_map.get((target.bk_cloud_id, command, target.address)) if command else None
-        checker_config = checker_customized.get(checker.name, {})
+        checker_config = checker_overrides(checker_customized, checker.name)
         try:
             results = checker.evaluate(
                 target, drs_result, host_block, checker_config=checker_config, drs_error=drs_error

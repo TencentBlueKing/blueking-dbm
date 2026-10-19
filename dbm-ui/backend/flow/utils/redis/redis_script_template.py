@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List
+import shlex
+from typing import List, Optional, Sequence
 
 # fast_execute_script接口固定参数
 # 这里独立出来，遇到过全局变量被其他db修改，导致用户错乱的问题
@@ -553,9 +554,9 @@ def build_redis_role_check_script(instances: list) -> str:
 # ==============================================================================
 # REDIS_CONF_CHECK: on-host script snippets
 #
-# Live instance state (role, predixy INFO Servers) is read via DRS, so the only
-# on-host work is reading config files. Each checker contributes a self-contained
-# snippet that prints tagged blocks:
+# Predixy INFO Servers is read via DRS; storage instance state is read on the host
+# through redis-cmd.sh. Each checker contributes a self-contained snippet that
+# prints tagged blocks:
 #   <CONFCHK checker="<name>" port="<port>">{json}</CONFCHK>
 # The collect component concatenates all snippets for a host into one script and
 # delivers a single job per host.
@@ -603,3 +604,226 @@ def build_predixy_conf_check_snippet(ports: List[int]) -> str:
     """
     calls = "\n".join('__dbm_predixy_conf_servers "{}"'.format(int(p)) for p in ports if str(p).isdigit())
     return _PREDIXY_CONF_READ_FUNC + "\n" + calls + "\n"
+
+
+REDIS_CMD_SH = "/home/mysql/dbtools/redis-cmd.sh"
+STORAGE_CONF_DATA_DIRS = ("/data1", "/data")
+STORAGE_CONF_INCLUDE_MAX_DEPTH = 8
+STORAGE_CONF_CMD_TIMEOUT = 5
+
+# Bash helpers for the storage_conf checker (bash 3.2 compatible, no python on host).
+# BK-Job keeps job logs, so nothing printed here may carry a credential:
+#   - redis-cmd.sh echoes "redis-cli -a <password> ..." before running; that line and
+#     the redis-cli password warning are dropped before any further processing.
+#   - requirepass/masterauth/masteruser/user values are dropped from runtime config
+#     by key name regardless of key/value position; blank lines stay because an empty
+#     value is a blank line.
+#   - failures are reported as fixed tokens, never as captured output.
+# Commands are fed to redis-cmd.sh on stdin: it runs `$REDIS $@` unquoted, so a `*`
+# passed as an argument is glob-expanded against the working directory. It is run via
+# `bash <path>` because its shebang is not on the first line.
+_STORAGE_CONF_FUNCS = r"""
+__DBM_SCC_REDIS_CMD=__DBM_SCC_REDIS_CMD_VALUE__
+
+__dbm_scc_b64() {
+    gzip -c 2>/dev/null | base64 2>/dev/null | tr -d '\n\r'
+}
+
+__dbm_scc_canon() {
+    local d
+    d=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || { printf '%s' "$1"; return; }
+    printf '%s/%s' "$d" "$(basename "$1")"
+}
+
+__dbm_scc_json_path() {
+    case "$1" in
+        *[!A-Za-z0-9_./-]*) printf 'unsafe_path' ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+__dbm_scc_expand() {
+    local f="$1" depth="$2" stack="$3" base="$4" line inc canon re bare
+    re='^[[:space:]]*[Ii][Nn][Cc][Ll][Uu][Dd][Ee][[:space:]]+([^[:space:]]+)'
+    bare='^[[:space:]]*[Ii][Nn][Cc][Ll][Uu][Dd][Ee][[:space:]]*$'
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ $line =~ $bare ]]; then
+            echo "#CONFCHK_ERR include_no_path $f"
+        elif [[ $line =~ $re ]]; then
+            inc="${BASH_REMATCH[1]}"
+            inc="${inc#\"}"
+            inc="${inc%\"}"
+            case "$inc" in
+                *'*'*|*'?'*|*'['*) echo "#CONFCHK_ERR include_glob $inc"; continue ;;
+            esac
+            case "$inc" in
+                /*) ;;
+                *) inc="$base/$inc" ;;
+            esac
+            if [ "$depth" -gt __DBM_SCC_MAX_DEPTH__ ]; then
+                echo "#CONFCHK_ERR include_too_deep $inc"
+                continue
+            fi
+            canon=$(__dbm_scc_canon "$inc")
+            case "$stack" in
+                *":$canon:"*) echo "#CONFCHK_ERR include_cycle $inc"; continue ;;
+            esac
+            if [ ! -f "$inc" ] || [ ! -r "$inc" ]; then
+                echo "#CONFCHK_ERR include_unreadable $inc"
+                continue
+            fi
+            __dbm_scc_expand "$inc" $((depth + 1)) "$stack$canon:" "$base"
+        else
+            printf '%s\n' "$line"
+        fi
+    done < "$f"
+}
+
+__dbm_scc_strip_disk() {
+    awk '{
+        l = $0
+        sub(/^[ \t#]+/, "", l)
+        n = l
+        sub(/[ \t].*$/, "", n)
+        n = tolower(n)
+        if (n == "requirepass" || n == "masterauth" || n == "masteruser" || n == "user" || n == "rename-command") next
+        print
+    }'
+}
+
+__dbm_scc_strip_wrapper() {
+    awk '{
+        if (index($0, "redis-cli") > 0 && index($0, " -a ") > 0) next
+        if (index($0, "Warning: Using a password") == 1) next
+        print
+    }'
+}
+
+__dbm_scc_strip_mem() {
+    awk 'BEGIN { skip = 0 }
+    {
+        if (skip) { skip = 0; next }
+        k = tolower($0)
+        sub(/\r$/, "", k)
+        if (k == "requirepass" || k == "masterauth" || k == "masteruser" || k == "user") { skip = 1; next }
+        print
+    }'
+}
+
+# Sets __DBM_SCC_BODY (wrapper lines removed, trailing newlines kept) and __DBM_SCC_ERR.
+__dbm_scc_query() {
+    local port="$1" cmd="$2" raw rc first
+    __DBM_SCC_BODY=""
+    __DBM_SCC_ERR=""
+    raw=$(
+        if command -v timeout >/dev/null 2>&1; then
+            printf '%s\n' "$cmd" | timeout __DBM_SCC_TIMEOUT__ bash "$__DBM_SCC_REDIS_CMD" "$port" 2>&1
+        else
+            # without timeout(1) the Job script timeout (10800s) is the only bound
+            printf '%s\n' "$cmd" | bash "$__DBM_SCC_REDIS_CMD" "$port" 2>&1
+        fi
+        echo "__DBM_SCC_RC=$?"
+    )
+    rc="${raw##*__DBM_SCC_RC=}"
+    raw="${raw%__DBM_SCC_RC=*}"
+    __DBM_SCC_BODY=$(printf '%s' "$raw" | __dbm_scc_strip_wrapper; echo x)
+    __DBM_SCC_BODY="${__DBM_SCC_BODY%x}"
+    raw=""
+    if [ "$rc" = "124" ]; then
+        __DBM_SCC_ERR="redis_cmd_timeout"
+        return
+    fi
+    first=$(printf '%s' "$__DBM_SCC_BODY" | head -n 1 | tr -d '\r' | tr '[:upper:]' '[:lower:]')
+    case "$first" in
+        *"unknown command"*) __DBM_SCC_ERR="unknown_command" ;;
+        err*|noauth*|wrongpass*|auth*|"(error)"*|"could not connect"*|*"unkown redis server type"*)
+            __DBM_SCC_ERR="redis_cmd_failed" ;;
+    esac
+    if [ -z "$__DBM_SCC_ERR" ] && [ "$rc" != "0" ]; then
+        __DBM_SCC_ERR="redis_cmd_failed"
+    fi
+    if [ -z "$__DBM_SCC_ERR" ] && [ -z "$(printf '%s' "$__DBM_SCC_BODY" | tr -d '[:space:]')" ]; then
+        __DBM_SCC_ERR="redis_cmd_empty"
+    fi
+}
+
+__dbm_scc_port() {
+    local port="$1" d p canon conf="" found="" conf_paths="" disk="" repl="" mem="" mem_cmd=""
+    local disk_err="" repl_err="" mem_err=""
+    for d in "${REDIS_DATA_DIR:-}" __DBM_SCC_DATA_DIRS__; do
+        [ -n "$d" ] || continue
+        p="${d%/}/redis/$port/redis.conf"
+        [ -f "$p" ] || continue
+        canon=$(__dbm_scc_canon "$p")
+        case " $found " in
+            *" $canon "*) continue ;;
+        esac
+        found="${found:+$found }$canon"
+        conf_paths="${conf_paths:+$conf_paths,}\"$(__dbm_scc_json_path "$p")\""
+        [ -n "$conf" ] || conf="$p"
+    done
+
+    if [ -z "$conf" ]; then
+        disk_err="conf_not_found"
+    elif [ ! -r "$conf" ]; then
+        disk_err="conf_unreadable"
+    else
+        disk=$(__dbm_scc_expand "$conf" 1 ":$(__dbm_scc_canon "$conf"):" "$(dirname "$conf")" \
+            | __dbm_scc_strip_disk | __dbm_scc_b64)
+    fi
+
+    __dbm_scc_query "$port" "info replication"
+    if [ -n "$__DBM_SCC_ERR" ]; then
+        repl_err="$__DBM_SCC_ERR"
+        [ "$repl_err" = "unknown_command" ] && repl_err="redis_cmd_failed"
+    else
+        repl=$(printf '%s' "$__DBM_SCC_BODY" | __dbm_scc_b64)
+    fi
+
+    mem_cmd="confxx"
+    __dbm_scc_query "$port" "confxx get *"
+    if [ "$__DBM_SCC_ERR" = "unknown_command" ]; then
+        mem_cmd="config"
+        __dbm_scc_query "$port" "config get *"
+    fi
+    if [ -n "$__DBM_SCC_ERR" ]; then
+        mem_err="$__DBM_SCC_ERR"
+        [ "$mem_err" = "unknown_command" ] && mem_err="redis_cmd_failed"
+    else
+        mem=$(printf '%s' "$__DBM_SCC_BODY" | __dbm_scc_strip_mem | __dbm_scc_b64)
+    fi
+    __DBM_SCC_BODY=""
+
+    local fmt='<CONFCHK checker="storage_conf" port="%s">{"conf_path":"%s","conf_paths":[%s],'
+    fmt="$fmt"'"disk":"%s","repl":"%s","mem":"%s","mem_cmd":"%s",'
+    fmt="$fmt"'"disk_err":"%s","repl_err":"%s","mem_err":"%s"}</CONFCHK>\n'
+    printf "$fmt" \
+        "$port" "$(__dbm_scc_json_path "$conf")" "$conf_paths" "$disk" "$repl" "$mem" "$mem_cmd" \
+        "$disk_err" "$repl_err" "$mem_err"
+}
+"""
+
+
+def build_storage_conf_check_snippet(
+    ports: List[int], redis_cmd: str = REDIS_CMD_SH, data_dirs: Optional[Sequence[str]] = None
+) -> str:
+    """
+    Build the storage_conf checker's on-host snippet for the given storage ports.
+
+    Per port, prints one <CONFCHK checker="storage_conf"> block whose disk (include-expanded
+    redis.conf), repl (INFO REPLICATION) and mem (CONFIG GET *) sections are gzip+base64
+    encoded raw text; parsing happens in dbm-ui. ``$REDIS_DATA_DIR`` is always probed
+    first, then ``data_dirs``. ``redis_cmd`` and ``data_dirs`` exist so tests can point
+    the script at a stub wrapper and a temp config tree.
+    """
+    calls = "\n".join('__dbm_scc_port "{}"'.format(int(p)) for p in ports if str(p).isdigit())
+    if not calls:
+        return ""
+    dirs = data_dirs if data_dirs is not None else STORAGE_CONF_DATA_DIRS
+    funcs = (
+        _STORAGE_CONF_FUNCS.replace("__DBM_SCC_REDIS_CMD_VALUE__", shlex.quote(redis_cmd))
+        .replace("__DBM_SCC_DATA_DIRS__", " ".join(shlex.quote(d) for d in dirs))
+        .replace("__DBM_SCC_MAX_DEPTH__", str(STORAGE_CONF_INCLUDE_MAX_DEPTH))
+        .replace("__DBM_SCC_TIMEOUT__", str(STORAGE_CONF_CMD_TIMEOUT))
+    )
+    return funcs + "\n" + calls + "\n"
