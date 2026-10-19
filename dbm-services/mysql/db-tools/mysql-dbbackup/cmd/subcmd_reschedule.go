@@ -76,7 +76,7 @@ func handleScheduler(cmd *cobra.Command) (err error) {
 	// tendb 集群: dbbackup-schedule
 	if strings.EqualFold(clusterType, "tendbcluster") {
 		remoteSchedule := defaultJobs["spiderbackup-check"]
-		// spider-slave 也发起备份表结构
+		// spider_slave 也发起备份表结构
 		if !strings.EqualFold(cnf.Public.MysqlRole, cst.BackupRoleSpiderMnt) {
 			if err = addSchedule(remoteSchedule.MysqlCrondUrl, remoteSchedule); err != nil {
 				return err

@@ -151,7 +151,8 @@ func (p *PhysicalDumper) buildArgs() ([]string, error) {
 	}
 
 	if strings.ToLower(p.cnf.Public.MysqlRole) == cst.RoleSlave {
-		// --safe-slave-backup
+		// --safe-slave-backup will stop sql_thread
+		// 只要有 show slave 就要 --slave-info
 		args = append(args, "--slave-info")
 	}
 	if strings.Compare(p.mysqlVersion, "008000000") >= 0 {

@@ -130,7 +130,7 @@ def report_to_db(c: Cluster, exporter_map: dict, instance, instance_role):
         )
         try:
             ingest_summary(
-                db_type=DBType.MySQL,
+                db_type=DBType.TenDBCluster if c.cluster_type == ClusterType.TenDBCluster else DBType.MySQL,
                 dimension=MysqlPortraitDimensionCode.MYSQL_EXPORTER_CHECK,
                 bk_biz_id=c.bk_biz_id,
                 cluster_domain=c.immute_domain,
