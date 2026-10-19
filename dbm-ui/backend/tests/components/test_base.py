@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -171,6 +173,41 @@ class TestDataAPI:
         key3 = api._build_cache_key({"param1": "value2"})
         assert key1 == key2
         assert key1 != key3
+
+
+class TestSetSessionHeadersUsername:
+    """测试网关请求下 X-Bkapi-Authorization 中 bk_username 的取值"""
+
+    @staticmethod
+    def _auth_username(local_request, params):
+        api = DataAPI(method="GET", base="http://test.com", url="/api/test", module="test")
+        session = requests.session()
+        with patch.object(DataAPI, "is_backend_request", return_value=False):
+            api._set_session_headers(session, local_request, headers={}, params=params)
+        return json.loads(session.headers["X-Bkapi-Authorization"])["bk_username"]
+
+    @staticmethod
+    def _jwt_request(username):
+        return SimpleNamespace(COOKIES={}, user=SimpleNamespace(username=username), is_bk_jwt=lambda: True)
+
+    def test_jwt_request_use_gateway_user(self):
+        """网关请求且参数未指定用户时，透传网关用户"""
+        assert self._auth_username(self._jwt_request("jwt_user"), params={}) == "jwt_user"
+
+    def test_jwt_request_keep_param_user(self):
+        """参数显式指定 bk_username 时以参数为准，不被网关用户覆盖"""
+        params = {"bk_username": "param_user"}
+        assert self._auth_username(self._jwt_request("jwt_user"), params=params) == "param_user"
+
+    @pytest.mark.parametrize("username", ["", None])
+    def test_jwt_request_without_user_fallback(self, username):
+        """网关请求未携带用户时，回退为默认用户"""
+        assert self._auth_username(self._jwt_request(username), params={}) == "Anonymous"
+
+    def test_request_without_is_bk_jwt(self):
+        """未经过中间件的请求对象（无 is_bk_jwt 属性）不报错，按非网关请求处理"""
+        local_request = SimpleNamespace(COOKIES={}, user=SimpleNamespace(username="someone"))
+        assert self._auth_username(local_request, params={}) == "Anonymous"
 
 
 class TestFetchClientCrt:
