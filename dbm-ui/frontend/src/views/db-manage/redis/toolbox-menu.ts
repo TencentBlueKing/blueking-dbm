@@ -112,6 +112,12 @@ export default [
             parentId: 'common-struct',
           },
           {
+            dbConsoleValue: 'redis.toolbox.backupRecovery',
+            id: TicketTypes.REDIS_ROLLBACK,
+            name: t('备份恢复'),
+            parentId: 'common-struct',
+          },
+          {
             dbConsoleValue: 'redis.toolbox.rollbackRecord',
             id: 'RedisStructureInstance',
             name: t('构造实例'),

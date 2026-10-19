@@ -227,6 +227,12 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         name: t('定点构造'),
       },
       {
+        dbConsoleValue: 'redis.toolbox.backupRecovery',
+        desc: t('按备份记录恢复到临时实例'),
+        id: TicketTypes.REDIS_ROLLBACK,
+        name: t('备份恢复'),
+      },
+      {
         dbConsoleValue: 'redis.toolbox.recoverFromInstance',
         desc: t('写回目标集群'),
         id: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
