@@ -84,7 +84,7 @@
     "value_default": "{{databases}}",
     "value_allowed": "[1,16]",
     "value_type": "INT",
-    "value_type_sub": "ENUM",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 1,

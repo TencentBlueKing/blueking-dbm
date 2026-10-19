@@ -1480,7 +1480,9 @@ class RedisActPayload(object):
             "redis_heartbeat": heartbeat_config,
             "redis_monitor": monitor_config,
             "redis_keylife": keylife_config,
-            "redis_maxmemory_set": get_dbmon_maxmemory_config_by_bkbizid(bk_biz_id=int(bk_biz_id)),
+            "redis_maxmemory_set": get_dbmon_maxmemory_config_by_bkbizid(
+                bk_biz_id=int(bk_biz_id), namespace=namespace
+            ),
         }
 
     def bkdbmon_install(self, **kwargs) -> dict:

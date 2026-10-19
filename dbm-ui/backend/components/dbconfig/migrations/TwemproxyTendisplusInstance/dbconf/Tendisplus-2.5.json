@@ -84,7 +84,7 @@
     "value_default": "2",
     "value_allowed": "[2,16]",
     "value_type": "INT",
-    "value_type_sub": "",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 1,
