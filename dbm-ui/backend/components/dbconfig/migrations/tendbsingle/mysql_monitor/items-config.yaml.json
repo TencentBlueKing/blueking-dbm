@@ -545,7 +545,7 @@
   },
   {
     "conf_name": "slowlog-rewrite",
-    "value_default": "{\"enable\":true,\"name\":\"slowlog-rewrite\",\"role\":[],\"machine_type\":[\"single\",\"backend\",\"remote\",\"spider\"],\"schedule\":\"@every 1m\"}",
+    "value_default": "{\"enable\":false,\"name\":\"slowlog-rewrite\",\"role\":[],\"machine_type\":[\"single\",\"backend\",\"remote\",\"spider\"],\"schedule\":\"@every 1m\"}",
     "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "MAP",
