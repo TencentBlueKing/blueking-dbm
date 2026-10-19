@@ -106,6 +106,7 @@
     checked: [
       'prod_cluster',
       'prod_instance_range',
+      'rollback_version',
       'temp_cluster_proxy',
       'specification',
       'related_rollback_bill_id',
@@ -120,6 +121,10 @@
       {
         field: 'prod_instance_range',
         label: t('构造实例范围'),
+      },
+      {
+        field: 'rollback_version',
+        label: t('构造方式'),
       },
       {
         field: 'temp_cluster_proxy',
@@ -277,6 +282,9 @@
     );
   };
 
+  const renderRollbackVersionTag = (data: RedisRollbackModel) =>
+    data.isV2 ? <db-tag theme='info'>{t('备份恢复')}</db-tag> : <db-tag>{t('数据构造')}</db-tag>;
+
   const columns: PrimaryTableCol[] = [
     {
       cell: (_, { row }) => renderColumnCluster(row as RedisRollbackModel),
@@ -299,6 +307,13 @@
       minWidth: 150,
       title: t('构造实例范围'),
       width: 250,
+    },
+    {
+      cell: (_, { row }) => renderRollbackVersionTag(row as RedisRollbackModel),
+      colKey: 'rollback_version',
+      minWidth: 110,
+      title: t('构造方式'),
+      width: 110,
     },
     {
       colKey: 'temp_cluster_proxy',
@@ -405,31 +420,20 @@
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (rowData?: RedisRollbackModel) => {
     const dataArr = getCheckedValidList();
-    if (!rowData) {
-      const infos = dataArr.map((item) => {
-        const { bk_cloud_id, related_rollback_bill_id } = item;
-        const obj = {
-          bk_cloud_id,
-          cluster_id: item.prod_cluster_id,
-          display_info: {
-            temp_cluster_proxy: item.temp_cluster_proxy,
-          },
-          related_rollback_bill_id,
-        };
-        return obj;
-      });
-      return infos;
-    }
-    return [
-      {
-        bk_cloud_id: rowData.bk_cloud_id,
-        cluster_id: rowData.prod_cluster_id,
-        display_info: {
-          temp_cluster_proxy: rowData.temp_cluster_proxy,
-        },
-        related_rollback_bill_id: rowData.related_rollback_bill_id,
+    // 销毁时显式传 task_id（记录主键），后端按 rollback_version 自动分流 v1/v2 销毁流程
+    const makeInfo = (item: RedisRollbackModel) => ({
+      bk_cloud_id: item.bk_cloud_id,
+      cluster_id: item.prod_cluster_id,
+      display_info: {
+        temp_cluster_proxy: item.temp_cluster_proxy,
       },
-    ];
+      related_rollback_bill_id: item.related_rollback_bill_id,
+      task_id: item.id,
+    });
+    if (!rowData) {
+      return dataArr.map((item) => makeInfo(item));
+    }
+    return [makeInfo(rowData)];
   };
 
   // 设置行样式
