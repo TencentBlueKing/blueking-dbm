@@ -56,19 +56,18 @@ export default <T>(
     }
 
     nextTick(() => {
-      const wraperHeight = listRef.value!.getBoundingClientRect().height;
-      const activeEl = listRef.value!.querySelector('.active') as HTMLElement;
-      if (!activeEl) {
+      const listEl = listRef.value;
+      const activeEl = listEl?.querySelector('.active') as HTMLElement | null;
+      if (!listEl || !activeEl) {
         return;
       }
-      const activeOffsetTop = activeEl.offsetTop + 34;
-
-      if (activeOffsetTop > wraperHeight) {
-        // eslint-disable-next-line no-param-reassign
-        listRef.value!.scrollTop = activeOffsetTop - wraperHeight + 10;
-      } else if (activeOffsetTop <= 42) {
-        // eslint-disable-next-line no-param-reassign
-        listRef.value!.scrollTop = 0;
+      // 高亮项超出列表可视区域时（含滚轮滚动后），就近滚动到刚好可见的位置
+      const listRect = listEl.getBoundingClientRect();
+      const activeRect = activeEl.getBoundingClientRect();
+      if (activeRect.top < listRect.top) {
+        listEl.scrollTop -= listRect.top - activeRect.top;
+      } else if (activeRect.bottom > listRect.bottom) {
+        listEl.scrollTop += activeRect.bottom - listRect.bottom;
       }
     });
   };
