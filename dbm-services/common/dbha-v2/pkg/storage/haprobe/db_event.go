@@ -73,6 +73,8 @@ const (
 	DbEventNameSshTimeout                      DbEventName = "dbha_ssh_timeout"
 	DbEventNameDiskWriteFailure                DbEventName = "dbha_disk_write_failure"
 	DbEventNameUptimeFailure                   DbEventName = "dbha_uptime_failure"
+	DbEventNameRedisUnbindProxySuccess         DbEventName = "dbha_redis_unbind_proxy_success"
+	DbEventNameRedisUnbindProxyFailure         DbEventName = "dbha_redis_unbind_proxy_failure"
 )
 
 // DbEventNameMap db event name map
