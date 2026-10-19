@@ -78,11 +78,12 @@ func (pc *PartitionConfig) ExecuteAddStatement(pd *PartitionDetail, conn *native
 	// 记录执行的SQL语句
 	partitionStepInfo.Statement = addStatement
 
-	// 只设置锁等待超时时间
-	_, err = conn.ExecWithTimeout(
-		ExecTimeout,
-		fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, addStatement),
-	)
+	// 只设置锁等待超时时间。超时或其他错误由 execPartitionStmtWithRetry 重试。
+	addSQL := fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, addStatement)
+	err = execPartitionStmtWithRetry(fmt.Sprintf("add partition `%s`.`%s`", pd.DbName, pd.TbName), func() error {
+		_, execErr := conn.ExecWithTimeout(ExecTimeout, addSQL)
+		return execErr
+	})
 	if err != nil {
 		partitionStepInfo.Status = false
 		partitionStepInfo.Message = err.Error()
