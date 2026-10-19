@@ -433,6 +433,7 @@ type InjectParseLine struct {
 	DbName          string           `json:"db_name,omitempty"`
 	TableName       string           `json:"table_name,omitempty"`
 	QueryString     string           `json:"query_string,omitempty"`
+	QueryDigestText string           `json:"query_digest_text,omitempty"`
 	ErrorCode       int              `json:"error_code,omitempty"`
 	ErrorMsg        string           `json:"error_msg,omitempty"`
 	HasSubQuery     bool             `json:"has_subquery,omitempty"`
