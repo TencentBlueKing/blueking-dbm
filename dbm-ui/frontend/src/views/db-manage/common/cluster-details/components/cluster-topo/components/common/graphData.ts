@@ -129,8 +129,10 @@ const defaultNodeConfig = {
   minHeight: 54,
   /** Mongo「共 N 分片」行文案较长：shard / ip:port,... */
   mongoShardsWidth: 560,
-  offsetX: 140,
-  offsetY: 62,
+  /** 节点水平间距，需留出连线标签宽度（如「访问」「绑定」） */
+  offsetX: 100,
+  /** 节点垂直间距，需留出连线标签高度与箭头 */
+  offsetY: 48,
   startX: 100,
   startY: 100,
   width: 296,
