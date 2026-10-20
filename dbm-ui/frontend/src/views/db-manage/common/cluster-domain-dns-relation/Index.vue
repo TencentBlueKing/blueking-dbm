@@ -20,7 +20,7 @@
       @click="() => (isShow = true)">
       {{ t('手动配置域名 DNS 记录') }}
     </BkButton>
-    <BkDialog
+    <DbDialog
       class="cluster-domain-dns-relation"
       :is-show="isShow"
       quick-close
@@ -93,7 +93,7 @@
           </TableColumn>
         </PrimaryTable>
       </BkLoading>
-    </BkDialog>
+    </DbDialog>
   </span>
 </template>
 <script lang="tsx">

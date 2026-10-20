@@ -144,9 +144,11 @@
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
-  <BkSideslider
+  <DbSideslider
     v-if="rowData"
     v-model:is-show="isShowSlider"
+    render-directive="show"
+    :show-footer="false"
     :width="900">
     <template #header>
       <span>{{ t('受影响的 DB') }}</span>
@@ -194,7 +196,7 @@
         </TableColumn>
       </PrimaryTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">

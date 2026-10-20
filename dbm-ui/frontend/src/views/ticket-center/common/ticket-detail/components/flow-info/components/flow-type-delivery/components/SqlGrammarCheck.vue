@@ -70,9 +70,11 @@
     </div>
   </div>
 
-  <BkSideslider
+  <DbSideslider
     class="sql-log-sideslider"
     :is-show="isShowSqlFile"
+    render-directive="show"
+    :show-footer="false"
     :width="960"
     @closed="() => (isShowSqlFile = false)">
     <template
@@ -114,7 +116,7 @@
           :title="selectFileName" />
       </div>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';

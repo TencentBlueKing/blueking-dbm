@@ -26,8 +26,10 @@
         {{ t('查看详情') }}
       </BkButton>
     </BkAlert>
-    <BkSideslider
+    <DbSideslider
       :is-show="isShowSlider"
+      render-directive="show"
+      :show-footer="false"
       :title="t('统计说明')"
       :width="960"
       @closed="handleClose">
@@ -112,7 +114,7 @@
           </BkTabPanel>
         </BkTab>
       </div>
-    </BkSideslider>
+    </DbSideslider>
   </div>
 </template>
 

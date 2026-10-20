@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="replenish-record-details-slider"
+    render-directive="show"
+    :show-footer="false"
     width="65%">
     <template #header>
       <span>{{ t('补货详情') }}</span>
@@ -274,7 +276,7 @@
     </div>
 
     <!-- 批量终止弹窗 -->
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShowTerminateDialog"
       class="replenish-batch-terminate-dialog"
       :title="t('批量终止')"
@@ -316,8 +318,8 @@
           {{ t('取消') }}
         </BkButton>
       </template>
-    </BkDialog>
-  </BkSideslider>
+    </DbDialog>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
