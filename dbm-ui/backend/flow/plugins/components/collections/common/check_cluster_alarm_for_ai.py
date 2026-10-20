@@ -231,15 +231,21 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
 
             # 随机random等待0-30秒， 避免并发调用
             time.sleep(random.randint(0, 30))
-            ai_result = AgentHandler.ask_agent_with_command(
-                command=ASK_AI_COMMAND_MAP[DBType(ctx["flow_tree"].db_type)].command,
-                command_params={
-                    "bk_biz_id": ctx["clusters"][0].bk_biz_id,
-                    "cluster_domains": ctx["cluster_domains"],
-                    "start_time": datetime2str(ctx["flow_start_time"]),
-                    "end_time": datetime2str(ctx["now_time"]),
-                },
-            )
+            # 记录 AgentHandler.ask_agent_with_command 调用耗时，便于观测 AI 侧延迟
+            ask_agent_start_ts: float = time.monotonic()
+            try:
+                ai_result = AgentHandler.ask_agent_with_command(
+                    command=ASK_AI_COMMAND_MAP[DBType(ctx["flow_tree"].db_type)].command,
+                    command_params={
+                        "bk_biz_id": ctx["clusters"][0].bk_biz_id,
+                        "cluster_domains": ctx["cluster_domains"],
+                        "start_time": datetime2str(ctx["flow_start_time"]),
+                        "end_time": datetime2str(ctx["now_time"]),
+                    },
+                )
+            finally:
+                ask_agent_cost: float = time.monotonic() - ask_agent_start_ts
+                self.log_info(_("后台调用单据值守智能体分析风险的耗时：{:.3f} 秒".format(ask_agent_cost)))
         except Exception as err:
             self.log_error(_("调用智能体分析失败，失败原因：{}".format(err)))
             return None
@@ -293,13 +299,19 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         )
 
         if need_compare:
+            # 记录 _compare_reports_with_ai 调用耗时，便于观测 AI 语义比对延迟
+            compare_start_ts: float = time.monotonic()
             try:
                 self.log_info(_("正在调用智能体比对本次报告与上次报告的风险内容..."))
-                is_same_risk = self._compare_reports_with_ai(
-                    last_report=report.last_report_content,
-                    current_report=clean_report_text,
-                    db_type=db_type,
-                )
+                try:
+                    is_same_risk = self._compare_reports_with_ai(
+                        last_report=report.last_report_content,
+                        current_report=clean_report_text,
+                        db_type=db_type,
+                    )
+                finally:
+                    compare_cost: float = time.monotonic() - compare_start_ts
+                    self.log_info(_("调用智能体对比本次和上次的风险报告的耗时：{:.3f} 秒".format(compare_cost)))
                 self.log_info(_("AI比对结果：{}".format("同一风险（收敛）" if is_same_risk else "不同风险（推送）")))
             except Exception as err:
                 self.log_error(_("AI语义比对失败（降级为允许推送），失败原因：{}".format(err)))
