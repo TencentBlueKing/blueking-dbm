@@ -48,6 +48,19 @@ type InstanceRestore struct {
 	BinlogFingerprint string      `json:"binlog_fingerprint"`
 	// BinlogSegments is for logs only, e.g. "[1000-1001],[1003-1004]"; never compared.
 	BinlogSegments string `json:"binlog_segments"`
+	// Slots a cluster protocol port owns once restored, e.g. "0-100,200"; placeholders too.
+	Slots string `json:"slots"`
+	// KvstoreBinlogs replaces the single chain above for Tendisplus: one per kvstore.
+	KvstoreBinlogs []KvstoreBinlogs `json:"kvstore_binlogs"`
+}
+
+// KvstoreBinlogs is the binlog digest of one Tendisplus kvstore.
+type KvstoreBinlogs struct {
+	Kvstore           int         `json:"kvstore"`
+	BinlogRange       BinlogRange `json:"binlog_range"`
+	BinlogCount       int         `json:"binlog_count"`
+	BinlogFingerprint string      `json:"binlog_fingerprint"`
+	BinlogSegments    string      `json:"binlog_segments"`
 }
 
 // Fingerprint identifies the backup restored into this port.
@@ -55,6 +68,9 @@ func (inst InstanceRestore) Fingerprint() string {
 	fp := Fingerprint(inst.FullFiles)
 	if inst.BinlogFingerprint != "" {
 		fp += "|" + inst.BinlogFingerprint
+	}
+	for _, kv := range inst.KvstoreBinlogs {
+		fp += fmt.Sprintf("|%d:%s", kv.Kvstore, kv.BinlogFingerprint)
 	}
 	return fp
 }
@@ -98,9 +114,12 @@ func New(dbType string, job Job) (Restorer, error) {
 	if job.UnpackDir == "" {
 		job.UnpackDir = DefaultUnpackDir()
 	}
+	cluster := consts.IsRedisClusterProtocal(dbType)
 	switch {
+	case consts.IsTendisplusInstanceDbType(dbType) && cluster:
+		return &plusRestorer{Job: job, cluster: cluster}, nil
 	case consts.IsRedisInstanceDbType(dbType):
-		return &cacheRestorer{Job: job}, nil
+		return &cacheRestorer{Job: job, cluster: cluster}, nil
 	case consts.IsTendisSSDInstanceDbType(dbType):
 		return &ssdRestorer{Job: job}, nil
 	default:

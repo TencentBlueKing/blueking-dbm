@@ -218,6 +218,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisDataStructure().Name()] = atomredis.NewRedisDataStructure
 		m.atomJobMapper[atomredis.NewRedisRollback().Name()] = atomredis.NewRedisRollback
 		m.atomJobMapper[atomredis.NewRedisRollbackVerify().Name()] = atomredis.NewRedisRollbackVerify
+		m.atomJobMapper[atomredis.NewRedisRollbackFormCluster().Name()] = atomredis.NewRedisRollbackFormCluster
 		m.atomJobMapper[atomredis.NewClusterMeetCheckFinish().Name()] = atomredis.NewClusterMeetCheckFinish
 		m.atomJobMapper[atomredis.NewRedisDtsOnlineSwitch().Name()] = atomredis.NewRedisDtsOnlineSwitch
 		m.atomJobMapper[atomredis.NewRedisVersionUpdate().Name()] = atomredis.NewRedisVersionUpdate

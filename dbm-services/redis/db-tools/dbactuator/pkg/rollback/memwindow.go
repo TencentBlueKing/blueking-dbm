@@ -63,6 +63,36 @@ func SSDMemory(confFile string) int64 {
 	return blockCache + 2*writeBuffer
 }
 
+// PlusMemory is what a Tendisplus instance keeps resident whatever its data size: the block cache
+// shared by its kvstores plus two write buffers per kvstore, read from its redis.conf.
+func PlusMemory(confFile string) int64 {
+	raw, err := os.ReadFile(confFile)
+	if err != nil {
+		return 0
+	}
+	var blockCacheMB, writeBuffer int64
+	kvstores := int64(1)
+	for _, line := range strings.Split(string(raw), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+		v, err := strconv.ParseInt(fields[1], 10, 64)
+		if err != nil {
+			continue
+		}
+		switch fields[0] {
+		case "rocks.blockcachemb":
+			blockCacheMB = v
+		case "rocks.write_buffer_size":
+			writeBuffer = v
+		case "kvstorecount":
+			kvstores = v
+		}
+	}
+	return blockCacheMB<<20 + kvstores*2*writeBuffer
+}
+
 // memWindow admits instances while the memory they will hold fits the host. A Cache port starts
 // as soon as it fits, and finishing a load frees the gap between the estimate and the real RSS
 // for the next one; ports are never batched behind each other.
@@ -142,6 +172,14 @@ func (w *memWindow) reserve(need int64) error {
 	}
 	w.used += need
 	return nil
+}
+
+// unreserve gives back a reservation whose instance never started.
+func (w *memWindow) unreserve(reserved int64) {
+	w.mu.Lock()
+	w.used -= reserved
+	w.cond.Broadcast()
+	w.mu.Unlock()
 }
 
 func confFile(instDir string) string {

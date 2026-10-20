@@ -201,12 +201,17 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 			log.Warn("remove unpacked backup %s failed: %v", workDir, err)
 		}
 	}
-	if err := window.reserve(SSDMemory(confFile(instDir))); err != nil {
+	need := SSDMemory(confFile(instDir))
+	if err := window.reserve(need); err != nil {
 		err = fmt.Errorf("start %s:%d: %v", r.DestIP, inst.DestPort, err)
 		log.Error("%v", err)
 		return err
 	}
-	return p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) })
+	if err := p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) }); err != nil {
+		window.unreserve(need)
+		return err
+	}
+	return nil
 }
 
 // replayAndMark replays inst's binlogs, then marks it done and frees its downloads.
@@ -490,45 +495,70 @@ func LocalBinlogs(saveDir string, inst InstanceRestore) ([]string, error) {
 	if inst.BinlogCount == 0 {
 		return nil, nil
 	}
-	type binlog struct {
-		path  string
-		index int64
-	}
 	paths, err := filepath.Glob(filepath.Join(saveDir, "binlog-*"))
 	if err != nil {
 		return nil, err
 	}
-	rng := inst.BinlogRange
-	var found []binlog
+	var found []localBinlog
 	for _, p := range paths {
 		m := ssdBinlogReg.FindStringSubmatch(filepath.Base(p))
 		if m == nil || (m[1] != "" && m[1] != inst.SourceIP) || m[2] != strconv.Itoa(inst.SourcePort) {
 			continue
 		}
 		idx, _ := strconv.ParseInt(m[3], 10, 64)
-		if idx >= rng.FirstIndex && idx <= rng.LastIndex {
-			found = append(found, binlog{p, idx})
+		found = append(found, localBinlog{p, idx})
+	}
+	return checkChain(saveDir, found, chainDigest{
+		label:       fmt.Sprintf("%s:%d", inst.SourceIP, inst.SourcePort),
+		rng:         inst.BinlogRange,
+		count:       inst.BinlogCount,
+		fingerprint: inst.BinlogFingerprint,
+		segments:    inst.BinlogSegments,
+	})
+}
+
+type localBinlog struct {
+	path  string
+	index int64
+}
+
+// chainDigest is what the plan says one binlog chain holds.
+type chainDigest struct {
+	label       string
+	rng         BinlogRange
+	count       int
+	fingerprint string
+	segments    string
+}
+
+// checkChain keeps the binlogs of found within the planned range, in index order, and requires
+// them to be the planned chain.
+func checkChain(saveDir string, found []localBinlog, d chainDigest) ([]string, error) {
+	var chain []localBinlog
+	for _, b := range found {
+		if b.index >= d.rng.FirstIndex && b.index <= d.rng.LastIndex {
+			chain = append(chain, b)
 		}
 	}
-	sort.Slice(found, func(i, j int) bool {
-		if found[i].index != found[j].index {
-			return found[i].index < found[j].index
+	sort.Slice(chain, func(i, j int) bool {
+		if chain[i].index != chain[j].index {
+			return chain[i].index < chain[j].index
 		}
-		return found[i].path < found[j].path
+		return chain[i].path < chain[j].path
 	})
 
-	files := make([]string, len(found))
-	names := make([]string, len(found))
-	seen := make(map[int64]int, len(found))
-	for i, b := range found {
+	files := make([]string, len(chain))
+	names := make([]string, len(chain))
+	seen := make(map[int64]int, len(chain))
+	for i, b := range chain {
 		files[i], names[i] = b.path, filepath.Base(b.path)
 		seen[b.index]++
 	}
-	if len(found) == inst.BinlogCount && BinlogFingerprint(names) == inst.BinlogFingerprint {
+	if len(chain) == d.count && BinlogFingerprint(names) == d.fingerprint {
 		return files, nil
 	}
 	var missing, duplicate []int64
-	for idx := rng.FirstIndex; idx <= rng.LastIndex; idx++ {
+	for idx := d.rng.FirstIndex; idx <= d.rng.LastIndex; idx++ {
 		switch n := seen[idx]; {
 		case n == 0:
 			missing = append(missing, idx)
@@ -536,10 +566,9 @@ func LocalBinlogs(saveDir string, inst InstanceRestore) ([]string, error) {
 			duplicate = append(duplicate, idx)
 		}
 	}
-	return nil, fmt.Errorf("binlogs of %s:%d in %s differ from the plan: want %d as %s, got %d, "+
+	return nil, fmt.Errorf("binlogs of %s in %s differ from the plan: want %d as %s, got %d, "+
 		"missing %v (planned gaps included), duplicate %v",
-		inst.SourceIP, inst.SourcePort, saveDir, inst.BinlogCount, inst.BinlogSegments,
-		len(found), missing, duplicate)
+		d.label, saveDir, d.count, d.segments, len(chain), missing, duplicate)
 }
 
 // BinlogFingerprint is sha256 over binlog basenames in index order, joined by newlines.
@@ -584,14 +613,19 @@ func ssdBackupRoot(workDir string) (string, error) {
 
 // ssdDataDir reads the dir directive from redis.conf; rocksdb lives in dir/rocksdb.
 func ssdDataDir(instDir string) string {
-	if raw, err := os.ReadFile(filepath.Join(instDir, "redis.conf")); err == nil {
+	return confDir(instDir, filepath.Join(instDir, "data"))
+}
+
+// confDir is the dir directive of the instance's redis.conf, or fallback without one.
+func confDir(instDir, fallback string) string {
+	if raw, err := os.ReadFile(confFile(instDir)); err == nil {
 		for _, line := range strings.Split(string(raw), "\n") {
 			if fields := strings.Fields(line); len(fields) == 2 && fields[0] == "dir" {
 				return fields[1]
 			}
 		}
 	}
-	return filepath.Join(instDir, "data")
+	return fallback
 }
 
 // ssdRestoreTool picks the rocksdb restore command for the media: v1.2 and v1.3 ship different tools.
