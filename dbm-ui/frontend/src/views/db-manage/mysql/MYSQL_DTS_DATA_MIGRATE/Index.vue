@@ -259,7 +259,7 @@
   });
 
   const defaultData = () => ({
-    backupLocale: 'master' as 'master' | 'slave',
+    backupLocale: 'slave' as 'master' | 'slave',
     conflictHandle: 'error' as 'error' | 'replace' | 'ignore',
     payload: createTicketPayload(),
     sourceRole: 'master' as 'master' | 'slave',
@@ -310,6 +310,7 @@
         }),
       );
       Object.assign(formData, {
+        backupLocale: details.task?.backup_locale || 'slave',
         conflictHandle: details.task?.on_duplicate || 'error',
         payload: createTicketPayload(ticketDetail),
         tableData: tableData.length ? tableData : [createTableRow()],
@@ -319,7 +320,6 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      backup_locale: 'master' | 'slave';
       dts_resource: {
         deploy: Record<string, never>;
       };
@@ -357,6 +357,7 @@
       source_role: 'master' | 'slave';
     }[];
     task: {
+      backup_locale: 'master' | 'slave';
       on_duplicate: 'error' | 'replace' | 'ignore';
     };
   }>(TicketTypes.MYSQL_DTS_DATA_MIGRATE);
@@ -366,7 +367,6 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
-            backup_locale: formData.backupLocale,
             dts_resource: {
               deploy: {},
             },
@@ -404,6 +404,7 @@
             source_role: formData.sourceRole,
           })),
           task: {
+            backup_locale: formData.backupLocale,
             on_duplicate: formData.conflictHandle,
           },
         },

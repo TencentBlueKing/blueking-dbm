@@ -100,7 +100,6 @@
           </BkRadio>
         </BkRadioGroup>
       </BkFormItem>
-      <TicketPayload v-model="formData.payload" />
       <BkFormItem
         :label="t('备份位置')"
         required>
@@ -109,6 +108,7 @@
           <BkRadio label="slave"> Slave </BkRadio>
         </BkRadioGroup>
       </BkFormItem>
+      <TicketPayload v-model="formData.payload" />
       <DbMappingSideslider
         v-model:is-show="showMappingSlider"
         :data="currentEditingRow?.db_mapping || []"
@@ -264,7 +264,7 @@
   });
 
   const defaultData = () => ({
-    backupLocale: 'master' as 'master' | 'slave',
+    backupLocale: 'slave' as 'master' | 'slave',
     conflictHandle: 'error' as 'error' | 'replace' | 'ignore',
     payload: createTicketPayload(),
     sourceRole: 'master' as 'master' | 'slave',
@@ -343,6 +343,7 @@
         });
       });
       Object.assign(formData, {
+        backupLocale: details.task?.backup_locale || 'slave',
         conflictHandle: details.task?.on_duplicate || 'error',
         payload: createTicketPayload(ticketDetail),
         tableData: tableData.length ? tableData : [createTableRow()],
@@ -352,7 +353,6 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      backup_locale: 'master' | 'slave';
       dts_resource: {
         deploy: Record<string, never>;
       };
@@ -390,6 +390,7 @@
       source_role: 'master' | 'slave';
     }[];
     task: {
+      backup_locale: 'master' | 'slave';
       on_duplicate: 'error' | 'replace' | 'ignore';
     };
   }>(TicketTypes.MYSQL_DTS_DATA_MIGRATE_RENAME);
@@ -399,7 +400,6 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
-            backup_locale: formData.backupLocale,
             dts_resource: {
               deploy: {},
             },
@@ -437,6 +437,7 @@
             source_role: formData.sourceRole,
           })),
           task: {
+            backup_locale: formData.backupLocale,
             on_duplicate: formData.conflictHandle,
           },
         },

@@ -212,8 +212,7 @@
   } as const;
 
   const backupLocaleText = computed(() => {
-    const { infos } = props.ticketDetails.details || {};
-    const backupLocale = infos?.[0]?.backup_locale;
+    const { backup_locale: backupLocale } = props.ticketDetails.details.task || {};
     return backupLocale && backupLocaleTextMap[backupLocale];
   });
 
