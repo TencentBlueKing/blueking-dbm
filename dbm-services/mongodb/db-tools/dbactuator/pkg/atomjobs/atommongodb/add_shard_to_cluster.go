@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -121,12 +122,20 @@ func (a *AddShardToCluster) checkParams() error {
 	return nil
 }
 
-// makeConfContent 生成配置内容
+// makeConfContent 生成配置内容。set_id 形如 {cluster}-s1，按分片序号排序，避免 map 随机顺序和 s10 排在 s2 前面。
 func (a *AddShardToCluster) makeConfContent() error {
 	a.runtime.Logger.Info("start to make config content of addShardToCluster")
+	keys := make([]string, 0, len(a.ConfParams.Shards))
+	for key := range a.ConfParams.Shards {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return shardSetIDLess(keys[i], keys[j])
+	})
+
 	var shards []string
-	for key, value := range a.ConfParams.Shards {
-		shards = append(shards, strings.Join([]string{key, "/", value}, ""))
+	for _, key := range keys {
+		shards = append(shards, strings.Join([]string{key, "/", a.ConfParams.Shards[key]}, ""))
 	}
 
 	for _, v := range shards {
@@ -134,6 +143,28 @@ func (a *AddShardToCluster) makeConfContent() error {
 	}
 	a.runtime.Logger.Info("make config content of addShardToCluster successfully")
 	return nil
+}
+
+// shardSetIDLess 按 set_id 末尾的 -s<序号> 比较；没有序号时退回字符串顺序。
+func shardSetIDLess(a, b string) bool {
+	ai, aok := shardSetIndex(a)
+	bi, bok := shardSetIndex(b)
+	if aok && bok && ai != bi {
+		return ai < bi
+	}
+	return a < b
+}
+
+func shardSetIndex(setID string) (int, bool) {
+	i := strings.LastIndex(setID, "-s")
+	if i < 0 || i+2 >= len(setID) {
+		return 0, false
+	}
+	n, err := strconv.Atoi(setID[i+2:])
+	if err != nil || n <= 0 {
+		return 0, false
+	}
+	return n, true
 }
 
 // createAddShardToClusterScript 生成js脚本
@@ -206,7 +237,7 @@ func (a *AddShardToCluster) execScript() error {
 		"--authenticationDatabase=admin",
 		"--quiet",
 		a.ConfFilePath,
-	).Run(60 * time.Second); err != nil {
+	).Run(1800 * time.Second); err != nil {
 		a.runtime.Logger.Error("execute addShardToCluster script fail, error:%s", err)
 		return fmt.Errorf("execute addShardToCluster script fail, error:%s", err)
 	}

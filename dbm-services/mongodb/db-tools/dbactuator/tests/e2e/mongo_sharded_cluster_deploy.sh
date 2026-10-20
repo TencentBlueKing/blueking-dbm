@@ -184,7 +184,9 @@ with open(os.environ["SCRIPT_FILE"], encoding="utf-8") as f:
 payload = {
     "ip": os.environ["EXEC_IP"],
     "port": int(os.environ["EXEC_PORT"]),
+    "taskid": "e2e",
     "script": script,
+    "scriptFile": False,
     "type": "replicaset",
     "scriptName": os.environ["SCRIPT_NAME"],
     "secondary": False,
@@ -502,7 +504,7 @@ echo "==> Add shard RS to cluster"
 run_atom "e2e-sharded-add-shard-${MONGOS_PORT}" "add_shard_to_cluster" "${WORK_DIR}/add_shard.json" "e2e-node-mongos-${MONGOS_PORT}"
 
 echo "==> Assert shard count"
-shard_count="$($(mongo_shell_bin) -u "${DBA_USER}" -p "${DBA_PASS}" --authenticationDatabase=admin --host "${MONGOS_IP}" --port "${MONGOS_PORT}" --quiet --eval "db.getSiblingDB('config').shards.count()")"
+shard_count="$($(mongo_shell_bin) -u "${DBA_USER}" -p "${DBA_PASS}" --authenticationDatabase=admin --host "${MONGOS_IP}" --port "${MONGOS_PORT}" --quiet --eval "db.getSiblingDB('config').shards.countDocuments({})" | tail -1)"
 if [[ "${shard_count}" != "1" ]]; then
   echo "ERROR: expected shard count 1, got ${shard_count}" >&2
   exit 1
