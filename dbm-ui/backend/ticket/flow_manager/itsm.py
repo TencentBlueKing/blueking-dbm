@@ -73,8 +73,14 @@ class ItsmFlow(BaseTicketFlow):
     @property
     def _summary(self) -> dict:
         # 获取单据审批状态
-        current_status = self.ticket_approval_result["current_status"]
-        approve_result = self.ticket_approval_result["approve_result"]
+        approval_result = self.ticket_approval_result
+        if not approval_result:
+            # 查询不到审批结果时返回默认概览，避免直接下标访问 None
+            msg = TicketStatus.get_choice_label(self.status)
+            return {"status": self.status, "approve_result": False, "operator": "", "message": msg}
+
+        current_status = approval_result["current_status"]
+        approve_result = approval_result["approve_result"]
         summary = {"status": current_status, "approve_result": approve_result}
 
         # 目前审批流程是固定的，取流程中第三个节点的日志作为概览即可
@@ -89,8 +95,13 @@ class ItsmFlow(BaseTicketFlow):
     @property
     def _status(self) -> str:
         # 把 ITSM 单据状态映射为本系统内的单据状态
-        current_status = self.ticket_approval_result["current_status"]
-        approve_result = self.ticket_approval_result["approve_result"]
+        approval_result = self.ticket_approval_result
+        if not approval_result:
+            # 查询不到审批结果(如 flow_obj_id 为空或 ITSM 接口异常)时保持运行态，避免改单链路中断
+            return self.flow_obj.update_status(TicketFlowStatus.RUNNING)
+
+        current_status = approval_result["current_status"]
+        approve_result = approval_result["approve_result"]
 
         # 进行中
         if current_status == ItsmTicketStatus.RUNNING:
