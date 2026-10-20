@@ -13,6 +13,8 @@
     // 高度随内容撑开，由使用方的滚动容器滚动，iframe 自身不出滚动条
     autoHeight?: boolean;
     content: string;
+    // 隐藏报告自带的 share-head 头部，嵌入集群详情等已有标题信息的宿主页面时使用
+    hideHead?: boolean;
   }
 
   // anchor：autoHeight 下锚点定位的目标位置（相对 iframe 顶部），由使用方滚动自己的容器
@@ -24,6 +26,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     autoHeight: false,
+    hideHead: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -79,7 +82,15 @@
 })();
 <\u002Fscript>`;
 
-  const srcdoc = computed(() => (props.content ? props.content + createLinkScript(props.autoHeight) : ''));
+  // 报告样式不受宿主页面控制，只能随 srcdoc 注入
+  const hideHeadStyle = '<style>.share-head { display: none !important; }</style>';
+
+  const srcdoc = computed(() => {
+    if (!props.content) {
+      return '';
+    }
+    return props.content + (props.hideHead ? hideHeadStyle : '') + createLinkScript(props.autoHeight);
+  });
 
   // 沙箱 iframe 的 origin 为 null，只能按消息来源窗口校验
   const handleMessage = (event: MessageEvent) => {

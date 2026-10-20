@@ -16,6 +16,7 @@
     v-if="status === 'report'"
     auto-height
     :content="content"
+    hide-head
     @anchor="handleAnchor"
     @panel-change="handlePanelChange" />
   <BkException
