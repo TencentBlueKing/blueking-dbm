@@ -1324,7 +1324,14 @@ class ActKwargs:
         }
 
     def _resolve_deferred_deinstall_password(
-        self, ip: str, port: int, bk_cloud_id: int, cluster_id: int = None
+        self,
+        ip: str,
+        port: int,
+        bk_cloud_id: int,
+        cluster_id: int = None,
+        peers=None,
+        set_id: str = None,
+        bk_biz_id: int = None,
     ) -> str:
         """
         延迟下架 mongod REMOVED 校验所需密码。
@@ -1344,6 +1351,34 @@ class ActKwargs:
         password = _try_get(ip, port, bk_cloud_id)
         if password:
             return password
+        for addr in peers or []:
+            if not addr or ":" not in str(addr):
+                continue
+            peer_ip, peer_port = str(addr).rsplit(":", 1)
+            try:
+                peer_port = int(peer_port)
+            except (TypeError, ValueError):
+                continue
+            if peer_ip == ip and peer_port == int(port):
+                continue
+            password = _try_get(peer_ip, peer_port, bk_cloud_id)
+            if password:
+                return password
+        if not cluster_id and set_id:
+            from backend.db_meta.models import Cluster
+            from backend.db_meta.models.storage_set_dtl import NosqlStorageSetDtl
+
+            biz_id = bk_biz_id or (
+                self.payload.get("bk_biz_id") if isinstance(getattr(self, "payload", None), dict) else None
+            )
+            dtl_qs = NosqlStorageSetDtl.objects.filter(seg_range=set_id)
+            cls_qs = Cluster.objects.filter(name=set_id)
+            if biz_id:
+                dtl_qs = dtl_qs.filter(bk_biz_id=biz_id)
+                cls_qs = cls_qs.filter(bk_biz_id=biz_id)
+            cluster_id = (
+                dtl_qs.values_list("cluster_id", flat=True).first() or cls_qs.values_list("id", flat=True).first()
+            )
         if not cluster_id:
             return ""
         from backend.db_meta.models import ProxyInstance, StorageInstance
@@ -1363,7 +1398,7 @@ class ActKwargs:
 
     def _deferred_replica_set_peers(self, node_info: dict) -> list:
         """同副本集其余节点 host:port，供 dbactuator 向权威 primary 核对 rs.conf。"""
-        cluster_id = int(node_info.get("cluster_id") or 0)
+        cluster_id = int(node_info.get("cluster_id") or node_info.get("origin_cluster_id") or 0)
         if not cluster_id:
             return []
         set_id = str(node_info.get("set_id") or "")
@@ -1410,14 +1445,24 @@ class ActKwargs:
     def get_mongo_deferred_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info: list) -> dict:
         """延迟下架严格卸载原子任务 kwargs（不做 force）。"""
         nodes = [node["ip"] for node in nodes_info]
-        cluster_id = node_info.get("cluster_id") or 0
+        cluster_id = node_info.get("cluster_id") or node_info.get("origin_cluster_id") or 0
         password = ""
+        peers = []
         if instance_type == MongoDBInstanceType.MongoD.value:
+            if node_info.get("replica_set_peers") is not None:
+                peers = list(node_info.get("replica_set_peers") or [])
+            else:
+                peers = self._deferred_replica_set_peers(node_info)
             password = self._resolve_deferred_deinstall_password(
                 ip=node_info["ip"],
                 port=node_info["port"],
                 bk_cloud_id=node_info.get("bk_cloud_id", self.payload.get("bk_cloud_id", 0)),
                 cluster_id=cluster_id or None,
+                peers=peers,
+                set_id=node_info.get("set_id") or self.payload.get("set_id") or None,
+                bk_biz_id=(node_info.get("recycle_host") or {}).get("bk_biz_id")
+                or self.payload.get("bk_biz_id")
+                or None,
             )
             if not password:
                 raise ValueError(
@@ -1442,9 +1487,7 @@ class ActKwargs:
                     "renameDir": True,
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": password,
-                    "replicaSetPeers": self._deferred_replica_set_peers(node_info)
-                    if instance_type == MongoDBInstanceType.MongoD.value
-                    else [],
+                    "replicaSetPeers": peers,
                     "removedCheckAttempts": 36,
                     "removedCheckIntervalSec": 5,
                 },
@@ -1762,7 +1805,8 @@ class ActKwargs:
             "mongodb": mongodb,
             "mongo_config": mongo_config,
             # down=True 延迟下架：CMR 删实例但保留 Machine，供 check_meta / old_nodes
-            "defer_deinstall": bool(info.get("down")),
+            "defer_deinstall": bool(info.get("down"))
+            or any(host.get("down") for host in (info.get("mongos") or []) if isinstance(host, dict)),
         }
 
     def get_password_from_db(self, info: dict) -> dict:
@@ -3049,9 +3093,13 @@ class ActKwargs:
                 command=command,
             )
 
-            rpc_results = DRSApi.mongodb_rpc(param)
-            # 去除空白字符
-            result = rpc_results.strip()
+            try:
+                rpc_results = DRSApi.mongodb_rpc(param)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("get primary from %s:%s fail %s", node_ip, port, exc)
+                result = ""
+            else:
+                result = (rpc_results or "").strip()
             if not re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{1,5})$", result):
                 if index < len(ips) - 1:
                     continue
@@ -3107,6 +3155,8 @@ class ActKwargs:
                             ips = [member.ip for member in shard_members]
             if not ips:
                 raise ValueError("cluster:{} get node ip fail, ips:{}".format(str(cluster_id), ips))
+            # 被替换机器放最后，避免它不可达时拖住前面的存活节点
+            ips = [item for item in ips if item != ip] + [item for item in ips if item == ip]
             # 获取primary信息
             result = self.get_primary_info(ips, port, cluster_id)
             primary_ip = result.split(":")[0]

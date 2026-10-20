@@ -172,13 +172,13 @@ def mongod_get_resource_spec(cluster_id: int, mongod_list: list) -> dict:
 
 def is_mongos_core(core: MongoAutofixCore) -> bool:
     """MongoAutofixCore 是否为 mongos 故障（DBHA / PRE 共用）。"""
-    for fm in core.fault_machines or []:
+    for fm in getattr(core, "fault_machines", None) or []:
         if not isinstance(fm, dict):
             continue
         machine_type = str(fm.get("machine_type") or fm.get("instance_type") or "").lower()
         if machine_type == MachineType.MONGOS.value:
             return True
-    return any(str(role).lower() == MachineType.MONGOS.value for role in (core.roles or []))
+    return any(str(role).lower() == MachineType.MONGOS.value for role in (getattr(core, "roles", None) or []))
 
 
 def _shard_names_by_host(cluster_id: int, host_ids: set) -> dict:
@@ -222,7 +222,7 @@ def _group_kind_for_machine_type(machine_type: str) -> str:
 
 
 def _core_machine_type(core: MongoAutofixCore) -> str:
-    for item in core.fault_machines or []:
+    for item in getattr(core, "fault_machines", None) or []:
         if isinstance(item, dict) and item.get("machine_type"):
             return item["machine_type"]
     if is_mongos_core(core):
@@ -274,6 +274,35 @@ def affinity_group_for_machine(cluster: Cluster, machine_type: str, bk_host_id: 
         shards = _shard_names_by_host(cid, {bk_host_id}).get(bk_host_id or 0, frozenset())
     kind = _group_kind_for_machine_type(machine_type)
     return _format_shard_group(kind, cid, shards)
+
+
+def collect_mongo_groups(*host_lists) -> list:
+    """从故障机列表收集互斥分组。任一主机缺组或分组残缺时返回空列表，回退集群互斥。"""
+    from backend.ticket.mongo_operate_group import expand_mongo_group
+
+    groups = set()
+    for hosts in host_lists:
+        for host in hosts or []:
+            if not isinstance(host, dict):
+                return []
+            expanded = expand_mongo_group(host.get("affinity_group"))
+            if not expanded:
+                return []
+            groups.update(expanded)
+    return sorted(groups)
+
+
+def stamp_mongo_group(details: dict, core: MongoAutofixCore) -> None:
+    """给自愈后续单打上本组，供集群互斥按组放行。mongos 不查库。"""
+    from backend.ticket.mongo_operate_group import expand_mongo_group
+
+    if _core_machine_type(core) == MachineType.MONGOS.value:
+        details["mongo_groups"] = ["mongos:{}".format(core.cluster_id)]
+        return
+    group = affinity_group_for_core(core)
+    expanded = expand_mongo_group(group)
+    if expanded:
+        details["mongo_groups"] = expanded
 
 
 def affinity_group_for_core(core: MongoAutofixCore, cluster=None, shards_by_host=None) -> str:
@@ -470,6 +499,7 @@ def create_mongo_reload_ticket(core: MongoAutofixCore, creator: Optional[str] = 
 
     # 自愈 RELOAD：是否审批由 ctl followup_need_approval 控制（默认 on）
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
 
     remark = _autofix_followup_remark(_("自动发起-自愈修复重启"), core)
 
@@ -522,6 +552,7 @@ def create_mongo_ensure_start_ticket(core: MongoAutofixCore, creator: Optional[s
 
     details = {"infos": infos}
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
     remark = _autofix_followup_remark(_("自动发起-自愈进程拉起"), core)
 
     ticket = Ticket.create_ticket(
@@ -577,6 +608,7 @@ def create_mongo_fix_status_ticket(core: MongoAutofixCore, creator: Optional[str
     }
     # 自愈 FIX_STATUS：是否审批由 ctl followup_need_approval 控制（默认 on）
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
 
     remark = _autofix_followup_remark(_("自动发起-自愈状态修复"), core)
 
@@ -615,6 +647,7 @@ def create_mongo_manual_ticket(core: MongoAutofixCore, creator: Optional[str] = 
     ]
     details = {"infos": infos}
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
     remark = _autofix_followup_remark(_("自动发起-自愈人工处理"), core)
 
     ticket = Ticket.create_ticket(
@@ -758,6 +791,7 @@ def _refresh_open_replace_ticket(ticket: Ticket, mongos_list: list, mongod_list:
     _extend_hosts(info.setdefault("mongos_list", []), mongos_list)
     _extend_hosts(info.setdefault("mongod_list", []), mongod_list)
     ensure_affinity_groups((info.get("cluster_ids") or [0])[0], info["mongos_list"], info["mongod_list"])
+    details["mongo_groups"] = collect_mongo_groups(info["mongos_list"], info["mongod_list"])
     ticket.details = details
     ticket.save(update_fields=["details", "update_at"])
 
@@ -985,6 +1019,7 @@ def mongo_create_ticket(
                 "prior_current_hosts": prior_current_hosts,
             }
         ],
+        "mongo_groups": collect_mongo_groups(mongos_list, mongod_list),
     }
     logger.info("mongodb autofix ticket details:{}".format(details))
 

@@ -163,3 +163,42 @@ class MongoDBShardCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     inner_flow_name = _("MongoDB 分片集群整机替换执行")
     resource_batch_apply_builder = MongoDBShardCutoffResourceParamBuilder
     need_patch_recycle_host_details = True
+
+    def patch_ticket_detail(self):
+        from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import (
+            _shard_names_by_host,
+            affinity_group_for_machine,
+        )
+        from backend.ticket.mongo_operate_group import expand_mongo_group
+
+        groups = set()
+        complete = True
+        for info in (self.ticket.details or {}).get("infos") or []:
+            cluster_id = info.get("cluster_id")
+            cluster = Cluster.objects.filter(id=cluster_id).first() if cluster_id else None
+            if cluster is None:
+                complete = False
+                break
+            for _host in info.get("mongos") or []:
+                groups.add(f"mongos:{cluster.id}")
+            storage_hosts = [(MachineType.MONGODB.value, host) for host in (info.get("mongodb") or [])] + [
+                (MachineType.MONOG_CONFIG.value, host) for host in (info.get("mongo_config") or [])
+            ]
+            if storage_hosts:
+                host_ids = {host.get("bk_host_id") for _mtype, host in storage_hosts if host.get("bk_host_id")}
+                shards_by_host = _shard_names_by_host(cluster.id, host_ids)
+                for mtype, host in storage_hosts:
+                    hid = host.get("bk_host_id") or 0
+                    group = affinity_group_for_machine(
+                        cluster, mtype, hid, shards=shards_by_host.get(hid, frozenset())
+                    )
+                    expanded = expand_mongo_group(group)
+                    if not expanded:
+                        complete = False
+                        break
+                    groups.update(expanded)
+            if not complete:
+                break
+        if complete and groups:
+            self.ticket.details["mongo_groups"] = sorted(groups)
+        super().patch_ticket_detail()

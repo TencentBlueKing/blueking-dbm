@@ -43,6 +43,7 @@ from backend.ticket.constants import (
     TicketType,
     TodoStatus,
 )
+from backend.ticket.mongo_operate_group import mongo_groups_allow_parallel
 from backend.utils.excel import ExcelHandler
 from backend.utils.time import calculate_cost_time
 
@@ -618,6 +619,7 @@ class ClusterOperateRecordManager(models.Manager):
         判断当前单据类型与集群正在进行中的单据是否互斥
         todo 目前没有调用，下版本废弃，全面用has_exclusive_operations_with_lock方法
         """
+        current_groups = kwargs.pop("mongo_groups", None)
         active_records = self.filter_inner_actives(cluster_id, **kwargs)
         exclusive_ticket_map = self.get_exclusive_ticket_map()
         exclusive_infos = []
@@ -626,11 +628,19 @@ class ClusterOperateRecordManager(models.Manager):
             if "*" in record.unlock_ticket_type_condition or ticket_type in record.unlock_ticket_type_condition:
                 # *号表示全解锁, 或者此时单据类型在解锁范围，跳过
                 continue
+            if self._mongo_groups_skip(current_groups, record):
+                continue
             active_ticket_type = record.ticket.ticket_type
             # 记录互斥信息。不存在互斥表默认为互斥
             if exclusive_ticket_map.get(ticket_type, {}).get(active_ticket_type, True):
                 exclusive_infos.append({"exclusive_ticket": record.ticket, "root_id": record.flow.flow_obj_id})
         return exclusive_infos
+
+    @staticmethod
+    def _mongo_groups_skip(current_groups, record) -> bool:
+        """MongoDB 自愈：分组不相交时跳过集群互斥。同一分组仍走互斥表。"""
+        other_groups = ((getattr(record.ticket, "details", None) or {}).get("mongo_groups")) or []
+        return mongo_groups_allow_parallel(current_groups, other_groups)
 
     @transaction.atomic()
     def has_exclusive_operations_with_lock(self, ticket_type, cluster_id, **kwargs):
@@ -638,6 +648,7 @@ class ClusterOperateRecordManager(models.Manager):
         判断当前单据类型与集群正在进行中的单据是否互斥
         这里检查是加锁处理
         """
+        current_groups = kwargs.pop("mongo_groups", None)
         active_records = self.filter_inner_actives_with_lock(cluster_id, **kwargs)
         exclusive_ticket_map = self.get_exclusive_ticket_map()
         exclusive_infos = []
@@ -645,6 +656,8 @@ class ClusterOperateRecordManager(models.Manager):
             # 优化判断活跃record的解锁信息，如果能命中，就改记录不产生互斥行为
             if "*" in record.unlock_ticket_type_condition or ticket_type in record.unlock_ticket_type_condition:
                 # *号表示全解锁, 或者此时单据类型在解锁范围，跳过
+                continue
+            if self._mongo_groups_skip(current_groups, record):
                 continue
             active_ticket_type = record.ticket.ticket_type
             # 记录互斥信息。不存在互斥表默认为互斥
@@ -772,8 +785,13 @@ class ClusterOperateRecord(AuditedModel):
         如果没有产生互斥，则暂停节点可以运行，同时记录的is_pause=False
         排除自身的单据id
         """
+        mongo_groups = ((self.ticket.details or {}).get("mongo_groups")) or []
         exclusive_infos = self.__class__.objects.has_exclusive_operations_with_lock(
-            self.ticket.ticket_type, self.cluster_id, is_pause=False, exclude_ticket_ids=[self.ticket.id]
+            self.ticket.ticket_type,
+            self.cluster_id,
+            is_pause=False,
+            exclude_ticket_ids=[self.ticket.id],
+            mongo_groups=mongo_groups,
         )
         if not exclusive_infos:
             # 表示当前没有互斥单据, 可以运行
