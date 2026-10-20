@@ -40,17 +40,13 @@ type ClusterMetricFetcherFactory struct{}
 func (c *ClusterMetricFetcherFactory) getClusterMetricFetcher(addonType string) (ClusterMetricFetcher, error) {
 	switch addonType {
 	case "victoriametrics":
-		fetcher, err := NewVMClusterMetricFetcher()
-		if err != nil {
-			return nil, fmt.Errorf("failed to construct VMClusterMetricFetcher")
-		}
-		return fetcher, nil
+		return NewVictoriaMetricsClusterMetricFetcher(), nil
 	case "surrealdb":
 		return NewSurrealDBClusterMetricFetcher(), nil
-	case "milvus":
-		return nil, fmt.Errorf("not supported yet")
 	case "qdrant":
 		return NewQdrantClusterMetricFetcher(), nil
+	case "milvus":
+		return nil, fmt.Errorf("not supported yet")
 	case "minio":
 		return nil, fmt.Errorf("not supported yet")
 	default:
