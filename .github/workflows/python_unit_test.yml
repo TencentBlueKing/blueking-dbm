@@ -23,9 +23,9 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
-      OS: ubuntu-latest
+      OS: ubuntu-24.04
       PYTHON: "3.11.10"
     services:
       redis:
