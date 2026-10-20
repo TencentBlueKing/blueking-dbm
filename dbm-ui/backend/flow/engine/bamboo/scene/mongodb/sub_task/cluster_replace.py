@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
-from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
@@ -24,6 +24,7 @@ from backend.flow.plugins.components.collections.mongodb.deferred_deinstall_tick
     ExecDeferredDeInstallTicketOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import MongoReplaceProbeDownComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -43,6 +44,16 @@ def _any_host_down(info: dict) -> bool:
     return False
 
 
+def _pending_probe_hosts(info: dict) -> list:
+    hosts = []
+    for role_key in ("mongodb", "mongo_config", "mongos"):
+        for host in info.get(role_key) or []:
+            if host.get("down") or not host.get("ip"):
+                continue
+            hosts.append({"ip": host["ip"], "bk_cloud_id": host.get("bk_cloud_id") or 0})
+    return hosts
+
+
 def _cluster_instances_for_deferred(info: dict) -> list:
     """从分片替换 info 收集实例，供延迟下架补 cluster_id。"""
     instances = []
@@ -50,6 +61,82 @@ def _cluster_instances_for_deferred(info: dict) -> list:
         for host in info.get(role_key) or []:
             instances.extend(host.get("instances") or [])
     return instances
+
+
+def _deferred_deinstall_act(pipeline, sub_get_kwargs, info, ticket_data, instance_type, old_instances, extend=True):
+    defer_infos = _build_deferred_deinstall_infos(
+        info={"instances": _cluster_instances_for_deferred(info)},
+        old_instances=old_instances,
+        instance_type=instance_type,
+    )
+    kwargs = {
+        "infos": defer_infos,
+        "creator": sub_get_kwargs.payload["created_by"],
+        "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
+        "parent_ticket_id": ticket_data.get("uid") if ticket_data else None,
+    }
+    return pipeline.add_act(
+        act_name=_("MongoDB-延迟下架单据"),
+        act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
+        kwargs=kwargs,
+        extend=extend,
+    )
+
+
+def _append_cluster_deinstall(root_id, ticket_data, sub_pipeline, sub_get_kwargs, info):
+    old_hosts, old_instances = sub_get_kwargs.get_old_host_replace(
+        info=info, cluster_type=ClusterType.MongoShardedCluster.value
+    )
+    if info.get("mongodb") or info.get("mongo_config"):
+        instance_type = MongoDBInstanceType.MongoD.value
+    elif info.get("mongos"):
+        instance_type = MongoDBInstanceType.MongoS.value
+    else:
+        instance_type = MongoDBInstanceType.MongoD.value
+
+    pending = _pending_probe_hosts(info)
+    if not pending or _any_host_down(info):
+        if _any_host_down(info):
+            _deferred_deinstall_act(sub_pipeline, sub_get_kwargs, info, ticket_data, instance_type, old_instances)
+        else:
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=multi_instance_deinstall(
+                    root_id=root_id,
+                    ticket_data=ticket_data,
+                    sub_kwargs=sub_get_kwargs,
+                    old_hosts=old_hosts,
+                    old_instances=old_instances,
+                    instance_type=instance_type,
+                )
+            )
+        return
+
+    probe_act = sub_pipeline.add_act(
+        act_name=_("MongoDB-探测故障机下架方式"),
+        act_component_code=MongoReplaceProbeDownComponent.code,
+        kwargs={"hosts": pending},
+        extend=False,
+    )
+    deferred_act = _deferred_deinstall_act(
+        sub_pipeline, sub_get_kwargs, info, ticket_data, instance_type, old_instances, extend=False
+    )
+    inline_sub = multi_instance_deinstall(
+        root_id=root_id,
+        ticket_data=ticket_data,
+        sub_kwargs=sub_get_kwargs,
+        old_hosts=old_hosts,
+        old_instances=old_instances,
+        instance_type=instance_type,
+    )
+    sub_pipeline.add_conditional_subs(
+        source_act=probe_act,
+        conditions=[
+            Conditions(act_object=deferred_act, express="==1"),
+            Conditions(act_object=inline_sub, express="==0"),
+        ],
+        name=_("判断是否延迟下架"),
+        conditions_param="replace_down",
+    )
 
 
 def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, info: dict) -> SubBuilder:
@@ -183,43 +270,14 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         allow_empty_instance=True,
     )
 
-    # 下架 mongodb / mongo_config / mongos：down 出延迟下架单，否则内联卸载
-    old_hosts, old_instances = sub_get_kwargs.get_old_host_replace(
-        info=info, cluster_type=ClusterType.MongoShardedCluster.value
+    # 下架 mongodb / mongo_config / mongos：down 出延迟下架单，否则内联卸载。
+    # 还没标记故障的机器先探测；有一台不可达就整批走延迟下架。
+    _append_cluster_deinstall(
+        root_id=root_id,
+        ticket_data=ticket_data,
+        sub_pipeline=sub_pipeline,
+        sub_get_kwargs=sub_get_kwargs,
+        info=info,
     )
-    if info.get("mongodb") or info.get("mongo_config"):
-        instance_type = MongoDBInstanceType.MongoD.value
-    elif info.get("mongos"):
-        instance_type = MongoDBInstanceType.MongoS.value
-    else:
-        instance_type = MongoDBInstanceType.MongoD.value
-
-    if _any_host_down(info):
-        defer_infos = _build_deferred_deinstall_infos(
-            info={"instances": _cluster_instances_for_deferred(info)},
-            old_instances=old_instances,
-            instance_type=instance_type,
-        )
-        kwargs = {
-            "infos": defer_infos,
-            "creator": sub_get_kwargs.payload["created_by"],
-            "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
-            "parent_ticket_id": ticket_data.get("uid") if ticket_data else None,
-        }
-        sub_pipeline.add_act(
-            act_name=_("MongoDB-延迟下架单据"),
-            act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
-            kwargs=kwargs,
-        )
-    else:
-        sub_sub_pipeline = multi_instance_deinstall(
-            root_id=root_id,
-            ticket_data=ticket_data,
-            sub_kwargs=sub_get_kwargs,
-            old_hosts=old_hosts,
-            old_instances=old_instances,
-            instance_type=instance_type,
-        )
-        sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--cluster整机替换"))

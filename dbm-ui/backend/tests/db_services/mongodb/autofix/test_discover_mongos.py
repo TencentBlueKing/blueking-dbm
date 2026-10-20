@@ -151,3 +151,4 @@ def test_create_autofix_pre_ticket_marks_mongos_wait_forever():
     assert create_ticket.call_args.kwargs["ticket_type"] == TicketType.MONGODB_AUTOFIX_PRE.value
     assert info["wait_gse_forever"] is True
     assert info["machine_type"] == MachineType.MONGOS.value
+    assert create_ticket.call_args.kwargs["details"]["mongo_groups"] == ["mongos:1"]

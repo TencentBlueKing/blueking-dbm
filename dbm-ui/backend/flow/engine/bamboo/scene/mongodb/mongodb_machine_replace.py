@@ -23,6 +23,8 @@ from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
+_REPLACE_HOST_ROLES = ("mongodb", "mongo_config", "mongos")
+
 # 进 sidecar 的换机类单据（含 AUTOFIX）
 _SIDECAR_TICKET_TYPES = {
     TicketType.MONGODB_SHARD_CUTOFF.value,
@@ -71,6 +73,49 @@ def _collect_sidecar_cluster_ids(data: dict) -> List[int]:
     return cluster_ids
 
 
+def iter_replace_hosts(data: dict):
+    """整机替换 payload 里的故障机。副本集/分片取角色下的 host，自愈 dict 同样遍历。"""
+    infos = (data or {}).get("infos")
+    items = []
+    if isinstance(infos, list):
+        items = infos
+    elif isinstance(infos, dict):
+        for value in infos.values():
+            if isinstance(value, list):
+                items.extend(value)
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        yielded = False
+        for role in _REPLACE_HOST_ROLES:
+            hosts = item.get(role) or []
+            if not isinstance(hosts, list):
+                continue
+            for host in hosts:
+                if isinstance(host, dict) and host.get("ip"):
+                    yielded = True
+                    yield host
+        if not yielded and item.get("ip"):
+            yield item
+
+
+def apply_down_if_unreachable(data: dict, probe) -> list:
+    """GSE 明确失败时把 host.down 置真。探测不确定（None）不改，避免误判活机。"""
+    marked = []
+    for host in iter_replace_hosts(data):
+        if host.get("down"):
+            continue
+        ip = host.get("ip")
+        try:
+            cloud = int(host.get("bk_cloud_id") or 0)
+        except (TypeError, ValueError):
+            cloud = 0
+        if probe(ip, cloud) is False:
+            host["down"] = True
+            marked.append(ip)
+    return marked
+
+
 class MongoMachineReplaceFlow(object):
     """
     MongoDB 整机/故障换机统一编排。
@@ -96,7 +141,7 @@ class MongoMachineReplaceFlow(object):
         return isinstance(infos, dict) and ClusterType.MongoShardedCluster.value in infos
 
     def multi_host_replace_flow(self):
-        """统一换机入口。"""
+        """统一换机入口。故障机探测在替换子流程前的独立节点里做。"""
         if self._is_shard_autofix_payload():
             self._run_shard_autofix_orchestrator()
             return

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mongodb.autofix.gates import RESTART_SHIELD_TICKET_TYPES
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import create_mongo_ensure_start_ticket
 from backend.ticket.constants import TicketType
@@ -21,7 +22,12 @@ def test_ensure_start_in_restart_shield_types():
 
 
 def test_create_mongo_ensure_start_ticket_details():
-    cluster = SimpleNamespace(id=11, major_version="mongodb-6.0", immute_domain="m1.test.dba.db")
+    cluster = SimpleNamespace(
+        id=11,
+        major_version="mongodb-6.0",
+        immute_domain="m1.test.dba.db",
+        cluster_type=ClusterType.MongoReplicaSet.value,
+    )
     machine = SimpleNamespace(bk_host_id=1001, ip="127.0.0.1", bk_cloud_id=0)
     storage = SimpleNamespace(id=501, port=27017, machine_type="mongodb", machine=machine)
     storage.cluster = MagicMock()
@@ -36,6 +42,8 @@ def test_create_mongo_ensure_start_ticket_details():
         cluster_id=11,
         immute_domain="m1.test.dba.db",
         pre_ticket_id=0,
+        fault_machines=[{"machine_type": "mongodb"}],
+        roles=["m1"],
     )
     created = SimpleNamespace(id=9001)
 
@@ -49,6 +57,10 @@ def test_create_mongo_ensure_start_ticket_details():
         patch(
             "backend.db_services.mongodb.autofix.mongodb_autofix_ticket.StorageInstance.objects",
             qs,
+        ),
+        patch(
+            "backend.db_services.mongodb.autofix.mongodb_autofix_ticket.Cluster.objects.filter",
+            return_value=MagicMock(first=MagicMock(return_value=cluster)),
         ),
         patch(
             "backend.db_services.mongodb.autofix.mongodb_autofix_ticket._apply_followup_approval_flags",
@@ -72,3 +84,4 @@ def test_create_mongo_ensure_start_ticket_details():
     assert kwargs["details"]["infos"][0]["ip"] == "127.0.0.1"
     assert kwargs["details"]["infos"][0]["port"] == 27017
     assert kwargs["details"]["infos"][0]["cluster_id"] == 11
+    assert kwargs["details"]["mongo_groups"] == ["replicaset:11"]
