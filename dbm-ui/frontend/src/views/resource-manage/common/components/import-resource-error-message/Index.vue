@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="modelValue"
     class="import-resource-error-message"
     :show-mask="false"
@@ -61,7 +61,7 @@
         <div class="content-item-title">{{ messageList?.[0].message }}</div>
       </div>
     </div>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

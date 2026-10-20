@@ -1,9 +1,10 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     background-color="#FFFFFF"
     class="kafka-topic-sideslider"
     quick-close
+    render-directive="show"
     :width="960">
     <template #header>
       {{ t('KafKa Topic 均衡') }}
@@ -168,7 +169,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';

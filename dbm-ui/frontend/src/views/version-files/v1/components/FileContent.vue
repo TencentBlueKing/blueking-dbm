@@ -193,7 +193,7 @@
     </div>
   </ApplyPermissionCatch>
   <!-- 新增版本 -->
-  <BkDialog
+  <DbDialog
     v-model:is-show="createFileState.isShow"
     :mask-close="false"
     render-directive="if"
@@ -280,7 +280,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { Form, Message } from 'bkui-vue';

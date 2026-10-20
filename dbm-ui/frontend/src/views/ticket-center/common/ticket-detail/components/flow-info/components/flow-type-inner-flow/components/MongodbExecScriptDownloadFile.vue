@@ -5,7 +5,7 @@
     @click="handleShowFile">
     {{ t('查看结果文件') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     :title="t('查看结果文件')"
     :width="1140">
@@ -32,7 +32,7 @@
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

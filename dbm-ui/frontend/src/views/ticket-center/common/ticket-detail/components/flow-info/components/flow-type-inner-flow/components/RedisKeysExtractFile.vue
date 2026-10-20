@@ -18,7 +18,7 @@
     @click="handleShow">
     {{ t('查看结果文件') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     class="result-files"
     dialog-type="show"
     :is-show="isShow"
@@ -82,7 +82,7 @@
         </template>
       </PrimaryTable>
     </BkLoading>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

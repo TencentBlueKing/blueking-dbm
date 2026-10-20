@@ -12,8 +12,9 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
+    render-directive="show"
     :title="t('配置变更')"
     :width="1100">
     <div class="k8s-instance-list-patch-config">
@@ -39,7 +40,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

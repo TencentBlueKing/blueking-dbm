@@ -12,12 +12,14 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
+    ref="dialogRef"
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
     :title="title"
-    :width="640">
+    :width="640"
+    @closed="handleCancel">
     <DbForm
       ref="formRef"
       class="mb-20"
@@ -57,11 +59,11 @@
       </BkButton>
       <BkButton
         :disabled="isSubmitting"
-        @click="handleCancel">
+        @click="handleCancelClick">
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
   <div style="display: none">
     <div
       ref="mergeTipsRef"
@@ -130,6 +132,7 @@
   const { t } = useI18n();
 
   const placeholder = t('白名单输入框编辑提示');
+  const dialogRef = useTemplateRef('dialogRef');
   const formRef = ref();
   const mergeTipsRef = ref();
   const ipRef = ref();
@@ -292,6 +295,13 @@
         ipMergeState[key] = [];
       }
     }, 300);
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认（提交成功后的关闭不需要确认，仍直接调 handleCancel）
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleCancel();
+    }
   };
 
   const handleSubmit = () => {
