@@ -12,12 +12,30 @@ import logging
 from collections import OrderedDict
 from typing import List, Optional, Union
 
+from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord, Ticket
 
 logger = logging.getLogger("flow")
+
+# 与 ticket.builders.common.base.fetch_cluster_ids 的键一致。延迟下架单里不能再留下这些键。
+_CLUSTER_LOCK_KEYS = {
+    "cluster_id",
+    "cluster_ids",
+    "source_cluster_id",
+    "source_cluster_ids",
+    "target_cluster_id",
+    "src_cluster",
+    "dst_cluster",
+    "dst_cluster_list",
+    "source_cluster",
+    "source_clusters",
+    "target_cluster",
+    "target_clusters",
+    "cluster_id_list",
+}
 
 
 def _format_deferred_targets(infos: list) -> str:
@@ -88,6 +106,132 @@ def _resolve_autofix_core_id(running_ticket: Optional[Ticket]) -> int:
     return core.id if core else 0
 
 
+def _info_is_mongod(info: dict) -> bool:
+    raw = info.get("instance_type") or info.get("role") or "mongod"
+    if isinstance(raw, list):
+        raw = raw[0] if raw else "mongod"
+    return str(raw).lower() not in ("mongos",)
+
+
+def _strip_cluster_lock_keys(obj) -> None:
+    if isinstance(obj, dict):
+        for key in list(obj.keys()):
+            if key in _CLUSTER_LOCK_KEYS:
+                obj.pop(key, None)
+            else:
+                _strip_cluster_lock_keys(obj[key])
+    elif isinstance(obj, list):
+        for item in obj:
+            _strip_cluster_lock_keys(item)
+
+
+def _snapshot_deferred_runtime(infos: list) -> None:
+    """摘 meta 之前记下副本集其余节点，供稍后物理卸载核对 rs.conf、取密码。"""
+    from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+    ak = ActKwargs()
+    ak.payload = {}
+    for info in infos:
+        if not _info_is_mongod(info):
+            continue
+        cloud = info.get("bk_cloud_id", 0)
+        ak.payload["bk_cloud_id"] = cloud
+        if "replica_set_peers" not in info:
+            try:
+                info["replica_set_peers"] = ak._deferred_replica_set_peers(info)
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "snapshot deferred replica peers fail ip=%s port=%s", info.get("ip"), info.get("port")
+                )
+                info["replica_set_peers"] = []
+        if info.get("replica_set_peers") or info.get("admin_password"):
+            continue
+        try:
+            password = ak._resolve_deferred_deinstall_password(
+                ip=info.get("ip"),
+                port=int(info.get("port") or 0),
+                bk_cloud_id=cloud,
+                cluster_id=info.get("cluster_id") or None,
+                peers=[],
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "snapshot deferred deinstall password fail ip=%s port=%s", info.get("ip"), info.get("port")
+            )
+            password = ""
+        if password:
+            info["admin_password"] = password
+
+
+def _detach_deferred_machine(ip: str, bk_cloud_id) -> Optional[dict]:
+    """删掉这台机器的实例、副本集/分片元数据和 Machine 行，不回收 CC 主机。"""
+    if not ip:
+        return None
+    from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+
+    machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+    if machine is None:
+        logger.info("deferred detach skip, machine already gone ip=%s bk_cloud_id=%s", ip, bk_cloud_id)
+        return None
+    snapshot = {
+        "ip": machine.ip,
+        "bk_host_id": machine.bk_host_id,
+        "bk_biz_id": machine.bk_biz_id,
+        "bk_cloud_id": machine.bk_cloud_id,
+        "cluster_type": machine.cluster_type,
+    }
+    with transaction.atomic():
+        for obj in list(StorageInstance.objects.filter(machine=machine)):
+            obj.cluster.clear()
+            obj.bind_entry.clear()
+            obj.proxyinstance_set.clear()
+            obj.delete()
+        for obj in list(ProxyInstance.objects.filter(machine=machine)):
+            obj.cluster.clear()
+            obj.bind_entry.clear()
+            obj.storageinstance.clear()
+            obj.delete()
+        machine.delete()
+    logger.info("deferred detach machine meta ip=%s bk_host_id=%s", ip, snapshot["bk_host_id"])
+    return snapshot
+
+
+def _prepare_deferred_infos(infos: list):
+    """建单前摘掉 meta，并去掉会占集群锁的 cluster_id。返回 (infos, old_nodes)。"""
+    prepared = [dict(item) for item in infos or []]
+    _snapshot_deferred_runtime(prepared)
+    snapshots = {}
+    old_nodes = []
+    seen = set()
+    for info in prepared:
+        key = (info.get("ip"), info.get("bk_cloud_id"))
+        if key not in snapshots:
+            snapshots[key] = _detach_deferred_machine(info.get("ip"), info.get("bk_cloud_id"))
+        snap = snapshots[key]
+        if not snap:
+            continue
+        info["recycle_host"] = {
+            "ip": snap["ip"],
+            "bk_host_id": snap["bk_host_id"],
+            "bk_biz_id": snap["bk_biz_id"],
+            "bk_cloud_id": snap["bk_cloud_id"],
+            "cluster_type": snap.get("cluster_type") or "",
+        }
+        info["force_physical"] = True
+        if key not in seen and snap.get("bk_host_id"):
+            seen.add(key)
+            old_nodes.append(
+                {
+                    "ip": snap["ip"],
+                    "bk_biz_id": snap["bk_biz_id"],
+                    "bk_host_id": snap["bk_host_id"],
+                    "bk_cloud_id": snap["bk_cloud_id"],
+                }
+            )
+    _strip_cluster_lock_keys(prepared)
+    return prepared, old_nodes
+
+
 def deferred_deinstall_ticket(
     infos: list,
     creator: str,
@@ -110,11 +254,14 @@ def deferred_deinstall_ticket(
     if running_ticket is not None:
         _unlock_running_for_deferred(running_ticket, infos)
 
+    infos, old_nodes = _prepare_deferred_infos(infos)
     details = {
         "infos": infos,
+        "old_nodes": {"instance": old_nodes},
         "poll_interval_sec": poll_interval_sec,
         "max_wait_hours": max_wait_hours,
     }
+    _strip_cluster_lock_keys(details)
     targets = _format_deferred_targets(infos) or ((infos[0].get("ip") if infos else "") or "unknown")
     core_tag = autofix_core_tag(_resolve_autofix_core_id(running_ticket))
     remark = _("自动发起-延迟下架-{}{}".format(targets, core_tag))

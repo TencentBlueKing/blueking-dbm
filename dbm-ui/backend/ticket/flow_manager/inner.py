@@ -197,8 +197,12 @@ class InnerFlow(BaseTicketFlow):
             )
 
         cluster_ids = fetch_cluster_ids(details=self.ticket.details)
+        mongo_groups = ((self.ticket.details or {}).get("mongo_groups")) or []
         Cluster.handle_exclusive_operations(
-            cluster_ids=cluster_ids, ticket_type=ticket_type, exclude_ticket_ids=[self.ticket.id]
+            cluster_ids=cluster_ids,
+            ticket_type=ticket_type,
+            exclude_ticket_ids=[self.ticket.id],
+            mongo_groups=mongo_groups,
         )
 
     def callback(self, callback_type: FlowCallbackType) -> None:

@@ -57,6 +57,10 @@ def test_check_meta_sets_machine_exists():
         assert svc._execute(data, None) is True
         assert data.outputs.machine_exists == 0
 
+        data.get_one_of_inputs.return_value = {"ip": "127.0.0.1", "bk_cloud_id": 0, "force_physical": True}
+        assert svc._execute(data, None) is True
+        assert data.outputs.machine_exists == 1
+
 
 def test_poll_gse_finishes_when_already_alive():
     svc = MongoDeferredDeinstallPollGse()
@@ -123,6 +127,10 @@ def test_deferred_deinstall_remark_includes_predecessor_ids():
             return_value=10,
         ),
         patch("backend.flow.utils.mongodb.deferred_deinstall_ticket.Ticket.create_ticket", return_value=created) as ct,
+        patch(
+            "backend.flow.utils.mongodb.deferred_deinstall_ticket._prepare_deferred_infos",
+            side_effect=lambda items: (items, []),
+        ),
     ):
         deferred_deinstall_ticket(
             infos=[
@@ -174,6 +182,39 @@ def test_cleanup_meta_deletes_orphan_machine():
         assert svc._execute(data, None) is True
         cc_cls.return_value.recycle_host.assert_called_once_with([576])
         machine.delete.assert_called_once()
+
+
+def test_cleanup_meta_recycles_snapshot_when_machine_gone():
+    from backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_cleanup_meta import (
+        MongoDeferredDeinstallCleanupMeta,
+    )
+
+    svc = MongoDeferredDeinstallCleanupMeta()
+    svc.log_info = MagicMock()
+    data = MagicMock()
+    data.get_one_of_inputs.return_value = {
+        "ip": "127.0.0.1",
+        "bk_cloud_id": 0,
+        "recycle_host": {
+            "ip": "127.0.0.1",
+            "bk_host_id": 576,
+            "bk_biz_id": 3,
+            "bk_cloud_id": 0,
+            "cluster_type": "MongoReplicaSet",
+        },
+    }
+    with (
+        patch(
+            "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_cleanup_meta.Machine"
+        ) as machine_cls,
+        patch(
+            "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_cleanup_meta.CcManage"
+        ) as cc_cls,
+    ):
+        machine_cls.objects.filter.return_value.first.return_value = None
+        assert svc._execute(data, None) is True
+        cc_cls.assert_called_once_with(3, "MongoReplicaSet")
+        cc_cls.return_value.recycle_host.assert_called_once_with([576])
 
 
 def test_deferred_deinstall_kwargs_sends_replica_set_peers():
@@ -234,3 +275,70 @@ def test_resolve_deferred_deinstall_password_skips_empty_and_falls_back():
         storage_cls.objects.filter.return_value = storage_qs
         proxy_cls.objects.filter.return_value = proxy_qs
         assert ak._resolve_deferred_deinstall_password("127.0.0.1", 27001, 0, cluster_id=1) == "secret"
+
+
+def test_prepare_deferred_infos_detaches_and_strips_cluster_lock():
+    from backend.flow.utils.mongodb.deferred_deinstall_ticket import _prepare_deferred_infos
+
+    infos = [
+        {
+            "ip": "127.0.0.1",
+            "port": 27001,
+            "bk_cloud_id": 0,
+            "cluster_id": 128,
+            "cluster_ids": [128],
+            "instance_type": "mongod",
+        }
+    ]
+    snap = {
+        "ip": "127.0.0.1",
+        "bk_host_id": 9,
+        "bk_biz_id": 3,
+        "bk_cloud_id": 0,
+        "cluster_type": "MongoReplicaSet",
+    }
+    with (
+        patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._snapshot_deferred_runtime"),
+        patch(
+            "backend.flow.utils.mongodb.deferred_deinstall_ticket._detach_deferred_machine",
+            return_value=snap,
+        ) as detach,
+    ):
+        prepared, old_nodes = _prepare_deferred_infos(infos)
+    detach.assert_called_once_with("127.0.0.1", 0)
+    assert "cluster_id" not in prepared[0]
+    assert "cluster_ids" not in prepared[0]
+    assert prepared[0]["force_physical"] is True
+    assert prepared[0]["recycle_host"]["bk_host_id"] == 9
+    assert old_nodes == [{"ip": "127.0.0.1", "bk_biz_id": 3, "bk_host_id": 9, "bk_cloud_id": 0}]
+    assert infos[0]["cluster_id"] == 128
+
+
+def test_deferred_kwargs_uses_snapshotted_peers_without_cluster():
+    from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+    ak = ActKwargs()
+    ak.payload = {"bk_cloud_id": 0}
+    ak.file_path = "/tmp/actuator"
+    node = {
+        "ip": "127.0.0.1",
+        "port": 27001,
+        "bk_cloud_id": 0,
+        "set_id": "rs1",
+        "replica_set_peers": ["127.0.0.2:27001"],
+    }
+
+    def fake_get_password(ip, port, bk_cloud_id, username):
+        if ip == "127.0.0.2":
+            return "secret"
+        return ""
+
+    with (
+        patch.object(ActKwargs, "get_password", side_effect=fake_get_password),
+        patch("backend.flow.utils.mongodb.mongodb_dataclass.MongoRepository.fetch_one_cluster") as fetch,
+    ):
+        kwargs = ak.get_mongo_deferred_deinstall_kwargs(node, "mongod", [node])
+    fetch.assert_not_called()
+    payload = kwargs["db_act_template"]["payload"]
+    assert payload["replicaSetPeers"] == ["127.0.0.2:27001"]
+    assert payload["adminPassword"] == "secret"

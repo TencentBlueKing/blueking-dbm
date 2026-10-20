@@ -14,16 +14,20 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.flow.consts import MongoDBClusterRole
+from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
+from backend.flow.plugins.components.collections.mongodb.deferred_deinstall_ticket import (
+    ExecDeferredDeInstallTicketOperationComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 from .cluster_mongod_autofix import mongod_autofix
+from .replicaset_replace import _build_deferred_deinstall_infos
 
 
 def shard_autofix(
@@ -98,6 +102,32 @@ def shard_autofix(
     sub_pipeline.add_act(
         act_name=_("MongoDB-mongod修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
     )
+
+    # CMR 先把旧实例从副本集/分片 meta 摘掉并保留 Machine，再出下架单。
+    # 延迟下架建单时会删掉 Machine，不能早于这次换 meta。
+    if info.get("down"):
+        old_instances = [
+            {
+                "ip": info["ip"],
+                "port": inst["port"],
+                "bk_cloud_id": info["bk_cloud_id"],
+                "set_id": inst.get("seg_range") or inst.get("cluster_name") or "",
+            }
+            for inst in info.get("instances") or []
+        ]
+        deinstall_kwargs = {
+            "infos": _build_deferred_deinstall_infos(
+                info=info, old_instances=old_instances, instance_type=MongoDBInstanceType.MongoD.value
+            ),
+            "creator": sub_get_kwargs.payload["created_by"],
+            "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
+            "parent_ticket_id": ticket_data.get("uid") if ticket_data else None,
+        }
+        sub_pipeline.add_act(
+            act_name=_("MongoDB-延迟下架提单"),
+            act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
+            kwargs=deinstall_kwargs,
+        )
 
     # 安装dbmon（挂到本层 sub_pipeline，而非并行叶子）
     ip_list = sub_get_kwargs.payload["plugin_hosts"]

@@ -32,6 +32,7 @@ from backend.ticket.constants import (
     FlowErrCode,
     FlowTypeConfig,
     TicketFlowStatus,
+    TicketType,
     TodoStatus,
 )
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, TicketFlowsConfig, Todo
@@ -219,6 +220,12 @@ class BaseTicketFlow(ABC):
 
     def create_cluster_operate_records(self):
         """写入集群操作记录"""
+        # 延迟下架在创建前已摘掉 meta，不再占集群锁，避免挡住同集群其它单据。
+        if getattr(self.ticket, "ticket_type", None) == TicketType.MONGODB_DEFERRED_DEINSTALL.value:
+            logger.info(
+                "skip cluster operate record for deferred deinstall ticket=%s", getattr(self.ticket, "id", None)
+            )
+            return
         obj_ids = list(set(fetch_cluster_ids(self.flow_obj.details) + fetch_cluster_ids(self.ticket.details)))
         self.create_operate_records(object_key="cluster_id", record_model=ClusterOperateRecord, object_ids=obj_ids)
 

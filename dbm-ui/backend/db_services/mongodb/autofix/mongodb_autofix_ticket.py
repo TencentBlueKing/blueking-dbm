@@ -276,6 +276,26 @@ def affinity_group_for_machine(cluster: Cluster, machine_type: str, bk_host_id: 
     return _format_shard_group(kind, cid, shards)
 
 
+def collect_mongo_groups(*host_lists) -> list:
+    """从故障机列表收集互斥分组。空列表表示不按组放行，仍走集群互斥。"""
+    groups = set()
+    for hosts in host_lists:
+        for host in hosts or []:
+            if isinstance(host, dict) and host.get("affinity_group"):
+                groups.add(host["affinity_group"])
+    return sorted(groups)
+
+
+def stamp_mongo_group(details: dict, core: MongoAutofixCore) -> None:
+    """给自愈后续单打上本组，供集群互斥按组放行。mongos 不查库。"""
+    if _core_machine_type(core) == MachineType.MONGOS.value:
+        details["mongo_groups"] = ["mongos:{}".format(core.cluster_id)]
+        return
+    group = affinity_group_for_core(core)
+    if group:
+        details["mongo_groups"] = [group]
+
+
 def affinity_group_for_core(core: MongoAutofixCore, cluster=None, shards_by_host=None) -> str:
     machine_type = _core_machine_type(core)
     if cluster is None:
@@ -470,6 +490,7 @@ def create_mongo_reload_ticket(core: MongoAutofixCore, creator: Optional[str] = 
 
     # 自愈 RELOAD：是否审批由 ctl followup_need_approval 控制（默认 on）
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
 
     remark = _autofix_followup_remark(_("自动发起-自愈修复重启"), core)
 
@@ -522,6 +543,7 @@ def create_mongo_ensure_start_ticket(core: MongoAutofixCore, creator: Optional[s
 
     details = {"infos": infos}
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
     remark = _autofix_followup_remark(_("自动发起-自愈进程拉起"), core)
 
     ticket = Ticket.create_ticket(
@@ -577,6 +599,7 @@ def create_mongo_fix_status_ticket(core: MongoAutofixCore, creator: Optional[str
     }
     # 自愈 FIX_STATUS：是否审批由 ctl followup_need_approval 控制（默认 on）
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
 
     remark = _autofix_followup_remark(_("自动发起-自愈状态修复"), core)
 
@@ -615,6 +638,7 @@ def create_mongo_manual_ticket(core: MongoAutofixCore, creator: Optional[str] = 
     ]
     details = {"infos": infos}
     _apply_followup_approval_flags(details)
+    stamp_mongo_group(details, core)
     remark = _autofix_followup_remark(_("自动发起-自愈人工处理"), core)
 
     ticket = Ticket.create_ticket(
@@ -758,6 +782,7 @@ def _refresh_open_replace_ticket(ticket: Ticket, mongos_list: list, mongod_list:
     _extend_hosts(info.setdefault("mongos_list", []), mongos_list)
     _extend_hosts(info.setdefault("mongod_list", []), mongod_list)
     ensure_affinity_groups((info.get("cluster_ids") or [0])[0], info["mongos_list"], info["mongod_list"])
+    details["mongo_groups"] = collect_mongo_groups(info["mongos_list"], info["mongod_list"])
     ticket.details = details
     ticket.save(update_fields=["details", "update_at"])
 
@@ -985,6 +1010,7 @@ def mongo_create_ticket(
                 "prior_current_hosts": prior_current_hosts,
             }
         ],
+        "mongo_groups": collect_mongo_groups(mongos_list, mongod_list),
     }
     logger.info("mongodb autofix ticket details:{}".format(details))
 

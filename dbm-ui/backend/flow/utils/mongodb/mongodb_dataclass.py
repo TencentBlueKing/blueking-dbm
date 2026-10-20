@@ -1324,7 +1324,7 @@ class ActKwargs:
         }
 
     def _resolve_deferred_deinstall_password(
-        self, ip: str, port: int, bk_cloud_id: int, cluster_id: int = None
+        self, ip: str, port: int, bk_cloud_id: int, cluster_id: int = None, peers=None
     ) -> str:
         """
         延迟下架 mongod REMOVED 校验所需密码。
@@ -1344,6 +1344,19 @@ class ActKwargs:
         password = _try_get(ip, port, bk_cloud_id)
         if password:
             return password
+        for addr in peers or []:
+            if not addr or ":" not in str(addr):
+                continue
+            peer_ip, peer_port = str(addr).rsplit(":", 1)
+            try:
+                peer_port = int(peer_port)
+            except (TypeError, ValueError):
+                continue
+            if peer_ip == ip and peer_port == int(port):
+                continue
+            password = _try_get(peer_ip, peer_port, bk_cloud_id)
+            if password:
+                return password
         if not cluster_id:
             return ""
         from backend.db_meta.models import ProxyInstance, StorageInstance
@@ -1412,13 +1425,21 @@ class ActKwargs:
         nodes = [node["ip"] for node in nodes_info]
         cluster_id = node_info.get("cluster_id") or 0
         password = ""
+        peers = []
         if instance_type == MongoDBInstanceType.MongoD.value:
-            password = self._resolve_deferred_deinstall_password(
-                ip=node_info["ip"],
-                port=node_info["port"],
-                bk_cloud_id=node_info.get("bk_cloud_id", self.payload.get("bk_cloud_id", 0)),
-                cluster_id=cluster_id or None,
-            )
+            if node_info.get("replica_set_peers") is not None:
+                peers = list(node_info.get("replica_set_peers") or [])
+            else:
+                peers = self._deferred_replica_set_peers(node_info)
+            password = node_info.get("admin_password") or ""
+            if not password:
+                password = self._resolve_deferred_deinstall_password(
+                    ip=node_info["ip"],
+                    port=node_info["port"],
+                    bk_cloud_id=node_info.get("bk_cloud_id", self.payload.get("bk_cloud_id", 0)),
+                    cluster_id=cluster_id or None,
+                    peers=peers,
+                )
             if not password:
                 raise ValueError(
                     "resolve deferred deinstall admin password fail for {}:{} cluster_id={}".format(
@@ -1442,9 +1463,7 @@ class ActKwargs:
                     "renameDir": True,
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": password,
-                    "replicaSetPeers": self._deferred_replica_set_peers(node_info)
-                    if instance_type == MongoDBInstanceType.MongoD.value
-                    else [],
+                    "replicaSetPeers": peers,
                     "removedCheckAttempts": 36,
                     "removedCheckIntervalSec": 5,
                 },
@@ -3049,9 +3068,13 @@ class ActKwargs:
                 command=command,
             )
 
-            rpc_results = DRSApi.mongodb_rpc(param)
-            # 去除空白字符
-            result = rpc_results.strip()
+            try:
+                rpc_results = DRSApi.mongodb_rpc(param)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("get primary from %s:%s fail %s", node_ip, port, exc)
+                result = ""
+            else:
+                result = (rpc_results or "").strip()
             if not re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{1,5})$", result):
                 if index < len(ips) - 1:
                     continue
@@ -3107,6 +3130,8 @@ class ActKwargs:
                             ips = [member.ip for member in shard_members]
             if not ips:
                 raise ValueError("cluster:{} get node ip fail, ips:{}".format(str(cluster_id), ips))
+            # 被替换机器放最后，避免它不可达时拖住前面的存活节点
+            ips = [item for item in ips if item != ip] + [item for item in ips if item == ip]
             # 获取primary信息
             result = self.get_primary_info(ips, port, cluster_id)
             primary_ip = result.split(":")[0]
