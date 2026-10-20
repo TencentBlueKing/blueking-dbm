@@ -312,14 +312,13 @@ class TicketModifyHandler:
         # 撤销旧 ITSM 审批单
         TicketHandler.operate_itsm_ticket(ticket.id, action=OperateNodeActionType.WITHDRAW, operator=operator)
 
-        # 用改后内容重建 ITSM 参数，重新提单并更新 flow_obj_id
+        # 用改后内容重建 ITSM 参数，先创建新单拿到 sn，再一次性落库
+        # 避免先清空 flow_obj_id 落库触发 post_save 信号，用空 sn 查询 ITSM 导致异常
         new_params = builder.itsm_flow_builder(ticket).get_params()
-        itsm_flow.details = new_params
-        itsm_flow.flow_obj_id = ""
-        itsm_flow.save(update_fields=["details", "flow_obj_id", "update_at"])
         data = ItsmApi.create_ticket(new_params)
+        itsm_flow.details = new_params
         itsm_flow.flow_obj_id = data["sn"]
-        itsm_flow.save(update_fields=["flow_obj_id", "update_at"])
+        itsm_flow.save(update_fields=["details", "flow_obj_id", "update_at"])
 
     @staticmethod
     def _freeze_flow(flow, remark=""):
