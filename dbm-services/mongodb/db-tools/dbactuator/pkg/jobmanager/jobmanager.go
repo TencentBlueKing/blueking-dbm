@@ -139,6 +139,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atommongodb.NewMongoRestart,
 			atommongodb.NewStepDown,
 			atommongodb.NewBalancer,
+			atommongodb.NewBalanceConfigSessions,
 			atommongodb.NewDeInstall,
 			atommongodb.NewDeferredDeInstall,
 			atommongodb.NewExecScript,

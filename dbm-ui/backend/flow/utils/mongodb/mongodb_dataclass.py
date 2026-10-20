@@ -2454,6 +2454,62 @@ class ActKwargs:
             },
         }
 
+    def get_grant_sessions_chunk_role_kwargs(self) -> dict:
+        """给执行均衡脚本的 dba 授予 config.system.sessions 的 splitChunk / moveChunk。"""
+
+        ip = self.payload["mongos"]["nodes"][0]["ip"]
+        admin_user = MongoDBManagerUser.DbaUser.value
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.payload["mongos"]["nodes"][0]["bk_cloud_id"],
+            "exec_ip": ip,
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoExecuteScript,
+                "file_path": self.file_path,
+                "payload": {
+                    "taskid": str(self.payload["uid"]),
+                    "scriptFile": False,
+                    "scriptName": "grant_sessions_chunk_role",
+                    "ip": ip,
+                    "port": self.payload["mongos"]["port"],
+                    "script": mongodb_script_template.mongodb_grant_sessions_chunk_role_js_script(admin_user),
+                    "type": "cluster",
+                    "adminUsername": admin_user,
+                    "adminPassword": self.payload["passwords"][admin_user],
+                    "repoUrl": "",
+                    "repoUsername": "",
+                    "repoToken": "",
+                    "repoProject": "",
+                    "repoRepo": "",
+                    "repoPath": "",
+                },
+            },
+        }
+
+    def get_balance_sessions_kwargs(self) -> dict:
+        """均衡 config.system.sessions。仅 MongoDB 6 及以上的分片部署调用。"""
+
+        ip = self.payload["mongos"]["nodes"][0]["ip"]
+        admin_user = MongoDBManagerUser.DbaUser.value
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.payload["mongos"]["nodes"][0]["bk_cloud_id"],
+            "exec_ip": ip,
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.BalanceConfigSessions,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": ip,
+                    "port": self.payload["mongos"]["port"],
+                    "adminUsername": admin_user,
+                    "adminPassword": self.payload["passwords"][admin_user],
+                    "dbVersion": self.payload.get("db_version") or "",
+                },
+            },
+        }
+
     def mongod_replace_get_exec_ip(self, cluster_type: str, cluster_role: str, source_ip: str, instance: dict) -> dict:
         """整机替换mongod 获取执行ip，执行 ip 不为源 ip"""
 
