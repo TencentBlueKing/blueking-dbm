@@ -98,6 +98,10 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         #         _("{} binlog sql: {}").format(binlog_result["query_binlog_error"], backup_handler.query)
         #     )
 
+    def validate_cluster_can_access(self, attrs):
+        # 回档单据不校验集群状态
+        return attrs
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
