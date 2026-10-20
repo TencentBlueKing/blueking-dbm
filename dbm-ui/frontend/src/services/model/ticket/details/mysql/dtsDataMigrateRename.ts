@@ -5,6 +5,7 @@ import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
  */
 
 export interface DtsDataMigrateRename extends DetailBase {
+  backup_locale: 'master' | 'slave';
   clusters?: DetailClusters;
   infos: {
     dts_resource: {
@@ -52,7 +53,6 @@ export interface DtsDataMigrateRename extends DetailBase {
   }[];
   specs?: DetailSpecs;
   task: {
-    backup_locale: 'master' | 'slave';
     on_duplicate: 'error' | 'replace' | 'ignore';
   };
 }

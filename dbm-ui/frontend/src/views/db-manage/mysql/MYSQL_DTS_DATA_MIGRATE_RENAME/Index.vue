@@ -343,7 +343,7 @@
         });
       });
       Object.assign(formData, {
-        backupLocale: details.task?.backup_locale || 'slave',
+        backupLocale: details.backup_locale || 'slave',
         conflictHandle: details.task?.on_duplicate || 'error',
         payload: createTicketPayload(ticketDetail),
         tableData: tableData.length ? tableData : [createTableRow()],
@@ -389,8 +389,8 @@
       };
       source_role: 'master' | 'slave';
     }[];
+    backup_locale: 'master' | 'slave';
     task: {
-      backup_locale: 'master' | 'slave';
       on_duplicate: 'error' | 'replace' | 'ignore';
     };
   }>(TicketTypes.MYSQL_DTS_DATA_MIGRATE_RENAME);
@@ -436,8 +436,8 @@
             },
             source_role: formData.sourceRole,
           })),
+          backup_locale: formData.backupLocale,
           task: {
-            backup_locale: formData.backupLocale,
             on_duplicate: formData.conflictHandle,
           },
         },

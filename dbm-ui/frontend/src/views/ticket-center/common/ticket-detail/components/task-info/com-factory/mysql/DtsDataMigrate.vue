@@ -212,7 +212,7 @@
   } as const;
 
   const backupLocaleText = computed(() => {
-    const { backup_locale: backupLocale } = props.ticketDetails.details.task || {};
+    const { backup_locale: backupLocale } = props.ticketDetails.details || {};
     return backupLocale && backupLocaleTextMap[backupLocale];
   });
 
