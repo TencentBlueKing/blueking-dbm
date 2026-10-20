@@ -21,6 +21,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 from django.db import connections
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Spec
 from backend.db_services.redis.rollback.backup_presence import confirm_backup_tasks
@@ -31,12 +33,15 @@ from backend.db_services.redis.rollback.batches import (
     split_unsharded,
     unsharded_warning,
 )
-from backend.db_services.redis.rollback.binlogs import select_binlog_chain
+from backend.db_services.redis.rollback.binlogs import select_binlog_chain, select_kvstore_chains
 from backend.db_services.redis.rollback.constants import (
     BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
+    BINLOG_CLUSTER_TYPES,
     BINLOG_LOCATE_CONCURRENCY,
-    CACHE_CLUSTER_TYPES,
+    CLUSTER_PROTOCOL_TYPES,
+    CLUSTER_SLOT_TOTAL,
     CPU_PER_INSTANCE_HINT,
+    IN_MEMORY_CLUSTER_TYPES,
     ROLLBACK_CLUSTER_TYPES,
     SCOPE_CLUSTER,
     SCOPE_INSTANCES,
@@ -44,6 +49,7 @@ from backend.db_services.redis.rollback.constants import (
     SELECT_MODE_BY_TASK_ID,
     SELECT_MODE_BY_TIME,
     SSD_CLUSTER_TYPES,
+    TENDISPLUS_TYPES,
     infer_select_mode,
 )
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
@@ -56,7 +62,7 @@ from backend.db_services.redis.rollback.shards import (
     parse_shard_value,
     source_is_current,
 )
-from backend.flow.consts import DEFAULT_REDIS_START_PORT
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, ConfigTypeEnum
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     BinlogRef,
     DestHost,
@@ -103,6 +109,16 @@ def _as_utc(dt: datetime) -> datetime:
 
 def _message_of(exc: RollbackPlanError, default: str = "") -> str:
     return str(getattr(exc, "message", None) or default or _("回档计划校验失败"))
+
+
+def _gap_detail(gaps: Dict[str, Any]) -> str:
+    """Missing indexes, per kvstore for Tendisplus."""
+    if "kvstores" not in gaps:
+        return str(gaps["missing"])
+    return "; ".join(
+        str(_("kvstore {} 缺失 {} 个: {}").format(kvstore, kvstore_gaps["missing_count"], kvstore_gaps["missing"]))
+        for kvstore, kvstore_gaps in gaps["kvstores"].items()
+    )
 
 
 def balance_hosts(real: Sequence, placeholders: Sequence, host_count: int, size: Callable[[Any], int]) -> List[list]:
@@ -247,11 +263,7 @@ class RollbackPlanner:
             cluster_id=self.cluster.id,
             immute_domain=self.cluster.immute_domain,
             cluster_type=self.cluster.cluster_type,
-            tendis_type=(
-                ClusterType.TendisSSDInstance.value
-                if self.cluster.cluster_type in SSD_CLUSTER_TYPES
-                else ClusterType.RedisInstance.value
-            ),
+            tendis_type=self._tendis_type(),
             bk_cloud_id=self.cluster.bk_cloud_id,
             bk_biz_id=self.cluster.bk_biz_id,
             db_version=self.cluster.major_version,
@@ -374,6 +386,7 @@ class RollbackPlanner:
                     source_ip=b["source_ip"],
                     source_port=b["source_port"],
                     index=b["index"],
+                    kvstore=b.get("kvstore") or 0,
                 )
                 for b in shard.binlogs
             ],
@@ -419,7 +432,8 @@ class RollbackPlanner:
         # from_backup_records reads db_meta; resolve the whole batch once instead of per shard
         ref_by_shard = {ref.shard_value: ref for ref in self.resolver.from_backup_records(evaluation.batch_records)}
         current_by_shard = {ref.shard_value: ref for ref in self.resolver.from_db_meta() if ref.shard_value}
-        needs_routing = self.cluster.cluster_type == ClusterType.TendisTwemproxyRedisInstance.value
+        # Proxy segments and cluster slots are both built from shard_value, so it has to parse.
+        needs_routing = self.cluster.cluster_type == ClusterType.TendisTwemproxyRedisInstance.value or self._slotted
         locked = self._locked_rounds()
 
         for shard_value in shard_values:
@@ -435,13 +449,11 @@ class RollbackPlanner:
 
         evaluation.placeholders = self._evaluate_placeholders(evaluation, ref_by_shard, current_by_shard)
         if evaluation.placeholders:
-            evaluation.warnings.append(
-                str(
-                    _("未勾选的分片 {} 将只拉起空实例，保证临时 Proxy 路由完整").format(
-                        [shard.shard_value for shard in evaluation.placeholders]
-                    )
-                )
-            )
+            if self._slotted:
+                message = _("未勾选的分片 {} 将只拉起空实例，保证临时集群 slot 覆盖完整")
+            else:
+                message = _("未勾选的分片 {} 将只拉起空实例，保证临时 Proxy 路由完整")
+            evaluation.warnings.append(str(message.format([shard.shard_value for shard in evaluation.placeholders])))
 
         if evaluation.select_mode != SELECT_MODE_BY_TIME:
             self._resolve_recover_at(evaluation, explicit_recover_at)
@@ -489,7 +501,10 @@ class RollbackPlanner:
         if len(identifies) > 1:
             shard.errors.append(str(_("分片 {} 一轮全备跨 identify: {}").format(shard_value, sorted(identifies))))
         if needs_routing and not parse_shard_value(shard_value).parseable:
-            shard.errors.append(str(_("分片 {} 的 shard_value 无法解析，无法生成临时 Proxy 路由").format(shard_value)))
+            if self._slotted:
+                shard.errors.append(str(_("分片 {} 的 shard_value 无法解析为 slot，无法恢复临时集群的 slot").format(shard_value)))
+            else:
+                shard.errors.append(str(_("分片 {} 的 shard_value 无法解析，无法生成临时 Proxy 路由").format(shard_value)))
 
         shard.source_ip = round_files[0].get("source_ip") or ""
         shard.source_port = int(round_files[0].get("server_port") or 0)
@@ -502,7 +517,8 @@ class RollbackPlanner:
         """Unselected shards of the batch still get an empty instance.
 
         Partial rollback would otherwise leave the temp Proxy with segments pointing nowhere,
-        making the product unreachable for keys hashing into those slots.
+        making the product unreachable for keys hashing into those slots. A cluster-protocol
+        temp cluster needs them to own their slots, or it never covers all 16384.
         """
         selected = {shard.shard_value for shard in evaluation.shards}
         missing: Dict[str, dict] = OrderedDict()
@@ -560,6 +576,13 @@ class RollbackPlanner:
             pending.append((shard, min(starts)))
         if not pending:
             return
+        kvstore_count = 0
+        if self._plus:
+            try:
+                kvstore_count = self._kvstore_count()
+            except RollbackPlanError as exc:
+                evaluation.errors.append(_message_of(exc))
+                return
 
         def _fetch(job):
             shard, full_start = job
@@ -573,28 +596,34 @@ class RollbackPlanner:
             fetched = list(pool.map(_fetch, pending))
 
         for (shard, full_start), binlogs in zip(pending, fetched):
-            try:
-                shard.binlogs, shard.binlog_gaps = select_binlog_chain(
-                    binlogs, full_start, recover_at, self.allow_binlog_nonconsecutive
+            if self._plus:
+                chain, gaps, problems = select_kvstore_chains(
+                    binlogs, kvstore_count, full_start, recover_at, self.allow_binlog_nonconsecutive
                 )
-            except RollbackPlanError as exc:
-                shard.errors.append(
-                    str(
-                        _("分片 {} ({}:{}): {}").format(
-                            shard.shard_value, shard.source_ip, shard.source_port, _message_of(exc)
-                        )
+            else:
+                problems = []
+                try:
+                    chain, gaps = select_binlog_chain(
+                        binlogs, full_start, recover_at, self.allow_binlog_nonconsecutive
                     )
+                except RollbackPlanError as exc:
+                    problems = [_message_of(exc)]
+            if problems:
+                shard.errors.extend(
+                    str(_("分片 {} ({}:{}): {}").format(shard.shard_value, shard.source_ip, shard.source_port, problem))
+                    for problem in problems
                 )
                 continue
-            if shard.binlog_gaps:
+            shard.binlogs, shard.binlog_gaps = chain, gaps
+            if gaps:
                 evaluation.warnings.append(
                     str(
                         _("分片 {} ({}:{}) binlog 缺失 {} 个，已按 allow_binlog_nonconsecutive 放行，临时集群将缺少这段写入: {}").format(
                             shard.shard_value,
                             shard.source_ip,
                             shard.source_port,
-                            shard.binlog_gaps["missing_count"],
-                            shard.binlog_gaps["missing"],
+                            gaps["missing_count"],
+                            _gap_detail(gaps),
                         )
                     )
                 )
@@ -621,10 +650,12 @@ class RollbackPlanner:
             shard.errors.extend(problems.get(shard.shard_value) or [])
 
     def _check_layout(self, evaluation: PlanEval, needs_routing: bool) -> None:
-        """Overlap is fatal, partial coverage only warns.
+        """Overlap is fatal; partial coverage only warns, except for cluster protocol.
 
         Placeholders count towards coverage: they hold their slot range with an empty
-        instance, so a partial selection still routes completely.
+        instance, so a partial selection still routes completely. A cluster serves no request
+        until every slot is owned, so there the selected and placeholder shards, both taken
+        from the batch's layout, must cover all slots.
         """
         covered = [shard.shard_value for shard in evaluation.shards if shard.ok]
         covered.extend(shard.shard_value for shard in evaluation.placeholders)
@@ -632,6 +663,18 @@ class RollbackPlanner:
         if conflicts:
             pairs = ", ".join("{} / {}".format(left, right) for left, right in conflicts)
             evaluation.errors.append(str(_("所选分片存在重叠: {}").format(pairs)))
+            return
+        if self._slotted:
+            layout = [shard.shard_value for shard in evaluation.shards + evaluation.placeholders]
+            gaps = coverage_gaps(layout, total=CLUSTER_SLOT_TOTAL, start=0)
+            if gaps:
+                evaluation.errors.append(
+                    str(
+                        _("批次 {} 的分片布局未覆盖全部 {} 个 slot，临时集群无法组建，缺失: {}").format(
+                            evaluation.backup_identify or "-", CLUSTER_SLOT_TOTAL, convert_slot_to_str(gaps)
+                        )
+                    )
+                )
             return
         if not needs_routing:
             return
@@ -669,12 +712,13 @@ class RollbackPlanner:
         return Spec.objects.filter(spec_id=spec_id).first()
 
     def _check_memory(self, evaluation: PlanEval) -> None:
-        """Cache only: the busiest host must hold its shards in memory. SSD data stays on disk.
+        """Cache and RedisCluster only: the busiest host must hold its shards in memory. SSD and
+        Tendisplus data stays on disk.
 
         The spec's lower memory bound is the only one the resource pool guarantees; a spec matched
         by device class may differ, which the precheck on the real host settles.
         """
-        if self.cluster.cluster_type not in CACHE_CLUSTER_TYPES or evaluation.errors:
+        if self.cluster.cluster_type not in IN_MEMORY_CLUSTER_TYPES or evaluation.errors:
             return
         host_count = self._host_count([])
         spec = self._spec()
@@ -790,7 +834,49 @@ class RollbackPlanner:
 
     @property
     def _replays_binlog(self) -> bool:
-        return self.cluster.cluster_type in SSD_CLUSTER_TYPES
+        return self.cluster.cluster_type in BINLOG_CLUSTER_TYPES
+
+    @property
+    def _plus(self) -> bool:
+        return self.cluster.cluster_type in TENDISPLUS_TYPES
+
+    @property
+    def _slotted(self) -> bool:
+        return self.cluster.cluster_type in CLUSTER_PROTOCOL_TYPES
+
+    def _tendis_type(self) -> str:
+        if self.cluster.cluster_type in SSD_CLUSTER_TYPES:
+            return ClusterType.TendisSSDInstance.value
+        if self._plus:
+            return ClusterType.TendisplusInstance.value
+        return ClusterType.RedisInstance.value
+
+    def _kvstore_count(self) -> int:
+        """kvstorecount of the temp instances: they are installed with the cluster's own config."""
+        try:
+            content = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(self.cluster.bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": self.cluster.immute_domain,
+                    "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                    "conf_file": self.cluster.major_version,
+                    "conf_type": ConfigTypeEnum.DBConf,
+                    "namespace": self.cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )["content"]
+            count = int(content["kvstorecount"])
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("redis rollback kvstorecount of %s unavailable: %s", self.cluster.immute_domain, exc)
+            raise RollbackPlanError(
+                context={"message": _("无法获取集群 {} 的 kvstorecount: {}").format(self.cluster.immute_domain, exc)}
+            )
+        if count <= 0:
+            raise RollbackPlanError(
+                context={"message": _("集群 {} 的 kvstorecount 为 {}").format(self.cluster.immute_domain, count)}
+            )
+        return count
 
     def _explicit_recover_at(self) -> Optional[datetime]:
         value = self.info.get("recovery_time_point")
@@ -871,7 +957,7 @@ class RollbackPlanner:
         )
         placeholders = [item for item in plan.items if item.is_placeholder]
         buckets = balance_hosts(real, placeholders, len(dest_ips), lambda item: item.download_bytes)
-        is_cache = plan.cluster_type in CACHE_CLUSTER_TYPES
+        is_cache = plan.cluster_type in IN_MEMORY_CLUSTER_TYPES
 
         items: List[RollbackItem] = []
         dest_hosts: List[DestHost] = []

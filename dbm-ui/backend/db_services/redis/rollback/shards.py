@@ -96,6 +96,23 @@ def parse_shard_value(shard_value: str) -> ShardParseResult:
     return ShardParseResult(ranges=ranges, parseable=True)
 
 
+def slot_ranges(shard_value: str) -> str:
+    """Merged, sorted ``start-end`` ranges of a cluster shard, e.g. ``0-100,200``; empty when unparseable.
+
+    Migrating and importing markers are dropped: the temp node owns exactly the stable slots.
+    """
+    parsed = parse_shard_value(shard_value)
+    if not parsed.parseable:
+        return ""
+    merged: List[List[int]] = []
+    for start, end in sorted(parsed.ranges):
+        if merged and start <= merged[-1][1] + 1:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return ",".join(str(start) if start == end else "{}-{}".format(start, end) for start, end in merged)
+
+
 def round_key_from_filename(file_name: str) -> str:
     """Group split volumes of the same backup by stripping ``.split.NNN``."""
     name = (file_name or "").split("/")[-1]

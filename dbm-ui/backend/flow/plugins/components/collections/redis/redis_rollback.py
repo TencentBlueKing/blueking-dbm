@@ -99,6 +99,7 @@ class RedisRollbackDiskPrecheckService(BaseService):
                 plan.cluster_type in SSD_CLUSTER_TYPES,
                 int(host_disk.get("cpu_count") or 0),
                 plan.max_concurrency,
+                is_plus=plan.is_plus,
             )
             needs = disk_needs(
                 disks["redis_backup_dir_data"], disks["redis_data_dir_data"], backup_bytes, data_bytes, same_fs

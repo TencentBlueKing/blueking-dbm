@@ -301,6 +301,8 @@ class RedisRollbackFlow:
                 }
             )
         redis_pipeline.add_parallel_acts(acts_list=recover_acts)
+        if plan.is_cluster_protocol:
+            self._add_form_cluster_act(redis_pipeline, plan_id, dest_ips[0], act_kwargs)
 
         install_meta_acts = []
         for dest_host in plan.dest_hosts:
@@ -412,6 +414,21 @@ class RedisRollbackFlow:
             act_name=_("校验{}已下载的备份文件").format(dest_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(verify_kwargs),
+        )
+
+    @staticmethod
+    def _add_form_cluster_act(pipeline, plan_id: int, exec_ip: str, act_kwargs: ActKwargs) -> None:
+        """Restore nodes leave every instance alone with its slots; this one node forms the cluster,
+        so retrying it never touches restored data."""
+        form_kwargs = deepcopy(act_kwargs)
+        form_kwargs.exec_ip = exec_ip
+        form_kwargs.is_update_trans_data = False
+        form_kwargs.get_redis_payload_func = RedisActPayload.redis_rollback_form_cluster_payload.__name__
+        form_kwargs.cluster = {"plan_id": plan_id, "dest_ip": exec_ip}
+        pipeline.add_act(
+            act_name=_("Redis-组建临时集群"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(form_kwargs),
         )
 
     @staticmethod

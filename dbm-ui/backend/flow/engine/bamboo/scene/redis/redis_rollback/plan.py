@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint, index_segments
 from backend.db_services.redis.rollback.constants import (
+    CLUSTER_PROTOCOL_TYPES,
     COMPRESSED_SUFFIXES,
     MEMORY_RATIO_AOF,
     MEMORY_RATIO_RDB,
@@ -25,10 +26,11 @@ from backend.db_services.redis.rollback.constants import (
     REPLAY_PARSE_LOOKAHEAD,
     SCOPE_CLUSTER,
     SELECT_MODE_BY_TIME,
+    TENDISPLUS_TYPES,
     UNPACK_RATIO,
 )
 from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
-from backend.db_services.redis.rollback.shards import ShardRef
+from backend.db_services.redis.rollback.shards import ShardRef, slot_ranges
 
 ORPHAN_PLAN_TTL = timedelta(days=1)
 MANIFEST_FILE_PREFIX = "rollback_manifest_"
@@ -86,6 +88,32 @@ class BinlogRef:
     source_ip: str
     source_port: int
     index: int = 0
+    # Tendisplus only; every kvstore has its own chain.
+    kvstore: int = 0
+
+
+def _binlog_digest(binlogs: List[BinlogRef]) -> Dict[str, Any]:
+    names = [b.file_name for b in binlogs]
+    return {
+        "count": len(names),
+        "first": names[0] if names else "",
+        "last": names[-1] if names else "",
+        "fingerprint": binlog_fingerprint(names) if names else "",
+        "segments": index_segments([b.index for b in binlogs]),
+    }
+
+
+def _binlog_payload(binlogs: List[BinlogRef]) -> Dict[str, Any]:
+    digest = _binlog_digest(binlogs)
+    return {
+        "binlog_range": {
+            "first_index": binlogs[0].index if binlogs else 0,
+            "last_index": binlogs[-1].index if binlogs else 0,
+        },
+        "binlog_count": digest["count"],
+        "binlog_fingerprint": digest["fingerprint"],
+        "binlog_segments": digest["segments"],
+    }
 
 
 @dataclass
@@ -135,35 +163,47 @@ class RollbackItem:
 
     @property
     def binlog_digest(self) -> Dict[str, Any]:
-        names = [b.file_name for b in self.binlog_files]
-        digest = {
-            "count": len(names),
-            "first": names[0] if names else "",
-            "last": names[-1] if names else "",
-            "fingerprint": binlog_fingerprint(names) if names else "",
-            "segments": index_segments([b.index for b in self.binlog_files]),
+        digest = _binlog_digest(self.binlog_files)
+        if self.binlog_gaps:
+            digest["gaps"] = dict(self.binlog_gaps)
+        return digest
+
+    @property
+    def kvstore_binlogs(self) -> Dict[int, List[BinlogRef]]:
+        """Tendisplus binlogs per kvstore, each in index order."""
+        chains: Dict[int, List[BinlogRef]] = {}
+        for binlog in sorted(self.binlog_files, key=lambda b: (b.kvstore, b.index)):
+            chains.setdefault(binlog.kvstore, []).append(binlog)
+        return chains
+
+    @property
+    def kvstore_digest(self) -> Dict[str, Any]:
+        digest: Dict[str, Any] = {
+            "count": len(self.binlog_files),
+            "kvstores": {str(kvstore): _binlog_digest(chain) for kvstore, chain in self.kvstore_binlogs.items()},
         }
         if self.binlog_gaps:
             digest["gaps"] = dict(self.binlog_gaps)
         return digest
 
-    def actuator_instance(self) -> Dict[str, Any]:
-        """One port of the actuator payload. Binlogs go as a digest the actuator checks its local files against."""
-        binlogs = self.binlog_files
-        return {
+    def actuator_instance(self, plus: bool = False, cluster_protocol: bool = False) -> Dict[str, Any]:
+        """One port of the actuator payload. Binlogs go as a digest the actuator checks its local files against;
+        Tendisplus gets one per kvstore, and cluster protocol ports the slots they own."""
+        instance = {
             "shard_value": self.shard.shard_value,
             "source_ip": self.source_ip,
             "source_port": self.source_port,
             "dest_port": self.dest_port,
             "full_files": [f.file_name for f in self.full_files],
-            "binlog_range": {
-                "first_index": binlogs[0].index if binlogs else 0,
-                "last_index": binlogs[-1].index if binlogs else 0,
-            },
-            "binlog_count": len(binlogs),
-            "binlog_fingerprint": self.binlog_digest["fingerprint"],
-            "binlog_segments": self.binlog_digest["segments"],
+            **_binlog_payload([] if plus else self.binlog_files),
         }
+        if cluster_protocol:
+            instance["slots"] = slot_ranges(self.shard.shard_value)
+        if plus:
+            instance["kvstore_binlogs"] = [
+                {"kvstore": kvstore, **_binlog_payload(chain)} for kvstore, chain in self.kvstore_binlogs.items()
+            ]
+        return instance
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RollbackItem":
@@ -218,11 +258,30 @@ class RollbackPlan:
             if not item.is_placeholder
         ]
 
+    @property
+    def is_plus(self) -> bool:
+        return self.cluster_type in TENDISPLUS_TYPES
+
+    @property
+    def is_cluster_protocol(self) -> bool:
+        return self.cluster_type in CLUSTER_PROTOCOL_TYPES
+
     def dest_host(self, ip: str) -> DestHost:
         return next(host for host in self.dest_hosts if host.ip == ip)
 
     def actuator_instances(self, ip: str) -> List[Dict[str, Any]]:
-        return [item.actuator_instance() for item in self.items if item.dest_ip == ip]
+        return [
+            item.actuator_instance(plus=self.is_plus, cluster_protocol=self.is_cluster_protocol)
+            for item in self.items
+            if item.dest_ip == ip
+        ]
+
+    def cluster_nodes(self) -> List[Dict[str, Any]]:
+        """Every temp instance with the slots it must own once the cluster is formed."""
+        return [
+            {"ip": item.dest_ip, "port": item.dest_port, "slots": slot_ranges(item.shard.shard_value)}
+            for item in self.items
+        ]
 
     def to_rollback_detail(self, plan_id: Optional[int] = None) -> Dict[str, Any]:
         """Per-shard summary for the task record; the full file lists stay in the persisted plan."""
@@ -240,7 +299,7 @@ class RollbackPlan:
                 "is_placeholder": item.is_placeholder,
             }
             if item.binlog_files:
-                shard["binlog"] = item.binlog_digest
+                shard["binlog"] = item.kvstore_digest if self.is_plus else item.binlog_digest
             shards.append(shard)
         return {
             "plan_id": plan_id,
@@ -291,17 +350,32 @@ class RollbackPlan:
         return cls.from_dict(TbTendisRollbackPlan.objects.get(id=plan_id).plan)
 
 
-def host_disk_needs(items: List[RollbackItem], is_ssd: bool, cpu: int, max_concurrency: int) -> Tuple[int, int]:
+def host_disk_needs(
+    items: List[RollbackItem], is_ssd: bool, cpu: int, max_concurrency: int, is_plus: bool = False
+) -> Tuple[int, int]:
     """Peak ``(backup disk, data disk)`` bytes of one host's restore.
 
     Downloads stay on the backup disk until their port is done; full backups are unpacked onto
     the data disk. An SSD port also holds its unpacked backup beside the rocksdb rebuilt from it
     until the rebuild ends, replayed writes grow rocksdb, and replaying ports keep binlogs
-    decompressed and parsed on the backup disk.
+    decompressed and parsed on the backup disk. Tendisplus moves its unpacked backup into place,
+    and each kvstore replaying keeps one binlog decompressed.
     """
     real = [item for item in items if not item.is_placeholder]
     backup = sum(item.download_bytes for item in real)
     data = sum(item.unpacked_bytes for item in real)
+    if is_plus and real:
+        streams = sum(len(item.kvstore_binlogs) for item in real)
+        decompressed = [
+            unpacked_size(b.file_name, b.size)
+            for item in real
+            for b in item.binlog_files
+            if b.file_name.endswith(COMPRESSED_SUFFIXES)
+        ]
+        if streams and decompressed:
+            backup += stage_slots(cpu, max_concurrency, streams) * max(decompressed)
+        data += sum(item.binlog_unpacked_bytes for item in real)
+        return backup, data
     if not is_ssd or not real:
         return backup, data
     slots = stage_slots(cpu, max_concurrency, len(real))

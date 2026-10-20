@@ -23,11 +23,19 @@ GAP_SAMPLE_SIZE = 10
 
 # binlog-{ip}-{port}-{index}-{yyyymmddHHMMSS}.log.zst; legacy GCS names carry no ip.
 _SSD_BINLOG_NAME = re.compile(r"^binlog-(?:\d{1,3}(?:\.\d{1,3}){3}-)?\d+-(\d+)-\d{14}\.log\.(?:zst|lzo)$")
+# Tendisplus: binlog-{ip}-{port}-{kvstore}-{index}-{yyyymmddHHMMSS}.log.zst
+_PLUS_BINLOG_NAME = re.compile(r"^binlog-(?:\d{1,3}(?:\.\d{1,3}){3}-)?\d+-(\d+)-(\d+)-\d{14}\.log\.(?:zst|lzo)$")
 
 
 def binlog_index(file_name: str) -> Optional[int]:
     match = _SSD_BINLOG_NAME.match(file_name.split("/")[-1])
     return int(match.group(1)) if match else None
+
+
+def plus_binlog_position(file_name: str) -> Optional[Tuple[int, int]]:
+    """``(kvstore, index)`` of a Tendisplus binlog; each kvstore numbers its files on its own."""
+    match = _PLUS_BINLOG_NAME.match(file_name.split("/")[-1])
+    return (int(match.group(1)), int(match.group(2))) if match else None
 
 
 def index_segments(indexes: Sequence[int], limit: int = GAP_SAMPLE_SIZE) -> str:
@@ -60,15 +68,22 @@ def select_binlog_chain(
 
     ``allow_nonconsecutive`` lets index holes through and returns them as ``gaps``
     (``{missing_count, missing}``, first 10 indexes). A missing head or tail, duplicates, fewer
-    than two files and an index that goes backwards in time (instance restart) still fail.
+    than two files and an index that goes backwards in time (instance restart) still fail. A
+    missing end is never waited for: the message names the side and the files there are.
     """
     unique = list({b["file_name"]: b for b in binlogs}.values())
     heads = [b for b in unique if b["begin_time"] <= full_start]
     tails = [b for b in unique if b["begin_time"] >= recover_at]
     if not heads:
-        raise RollbackPlanError(context={"message": _("全备开始前没有 binlog")})
+        raise RollbackPlanError(context={"message": _("左边界缺失：全备开始前没有 binlog，现有 {}").format(_chain_ends(unique))})
     if not tails:
-        raise RollbackPlanError(context={"message": _("回档时刻之后没有 binlog，binlog 链断裂（实例可能已替换），请选更早的时间")})
+        raise RollbackPlanError(
+            context={
+                "message": _("右边界缺失：回档时刻之后没有 binlog，binlog 链断裂（实例可能已替换，或尚未上传），请选更早的时间或上传后重提，现有 {}").format(
+                    _chain_ends(unique)
+                )
+            }
+        )
 
     head_time = max(b["begin_time"] for b in heads)
     tail_time = min(b["begin_time"] for b in tails)
@@ -97,3 +112,50 @@ def select_binlog_chain(
             context={"message": _("binlog 序号不连续，缺失: {}；如可接受缺失这段写入，可开启 allow_binlog_nonconsecutive").format(shown)}
         )
     return chain, {"missing_count": len(missing), "missing": missing[:GAP_SAMPLE_SIZE]}
+
+
+def _chain_ends(binlogs: Sequence[Dict]) -> str:
+    if not binlogs:
+        return str(_("binlog: 无"))
+    ordered = sorted(binlogs, key=lambda b: (b["index"], b["file_name"]))
+    return str(_("binlog {} ~ {}").format(ordered[0]["file_name"], ordered[-1]["file_name"]))
+
+
+def select_kvstore_chains(
+    binlogs: Sequence[Dict],
+    kvstore_count: int,
+    full_start: datetime,
+    recover_at: datetime,
+    allow_nonconsecutive: bool = False,
+) -> Tuple[List[Dict], Optional[Dict], List[str]]:
+    """Gate C for Tendisplus: a chain for every kvstore ``0..kvstore_count-1`` of the source.
+
+    Returns the chains in ``(kvstore, index)`` order, gaps let through per kvstore as
+    ``{missing_count, kvstores: {kvstore: {missing_count, missing}}}`` and one error per broken
+    kvstore. Binlogs of a kvstore the temp instance does not have mean the source had more
+    kvstores, so they are an error rather than ignored.
+    """
+    by_kvstore: Dict[int, List[Dict]] = {}
+    for binlog in binlogs:
+        by_kvstore.setdefault(binlog["kvstore"], []).append(binlog)
+    errors: List[str] = []
+    extra = sorted(kvstore for kvstore in by_kvstore if kvstore >= kvstore_count)
+    if extra:
+        errors.append(str(_("源实例有 kvstore {}，多于临时实例的 {} 个 kvstore").format(extra, kvstore_count)))
+
+    chain: List[Dict] = []
+    gaps: Dict[str, Dict] = {}
+    for kvstore in range(kvstore_count):
+        try:
+            selected, kvstore_gaps = select_binlog_chain(
+                by_kvstore.get(kvstore) or [], full_start, recover_at, allow_nonconsecutive
+            )
+        except RollbackPlanError as exc:
+            errors.append(str(_("kvstore {}: {}").format(kvstore, exc.message)))
+            continue
+        chain.extend(selected)
+        if kvstore_gaps:
+            gaps[str(kvstore)] = kvstore_gaps
+    if not gaps:
+        return chain, None, errors
+    return chain, {"missing_count": sum(g["missing_count"] for g in gaps.values()), "kvstores": gaps}, errors

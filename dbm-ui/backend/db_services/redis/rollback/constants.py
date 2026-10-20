@@ -45,7 +45,20 @@ SSD_CLUSTER_TYPES = (
     ClusterType.TwemproxyTendisSSDInstance.value,
     ClusterType.TendisTendisSSDInstance.value,
 )
-ROLLBACK_CLUSTER_TYPES = CACHE_CLUSTER_TYPES + SSD_CLUSTER_TYPES
+# Tendisplus engine: restorebackup and per-kvstore binlogs, whether or not cluster-enabled.
+TENDISPLUS_TYPES = (ClusterType.TendisPredixyTendisplusCluster.value,)
+REDIS_CLUSTER_TYPES = (ClusterType.TendisPredixyRedisCluster.value,)
+# Temp clusters of these types are formed after restore and must hold every slot.
+CLUSTER_PROTOCOL_TYPES = (
+    ClusterType.TendisPredixyTendisplusCluster.value,
+    ClusterType.TendisPredixyRedisCluster.value,
+)
+# Data loaded into memory, so the busiest host must fit it.
+IN_MEMORY_CLUSTER_TYPES = CACHE_CLUSTER_TYPES + REDIS_CLUSTER_TYPES
+BINLOG_CLUSTER_TYPES = SSD_CLUSTER_TYPES + TENDISPLUS_TYPES
+ROLLBACK_CLUSTER_TYPES = CACHE_CLUSTER_TYPES + SSD_CLUSTER_TYPES + CLUSTER_PROTOCOL_TYPES
+
+CLUSTER_SLOT_TOTAL = 16384
 
 # Binlogs rotate about every 20 minutes but an upload may lag by up to 2 hours, so the lookup
 # window is widened on both sides to be sure it holds the files around each end of the chain.
