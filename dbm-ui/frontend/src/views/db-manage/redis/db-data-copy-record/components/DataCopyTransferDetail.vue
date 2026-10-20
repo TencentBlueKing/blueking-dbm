@@ -12,11 +12,12 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleBeforeClose"
     class="data-copy-transfer-slider"
     :is-show="isShow"
     render-directive="if"
+    :show-footer="false"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -183,7 +184,7 @@
         </BkCollapsePanel>
       </BkCollapse>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

@@ -1,7 +1,8 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="modelValue"
     render-directive="if"
+    :show-footer="false"
     :title="t('失败的从库实例详情')"
     :width="1100">
     <BkLoading :loading="isLoading">
@@ -33,7 +34,7 @@
         </div>
       </div>
     </BkLoading>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';

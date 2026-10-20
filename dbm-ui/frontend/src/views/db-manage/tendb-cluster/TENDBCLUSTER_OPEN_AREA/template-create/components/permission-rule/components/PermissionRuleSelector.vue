@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     :title="t('添加授权规则')"
     width="80%">
@@ -124,7 +124,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
@@ -153,7 +153,7 @@
     required: true,
   });
   const modleValue = defineModel<number[]>({
-    default: [],
+    default: () => [],
   });
 
   const { t } = useI18n();

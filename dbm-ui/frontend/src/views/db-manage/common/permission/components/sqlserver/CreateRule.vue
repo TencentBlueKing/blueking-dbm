@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
     render-directive="if"
@@ -111,7 +111,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">
@@ -133,7 +133,7 @@
   import dbOperations from './config';
 
   interface Props {
-    accountId: number;
+    accountId?: number;
   }
 
   type Emits = (e: 'success') => void;

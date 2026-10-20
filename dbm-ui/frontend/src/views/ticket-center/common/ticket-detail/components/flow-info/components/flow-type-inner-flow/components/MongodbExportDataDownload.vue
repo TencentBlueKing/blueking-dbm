@@ -9,7 +9,7 @@
       type="download-line" />
     <span class="ml-2">{{ t('下载结果文件') }}</span>
   </BkButton>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     :title="t('下载结果文件')"
     :width="1140">
@@ -73,7 +73,7 @@
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

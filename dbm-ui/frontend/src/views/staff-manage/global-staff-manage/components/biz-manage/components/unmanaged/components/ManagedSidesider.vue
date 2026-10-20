@@ -1,7 +1,9 @@
 <template>
-  <BkSideslider
+  <DbSideslider
+    ref="sideslider"
     v-model:is-show="modelValue"
     quick-close
+    render-directive="show"
     :width="960">
     <template #header>
       <div class="biz-unmanage-sideslider-header">
@@ -231,11 +233,11 @@
       <BkButton
         class="ml-16"
         :disabled="isManageBizLoading"
-        @click="modelValue = false">
+        @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">
@@ -303,6 +305,7 @@
   ];
 
   const rootRef = useTemplateRef('tableWrapper');
+  const sidesliderRef = useTemplateRef('sideslider');
   const formRef = useTemplateRef('form');
   const bizCodeDisabled = ref(false);
   const formData = ref({
@@ -423,6 +426,13 @@
   onMounted(() => {
     setTableMaxHeight();
   });
+
+  // 点取消按钮：内容编辑过先弹离开确认
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      modelValue.value = false;
+    }
+  };
 </script>
 
 <style lang="less">
