@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="dbm-machine-resource-selector"
     :close-icon="false"
     :draggable="false"
@@ -60,7 +60,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

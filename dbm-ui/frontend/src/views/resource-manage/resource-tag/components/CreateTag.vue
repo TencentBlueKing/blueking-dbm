@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     :is-show="isShow"
     render-directive="if"
     @closed="handleClose"
@@ -58,7 +58,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

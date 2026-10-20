@@ -15,7 +15,7 @@
   <BkButton @click="handleShow">
     {{ t('权限预览') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     :draggable="false"
     :is-show="isShow"
     :quick-close="false"
@@ -141,7 +141,7 @@
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

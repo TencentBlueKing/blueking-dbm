@@ -6,7 +6,7 @@
       @click="handleShowDialog">
       {{ title }}
     </BkButton>
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShow"
       class="ticket-self-todo-batch-operation"
       :title="title">
@@ -47,7 +47,7 @@
           {{ t('取消') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
   </div>
 </template>
 <script setup lang="ts">

@@ -13,9 +13,8 @@
 
 <template>
   <SmartAction>
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShow"
-      :disabled-confirm="isExistedErrorMsg"
       :height="760"
       :title="t('请确认以下开区内容：')"
       :width="1536">
@@ -71,7 +70,7 @@
           {{ t('关闭') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
   </SmartAction>
 </template>
 
@@ -108,10 +107,6 @@
   const ticketMessage = useTicketMessage();
 
   const tableData = shallowRef<RowData[]>([]);
-
-  const isExistedErrorMsg = computed(() =>
-    props.data?.config_data.some((item) => item.execute_objects.some((obj) => obj.error_msg)),
-  );
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<
     {

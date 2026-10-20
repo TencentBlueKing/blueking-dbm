@@ -12,9 +12,10 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     render-directive="if"
+    :show-footer="false"
     :width="1100">
     <template #header>
       <div class="k8s-instance-column-sideslider-header">
@@ -68,7 +69,7 @@
         </div>
       </BkTab>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

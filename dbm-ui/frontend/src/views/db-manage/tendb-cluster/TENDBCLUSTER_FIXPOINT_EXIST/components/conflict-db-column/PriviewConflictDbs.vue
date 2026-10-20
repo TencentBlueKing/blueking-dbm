@@ -12,8 +12,10 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
+    render-directive="show"
+    :show-footer="false"
     :width="900">
     <template #header>
       <span>{{ t('受影响的 DB') }}</span>
@@ -61,7 +63,7 @@
         </PrimaryTable>
       </BkLoading>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

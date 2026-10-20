@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="sqlserver-cluster-reset"
     :is-show="isShow"
     theme="primary"
@@ -43,7 +43,7 @@
         </BkFormItem>
       </BkComposeFormItem>
     </BkForm>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts" generic="T extends SqlServerSingleModel | SqlServerHaModel">

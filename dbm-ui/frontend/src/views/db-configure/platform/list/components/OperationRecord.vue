@@ -105,9 +105,11 @@
     </DbTable>
 
     <!-- 查看详情侧滑 -->
-    <BkSideslider
+    <DbSideslider
       :is-show="isShowDetail"
       quick-close
+      render-directive="show"
+      :show-footer="false"
       :width="960"
       @closed="isShowDetail = false">
       <template #header>
@@ -203,7 +205,7 @@
           </tbody>
         </table>
       </div>
-    </BkSideslider>
+    </DbSideslider>
   </div>
 </template>
 

@@ -39,8 +39,10 @@
         {{ fileName }}
       </BkButton>
       <span v-else>--</span>
-      <BkSideslider
+      <DbSideslider
         v-model:is-show="isShowSqlfile"
+        render-directive="show"
+        :show-footer="false"
         :title="t('查询 SQL')"
         :width="960">
         <BkLoading :loading="isContentLoading">
@@ -52,7 +54,7 @@
               :title="fileInfo[0].path" />
           </div>
         </BkLoading>
-      </BkSideslider>
+      </DbSideslider>
     </InfoItem>
     <InfoItem :label="t('目标DB')">
       <TicketInfoTable

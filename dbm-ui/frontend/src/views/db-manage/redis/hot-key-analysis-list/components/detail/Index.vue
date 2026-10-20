@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     quick-close
+    render-directive="show"
+    :show-footer="false"
     :width="960">
     <template #header>
       <div class="redis-hot-key-analysis-detail-header">
@@ -91,7 +93,7 @@
         </BkLoading>
       </div>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

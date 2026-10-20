@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="host-preview-dialog"
     :is-show="isShow"
     :title="t('主机预览')"
@@ -51,7 +51,7 @@
         {{ t('关闭') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

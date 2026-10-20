@@ -20,7 +20,11 @@ import { t } from '@locales/index';
  */
 export const useBeforeClose = () =>
   function sideSilderbeforeClose(flag?: boolean) {
-    const closable = flag ?? window.changeConfirm;
+    /**
+     * 不传 flag 时按全局离开确认状态判断，只认 true（内容被编辑过）。
+     * 'popover' 是 DbSideslider 打开时置的「侧栏内未编辑」标记，与 leaveConfirm 的判断保持一致，不弹确认
+     */
+    const closable = flag ?? window.changeConfirm === true;
     if (closable) {
       return new Promise<boolean>((resolve) => {
         InfoBox({

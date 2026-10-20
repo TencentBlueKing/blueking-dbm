@@ -30,6 +30,7 @@ import DbSelect from '@components/bkui-vue/select/Index.vue';
 import DbTag from '@components/bkui-vue/tag/Index.vue';
 import DbTagInput from '@components/bkui-vue/tag-input/Index.vue';
 import DbCard from '@components/db-card/index.vue';
+import DbDialog from '@components/db-dialog/Index.vue';
 import DbForm from '@components/db-form/index.vue';
 import DbFormItem from '@components/db-form/item.vue';
 import DbIcon from '@components/db-icon';
@@ -79,6 +80,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('OperationColumn', OperationColumn);
   app.component('DbCard', DbCard);
   app.component('DbDatePicker', DbDatePicker);
+  app.component('DbDialog', DbDialog);
   app.component('DbDropdown', DbDropdown);
   app.component('DbDropdownItem', DbDropdownItem);
   app.component('DbDropdownMenu', DbDropdownMenu);

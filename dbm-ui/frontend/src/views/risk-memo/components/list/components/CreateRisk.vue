@@ -1,10 +1,11 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
     class="create-risk-slider-main"
     quick-close
     render-directive="if"
+    :show-footer="false"
     :title="isSpecial ? t('新建要求') : t('新建风险')"
     :width="960"
     @closed="handleClosed">
@@ -90,7 +91,7 @@
         {{ t('取消') }}
       </BkButton>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

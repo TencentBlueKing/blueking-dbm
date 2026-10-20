@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="close-risk-dialog-main"
     quick-close
@@ -44,7 +44,7 @@
         </BkButton>
       </div>
     </div>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

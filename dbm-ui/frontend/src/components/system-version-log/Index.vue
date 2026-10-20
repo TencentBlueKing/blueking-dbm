@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="db-system-version-log-dialog"
     :draggable="false"
@@ -45,7 +45,7 @@
         </ScrollFaker>
       </div>
     </div>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import DOMPurify from 'dompurify';

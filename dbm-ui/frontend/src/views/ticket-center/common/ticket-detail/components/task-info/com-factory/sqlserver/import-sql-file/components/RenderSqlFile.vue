@@ -1,7 +1,9 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="sql-log-sideslider"
+    render-directive="show"
+    :show-footer="false"
     :title="t('执行SQL变更_内容详情')"
     :width="960">
     <template
@@ -60,7 +62,7 @@
         </div>
       </div>
     </BkLoading>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { computed } from 'vue';

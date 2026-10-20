@@ -12,8 +12,10 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
+    render-directive="show"
+    :show-footer="false"
     :title="t('模板详情【templateName配置 】', { name: data?.config_name })"
     :width="1100">
     <BkCollapse
@@ -111,7 +113,7 @@
         </template>
       </BkCollapsePanel>
     </BkCollapse>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';

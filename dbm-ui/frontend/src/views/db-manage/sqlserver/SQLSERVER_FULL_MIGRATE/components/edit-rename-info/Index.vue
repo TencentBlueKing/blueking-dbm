@@ -1,6 +1,8 @@
 <template>
-  <BkSideslider
+  <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
+    render-directive="show"
     :width="900">
     <template #header>
       <span>{{ t('手动修改迁移的 DB 名') }}</span>
@@ -44,7 +46,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -92,6 +94,7 @@
 
   const { t } = useI18n();
 
+  const sidesliderRef = useTemplateRef('sideslider');
   const renameListRef = useTemplateRef<InstanceType<typeof RenameList>>('renameList');
   const localValue = ref<{
     dbIgnoreName: string[];
@@ -112,8 +115,11 @@
     }
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 
   watch(isShow, () => {

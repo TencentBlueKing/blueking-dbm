@@ -25,6 +25,8 @@
 <script setup lang="ts">
   import { debounce } from 'lodash';
 
+  import { markPageChanged, popoverInjectKey } from '@utils';
+
   export interface Props {
     autoLabelWidth?: boolean;
     formType?: 'default' | 'vertical';
@@ -45,11 +47,19 @@
 
   const dbFormRef = ref();
 
+  // 是否渲染在 DbSideslider / DbDialog 内
+  const isInPopover = inject(popoverInjectKey, false);
+
   watch(
     () => props.model,
     () => {
       if (isUserChange.value) {
-        window.changeConfirm = true;
+        // 弹层内的修改由弹层管理；页面上的修改在弹层打开期间（如弹层提交后回填）也要记到页面状态上
+        if (isInPopover) {
+          window.changeConfirm = true;
+        } else {
+          markPageChanged();
+        }
       }
     },
     { deep: true },

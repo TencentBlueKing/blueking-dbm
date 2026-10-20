@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="edit-pkg-type-dialog"
     quick-close
@@ -94,7 +94,7 @@
         {{ t('确定') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

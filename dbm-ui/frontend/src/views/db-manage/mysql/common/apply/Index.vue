@@ -362,7 +362,7 @@
     </template>
   </SmartAction>
   <!-- 预览功能 -->
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShowPreview"
     header-align="left"
     :width="1180">
@@ -380,7 +380,7 @@
         {{ t('关闭') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

@@ -12,7 +12,8 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
+    ref="dialogRef"
     v-model:is-show="modelValue"
     class="import-host-dialog"
     :esc-close="false"
@@ -53,7 +54,7 @@
         <BkButton
           class="ml-8"
           :disabled="isSubmitting"
-          @click="handleCancel">
+          @click="handleCancelClick">
           {{ t('取消') }}
         </BkButton>
       </div>
@@ -62,7 +63,7 @@
       v-model="isErrorMessageShow"
       :ips="errorHostList"
       :message-list="errorMessageList" />
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
@@ -105,6 +106,7 @@
     handleReset: handleErrorReset,
   } = useImportResourceErrorMessage();
 
+  const dialogRef = useTemplateRef('dialogRef');
   const formRef = useTemplateRef('formRef');
   const selectHostPanelRef = useTemplateRef('selectHostPanelRef');
 
@@ -172,6 +174,13 @@
 
   const handleCancel = () => {
     modelValue.value = false;
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认（提交成功后的关闭不需要确认，仍直接调 handleCancel）
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleCancel();
+    }
   };
 
   const handleHidden = () => {

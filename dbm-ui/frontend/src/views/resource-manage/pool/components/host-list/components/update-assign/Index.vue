@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="update-assign-dialog"
     :is-show="isShow"
     render-directive="if"
@@ -73,7 +73,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

@@ -219,7 +219,7 @@
       </TableColumn>
     </DbTable>
   </div>
-  <BkDialog
+  <DbDialog
     class="create-tag-dialog-main"
     :is-show="isCreateTagDialogShow"
     :quick-close="false"
@@ -244,7 +244,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

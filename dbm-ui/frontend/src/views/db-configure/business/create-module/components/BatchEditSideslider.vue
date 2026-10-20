@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleBeforeClose"
     class="config-edit-diff-sideslider"
     :is-show="isShow"
@@ -200,7 +200,7 @@
         </BkButton>
       </template>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">

@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="mysql-backup-record-selector"
     :close-icon="false"
     :draggable="false"
@@ -221,7 +221,7 @@
         </div>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
@@ -259,7 +259,9 @@
     default: false,
   });
 
-  const modelValue = defineModel<BackupLogRecordModel>();
+  const modelValue = defineModel<BackupLogRecordModel | undefined>('modelValue', {
+    default: undefined,
+  });
 
   const { dialogWidth } = useSelectorDialogWidth();
   const tableMaxHeight = useTableMaxHeight(240);

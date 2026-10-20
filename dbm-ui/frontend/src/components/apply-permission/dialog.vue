@@ -51,6 +51,7 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
+  // 不用 DbDialog：本组件由 utils/permissionDialog.tsx 用 createApp 挂到独立 app，未注册全局组件；且没有表单，不需要离开确认
   import { Button as BkButton, Dialog as BkDialog, Loading as BkLoading } from 'bkui-vue';
   import { computed, onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';

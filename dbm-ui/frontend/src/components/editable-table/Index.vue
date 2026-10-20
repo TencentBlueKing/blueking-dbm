@@ -74,6 +74,8 @@
 
   import { useEventBus } from '@hooks';
 
+  import { markPageChanged, popoverInjectKey } from '@utils';
+
   import Column, { type IColumnElement, type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
   import Block from './edit/Block.vue';
@@ -164,6 +166,8 @@
   const isUserChange = ref(false);
   // 离开确认是全局标志，只在本表格置过位时才由本表格复位，避免卸载时清掉页面其它表单的编辑状态
   let isChangeConfirmOwner = false;
+  // 是否渲染在 DbSideslider / DbDialog 内
+  const isInPopover = inject(popoverInjectKey, false);
 
   const { columnSizeConfig, handleMouseDown, handleMouseLeave, handleMouseMove } = useResize(
     tableRef,
@@ -202,7 +206,12 @@
     () => props.model,
     () => {
       if (isUserChange.value) {
-        window.changeConfirm = true;
+        // 弹层内的修改由弹层管理；页面上的修改在弹层打开期间（如弹层提交后回填）也要记到页面状态上
+        if (isInPopover) {
+          window.changeConfirm = true;
+        } else {
+          markPageChanged();
+        }
         isChangeConfirmOwner = true;
       }
       eventBus.emit('editable-table-model-change');

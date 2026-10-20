@@ -6,7 +6,7 @@
     @click="() => (isShow = true)">
     {{ t('调整策略') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="to-alarm-policy-dialog"
     quick-close
@@ -55,7 +55,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">
