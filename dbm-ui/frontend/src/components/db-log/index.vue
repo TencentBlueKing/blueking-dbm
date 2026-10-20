@@ -60,6 +60,7 @@
   }
 
   interface Exposes {
+    appendLog: (list: NodeLog[]) => void;
     clearLog: () => void;
     destroy: () => void;
     getValue: () => string[];
@@ -218,6 +219,33 @@
     });
   };
 
+  /**
+   * 追加日志：不清空已有内容，只往后写新条目（轮询增量场景）
+   * 不额外补换行，条目自带的换行即分隔，避免出现空行
+   */
+  const handleAppendLog = (list: NodeLog[] = []) => {
+    if (list.length === 0) {
+      return;
+    }
+    localLogList = [...localLogList, ...list];
+    const content = formatLogData(list).join('\r\n');
+    // 用户不在底部（顶部或中间）时保持当前视口不动，只有停在底部才跟随新日志
+    if (terminal) {
+      const buffer = terminal.buffer.active;
+      const isAtBottom = buffer.viewportY + terminal.rows >= buffer.length;
+      if (!isAtBottom) {
+        isAutoScrollEnabled = false;
+        lastScrollPosition = buffer.viewportY;
+      }
+    }
+    terminal?.write(content);
+    setTimeout(() => {
+      updateLogicalLineNumbers();
+      updateLineNumbers();
+      checkTermScroll();
+    });
+  };
+
   const destroyTerm = () => {
     isAutoScrollEnabled = true;
     terminal?.clear();
@@ -245,6 +273,7 @@
   });
 
   defineExpose<Exposes>({
+    appendLog: handleAppendLog,
     clearLog: handleClearLog,
     destroy: destroyTerm,
     getValue() {

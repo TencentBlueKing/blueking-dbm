@@ -66,7 +66,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
+  import { getNodeLogV2, getRetryNodeHistories } from '@services/source/taskflow';
 
   import DbLog from '@components/db-log/index.vue';
 
@@ -83,7 +83,7 @@
 
   import ExecuteHistory from './components/ExecuteHistory.vue';
 
-  type NodeLog = ServiceReturnType<typeof getNodeLog>['result'][number];
+  type NodeLog = ServiceReturnType<typeof getNodeLogV2>['result'][number];
 
   interface Props {
     autoOpenAiLog: boolean;
@@ -101,31 +101,48 @@
   });
   const emits = defineEmits<Emits>();
 
-  // node_log 接口带 download=true，后端返回附件，浏览器直接保存
+  // node_log_v2 接口带 download=true，返回完整日志附件，浏览器直接保存
   const exportLogUrl = computed(() => {
     const params = new URLSearchParams({
       node_id: nodeData.value.id,
       version_id: currentData.value.version,
     });
-    return `/apis/taskflow/${props.rootId}/node_log/?${params.toString()}&download=true`;
+    return `/apis/taskflow/${props.rootId}/node_log_v2/?${params.toString()}&download=true`;
   });
+
+  // 增量游标：执行中轮询时回传给 v2 接口，只返回 cursor 之后的新日志
+  const logCursor = ref('');
 
   const getNodeLogRequest = (isInit?: boolean) => {
     if (!currentData.value.version) {
       return;
     }
 
-    logState.loading = true;
+    // 执行中轮询且回执过 cursor 时走增量请求；首次加载 / 切换版本走全量
+    const isIncremental = !isInit && isRunning.value && Boolean(logCursor.value);
+    logState.loading = !isIncremental;
     const params = {
+      cursor: isIncremental ? logCursor.value : undefined,
       node_id: nodeData.value.id,
       root_id: props.rootId,
       version_id: currentData.value.version,
     };
 
     return (
-      getNodeLog(params)
+      getNodeLogV2(params)
         .then((data) => {
           tooLarge.value = data.too_large;
+          if (data.cursor) {
+            logCursor.value = data.cursor;
+          }
+          // 增量响应只含新增条目，直接往后追加
+          if (isIncremental) {
+            if (data.result.length > 0) {
+              logState.data = [...logState.data, ...data.result];
+              dbLogRef.value?.appendLog(data.result);
+            }
+            return;
+          }
           logState.data = data.result;
           // 请求可能在组件卸载后才返回
           dbLogRef.value?.setLog(logState.data);
@@ -229,6 +246,8 @@
     currentData.value = data;
     emits('versionChange', data.version);
     pause();
+    // 切换版本后旧游标失效，重置为全量拉取
+    logCursor.value = '';
     getNodeLogRequest(true);
   };
 

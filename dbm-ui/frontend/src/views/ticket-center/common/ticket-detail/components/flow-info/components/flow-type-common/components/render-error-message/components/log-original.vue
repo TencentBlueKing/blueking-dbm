@@ -52,7 +52,7 @@
   import { useRequest } from 'vue-request';
 
   import FlowMode from '@services/model/ticket/flow';
-  import { getNodeLog, getSpecificNodes } from '@services/source/taskflow';
+  import { getNodeLogV2, getSpecificNodes } from '@services/source/taskflow';
 
   interface Props {
     data: FlowMode<unknown, any>;
@@ -108,7 +108,7 @@
     data: logContent,
     loading: isLoadingLogContent,
     run: runGetNodeLog,
-  } = useRequest(getNodeLog, {
+  } = useRequest(getNodeLogV2, {
     manual: true,
     onSuccess: (data) => {
       isTooLarge.value = data.too_large;
@@ -147,7 +147,7 @@
     });
   };
 
-  // node_log 接口带 download=true，后端返回附件，浏览器直接保存
+  // node_log_v2 接口带 download=true，返回完整日志附件，浏览器直接保存
   const exportLogUrl = computed(() => {
     if (!activeNode.value) {
       return 'javascript:';
@@ -156,7 +156,7 @@
       node_id: activeNode.value.node_id,
       version_id: activeNode.value.version_id,
     });
-    return `/apis/taskflow/${props.data.flow_obj_id}/node_log/?${params.toString()}&download=true`;
+    return `/apis/taskflow/${props.data.flow_obj_id}/node_log_v2/?${params.toString()}&download=true`;
   });
 </script>
 <style lang="postcss">
