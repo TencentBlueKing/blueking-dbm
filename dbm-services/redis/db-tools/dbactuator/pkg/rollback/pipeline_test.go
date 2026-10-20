@@ -95,6 +95,13 @@ func TestMemWindowFailsWhenNothingCanFreeMemory(t *testing.T) {
 	if err := w.reserve(31); err == nil {
 		t.Fatal("reserve past the budget must fail")
 	}
+	if err := w.reserve(30); err != nil {
+		t.Fatal(err)
+	}
+	w.unreserve(30)
+	if err := w.reserve(30); err != nil || w.loading != 0 {
+		t.Fatalf("unreserve must give back only the memory: err=%v loading=%d", err, w.loading)
+	}
 }
 
 func TestMemWindowBoundsLoadingByCPU(t *testing.T) {

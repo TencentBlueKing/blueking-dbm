@@ -379,19 +379,36 @@ func TestAuthLineQuotesPassword(t *testing.T) {
 func TestNewDispatchesByClusterType(t *testing.T) {
 	cases := map[string]string{
 		"RedisInstance":              "*rollback.cacheRestorer",
+		"PredixyRedisCluster":        "*rollback.cacheRestorer cluster",
 		"TwemproxyTendisSSDInstance": "*rollback.ssdRestorer",
+		"PredixyTendisplusCluster":   "*rollback.plusRestorer cluster",
 	}
 	for dbType, want := range cases {
 		r, err := New(dbType, Job{})
 		if err != nil {
 			t.Fatalf("%s: %v", dbType, err)
 		}
-		if got := fmt.Sprintf("%T", r); got != want {
+		got := fmt.Sprintf("%T", r)
+		switch v := r.(type) {
+		case *cacheRestorer:
+			if v.cluster {
+				got += " cluster"
+			}
+		case *plusRestorer:
+			if v.cluster {
+				got += " cluster"
+			}
+		}
+		if got != want {
 			t.Fatalf("%s: got %s, want %s", dbType, got, want)
 		}
 	}
-	if _, err := New("PredixyTendisplusCluster", Job{}); err == nil {
-		t.Fatal("want error for unsupported engine")
+	// Tendisplus types the flow does not accept yet.
+	for _, dbType := range []string{"TendisplusCluster", "TendisplusInstance", "TwemproxyTendisplusInstance",
+		"PredixyTendisplusInstance"} {
+		if _, err := New(dbType, Job{}); err == nil {
+			t.Fatalf("%s: want error until the flow accepts it", dbType)
+		}
 	}
 }
 

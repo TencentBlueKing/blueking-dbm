@@ -41,9 +41,11 @@ type StagedBackup struct {
 	IsAOF    bool
 }
 
-// cacheRestorer boots each instance once, on top of its RDB or AOF.
+// cacheRestorer boots each instance once, on top of its RDB or AOF. RedisCluster instances also
+// take their planned slots once loaded.
 type cacheRestorer struct {
 	Job
+	cluster bool
 }
 
 // errCollector keeps the first error of concurrent ports.
@@ -105,6 +107,15 @@ func (r *cacheRestorer) DoRollback() error {
 			mylog.Logger.Error("RedisRollback prepare instances failed: %v", err)
 			wg.Wait()
 			return err
+		}
+		if r.cluster {
+			// Enable cluster mode for the temp instance.
+			for _, inst := range redo {
+				if err = SetClusterConf(confFile(r.Host.InstanceDir(inst.DestPort))); err != nil {
+					wg.Wait()
+					return err
+				}
+			}
 		}
 		errs.add(RunBounded(len(redo), limits.Unpack, func(i int) error {
 			inst := redo[i]
@@ -241,6 +252,10 @@ func (r *cacheRestorer) startAndWait(inst InstanceRestore, need int64, window *m
 func (r *cacheRestorer) waitAndMark(inst InstanceRestore, need int64, window *memWindow, p *portReport) error {
 	log := newPortLog(r.DestIP, inst)
 	err := r.waitLoaded(inst, log, p, window, need)
+	// Assign slots to the temp instance.
+	if err == nil && r.cluster {
+		err = assignPortSlotsFn(log, r.DestIP, inst)
+	}
 	if err == nil {
 		err = MarkDone(r.Host.InstanceDir(inst.DestPort), inst.Fingerprint())
 	}
