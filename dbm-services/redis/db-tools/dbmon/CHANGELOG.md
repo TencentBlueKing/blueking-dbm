@@ -2,6 +2,28 @@
 
 本文件记录 bk-dbmon 的版本变更历史，采用倒序排列。
 
+## [v0.23] - 2026-10-20
+
+### 变更
+
+- 全备前磁盘高利用率清理策略生效范围扩展：由仅 tendisplus 实例生效，扩展为 tendisplus / tendisSSD 均生效，
+  且阈值按类型区分：tendisplus 43%（`consts.DiskUsageCleanThreshold`）、tendisSSD 65%（`consts.DiskUsageCleanThresholdSSD`）
+
+### 新增
+
+- binlog 备份前磁盘高利用率清理策略（与 tendisplus 全备清理策略对齐，tendisSSD / tendisplus 均生效）：
+  - 发起下一次 binlog 备份前，若数据盘利用率超过 `consts.DiskUsageCleanThresholdBinlog`（75%），
+  先清理该实例本地文件未被清理的历史 binlog 备份文件和 sqlite 记录（每次最多清理最旧的 10 个，多轮渐进清理）
+  - 清理前轮询保护：正在上传备份系统的文件（上传进程持有文件句柄，删除后空间不立即释放），
+  每 1 分钟轮询上传任务状态，待上传结束（成功/失败）后再删除；
+  与全备单文件最多等待 1 小时不同，binlog 文件数量多，所有文件的等待总时长上限为 1 小时，
+  超时仍在上传则记录 error 日志后继续删除，不无限阻塞
+  - 清理后检查被清理的备份是否已成功上传备份系统，未上传成功仅记录 error 日志，不截断清理流程
+  - 单个文件/记录删除失败仅记录 error 日志并继续清理其余文件，下次任务对未清理成功的继续重试
+  - data1（数据盘）空间保护：数据盘利用率达到 90%（`consts.DiskUsageForceCleanThreshold`）时，
+  无论备份盘是否超阈值都会触发清理，且不再等待上传备份系统任务结束，直接强制删除本地文件，力保数据盘；
+  等待上传过程中每轮轮询实时监测数据盘，达到 90% 立即中断等待强制清理
+
 ## [v0.22] - 2026-10-16
 
 ### 变更

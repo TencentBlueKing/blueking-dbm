@@ -267,12 +267,16 @@ func (task *BackupTask) newConnect() {
 	return
 }
 
-// CheckDiskUsageAndCleanPreviousBackup 数据盘空间利用率超过阈值(consts.DiskUsageCleanThreshold,默认50%)时,
+// CheckDiskUsageAndCleanPreviousBackup 数据盘空间利用率超过阈值时,
 // 在发起下一次全备前,先清理该实例的上一次备份文件和记录;
 // 清理完成后检查该备份文件是否已成功上传备份系统,只做检查记录error日志,不截断清理流程
-// 该清理策略只针对tendisplus集群类型生效
+// 该清理策略针对tendisplus(阈值consts.DiskUsageCleanThreshold)、
+// tendisSSD(阈值consts.DiskUsageCleanThresholdSSD)集群类型生效
 func (task *BackupTask) CheckDiskUsageAndCleanPreviousBackup() {
-	if task.DbType != consts.TendisTypeTendisplusInsance {
+	threshold := consts.DiskUsageCleanThreshold
+	if task.DbType == consts.TendisTypeTendisSSDInsance {
+		threshold = consts.DiskUsageCleanThresholdSSD
+	} else if task.DbType != consts.TendisTypeTendisplusInsance {
 		return
 	}
 	diskUsg, err := util.GetLocalDirDiskUsg(task.BackupDir)
@@ -280,12 +284,12 @@ func (task *BackupTask) CheckDiskUsageAndCleanPreviousBackup() {
 		task.Err = err
 		return
 	}
-	if diskUsg.UsageRatio <= consts.DiskUsageCleanThreshold {
+	if diskUsg.UsageRatio <= threshold {
 		return
 	}
 	mylog.Logger.Info(fmt.Sprintf(
 		"redis(%s) disk(%s) usage:%d%% > %d%%,clean previous backup before next fullbackup",
-		task.Addr(), task.BackupDir, diskUsg.UsageRatio, consts.DiskUsageCleanThreshold))
+		task.Addr(), task.BackupDir, diskUsg.UsageRatio, threshold))
 
 	// 查询该实例上一次未被清理的备份记录
 	prevRow := models.RedisFullbackupHistorySchema{}
