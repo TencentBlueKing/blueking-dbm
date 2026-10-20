@@ -200,6 +200,29 @@ export function getNodeLog(params: { labels?: string; node_id: string; root_id: 
 }
 
 /**
+ * 节点日志 v2：日志过大时返回前 100 行 + 省略标记 + 最新部分，完整内容走下载
+ * 执行中返回 cursor/running，回传 cursor 可增量获取最新日志
+ */
+export function getNodeLogV2(params: {
+  cursor?: string;
+  labels?: string;
+  node_id: string;
+  root_id: string;
+  version_id: string;
+}) {
+  return http.get<{
+    cursor: string;
+    result: {
+      levelname: string;
+      message: string;
+      timestamp: number;
+    }[];
+    running: boolean;
+    too_large: boolean;
+  }>(`${path}/${params.root_id}/node_log_v2/`, params);
+}
+
+/**
  * 重试节点
  */
 export function retryTaskflowNode(params: { is_force?: boolean; node_id: string; remark?: string; root_id: string }) {
