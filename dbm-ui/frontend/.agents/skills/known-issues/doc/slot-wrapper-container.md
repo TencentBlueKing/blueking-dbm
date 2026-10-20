@@ -23,11 +23,16 @@
 - **不要**在组件里遍历插槽返回的 VNode 判空（过滤 Comment / 空 Text / Fragment）：能解决空盒子，但保留了 bk-input
     20|  没有的那层盒子，`%`、图标按钮这类插槽内容仍然被灰块包着，调用方还得写 CSS 反向抵消
 - **不要**只在调用方按条件不传 slot key：4 个域名表各改一遍，下一个用插槽的人照样踩
-- **存量**：`rg -n 'v-if="\$slots\.' src/components/bkui-vue -A 2` 当前 6 处，其中带样式容器 2
+- **存量**：`rg -n 'v-if="\$slots\.' src/components/bkui-vue -A 2` 当前 8 处，其中带样式容器 2
   处，均未逐个对照 bkui-vue 源码，命中时先比对再动：
   - `src/components/bkui-vue/tag/Index.vue` 的 `.dbm-tag-icon`
   - `src/components/bkui-vue/select/Index.vue` 的 `.dbm-select-extension`
-- **核实**：2026-09-22
+
+  `src/components/db-dialog/Index.vue` 的 `slots.header` / `slots.default` / `slots.footer` 与
+  `src/components/db-sideslider/index.vue` 的 `slots.header` 也命中判据（自研基础组件的插槽出口），但这 4 处的
+  `<template v-if>` 本身不带 class，`#footer` 的条件是 `slots.footer || showFooter`，对照的是 BkDialog /
+  BkSideslider 的渲染结构，暂不算违规
+- **核实**：2026-10-20
 
 ## 补充
 

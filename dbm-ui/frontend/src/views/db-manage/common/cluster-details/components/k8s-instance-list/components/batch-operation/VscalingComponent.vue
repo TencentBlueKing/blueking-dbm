@@ -12,7 +12,8 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
+    ref="dialog"
     v-model:is-show="isShow"
     quick-close>
     <template #header>
@@ -78,7 +79,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">
@@ -110,6 +111,7 @@
   const { t } = useI18n();
   const userProfile = useUserProfile();
 
+  const dialogRef = useTemplateRef('dialog');
   const formRef = useTemplateRef('form');
 
   const formData = ref({
@@ -185,8 +187,11 @@
     });
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认
+  const handleCancel = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 </script>
 

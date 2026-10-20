@@ -12,11 +12,12 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="node-log-main"
     quick-close
     render-directive="if"
+    :show-footer="false"
     :width="960"
     @hidden="handleClose">
     <template #header>
@@ -173,7 +174,7 @@
         </BkTabPanel>
       </BkTab>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

@@ -1,6 +1,8 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="moduleValue"
+    render-directive="show"
+    :show-footer="false"
     width="1400">
     <template #header>
       <div>【{{ data.ip }}】{{ t('操作记录') }}</div>
@@ -87,7 +89,7 @@
         </PrimaryTable>
       </BkLoading>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';

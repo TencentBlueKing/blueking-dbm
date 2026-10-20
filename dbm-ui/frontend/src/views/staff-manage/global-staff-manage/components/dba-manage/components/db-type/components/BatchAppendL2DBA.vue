@@ -1,7 +1,9 @@
 <template>
-  <BkSideslider
+  <DbSideslider
+    ref="sideslider"
     v-model:is-show="modelValue"
     quick-close
+    render-directive="show"
     :width="960"
     @hidden="handleHidden">
     <template #header>
@@ -42,11 +44,11 @@
       <BkButton
         class="ml-8"
         :disabled="loading"
-        @click="modelValue = false">
+        @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -79,6 +81,7 @@
 
   const { t } = useI18n();
 
+  const sidesliderRef = useTemplateRef('sideslider');
   const formRef = useTemplateRef('form');
 
   const getDefaultData = () => ({
@@ -167,6 +170,13 @@
 
   const handleHidden = () => {
     formData.value = getDefaultData();
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      modelValue.value = false;
+    }
   };
 </script>
 
