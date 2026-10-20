@@ -1,5 +1,6 @@
 <template>
-  <BkSideslider
+  <DbSideslider
+    ref="sidesliderRef"
     v-model:is-show="isShow"
     render-directive="if"
     :title="data ? (data.id ? t('编辑分区策略') : t('克隆分区策略')) : t('新建分区策略')"
@@ -207,11 +208,11 @@
       </template>
       <BkButton
         class="ml-8"
-        @click="handleCancel">
+        @click="handleCancelClick">
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -262,6 +263,7 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
+  const sidesliderRef = useTemplateRef('sidesliderRef');
   const formRef = ref();
   const isEditMode = ref(false);
   const isTblikePopShow = ref(false);
@@ -439,6 +441,13 @@
 
   const handleCancel = () => {
     isShow.value = false;
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认（提交成功后的关闭不需要确认，仍直接调 handleCancel）
+  const handleCancelClick = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      handleCancel();
+    }
   };
 
   const handleTblikeFocus = () => {

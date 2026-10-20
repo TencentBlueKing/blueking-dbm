@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="dbm-resource-selector"
     :close-icon="false"
     :draggable="false"
@@ -64,7 +64,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

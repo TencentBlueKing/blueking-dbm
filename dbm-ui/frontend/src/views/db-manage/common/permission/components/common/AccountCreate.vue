@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="account-dialog"
     :draggable="false"
     :esc-close="false"
@@ -91,7 +91,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { Message } from 'bkui-vue';

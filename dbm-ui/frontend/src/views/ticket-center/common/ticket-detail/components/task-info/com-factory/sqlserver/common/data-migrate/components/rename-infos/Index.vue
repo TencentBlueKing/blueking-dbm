@@ -1,6 +1,7 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
+    render-directive="show"
     :width="900">
     <template #header>
       <span>{{ t('手动修改迁移的 DB 名') }}</span>
@@ -29,7 +30,7 @@
         {{ t('关闭') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

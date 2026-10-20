@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="dbm-host-selector"
     :close-icon="false"
     :draggable="false"
@@ -72,7 +72,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script lang="ts">

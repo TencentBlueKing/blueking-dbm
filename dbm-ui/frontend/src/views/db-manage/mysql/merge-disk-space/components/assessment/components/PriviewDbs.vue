@@ -12,8 +12,10 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
+    render-directive="show"
+    :show-footer="false"
     :width="900"
     @close="handleClose">
     <template #header>
@@ -76,7 +78,7 @@
         </TableColumn>
       </PrimaryTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

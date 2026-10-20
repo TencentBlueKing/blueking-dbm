@@ -9,10 +9,11 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-if="isShowAddParam"
     :is-show="isShowAddParam"
     quick-close
+    render-directive="show"
     width="60%"
     @closed="handleCloseSideslider">
     <template #header>
@@ -226,7 +227,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">

@@ -39,7 +39,7 @@
 
 弹窗外壳：
 
-- `<BkDialog>` 上 `width="80%"`，`:close-icon="false"` `:draggable="false"` `:esc-close="false"`
+- `<DbDialog>` 上 `width="80%"`，`:close-icon="false"` `:draggable="false"` `:esc-close="false"`
   `:quick-close="false"`
 - 根样式 `display: block; width: 80%; max-width: 1600px; min-width: 1200px;`，并置空
   `.bk-modal-header { display: none }`、`.bk-dialog-content { padding: 0; margin: 0 }`
