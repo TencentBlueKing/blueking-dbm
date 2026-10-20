@@ -46,7 +46,7 @@ func (c *ClusterMetricFetcherFactory) getClusterMetricFetcher(addonType string) 
 		}
 		return fetcher, nil
 	case "surrealdb":
-		return nil, fmt.Errorf("not supported yet")
+		return NewSurrealDBClusterMetricFetcher(), nil
 	case "milvus":
 		return nil, fmt.Errorf("not supported yet")
 	case "qdrant":
