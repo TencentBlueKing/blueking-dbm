@@ -126,7 +126,8 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
     const graphData = new GraphData(props.clusterType, props.nodeConfig).formatGraphData(data, props.dbType);
     graphInstance = new Graph({
       animation: true,
-      autoFit: 'center',
+      // 初始居中不走动画，否则渲染后会有一段从原点平移到中心的移动
+      autoFit: { animation: false, type: 'center' },
       behaviors: ['drag-canvas', 'zoom-canvas'],
       container: 'clusterTopoGraphMain',
       data: graphData as unknown as GraphDataG6,
@@ -171,35 +172,47 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
       const template = document.getElementById('node-details-tips');
       const content = template?.querySelector('.node-details');
       if (content) {
-        const [targetX, targetY] = graphInstance!.getClientByCanvas([x - width / 2, y - height / 3]);
+        // 以节点完整矩形为参照，左侧空间不足翻转到右侧时贴着节点右边缘，不会盖住节点
+        const [left, top] = graphInstance!.getClientByCanvas([x - width / 2, y - height / 2]);
+        const [right, bottom] = graphInstance!.getClientByCanvas([x + width / 2, y + height / 2]);
+        const referenceRect = {
+          bottom,
+          height: bottom - top,
+          left,
+          right,
+          top,
+          width: right - left,
+          x: left,
+          y: top,
+        };
+        // 上一个浮层未正常离开时先销毁，避免残留
+        tippyInstance?.destroy();
+        // 浮层先以 loading 态定位，详情返回后内容变高，tippy 不会自动重新定位，
+        // 被视口挤压后箭头仍停在旧位置，需监听内容尺寸变化手动更新定位
+        const resizeObserver = new ResizeObserver(() => {
+          tippyInstance?.popperInstance?.update();
+        });
         const tippy = dbTippy(document.body, {
           allowHTML: true,
-          appendTo: () => document.body,
+          // 全屏时只渲染全屏元素内的节点，浮层需挂到全屏元素下才可见
+          appendTo: () => (document.fullscreenElement as HTMLElement | null) || document.body,
           arrow: true,
           content,
           hideOnClick: false,
           interactive: true,
           maxWidth: 320,
+          onDestroy: () => resizeObserver.disconnect(),
           onHidden: () => template?.append?.(content!),
           placement: 'left-start',
           theme: 'light',
           zIndex: 9999,
         });
         tippy.setProps({
-          getReferenceClientRect: () =>
-            ({
-              bottom: targetY,
-              height: 0,
-              left: targetX,
-              right: targetX,
-              top: targetY,
-              width: 0,
-              x,
-              y,
-            }) as any,
+          getReferenceClientRect: () => referenceRect as DOMRect,
         });
         tippy.show();
         tippyInstance = tippy;
+        resizeObserver.observe(content);
         instState.activeId = targetId;
         instState.nodeData = e.target.data;
       }
@@ -217,15 +230,19 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
   };
 
   /**
-   * 还原缩放
+   * 还原到初始视图：缩放 1 倍并居中（与初始化的 autoFit: 'center' 一致）
+   * fitView / zoomTo 都是异步动画，并发调用会互相打断，需先完成缩放再居中
    */
-  const handleZoomReset = () => {
-    graphInstance?.fitView();
-    graphInstance?.zoomTo(1);
+  const handleZoomReset = async () => {
+    if (!graphInstance) {
+      return;
+    }
+    await graphInstance.zoomTo(1, false);
+    await graphInstance.fitCenter();
   };
 
   /**
-   * 缩小
+   * 放大
    */
   const handleZoomIn = () => {
     const currentZoom = graphInstance?.getZoom();
@@ -235,7 +252,7 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
   };
 
   /**
-   * 放大
+   * 缩小
    */
   const handleZoomOut = () => {
     const currentZoom = graphInstance?.getZoom();
@@ -279,7 +296,18 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
       });
   };
 
+  /**
+   * 销毁图实例与节点详情浮层
+   */
+  const destroyGraph = () => {
+    tippyInstance?.destroy();
+    tippyInstance = undefined;
+    graphInstance?.destroy();
+    graphInstance = null;
+  };
+
   return {
+    destroyGraph,
     fetchInstDetails,
     handleZoomIn,
     handleZoomOut,
