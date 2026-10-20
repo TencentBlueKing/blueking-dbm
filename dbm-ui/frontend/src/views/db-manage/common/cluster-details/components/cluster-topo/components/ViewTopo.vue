@@ -48,9 +48,13 @@
           :type="screenIcon.icon"
           @click.stop="toggle" />
       </div>
-      <div
-        id="clusterTopoGraphMain"
-        class="cluster-details-graph" />
+      <BkLoading
+        class="cluster-details-graph-loading"
+        :loading="pageLoading">
+        <div
+          id="clusterTopoGraphMain"
+          class="cluster-details-graph" />
+      </BkLoading>
     </template>
   </div>
   <template v-if="!showEmpty">
@@ -91,6 +95,7 @@
   </template>
 </template>
 <script lang="tsx">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getDorisTopoGraph } from '@services/source/doris';
@@ -151,6 +156,13 @@
     [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaTopoGraph,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleTopoGraph,
   };
+
+  // 节点详情浮层的展示列
+  interface DetailColumn {
+    key: string;
+    label: string;
+    render?: (value: unknown) => VNode;
+  }
 </script>
 <script setup lang="tsx">
   export interface Props {
@@ -172,7 +184,8 @@
 
   const { t } = useI18n();
 
-  const { handleZoomIn, handleZoomOut, handleZoomReset, instDetails, instState, renderDraph } = useRenderGraph(props);
+  const { destroyGraph, handleZoomIn, handleZoomOut, handleZoomReset, instDetails, instState, renderDraph } =
+    useRenderGraph(props);
 
   const clusterTopoRef = ref<HTMLDivElement>();
   const pageLoading = ref(false);
@@ -186,7 +199,7 @@
   }));
   const showEmpty = computed(() => props.clusterType.includes('k8s') && props.clusterData.isOffline);
 
-  const detailColumns = [
+  const detailColumns: DetailColumn[] = [
     {
       key: 'role',
       label: t('部署角色'),
@@ -198,12 +211,12 @@
     {
       key: 'status',
       label: t('状态'),
-      render: (status: 'running' | 'unavailable') => {
+      render: (status) => {
         if (!status) {
           return <span>--</span>;
         }
 
-        const statusMap = {
+        const statusMap: Record<string, { text: string; theme: string }> = {
           running: {
             text: t('运行中'),
             theme: 'success',
@@ -213,7 +226,8 @@
             theme: 'danger',
           },
         };
-        const info = statusMap[status] || statusMap.unavailable;
+        // 未知状态按异常展示
+        const info = statusMap[String(status)] || statusMap.unavailable;
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
@@ -232,27 +246,30 @@
     {
       key: 'bk_cpu',
       label: 'CPU',
-      render: (value: number) => <span>{Number.isFinite(value) ? `${value}${t('核')}` : '--'}</span>,
+      render: (value) => <span>{Number.isFinite(value) ? `${value}${t('核')}` : '--'}</span>,
     },
     {
       key: 'bk_mem',
       label: t('内存'),
-      render: (value: number) => <span>{Number.isFinite(value) ? `${value}MB` : '--'}</span>,
+      render: (value) => <span>{Number.isFinite(value) ? `${value}MB` : '--'}</span>,
     },
     {
       key: 'bk_disk',
       label: t('硬盘'),
-      render: (value: number) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
+      render: (value) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
     },
-  ] as any;
+  ];
 
   let topoData: ResourceTopo | null = null;
+  let fetchTimer: ReturnType<typeof setTimeout> | undefined;
+  let renderTimer: ReturnType<typeof setTimeout> | undefined;
 
   watch(
     () => props.clusterData.id,
     () => {
       if (props.clusterData.id) {
-        setTimeout(() => {
+        clearTimeout(fetchTimer);
+        fetchTimer = setTimeout(() => {
           fetchResourceTopo(props.clusterData.id);
         });
       }
@@ -262,10 +279,17 @@
 
   watch(isFullscreen, () => {
     if (topoData) {
-      setTimeout(() => {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(() => {
         renderDraph(topoData!);
       });
     }
+  });
+
+  onBeforeUnmount(() => {
+    clearTimeout(fetchTimer);
+    clearTimeout(renderTimer);
+    destroyGraph();
   });
 
   const fetchResourceTopo = (id: number) => {
@@ -274,24 +298,31 @@
     const getApi = () => {
       if (props.clusterType in k8sApiMap) {
         return k8sApiMap[props.clusterType as keyof typeof k8sApiMap]({
-          cluster_id: props.clusterData.id,
+          cluster_id: id,
           k8sClusterName: props.clusterData.k8s_cluster_name!,
           namespace: props.clusterData.namespace!,
         });
       }
 
       return apiMap[props.clusterType as keyof typeof apiMap]({
-        cluster_id: props.clusterData.id,
+        cluster_id: id,
       });
     };
 
     getApi()
       .then((data: ResourceTopo) => {
+        // 集群已切换，丢弃旧集群的响应
+        if (id !== props.clusterData.id) {
+          return;
+        }
         topoData = data;
         renderDraph(data);
       })
       .finally(() => {
-        pageLoading.value = false;
+        // 旧请求结束不影响新请求的 loading
+        if (id === props.clusterData.id) {
+          pageLoading.value = false;
+        }
       });
   };
 </script>
@@ -325,8 +356,12 @@
     }
   }
 
-  .cluster-details-graph {
+  .cluster-details-graph-loading {
     height: calc(100% - 32px);
+  }
+
+  .cluster-details-graph {
+    height: 100%;
     background-color: @bg-gray;
   }
 
