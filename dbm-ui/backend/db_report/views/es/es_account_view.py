@@ -29,18 +29,7 @@ logger = logging.getLogger("root")
 class EsAccountReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = EsAccountReport
-        fields = (
-            "bk_biz_id",
-            "app",
-            "domain",
-            "dba",
-            "cluster_type",
-            "create_at",
-            "msg",
-            "state",
-            "major_version",
-            "have_admin",
-        )
+        fields = ("bk_biz_id", "app", "domain", "dba", "cluster_type", "create_at", "msg", "state", "have_admin")
         swagger_schema_fields = {"example": mock_data.ES_ACCOUNT_CHECK_DATA}
 
 
@@ -87,11 +76,6 @@ class EsAccountReportBaseViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.STATUS.value,
         },
         {
-            "name": "major_version",
-            "display_name": _("版本"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-        {
             "name": "have_admin",
             "display_name": _("拥有ADMIN账号"),
             "format": ReportFieldFormat.TEXT.value,
@@ -99,7 +83,7 @@ class EsAccountReportBaseViewSet(ReportBaseViewSet):
     ]
 
     @common_swagger_auto_schema(
-        operation_summary=_("es集群账户巡检报告"),
+        operation_summary=_("es集群版本巡检报告"),
         responses={status.HTTP_200_OK: EsAccountReportSerializer()},
         tags=[SWAGGER_TAG],
     )

@@ -19,5 +19,4 @@ class EsAccountReport(BaseReportABS):
     app = models.CharField(max_length=100, verbose_name=_("业务名"))
     dba = models.JSONField(max_length=100, verbose_name=_("业务所属dba"))
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="", help_text=_("集群类型"))
-    major_version = models.CharField(max_length=100, default="", verbose_name=_("版本"))
     have_admin = models.BooleanField(default=False, verbose_name=_("ADMIN账号"))
