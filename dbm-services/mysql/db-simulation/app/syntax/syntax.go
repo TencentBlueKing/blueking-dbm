@@ -82,8 +82,10 @@ type TmysqlParse struct {
 	bkRepoClient       *bkrepo.BkRepoClient
 	TmysqlParseBinPath string
 	BaseWorkdir        string
-	mu                 sync.Mutex
-	Clusters           []ClusterInfo
+	// PrintQueryLength 大于 0 时传给 tmysqlparse。为 0 时不传，保持旧调用的默认截断。
+	PrintQueryLength int
+	mu               sync.Mutex
+	Clusters         []ClusterInfo
 	TendbClusterSyntaxCheckOptions
 }
 
@@ -696,6 +698,9 @@ func (t *TmysqlParse) getCommand(filename, version, cluster_type string) string 
 		cmd += (" --mysql-variant=mariadb")
 	} else {
 		cmd += (" --mysql-variant=mysql")
+	}
+	if t.PrintQueryLength > 0 {
+		cmd += fmt.Sprintf(" --print-query-length=%d", t.PrintQueryLength)
 	}
 	return cmd
 }
