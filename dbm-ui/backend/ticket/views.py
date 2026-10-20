@@ -159,7 +159,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         elif self.action == "get_instance_operate_records":
             return [InstanceDetailPermission()]
         # 单据详情，关联单据查看动作
-        elif self.action in ["retrieve", "flows", "retry_flow", "revoke_flow", "modify_records"]:
+        elif self.action in ["retrieve", "flows", "retry_flow", "revoke_flow", "get_modify_records"]:
             instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
             return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
         # 单据流程设置，关联单据流程设置动作
@@ -181,6 +181,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             "list",
             "flow_types",
             "get_nodes",
+            "get_ticket_version",
             "get_host_todo_count",
             "get_cluster_disable_count",
             "get_tickets_count",
