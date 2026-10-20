@@ -196,6 +196,7 @@ type UpdateRsMeta struct {
 	RsType        *string                  `json:"resource_type,omitempty"`
 	DeviceClass   *string                  `json:"device_class,omitempty"`
 	RackId        *string                  `json:"rack_id,omitempty"`
+	OsName        *string                  `json:"os_name,omitempty"`
 	CityMeta      CityMeta                 `json:"city_meta,omitempty"`
 	SubZoneMeta   SubZoneMeta              `json:"sub_zone_meta,omitempty"`
 	StorageDevice map[string]bk.DiskDetail `json:"storage_device"`
@@ -233,6 +234,9 @@ func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err erro
 	}
 	if v.DeviceClass != nil {
 		updateMap["device_class"] = v.DeviceClass
+	}
+	if v.OsName != nil {
+		updateMap["os_name"] = *v.OsName
 	}
 	if v.CityMeta.City != "" {
 		updateMap["city"] = v.CityMeta.City
