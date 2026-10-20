@@ -105,7 +105,7 @@ func (o *OpsRequestInformer) OnUpdate(_, newObj interface{}) {
 		K8sClusterConfigID: o.k8sClusterConfig.ID,
 	})
 	if err != nil || clusterEntity == nil {
-		slog.Error("failed to find cluster",
+		slog.Debug("failed to find cluster",
 			"clusterEntity", fmt.Sprintf("%+v", clusterEntity), "err", err)
 		return
 	}
