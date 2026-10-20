@@ -1,11 +1,10 @@
 <template>
-  <BkDialog
+  <DbDialog
     :is-show="isShow"
     :quick-close="false"
     theme="primary"
     :title="t('批量设置')"
-    @closed="handleClose"
-    @confirm="handleConfirm">
+    @closed="handleClose">
     <div class="mb-21">
       <I18nT keypath="已选择n个单据类型">
         <span style="font-weight: bold">{{ ticketTypes.length }}</span>
@@ -17,7 +16,22 @@
       v-model="item.checked">
       {{ item.label }}
     </BkCheckbox>
-  </BkDialog>
+    <!-- 提交时需要 loading 并禁用取消，改为自写底部按钮 -->
+    <template #footer>
+      <BkButton
+        class="mr-8"
+        :loading="isSubmitting"
+        theme="primary"
+        @click="handleConfirm">
+        {{ t('确定') }}
+      </BkButton>
+      <BkButton
+        :disabled="isSubmitting"
+        @click="handleClose">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -59,7 +73,7 @@
 
   const configList = ref(_.cloneDeep(defaultConfigList));
 
-  const { run: updateTicketFlowConfigRun } = useRequest(updateTicketFlowConfig, {
+  const { loading: isSubmitting, run: updateTicketFlowConfigRun } = useRequest(updateTicketFlowConfig, {
     manual: true,
     onSuccess: (data) => {
       if (!data) {

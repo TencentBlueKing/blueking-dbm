@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="review-data-dialog"
     :is-show="isShow"
     :title="title"
@@ -77,7 +77,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts" generic="T extends any">

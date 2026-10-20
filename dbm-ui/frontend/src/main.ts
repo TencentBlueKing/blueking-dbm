@@ -26,6 +26,8 @@ import { useFunController, useGlobalBizs, useSystemEnviron, useUserProfile } fro
 
 import { setGlobalComps } from '@common/importComps';
 
+import { hasUnsavedChange } from '@utils';
+
 import i18n from '@locales/index';
 import BkTrace from '@blueking/bk-trace-core';
 import { BkXssFilterDirective } from '@blueking/xss-filter';
@@ -117,8 +119,8 @@ Promise.all([fetchFunController(), fetchBizs(), systemEnvironStore.fetchSystemEn
  * 浏览器框口关闭提醒
  */
 window.addEventListener('beforeunload', (event) => {
-  // 需要做 Boolean 类型的值判断
-  if (window.changeConfirm !== true) {
+  // 需要做 Boolean 类型的值判断；DbSideslider / DbDialog 打开期间 changeConfirm 为 'popover'，弹层下面页面的修改由 hasUnsavedChange 补上
+  if (!hasUnsavedChange()) {
     return null;
   }
   const e = event || window.event;

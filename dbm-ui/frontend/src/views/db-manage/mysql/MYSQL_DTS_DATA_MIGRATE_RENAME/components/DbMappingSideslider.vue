@@ -12,7 +12,8 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
+    ref="sideslider"
     :is-show="isShow"
     render-directive="if"
     :width="960"
@@ -76,11 +77,11 @@
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkButton @click="handleClose">
+      <BkButton @click="handleCancelClick">
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
@@ -115,6 +116,7 @@
 
   const { t } = useI18n();
 
+  const sidesliderRef = useTemplateRef('sideslider');
   const mappingTableRef = useTemplateRef('mappingTableRef');
 
   const mappingData = reactive<DbMapping[]>([]);
@@ -208,6 +210,13 @@
 
   const handleClose = () => {
     emits('update:isShow', false);
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认（@closed、提交成功后的关闭仍直接调 handleClose）
+  const handleCancelClick = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      handleClose();
+    }
   };
 </script>
 <style lang="less" scoped>

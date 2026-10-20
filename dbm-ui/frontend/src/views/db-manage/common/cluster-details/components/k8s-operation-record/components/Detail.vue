@@ -12,9 +12,10 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     render-directive="if"
+    :show-footer="false"
     :title="t('操作明细')"
     :width="1100">
     <div class="k8s-operation-record-sideslider">
@@ -63,7 +64,7 @@
         class="mt-16"
         style="height: 500px" />
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

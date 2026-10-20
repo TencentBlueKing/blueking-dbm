@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     quick-close
+    render-directive="show"
+    :show-footer="false"
     :width="1200">
     <template #header>
       <div class="redis-memory-analysis-detail-header">
@@ -76,7 +78,7 @@
           :record-id="currentRecord.record_id" />
       </div>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

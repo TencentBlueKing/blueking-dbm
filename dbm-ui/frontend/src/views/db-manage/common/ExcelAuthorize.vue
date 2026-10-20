@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <BkDialog
-    :confirm-text="t('导入')"
+  <DbDialog
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -110,7 +109,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

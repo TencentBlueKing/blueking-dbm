@@ -45,11 +45,12 @@
       </PrimaryTable>
     </BkLoading>
   </div>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="logState.isShow"
     class="log-sideslider"
     quick-close
     render-directive="if"
+    :show-footer="false"
     :width="960">
     <template #header>
       <div class="log-sideslider-header">
@@ -79,7 +80,7 @@
       :port="logState.data.port"
       :switch-version="logState.data.switch_version || ''"
       :uid="logState.data.uid" />
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
