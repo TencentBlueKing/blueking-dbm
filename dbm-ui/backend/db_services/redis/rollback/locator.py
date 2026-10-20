@@ -19,9 +19,10 @@ from django.utils import timezone as dj_timezone
 
 from backend import env
 from backend.components.bklog.client import BKLogApi
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.models.redis_backup_result import RedisBackupResult, RedisBinlogResult
-from backend.db_services.redis.rollback.binlogs import binlog_index
+from backend.db_services.redis.rollback.binlogs import binlog_index, plus_binlog_position
 from backend.db_services.redis.rollback.constants import (
     BACKUP_IDENTIFY_WINDOW_DAYS,
     BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
@@ -29,6 +30,8 @@ from backend.db_services.redis.rollback.constants import (
     BINLOG_LOOKUP_MARGIN_HOURS,
     LOCATOR_SOURCE_BKLOG,
     LOCATOR_SOURCE_TABLE,
+    SINGLE_INSTANCE_SHARD_VALUE,
+    TENDISPLUS_TYPES,
 )
 from backend.db_services.redis.rollback.shards import round_key_from_filename, source_role
 from backend.utils.string import pascal_to_snake
@@ -175,10 +178,16 @@ def _convert(
     return records
 
 
-def binlog_record(file_name: str, task_id, size, source_ip: str, source_port, begin_time) -> Dict[str, Any]:
+def binlog_record(
+    file_name: str, task_id, size, source_ip: str, source_port, begin_time, plus: bool = False
+) -> Dict[str, Any]:
+    """``index`` is None for a name that is not a binlog of the engine; Tendisplus adds ``kvstore``."""
     file_name = (file_name or "").split("/")[-1]
     if isinstance(begin_time, str):
         begin_time = str2datetime(begin_time) if begin_time else None
+    kvstore, index = 0, binlog_index(file_name)
+    if plus:
+        kvstore, index = plus_binlog_position(file_name) or (0, None)
     return {
         "task_id": str(task_id or ""),
         "file_name": file_name,
@@ -186,7 +195,8 @@ def binlog_record(file_name: str, task_id, size, source_ip: str, source_port, be
         "source_ip": source_ip or "",
         "source_port": int(source_port or 0),
         "begin_time": _as_utc(begin_time) if begin_time else None,
-        "index": binlog_index(file_name),
+        "index": index,
+        "kvstore": kvstore,
     }
 
 
@@ -201,6 +211,7 @@ class BackupLocator:
     def __init__(self, cluster: Cluster):
         self.cluster = cluster
         self.locator_source = LOCATOR_SOURCE_TABLE
+        self._plus = cluster.cluster_type in TENDISPLUS_TYPES
 
     def locate_full_by_identify(self, backup_identify: str) -> List[Dict[str, Any]]:
         if not backup_identify:
@@ -257,6 +268,7 @@ class BackupLocator:
                     row.backup_host,
                     row.backup_port,
                     row.backup_begin_time,
+                    plus=self._plus,
                 )
                 for row in rows
             ]
@@ -284,6 +296,7 @@ class BackupLocator:
                 log.get("server_ip"),
                 log.get("server_port"),
                 log.get("start_time"),
+                plus=self._plus,
             ),
         )
         records = dedupe(records, "task_id", "file_name")
@@ -295,6 +308,10 @@ class BackupLocator:
         records, from_bklog = merge_sources(table, bklog)
         self.locator_source = LOCATOR_SOURCE_BKLOG if from_bklog else LOCATOR_SOURCE_TABLE
         self._log_merge(detail, table, bklog, records)
+        if self.cluster.cluster_type == ClusterType.TendisRedisInstance.value:
+            # dbmon reports a master-slave cluster's only shard with an empty shard_value.
+            for record in records:
+                record["shard_value"] = record["shard_value"] or SINGLE_INSTANCE_SHARD_VALUE
         return records
 
     def _log_merge(

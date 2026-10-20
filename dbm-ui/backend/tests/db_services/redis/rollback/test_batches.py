@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework import serializers as drf_serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.batches import BackupBatchService
+from backend.db_services.redis.rollback.constants import SINGLE_INSTANCE_SHARD_VALUE
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.serializers import BackupBatchQuerySerializer
 from backend.db_services.redis.rollback.shards import ShardRef
@@ -139,6 +141,47 @@ def test_list_batches_ignores_unsharded_records():
     assert batch["is_complete"] is True
     assert batch["is_all_shards_covered"] is True
     assert batch["source_is_all_current"] is True
+
+
+def _master_slave_service():
+    """Records go through the locator, where the empty shard_value dbmon reports is normalized."""
+    cluster = MagicMock()
+    cluster.immute_domain = "ins.example.db"
+    cluster.cluster_type = ClusterType.TendisRedisInstance.value
+    service = BackupBatchService(cluster)
+    service.locator._query_table = MagicMock(return_value=[_record("", "a.aof.zst", role="slave")])
+    service.locator._query_bklog = MagicMock(return_value=[])
+    service.resolver.from_db_meta = MagicMock(
+        return_value=[
+            ShardRef(
+                SINGLE_INSTANCE_SHARD_VALUE,
+                current_master="1.1.1.9:30000",
+                current_slave="1.1.1.1:30000",
+                resolvable=True,
+            )
+        ]
+    )
+    service.resolver.cluster_shard_map = MagicMock(return_value=[])
+    return service
+
+
+def test_master_slave_batch_counts_its_only_shard():
+    service = _master_slave_service()
+
+    batch = service.list_batches()["batches"][0]
+    filtered = service.list_batches(shard_values=[SINGLE_INSTANCE_SHARD_VALUE])["batches"][0]
+
+    assert batch["shard_count"] == 1
+    assert batch["is_all_shards_covered"] is True
+    assert batch["source_is_all_current"] is True
+    assert filtered["shard_count"] == 1
+
+
+def test_master_slave_batch_details_without_warning():
+    result = _master_slave_service().batch_details("SCHEDULED-2026010101")
+
+    assert [s["shard_value"] for s in result["shards"]] == [SINGLE_INSTANCE_SHARD_VALUE]
+    assert result["warnings"] == []
 
 
 def test_source_is_current_follows_role_at_backup_time():

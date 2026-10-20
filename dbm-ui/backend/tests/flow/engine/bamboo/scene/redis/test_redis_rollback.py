@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.db_meta.enums import ClusterType
-from backend.db_services.redis.rollback.constants import SWITCHED_SHARD_VALUE
+from backend.db_services.redis.rollback.constants import SINGLE_INSTANCE_SHARD_VALUE, SWITCHED_SHARD_VALUE
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.shards import ShardRef, round_key_from_filename
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
@@ -150,6 +150,31 @@ def test_whole_batch_ignores_unsharded_records_with_warning():
     assert [item.shard.shard_value for item in plan.items] == ["0-104999"]
     assert plan.shard_keyed is True
     assert plan.scope == "cluster"
+
+
+def test_master_slave_batch_without_shard_value_builds_its_only_shard():
+    planner = _planner(ClusterType.TendisRedisInstance.value, backup_identify="SCHEDULED-1")
+    planner.resolver.from_db_meta = MagicMock(
+        return_value=[
+            ShardRef(
+                SINGLE_INSTANCE_SHARD_VALUE,
+                current_master="1.1.1.1:30000",
+                current_slave="1.1.1.9:30000",
+                resolvable=True,
+            )
+        ]
+    )
+    planner.locator._query_table = MagicMock(return_value=[_record("", "a.aof.zst")])
+    planner.locator._query_bklog = MagicMock(return_value=[])
+
+    result = planner.precheck()
+    plan = planner.build(pack=False)
+
+    assert result["exist"] is True
+    assert [s["shard_value"] for s in result["shards"]] == [SINGLE_INSTANCE_SHARD_VALUE]
+    assert not any("shard_value" in w for w in result["warnings"])
+    assert [item.shard.shard_value for item in plan.items] == [SINGLE_INSTANCE_SHARD_VALUE]
+    assert plan.shard_keyed is True
 
 
 def test_batch_with_only_unsharded_records_fails_listing_them():

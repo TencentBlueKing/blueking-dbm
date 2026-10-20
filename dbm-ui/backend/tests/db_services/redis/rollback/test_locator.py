@@ -4,7 +4,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend.db_services.redis.rollback.constants import LOCATOR_SOURCE_BKLOG, LOCATOR_SOURCE_TABLE
+from backend.db_meta.enums import ClusterType
+from backend.db_services.redis.rollback.constants import (
+    LOCATOR_SOURCE_BKLOG,
+    LOCATOR_SOURCE_TABLE,
+    SINGLE_INSTANCE_SHARD_VALUE,
+)
 from backend.db_services.redis.rollback.locator import BackupLocator, row_to_backup_system_format
 
 
@@ -397,3 +402,21 @@ def test_bklog_matching_too_many_logs_counts_as_failed():
         side_effect=[_page(0, 2), _page(2, 2), _page(4, 2)],
     ):
         assert locator._esquery(NOW - timedelta(days=1), NOW, "*") is None
+
+
+@pytest.mark.parametrize(
+    "cluster_type,expected",
+    [
+        (ClusterType.TendisRedisInstance.value, SINGLE_INSTANCE_SHARD_VALUE),
+        (ClusterType.TendisTwemproxyRedisInstance.value, ""),
+    ],
+)
+def test_master_slave_empty_shard_value_is_its_only_shard(cluster_type, expected):
+    locator = _locator()
+    locator.cluster.cluster_type = cluster_type
+    identify = "SCHEDULED-2026102001"
+    table = row_to_backup_system_format(dict(_full_log("t1", "a.aof.zst", identify), shard_value=""))
+    locator._esquery = MagicMock(return_value=[dict(_full_log("t2", "b.aof.zst", identify), shard_value="")])
+    with patch.object(locator, "_query_table", return_value=[table]):
+        records = locator.locate_full_by_identify(identify)
+    assert [r["shard_value"] for r in records] == [expected, expected]

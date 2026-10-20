@@ -2344,6 +2344,19 @@ class RedisActPayload(object):
             },
         }
 
+    def redis_rollback_form_cluster_payload(self, **kwargs) -> dict:
+        """Forms the temp cluster from every restored instance. The actuator reads the temp password
+        from the local conf of a port on ``dest_ip``; every temp instance of a plan shares it."""
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ROLLBACK_FORM_CLUSTER.value,
+            "payload": {
+                "dest_ip": params["dest_ip"],
+                "nodes": RollbackPlan.load(params["plan_id"]).cluster_nodes(),
+            },
+        }
+
     # redis 数据构造集群建立
     def rollback_clustermeet_payload(self, **kwargs) -> dict:
         """

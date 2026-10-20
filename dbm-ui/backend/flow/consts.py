@@ -591,6 +591,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
     ROLLBACK = EnumField("rollback", _("rollback"))
     ROLLBACK_VERIFY = EnumField("rollback_verify", _("rollback_verify"))
+    ROLLBACK_FORM_CLUSTER = EnumField("rollback_form_cluster", _("rollback_form_cluster"))
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
     VERSION_UPDATE = EnumField("version_update", _("version_update"))
     PROXY_VERSION_UPGRADE = EnumField("proxy_version_upgrade", _("proxy_version_upgrade"))
