@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging.config
 from typing import Dict, Optional
 
@@ -40,8 +41,21 @@ from backend.flow.plugins.components.collections.mongodb.mongodb_apply_summary i
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.calculate_cluster import calculate_cluster
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+from backend.flow.utils.mongodb.version_utils import extract_mongodb_version_tuple
 
 logger = logging.getLogger("flow")
+
+
+def mongodb_needs_sessions_balance(db_version: str) -> bool:
+    """MongoDB 6 及以上的分片集群才均衡 config.system.sessions。
+
+    db_version 为空或无法解析时抛出 ValueError，避免 6 及以上的集群静默跳过均衡。
+    """
+
+    if not db_version:
+        raise ValueError("db_version is required to balance config.system.sessions")
+    major = extract_mongodb_version_tuple(str(db_version))[0]
+    return major >= 6
 
 
 def install_plugin(pipeline: Builder, get_kwargs: ActKwargs, new_cluster: bool):
@@ -102,7 +116,9 @@ class MongoDBInstallFlow(object):
         # 创建原子任务执行目录
         kwargs = self.get_kwargs.get_create_dir_kwargs()
         pipeline.add_act(
-            act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+            act_name=_("MongoDB-创建原子任务执行目录"),
+            act_component_code=ExecuteDBActuatorJobComponent.code,
+            kwargs=kwargs,
         )
 
         # 机器初始化——job的api可以多个IP并行执行
@@ -264,6 +280,23 @@ class MongoDBInstallFlow(object):
             act_component_code=ExecuteDBActuatorJobComponent.code,
             kwargs=kwargs,
         )
+
+        # 均衡脚本用 dba 执行。MongoDB 6 起先给 dba 补上 config.system.sessions 的
+        # splitChunk / moveChunk，再按 UUID 分割点把 chunk 摊到各个分片。
+        # 脚本不打开 balancer，结束时确认 balancer 已关闭。
+        if mongodb_needs_sessions_balance(self.data.get("db_version")):
+            kwargs = self.get_kwargs.get_grant_sessions_chunk_role_kwargs()
+            pipeline.add_act(
+                act_name=_("MongoDB--授予config.system.sessions均衡权限"),
+                act_component_code=ExecuteDBActuatorJobComponent.code,
+                kwargs=kwargs,
+            )
+            kwargs = self.get_kwargs.get_balance_sessions_kwargs()
+            pipeline.add_act(
+                act_name=_("MongoDB--均衡config.system.sessions"),
+                act_component_code=ExecuteDBActuatorJobComponent.code,
+                kwargs=kwargs,
+            )
 
         # 域名写入dns
         kwargs = self.get_kwargs.get_add_domain_to_dns_kwargs(cluster=True)

@@ -127,6 +127,16 @@ func TestSmokeActuatorTasksUseMongosh(t *testing.T) {
 			},
 		},
 		{
+			name: "balance_config_sessions",
+			run: func(t *testing.T) (string, error) {
+				p := cloneParams(commonAuth)
+				p["dbVersion"] = "6.0.4"
+				job := &BalanceConfigSessions{}
+				err := job.Init(smokeRuntime(t, p, "balance_config_sessions"))
+				return job.Mongo, err
+			},
+		},
+		{
 			name: "mongo_set_fcv",
 			run: func(t *testing.T) (string, error) {
 				p := cloneParams(commonAuth)
