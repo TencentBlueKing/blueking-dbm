@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.22"
+	BkDbmonVersion = "v0.23"
 )
 
 const (
@@ -169,9 +169,18 @@ const (
 	BackupClientStrorageTypeCOS  = "cos"
 	BackupClientStrorageTypeHDFS = "hdfs"
 
-	// DiskUsageCleanThreshold 数据盘空间利用率(%)超过该阈值时,
+	// DiskUsageCleanThreshold tendisplus全备: 数据盘空间利用率(%)超过该阈值时,
 	// 发起下一次全备前先清理该实例上一次备份文件和记录
 	DiskUsageCleanThreshold = 43
+	// DiskUsageCleanThresholdSSD tendisSSD全备: 数据盘空间利用率(%)超过该阈值时,
+	// 发起下一次全备前先清理该实例上一次备份文件和记录
+	DiskUsageCleanThresholdSSD = 65
+	// DiskUsageCleanThresholdBinlog binlog备份: 数据盘空间利用率(%)超过该阈值时,
+	// 发起下一次binlog备份前先清理该实例上一次备份文件和记录
+	DiskUsageCleanThresholdBinlog = 75
+	// DiskUsageForceCleanThreshold data1(数据盘)空间保护阈值(%): binlog清理时数据盘利用率达到该值,
+	// 无论备份盘是否超阈值都会触发清理,且不再等待上传备份系统任务结束,直接强制删除本地文件,力保数据盘
+	DiskUsageForceCleanThreshold = 90
 )
 
 const (

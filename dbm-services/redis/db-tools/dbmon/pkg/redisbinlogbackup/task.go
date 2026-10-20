@@ -123,6 +123,12 @@ func (task *Task) BackupLocalBinlogs() {
 	}
 	defer flock.Unlock()
 
+	// 数据盘利用率超阈值时,先清理上一次备份文件和记录,再发起本次binlog备份
+	task.CheckDiskUsageAndCleanPreviousBinlog()
+	if task.Err != nil {
+		return
+	}
+
 	binlogs := task.GetTendisBinlogs()
 	if task.Err != nil {
 		return
@@ -152,6 +158,132 @@ func (task *Task) BackupLocalBinlogs() {
 		task.compressAndUpload() // 无论成功还是失败,都继续下一个binlog file
 	}
 }
+
+// CheckDiskUsageAndCleanPreviousBinlog 数据盘空间利用率超过阈值(consts.DiskUsageCleanThresholdBinlog)时,
+// 在发起下一次binlog备份前,先清理该实例上一次备份文件和记录(与tendisplus全备清理策略对齐);
+// 正在上传备份系统中的文件,轮询上传任务状态,待上传结束后再执行删除;
+// 清理完成后检查被清理的备份是否已成功上传备份系统,只做检查记录error日志,不截断清理流程
+// 注意: binlog备份文件数量多,所有文件等待上传任务结束的总时长上限为1小时(全备为单文件最多等待1小时);
+// data1(数据盘)空间保护: 数据盘利用率达到consts.DiskUsageForceCleanThreshold(90%)时,
+// 无论备份盘是否超阈值都会触发清理,且不再等待上传任务结束,直接强制删除本地文件,力保数据盘
+func (task *Task) CheckDiskUsageAndCleanPreviousBinlog() {
+	diskUsg, err := util.GetLocalDirDiskUsg(task.BackupDir)
+	if err != nil {
+		task.Err = err
+		return
+	}
+	// data1(数据盘)空间保护: 数据盘利用率达到90%时,直接触发清理且不再等待上传任务结束
+	forceClean := false
+	dataDiskUsg, err := util.GetLocalDirDiskUsg(task.DumpDir)
+	if err != nil {
+		// 查询数据盘失败不影响后续清理流程,仅记录日志
+		mylog.Logger.Warn(fmt.Sprintf("redis(%s) get data disk(%s) usage fail,err:%v",
+			task.Addr(), task.DumpDir, err))
+		err = nil
+	} else if dataDiskUsg.UsageRatio >= consts.DiskUsageForceCleanThreshold {
+		forceClean = true
+		mylog.Logger.Warn(fmt.Sprintf(
+			"redis(%s) data disk(%s) usage:%d%% >= %d%%,force clean binlogbackup to protect data disk",
+			task.Addr(), task.DumpDir, dataDiskUsg.UsageRatio, consts.DiskUsageForceCleanThreshold))
+	}
+	if diskUsg.UsageRatio <= consts.DiskUsageCleanThresholdBinlog && !forceClean {
+		return
+	}
+	mylog.Logger.Info(fmt.Sprintf(
+		"redis(%s) disk(%s) usage:%d%% > %d%% or data disk forceClean:%v,clean previous binlogbackup before next binlogbackup",
+		task.Addr(), task.BackupDir, diskUsg.UsageRatio, consts.DiskUsageCleanThresholdBinlog, forceClean))
+
+	// 查询该实例本地文件未被清理的历史binlog备份记录,每次最多清理最旧的10个
+	toCleanRows := []models.RedisBinlogHistorySchema{}
+	err = task.sqdb.Where("server_ip=? and server_port=? and local_file_removed=?",
+		task.ServerIP, task.ServerPort, 0).
+		Order("end_time asc").Limit(10).Find(&toCleanRows).Error
+	if err != nil {
+		task.Err = fmt.Errorf("query previous binlogbackup records fail,err:%v", err)
+		mylog.Logger.Error(task.Err.Error())
+		return
+	}
+	if len(toCleanRows) == 0 {
+		return
+	}
+
+	// 所有文件等待上传任务结束的总时长上限
+	waitDeadline := time.Now().Local().Add(1 * time.Hour)
+	cleanedCnt := 0
+	for _, row := range toCleanRows {
+		// 如果该备份文件正在上传备份系统中,删除文件后上传进程仍持有文件句柄,磁盘空间不会立即释放;
+		// 轮询备份系统上传任务状态,待上传结束后再执行删除
+		if row.Status == consts.BackupStatusToBakSystemStart &&
+			row.BackupTaskID != "" && task.backupClient != nil && !forceClean {
+			for time.Now().Local().Before(waitDeadline) {
+				// 等待过程中数据盘仍在持续写入,利用率达到90%时立即中断等待,强制清理
+				if dataDiskUsg, checkErr := util.GetLocalDirDiskUsg(task.DumpDir); checkErr == nil &&
+					dataDiskUsg.UsageRatio >= consts.DiskUsageForceCleanThreshold {
+					mylog.Logger.Warn(fmt.Sprintf(
+						"redis(%s) data disk(%s) usage:%d%% >= %d%%,stop waiting upload task(%s),force clean",
+						task.Addr(), task.DumpDir, dataDiskUsg.UsageRatio,
+						consts.DiskUsageForceCleanThreshold, row.BackupTaskID))
+					forceClean = true
+					break
+				}
+				var taskStatus int
+				var statusMsg string
+				taskStatus, statusMsg, err = task.backupClient.TaskStatus(row.BackupTaskID)
+				if err != nil {
+					mylog.Logger.Warn(fmt.Sprintf("redis(%s) query upload task(%s) status fail,err:%v,continue waiting",
+						task.Addr(), row.BackupTaskID, err))
+				} else if taskStatus >= 4 {
+					// taskStatus==4 上传成功;taskStatus>4 上传失败
+					if taskStatus == 4 {
+						row.Status = consts.BackupStatusToBakSysSuccess
+						row.Message = "上传备份系统成功"
+					} else {
+						row.Status = consts.BackupStatusToBakSystemFailed
+						row.Message = fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg)
+					}
+					if saveErr := task.sqdb.Save(&row).Error; saveErr != nil {
+						mylog.Logger.Error(fmt.Sprintf("redis(%s) save binlogbackup record fail,err:%v",
+							task.Addr(), saveErr))
+					}
+					break
+				}
+				// 上传中,1分钟后再次查询
+				time.Sleep(1 * time.Minute)
+			}
+			if row.Status == consts.BackupStatusToBakSystemStart {
+				mylog.Logger.Error(fmt.Sprintf(
+					"redis(%s) upload task(%s) still running after waiting,file(%s) will be deleted anyway,"+
+						"disk space may not released until upload finished",
+					task.Addr(), row.BackupTaskID, row.BackupFile))
+			}
+		}
+		if util.FileExists(row.BackupFile) {
+			if err = os.Remove(row.BackupFile); err != nil {
+				// 单个文件删除失败不截断整体清理流程,下次任务继续重试
+				mylog.Logger.Error(fmt.Sprintf("os.Remove fail,err:%v,file:%s", err, row.BackupFile))
+				continue
+			}
+		}
+		// 删除该次备份的记录
+		if err = task.sqdb.Delete(&row).Error; err != nil {
+			mylog.Logger.Error(fmt.Sprintf("redis(%s) delete previous binlogbackup record fail,err:%v",
+				task.Addr(), err))
+			continue
+		}
+		// 检查该备份文件是否已成功上传备份系统,只做检查并记录error日志,不截断清理流程
+		if row.Status != consts.BackupStatusToBakSysSuccess {
+			mylog.Logger.Error(fmt.Sprintf(
+				"redis(%s) previous binlogbackup file(%s) status(%s) not uploaded to backup system,"+
+					"it has been deleted due to disk(%s) usage %d%%,backup data may lost",
+				task.Addr(), row.BackupFile, row.Status, task.BackupDir, diskUsg.UsageRatio))
+		}
+		cleanedCnt++
+	}
+	mylog.Logger.Info(fmt.Sprintf(
+		"redis(%s) %d previous binlogbackup files and records cleaned,disk(%s) usage %d%%",
+		task.Addr(), cleanedCnt, task.BackupDir, diskUsg.UsageRatio))
+}
+
 func (task *Task) newConnect() {
 	task.Cli, task.Err = myredis.NewRedisClient(task.Addr(), task.Password, 0, consts.TendisTypeRedisInstance)
 	if task.Err != nil {
