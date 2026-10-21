@@ -73,8 +73,15 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQLSingleEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
-from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_ha_apply_revoke_flow import MySQLHAApplyRevokeFlow
-from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_single_apply_revoke_flow import MySQLSingleApplyRevokeFlow
+from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_revoke_flows import (
+    MysqlAddSlaveRevokeFlow,
+    MysqlHaApplyRevokeFlow,
+    MysqlMigrateClusterRevokeFlow,
+    MysqlProxyAddRevokeFlow,
+    MysqlProxySwitchRevokeFlow,
+    MysqlRestoreSlaveRevokeFlow,
+    MysqlSingleApplyRevokeFlow,
+)
 from backend.flow.engine.bamboo.scene.mysql.validate.dbconsole_dump_validator import DbConsoleDumpFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator import MysqlDtsMigrateFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_local_upgrade_validator import MySQLLocalUpgradeValidator
@@ -112,7 +119,7 @@ class MySQLController(BaseController):
     mysql实例相关调用
     """
 
-    @revoke_with(MySQLSingleApplyRevokeFlow)
+    @revoke_with(MysqlSingleApplyRevokeFlow)
     def mysql_single_apply_scene(self):
         """
         部署tenDB(mysql)单实例场景(新flow编排)
@@ -121,6 +128,7 @@ class MySQLController(BaseController):
         flow.deploy_flow()
 
     #  mysql 从节点恢复(接入备份系统)
+    @revoke_with(MysqlRestoreSlaveRevokeFlow)
     def mysql_restore_slave_remote_scene(self):
         """
         tenDB slave 恢复流程编排
@@ -128,6 +136,7 @@ class MySQLController(BaseController):
         flow = MySQLRestoreSlaveRemoteFlow(root_id=self.root_id, tick_data=self.ticket_data)
         flow.tendb_ha_restore_slave_flow()
 
+    @revoke_with(MysqlAddSlaveRevokeFlow)
     def mysql_add_slave_remote_scene(self):
         """
         仅添加 slave 流程编排
@@ -143,7 +152,7 @@ class MySQLController(BaseController):
         flow = MySQLRestoreSlaveRemoteFlow(root_id=self.root_id, tick_data=self.ticket_data)
         flow.restore_local_slave_flow()
 
-    @revoke_with(MySQLHAApplyRevokeFlow)
+    @revoke_with(MysqlHaApplyRevokeFlow)
     def mysql_ha_apply_scene(self):
         """
         部署tenDB(mysql) HA集群场景(新flow编排)
@@ -277,6 +286,7 @@ class MySQLController(BaseController):
         flow = AccountRulesFlows(root_id=self.root_id, data=self.ticket_data)
         flow.delete_account_rule()
 
+    @revoke_with(MysqlProxyAddRevokeFlow)
     @validates_with(MySQLProxyClusterAddFlowValidator)
     def mysql_proxy_add_scene(self):
         """
@@ -330,6 +340,7 @@ class MySQLController(BaseController):
         flow = MySQLTruncateFlow(root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBHA.value)
         flow.truncate_flow()
 
+    @revoke_with(MysqlProxySwitchRevokeFlow)
     @validates_with(MySQLProxySwitchValidator)
     def mysql_proxy_switch_scene(self):
         """
@@ -339,6 +350,7 @@ class MySQLController(BaseController):
         flow = MySQLProxyClusterSwitchFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_mysql_cluster_proxy_flow()
 
+    @revoke_with(MysqlProxySwitchRevokeFlow)
     @validates_with(MySQLProxySwitchForExtendValidator)
     def mysql_proxy_switch_for_extend_scene(self):
         """
@@ -348,6 +360,7 @@ class MySQLController(BaseController):
         flow = ProxySwitchForExtendFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_proxy_for_extend_flow()
 
+    @revoke_with(MysqlProxySwitchRevokeFlow)
     @validates_with(MySQLProxySwitchForMigrateValidator)
     def mysql_proxy_switch_for_migrate_scene(self):
         """
@@ -357,6 +370,7 @@ class MySQLController(BaseController):
         flow = ProxySwitchForMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_proxy_for_migrate_flow()
 
+    @revoke_with(MysqlProxySwitchRevokeFlow)
     @validates_with(MySQLProxySwitchForMigrateInsValidator)
     def mysql_proxy_switch_for_migrate_ins_scene(self):
         """
@@ -432,6 +446,7 @@ class MySQLController(BaseController):
         )
         flow.rename_database()
 
+    @revoke_with(MysqlMigrateClusterRevokeFlow)
     def mysql_migrate_remote_scene(self):
         """
         主从成对迁移flow编排

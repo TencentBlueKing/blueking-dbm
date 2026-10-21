@@ -11,7 +11,7 @@ import functools
 import inspect
 import ipaddress
 import re
-from typing import Dict, List
+from typing import Callable, Dict, List, Type
 
 from django.utils.translation import gettext as _
 
@@ -19,11 +19,37 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import Cluster
 from backend.flow.engine.validate.exceptions import DisasterToleranceLevelFailedException, TicketDataException
 
+# 挂载到被装饰函数上的属性名；供 ticket 层通过 getattr(func, "validator") 反射拿到校验器
+_VALIDATOR_ATTR: str = "validator"
 
-def validates_with(validator_func):
-    """装饰器：用于关联函数与校验函数"""
 
-    def decorator(main_func):
+def validates_with(validator_func: Type["BaseValidator"]) -> Callable:
+    """装饰器：用于关联主流程函数与其对应的参数校验器。
+
+    功能说明 / 怎么做：
+        - 在被装饰函数对象上挂载 ``validator`` 属性，值为传入的校验器类本身；
+        - 单据流参数装配时（ticket/builders/common/base.py），通过 ``self.validator(attrs)``
+          反射构造校验器实例并执行校验，将结果收敛到 errors 列表返回给上层。
+
+    :param validator_func: 校验器类，必须是 ``BaseValidator`` 的子类（不是实例）
+    :return: 真正的装饰器函数，返回原函数本身（不 wrap，仅打标记）
+
+    边界 / 异常：
+        - ``validator_func`` 非 ``BaseValidator`` 子类 -> 抛 ``TicketDataException``，
+          让误用在 import 期即暴露；
+        - 被装饰函数已存在 ``validator`` 属性（重复装饰 / 命名冲突）-> 抛
+          ``TicketDataException``，避免静默覆盖已挂载的校验器。
+    """
+    # 延迟到运行时判定，避免与 BaseValidator 的循环引用
+    if not (isinstance(validator_func, type) and issubclass(validator_func, BaseValidator)):
+        raise TicketDataException(_("validates_with 需传入 BaseValidator 子类，实际得到: {}").format(repr(validator_func)))
+
+    def decorator(main_func: Callable) -> Callable:
+        # 防止重复装饰或与已有属性静默冲突
+        if hasattr(main_func, _VALIDATOR_ATTR):
+            raise TicketDataException(
+                _("{} 已存在 {} 属性，禁止重复装饰或覆盖").format(getattr(main_func, "__qualname__", main_func), _VALIDATOR_ATTR)
+            )
         # 添加校验函数信息到主函数的元数据中
         main_func.validator = validator_func
         return main_func
