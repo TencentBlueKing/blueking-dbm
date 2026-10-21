@@ -19,6 +19,54 @@ import { ClusterTypes, DBTypes } from '@common/const';
 
 export type NodeConfig = Partial<typeof defaultNodeConfig>;
 
+/** 节点内文案的左边距、右边距（topoNode 绘制文案与这里计算行高共用） */
+export const TEXT_LEFT_OFFSET = 46;
+export const TEXT_RIGHT_PADDING = 12;
+/** 文案行高，与 @antv/g Text 默认值（fontSize + lineWidth）一致 */
+export const TEXT_LINE_HEIGHT = 13;
+/** 单行文案最多折成几行，超出走省略号 */
+export const TEXT_MAX_LINES = 2;
+
+/** 复用 canvas 测量文案宽度 */
+let measureCtx: CanvasRenderingContext2D | null = null;
+const measureTextWidth = (text: string, font = '12px Arial') => {
+  if (!measureCtx) {
+    measureCtx = document.createElement('canvas').getContext('2d')!;
+  }
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+};
+
+/**
+ * 估算文案在给定宽度下的折行行数，与 @antv/g 的 wordWrap 行为对齐：
+ * 优先按空格断行，单个超长片段按字符断行
+ */
+const getWrapLineCount = (text: string, availableWidth: number) => {
+  if (availableWidth <= 0) {
+    return 1;
+  }
+
+  let lines = 1;
+  let lineWidth = 0;
+  for (const word of text.split(' ')) {
+    const wordWidth = measureTextWidth(word);
+    const spaceWidth = lineWidth > 0 ? measureTextWidth(' ') : 0;
+    if (lineWidth > 0 && lineWidth + spaceWidth + wordWidth > availableWidth) {
+      lines += 1;
+      lineWidth = wordWidth;
+    } else {
+      lineWidth += spaceWidth + wordWidth;
+    }
+    // 单个片段超过整行宽度时按字符折行
+    while (lineWidth > availableWidth) {
+      lines += 1;
+      lineWidth -= availableWidth;
+    }
+  }
+
+  return Math.min(lines, TEXT_MAX_LINES);
+};
+
 /** 拓扑图节点文案：ip:port + 可展示的 Mongo instance_state（隐藏 NOT_INITIALIZED/SECONDARY） */
 const HIDDEN_INSTANCE_STATES = new Set(['NOT_INITIALIZED', 'SECONDARY']);
 
@@ -255,14 +303,16 @@ export class GraphData {
    * 设置 children locations
    */
   calcChildrenNodeLocations(targetNode: GraphNode) {
-    const { groupTitle, itemHeight } = this.nodeConfig;
+    const { groupTitle } = this.nodeConfig;
     targetNode.children.forEach((childNode, index) => {
       const offet = (targetNode.style.height - childNode.style.height) / 2;
       // eslint-disable-next-line no-param-reassign
       childNode.style.x = targetNode.style.x;
       // eslint-disable-next-line no-param-reassign
       childNode.style.y =
-        index === 0 ? targetNode.style.y + groupTitle - offet : targetNode.children[index - 1].style.y + itemHeight;
+        index === 0
+          ? targetNode.style.y + groupTitle - offet
+          : targetNode.children[index - 1].style.y + targetNode.children[index - 1].style.height;
     });
   }
 
@@ -386,7 +436,7 @@ export class GraphData {
 
         if (targetNode && !calculatedNodes.get(targetNode.id)) {
           const { height, width, x, y } = startNode.style;
-          const { groupTitle, itemHeight, offsetX, offsetY } = this.nodeConfig;
+          const { groupTitle, offsetX, offsetY } = this.nodeConfig;
           const heightDifference = (targetNode.style.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
           targetNode.style.x = isSameY ? x + width + offsetX : x;
           targetNode.style.y = isSameY ? y : y + height + offsetY + heightDifference;
@@ -400,7 +450,7 @@ export class GraphData {
             childNode.style.y =
               index === 0
                 ? targetNode.style.y + groupTitle - offet
-                : targetNode.children[index - 1].style.y + itemHeight;
+                : targetNode.children[index - 1].style.y + targetNode.children[index - 1].style.height;
           });
 
           calculatedNodes.set(targetNode.id, targetNode);
@@ -417,7 +467,7 @@ export class GraphData {
    * @param nodes 根节点
    */
   calcRootLocations(nodes: GraphNode[]) {
-    const { groupTitle, itemHeight, offsetX, startX, startY } = this.nodeConfig;
+    const { groupTitle, offsetX, startX, startY } = this.nodeConfig;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       node.style.x = (node.style.width + offsetX) * i + startX;
@@ -430,7 +480,9 @@ export class GraphData {
         childNode.style.x = node.style.x;
         // eslint-disable-next-line no-param-reassign
         childNode.style.y =
-          index === 0 ? node.style.y + groupTitle - offet : node.children[index - 1].style.y + itemHeight;
+          index === 0
+            ? node.style.y + groupTitle - offet
+            : node.children[index - 1].style.y + node.children[index - 1].style.height;
       });
     }
   }
@@ -697,14 +749,16 @@ export class GraphData {
             if (!node) {
               return null;
             }
+            const name = formatTopoNodeName(node);
             return {
               belong: group.node_id,
               children: [],
               data: node,
               id: node.node_id,
-              name: formatTopoNodeName(node),
+              name,
               style: {
-                height: this.nodeConfig.itemHeight,
+                // 文案折行时行高相应加高
+                height: this.getNodeRowHeight(name, groupWidth),
                 width: groupWidth,
                 x: 0,
                 y: 0,
@@ -739,10 +793,22 @@ export class GraphData {
    * @returns 节点高度
    */
   getNodeHeight(data: GraphNode[]) {
-    const nums = data.length;
-    const { itemHeight, minHeight } = this.nodeConfig;
+    const { minHeight } = this.nodeConfig;
 
-    return minHeight + itemHeight * nums;
+    // 子节点可能因文案折行而高于 itemHeight，按实际高度累加
+    return minHeight + data.reduce((total, item) => total + item.style.height, 0);
+  }
+
+  /**
+   * 获取实例行高度：按文案折行行数加高，单行仍为 itemHeight
+   * @param name 节点文案
+   * @param width 节点宽度
+   * @returns 节点高度
+   */
+  getNodeRowHeight(name: string, width: number) {
+    const lines = getWrapLineCount(name, width - TEXT_LEFT_OFFSET - TEXT_RIGHT_PADDING);
+
+    return this.nodeConfig.itemHeight + (lines - 1) * TEXT_LINE_HEIGHT;
   }
 
   /**
@@ -770,7 +836,6 @@ export class GraphData {
           return null;
         }
         // 子节点列表
-        // 子节点列表
         const children = group.children_id
           .map((id) => {
             const node = nodes.find((node) => id === node.node_id);
@@ -778,14 +843,16 @@ export class GraphData {
             if (!node) {
               return null;
             }
+            const name = formatTopoNodeName(node);
             return {
               belong: group.node_id,
               children: [],
               data: node,
               id: node.node_id,
-              name: formatTopoNodeName(node),
+              name,
               style: {
-                height: this.nodeConfig.itemHeight,
+                // 文案折行时行高相应加高
+                height: this.getNodeRowHeight(name, this.nodeConfig.width),
                 width: this.nodeConfig.width,
                 x: 0,
                 y: 0,
@@ -793,7 +860,7 @@ export class GraphData {
               type: GroupTypes.NODE,
             };
           })
-          .filter((item) => item !== null);
+          .filter((item) => item !== null) as GraphNode[];
 
         return {
           belong: '',
@@ -802,7 +869,7 @@ export class GraphData {
           id: group.node_id,
           name: group.group_name || group.node_id,
           style: {
-            height: this.getNodeHeight(children as GraphNode[]),
+            height: this.getNodeHeight(children),
             width: this.nodeConfig.width,
             x: 0,
             y: 0,
