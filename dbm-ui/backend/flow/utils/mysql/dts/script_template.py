@@ -13,6 +13,7 @@ import shlex
 from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from backend.flow.utils.mysql.dts.constants import MYSQL_DTS_MASTER_PORT, MYSQL_DTS_WORKER_PORT
+from backend.flow.utils.mysql.dts.monitor_config import MYSQL_MONITOR_INSTALL_PATH
 
 # 介质包布局固定为 dts/{bin,conf,scripts,...}，解到 deploy_path 去掉顶层 dts/ 即可。
 #
@@ -268,7 +269,7 @@ def render_stop_process_script(deploy_path: str) -> str:
 
 def render_clean_monitor_jobs_script() -> str:
     """停进程前摘掉该端口的 mysql-monitor crond 任务。缺配置文件则跳过。"""
-    monitor_root = "/home/mysql/mysql-monitor"
+    monitor_root = MYSQL_MONITOR_INSTALL_PATH
     return "\n".join(
         [
             "set -euo pipefail",

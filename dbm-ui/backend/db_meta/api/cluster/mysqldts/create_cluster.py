@@ -27,6 +27,7 @@ logger = logging.getLogger("root")
 _ACTIVE_STATUSES = (
     MysqlDtsClusterStatus.DEPLOYING.value,
     MysqlDtsClusterStatus.RUNNING.value,
+    MysqlDtsClusterStatus.DESTROYING.value,
 )
 
 
@@ -80,7 +81,7 @@ def _assert_name_available(bk_biz_id: int, name: str):
         status__in=_ACTIVE_STATUSES,
     ).exists()
     if exists:
-        raise DBMetaException(message=_("业务 {} 下 DTS 集群名称 {} 已存在（deploying/running）").format(bk_biz_id, name))
+        raise DBMetaException(message=_("业务 {} 下 DTS 集群名称 {} 已存在或正在回收").format(bk_biz_id, name))
 
 
 def _ensure_machines(

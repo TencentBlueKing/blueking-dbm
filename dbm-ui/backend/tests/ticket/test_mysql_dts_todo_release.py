@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.test import TestCase
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
-from backend.db_meta.models.mysql_dts import MysqlDtsInfo, MysqlDtsStatus
+from backend.db_meta.models.mysql_dts import MysqlDtsCluster, MysqlDtsClusterStatus, MysqlDtsInfo, MysqlDtsStatus
 from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models import Flow, Ticket
@@ -31,6 +31,12 @@ _MIGRATE_DETAILS = {
 
 
 class MysqlDtsTodoReleaseTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        MysqlDtsCluster.objects.create(
+            id=1, name="dts-release", bk_biz_id=1, status=MysqlDtsClusterStatus.RUNNING.value
+        )
+
     def _ticket(self, ticket_type, details=None):
         return Ticket.objects.create(
             bk_biz_id=1,

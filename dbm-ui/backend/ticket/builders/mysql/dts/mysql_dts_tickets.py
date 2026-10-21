@@ -1419,7 +1419,9 @@ class MysqlToMysqlMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
     migrate_type = "mysql_to_mysql"
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DTS_DATA_MIGRATE, iam=ActionEnum.MYSQL_DTS_DATA_MIGRATE)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_DTS_DATA_MIGRATE, iam=ActionEnum.MYSQL_DTS_DATA_MIGRATE, is_apply=True
+)
 class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlToMysqlMigrateDetailSerializer
     inner_flow_builder = MysqlToMysqlMigrateFlowParamBuilder
@@ -1442,7 +1444,7 @@ class MysqlHaToClusterMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
     migrate_type = "ha_to_cluster"
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE)
+@builders.BuilderFactory.register(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE, is_apply=True)
 class MysqlHaToClusterMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlHaToClusterMigrateDetailSerializer
     inner_flow_builder = MysqlHaToClusterMigrateFlowParamBuilder
@@ -1456,7 +1458,9 @@ class MysqlRenameMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
     # 不整单写死 migrate_type：由 Serializer / Flow 按行推断
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME, iam=ActionEnum.MYSQL_DTS_DATA_MIGRATE)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME, iam=ActionEnum.MYSQL_DTS_DATA_MIGRATE, is_apply=True
+)
 class MysqlRenameMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlRenameMigrateDetailSerializer
     inner_flow_builder = MysqlRenameMigrateFlowParamBuilder

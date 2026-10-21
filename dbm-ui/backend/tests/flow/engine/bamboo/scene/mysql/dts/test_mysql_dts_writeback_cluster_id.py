@@ -56,7 +56,7 @@ class MysqlDtsResolveClusterWritebackTest(SimpleTestCase):
         cluster = _cluster(id=9, master_addr="127.0.0.4:8261", bk_cloud_id=2)
         ok, data, trans_data, mock_objects = _run_resolve({"dts_cluster_id": 9}, cluster=cluster)
         self.assertTrue(ok)
-        mock_objects.filter.assert_called_once_with(id=9)
+        mock_objects.filter.assert_called_once_with(id=9, status__in=("deploying", "running"))
         self.assertEqual(trans_data.migrate_context.dts_cluster_id, 9)
         self.assertEqual(trans_data.migrate_context.master_addr, "127.0.0.4:8261")
         self.assertEqual(trans_data.migrate_context.bk_cloud_id, 2)
