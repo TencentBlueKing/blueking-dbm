@@ -185,6 +185,7 @@ class TicketSnapshot(AuditedModel):
     remark = models.CharField(_("说明"), max_length=LEN_L_LONG, default="")
     details = models.JSONField(_("改单详情(前端传入未初始化的详情)"), default=dict)
     change_count = models.IntegerField(_("差异字段数"), default=0)
+    config = models.JSONField(_("单据配置"), default=dict, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据改单快照(TicketSnapshot)")
