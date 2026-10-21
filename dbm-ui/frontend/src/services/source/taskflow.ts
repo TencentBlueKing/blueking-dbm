@@ -213,6 +213,7 @@ export function getNodeLogV2(params: {
   return http.get<{
     cursor: string;
     result: {
+      ignore_line?: boolean;
       levelname: string;
       message: string;
       timestamp: number;

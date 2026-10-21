@@ -80,6 +80,27 @@
   let lastScrollPosition = 0; // 记录上次滚动位置
   let localLogList: NodeLog[] = [];
   let logicalLineNumbers: number[] = []; // 逻辑行与实际行的映射
+  let ignoreLineFlags: boolean[] = []; // 标记不展示行号的逻辑行（ignore_line 条目）
+
+  /**
+   * 按条目顺序生成「逻辑行是否忽略行号」的标记
+   * 每条日志按换行拆成若干物理行，顺序与终端 buffer 的逻辑行一一对应（自动换行只产生 isWrapped 行）；
+   * 末尾空段是下一条日志的起始行（写入时不会额外补换行），不计入
+   */
+  const buildIgnoreLogicalFlags = () => {
+    const flags: boolean[] = [];
+    localLogList.forEach((item) => {
+      const text = formatLogData([item])[0] ?? '';
+      const segments = text.split(/\r\n|\r|\n/);
+      segments.forEach((segment, index) => {
+        if (index === segments.length - 1 && segment === '') {
+          return;
+        }
+        flags.push(Boolean(item['ignore_line']));
+      });
+    });
+    return flags;
+  };
 
   const updateLastScrollPosition = _.debounce(() => {
     lastScrollPosition = terminal?.buffer.active.viewportY || 0;
@@ -151,14 +172,25 @@
   const updateLogicalLineNumbers = () => {
     const buffer = terminal?.buffer.active || ([] as unknown as IBuffer);
     logicalLineNumbers = [];
+    ignoreLineFlags = [];
     let currentLogicalLine = 0;
     if (!buffer.length) {
       return;
     }
 
+    const ignoreLogicalFlags = buildIgnoreLogicalFlags();
+    let logicalIndex = -1;
+
     for (let i = 0; i < buffer.length; i++) {
       const line = buffer!.getLine(i);
       if (line && !line.isWrapped) {
+        logicalIndex += 1;
+        // ignore_line 行不占用行号：沿用上一行号且在渲染时置空
+        if (ignoreLogicalFlags[logicalIndex]) {
+          ignoreLineFlags[i] = true;
+          logicalLineNumbers[i] = currentLogicalLine;
+          continue;
+        }
         currentLogicalLine = currentLogicalLine + 1; // 行号从1开始
       }
       logicalLineNumbers[i] = currentLogicalLine;
@@ -177,7 +209,7 @@
     for (let i = 0; i < visibleRows; i++) {
       const lineIndex = scrollTop + i;
       isSameLine = logicalLineNumbers[lineIndex] === logicalLineNumbers[lineIndex - 1];
-      const logicalLine = !isSameLine ? (logicalLineNumbers[lineIndex] ?? '') : '';
+      const logicalLine = !isSameLine && !ignoreLineFlags[lineIndex] ? (logicalLineNumbers[lineIndex] ?? '') : '';
       numbersHtml += `<div class="line-num">${logicalLine}</div>`;
     }
     lineNumbers.innerHTML = numbersHtml;
