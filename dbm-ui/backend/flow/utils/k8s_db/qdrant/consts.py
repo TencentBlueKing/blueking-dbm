@@ -11,5 +11,5 @@ specific language governing permissions and limitations under the License.
 
 # Qdrant 部署相关的常量集中定义，避免多处 magic string / magic number
 
-# CLB 名称后缀，最终形如 "{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}"
+# CLB 名称后缀，最终形如 "{cluster_name}-{bk_biz_id}-{CLB_NAME_SUFFIX}-{毫秒时间戳}"
 CLB_NAME_SUFFIX = "qdrant-clb"
