@@ -37,6 +37,7 @@ const (
 
 // KubeBlocks 环境变量名常量
 const (
+	KbPodFQDN   = "KB_POD_FQDN"
 	KbPodName   = "KB_POD_NAME"
 	KbPodUID    = "KB_POD_UID"
 	KbNamespace = "KB_NAMESPACE"
@@ -52,6 +53,7 @@ const (
 
 // KbEnvVar KubeBlocks 识别的环境变量集合
 var KbEnvVar = map[string]struct{}{
+	KbPodFQDN:   {},
 	KbPodName:   {},
 	KbPodUID:    {},
 	KbNamespace: {},
