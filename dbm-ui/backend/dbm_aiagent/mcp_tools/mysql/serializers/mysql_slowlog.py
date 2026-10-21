@@ -45,8 +45,8 @@ class SlowlogAggregatedInputSerializer(serializers.Serializer):
     instance_role = serializers.ChoiceField(choices=mysql_instance_role_choices, help_text=_("db实例角色"))
     metric_name = serializers.ChoiceField(choices=mysql_slowlog_orderby_choices, help_text=_("按照哪个指标来聚合排序"))
     limit = serializers.IntegerField(help_text=_("查看 top N 慢日志种类"))
-    start_time = serializers.DateTimeField(help_text=_("开始时间"))
-    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    start_time = serializers.DateTimeField(help_text=_("开始时间, 无时区时会按东八区（UTC+8）解析"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间, 无时区时会按东八区（UTC+8）解析"))
     query_sample = serializers.BooleanField(help_text=_("是否返回原始 sql 示例"), required=False, default=True)
     exclude_system = serializers.BooleanField(help_text=_("是否排除系统自身产生的慢日志"), required=False, default=True)
 
