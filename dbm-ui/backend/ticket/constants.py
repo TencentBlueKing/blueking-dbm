@@ -777,7 +777,7 @@ class FlowType(StrStructuredEnum):
     # 暂停节点
     PAUSE = EnumField("PAUSE", _("人工确认"))
     # 确认修改节点，审批人代为修改后由提单人确认
-    CONFIRM_MODIFY = EnumField("CONFIRM_MODIFY", _("确认修改"))
+    CONFIRM_MODIFY = EnumField("CONFIRM_MODIFY", _("修改内容确认"))
     # 交付节点，仅作为流程结束的标志
     DELIVERY = EnumField("DELIVERY", _("交付"))
     # 描述节点，描述触发创建该单据的任务信息
