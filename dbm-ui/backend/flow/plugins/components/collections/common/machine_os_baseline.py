@@ -103,7 +103,7 @@ else
         echo "ERROR: ${NTP_SH} not found"
         exit 1
     fi
-    # 已有 ntpdate 在跑时本次会失败。最多 3 次，失败后间隔 60 秒。
+    # Another running ntpdate makes this attempt fail. Retry up to 3 times, 60s apart.
     run_ntp() {
         _ntp_try=1
         while [ "${_ntp_try}" -le 3 ]; do
@@ -120,7 +120,7 @@ else
         return 1
     }
     echo "force ntpdate"
-    # -f 只做强制对时，不执行 tos -f dns
+    # -f forces a sync and does not run tos -f dns
     run_ntp -f || { echo "ERROR: ${NTP_SH} -f failed"; exit 1; }
 
     NTP_ONCE="/bin/sh ${NTP_SH} --maxoffset 3"
