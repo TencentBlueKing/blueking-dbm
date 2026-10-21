@@ -18,7 +18,7 @@
       required>
       <div class="notify-wrapper">
         <BkSwitcher
-          :disabled="isModify"
+          :disabled="isDisabled"
           :model-value="modelValue.is_send"
           theme="primary"
           @change="handleSwitchChange" />
@@ -35,7 +35,7 @@
       :label="t('收件人')">
       <MemberSelector
         v-model="personList"
-        :disabled="isModify"
+        :disabled="isDisabled"
         style="width: 435px" />
     </DbFormItem>
   </div>
@@ -46,6 +46,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import { getAdmins } from '@services/source/dbadmin';
 
   import { useTicketModifyState } from '@hooks';
@@ -70,8 +71,9 @@
   }>({ required: true });
 
   const { t } = useI18n();
-  // 交付通知在单据 config 里，改单接口只提交 details，改了也不会生效，改单模式下一律只读
-  const isModify = Boolean(useTicketModifyState());
+  const modifyState = useTicketModifyState();
+  // 改单接口只有重新编辑会提交 config：重新编辑可改交付通知，代为修改、调整申请只读
+  const isDisabled = Boolean(modifyState) && modifyState?.mode !== TicketModifyRecordModel.MODE_RE_EDIT;
   const { username } = useUserProfile();
 
   const personList = ref<string[]>([]);
