@@ -122,6 +122,14 @@
           </template>
         </TableColumn>
         <TableColumn
+          col-key="dataExportModeDisplay"
+          :min-width="150"
+          :title="t('模式')">
+          <template #default="{ row }: { row: IRowData }">
+            {{ row.dataExportModeDisplay || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
           col-key="ticket_type_display"
           :min-width="200"
           :title="t('子任务')">
