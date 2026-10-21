@@ -248,10 +248,11 @@ class TicketHandler:
         return approvers[:1], approvers[1:]
 
     @classmethod
-    def operate_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
+    def operate_itsm_ticket(cls, ticket_id, action, operator, sn=None, **kwargs):
         """操作itsm中的单据"""
-        flow = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM", status=TicketFlowStatus.RUNNING)
-        sn = flow.flow_obj_id
+        if sn is None:
+            flow = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM", status=TicketFlowStatus.RUNNING)
+            sn = flow.flow_obj_id
         itsm_info = ItsmApi.get_ticket_info(params={"sn": sn})
 
         # 当前没有正在进行的步骤，退出
@@ -278,7 +279,8 @@ class TicketHandler:
             params["activity_key"] = current_step["activity_key"]
         if action == OperateNodeActionType.TRANSITION:
             is_approved = kwargs["is_approved"]
-            itsm_fields = cls.get_itsm_fields(flow.ticket.ticket_type)
+            # 显式传入 sn 时(如代为修改在事务提交后拒单)flow 可能未定义，改用 ticket_id 取单据类型
+            itsm_fields = cls.get_itsm_fields(Ticket.objects.get(id=ticket_id).ticket_type)
             fields = [
                 {"key": itsm_fields[0], "value": json.dumps(is_approved)},
                 {"key": itsm_fields[1], "value": act_msg},
