@@ -94,6 +94,14 @@ class MysqlDtsCreateTest(TestCase):
             create(**_create_kwargs())
 
     @patch("backend.db_meta.api.machine.apis.CCApi", _cc_api_mock_cloud0())
+    def test_create_rejects_name_while_destroying(self):
+        first = create(**_create_kwargs())
+        first.status = MysqlDtsClusterStatus.DESTROYING.value
+        first.save(update_fields=["status"])
+        with self.assertRaises(DBMetaException):
+            create(**_create_kwargs())
+
+    @patch("backend.db_meta.api.machine.apis.CCApi", _cc_api_mock_cloud0())
     def test_create_allows_same_name_after_destroyed(self):
         first = create(**_create_kwargs())
         first.status = MysqlDtsClusterStatus.DESTROYED.value

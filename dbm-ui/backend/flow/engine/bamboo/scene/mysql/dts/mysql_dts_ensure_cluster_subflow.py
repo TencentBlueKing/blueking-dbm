@@ -30,7 +30,7 @@ def _load_dts_cluster(kwargs) -> MysqlDtsCluster | None:
     """plan 带 ID 按 ID 查；否则按业务 + 集群名查活跃行。禁止在此 CREATE。"""
     dts_cluster_id = kwargs.get("dts_cluster_id")
     if dts_cluster_id:
-        return MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
+        return MysqlDtsCluster.objects.filter(id=dts_cluster_id, status__in=_ACTIVE_CLUSTER_STATUSES).first()
     bk_biz_id = kwargs.get("bk_biz_id")
     cluster_name = kwargs.get("cluster_name")
     if not bk_biz_id or not cluster_name:

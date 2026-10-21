@@ -2392,6 +2392,43 @@ class MysqlDtsMigrateSucceededDestroyTriggerTest(SimpleTestCase):
         mock_helper.assert_called_once_with(ticket)
 
 
+class MysqlDtsMigrateTerminateRecycleTest(SimpleTestCase):
+    """三种迁移单终止后建已申领主机退回单。标记打在各自登记上。"""
+
+    def test_three_migrate_types_are_apply_tickets(self):
+        apply_types = (
+            TicketType.MYSQL_DTS_DATA_MIGRATE.value,
+            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
+        )
+        for ticket_type in apply_types:
+            self.assertIn(ticket_type, BuilderFactory.apply_ticket_type)
+        self.assertNotIn(TicketType.MYSQL_DTS_CLUSTER_DESTROY.value, BuilderFactory.apply_ticket_type)
+        self.assertNotIn(TicketType.MYSQL_DTS_CLUSTER_REINSTALL.value, BuilderFactory.apply_ticket_type)
+        self.assertNotIn(TicketType.MYSQL_DTS_CHECKSUM.value, BuilderFactory.apply_ticket_type)
+
+    @patch("backend.ticket.flow_manager.manager.create_dts_destroy_after_migrate.apply_async")
+    @patch("backend.ticket.flow_manager.manager.create_recycle_ticket.apply_async")
+    @patch("backend.ticket.flow_manager.manager.notify.send_msg.apply_async")
+    @patch("backend.ticket.flow_manager.manager.add_ticket_audit_event.apply_async")
+    def test_terminated_enqueues_recycle_apply_host(self, _mock_audit, _mock_notify, mock_recycle, mock_destroy):
+        from backend.ticket.flow_manager.manager import TicketFlowManager
+
+        for ticket_type in (
+            TicketType.MYSQL_DTS_DATA_MIGRATE.value,
+            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
+        ):
+            mock_recycle.reset_mock()
+            mock_destroy.reset_mock()
+            ticket = SimpleNamespace(id=18811, ticket_type=ticket_type, details={}, config={})
+            manager = TicketFlowManager.__new__(TicketFlowManager)
+            manager.ticket = ticket
+            manager.ticket_status_trigger(TicketStatus.RUNNING, TicketStatus.TERMINATED)
+            mock_recycle.assert_called_once_with(args=(ticket.id, [], TicketType.RECYCLE_APPLY_HOST))
+            mock_destroy.assert_not_called()
+
+
 class MysqlDtsClusterDestroyRecycleSuccessHookTest(SimpleTestCase):
     """DESTROY 成功钩子：非空 recycle_hosts 触发 create_recycle_ticket；空列表 early-return。"""
 

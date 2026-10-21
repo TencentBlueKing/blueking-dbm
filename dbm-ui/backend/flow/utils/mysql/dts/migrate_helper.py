@@ -921,7 +921,10 @@ def load_active_dts_cluster(
 ) -> MysqlDtsCluster | None:
     """运行时取活跃行：有 ID 按 ID，否则按业务+名。给 prepare_user / 清 dump 用。"""
     if dts_cluster_id:
-        return MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
+        return MysqlDtsCluster.objects.filter(
+            id=dts_cluster_id,
+            status__in=(MysqlDtsClusterStatus.DEPLOYING.value, MysqlDtsClusterStatus.RUNNING.value),
+        ).first()
     if bk_biz_id and cluster_name:
         return MysqlDtsCluster.objects.filter(
             bk_biz_id=bk_biz_id,
