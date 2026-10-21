@@ -20,6 +20,7 @@ import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.k8s_db.utils import build_clb_name
 from backend.flow.utils.k8s_db.vm.consts import CLB_NAME_SUFFIX
 
 logger = logging.getLogger("flow")
@@ -35,6 +36,7 @@ class ApplyK8sVmClbService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
         cluster_name = global_data["k8s_cluster_name"]
+        db_cluster_name = global_data["cluster_name"]
         bk_biz_id = global_data["bk_biz_id"]
         is_public = global_data.get("is_public")
 
@@ -67,7 +69,7 @@ class ApplyK8sVmClbService(BaseService):
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": "{}-{}".format(cluster_name, CLB_NAME_SUFFIX),
+            "clb_name": build_clb_name(db_cluster_name, bk_biz_id, CLB_NAME_SUFFIX),
             "clb_nums": 1,
             "async_to_dbm": False,
         }
