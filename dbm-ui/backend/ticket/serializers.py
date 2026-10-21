@@ -569,6 +569,8 @@ class TicketModifySerializer(serializers.Serializer):
     remark = serializers.CharField(help_text=_("改单说明"), required=False, allow_blank=True, default="")
     version = serializers.IntegerField(help_text=_("内容版本号(乐观锁)"), required=False, allow_null=True)
     change_count = serializers.IntegerField(help_text=_("差异字段数"), required=False, default=0)
+    # 单据配置/单据上下文
+    config = TicketConfigSerializer(help_text=_("单据配置"), required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
