@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 # VictoriaMetrics 部署相关的常量集中定义，避免多处 magic string / magic number
 
 # 命名空间前缀，最终形如 "{NAMESPACE_PREFIX}-{db_app_abbr}-{bk_biz_id}"
-NAMESPACE_PREFIX = "victoriametrics"
+NAMESPACE_PREFIX = "vm"
 
 # dbs 侧标识
 STORAGE_ADDON_TYPE = "victoriametrics"
