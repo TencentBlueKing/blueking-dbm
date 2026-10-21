@@ -214,7 +214,8 @@ func (m *DBLoader) Start() error {
 	logger.Info("开始解压 untarDir=%s", m.untarDir)
 	if err := m.BackupInfo.indexObj.UntarFiles(m.untarDir, SContext); err != nil {
 		return err
-	} else if baseName := filepath.Base(m.targetDir); m.untarDir != m.taskDir {
+	}
+	if baseName := filepath.Base(m.targetDir); m.untarDir != m.taskDir {
 		// 创建软连接到 taskDir 下，方便查看
 		os.Symlink(m.targetDir, filepath.Join(m.taskDir, baseName))
 	}
@@ -233,7 +234,13 @@ func (m *DBLoader) Start() error {
 	if strings.Contains(m.targetDir, "doDr_") {
 		if err := os.RemoveAll(m.targetDir); err != nil {
 			logger.Warn("fail to remove old recover dir: %s. ignore %s", m.targetDir, err.Error())
-			//return err
+		} else if !strings.Contains(m.untarDir, "/dbbak/") {
+			// 如果 m.untarDir 上层目录为空，则也删除
+			rootIdDir := filepath.Dir(strings.TrimSuffix(m.untarDir, "/")) // /data1/mysqldata/12345678
+			if empty, _ := cmutil.IsDirEmpty(rootIdDir); empty && strings.Contains(rootIdDir, "/mysqldata/") {
+				logger.Warn("remove old recover root_id dir: %s", rootIdDir)
+				os.Remove(rootIdDir)
+			}
 		}
 	}
 	// 进度存档
@@ -292,7 +299,7 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		m.untarDir = m.taskDir
 		logger.Info("use untar dir under workDir %s: %s", m.WorkDir)
 	}
-	if removeOld { // 删除旧目录
+	if removeOld { // 删除 重试的旧目录
 		timeNow := time.Now()
 		// 只匹配 doDr_ 开头的目录，避免删
 		searchUntarDir := fmt.Sprintf("%s/doDr_%d_*", filepath.Dir(m.untarDir), m.TgtInstance.Port)
