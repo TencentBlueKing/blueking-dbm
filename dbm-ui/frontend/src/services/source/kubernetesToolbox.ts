@@ -144,7 +144,13 @@ export function restartComponent(params: {
 export function hscalingComponent(params: {
   bk_username: string;
   clusterName: string;
-  horizontalScaling: { componentName: string; scaleOut: { replicaChanges: number } }[];
+  horizontalScaling: {
+    componentName: string;
+    /** 缩容：减少的副本数（缩容前节点数 - 缩容后节点数） */
+    scaleIn?: { replicaChanges: number };
+    /** 扩容：增加的副本数（扩容后节点数 - 扩容前节点数） */
+    scaleOut?: { replicaChanges: number };
+  }[];
   k8sClusterName: string;
   namespace: string;
 }) {

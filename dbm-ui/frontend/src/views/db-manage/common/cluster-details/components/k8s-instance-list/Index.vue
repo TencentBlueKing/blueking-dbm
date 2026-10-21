@@ -76,8 +76,18 @@
                   {{ t('磁盘扩容') }}
                 </BkButton>
               </BkDropdownItem>
+              <!-- VictoriaMetrics 的 vminsert / vmselect 支持缩容，走扩缩容弹窗；vmstorage 只允许水平扩容 -->
+              <BkDropdownItem v-if="isVmHorizontalScalingRole">
+                <BkButton
+                  style="width: 105px"
+                  text
+                  @click="handleHorizontalScalingShow">
+                  {{ t('水平扩缩容') }}
+                </BkButton>
+              </BkDropdownItem>
               <BkDropdownItem
                 v-if="
+                  !isVmHorizontalScalingRole &&
                   [
                     ClusterTypes.K8S_SURREALDB_HA,
                     ClusterTypes.K8S_QDRANT_HA,
@@ -197,7 +207,7 @@
                     row.node,
                   )
                 ">
-                {{ t('删除') }}
+                {{ t('重启') }}
               </AuthButton>
             </template>
           </TableColumn>
@@ -224,6 +234,12 @@
       @success="handleOperateSuccess" />
     <HscalingComponent
       v-model="isHscalingComponentShow"
+      :cluster-data="clusterData"
+      :count="originalData.length"
+      :role="role"
+      @success="handleOperateSuccess" />
+    <HorizontalScalingComponent
+      v-model="isHorizontalScalingShow"
       :cluster-data="clusterData"
       :count="originalData.length"
       :role="role"
@@ -263,6 +279,7 @@
 
   import { URL_INSTANCE_MEMO_KEY } from '../../constants';
 
+  import HorizontalScalingComponent from './components/batch-operation/HorizontalScalingComponent.vue';
   import HscalingComponent from './components/batch-operation/HscalingComponent.vue';
   import PatchComponentConfig from './components/batch-operation/PatchComponentConfig.vue';
   import VexpansionComponent from './components/batch-operation/VexpansionComponent.vue';
@@ -340,6 +357,17 @@
   const isVmstorageClbTab = computed(
     () => props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER && props.role === 'vmstorage',
   );
+
+  const VM_HORIZONTAL_SCALING_ROLES = ['vminsert', 'vmselect'];
+  const VM_CLUSTER_TYPES = [
+    ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER,
+    ClusterTypes.K8S_VICTORIAMETRICS_SELECT,
+  ] as string[];
+
+  // vmstorage 只允许水平扩容，vminsert / vmselect 支持水平扩缩容
+  const isVmHorizontalScalingRole = computed(
+    () => VM_HORIZONTAL_SCALING_ROLES.includes(props.role) && VM_CLUSTER_TYPES.includes(props.clusterType as string),
+  );
   const vmstorageClbEnabled = computed(() =>
     isVmstorageClbTab.value ? (props.clusterData as VictoriametricsClusterDetailModel).isStorageClbEnabled : false,
   );
@@ -394,6 +422,7 @@
   const isVscalingComponentShow = ref(false);
   const isVexpansionComponentShow = ref(false);
   const isHscalingComponentShow = ref(false);
+  const isHorizontalScalingShow = ref(false);
 
   const selectedRowKeys = ref<number[]>([]);
   const selectedList = shallowRef<IColumnData[]>([]);
@@ -515,6 +544,10 @@
 
   const handleHscalingComponentShow = () => {
     isHscalingComponentShow.value = true;
+  };
+
+  const handleHorizontalScalingShow = () => {
+    isHorizontalScalingShow.value = true;
   };
 
   onMounted(() => {
