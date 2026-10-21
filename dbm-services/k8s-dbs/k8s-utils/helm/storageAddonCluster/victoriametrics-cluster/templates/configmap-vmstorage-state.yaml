@@ -1,0 +1,13 @@
+{{- if eq .Values.topoName "cluster" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-vmstorage-state
+  namespace: {{ .Release.Namespace }}
+data:
+  {{- range .Values.componentList }}
+  {{- if eq .componentName "vmstorage" }}
+  vmstorage_replicas: "{{ .replicas }}"
+  {{- end }}
+  {{- end }}
+{{- end }}
