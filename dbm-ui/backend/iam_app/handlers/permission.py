@@ -11,33 +11,23 @@ specific language governing permissions and limitations under the License.
 
 import itertools
 import logging
-import time
 from functools import wraps
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 from blueapps.account.models import User
-from django.conf import settings
 from django.utils.translation import gettext as _
-from iam import IAM, DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
-from iam.apply.models import (
-    ActionWithoutResources,
-    ActionWithResources,
-    Application,
-    RelatedResourceType,
-    ResourceInstance,
-    ResourceNode,
-)
+from iam import IAM, DummyIAM, MultiActionRequest, Request, Resource, Subject
 from iam.exceptions import AuthAPIError
 from iam.iam import logger as iam_logger
 from iam.meta import setup_action, setup_resource, setup_system
 from iam.utils import gen_perms_apply_data
-from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from backend import env
-from backend.env import BK_IAM_SYSTEM_ID
+from backend.iam_app import tasks
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta, _all_resources
-from backend.iam_app.exceptions import ActionNotExistError, GetSystemInfoError, PermissionDeniedError
+from backend.iam_app.exceptions import PermissionDeniedError
+from backend.iam_app.handlers.backends import get_iam_backend
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
@@ -49,9 +39,6 @@ class Permission(object):
     """
     权限中心鉴权和无权限申请的通用封装
     """
-
-    IAM_IS_ALLOWED_MAX_RETRIES = 3
-    IAM_IS_ALLOWED_RETRY_INTERVAL_SECONDS = 0.2
 
     def __init__(self, username: str = "", request=None):
         if username:
@@ -68,6 +55,17 @@ class Permission(object):
 
         self.is_superuser = User.objects.filter(username=self.username, is_superuser=True).exists()
         self._iam = self.get_iam_client()
+        self.backend = get_iam_backend(self._iam)
+
+    def _call(self, method: str, *args, **kwargs) -> Any:
+        """
+        鉴权后端的统一入口。
+        TODO: 接入shadow影子对比时在此按采样率额外调用另一版本的后端并比对结果(见02文档J4)
+        """
+        result = getattr(self.backend, method)(*args, **kwargs)
+        # 影子比对：在V3真实鉴权模式下，后台异步跑一次V4只打日志，不改变真实返回值
+        tasks.dispatch_shadow(method, result, args, kwargs)
+        return result
 
     @classmethod
     def get_iam_client(cls):
@@ -80,9 +78,7 @@ class Permission(object):
         """
         获取权限中心注册的动作列表
         """
-        ok, message, data = self._iam._client.query(settings.BK_IAM_SYSTEM_ID)
-        if not ok:
-            raise GetSystemInfoError(_("获取系统信息错误：{message}").format(message))
+        data = self._call("get_system_info")
         return data
 
     @classmethod
@@ -122,14 +118,6 @@ class Permission(object):
         """
         resource_meta = ResourceEnum.get_resource_by_id(resource_type)
         return resource_meta.create_instance(instance_id)
-
-    @classmethod
-    def check_resource_is_local(cls, resources: List[Resource]) -> bool:
-        """
-        判断资源是否属于本系统
-        """
-        check_list = [resource.system == BK_IAM_SYSTEM_ID for resource in resources]
-        return set(check_list) == {True}
 
     @classmethod
     def batch_make_resource_instance(cls, resources: List[Dict]):
@@ -195,29 +183,7 @@ class Permission(object):
         if not action.related_resource_types:
             resources = []
 
-        request = self.make_request(action, resources)
-        permission = False
-        for retry in range(self.IAM_IS_ALLOWED_MAX_RETRIES):
-            try:
-                permission = self._iam.is_allowed(request)
-                break
-            except RequestsConnectionError as e:
-                # 兼容 IAM 网关偶发的 RemoteDisconnected，进行快速重试。
-                if "RemoteDisconnected" in str(e) and retry < self.IAM_IS_ALLOWED_MAX_RETRIES - 1:
-                    logger.warning(
-                        "IAM ConnectionError(RemoteDisconnected), retry %s/%s: %s",
-                        retry + 1,
-                        self.IAM_IS_ALLOWED_MAX_RETRIES,
-                        e,
-                    )
-                    time.sleep(self.IAM_IS_ALLOWED_RETRY_INTERVAL_SECONDS)
-                    continue
-
-                logger.exception(f"IAM ConnectionError: {e}")
-                break
-            except AuthAPIError as e:
-                logger.exception(f"IAM AuthAPIError: {e}")
-                break
+        permission = self._call("is_allowed", self.username, action, resources)
 
         if not permission and is_raise_exception:
             data, url = self.get_apply_data([action], [resources])
@@ -240,11 +206,13 @@ class Permission(object):
             permission_list = {action.id: True for action in actions}
             return permission_list
 
-        multi_request = self.make_multi_request(actions, resources)
         try:
-            permission_list = self._iam.resource_multi_actions_allowed(multi_request)
+            permission_list = self._call("multi_actions_is_allowed", self.username, actions, resources)
         except AuthAPIError as e:
             logger.exception(f"IAM AuthAPIError: {e}")
+            permission_list = {action.id: False for action in actions}
+
+        if not permission_list:
             permission_list = {action.id: False for action in actions}
 
         is_all_permission_allowed = True
@@ -279,18 +247,9 @@ class Permission(object):
                 permission_list[key] = {action.id: True for action in actions}
             return permission_list
 
-        multi_request = self.make_multi_request(actions)
         batch_permission = {}
         try:
-            # TODO: 暂时屏蔽跨资源类型鉴权，SDK问题待排查
-            if len(resources_list[0]) == 1 and self.check_resource_is_local(resources_list[0]):
-                batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources_list)
-            # 如果资源不属于本系统，则只能单次调用allowed
-            else:
-                batch_permission = {}
-                for index, resources in enumerate(resources_list):
-                    key = index if len(resources) > 1 else resources[0].id
-                    batch_permission[key] = self.multi_actions_is_allowed(actions, resources)
+            batch_permission = self._call("batch_is_allowed", self.username, actions, resources_list)
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"IAM AuthAPIError: {e}")
             for index in range(len(resources_list)):
@@ -319,116 +278,8 @@ class Permission(object):
         if env.BK_IAM_SKIP or self.is_superuser:
             return obj_list
 
-        # 获得策略数据
-        try:
-            request = self.make_request(action=action)
-            policies = self._iam._do_policy_query(request)
-        except AuthAPIError as e:
-            logger.exception(f"IAM AuthAPIError: {e}")
-            return []
-
-        if not policies:
-            return []
-
-        # 将策略数据生成表达式，并根据表达式判断业务权限
-        expression = make_expression(policies)
-        allow_biz_list = []
-        for obj in obj_list:
-            iam_obj = ObjectSet()
-            iam_obj.add_object(ResourceEnum.BUSINESS.id, {"id": str(obj)})
-
-            is_allowed = self._iam._eval_expr(expression, iam_obj)
-            if is_allowed:
-                allow_biz_list.append(obj)
-
-        return allow_biz_list
-
-    def make_application(
-        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
-    ) -> Application:
-        """
-        构造Application，提供给get_apply_url参数
-        :param action_ids: 动作列表id
-        :param resources_list: 资源instance列表
-        :param system_id: 系统ID
-        """
-
-        iam_actions: List[Union[ActionWithResources, ActionWithoutResources]] = []
-        resources_list = resources_list or []
-
-        for action_id in action_ids:
-            related_resource_types = []
-            try:
-                action = ActionEnum.get_action_by_id(action_id)
-                action_id = action.id
-                related_resource_types = action.related_resource_types
-            except ActionNotExistError:
-                pass
-
-            # 如果不存在related_resource_types, 则构造ActionWithoutResources
-            if not related_resource_types:
-                iam_actions.append(ActionWithoutResources(action_id))
-                continue
-
-            # 构造ActionWithResources
-            iam_related_resources_types = []
-            for index, resource_type in enumerate(related_resource_types):
-                # 同一个资源类型可以包含多个资源
-                instances = []
-                for resources in resources_list:
-                    resource = resources[index]
-                    if resource.system != resource_type.system_id or resource.type != resource_type.id:
-                        continue
-
-                    # 补充资源的拓扑实例
-                    resource_nodes = [
-                        ResourceNode(r.type, r.id, r.attribute.get("name", r.id))
-                        for r in self._get_topo_resource(resource)
-                    ]
-                    instances.append(ResourceInstance(resource_nodes))
-
-                iam_related_resources_types.append(
-                    RelatedResourceType(resource_type.system_id, resource_type.id, instances)
-                )
-
-            iam_actions.append(ActionWithResources(action_id, iam_related_resources_types))
-
-        application = Application(system_id=system_id, actions=iam_actions)
-        return application
-
-    def get_apply_url(
-        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
-    ) -> str:
-        """
-        申请无权限跳转url
-        :param action_ids: 动作列表id
-        :param resources_list: 资源列表
-        :param system_id: 系统ID
-        """
-        application = self.make_application(action_ids, resources_list, system_id)
-        ok, message, url = self._iam.get_apply_url(application)
-        if not ok:
-            logger.error(f"iam generate apply url fail: {message}")
-            return env.IAM_APP_URL
-
-        return url
-
-    def _get_topo_resource(self, resource: Resource):
-        """
-        获取资源的拓扑信息资源
-        """
-        if not resource:
-            return []
-
-        bk_iam_path = f"{resource.attribute.get('_bk_iam_path_', '/')}{resource.type},{resource.id}/"
-        topo_resources = []
-        # 获取祖先的拓扑结构
-        for topo in bk_iam_path.split("/")[1:-1][:-1]:
-            rtype, rid = topo.split(",")
-            topo_resources.append(ResourceEnum.get_resource_by_id(rtype).create_instance(rid))
-        # 最后一级拓扑是自身
-        topo_resources.append(resource)
-        return topo_resources
+        action = ActionEnum.get_action_by_id(action)
+        return self._call("policy_query", self.username, action, obj_list)
 
     def get_apply_data(
         self, actions: List[Union[ActionMeta, str]], resources_list: List[List[Resource]] = None
@@ -456,57 +307,17 @@ class Permission(object):
             action_to_resources_list.append({"action": action, "resources_list": resources_list})
 
         data = gen_perms_apply_data(system_id, subject, action_to_resources_list)
-        url = self.get_apply_url(actions, resources_list)
+        url = self._call("get_apply_url", actions, resources_list)
 
         return data, url
 
-    def _grant_actions(self, resource, application, grant_func, raise_exception=True):
-        grant_result = None
-        try:
-            grant_result = grant_func(application)
-            logger.info(f"[grant_creator_action] Success! resource: {resource.to_dict()}, result: {grant_result}")
-        except Exception as e:
-            logger.exception(f"[grant_creator_action] Failed! resource: {resource.to_dict()}, result: {e}")
-
-            if raise_exception:
-                raise e
-
-        return grant_result
-
     def grant_creator_actions(self, resource: Resource, creator: str = None):
         """
-        新建实例关联权限授权
+        新建实例给创建者授权。V3走属性授权，V4走角色实例授权，差异由后端消化
         :param resource: 资源实例
         :param creator: 资源创建者
-        :return:
         """
-        application = {
-            "system": resource.system,
-            "type": resource.type,
-            "id": resource.id,
-            "name": resource.attribute.get("name", resource.id) if resource.attribute else resource.id,
-            "creator": creator or self.username,
-        }
-        return self._grant_actions(resource, application, self._iam.grant_resource_creator_actions)
-
-    def grant_creator_actions_attr(self, resource: Resource, creator: str = None):
-        """
-        新建实例属性关联权限授权
-        :param resource: 资源实例
-        :param creator: 资源创建者
-        :return:
-        """
-        attributes = [
-            {"id": attr_id, "name": attr_id, "values": [{"id": attr_value, "name": attr_value}]}
-            for attr_id, attr_value in resource.attribute.items()
-        ]
-        application = {
-            "system": resource.system,
-            "type": resource.type,
-            "creator": creator or self.username,
-            "attributes": attributes,
-        }
-        return self._grant_actions(resource, application, self._iam.grant_resource_creator_action_attributes)
+        return self._call("grant_creator_actions", resource, creator or self.username)
 
     @classmethod
     def insert_permission_field(
