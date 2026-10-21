@@ -21,7 +21,7 @@ import { getTicketDetails } from '@services/source/ticket';
 import { useUserProfile } from '@stores';
 
 import { getTicketModifyDiffOptions, isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
-import { diffDetails, type DiffItem } from '@views/ticket-center/common/ticket-modify/utils';
+import { diffDetails, type DiffItem, formatValue } from '@views/ticket-center/common/ticket-modify/utils';
 
 import { messageError } from '@utils';
 
@@ -32,6 +32,8 @@ export interface TicketModifyState {
     isShow: boolean;
     resolve?: (isConfirmed: boolean) => void;
   };
+  // 改后交付通知与进入时的单据配置对比，只有重新编辑提交 config 时使用
+  getConfigDiffList: (config: unknown) => DiffItem[];
   // 改后 details 与进入时的单据内容对比，提交时的变更计数与「重置」置灰共用这一份判据
   getDiffList: (details: unknown) => DiffItem[];
   isAdjustApply: boolean;
@@ -173,8 +175,47 @@ export const useTicketModify = () => {
     return diffDetails(data.details, details, getTicketModifyDiffOptions(data.ticket_type));
   };
 
+  /**
+   * 交付通知对比：是否发送、收件人两项；收件人按集合比较，顺序不同不算改动
+   * 不发送时 NotifyRelatedPersons.getValue() 返回空对象，按不发送、无收件人处理
+   */
+  const getConfigDiffList = (config: unknown) => {
+    const data = ticketData.value;
+    if (!data) {
+      return [];
+    }
+    type SendMsgConfig = Partial<TicketModel['config']['send_msg_config']>;
+    const getSendInfo = (sendMsgConfig?: SendMsgConfig) => ({
+      isSend: Boolean(sendMsgConfig?.is_send),
+      receivers: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username || '').split(',').filter(Boolean) : [],
+    });
+    const prev = getSendInfo(data.config?.send_msg_config);
+    const next = getSendInfo((config as { send_msg_config?: SendMsgConfig } | undefined)?.send_msg_config);
+    const result: DiffItem[] = [];
+    if (prev.isSend !== next.isSend) {
+      result.push({
+        isList: false,
+        label: t('发送交付通知'),
+        next: next.isSend ? t('是') : t('否'),
+        path: 'config.send_msg_config.is_send',
+        prev: prev.isSend ? t('是') : t('否'),
+      });
+    }
+    if (_.xor(prev.receivers, next.receivers).length > 0) {
+      result.push({
+        isList: true,
+        label: t('收件人'),
+        next: formatValue(next.receivers),
+        path: 'config.send_msg_config.receiver__username',
+        prev: formatValue(prev.receivers),
+      });
+    }
+    return result;
+  };
+
   const state: TicketModifyState = {
     confirmState,
+    getConfigDiffList,
     getDiffList,
     isAdjustApply: mode === TicketModifyRecordModel.MODE_ADJUST_APPLY,
     isModify,

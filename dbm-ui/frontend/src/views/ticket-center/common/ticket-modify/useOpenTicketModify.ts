@@ -13,23 +13,21 @@
 import type { TicketModifyMode } from '@services/model/ticket/modify-record';
 import type TicketModel from '@services/model/ticket/ticket';
 
-import { getBusinessHref } from '@utils';
-
 /**
- * 在新标签页打开改单工具页：申请页路由（与单据类型同名）带 ticketId 与 modifyMode
+ * 在当前页跳转到改单工具页：申请页路由（与单据类型同名）带 ticketId 与 modifyMode
+ * 申请页与单据详情都是不带业务前缀的全局路由，同页跳转不需要切换业务；
  * 与「再次提单」共用 ticketId 回填，靠 modifyMode 区分是否为改单
  */
 export default function useOpenTicketModify() {
   const router = useRouter();
 
-  return (ticketData: Pick<TicketModel, 'bk_biz_id' | 'id' | 'ticket_type'>, mode: TicketModifyMode) => {
-    const { href } = router.resolve({
+  return (ticketData: Pick<TicketModel, 'id' | 'ticket_type'>, mode: TicketModifyMode) => {
+    router.push({
       name: ticketData.ticket_type,
       query: {
         modifyMode: mode,
         ticketId: ticketData.id,
       },
     });
-    window.open(getBusinessHref(href, ticketData.bk_biz_id));
   };
 }

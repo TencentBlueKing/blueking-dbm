@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 -->
 
-<!-- 变更对比表：仅列有差异项，修改前置灰加删除线，列表字段默认折叠 3 行 -->
+<!-- 变更对比表：仅列有差异项，修改前置灰，列表字段默认折叠 3 行 -->
 <template>
   <TicketInfoTable
     class="ticket-modify-diff-table"
@@ -61,7 +61,6 @@
   .ticket-modify-diff-table {
     .ticket-modify-diff-table-prev {
       color: #979ba5;
-      text-decoration: line-through;
     }
   }
 </style>

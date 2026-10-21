@@ -374,6 +374,8 @@ export function getTicketStatus(params: { ticket_ids: string }) {
 export function modifyTicket(
   params: {
     change_count: number;
+    // 单据配置（交付通知），只有重新编辑提交
+    config?: unknown;
     details: unknown;
     id: number;
     mode: TicketModifyMode;

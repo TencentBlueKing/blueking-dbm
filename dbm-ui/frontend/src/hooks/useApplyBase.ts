@@ -25,7 +25,7 @@ import { useCreateTicket } from '@hooks';
 
 import { type RequestErrorBody, TICKET_MODIFY_ERROR_CODE } from '@views/ticket-center/common/ticket-modify/constants';
 
-import { getBusinessHref, messageError, messageWarn } from '@utils';
+import { messageError, messageWarn } from '@utils';
 
 import { useTicketModify } from './useTicketModify';
 
@@ -139,8 +139,9 @@ export const useApplyBase = () => {
 
   /**
    * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到单据详情
+   * 只有重新编辑提交 config（交付通知）：其余模式交付通知只读，且 getValue 会按当前操作人重算收件人，提交会改掉提单人的配置
    */
-  function handleModifyTicket(details: unknown) {
+  function handleModifyTicket(details: unknown, config: unknown) {
     const ticketData = modifyState.ticketData.value;
     const { mode } = modifyState;
     if (!ticketData || !mode) {
@@ -148,10 +149,14 @@ export const useApplyBase = () => {
       messageError(t('单据信息加载失败，请刷新后重试'));
       return;
     }
+    const isReEdit = mode === TicketModifyRecordModel.MODE_RE_EDIT;
     modifyState
       .validateRemark()
       .then(() => {
-        const diffList = modifyState.getDiffList(details);
+        const diffList = [
+          ...modifyState.getDiffList(details),
+          ...(isReEdit ? modifyState.getConfigDiffList(config) : []),
+        ];
         if (diffList.length < 1) {
           messageWarn(t('没有改动'));
           return;
@@ -166,10 +171,11 @@ export const useApplyBase = () => {
         return modifyTicket(
           {
             change_count: diffList.length,
+            ...(isReEdit ? { config } : {}),
             details,
             id: ticketData.id,
             mode,
-            remark: mode === TicketModifyRecordModel.MODE_RE_EDIT ? '' : modifyState.modifyRemark.value,
+            remark: isReEdit ? '' : modifyState.modifyRemark.value,
             // 直接提交进入时单据详情返回的版本；详情未返回版本表示还没改过单，传 1
             version: ticketData.version ?? 1,
           },
@@ -204,7 +210,7 @@ export const useApplyBase = () => {
     delete params.city_name;
 
     if (modifyState.isModify) {
-      handleModifyTicket(params.details);
+      handleModifyTicket(params.details, params.config);
       return;
     }
 
@@ -217,10 +223,13 @@ export const useApplyBase = () => {
           message: t('申请成功'),
           theme: 'success',
         });
-        const { href } = router.resolve({
-          name: 'bizTicketManage',
+        // 与改单提交一致，原地跳到新单据详情；replace 避免返回到已提交的表单
+        router.replace({
+          name: 'ticketDetail',
+          params: {
+            ticketId,
+          },
         });
-        window.open(getBusinessHref(href, formdata.bk_biz_id), '_blank');
       })
       .finally(() => {
         baseState.isSubmitting = false;
