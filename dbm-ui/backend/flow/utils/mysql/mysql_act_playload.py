@@ -421,12 +421,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "tdbctl_user": self.cluster["tdbctl_user"],
             "tdbctl_pass": self.cluster["tdbctl_pass"],
         }
-        if self.cluster.get("also_import_to_spider"):
-            extend["also_import_to_spider"] = True
-        if self.cluster.get("spider_schema_only"):
-            extend["spider_schema_only"] = True
-        if self.cluster.get("spider_peer_push_hosts"):
-            extend["spider_peer_push_hosts"] = self.cluster["spider_peer_push_hosts"]
+        if self.cluster.get("is_spider_layer_disaster_recover"):
+            extend["is_spider_layer_disaster_recover"] = True
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.ImportSchemaToTdbctl.value,
@@ -1460,22 +1456,39 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     def add_spider_slave_routing_payload(self, **kwargs):
         """
         拼接添加spider slave集群节点关系的payload参数。
+
+        凭证说明（Go 侧 AddSlaveRouting 读取 general.runtime_account.tdbctl_user/tdbctl_pwd）：
+        - cluster 显式携带 tdbctl_user/tdbctl_pass 时优先使用（DR 同时重建场景：新中控密码由安装段生成）；
+        - 否则从当前中控 primary 的 mysql.servers 读取共享密码（slave-only DR / 存量集群扩容场景），
+          读取失败直接抛错：self.account 不含 tdbctl 凭证，继续下发会以空凭证创建路由。
+          读取使用的端口与最终下发的 ctl_port 同源（DBMeta），不依赖单据里可能被覆盖的 ctl_port。
         """
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        spider_port = cluster.proxyinstance_set.first().port
+        ctl_port = cluster.proxyinstance_set.first().admin_port
+
         # 获取中控实例的内置账号
         tdbctl_account = self.account
+        if self.cluster.get("tdbctl_user") and self.cluster.get("tdbctl_pass"):
+            tdbctl_account = tdbctl_account | {
+                "tdbctl_user": self.cluster["tdbctl_user"],
+                "tdbctl_pwd": self.cluster["tdbctl_pass"],
+            }
+        else:
+            ctl_primary = f'{kwargs["ip"]}{IP_PORT_DIVIDER}{ctl_port}'
+            tdbctl_pwd = self.read_ctl_pass_from_ctl_primary(ctl_primary, self.bk_cloud_id)
+            if not tdbctl_pwd:
+                raise Exception(_("读取中控共享密码为空，无法登记 spider_slave 路由"))
+            tdbctl_account = tdbctl_account | {"tdbctl_user": TDBCTL_USER, "tdbctl_pwd": tdbctl_pwd}
 
         # 定义集群的所有slave实例的列表，添加路由关系需要
         slave_instances = []
         add_spider_slave_instances = []
 
-        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
-
         # 获取集群的分片信息，过滤具有REPEATER属性的存储对
         remote_tuples = cluster.tendbclusterstorageset_set.exclude(
             storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.REPEATER
         )
-        spider_port = cluster.proxyinstance_set.first().port
-        ctl_port = cluster.proxyinstance_set.first().admin_port
 
         # 拼接集群分片的remote-dr节点信息，为初始化路由做打算
         if self.cluster["is_init_slave_cluster"]:

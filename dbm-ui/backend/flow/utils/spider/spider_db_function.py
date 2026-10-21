@@ -60,6 +60,22 @@ def get_flush_routing_sql_for_server(ctl_master: str, bk_cloud_id: int, add_spid
     return get_flush_routing_sql_list
 
 
+def parse_servers_by_endpoint(table_data: list) -> dict:
+    """
+    把 mysql.servers 的查询结果（需含 Host/Port/Wrapper 列）整理成 {(host, port): wrapper}。
+    同一 (host, port) 出现多行说明路由表存在脏数据，直接抛错而不是静默覆盖，交由人工清理后重试。
+    """
+    servers = {}
+    for row in table_data:
+        key = (row["Host"], int(row["Port"]))
+        if key in servers:
+            raise NormalSpiderFlowException(
+                message=_("mysql.servers 中 {}:{} 存在重复路由记录，请人工清理后重试").format(key[0], key[1])
+            )
+        servers[key] = row["Wrapper"]
+    return servers
+
+
 def check_spider_node_is_add_cluster(spider_ip: str, spider_port: int, cluster: Cluster):
     """
     定义一个检测方式，添加之前检测节点是否已存在添加

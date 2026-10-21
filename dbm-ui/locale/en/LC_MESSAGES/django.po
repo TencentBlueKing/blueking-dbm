@@ -44463,8 +44463,28 @@ msgid "初始化中控路由（仅中控）"
 msgstr "Initialize central control routing (central control only)"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:309
-msgid "刷新 Spider 与分片路由"
-msgstr "Refresh spider and shard routing"
+msgid "在中控登记 Spider 与分片路由（不下发 Spider 节点）"
+msgstr "Register spider and shard routing on central control (not pushed to spider nodes)"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:309
+msgid "初始化并下发接入层路由"
+msgstr "Initialize and push access layer routing"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:309
+msgid "登记保留 Spider 节点路由并更新内置账号"
+msgstr "Register retained spider node routing and update built-in account"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:309
+msgid "清理被替换 Spider Slave 的旧路由"
+msgstr "Clean up old routing of replaced spider slaves"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:309
+msgid "[{}] 保留节点路由段"
+msgstr "[{}] Retained node routing stage"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:309
+msgid "[{}] 域名恢复段"
+msgstr "[{}] DNS restore stage"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:322
 msgid "[{}] master 路由段"
@@ -44519,6 +44539,10 @@ msgstr "Manually confirm the reduction of the old access layer"
 #: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:660
 msgid "[{}] 接入层灾难恢复"
 msgstr "[{}] Access layer disaster recovery"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:774
+msgid "写入接入层重建摘要"
+msgstr "Write access layer rebuild summary"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_layer_disaster_recover_flow.py:718
 msgid "路由预览（只读）"

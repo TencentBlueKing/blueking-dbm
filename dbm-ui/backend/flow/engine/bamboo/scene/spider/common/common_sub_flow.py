@@ -710,18 +710,20 @@ def add_spider_masters_sub_flow(
                 ),
             )
 
-        dns_spider_port = int(parent_global_data["spider_port"]) if cold_disaster_recover else tmp_spider.port
-        entrysub_process = BuildEntrysManageSubflow(
-            root_id=root_id,
-            ticket_data=parent_global_data,
-            op_type=DnsOpType.CREATE,
-            param={
-                "cluster_id": cluster.id,
-                "port": dns_spider_port,
-                "add_ips": [ip_info["ip"] for ip_info in add_spider_masters],
-            },
-        )
-        sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
+        # 冷恢复场景：主域名绑定延后到路由/表结构/权限恢复全部完成后，由上层 DR 流程统一绑回
+        # （见 spider_layer_disaster_recover_flow._build_master_routing_segment），避免域名指向不可用的 Spider
+        if not cold_disaster_recover:
+            entrysub_process = BuildEntrysManageSubflow(
+                root_id=root_id,
+                ticket_data=parent_global_data,
+                op_type=DnsOpType.CREATE,
+                param={
+                    "cluster_id": cluster.id,
+                    "port": tmp_spider.port,
+                    "add_ips": [ip_info["ip"] for ip_info in add_spider_masters],
+                },
+            )
+            sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
         tag = "master"
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))
