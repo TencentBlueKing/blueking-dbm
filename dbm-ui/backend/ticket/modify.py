@@ -124,15 +124,7 @@ class TicketModifyHandler:
             raise TicketModifyStatusException(status=TicketStatus.get_choice_label(ticket.status))
 
         itsm_flow = cls._get_running_itsm_flow(ticket)
-
-        # 拒绝外部 ITSM 单据(审批人终止即拒单)，而非撤销
-        TicketHandler.operate_itsm_ticket(
-            ticket.id,
-            action=OperateNodeActionType.TRANSITION,
-            operator=operator,
-            is_approved=False,
-            action_message=remark or _("审批人代为修改"),
-        )
+        old_sn = itsm_flow.flow_obj_id
 
         # 冻结审批节点并关闭其待办
         cls._freeze_flow(itsm_flow, remark=remark)
@@ -151,7 +143,7 @@ class TicketModifyHandler:
             Flow(
                 ticket=ticket,
                 flow_type=FlowType.CONFIRM_MODIFY.value,
-                flow_alias=_("确认修改"),
+                flow_alias=_("修改内容确认"),
                 details={"operators": [ticket.creator], "auto_confirm": auto_confirm},
             ),
         )
@@ -167,6 +159,19 @@ class TicketModifyHandler:
             # 通知提单人：内容已被审批人代为修改
             # TODO: 暂时先注释，等通知模板出来再放开
             # cls._notify_creator(ticket, ticket.creator, TicketModifyType.ON_BEHALF, remark)
+
+        # 拒绝外部 ITSM 单据(审批人终止即拒单)放在事务提交后：冻结(SKIPPED)已提交，
+        # 拒单触发的 ITSM 回调读到的是已冻结节点，不会再走 _status 把流程置为终止
+        transaction.on_commit(
+            lambda: TicketHandler.operate_itsm_ticket(
+                ticket.id,
+                action=OperateNodeActionType.TRANSITION,
+                operator=operator,
+                is_approved=False,
+                action_message=remark or _("审批人代为修改"),
+                sn=old_sn,
+            )
+        )
 
     # ------------------------------------------------------------------
     # 重新编辑：提单人在待审批/待确认修改阶段重新编辑内容
@@ -224,12 +229,20 @@ class TicketModifyHandler:
         builder = cls._patch_details(ticket, details)
         cls._record(ticket, itsm_flow, TicketModifyType.RE_EDIT, operator, remark, raw_details, change_count)
 
-        # 改后内容命中免审批策略：撤销外部 ITSM 单据，审批节点以「免审批」出口结束，直达待执行
+        # 改后内容命中免审批策略：先冻结审批节点，再撤销外部 ITSM 单据，审批节点以「免审批」出口结束，直达待执行
         if not builder.need_itsm:
-            TicketHandler.operate_itsm_ticket(ticket.id, action=OperateNodeActionType.WITHDRAW, operator=operator)
+            old_sn = itsm_flow.flow_obj_id
             cls._freeze_flow(itsm_flow)
             cls._close_flow_todos(itsm_flow, operator)
             cls._rebuild_pending_tail(ticket, builder.build_flows_after_itsm(), itsm_flow)
+
+            # 撤销旧单放在事务提交后：冻结(SKIPPED)已提交，撤销旧单触发的 ITSM 回调读到的是已冻结的节点，
+            # 不会再走 _status 把流程置为终止
+            transaction.on_commit(
+                lambda: TicketHandler.operate_itsm_ticket(
+                    ticket.id, action=OperateNodeActionType.WITHDRAW, operator=operator, sn=old_sn
+                )
+            )
 
             TicketFlowManager(ticket=ticket).run_next_flow()
             return
@@ -308,17 +321,28 @@ class TicketModifyHandler:
 
     @staticmethod
     def _recreate_itsm_ticket(ticket, itsm_flow, operator, builder):
-        """待审批重新编辑：先撤销旧 ITSM 审批单，再重新提一张新 ITSM 审批单"""
-        # 撤销旧 ITSM 审批单
-        TicketHandler.operate_itsm_ticket(ticket.id, action=OperateNodeActionType.WITHDRAW, operator=operator)
+        """待审批重新编辑：先建新审批单并切换 flow_obj_id，事务提交后再撤销旧审批单
 
-        # 用改后内容重建 ITSM 参数，先创建新单拿到 sn，再一次性落库
-        # 避免先清空 flow_obj_id 落库触发 post_save 信号，用空 sn 查询 ITSM 导致异常
+        撤销旧单必须放在事务提交后(on_commit)：撤销会触发 ITSM 回调 run_next_flow，而回调是独立请求，
+        读到的是已提交的数据。若在事务内撤销，回调读到的仍是未提交的旧 flow_obj_id(已撤单)，_status
+        会把 REVOKED 映射为流程终止，导致整单被终止。提交后 flow_obj_id 已切换为新单(运行中)，再撤销旧单，
+        回调读到的就是新单，不会再终止流程。
+        """
+        old_sn = itsm_flow.flow_obj_id
+
+        # 用改后内容重建 ITSM 参数，先创建新单拿到新 sn 并切换 flow_obj_id
         new_params = builder.itsm_flow_builder(ticket).get_params()
         data = ItsmApi.create_ticket(new_params)
         itsm_flow.details = new_params
         itsm_flow.flow_obj_id = data["sn"]
         itsm_flow.save(update_fields=["details", "flow_obj_id", "update_at"])
+
+        # 事务提交后再按切换前记录的旧 sn 撤销旧审批单
+        transaction.on_commit(
+            lambda: TicketHandler.operate_itsm_ticket(
+                ticket.id, action=OperateNodeActionType.WITHDRAW, operator=operator, sn=old_sn
+            )
+        )
 
     @staticmethod
     def _freeze_flow(flow, remark=""):
