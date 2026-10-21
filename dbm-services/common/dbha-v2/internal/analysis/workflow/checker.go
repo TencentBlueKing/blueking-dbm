@@ -26,12 +26,18 @@ package workflow
 
 import (
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
-	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
+
+// notifyEvent pairs a db event with its instance metadata for pre-double-check notification.
+type notifyEvent struct {
+	event *haprobe.DbEvent
+	meta  *hamodel.DbmMetadata
+}
 
 // BusinessChecker runs event, host, status, and missed-probe checks for a business.
 // It triggers detector/switch via DetectorHandler.
@@ -54,7 +60,15 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 	// recheckInsts records instance keys already queued for SSH double-check in this scan.
 	recheckInsts := map[string]struct{}{}
 
+	// notifyEvents collects events to notify before double-check, deduplicated by instance via recheckInsts.
+	notifyEvents := []notifyEvent{}
+
 	for _, event := range dbEvents {
+		if event == nil || event.Endpoint == nil {
+			logger.Warn("skip the db event: nil event or endpoint")
+			continue
+		}
+
 		key := instanceKey(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
 
 		if _, exists := skipDbInsts[key]; exists {
@@ -73,11 +87,19 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 		}
 		recheckInsts[key] = struct{}{}
 
+		if _, ok := haprobe.NotifyEventNameList[event.Name]; ok {
+			notifyEvents = append(notifyEvents, notifyEvent{event: event, meta: meta})
+		}
+
 		logger.Warn("recheck the db-inst: %s", key)
 		badInsts = append(badInsts, detector.DoubleCheckTask{
 			Meta:   meta,
 			DbType: event.DbTypeName,
 		})
+	}
+
+	for _, notify := range notifyEvents {
+		c.detector.NotifyEvent(notify.event, notify.meta)
 	}
 
 	c.detector.LivenessDoubleCheck(bizId, badInsts)

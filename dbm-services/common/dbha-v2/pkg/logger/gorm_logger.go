@@ -44,11 +44,13 @@ type GormLogger struct {
 	cfg    *logger.Config
 }
 
+// LogMode returns a copy of the logger; the level is governed by the underlying Logger.
 func (g *GormLogger) LogMode(level logger.LogLevel) logger.Interface {
 	newLogger := *g
 	return &newLogger
 }
 
+// Info forwards an informational message to the underlying logger.
 func (g *GormLogger) Info(ctx context.Context, msg string, data ...any) {
 	if g.logger == nil {
 		return
@@ -57,6 +59,7 @@ func (g *GormLogger) Info(ctx context.Context, msg string, data ...any) {
 	g.logger.Info(msg, data...)
 }
 
+// Warn forwards a warning message to the underlying logger.
 func (g *GormLogger) Warn(ctx context.Context, msg string, data ...any) {
 	if g.logger == nil {
 		return
@@ -65,6 +68,7 @@ func (g *GormLogger) Warn(ctx context.Context, msg string, data ...any) {
 	g.logger.Warn(msg, data...)
 }
 
+// Error forwards an error message to the underlying logger.
 func (g *GormLogger) Error(ctx context.Context, msg string, data ...any) {
 	if g.logger == nil {
 		return
@@ -73,6 +77,7 @@ func (g *GormLogger) Error(ctx context.Context, msg string, data ...any) {
 	g.logger.Error(msg, data...)
 }
 
+// Trace logs one SQL execution: errors and slow queries go to Error, the rest to Debug.
 func (g *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	sql, rows := fc()
 
@@ -91,7 +96,7 @@ func (g *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", g.cfg.SlowThreshold)
 		if rows == -1 {
 			g.logger.Error("slow: %s, sql duration: %v, sql: %s, errmsg: %s",
-				rows, slowLog, elapsed, sql, err)
+				slowLog, elapsed, sql, err)
 			return
 		}
 

@@ -63,9 +63,9 @@ define GO_BUILD
 				-o $(BUILD_DIR)/$(BIN_PREFIX)$(1) cmd/$(1)/main.go
 endef
 
-.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr probe-sandbox-mock \
+.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr probe-sandbox-mock ha-sandbox-mock \
         clean format test test-scripts package package-server package-probe help \
-        probe-windows package-probe-windows check-windows
+        probe-windows package-probe-windows check-windows check-generate
 
 # package
 SERVER_PKG_DIR  = $(BUILD_DIR)/$(PROJECT)-server
@@ -165,12 +165,12 @@ bwmgr:
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
 				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/bwmgr
 
-# local full-path mock (admin + receiver + redis); not packaged with toolkits
-probe-sandbox-mock:
+# local HA mock (etcd gRPC + MySQL protocol); not packaged with toolkits
+ha-sandbox-mock:
 	@mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) \
 				-gcflags="all=-trimpath=$(PWD)" -asmflags="all=-trimpath=$(PWD)" \
-				-o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/probe-sandbox-mock
+				-o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/ha-sandbox-mock
 
 # build protobuf to go
 $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
@@ -181,8 +181,19 @@ format:
 	@goimports -w . && find . -name go.mod -execdir go mod tidy \;
 
 # run tests
-test:
+test: check-generate
 	go test -v -race -cover ./...
+
+# ensure provider aggregate blank-imports are up to date with manifest.go
+# Fail on working-tree drift vs index OR untracked files under all* (staged-but-uncommitted is OK).
+check-generate:
+	CGO_ENABLED=0 go generate ./internal/provider/...
+	@if ! git diff --quiet -- 'internal/provider/all*' || \
+		[ -n "$$(git ls-files --others --exclude-standard -- 'internal/provider/all*')" ]; then \
+		echo "provider aggregates out of date; run: go generate ./internal/provider/..."; \
+		git status --porcelain -- 'internal/provider/all*'; \
+		exit 1; \
+	fi
 
 # probe start/stop shell suites (not part of `make test`; needs a Go toolchain)
 test-scripts:
@@ -287,6 +298,7 @@ help:
 	@echo "  cluster    - Build cluster toolkit (dbha-cluster)"
 	@echo "  bwmgr      - Build black-white list manager (dbha-bwmgr)"
 	@echo "  probe-sandbox-mock - Build local probe full-path mock (not packaged)"
+	@echo "  ha-sandbox-mock - Build local HA etcd/MySQL mock (not packaged)"
 	@echo "  package    - Build and create both server and probe release packages"
 	@echo "  package-server - Create server release package (services + toolkits + etc templates)"
 	@echo "  package-probe  - Create probe release package ($(VERSION)-probe.tar.gz)"
@@ -294,5 +306,6 @@ help:
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
 	@echo "  test-scripts - Run probe start/stop shell suites (needs Go)"
+	@echo "  check-generate - Regenerate provider aggregates and fail if dirty"
 	@echo "  clean      - Clean build artifacts"
 	@echo "  help       - Show this help message"

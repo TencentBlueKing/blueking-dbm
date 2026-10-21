@@ -56,8 +56,15 @@ type TdbctlPrimaryInfo struct {
 // NewTenDBClusterHandler creates a new MysqlClusterHandler
 func NewTenDBClusterHandler() *TenDBClusterHandler {
 	return &TenDBClusterHandler{
-		MysqlBaseHandler: MysqlBaseHandler{dbmClient: &dbm.Client{}},
+		MysqlBaseHandler: MysqlBaseHandler{baseHandler: newBaseHandler()},
 	}
+}
+
+var _ ClusterHandler = (*TenDBClusterHandler)(nil)
+
+// Reset resets every tendbcluster in the config file.
+func (hdl *TenDBClusterHandler) Reset() error {
+	return hdl.ResetAllTenDBClusters()
 }
 
 func (hdl *TenDBClusterHandler) setTcAdmin(db *hamysql.GormDB, value int64) error {
@@ -698,81 +705,95 @@ func (hdl *TenDBClusterHandler) addSpiderNodesToDomain(spiderList []config.TenDB
 // Step 12: reset clb binding (optional; skip when clb is omitted or empty)
 func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBCluster) error {
 	hdl.printOneTenDBCluster(cluster)
-	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
+	logResetf("start to reset cluster, domain: %s", cluster.Domain)
 	instanceListForDbm := hdl.getInstanceListForDbmStatusUpdate(cluster)
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceListForDbm, dbm.StatusUnavailable); err != nil {
-		fmt.Printf("Failed at step 1 <update all instances status to unavailable>, errmsg: %s\n", err.Error())
+		logResetStep(1, "failed to update all instances status to unavailable, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 1 <update all instances status to unavailable> done\n")
+	logResetStep(1, "successfully updated all instances status to unavailable, domain: %s", cluster.Domain)
 
 	binLogList, err := hdl.stopSlaveForRemoteMasterAndGetBinlogList(cluster)
 	if err != nil {
+		logResetStep(2, "failed to stop slave for remote master, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 2 <stop slave for remote master> done\n")
+	logResetStep(2, "successfully stopped slave for remote master, domain: %s", cluster.Domain)
 
 	if err := hdl.changeMasterForAllRemoteSlave(cluster.RemoteSlave, binLogList); err != nil {
-		fmt.Printf("Failed at step 3 <change master for all remote slaves>, errmsg: %s\n", err.Error())
+		logResetStep(3, "failed to change master for all remote slaves, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 3 <change master for all remote slaves> done\n")
+	logResetStep(3, "successfully changed master for all remote slaves, domain: %s", cluster.Domain)
 
 	if err := hdl.correctRemoteDBRole(cluster); err != nil {
-		fmt.Printf("Failed at step 4 <correct remoteDB role>, errmsg: %s\n", err.Error())
+		logResetStep(4, "failed to correct remoteDB role, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 4 <correct remoteDB role> done\n")
+	logResetStep(4, "successfully corrected remoteDB role, domain: %s", cluster.Domain)
 
 	if err = hdl.stopSlaveForTdbCtlMaster(cluster.CtlMaster.Host, cluster.CtlMaster.Port); err != nil {
+		logResetStep(5, "failed to stop slave for tdbctl master, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 5 <stop slave for tdbctl master> done\n")
+	logResetStep(5, "successfully stopped slave for tdbctl master, domain: %s", cluster.Domain)
 
 	if err := hdl.changeTdbCtlMasterForAllTdbCtlSlave(cluster.CtlSlave, cluster.CtlMaster.Host,
 		cluster.CtlMaster.Port); err != nil {
-		fmt.Printf("Failed at step 6 <change tdbctl master for all slaves>, errmsg: %s\n", err.Error())
+		logResetStep(6, "failed to change tdbctl master for all slaves, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 6 <change tdbctl master for all slaves> done\n")
+	logResetStep(6, "successfully changed tdbctl master for all slaves, domain: %s", cluster.Domain)
 
 	if err := hdl.disablePrimaryForAllTdbCtlSlave(cluster.CtlSlave); err != nil {
-		fmt.Printf("Failed at step 7 <disable primary for all tdbctl slaves>, errmsg: %s\n", err.Error())
+		logResetStep(7, "failed to disable primary for all tdbctl slaves, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 7 <disable primary for all tdbctl slaves> done\n")
+	logResetStep(7, "successfully disabled primary for all tdbctl slaves, domain: %s", cluster.Domain)
 
 	if err := hdl.enablePrimaryForTdbCtlMaster(cluster.CtlMaster); err != nil {
-		fmt.Printf("Failed at step 8 <enable primary for tdbctl master>, errmsg: %s\n", err.Error())
+		logResetStep(8, "failed to enable primary for tdbctl master, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 8 <enable primary for tdbctl master> done\n")
+	logResetStep(8, "successfully enabled primary for tdbctl master, domain: %s", cluster.Domain)
 
 	if err := hdl.resetMysqlServersTableForTdbCtlMaster(cluster); err != nil {
-		fmt.Printf("Failed at step 9 <reset mysql.servers table for tdbctl master>, errmsg: %s\n", err.Error())
+		logResetStep(9, "failed to reset mysql.servers table for tdbctl master, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 9 <reset mysql.servers table for tdbctl master> done\n")
+	logResetStep(9, "successfully reset mysql.servers table for tdbctl master, domain: %s", cluster.Domain)
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceListForDbm, dbm.StatusRunning); err != nil {
-		fmt.Printf("Failed at step 10 <update all instances status to running>, errmsg: %s\n", err.Error())
+		logResetStep(10, "failed to update all instances status to running, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 10 <update all instances status to running> done\n")
+	logResetStep(10, "successfully updated all instances status to running, domain: %s", cluster.Domain)
 
 	if err := hdl.addAllSpidersToDomain(cluster); err != nil {
-		fmt.Printf("Failed at step 11 <add all spiders to the domain>, errmsg: %s\n", err.Error())
+		logResetStep(11, "failed to add all spiders to the domain, domain: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 		return err
 	}
-	fmt.Printf("Step 11 <add all spiders to the domain> done\n")
+	logResetStep(11, "successfully added all spiders to the domain, domain: %s", cluster.Domain)
 
 	if len(cluster.Clb) > 0 {
 		if err := hdl.resetAllClbBindings(cluster.Clb); err != nil {
-			fmt.Printf("Failed at step 12 <reset clb binding>, errmsg: %s\n", err.Error())
+			logResetStep(12, "failed to reset clb binding, domain: %s, errmsg: %s",
+				cluster.Domain, err.Error())
 			return err
 		}
-		fmt.Printf("Step 12 <reset clb binding> done\n")
+		logResetStep(12, "successfully reset clb binding, domain: %s", cluster.Domain)
 	}
 
 	return nil
@@ -789,34 +810,34 @@ func (hdl *TenDBClusterHandler) ResetAllTenDBClusters() error {
 	}
 
 	if len(config.ClusterConfig.TenDBClusters) <= 0 {
-		fmt.Println("No TenDBClusters to reset")
+		logResetf("no tendbcluster clusters to reset")
 		return nil
 	}
 
 	failCount := 0
-	fmt.Printf("=== Processing TenDBClusters ===\n\n")
+	logResetClustersStart(resetClusterKindTenDBCluster, len(config.ClusterConfig.TenDBClusters))
 	for _, cluster := range config.ClusterConfig.TenDBClusters {
 		if err := hdl.resetSingleTenDBCluster(&cluster); err != nil {
 			failCount++
-			fmt.Printf("Failed to reset cluster %s, errmsg: %s\n\n", cluster.Domain, err.Error())
+			logResetf("failed to reset cluster, domain: %s, errmsg: %s", cluster.Domain, err.Error())
 			continue
 		}
-		fmt.Printf("Successfully reset cluster %s\n\n", cluster.Domain)
+		logResetf("successfully reset cluster, domain: %s", cluster.Domain)
 	}
-	fmt.Printf("\n=== Resetting TenDBClusters Done (total: %d, failed: %d, success: %d)===\n",
-		len(config.ClusterConfig.TenDBClusters), failCount, len(config.ClusterConfig.TenDBClusters)-failCount)
+	logResetClustersDone(resetClusterKindTenDBCluster, len(config.ClusterConfig.TenDBClusters),
+		failCount, len(config.ClusterConfig.TenDBClusters)-failCount)
 
 	return nil
 }
 
-// ShowAllTenDBClustersDomain shows domain binding information for all TenDB clusters
-func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
+// CollectTenDBClustersDomain shows domain binding information for all TenDB clusters
+func (hdl *TenDBClusterHandler) CollectTenDBClustersDomain() ([]ClusterDomainInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return printErrorResponse("dbm client is nil")
+		return nil, gerrors.New(gerrors.Failure, "dbm client is nil")
 	}
 
 	clusterDomainInfoList := make([]ClusterDomainInfo, 0)
@@ -830,7 +851,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 		if cluster.Domain != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
 			if err != nil {
-				return printErrorResponsef("failed to get instances of domain(%s), errmsg: %s",
+				return nil, gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
 					cluster.Domain, err.Error())
 			}
 			instanceList := make([]string, 0)
@@ -846,7 +867,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 		if cluster.DomainSlave != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.DomainSlave)
 			if err != nil {
-				return printErrorResponsef("failed to get instances of domain(%s), errmsg: %s",
+				return nil, gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
 					cluster.DomainSlave, err.Error())
 			}
 			instanceList := make([]string, 0)
@@ -862,17 +883,22 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 		clusterDomainInfoList = append(clusterDomainInfoList, clusterDomainInfo)
 	}
 
-	return printJSON(clusterDomainInfoList)
+	return clusterDomainInfoList, nil
 }
 
-// ShowAllTenDBClustersClb shows CLB binding information for all TenDB clusters
-func (hdl *TenDBClusterHandler) ShowAllTenDBClustersClb() error {
+// ShowDomain shows domain binding information for all TenDB clusters.
+func (hdl *TenDBClusterHandler) ShowDomain() ([]ClusterDomainInfo, error) {
+	return hdl.CollectTenDBClustersDomain()
+}
+
+// CollectTenDBClustersClb shows CLB binding information for all TenDB clusters
+func (hdl *TenDBClusterHandler) CollectTenDBClustersClb() ([]ClusterClbInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return printErrorResponse("dbm client is nil")
+		return nil, gerrors.New(gerrors.Failure, "dbm client is nil")
 	}
 
 	clusterClbInfoList := make([]ClusterClbInfo, 0)
@@ -883,22 +909,27 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersClb() error {
 		}
 		info, err := hdl.buildClusterClbInfo(cluster.Domain, cluster.Clb)
 		if err != nil {
-			return printErrorResponse(err.Error())
+			return nil, err
 		}
 		clusterClbInfoList = append(clusterClbInfoList, info)
 	}
 
-	return printJSON(clusterClbInfoList)
+	return clusterClbInfoList, nil
 }
 
-// ShowAllTenDBClustersNodes shows all nodes status and role for all TenDB clusters
-func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
+// ShowClb shows CLB binding information for all TenDB clusters.
+func (hdl *TenDBClusterHandler) ShowClb() ([]ClusterClbInfo, error) {
+	return hdl.CollectTenDBClustersClb()
+}
+
+// CollectTenDBClustersNodes shows all nodes status and role for all TenDB clusters
+func (hdl *TenDBClusterHandler) CollectTenDBClustersNodes() ([]ClusterNodeInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return printErrorResponse("dbm client is nil")
+		return nil, gerrors.New(gerrors.Failure, "dbm client is nil")
 	}
 
 	clusterNodeInfoList := make([]ClusterNodeInfo, 0)
@@ -940,7 +971,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 
 		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, ipList)
 		if err != nil {
-			return printErrorResponsef("failed to query metadata for cluster(%s), errmsg: %s",
+			return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
 				cluster.Domain, err.Error())
 		}
 
@@ -971,14 +1002,19 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 		clusterNodeInfoList = append(clusterNodeInfoList, clusterNodeInfo)
 	}
 
-	return printJSON(clusterNodeInfoList)
+	return clusterNodeInfoList, nil
 }
 
-// ShowAllTenDBClustersReplication shows replication status for all TenDB clusters
+// ShowNodes shows node status and role for all TenDB clusters.
+func (hdl *TenDBClusterHandler) ShowNodes() ([]ClusterNodeInfo, error) {
+	return hdl.CollectTenDBClustersNodes()
+}
+
+// CollectTenDBClustersReplication shows replication status for all TenDB clusters
 // Only checks Remote nodes and tdbctl nodes (Spider nodes are stateless proxies without replication)
-func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
+func (hdl *TenDBClusterHandler) CollectTenDBClustersReplication() ([]ClusterReplicationInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
 	clusterReplList := make([]ClusterReplicationInfo, 0)
@@ -1027,7 +1063,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
 		for range nodes {
 			result := <-resultCh
 			if result.err != nil {
-				return printErrorResponse(result.err.Error())
+				return nil, result.err
 			}
 			results[result.index] = result.replInfo
 		}
@@ -1043,7 +1079,12 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
 		clusterReplList = append(clusterReplList, clusterRepl)
 	}
 
-	return printJSON(clusterReplList)
+	return clusterReplList, nil
+}
+
+// ShowReplication shows replication status for all TenDB clusters.
+func (hdl *TenDBClusterHandler) ShowReplication() (any, error) {
+	return hdl.CollectTenDBClustersReplication()
 }
 
 // getRemoteNodeReplicationInfo gets replication info from a node
@@ -1150,8 +1191,8 @@ func (hdl *TenDBClusterHandler) checkRoutingConsistencyOnPrimary(primaryDB *hamy
 	return true
 }
 
-// getClusterRoutingInfo gets routing info for a TenDB cluster
-func (hdl *TenDBClusterHandler) getClusterRoutingInfo(cluster *config.TenDBCluster) (*ClusterRoutingInfo, error) {
+// getTenDBRoutingInfo gets routing info for a TenDB cluster
+func (hdl *TenDBClusterHandler) getTenDBRoutingInfo(cluster *config.TenDBCluster) (*TenDBRoutingInfo, error) {
 	primaryDB, err := hdl.connectToPrimaryTdbctl(cluster)
 	if err != nil {
 		return nil, err
@@ -1164,7 +1205,7 @@ func (hdl *TenDBClusterHandler) getClusterRoutingInfo(cluster *config.TenDBClust
 
 	selectSQL := "SELECT Server_name, Host, Port, Username, Wrapper FROM mysql.servers ORDER BY Server_name"
 
-	var routingEntries []RoutingEntry
+	var routingEntries []TenDBRoutingEntry
 	if err = primaryDB.DB().Raw(selectSQL).Scan(&routingEntries).Error; err != nil {
 		return nil, gerrors.Newf(gerrors.Failure, "failed to query mysql.servers on primary tdbctl, errmsg: %s", err.Error())
 	}
@@ -1178,28 +1219,87 @@ func (hdl *TenDBClusterHandler) getClusterRoutingInfo(cluster *config.TenDBClust
 		checkResult = "failed"
 	}
 
-	return &ClusterRoutingInfo{
+	return &TenDBRoutingInfo{
 		Cluster:     cluster.Domain,
 		Routing:     routingEntries,
 		CheckResult: checkResult,
 	}, nil
 }
 
-// ShowAllTenDBClustersRouting shows routing table (mysql.servers) for all TenDB clusters
-func (hdl *TenDBClusterHandler) ShowAllTenDBClustersRouting() error {
+// CollectTenDBClustersRouting shows routing table (mysql.servers) for all TenDB clusters
+func (hdl *TenDBClusterHandler) CollectTenDBClustersRouting() ([]TenDBRoutingInfo, error) {
 	if config.ClusterConfig == nil {
-		return printErrorResponse("config is not loaded")
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
 	}
 
-	clusterRoutingList := make([]ClusterRoutingInfo, 0)
+	clusterRoutingList := make([]TenDBRoutingInfo, 0)
 
 	for _, cluster := range config.ClusterConfig.TenDBClusters {
-		routingInfo, err := hdl.getClusterRoutingInfo(&cluster)
+		routingInfo, err := hdl.getTenDBRoutingInfo(&cluster)
 		if err != nil {
-			return printErrorResponse(err.Error())
+			return nil, err
 		}
 		clusterRoutingList = append(clusterRoutingList, *routingInfo)
 	}
 
-	return printJSON(clusterRoutingList)
+	return clusterRoutingList, nil
+}
+
+// ShowRouting shows mysql.servers routing information for all TenDB clusters.
+func (hdl *TenDBClusterHandler) ShowRouting() (any, error) {
+	return hdl.CollectTenDBClustersRouting()
+}
+
+// newSessionNode builds a sessionNodeTarget from a TenDBCluster node
+func newSessionNode(node config.TenDBClusterNodeInfo, tdbctl bool, user, password string) sessionNodeTarget {
+	return sessionNodeTarget{
+		host:     node.Host,
+		port:     node.Port,
+		user:     user,
+		password: password,
+		tdbctl:   tdbctl,
+	}
+}
+
+// CollectTenDBClustersSession shows sessions of spider, remote and tdbctl nodes for all TenDB clusters
+func (hdl *TenDBClusterHandler) CollectTenDBClustersSession(where string) ([]ClusterSessionInfo, error) {
+	if config.ClusterConfig == nil {
+		return nil, gerrors.New(gerrors.Failure, "config is not loaded")
+	}
+
+	clusterSessionList := make([]ClusterSessionInfo, 0)
+	user := config.ClusterConfig.AuthInfo.User
+	password := config.ClusterConfig.AuthInfo.Password
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		nodes := make([]sessionNodeTarget, 0)
+		for _, spider := range cluster.Spider {
+			nodes = append(nodes, newSessionNode(spider, false, user, password))
+		}
+		for _, spider := range cluster.SpiderSlave {
+			nodes = append(nodes, newSessionNode(spider, false, user, password))
+		}
+		for _, remote := range cluster.RemoteMaster {
+			nodes = append(nodes, newSessionNode(remote, false, user, password))
+		}
+		for _, remote := range cluster.RemoteSlave {
+			nodes = append(nodes, newSessionNode(remote.TenDBClusterNodeInfo, false, user, password))
+		}
+		nodes = append(nodes, newSessionNode(cluster.CtlMaster, true, user, password))
+		for _, ctl := range cluster.CtlSlave {
+			nodes = append(nodes, newSessionNode(ctl, true, user, password))
+		}
+
+		clusterSessionList = append(clusterSessionList, ClusterSessionInfo{
+			Cluster:   cluster.Domain,
+			Instances: hdl.queryNodesProcesslist(nodes, where),
+		})
+	}
+
+	return clusterSessionList, nil
+}
+
+// ShowSession shows processlist sessions for all TenDB clusters.
+func (hdl *TenDBClusterHandler) ShowSession(where string) ([]ClusterSessionInfo, error) {
+	return hdl.CollectTenDBClustersSession(where)
 }

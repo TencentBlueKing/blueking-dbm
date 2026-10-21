@@ -27,9 +27,11 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haredis"
 
 	"go.uber.org/zap"
 )
@@ -104,8 +106,31 @@ type ClusterReplicationInfo struct {
 	Replications []ReplicationInfo `json:"replications"`
 }
 
-// RoutingEntry represents a single routing entry from mysql.servers
-type RoutingEntry struct {
+// RedisReplicationInfo is one node's INFO replication, using redis field names.
+type RedisReplicationInfo struct {
+	IP               string `json:"ip"`
+	Port             int    `json:"port"`
+	Role             string `json:"role"`
+	MasterIP         string `json:"master_ip"`
+	MasterPort       int    `json:"master_port"`
+	MasterLinkStatus string `json:"master_link_status"`
+}
+
+// ClusterRedisReplicationInfo represents INFO replication of every storage node in a cluster.
+type ClusterRedisReplicationInfo struct {
+	Cluster      string                 `json:"cluster"`
+	Replications []RedisReplicationInfo `json:"replications"`
+}
+
+// ClusterRedisClusterNodesInfo represents CLUSTER NODES of one redis cluster-protocol cluster.
+type ClusterRedisClusterNodesInfo struct {
+	Cluster     string                `json:"cluster"`
+	QueriedFrom string                `json:"queried_from"`
+	Nodes       []haredis.ClusterNode `json:"nodes"`
+}
+
+// TenDBRoutingEntry represents a single routing entry from mysql.servers
+type TenDBRoutingEntry struct {
 	ServerName string `json:"server_name" gorm:"column:Server_name"`
 	Host       string `json:"host" gorm:"column:Host"`
 	Port       int    `json:"port" gorm:"column:Port"`
@@ -113,31 +138,113 @@ type RoutingEntry struct {
 	Wrapper    string `json:"wrapper" gorm:"column:Wrapper"`
 }
 
-// ClusterRoutingInfo represents TenDBCluster routing table with check result
-type ClusterRoutingInfo struct {
-	Cluster     string         `json:"cluster"`
-	Routing     []RoutingEntry `json:"routing"`
-	CheckResult string         `json:"check_result"`
+// TenDBRoutingInfo represents TenDBCluster routing table with check result
+type TenDBRoutingInfo struct {
+	Cluster     string              `json:"cluster"`
+	Routing     []TenDBRoutingEntry `json:"routing"`
+	CheckResult string              `json:"check_result"`
 }
 
-// ProxyBackendEntry represents a single backend entry for a proxy
-type ProxyBackendEntry struct {
+// MysqlProxyBackend represents a single backend entry for a mysql proxy
+type MysqlProxyBackend struct {
 	BackendNdx   int    `json:"backend_ndx"`
 	BackendAddr  string `json:"backend_addr"`
 	BackendState string `json:"backend_state"`
 }
 
-// ProxyRoutingEntry represents routing information for a single proxy
-type ProxyRoutingEntry struct {
+// MysqlProxyRouting represents routing information for a single mysql proxy
+type MysqlProxyRouting struct {
 	ProxyIP        string              `json:"proxy_ip"`
 	ProxyAdminPort int                 `json:"proxy_admin_port"`
-	Backends       []ProxyBackendEntry `json:"backends"`
+	Backends       []MysqlProxyBackend `json:"backends"`
 }
 
-// ClusterProxyRoutingInfo represents MySQL cluster proxy routing information grouped by cluster
-type ClusterProxyRoutingInfo struct {
+// MysqlRoutingInfo represents MySQL cluster proxy routing information grouped by cluster
+type MysqlRoutingInfo struct {
 	Cluster string              `json:"cluster"`
-	Proxies []ProxyRoutingEntry `json:"proxies"`
+	Proxies []MysqlProxyRouting `json:"proxies"`
+}
+
+// TwemproxyBackend represents one twemproxy hash segment and its backend.
+type TwemproxyBackend struct {
+	Segment string `json:"segment"`
+	Address string `json:"address"`
+}
+
+// TwemproxyProxyRouting represents routing information for a single twemproxy.
+type TwemproxyProxyRouting struct {
+	ProxyIP        string             `json:"proxy_ip"`
+	ProxyAdminPort int                `json:"proxy_admin_port"`
+	MD5            string             `json:"md5"`
+	Backends       []TwemproxyBackend `json:"backends"`
+}
+
+// TwemproxyRoutingInfo represents twemproxy backends of one redis cluster with check result.
+type TwemproxyRoutingInfo struct {
+	Cluster     string                  `json:"cluster"`
+	Routing     []TwemproxyProxyRouting `json:"routing"`
+	CheckResult string                  `json:"check_result"`
+}
+
+// PredixyRoutingServer is one backend entry exposed by show routing.
+// MD5 is computed from Slot and Server. Slot is empty when Predixy does not report it yet.
+type PredixyRoutingServer struct {
+	Server        string `json:"server"`
+	Slot          string `json:"slot"`
+	Role          string `json:"role"`
+	CurrentIsFail int    `json:"current_is_fail"`
+}
+
+// PredixyProxyRouting represents routing information for a single predixy data port.
+type PredixyProxyRouting struct {
+	ProxyIP   string                 `json:"proxy_ip"`
+	ProxyPort int                    `json:"proxy_port"`
+	MD5       string                 `json:"md5"`
+	Servers   []PredixyRoutingServer `json:"servers"`
+}
+
+// PredixyRoutingInfo represents Predixy INFO Servers of one redis cluster with check result.
+type PredixyRoutingInfo struct {
+	Cluster     string                `json:"cluster"`
+	Routing     []PredixyProxyRouting `json:"routing"`
+	CheckResult string                `json:"check_result"`
+}
+
+// ProcesslistEntry represents a row of information_schema.processlist
+type ProcesslistEntry struct {
+	ID      int64   `json:"id"      gorm:"column:ID"`
+	User    string  `json:"user"    gorm:"column:USER"`
+	Host    string  `json:"host"    gorm:"column:HOST"`
+	DB      *string `json:"db"      gorm:"column:DB"`
+	Command string  `json:"command" gorm:"column:COMMAND"`
+	Time    int64   `json:"time"    gorm:"column:TIME"`
+	State   *string `json:"state"   gorm:"column:STATE"`
+	Info    *string `json:"info"    gorm:"column:INFO"`
+}
+
+// InstanceSessionInfo represents the processlist of a single instance; Result and Errmsg are always present
+type InstanceSessionInfo struct {
+	IP       string             `json:"ip"`
+	Port     int                `json:"port"`
+	Result   bool               `json:"result"`
+	Errmsg   string             `json:"errmsg"`
+	Total    int                `json:"total"`
+	Sessions []ProcesslistEntry `json:"sessions"`
+}
+
+// ClusterSessionInfo represents the processlist of all instances in a cluster
+type ClusterSessionInfo struct {
+	Cluster   string                `json:"cluster"`
+	Instances []InstanceSessionInfo `json:"instances"`
+}
+
+// sessionNodeTarget describes one node to query; tdbctl marks nodes needing a tdbctl-compatible DSN
+type sessionNodeTarget struct {
+	host     string
+	port     int
+	user     string
+	password string
+	tdbctl   bool
 }
 
 // ShowResponse represents the standard response format for show commands
@@ -168,6 +275,113 @@ func printJSON(data interface{}) error {
 	return printShowResponse(true, "", data)
 }
 
+func printCollectedJSON[T any](data []T, err error) error {
+	if err == nil {
+		return printJSON(data)
+	}
+	if isNotImplemented(err) {
+		return printShowResponse(false, err.Error(), data)
+	}
+	return printErrorResponse(err.Error())
+}
+
+func collectSlices[T any](handlers []ClusterHandler, fn func(ClusterHandler) ([]T, error), command string) ([]T, error) {
+	out := make([]T, 0)
+	sawUnimplemented := false
+	for _, hdl := range handlers {
+		data, err := fn(hdl)
+		if isNotImplemented(err) {
+			sawUnimplemented = true
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, data...)
+	}
+	if sawUnimplemented {
+		return out, unimplemented(command)
+	}
+	return out, nil
+}
+
+func flattenToAny(data any) []any {
+	if data == nil {
+		return nil
+	}
+
+	value := reflect.ValueOf(data)
+	if value.Kind() != reflect.Slice {
+		return []any{data}
+	}
+
+	out := make([]any, 0, value.Len())
+	for i := 0; i < value.Len(); i++ {
+		out = append(out, value.Index(i).Interface())
+	}
+	return out
+}
+
+func collectAnySlices(handlers []ClusterHandler, fn func(ClusterHandler) (any, error), command string) ([]any, error) {
+	out := make([]any, 0)
+	sawUnimplemented := false
+	for _, hdl := range handlers {
+		data, err := fn(hdl)
+		if isNotImplemented(err) {
+			sawUnimplemented = true
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, flattenToAny(data)...)
+	}
+	if sawUnimplemented {
+		return out, unimplemented(command)
+	}
+	return out, nil
+}
+
+// PrintShowDomain prints one JSON document for every selected handler's domain info.
+func PrintShowDomain(handlers []ClusterHandler) error {
+	return printCollectedJSON(collectSlices(handlers, ClusterHandler.ShowDomain, "show domain"))
+}
+
+// PrintShowNodes prints one JSON document for every selected handler's node info.
+func PrintShowNodes(handlers []ClusterHandler) error {
+	return printCollectedJSON(collectSlices(handlers, ClusterHandler.ShowNodes, "show nodes"))
+}
+
+// PrintShowClb prints one JSON document for every selected handler's CLB info.
+func PrintShowClb(handlers []ClusterHandler) error {
+	return printCollectedJSON(collectSlices(handlers, ClusterHandler.ShowClb, "show clb"))
+}
+
+// PrintShowReplication prints one JSON document for every selected handler's replication info.
+func PrintShowReplication(handlers []ClusterHandler) error {
+	return printCollectedJSON(collectAnySlices(handlers, ClusterHandler.ShowReplication, "show replication"))
+}
+
+// PrintShowRouting prints one JSON document for every selected handler's routing info.
+func PrintShowRouting(handlers []ClusterHandler) error {
+	return printCollectedJSON(collectAnySlices(handlers, ClusterHandler.ShowRouting, "show routing"))
+}
+
+// PrintShowSession prints one JSON document for every selected handler's sessions.
+func PrintShowSession(handlers []ClusterHandler, where string) error {
+	data, err := collectSlices(handlers, func(hdl ClusterHandler) ([]ClusterSessionInfo, error) {
+		return hdl.ShowSession(where)
+	}, "show session")
+	if err != nil && !isNotImplemented(err) {
+		return printErrorResponse(err.Error())
+	}
+	extraErrmsg := ""
+	if err != nil {
+		extraErrmsg = err.Error()
+	}
+	return printSessionJSON(data, extraErrmsg)
+}
+
 // printShowResponse prints response with result, errmsg and data
 func printShowResponse(result bool, errmsg string, data interface{}) error {
 	response := ShowResponse{
@@ -195,9 +409,4 @@ func printShowResponse(result bool, errmsg string, data interface{}) error {
 // printErrorResponse prints error response and returns nil (no error)
 func printErrorResponse(errmsg string) error {
 	return printShowResponse(false, errmsg, nil)
-}
-
-// printErrorResponsef prints formatted error response and returns nil (no error)
-func printErrorResponsef(format string, args ...interface{}) error {
-	return printShowResponse(false, fmt.Sprintf(format, args...), nil)
 }

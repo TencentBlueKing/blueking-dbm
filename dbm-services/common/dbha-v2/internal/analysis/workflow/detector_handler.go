@@ -31,9 +31,11 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -50,46 +52,69 @@ func NewDetectorHandler(alarm *AlarmNotifier, windowMgr *BizWindowManager, servi
 	return &DetectorHandler{alarm: alarm, windowMgr: windowMgr, myServiceID: serviceID}
 }
 
+// NotifyEvent sends a notification for the event before liveness double-check.
+// meta carries the instance metadata used to fill the alarm dimensions.
+func (h *DetectorHandler) NotifyEvent(event *haprobe.DbEvent, meta *hamodel.DbmMetadata) {
+	h.alarm.TriggerWithEvent(event, meta)
+}
+
 // ProcessResponse handles a single detector response: alarms and returns ErrDetectorFailure if switching is needed.
 func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
-	if resp.Err == detector.ErrDetectorCreateSshConnection {
-		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
-		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
-
-		content := fmt.Sprintf("failed to dial the remote host with SSH, host: %d:%s:%d",
-			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
-
-		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		return ErrDetectorFailure
+	if err := h.handleSshDialErrors(resp); err != nil || resp.Err != nil {
+		if resp.Err != nil && err == nil {
+			h.alarm.TriggerWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
+			return nil
+		}
+		return err
 	}
 
-	if resp.Err == detector.ErrDetectorSshAuth {
-		resp.DbEventName = haprobe.DbEventNameSshAuthFailure
-		resp.DbEventNameReason = haprobe.DbEventNameReasonSSHAuthException
-
-		content := fmt.Sprintf("failed to authenticate the remote host with SSH, host: %d:%s:%d",
-			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
-
-		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		return ErrDetectorFailure
+	if err := h.handleHealthCheckFailures(resp); err != nil {
+		return err
 	}
 
-	if resp.Err == detector.ErrDetectorCreateSshSession {
-		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
-		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
-
-		content := fmt.Sprintf("failed to create SSH session with the remote host, host: %d:%s:%d",
-			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
-
-		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		return ErrDetectorFailure
-	}
-
-	if resp.Err != nil {
-		h.alarm.TriggerWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
+	if resp.SshResp.ExitCode != 0 {
+		content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
+		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
 		return nil
 	}
 
+	return h.handleAliveProbeHealth(resp)
+}
+
+// handleSshDialErrors maps SSH dial/auth/session failures to detector events.
+// It returns ErrDetectorFailure when the response should enter the switching path.
+func (h *DetectorHandler) handleSshDialErrors(resp *detector.Response) error {
+	switch resp.Err {
+	case detector.ErrDetectorCreateSshConnection:
+		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
+		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
+		content := fmt.Sprintf("failed to dial the remote host with SSH, host: %d:%s:%d",
+			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
+		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		return ErrDetectorFailure
+
+	case detector.ErrDetectorSshAuth:
+		resp.DbEventName = haprobe.DbEventNameSshAuthFailure
+		resp.DbEventNameReason = haprobe.DbEventNameReasonSSHAuthException
+		content := fmt.Sprintf("failed to authenticate the remote host with SSH, host: %d:%s:%d",
+			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
+		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		return ErrDetectorFailure
+
+	case detector.ErrDetectorCreateSshSession:
+		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
+		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
+		content := fmt.Sprintf("failed to create SSH session with the remote host, host: %d:%s:%d",
+			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
+		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		return ErrDetectorFailure
+	}
+	return nil
+}
+
+// handleHealthCheckFailures maps remote health-command failures (timeout / disk write / uptime)
+// onto switching events. Non-matching responses return nil so the caller continues.
+func (h *DetectorHandler) handleHealthCheckFailures(resp *detector.Response) error {
 	if resp.SshResp.ErrMsg == detector.ErrDetectorSshTimeout.Error() {
 		resp.DbEventName = haprobe.DbEventNameSshTimeout
 		resp.DbEventNameReason = haprobe.DbEventNameReasonSshTimeout
@@ -115,19 +140,25 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
 		return ErrDetectorFailure
 	}
+	return nil
+}
 
-	if resp.SshResp.ExitCode != 0 {
-		content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
-		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
+// handleAliveProbeHealth parses a successful health JSON payload and fires the corresponding alarm.
+func (h *DetectorHandler) handleAliveProbeHealth(resp *detector.Response) error {
+	var health process.HealthInfo
+	if err := json.Unmarshal([]byte(resp.SshResp.Data), &health); err != nil {
+		h.alarm.TriggerWithDetectorResponse("", "", err.Error(), gerrors.Failure.Int(), resp)
 		return nil
 	}
 
-	// Parse the probe health.
-	var health process.HealthInfo
-	err := json.Unmarshal([]byte(resp.SshResp.Data), &health)
-	if err != nil {
-		h.alarm.TriggerWithDetectorResponse("", "", err.Error(), gerrors.Failure.Int(), resp)
-		return nil
+	// An uptime below the configured threshold means the machine just rebooted.
+	if config.Cfg.Detector.Ssh.MaxUptime > 0 && health.Uptime > 0 && health.Uptime < config.Cfg.Detector.Ssh.MaxUptime {
+		resp.DbEventName = haprobe.DbEventNameUptimeFailure
+		resp.DbEventNameReason = haprobe.DbEventNameReasonUptimeException
+		content := fmt.Sprintf("machine is running, uptime: %d less than max uptime: %d",
+			health.Uptime, config.Cfg.Detector.Ssh.MaxUptime)
+		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
+		return ErrDetectorFailure
 	}
 
 	content := fmt.Sprintf("pid: %d proc name: %s status: %s", health.Pid, health.ProcName, health.Status)
@@ -189,6 +220,16 @@ func (h *DetectorHandler) LivenessDoubleCheck(bizId int, missedInsts []detector.
 			InstanceRole:      resp.Meta.InstanceRole,
 			CheckStartTime:    resp.CheckStartTime,
 			CheckFinishedTime: resp.CheckFinishedTime,
+		}
+
+		// These instances are already detected and alarmed above, but they must never reach
+		// strategy matching, so drop them before entering the sliding window.
+		if failure.NonSwitchableOf(inst) {
+			logger.Info("skip pushing the instance into the switch window: the instance is not switchable, "+
+				"inst: %s, dbType: %s, clusterType: %s, machineType: %s, event: %s",
+				instanceKey(inst.BkCloudID, inst.IP, inst.Port),
+				inst.DbType, inst.ClusterType, inst.MachineType, inst.EventName)
+			continue
 		}
 
 		if h.windowMgr.Push(bizId, inst, now) {

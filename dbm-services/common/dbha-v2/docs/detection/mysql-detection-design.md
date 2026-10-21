@@ -121,20 +121,30 @@ TenDBClusterProxySlave    = "spider_slave"
 
 ## 4. Agent(Probe) 的 MySQL 探测机制
 
-Probe 的 MySQL 采集入口为 `MySql.Harvest → collecting`，按端点的 `accessLayer / machineType / clusterType / isAdmin` 分支：
+Probe 的 MySQL 采集分成三个独立定时循环（采集组），各自按自己的间隔并发跑，上报时用 `harvest_type` 区分：
 
-代码：[`harvester/mysql/mysql.go`](../../internal/probe/harvester/mysql/mysql.go)、[`harvester/mysql/collector.go`](../../internal/probe/harvester/mysql/collector.go)
+| 采集组 | `harvest_type` | 间隔配置 | 采集内容 |
+| --- | --- | --- | --- |
+| 默认 | `default` | `interval`（下界 5s） | 全量状态：主机指标、GlobalStatus、proxy backends、spider 路由等 |
+| 心跳 | `heartbeat` | `heartbeatInterval`（下界 1s） | 写 `infodba_schema.dbha_heartbeat`（`sql_log_bin=OFF`），只验证本机可写 |
+| 复制延迟 | `repldelay` | `replDelayInterval`（下界 5s） | 主库写 `infodba_schema.dbha_repl_heartbeat`（`sql_log_bin=ON`），从库读复制过来的行算 delay |
+
+三组数据最终都写入同一张 `t_dbha_status`，主键包含 `harvest_type`，因此同一实例的三类结果互不覆盖。
+
+默认组按端点的 `accessLayer / machineType / clusterType / isAdmin` 分支：
+
+代码：[`provider/mysql/harvest/mysql.go`](../../internal/provider/mysql/harvest/mysql.go)、[`provider/mysql/harvest/collector.go`](../../internal/provider/mysql/harvest/collector.go)
 
 | 场景 | 判定 | 采集内容 | 关键 SQL/操作 |
 | --- | --- | --- | --- |
-| 普通存储（backend/remote/spider 数据节点） | 其他情况 | 主机指标 + GlobalStatus + 心跳 +（从库）SlaveStatus | 见 4.1 |
-| TenDBHA proxy 数据端口 | `clusterType=tendbha && machineType=proxy && !isAdmin` | 可达性 + 经 proxy 写心跳验证转发 | `SELECT 1`；`REPLACE INTO infodba_schema.master_slave_heartbeat ...` |
+| 普通存储（backend/remote/spider 数据节点） | 其他情况 | 主机指标 + GlobalStatus | 见 4.1 |
+| TenDBHA proxy 数据端口 | `clusterType=tendbha && machineType=proxy && !isAdmin` | 可达性 + 经 proxy 写心跳验证转发 | `SELECT 1`；`REPLACE INTO infodba_schema.dbha_heartbeat ...` |
 | TenDBHA proxy admin 端口 | 同上且 `isAdmin` | proxy 后端列表 | `select * from backends` |
 | TenDBCluster spider-ctl admin | `machineType=spider && clusterType=tendbcluster && isAdmin` | 路由 + ctl 节点；填完后仍走 `collectCommonStatus` | `select * from mysql.servers`；`select * from information_schema.TDBCTL_NODES` |
 
-> 说明：当前仅建连类失败稳定 emit `DetectFailure`（`connection exception`）；建连成功后的 GlobalStatus / 心跳 / Slave / proxy backends 等采集失败多为日志，不写入 `Events`。
+> 说明：建连类失败稳定 emit `DetectFailure`（`connection exception`），`dbha_heartbeat` 写失败 emit `dbha_heartbeat_write_failure`；其余采集失败（GlobalStatus / Slave / proxy backends 等）多为日志，不写入 `Events`。
 
-### 4.1 普通存储探测主流程
+### 4.1 普通存储探测主流程（默认组）
 
 ```mermaid
 ---
@@ -148,38 +158,86 @@ flowchart TD
   open --> connOk{"连接成功?"}
   connOk -->|"否"| event["DbEvent: DetectFailure / connection exception"]
   connOk -->|"是"| global["obtainGlobalStatus: SHOW GLOBAL STATUS / VERSION"]
-  global --> hb["obtainHeartbeatStatus: 写心跳并计算 delay"]
-  hb --> isSlave{"isSlave? (SHOW SLAVE STATUS 有行)"}
-  isSlave -->|"是"| slave["obtainSlaveStatus: 复制状态 + heartbeat delay"]
-  isSlave -->|"否"| value["填充 MySqlStatus 并上报"]
-  slave --> value
+  global --> value["填充 MySqlStatus 并上报 harvest_type=default"]
 
-  linkStyle 0,1,2,4,5,6,7,8,9 stroke:#2563eb,stroke-width:2px
+  linkStyle 0,1,2,4,5 stroke:#2563eb,stroke-width:2px
   linkStyle 3 stroke:#64748b,stroke-width:2px
 ```
 
 > 色例：蓝=主路径；灰=建连失败。
 
-> 说明：主机指标 `obtainHostStatus` 为 best-effort，且在建连之前采集；TenDBHA proxy 数据端口路径（见上表）会跳过主机指标与 `collectCommonStatus`。
+> 说明：主机指标 `obtainHostStatus` 为 best-effort，且在建连之前采集；TenDBHA proxy 数据端口路径（见上表）会跳过主机指标与 `collectCommonStatus`。心跳与复制延迟不在本流程内，分别由 heartbeat / repldelay 组独立采集。
+
+### 4.1.1 心跳与复制延迟组
+
+```mermaid
+---
+config:
+  flowchart:
+    curve: stepAfter
+---
+flowchart TD
+  hbTimer["heartbeat 定时器"] --> hbOpen["open: GORM 建连"]
+  hbOpen --> hbTable["confirmHeartbeatTable: 查 information_schema.TABLES\n缺失才建库建表"]
+  hbTable --> hbWrite["sql_log_bin=OFF\nREPLACE INTO dbha_heartbeat"]
+  hbWrite --> hbOk{"写入成功?"}
+  hbOk -->|"否(重试 3 次仍失败)"| hbEvent["DbEvent: dbha_heartbeat_write_failure"]
+  hbOk -->|"是"| hbDelay["读本机 dbha_heartbeat 算 delay"]
+  hbEvent --> hbReport["上报 harvest_type=heartbeat"]
+  hbDelay --> hbReport
+
+  rdTimer["repldelay 定时器"] --> rdRole{"主库还是从库?"}
+  rdRole -->|"主库"| rdWrite["sql_log_bin=ON\nREPLACE INTO dbha_repl_heartbeat\n(MasterStatus)"]
+  rdRole -->|"从库"| rdRead["SHOW SLAVE STATUS + 读复制来的\ndbha_repl_heartbeat 行算 delay(SlaveStatus)"]
+  rdWrite --> rdReport["上报 harvest_type=repldelay"]
+  rdRead --> rdReport
+
+  linkStyle 0,1,2,3,5,6,7 stroke:#2563eb,stroke-width:2px
+  linkStyle 4 stroke:#dc2626,stroke-width:2px
+  linkStyle 8,9,10,11,12 stroke:#0891b2,stroke-width:2px
+```
+
+> 色例：蓝=心跳组主路径；红=心跳写失败产出事件；青=复制延迟组。
+>
+> `dbha_heartbeat` 写失败会产出 `dbha_heartbeat_write_failure` 事件，Analysis 侧据此触发 SSH 二次探测；同一实例的多条事件会按实例去重，避免重复探测。
 
 ### 4.2 关键探测语句
 
-代码：[`harvester/mysql/collector.go`](../../internal/probe/harvester/mysql/collector.go)
+代码：[`provider/mysql/harvest/collector.go`](../../internal/provider/mysql/harvest/collector.go)
 
 - 存活/状态：`SHOW GLOBAL STATUS`；`SELECT VERSION()`
-- 心跳写入：
+- 心跳表建表（仅当 `information_schema.TABLES` 查不到时执行，`sql_log_bin=OFF`）：
 
 ```sql
-SET SESSION sql_log_bin=ON|OFF;
-SELECT @@server_id;
-SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
-SET SESSION binlog_format='STATEMENT';
-REPLACE INTO infodba_schema.master_slave_heartbeat
-  (master_server_id, slave_server_id, master_time, slave_time, delay_sec)
-  VALUES(?, @@server_id, now(), sysdate(), timestampdiff(SECOND, now(), sysdate()));
+CREATE DATABASE IF NOT EXISTS `infodba_schema` DEFAULT CHARACTER SET utf8;
+CREATE TABLE IF NOT EXISTS `infodba_schema`.`dbha_heartbeat` (
+  `host` varchar(64) NOT NULL,
+  `port` int NOT NULL,
+  `server_id` bigint unsigned NOT NULL DEFAULT 0,
+  `update_time` varchar(32) NOT NULL,
+  PRIMARY KEY (`host`, `port`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
 
-- 从库复制：`SHOW SLAVE STATUS`，并读取 `infodba_schema.master_slave_heartbeat` 计算 delay
+- 心跳写入（heartbeat 组，`sql_log_bin=OFF`，最多重试 3 次）：
+
+```sql
+SET SESSION sql_log_bin=OFF;
+SELECT @@server_id;
+REPLACE INTO `infodba_schema`.`dbha_heartbeat` (`host`, `port`, `server_id`, `update_time`)
+  VALUES (?, ?, ?, SYSDATE());
+```
+
+- 复制心跳写入（repldelay 组主库侧，`sql_log_bin=ON`，写 `dbha_repl_heartbeat` 同结构表）
+- 延迟读取（本机心跳或从库复制来的行）：
+
+```sql
+SELECT GREATEST(CAST(TIMESTAMPDIFF(SECOND, update_time, SYSDATE()) AS SIGNED), 0) AS heartbeat_delay
+  FROM `infodba_schema`.`dbha_heartbeat`
+ WHERE host = ? AND port = ? AND server_id = ? ORDER BY update_time DESC LIMIT 1;
+```
+
+- 从库复制：`SHOW SLAVE STATUS`，并按 `Master_Host / Master_Port / Master_Server_Id` 读取 `infodba_schema.dbha_repl_heartbeat` 计算 delay
 - Spider 会话隔离：`SET SESSION ddl_execute_by_ctl=OFF`；tdbctl 侧 `SET SESSION tc_admin=OFF`
 - 连接失败时构造事件（见 `connectionExceptionEvent`）：`Name=DbEventNameDetectFailure`，`Reason=connection exception`
 
@@ -244,6 +302,7 @@ flowchart TD
 | 阶段 | 事件常量 | 字符串值 | Reason | 含义 | 影响 |
 | --- | --- | --- | --- | --- | --- |
 | 探测 | `DbEventNameDetectFailure` | `dbha_detect_db_failure` | `connection exception` | Probe 建连失败 | 写入 `HarvestData.Events`，触发二次探测候选；**不直接入窗**，事件名不带入窗口（见本节流程图 / [`detector_handler.go`](../../internal/analysis/workflow/detector_handler.go)） |
+| 探测 | `DbEventNameHeartbeatWriteFailure` | `dbha_heartbeat_write_failure` | `heartbeat write failure` | heartbeat 组重试后仍写不进 `dbha_heartbeat` | 写入 `HarvestData.Events`，触发二次探测候选；同实例多条事件按实例去重；**不直接入窗** |
 | 二次探测 | `DbEventNameDoubleCheckSshFailureV1` | `dbha_doublecheck_ssh_fail` | `connection exception` | SSH dial/session 失败 | **确认故障并入窗**；默认全局策略可 `action=switch` |
 | 二次探测 | `DbEventNameProbeOffline` | `dbha_probe_offline` | `missed probe` | Detector 任务默认名；InvalidPid / 其它非入窗失败路径告警时常用 | **当前实现不入窗**；以该名为 `TriggerEventName` 的策略在生产路径**实质不可命中** |
 | 二次探测 | `DbEventNameDetectFailure` | `dbha_detect_db_failure` | `no target` | SSH 成功且 probe 进程存活，解读为无目标 DB 指标 | 仅告警，**不入窗** → 默认不会因「纯 DB 不可达但主机/probe 可达」触发全局切换 |
@@ -273,7 +332,7 @@ flowchart TD
 
 ## 7. MySQL 切换触发与流程
 
-§6 端到端流程在策略命中且 `action=switch` 后进入本节。编排入口：[`TriggerSwitching`](../../internal/analysis/workflow/switch_flow.go)；实现入口：[`Mysql.Switch`](../../internal/analysis/switcher/mysql.go)。切换前白名单再过滤见 [故障判定与切换](../flows/failure-detection-and-failover.md)。
+§6 端到端流程在策略命中且 `action=switch` 后进入本节。编排入口：[`TriggerSwitching`](../../internal/analysis/workflow/switch_flow.go)；实现入口：[`mysqlswitch.Mysql.Switch`](../../internal/provider/mysql/switch/mysql_switcher.go)。切换前白名单再过滤见 [故障判定与切换](../flows/failure-detection-and-failover.md)。
 
 ### 7.1 切换工作流程
 
@@ -309,14 +368,17 @@ sequenceDiagram
 
 ### 7.2 Switcher 注册与接口
 
-MySQL switcher 在 workflow 装配时注册（[`workflow.go`](../../internal/analysis/workflow/workflow.go)）：
+MySQL switcher 由 `provider/mysql/switch` 在 `init` 中自注册（经 analysis 入口 blank-import [`provider/allanalysis`](../../internal/provider/allanalysis/)），`workflow.New` 通过 [`switcher.Build()`](../../internal/analysis/workflow/workflow.go) 装配：
 
 ```go
-switchers: map[haprobe.DbType]switcher.Switcher{
-	haprobe.DbTypeMySql: &switcher.Mysql{},
-},
-```
+// provider/mysql/switch/register.go
+switcher.Register(haprobe.DbTypeMySql, func() switcher.Switcher {
+	return &Mysql{} // mysqlswitch.Mysql
+})
 
+// workflow.New
+switchers: switcher.Build(),
+```
 `Switcher` 接口（[`switcher/switcher.go`](../../internal/analysis/switcher/switcher.go)）：
 
 ```go
@@ -328,7 +390,7 @@ type Switcher interface {
 
 ### 7.3 ActionScope 与实现分发
 
-`ActionScopeType`（[`hamodel/db_switching_strategy.go`](../../pkg/storage/hamodel/db_switching_strategy.go)）：`db_instance` / `host` / `cluster`。MySQL switcher 据此分发（[`switcher/mysql.go`](../../internal/analysis/switcher/mysql.go)）：
+`ActionScopeType`（[`hamodel/db_switching_strategy.go`](../../pkg/storage/hamodel/db_switching_strategy.go)）：`db_instance` / `host` / `cluster`。MySQL switcher 据此分发（[`mysql_switcher.go`](../../internal/provider/mysql/switch/mysql_switcher.go)）：
 
 | ActionScope | 方法 | 编排器 | 并发控制 |
 | --- | --- | --- | --- |
@@ -484,12 +546,11 @@ flowchart TD
 
 ### 7.6 从库切换校验参数
 
-从库切换前校验（[`switcher/mysql/mysql_slave_checker.go`](../../internal/analysis/switcher/mysql)）依赖 analysis 配置 `switchFlow`（[`internal/analysis/config/config.go`](../../internal/analysis/config/config.go)）默认值：
+从库切换前校验（[`mysql_slave_checker.go`](../../internal/provider/mysql/switch/mysql_slave_checker.go)）依赖 analysis 配置 `switchFlow`（[`internal/analysis/config/config.go`](../../internal/analysis/config/config.go)）默认值：
 
 | 参数 | 默认值 | 含义 |
 | --- | --- | --- |
-| `allowedMaxHeartbeatDelay` | 600 | 允许最大心跳延迟（秒） |
-| `allowedMaxIODelay` | 300 | 允许最大 IO delay（秒） |
+| `allowedMaxHeartbeatDelay` | 600 | 允许最大心跳延迟（秒），取自 `dbha_repl_heartbeat` |
 | `allowedMaxChecksumFailCnt` | 2 | 允许 checksum 失败次数 |
 | `allowedIgnoreCheckSum` | false | 是否忽略 checksum 校验 |
 | `allowedIgnoreSlaveDelay` | false | 是否忽略从库延迟 |
@@ -501,11 +562,11 @@ flowchart TD
 
 ## 8. 关键代码索引
 
-- MySQL 采集：[`internal/probe/harvester/mysql/mysql.go`](../../internal/probe/harvester/mysql/mysql.go)、[`collector.go`](../../internal/probe/harvester/mysql/collector.go)
+- MySQL 采集：[`internal/provider/mysql/harvest/mysql.go`](../../internal/provider/mysql/harvest/mysql.go)、[`collector.go`](../../internal/provider/mysql/harvest/collector.go)
 - 状态模型：[`pkg/storage/haprobe/mysql_status.go`](../../pkg/storage/haprobe/mysql_status.go) 及同目录子状态
 - 事件常量：[`pkg/storage/haprobe/db_event.go`](../../pkg/storage/haprobe/db_event.go)
 - 判定与二次探测：[`internal/analysis/workflow/checker.go`](../../internal/analysis/workflow/checker.go)、[`detector_handler.go`](../../internal/analysis/workflow/detector_handler.go)
-- 切换编排：[`workflow/switch_flow.go`](../../internal/analysis/workflow/switch_flow.go)、[`switcher/mysql.go`](../../internal/analysis/switcher/mysql.go)、[`switchcore`](../../internal/analysis/switcher/switchcore)
-- tendbha 切换：[`mysql_switch_instance.go`](../../internal/analysis/switcher/mysql/mysql_switch_instance.go)、[`mysql_switch_cluster.go`](../../internal/analysis/switcher/mysql/mysql_switch_cluster.go)
-- tendbcluster 切换：[`tendbcluster_switch_instance.go`](../../internal/analysis/switcher/mysql/tendbcluster_switch_instance.go)、[`tendbcluster_switch_cluster.go`](../../internal/analysis/switcher/mysql/tendbcluster_switch_cluster.go)
+- 切换编排：[`workflow/switch_flow.go`](../../internal/analysis/workflow/switch_flow.go)、[`mysql_switcher.go`](../../internal/provider/mysql/switch/mysql_switcher.go)、[`switchcore`](../../internal/analysis/switcher/switchcore)
+- tendbha 切换：[`mysql_switch_instance.go`](../../internal/provider/mysql/switch/mysql_switch_instance.go)、[`mysql_switch_cluster.go`](../../internal/provider/mysql/switch/mysql_switch_cluster.go)
+- tendbcluster 切换：[`tendbcluster_switch_instance.go`](../../internal/provider/mysql/switch/tendbcluster_switch_instance.go)、[`tendbcluster_switch_cluster.go`](../../internal/provider/mysql/switch/tendbcluster_switch_cluster.go)
 - 配置默认值：[`internal/analysis/config/config.go`](../../internal/analysis/config/config.go)

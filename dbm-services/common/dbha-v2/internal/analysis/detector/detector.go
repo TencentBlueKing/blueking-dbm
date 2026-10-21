@@ -177,9 +177,31 @@ func (d *detectorTask) run(cmd string) {
 
 	d.reportSshTime(start, code)
 
-	if err != nil || errMsg != "" {
+	if hasFailure(err, errMsg) {
 		d.reportSshError(code)
 	}
+
+	d.logResult(start, finish, code, errMsg, err)
+}
+
+// hasFailure reports whether the double-check ended with an SSH error or a non-empty error message.
+func hasFailure(err error, errMsg string) bool {
+	return err != nil || errMsg != ""
+}
+
+// logResult logs the double-check result of a single instance, so that the instance
+// really entering the double-check and its outcome stay traceable.
+func (d *detectorTask) logResult(start, finish time.Time, code int, errMsg string, err error) {
+	cost := finish.Sub(start)
+
+	if hasFailure(err, errMsg) {
+		logger.Warn("double-check the db-inst: %d:%s:%d failed, dbType: %s, exit-code: %d, "+
+			"errmsg: %s, err: %v, cost: %v", d.meta.BkCloudID, d.meta.IP, d.meta.Port, d.dbType, code, errMsg, err, cost)
+		return
+	}
+
+	logger.Info("double-check the db-inst: %d:%s:%d finished, dbType: %s, exit-code: %d, cost: %v",
+		d.meta.BkCloudID, d.meta.IP, d.meta.Port, d.dbType, code, cost)
 }
 
 // reportSshTime reports SSH detection duration metric for a single connection.

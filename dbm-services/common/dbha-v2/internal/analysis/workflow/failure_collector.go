@@ -25,49 +25,23 @@
 package workflow
 
 import (
-	"time"
-
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // FailureInstanceInfo represents one instance that detector marked as failure (needs switching).
-type FailureInstanceInfo struct {
-	BkCloudID       int                             `json:"bk_cloud_id"`
-	IP              string                          `json:"ip"`
-	Port            int                             `json:"port"`
-	BkBizID         int                             `json:"bk_biz_id"`
-	Cluster         string                          `json:"cluster"`
-	ClusterID       int                             `json:"cluster_id"`
-	DbType          haprobe.DbType                  `json:"db_type"`
-	EventName       haprobe.DbEventName             `json:"event_name"`
-	EventNameReason haprobe.DbEventNameReason       `json:"event_name_reason"`
-	ClusterType     haprobe.DbmMetadataClusterType  `json:"cluster_type"`
-	MachineType     haprobe.DbmMetadataMachineType  `json:"machine_type"`
-	InstanceRole    haprobe.DbmMetadataInstanceRole `json:"instance_role"`
-	// Count is the number of times this instance reported the same event within the window.
-	Count int `json:"count,omitempty"`
-
-	// CheckStartTime and CheckFinishedTime are the start and end times of the instance's
-	// SSH double-check detection.
-	CheckStartTime    *time.Time `json:"check_start_time,omitempty"`
-	CheckFinishedTime *time.Time `json:"check_finished_time,omitempty"`
-}
+type FailureInstanceInfo = failure.Instance
 
 // FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
-// BkBizID is the business the group belongs to: one pop round handles a single business, so all
-// groups of the same round share the same BkBizID.
-// When a group is produced by strategy matching, Strategy is the matched strategy and
-// every instance in the group is bound to Strategy.ID.
+// BkBizID identifies the business handled by the group. Strategy is set after strategy matching.
+// OriginInstances preserves the original failure scope before filtering and matching.
 type FailureGroup struct {
-	BkBizID   int
-	BkCloudID int
-	DbType    haprobe.DbType
-	Strategy  *hamodel.DbSwitchingStrategy
-	Instances []FailureInstanceInfo
-	// OriginInstances is the full failure instance set of the original (cloud, dbType) group
-	// before unavailable-instance exclusion and strategy matching. It is kept unchanged so that
-	// every switch/notify record can reproduce the whole original failure scope for tracing.
+	BkBizID         int
+	BkCloudID       int
+	DbType          haprobe.DbType
+	Strategy        *hamodel.DbSwitchingStrategy
+	Instances       []FailureInstanceInfo
 	OriginInstances []FailureInstanceInfo
 }
 

@@ -174,21 +174,14 @@ type DomainDeleteResponse struct {
 	} `json:"data"`
 }
 
-// SwapRoleResponse represents the response structure for role swapping
-type SwapRoleResponse struct {
-	ResponseCommonInfo
-
-	Data string `json:"data"`
-}
-
 // ClbDeleteResponse represents the response structure for CLB deregistration.
 // data is omitted intentionally: DBM may return number, string, or object; we only check result.
 type ClbDeleteResponse struct {
 	ResponseCommonInfo
 }
 
-// DumperSwitchResponse represents the response structure for binlog dumper switching.
-// data is omitted intentionally: DBM returns a large nested object; we only check result.
-type DumperSwitchResponse struct {
+// PolarisDeleteResponse represents the response structure for Polaris unbind.
+// data is omitted intentionally: DBM may return number, string, or object; we only check result.
+type PolarisDeleteResponse struct {
 	ResponseCommonInfo
 }

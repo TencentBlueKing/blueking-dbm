@@ -38,6 +38,7 @@ const (
 	MetricLabelMethod      = "method"
 	MetricLabelStatusCode  = "status_code"
 	MetricLabelBizID       = "biz_id"
+	MetricLabelHarvestType = "harvest_type"
 
 	MetricServerName                 = "analysis"
 	MetricApiNameQueryMetadata       = "query_metadata"
@@ -48,17 +49,6 @@ const (
 )
 
 var (
-	// Mysql*
-	MysqlClusterSwitchingTimeConsumingMs  *haapm.HaHistogram
-	MysqlHostSwitchingTimeConsumingMs     *haapm.HaHistogram
-	MysqlInstanceSwitchingTimeConsumingMs *haapm.HaHistogram
-	MysqlSwitchingErrorTotal              *haapm.HaCounter
-	MysqlSwitchingSuccessTotal            *haapm.HaCounter
-
-	// Redis*
-	RedisSwitchingErrorTotal   *haapm.HaCounter
-	RedisSwitchingSuccessTotal *haapm.HaCounter
-
 	// Scan*
 	ScanBusinessTimeConsumingMs *haapm.HaHistogram
 	ScanBusinessTotal           *haapm.HaCounter
@@ -103,6 +93,8 @@ var (
 	DbmMetadataSaveTimeConsumingMs *haapm.HaHistogram
 	DbmMetadataUpdatedCount        *haapm.HaGauge
 	DbhaDataStatusUpdatedCount     *haapm.HaGauge
+	DbhaDataStatusUpdatedIPCount   *haapm.HaGauge
+	DbhaDataStatusActiveIPCount    *haapm.HaGauge
 )
 
 func init() {
@@ -111,8 +103,6 @@ func init() {
 	initSwitchingMetrics()
 	initSlidingWindowMetrics()
 	initAmBusinessMetrics()
-	initMySQLMetrics()
-	initRedisMetrics()
 	initDBMetrics()
 	initThirdPartyApiMetrics()
 	initDbmApiMetrics()
@@ -199,62 +189,6 @@ func initSwitchingMetrics() {
 		"switching_instance_error_total",
 		"Total number of switching instance error",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
-	)
-}
-
-func initMySQLMetrics() {
-	// Mysql cluster switching time consuming histogram
-	MysqlClusterSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
-		"mysql_cluster_switching_time_consuming_ms",
-		"Time consuming of MySQL cluster switching in milliseconds",
-		haapm.DefaultDurationBuckets,
-		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
-	)
-
-	// Mysql host switching time consuming histogram
-	MysqlHostSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
-		"mysql_host_switching_time_consuming_ms",
-		"Time consuming of MySQL host switching in milliseconds",
-		haapm.DefaultDurationBuckets,
-		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
-	)
-
-	// Mysql instance switching time consuming histogram
-	MysqlInstanceSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
-		"mysql_instance_switching_time_consuming_ms",
-		"Time consuming of MySQL instance switching in milliseconds",
-		haapm.DefaultDurationBuckets,
-		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
-	)
-
-	// Mysql switching success total counter
-	MysqlSwitchingSuccessTotal = haapm.NewHaCounter(
-		"mysql_switching_success_total",
-		"Total number of MySQL switching success",
-		MetricLabelActionScope, MetricLabelDbType,
-	)
-
-	// Mysql switching error total counter
-	MysqlSwitchingErrorTotal = haapm.NewHaCounter(
-		"mysql_switching_error_total",
-		"Total number of MySQL switching error",
-		MetricLabelActionScope, MetricLabelDbType,
-	)
-}
-
-func initRedisMetrics() {
-	// Redis switching success total counter
-	RedisSwitchingSuccessTotal = haapm.NewHaCounter(
-		"redis_switching_success_total",
-		"Total number of Redis switching success",
-		MetricLabelActionScope, MetricLabelDbType,
-	)
-
-	// Redis switching error total counter
-	RedisSwitchingErrorTotal = haapm.NewHaCounter(
-		"redis_switching_error_total",
-		"Total number of Redis switching error",
-		MetricLabelActionScope, MetricLabelDbType,
 	)
 }
 
@@ -381,10 +315,29 @@ func initDbTableUpdatedMetrics() {
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
 	)
 
-	// DbhaDataStatus rows updated within the latest statistics window, grouped by db_type.
+	// DbhaDataStatus instances updated within the latest statistics window, grouped by
+	// db_type and harvest_type. One instance keeps one row per collection group, so rows
+	// are de-duplicated by (bk_cloud_id, db_ip, db_port).
 	DbhaDataStatusUpdatedCount = haapm.NewHaGauge(
 		"dbha_data_status_updated_count",
-		"Number of DbhaDataStatus rows updated within the latest statistics window, by db_type",
+		"Number of DbhaDataStatus instances (distinct cloud/ip/port) updated within the latest statistics window, "+
+			"by db_type and harvest_type",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType, MetricLabelHarvestType,
+	)
+
+	// DbhaDataStatus IPs updated within the latest statistics window, grouped by db_type and harvest_type.
+	DbhaDataStatusUpdatedIPCount = haapm.NewHaGauge(
+		"dbha_data_status_updated_ip_count",
+		"Number of IPs (distinct cloud/ip) with DbhaDataStatus updated within the latest statistics window, "+
+			"by db_type and harvest_type",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType, MetricLabelHarvestType,
+	)
+
+	// Alive probe IP count within the latest statistics window, by db_type.
+	DbhaDataStatusActiveIPCount = haapm.NewHaGauge(
+		"dbha_data_status_active_ip_count",
+		"Number of IPs (distinct cloud/ip) that reported within the latest statistics window, by db_type: "+
+			"active (reporting) IPs, not an installed count",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
 	)
 }
@@ -397,39 +350,10 @@ func InitAPM(serviceID, serviceName string) {
 		haapm.MetricLabelServiceName: serviceName,
 	})
 
-	haapm.MustRegister(
-		haapm.AppStartupMetric,
-		MysqlClusterSwitchingTimeConsumingMs,
-		MysqlHostSwitchingTimeConsumingMs,
-		MysqlInstanceSwitchingTimeConsumingMs,
-		MysqlSwitchingErrorTotal,
-		MysqlSwitchingSuccessTotal,
-		RedisSwitchingErrorTotal,
-		RedisSwitchingSuccessTotal,
-		PopSwitchBusinessTotal,
-		PopSwitchTimeConsumingMs,
-		ScanBusinessTimeConsumingMs,
-		ScanBusinessTotal,
-		SlidingWindowSize,
-		AmBusinessTotal,
-		TriggerSwitchingInstanceTotal,
-		SwitchingInstanceErrorTotal,
-		SwitchingInstanceSuccessTotal,
-		SwitchingTimeConsumingMs,
-		DbQueryTimeConsumingMs,
-		DbQueryErrorTotal,
-		ThirdPartyApiRequestTimeConsumingMs,
-		ThirdPartyApiRequestErrorTotal,
-		DbmApiSyncMetadataTotal,
-		DbmApiSyncMetadataTimeConsumingMs,
-		DbmApiSyncMetadataErrorTotal,
-		DbmApiQueryMetadataTimeConsumingMs,
-		DbmApiQueryMetadataErrorTotal,
-		DbmApiQueryMetadataIpCount,
-		DetectorSshTimeConsumingMs,
-		DetectorSshErrorTotal,
-		DbmMetadataSaveTimeConsumingMs,
-		DbmMetadataUpdatedCount,
-		DbhaDataStatusUpdatedCount,
-	)
+	fw := frameworkMetrics()
+	db := DbMetrics()
+	all := make([]interface{}, 0, len(fw)+len(db))
+	all = append(all, fw...)
+	all = append(all, db...)
+	haapm.MustRegister(all...)
 }

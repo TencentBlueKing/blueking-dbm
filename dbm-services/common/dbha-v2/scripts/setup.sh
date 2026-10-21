@@ -191,6 +191,8 @@ collect_analysis() {
     prompt SSH_USER "SSH user"  "${SSH_USER:-root}"
     prompt_secret SSH_PASSWORD "SSH password" \
         "${SSH_PASSWORD:-}"
+    prompt SSH_MAX_UPTIME "Machine uptime threshold in seconds (0 disables)" \
+        "${SSH_MAX_UPTIME:-300}"
 
     echo ""
     echo "  -- Probe install path (for remote health check) --"
@@ -376,21 +378,25 @@ workflow:
   readDbEventOffsetDuration: -10m
   enableSwitching: true
   switchflow:
-    hostLevelSwitchMaxHostNum: 32
-    hostLevelSwitchMaxInstanceNum: 64
-    clusterLevelSwitchMaxClusterNum: 32
-    clusterLevelSwitchMaxInstanceNum: 64
-    dbmApiMaxConcurrentRequests: 8
-    switchLogWriteTimeout: 1s
-    dbConnectTimeout: 3s
-    clusterLockTimeout: 60s
-    execSqlTimeout: 6s
-    slaveAllowedIgnoreCheckSum: false
-    slaveAllowedIgnoreSlaveDelay: false
-    slaveAllowedSlowBytes: 0
-    slaveAllowedMaxChecksumFailCnt: 2
-    slaveAllowedMaxHeartbeatDelay: 600
-    slaveAllowedMaxSecondsBehindMaster: 600
+    common:
+      hostLevelSwitchMaxHostNum: 32
+      hostLevelSwitchMaxInstanceNum: 64
+      clusterLevelSwitchMaxClusterNum: 32
+      clusterLevelSwitchMaxInstanceNum: 64
+      dbmApiMaxConcurrentRequests: 8
+      switchLogWriteTimeout: 1s
+      dbConnectTimeout: 3s
+      clusterLockTimeout: 60s
+    mysql:
+      execSqlTimeout: 6s
+      slaveAllowedIgnoreCheckSum: false
+      slaveAllowedIgnoreSlaveDelay: false
+      slaveAllowedSlowBytes: 0
+      slaveAllowedMaxChecksumFailCnt: 2
+      slaveAllowedMaxHeartbeatDelay: 600
+      slaveAllowedMaxSecondsBehindMaster: 600
+    redis:
+      commandTimeout: 10s
 
   dbmApiMetadata:
     api: ${DBM_API_BASE}/apis/proxypass/dbmeta/dbha/instances
@@ -437,6 +443,11 @@ workflow:
     timeout: 10s
     token: "${DBM_API_TOKEN}"
 
+  dbmApiQueryRedisPassword:
+    api: ${DBM_API_BASE}/apis/proxypass/dbpriv/proxy_password/
+    timeout: 10s
+    token: "${DBM_API_TOKEN}"
+
   dbhav1ApiBlackWhitelistGet:
     api: ${DBHAV1_API_BASE}/blackwhitelist/
     timeout: 10s
@@ -456,6 +467,7 @@ detector:
     user: ${SSH_USER}
     password: ${SSH_PASSWORD}
     timeout: 10s
+    maxUptime: ${SSH_MAX_UPTIME}
 
 monitor:
   dataID: ${MON_DATA_ID}
