@@ -76,6 +76,7 @@ class Flow(models.Model):
     )
     # 流程上下文不适用于存储大量数据，定义详见dataclass/FlowContext
     context = models.JSONField(_("流程上下文(用于扩展字段)"), default=dict)
+    config = models.JSONField(_("单据配置"), default=dict, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据流程(Flow)")
