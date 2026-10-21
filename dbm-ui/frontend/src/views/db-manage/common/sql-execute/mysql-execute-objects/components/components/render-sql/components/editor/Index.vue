@@ -17,7 +17,7 @@
     class="sql-execute-editor"
     :class="{ 'is-full-screen': isFullscreen }">
     <!-- 1. 顶部标题栏 — 固定高度 -->
-    <div class="editor-layout-header">
+    <div v-if="showHeader" class="editor-layout-header">
       <span>{{ title }}</span>
       <div class="editro-action-box">
         <DbIcon
@@ -41,6 +41,7 @@
 
     <!-- 3. 底部检查结果面板 — 可向上弹出/收起 -->
     <RenderMessageList
+      v-if="showResultPanel"
       class="editor-result-panel"
       :data="messageList"
       @goto-line="handleGotoLine" />
@@ -56,6 +57,8 @@
     messageList: IMessageList;
     modelValue: string;
     readonly?: boolean;
+    showHeader?: boolean;
+    showResultPanel?: boolean;
     title: string;
   }
 
@@ -66,6 +69,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     readonly: false,
+    showHeader: true,
+    showResultPanel: true,
   });
   const emits = defineEmits<Emits>();
 
