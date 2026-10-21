@@ -286,13 +286,39 @@ def probe_running_ctl_via_drs(
 
 def resolve_running_ctl_ip_strict(cluster: Cluster) -> str:
     """
-    取一个探活成功的中控 IP；全部失败抛 ValueError。
-    用于"仅恢复 spider_slave"的 Validator 与 Flow 运行时（_cluster_sub_flow 求 primary_ctl_ip）。
+    取一个 DRS 探活成功的中控 IP。全部失败抛 ValueError。
+    返回的不一定是 tdbctl primary。登记 spider_slave 路由使用 resolve_ctl_primary_ip。
     """
     alive_ip = probe_running_ctl_via_drs(cluster)
     if not alive_ip:
         raise ValueError(_("集群 {} 当前无可用中控（spider_master.admin_port DRS 探活均失败），无法独立恢复 spider_slave").format(cluster.id))
     return alive_ip
+
+
+def resolve_ctl_primary_ip(cluster: Cluster) -> str:
+    """只重建 spider slave 时，路由执行地址取 tdbctl primary 的 IP。"""
+    address = cluster.tendbcluster_ctl_primary_address()
+    host = str(address).split(IP_PORT_DIVIDER)[0]
+    if not host:
+        raise ValueError(_("集群 {} 的中控 primary 地址为空").format(cluster.id))
+    return host
+
+
+def slave_only_recover_cluster_ids(infos: List[dict]) -> List[int]:
+    """仅恢复 spider slave 的集群，需要在现存主中控上创建临时账号。"""
+    cluster_ids: List[int] = []
+    seen: Set[int] = set()
+    for info in infos:
+        master_new = info.get("spider_master_new_ip_list") or []
+        slave_new = info.get("spider_slave_new_ip_list") or []
+        if master_new or not slave_new:
+            continue
+        cluster_id = int(info["cluster_id"])
+        if cluster_id in seen:
+            continue
+        seen.add(cluster_id)
+        cluster_ids.append(cluster_id)
+    return cluster_ids
 
 
 def get_shard_zero_remote_master(cluster: Cluster) -> Tuple[str, int]:

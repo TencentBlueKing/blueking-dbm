@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Optional
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterEntryRole, ClusterType, TenDBClusterSpiderRole
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import DBA_ROOT_USER, TDBCTL_USER, DnsOpType
@@ -36,15 +37,20 @@ from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_c
     PauseWithTicketLockCheckComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
     AddSystemUserInClusterComponent,
 )
+from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.plugins.components.collections.spider.spider_dr_retain_routing import SpiderDRRetainRoutingComponent
+from backend.flow.plugins.components.collections.spider.spider_dr_routing_init import SpiderDRRoutingInitComponent
 from backend.flow.plugins.components.collections.spider.spider_layer_disaster_recover_route_preview import (
     SpiderLayerDisasterRecoverRoutePreviewComponent,
 )
 from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
+from backend.flow.utils.mysql.flow_output_presets.instance_change import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSpiderSystemUserKwargs,
     DBMetaOPKwargs,
@@ -53,6 +59,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
+from backend.flow.utils.spider.spider_act_dataclass import DropSpiderRoutingKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.spider_disaster_recover import (
     build_append_deploy_style_routing_extend,
@@ -60,8 +67,9 @@ from backend.flow.utils.spider.spider_disaster_recover import (
     build_mysql_ip_list_and_ports,
     get_shard_zero_remote_master,
     get_spider_pkg_id_for_layer_disaster_recover,
-    resolve_running_ctl_ip_strict,
+    resolve_ctl_primary_ip,
     resolve_spider_ctl_ports,
+    slave_only_recover_cluster_ids,
 )
 from backend.ticket.constants import TicketType
 
@@ -75,7 +83,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
     支持三种恢复场景（由 info 中 spider_master_new_ip_list / spider_slave_new_ip_list 是否非空自动判定）：
       1. 仅恢复 spider_master：spider_master_new_ip_list 非空，spider_slave_new_ip_list 为空
       2. 仅恢复 spider_slave：spider_slave_new_ip_list 非空，spider_master_new_ip_list 为空
-                              （要求中控 RUNNING 且 DRS 探活通过，由 Validator 与 Flow 双层校验）
+                              （路由连 tdbctl primary，并在该中控创建临时账号）
       3. 同时恢复 master + slave：两者都非空，按"安装并行 + 路由串行（master 先 / slave 后）"五阶段编排
 
     调用参数样板（与 ticket_data 同形，可直接 POST 至 /apis/v1/flow/scene/spider_layer_disaster_recover）：
@@ -163,6 +171,30 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             )
         ]
 
+    @staticmethod
+    def _collect_retained_nodes(cluster: Cluster, exclude_ips: Optional[List[str]] = None) -> List[dict]:
+        """收集存活的保留接入层节点（RUNNING 的 spider_slave / spider_mnt / spider_slave_mnt）。
+
+        重建 master 时调用：这些节点上已有业务表结构，重建后需"仅路由登记"方式重新纳入新中控，
+        不能以 with database 重新导入。运维节点 wrapper 与 Go 侧 getSpiderRouterSqls 的映射保持一致。
+        exclude_ips：本次同时被替换的旧 slave（master+slave 同时重建场景），它们会下架，不能再登记。
+        """
+        excluded = set(exclude_ips or [])
+        role_wrapper_map = {
+            TenDBClusterSpiderRole.SPIDER_SLAVE.value: "SPIDER_SLAVE",
+            TenDBClusterSpiderRole.SPIDER_MNT.value: "SPIDER",
+            TenDBClusterSpiderRole.SPIDER_SLAVE_MNT.value: "SPIDER_SLAVE",
+        }
+        nodes: List[dict] = []
+        for role, wrapper in role_wrapper_map.items():
+            for p in cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=role, status=InstanceStatus.RUNNING.value
+            ):
+                if p.machine.ip in excluded:
+                    continue
+                nodes.append({"ip": p.machine.ip, "port": p.port, "wrapper": wrapper})
+        return nodes
+
     # ─────────────────────────────────────────────────────────────────────────
     # 各 segment 子流程
     # ─────────────────────────────────────────────────────────────────────────
@@ -241,45 +273,25 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         cluster_ticket: dict,
     ) -> Any:
         """
-        Stage 2 - master 路由段：DBMeta 写入 → 表结构同步 → 权限恢复 → init_tdbctl_routing(×2)。
+        Stage 2 - master 路由段：DBMeta 写入 → 初始化并下发接入层路由（三步合一）→ 表结构同步 → 权限恢复。
         必须在 Stage 1 安装段完成后串行执行；slave 路由段必须等本段完成。
 
-        DBMeta 写入提前到表结构同步之前：表结构同步内的"安装临时备份程序"会通过 ORM 查 Machine 表
-        （get_install_tmp_db_backup_payload 取 machine_type / cluster_type），新机器必须先在 DBMeta 中。
-        add_spiders 用 api.machine.create 写入，对重复 IP 幂等（重试单据安全）。
+        路由初始化合并为一个节点（SpiderDRRoutingInitComponent）：中控/分片/Spider 登记 + enable primary
+        + TDBCTL FLUSH ROUTING，幂等（无 truncate、无 with database），末尾核对路由表。
+        必须在表结构导入前完成下发：中控以 tc_admin=1 导入表结构时 DDL 会转发到 Spider 建表，
+        SPIDER 表引用的 foreign server（SPT0 等分片名）必须已存在于 Spider 本地 mysql.servers，
+        否则报 Error 1477: The foreign server name you are trying to reference does not exist. Data source error: SPT0。
+        DBMeta 仍先于安装临时备份程序：该步骤通过 ORM 查 Machine 表。
+        主域名绑定统一延后到「域名恢复段」：保留节点/新 slave 全部登记完成后才恢复解析。
         """
         seg = SubBuilder(root_id=self.root_id, data=cluster_ticket)
 
-        # 提前写入 DBMeta：让后续表结构同步 act 能从 Machine 表查到新机器
         seg.add_act(
             act_name=_("更新 DBMeta（新增 Spider Master）"),
             act_component_code=SpiderDBMetaComponent.code,
             kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=SpiderDBMeta.add_spider_master_nodes_apply.__name__)),
         )
 
-        if not info.get("skip_schema_sync", False):
-            self._add_schema_sync_acts(
-                seg=seg,
-                cluster=cluster,
-                new_masters=new_masters,
-                primary_ctl_ip=primary_ctl_ip,
-                spider_port=spider_port,
-                ctl_port=ctl_port,
-                cluster_ticket=cluster_ticket,
-            )
-
-        # master 段权限恢复（仅在 from_spider_grant_backup 模式下生效）
-        self._maybe_add_priv_recover(
-            seg=seg,
-            cluster=cluster,
-            info=info,
-            target_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
-            restore_ips=[h["ip"] for h in new_masters],
-            spider_port=spider_port,
-            ctl_port=ctl_port,
-        )
-
-        # 由 master 安装段写入；slave-only 场景不会进入本段
         tdbctl_pass = cluster_ticket["tdbctl_pass"]
         routing_extend = build_append_deploy_style_routing_extend(
             cluster=cluster,
@@ -289,35 +301,40 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             tdbctl_user=TDBCTL_USER,
             tdbctl_pass=tdbctl_pass,
         )
-        routing_extend["only_init_ctl"] = True
+        # 三步合一：中控/分片/Spider 路由登记 + enable primary + TDBCTL FLUSH ROUTING + 核对
         seg.add_act(
-            act_name=_("初始化中控路由（仅中控）"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    exec_ip=primary_ctl_ip,
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    cluster_type=ClusterType.TenDBCluster.value,
-                    run_as_system_user=DBA_ROOT_USER,
-                    get_mysql_payload_func=MysqlActPayload.get_init_tdbctl_routing_payload.__name__,
-                    cluster=routing_extend,
-                )
-            ),
+            act_name=_("初始化并下发接入层路由"),
+            act_component_code=SpiderDRRoutingInitComponent.code,
+            kwargs={
+                "cluster_id": cluster.id,
+                "ctl_primary": f"{primary_ctl_ip}{IP_PORT_DIVIDER}{ctl_port}",
+                "spider_port": spider_port,
+                "ctl_port": ctl_port,
+                "tdbctl_user": TDBCTL_USER,
+                "tdbctl_pass": tdbctl_pass,
+                "new_master_ips": [h["ip"] for h in new_masters],
+                "remote_tuples": routing_extend["mysql_instance_tuples"],
+            },
         )
-        routing_extend["only_init_ctl"] = False
-        seg.add_act(
-            act_name=_("刷新 Spider 与分片路由"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    exec_ip=primary_ctl_ip,
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    cluster_type=ClusterType.TenDBCluster.value,
-                    run_as_system_user=DBA_ROOT_USER,
-                    get_mysql_payload_func=MysqlActPayload.get_init_tdbctl_routing_payload.__name__,
-                    cluster=routing_extend,
-                )
-            ),
+
+        if not info.get("skip_schema_sync", False):
+            self._add_schema_sync_acts(
+                seg=seg,
+                cluster=cluster,
+                primary_ctl_ip=primary_ctl_ip,
+                spider_port=spider_port,
+                ctl_port=ctl_port,
+                cluster_ticket=cluster_ticket,
+            )
+
+        self._maybe_add_priv_recover(
+            seg=seg,
+            cluster=cluster,
+            info=info,
+            target_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+            restore_ips=[h["ip"] for h in new_masters],
+            spider_port=spider_port,
+            ctl_port=ctl_port,
         )
         return seg.build_sub_process(sub_name=_("[{}] master 路由段").format(cluster.immute_domain))
 
@@ -326,6 +343,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         *,
         cluster: Cluster,
         new_slaves: List[dict],
+        old_slaves: List[dict],
+        recover_master: bool,
         primary_ctl_ip: str,
         spider_port: int,
         ctl_port: int,
@@ -333,10 +352,43 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         cluster_ticket: dict,
     ) -> Any:
         """
-        Stage 3 - slave 路由段：主中控登记 slave 路由 + slave 权限恢复 + DBMeta。
+        Stage 3 - slave 路由段：（仅重建 slave：先定向清理旧 slave 路由）→ 主中控登记 slave 路由
+        → slave 权限恢复 → DBMeta。
         必须在 master 路由段完成后串行执行（依赖中控可用 + master DBMeta 已写入）。
+
+        上下文隔离：slave 段使用 slave 专属 spider_ip_list（DBMeta 的 add_spider_nodes 读取该字段），
+        避免 master+slave 同时重建时误用 master 主机列表。
+        从域名绑定统一延后到「域名恢复段」。
         """
-        seg = SubBuilder(root_id=self.root_id, data=cluster_ticket)
+        # slave 段专属上下文：spider_ip_list 指向新 slave
+        slave_ctx = copy.deepcopy(cluster_ticket)
+        slave_ctx["spider_ip_list"] = copy.deepcopy(new_slaves)
+        seg = SubBuilder(root_id=self.root_id, data=slave_ctx)
+
+        if not recover_master:
+            # 仅重建 slave：现有中控里仍保留旧 slave 路由，先按单据旧节点清单定向清理
+            # （master+slave 同时重建时新中控为空表重建，不存在旧 slave 条目，无需清理）
+            seg.add_act(
+                act_name=_("清理被替换 Spider Slave 的旧路由"),
+                act_component_code=DropSpiderRoutingComponent.code,
+                kwargs=asdict(
+                    DropSpiderRoutingKwargs(
+                        cluster_id=cluster.id,
+                        reduce_spiders=[{"ip": h["ip"]} for h in old_slaves],
+                        is_reduce_tdbctl=False,
+                    )
+                ),
+            )
+
+        slave_routing_cluster = {
+            "cluster_id": cluster.id,
+            "is_init_slave_cluster": True,
+            "add_spider_slaves": new_slaves,
+        }
+        if recover_master:
+            # combined：新中控密码由安装段生成，显式透传（payload 会合并进 runtime_account）
+            slave_routing_cluster["tdbctl_user"] = TDBCTL_USER
+            slave_routing_cluster["tdbctl_pass"] = cluster_ticket["tdbctl_pass"]
         seg.add_act(
             act_name=_("主中控登记新 spider_slave 路由"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -347,11 +399,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     cluster_type=ClusterType.TenDBCluster.value,
                     run_as_system_user=DBA_ROOT_USER,
                     get_mysql_payload_func=MysqlActPayload.add_spider_slave_routing_payload.__name__,
-                    cluster={
-                        "cluster_id": cluster.id,
-                        "is_init_slave_cluster": True,
-                        "add_spider_slaves": new_slaves,
-                    },
+                    cluster=slave_routing_cluster,
                 )
             ),
         )
@@ -374,6 +422,84 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         )
         return seg.build_sub_process(sub_name=_("[{}] slave 路由段").format(cluster.immute_domain))
 
+    def _build_retained_nodes_segment(
+        self,
+        *,
+        cluster: Cluster,
+        retained_nodes: List[dict],
+        primary_ctl_ip: str,
+        spider_port: int,
+        ctl_port: int,
+        cluster_ticket: dict,
+    ) -> Any:
+        """
+        Stage 2.5 - 保留节点段（重建 master 且存在存活的、未被本次替换的 spider_slave/运维节点时执行）：
+        更新保留节点内置账号（新中控新密码）→ 仅路由登记（不带 with database，不重导业务表）
+        → TDBCTL FLUSH ROUTING → 核对 + 表结构粗略一致性校验。
+
+        保留节点已有业务表结构，绝不能以 with database 方式重新导入；本段失败会阻断后续域名恢复。
+        """
+        seg = SubBuilder(root_id=self.root_id, data=cluster_ticket)
+        seg.add_act(
+            act_name=_("登记保留 Spider 节点路由并更新内置账号"),
+            act_component_code=SpiderDRRetainRoutingComponent.code,
+            kwargs={
+                "cluster_id": cluster.id,
+                "bk_biz_id": cluster.bk_biz_id,
+                "operator": self.data["created_by"],
+                "ctl_primary": f"{primary_ctl_ip}{IP_PORT_DIVIDER}{ctl_port}",
+                "tdbctl_user": TDBCTL_USER,
+                "tdbctl_pass": cluster_ticket["tdbctl_pass"],
+                "retain_nodes": retained_nodes,
+            },
+        )
+        return seg.build_sub_process(sub_name=_("[{}] 保留节点路由段").format(cluster.immute_domain))
+
+    def _build_dns_restore_segment(
+        self,
+        *,
+        cluster: Cluster,
+        master_new: List[dict],
+        slave_new: List[dict],
+        recover_master: bool,
+        recover_slave: bool,
+        spider_port: int,
+    ) -> Any:
+        """
+        域名恢复段：本次恢复的目标拓扑（新节点 + 保留节点）全部登记并核对后，统一恢复域名解析。
+        master 重建恢复主域名，slave 重建恢复从域名；在 Stage 4 人工确认之前完成。
+        """
+        seg = SubBuilder(root_id=self.root_id, data=self.data)
+        if recover_master:
+            master_entry_sub = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                op_type=DnsOpType.CREATE,
+                param={
+                    "cluster_id": cluster.id,
+                    "port": spider_port,
+                    "add_ips": [h["ip"] for h in master_new],
+                    "entry_role": [ClusterEntryRole.MASTER_ENTRY.value],
+                },
+            )
+            if master_entry_sub:
+                seg.add_sub_pipeline(sub_flow=master_entry_sub)
+        if recover_slave:
+            slave_entry_sub = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                op_type=DnsOpType.CREATE,
+                param={
+                    "cluster_id": cluster.id,
+                    "port": spider_port,
+                    "add_ips": [h["ip"] for h in slave_new],
+                    "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
+                },
+            )
+            if slave_entry_sub:
+                seg.add_sub_pipeline(sub_flow=slave_entry_sub)
+        return seg.build_sub_process(sub_name=_("[{}] 域名恢复段").format(cluster.immute_domain))
+
     # ─────────────────────────────────────────────────────────────────────────
     # 段内复用的小辅助
     # ─────────────────────────────────────────────────────────────────────────
@@ -382,15 +508,13 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         *,
         seg: SubBuilder,
         cluster: Cluster,
-        new_masters: List[dict],
         primary_ctl_ip: str,
         spider_port: int,
         ctl_port: int,
         cluster_ticket: dict,
     ) -> None:
-        """主中控机上 mysqldump 表结构 + 推送至 peer Spider。"""
+        """主中控机上 mysqldump 表结构，并由中控以 tc_admin=1 分发。"""
         shard_host, shard_port = get_shard_zero_remote_master(cluster)
-        spider_master_ips = [h["ip"] for h in new_masters]
         media_getter = GetFileList(db_type=DBType.MySQL)
         schema_media_list = media_getter.get_db_actuator_package() + media_getter.get_mysql_surrounding_apps_package(
             is_install_backup=True,
@@ -423,9 +547,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             ),
         )
 
-        # 表结构同步只在 master 路由段调用，前置 master 安装段已写入 tdbctl_pass
         tdbctl_pass = cluster_ticket["tdbctl_pass"]
-        # 上架 Spider 多于 1：主节点 mysqldump 一次后由 mysql 客户端推送到其它 Spider（spider_master_ips[1:] 可为空时仅灌主 Spider）
         schema_cluster_base = {
             "ctl_port": ctl_port,
             "spider_port": spider_port,
@@ -437,11 +559,10 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             "shard_0_port": shard_port,
             "tdbctl_user": TDBCTL_USER,
             "tdbctl_pass": tdbctl_pass,
-            "also_import_to_spider": True,
-            "spider_peer_push_hosts": spider_master_ips[1:],
+            "is_spider_layer_disaster_recover": True,
         }
         seg.add_act(
-            act_name=_("从 Remote 同步表结构至中控、本机 Spider 并推送至其它 Spider（主）"),
+            act_name=_("从 Remote 同步表结构至中控"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -474,12 +595,24 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         # 缺省视为 from_spider_grant_backup，与 Serializer/Validator 默认值保持一致（兼容直调 FlowTestView）
         mode = info.get("privilege_recovery_mode") or "from_spider_grant_backup"
         if mode != "from_spider_grant_backup":
+            logger.warning(
+                _("集群 {} 的 {} 段跳过权限恢复：privilege_recovery_mode={} 非 from_spider_grant_backup").format(
+                    cluster.id, target_role, mode
+                )
+            )
             return
         handler = MySQLBackupHandler(cluster_id=cluster.id, deadlines_days=7)
         backup_info = handler.get_tendbcluster_spider_layer_grant_priv_backup_info(
             spider_priv_backup_id=info.get("spider_priv_backup_id") or None,
         )
         if not backup_info:
+            logger.warning(
+                _(
+                    "集群 {} 的 {} 段跳过权限恢复：{} 天内未找到 spider/tdbctl 的 grant 备份记录"
+                    "（mysql_role in [spider_master, TDBCTL] 且 data_schema_grant=grant），"
+                    "可先触发接入层 grant 备份或改用 account_rules_only 模式"
+                ).format(cluster.id, target_role, handler.deadlines_days)
+            )
             return
         role = (backup_info or {}).get("mysql_role") or ""
         # slave 节点无中控实例，TDBCTL 角色备份的 grant 文件按 ctl_port 恢复在 slave 上必然失败，跳过
@@ -499,8 +632,69 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         if priv_sub:
             seg.add_sub_pipeline(sub_flow=priv_sub)
 
+    @staticmethod
+    def _build_role_summary_items(
+        cluster: Cluster, spider_port: int, new_hosts: List[dict], old_hosts: List[dict]
+    ) -> List[dict]:
+        """按角色装配「实例变更明细」摘要行，对齐 InstanceChangeSummarySerializer 字段契约。
+
+        新旧 IP 位置配对为 switch 行（related_instance=被替换旧实例）；数量不等时：
+        多出的新机为 add 行、多出的旧机为 reduce 行。
+        """
+        items = []
+        pair_count = min(len(new_hosts), len(old_hosts))
+        for new_host, old_host in zip(new_hosts[:pair_count], old_hosts[:pair_count]):
+            items.append(
+                {
+                    "cluster_domain": cluster.immute_domain,
+                    "instance": f"{new_host['ip']}:{spider_port}",
+                    "action": InstanceChangeAction.SWITCH.value,
+                    "status": "success",
+                    "related_instance": f"{old_host['ip']}:{spider_port}",
+                }
+            )
+        for new_host in new_hosts[pair_count:]:
+            items.append(
+                {
+                    "cluster_domain": cluster.immute_domain,
+                    "instance": f"{new_host['ip']}:{spider_port}",
+                    "action": InstanceChangeAction.ADD.value,
+                    "status": "success",
+                }
+            )
+        for old_host in old_hosts[pair_count:]:
+            items.append(
+                {
+                    "cluster_domain": cluster.immute_domain,
+                    "instance": f"{old_host['ip']}:{spider_port}",
+                    "action": InstanceChangeAction.REDUCE.value,
+                    "status": "success",
+                }
+            )
+        return items
+
+    @staticmethod
+    def _build_dr_summary_items(
+        cluster: Cluster,
+        spider_port: int,
+        master_new: List[dict],
+        master_old: List[dict],
+        slave_new: List[dict],
+        slave_old: List[dict],
+    ) -> List[dict]:
+        """构建期装配执行摘要行（master + slave 合并）。
+
+        必须在 flow 构建阶段调用：运行时 Stage 5 会清理旧实例的 db_meta 记录；
+        master/slave 同集群同端口（spider 单机单实例），直接用 spider_port 拼 IP:Port。
+        """
+        return TenDBClusterSpiderLayerDisasterRecoverFlow._build_role_summary_items(
+            cluster, spider_port, new_hosts=master_new, old_hosts=master_old
+        ) + TenDBClusterSpiderLayerDisasterRecoverFlow._build_role_summary_items(
+            cluster, spider_port, new_hosts=slave_new, old_hosts=slave_old
+        )
+
     # ─────────────────────────────────────────────────────────────────────────
-    # 单集群编排：五阶段
+    # 单集群编排：Pre-Stage + Stage 1-6（末段写入执行摘要：实例变更明细，新 IP ↔ 被替换旧 IP）
     # ─────────────────────────────────────────────────────────────────────────
     def _cluster_sub_flow(self, info: dict) -> Any:
         cluster = Cluster.objects.get(id=int(info["cluster_id"]), bk_biz_id=int(self.data["bk_biz_id"]))
@@ -518,17 +712,41 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
 
         master_old = self._resolve_old_master_hosts(cluster, info) if recover_master else []
         slave_old = self._resolve_old_slave_hosts(cluster, info) if recover_slave else []
+
+        # 构建期校验：新 master 至少 2 台不同机器（中控与 master 同机部署，不允许单点中控）
+        if recover_master and len({h["ip"] for h in master_new}) < 2:
+            raise ValueError(_("集群 {} 的 Spider Master 重建数量少于 2 台（不允许单点中控）").format(cluster.id))
+
+        # 构建期校验：master 重建按"整层替换"处理，DBMeta 存量 master 必须全部在替换清单内
+        if recover_master:
+            dbmeta_master_ips = {
+                p.machine.ip
+                for p in cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                )
+            }
+            not_replaced = dbmeta_master_ips - {h["ip"] for h in master_old}
+            if not_replaced:
+                raise ValueError(
+                    _("集群 {} 存在未纳入重建的 Spider Master（{}），请整层重建或改用节点替换单据").format(cluster.id, sorted(not_replaced))
+                )
+
+        # 重建 master 时，收集存活的保留节点（spider_slave/运维节点），Stage 2.5 重新纳入新中控；
+        # master+slave 同时重建时，被替换的旧 slave 会下架，需排除（其新 slave 由 Stage 3 登记）
+        retained_nodes: List[dict] = []
+        if recover_master:
+            retained_nodes = self._collect_retained_nodes(cluster, exclude_ips=[h["ip"] for h in slave_old])
         pkg_id = get_spider_pkg_id_for_layer_disaster_recover(cluster, int(self.data["bk_biz_id"]))
         for h in master_new:
             h["pkg_id"] = pkg_id
         for h in slave_new:
             h["pkg_id"] = pkg_id
 
-        # 同时恢复时 primary_ctl_ip 取新 master 第 1 台；仅恢复 slave 时探活取现存中控
+        # 同时恢复时 primary_ctl_ip 取新 master 第 1 台；仅恢复 slave 时取 tdbctl primary
         if recover_master:
             primary_ctl_ip = master_new[0]["ip"]
         else:
-            primary_ctl_ip = resolve_running_ctl_ip_strict(cluster)
+            primary_ctl_ip = resolve_ctl_primary_ip(cluster)
 
         cluster_ticket = self._build_cluster_ticket(
             cluster=cluster,
@@ -596,12 +814,27 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                 )
             )
 
+        # ────── Stage 2.5：保留节点路由段（重建 master 且存在存活保留节点） ──────
+        if retained_nodes:
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=self._build_retained_nodes_segment(
+                    cluster=cluster,
+                    retained_nodes=retained_nodes,
+                    primary_ctl_ip=primary_ctl_ip,
+                    spider_port=spider_port,
+                    ctl_port=ctl_port,
+                    cluster_ticket=cluster_ticket,
+                )
+            )
+
         # ────── Stage 3：slave 路由段 ──────
         if recover_slave:
             sub_pipeline.add_sub_pipeline(
                 sub_flow=self._build_slave_routing_segment(
                     cluster=cluster,
                     new_slaves=slave_new,
+                    old_slaves=slave_old,
+                    recover_master=recover_master,
                     primary_ctl_ip=primary_ctl_ip,
                     spider_port=spider_port,
                     ctl_port=ctl_port,
@@ -609,6 +842,18 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     cluster_ticket=cluster_ticket,
                 )
             )
+
+        # ────── 域名恢复段：目标拓扑（新节点 + 保留节点）全部登记并核对后，统一恢复域名解析 ──────
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=self._build_dns_restore_segment(
+                cluster=cluster,
+                master_new=master_new,
+                slave_new=slave_new,
+                recover_master=recover_master,
+                recover_slave=recover_slave,
+                spider_port=spider_port,
+            )
+        )
 
         # ────── Stage 4：释放互斥锁 + 缩容确认 Pause ──────
         sub_pipeline.add_act(
@@ -633,7 +878,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             )
 
         # ────── Stage 5：直接卸载旧节点（master 在前 / slave 在后） ──────
-        # 不再做路由清理 —— 新中控已被 init_tdbctl_routing 全量重建，旧节点路由已不存在；
+        # 不再做路由清理：重建 master 时新中控由 SpiderDRRoutingInitComponent 重新登记，路由表里不含旧节点；
+        # 仅重建 slave 时，旧 slave 路由已在 Stage 3 由 DropSpiderRoutingComponent 定向清理；
         # DNS 摘除已在 Pre-Stage 做过；缩容确认 Pause 已在 Stage 4 做过；
         # 因此直接调底层 reduce_spiders_flow，只做：CC 服务实例清理 + 卸载 spider/ctl 进程 + 清理 DBMeta
         if recover_master:
@@ -662,6 +908,24 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
                     is_disaster_recover=True,
                 )
+            )
+
+        # ────── Stage 6：写入执行摘要（实例变更明细：新 IP ↔ 被替换旧 IP） ──────
+        # items 必须在构建期装配：运行时 Stage 5 已清理旧实例的 db_meta，届时反查端口必失败；
+        # 同 instance 主键重复写入由 FlowOutputHandler 后写覆盖，天然幂等
+        summary_items = self._build_dr_summary_items(
+            cluster=cluster,
+            spider_port=spider_port,
+            master_new=master_new,
+            master_old=master_old,
+            slave_new=slave_new,
+            slave_old=slave_old,
+        )
+        if summary_items:
+            sub_pipeline.add_act(
+                act_name=_("写入接入层重建摘要"),
+                act_component_code=MysqlFlowOutputSummaryComponent.code,
+                kwargs={"preset": "instance_change", "items": summary_items},
             )
 
         return sub_pipeline.build_sub_process(sub_name=_("[{}] 接入层灾难恢复").format(cluster.immute_domain))
@@ -763,9 +1027,11 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
     # 入口
     # ─────────────────────────────────────────────────────────────────────────
     def spider_layer_disaster_recover(self):
+        cluster_ids = slave_only_recover_cluster_ids(self.data["infos"])
         pipeline = Builder(
             root_id=self.root_id,
             data=self.data,
+            need_random_pass_cluster_ids=cluster_ids or None,
         )
         sub_list = [self._cluster_sub_flow(info) for info in self.data["infos"]]
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_list)

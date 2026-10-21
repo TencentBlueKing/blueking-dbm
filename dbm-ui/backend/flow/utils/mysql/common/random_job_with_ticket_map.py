@@ -76,6 +76,8 @@ random_job_with_ticket_map = {
     TicketType.TENDBCLUSTER_SCHEMA_REPAIR: RuleDict(is_only_tdbctl_primary_add=True),
     # tendb_cluster集群表结构校验添加账号规则
     TicketType.TENDBCLUSTER_SCHEMA_CHECK: RuleDict(is_only_tdbctl_primary_add=True),
+    # 接入层灾难重建：只在现存 tdbctl primary 上创建临时账号，避免对已故障的 Spider 授权
+    TicketType.TENDBCLUSTER_SPIDER_LAYER_DR: RuleDict(is_only_tdbctl_primary_add=True),
     # ---- 自愈单据 ----
     # DBHA 自愈后端替换：跳过 unavailable 状态的实例，避免对故障实例做无效授权
     TicketType.MYSQL_DBHA_AF_BACKEND_REPLACE: RuleDict(skip_unavailable_instance=True),
