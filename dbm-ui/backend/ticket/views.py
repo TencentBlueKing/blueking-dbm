@@ -458,6 +458,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             remark=data.get("remark") or "",
             version=data.get("version"),
             change_count=data.get("change_count") or 0,
+            config=data.get("config"),
         )
         # 注意：不能复用 self.get_serializer(ticket)，@action 的 serializer_class 是请求体校验器
         # TicketModifySerializer，会覆盖掉视图默认的 TicketSerializer，导致序列化出错
