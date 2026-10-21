@@ -334,7 +334,7 @@ CREATE TABLE IF NOT EXISTS %s (
   bk_cloud_id int DEFAULT NULL,
   session_id bigint DEFAULT NULL,
   client_host varchar(60) DEFAULT NULL,
-  username varchar(127) DEFAULT NULL,
+  username varchar(60) DEFAULT NULL,
   app_name varchar(60) DEFAULT NULL,
   parse_failure int DEFAULT NULL,
   PRIMARY KEY (cluster_domain,dteventtimehour,id),

@@ -166,3 +166,31 @@ func CreateEmptyFile(path string, perm os.FileMode) error {
 	}
 	return f.Close()
 }
+
+// IsDirEmpty 判断一个目录是否为空目录
+// 目录不存在或不是目录时返回错误
+// 为空时，返回 true,nil
+func IsDirEmpty(dir string) (bool, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	if !fi.IsDir() {
+		return false, errors.Errorf("%s is not a directory", dir)
+	}
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return false, nil
+}

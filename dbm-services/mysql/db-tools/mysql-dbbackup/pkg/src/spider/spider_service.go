@@ -38,6 +38,9 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (
 	if err := dbw.Db.Select(&serversTmp, sqlStr, sqlArgs...); err != nil {
 		return "", nil, nil, err
 	}
+	// 找 2 个节点分别备份同样的 schema,grant 是为了冗余，某些节点可能会失败
+	spiderMasterBackups := 0 // 最多备份 2 份 (primary + 其他 spider_master)
+	spiderSlaveBackups := 0  // spider 接入层 slave 最多在 2 个节点备份
 
 	for _, s := range serversTmp {
 		if s.Wrapper == cst.WrapperRemote || s.Wrapper == cst.WrapperRemoteSlave {
@@ -49,14 +52,22 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (
 				return "", nil, nil, errors.Errorf("Server_name should has prefix SPT/SPT_SLAVE: %+v", s)
 			}
 			backupServers = append(backupServers, s)
-		} else if s.Host == g.Host && s.Wrapper == cst.WrapperSpider {
-			// primary spider / tdbctl
-			s.PartValue = cst.SpiderNodeShardValue
-			backupServers = append(backupServers, s)
-		} else if s.Wrapper == cst.WrapperSpiderSlave {
+		} else if s.Wrapper == cst.WrapperSpider {
+			if s.Host == g.Host {
+				// primary spider / tdbctl  节点是一定要备份的
+				s.PartValue = cst.SpiderNodeShardValue
+				backupServers = append(backupServers, s)
+			} else if spiderMasterBackups < 1 {
+				// 再随机挑一个非 spider master primary
+				s.PartValue = cst.SpiderNodeShardValue
+				backupServers = append(backupServers, s)
+				spiderMasterBackups += 1
+			}
+		} else if s.Wrapper == cst.WrapperSpiderSlave && spiderSlaveBackups < 2 {
 			// spider slave 也备份 schema,grant
 			s.PartValue = cst.SpiderNodeShardValue
 			backupServerSlave = append(backupServerSlave, s)
+			spiderSlaveBackups += 1
 		}
 	}
 	logger.Log.Infof("backupServers:%+v", backupServers)

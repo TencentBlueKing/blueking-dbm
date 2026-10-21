@@ -20,6 +20,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
 class MysqlMetricsInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
+    # 无时区时会按东八区（UTC+8）解析
     start_time = serializers.DateTimeField(help_text=_("开始时间, 时间格式 2026-01-08T16:33:38+08:00"))
     end_time = serializers.DateTimeField(help_text=_("结束时间, 时间格式 2026-01-08T16:33:38+08:00"))
     metric_name = serializers.ChoiceField(
