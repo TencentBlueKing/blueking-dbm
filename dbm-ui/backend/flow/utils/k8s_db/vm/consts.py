@@ -25,6 +25,47 @@ COMPONENT_VMINSERT = "vminsert"
 COMPONENT_VMSELECT = "vmselect"
 COMPONENT_VMSTORAGE = "vmstorage"
 
+# 各组件默认启动参数（写入容器 EXTRA_ARGS），参考 dbs dataweb 的 VMClusterConfigBuilder.buildComponentEnv
+VM_DEFAULT_EXTRA_ARGS = {
+    COMPONENT_VMSELECT: {
+        "envflag.enable": "true",
+        "envflag.prefix": "VM_",
+        "loggerFormat": "json",
+        "cacheExpireDuration": "5m",
+        "search.maxUniqueTimeseries": "500000",
+        "search.maxSamplesPerQuery": "1000000000",
+        "search.maxPointsPerTimeseries": "500000",
+        "search.maxSeries": "200000",
+        "memory.allowedPercent": "20",
+        "search.maxMemoryPerQuery": "2GB",
+        "search.logQueryMemoryUsage": "1GB",
+        "search.logSlowQueryDuration": "5s",
+        "search.queryStats.lastQueriesCount": "10000",
+        "search.queryStats.minQueryDuration": "3s",
+        "search.maxQueryLen": "4MB",
+        "dedup.minScrapeInterval": "1ms",
+        "search.maxConcurrentRequests": "16",
+    },
+    COMPONENT_VMINSERT: {
+        "envflag.enable": "true",
+        "envflag.prefix": "VM_",
+        "loggerFormat": "json",
+        "influxDBLabel": "__bk_db__",
+        "maxLabelsPerTimeseries": "100",
+    },
+    COMPONENT_VMSTORAGE: {
+        "envflag.enable": "true",
+        "envflag.prefix": "VM_",
+        "loggerFormat": "json",
+        "cacheExpireDuration": "15m",
+        "dedup.minScrapeInterval": "1ms",
+        "internStringMaxLen": "128",
+        "memory.allowedPercent": "50",
+        "retentionPeriod": 6,
+        "search.maxConcurrentRequests": "16",
+    },
+}
+
 # 服务暴露相关
 VMINSERT_SERVICE_NAME = "vminsert-clb"
 VMSELECT_SERVICE_NAME = "vmselect-clb"
