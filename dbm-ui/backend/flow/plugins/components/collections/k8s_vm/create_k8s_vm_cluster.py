@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
-from typing import List
+from typing import List, Optional
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -29,9 +29,22 @@ from backend.flow.utils.k8s_db.vm.consts import (
     NAMESPACE_PREFIX,
     QUERY_TOPO_NAME,
     STORAGE_ADDON_TYPE,
+    VM_DEFAULT_EXTRA_ARGS,
 )
 
 logger = logging.getLogger("flow")
+
+
+def build_extra_args(component_name: str, user_env: Optional[dict]) -> dict:
+    """
+    构造组件的 EXTRA_ARGS：组件默认参数 + 用户自定义参数（用户值优先）
+    user_env 兼容两种格式：{"EXTRA_ARGS": {...}} 或扁平的 {参数名: 值}
+    """
+    extra_args = dict(VM_DEFAULT_EXTRA_ARGS.get(component_name, {}))
+    user_env = user_env or {}
+    nested = user_env.get("EXTRA_ARGS")
+    extra_args.update(nested if isinstance(nested, dict) else user_env)
+    return extra_args
 
 
 class CreateK8sVmClusterService(BaseService):
@@ -89,17 +102,8 @@ class CreateK8sVmClusterService(BaseService):
                 },
             }
 
-            if item.get("env"):
-                if is_query_cluster:
-                    # 查询版：dbs select 路径透传用户 env，保持 EXTRA_ARGS 嵌套格式
-                    component["env"] = item["env"]
-                else:
-                    # 标准版：dbs cluster 路径按扁平参数名->值合并进默认 EXTRA_ARGS
-                    env = dict(item["env"])
-                    if isinstance(env.get("EXTRA_ARGS"), dict):
-                        env.update(env.pop("EXTRA_ARGS"))
-                    if env:
-                        component["env"] = env
+            # 默认 EXTRA_ARGS + 用户自定义参数（用户值优先），统一为嵌套的 EXTRA_ARGS 格式
+            component["env"] = {"EXTRA_ARGS": build_extra_args(item["component_name"], item.get("env"))}
 
             if item.get("storage"):
                 component["volumeClaimTemplates"] = {
