@@ -49,8 +49,8 @@
       ref="dbLogRef"
       :loading="logState.loading"
       :loading-text="autoOpenAiLog ? t('日志加载中，加载完成将自动解析日志') : t('日志加载中...')"
-      :style="{ height: tooLarge ? 'calc(100% - 70px)' : 'calc(100% - 42px)' }" />
-    <div
+      :style="{ height: tooLarge ? 'calc(100% - 42px)' : 'calc(100% - 42px)' }" />
+    <!-- <div
       v-if="tooLarge"
       class="log-export-tip">
       {{ t('日志过大，页面仅展示部分内容，更多内容请下载') }}
@@ -59,7 +59,7 @@
         :href="exportLogUrl">
         {{ t('完整日志') }}
       </a>
-    </div>
+    </div> -->
   </div>
 </template>
 
