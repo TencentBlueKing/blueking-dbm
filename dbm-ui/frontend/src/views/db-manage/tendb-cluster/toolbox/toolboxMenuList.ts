@@ -28,7 +28,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dataExport',
-        desc: t('把 DB 数据导出为文件'),
+        desc: t('按库表或 SQL 导出数据'),
         id: TicketTypes.TENDBCLUSTER_DUMP_DATA,
         name: t('数据导出'),
       },
