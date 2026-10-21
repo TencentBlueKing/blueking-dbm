@@ -154,6 +154,19 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     return utcDisplayTime(this.create_at);
   }
 
+  get dataExportModeDisplay() {
+    if (![TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(this.ticket_type)) {
+      return '';
+    }
+    // 列表若未返回 details，不能将未知模式误判为历史库表导出。
+    if (!this.details || typeof this.details !== 'object' || !('cluster_id' in this.details)) {
+      return '--';
+    }
+    return 'export_mode' in this.details && this.details.export_mode === 'sql'
+      ? t('按 SQL 导出')
+      : t('按库表导出');
+  }
+
   get isFinished() {
     return [Ticket.STATUS_SUCCEEDED, Ticket.STATUS_TERMINATED].includes(this.status);
   }
