@@ -42,6 +42,9 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script_with
 )
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.spider.check_remote_master_var_consistency import (
+    CheckRemoteMasterVarConsistencyComponent,
+)
 from backend.flow.plugins.components.collections.spider.check_rocksdb_ghost_collation import (
     CheckRocksDBGhostCollationComponent,
 )
@@ -60,6 +63,8 @@ from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_ch
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
+
+SEMANTIC_VAR_CHECK_BATCH_SIZE = 5
 
 
 class ImportSQLFlow(object):
@@ -259,6 +264,7 @@ class ImportSQLFlow(object):
                 "charset": self.data["charset"],
             },
         )
+        self._add_semantic_var_consistency_checks(semantic_check_pipeline)
         # Add db-actuator download action to pipeline
         add_db_actuator_download_to_pipeline(
             pipeline=semantic_check_pipeline, bk_cloud_id=cluster["bk_cloud_id"], exec_ip=cluster["master_ctl_ip"]
@@ -321,6 +327,29 @@ class ImportSQLFlow(object):
         )
 
         semantic_check_pipeline.run_pipeline()
+
+    def _add_semantic_var_consistency_checks(self, pipeline) -> None:
+        check_acts = []
+        for cluster_id in self.data["cluster_ids"]:
+            cluster = Cluster.objects.get(id=cluster_id)
+            check_acts.append(
+                {
+                    "act_name": _("检查可能影响变更的参数一致性检查[{}]").format(cluster.immute_domain),
+                    "act_component_code": CheckRemoteMasterVarConsistencyComponent.code,
+                    "kwargs": {"cluster_id": cluster_id},
+                }
+            )
+        for offset in range(0, len(check_acts), SEMANTIC_VAR_CHECK_BATCH_SIZE):
+            wave = check_acts[offset : offset + SEMANTIC_VAR_CHECK_BATCH_SIZE]
+            if len(wave) == 1:
+                act = wave[0]
+                pipeline.add_act(
+                    act_name=act["act_name"],
+                    act_component_code=act["act_component_code"],
+                    kwargs=act["kwargs"],
+                )
+            else:
+                pipeline.add_parallel_acts(acts_list=wave)
 
     def __get_master_ctl_info(self, cluster_id: int) -> dict:
         cluster = Cluster.objects.get(id=cluster_id)
