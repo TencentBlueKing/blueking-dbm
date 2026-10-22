@@ -27,6 +27,7 @@ class SleepTestMcpToolsViewSet(McpToolsViewSet):
         none_schema=True,
     )
     def sleep_test(self, request, *args, **kwargs):
+        logger.info('sleep_test----------')
         time.sleep(180)
         message = "MCP sleep test completed after 3 minutes."
         logger.info(message)
