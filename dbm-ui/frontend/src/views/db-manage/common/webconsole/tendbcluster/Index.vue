@@ -182,8 +182,11 @@
     consolePanelRef.value!.export();
   };
 
-  const handleChangeCurrentCluster = (data: ClusterItem) => {
+  const handleChangeCurrentCluster = (data: ClusterItem | undefined) => {
     clusterInfo.value = data;
+    if (!data) {
+      return;
+    }
     const isContainSpiderSlave = clusterMap[data.id]?.spider_slave?.length > 0;
     if (isContainSpiderSlave) {
       roleList.value = roleListConfig;

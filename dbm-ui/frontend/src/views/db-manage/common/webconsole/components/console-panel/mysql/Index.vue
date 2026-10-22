@@ -2,15 +2,20 @@
   <ConsoleInput
     ref="consoleInputRef"
     :cluster="cluster"
+    :disabled="disabled"
+    :execute-command="executeCommand"
     :options="{
       charset,
       timezone,
       role,
     }"
     :placeholder="placeholder"
-    :pre-check="preCheck">
-    <template #default="{ message }">
-      <RenderMessage :data="message" />
+    :pre-check="preCheck"
+    @loading-change="(busy) => emits('loadingChange', busy)">
+    <template #default="{ message, rowsAffected }">
+      <RenderMessage
+        :data="message"
+        :rows-affected="rowsAffected" />
     </template>
   </ConsoleInput>
 </template>
@@ -20,6 +25,8 @@
 
   import type { queryAllTypeCluster } from '@services/source/dbbase';
 
+  import type { ConsoleCommandResult } from '@views/db-manage/common/webconsole/hooks/useWebconsoleSession';
+
   import ConsoleInput from '../components/ConsoleInput.vue';
 
   import RenderMessage from './components/RenderMessage.vue';
@@ -27,15 +34,24 @@
   interface Props {
     charset: string;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
+    disabled?: boolean;
+    executeCommand?: (command: string) => Promise<ConsoleCommandResult>;
     role: keyof typeof roleDisplay;
     timezone: string;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
+    executeCommand: undefined,
+  });
+
+  type Emits = (e: 'loadingChange', value: boolean) => void;
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const consoleInputRef = ref<typeof ConsoleInput>();
+  const consoleInputRef = ref<InstanceType<typeof ConsoleInput>>();
 
   const roleDisplay = {
     backend_master: 'Master',
@@ -46,7 +62,7 @@
   const placeholder = computed(() => `${props.cluster.immute_domain}[${roleDisplay[props.role]}] > `);
 
   const preCheck = (cmd: string) => {
-    if (/^\s*use\s+.*$/.test(cmd)) {
+    if (!props.executeCommand && /^\s*use\s+.*$/.test(cmd)) {
       return t('暂不支持 use 语句，请使用 db.table 指定 database');
     }
     return '';

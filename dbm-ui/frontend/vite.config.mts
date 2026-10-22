@@ -13,7 +13,7 @@
 
 import { resolve } from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin, type ProxyOptions } from 'vite';
 import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
@@ -23,6 +23,8 @@ import vueJsx from '@vitejs/plugin-vue-jsx';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
+  const webconsoleEnv = loadEnv(mode, process.cwd(), 'DBM_WEBCONSOLE_');
+  const sessionId = webconsoleEnv.DBM_WEBCONSOLE_SESSION_ID?.trim();
   const isHttps = mode === 'https';
   console.log('env === ', mode);
 
@@ -208,6 +210,31 @@ export default defineConfig(({ mode }) => {
       },
       port: 8088,
       proxy: {
+        ...(env.VITE_AJAX_URL_PREFIX
+          ? {
+              '/ws/dbbase/webconsole/': {
+                target: new URL(env.VITE_AJAX_URL_PREFIX).origin,
+                changeOrigin: true,
+                ws: true,
+                // 本地联调沿用浏览器 Cookie，上游 Origin 使用后端域名。
+                headers: { Origin: new URL(env.VITE_AJAX_URL_PREFIX).origin },
+                configure(proxy) {
+                  proxy.on('proxyReqWs', (proxyReq, req) => {
+                    if (!sessionId) {
+                      return;
+                    }
+                    // 只替换 session，保留浏览器发送的 token 和其他 Cookie。
+                    const cookies = (req.headers.cookie || '')
+                      .split(';')
+                      .map((cookie) => cookie.trim())
+                      .filter((cookie) => cookie && !cookie.startsWith('dbm_sessionid='));
+                    cookies.push(`dbm_sessionid=${sessionId}`);
+                    proxyReq.setHeader('Cookie', cookies.join('; '));
+                  });
+                },
+              } satisfies ProxyOptions,
+            }
+          : {}),
         '/bkrepo_upload': {
           target: '', // 见获取bkrepo上传凭证接口
           changeOrigin: true,
