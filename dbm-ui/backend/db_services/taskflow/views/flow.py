@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -19,6 +19,7 @@ from rest_framework.response import Response
 
 from backend import env
 from backend.bk_web import viewsets
+from backend.bk_web.handlers import build_page_url
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.exceptions import OperateNodeException
@@ -29,6 +30,7 @@ from backend.db_services.taskflow.serializers import (
     DownloadExcelSerializer,
     FlowTaskSerializer,
     GetSpecifiedNodeSerializer,
+    NodeLogV2Serializer,
     NodeRecordSerializer,
     NodeSerializer,
     VersionSerializer,
@@ -307,6 +309,44 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         version_id = validated_data["version_id"]
         label_filters = validated_data.get("labels")
         label_filters = label_filters.split(",") if label_filters else []
+        offset = validated_data.get("offset", 0)
+        limit = validated_data.get("limit", 0)
+        logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters, offset, limit)
+        if validated_data["download"]:
+            # 导出下载日志
+            return HttpResponse(
+                logs,
+                content_type="application/text charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="{root_id}-{node_id}-{version_id}.log"'},
+            )
+
+        next_url, previous_url = None, None
+        if logs:
+            next_url = build_page_url(requests, offset + limit)
+            has_data = True
+        else:
+            previous_url = build_page_url(requests, max(offset - limit, 0))
+            has_data = False
+        return Response({"has_data": has_data, "next": next_url, "previous": previous_url, "results": logs})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("节点日志V2"),
+        query_serializer=NodeLogV2Serializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=True, serializer_class=NodeLogV2Serializer)
+    def node_log_v2(self, requests, *args, **kwargs):
+        """节点日志V2: 前 N 行 + 省略提示(超阈值时) + 最新 N 行；
+
+        running=True 表示节点仍在执行中，可用返回的 cursor 继续拉取后续的最新日志。
+        """
+        root_id = kwargs["root_id"]
+        validated_data = self.params_validate(self.get_serializer_class())
+        node_id = validated_data["node_id"]
+        version_id = validated_data["version_id"]
+        cursor = validated_data.get("cursor")
+        label_filters = validated_data.get("labels")
+        label_filters = label_filters.split(",") if label_filters else []
         handler = TaskFlowHandler(root_id=root_id)
         if validated_data["download"]:
             # 校验失败必须返回非 2xx，否则前端会把 JSON 响应体当成文件保存下来。
@@ -315,14 +355,27 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             if reason:
                 return Response({"message": reason}, status=status.HTTP_400_BAD_REQUEST)
             response = StreamingHttpResponse(
-                handler.iter_gzip_version_logs(node_id, version_id, label_filters), content_type="application/gzip"
+                handler.iter_text_version_logs(node_id, version_id, label_filters),
+                content_type="text/plain; charset=utf-8",
             )
-            response["Content-Disposition"] = f'attachment; filename="{root_id}-{node_id}-{version_id}.log.gz"'
+            response["Content-Disposition"] = f'attachment; filename="{root_id}-{node_id}-{version_id}.log"'
             response["X-Accel-Buffering"] = "no"
             return response
 
+        # 传入 cursor 表示执行中的增量拉取：只返回该游标之后的最新日志
+        if cursor:
+            log_data = handler.get_latest_version_logs_after(node_id, version_id, label_filters, cursor)
+            return Response({"result": log_data["logs"], "running": log_data["running"], "cursor": log_data["cursor"]})
+
         log_data = handler.get_version_logs_with_search_after(node_id, version_id, label_filters)
-        return Response({"result": log_data["logs"], "too_large": log_data["too_large"]})
+        return Response(
+            {
+                "result": log_data["logs"],
+                "too_large": log_data["too_large"],
+                "running": log_data["running"],
+                "cursor": log_data["cursor"],
+            }
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("回调节点"),
