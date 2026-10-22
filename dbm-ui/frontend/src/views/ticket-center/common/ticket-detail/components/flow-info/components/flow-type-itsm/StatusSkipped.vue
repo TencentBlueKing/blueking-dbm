@@ -35,6 +35,11 @@
           {{ t('查看详情') }}
         </a>
       </template>
+      <SummaryModifyRecord
+        v-if="summaryRecord"
+        :modify-records="modifyRecords"
+        :record="summaryRecord"
+        :ticket-detail="ticketDetail" />
       <TodoList
         v-if="data.todos.length > 0"
         :data="data.todos"
@@ -53,6 +58,8 @@
   import { utcTimeToSeconds } from '@utils';
 
   import ProcessedLine from '../components/ProcessedLine.vue';
+  import SummaryModifyRecord from '../components/SummaryModifyRecord.vue';
+  import { getSummaryRecord } from '../components/summaryRecord';
   import StatusSkipped from '../flow-type-common/StatusSkipped.vue';
   import TodoList from '../todo-list/Index.vue';
 
@@ -75,4 +82,6 @@
     () => props.data,
     () => props.modifyRecords,
   );
+
+  const summaryRecord = computed(() => getSummaryRecord(props.data, props.modifyRecords));
 </script>
