@@ -49,6 +49,16 @@ _COLON_PORT_PATTERN: Pattern = re.compile(r":\d{2,5}(?!\d)")
 #: 中括号包裹的端口（形如 [30000]、[20000]）；生产 Redis 类 name 常见
 _BRACKET_PORT_PATTERN: Pattern = re.compile(r"\[\d{2,5}\]")
 
+#: 中括号端口列表（形如 [20000, 20001] 或 [20000,20001,20002]）
+#: 场景：编排层 Python 代码直接用 str(ports_list) / f"{ip}:{ports}" 拼接 name，
+#:       把 list 的 repr 原样塞进来，形如 "<IP>:[20000, 20001]"
+#: 单元：\d{2,5}（端口），至少 2 个单元才折叠，与 <IP_LIST> "≥2 才折叠" 的设计一致；
+#:       单元素 [20000] 仍由 _BRACKET_PORT_PATTERN 处理为 [<PORT>]
+#: 分隔符：英文/中文逗号 + 可选空白
+#: 顺序要求：必须排在 _BRACKET_PORT_PATTERN 之前；否则 [20000] 会先被单端口规则吃掉，
+#:           导致后续列表识别不到完整形态
+_BRACKET_PORT_LIST_PATTERN: Pattern = re.compile(r"\[\s*\d{2,5}(?:\s*[,，]\s*\d{2,5})+\s*\]")
+
 #: 引号包裹的 IP（形如 'X.X.X.X'）；已被 IPv4 规则处理过 IP 后仍需保留引号形态
 _QUOTED_IP_PATTERN: Pattern = re.compile(r"'\s*<IP>\s*'")
 
@@ -77,11 +87,30 @@ _IP_LIST_PATTERN: Pattern = re.compile(rf"{_IP_LIST_UNIT}(?:{_IP_LIST_SEP}{_IP_L
 #: 不是 \b，\w 类边界会失效；显式字符集只匹配 ASCII 域名字符，中文自然不在其中
 _CLUSTER_DOMAIN_PATTERN: Pattern = re.compile(r"(?<![A-Za-z0-9_.-])(?:[A-Za-z0-9_-]+\.){2,}db(?![A-Za-z0-9_.-])")
 
-#: hex/hash 长串（≥16 位十六进制字符）；如 UUID / MD5 / commit hash
+#: hex/hash 长串（≥16 位十六进制字符）；如 MD5 / commit hash
 #: 边界说明：使用 (?<![0-9a-fA-F]) / (?![0-9a-fA-F]) 而非 \b
 #: 原因：同 _COLON_PORT_PATTERN，Python3 Unicode 下中文属于 \w，"任务abc123..."
 #: 中文和 hex 之间不是 \b；显式字符集断言只要求两侧不是 hex 字符
 _HEX_HASH_PATTERN: Pattern = re.compile(r"(?<![0-9a-fA-F])[0-9a-fA-F]{16,}(?![0-9a-fA-F])")
+
+#: UUID（形如 580ca1b6-87d5-11f1-bea2-525400dc1826）；8-4-4-4-12 的 hex 分段
+#: 边界说明：两侧用 (?<![0-9a-fA-F-]) / (?![0-9a-fA-F-]) 避免把更长的 hex-dash 串切错；
+#:          不区分大小写：显式写 [0-9a-fA-F]，不用 re.IGNORECASE 以免影响其它规则组合
+#: 顺序要求：必须排在 _HEX_HASH_PATTERN 之前；否则连字符虽会隔断，但 UUID 结构语义会丢
+_UUID_PATTERN: Pattern = re.compile(
+    r"(?<![0-9a-fA-F-])[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?![0-9a-fA-F-])"
+)
+
+#: 文件路径（Linux / Windows）
+#: Linux 形态：/a/b/c 这种以 '/' 开头、至少 1 个子段的绝对路径（相对路径不吃，避免误伤）
+#:   —— 段字符集：字母/数字/下划线/点/连字符；段至少 1 个，整体至少 1 层
+#:   —— 右边界 (?![^\s]) 的作用：路径以空白、字符串末尾、中文等非路径字符作为停止
+#: Windows 形态：盘符路径（C:\xxx\yyy）或 UNC 路径（\\host\share\...）
+#:   —— 盘符：单个字母 + ':' + '\'
+#:   —— 段字符集同上
+#: 顺序要求：必须排在 _HEX_HASH_PATTERN 之前；否则路径里的 hex 子目录会被先吃成 <HASH>
+_LINUX_PATH_PATTERN: Pattern = re.compile(r"(?<![A-Za-z0-9_.\-/])/(?:[A-Za-z0-9_.\-]+/?)+")
+_WINDOWS_PATH_PATTERN: Pattern = re.compile(r"(?:[A-Za-z]:\\|\\\\)[A-Za-z0-9_.\-\\]+")
 
 #: ISO 时间戳（形如 2026-07-03 11:15:16 或 2026-07-03T11:15:16）
 _ISO_TIMESTAMP_PATTERN: Pattern = re.compile(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}")
@@ -90,16 +119,23 @@ _ISO_TIMESTAMP_PATTERN: Pattern = re.compile(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:
 #: 顺序说明：
 #:   1. 先替换集群域名 → <DOMAIN>（域名结构最独特，先吃掉避免被 IP 规则拆错）
 #:   2. 再替换 IP → <IP>（避免后续规则误伤）
-#:   3. 再替换端口（避免和 IP 里的数字混淆）
-#:   4. 再替换 hex / 时间戳这类独立 token
-#:   5. 清理 <IP> 外层引号，避免出现 '<IP>' 的多余引号形态
-#:   6. 最后折叠 <IP>/<IP>:<PORT> 列表为 <IP_LIST>
+#:   3. 再替换文件路径 → <PATH>（必须早于 HASH / PORT：路径里可能内嵌 hex 子目录与数字段）
+#:   4. 再替换端口（避免和 IP 里的数字混淆）
+#:      —— 端口列表 [P1, P2, ...] 必须早于单端口 [P]，否则列表里的单元素会被先吃
+#:   5. 再替换 UUID → <UUID>（必须早于 HASH：UUID 的 12 位段 < 16 位不会被 HASH 吃，但顺序更稳）
+#:   6. 再替换 hex / 时间戳这类独立 token
+#:   7. 清理 <IP> 外层引号，避免出现 '<IP>' 的多余引号形态
+#:   8. 最后折叠 <IP>/<IP>:<PORT> 列表为 <IP_LIST>
 #:      —— 必须放在最后：等前面把单值都替换成占位符后，再对占位符做长度归一
 NAME_CLEAN_RULES: List[Tuple[Pattern, str]] = [
     (_CLUSTER_DOMAIN_PATTERN, "<DOMAIN>"),
     (_IPV4_PATTERN, "<IP>"),
+    (_WINDOWS_PATH_PATTERN, "<PATH>"),
+    (_LINUX_PATH_PATTERN, "<PATH>"),
     (_COLON_PORT_PATTERN, ":<PORT>"),
+    (_BRACKET_PORT_LIST_PATTERN, "[<PORT_LIST>]"),
     (_BRACKET_PORT_PATTERN, "[<PORT>]"),
+    (_UUID_PATTERN, "<UUID>"),
     (_HEX_HASH_PATTERN, "<HASH>"),
     (_ISO_TIMESTAMP_PATTERN, "<TS>"),
     (_QUOTED_IP_PATTERN, "<IP>"),
@@ -233,12 +269,14 @@ STOCK_DEFAULT_LOOKBACK_DAYS: int = 365
 #: - pause                        : 通用人工暂停节点
 #: - pause_with_ticket_lock_check : 带单据锁校验的人工暂停节点
 #: - sidecar_check_cluster_alarm_for_ai : 单据值守不做处理
+#: - sidecar_check_node_duration_for_ai : 节点耗时值守 sidecar 自身，不参与基线
 #: - mysql_dts_poll_confirm_alive : DTS 确认节点（待办 + 存活轮询，等人确认）
 EXCLUDED_COMPONENT_CODES: frozenset = frozenset(
     {
         "pause",
         "pause_with_ticket_lock_check",
         "sidecar_check_cluster_alarm_for_ai",
+        "sidecar_check_node_duration_for_ai",
         "mysql_dts_poll_confirm_alive",
     }
 )

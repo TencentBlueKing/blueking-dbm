@@ -222,9 +222,9 @@ class BkChatHandler(BaseNotifyHandler):
 
     def render_title_content(self, msg_type, title, content, phase, receivers):
         """重新渲染标题和内容样式，bkchat有特定要求"""
-        # title 要加上样式
+        # title 要加上样式（兼容「DBM」和「DBM单据值守」两种前缀）
         title = re.sub(
-            r"(?P<title>「DBM」：.+「[0-9]+?」)(?P<msg>.+)",
+            r"(?P<title>「DBM[^」]*」：.+「[0-9]+?」)(?P<msg>.+)",
             r"\g<title><font color='{}'>\g<msg></font>".format(self.get_title_color(phase)),
             title,
         )
@@ -566,7 +566,7 @@ class NotifyAdapter:
         拼装单据值守推送的信息内容，以及标题
         """
         biz = AppCache.objects.get(bk_biz_id=self.bk_biz_id)
-        title = _("「DBM」：检测到您的{ticket_type}单据「{ticket_id}」有风险").format(
+        title = _("「DBM单据值守」：检测到您的{ticket_type}单据「{ticket_id}」有风险").format(
             ticket_type=TicketType.get_choice_label(self.ticket.ticket_type),
             ticket_id=self.ticket.id,
         )

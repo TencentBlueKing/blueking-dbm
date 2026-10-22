@@ -63,7 +63,9 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_services.flow_node_baseline.baseline_service import BaselineRunSummary, FlowBaselineService
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
@@ -128,6 +130,18 @@ class Command(BaseCommand):
             help=_("要处理的单据类型；可重复传入指定多个（--ticket-type MYSQL_PARTITION_V2 ...），不传表示全部"),
         )
         parser.add_argument(
+            "--db-type",
+            dest="db_types",
+            type=str,
+            action="append",
+            default=None,
+            help=_(
+                "按 DB 类型批量指定单据类型；可重复传入（--db-type mysql --db-type redis）。"
+                "内部通过 TicketType.get_ticket_type_by_db() 按前缀展开为 ticket_type 列表，"
+                "与 --ticket-type 取并集。可选值参考 DBType 枚举（mysql / tendbcluster / redis / sqlserver 等）"
+            ),
+        )
+        parser.add_argument(
             "--since",
             dest="since",
             type=str,
@@ -172,6 +186,27 @@ class Command(BaseCommand):
         lookback_days: Optional[int] = options.get("lookback_days")
         dry_run: bool = bool(options.get("dry_run"))
         repair: bool = bool(options.get("repair"))
+
+        # --db-type 展开为 ticket_types 并与 --ticket-type 合并
+        db_types: Optional[List[str]] = self._normalize_str_list(options.get("db_types"))
+        if db_types:
+            expanded: List[str] = []
+            for db_type in db_types:
+                matched: List[str] = TicketType.get_ticket_type_by_db(db_type)
+                if not matched:
+                    raise CommandError(
+                        f"--db-type '{db_type}' did not match any ticket_type. "
+                        f"Valid db_types: {DBType.get_values()}"
+                    )
+                expanded.extend(matched)
+                self.stdout.write(
+                    self.style.NOTICE(f"[--db-type {db_type}] expanded to {len(matched)} ticket_types: {matched}")
+                )
+            # 与 --ticket-type 取并集去重
+            if ticket_types:
+                ticket_types = sorted(set(ticket_types) | set(expanded))
+            else:
+                ticket_types = sorted(set(expanded))
 
         # since 优先于 lookback_days
         if since is None and lookback_days is not None:

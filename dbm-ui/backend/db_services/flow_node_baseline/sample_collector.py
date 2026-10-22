@@ -77,7 +77,7 @@ class NodeDurationSample:
     node_id: str
 
 
-class _FlowTreeParser:
+class FlowTreeParser:
     """解析 FlowTree.tree JSON，递归展开 activities → {node_id: (code, name)}。
 
     职责：
@@ -86,7 +86,7 @@ class _FlowTreeParser:
       - 忽略 ParallelGateway / ExclusiveGateway 等不产生耗时样本的节点
 
     使用方式：
-        node_map = _FlowTreeParser.extract(flow_tree.tree)
+        node_map = FlowTreeParser.extract(flow_tree.tree)
         # node_map = {"node_id_1": ("mysql_db_actuator_execute", "分区优化执行"), ...}
 
     线程安全：是（无实例状态；类方法风格）
@@ -280,7 +280,7 @@ class FlowSampleCollector:
         为节省 DB 查询与内存，本方法在关联 FlowNode 之前先剔除掉所有命中
         EXCLUDED_COMPONENT_CODES 的节点（如 pause），避免把明显不需要的节点也捞出来。
         """
-        node_label_map: Dict[str, Tuple[str, str]] = _FlowTreeParser.extract(flow_tree.tree)
+        node_label_map: Dict[str, Tuple[str, str]] = FlowTreeParser.extract(flow_tree.tree)
         if not node_label_map:
             # tree 为空 / 无 activities：静默跳过并计数
             self._drop_counter["tree_empty"] = self._drop_counter.get("tree_empty", 0) + 1
