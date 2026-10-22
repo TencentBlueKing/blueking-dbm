@@ -8,13 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from typing import Dict, Iterable, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.dataclass import DBModuleComponentVersion
 from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, MachineType
-from backend.db_meta.exceptions import DBModuleVersionException
+from backend.db_meta.exceptions import DBModuleVersionException, DBModuleVersionNotSetException
+from backend.db_meta.models import DBModule
 from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -76,6 +78,44 @@ def get_layer_permit_os(db_module, access_layer: str) -> Optional[Tuple[str, Opt
     if not layer:
         return None
     return layer.permit_os_type, effective_permit_os(layer, enabled_package_os([layer.db_version_id]))
+
+
+def get_layer_package(db_module_id: int, access_layer: str) -> Package:
+    """部署时模块某一层要安装的介质包，即这一层绑定版本的已启用介质包。
+
+    这一层还没绑定版本时抛 DBModuleVersionNotSetException，存量模块的调用方捕获后按老逻辑选包。
+    绑定了版本但没有已启用介质包时抛 DBModuleVersionException。
+    """
+    db_module = DBModule.objects.get(db_module_id=db_module_id)
+    component = _layer_component(db_module.cluster_type, access_layer)
+    layer = db_module.current_db_version.get(component)
+    if not layer:
+        raise DBModuleVersionNotSetException(message=_("模块 {} 的 {} 尚未设置版本").format(db_module_id, component))
+
+    # 一个版本只允许上传一个介质包，有多个已启用时取最早上传的那个
+    package = Package.objects.filter(db_version_id=layer.db_version_id, enable=True).order_by("id").first()
+    if not package:
+        raise DBModuleVersionException(
+            message=_("模块 {} 的 {} 绑定的版本 {} 没有已启用介质包").format(db_module_id, component, layer.db_version_id)
+        )
+    return package
+
+
+def check_deploy_package(db_module_id: int, access_layer: str, dbconfig_version: Optional[str] = None) -> None:
+    """提单时校验模块这一层可以部署，存量模块这一层还没绑定版本时跳过。
+
+    dbconfig_version 是部署配置里的版本（系列名）。安装时的配置仍按它从 dbconfig 读取，
+    所以传入时要求与绑定版本介质包的系列一致。
+    """
+    try:
+        package = get_layer_package(db_module_id, access_layer)
+    except DBModuleVersionNotSetException:
+        return
+
+    if dbconfig_version is not None and package.version != dbconfig_version:
+        raise DBModuleVersionException(
+            message=_("模块 {} 绑定版本的系列 {} 与部署配置中的版本 {} 不一致").format(db_module_id, package.version, dbconfig_version)
+        )
 
 
 def validate_components(components: Mapping[str, DBModuleComponentVersion]) -> None:
