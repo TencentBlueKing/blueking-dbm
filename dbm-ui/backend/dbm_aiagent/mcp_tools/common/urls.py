@@ -27,6 +27,7 @@ from backend.dbm_aiagent.mcp_tools.common.views.alarm_query import MonitorQueryM
 from backend.dbm_aiagent.mcp_tools.common.views.bkcc_wrap import BKCCWrapMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.common.views.bkjob_wrap.viewset import BKJobWrapMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.common.views.mcp_callee_plan import McpCalleePlanMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views.sleep_test import SleepTestMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -45,4 +46,5 @@ routers.register(r"", ClusterPortraitMcpToolsViewSet, basename="mcp-cluster-port
 routers.register(r"", BKCCWrapMcpToolsViewSet, basename="mcp-bkcc-wrap")
 routers.register(r"", BKJobWrapMcpToolsViewSet, basename="mcp-bkjob-wrap")
 routers.register(r"", HcmResourceReplenishMcpToolsViewSet, basename="mcp-resource-replenish")
+routers.register(r"", SleepTestMcpToolsViewSet, basename="mcp-sleep-test")
 urlpatterns = routers.urls
