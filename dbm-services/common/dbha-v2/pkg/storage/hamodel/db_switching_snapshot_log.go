@@ -109,7 +109,7 @@ type DbSwitchingSnapshotLog struct {
 	Instances       JSON[[]*SwitchingSnapshotInstance] `gorm:"column:instances;type:json"                      json:"instances,omitempty"`
 	OriginInstances JSON[json.RawMessage]              `gorm:"column:origin_instances;type:json"               json:"origin_instances,omitempty"`
 	Reason          string                             `gorm:"column:reason"                                   json:"reason,omitempty"`
-	Result          string                             `gorm:"column:result"                                   json:"result,omitempty"`
+	Result          string                             `gorm:"column:result;type:mediumtext" migrate:"historical:varchar(128)" json:"result,omitempty"`
 	Status          DbSwitchingSnapshotLogStatus       `gorm:"column:status;index:idx_status"                  json:"status,omitempty"`
 	StartTime       *time.Time                         `gorm:"column:start_time;autoCreateTime;index:idx_time" json:"start_time"`
 	FinishedTime    *time.Time                         `gorm:"column:finished_time;type:datetime"              json:"finished_time,omitempty"`

@@ -114,7 +114,7 @@ type DbSwitchingStrategy struct {
 	ID int `gorm:"column:id;primaryKey;autoIncrement"`
 
 	// strategy status
-	Status StatusType `gorm:"column:status"`
+	Status StatusType `gorm:"column:status;type:varchar(32)"`
 
 	// strategy name
 	Name string `gorm:"column:name;uniqueIndex:idx_name"`
@@ -123,10 +123,10 @@ type DbSwitchingStrategy struct {
 	BkBizID int `gorm:"column:bk_biz_id;primaryKey;uniqueIndex:idx_name"`
 
 	// The event name that triggers the database switch.
-	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey;index"`
+	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey;index:idx_trigger_event_name"`
 
 	// The reason for the event name.
-	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"column:trigger_event_name_reason;primaryKey;index"`
+	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"column:trigger_event_name_reason;primaryKey;index:idx_trigger_event_name_reason"`
 	// TriggerCount is the threshold that triggers this strategy. Its meaning depends on the
 	// strategy type:
 	//   - normal strategies: the number of times the same failed instance reports the same event
@@ -138,14 +138,26 @@ type DbSwitchingStrategy struct {
 
 	// level: 0 > 1> 2 > 3 > ...
 	Priority int             `gorm:"column:priority"`
-	Scope    ActionScopeType `gorm:"column:scope"`
-	Action   ActionType      `gorm:"column:action"`
+	Scope    ActionScopeType `gorm:"column:scope;type:varchar(32)"`
+	Action   ActionType      `gorm:"column:action;type:varchar(32)"`
 
 	// Detailed explanation of db switching strategy.
 	Description string    `gorm:"column:description;type:mediumtext;index:idx_description,length:255"`
-	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
-	DeletedAt   time.Time `gorm:"column:deleted_at;index;default:null"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index:idx_created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index:idx_updated_at"`
+	DeletedAt   time.Time `gorm:"column:deleted_at;index:idx_deleted_at;default:null"`
+}
+
+// MigrateKnownPKs returns historical primary keys that schema migration may replace.
+func (DbSwitchingStrategy) MigrateKnownPKs() [][]string {
+	return [][]string{
+		{DbSwitchingStrategyFieldID},
+		{
+			DbSwitchingStrategyFieldBkBizID,
+			DbSwitchingStrategyFieldTriggerEventName,
+			DbSwitchingStrategyFieldTriggerEventNameReason,
+		},
+	}
 }
 
 // TableName returns the name of the switching strategy table.
