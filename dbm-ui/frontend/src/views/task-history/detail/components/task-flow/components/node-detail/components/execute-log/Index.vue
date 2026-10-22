@@ -33,10 +33,12 @@
           v-bk-tooltips="t('复制')"
           type="copy"
           @click="handleCopyLog" />
-        <DbIcon
+        <a
           v-bk-tooltips="t('下载')"
-          type="import"
-          @click="handleDownLoaderLog" />
+          :download="`${nodeData.id}.log`"
+          :href="exportLogUrl">
+          <DbIcon type="import" />
+        </a>
         <DbIcon
           v-bk-tooltips="screenIcon.text"
           :type="screenIcon.icon"
@@ -47,14 +49,24 @@
       ref="dbLogRef"
       :loading="logState.loading"
       :loading-text="autoOpenAiLog ? t('日志加载中，加载完成将自动解析日志') : t('日志加载中...')"
-      style="height: calc(100% - 42px)" />
+      :style="{ height: tooLarge ? 'calc(100% - 42px)' : 'calc(100% - 42px)' }" />
+    <!-- <div
+      v-if="tooLarge"
+      class="log-export-tip">
+      {{ t('日志过大，页面仅展示部分内容，更多内容请下载') }}
+      <a
+        :download="`${nodeData.id}.log`"
+        :href="exportLogUrl">
+        {{ t('完整日志') }}
+      </a>
+    </div> -->
   </div>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
+  import { getNodeLogV2, getRetryNodeHistories } from '@services/source/taskflow';
 
   import DbLog from '@components/db-log/index.vue';
 
@@ -65,13 +77,13 @@
     type NodeDisplayStatus,
   } from '@views/task-history/detail/utils';
 
-  import { downloadText, execCopy } from '@utils';
+  import { execCopy } from '@utils';
 
   import { useFullscreen, useTimeoutFn, useTimeoutPoll } from '@vueuse/core';
 
   import ExecuteHistory from './components/ExecuteHistory.vue';
 
-  type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
+  type NodeLog = ServiceReturnType<typeof getNodeLogV2>['result'][number];
 
   interface Props {
     autoOpenAiLog: boolean;
@@ -89,24 +101,51 @@
   });
   const emits = defineEmits<Emits>();
 
+  // node_log_v2 接口带 download=true，返回完整日志附件，浏览器直接保存
+  const exportLogUrl = computed(() => {
+    const params = new URLSearchParams({
+      node_id: nodeData.value.id,
+      version_id: currentData.value.version,
+    });
+    return `/apis/taskflow/${props.rootId}/node_log_v2/?${params.toString()}&download=true`;
+  });
+
+  // 增量游标：执行中轮询时回传给 v2 接口，只返回 cursor 之后的新日志
+  const logCursor = ref('');
+
   const getNodeLogRequest = (isInit?: boolean) => {
     if (!currentData.value.version) {
       return;
     }
 
-    logState.loading = true;
+    // 执行中轮询且回执过 cursor 时走增量请求；首次加载 / 切换版本走全量
+    const isIncremental = !isInit && isRunning.value && Boolean(logCursor.value);
+    logState.loading = !isIncremental;
     const params = {
+      cursor: isIncremental ? logCursor.value : undefined,
       node_id: nodeData.value.id,
       root_id: props.rootId,
       version_id: currentData.value.version,
     };
 
     return (
-      getNodeLog(params)
+      getNodeLogV2(params)
         .then((data) => {
-          logState.data = data;
+          tooLarge.value = data.too_large;
+          if (data.cursor) {
+            logCursor.value = data.cursor;
+          }
+          // 增量响应只含新增条目，直接往后追加
+          if (isIncremental) {
+            if (data.result.length > 0) {
+              logState.data = [...logState.data, ...data.result];
+              dbLogRef.value?.appendLog(data.result);
+            }
+            return;
+          }
+          logState.data = data.result;
           // 请求可能在组件卸载后才返回
-          dbLogRef.value?.setLog(data);
+          dbLogRef.value?.setLog(logState.data);
         })
         // 报错提示已由请求层统一给出。这里必须吞掉：useTimeoutPoll 的回调一旦抛错，轮询就再也不会续上
         .catch(() => {})
@@ -140,6 +179,8 @@
     data: [] as NodeLog[],
     loading: false,
   });
+  // 后端标记日志过大（页面仅展示部分），用于追加导出提示行
+  const tooLarge = ref(false);
 
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
@@ -201,15 +242,12 @@
     return messageList.join('\n');
   };
 
-  const handleDownLoaderLog = () => {
-    const content = getLogContent();
-    downloadText(`${nodeData.value.id}.log`, content);
-  };
-
   const handleChangeDate = (data: ServiceReturnType<typeof getRetryNodeHistories>[number]) => {
     currentData.value = data;
     emits('versionChange', data.version);
     pause();
+    // 切换版本后旧游标失效，重置为全量拉取
+    logCursor.value = '';
     getNodeLogRequest(true);
   };
 
@@ -223,6 +261,22 @@
   .log-content {
     width: 100%;
     height: 100%;
+
+    .log-export-tip {
+      display: flex;
+      height: 28px;
+      padding: 0 16px;
+      font-size: 12px;
+      color: #ff9c01;
+      background: #3f3223;
+      align-items: center;
+
+      a {
+        margin-left: 4px;
+        color: #3a84ff;
+        cursor: pointer;
+      }
+    }
 
     .log-tools {
       display: flex;
@@ -256,7 +310,18 @@
         display: flex;
         align-items: center;
 
-        i {
+        a {
+          display: inline-flex;
+          margin-left: 16px;
+          color: inherit;
+          align-items: center;
+
+          i {
+            margin-left: 0;
+          }
+        }
+
+        > i {
           margin-left: 16px;
           font-size: 16px;
           cursor: pointer;
