@@ -31,6 +31,18 @@
           {{ t('查看详情') }}
         </a>
       </template>
+      <SummaryModifyRecord
+        v-if="summaryRecord"
+        :modify-records="modifyRecords"
+        :record="summaryRecord"
+        :ticket-detail="ticketDetail" />
+      <!-- 主摘要是最后一次处理的结论，带上处理时间；没有待办时通用外壳已在 desc 展示，这里不重复 -->
+      <div
+        v-if="data.todos.length > 0"
+        class="mt-12"
+        style="color: #979ba5">
+        {{ data.updateAtDisplay }}
+      </div>
     </template>
   </StatusTerminated>
 </template>
@@ -47,6 +59,8 @@
   import { utcTimeToSeconds } from '@utils';
 
   import ProcessedLine from '../components/ProcessedLine.vue';
+  import SummaryModifyRecord from '../components/SummaryModifyRecord.vue';
+  import { getSummaryRecord } from '../components/summaryRecord';
   import StatusTerminated from '../flow-type-common/StatusTerminated.vue';
 
   import useOnBehalfExit from './hooks/useOnBehalfExit';
@@ -76,6 +90,8 @@
     () => props.data,
     () => props.modifyRecords,
   );
+
+  const summaryRecord = computed(() => getSummaryRecord(props.data, props.modifyRecords));
 
   const statusText = computed(() => {
     if (props.data.summary.status === 'REVOKED') {

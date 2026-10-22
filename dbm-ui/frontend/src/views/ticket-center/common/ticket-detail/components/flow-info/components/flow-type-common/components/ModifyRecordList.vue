@@ -55,6 +55,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import FlowMode from '@services/model/ticket/flow';
   import TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
 
@@ -63,9 +64,10 @@
   import { diffDetails, getRecordDetailsPair } from '@views/ticket-center/common/ticket-modify/utils';
 
   import ChangeDiffDrawer from '../../components/ChangeDiffDrawer.vue';
+  import { getSummaryRecord } from '../../components/summaryRecord';
 
   interface Props {
-    flowId: number;
+    flowData: FlowMode<unknown, any>;
     modifyRecords: TicketModifyRecordModel[];
     ticketDetail: TicketModel<unknown>;
   }
@@ -78,7 +80,13 @@
   const currentRecord = shallowRef<TicketModifyRecordModel>();
 
   // 本步骤内的改单记录；接口顺序即版本递增，倒序后新的在上
-  const recordList = computed(() => props.modifyRecords.filter((item) => item.flow_id === props.flowId).reverse());
+  // 只有一次处理且已并入主摘要时，不再重复展示记录块
+  const recordList = computed(() => {
+    if (getSummaryRecord(props.flowData, props.modifyRecords)) {
+      return [];
+    }
+    return props.modifyRecords.filter((item) => item.flow_id === props.flowData.id).reverse();
+  });
 
   // 每条记录相对上一版的差异项数，与提交时的 change_count 同一口径
   const changeCountMap = computed(() => {

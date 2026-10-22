@@ -29,10 +29,11 @@ export default class TicketModifyRecord<T = Record<string, unknown>> {
   static readonly MODE_ON_BEHALF = MODE_ON_BEHALF;
   static readonly MODE_RE_EDIT = MODE_RE_EDIT;
 
+  // 出口词：重新编辑模式提交后的出口统一为「重新提交」（工具页模式名、入口按钮仍叫「重新编辑」）
   static modeTextMap: Record<TicketModifyMode, string> = {
     [MODE_ADJUST_APPLY]: t('调整申请'),
     [MODE_ON_BEHALF]: t('代为修改'),
-    [MODE_RE_EDIT]: t('重新编辑'),
+    [MODE_RE_EDIT]: t('重新提交'),
   };
 
   change_count: number;
