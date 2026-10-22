@@ -116,7 +116,7 @@
     consolePanelRef.value!.export();
   };
 
-  const handleChangeCurrentCluster = (data: ClusterItem) => {
+  const handleChangeCurrentCluster = (data: ClusterItem | undefined) => {
     clusterInfo.value = data;
   };
 

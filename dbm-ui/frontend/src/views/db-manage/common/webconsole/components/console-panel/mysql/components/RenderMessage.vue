@@ -1,6 +1,6 @@
 <template>
   <div class="render-mysql-message">
-    <table>
+    <table v-if="rows.length > 0">
       <thead>
         <tr>
           <th
@@ -12,26 +12,57 @@
       </thead>
       <tbody>
         <tr
-          v-for="(row, index) in data"
+          v-for="(row, index) in rows"
           :key="index">
           <td
             v-for="key in headColumnList"
             :key="key">
-            {{ row[key] }}
+            {{ formatValue(row[key]) }}
           </td>
         </tr>
       </tbody>
     </table>
+    <div v-else>{{ resultText }}</div>
+    <div v-if="rowsAffected !== undefined">{{ t('WebConsole_影响行数', [rowsAffected]) }}</div>
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Props {
-    data: Record<string, string>[];
+    data: unknown;
+    rowsAffected?: number;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    rowsAffected: undefined,
+  });
 
-  const headColumnList = computed(() => (props.data ? Object.keys(props.data[0]) : []));
+  const { t } = useI18n();
+
+  const rows = computed<Record<string, unknown>[]>(() => {
+    if (!Array.isArray(props.data)) {
+      return [];
+    }
+    const isTable = props.data.every((row: unknown) => typeof row === 'object' && row !== null && !Array.isArray(row));
+    return isTable ? props.data as Record<string, unknown>[] : [];
+  });
+  const headColumnList = computed(() => rows.value[0] ? Object.keys(rows.value[0]) : []);
+  const formatValue = (value: unknown) => {
+    if (value === null) {
+      return 'NULL';
+    }
+    return typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+  };
+  const resultText = computed(() => {
+    if (Array.isArray(props.data) && props.data.length === 0) {
+      return t('WebConsole_查询结果为空');
+    }
+    if ((props.data === true || props.data === null || props.data === undefined) && props.rowsAffected !== undefined) {
+      return t('WebConsole_命令执行成功');
+    }
+    return formatValue(props.data);
+  });
 </script>
 <style lang="less">
   .render-mysql-message {

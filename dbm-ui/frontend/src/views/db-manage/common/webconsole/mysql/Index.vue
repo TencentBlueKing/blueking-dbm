@@ -8,7 +8,7 @@
         :before-close="handleBeforeClose"
         :db-type="dbType"
         @change="handleChangeCurrentCluster"
-        @remove-tab="handleClickClearScreen" />
+        @closed="handleCloseTab" />
       <UsageHelp
         v-model="showUsageHelp"
         :db-type="dbType" />
@@ -36,30 +36,73 @@
           {{ t('立即添加') }}
         </BkButton>
       </div>
-      <template v-else>
+      <template v-else-if="currentTab">
         <div class="content-top">
           <div class="content-top-start ml-14">
-            <RoleSelect
-              v-model="role"
-              :list="roleList" />
-            <TimeZone v-model="timezone" />
-            <CharacterSet v-model="charset" />
+            <div
+              v-bk-tooltips="parametersLocked ? t('WebConsole_执行或连接期间不可修改参数') : t('WebConsole_修改参数重建会话')">
+              <div
+                class="session-parameters"
+                :class="{ 'session-parameters-locked': parametersLocked }">
+                <RoleSelect
+                  v-model="connectionMode"
+                  class="session-mode-select"
+                  :list="connectionModeList" />
+                <RoleSelect
+                  v-model="role"
+                  :list="roleList" />
+                <TimeZone
+                  v-if="currentTab.mode === 'http'"
+                  v-model="timezone" />
+                <span
+                  v-else
+                  class="session-default-timezone">
+                  {{ t('WebConsole_服务端默认时区') }}
+                </span>
+                <CharacterSet v-model="charset" />
+              </div>
+            </div>
+            <template v-if="currentTab.mode === 'ws'">
+              <span
+                v-bk-tooltips="currentTab.error || t('WebConsole_重连不会恢复数据库上下文')"
+                class="session-status">
+                {{ connectionStateText }}
+              </span>
+              <BkButton
+                v-if="currentTab.state === 'disconnected' || currentTab.state === 'closed'"
+                class="session-reconnect"
+                size="small"
+                text
+                theme="primary"
+                @click="handleReconnect">
+                {{ t('WebConsole_重新连接') }}
+              </BkButton>
+            </template>
           </div>
           <div class="content-top-end">
-            <ClearScreen @change="handleClickClearScreen" />
+            <div
+              v-bk-tooltips="currentTab.busy ? t('WebConsole_执行期间不可清屏') : ''"
+              :class="{ 'session-parameters-locked': currentTab.busy }">
+              <ClearScreen @change="handleClickClearScreen" />
+            </div>
             <ExportData @export="handleClickExport" />
           </div>
         </div>
-        <KeepAlive>
+        <KeepAlive
+          v-for="tab in tabs"
+          :key="tab.key">
           <ConsolePanel
-            v-if="clusterInfo"
-            :key="clusterInfo.id"
-            ref="consolePanelRef"
-            :charset="charset"
+            v-if="clusterInfo && currentTab.key === tab.key"
+            :key="tab.key"
+            :ref="handleConsolePanelRef"
+            :charset="tab.charset"
             :cluster="clusterInfo"
-            :role="role"
+            :disabled="tab.mode === 'ws' && tab.state !== 'ready'"
+            :execute-command="tab.mode === 'ws' ? tab.execute : undefined"
+            :role="tab.role"
             :style="currentFontConfig"
-            :timezone="timezone" />
+            :timezone="tab.timezone"
+            @loading-change="tab.setBusy" />
         </KeepAlive>
       </template>
     </div>
@@ -71,7 +114,12 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import type { WebconsoleOptions } from '@services/source/webconsoleWs';
+
   import { ClusterTypes, DBTypes } from '@common/const';
+
+  import { releaseConsoleTab } from '@views/db-manage/common/webconsole/components/console-panel/components/ConsoleInput.vue';
+  import { useWebconsoleSession } from '@views/db-manage/common/webconsole/hooks/useWebconsoleSession';
 
   import CharacterSet from '../components/CharacterSet.vue';
   import ClearScreen from '../components/ClearScreen.vue';
@@ -100,9 +148,91 @@
     fontSize: '12px',
     lineHeight: '20px',
   });
-  const timezone = ref('+08:00');
-  const charset = ref('default');
-  const role = ref<'backend_master' | 'backend_slave' | 'orphan'>('backend_slave');
+  const { connect, ensureTab, removeTab, setMode, tabs } = useWebconsoleSession();
+  const currentTab = computed(() => (clusterInfo.value ? tabs[clusterInfo.value.id] : undefined));
+  const modeChanging = ref(false);
+  const parametersLocked = computed(
+    () =>
+      modeChanging.value ||
+      Boolean(currentTab.value?.busy) ||
+      currentTab.value?.state === 'connecting' ||
+      currentTab.value?.state === 'initializing',
+  );
+  const role = computed<WebconsoleOptions['role']>({
+    get: () => currentTab.value?.role || 'backend_slave',
+    set: (value) => {
+      const tab = currentTab.value;
+      if (!tab || parametersLocked.value || tab.role === value) {
+        return;
+      }
+      tab.role = value;
+      if (tab.mode === 'ws' && clusterInfo.value) {
+        connect(clusterInfo.value.id);
+      }
+    },
+  });
+  const charset = computed({
+    get: () => currentTab.value?.charset || 'default',
+    set: (value: string) => {
+      const tab = currentTab.value;
+      if (!tab || parametersLocked.value || tab.charset === value) {
+        return;
+      }
+      tab.charset = value;
+      if (tab.mode === 'ws' && clusterInfo.value) {
+        connect(clusterInfo.value.id);
+      }
+    },
+  });
+  const timezone = computed({
+    get: () => currentTab.value?.timezone || '+08:00',
+    set: (value: string) => {
+      if (currentTab.value && !parametersLocked.value) {
+        currentTab.value.timezone = value;
+      }
+    },
+  });
+  const connectionModeList = [
+    { label: 'HTTP', value: 'http' },
+    { label: 'WebSocket', value: 'ws' },
+  ];
+  const connectionMode = computed({
+    get: () => currentTab.value?.mode || 'http',
+    set: (value: string) => {
+      const tab = currentTab.value;
+      const clusterId = clusterInfo.value?.id;
+      if (!tab || !clusterId || parametersLocked.value || value === tab.mode || (value !== 'http' && value !== 'ws')) {
+        return;
+      }
+      modeChanging.value = true;
+      InfoBox({
+        cancelText: t('取消'),
+        confirmText: t('确定'),
+        content: t(value === 'ws' ? 'WebConsole_切换WS确认' : 'WebConsole_切换HTTP确认'),
+        onCancel() {
+          modeChanging.value = false;
+        },
+        onConfirm() {
+          if (tabs[clusterId] === tab) {
+            setMode(clusterId, value);
+          }
+          modeChanging.value = false;
+        },
+        title: t('WebConsole_切换连接方式'),
+      });
+    },
+  });
+  const connectionStateText = computed(() => {
+    const labels = {
+      closed: t('WebConsole_未连接'),
+      connecting: t('WebConsole_连接中'),
+      disconnected: t('WebConsole_已断开'),
+      executing: t('WebConsole_执行中'),
+      initializing: t('WebConsole_初始化中'),
+      ready: t('WebConsole_已连接'),
+    };
+    return currentTab.value ? labels[currentTab.value.state] : '';
+  });
   const isFullScreen = ref(false);
   const showUsageHelp = ref(false);
 
@@ -122,12 +252,12 @@
 
   const handleBeforeClose = (clusterId: number) =>
     new Promise<boolean>((resolve, reject) => {
-      const isInputed = consolePanelRef.value!.isInputed(clusterId);
+      const isInputed = tabs[clusterId]?.busy || consolePanelRef.value?.isInputed(clusterId);
       if (isInputed) {
         InfoBox({
           cancelText: t('取消'),
           confirmText: t('关闭'),
-          content: t('关闭后，内容将不会再在保存，请谨慎操作！'),
+          content: t(tabs[clusterId]?.busy ? 'WebConsole_关闭执行中会话确认' : '关闭后，内容将不会再在保存，请谨慎操作！'),
           footerAlign: 'center',
           headerAlign: 'center',
           onCancel() {
@@ -143,22 +273,44 @@
       }
     });
 
+  const handleConsolePanelRef = (instance: unknown) => {
+    if (instance) {
+      consolePanelRef.value = instance as InstanceType<typeof ConsolePanel>;
+    }
+  };
+
   const handleShowClustersPanel = () => {
     clusterTabsRef.value!.showClustersPanel();
   };
 
-  const handleClickClearScreen = (clusterId?: number) => {
-    consolePanelRef.value!.clearCurrentScreen(clusterId as number);
+  const handleClickClearScreen = () => {
+    if (clusterInfo.value && !currentTab.value?.busy) {
+      consolePanelRef.value?.clearCurrentScreen(clusterInfo.value.id);
+    }
+  };
+
+  const handleCloseTab = (clusterId: number) => {
+    removeTab(clusterId);
+    releaseConsoleTab(clusterId);
+  };
+
+  const handleReconnect = () => {
+    if (clusterInfo.value && !parametersLocked.value) {
+      connect(clusterInfo.value.id);
+    }
   };
 
   const handleClickExport = () => {
     consolePanelRef.value!.export();
   };
 
-  const handleChangeCurrentCluster = (data: ClusterItem) => {
+  const handleChangeCurrentCluster = (data: ClusterItem | undefined) => {
     clusterInfo.value = data;
+    if (!data) {
+      return;
+    }
     roleList.value = roleListConfig[data.cluster_type as keyof typeof roleListConfig];
-    role.value = data.cluster_type === ClusterTypes.TENDBSINGLE ? 'orphan' : 'backend_slave';
+    ensureTab(data.id, data.cluster_type === ClusterTypes.TENDBSINGLE ? 'orphan' : 'backend_slave');
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {
@@ -180,6 +332,7 @@
 
   onBeforeUnmount(() => {
     screenfull.off('change', checkFullScreen);
+    Object.keys(tabs).forEach((id) => releaseConsoleTab(Number(id)));
   });
 </script>
 <style lang="less">
@@ -230,6 +383,27 @@
 
         .content-top-start {
           display: flex;
+          min-width: 0;
+          align-items: center;
+        }
+
+        .session-parameters {
+          display: flex;
+          align-items: center;
+        }
+
+        .session-mode-select .role-select-trigger {
+          width: 96px;
+        }
+
+        .session-default-timezone,
+        .session-status {
+          margin: 0 8px;
+          white-space: nowrap;
+        }
+
+        .session-reconnect {
+          margin-right: 8px;
         }
 
         .content-top-end {
@@ -258,6 +432,11 @@
           margin-right: 8px;
         }
       }
+    }
+
+    .session-parameters-locked {
+      pointer-events: none;
+      opacity: 0.5;
     }
 
     .operate-item {

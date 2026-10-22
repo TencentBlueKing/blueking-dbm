@@ -13,7 +13,7 @@
           <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
         </div>
         <template v-else>
-          <slot :message="item.message" />
+          <slot v-bind="{ message: item.message, rowsAffected: item.rowsAffected }" />
         </template>
       </template>
     </div>
@@ -24,7 +24,7 @@
       <textarea
         ref="inputRef"
         class="input-main"
-        :disabled="Boolean(selectedText)"
+        :disabled="disabled || Boolean(selectedText)"
         :spellcheck="false"
         :style="{ height: realHeight }"
         :value="command"
@@ -39,6 +39,15 @@
 <script lang="ts">
   // 暂存，通常仅存一条
   const inputStash: Record<number, string[]> = {};
+  const panelTokens: Record<number, object> = {};
+
+  export function releaseConsoleTab(clusterId: number) {
+    delete panelTokens[clusterId];
+    delete panelInputMap[clusterId];
+    delete inputStash[clusterId];
+    delete executedCommands[clusterId];
+  }
+
   // 已执行过的命令
   const executedCommands: Record<number, string[]> = {};
 
@@ -46,7 +55,8 @@
     Record<
       number,
       Array<{
-        message: any;
+        message: unknown;
+        rowsAffected?: number;
         type: 'success' | 'error' | 'normal' | 'command' | string;
       }>
     >
@@ -55,17 +65,17 @@
   export interface Props {
     checkLineBreak?: (value: string, cursorIndex: number) => boolean;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
+    disabled?: boolean;
+    executeCommand?: (command: string) => Promise<ConsoleCommandResult>;
     options?: Record<string, unknown>;
     placeholder?: string;
     preCheck?: (value: string) => string;
   }
 
-  type Emits = (
-    e: 'success',
-    cmd: string,
-    message: ServiceReturnType<typeof queryWebconsole>['query'],
-    ...args: unknown[]
-  ) => void;
+  type Emits = {
+    (e: 'success', cmd: string, message: ServiceReturnType<typeof queryWebconsole>['query'], ...args: unknown[]): void;
+    (e: 'loadingChange', value: boolean): void;
+  };
 
   interface Expose {
     clearCurrentScreen: (id?: number) => void;
@@ -76,8 +86,13 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
   import { queryAllTypeCluster, queryWebconsole } from '@services/source/dbbase';
+
+  import { WebconsoleError } from '@services/source/webconsoleWs';
+
+  import type { ConsoleCommandResult } from '@views/db-manage/common/webconsole/hooks/useWebconsoleSession';
 
   import { downloadText } from '@utils';
 
@@ -85,6 +100,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     checkLineBreak: () => false,
+    disabled: false,
+    executeCommand: undefined,
     options: () => ({}),
     placeholder: '',
     preCheck: () => '',
@@ -93,6 +110,7 @@
   const emits = defineEmits<Emits>();
 
   const { selectedText } = useTextSelection();
+  const { t } = useI18n();
 
   const command = ref('');
   const consolePanelRef = ref();
@@ -101,6 +119,9 @@
   const realHeight = ref('52px');
   // 用于查找命令的索引
   let commandIndex = 0;
+  let panelToken: object;
+  let active = true;
+  let disposed = false;
 
   const clusterId = computed(() => props.cluster.id);
   const localPlaceholder = computed(() => props.placeholder || `${props.cluster.immute_domain} > `);
@@ -113,12 +134,14 @@
     clusterId,
     () => {
       if (clusterId.value) {
+        panelToken = {};
+        panelTokens[clusterId.value] = panelToken;
         // 初始化暂存区
         if (!inputStash[clusterId.value]) {
           inputStash[clusterId.value] = [];
           command.value = localPlaceholder.value;
         } else {
-          command.value = inputStash[clusterId.value].pop() as string;
+          command.value = inputStash[clusterId.value].pop() || localPlaceholder.value;
         }
 
         // 初始化已执行命令区
@@ -136,8 +159,10 @@
           panelInputMap[clusterId.value] = _.cloneDeep(panelInputMap[clusterId.value]);
         }
 
-        setTimeout(() => {
-          inputRef.value.focus();
+        nextTick(() => {
+          if (active && !disposed && panelTokens[clusterId.value] === panelToken) {
+            inputRef.value?.focus();
+          }
         });
       }
     },
@@ -147,8 +172,10 @@
   );
 
   const handleInputFocus = () => {
-    setTimeout(() => {
-      inputRef.value.focus();
+    nextTick(() => {
+      if (active && !disposed) {
+        inputRef.value?.focus();
+      }
     });
   };
 
@@ -163,9 +190,13 @@
   };
 
   // 回车输入指令
-  const handleClickSendCommand = async (e: any) => {
+  const handleClickSendCommand = async (e: KeyboardEvent) => {
+    if (props.disabled || loading.value || panelTokens[clusterId.value] !== panelToken) {
+      e.preventDefault();
+      return;
+    }
     // 输入预处理
-    const inputValue = e.target.value.trim() as string;
+    const inputValue = (e.target as HTMLTextAreaElement).value.trim();
     const isInputed = inputValue.length > localPlaceholder.value.length;
 
     // 截取输入的命令
@@ -194,6 +225,8 @@
       return;
     }
 
+    e.preventDefault();
+
     // 语句预检
     const preCheckResult = props.preCheck(cmd);
     if (preCheckResult && !isBreakLine) {
@@ -204,37 +237,58 @@
       return;
     }
 
-    // 开始请求
+    // 固定发起 tab 与显示区；关闭、清屏或重开后丢弃旧结果。
+    const requestClusterId = clusterId.value;
+    const requestToken = panelToken;
+    const requestLines = panelInputMap[requestClusterId];
+    const executeCommand = props.executeCommand;
+    const isCurrentRequest = () =>
+      !disposed && panelTokens[requestClusterId] === requestToken && panelInputMap[requestClusterId] === requestLines;
     try {
       loading.value = true;
-      const executeResult = await queryWebconsole({
-        cluster_id: clusterId.value,
-        cmd,
-        options: props.options,
-      });
-
-      // 请求结果渲染
+      emits('loadingChange', true);
+      const httpResult = executeCommand
+        ? undefined
+        : await queryWebconsole({
+            cluster_id: requestClusterId,
+            cmd,
+            options: props.options,
+          });
+      const executeResult: ConsoleCommandResult = httpResult || (await executeCommand!(cmd));
+      if (!isCurrentRequest()) {
+        return;
+      }
       if (executeResult.error_msg) {
-        // 错误消息
-        commandExcuted(cmd, {
-          message: executeResult.error_msg,
-          type: 'error',
-        });
+        commandExcuted(cmd, { message: executeResult.error_msg, type: 'error' });
       } else {
-        // 正常消息
         commandExcuted(cmd, {
           message: executeResult.query,
+          rowsAffected: executeResult.rows_affected,
           type: 'normal',
         });
-
-        emits('success', cmd, executeResult.query);
+        if (httpResult) {
+          emits('success', cmd, httpResult.query);
+        }
+      }
+    } catch (error: unknown) {
+      // HTTP 错误仍由原请求层处理，WS 错误只展示在命令起因处。
+      if (executeCommand && isCurrentRequest() && !(error instanceof WebconsoleError && error.cancelled)) {
+        commandExcuted(cmd, {
+          message: error instanceof Error ? error.message : String(error),
+          type: 'error',
+        });
       }
     } finally {
       loading.value = false;
-      setTimeout(() => {
-        inputRef.value.focus();
-        consolePanelRef.value.scrollTop = consolePanelRef.value.scrollHeight - consolePanelRef.value.clientHeight;
-      });
+      emits('loadingChange', false);
+      if (isCurrentRequest()) {
+        handleInputFocus();
+        nextTick(() => {
+          if (active && !disposed && consolePanelRef.value) {
+            consolePanelRef.value.scrollTop = consolePanelRef.value.scrollHeight - consolePanelRef.value.clientHeight;
+          }
+        });
+      }
     }
   };
 
@@ -324,6 +378,9 @@
    * @param {KeyboardEvent} event
    */
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (!active || disposed || props.disabled || loading.value || panelTokens[clusterId.value] !== panelToken) {
+      return;
+    }
     if (event.key === 'Tab') {
       event.preventDefault();
     }
@@ -350,18 +407,23 @@
 
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeyDown);
+    disposed = true;
     const currentClusterId = clusterId.value;
-    delete panelInputMap[currentClusterId];
-    delete inputStash[currentClusterId];
-    delete executedCommands[currentClusterId];
+    if (panelTokens[currentClusterId] === panelToken) {
+      releaseConsoleTab(currentClusterId);
+    }
   });
 
   onActivated(() => {
+    active = true;
+    window.addEventListener('keydown', handleKeyDown);
     handleInputFocus();
   });
 
   onDeactivated(() => {
-    if (command.value.length > localPlaceholder.value.length) {
+    active = false;
+    window.removeEventListener('keydown', handleKeyDown);
+    if (panelTokens[clusterId.value] === panelToken && command.value.length > localPlaceholder.value.length) {
       inputStash[clusterId.value].push(command.value);
     }
   });
@@ -371,20 +433,30 @@
       const currentClusterId = id ?? clusterId.value;
       panelInputMap[currentClusterId] = [];
       inputStash[currentClusterId] = [];
-      command.value = localPlaceholder.value;
+      if (currentClusterId === clusterId.value) {
+        command.value = localPlaceholder.value;
+      }
     },
     export() {
-      const lines = panelInputMap[clusterId.value].map((item) => item.message);
+      const lines = (panelInputMap[clusterId.value] || []).flatMap((item) =>
+        item.rowsAffected === undefined ? [item.message] : [item.message, t('WebConsole_影响行数', [item.rowsAffected])],
+      );
       let exportTxt = '';
       lines.forEach((item) => {
-        if (Array.isArray(item)) {
+        if (
+          Array.isArray(item) &&
+          item.every((row: unknown) => typeof row === 'object' && row !== null && !Array.isArray(row))
+        ) {
           // mysql 数据表
           const titles = item[0] ? Object.keys(item[0]) : [];
           exportTxt += titles.join('\t');
           exportTxt += '\n';
           item.forEach((row) => {
             const rowValues = titles.reduce((results, title) => {
-              results.push(row[title]);
+              const value: unknown = row[title];
+              results.push(
+                value === null ? 'NULL' : typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
+              );
               return results;
             }, [] as string[]);
             exportTxt += rowValues.join('\t');
@@ -392,7 +464,7 @@
           });
         } else {
           // 普通字符串
-          exportTxt += item;
+          exportTxt += typeof item === 'object' && item !== null ? JSON.stringify(item) : String(item ?? '');
           exportTxt += '\n';
         }
       });
@@ -402,7 +474,11 @@
     },
     isInputed(id?: number) {
       const currentClusterId = id ?? clusterId.value;
-      return executedCommands[currentClusterId]?.some(Boolean) || inputStash[currentClusterId]?.length > 0;
+      return (
+        (currentClusterId === clusterId.value && (loading.value || command.value.length > localPlaceholder.value.length)) ||
+        executedCommands[currentClusterId]?.some(Boolean) ||
+        inputStash[currentClusterId]?.length > 0
+      );
     },
     updateCommand() {
       nextTick(() => {
