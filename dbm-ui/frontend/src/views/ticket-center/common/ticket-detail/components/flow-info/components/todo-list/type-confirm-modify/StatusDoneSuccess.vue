@@ -16,10 +16,15 @@
     <ProcessedLine
       :cost-time="data.cost_time"
       :exit-color="reEditRecord ? '#63656e' : '#2dcb56'"
-      :exit-text="reEditRecord ? t('重新编辑') : t('确认无误')"
+      :exit-text="reEditRecord ? t('重新提交') : t('确认无误')"
       :operator="reEditRecord?.operator || data.done_by"
       :operators="data.operators"
       :start-time="utcTimeToSeconds(data.done_at)" />
+    <SummaryModifyRecord
+      v-if="summaryRecord"
+      :modify-records="modifyRecords"
+      :record="summaryRecord"
+      :ticket-detail="ticketData" />
     <div
       class="mt-12"
       style="color: #979ba5">
@@ -32,15 +37,19 @@
 
   import FlowMode from '@services/model/ticket/flow';
   import TicketModifyRecordModel from '@services/model/ticket/modify-record';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import ProcessedLine from '../../components/ProcessedLine.vue';
+  import SummaryModifyRecord from '../../components/SummaryModifyRecord.vue';
+  import { getSummaryRecord } from '../../components/summaryRecord';
 
   interface Props {
     data: FlowMode<unknown>['todos'][number];
     flowData: FlowMode<unknown>;
     modifyRecords: TicketModifyRecordModel[];
+    ticketData: TicketModel;
   }
 
   defineOptions({
@@ -51,10 +60,13 @@
 
   const { t } = useI18n();
 
-  // 确认步骤内提交了重新编辑即以「重新编辑」结束，否则为直接确认（确认无误）
+  // 确认步骤内提交了重新编辑即以「重新提交」结束，否则为直接确认（确认无误）
   const reEditRecord = computed(() =>
     props.modifyRecords.find(
       (item) => item.flow_id === props.flowData.id && item.mode === TicketModifyRecordModel.MODE_RE_EDIT,
     ),
   );
+
+  // 只有这一次重新提交时，变更对比挂在主摘要上，记录块不再展示
+  const summaryRecord = computed(() => getSummaryRecord(props.flowData, props.modifyRecords));
 </script>

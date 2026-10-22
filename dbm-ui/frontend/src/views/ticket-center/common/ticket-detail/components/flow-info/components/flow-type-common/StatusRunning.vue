@@ -40,7 +40,7 @@
         </span>
       </slot>
       <ModifyRecordList
-        :flow-id="data.id"
+        :flow-data="data"
         :modify-records="modifyRecords"
         :ticket-detail="ticketDetail" />
       <RenderErrorMessage
