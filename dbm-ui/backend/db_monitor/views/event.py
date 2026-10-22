@@ -115,6 +115,10 @@ class AlertView(SystemViewSet):
             conditions.append(f'({" OR ".join(cluster_type_conditions)})')
 
         params["query_string"] = " AND ".join(conditions)
+        # 监控默认按 status 优先排序，不同状态的告警时间会交错。
+        # 未指定 ordering 时按产生时间倒序，同一时间再按状态、序号倒序。
+        if not params.get("ordering"):
+            params["ordering"] = ["-create_time", "status", "-seq_id"]
         data = BKMonitorV3Api.search_alert(params)
         strategy_ids = [alert["strategy_id"] for alert in data["alerts"] if alert.get("strategy_id")]
         monitor_policies = MonitorPolicy.objects.filter(monitor_policy_id__in=strategy_ids)
