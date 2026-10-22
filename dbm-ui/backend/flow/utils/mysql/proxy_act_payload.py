@@ -7,12 +7,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
-from backend.db_meta.exceptions import MasterInstanceNotExistException
+from backend.db_meta.api.db_module.version import get_layer_package
+from backend.db_meta.enums import AccessLayer, InstanceInnerRole, InstanceStatus
+from backend.db_meta.exceptions import DBModuleVersionNotSetException, MasterInstanceNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum
@@ -42,9 +44,13 @@ class ProxyActPayload(object):
 
     def get_install_proxy_for_deploy_payload(self, **kwargs) -> dict:
         """
-        拼接安装proxy的payload参数, 集群部署专属
+        拼接安装proxy的payload参数, 集群部署专属，proxy 介质取模块接入层绑定的版本
         """
-        proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.MySQLProxy)
+        # 存量模块还没设置版本时，仍取最新介质
+        try:
+            proxy_pkg = get_layer_package(self.db_module_id, AccessLayer.PROXY)
+        except DBModuleVersionNotSetException:
+            proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.MySQLProxy)
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorActionEnum.Deploy.value,
