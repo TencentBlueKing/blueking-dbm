@@ -45,54 +45,21 @@ var VersionCmd = &cobra.Command{
 
 var MigrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "migrate databases schema and default global strategies",
+	Short: "migrate database schema and data steps",
 	Long: `Migrate command supports the following types:
-  			--type schema    : only migrate table schema
-  			--type strategy  : only create default global strategies
-  			--type all       : migrate schema and create strategies (default)`,
-	Run: func(cmd *cobra.Command, args []string) {
+  			--type schema : only migrate table schema
+  			--type data   : run every data step, including default strategies
+  			--type all    : migrate schema and then data (default)
 
-		viper.SetConfigName("admin")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath("./etc")
-
-		logger.Info("use the configuration:%s", ConfigFilePath)
-
-		if ConfigFilePath != "" {
-			viper.SetConfigFile(ConfigFilePath)
-		}
-
-		if err := viper.ReadInConfig(); err != nil {
-			logger.Error("read admin configuration failed, errmsg: %s", err)
-			return
-		}
-
-		if err := viper.Unmarshal(&config.Cfg); err != nil {
-			logger.Error("unmarshal admin configuration failed, errmsg: %s", err)
-			return
-		}
-
-		mig := &migrator.Migrator{}
-		switch MigrateType {
-		case migrator.MigrateTypeSchema:
-			logger.Info("migrate type: schema")
-			if err := mig.MigrateSchema(); err != nil {
-				logger.Error("migrate schema failed, errmsg: %s", err)
-			}
-		case migrator.MigrateTypeStrategy:
-			logger.Info("migrate type: strategy")
-			if err := mig.MigrateStrategy(); err != nil {
-				logger.Error("migrate strategy failed, errmsg: %s", err)
-			}
-		case migrator.MigrateTypeAll:
-			logger.Info("migrate type: all")
-			if err := mig.MigrateAll(); err != nil {
-				logger.Error("migrate all failed, errmsg: %s", err)
-			}
-		default:
-			logger.Error("unknown migrate type: %s, supported types: schema, strategy, all", MigrateType)
-		}
-	},
+		--inventory reports endpoint class without writing.
+		--accept-missing-tables confirms empty-table creation when only some tables exist.
+		--repair-missing rebuilds missing columns and secondary indexes.
+		--repair-missing-tables rebuilds missing tables as empty tables.
+		--repair-missing-data inserts missing default rows when strategy data already exists.
+		Soft-deleted rows stay deleted. An empty strategy table still receives the default rows.
+		Schema and all modes may lock managed tables while converging primary keys and column
+		definitions. Stop writes to those tables first. This command cannot detect that.`,
+	RunE: runMigrate,
 }
 
 // HealthCmd is used to show the health information of this process.
@@ -135,4 +102,35 @@ var ReloadCmd = &cobra.Command{
 	Use:   "reload",
 	Short: "Reload this process.",
 	RunE:  cmds.ReloadCmdRunE,
+}
+
+func runMigrate(cmd *cobra.Command, args []string) error {
+	viper.SetConfigName("admin")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+	logger.Info("use the configuration, path: %s", ConfigFilePath)
+	if ConfigFilePath != "" {
+		viper.SetConfigFile(ConfigFilePath)
+	}
+	if err := viper.ReadInConfig(); err != nil {
+		logger.Error("read admin configuration failed, errmsg: %s", err)
+		return err
+	}
+	if err := viper.Unmarshal(&config.Cfg); err != nil {
+		logger.Error("unmarshal admin configuration failed, errmsg: %s", err)
+		return err
+	}
+	logger.Info("migrate type: %s", MigrateType)
+	err := migrator.Run(migrator.Options{
+		Type:                MigrateType,
+		Inventory:           MigrateInventory,
+		AcceptMissingTables: MigrateAcceptMissingTables,
+		RepairMissing:       MigrateRepairMissing,
+		RepairMissingTables: MigrateRepairMissingTables,
+		RepairMissingData:   MigrateRepairMissingData,
+	})
+	if err != nil {
+		logger.Error("migrate failed, errmsg: %s", err)
+	}
+	return err
 }

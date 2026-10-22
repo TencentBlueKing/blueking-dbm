@@ -138,7 +138,9 @@ flowchart LR
 - **服务端 → Prometheus / BKMonitor 抓取**：各服务 haapm 暴露 `/metrics`，由外部抓取做容量与延迟观测，与 BKMonitor 事件上报互补。
 - **Analysis → Probe（SSH +** `dbha-probe health -j`**）**：二次探测主路径为 SSH 远端执行 `dbha-probe health -j`。**仅 SSH dial/session 失败**时确认故障并入滑动窗口；其余二次探测结果（含 probe 进程不可用、存活但无指标等）只告警不入窗。入窗细则见 [MySQL 探测设计 §5](../detection/mysql-detection-design.md)；Scan/Pop/窗口/锁/白名单运行时见 [故障判定与切换](../flows/failure-detection-and-failover.md)。边缘 keepalive HTTP 为运维可选探活，analysis **不调用**、**不参与入窗**，亦非二次探测组成。
 
-能力边界：analysis `switchers` 当前仅注册 MySQL；默认全局策略（`dbha-admin migrate strategy`）触发事件为 `DoubleCheckSshFailureV1`（`action=switch`，`scope=host`）。
+能力边界：analysis `switchers` 当前仅注册 MySQL。策略表为空时，`dbha-admin migrate --type data`
+写入默认全局策略，触发事件为 `DoubleCheckSshFailureV1`（`action=switch`，`scope=host`）。
+表中已有任意行时，缺失行要加 `--repair-missing-data` 才会插入，软删除行保持删除。
 
 ## 7. 端到端主路径
 
@@ -175,7 +177,7 @@ flowchart LR
 运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`EnableWhiteList` 可关，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的 `tables` **不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
 
 探测载荷类型见 [pkg/storage/haprobe](../../pkg/storage/haprobe)（如 `HarvestData`、各 DB 状态结构、事件名常量）。  
-表结构迁移由 admin：`dbha-admin migrate`（[internal/admin/migrator](../../internal/admin/migrator)）。
+表结构迁移由 admin：`dbha-admin migrate`（[internal/admin/migrator](../../internal/admin/migrator)）。常规 `--type schema` 和 `--type all` 会按模型收敛主键和列定义，可能锁住受管表，执行窗口需要先停止这些表的写入。维护规则见 [migrator 设计](migrator-design.md)。
 
 ## 9. 进程与守护（简述）
 
