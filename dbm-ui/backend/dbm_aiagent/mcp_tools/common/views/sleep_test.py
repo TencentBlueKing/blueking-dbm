@@ -17,18 +17,19 @@ class SleepTestOutputSerializer(serializers.Serializer):
 
 class SleepTestMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
-        description="测试工具：等待 3 分钟后记录日志并返回一条消息",
+        description="测试工具：等待 60 秒，在等待前后记录日志并返回一条消息",
         request_slz=serializers.Serializer,
         response_slz=SleepTestOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.DBM],
-        name_prefix="mcp_common",
+        mcp=[DBMMcpTools.DBMETA_QUERY, DBMMcpTools.DBM_PUBLIC_MARKET],
+        name_prefix="dbmeta_query",
         permission_classes=[],
+        mcp_auth_parser=None,
         none_schema=True,
     )
     def sleep_test(self, request, *args, **kwargs):
-        logger.info('sleep_test----------')
-        time.sleep(180)
-        message = "MCP sleep test completed after 3 minutes."
+        logger.info("MCP sleep test started, waiting 60 seconds.")
+        time.sleep(60)
+        message = "MCP sleep test completed after 60 seconds."
         logger.info(message)
         return Response({"message": message})
