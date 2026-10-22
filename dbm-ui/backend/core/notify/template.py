@@ -69,7 +69,7 @@ AI_TASK_GUARDIAN_TEMPLATE = _(
     业务: {{biz_name}}
     相关域名: {{cluster_domains}}
     申请时间: {{submit_time}}
-    执行时间: {{running_time}}
+    单据执行时间: {{running_time}}
     AI检测详情: {{ai_result}}\
     """
 )

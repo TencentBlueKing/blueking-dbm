@@ -270,6 +270,209 @@ class FlowWithAITaskGuardianReport(models.Model):
             self.save(update_fields=["no_risk_streak"])
 
 
+class FlowWithNodeDurationReport(models.Model):
+    """节点耗时超线提醒的推送收敛记录表（粒度到单节点）。
+
+    职责：
+      - 为 `CheckNodeDurationForAIService`（sidecar）持久化"P95 单次提醒 + P99 收敛提醒"的发送状态
+      - 与 `FlowWithAITaskGuardianReport` 物理隔离：两类告警（集群风险 vs 节点耗时）各自维护收敛窗口，
+        避免同一 flow 内两类消息相互压制
+
+    使用方式：
+      - 以 `(uid, root_id, node_id)` 三元组唯一定位一条记录；每个慢节点各自独立收敛
+      - P95 分支：读写 `p95_notified` 布尔标志，保证一个节点只发一次 P95
+      - P99 分支：复用与 `FlowWithAITaskGuardianReport` 同构的指数退避算法
+        （`should_send / record_send / record_no_risk`）
+
+    线程安全：由 Django ORM 事务保证；sidecar 轮询为单线程，不涉及并发
+    边界：
+      - `last_risk_level` 预期取值 `"high"` / `"critical"`，与 `RISK_LEVEL_ORDER` 兼容
+      - 节点生命周期结束后不主动清理记录（随 flow 归档）
+    """
+
+    uid = models.CharField(_("单据ID"), max_length=127, blank=True, default="")
+    root_id = models.CharField(_("流程ID"), max_length=33)
+    node_id = models.CharField(_("节点ID"), max_length=33, help_text=_("对应 FlowNode.node_id，粒度到单个 ServiceActivity"))
+
+    # ---- 审计字段（不参与唯一键，仅用于定位 / 排障）----
+    component_code = models.CharField(
+        _("组件代码"), max_length=LEN_NORMAL, blank=True, default="", help_text=_("flow tree activity component.code")
+    )
+    normalized_name = models.CharField(
+        _("归一化节点名"),
+        max_length=255,
+        blank=True,
+        default="",
+        help_text=_("NameNormalizer 归一化后的动作名；用于审计，不参与查询"),
+    )
+
+    # ---- 收敛相关字段（与 FlowWithAITaskGuardianReport 对齐）----
+    enable_converge = models.BooleanField(_("是否启用消息收敛"), default=True, help_text=_("默认启用；设为 False 则每次满足 P99 条件都推送"))
+    send_count = models.IntegerField(_("已推送次数"), default=0, help_text=_("P99 累计推送次数，用于指数退避计算"))
+    last_send_time = models.DateTimeField(_("最后一次推送时间"), null=True, blank=True)
+    last_risk_level = models.CharField(
+        _("最后一次推送的风险等级"),
+        max_length=20,
+        default="",
+        blank=True,
+        help_text=_("预期取值 'high' / 'critical'，与 RISK_LEVEL_ORDER 兼容"),
+    )
+    last_report_content = models.TextField(
+        _("最后一次推送的文案内容"),
+        default="",
+        blank=True,
+        help_text=_("预留字段，未来若接入 AI 语义比对可参考 FlowWithAITaskGuardianReport 的用法"),
+    )
+    no_risk_streak = models.IntegerField(_("连续无风险检测次数"), default=0, help_text=_("连续 N 次检测未超线后重置退避计数器"))
+
+    # ---- P95 单次提醒专用字段 ----
+    p95_notified = models.BooleanField(
+        _("P95 单次提醒是否已发送"),
+        default=False,
+        help_text=_("一旦发送过 P95 级别提醒即置 True，之后不再重复发 P95（P99 分支独立判定）"),
+    )
+
+    # ---- 收敛策略常量（与 FlowWithAITaskGuardianReport 保持一致）----
+    #: 基础退避间隔：5 分钟
+    BASE_INTERVAL = 5 * 60
+    #: 最大退避间隔：2 小时
+    MAX_INTERVAL = 2 * 60 * 60
+    #: 连续无风险重置阈值
+    NO_RISK_RESET_THRESHOLD = 3
+
+    #: 风险等级排序（数值越大越严重）；本表仅用到 high / critical
+    RISK_LEVEL_ORDER = {
+        "": 0,
+        "low": 1,
+        "medium": 2,
+        "high": 3,
+        "critical": 4,
+    }
+
+    class Meta:
+        db_table = "flow_with_node_duration_report"
+        unique_together = ["uid", "root_id", "node_id"]
+
+    def _get_current_converge_window(self) -> int:
+        """计算当前的收敛窗口时长（秒）。
+
+        公式：`min(BASE_INTERVAL * 2^(send_count-1), MAX_INTERVAL)`
+
+        :return: 当前允许的最短间隔秒数；`send_count<=0` 时返回 0
+        """
+        if self.send_count <= 0:
+            return 0
+        exponent = self.send_count - 1
+        interval = self.BASE_INTERVAL * (2**exponent)
+        return min(interval, self.MAX_INTERVAL)
+
+    def is_risk_level_upgraded(self, current_risk_level: str) -> bool:
+        """判断当前风险等级是否比上次推送时的等级更高。
+
+        :param current_risk_level: 本次风险等级（"high" / "critical" 等）
+        :return: True 表示发生升级（需打破沉默窗口）；空字符串视为未变化
+        """
+        if not current_risk_level:
+            return False
+        current_order = self.RISK_LEVEL_ORDER.get(current_risk_level, 0)
+        last_order = self.RISK_LEVEL_ORDER.get(self.last_risk_level, 0)
+        return current_order > last_order
+
+    def _is_in_converge_window(self) -> tuple:
+        """判断当前是否在收敛窗口内。
+
+        :return: (is_in_window: bool, remaining_seconds: int)
+        边界：时钟回拨时视为窗口已过，允许推送
+        """
+        from django.utils import timezone
+
+        if self.last_send_time is None:
+            return False, 0
+
+        converge_window = self._get_current_converge_window()
+        elapsed = (timezone.now() - self.last_send_time).total_seconds()
+        if elapsed < 0:
+            return False, 0
+
+        if elapsed >= converge_window:
+            return False, 0
+        return True, int(converge_window - elapsed)
+
+    def should_send(self, current_risk_level: str = "", is_same_risk: bool = None) -> tuple:
+        """核心收敛判断：是否应该推送 P99 消息。
+
+        判断优先级：
+            1. 收敛未启用 → 直接推送
+            2. 首次推送 → 立即推送
+            3. 风险等级升级 → 打破沉默窗口，立即推送
+            4. 外部判定非同一风险 → 打破沉默窗口（预留给未来 AI 比对接入）
+            5. 超过收敛时间窗口 → 允许推送
+            6. 以上都不满足 → 抑制推送
+
+        :param current_risk_level: 当前风险等级，可为空
+        :param is_same_risk: 外部比对结果；True=同一风险/False=新风险/None=未比对
+        :return: (should_send: bool, reason: str)
+        """
+        if not self.enable_converge:
+            return True, _("收敛未启用，直接推送")
+
+        if self.send_count == 0 or self.last_send_time is None:
+            return True, _("首次发现超线，立即推送")
+
+        if self.is_risk_level_upgraded(current_risk_level):
+            return True, _("风险等级升级: {} -> {}，立即推送").format(self.last_risk_level, current_risk_level)
+
+        if is_same_risk is False:
+            return True, _("判定为不同风险（新风险点），立即推送")
+
+        is_in_window, remaining = self._is_in_converge_window()
+        if not is_in_window:
+            converge_window = self._get_current_converge_window()
+            return True, _("收敛窗口({}s)已过，允许推送").format(converge_window)
+
+        return False, _("在收敛窗口内，距下次允许推送还有{} s").format(remaining)
+
+    def record_send(self, risk_level: str = "", report_content: str = "") -> None:
+        """记录一次成功推送，更新退避状态与文案。
+
+        :param risk_level: 本次风险等级
+        :param report_content: 本次文案内容（供未来比对复用）
+        """
+        from django.utils import timezone
+
+        self.send_count += 1
+        self.last_send_time = timezone.now()
+        if risk_level:
+            self.last_risk_level = risk_level
+        if report_content:
+            self.last_report_content = report_content
+        self.no_risk_streak = 0
+        self.save(
+            update_fields=["send_count", "last_send_time", "last_risk_level", "last_report_content", "no_risk_streak"]
+        )
+
+    def record_no_risk(self) -> None:
+        """记录一次未超线检测，连续 N 次后重置退避计数器。"""
+        self.no_risk_streak += 1
+        if self.no_risk_streak >= self.NO_RISK_RESET_THRESHOLD:
+            self.send_count = 0
+            self.last_send_time = None
+            self.last_risk_level = ""
+            self.last_report_content = ""
+            self.no_risk_streak = 0
+            self.save(
+                update_fields=[
+                    "send_count",
+                    "last_send_time",
+                    "last_risk_level",
+                    "last_report_content",
+                    "no_risk_streak",
+                ]
+            )
+        else:
+            self.save(update_fields=["no_risk_streak"])
+
+
 class FlowBkJobInstance(models.Model):
     """
     记录一次蓝鲸作业 fast_execute_script 的 job_instance_id 与流程/单据的对应关系
