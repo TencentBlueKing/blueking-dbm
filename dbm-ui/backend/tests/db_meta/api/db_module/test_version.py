@@ -8,14 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+from types import SimpleNamespace
+from unittest import mock
+
 import pytest
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.db_module.version import (
     PackageOs,
+    check_deploy_package,
     describe_module_version,
     enabled_package_os,
+    get_layer_package,
     get_layer_permit_os,
     storage_version_series,
     validate_components,
@@ -24,13 +31,14 @@ from backend.db_meta.dataclass import DBModuleComponentVersion
 from backend.db_meta.enums import AccessLayer, ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.enums.version_phase import VersionPhase
-from backend.db_meta.exceptions import DBModuleVersionException
+from backend.db_meta.exceptions import DBModuleVersionException, DBModuleVersionNotSetException
 from backend.db_meta.models import DBModule
 from backend.db_meta.models.db_version import DBVersion, Distribution, VersionSeries
 from backend.db_package.models import Package
 from backend.db_services.cmdb.serializers import CreateModuleSLZ
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import MediumEnum
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileListV2
 from backend.tests.mock_data import constant
 
 pytestmark = pytest.mark.django_db
@@ -291,3 +299,100 @@ class TestDBModuleComponentVersion:
         series = storage_version_series([ha_module, bare_module])
         assert series[ha_module.db_module_id] == "MySQL-8.0"
         assert series[bare_module.db_module_id] == ""
+
+
+class TestDeployPackage:
+    @staticmethod
+    def _create_ha_module(name: str, backend: DBVersion, proxy: DBVersion) -> int:
+        created = api.db_module.create(
+            bk_biz_id=constant.BK_BIZ_ID,
+            name=name,
+            cluster_type=ClusterType.TenDBHA.value,
+            creator="admin",
+            db_versions={
+                MachineType.BACKEND.value: _layer(backend, []),
+                MachineType.PROXY.value: _layer(proxy, []),
+            },
+        )
+        return created["db_module_id"]
+
+    @staticmethod
+    def _create_legacy_module(name: str, cluster_type: str = ClusterType.TenDBHA.value) -> int:
+        legacy = DBModule.objects.create(
+            bk_biz_id=constant.BK_BIZ_ID,
+            db_module_name=name,
+            cluster_type=cluster_type,
+            alias_name=name,
+            **_AUDIT,
+        )
+        return legacy.db_module_id
+
+    def test_get_layer_package(self):
+        backend = _make_version(MediumEnum.MySQL.value, "MySQL-8.0", "8.0.32.0.0.11", ["tlinux-3.2"])
+        proxy = _make_version(MediumEnum.MySQLProxy.value, "Proxy-2.x", "2.1.0.0.0.11", ["tlinux-3.2"])
+        db_module_id = self._create_ha_module("deploy-pkg", backend, proxy)
+
+        assert get_layer_package(db_module_id, AccessLayer.STORAGE) == Package.objects.get(db_version=backend)
+        assert get_layer_package(db_module_id, AccessLayer.PROXY) == Package.objects.get(db_version=proxy)
+
+        Package.objects.filter(db_version=proxy).update(enable=False)
+        with pytest.raises(DBModuleVersionException):
+            get_layer_package(db_module_id, AccessLayer.PROXY)
+
+        legacy_id = self._create_legacy_module("deploy-pkg-legacy")
+        with pytest.raises(DBModuleVersionNotSetException):
+            get_layer_package(legacy_id, AccessLayer.STORAGE)
+
+    def test_check_deploy_package(self):
+        backend = _make_version(MediumEnum.MySQL.value, "MySQL-8.0", "8.0.32.0.0.12", ["tlinux-3.2"])
+        proxy = _make_version(MediumEnum.MySQLProxy.value, "Proxy-2.x", "2.1.0.0.0.12", ["tlinux-3.2"])
+        Package.objects.filter(db_version=backend).update(version="MySQL-8.0")
+        db_module_id = self._create_ha_module("deploy-check", backend, proxy)
+
+        check_deploy_package(db_module_id, AccessLayer.STORAGE, "MySQL-8.0")
+        check_deploy_package(db_module_id, AccessLayer.PROXY)
+        with pytest.raises(DBModuleVersionException):
+            check_deploy_package(db_module_id, AccessLayer.STORAGE, "MySQL-5.7")
+
+        Package.objects.filter(db_version=proxy).update(enable=False)
+        with pytest.raises(DBModuleVersionException):
+            check_deploy_package(db_module_id, AccessLayer.PROXY)
+
+        legacy_id = self._create_legacy_module("deploy-check-legacy")
+        check_deploy_package(legacy_id, AccessLayer.STORAGE, "MySQL-5.7")
+        check_deploy_package(legacy_id, AccessLayer.PROXY)
+
+    def test_file_list_with_module(self):
+        backend = _make_version(MediumEnum.MySQL.value, "MySQL-8.0", "8.0.32.0.0.13", ["tlinux-3.2"])
+        proxy = _make_version(MediumEnum.MySQLProxy.value, "Proxy-2.x", "2.1.0.0.0.13", ["tlinux-3.2"])
+        ha_module_id = self._create_ha_module("deploy-files", backend, proxy)
+
+        remote = _make_version(MediumEnum.MySQL.value, "MySQL-8.0", "8.0.32.0.0.14", ["tlinux-3.2"])
+        spider = _make_version(MediumEnum.Spider.value, "Spider-3", "3.8.0.0.0.14", ["tlinux-3.2"])
+        cluster_module = api.db_module.create(
+            bk_biz_id=constant.BK_BIZ_ID,
+            name="deploy-files-cluster",
+            cluster_type=ClusterType.TenDBCluster.value,
+            creator="admin",
+            db_versions={
+                MachineType.REMOTE.value: _layer(remote, []),
+                MachineType.SPIDER.value: _layer(spider, []),
+            },
+        )
+
+        latest_pkg = SimpleNamespace(path="latest/pkg.tar.gz")
+        with mock.patch.object(Package, "get_latest_package", return_value=latest_pkg), mock.patch.object(
+            Package, "get_latest_package_v2_release", return_value=latest_pkg
+        ), mock.patch.object(env, "MYSQL_BACKUP_PKG_MAP_ENABLE", False):
+            file_list = GetFileListV2()
+            mysql_files = file_list.mysql_install_package_with_module(ha_module_id)
+            proxy_files = file_list.mysql_proxy_install_package_with_module(ha_module_id)
+            spider_files = file_list.spider_master_install_package_with_module(cluster_module["db_module_id"])
+
+            legacy_id = self._create_legacy_module("deploy-files-legacy")
+            with pytest.raises(DBModuleVersionNotSetException):
+                file_list.mysql_proxy_install_package_with_module(legacy_id)
+
+        assert mysql_files[0].endswith(Package.objects.get(db_version=backend).path)
+        assert proxy_files[1].endswith(Package.objects.get(db_version=proxy).path)
+        assert spider_files[1].endswith(Package.objects.get(db_version=spider).path)

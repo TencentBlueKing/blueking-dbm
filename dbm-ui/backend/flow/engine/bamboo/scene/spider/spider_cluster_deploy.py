@@ -11,16 +11,17 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.exceptions import DBModuleVersionNotSetException
 from backend.flow.consts import TDBCTL_USER, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList, GetFileListV2
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     init_machine_sub_flow,
@@ -247,6 +248,27 @@ class TenDBClusterApplyFlow(object):
             }
         ]
 
+    def __get_install_file_lists(self) -> Tuple[list, list]:
+        """
+        返回 remote 和 spider 节点要下发的介质文件列表
+        存量模块还没设置版本时，仍按部署配置的版本系列取最新介质
+        TODO：要确认是否保留兼容逻辑，还是直接采用V2版本
+        """
+        db_module_id = int(self.data["db_module_id"])
+        try:
+            mysql_file_list = GetFileListV2().mysql_install_package_with_module(db_module_id)
+        except DBModuleVersionNotSetException:
+            mysql_file_list = GetFileList(db_type=DBType.MySQL).mysql_install_package(
+                db_version=self.data["db_version"]
+            )
+        try:
+            spider_file_list = GetFileListV2().spider_master_install_package_with_module(db_module_id)
+        except DBModuleVersionNotSetException:
+            spider_file_list = GetFileList(db_type=DBType.MySQL).spider_master_install_package(
+                spider_version=self.data["spider_version"]
+            )
+        return mysql_file_list, spider_file_list
+
     def deploy_cluster(self):
         """
         机器通过手动输入IP而触发的场景
@@ -297,6 +319,7 @@ class TenDBClusterApplyFlow(object):
             )
         )
         # 阶段1 并行分发安装文件
+        mysql_file_list, spider_file_list = self.__get_install_file_lists()
         deploy_pipeline.add_parallel_acts(
             acts_list=[
                 {
@@ -306,9 +329,7 @@ class TenDBClusterApplyFlow(object):
                         DownloadMediaKwargs(
                             bk_cloud_id=int(self.data["bk_cloud_id"]),
                             exec_ip=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"]],
-                            file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
-                                db_version=self.data["db_version"]
-                            ),
+                            file_list=mysql_file_list,
                         )
                     ),
                 },
@@ -319,9 +340,7 @@ class TenDBClusterApplyFlow(object):
                         DownloadMediaKwargs(
                             bk_cloud_id=int(self.data["bk_cloud_id"]),
                             exec_ip=[ip_info["ip"] for ip_info in self.data["spider_ip_list"]],
-                            file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
-                                spider_version=self.data["spider_version"],
-                            ),
+                            file_list=spider_file_list,
                         )
                     ),
                 },
@@ -332,7 +351,7 @@ class TenDBClusterApplyFlow(object):
         acts_list = []
         for mysql_ip in self.data["mysql_ip_list"]:
             exec_act_kwargs.exec_ip = mysql_ip["ip"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload_with_module.__name__
             acts_list.append(
                 {
                     "act_name": _("安装MySQL实例"),
@@ -367,7 +386,7 @@ class TenDBClusterApplyFlow(object):
                 "immutable_domain": self.data["immutable_domain"],
                 "auto_incr_value": auto_incr_value,
             }
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload_with_module.__name__
             acts_list.append(
                 {
                     "act_name": _("安装Spider实例"),
@@ -567,6 +586,7 @@ class TenDBClusterApplyFlow(object):
             )
         )
         # 阶段1 并行分发安装文件
+        mysql_file_list, spider_file_list = self.__get_install_file_lists()
         deploy_pipeline.add_parallel_acts(
             acts_list=[
                 {
@@ -576,9 +596,7 @@ class TenDBClusterApplyFlow(object):
                         DownloadMediaKwargs(
                             bk_cloud_id=int(self.data["bk_cloud_id"]),
                             exec_ip=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"]],
-                            file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
-                                db_version=self.data["db_version"]
-                            ),
+                            file_list=mysql_file_list,
                         )
                     ),
                 },
@@ -589,9 +607,7 @@ class TenDBClusterApplyFlow(object):
                         DownloadMediaKwargs(
                             bk_cloud_id=int(self.data["bk_cloud_id"]),
                             exec_ip=[ip_info["ip"] for ip_info in self.data["spider_ip_list"]],
-                            file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
-                                spider_version=self.data["spider_version"],
-                            ),
+                            file_list=spider_file_list,
                         )
                     ),
                 },
@@ -602,7 +618,7 @@ class TenDBClusterApplyFlow(object):
         acts_list = []
         for mysql_ip in self.data["mysql_ip_list"]:
             exec_act_kwargs.exec_ip = mysql_ip["ip"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload_with_module.__name__
             acts_list.append(
                 {
                     "act_name": _("安装MySQL实例"),
@@ -637,7 +653,7 @@ class TenDBClusterApplyFlow(object):
                 "immutable_domain": self.data["immutable_domain"],
                 "auto_incr_value": auto_incr_value,
             }
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload_with_module.__name__
             acts_list.append(
                 {
                     "act_name": _("安装Spider实例"),

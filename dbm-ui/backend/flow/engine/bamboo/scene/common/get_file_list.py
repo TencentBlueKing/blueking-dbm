@@ -8,11 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from typing import Optional
 
 from backend import env
 from backend.components.constants import SSLEnum
 from backend.configuration.constants import DBType
+from backend.db_meta.api.db_module.version import get_layer_package
+from backend.db_meta.enums import AccessLayer
 from backend.db_package.exceptions import PackageNotExistException
 from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type
@@ -826,3 +829,70 @@ class GetFileList(object):
             [f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{probe_pkg.path}"],
             probe_pkg.name,
         )
+
+
+class GetFileListV2(GetFileList):
+    """
+    按模块绑定的版本选择介质包，后续逐步替换 GetFileList 中按版本系列取最新介质的方法。
+    模块对应层还没绑定版本时抛 DBModuleVersionNotSetException，没有已启用介质包时抛 DBModuleVersionException。
+    """
+
+    def mysql_install_package_with_module(self, db_module_id: int) -> list:
+        """
+        mysql安装需要的安装包，mysql 介质取模块存储层绑定的版本
+        """
+        mysql_pkg = get_layer_package(db_module_id, AccessLayer.STORAGE)
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[mysql_pkg.version]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
+
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=db_backup_pkg_type)
+        checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
+        dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
+        rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{checksum_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{dba_toolkit.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{rotate_binlog.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
+        ]
+
+    def mysql_proxy_install_package_with_module(self, db_module_id: int) -> list:
+        """
+        mysql_proxy安装需要的安装包列表，proxy 介质取模块接入层绑定的版本
+        """
+        proxy_pkg = get_layer_package(db_module_id, AccessLayer.PROXY)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
+        ]
+
+    def spider_master_install_package_with_module(self, db_module_id: int) -> list:
+        """
+        部署spider master节点时需要的介质包，spider 介质取模块接入层绑定的版本
+        spider master 和 spider ctl 混合部署一起，所以下发两个介质包，tdbctl 不受模块版本约束
+        """
+        spider_master_pkg = get_layer_package(db_module_id, AccessLayer.PROXY)
+        tdbctl_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL
+        )
+        mysql_crond_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond, db_type=DBType.MySQL
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{spider_master_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+        ]
