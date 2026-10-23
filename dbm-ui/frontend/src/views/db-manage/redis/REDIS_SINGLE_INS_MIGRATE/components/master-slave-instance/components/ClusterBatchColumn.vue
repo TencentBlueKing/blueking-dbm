@@ -39,6 +39,7 @@
     @change="handleBatchSelectChange" />
   <ClusterSelector
     v-model:is-show="isCellSelectorShow"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.REDIS]"
     :selected="cellSelectedClusters"
     :tab-list-config="tabListConfig"

@@ -256,7 +256,6 @@
   } as unknown as Record<string, TabConfig>;
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   // const getCurrentSpecIds = (proxy: IDataRow['cluster']['proxy']) => {
   //   const specIdList = (proxy || []).map((proxyItem) => proxyItem.spec_config.id);
@@ -272,25 +271,24 @@
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        newList.push(
-          createRowData({
-            cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_spec: item.cluster_spec,
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              id: item.id,
-              master_domain: item.master_domain,
-              proxy: item.proxy,
-              region: item.region,
-            },
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          cluster: {
+            bk_cloud_id: item.bk_cloud_id,
+            cluster_spec: item.cluster_spec,
+            cluster_type: item.cluster_type,
+            cluster_type_name: item.cluster_type_name,
+            id: item.id,
+            master_domain: item.master_domain,
+            proxy: item.proxy,
+            region: item.region,
+          },
+        }),
+      );
     });
 
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...newList];
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {

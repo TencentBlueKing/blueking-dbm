@@ -101,6 +101,12 @@
       validator: (value: string) => !value || ipPort.test(value),
     },
     {
+      message: t('cluster重复', [t('故障主库实例')]),
+      trigger: 'change',
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
+    },
+    {
       message: t('目标实例不存在'),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),

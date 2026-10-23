@@ -272,7 +272,6 @@
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   // watch(
   //   () => formData.tableData.length,
@@ -285,8 +284,7 @@
   const handleBatchEdit = async (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
-      const { ip } = item;
-      if (!selectedMap.value[ip] && item.isSlaveFailover) {
+      if (item.isSlaveFailover) {
         newList.push(
           createRowData({
             host: {
@@ -302,7 +300,8 @@
       }
     });
     if (newList.length) {
-      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
+      // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+      formData.tableData = [...formData.tableData.filter((item) => item.host.ip), ...newList];
     }
   };
 

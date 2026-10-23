@@ -187,7 +187,8 @@
       );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].source ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.source), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

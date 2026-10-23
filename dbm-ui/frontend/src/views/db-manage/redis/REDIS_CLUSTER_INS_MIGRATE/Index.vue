@@ -231,16 +231,13 @@
   const handleInstanceSelectChange = (data: RedisInstanceModel[]) => {
     const newList: IDataRow[] = [];
     data.forEach((item) => {
-      const { instance_address: instance } = item;
-      if (!selectedMap.value[instance]) {
-        newList.push(
-          createRowData({
-            batchInstance: {
-              renderText: item.instance_address,
-            } as IDataRow['batchInstance'],
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          batchInstance: {
+            renderText: item.instance_address,
+          } as IDataRow['batchInstance'],
+        }),
+      );
     });
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];

@@ -158,16 +158,14 @@
   const selected = computed(() =>
     tableData.value.filter((item) => item.instance.bk_host_id).map((item) => item.instance),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   const handleBatchEdit = (list: MongodbInstanceModel[]) => {
     const dataList = list.reduce<InstanceRowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(createRow({ instance: { instance_address: item.instance_address } }));
-      }
+      acc.push(createRow({ instance: { instance_address: item.instance_address } }));
       return acc;
     }, []);
-    tableData.value = [...(tableData.value[0]?.instance.bk_host_id ? tableData.value : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.instance.instance_address), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

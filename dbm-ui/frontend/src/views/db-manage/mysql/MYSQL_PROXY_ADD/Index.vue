@@ -185,19 +185,6 @@
   ];
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const clusterMap = computed(() => {
-    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
-      Object.assign(acc, {
-        [cur.cluster.master_domain]: cur.cluster.master_domain,
-      });
-      cur.cluster.related_clusters.forEach((item) => {
-        Object.assign(acc, {
-          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
-        });
-      });
-      return acc;
-    }, {});
-  });
 
   useTicketDetail<Mysql.ResourcePool.ProxyAdd>(TicketTypes.MYSQL_PROXY_ADD, {
     onSuccess(ticketDetail) {
@@ -273,18 +260,17 @@
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

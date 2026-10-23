@@ -13,6 +13,7 @@
   </BkFormItem>
   <ClusterSelector
     v-model:is-show="clusterSelectorShow"
+    :append-mode="false"
     :cluster-types="accoutMap[accountType as keyof typeof accoutMap].clusterSelectorTypes"
     :disable-dialog-submit-method="disableClusterSubmitMethod"
     only-one-type
