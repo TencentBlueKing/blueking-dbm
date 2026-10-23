@@ -162,25 +162,23 @@
   const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.host.bk_host_id).map((item) => item.host));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
-      if (!selectedMap.value[item.ip]) {
-        newList.push(
-          createRowData({
-            host: {
-              bk_host_id: item.bk_host_id,
-              cluster_type: item.cluster_type,
-              ip: item.ip,
-              related_clusters: item.related_clusters,
-            },
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          host: {
+            bk_host_id: item.bk_host_id,
+            cluster_type: item.cluster_type,
+            ip: item.ip,
+            related_clusters: item.related_clusters,
+          },
+        }),
+      );
     });
-    tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.host.ip), ...newList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

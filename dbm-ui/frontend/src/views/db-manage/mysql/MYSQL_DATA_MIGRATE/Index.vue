@@ -188,9 +188,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.source_cluster.id).map((item) => item.source_cluster),
   );
-  const selectedMap = computed(() =>
-    Object.fromEntries(formData.tableData.map((cur) => [cur.source_cluster.master_domain, true])),
-  );
 
   useTicketDetail<Mysql.DataMigrate>(TicketTypes.MYSQL_DATA_MIGRATE, {
     onSuccess(ticketDetail) {
@@ -270,16 +267,15 @@
 
   const handleBatchEditCluster = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, cluster) => {
-      if (!selectedMap.value[cluster.master_domain]) {
-        acc.push(
-          createTableRow({
-            source_cluster: cluster,
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          source_cluster: cluster,
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].source_cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.source_cluster.master_domain), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {

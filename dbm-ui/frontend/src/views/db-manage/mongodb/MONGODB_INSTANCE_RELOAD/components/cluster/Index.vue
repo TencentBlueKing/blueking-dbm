@@ -123,18 +123,14 @@
   const selectedClusters = computed(() =>
     tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster),
   );
-  const selectedClustersMap = computed(() =>
-    Object.fromEntries(selectedClusters.value.map((cur) => [cur.master_domain, true])),
-  );
 
   const handleBatchEdit = (list: MongodbModel[]) => {
     const dataList = list.reduce<ClusterRowData[]>((acc, item) => {
-      if (!selectedClustersMap.value[item.master_domain]) {
-        acc.push(createRow({ cluster: { master_domain: item.master_domain } }));
-      }
+      acc.push(createRow({ cluster: { master_domain: item.master_domain } }));
       return acc;
     }, []);
-    tableData.value = [...(selectedClusters.value.length ? tableData.value : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

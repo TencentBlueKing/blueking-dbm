@@ -319,6 +319,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    backup_locale: 'master' | 'slave';
     infos: {
       dts_resource: {
         deploy: Record<string, never>;
@@ -356,7 +357,6 @@
       };
       source_role: 'master' | 'slave';
     }[];
-    backup_locale: 'master' | 'slave';
     task: {
       on_duplicate: 'error' | 'replace' | 'ignore';
     };
@@ -366,6 +366,7 @@
     tableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
+          backup_locale: formData.backupLocale,
           infos: formData.tableData.map((item) => ({
             dts_resource: {
               deploy: {},
@@ -403,7 +404,6 @@
             },
             source_role: formData.sourceRole,
           })),
-          backup_locale: formData.backupLocale,
           task: {
             on_duplicate: formData.conflictHandle,
           },
@@ -429,7 +429,8 @@
       );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].source_cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.source_cluster.master_domain), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {

@@ -341,15 +341,13 @@
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            multipleCluster: {
-              renderText: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          multipleCluster: {
+            renderText: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
     tableData.value = [...tableData.value.filter((item) => item.multipleCluster.renderText), ...dataList];

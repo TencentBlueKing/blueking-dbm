@@ -167,9 +167,6 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
-  );
   const dbNameCheckMap = computed(() =>
     formData.tableData.reduce<Record<string, number>>((acc, item) => {
       const domain = item.cluster.master_domain;
@@ -275,16 +272,15 @@
 
   const handleBatchEditCluster = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, cluster) => {
-      if (!selectedMap.value[cluster.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster,
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster,
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {

@@ -220,7 +220,6 @@
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
@@ -256,14 +255,12 @@
   ];
 
   const handleClusterBatchEdit = async (data: SqlserverHaModel[]) => {
-    // 过滤出未选择的集群
-    const newClusters = data.filter((item) => !selectedMap.value[item.master_domain]);
-    if (newClusters.length === 0) return;
+    if (data.length === 0) return;
 
-    const clusterIds = newClusters.map((item) => item.id);
+    const clusterIds = data.map((item) => item.id);
     const ingoreDbsMap = await getIgnoreDbs({ cluster_ids: clusterIds });
 
-    const dataList = newClusters.map((item) =>
+    const dataList = data.map((item) =>
       createRowData({
         cluster: {
           cluster_type: item.cluster_type,
@@ -273,7 +270,8 @@
         ignore_db_list: ingoreDbsMap?.[item.id] || [],
       }),
     );
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {
