@@ -193,7 +193,6 @@
   });
 
   const selected = computed(() => tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   // 最终分片数演算：当前 - 缩容数；当前分片数未带出时显示 --
   const getFinalShardNum = (item: IDataRow) => {
@@ -207,17 +206,16 @@
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        newList.push(
-          createRowData({
-            cluster: {
-              master_domain: item.master_domain,
-            } as IDataRow['cluster'],
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          cluster: {
+            master_domain: item.master_domain,
+          } as IDataRow['cluster'],
+        }),
+      );
     });
-    Object.assign(tableData, [...(selected.value.length ? tableData : []), ...newList]);
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.splice(0, tableData.length, ...tableData.filter((item) => item.cluster.master_domain), ...newList);
   };
 
   const handleBatchInput = (data: Record<string, string>[], isClear: boolean) => {

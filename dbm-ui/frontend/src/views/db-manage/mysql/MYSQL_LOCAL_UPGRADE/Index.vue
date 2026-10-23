@@ -257,9 +257,8 @@
       return acc;
     }, {});
 
-    const clusterMemo = new Set(
-      formData.tableData.map((item) => getSortedClusterIds([item.cluster, ...item.cluster.related_clusters])),
-    );
+    // 只在本次勾选内按关联组去重，表格已有行不参与过滤（重复由主键列校验提示）
+    const clusterMemo = new Set<string>();
 
     const dataList = list.reduce<RowData[]>((acc, item) => {
       const clusterKey = clusterMap[item.master_domain];
@@ -275,7 +274,8 @@
       }
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleSubmit = () => {

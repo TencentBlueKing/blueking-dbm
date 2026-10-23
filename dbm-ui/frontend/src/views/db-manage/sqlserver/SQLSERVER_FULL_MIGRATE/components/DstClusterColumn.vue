@@ -49,6 +49,7 @@
   <!-- 批量选择 -->
   <ClusterSelector
     v-model:is-show="showBatchSelector"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
@@ -189,9 +190,7 @@
       message: t('目标集群不存在'),
       trigger: 'blur',
       validator: () => {
-        const invalidDomains = modelValue.value
-          .filter((item) => !item.id)
-          .map((item) => item.master_domain);
+        const invalidDomains = modelValue.value.filter((item) => !item.id).map((item) => item.master_domain);
         if (invalidDomains.length === 0) return true;
         return `${t('目标集群不存在')}: ${invalidDomains.join('、')}`;
       },

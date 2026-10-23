@@ -137,7 +137,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.originSpider.bk_host_id).map((item) => item.originSpider),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   // 双维度合并：cluster_id 维度（视觉），cluster_id+role 维度（提交分组）
   let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
@@ -200,18 +199,17 @@
     const dataList = list.reduce<RowData[]>((acc, item) => {
       // 选择器返回的是主机维度（IP），由用户在表格内补全 IP:Port
       const instanceAddress = item.instance_address || item.ip;
-      if (!selectedMap.value[instanceAddress]) {
-        acc.push(
-          createTableRow({
-            originSpider: {
-              instance_address: instanceAddress,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          originSpider: {
+            instance_address: instanceAddress,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.originSpider.instance_address), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

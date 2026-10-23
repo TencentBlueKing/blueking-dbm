@@ -237,15 +237,13 @@
 
   const handleBatchEditCluster = (list: SqlserverHaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            batchCluster: {
-              renderText: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          batchCluster: {
+            renderText: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
     formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...dataList];
