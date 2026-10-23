@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 
 from backend.exceptions import AppBaseException, ErrorCode
@@ -160,3 +161,14 @@ class ClusterEntryNotBindException(DBMetaBaseException):
     ERROR_CODE = "025"
     MESSAGE = _("访问入口未绑定")
     MESSAGE_TPL = _("访问入口 {entry} 未绑定到 IP")
+
+
+class DBModuleVersionException(DBMetaBaseException):
+    ERROR_CODE = "026"
+    MESSAGE = _("模块版本不合法")
+    MESSAGE_TPL = _("{message}")
+
+
+class DBModuleVersionNotSetException(DBModuleVersionException):
+    ERROR_CODE = "027"
+    MESSAGE = _("模块尚未设置版本")

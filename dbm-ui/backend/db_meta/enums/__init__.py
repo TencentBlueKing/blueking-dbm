@@ -29,9 +29,11 @@ from .machine_type import MachineType
 from .type_maps import (
     ClusterMachineAccessTypeDefine,
     ClusterTypeMachineTypeDefine,
+    ClusterTypeModuleComponentDefine,
     InstanceRoleInstanceInnerRoleMap,
     MachineTypeAccessLayerMap,
     MachineTypeInstanceRoleMap,
     machine_type_to_cluster_type,
+    module_component_types,
 )
 from .version_phase import VersionPhase
