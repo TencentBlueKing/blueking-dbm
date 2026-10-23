@@ -1,4 +1,5 @@
 {
+  "WebConsole_未启用模式": "No WebConsole mode is enabled in this environment",
   "WebConsole_关闭执行中会话确认": "The current command has not returned a result. Closing may leave its outcome unknown and it will not be retried automatically. Proceed with caution.",
   "WebConsole_等待超时_结果未知": "Timed out waiting for the command result. The execution outcome is unknown. Reconnect manually after checking; no automatic retry.",
   "WebConsole_连接等待超时": "Connection timed out. Please reconnect manually.",

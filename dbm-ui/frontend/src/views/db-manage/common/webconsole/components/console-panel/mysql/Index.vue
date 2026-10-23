@@ -25,7 +25,7 @@
 
   import type { queryAllTypeCluster } from '@services/source/dbbase';
 
-  import type { ConsoleCommandResult } from '@views/db-manage/common/webconsole/hooks/useWebconsoleSession';
+  import type { ConsoleCommandResult } from '@views/db-manage/common/webconsole/types';
 
   import ConsoleInput from '../components/ConsoleInput.vue';
 
