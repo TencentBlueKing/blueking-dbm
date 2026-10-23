@@ -38,7 +38,7 @@ import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClust
 
 import { ExtensionCategory, Graph, type GraphData as GraphDataG6, type NodeData, NodeEvent, register } from '@antv/g6';
 
-import { GraphData, type NodeConfig } from './graphData';
+import { GraphData, GroupTypes, type NodeConfig } from './graphData';
 import { TopoNode } from './topoNode';
 
 const apiMap = {
@@ -153,6 +153,16 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
       node: {
         style: {
           fill: '#fff',
+          // 实例行节点叠放在分组节点内，上下边被相邻行和分组遮住，
+          // 不配端口时连线按中心方向取矩形交点，斜线会落到上下边导致箭头被盖住，
+          // 因此只开放左右两侧端口（简单端口不绘制图形），分组节点保持默认交点
+          ports: (d: NodeData) =>
+            (d as unknown as { type: GroupTypes }).type === GroupTypes.NODE
+              ? [
+                  { key: 'left', placement: 'left' },
+                  { key: 'right', placement: 'right' },
+                ]
+              : [],
           radius: 4,
           shadowColor: '#1919290d',
           shadowOffsetX: 2,
