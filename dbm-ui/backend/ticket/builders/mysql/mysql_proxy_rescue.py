@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -47,6 +47,7 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
         self.patch_info_common_affinity(
             role="new_proxies", remain_machine_type=MachineType.PROXY, replace_key="proxy", tolerance=0.5
         )
+        self.patch_info_module_os_params(role="new_proxies", access_layer=AccessLayer.PROXY)
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_RESCUE, iam=ActionEnum.MYSQL_MANAGE)

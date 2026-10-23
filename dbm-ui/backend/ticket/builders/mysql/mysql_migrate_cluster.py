@@ -13,7 +13,7 @@ import itertools
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
@@ -89,6 +89,7 @@ class MysqlMigrateClusterParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_common_affinity(role="backend_group")
+        self.patch_info_module_os_params(role="backend_group", access_layer=AccessLayer.STORAGE)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

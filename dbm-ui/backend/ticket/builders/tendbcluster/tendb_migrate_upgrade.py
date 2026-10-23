@@ -61,6 +61,7 @@ class TenDBMigrateUpgradeParamBuilder(builders.FlowParamBuilder):
 class TenDBMigrateUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_common_affinity("backend_group")
+        self.patch_info_package_os_params(role="backend_group")
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
