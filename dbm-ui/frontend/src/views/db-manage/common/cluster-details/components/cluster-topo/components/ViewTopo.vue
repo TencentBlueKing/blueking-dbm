@@ -363,6 +363,7 @@
   .cluster-details-graph {
     height: 100%;
     background-color: @bg-gray;
+    border: 1px solid #f5f7fa;
   }
 
   .node-details {

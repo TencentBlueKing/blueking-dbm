@@ -59,8 +59,8 @@
           </TableColumn>
           <TableColumn
             col-key="bk_cpu"
-            :title="t('资源归属')"
-            width="300">
+            :min-width="400"
+            :title="t('资源归属')">
             <template #default="{ row }: { row: DbResourceModel }">
               <ResourceHostOwner :data="row" />
             </template>

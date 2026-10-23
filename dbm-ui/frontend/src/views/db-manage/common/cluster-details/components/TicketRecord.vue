@@ -29,8 +29,8 @@
       @clear-search="handleClearFilters">
       <TableColumn
         col-key="ticket_id"
-        :min-width="80"
-        :title="t('单号')">
+        :title="t('单号')"
+        :width="80">
         <template #default="{ row }: { row: IRowData }">
           <RouterLink
             target="_blank"
@@ -54,8 +54,8 @@
       </TableColumn>
       <TableColumn
         col-key="op_status"
-        :min-width="120"
-        :title="t('单据状态')">
+        :title="t('单据状态')"
+        :width="120">
         <template #default="{ row }: { row: IRowData }">
           <TicketStatusTag
             :data="{
@@ -83,8 +83,8 @@
       <TableColumn
         col-key="create_at"
         fixed="left"
-        :min-width="250"
-        :title="t('提单时间')">
+        :title="t('提单时间')"
+        :width="250">
         <template #default="{ row }: { row: IRowData }">
           {{ row.create_at || '--' }}
         </template>
