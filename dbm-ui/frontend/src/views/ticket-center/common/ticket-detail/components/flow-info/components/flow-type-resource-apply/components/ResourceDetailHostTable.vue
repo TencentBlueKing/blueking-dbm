@@ -15,7 +15,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="for_biz"
-      :min-width="300"
+      :min-width="400"
       :title="t('资源归属')">
       <template #default="{ row: rowData }: { row: IResouce }">
         <ResourceHostOwner :data="getResourceHostOwnerData(rowData)" />

@@ -172,7 +172,7 @@
       <TableColumn
         col-key="resourceOwner"
         :title="t('资源归属')"
-        :width="320">
+        :width="450">
         <template #default="{ row }: { row: DbResourceModel }">
           <BkPopover
             disable-outside-click
@@ -183,13 +183,13 @@
               <div class="resource-owner-tips">
                 <strong>{{ t('所属业务') }}：</strong>
                 <div class="resource-owner-tips-values mb-10">
-                  <DbTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
+                  <DbTag :theme="row.for_biz.bk_biz_id ? 'success' : undefined">
                     {{ row.forBizDisplay }}
                   </DbTag>
                 </div>
                 <strong>{{ t('所属DB') }}</strong>
                 <div class="resource-owner-tips-values mb-10">
-                  <DbTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
+                  <DbTag :theme="row.resource_type && row.resource_type !== 'PUBLIC' ? 'success' : undefined">
                     {{ row.resourceTypeDisplay }}
                   </DbTag>
                 </div>
@@ -206,19 +206,9 @@
               </div>
             </template>
             <div class="resource-owner-wrapper">
-              <div class="resource-owner">
-                <DbTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
-                  {{ t('所属业务') }} : {{ row.forBizDisplay }}
-                </DbTag>
-                <DbTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
-                  {{ t('所属DB') }} : {{ row.resourceTypeDisplay }}
-                </DbTag>
-                <DbTag
-                  v-for="item in row.labels"
-                  :key="item.name">
-                  {{ item.name }}
-                </DbTag>
-              </div>
+              <ResourceHostOwner
+                class="resource-owner"
+                :data="row" />
               <AuthButton
                 v-if="props.type !== ResourcePool.public"
                 action-id="resource_pool_manage"
@@ -377,6 +367,7 @@
   import DbTable from '@components/db-table/IndexNew.vue';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
+  import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
 
