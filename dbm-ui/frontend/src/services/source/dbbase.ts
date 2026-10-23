@@ -106,6 +106,11 @@ export function queryResourceAdministrationAttrs(params: { limit?: number; offse
   });
 }
 
+// 查询当前环境启用的 WebConsole 模式，不代表连通性或集群权限。
+export function getSupportWebconsoleMode() {
+  return http.get<{ http: boolean; websocket: boolean }>(`${path}/support_webconsole_mode/`);
+}
+
 /**
  * webconsole查询
  */

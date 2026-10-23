@@ -21,20 +21,16 @@ import {
 
 import { useSystemEnviron } from '@stores';
 
-import { t } from '@locales/index';
+import type { ConsoleCommandResult, WebconsoleMode } from '@views/db-manage/common/webconsole/types';
 
-export interface ConsoleCommandResult {
-  error_msg?: string;
-  query: unknown;
-  rows_affected?: number;
-}
+import { t } from '@locales/index';
 
 export interface WebconsoleTab extends WebconsoleOptions {
   busy: boolean;
   error: string;
   execute: (command: string) => Promise<ConsoleCommandResult>;
   key: number;
-  mode: 'http' | 'ws';
+  mode: WebconsoleMode;
   setBusy: (busy: boolean) => void;
   state: WebconsoleState;
   timezone: string;

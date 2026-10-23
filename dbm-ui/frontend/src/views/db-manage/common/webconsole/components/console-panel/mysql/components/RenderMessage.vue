@@ -23,7 +23,6 @@
       </tbody>
     </table>
     <div v-else>{{ resultText }}</div>
-    <div v-if="rowsAffected !== undefined">{{ t('WebConsole_影响行数', [rowsAffected]) }}</div>
   </div>
 </template>
 <script setup lang="ts">
