@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 # fast_execute_script接口固定参数
 # 这里独立出来，遇到过全局变量被其他db修改，导致用户错乱的问题
 mongodb_fast_execute_script_common_kwargs = {
@@ -244,6 +245,54 @@ mongodb_cluster_inti_js_script = """
 sh.setBalancerState(false);
 db.getSiblingDB('config').settings.updateOne({ _id:'chunksize' }, { $set: { value: 512 } }, { upsert: true });
 """
+
+
+def mongodb_grant_sessions_chunk_role_js_script(username: str) -> str:
+    """给执行均衡脚本的账号补 config.system.sessions 的 splitChunk / moveChunk。"""
+
+    if not username or any(
+        ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" for ch in username
+    ):
+        raise ValueError("invalid mongodb username: {}".format(username))
+    return """
+var admin = db.getSiblingDB("admin");
+var roleName = "sessionsChunkManager";
+var username = "__USERNAME__";
+var role = admin.getRole(roleName);
+if (!role) {
+  var created = admin.runCommand({
+    createRole: roleName,
+    privileges: [{
+      resource: { db: "config", collection: "system.sessions" },
+      actions: ["splitChunk", "moveChunk"]
+    }],
+    roles: []
+  });
+  if (!created || Number(created.ok) !== 1) {
+    throw new Error("createRole " + roleName + " failed: " + tojson(created));
+  }
+}
+var info = admin.getUser(username);
+if (!info) {
+  throw new Error("user " + username + " not found");
+}
+var granted = false;
+(info.roles || []).forEach(function (item) {
+  if (item.role === roleName && item.db === "admin") granted = true;
+});
+if (!granted) {
+  var grant = admin.runCommand({
+    grantRolesToUser: username,
+    roles: [{ role: roleName, db: "admin" }]
+  });
+  if (!grant || Number(grant.ok) !== 1) {
+    throw new Error("grantRolesToUser " + username + " failed: " + tojson(grant));
+  }
+}
+""".replace(
+        "__USERNAME__", username
+    )
+
 
 # 禁用bk-dbmon 监控
 mongodb_dbmon_shield_port = """
