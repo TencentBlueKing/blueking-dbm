@@ -99,6 +99,7 @@ class TestAlertView:
         assert result["code"] == 0
         assert "alerts" in result["data"]
         assert "total" in result["data"]
+        assert mock_search_alert.call_args[0][0]["ordering"] == ["-create_time", "status", "-seq_id"]
 
         # 清理测试数据
         with django_db_blocker.unblock():
