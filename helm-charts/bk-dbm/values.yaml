@@ -158,6 +158,8 @@ dbm:
     reverseReportKafkaOptions: ""
     dbmEnableAI: false
     bkaiAgentMetricsPushMode: "direct"
+    # WebConsole WS 链路部署就绪后开启，供前端查询可用模式。
+    ENABLE_WEBCONSOLE_WEBSOCKET: "true"
 
   ingress:
     enabled: true
@@ -174,6 +176,18 @@ dbm:
     paths:
       - path: /bkdbm(/|$)(.*)
         pathType: ImplementationSpecific
+    tls: []
+
+  ingressWs:
+    enabled: true
+    className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /ws
+        pathType: Prefix
     tls: []
 
   ingressBackendApi:
@@ -213,6 +227,11 @@ dbm:
     backendApi:
       enabled: true
       replicaCount: 1
+    ws:
+      enabled: true
+      replicaCount: 1
+      workers: 4
+      terminationGracePeriodSeconds: 60
     celeryBeat:
       enabled: true
       replicaCount: 1
