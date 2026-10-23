@@ -197,6 +197,7 @@
     </div>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :append-mode="false"
       :cluster-types="[ClusterTypes.TENDBHA]"
       :selected="selectedClusters"
       @change="handelClusterChange" />

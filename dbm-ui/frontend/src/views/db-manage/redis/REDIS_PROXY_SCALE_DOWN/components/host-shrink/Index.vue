@@ -132,9 +132,6 @@
   const selected = computed(() =>
     tableData.value.filter((item) => item.proxy_reduced_host.ip).map((item) => item.proxy_reduced_host),
   );
-  const selectedMap = computed(() =>
-    Object.fromEntries(tableData.value.map((cur) => [cur.proxy_reduced_host.ip, true])),
-  );
   const rowSpan = computed(() =>
     tableData.value.reduce<Record<string, number>>((acc, item) => {
       if (item.proxy_reduced_host.master_domain) {
@@ -172,19 +169,18 @@
 
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(
-          createTableRow({
-            online_switch_type: item.online_switch_type,
-            proxy_reduced_host: {
-              ip: item.ip,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          online_switch_type: item.online_switch_type,
+          proxy_reduced_host: {
+            ip: item.ip,
+          },
+        }),
+      );
       return acc;
     }, []);
-    tableData.value = [...(tableData.value[0].proxy_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.proxy_reduced_host.ip), ...dataList];
   };
 
   const handleOnlineSwitchTypeBatchEdit = (value: string | string[]) => {

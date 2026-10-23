@@ -111,7 +111,7 @@
     clearValidate: () => void;
     validate: () => Promise<boolean>;
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
-    validateByField: (row: string | string[]) => Promise<boolean>;
+    validateByField: (field: string | string[], rowIndex?: number | number[]) => Promise<boolean>;
     validateByRowIndex: (row: number | number[]) => Promise<boolean>;
     viewError: (errorList: { errors: string; field: string; row_key: string | number }[]) => void;
   }
@@ -300,10 +300,15 @@
     return validateColumnList(columnList);
   };
 
-  const validateByField = (field: string | string[]) => {
+  // rowIndex 可选：只校验指定行的这些字段，不传时校验整列
+  const validateByField = (field: string | string[], rowIndex?: number | number[]) => {
     const fieldList = Array.isArray(field) ? field : [field];
+    const rowIndexList = rowIndex === undefined ? undefined : _.castArray(rowIndex);
 
-    const columnList = rowList.value.reduce<IColumnContext[]>((result, rowItem) => {
+    const columnList = rowList.value.reduce<IColumnContext[]>((result, rowItem, index) => {
+      if (rowIndexList && !rowIndexList.includes(index)) {
+        return result;
+      }
       fieldList.forEach((field) => {
         rowItem.forEach((column) => {
           if (column.props.field && column.props.field === field) {

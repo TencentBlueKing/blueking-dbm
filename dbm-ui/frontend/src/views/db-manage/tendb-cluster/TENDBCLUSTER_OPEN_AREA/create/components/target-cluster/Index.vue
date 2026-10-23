@@ -111,9 +111,6 @@
   const tableData = ref([createTableRow()]);
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    Object.fromEntries(tableData.value.map((cur) => [cur.cluster.master_domain, true])),
-  );
   const selectedIps = computed(() =>
     tableData.value.reduce<string[]>((acc, item) => {
       acc.push(...item.authorize_ips);
@@ -192,16 +189,15 @@
 
   const handleBatchEditCluster = (list: TendbclusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, cluster) => {
-      if (!selectedMap.value[cluster.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster,
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster,
+        }),
+      );
       return acc;
     }, []);
-    tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchEditVars = (value: any, field: string) => {

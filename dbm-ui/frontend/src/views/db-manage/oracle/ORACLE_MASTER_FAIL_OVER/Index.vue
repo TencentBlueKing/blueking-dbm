@@ -201,23 +201,21 @@
 
   // 选择器返回主机模型（OracleHaMachineModel），需从 related_instances/related_clusters 派生字段
   const handleBatchEdit = (list: SelectorMachine[]) => {
-    const selectedIps = new Set(selectedMasters.value.map((item) => item.ip));
-    const dataList = list
-      .filter((item) => !selectedIps.has(item.ip))
-      .map((item) => {
-        const cluster = item.related_clusters?.[0];
-        return createTableRow({
-          master: createFailOverMaster({
-            bk_cloud_id: item.bk_cloud_id,
-            bk_host_id: item.bk_host_id,
-            cluster_id: cluster?.id || 0,
-            ip: item.ip,
-            master_domain: cluster?.immute_domain || '',
-            role: item.instance_role,
-          }),
-        });
+    const dataList = list.map((item) => {
+      const cluster = item.related_clusters?.[0];
+      return createTableRow({
+        master: createFailOverMaster({
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          cluster_id: cluster?.id || 0,
+          ip: item.ip,
+          master_domain: cluster?.immute_domain || '',
+          role: item.instance_role,
+        }),
       });
-    appendRows(dataList);
+    });
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.master.ip), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
