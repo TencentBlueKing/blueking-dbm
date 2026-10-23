@@ -32,6 +32,12 @@ class MongoDBDeferredDeInstallDetailSerializer(BaseMongoDBOperateDetailSerialize
         instance_type = serializers.CharField(help_text=_("实例类型 mongod/mongos"), required=False, allow_blank=True)
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
         set_id = serializers.CharField(help_text=_("副本集/分片名"), required=False, allow_blank=True)
+        force_physical = serializers.BooleanField(help_text=_("meta 已摘除仍做物理卸载"), required=False)
+        replica_set_peers = serializers.ListField(
+            help_text=_("摘 meta 前记下的副本集其余节点"), child=serializers.CharField(), required=False
+        )
+        recycle_host = serializers.DictField(help_text=_("摘 meta 前记下的回收主机"), required=False)
+        admin_password = serializers.CharField(help_text=_("无存活节点可回退时记下的管理密码"), required=False, allow_blank=True)
 
     infos = serializers.ListSerializer(help_text=_("延迟下架实例列表"), child=InstanceInfoSerializer())
     poll_interval_sec = serializers.IntegerField(help_text=_("GSE 轮询间隔秒"), required=False, default=300)
@@ -67,18 +73,32 @@ class MongoDBDeferredDeInstallFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     default_need_manual_confirm = False
 
     def supplement_old_nodes(self):
-        self.ticket.details["old_nodes"] = {"instance": []}
-        seen = set()
+        """Machine 已在建单前删除时，沿用摘除前记下的 old_nodes / recycle_host。"""
+        existing = ((self.ticket.details.get("old_nodes") or {}).get("instance")) or []
+        by_key = {}
+        for item in existing:
+            if not item.get("ip") or not item.get("bk_host_id"):
+                continue
+            by_key[(item["ip"], item["bk_cloud_id"])] = item
         for info in self.ticket.details["infos"]:
             key = (info["ip"], info["bk_cloud_id"])
-            if key in seen:
+            if key in by_key:
                 continue
-            seen.add(key)
+            snap = info.get("recycle_host") or {}
+            if snap.get("bk_host_id"):
+                by_key[key] = {
+                    "ip": snap.get("ip") or info["ip"],
+                    "bk_biz_id": snap.get("bk_biz_id"),
+                    "bk_host_id": snap["bk_host_id"],
+                    "bk_cloud_id": snap.get("bk_cloud_id", info["bk_cloud_id"]),
+                }
+                continue
             machine_info = Machine.objects.filter(ip=info["ip"], bk_cloud_id=info["bk_cloud_id"]).values(
                 "ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"
             )
             if machine_info.exists():
-                self.ticket.details["old_nodes"]["instance"].append(machine_info[0])
+                by_key[key] = machine_info[0]
+        self.ticket.details["old_nodes"] = {"instance": list(by_key.values())}
 
     def patch_ticket_detail(self):
         self.supplement_old_nodes()
