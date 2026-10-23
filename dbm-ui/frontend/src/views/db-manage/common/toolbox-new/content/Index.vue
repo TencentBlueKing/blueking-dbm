@@ -42,6 +42,7 @@
           <DbSelect
             v-model="selectedValue"
             filterable
+            :scroll-height="350"
             @change="handleChange">
             <template #trigger>
               <div class="title-trigger">
