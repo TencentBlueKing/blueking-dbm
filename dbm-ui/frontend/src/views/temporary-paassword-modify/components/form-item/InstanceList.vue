@@ -58,6 +58,7 @@
   <InstanceSelector
     v-model="instanceSelectorValue"
     v-model:is-show="isShowInstanceSelector"
+    :append-mode="false"
     :cluster-types="[
       ClusterTypes.TENDBSINGLE,
       ClusterTypes.TENDBHA,

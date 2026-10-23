@@ -186,7 +186,6 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.proxy.bk_host_id).map((item) => item.proxy));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   watch(
     () => formData.ticketType,
@@ -233,18 +232,17 @@
 
   const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const dataList = list.reduce<IDataRow[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(
-          createTableRow({
-            proxy: {
-              ip: item.ip,
-            } as IDataRow['proxy'],
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          proxy: {
+            ip: item.ip,
+          } as IDataRow['proxy'],
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].proxy.bk_host_id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.proxy.ip), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

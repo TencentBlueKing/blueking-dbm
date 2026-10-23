@@ -179,22 +179,20 @@
         return [item.host];
       }),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   const handleHostBatchEdit = (list: HostModel<ClusterTypes.REDIS>[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
-      if (!selectedMap.value[item.ip]) {
-        newList.push(
-          createRowData({
-            host: {
-              ip: item.ip,
-            } as IDataRow['host'],
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          host: {
+            ip: item.ip,
+          } as IDataRow['host'],
+        }),
+      );
     });
-    tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.host.ip), ...newList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

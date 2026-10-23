@@ -28,6 +28,7 @@
   </BkFormItem>
   <ClusterSelector
     v-model:is-show="isShowSelector"
+    :append-mode="false"
     :cluster-types="clusterTypes[dbType]"
     :selected="selectedClusters"
     @change="handelClusterChange" />

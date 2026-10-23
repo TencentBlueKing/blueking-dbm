@@ -108,6 +108,11 @@
       validator: (value: string) => !value || ipv4.test(value),
     },
     {
+      message: t('cluster重复', [t('目标主库主机')]),
+      trigger: 'change',
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
+    },
+    {
       message: t('目标主机不存在'),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),

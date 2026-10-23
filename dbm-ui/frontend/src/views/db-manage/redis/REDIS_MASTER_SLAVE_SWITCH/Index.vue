@@ -194,7 +194,6 @@
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   const batchInputConfig = [
     {
@@ -240,22 +239,21 @@
     const newList: IDataRow[] = [];
     list.forEach((proxyData) => {
       const { ip } = proxyData;
-      if (!selectedMap.value[ip]) {
-        newList.push(
-          createRowData({
-            host: {
-              bk_cloud_id: proxyData.bk_cloud_id,
-              bk_host_id: proxyData.bk_host_id,
-              ip,
-              master_instances: [],
-              related_clusters: proxyData.related_clusters,
-              slave_ip: '',
-            },
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          host: {
+            bk_cloud_id: proxyData.bk_cloud_id,
+            bk_host_id: proxyData.bk_host_id,
+            ip,
+            master_instances: [],
+            related_clusters: proxyData.related_clusters,
+            slave_ip: '',
+          },
+        }),
+      );
     });
-    formData.tableData = [...(formData.tableData[0].host.ip ? formData.tableData : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.host.ip), ...newList];
   };
 
   const handleBatchEdit = (value: string, field: string) => {

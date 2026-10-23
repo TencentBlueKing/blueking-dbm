@@ -105,6 +105,7 @@
   </BkFormItem>
   <ClusterSelector
     v-model:is-show="state.isShow"
+    :append-mode="false"
     :cluster-types="clusterTypes"
     only-one-type
     :selected="selectedList"

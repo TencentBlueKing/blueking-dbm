@@ -63,7 +63,7 @@
           :disabled="isEmpty"
           theme="primary"
           @click="handleConfirm">
-          {{ t('确定') }}
+          {{ isAppendMode ? t('追加到表格') : t('确定') }}
         </BkButton>
       </span>
       <BkButton
@@ -90,6 +90,13 @@
   import { type HostModel, type ISupportHostType } from './types';
 
   export interface Props<C extends ISupportHostType> {
+    /**
+     * @description 追加模式（工具箱提单页的表格追加场景）：打开时不回勾 v-model，确认只回传本次勾选，主按钮为「追加到表格」。
+     * 非工具箱场景、以及编辑「当前值」的场景（单元格多选、表单项、单值替换）须显式传 false；
+     * 配置 single 时忽略本配置，按回勾处理
+     * @default true
+     */
+    appendMode?: boolean;
     clusterTypes: C[];
     dataSourceMap?: {
       [key in C]?: (params: any) => Promise<any>;
@@ -109,7 +116,13 @@
     (e: 'cancel'): void;
   };
 
-  const props = defineProps<Props<T>>();
+  const props = withDefaults(defineProps<Props<T>>(), {
+    appendMode: true,
+    dataSourceMap: undefined,
+    disableSelectMethod: undefined,
+    tabNameMap: undefined,
+    uniquePanelSettings: undefined,
+  });
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{ [key in T]: HostModel<T>[] }>({
@@ -122,6 +135,8 @@
   const { t } = useI18n();
 
   const currentPanelTab = ref(props.clusterTypes[0]);
+  // 单选是「替换当前值」，忽略追加模式，打开时照常回勾
+  const isAppendMode = computed(() => props.appendMode && !props.single);
   const lastValues = ref({} as UnwrapRef<typeof modelValue>);
 
   const currentTableData = computed(() => lastValues.value[currentPanelTab.value] || []);
@@ -131,7 +146,10 @@
   );
 
   watch(isShow, () => {
-    lastValues.value = _.cloneDeep(modelValue.value);
+    // 追加模式每次打开都从空白开始，表格已有对象不回勾
+    lastValues.value = isAppendMode.value
+      ? (Object.fromEntries(props.clusterTypes.map((type) => [type, []])) as unknown as UnwrapRef<typeof modelValue>)
+      : _.cloneDeep(modelValue.value);
   });
 
   const handleSelection = (list: HostModel<T>[]) => {

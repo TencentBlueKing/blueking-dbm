@@ -35,6 +35,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
+    :append-mode="false"
     :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"

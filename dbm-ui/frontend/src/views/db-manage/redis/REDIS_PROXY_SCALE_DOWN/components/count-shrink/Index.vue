@@ -170,9 +170,6 @@
 
   const tableData = ref<RowData[]>([createTableRow()]);
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    Object.fromEntries(tableData.value.map((cur) => [cur.cluster.master_domain, true])),
-  );
 
   const rules = {
     'cluster.master_domain': [
@@ -218,18 +215,17 @@
 
   const handleBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleRedecedCountBatchEdit = (value: string | string[]) => {

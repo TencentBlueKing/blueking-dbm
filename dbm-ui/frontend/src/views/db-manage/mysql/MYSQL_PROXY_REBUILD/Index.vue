@@ -135,7 +135,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.originProxy.bk_host_id).map((item) => item.originProxy),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   // 按 cluster_id 聚合：同集群下的多个 Proxy 实例视觉合并 + 提交分组
   let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
@@ -191,18 +190,17 @@
 
   const handleBatchEdit = (list: TendbhaInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
-        acc.push(
-          createTableRow({
-            originProxy: {
-              instance_address: item.instance_address,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          originProxy: {
+            instance_address: item.instance_address,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.originProxy.instance_address), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

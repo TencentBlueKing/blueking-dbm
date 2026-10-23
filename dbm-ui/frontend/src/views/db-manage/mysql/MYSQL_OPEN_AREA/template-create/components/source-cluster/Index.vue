@@ -29,6 +29,7 @@
   </div>
   <ClusterSelector
     v-model:is-show="isShow"
+    :append-mode="false"
     :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
     only-one-type
     :selected="selectedCluster"

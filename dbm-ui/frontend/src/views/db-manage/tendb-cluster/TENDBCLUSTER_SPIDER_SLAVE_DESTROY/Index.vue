@@ -144,9 +144,6 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
-  );
 
   useTicketDetail<TendbCluster.SpiderSlaveDestroy>(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, {
     onSuccess(ticketDetail) {
@@ -185,18 +182,17 @@
 
   const handleBatchEditCluster = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, cluster) => {
-      if (!selectedMap.value[cluster.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: cluster.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: cluster.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    const newData = [...(formData.tableData[0]?.cluster?.id ? formData.tableData : []), ...dataList] as any;
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    const newData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList] as any;
     formData.tableData.splice(0, formData.tableData.length, ...newData);
   };
 

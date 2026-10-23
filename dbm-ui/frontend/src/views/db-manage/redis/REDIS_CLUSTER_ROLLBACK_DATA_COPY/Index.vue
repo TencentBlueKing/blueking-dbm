@@ -235,7 +235,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.cluster.temp_cluster_proxy).map((item) => item.cluster),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.temp_cluster_proxy, true])));
 
   const { domains } = route.query as { domains: string };
   if (domains) {
@@ -251,15 +250,14 @@
   const handleClusterBatchEdit = (clusterList: RedisRollbackModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.temp_cluster_proxy]) {
-        newList.push(
-          createRowData({
-            cluster: item,
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          cluster: item,
+        }),
+      );
     });
-    formData.tableData = [...(formData.tableData[0].cluster.temp_cluster_proxy ? formData.tableData : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.temp_cluster_proxy), ...newList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

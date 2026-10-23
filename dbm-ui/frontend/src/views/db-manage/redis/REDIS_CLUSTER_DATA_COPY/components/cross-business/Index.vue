@@ -177,27 +177,24 @@
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleClusterBatchEdit = (list: RedisModel[]) => {
     const newList: IDataRow[] = [];
     list.forEach((item) => {
-      const { master_domain: domain } = item;
-      if (!selectedMap.value[domain]) {
-        newList.push(
-          createRowData({
-            cluster: {
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              id: item.id,
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          cluster: {
+            cluster_type: item.cluster_type,
+            cluster_type_name: item.cluster_type_name,
+            id: item.id,
+            master_domain: item.master_domain,
+          },
+        }),
+      );
     });
 
-    tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.cluster.master_domain), ...newList];
   };
 
   const handleColumnBatchEdit = (value: string[], field: string) => {

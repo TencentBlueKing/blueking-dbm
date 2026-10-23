@@ -128,7 +128,6 @@
   const tableKey = ref(random());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   useTicketDetail<Redis.ClusterReinstallDbmon>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, {
     onSuccess(ticketDetail) {
@@ -177,18 +176,17 @@
 
   const handleBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

@@ -211,15 +211,13 @@
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        newList.push(
-          createRowData({
-            batchCluster: {
-              renderText: item.master_domain,
-            } as IDataRow['batchCluster'],
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          batchCluster: {
+            renderText: item.master_domain,
+          } as IDataRow['batchCluster'],
+        }),
+      );
     });
 
     tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...newList];

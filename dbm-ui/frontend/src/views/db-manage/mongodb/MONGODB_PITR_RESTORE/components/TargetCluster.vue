@@ -81,6 +81,7 @@
   <ClusterSelector
     :key="clusterType"
     v-model:is-show="isShowClusterSelector"
+    :append-mode="false"
     :cluster-types="[clusterType]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
@@ -107,7 +108,7 @@
   }
 
   const tableData = defineModel<RowData[]>({
-    default: [],
+    default: () => [],
   });
 
   const { t } = useI18n();

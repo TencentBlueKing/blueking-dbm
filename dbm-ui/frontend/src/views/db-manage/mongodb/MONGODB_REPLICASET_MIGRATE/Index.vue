@@ -232,15 +232,13 @@
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        newList.push(
-          createRowData({
-            batchCluster: {
-              renderText: item.master_domain,
-            } as IDataRow['batchCluster'],
-          }),
-        );
-      }
+      newList.push(
+        createRowData({
+          batchCluster: {
+            renderText: item.master_domain,
+          } as IDataRow['batchCluster'],
+        }),
+      );
     });
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...newList];

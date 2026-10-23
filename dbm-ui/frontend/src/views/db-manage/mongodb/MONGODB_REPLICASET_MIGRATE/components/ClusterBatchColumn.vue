@@ -38,6 +38,7 @@
     @change="handleBatchSelectChange" />
   <ClusterSelector
     v-model:is-show="isCellSelectorShow"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
     :selected="cellSelectedClusters"
     @change="handleCellClusterChange" />

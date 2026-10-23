@@ -89,6 +89,7 @@
     </DbFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :append-mode="false"
       :cluster-types="clusterTypeList"
       :selected="clusterSelectorValue"
       @change="handelClusterChange" />

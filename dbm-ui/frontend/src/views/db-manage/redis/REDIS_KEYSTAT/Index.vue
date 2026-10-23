@@ -188,7 +188,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.instance.bk_host_id).map((item) => item.instance),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     bk_cloud_id: number;
@@ -201,24 +200,23 @@
 
   const handleInstanceBatchEdit = (list: RedisInstanceModel[]) => {
     const dataList = list.reduce<ReturnType<typeof createTableRow>[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
-        acc.push(
-          createTableRow({
-            instance: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              instance_address: item.instance_address,
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          instance: {
+            bk_cloud_id: item.bk_cloud_id,
+            bk_host_id: item.bk_host_id,
+            cluster_id: item.cluster_id,
+            cluster_type: item.cluster_type,
+            cluster_type_name: item.cluster_type_name,
+            instance_address: item.instance_address,
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.instance.instance_address), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

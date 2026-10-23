@@ -105,6 +105,7 @@
   <InstanceSelector
     v-model="selectorSelected"
     v-model:is-show="isShowInstanceSelector"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :data-source-map="dataSourceMap"
     @change="handleChange" />

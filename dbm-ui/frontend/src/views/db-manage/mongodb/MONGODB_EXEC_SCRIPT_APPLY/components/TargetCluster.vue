@@ -66,6 +66,7 @@
     </DbFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :append-mode="false"
       :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET]"
       :selected="clusterSelectorValue"
       :tab-list-config="tabListConfig"
@@ -89,7 +90,7 @@
   import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
-  const modelValue = defineModel<number[]>();
+  const modelValue = defineModel<number[]>({ required: true });
 
   const { t } = useI18n();
 

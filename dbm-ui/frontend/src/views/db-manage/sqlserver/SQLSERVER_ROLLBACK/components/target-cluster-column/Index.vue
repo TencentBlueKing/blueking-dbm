@@ -34,6 +34,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"

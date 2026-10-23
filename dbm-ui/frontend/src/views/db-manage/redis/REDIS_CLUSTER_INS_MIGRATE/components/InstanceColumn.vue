@@ -52,6 +52,7 @@
   <InstanceSelector
     v-model="cellSelectedInstances"
     v-model:is-show="isCellSelectorShow"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.REDIS]"
     :data-source-map="dataSourceMap"
     @change="handleCellClusterChange" />

@@ -324,22 +324,21 @@
 
   const handleBatchEditCluster = (list: SqlServerHaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            dbName: ['*'],
-            srcCluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
-              major_version: item.major_version,
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          dbName: ['*'],
+          srcCluster: {
+            cluster_type: item.cluster_type,
+            id: item.id,
+            major_version: item.major_version,
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].srcCluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.srcCluster.master_domain), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {

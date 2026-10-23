@@ -174,9 +174,6 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   /** 所有行的集群数据，用于统一设置目标容量时的校验 */
   const allClusters = computed(() => formData.tableData.map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
-  );
 
   useTicketDetail<TendbCluster.ResourcePool.NodeRebalance>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, {
     onSuccess(ticketDetail) {
@@ -269,18 +266,17 @@
 
   const handleBatchEdit = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

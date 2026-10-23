@@ -72,6 +72,7 @@
   <!-- 单元格添加 -->
   <ClusterSelector
     v-model:is-show="showSelector"
+    :append-mode="false"
     :cluster-types="clusterTypes"
     :selected="currentClusters"
     @change="handleSelectorChange" />

@@ -135,7 +135,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.mntNode.bk_host_id).map((item) => item.mntNode),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
   // 具备完全相同的集群id列的行数组map
   let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
 
@@ -228,18 +227,17 @@
 
   const handleBatchEdit = (list: TendbClusterInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
-        acc.push(
-          createTableRow({
-            mntNode: {
-              instance_address: item.instance_address,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          mntNode: {
+            instance_address: item.instance_address,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.mntNode.instance_address), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

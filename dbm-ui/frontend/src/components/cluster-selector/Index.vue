@@ -121,7 +121,7 @@
           :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
           @click="handleConfirm">
-          {{ t('确定') }}
+          {{ isAppendMode ? t('追加到表格') : t('确定') }}
         </BkButton>
       </span>
       <BkButton
@@ -215,6 +215,13 @@
   export type SelectMapValueType<T> = Record<string, T[]>;
 
   export interface Props<T> {
+    /**
+     * @description 追加模式（工具箱提单页的表格追加场景）：打开时不回勾 selected，确认只回传本次勾选，主按钮为「追加到表格」。
+     * 非工具箱场景、以及编辑「当前值」的场景（单元格多选、表单项、单值替换）须显式传 false；
+     * 所有 tab 均为单选（multiple: false）时忽略本配置，按回勾处理
+     * @default true
+     */
+    appendMode?: boolean;
     clusterTypes: string[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     onlyOneType?: boolean;
@@ -225,7 +232,11 @@
 
   export type Emits<T> = (e: 'change', value: Props<T>['selected']) => void;
 
-  const props = defineProps<Props<T>>();
+  const props = withDefaults(defineProps<Props<T>>(), {
+    appendMode: true,
+    disableDialogSubmitMethod: undefined,
+    tabListConfig: undefined,
+  });
 
   const emits = defineEmits<Emits<T>>();
 
@@ -386,6 +397,11 @@
 
   const activePanelObj = computed(() => clusterTabListMap.value[activeTab.value]);
 
+  // 所有 tab 都是单选（multiple: false）时视为单选选择器：单选是「替换当前值」，忽略追加模式，打开时照常回勾
+  const isAppendMode = computed(
+    () => props.appendMode && !(tabList.value.length > 0 && tabList.value.every((tab) => tab.multiple === false)),
+  );
+
   // 所有 tab 都没有选中项
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (clusterList) => clusterList.length < 1));
 
@@ -435,6 +451,14 @@
 
   watch(isShow, () => {
     if (isShow.value && tabList.value) {
+      // 追加模式每次打开都从空白开始，表格已有对象不回勾
+      if (isAppendMode.value) {
+        selectedMap.value = tabList.value.reduce<SelectMapValueType<T>>(
+          (result, tabItem) => Object.assign(result, { [tabItem.id]: [] }),
+          {},
+        );
+        return;
+      }
       selectedMap.value = tabList.value.reduce<SelectMapValueType<T>>((result, tabItem) => {
         if (!props.selected[tabItem.id]) {
           return result;

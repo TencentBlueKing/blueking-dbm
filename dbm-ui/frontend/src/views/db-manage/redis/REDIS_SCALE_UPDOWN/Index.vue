@@ -184,7 +184,6 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
@@ -306,18 +305,17 @@
 
   const handleClusterBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: item,
-            db_version: item.major_version,
-            online_switch_type: 'user_confirm',
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster: item,
+          db_version: item.major_version,
+          online_switch_type: 'user_confirm',
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {

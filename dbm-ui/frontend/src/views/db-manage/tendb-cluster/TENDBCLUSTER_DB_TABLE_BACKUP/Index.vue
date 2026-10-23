@@ -47,6 +47,7 @@
             field="db_patterns"
             :label="t('备份 DB 名')"
             required
+            :rules="dbPatternsRepeatRules"
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.ignore_dbs"
@@ -90,6 +91,7 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -185,9 +187,60 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() =>
-    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
-  );
+
+  // 「集群 + 备份 DB 名」组合判定键，任一列为空返回空串不参与判重；DB 按集合比较，与录入顺序无关
+  const getRepeatKey = (row: RowData) =>
+    row.cluster.master_domain && row.db_patterns.length > 0
+      ? `${row.cluster.master_domain}#${[...new Set(row.db_patterns)].sort().join(',')}`
+      : '';
+
+  // 每行的组合键，只依赖集群域名与备份 DB 名，其它列变化不会触发重算
+  const rowRepeatKeys = computed(() => formData.tableData.map(getRepeatKey));
+
+  // 处于重复状态的组合键集合
+  const getConflictKeys = (keys: string[]) => {
+    const countMap = _.countBy(keys.filter(Boolean));
+    return Object.keys(countMap).filter((key) => countMap[key] > 1);
+  };
+
+  const dbPatternsRepeatRules = [
+    {
+      message: t('cluster重复', [t('备份 DB 名')]),
+      trigger: 'change',
+      validator: (_value: string[], { rowData }: { rowData: RowData }) => {
+        const key = getRepeatKey(rowData);
+        return !key || formData.tableData.filter((item) => getRepeatKey(item) === key).length < 2;
+      },
+    },
+  ];
+
+  // 冲突是两行之间的关系，只改其中一行时另一行不会自己重校验，需要主动刷新：
+  // 1. 组合键进入或离开冲突的行（另一行同时标红 / 同时消除）
+  // 2. 组合键自身变了的行（如改了集群，DB 列不会自己重校验，旧的重复标红会残留）
+  // 只刷新已填 DB 的行，避免把未填 DB 的行提前标红「DB 名不能为空」
+  watch(rowRepeatKeys, (newKeys, oldKeys) => {
+    const oldConflictKeys = getConflictKeys(oldKeys);
+    const newConflictKeys = getConflictKeys(newKeys);
+    const changedConflictKeys = new Set(_.xor(oldConflictKeys, newConflictKeys));
+    const rowIndexList = formData.tableData.reduce<number[]>((result, row, index) => {
+      const key = newKeys[index];
+      if (row.db_patterns.length > 0 && (key !== oldKeys[index] || changedConflictKeys.has(key))) {
+        result.push(index);
+      }
+      return result;
+    }, []);
+    if (rowIndexList.length < 1) {
+      return;
+    }
+    nextTick(() => {
+      // 校验不通过时 reject(false) 即标红本身，无需处理；其它异常照常抛出
+      tableRef.value?.validateByField('db_patterns', rowIndexList).catch((error: unknown) => {
+        if (error !== false) {
+          throw error;
+        }
+      });
+    });
+  });
 
   useTicketDetail<TendbCluster.DbTableBackup>(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, {
     onSuccess(ticketDetail) {
@@ -244,16 +297,15 @@
 
   const handleBatchEditCluster = (list: TendbclusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, cluster) => {
-      if (!selectedMap.value[cluster.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster,
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          cluster,
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有集群过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {

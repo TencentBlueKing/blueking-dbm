@@ -172,7 +172,6 @@
   });
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   // 各集群版本列表（由子组件上报）
   const clusterVersionMap = ref<Record<number, VersionData>>({});
@@ -247,17 +246,16 @@
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: RowData[] = [];
     clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        newList.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+      newList.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
     });
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...newList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.cluster.master_domain), ...newList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {

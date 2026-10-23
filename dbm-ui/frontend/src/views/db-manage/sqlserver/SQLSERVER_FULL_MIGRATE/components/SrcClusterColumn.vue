@@ -49,6 +49,7 @@
   <!-- 单元格选择 -->
   <ClusterSelector
     v-model:is-show="showSingleSelector"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
     :selected="currentSelected"
     :tab-list-config="tabListConfig"

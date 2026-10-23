@@ -38,6 +38,7 @@
     <ClusterSelector
       :key="clusterTypes.join(',')"
       v-model:is-show="isShowRowClusterSelector"
+      :append-mode="false"
       :cluster-types="clusterTypes"
       :selected="rowSelected"
       @change="handleRowClusterChange" />

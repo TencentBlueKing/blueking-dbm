@@ -34,6 +34,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
+    :append-mode="false"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"

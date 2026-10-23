@@ -216,7 +216,6 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
   const masterDomains = computed(() => formData.tableData.map((item) => item.host.master_domain));
 
   useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
@@ -391,18 +390,17 @@
 
   const handleHostBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<IDataRow[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(
-          createTableRow({
-            host: {
-              ip: item.ip,
-            } as IDataRow['host'],
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          host: {
+            ip: item.ip,
+          } as IDataRow['host'],
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.host.ip), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
