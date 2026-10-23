@@ -2,7 +2,7 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -56,6 +56,7 @@ class TendbClusterSpiderLayerDrResourceParamBuilder(BaseOperateResourceParamBuil
         self.patch_info_common_affinity(
             role="spider_master_new_ip_list", remain_machine_type=MachineType.PROXY, replace_key="proxy", tolerance=0.5
         )
+        self.patch_info_module_os_params(role="spider_master_new_ip_list", access_layer=AccessLayer.PROXY)
 
     @staticmethod
     def is_slave_role(info: dict) -> bool:

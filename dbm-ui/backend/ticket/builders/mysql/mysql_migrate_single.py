@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import AccessLayer
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -50,6 +51,7 @@ class MysqlMigrateSingleParamBuilder(builders.FlowParamBuilder):
 class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_common_affinity(role="bk_new_orphan")
+        self.patch_info_module_os_params(role="bk_new_orphan", access_layer=AccessLayer.STORAGE)
 
 
 @builders.BuilderFactory.register(

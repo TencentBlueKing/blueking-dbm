@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import logging
 import re
 
@@ -136,10 +137,10 @@ class ToolboxHandler:
                             pkg,
                             higher_major_version,
                             higher_all_version,
-                            major_version_num,
-                            pkg_major_version_num,
-                            sub_version_num,
-                            pkg_sub_version_num,
+                            refer_version_num=major_version_num,
+                            current_version_num=pkg_major_version_num,
+                            refer_sub_version_num=sub_version_num,
+                            current_sub_version_num=pkg_sub_version_num,
                         )
                         # 判断tmysql的子版本
                         if (
@@ -165,10 +166,10 @@ class ToolboxHandler:
                         pkg,
                         higher_major_version,
                         higher_all_version,
-                        major_version_num,
-                        pkg_major_version_num,
-                        sub_version_num,
-                        pkg_sub_version_num,
+                        refer_version_num=major_version_num,
+                        current_version_num=pkg_major_version_num,
+                        refer_sub_version_num=sub_version_num,
+                        current_sub_version_num=pkg_sub_version_num,
                     )
 
             # 统一当做社区版本来处理
@@ -180,10 +181,10 @@ class ToolboxHandler:
                         pkg,
                         higher_major_version,
                         higher_all_version,
-                        major_version_num,
-                        pkg_major_version_num,
-                        sub_version_num,
-                        pkg_sub_version_num,
+                        refer_version_num=major_version_num,
+                        current_version_num=pkg_major_version_num,
+                        refer_sub_version_num=sub_version_num,
+                        current_sub_version_num=pkg_sub_version_num,
                     )
 
         return [
