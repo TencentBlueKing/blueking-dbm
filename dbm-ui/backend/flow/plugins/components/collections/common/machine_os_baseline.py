@@ -25,8 +25,9 @@ from backend.utils.string import base64_encode
 
 # 入资源池前的主机 OS 初始化脚本。后续步骤追加在同一脚本里，不要为此再拆 act。
 # hosts_entries 为空时跳过 /etc/hosts；init_timesync 为假时跳过时间同步段。
-# chronyd / tos 失败只打 WARN。走 ntpdate 时脚本不存在或 ntpdate.sh -f 失败则退出。
-# TencentOS / tlinux 主版本 >= 3 用 chronyd（并 tos -f dns），其它走 ntpdate，不刷 DNS。
+# chronyd / tos 失败只打 WARN。走 ntpdate 时脚本不存在，或 -f 重试后仍失败，则退出。
+# TencentOS / tlinux 主版本 >= 3 用 chronyd（并 tos -f dns）。
+# 其它走 ntpdate，不刷 DNS。ntpdate 碰到已有进程会失败，-f 与 crontab 都重试 3 次，间隔 60 秒。
 MACHINE_OS_BASELINE_SCRIPT = """
 #!/bin/bash
 set -euo pipefail
@@ -102,10 +103,28 @@ else
         echo "ERROR: ${NTP_SH} not found"
         exit 1
     fi
+    # Another running ntpdate makes this attempt fail. Retry up to 3 times, 60s apart.
+    run_ntp() {
+        _ntp_try=1
+        while [ "${_ntp_try}" -le 3 ]; do
+            if /bin/sh "${NTP_SH}" "$@"; then
+                return 0
+            fi
+            if [ "${_ntp_try}" -ge 3 ]; then
+                return 1
+            fi
+            echo "WARN: ntpdate attempt ${_ntp_try} failed, sleep 60s"
+            sleep 60
+            _ntp_try=$((_ntp_try + 1))
+        done
+        return 1
+    }
     echo "force ntpdate"
-    /bin/sh "${NTP_SH}" -f || { echo "ERROR: ${NTP_SH} -f failed"; exit 1; }
+    # -f forces a sync and does not run tos -f dns
+    run_ntp -f || { echo "ERROR: ${NTP_SH} -f failed"; exit 1; }
 
-    NTP_CMD="/bin/sh ${NTP_SH} --maxoffset 3"
+    NTP_ONCE="/bin/sh ${NTP_SH} --maxoffset 3"
+    NTP_CMD="${NTP_ONCE} || { sleep 60; ${NTP_ONCE}; } || { sleep 60; ${NTP_ONCE}; }"
     CRON_BAK="/tmp/crontab.bak.$(date +%Y%m%d%H%M%S)"
     CRON_ERR="${CRON_BAK}.err"
     update_cron=1
@@ -130,13 +149,17 @@ else
         else
             minute=$((RANDOM % 60))
             line="${minute} * * * * ${NTP_CMD}"
+            kept_cron=""
             if [ -n "${current_cron}" ]; then
-                cron_body="$(printf '%s\\n%s\\n' "${current_cron}" "${line}")"
+                kept_cron="$(printf '%s\\n' "${current_cron}" | grep -vF -- "${NTP_SH}" || true)"
+            fi
+            if [ -n "${kept_cron}" ]; then
+                cron_body="$(printf '%s\\n%s\\n' "${kept_cron}" "${line}")"
             else
                 cron_body="$(printf '%s\\n' "${line}")"
             fi
             if printf '%s\\n' "${cron_body}" | crontab -; then
-                echo "ntp crontab added: ${line}"
+                echo "ntp crontab updated: ${line}"
             else
                 echo "WARN: crontab update failed, continue"
             fi
@@ -213,7 +236,8 @@ class MachineOsBaselineService(BkJobService):
     1. 按 hosts_entries 幂等追加 /etc/hosts（为空则跳过）。这一步失败则节点失败。
     2. kwargs.init_timesync 为真时做时间同步：TencentOS / tlinux 主版本 >= 3 时
        tos -f dns 并启用 chronyd，失败只打 WARN。其它系统走 ntpdate.sh -f 再写 crontab，不刷 DNS。
-       ntpdate.sh 不存在或 ntpdate.sh -f 失败则节点失败；crontab 写入失败只打 WARN。
+       ntpdate 若碰到已有进程会失败，-f 与每小时 crontab 都最多重试 3 次，间隔 60 秒。
+       ntpdate.sh 不存在或 -f 重试后仍失败则节点失败；crontab 写入失败只打 WARN。
 
     kwargs:
         exec_targets  list[{"ip": str, "bk_cloud_id": int}]
