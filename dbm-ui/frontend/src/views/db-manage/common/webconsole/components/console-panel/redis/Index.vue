@@ -9,7 +9,7 @@
     :placeholder="placeholder"
     @success="handleSuccess">
     <template #default="{ message }">
-      <RenderMessage :data="message" />
+      <RenderMessage :data="message as string" />
     </template>
   </ConsoleInput>
 </template>

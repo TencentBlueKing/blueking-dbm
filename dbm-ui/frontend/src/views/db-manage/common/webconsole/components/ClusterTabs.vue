@@ -84,10 +84,11 @@
     dbType: DBTypes;
   }
 
-  interface Emits {
-    (e: 'change', data: ClusterItem): void;
+  type Emits = {
+    (e: 'change', data: ClusterItem | undefined): void;
     (e: 'removeTab', clusterId: number): void;
-  }
+    (e: 'closed', clusterId: number): void;
+  };
 
   interface Exposes {
     showClustersPanel(): void;
@@ -178,15 +179,21 @@
 
   const handleCloseTab = async (index: number) => {
     const currentClusterId = selectedClusters.value[index];
-    const isClose = await props.beforeClose(currentClusterId);
-    if (isClose) {
-      removeTab(index);
+    try {
+      const isClose = await props.beforeClose(currentClusterId);
+      const currentIndex = selectedClusters.value.indexOf(currentClusterId);
+      if (isClose && currentIndex !== -1) {
+        removeTab(currentIndex);
+      }
+    } catch {
+      // 取消关闭时 beforeClose 会 reject，保留原 tab。
     }
   };
 
   const removeTab = (index: number) => {
     const currentClusterId = selectedClusters.value[index];
     selectedClusters.value.splice(index, 1);
+    emits('closed', currentClusterId);
     const clusterCount = selectedClusters.value.length;
     if (currentClusterId === localClusterId.value) {
       emits('removeTab', currentClusterId);
