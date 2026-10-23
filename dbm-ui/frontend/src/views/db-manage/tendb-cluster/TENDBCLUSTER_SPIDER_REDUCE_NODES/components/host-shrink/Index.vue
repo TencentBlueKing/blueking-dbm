@@ -140,9 +140,6 @@
   const selected = computed(() =>
     tableData.value.filter((item) => item.spider_reduced_host.ip).map((item) => item.spider_reduced_host),
   );
-  const selectedMap = computed(() =>
-    Object.fromEntries(tableData.value.map((cur) => [cur.spider_reduced_host.ip, true])),
-  );
 
   const instanceRoleMap = {
     spider_master: 'Spider Master',
@@ -231,18 +228,17 @@
 
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(
-          createTableRow({
-            spider_reduced_host: {
-              ip: item.ip,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          spider_reduced_host: {
+            ip: item.ip,
+          },
+        }),
+      );
       return acc;
     }, []);
-    tableData.value = [...(tableData.value[0]!.spider_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    tableData.value = [...tableData.value.filter((item) => item.spider_reduced_host.ip), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

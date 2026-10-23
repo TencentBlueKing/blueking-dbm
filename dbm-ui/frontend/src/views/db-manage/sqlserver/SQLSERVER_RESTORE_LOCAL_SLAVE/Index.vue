@@ -135,7 +135,6 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   useTicketDetail<Sqlserver.RestoreLocalSlave>(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, {
     onSuccess(ticketDetail) {
@@ -186,25 +185,24 @@
 
   const handleBatchEdit = (list: SqlserverHaInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
-        acc.push(
-          createTableRow({
-            slave: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
-              instance_address: item.instance_address,
-              ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          slave: {
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            bk_cloud_id: item.bk_cloud_id,
+            bk_host_id: item.bk_host_id,
+            cluster_id: item.cluster_id,
+            instance_address: item.instance_address,
+            ip: item.ip,
+            master_domain: item.master_domain,
+            port: item.port,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.slave.instance_address), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

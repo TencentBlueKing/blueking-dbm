@@ -155,7 +155,6 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   useTicketDetail<TendbCluster.MasterSlaveSwitch>(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, {
     onSuccess(ticketDetail) {
@@ -225,18 +224,17 @@
 
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
-        acc.push(
-          createTableRow({
-            master: {
-              ip: item.ip,
-            },
-          }),
-        );
-      }
+      acc.push(
+        createTableRow({
+          master: {
+            ip: item.ip,
+          },
+        }),
+      );
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    // 追加模式：选择器只回传本次勾选，不按已有对象过滤（重复由主键列校验提示），丢弃主键为空的行
+    formData.tableData = [...formData.tableData.filter((item) => item.master.ip), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

@@ -24,6 +24,7 @@
       :key="instanceSelectorKey"
       v-model="selectedHostList"
       v-model:is-show="isShowHostSelector"
+      :append-mode="false"
       :cluster-types="[ClusterTypes.REDIS]"
       :data-source-map="dataSourceMap"
       :disable-select-method="disableSelectMethod"
