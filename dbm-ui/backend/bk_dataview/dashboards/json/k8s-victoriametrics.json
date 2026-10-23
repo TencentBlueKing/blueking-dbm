@@ -1,0 +1,2319 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 1
+          },
+          "id": 4,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "$tag_path",
+                  "expression": "a > 0",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a > 0",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "path",
+                    "bk_monitor_name"
+                  ],
+                  "interval": 30,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "vm_http_requests_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_name",
+                      "method": "reg",
+                      "value": [
+                        "${cluster}-servicemonitor"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "path",
+                      "method": "nreg",
+                      "value": [
+                        ".*/favicon.ico|/metrics.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "sum by (path, bk_monitor_name) (rate(bkmonitor:vm_http_requests_total{bk_monitor_name=~\"${cluster}-servicemonitor\",path!~\".*/favicon.ico|/metrics.*\"}[1m])) > 0",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "查询请求量",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 1
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a > 0",
+              "query_configs": [
+                {
+                  "alias": "current",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_monitor_name"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "vm_concurrent_select_current",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_name",
+                      "method": "reg",
+                      "value": [
+                        "${cluster}-servicemonitor"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "job",
+                      "method": "reg",
+                      "value": [
+                        ".*vmselect.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "max(max_over_time(vm_concurrent_select_current{bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}[1m])) by (bk_monitor_name)\n\n\n",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "并发查询量（current）",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 1
+          },
+          "id": 5,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a > 0",
+              "query_configs": [
+                {
+                  "alias": "max",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_monitor_name"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "min_without_time",
+                  "metric_field": "vm_concurrent_select_capacity",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_name",
+                      "method": "reg",
+                      "value": [
+                        "${cluster}-servicemonitor"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "job",
+                      "method": "reg",
+                      "value": [
+                        ".*vmselect.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "min(vm_concurrent_select_capacity{bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}) by (bk_monitor_name)",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "并发查询量（max）",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 9
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "比率",
+                  "expression": "a \n/\nb",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a > 0",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "bk_monitor_name"
+                  ],
+                  "interval": 30,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "vm_slow_queries_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_name",
+                      "method": "reg",
+                      "value": [
+                        "${cluster}-servicemonitor"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "job",
+                      "method": "reg",
+                      "value": [
+                        ".*vmselect.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "bk_monitor_name"
+                  ],
+                  "interval": 30,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "vm_http_requests_total",
+                  "refId": "b",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_name",
+                      "method": "reg",
+                      "value": [
+                        "${cluster}-servicemonitor"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "job",
+                      "method": "reg",
+                      "value": [
+                        ".*vmselect.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "path",
+                      "method": "reg",
+                      "value": [
+                        "/select/.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "sum(rate(vm_slow_queries_total{bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}[1m])) by (bk_monitor_name) \n/\nsum(rate(vm_http_requests_total{bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\", path=~\"/select/.*\"}[1m])) by (bk_monitor_name)\n\n\n\n",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "慢查询比率",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 9
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": false,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "memory usage",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "process_resident_memory_bytes",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": []
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "max(\n    max_over_time(process_resident_memory_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}[1m])\n    /\n    vm_available_memory_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}\n) by (bk_monitor_name)\n\n",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "查询节点 Memory Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 9
+          },
+          "id": 9,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "$tag_path",
+                  "expression": "a > 0",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "cpu usage",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "path",
+                    "bk_monitor_name"
+                  ],
+                  "interval": 30,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "vm_http_requests_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_name",
+                      "method": "reg",
+                      "value": [
+                        "${cluster}-servicemonitor"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "path",
+                      "method": "nreg",
+                      "value": [
+                        ".*/favicon.ico|/metrics.*"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "max(\n    rate(process_cpu_seconds_total{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}[1m])\n    /\n    process_cpu_cores_available{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmselect.*\"}\n) by (bk_monitor_name)\n\n\n\n\n",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "查询节点 CPU Usage",
+          "type": "timeseries"
+        }
+      ],
+      "title": "查询节点",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 3,
+      "panels": [],
+      "title": "存储节点",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 2
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "cpu usage",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "max(\n    rate(process_cpu_seconds_total{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmstorage.*\"}[1m])\n    /\n    process_cpu_cores_available{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmstorage.*\"}\n) by (bk_monitor_name)\n",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "存储节点 CPU Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 2
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "memory usage",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "max(\n    max_over_time(process_resident_memory_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmstorage.*\"}[1m])\n    /\n    vm_available_memory_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", job=~\".*vmstorage.*\"}\n) by (bk_monitor_name)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "存储节点 memory usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 2
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "disk usage",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "max(\n    sum(vm_data_size_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\",job=~\".*vmstorage.*\"}) by(bk_monitor_name, instance) /\n    (\n        sum(vm_free_disk_space_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\",job=~\".*vmstorage.*\"} - vm_free_disk_space_limit_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\",job=~\".*vmstorage.*\"}) by(bk_monitor_name, instance) +\n        sum(vm_data_size_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\",job=~\".*vmstorage.*\"}) by(bk_monitor_name, instance)\n    ) \n) by (bk_monitor_name, instance)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "存储节点Disk Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 10
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "series 写入量",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "sum(rate(vm_vminsert_metrics_read_total{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\"}[1m])) by(bk_monitor_name)\n",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "集群series写入量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 10
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "active time series",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "sum(vm_cache_entries{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\", type=\"storage/hour_metric_ids\"}) by(bk_monitor_name)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "集群active time series",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 10
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "新增量",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "sum(increase(vm_new_timeseries_created_total{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\",}[24h])) by (bk_monitor_name)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "24 小时新增 series 量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 18
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_path",
+              "expression": "a > 0",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "rate",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "path",
+                "bk_monitor_name"
+              ],
+              "interval": 30,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "vm_http_requests_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_name",
+                  "method": "reg",
+                  "value": [
+                    "${cluster}-servicemonitor"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "path",
+                  "method": "nreg",
+                  "value": [
+                    ".*/favicon.ico|/metrics.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "sum(rate(vm_new_timeseries_created_total{bcs_cluster_id=\"${bcs_cluster_id}\",bk_monitor_namespace=\"${bk_monitor_namespace}\",bk_monitor_name=~\"${cluster}-servicemonitor\"}[1m])) by (bk_monitor_name)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Churn rate",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "k8s_victoriametrics_ha"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "bcs_cluster_id",
+        "multi": false,
+        "name": "bcs_cluster_id",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "bcs_cluster_id",
+            "metric_field": "vm_app_version",
+            "result_table_id": "",
+            "result_table_label": "kubernetes",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "bk_monitor_namespace",
+        "multi": false,
+        "name": "bk_monitor_namespace",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "bk_monitor_namespace",
+            "metric_field": "vm_app_version",
+            "result_table_id": "",
+            "result_table_label": "kubernetes",
+            "where": [
+              {
+                "key": "bcs_cluster_id",
+                "method": "eq",
+                "value": [
+                  "${bcs_cluster_id}"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "${bcs_cluster_id}"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "cluster",
+        "multi": false,
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "bk_monitor_name",
+            "metric_field": "vm_app_version",
+            "result_table_id": "",
+            "result_table_label": "kubernetes",
+            "where": [
+              {
+                "key": "bcs_cluster_id",
+                "method": "eq",
+                "value": [
+                  "${bcs_cluster_id}"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "bk_monitor_namespace",
+                "method": "eq",
+                "value": [
+                  "${bk_monitor_namespace}"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "${bcs_cluster_id} ${bk_monitor_namespace}"
+        },
+        "refresh": 1,
+        "regex": "/^(.+)-servicemonitor$/",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "DBM(上云)-VM监控",
+  "version": 30,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_-_指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "蓝鲸监控 - 指标数据"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "蓝鲸监控 - 指标数据"
+    }
+  ]
+}
