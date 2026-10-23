@@ -76,7 +76,6 @@ class Flow(models.Model):
     )
     # 流程上下文不适用于存储大量数据，定义详见dataclass/FlowContext
     context = models.JSONField(_("流程上下文(用于扩展字段)"), default=dict)
-    config = models.JSONField(_("单据配置"), default=dict, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据流程(Flow)")
@@ -186,6 +185,7 @@ class TicketSnapshot(AuditedModel):
     remark = models.CharField(_("说明"), max_length=LEN_L_LONG, default="")
     details = models.JSONField(_("改单详情(前端传入未初始化的详情)"), default=dict)
     change_count = models.IntegerField(_("差异字段数"), default=0)
+    config = models.JSONField(_("单据配置"), default=dict, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据改单快照(TicketSnapshot)")
