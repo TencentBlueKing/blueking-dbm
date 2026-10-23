@@ -133,6 +133,8 @@
             :label="t('单据记录')"
             name="record">
             <TicketRecord
+              v-if="visitedPanels.has('record')"
+              v-show="activePanel === 'record'"
               :id="clusterData.id"
               :key="clusterData.id" />
           </BkTabPanel>
