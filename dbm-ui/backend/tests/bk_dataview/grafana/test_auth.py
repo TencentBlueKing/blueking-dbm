@@ -66,7 +66,7 @@ def auth_promql(promql):
 
 
 def k8s_selector(namespace=NAMESPACE, instance="qdrant01"):
-    return f'qdrant_collections_total{{namespace="{namespace}",app_kubernetes_io_instance="{instance}"}}'
+    return f'qdrant_collections_total{{bk_monitor_namespace="{namespace}", app_kubernetes_io_instance="{instance}"}}'
 
 
 class TestK8sAuth:
@@ -85,7 +85,7 @@ class TestK8sAuth:
             auth_promql(k8s_selector())
 
     def test_cross_biz_namespace(self, qdrant_cluster, iam_check):
-        """namespace 解析出的业务与集群所在业务不一致时，定位不到集群"""
+        """bk_monitor_namespace 解析出的业务与集群所在业务不一致时，定位不到集群"""
         with pytest.raises(PermissionError):
             auth_promql(k8s_selector(namespace=f"qdrant01-otherbiz-{OTHER_BIZ_ID}"))
         iam_check.assert_not_called()
@@ -105,7 +105,7 @@ class TestK8sAuth:
         iam_check.assert_not_called()
 
     def test_namespace_only_fallback_biz(self, iam_check):
-        auth_promql(f'container_memory_working_set_bytes{{namespace="{NAMESPACE}"}}')
+        auth_promql(f'container_memory_working_set_bytes{{bk_monitor_namespace="{NAMESPACE}"}}')
 
         _, actions, resources, resource_meta = iam_check.call_args.args
         assert actions == [ActionEnum.DB_MANAGE]
@@ -124,14 +124,14 @@ class TestK8sAuth:
     def test_id_not_checked(self, qdrant_cluster, iam_check):
         """集合 id 不参与鉴权"""
         auth_promql(
-            f'qdrant_collection_points{{namespace="{NAMESPACE}",app_kubernetes_io_instance="qdrant01",id=~"a|b"}}'
+            f'qdrant_collection_points{{bk_monitor_namespace="{NAMESPACE}", app_kubernetes_io_instance="qdrant01", id=~"a|b"}}'
         )
         iam_check.assert_called_once()
 
     def test_unify_query_all_configs_checked(self, qdrant_cluster, iam_check):
         def where(namespace):
             return [
-                {"key": "namespace", "method": "eq", "value": [namespace]},
+                {"key": "bk_monitor_namespace", "method": "eq", "value": [namespace]},
                 {"key": "app_kubernetes_io_instance", "method": "eq", "value": ["qdrant01"]},
             ]
 
@@ -142,9 +142,9 @@ class TestK8sAuth:
 
 class TestClusterAuth:
     def test_cluster_domain_priority(self, pulsar_cluster, iam_check):
-        """带 cluster_domain 时按集群鉴权，pulsar 的 namespace 维度不进入 k8s 鉴权"""
+        """带 cluster_domain 时按集群鉴权，即使带 bk_monitor_namespace 也不进入 k8s 鉴权"""
         auth_promql(
-            'pulsar_rate_in{app="test",cluster_domain="pulsar01.test.db",namespace="public/default",topic="t1"}'
+            'pulsar_rate_in{app="test",cluster_domain="pulsar01.test.db",bk_monitor_namespace="public/default",topic="t1"}'
         )
 
         _, actions, resources, _ = iam_check.call_args.args

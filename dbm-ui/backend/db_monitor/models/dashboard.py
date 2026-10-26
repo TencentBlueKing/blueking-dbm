@@ -80,7 +80,7 @@ class Dashboard(AuditedModel):
         params = {
             "orgId": DEFAULT_ORG_ID,
             "orgName": DEFAULT_ORG_NAME,
-            "var-namespace": cluster_detail.get("namespace"),
+            "var-bk_monitor_namespace": cluster_detail.get("namespace"),
             # 对应指标维度 app_kubernetes_io_instance
             "var-cluster": cluster.name,
             "var-bcs_cluster_id": (cluster_detail.get("k8sClusterConfig") or {}).get("clusterName"),

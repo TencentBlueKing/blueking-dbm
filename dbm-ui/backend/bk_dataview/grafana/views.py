@@ -432,7 +432,7 @@ class ProxyBaseView(View):
     def __check_k8s_cluster_permission(self, request, conditions: QueryConditions) -> bool:
         """
         k8s 集群鉴权：k8s 指标没有 cluster_domain 维度，
-        通过 namespace 末段解析业务，再结合 app_kubernetes_io_instance（集群名）定位 DBM 集群
+        通过 bk_monitor_namespace 末段解析业务，再结合 app_kubernetes_io_instance（集群名）定位 DBM 集群
         """
         bk_biz_ids = set()
         for namespace in conditions.get(K8S_NAMESPACE_KEY, []):
