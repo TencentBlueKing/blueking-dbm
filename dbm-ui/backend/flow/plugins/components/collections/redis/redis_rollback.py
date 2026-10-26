@@ -232,7 +232,20 @@ class RedisRollbackDownloadService(BaseService):
             )
         )
         data.outputs.backup_bill_ids = bill_ids
+        data.outputs.download_started_at = time.time()
+        data.outputs.download_bytes = total_bytes
         return True
+
+    @staticmethod
+    def _download_summary(started_at, total_bytes, now) -> str:
+        """Elapsed time and throughput of a host's download; the restore node cannot tell them per port."""
+        if not started_at:
+            return ""
+        elapsed = max(int(now - started_at), 1)
+        summary = _("耗时 {}").format(f"{elapsed // 60}m{elapsed % 60}s")
+        if total_bytes:
+            summary += _("，大小 {}，吞吐 {}/s").format(format_size(total_bytes), format_size(total_bytes // elapsed))
+        return summary
 
     def _schedule(self, data, parent_data, callback_data=None):
         bill_ids = data.get_one_of_outputs("backup_bill_ids") or [data.get_one_of_outputs("backup_bill_id")]
@@ -251,7 +264,10 @@ class RedisRollbackDownloadService(BaseService):
             todo += total["todo"]
             doing += total["doing"]
         if todo == 0 and doing == 0:
-            self.log_info(_("{} 下载成功").format(bill_ids))
+            summary = self._download_summary(
+                data.get_one_of_outputs("download_started_at"), data.get_one_of_outputs("download_bytes"), time.time()
+            )
+            self.log_info(_("{} 下载成功 {}").format(bill_ids, summary).rstrip())
             self.finish_schedule()
             return True
         last_todo = data.get_one_of_outputs("last_todo")

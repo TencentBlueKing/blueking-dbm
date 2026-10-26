@@ -20,6 +20,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     RollbackPlan,
     host_disk_needs,
     load_memory,
+    replay_slots,
     rollback_manifest,
     stage_slots,
 )
@@ -333,6 +334,23 @@ def test_stage_slots_follow_the_actuator_limits():
     assert stage_slots(cpu=1, max_concurrency=0, ports=5) == 1
     # an unknown CPU count assumes every port at once
     assert stage_slots(cpu=0, max_concurrency=0, ports=5) == 5
+
+
+def test_replay_slots_follow_the_actuator_ssd_replay_limit():
+    assert replay_slots(cpu=32, max_concurrency=0, ports=24) == 24
+    assert replay_slots(cpu=16, max_concurrency=0, ports=20) == 16
+    assert replay_slots(cpu=16, max_concurrency=3, ports=20) == 3
+    assert replay_slots(cpu=0, max_concurrency=0, ports=5) == 5
+
+
+def test_ssd_replay_scratch_counts_one_port_per_core():
+    items = [
+        _item("0-209999", "2.2.2.2", "a.tar", binlogs=["binlog-1.log.zst"]),
+        _item("210000-419999", "2.2.2.2", "b.tar", binlogs=["binlog-2.log.zst"]),
+    ]
+    # 2 cores: one port unpacks at a time, both replay; each binlog 5 bytes, 15 decompressed + 15 parsed
+    backup, _ = host_disk_needs(items, is_ssd=True, cpu=2, max_concurrency=0)
+    assert backup == 30 + 2 * 30
 
 
 def test_cache_disks_hold_downloads_and_one_unpacked_copy():

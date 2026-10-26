@@ -43,17 +43,17 @@ func (l portLog) Error(format string, args ...interface{}) {
 	mylog.Logger.Error(l.prefix+format, args...)
 }
 
-// Stages timed per port in the end-of-node summary.
+// Stages timed per port in the end-of-node summary. Download time is the download node's: the
+// backup system lands a host's files together, not port by port.
 const (
-	stageDownload = "download"
-	stageUnpack   = "unpack"
-	stageRestore  = "restore"
-	stageStart    = "start"
-	stageParse    = "parse"
-	stageApply    = "apply"
+	stageUnpack  = "unpack"
+	stageRestore = "restore"
+	stageStart   = "start"
+	stageParse   = "parse"
+	stageApply   = "apply"
 )
 
-var stageOrder = []string{stageDownload, stageUnpack, stageRestore, stageStart, stageParse, stageApply}
+var stageOrder = []string{stageUnpack, stageRestore, stageStart, stageParse, stageApply}
 
 // Port outcomes in the summary.
 const (
@@ -70,13 +70,25 @@ type portReport struct {
 	status    string
 	err       error
 	durations map[string]time.Duration
-	binlogs   int
-	replies   replyStats
+	// cpu is the CPU time of a stage's child processes; next to the wall time it tells a slow
+	// tool from one waiting for a core.
+	cpu     map[string]time.Duration
+	binlogs int
+	replies replyStats
 }
 
 func (p *portReport) add(stage string, d time.Duration) {
 	p.mu.Lock()
 	p.durations[stage] += d
+	p.mu.Unlock()
+}
+
+func (p *portReport) addCPU(stage string, d time.Duration) {
+	if d <= 0 {
+		return
+	}
+	p.mu.Lock()
+	p.cpu[stage] += d
 	p.mu.Unlock()
 }
 
@@ -116,7 +128,8 @@ type hostReport struct {
 func newHostReport(destIP, engine string, instances []InstanceRestore) *hostReport {
 	h := &hostReport{destIP: destIP, engine: engine, byPort: map[int]*portReport{}}
 	for _, inst := range instances {
-		p := &portReport{inst: inst, status: portPending, durations: map[string]time.Duration{}}
+		p := &portReport{inst: inst, status: portPending, durations: map[string]time.Duration{},
+			cpu: map[string]time.Duration{}}
 		h.ports = append(h.ports, p)
 		h.byPort[inst.DestPort] = p
 	}
@@ -182,9 +195,15 @@ func (h *hostReport) resultText() string {
 		counts[p.status]++
 		var stages []string
 		for _, s := range stageOrder {
-			if d, ok := p.durations[s]; ok {
-				stages = append(stages, fmt.Sprintf("%s=%s", s, d.Round(time.Second)))
+			d, ok := p.durations[s]
+			if !ok {
+				continue
 			}
+			stage := fmt.Sprintf("%s=%s", s, d.Round(time.Second))
+			if cpu := p.cpu[s]; cpu > 0 {
+				stage += fmt.Sprintf("(cpu %s)", cpu.Round(time.Second))
+			}
+			stages = append(stages, stage)
 		}
 		line := fmt.Sprintf("  port %d shard=%s src=%s:%d %s %s", p.inst.DestPort, p.inst.ShardValue,
 			p.inst.SourceIP, p.inst.SourcePort, p.status, strings.Join(stages, " "))
@@ -205,25 +224,6 @@ func (h *hostReport) resultText() string {
 		"  failed ports: %v\n  ports with replay errors needing attention, port(errors): %v",
 		h.destIP, h.engine, len(h.ports), counts[portDone], counts[portSkipped], counts[portFailed],
 		counts[portPending], strings.Join(lines, "\n"), failed, attention)
-}
-
-// downloadSpan approximates how long the backup system took to land a port's files, from the
-// earliest to the latest modification time; the download node has the exact figures.
-func downloadSpan(files []string) time.Duration {
-	var first, last time.Time
-	for _, f := range files {
-		st, err := os.Stat(f)
-		if err != nil {
-			continue
-		}
-		if first.IsZero() || st.ModTime().Before(first) {
-			first = st.ModTime()
-		}
-		if st.ModTime().After(last) {
-			last = st.ModTime()
-		}
-	}
-	return last.Sub(first)
 }
 
 func totalSize(files []string) int64 {

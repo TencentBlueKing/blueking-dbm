@@ -58,9 +58,19 @@ def memory_budget(available: int) -> int:
 
 
 def stage_slots(cpu: int, max_concurrency: int, ports: int) -> int:
-    """Ports unpacking, or replaying, at once on a host, as the actuator sizes both stages.
-    An unknown CPU count is taken as every port at once."""
+    """Ports unpacking, or Tendisplus kvstores replaying, at once on a host, as the actuator
+    sizes both stages (Limits.Unpack, Limits.KvstoreReplay). An unknown CPU count is taken as
+    every port at once."""
     slots = cpu // 2 if cpu > 0 else ports
+    if max_concurrency > 0:
+        slots = min(slots, max_concurrency)
+    return max(1, min(slots, ports))
+
+
+def replay_slots(cpu: int, max_concurrency: int, ports: int) -> int:
+    """SSD ports replaying at once on a host, up to one per core as the actuator's Limits.Replay.
+    An unknown CPU count is taken as every port at once."""
+    slots = cpu if cpu > 0 else ports
     if max_concurrency > 0:
         slots = min(slots, max_concurrency)
     return max(1, min(slots, ports))
@@ -378,10 +388,11 @@ def host_disk_needs(
         return backup, data
     if not is_ssd or not real:
         return backup, data
-    slots = stage_slots(cpu, max_concurrency, len(real))
-    data += sum(sorted((item.unpacked_bytes for item in real), reverse=True)[:slots])
+    unpacking = stage_slots(cpu, max_concurrency, len(real))
+    replaying = replay_slots(cpu, max_concurrency, len(real))
+    data += sum(sorted((item.unpacked_bytes for item in real), reverse=True)[:unpacking])
     data += sum(item.binlog_unpacked_bytes for item in real)
-    backup += sum(sorted((item.replay_scratch_bytes for item in real), reverse=True)[:slots])
+    backup += sum(sorted((item.replay_scratch_bytes for item in real), reverse=True)[:replaying])
     return backup, data
 
 

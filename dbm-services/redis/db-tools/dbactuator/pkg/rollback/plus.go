@@ -15,6 +15,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -123,7 +124,7 @@ func (r *plusRestorer) DoRollback() error {
 		plans[inst.DestPort] = plan
 	}
 	report.logPlan(limits, plans, r.UnpackDir)
-	replaying := limits.Replay(streams)
+	replaying := limits.KvstoreReplay(streams)
 	mylog.Logger.Info("RedisRollback(tendisplus) dest=%s recover_at=%s kvstores replaying=%d of %d",
 		r.DestIP, r.RecoverAt, replaying, streams)
 
@@ -220,9 +221,10 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 			if err != nil {
 				return err
 			}
-			p.add(stageDownload, downloadSpan(files))
 			log.Info("unpack files=%v into %s", inst.FullFiles, workDir)
-			if err = unpackBackup(files, workDir); err != nil {
+			cpu, err := unpackBackup(files, workDir)
+			p.addCPU(stageUnpack, cpu)
+			if err != nil {
 				return err
 			}
 			if root, err = plusBackupRoot(workDir); err != nil {
@@ -420,6 +422,11 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 	recoverAt time.Time, slots chan struct{}) error {
 	log := newPortLog(r.DestIP, inst)
 	err := r.replay(log, p, inst, chains, recoverAt, slots)
+	if failedInFlight(err) {
+		// binlogpos may be past the failed binlog, so resuming from it would skip that write.
+		ClearDone(r.Host.InstanceDir(inst.DestPort))
+		log.Warn("replay failed with a batch out, a retry restores the full backup again")
+	}
 	if err == nil && r.cluster {
 		err = assignPortSlotsFn(log, r.DestIP, inst)
 	}
@@ -444,15 +451,12 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 }
 
 // replay runs the kvstores of inst on the host's replay slots, each kvstore on its own connection.
+// The first kvstore to fail stops the rest of the port: those still waiting for a slot never take
+// one, the running ones stop once the batch they have out is back. Other ports go on.
 func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, chains map[int][]string,
 	recoverAt time.Time, slots chan struct{}) error {
 	if len(chains) == 0 {
 		return nil
-	}
-	addr := fmt.Sprintf("%s:%d", r.DestIP, inst.DestPort)
-	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
-	if err != nil {
-		return err
 	}
 	endMs := replayEndMs(recoverAt)
 	kvstores := make([]int, 0, len(chains))
@@ -467,37 +471,90 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 	var errs errCollector
 	var mu sync.Mutex
 	applied := 0
+	redo := false
+	stop := make(chan struct{})
+	var stopOnce sync.Once
 	for _, kvstore := range kvstores {
 		wg.Add(1)
 		go func(kvstore int) {
 			defer wg.Done()
-			slots <- struct{}{}
-			defer func() { <-slots }()
-			cli, err := myredis.NewRedisClientWithRetry(addr, password, 0, consts.TendisTypeTendisplusInsance,
-				plusCommandTimeout)
-			if err != nil {
-				errs.add(err)
+			select {
+			case slots <- struct{}{}:
+			case <-stop:
 				return
 			}
-			defer cli.Close()
-			workDir := filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d_%d", inst.DestPort, kvstore))
-			n, err := replayKvstore(log, p, redisReplayer{cli: cli}, kvstore, chains[kvstore], endMs, workDir)
-			_ = os.RemoveAll(workDir)
+			// Released after a failure has closed stop, so no sibling starts on the freed slot.
+			defer func() { <-slots }()
+			if stopped(stop) {
+				return
+			}
+			n, err := r.replayOnConn(log, p, inst.DestPort, kvstore, chains[kvstore], endMs, stop)
+			if errors.Is(err, errReplayStopped) {
+				err = nil
+			}
 			mu.Lock()
 			applied += n
+			redo = redo || failedInFlight(err)
 			mu.Unlock()
-			errs.add(err)
+			if err != nil {
+				errs.add(err)
+				stopOnce.Do(func() { close(stop) })
+			}
 		}(kvstore)
 	}
 	wg.Wait()
 	p.replayed(files, replyStats{Lines: applied})
+	if redo && !failedInFlight(errs.err) {
+		return &inFlightError{errs.err}
+	}
 	return errs.err
+}
+
+// replayOnConn replays one kvstore of port on a connection of its own.
+func (r *plusRestorer) replayOnConn(log portLog, p *portReport, port, kvstore int, files []string, endMs int64,
+	stop <-chan struct{}) (int, error) {
+	cli, closeFn, err := dialPlusFn(r.DestIP, port)
+	if err != nil {
+		return 0, err
+	}
+	defer closeFn()
+	workDir := filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d_%d", port, kvstore))
+	defer os.RemoveAll(workDir)
+	return replayKvstore(log, p, cli, kvstore, files, endMs, workDir, stop)
+}
+
+// dialPlusFn is replaced in tests, which have no instance to replay into.
+var dialPlusFn = dialPlus
+
+func dialPlus(ip string, port int) (plusReplayer, func(), error) {
+	password, err := myredis.GetRedisPasswdFromConfFile(port)
+	if err != nil {
+		return nil, nil, err
+	}
+	cli, err := myredis.NewRedisClientWithRetry(fmt.Sprintf("%s:%d", ip, port), password, 0,
+		consts.TendisTypeTendisplusInsance, plusCommandTimeout)
+	if err != nil {
+		return nil, nil, err
+	}
+	return redisReplayer{cli: cli}, cli.Close, nil
+}
+
+// errReplayStopped ends a kvstore between batches because another kvstore of its port failed.
+var errReplayStopped = errors.New("replay stopped: another kvstore of the port failed")
+
+func stopped(stop <-chan struct{}) bool {
+	select {
+	case <-stop:
+		return true
+	default:
+		return false
+	}
 }
 
 // plusReplayer is the part of a Tendisplus connection the replay uses.
 type plusReplayer interface {
 	BinlogPos(kvstore int) (uint64, error)
-	RestoreBinlog(args []string) error
+	pipeExecer
 }
 
 type redisReplayer struct {
@@ -523,14 +580,9 @@ func (c redisReplayer) BinlogPos(kvstore int) (uint64, error) {
 	return 0, fmt.Errorf("binlogpos %d on %s returned %v", kvstore, c.cli.Addr, ret)
 }
 
-// RestoreBinlog sends one binlog_tool line as a command and waits for its reply; restorebinlogv2
-// must apply in order, so nothing is pipelined.
-func (c redisReplayer) RestoreBinlog(args []string) error {
-	cmd := make([]interface{}, len(args))
-	for i, arg := range args {
-		cmd[i] = arg
-	}
-	return c.cli.InstanceClient.Do(context.TODO(), cmd...).Err()
+// execBatch pipelines restorebinlogv2 commands on one connection, which keeps their order.
+func (c redisReplayer) execBatch(cmds [][]string) ([]error, error) {
+	return redisPipe{cli: c.cli.InstanceClient}.execBatch(cmds)
 }
 
 // binlogToolFn is replaced in tests, which have no binlog_tool.
@@ -540,8 +592,12 @@ var binlogToolFn = runBinlogTool
 // binlog id already in the kvstore, so a retry carries on without replaying anything twice and
 // every error reply is a real one. Ending binlogpos must be the last id sent: binlog_tool exits 0
 // on a binlog it cannot decode, and this also catches anything else that skipped writes.
+// Commands go in batches flushed at the end of each file. The server does not refuse a gap in
+// ids, so once a batch fails while out, or binlog ids and binlogpos disagree, the error is an
+// inFlightError and binlogpos cannot be resumed from; failing between batches drops the unsent
+// part and leaves binlogpos exact. A closed stop ends it that way with errReplayStopped.
 func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, files []string, endMs int64,
-	workDir string) (int, error) {
+	workDir string, stop <-chan struct{}) (int, error) {
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return 0, err
 	}
@@ -549,40 +605,60 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 	if err != nil {
 		return 0, err
 	}
-	last, applied := start, 0
+	last, applied, first := start, 0, true
+	pipe := &commandPipe{exec: cli, onReply: func(args []string, reply error) error {
+		if reply != nil {
+			id, _ := binlogIDFromKey(args[2])
+			return fmt.Errorf("%s of binlog id %d failed: %v", restoreBinlogCmd, id, reply)
+		}
+		applied++
+		return nil
+	}}
 	for _, file := range files {
+		if stopped(stop) {
+			return applied, errReplayStopped
+		}
 		base := filepath.Base(file)
 		decompressed := filepath.Join(workDir, base)
 		logFile := strings.TrimSuffix(decompressed, filepath.Ext(decompressed))
 		begin := time.Now()
-		if err = decompressFile(file, decompressed); err != nil {
+		cpu, err := decompressFile(file, decompressed)
+		p.addCPU(stageParse, cpu)
+		p.add(stageParse, time.Since(begin))
+		if err != nil {
 			return applied, corrupted(base, err)
 		}
-		p.add(stageParse, time.Since(begin))
 		begin = time.Now()
-		err = binlogToolFn(logFile, last+1, endMs, func(line string) error {
+		cpu, err = binlogToolFn(logFile, last+1, endMs, func(line string) error {
 			args, id, err := parseRestoreLine(line, kvstore)
 			if err != nil || args == nil {
 				return err
 			}
 			if id <= last {
-				return fmt.Errorf("binlog id %d is not after %d though binlog_tool started after it; "+
-					"binlog ids may not be read right from %s keys", id, last, restoreBinlogCmd)
+				return &inFlightError{fmt.Errorf("binlog id %d is not after %d though binlog_tool started "+
+					"after it; binlog ids may not be read right from %s keys", id, last, restoreBinlogCmd)}
 			}
-			if err = cli.RestoreBinlog(args); err != nil {
-				return fmt.Errorf("%s of binlog id %d failed: %v", restoreBinlogCmd, id, err)
+			if stopped(stop) {
+				return errReplayStopped
 			}
-			if applied == 0 && id != start+1 {
+			if first && id != start+1 {
 				log.Warn("kvstore %d resumes at binlog id %d, its binlogpos was %d", kvstore, id, start)
 			}
+			first = false
 			last = id
-			applied++
-			return nil
+			return pipe.add(args)
 		})
+		if err == nil && stopped(stop) {
+			err = errReplayStopped
+		}
+		if err == nil {
+			err = pipe.flush()
+		}
+		p.addCPU(stageApply, cpu)
 		p.add(stageApply, time.Since(begin))
 		_ = os.Remove(logFile)
 		if err != nil {
-			return applied, fmt.Errorf("kvstore %d binlog %s: %v", kvstore, base, err)
+			return applied, fmt.Errorf("kvstore %d binlog %s: %w", kvstore, base, err)
 		}
 	}
 	pos, err := cli.BinlogPos(kvstore)
@@ -590,8 +666,8 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 		return applied, err
 	}
 	if pos != last {
-		return applied, fmt.Errorf("kvstore %d binlogpos is %d after replay, want %d, the last binlog id replayed",
-			kvstore, pos, last)
+		return applied, &inFlightError{fmt.Errorf("kvstore %d binlogpos is %d after replay, want %d, the last "+
+			"binlog id replayed", kvstore, pos, last)}
 	}
 	log.Info("kvstore %d replayed %d binlogs, %d writes, binlogpos %d -> %d", kvstore, len(files), applied, start,
 		last)
@@ -651,11 +727,13 @@ func plusBinlogTool() (string, error) {
 }
 
 // runBinlogTool streams the restorebinlogv2 commands of logFile from startPos on, up to endMs
-// exclusive, into onLine. The first onLine error stops binlog_tool and is returned.
-func runBinlogTool(logFile string, startPos uint64, endMs int64, onLine func(string) error) error {
+// exclusive, into onLine, and returns binlog_tool's CPU time. The first onLine error stops
+// binlog_tool and is returned.
+func runBinlogTool(logFile string, startPos uint64, endMs int64, onLine func(string) error) (time.Duration,
+	error) {
 	bin, err := plusBinlogTool()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), plusToolTimeout)
 	defer cancel()
@@ -663,12 +741,12 @@ func runBinlogTool(logFile string, startPos uint64, endMs int64, onLine func(str
 		fmt.Sprintf("--start-position=%d", startPos), fmt.Sprintf("--end-datetime=%d", endMs))
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err = cmd.Start(); err != nil {
-		return err
+		return 0, err
 	}
 	reader := bufio.NewReaderSize(stdout, 1<<20)
 	var lineErr error
@@ -691,13 +769,13 @@ func runBinlogTool(logFile string, startPos uint64, endMs int64, onLine func(str
 	}
 	waitErr := cmd.Wait()
 	if lineErr != nil {
-		return lineErr
+		return cpuTime(cmd), lineErr
 	}
 	if waitErr != nil || strings.Contains(stderr.String(), "ERR") {
-		return fmt.Errorf("%s failed: %v %s", filepath.Base(bin), waitErr, keepOutput(filepath.Dir(logFile),
-			filepath.Base(logFile)+".tool.err", stderr.Bytes()))
+		return cpuTime(cmd), fmt.Errorf("%s failed: %v %s", filepath.Base(bin), waitErr,
+			keepOutput(filepath.Dir(logFile), filepath.Base(logFile)+".tool.err", stderr.Bytes()))
 	}
-	return nil
+	return cpuTime(cmd), nil
 }
 
 // LocalKvstoreBinlogs returns every kvstore's downloaded binlogs in replay order, each chain checked

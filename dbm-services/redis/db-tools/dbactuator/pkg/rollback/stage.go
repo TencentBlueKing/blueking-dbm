@@ -9,8 +9,11 @@
 package rollback
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -50,12 +53,33 @@ func resolveFiles(saveDir string, inst InstanceRestore) ([]string, error) {
 	return uniq(found), nil
 }
 
-func runStageCmd(cmd string) error {
-	out, err := util.RunLocalCmd("bash", []string{"-c", cmd}, "", nil, 1800*time.Second)
-	if err != nil {
-		return fmt.Errorf("%v %s", err, out)
+const stageCmdTimeout = 1800 * time.Second
+
+// runStageCmd runs cmd under bash and returns the CPU time bash and the children it waited for
+// used. Anything on stderr fails it.
+func runStageCmd(cmd string) (time.Duration, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), stageCmdTimeout)
+	defer cancel()
+	c := exec.CommandContext(ctx, "bash", "-c", cmd)
+	var stdout, stderr bytes.Buffer
+	c.Stdout, c.Stderr = &stdout, &stderr
+	err := c.Run()
+	if err == nil && strings.TrimSpace(stderr.String()) != "" {
+		err = fmt.Errorf("stderr not empty")
 	}
-	return nil
+	if err != nil {
+		return cpuTime(c), fmt.Errorf("%v %s %s", err, strings.TrimSpace(stderr.String()),
+			strings.TrimSpace(stdout.String()))
+	}
+	return cpuTime(c), nil
+}
+
+// cpuTime is the user and system time of a finished command, its waited-for children included.
+func cpuTime(c *exec.Cmd) time.Duration {
+	if c.ProcessState == nil {
+		return 0
+	}
+	return c.ProcessState.UserTime() + c.ProcessState.SystemTime()
 }
 
 // corrupted marks an unpack failure as a broken backup, apart from restore, start or replay failures.
@@ -64,21 +88,23 @@ func corrupted(name string, err error) error {
 }
 
 // unpackBackup unpacks the downloaded files into workDir, which starts empty so a retry never
-// picks up a previous attempt's leftovers. The downloads stay in place for retries.
-func unpackBackup(files []string, workDir string) error {
+// picks up a previous attempt's leftovers. The downloads stay in place for retries. It returns
+// the CPU time the unpacking took.
+func unpackBackup(files []string, workDir string) (time.Duration, error) {
 	sort.Strings(files)
 	first := filepath.Base(files[0])
 	if err := os.RemoveAll(workDir); err != nil {
-		return err
+		return 0, err
 	}
 	if err := os.MkdirAll(workDir, 0755); err != nil {
-		return err
+		return 0, err
 	}
 
 	if err := requireTools(first); err != nil {
-		return err
+		return 0, err
 	}
 	src := files[0]
+	var cpu time.Duration
 	var err error
 	switch {
 	case strings.Contains(first, ".split."):
@@ -86,34 +112,35 @@ func unpackBackup(files []string, workDir string) error {
 		for i, f := range files {
 			quoted[i] = "'" + f + "'"
 		}
-		err = runStageCmd(fmt.Sprintf("cat %s | tar x -C %s", strings.Join(quoted, " "), workDir))
+		cpu, err = runStageCmd(fmt.Sprintf("cat %s | tar x -C %s", strings.Join(quoted, " "), workDir))
 	case strings.HasSuffix(first, ".tar.gz") || strings.HasSuffix(first, ".tgz"):
-		err = runStageCmd(fmt.Sprintf("tar -xzf %s -C %s", src, workDir))
+		cpu, err = runStageCmd(fmt.Sprintf("tar -xzf %s -C %s", src, workDir))
 	case strings.HasSuffix(first, ".tar"):
-		err = runStageCmd(fmt.Sprintf("tar -xf %s -C %s", src, workDir))
+		cpu, err = runStageCmd(fmt.Sprintf("tar -xf %s -C %s", src, workDir))
 	default:
-		err = decompressFile(src, filepath.Join(workDir, first))
+		cpu, err = decompressFile(src, filepath.Join(workDir, first))
 	}
 	if err != nil {
-		return corrupted(first, err)
+		return cpu, corrupted(first, err)
 	}
-	return nil
+	return cpu, nil
 }
 
-// decompressFile writes src decompressed to dst minus its compression suffix, keeping src.
-// Uncompressed files are hard linked when on the same filesystem, otherwise copied.
-func decompressFile(src, dst string) error {
+// decompressFile writes src decompressed to dst minus its compression suffix, keeping src, and
+// returns the CPU time it took. Uncompressed files are hard linked when on the same filesystem,
+// otherwise copied.
+func decompressFile(src, dst string) (time.Duration, error) {
 	switch {
 	case strings.HasSuffix(dst, ".zst"):
 		if _, err := os.Stat(consts.ZstdBin); err != nil {
-			return fmt.Errorf("zstd not found: %s", consts.ZstdBin)
+			return 0, fmt.Errorf("zstd not found: %s", consts.ZstdBin)
 		}
 		return runStageCmd(fmt.Sprintf("%s -d -f %s -o %s", consts.ZstdBin, src, strings.TrimSuffix(dst, ".zst")))
 	case strings.HasSuffix(dst, ".gz"):
 		return runStageCmd(fmt.Sprintf("gzip -dc %s > %s", src, strings.TrimSuffix(dst, ".gz")))
 	case strings.HasSuffix(dst, ".lzo"):
 		if _, err := os.Stat(consts.LzopBin); err != nil {
-			return fmt.Errorf("lzop not found: %s", consts.LzopBin)
+			return 0, fmt.Errorf("lzop not found: %s", consts.LzopBin)
 		}
 		return runStageCmd(fmt.Sprintf("%s -d -f %s -o %s", consts.LzopBin, src, strings.TrimSuffix(dst, ".lzo")))
 	default:
@@ -121,7 +148,7 @@ func decompressFile(src, dst string) error {
 		if os.Link(src, dst) != nil {
 			return runStageCmd(fmt.Sprintf("cp -f %s %s", src, dst))
 		}
-		return nil
+		return 0, nil
 	}
 }
 
@@ -179,7 +206,7 @@ func placeFile(log portLog, src, dst string) error {
 	} else {
 		log.Warn("%s and %s are on different filesystems, copying", src, dst)
 	}
-	if err = runStageCmd(fmt.Sprintf("cp -f %s %s", src, dst)); err != nil {
+	if _, err = runStageCmd(fmt.Sprintf("cp -f %s %s", src, dst)); err != nil {
 		return err
 	}
 	return os.Remove(src)

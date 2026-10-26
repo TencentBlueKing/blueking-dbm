@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -49,26 +51,33 @@ func TestParseRestoreLine(t *testing.T) {
 	}
 }
 
-// fakeReplayer applies restorebinlogv2 by moving binlogpos to the id it carries.
+// fakeReplayer applies restorebinlogv2 by moving binlogpos to the id it carries. Like tendisplus,
+// a failed command does not stop the rest of its batch.
 type fakeReplayer struct {
 	pos     uint64
 	applied []uint64
+	batches int
 	drop    uint64
 	fail    uint64
 }
 
 func (f *fakeReplayer) BinlogPos(int) (uint64, error) { return f.pos, nil }
 
-func (f *fakeReplayer) RestoreBinlog(args []string) error {
-	id, _ := binlogIDFromKey(args[2])
-	if id == f.fail {
-		return fmt.Errorf("ERR apply failed")
+func (f *fakeReplayer) execBatch(cmds [][]string) ([]error, error) {
+	f.batches++
+	replies := make([]error, len(cmds))
+	for i, args := range cmds {
+		id, _ := binlogIDFromKey(args[2])
+		if id == f.fail {
+			replies[i] = fmt.Errorf("ERR apply failed")
+			continue
+		}
+		f.applied = append(f.applied, id)
+		if id != f.drop {
+			f.pos = id
+		}
 	}
-	f.applied = append(f.applied, id)
-	if id != f.drop {
-		f.pos = id
-	}
-	return nil
+	return replies, nil
 }
 
 // gzipBinlogs writes binlog files the replay can decompress without zstd.
@@ -93,7 +102,7 @@ func gzipBinlogs(t *testing.T, dir string, names ...string) []string {
 // fakeBinlogTool emits the ids of each file at or after the start position, like binlog_tool.
 func fakeBinlogTool(t *testing.T, ids map[string][]uint64, ignoreStart bool) func() {
 	t.Helper()
-	binlogToolFn = func(logFile string, startPos uint64, _ int64, onLine func(string) error) error {
+	binlogToolFn = func(logFile string, startPos uint64, _ int64, onLine func(string) error) (time.Duration, error) {
 		if _, err := os.Stat(logFile); err != nil {
 			t.Fatalf("binlog not decompressed: %v", err)
 		}
@@ -102,10 +111,10 @@ func fakeBinlogTool(t *testing.T, ids map[string][]uint64, ignoreStart bool) fun
 				continue
 			}
 			if err := onLine(restoreLine(2, id)); err != nil {
-				return err
+				return time.Second, err
 			}
 		}
-		return nil
+		return time.Second, nil
 	}
 	return func() { binlogToolFn = runBinlogTool }
 }
@@ -123,7 +132,7 @@ func TestReplayKvstoreAppliesOnlyAfterBinlogpos(t *testing.T) {
 	// 103 is a retry that already replayed into the second file.
 	for pos, want := range map[uint64][]uint64{100: {101, 102, 103, 104, 105}, 103: {104, 105}} {
 		cli := &fakeReplayer{pos: pos}
-		n, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir())
+		n, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir(), nil)
 		if err != nil || n != len(want) || !reflect.DeepEqual(cli.applied, want) {
 			t.Fatalf("pos=%d: n=%d applied=%v err=%v", pos, n, cli.applied, err)
 		}
@@ -133,8 +142,8 @@ func TestReplayKvstoreAppliesOnlyAfterBinlogpos(t *testing.T) {
 func TestReplayKvstoreFailsWhenBinlogposMissesAWrite(t *testing.T) {
 	files, ids, p := replayFixture(t)
 	defer fakeBinlogTool(t, ids, false)()
-	_, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100, drop: 105}, 2, files, 0, t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "kvstore 2 binlogpos is 104 after replay, want 105") {
+	_, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100, drop: 105}, 2, files, 0, t.TempDir(), nil)
+	if !failedInFlight(err) || !strings.Contains(err.Error(), "kvstore 2 binlogpos is 104 after replay, want 105") {
 		t.Fatalf("err=%v", err)
 	}
 }
@@ -143,12 +152,53 @@ func TestReplayKvstoreStopsOnTheFirstErrorReply(t *testing.T) {
 	files, ids, p := replayFixture(t)
 	defer fakeBinlogTool(t, ids, false)()
 	cli := &fakeReplayer{pos: 100, fail: 102}
-	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir())
+	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir(), nil)
 	if err == nil || !strings.Contains(err.Error(), "restorebinlogv2 of binlog id 102 failed") {
 		t.Fatalf("err=%v", err)
 	}
-	if !reflect.DeepEqual(cli.applied, []uint64{101}) {
-		t.Fatalf("applied %v after the failure", cli.applied)
+	if !reflect.DeepEqual(cli.applied, []uint64{101}) || cli.batches != 1 {
+		t.Fatalf("applied %v in %d batches after the failure", cli.applied, cli.batches)
+	}
+	if !failedInFlight(err) {
+		t.Fatalf("a failed batch must not be resumed from binlogpos: %v", err)
+	}
+}
+
+func TestReplayKvstoreBatchFailureLeavesBinlogposPastTheHole(t *testing.T) {
+	// Why a failed batch forces a redo: the writes after 99 went in, so binlogpos is past it.
+	files, ids, p := replayFixture(t)
+	defer fakeBinlogTool(t, ids, false)()
+	cli := &fakeReplayer{pos: 98, fail: 99}
+	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir(), nil)
+	if !failedInFlight(err) || cli.pos != 102 || !reflect.DeepEqual(cli.applied, []uint64{100, 101, 102}) {
+		t.Fatalf("err=%v pos=%d applied=%v", err, cli.pos, cli.applied)
+	}
+}
+
+func TestReplayKvstoreToolFailureBetweenBatchesCanResume(t *testing.T) {
+	files, _, p := replayFixture(t)
+	binlogToolFn = func(_ string, _ uint64, _ int64, onLine func(string) error) (time.Duration, error) {
+		if err := onLine(restoreLine(2, 101)); err != nil {
+			return 0, err
+		}
+		return 0, fmt.Errorf("binlog_tool failed")
+	}
+	defer func() { binlogToolFn = runBinlogTool }()
+	cli := &fakeReplayer{pos: 100}
+	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir(), nil)
+	if err == nil || failedInFlight(err) || cli.batches != 0 {
+		t.Fatalf("err=%v batches=%d: the unsent part is dropped and binlogpos stays exact", err, cli.batches)
+	}
+}
+
+func TestReplayKvstoreRecordsToolCPU(t *testing.T) {
+	files, ids, p := replayFixture(t)
+	defer fakeBinlogTool(t, ids, false)()
+	if _, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100}, 2, files, 0, t.TempDir(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if p.cpu[stageApply] != 2*time.Second {
+		t.Fatalf("apply cpu=%v, want binlog_tool's 1s per file", p.cpu[stageApply])
 	}
 }
 
@@ -158,19 +208,20 @@ func TestReplayKvstoreRejectsIdsAtOrBelowTheStart(t *testing.T) {
 	files, ids, p := replayFixture(t)
 	defer fakeBinlogTool(t, ids, true)()
 	cli := &fakeReplayer{pos: 100}
-	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "binlog id 98 is not after 100") || len(cli.applied) != 0 {
+	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir(), nil)
+	if !failedInFlight(err) || !strings.Contains(err.Error(), "binlog id 98 is not after 100") ||
+		len(cli.applied) != 0 {
 		t.Fatalf("err=%v applied=%v", err, cli.applied)
 	}
 }
 
 func TestReplayKvstoreFailsOnUndecodableBinlog(t *testing.T) {
 	files, _, p := replayFixture(t)
-	binlogToolFn = func(_ string, _ uint64, _ int64, onLine func(string) error) error {
-		return onLine("ERR: invalid binlog, skip the rest")
+	binlogToolFn = func(_ string, _ uint64, _ int64, onLine func(string) error) (time.Duration, error) {
+		return 0, onLine("ERR: invalid binlog, skip the rest")
 	}
 	defer func() { binlogToolFn = runBinlogTool }()
-	_, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100}, 2, files, 0, t.TempDir())
+	_, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100}, 2, files, 0, t.TempDir(), nil)
 	if err == nil || !strings.Contains(err.Error(), "binlog-a.log.gz") ||
 		!strings.Contains(err.Error(), "cannot decode a binlog") {
 		t.Fatalf("err=%v", err)
@@ -344,6 +395,200 @@ func TestPlusClusterStepsFollowTheClusterFlag(t *testing.T) {
 		}
 		if !IsDone(host.InstanceDir(inst.DestPort), r.fingerprint(inst)) {
 			t.Fatalf("cluster=%v: port not marked done", cluster)
+		}
+	}
+}
+
+// portReplayer is one port's instance, shared by the connections of its kvstores.
+type portReplayer struct {
+	mu   sync.Mutex
+	pos  map[int]uint64
+	fail uint64
+	drop uint64
+}
+
+func (f *portReplayer) BinlogPos(kvstore int) (uint64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.pos[kvstore], nil
+}
+
+func (f *portReplayer) execBatch(cmds [][]string) ([]error, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	replies := make([]error, len(cmds))
+	for i, args := range cmds {
+		kvstore, _ := strconv.Atoi(args[1])
+		id, _ := binlogIDFromKey(args[2])
+		if id == f.fail {
+			replies[i] = fmt.Errorf("ERR apply failed")
+			continue
+		}
+		if id != f.drop {
+			f.pos[kvstore] = id
+		}
+	}
+	return replies, nil
+}
+
+// scriptTool stands in for binlog_tool, telling the port and kvstore from the replay work dir.
+func scriptTool(t *testing.T, run func(port, kvstore int, startPos uint64, onLine func(string) error) error) func() {
+	t.Helper()
+	binlogToolFn = func(logFile string, startPos uint64, _ int64, onLine func(string) error) (time.Duration, error) {
+		var port, kvstore int
+		if _, err := fmt.Sscanf(filepath.Base(filepath.Dir(logFile)), "binlog_replay_%d_%d", &port,
+			&kvstore); err != nil {
+			t.Errorf("work dir of %s: %v", logFile, err)
+		}
+		return 0, run(port, kvstore, startPos, onLine)
+	}
+	return func() { binlogToolFn = runBinlogTool }
+}
+
+// plusPorts sets up a restorer whose ports are pending, each kvstore holding binlogpos 100 and
+// one binlog file to replay.
+func plusPorts(t *testing.T, kvstores map[int]int, fake map[int]*portReplayer) (*plusRestorer,
+	map[int]map[int][]string, func()) {
+	t.Helper()
+	r := &plusRestorer{Job: Job{DestIP: "2.2.2.2", SaveDir: t.TempDir(), UnpackDir: t.TempDir(),
+		Host: dirHost{root: t.TempDir()}}}
+	chains := map[int]map[int][]string{}
+	for port, n := range kvstores {
+		if fake[port] == nil {
+			fake[port] = &portReplayer{}
+		}
+		fake[port].pos = map[int]uint64{}
+		chains[port] = map[int][]string{}
+		for kvstore := 0; kvstore < n; kvstore++ {
+			fake[port].pos[kvstore] = 100
+			chains[port][kvstore] = gzipBinlogs(t, t.TempDir(), "binlog-a.log")
+		}
+		instDir := r.Host.InstanceDir(port)
+		_ = os.MkdirAll(instDir, 0755)
+		if err := MarkPending(instDir, r.fingerprint(InstanceRestore{DestPort: port})); err != nil {
+			t.Fatal(err)
+		}
+	}
+	dialPlusFn = func(_ string, port int) (plusReplayer, func(), error) { return fake[port], func() {}, nil }
+	return r, chains, func() { dialPlusFn = dialPlus }
+}
+
+func (r *plusRestorer) replayPort(port int, chains map[int][]string, slots chan struct{}) error {
+	inst := InstanceRestore{DestPort: port}
+	p := newHostReport(r.DestIP, "tendisplus", []InstanceRestore{inst}).port(port)
+	return r.replayAndMark(inst, p, chains, time.Time{}, slots)
+}
+
+func TestPlusReplayFailureStopsOnlyItsPort(t *testing.T) {
+	fake := map[int]*portReplayer{}
+	r, chains, restore := plusPorts(t, map[int]int{30000: 2, 30001: 1}, fake)
+	defer restore()
+	failing := make(chan struct{})
+	const endless = 1 << 20
+	sent := 0
+	defer scriptTool(t, func(port, kvstore int, start uint64, onLine func(string) error) error {
+		switch {
+		case port == 30000 && kvstore == 0:
+			defer close(failing)
+			if err := onLine(restoreLine(0, start)); err != nil {
+				return err
+			}
+			return fmt.Errorf("binlog_tool failed")
+		case port == 30000:
+			<-failing
+			for id := start; id < start+endless; id++ {
+				if err := onLine(restoreLine(kvstore, id)); err != nil {
+					return err
+				}
+				sent++
+			}
+			return nil
+		default:
+			for id := start; id < start+5; id++ {
+				if err := onLine(restoreLine(kvstore, id)); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	})()
+
+	slots := make(chan struct{}, 3)
+	errs := map[int]error{}
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	for port := range chains {
+		wg.Add(1)
+		go func(port int) {
+			defer wg.Done()
+			err := r.replayPort(port, chains[port], slots)
+			mu.Lock()
+			errs[port] = err
+			mu.Unlock()
+		}(port)
+	}
+	wg.Wait()
+
+	if err := errs[30000]; err == nil || !strings.Contains(err.Error(), "binlog_tool failed") || failedInFlight(err) {
+		t.Fatalf("port 30000: %v", err)
+	}
+	if sent >= endless {
+		t.Fatal("kvstore 1 of the failed port replayed to the end")
+	}
+	if !IsPending(r.Host.InstanceDir(30000), r.fingerprint(InstanceRestore{DestPort: 30000})) {
+		t.Fatal("a failure between batches must keep the port resumable")
+	}
+	if errs[30001] != nil || fake[30001].pos[0] != 105 ||
+		!IsDone(r.Host.InstanceDir(30001), r.fingerprint(InstanceRestore{DestPort: 30001})) {
+		t.Fatalf("port 30001: err=%v pos=%d", errs[30001], fake[30001].pos[0])
+	}
+}
+
+func TestPlusReplayWaitingKvstoresNeverStartAfterAFailure(t *testing.T) {
+	r, chains, restore := plusPorts(t, map[int]int{30000: 3}, map[int]*portReplayer{})
+	defer restore()
+	var mu sync.Mutex
+	calls := 0
+	defer scriptTool(t, func(int, int, uint64, func(string) error) error {
+		mu.Lock()
+		calls++
+		mu.Unlock()
+		return fmt.Errorf("binlog_tool failed")
+	})()
+	if err := r.replayPort(30000, chains[30000], make(chan struct{}, 1)); err == nil {
+		t.Fatal("want error")
+	}
+	if calls != 1 {
+		t.Fatalf("binlog_tool ran %d times, want only the first kvstore", calls)
+	}
+}
+
+func TestPlusReplayRedoesThePortOnABinlogposMismatch(t *testing.T) {
+	cases := map[string]*portReplayer{
+		"error reply":        {fail: 102},
+		"binlogpos misses":   {drop: 103},
+		"id not after start": {},
+	}
+	for name, fake := range cases {
+		r, chains, restore := plusPorts(t, map[int]int{30000: 1}, map[int]*portReplayer{30000: fake})
+		ids := []uint64{101, 102, 103}
+		if name == "id not after start" {
+			ids = []uint64{99}
+		}
+		resetTool := scriptTool(t, func(_, kvstore int, _ uint64, onLine func(string) error) error {
+			for _, id := range ids {
+				if err := onLine(restoreLine(kvstore, id)); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		err := r.replayPort(30000, chains[30000], make(chan struct{}, 1))
+		resetTool()
+		restore()
+		instDir := r.Host.InstanceDir(30000)
+		if !failedInFlight(err) || IsPending(instDir, r.fingerprint(InstanceRestore{DestPort: 30000})) {
+			t.Fatalf("%s: err=%v, the port must restore the full backup again", name, err)
 		}
 	}
 }

@@ -20,20 +20,26 @@ import (
 func TestLimitsFollowTheHostAndOnlyGoDown(t *testing.T) {
 	auto := Limits{CPU: 16}
 	auto.Unpack = auto.capped(auto.CPU / 2)
-	if auto.Unpack != 8 || auto.Replay(4) != 4 || auto.Replay(20) != 8 || auto.Parse(4) != 12 || auto.Loading() != 16 {
-		t.Fatalf("auto limits: unpack=%d replay=%d/%d parse=%d loading=%d",
-			auto.Unpack, auto.Replay(4), auto.Replay(20), auto.Parse(4), auto.Loading())
+	if auto.Unpack != 8 || auto.Replay(4) != 4 || auto.Replay(20) != 16 || auto.Parse() != 11 ||
+		auto.Loading() != 16 || auto.KvstoreReplay(4) != 4 || auto.KvstoreReplay(70) != 8 {
+		t.Fatalf("auto limits: unpack=%d replay=%d/%d parse=%d loading=%d kvstore replay=%d/%d",
+			auto.Unpack, auto.Replay(4), auto.Replay(20), auto.Parse(), auto.Loading(),
+			auto.KvstoreReplay(4), auto.KvstoreReplay(70))
+	}
+	// 10-21: 32 cores, 24 ports all replay instead of 16, parsing on 22 cores
+	if prod := (Limits{CPU: 32}); prod.Replay(24) != 24 || prod.Parse() != 22 {
+		t.Fatalf("32 cores: replay=%d parse=%d", prod.Replay(24), prod.Parse())
 	}
 	low := Limits{CPU: 16, Max: 2}
-	if low.capped(8) != 2 || low.Replay(4) != 2 || low.Parse(2) != 2 {
+	if low.capped(8) != 2 || low.Replay(4) != 2 || low.Parse() != 2 || low.KvstoreReplay(70) != 2 {
 		t.Fatal("max_concurrency should lower every stage")
 	}
 	high := Limits{CPU: 4, Max: 64}
-	if high.capped(high.CPU/2) != 2 || high.Parse(2) != 2 {
+	if high.capped(high.CPU/2) != 2 || high.Replay(20) != 4 || high.Parse() != 2 {
 		t.Fatal("max_concurrency must not raise a stage above the host")
 	}
-	if (Limits{CPU: 1}).Parse(1) != 1 {
-		t.Fatal("the parse pool keeps at least one slot")
+	if (Limits{CPU: 1}).Parse() != 1 || (Limits{CPU: 1}).KvstoreReplay(3) != 1 {
+		t.Fatal("every stage keeps at least one slot")
 	}
 }
 
@@ -244,6 +250,31 @@ func TestResultListsFailedPortsAndReplayErrors(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("summary misses %q:\n%s", want, text)
 		}
+	}
+}
+
+func TestResultShowsChildCPUNextToWallTime(t *testing.T) {
+	h := newHostReport("2.2.2.2", "tendisssd", []InstanceRestore{{DestPort: 30000}})
+	p := h.port(30000)
+	p.add(stageParse, 17*time.Minute)
+	p.addCPU(stageParse, 9*time.Minute)
+	p.add(stageApply, 3*time.Minute)
+	p.finish(nil)
+	text := h.resultText()
+	if !strings.Contains(text, "parse=17m0s(cpu 9m0s) apply=3m0s") || strings.Contains(text, "download") {
+		t.Fatalf("got:\n%s", text)
+	}
+}
+
+func TestUnpackReportsCPUTime(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "dump.rdb.gz")
+	if _, err := runStageCmd(fmt.Sprintf("head -c 4000000 /dev/urandom | gzip > %s", src)); err != nil {
+		t.Fatal(err)
+	}
+	cpu, err := unpackBackup([]string{src}, filepath.Join(dir, "work"))
+	if err != nil || cpu <= 0 {
+		t.Fatalf("cpu=%v err=%v", cpu, err)
 	}
 }
 

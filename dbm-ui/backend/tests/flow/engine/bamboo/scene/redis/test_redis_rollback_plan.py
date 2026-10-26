@@ -300,6 +300,8 @@ def test_download_submits_one_bill_per_batch():
     assert [len(batch) for batch in batches] == [rollback_components.DOWNLOAD_BATCH_SIZE, 1]
     assert sum(batches, []) == plan.dest_hosts[0].task_ids
     assert data.outputs.backup_bill_ids == [11, 12]
+    assert data.outputs.download_started_at > 0
+    assert data.outputs.download_bytes == plan.dest_hosts[0].download_bytes
 
 
 def test_download_failure_logs_the_bills_already_submitted():
@@ -345,3 +347,26 @@ def test_schedule_waits_for_every_bill_and_fails_on_any():
     assert _schedule({"backup_bill_ids": [11, 12]}, {11: busy, 12: failed}) == (False, True)
     # Nodes started before batching recorded a single bill.
     assert _schedule({"backup_bill_id": 11}, {11: done}) == (True, True)
+
+
+def test_schedule_logs_the_host_download_time_and_throughput():
+    data = SimpleNamespace(
+        get_one_of_outputs={"backup_bill_ids": [11], "download_started_at": 1000.0, "download_bytes": 1053 << 20}.get,
+        outputs=SimpleNamespace(),
+    )
+    svc = _download_service()
+    logs = []
+    svc.log_info = logs.append
+    with patch.object(
+        rollback_components.RedisBackupApi,
+        "download_result",
+        return_value={"total": {"todo": 0, "doing": 0, "fail": 0}},
+    ), patch.object(rollback_components.time, "time", return_value=1000.0 + 17 * 60 + 33):
+        assert svc._schedule(data, None) is True
+    assert "下载成功 耗时 17m33s" in logs[-1] and "/s" in logs[-1]
+
+
+def test_download_summary_without_a_start_or_size():
+    summary = rollback_components.RedisRollbackDownloadService._download_summary
+    assert summary(None, 100, 2000.0) == ""
+    assert summary(1000.0, None, 1065.0) == "耗时 1m5s"
