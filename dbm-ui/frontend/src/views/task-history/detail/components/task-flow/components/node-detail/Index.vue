@@ -149,7 +149,9 @@
         <BkTabPanel
           :label="t('执行日志')"
           name="log">
+          <!-- 按节点重建，丢弃上一个节点的在途日志请求与版本状态 -->
           <ExecuteLog
+            :key="node?.id"
             :auto-open-ai-log="autoOpenAiLog"
             :is-show="isShow"
             :node="node"

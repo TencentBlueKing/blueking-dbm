@@ -277,6 +277,8 @@
 
   const handleSearch = (value: Record<string, string>) => {
     searchParams = value;
+    // 筛选条件变化后结果集不同，回到第 1 页，避免按旧 offset 请求出空列表
+    pagination.value.current = 1;
     handleGetRiskMemoList();
   };
 

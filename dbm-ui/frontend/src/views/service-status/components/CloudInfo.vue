@@ -17,7 +17,7 @@
     class="service-status-cloud-info">
     <div class="ml-12 mr-12 mb-12">
       <BkInput
-        v-model.tirm="serachKey"
+        v-model.trim="serachKey"
         clearable
         :placeholder="t('请输入云区域ID/名称')"
         type="search" />

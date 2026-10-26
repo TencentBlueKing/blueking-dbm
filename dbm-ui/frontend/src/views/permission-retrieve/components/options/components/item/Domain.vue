@@ -218,7 +218,12 @@
     return classifiedResult;
   };
 
+  // 域名查询序号：只采纳最后一次变更的查询结果，避免旧响应覆盖当前选择
+  let domainChangeSeq = 0;
+
   const handleDomainChange = (value: string) => {
+    domainChangeSeq += 1;
+    const currentSeq = domainChangeSeq;
     // 减少或增加，需要与选择器联动
     const newDomainList = value.split(batchSplitRegex).filter((item) => item);
     const newValidDomainList = newDomainList.filter((item) => domainRegex.test(item));
@@ -238,6 +243,9 @@
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         domain: addList.join(','),
       }).then((clusterResultList) => {
+        if (currentSeq !== domainChangeSeq) {
+          return;
+        }
         // 删除时，删去已选集群
         deleteSelectedCluster(deleteSet);
 

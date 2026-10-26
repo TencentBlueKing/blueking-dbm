@@ -56,7 +56,7 @@
             root_id: data[row.id]![0]!.flow_id,
           },
         });
-        window.open(href);
+        window.open(getBusinessHref(href, row.bk_biz_id));
       })
       .finally(() => {
         isProcessing.value = false;

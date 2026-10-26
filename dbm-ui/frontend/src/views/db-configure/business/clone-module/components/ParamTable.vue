@@ -258,7 +258,14 @@
 
         const content = document.createElement('div');
         content.className = 'description-tippy-content';
-        content.innerHTML = `<div class="desc-title">${confName}</div><div class="desc-text">${description}</div>`;
+        // 描述是接口原文，用 textContent 写入，避免 < 被当成标签解析
+        const titleEl = document.createElement('div');
+        titleEl.className = 'desc-title';
+        titleEl.textContent = confName;
+        const textEl = document.createElement('div');
+        textEl.className = 'desc-text';
+        textEl.textContent = description;
+        content.append(titleEl, textEl);
 
         tippyInstances.push(
           dbTippy(iconEl, {

@@ -18,7 +18,7 @@ import { getTicketStatus } from '@services/source/ticket';
 
 import { useUrlSearch } from '@hooks';
 
-import { transfromDataToQuery } from '@utils';
+import { parseQueryMemo, transfromDataToQuery } from '@utils';
 
 import { useStorage, useTimeoutFn } from '@vueuse/core';
 
@@ -71,7 +71,7 @@ export default () => {
     dataSource({
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
-      ...transfromDataToQuery(JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')))),
+      ...transfromDataToQuery(parseQueryMemo(route.query[URL_REPLENISH_MEMO_KEY])),
     });
   };
 

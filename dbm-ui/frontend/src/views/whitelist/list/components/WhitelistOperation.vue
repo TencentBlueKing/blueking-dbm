@@ -302,11 +302,17 @@
       api({
         bk_biz_id: props.bizId,
         id: props.data?.id || 0,
-        ips: _.uniq(formdata.ips.split(batchSplitRegex)),
+        // 与校验保持一致：去掉首尾空格和空行
+        ips: _.uniq(
+          formdata.ips
+            .split(batchSplitRegex)
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
         remark: formdata.remark,
       })
         .then(() => {
-          messageSuccess(t('创建成功'));
+          messageSuccess(props.isEdit ? t('编辑成功') : t('创建成功'));
           handleCancel();
           emits('successed');
         })

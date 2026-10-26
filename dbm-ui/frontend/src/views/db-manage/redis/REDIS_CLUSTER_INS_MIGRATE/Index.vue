@@ -209,7 +209,7 @@
       trigger: 'change',
       validator: (value: string, { rowData }: { rowData: IDataRow }) =>
         ![ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-          Object.values(rowData.batchInstance.instances)?.[0]!.cluster_type as ClusterTypes,
+          Object.values(rowData.batchInstance.instances)[0]?.cluster_type as ClusterTypes,
         ),
     },
   ];

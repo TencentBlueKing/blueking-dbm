@@ -238,34 +238,47 @@
     state.selected = selectedRowData as KeyFileItem[];
   }
 
+  // 打包下载的逐个触发定时器，组件卸载时要清掉，否则关闭弹窗后仍继续下载
+  let batchDownloadTimer: ReturnType<typeof setInterval> | undefined;
+
+  const stopBatchDownload = () => {
+    if (batchDownloadTimer) {
+      clearInterval(batchDownloadTimer);
+      batchDownloadTimer = undefined;
+    }
+    state.isBatchDownloading = false;
+  };
+
+  onBeforeUnmount(stopBatchDownload);
+
   /**
    * 打包下载文件
    */
   function handleBatchDownload() {
-    if (state.selected.length === 0) {
+    if (state.selected.length === 0 || state.isBatchDownloading) {
       return;
     }
     state.isBatchDownloading = true;
     const paths = state.selected.map((item) => item.path);
     batchDownloadDirs({ file_path_list: paths })
       .then((result) => {
-        const values = Object.values(result);
-        const interval = setInterval(downloadFile, 600, values);
-        function downloadFile(urls: string[]) {
-          if (urls.length > 0) {
-            const url = urls.pop();
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.setAttribute('href', url as string);
-            a.click();
-            document.body.removeChild(a);
-          } else {
-            clearInterval(interval);
+        const urls = Object.values(result);
+        // 浏览器会拦截同一时刻的多个下载，间隔 600ms 逐个触发；全部触发完才结束 loading
+        batchDownloadTimer = setInterval(() => {
+          const url = urls.pop();
+          if (!url) {
+            stopBatchDownload();
+            return;
           }
-        }
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.setAttribute('href', url);
+          a.click();
+          document.body.removeChild(a);
+        }, 600);
       })
-      .finally(() => {
+      .catch(() => {
         state.isBatchDownloading = false;
       });
   }

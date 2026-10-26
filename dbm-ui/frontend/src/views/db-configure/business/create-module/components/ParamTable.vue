@@ -80,7 +80,7 @@
               filterable
               :placeholder="t('请选择参数')">
               <DbOption
-                v-for="param of availableParams"
+                v-for="param of selectableParams"
                 :key="param.conf_name"
                 :label="param.conf_name"
                 :value="param.conf_name" />
@@ -325,6 +325,11 @@
   const availableParams = ref<ConfItem[]>([]);
   // 本地新增但尚未被服务端数据刷新覆盖的项（追加到列表末尾，不破坏原始排序）
   const pendingAddedItems = ref<ConfItem[]>([]);
+  // 新增下拉可选的参数：排除已添加未提交的，避免同名参数再开一行
+  const selectableParams = computed(() => {
+    const pendingNames = new Set(pendingAddedItems.value.map((item) => item.conf_name));
+    return availableParams.value.filter((item) => !pendingNames.has(item.conf_name));
+  });
 
   // 行唯一标识字段
   const rowKeyField = computed(() => props.rowKey as keyof ConfItem);
@@ -431,7 +436,14 @@
 
         const content = document.createElement('div');
         content.className = 'description-tippy-content';
-        content.innerHTML = `<div class="desc-title">${confName}</div><div class="desc-text">${description}</div>`;
+        // 描述是接口原文，用 textContent 写入，避免 < 被当成标签解析
+        const titleEl = document.createElement('div');
+        titleEl.className = 'desc-title';
+        titleEl.textContent = confName;
+        const textEl = document.createElement('div');
+        textEl.className = 'desc-text';
+        textEl.textContent = description;
+        content.append(titleEl, textEl);
 
         const instance = dbTippy(iconEl, {
           allowHTML: true,
@@ -636,20 +648,17 @@
     refreshTable();
   };
 
-  /** 取消新增 */
+  /** 取消新增（新增行在确认前不会进入 pendingAddedItems，这里只重置新增行状态） */
   const handleCancelAdd = () => {
-    // 从本地新增缓存中移除（不影响服务端数据排序）
-    if (newRow.value.conf_name) {
-      const idx = pendingAddedItems.value.findIndex((item) => item.conf_name === newRow.value.conf_name);
-      if (idx >= 0) {
-        pendingAddedItems.value.splice(idx, 1);
-      }
-    }
     isAddingRow.value = false;
     newRow.value = { conf_name: '', conf_value: '' };
     selectedParamInfo.value = null;
     refreshTable();
   };
+
+  /** 按行 key 在「已添加未提交」与「已有配置」里查找参数，新增行编辑时也要能找到 */
+  const findConfItem = (key: ConfItem[keyof ConfItem]) =>
+    [...pendingAddedItems.value, ...allConfItems.value].find((item) => item[rowKeyField.value] === key);
 
   /** 开始行内编辑（若有未完成的新增或编辑，先丢弃） */
   const handleStartEdit = (row: ConfItem) => {
@@ -662,22 +671,21 @@
       resetEditingState();
     }
     editingRowKey.value = row[rowKeyField.value] as any;
+    // 原值始终记录真实值，取消编辑时据此恢复（加密参数也不能被清空）
+    editingOriginValue.value = row.conf_value ?? '';
     // 加密参数不带入原值，由用户输入新值
-    if (row.flag_encrypt === 1) {
-      editingValue.value = '';
-      editingOriginValue.value = '';
-    } else {
-      editingValue.value = row.conf_value ?? '';
-      editingOriginValue.value = row.conf_value ?? '';
-    }
+    editingValue.value = row.flag_encrypt === 1 ? '' : (row.conf_value ?? '');
   };
 
   /** 确认编辑 */
   const handleConfirmEdit = () => {
-    const target = allConfItems.value.find((item) => item[rowKeyField.value] === editingRowKey.value);
+    const target = findConfItem(editingRowKey.value);
     if (target) {
       target.conf_value = editingValue.value;
-      target.op_type = 'update';
+      // 新增行仍按新增提交
+      if (target.op_type !== 'add') {
+        target.op_type = 'update';
+      }
     }
     resetEditingState();
   };
@@ -685,8 +693,8 @@
   /** 取消编辑 */
   const handleCancelEdit = () => {
     // 恢复原始值
-    const target = allConfItems.value.find((item) => item[rowKeyField.value] === editingRowKey.value);
-    if (target && editingOriginValue.value !== undefined) {
+    const target = findConfItem(editingRowKey.value);
+    if (target) {
       target.conf_value = editingOriginValue.value;
     }
     resetEditingState();
@@ -700,10 +708,12 @@
   /** 批量编辑保存回调 - 前端暂存变更 */
   const handleBatchEditSaved = (changedItems: ConfItem[]) => {
     changedItems.forEach((changedItem) => {
-      const target = allConfItems.value.find((item) => item.conf_name === changedItem.conf_name);
+      const target = findConfItem(changedItem[rowKeyField.value]);
       if (target) {
         target.conf_value = changedItem.conf_value;
-        target.op_type = 'update';
+        if (target.op_type !== 'add') {
+          target.op_type = 'update';
+        }
       }
     });
     refreshTable();
@@ -770,9 +780,14 @@
 
   /** 回车确认 */
   const handleEnter = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleConfirmEdit();
+    // 只在单元格编辑态响应；多行输入框里的回车用于换行，输入法组字中的回车用于上屏
+    if (e.key !== 'Enter' || !editingRowKey.value || e.isComposing) {
+      return;
     }
+    if ((e.target as HTMLElement | null)?.tagName === 'TEXTAREA') {
+      return;
+    }
+    handleConfirmEdit();
   };
 
   onMounted(() => {
