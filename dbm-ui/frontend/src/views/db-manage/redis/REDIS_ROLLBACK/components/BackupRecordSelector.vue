@@ -221,7 +221,7 @@
   import RollbackBatchShard from '@services/model/redis/rollback-batch-shard';
   import { getRollbackBatchDetails, getRollbackBatches, getShardRoute } from '@services/source/redisRollback';
 
-  import { ipv4 } from '@common/regex';
+  import { ipPort, ipv4 } from '@common/regex';
 
   import { comType } from '@components/db-quick-search/bk-quick-search/constants';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -256,22 +256,20 @@
     value: () => [dayjs().subtract(days, 'day').toDate(), new Date()] as [Date, Date],
   }));
 
-  // 输入是否为 IP（正则取自 common/regex）
-  const isIpLike = (value: string) => ipv4.test(value);
-
-  // 未选字段直接输入时，SuggestMenu 按各搜索项 validator 生成建议项：形如 IP 只命中 IP，其余只命中 Key；两个字段均支持多选
+  // 未选字段直接输入时，SuggestMenu 按各搜索项 validator 生成建议项：形如 IP / 实例 只命中 IP，其余只命中 Key；两个字段均支持多选
   const searchSelectData = [
     {
       id: 'ip',
-      name: 'IP',
+      name: t('实例（IP / IP:Port）'),
       type: comType.MULTIPLE_INPUT,
-      validator: isIpLike,
+      // 支持 IP 或实例（IP:port）
+      validator: (value: string) => ipv4.test(value) || ipPort.test(value),
     },
     {
       id: 'key',
       name: 'Key',
       type: comType.MULTIPLE_INPUT,
-      validator: (value: string) => !isIpLike(value),
+      validator: (value: string) => !(ipv4.test(value) || ipPort.test(value)),
     },
   ];
 
@@ -360,8 +358,24 @@
   // Key 筛选命中（shard_route 反查结果）：有 key 筛选时表格只展示命中的分片，无 key 展示全量
   const keyHitShardValues = ref<string[]>([]);
 
+  // IP 过滤匹配：输入为实例（IP:port）时精确匹配实例，输入为 IP 时模糊匹配备份源 IP
+  const matchIp = (item: RollbackBatchShard, ipCondition: string) => {
+    const sourceIp = item.source_ip || '';
+    if (ipCondition.includes(':')) {
+      return `${sourceIp}:${item.source_port}` === ipCondition;
+    }
+    return sourceIp.includes(ipCondition);
+  };
+
   // 展示范围：key 命中 ∩ IP 命中（各条件存在才参与过滤），ip 同时用于勾选
   const filteredShards = ref<RollbackBatchShard[]>([]);
+
+  // 多选输入的值可能是逗号拼接字符串或数组，统一拆成列表
+  const normalizeList = (value: string | string[] | undefined) =>
+    (Array.isArray(value) ? value.join(',') : String(value || ''))
+      .split(/[,\s;，；]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
 
   // 分片列表或筛选结果变化后需显式调用，同步展示范围
   const updateFilteredShards = () => {
@@ -370,17 +384,9 @@
       const hitMap = Object.fromEntries(keyHitShardValues.value.map((item) => [item, true]));
       result = result.filter((item) => hitMap[item.shard_value]);
     }
-    const ipValues = (searchValue.value.ip || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const ipValues = normalizeList(searchValue.value.ip);
     if (ipValues.length > 0) {
-      result = result.filter((item) =>
-        ipValues.some((ipCondition) => {
-          const ip = ipCondition.split(':')[0]!;
-          return item.source_ip.includes(ip) || `${item.source_ip}:${item.source_port}`.includes(ipCondition);
-        }),
-      );
+      result = result.filter((item) => ipValues.some((ipCondition) => matchIp(item, ipCondition)));
     }
     filteredShards.value = result;
   };
@@ -609,14 +615,8 @@
   // Key 过滤经 shard_route 反查所在分片并自动勾选；IP 过滤为本地匹配。
   // 四种过滤组合：1. 无 ip 无 key 恢复全量并清空勾选；2. 仅 ip 本地过滤；3. 仅 key 反查勾选；4. ip + key 同时生效
   const handleSearchChange = () => {
-    const ipValues = (searchValue.value.ip || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const keys = (searchValue.value.key || '')
-      .split(/[,\s;，；]+/)
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const ipValues = normalizeList(searchValue.value.ip);
+    const keys = normalizeList(searchValue.value.key);
     // 无过滤条件：展示全量并清空勾选
     if (ipValues.length === 0 && keys.length === 0) {
       keyRouteWarning.value = '';
@@ -628,19 +628,14 @@
     if (!selectedBatch.value) {
       return;
     }
-    // IP：本地匹配命中的分片（参与展示过滤，同时作为勾选）
-    const ipMatchedValues = ipValues.length
+    // IP 条件：实例（IP:port）只参与展示过滤不自动勾选，纯 IP 命中的分片自动勾选
+    const ipMatchedValues = ipValues.some((ipCondition) => !ipCondition.includes(':'))
       ? shardList.value
-          .filter((item) =>
-            ipValues.some((ipCondition) => {
-              const ip = ipCondition.split(':')[0]!;
-              return item.source_ip.includes(ip) || `${item.source_ip}:${item.source_port}`.includes(ipCondition);
-            }),
-          )
+          .filter((item) => ipValues.some((ipCondition) => !ipCondition.includes(':') && matchIp(item, ipCondition)))
           .map((item) => item.shard_value)
       : [];
     if (keys.length === 0) {
-      // 仅 IP：按命中分片勾选，展示保持全量
+      // 仅 IP：纯 IP 条件按命中分片勾选，实例条件只过滤不勾选
       keyRouteWarning.value = '';
       keyHitShardValues.value = [];
       checkedShardValues.value = [...new Set(ipMatchedValues)];
