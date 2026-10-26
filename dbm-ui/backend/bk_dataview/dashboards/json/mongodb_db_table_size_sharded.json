@@ -124,7 +124,7 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "集群 storage_size 合计（report_bucket 内、非空 collection、跨 shard sum）",
+      "description": "集群 storage_size 合计（report_bucket 内、非空 collection、跨 shard sum）；用 max 避开桶后 0 点。",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -160,12 +160,12 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
-          "fields": "",
+          "fields": "/^storageSize 总量$/",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value"
       },
       "pluginVersion": "10.4.0",
       "targets": [
@@ -279,7 +279,7 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "集群 data_size 合计（report_bucket 内、非空 collection、跨 shard sum）",
+      "description": "集群 data_size 合计（report_bucket 内、非空 collection、跨 shard sum）；用 max 避开桶后 0 点。",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -315,12 +315,12 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
-          "fields": "",
+          "fields": "/^dataSize 总量$/",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value"
       },
       "pluginVersion": "10.4.0",
       "targets": [
