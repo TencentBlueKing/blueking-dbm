@@ -43,8 +43,8 @@ class Machine(AuditedModel):
     bk_os_name = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("操作系统"))
     bk_idc_area = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("区域"))
     bk_idc_area_id = models.IntegerField(default=0, help_text=_("区域 ID"))
-    bk_sub_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("子 Zone"))
-    bk_sub_zone_id = models.IntegerField(default=0, help_text=_("子 Zone ID"))
+    bk_sub_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("子 Zone, 即将废弃"))
+    bk_sub_zone_id = models.IntegerField(default=0, help_text=_("子 Zone ID, 即将废弃"))
     bk_rack = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("机架"))
     bk_rack_id = models.IntegerField(default=0, help_text=_("机架 ID"))
     bk_svr_device_cls_name = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("标准设备类型"))
@@ -68,6 +68,11 @@ class Machine(AuditedModel):
             '{"/data": {"size": 100, "disk_id": "disk-xxx", "disk_type": "CLOUD_PREMIUM", "file_type": "ext4"}}'
         ),
     )
+    # 代替 bk_city
+    bk_cloud_region = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("云上的地域"))
+    # 代替 bk_sub_zone,bk_sub_zone_id
+    # 值类似为 ap-xxx-1, 对应的本地化如 "xx 一区" 信息不在元数据冗余存储, 统一用翻译表
+    bk_cloud_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("云可用区"))
 
     class Meta:
         unique_together = ("ip", "bk_cloud_id")

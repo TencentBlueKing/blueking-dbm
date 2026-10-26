@@ -65,13 +65,15 @@ class Cluster(AuditedModel):
     phase = models.CharField(max_length=64, choices=ClusterPhase.get_choices(), default=ClusterPhase.ONLINE.value)
     status = models.CharField(max_length=64, choices=ClusterStatus.get_choices(), default=ClusterStatus.NORMAL.value)
     bk_cloud_id = models.IntegerField(default=DEFAULT_BK_CLOUD_ID, help_text=_("云区域 ID"))
-    region = models.CharField(max_length=128, default="", help_text=_("地域"))
+    region = models.CharField(max_length=128, default="", help_text=_("地域, 即将废弃"))
     disaster_tolerance_level = models.CharField(
         max_length=128, help_text=_("容灾要求"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE.value
     )
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
     tags = models.ManyToManyField(Tag, blank=True, help_text=_("标签（外键）"))
-    zone_list = models.JSONField(default=list, help_text=_("指定机房列表，空列表代表随机"), blank=True, null=True)
+    zone_list = models.JSONField(default=list, help_text=_("指定机房列表，空列表代表随机, 即将废弃"), blank=True, null=True)
+    cloud_zone_list = models.JSONField(default=list, help_text=_("指云可用区，空列表代表随机"), blank=True, null=True)
+    bk_cloud_region = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("云上的地域"))
 
     class Meta:
         unique_together = [("bk_biz_id", "immute_domain", "cluster_type", "db_module_id"), ("immute_domain",)]

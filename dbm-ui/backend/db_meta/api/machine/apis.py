@@ -59,6 +59,8 @@ def get_create_machines(
             "net_device_id",
             "bk_agent_id",
             "bk_cloud_inst_id",
+            "bk_cloud_region",
+            "bk_cloud_zone",
         ],
         "host_property_filter": {
             "condition": "AND",
@@ -116,6 +118,8 @@ def get_create_machines(
                 spec_id=spec_id,
                 spec_config=spec_config,
                 creator=creator,
+                bk_cloud_region=inf.get("bk_cloud_region") or "",
+                bk_cloud_zone=inf.get("bk_cloud_zone") or "",
             )
         )
 
