@@ -68,7 +68,8 @@ class ResourcePoolMcpToolsViewSet(McpToolsViewSet):
         name_prefix="resource_pool",
     )
     def resource_import(self, request, *args, **kwargs):
-        validated_params = self.params_validate(self.get_serializer_class())
+        # representation=True: 走 to_representation, 未传 bk_biz_id 时在序列化器中补默认资源池业务
+        validated_params = self.params_validate(self.get_serializer_class(), representation=True)
         return Response(resource_import_host(validated_params, request.user.username))
 
     @mcp_tools_api_decorator(
@@ -89,7 +90,8 @@ class ResourcePoolMcpToolsViewSet(McpToolsViewSet):
         name_prefix="resource_pool",
     )
     def resource_undo_import(self, request, *args, **kwargs):
-        validated_params = self.params_validate(self.get_serializer_class())
+        # representation=True: 走 to_representation, 未传 bk_biz_id 时在序列化器中补默认资源池业务
+        validated_params = self.params_validate(self.get_serializer_class(), representation=True)
         return Response(resource_undo_import(validated_params, request.user.username))
 
     @mcp_tools_api_decorator(
