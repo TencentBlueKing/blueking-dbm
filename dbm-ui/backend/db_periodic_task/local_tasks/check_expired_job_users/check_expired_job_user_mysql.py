@@ -176,7 +176,6 @@ class CheckExpiredJobUserForMysql(object):
               · 更小的单次 RPC 体量（不易触发 DRS 超时 / 大响应）；
               · 更小的失败爆炸半径（单集群卡住不牵连本批其它集群）；
               · 天然拿到 cluster 对象，日志定位不再需要反查 instances_map。
-          - 这里不区分它到底是中控节点还是mysql节点， 传入force=true的情况，为了如果实例及时不支持tc_admin参数，不让它报错，也能输出实例信息
         :param cluster: 目标集群对象（需已 prefetch storageinstance_set / proxyinstance_set）
         :return: DRS raw resp list（每个元素形如 {"address", "error_msg", "cmd_results", ...}）
         边界：
@@ -193,8 +192,8 @@ class CheckExpiredJobUserForMysql(object):
         resp = DRSApi.rpc(
             {
                 "addresses": instances,
-                "cmds": ["set tc_admin = 0;", get_job_users_sql],
-                "force": True,
+                "cmds": [get_job_users_sql],
+                "force": False,
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )
@@ -249,7 +248,7 @@ class CheckExpiredJobUserForMysql(object):
     def _drop_expired_job_user_for_instance(cloud_id: int, user_info: dict, address: str) -> None:
         """
         在指定实例上 drop 已过期的临时账号。
-        这里不区分它到底是中控节点还是mysql节点， 传入force=true的情况，为了如果实例及时不支持tc_admin参数，不让它报错，
+        传入force=true的情况，不让它报错，
         也是达到drop user 效果。
 
         :param cloud_id: bk_cloud_id
@@ -263,7 +262,6 @@ class CheckExpiredJobUserForMysql(object):
                 "addresses": [address],
                 "cmds": [
                     "set session sql_log_bin = 0;",
-                    "set tc_admin = 0;",
                     f"drop user `{user_info['user']}`@`{user_info['host']}`;",
                     "set session sql_log_bin = 1;",
                 ],
@@ -302,7 +300,20 @@ class CheckExpiredJobUserForMysql(object):
                     if not cmd_result.get("table_data", None):
                         # 空列表 -> 该实例无 job_user，跳过
                         continue
-                    for user_info in cmd_result.get("table_data"):
+                    for raw_row in cmd_result.get("table_data"):
+                        # DRS 返回的列名大小写取决于底层 MySQL 实例（版本 / lower_case_table_names 等差异）：
+                        # 实测同一集群中部分实例返回 {"user", "host"}，另一些返回 {"User", "Host"}。
+                        # 这里统一降级为小写键，后续逻辑与下游 drop RPC 均按 user/host 读取，避免 KeyError。
+                        user_info = {k.lower(): v for k, v in raw_row.items()}
+                        if "user" not in user_info or "host" not in user_info:
+                            # 兜底：出现未知列名结构时跳过并打日志，不影响同批其它账号
+                            logger.warning(
+                                "skip unexpected row from instance [%s] cluster=[%s] row_keys=%s",
+                                info.get("address"),
+                                cluster.name,
+                                list(raw_row.keys()),
+                            )
+                            continue
                         scanned_users += 1
                         flow_root_id = user_info["user"].replace(DBM_MYSQL_JOB_TMP_USER_PREFIX, "")
                         # host 白名单按 host_mode 构造：strict/topology 返回集合；loose 返回 None（不校验）
