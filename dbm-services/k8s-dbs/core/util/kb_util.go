@@ -45,6 +45,7 @@ import (
 
 	"github.com/imdario/mergo"
 	"helm.sh/helm/v3/pkg/action"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -712,4 +713,55 @@ func GetPodRole(pod *corev1.Pod) string {
 		return role
 	}
 	return "" // 默认为空字符串
+}
+
+// BuildExistingEnvByComponent 读取既有 KubeBlocks Cluster CR 的 componentSpecs[].env，
+// 按 componentName → envName → envValue 构建二级 map，用于幂等复用场景。
+//
+// 行为约定：
+//   - 若 Cluster CR 不存在（NotFound），视为首次创建，返回 (空 map, nil)。
+//   - 若读取遇到其他错误，原样返回错误。
+//   - 仅返回 env 中的字面量 Value（忽略 ValueFrom 的 Secret/ConfigMap 引用）。
+//
+// 返回值形如：
+//
+//	{
+//	  "qdrant": { "QDRANT__SERVICE__API_KEY": "xxx", "QDRANT__SERVICE__READ_ONLY_API_KEY": "yyy" },
+//	}
+func BuildExistingEnvByComponent(
+	request *coreentity.Request,
+	k8sClient *commutil.K8sClient,
+) (map[string]map[string]interface{}, error) {
+	result := make(map[string]map[string]interface{})
+	if request == nil || k8sClient == nil {
+		return result, nil
+	}
+	clusterInfo, err := GetClusterInfo(request, k8sClient)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			// 首次创建，Cluster CR 不存在，视为正常
+			return result, nil
+		}
+		return nil, err
+	}
+	if clusterInfo == nil {
+		return result, nil
+	}
+	for _, compSpec := range clusterInfo.Spec.ComponentSpecs {
+		if len(compSpec.Env) == 0 {
+			continue
+		}
+		envMap := make(map[string]interface{}, len(compSpec.Env))
+		for _, envVar := range compSpec.Env {
+			// 仅记录字面量 value，忽略 ValueFrom 引用
+			if envVar.ValueFrom != nil {
+				continue
+			}
+			envMap[envVar.Name] = envVar.Value
+		}
+		if len(envMap) > 0 {
+			result[compSpec.Name] = envMap
+		}
+	}
+	return result, nil
 }

@@ -80,3 +80,13 @@ const (
 	SurrealTikv string = "tikv"
 	SurrealPd   string = "pd"
 )
+
+// Qdrant env/密钥相关常量
+const (
+	// QdrantEnvAPIKey Qdrant 读写 API Key 环境变量名
+	QdrantEnvAPIKey string = "QDRANT__SERVICE__API_KEY"
+	// QdrantEnvReadOnlyAPIKey Qdrant 只读 API Key 环境变量名
+	QdrantEnvReadOnlyAPIKey string = "QDRANT__SERVICE__READ_ONLY_API_KEY"
+	// QdrantAPIKeyRandBytes Qdrant API Key 随机字节数（等价于 openssl rand -base64 32）
+	QdrantAPIKeyRandBytes int = 32
+)
