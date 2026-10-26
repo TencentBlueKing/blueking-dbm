@@ -98,7 +98,7 @@
     ],
     [] as dataItem[],
   );
-  const domainList = props.ticketDetails.details.authorize_data?.[0].target_instances || [];
+  const domainList = props.ticketDetails.details.authorize_data?.[0]?.target_instances || [];
 
   const getRenderList = (data: dataItem) => (data.isExpand ? data.rule_sets : data.rule_sets.slice(0, 1));
 

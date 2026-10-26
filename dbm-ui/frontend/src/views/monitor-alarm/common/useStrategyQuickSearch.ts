@@ -41,14 +41,15 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType: DBTypes) => 
       },
       {
         id: 'is_enabled',
+        // 筛选值全链路是字符串，选项 value 也用字符串，否则从 URL 恢复时勾选态对不上
         list: [
           {
             label: t('已启用'),
-            value: true,
+            value: 'true',
           },
           {
             label: t('已停用'),
-            value: false,
+            value: 'false',
           },
         ],
         name: t('启停状态'),

@@ -189,7 +189,8 @@
       } else if (!isActive.value) {
         resume();
       }
-      if (data.status === 'FINISHED') {
+      // 三种终态都要给出成功 / 失败列表；失败或终止且没有明细时，未成功的实例都算失败，便于重试
+      if (['FAILED', 'FINISHED', 'REVOKED'].includes(data.status)) {
         errorMessage.value = data.error as string;
         successList.value = data.success ? getInstanceList(data.success) : [];
         errorList.value = data.fail
@@ -229,7 +230,7 @@
   };
 
   const handleCopy = () => {
-    execCopy(errorList.value.join('\n'), t('复制成功，共n条', { n: errorList.value.join('\n') }));
+    execCopy(errorList.value.join('\n'), t('复制成功，共n条', { n: errorList.value.length }));
   };
 
   const handleRetry = () => {

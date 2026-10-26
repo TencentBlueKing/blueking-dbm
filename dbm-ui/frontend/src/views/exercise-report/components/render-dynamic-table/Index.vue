@@ -77,7 +77,7 @@
               @click="() => handleShowLogDetail(item.display_name, row[item.name])">
               {{ t('详情') }}
             </BkButton>
-            <span v-else>{{ row[item.name] || '--' }}</span>
+            <span v-else>{{ row[item.name] === 0 ? 0 : row[item.name] || '--' }}</span>
           </template>
         </TableColumn>
       </PrimaryTable>

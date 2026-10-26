@@ -137,6 +137,8 @@
     cluster_id: number;
     new_version: string;
   }>(TicketTypes.DORIS_UPGRADE, {
+    // 非工具箱入口：失败由 hook 全局提示
+    isToolbox: false,
     onSuccess: () => {
       isShow.value = false;
       emits('change');

@@ -163,7 +163,7 @@
 
   import { DBTypeInfos } from '@common/const';
 
-  import { getOffset, utcDisplayTime } from '@utils';
+  import { getOffset, parseQueryMemo, utcDisplayTime } from '@utils';
 
   import Details from './components/Details.vue';
   import useFetchData from './hooks/use-fetch-data';
@@ -267,7 +267,7 @@
     setTimeout(() => {
       tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
     });
-    const urlParams = JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')));
+    const urlParams = parseQueryMemo<Record<string, unknown>>(route.query[URL_REPLENISH_MEMO_KEY]);
     if (route.params.id) {
       urlParams.id = route.params.id;
       detailsId.value = Number(route.params.id);

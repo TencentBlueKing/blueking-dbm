@@ -302,7 +302,7 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy, messageSuccess } from '@utils';
+  import { execCopy, messageSuccess, messageWarn } from '@utils';
 
   import { useVersionFiles } from '../hooks/useVersionFiles';
 
@@ -439,7 +439,9 @@
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
       if (!filename.endsWith('tar.gz') && !filename.endsWith('tar.xz')) {
-        return;
+        // upload 组件只在返回严格的 false 时中止，返回 undefined 仍会发出上传
+        messageWarn(t('支持上传tar_gz_xz压缩格式文件_文件大小不超过10GB'));
+        return false;
       }
     }
 

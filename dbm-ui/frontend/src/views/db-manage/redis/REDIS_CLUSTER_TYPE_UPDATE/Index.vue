@@ -272,9 +272,21 @@
         tableData: infos.map((infoItem) =>
           createRowData({
             cluster: {
-              master_domain: clusters[infoItem.src_cluster].immute_domain,
+              master_domain: clusters[infoItem.src_cluster]?.immute_domain,
             } as IDataRow['cluster'],
             db_version: infoItem.db_version,
+            // 回填原单的部署方案，避免再次提单时方案丢失需重选
+            target_capacity: {
+              capacity: infoItem.capacity,
+              cluster_shard_num: infoItem.cluster_shard_num,
+              count: infoItem.resource_spec.backend_group.count,
+              future_capacity: infoItem.future_capacity,
+              labels: (infoItem.resource_spec.backend_group.labels || []).map((id, index) => ({
+                id: Number(id),
+                value: infoItem.resource_spec.backend_group.label_names?.[index] || '',
+              })),
+              spec_id: infoItem.resource_spec.backend_group.spec_id,
+            },
             target_cluster_type: infoItem.target_cluster_type,
           }),
         ),

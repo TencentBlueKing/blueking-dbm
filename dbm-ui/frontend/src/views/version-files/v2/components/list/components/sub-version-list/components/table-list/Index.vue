@@ -463,7 +463,7 @@
     }
     const itemValue = value.toString();
     if (keyValue.includes(',')) {
-      return keyValue.split(',').some((word: string) => word.includes(itemValue));
+      return keyValue.split(',').some((word: string) => word === itemValue);
     }
 
     return itemValue.includes(keyValue);

@@ -31,45 +31,59 @@
     return _.find(appShareList.value, (item) => item.uid === versionId.value)?.name;
   });
 
-  let app: ServiceReturnType<typeof window.BkVisionSDK.init>;
+  let app: ServiceReturnType<typeof window.BkVisionSDK.init> | undefined;
+  // 多次切换仪表盘时串行初始化：等上一次 init 完成并卸载后再挂新的，避免先发后到的旧仪表盘挂到同一节点
+  let initTask = Promise.resolve();
   watch(
     route,
     () => {
-      if (app) {
-        app.unmount();
-      }
       versionId.value = route.params.versionId as string;
-      nextTick(async () => {
-        app = await window.BkVisionSDK.init(rootRef.value!, versionId.value, {
-          apiPrefix: urlJoin(window.BK_AJAX_URL, `/bkvision/`),
-          chartToolMenu: [
-            {
-              build_in: true,
-              id: 'fullscreen',
-              type: 'tool',
-            }, // 全屏
-            {
-              build_in: true,
-              id: 'refresh',
-              type: 'tool',
-            }, // 刷新
-            {
-              build_in: true,
-              id: 'excel',
-              type: 'menu',
-            }, // 导出
-          ],
-          toolMenu: [
-            {
-              build_in: true,
-              id: 'screenshot',
+      const currentVersionId = versionId.value;
+      initTask = initTask
+        .then(async () => {
+          // 排队期间又切走了，跳过这次
+          if (currentVersionId !== versionId.value) {
+            return;
+          }
+          if (app) {
+            app.unmount();
+            // 卸载后立即清空：本次 init 失败时，下次切换不会再卸载同一个旧实例
+            app = undefined;
+          }
+          await nextTick();
+          app = await window.BkVisionSDK.init(rootRef.value!, currentVersionId, {
+            apiPrefix: urlJoin(window.BK_AJAX_URL, `/bkvision/`),
+            chartToolMenu: [
+              {
+                build_in: true,
+                id: 'fullscreen',
+                type: 'tool',
+              }, // 全屏
+              {
+                build_in: true,
+                id: 'refresh',
+                type: 'tool',
+              }, // 刷新
+              {
+                build_in: true,
+                id: 'excel',
+                type: 'menu',
+              }, // 导出
+            ],
+            toolMenu: [
+              {
+                build_in: true,
+                id: 'screenshot',
+              },
+            ],
+            waterMark: {
+              content: 'bk-vision',
             },
-          ],
-          waterMark: {
-            content: 'bk-vision',
-          },
+          });
+        })
+        .catch(() => {
+          // 单次初始化失败不能卡住后续切换
         });
-      });
     },
     {
       immediate: true,

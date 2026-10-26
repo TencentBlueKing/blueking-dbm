@@ -270,7 +270,7 @@
       bk_biz_id: props.bkBizId,
       limit: pagination.limit,
       offset: 0,
-      ordering: 'create_time',
+      ordering: 'create_at',
       type: 'resource',
     });
   });

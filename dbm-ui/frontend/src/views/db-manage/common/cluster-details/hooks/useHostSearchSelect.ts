@@ -10,6 +10,8 @@ import { useUrlSearch } from '@hooks';
 import { ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { batchSplitRegex, ipv4 } from '@common/regex';
 
+import { parseQueryMemo } from '@utils';
+
 import { URL_HOST_MEMO_KEY } from '../constants';
 
 const machineAttrs = [
@@ -113,7 +115,7 @@ export const useHostSearchSelect = (
   ];
 
   const initQuickSearchValue = () => {
-    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
+    quickSearchValue.value = parseQueryMemo(route.query[URL_HOST_MEMO_KEY]);
   };
   initQuickSearchValue();
 

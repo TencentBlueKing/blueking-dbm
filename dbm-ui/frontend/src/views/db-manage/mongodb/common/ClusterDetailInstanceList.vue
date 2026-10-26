@@ -93,6 +93,8 @@
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
+  import { parseQueryMemo } from '@utils';
+
   interface Props {
     clusterId: number;
     clusterType: ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
@@ -168,7 +170,7 @@
   };
 
   onMounted(() => {
-    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_INSTANCE_MEMO_KEY] || '{}')));
+    quickSearchValue.value = parseQueryMemo(route.query[URL_INSTANCE_MEMO_KEY]);
     fetchData();
   });
 </script>

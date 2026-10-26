@@ -284,7 +284,7 @@
   >([]);
 
   const nodataConfigDisabled = computed(
-    () => props.disabled || alarmStrategyData.value?.data_source_list?.[0].data_type_label !== 'time_series',
+    () => props.disabled || alarmStrategyData.value?.data_source_list?.[0]?.data_type_label !== 'time_series',
   );
   const nodataConfigTooltipDisabled = computed(() => props.disabled || !nodataConfigDisabled.value);
   const nodataConfigItemDisabled = computed(
@@ -294,7 +294,7 @@
     () => props.disabled || !nodataConfigItemDisabled.value || modelValue.value.noDataConfig.is_enabled,
   );
   const isAggDimensionInput = computed(
-    () => alarmStrategyData.value?.data_source_list?.[0].data_source_label === 'prometheus',
+    () => alarmStrategyData.value?.data_source_list?.[0]?.data_source_label === 'prometheus',
   );
 
   const {
