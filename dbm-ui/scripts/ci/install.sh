@@ -82,20 +82,25 @@ then
   FAILED_COUNT=$[$FAILED_COUNT+1]
 fi
 
-echo "正在检查是否有未提交的数据库迁移文件..."
-MIGRATION_OUTPUT=$(python manage.py makemigrations --dry-run --check 2>&1)
-
-# 捕获命令的退出状态
-STATUS=$?
-
-if [ $STATUS -ne 0 ]; then
-    echo "❌ 错误：检测到模型变更但未生成对应的迁移文件！"
-    echo ""
-    echo "====== 迁移详情 ======"
-    echo "$MIGRATION_OUTPUT"
+# 只检查 backend 目录下的自有 app：site-packages 里的 SDK app（如 aidev_bkplugin）
+# 自身没有生成 migrations 不受本仓库控制，不应阻断流水线
+echo "正在检查是否有未提交的数据库迁移文件（仅 backend 目录下自有 app）..."
+LOCAL_APP_LABELS=$(python "${SCRIPT_DIR}/local_app_labels.py")
+if [[ $? -ne 0 || -z "${LOCAL_APP_LABELS}" ]];
+then
+  echo -e "\033[1;31m Error: 未获取到 backend 目录下的 app 列表，migrations 检查无法执行！ \033[0m"
+  FAILED_COUNT=$[$FAILED_COUNT+1]
 else
+  echo "检查范围: $(echo ${LOCAL_APP_LABELS} | tr '\n' ' ')"
+  # shellcheck disable=SC2086 # 需要按空白拆分成多个 app label
+  python manage.py makemigrations ${LOCAL_APP_LABELS} --dry-run --check --noinput
+  if [[ $? -ne 0 ]];
+  then
+    echo -e "\033[1;31m Error: 检测到模型变更但未生成对应的迁移文件！请检查上面的迁移详情 \033[0m"
+    FAILED_COUNT=$[$FAILED_COUNT+1]
+  else
     echo "✅ 检查通过：没有未提交的模型变更。"
-    exit 0
+  fi
 fi
 
 if [[ $FAILED_COUNT -ne 0 ]];
