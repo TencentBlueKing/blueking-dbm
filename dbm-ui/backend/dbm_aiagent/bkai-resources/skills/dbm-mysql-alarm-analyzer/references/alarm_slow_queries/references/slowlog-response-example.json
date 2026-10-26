@@ -1,0 +1,37 @@
+{
+  "request_id": "8d9c7415-cb3f-441e-80e0-af1e61fa1421",
+  "response_body": {
+    "code": 0,
+    "data": {
+      "cluster_domain": "gamedb.1.stm.db",
+      "instance_role": "backend_master",
+      "metric_name": "query_time_max",
+      "slow_logs": [
+        {
+          "count_star": 1,
+          "instance_host": "192.168.42.211",
+          "instance_port": 20000,
+          "query_command": "create_table,select",
+          "query_db_name": "dbStm",
+          "query_digest_md5": "3bf8f1b4e0338d86",
+          "query_digest_text": "CREATE TABLE tb_backup_tasklist_2026-05-10 AS SELECT * FROM tb_backup_tasklist WHERE uptime>=? AND uptime<=?",
+          "query_string": "create table `tb_backup_tasklist_2026-05-10` as select * from tb_backup_tasklist where uptime >= '2026-05-10 00:00:00' and uptime <= '2026-05-10 23:59:59'",
+          "query_time_max": 437.55695,
+          "query_time_sum": 437.55694580078125,
+          "rows_examined_max": 15355317,
+          "rows_examined_sum": 15355317,
+          "rows_sent_max": 0,
+          "rows_sent_sum": 0,
+          "table_names": "dbStm.tb_backup_tasklist,dbStm.tb_backup_tasklist_2026-05-10",
+          "time_window_max": "2026-05-11 08:07:27",
+          "time_window_min": "2026-05-11 08:07:27",
+          "username": "stm"
+        }
+      ]
+    },
+    "message": "OK",
+    "request_id": "c744727a-2ab5-409d-b540-419276e1f951",
+    "result": true
+  },
+  "status_code": 200
+}
