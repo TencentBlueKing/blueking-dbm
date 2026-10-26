@@ -169,4 +169,14 @@ func InitConfig() {
 	}
 	AppConfig.Db.SetDefaults()
 	AppConfig.CmdbDb.SetDefaults()
+	// KMS：加载并校验运行时凭证；成功后无条件覆盖内存配置中的账号密码。
+	// 开启 KMS 后加载失败即停止启动，不回退 ConfigMap 中的旧凭证。
+	credentials, err := LoadRuntimeCredentials()
+	if err != nil {
+		logger.Fatal("load KMS runtime credentials failed: %s", err.Error())
+		return
+	}
+	if credentials != nil {
+		applyRuntimeCredentials(&AppConfig, credentials)
+	}
 }
