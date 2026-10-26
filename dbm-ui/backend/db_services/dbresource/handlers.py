@@ -543,6 +543,8 @@ class ResourceHandler(object):
                 bk_cpu=host.get("bk_cpu") or 0,
                 bk_mem=host.get("bk_mem") or 0,
                 bk_disk=host.get("bk_disk") or 0,
+                bk_cloud_region=host.get("bk_cloud_region") or "",
+                bk_cloud_zone=host.get("bk_cloud_zone") or "",
             )
         return hosts
 

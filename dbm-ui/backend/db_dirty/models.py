@@ -45,6 +45,8 @@ class DirtyMachine(AuditedModel):
     bk_cpu = models.IntegerField(default=0, help_text=_("cpu"))
     bk_mem = models.IntegerField(default=0, help_text=_("内存"))
     bk_disk = models.IntegerField(default=0, help_text=_("磁盘"))
+    bk_cloud_zone = models.CharField(max_length=LEN_MIDDLE, default="", blank=True, null=True, help_text=_("云可用区"))
+    bk_cloud_region = models.CharField(max_length=LEN_MIDDLE, default="", blank=True, null=True, help_text=_("云上的地域"))
 
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, help_text=_("关联单据"), null=True, blank=True)
 
