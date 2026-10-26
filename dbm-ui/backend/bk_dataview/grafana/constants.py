@@ -19,8 +19,8 @@ DASHBOARD_JSON_PATH = os.path.join(settings.BASE_DIR, "backend/bk_dataview/dashb
 DASHBOARD_APP_ID = "dbm"
 
 # k8s 组件指标中用于定位集群的维度，代理层按这些维度鉴权
-# namespace 形如 {name}-{biz_name}-{biz_id}
-K8S_NAMESPACE_KEY = "namespace"
+# bk_monitor_namespace 形如 {name}-{biz_name}-{biz_id}
+K8S_NAMESPACE_KEY = "bk_monitor_namespace"
 # DBM K8S 集群名
 K8S_INSTANCE_KEY = "app_kubernetes_io_instance"
 # BCS 集群 ID

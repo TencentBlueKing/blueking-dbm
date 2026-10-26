@@ -97,25 +97,27 @@ class TestGrafanaPromql:
         """函数首个参数为数字时，也要解析到后续参数中的选择器"""
         (result,) = extract_conditions_from_promql(
             "histogram_quantile(0.99, sum(rate(qdrant_rest_responses_duration_seconds_bucket"
-            '{namespace="qdrant-test-100",app_kubernetes_io_instance="qdrant01"}[5m])) by (le))'
+            '{bk_monitor_namespace="qdrant-test-100",app_kubernetes_io_instance="qdrant01"}[5m])) by (le))'
         )
-        assert result["namespace"] == ["qdrant-test-100"]
+        assert result["bk_monitor_namespace"] == ["qdrant-test-100"]
         assert result["app_kubernetes_io_instance"] == ["qdrant01"]
 
     def test_paren_and_binary_rhs(self):
         """括号表达式与二元表达式右侧的选择器都要解析"""
-        results = extract_conditions_from_promql('(a{namespace="ns-a-1"}) / on() b{namespace="ns-b-2"}')
-        assert [result["namespace"] for result in results] == [["ns-a-1"], ["ns-b-2"]]
+        results = extract_conditions_from_promql(
+            '(a{bk_monitor_namespace="ns-a-1"}) / on() b{bk_monitor_namespace="ns-b-2"}'
+        )
+        assert [result["bk_monitor_namespace"] for result in results] == [["ns-a-1"], ["ns-b-2"]]
 
     def test_subquery_and_unary(self):
-        results = extract_conditions_from_promql('-max_over_time(a{namespace="ns-a-1"}[5m:1m])')
-        assert [result["namespace"] for result in results] == [["ns-a-1"]]
+        results = extract_conditions_from_promql('-max_over_time(a{bk_monitor_namespace="ns-a-1"}[5m:1m])')
+        assert [result["bk_monitor_namespace"] for result in results] == [["ns-a-1"]]
 
     def test_duplicate_label_merged(self):
         """同一选择器内同名维度需合并，不能只保留最后一个"""
-        (result,) = extract_conditions_from_promql('a{namespace="ns-a-1",namespace=~".*"}')
+        (result,) = extract_conditions_from_promql('a{bk_monitor_namespace="ns-a-1",bk_monitor_namespace=~".*"}')
         # promql_parser 返回的 matchers 无固定顺序
-        assert sorted(result["namespace"]) == sorted(["ns-a-1", ".*"])
+        assert sorted(result["bk_monitor_namespace"]) == sorted(["ns-a-1", ".*"])
 
     def test_no_selector(self):
         assert extract_conditions_from_promql("vector(1)") == []

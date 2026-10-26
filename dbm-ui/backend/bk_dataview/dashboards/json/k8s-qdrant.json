@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Adapted from Grafana dashboard 25152 for Qdrant 1.16.3 native /metrics with QDRANT__SERVICE__METRICS_PREFIX=\"qdrant_\". Panels that depended on external qdrant_exporter or Qdrant Cloud metrics were replaced with native equivalents where possible.",
+  "description": "",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "gnetId": 25152,
@@ -119,10 +119,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -246,10 +246,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -344,7 +344,7 @@
             {
               "active": true,
               "alias": "rest+grpc",
-              "expression": "a + b",
+              "expression": "a + b or  a or b",
               "functions": []
             }
           ],
@@ -398,10 +398,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -457,19 +457,18 @@
                   ]
                 },
                 {
-                  "condition": "and",
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
                   "key": "bcs_cluster_id",
                   "method": "eq",
                   "value": [
                     "${bcs_cluster_id}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "${bk_monitor_namespace}"
                   ]
                 }
               ]
@@ -591,10 +590,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -757,7 +756,7 @@
             {
               "active": true,
               "alias": "Requests / s",
-              "expression": "a + b",
+              "expression": "a + b or a or b",
               "functions": []
             }
           ],
@@ -768,7 +767,7 @@
           "promqlAlias": "a + b",
           "query_configs": [
             {
-              "alias": "",
+              "alias": "Rest Requests / s",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -811,10 +810,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -828,7 +827,7 @@
               ]
             },
             {
-              "alias": "",
+              "alias": "gRpc Requests / s",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -871,10 +870,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -905,7 +904,7 @@
             {
               "active": true,
               "alias": "Failures / s",
-              "expression": "a + b",
+              "expression": "a + b or a or b",
               "functions": []
             }
           ],
@@ -916,7 +915,7 @@
           "promqlAlias": "Failures / s",
           "query_configs": [
             {
-              "alias": "",
+              "alias": "Rest Failures / s",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -951,10 +950,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -976,7 +975,7 @@
               ]
             },
             {
-              "alias": "",
+              "alias": "gRpc Failures / s",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": false,
@@ -1011,10 +1010,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1136,10 +1135,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1270,10 +1269,10 @@
                 },
                 {
                   "condition": "and",
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1373,16 +1372,232 @@
             "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
           "enableDownSampling": true,
-          "expressionList": [],
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "",
+              "expression": "(  (a   +   b)>0 or vector(0) )/((  (    c    +    d  ) > 0) or vector(1))",
+              "functions": []
+            }
+          ],
           "format": "time_series",
           "host": [],
-          "mode": "code",
+          "mode": "ui",
           "module": [],
           "promqlAlias": "",
-          "query_configs": [],
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "5m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 150,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "qdrant_rest_responses_fail_total",
+              "refId": "a",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "endpoint",
+                  "method": "reg",
+                  "value": [
+                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "${bk_monitor_namespace}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app_kubernetes_io_instance",
+                  "method": "eq",
+                  "value": [
+                    "${cluster}"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "5m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 150,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "qdrant_grpc_responses_fail_total",
+              "refId": "b",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "${bk_monitor_namespace}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app_kubernetes_io_instance",
+                  "method": "eq",
+                  "value": [
+                    "${cluster}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "endpoint",
+                  "method": "reg",
+                  "value": [
+                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "5m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 150,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "qdrant_rest_responses_total",
+              "refId": "c",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "${bk_monitor_namespace}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app_kubernetes_io_instance",
+                  "method": "eq",
+                  "value": [
+                    "${cluster}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "endpoint",
+                  "method": "reg",
+                  "value": [
+                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "5m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 150,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "qdrant_grpc_responses_total",
+              "refId": "d",
+              "result_table_id": "",
+              "result_table_label": "kubernetes",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "${bk_monitor_namespace}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app_kubernetes_io_instance",
+                  "method": "eq",
+                  "value": [
+                    "${cluster}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "endpoint",
+                  "method": "reg",
+                  "value": [
+                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                  ]
+                }
+              ]
+            }
+          ],
           "refId": "A",
           "showLastPoint": false,
-          "source": "(clamp_min(sum(rate(qdrant_rest_responses_fail_total{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\",namespace=\"${namespace}\",app_kubernetes_io_instance=\"${cluster}\"}[5m])), 0) + clamp_min(sum(rate(qdrant_grpc_responses_fail_total{namespace=\"${namespace}\",app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[5m])), 0)) / (clamp_min(sum(rate(qdrant_rest_responses_total{namespace=\"${namespace}\",app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[5m])), 0) + clamp_min(sum(rate(qdrant_grpc_responses_total{namespace=\"${namespace}\",app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[5m])), 0) + 0.0001)",
+          "source": "(\n  sum(rate(qdrant_rest_responses_fail_total{\n    endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\",\n    namespace=\"${namespace}\",\n    app_kubernetes_io_instance=\"${cluster}\"\n  }[5m])) \n\n  + \n\n  sum(rate(qdrant_grpc_responses_fail_total{\n    namespace=\"${namespace}\",\n    app_kubernetes_io_instance=\"${cluster}\",\n    endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"\n  }[5m]))\n)\n\n/\n\n((\n  (\n    sum(rate(qdrant_rest_responses_total{\n      namespace=\"${namespace}\",\n      app_kubernetes_io_instance=\"${cluster}\",\n      endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"\n    }[5m]))\n\n    +\n\n    sum(rate(qdrant_grpc_responses_total{\n      namespace=\"${namespace}\",\n      app_kubernetes_io_instance=\"${cluster}\",\n      endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"\n    }[5m]))\n  ) > 0\n) or vector(1))",
           "step": "",
           "type": "range"
         }
@@ -1475,10 +1690,19 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "condition": "and",
+                  "key": "bcs_cluster_id",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bcs_cluster_id}"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1487,14 +1711,6 @@
                   "method": "eq",
                   "value": [
                     "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
                   ]
                 }
               ]
@@ -1621,10 +1837,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1755,10 +1971,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1873,10 +2089,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -1991,10 +2207,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -2109,10 +2325,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -2234,10 +2450,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -2360,10 +2576,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -2486,10 +2702,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -2763,10 +2979,10 @@
               "time_field": "time",
               "where": [
                 {
-                  "key": "namespace",
+                  "key": "bk_monitor_namespace",
                   "method": "eq",
                   "value": [
-                    "${namespace}"
+                    "${bk_monitor_namespace}"
                   ]
                 },
                 {
@@ -2799,7 +3015,7 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -2807,1300 +3023,1365 @@
         "y": 22
       },
       "id": 11,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "Qdrant 1.16 does not support per-collection API response metrics; per-collection API labels start in v1.18 with /metrics?per_collection=true.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 0,
+            "y": 23
+          },
+          "id": 12,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "REST $tag_endpoint",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_rest_responses_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "sum by(endpoint) (rate(qdrant_rest_responses_total{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[2m]))",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "gRPC $tag_endpoint",
+              "query_configs": [
+                {
+                  "alias": "gRPC $tag_endpoint",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_grpc_responses_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "showLastPoint": false,
+              "source": "sum by (endpoint) (rate(bkmonitor:qdrant_grpc_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Search-like Requests / s - By Endpoint",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "Qdrant 1.16 API latency is by endpoint, not collection.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 8,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "decimals": 2,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": null
+                  },
+                  {
+                    "color": "#fade2a",
+                    "value": 10
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 100
+                  }
+                ]
+              },
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 23
+          },
+          "id": 13,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "REST $tag_endpoint",
+                  "expression": "a * 1000",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "qdrant_rest_responses_avg_duration_seconds",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "avg by(endpoint) (qdrant_rest_responses_avg_duration_seconds{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}) * 1000",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "",
+                  "expression": "a * 1000",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a * 1000",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "qdrant_grpc_responses_avg_duration_seconds",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "showLastPoint": false,
+              "source": "avg by (endpoint) (bkmonitor:qdrant_grpc_responses_avg_duration_seconds{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}) * 1000",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Avg Search-like Latency - By Endpoint",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "Original search_type dimension is not in native Qdrant /metrics. Endpoint is the closest native dimension.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#00d4ff",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 0,
+            "y": 30
+          },
+          "id": 14,
+          "options": {
+            "displayMode": "basic",
+            "maxVizHeight": 300,
+            "minVizHeight": 16,
+            "minVizWidth": 0,
+            "namePlacement": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "sizing": "auto",
+            "valueMode": "color"
+          },
+          "pluginVersion": "10.4.10",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "REST $tag_endpoint",
+              "query_configs": [
+                {
+                  "alias": "REST $tag_endpoint",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "increase",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_rest_responses_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "sum by (endpoint) (increase(bkmonitor:qdrant_rest_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[2m]))",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "gRPC $tag_endpoint",
+              "query_configs": [
+                {
+                  "alias": "gRPC $tag_endpoint",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "increase",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_grpc_responses_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "showLastPoint": false,
+              "source": "sum by (endpoint) (increase(bkmonitor:qdrant_grpc_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Search-like Volume by Endpoint",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "Original search_type dimension is not in native Qdrant /metrics. Endpoint is the closest native dimension.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": null
+                  },
+                  {
+                    "color": "#fade2a",
+                    "value": 10
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 100
+                  }
+                ]
+              },
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 8,
+            "y": 30
+          },
+          "id": 15,
+          "options": {
+            "displayMode": "basic",
+            "maxVizHeight": 300,
+            "minVizHeight": 16,
+            "minVizWidth": 0,
+            "namePlacement": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "sizing": "auto",
+            "valueMode": "color"
+          },
+          "pluginVersion": "10.4.10",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "REST $tag_endpoint",
+                  "expression": "a * 1000",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "qdrant_rest_responses_avg_duration_seconds",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "avg by(endpoint) (qdrant_rest_responses_avg_duration_seconds{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}) * 1000",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "gRPC $tag_endpoint",
+                  "expression": "a * 1000",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "endpoint"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "qdrant_grpc_responses_avg_duration_seconds",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "showLastPoint": false,
+              "source": "avg by(endpoint) (qdrant_grpc_responses_avg_duration_seconds{endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}) * 1000",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Latency by Search-like Endpoint",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "Native 1.16 error counters are global by endpoint/status, not collection.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": null
+                  },
+                  {
+                    "color": "#fade2a",
+                    "value": 0.01
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 0.05
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 16,
+            "y": 30
+          },
+          "id": 16,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "REST status $tag_status",
+                  "expression": "a / (b + 0.0001)",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a / (b + 0.0001)",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "5m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "status"
+                  ],
+                  "interval": 150,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_rest_responses_fail_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "5m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "status"
+                  ],
+                  "interval": 150,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_rest_responses_total",
+                  "refId": "b",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "sum by (status) (rate(bkmonitor:qdrant_rest_responses_fail_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[5m])) / (sum by (status) (rate(bkmonitor:qdrant_rest_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[5m])) + 0.0001)",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "gRPC status $tag_status",
+                  "expression": "a / (b + 0.0001)",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a / (b + 0.0001)",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "5m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "status"
+                  ],
+                  "interval": 150,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_grpc_responses_fail_total",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "5m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "status"
+                  ],
+                  "interval": 150,
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "qdrant_grpc_responses_total",
+                  "refId": "b",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "app_kubernetes_io_instance",
+                      "method": "eq",
+                      "value": [
+                        "${cluster}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "endpoint",
+                      "method": "reg",
+                      "value": [
+                        ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "showLastPoint": false,
+              "source": "sum by (status) (rate(bkmonitor:qdrant_grpc_responses_fail_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[5m])) / (sum by (status) (rate(bkmonitor:qdrant_grpc_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[5m])) + 0.0001)",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Search-like Error Rate - By Status",
+          "type": "timeseries"
+        }
+      ],
       "title": "Search Performance",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_-_指标数据}"
-      },
-      "description": "Qdrant 1.16 does not support per-collection API response metrics; per-collection API labels start in v1.18 with /metrics?per_collection=true.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 23
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max",
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "REST $tag_endpoint",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_rest_responses_total",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
-                  ],
-                  "condition": "and"
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "showLastPoint": false,
-          "source": "sum by(endpoint) (rate(qdrant_rest_responses_total{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[2m]))",
-          "step": "",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "gRPC $tag_endpoint",
-          "query_configs": [
-            {
-              "alias": "gRPC $tag_endpoint",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_grpc_responses_total",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "showLastPoint": false,
-          "source": "sum by (endpoint) (rate(bkmonitor:qdrant_grpc_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[2m]))",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Search-like Requests / s - By Endpoint",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_-_指标数据}"
-      },
-      "description": "Qdrant 1.16 API latency is by endpoint, not collection.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 8,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73bf69",
-                "value": null
-              },
-              {
-                "color": "#fade2a",
-                "value": 10
-              },
-              {
-                "color": "#f2495c",
-                "value": 100
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 23
-      },
-      "id": 13,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max",
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "REST $tag_endpoint",
-              "expression": "a * 1000",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "qdrant_rest_responses_avg_duration_seconds",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
-                  ],
-                  "condition": "and"
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "showLastPoint": false,
-          "source": "avg by(endpoint) (qdrant_rest_responses_avg_duration_seconds{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}) * 1000",
-          "step": "",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "gRPC $tag_endpoint",
-              "expression": "a * 1000",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "a * 1000",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "qdrant_grpc_responses_avg_duration_seconds",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "showLastPoint": false,
-          "source": "avg by (endpoint) (bkmonitor:qdrant_grpc_responses_avg_duration_seconds{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}) * 1000",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Avg Search-like Latency - By Endpoint",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_-_指标数据}"
-      },
-      "description": "Original search_type dimension is not in native Qdrant /metrics. Endpoint is the closest native dimension.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#00d4ff",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 30
-      },
-      "id": 14,
-      "options": {
-        "displayMode": "basic",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 0,
-        "namePlacement": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "pluginVersion": "10.4.10",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "REST $tag_endpoint",
-          "query_configs": [
-            {
-              "alias": "REST $tag_endpoint",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "increase",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_rest_responses_total",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "showLastPoint": false,
-          "source": "sum by (endpoint) (increase(bkmonitor:qdrant_rest_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[2m]))",
-          "step": "",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "gRPC $tag_endpoint",
-          "query_configs": [
-            {
-              "alias": "gRPC $tag_endpoint",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "increase",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_grpc_responses_total",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "showLastPoint": false,
-          "source": "sum by (endpoint) (increase(bkmonitor:qdrant_grpc_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[2m]))",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Search-like Volume by Endpoint",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_-_指标数据}"
-      },
-      "description": "Original search_type dimension is not in native Qdrant /metrics. Endpoint is the closest native dimension.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73bf69",
-                "value": null
-              },
-              {
-                "color": "#fade2a",
-                "value": 10
-              },
-              {
-                "color": "#f2495c",
-                "value": 100
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 30
-      },
-      "id": 15,
-      "options": {
-        "displayMode": "basic",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 0,
-        "namePlacement": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "pluginVersion": "10.4.10",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "REST $tag_endpoint",
-              "expression": "a * 1000",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "qdrant_rest_responses_avg_duration_seconds",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "showLastPoint": false,
-          "source": "avg by(endpoint) (qdrant_rest_responses_avg_duration_seconds{endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}) * 1000",
-          "step": "",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "gRPC $tag_endpoint",
-              "expression": "a * 1000",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "endpoint"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "qdrant_grpc_responses_avg_duration_seconds",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "showLastPoint": false,
-          "source": "avg by(endpoint) (qdrant_grpc_responses_avg_duration_seconds{endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}) * 1000",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Latency by Search-like Endpoint",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_-_指标数据}"
-      },
-      "description": "Native 1.16 error counters are global by endpoint/status, not collection.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "scheme",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "mappings": [],
-          "max": 1,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73bf69",
-                "value": null
-              },
-              {
-                "color": "#fade2a",
-                "value": 0.01
-              },
-              {
-                "color": "#f2495c",
-                "value": 0.05
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 30
-      },
-      "id": 16,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "REST status $tag_status",
-              "expression": "a / (b + 0.0001)",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "a / (b + 0.0001)",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "5m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "status"
-              ],
-              "interval": 150,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_rest_responses_fail_total",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "5m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "status"
-              ],
-              "interval": 150,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_rest_responses_total",
-              "refId": "b",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "showLastPoint": false,
-          "source": "sum by (status) (rate(bkmonitor:qdrant_rest_responses_fail_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[5m])) / (sum by (status) (rate(bkmonitor:qdrant_rest_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*search.*|.*query.*|.*recommend.*|.*discover.*|.*scroll.*|.*count.*\"}[5m])) + 0.0001)",
-          "step": "",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_-_指标数据}"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "gRPC status $tag_status",
-              "expression": "a / (b + 0.0001)",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "a / (b + 0.0001)",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "5m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "status"
-              ],
-              "interval": 150,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_grpc_responses_fail_total",
-              "refId": "a",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "5m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "status"
-              ],
-              "interval": 150,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "qdrant_grpc_responses_total",
-              "refId": "b",
-              "result_table_id": "",
-              "result_table_label": "kubernetes",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "namespace",
-                  "method": "eq",
-                  "value": [
-                    "${namespace}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "app_kubernetes_io_instance",
-                  "method": "eq",
-                  "value": [
-                    "${cluster}"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "endpoint",
-                  "method": "reg",
-                  "value": [
-                    ".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "bcs_cluster_id",
-                  "method": "eq",
-                  "value": [
-                    "${bcs_cluster_id}"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "showLastPoint": false,
-          "source": "sum by (status) (rate(bkmonitor:qdrant_grpc_responses_fail_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[5m])) / (sum by (status) (rate(bkmonitor:qdrant_grpc_responses_total{namespace=\"${namespace}\", app_kubernetes_io_instance=\"${cluster}\",endpoint=~\".*Search.*|.*Query.*|.*Recommend.*|.*Discover.*|.*Scroll.*|.*Count.*\"}[5m])) + 0.0001)",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Search-like Error Rate - By Status",
-      "type": "timeseries"
     },
     {
       "collapsed": true,
@@ -4108,7 +4389,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 23
       },
       "id": 17,
       "panels": [
@@ -4160,7 +4441,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4199,7 +4481,7 @@
             "h": 8,
             "w": 14,
             "x": 0,
-            "y": 24
+            "y": 12
           },
           "id": 18,
           "options": {
@@ -4333,10 +4615,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -4387,7 +4669,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "#f2495c"
+                    "color": "#f2495c",
+                    "value": null
                   },
                   {
                     "color": "#fade2a",
@@ -4407,7 +4690,7 @@
             "h": 8,
             "w": 10,
             "x": 14,
-            "y": 24
+            "y": 12
           },
           "id": 19,
           "options": {
@@ -4479,10 +4762,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -4529,10 +4812,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -4612,7 +4895,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -4645,7 +4929,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 32
+            "y": 20
           },
           "id": 20,
           "options": {
@@ -4706,10 +4990,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -4789,7 +5073,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "#73bf69"
+                    "color": "#73bf69",
+                    "value": null
                   },
                   {
                     "color": "#f2495c",
@@ -4805,7 +5090,7 @@
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 32
+            "y": 20
           },
           "id": 21,
           "options": {
@@ -4874,10 +5159,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -4911,7 +5196,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 24
       },
       "id": 22,
       "panels": [
@@ -4963,7 +5248,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5010,7 +5296,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 40
+            "y": 13
           },
           "id": 23,
           "options": {
@@ -5258,10 +5544,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -5333,7 +5619,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5349,7 +5636,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 40
+            "y": 13
           },
           "id": 24,
           "options": {
@@ -5418,10 +5705,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -5450,6 +5737,516 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 12,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 21
+          },
+          "id": 38,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "$tag_collection vectors",
+              "query_configs": [
+                {
+                  "alias": "$tag_persistentvolumeclaim",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "persistentvolumeclaim"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "kubelet_volume_stats_used_bytes",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "persistentvolumeclaim",
+                      "method": "reg",
+                      "value": [
+                        "data-${cluster}-qdrant-.*"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "avg by (persistentvolumeclaim) (bkmonitor:kubelet_volume_stats_used_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",namespace=\"${bk_monitor_namespace}\",persistentvolumeclaim=~\"data-${cluster}-qdrant-.*\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Disk used",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 12,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 21
+          },
+          "id": 41,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "$tag_persistentvolumeclaim",
+              "query_configs": [
+                {
+                  "alias": "$tag_persistentvolumeclaim",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "persistentvolumeclaim"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "kubelet_volume_stats_capacity_bytes",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "persistentvolumeclaim",
+                      "method": "reg",
+                      "value": [
+                        "data-${cluster}-qdrant-.*"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "avg by (persistentvolumeclaim) (bkmonitor:kubelet_volume_stats_capacity_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",namespace=\"${bk_monitor_namespace}\",persistentvolumeclaim=~\"data-${cluster}-qdrant-.*\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Disk capacity",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 12,
+                "gradientMode": "scheme",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 21
+          },
+          "id": 42,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "${DS_蓝鲸监控_-_指标数据}"
+              },
+              "enableDownSampling": true,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "$tag_persistentvolumeclaim",
+                  "expression": "a / (b > 0 or vector(1))",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "a / (b > 0 or vector(1))",
+              "query_configs": [
+                {
+                  "alias": "$tag_persistentvolumeclaim",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "persistentvolumeclaim"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "kubelet_volume_stats_used_bytes",
+                  "refId": "a",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "persistentvolumeclaim",
+                      "method": "reg",
+                      "value": [
+                        "data-${cluster}-qdrant-.*"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "persistentvolumeclaim"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "kubelet_volume_stats_capacity_bytes",
+                  "refId": "b",
+                  "result_table_id": "",
+                  "result_table_label": "kubernetes",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "bcs_cluster_id",
+                      "method": "eq",
+                      "value": [
+                        "${bcs_cluster_id}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "bk_monitor_namespace",
+                      "method": "eq",
+                      "value": [
+                        "${bk_monitor_namespace}"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "persistentvolumeclaim",
+                      "method": "reg",
+                      "value": [
+                        "data-${cluster}-qdrant-.*"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "showLastPoint": false,
+              "source": "avg by (persistentvolumeclaim) (bkmonitor:kubelet_volume_stats_used_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",namespace=\"${bk_monitor_namespace}\",persistentvolumeclaim=~\"data-${cluster}-qdrant-.*\"}) / (avg by (persistentvolumeclaim) (bkmonitor:kubelet_volume_stats_capacity_bytes{bcs_cluster_id=\"${bcs_cluster_id}\",namespace=\"${bk_monitor_namespace}\",persistentvolumeclaim=~\"data-${cluster}-qdrant-.*\"}) > 0 or vector(1))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Disk usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
           "description": "Native /metrics does not expose collection RAM bytes. This replacement shows vector IO read/write rate.",
           "fieldConfig": {
             "defaults": {
@@ -5462,7 +6259,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "#73bf69"
+                    "color": "#73bf69",
+                    "value": null
                   },
                   {
                     "color": "#ff780a",
@@ -5482,7 +6280,7 @@
             "h": 7,
             "w": 8,
             "x": 0,
-            "y": 48
+            "y": 29
           },
           "id": 25,
           "options": {
@@ -5648,10 +6446,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -5723,7 +6521,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -5739,7 +6538,7 @@
             "h": 7,
             "w": 8,
             "x": 8,
-            "y": 48
+            "y": 29
           },
           "id": 26,
           "options": {
@@ -6060,10 +6859,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -6112,7 +6911,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "#73bf69"
+                    "color": "#73bf69",
+                    "value": null
                   },
                   {
                     "color": "#b877d9",
@@ -6132,7 +6932,7 @@
             "h": 7,
             "w": 8,
             "x": 16,
-            "y": 48
+            "y": 29
           },
           "id": 27,
           "options": {
@@ -6215,10 +7015,10 @@
                     },
                     {
                       "condition": "and",
-                      "key": "namespace",
+                      "key": "bk_monitor_namespace",
                       "method": "eq",
                       "value": [
-                        "${namespace}"
+                        "${bk_monitor_namespace}"
                       ]
                     },
                     {
@@ -6247,7 +7047,7 @@
       "type": "row"
     }
   ],
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [
     "k8s_qdrant_ha"
@@ -6256,6 +7056,10 @@
     "list": [
       {
         "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
+        },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
         "includeAll": false,
@@ -6291,37 +7095,37 @@
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
-        "includeAll": true,
-        "label": "命名空间",
-        "multi": true,
-        "name": "namespace",
+        "includeAll": false,
+        "label": "bk_monitor_namespace",
+        "multi": false,
+        "name": "bk_monitor_namespace",
         "options": [],
         "query": {
           "metricConfig": {
             "data_label": "",
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
-            "group_by": "namespace",
+            "group_by": "bk_monitor_namespace",
             "metric_field": "qdrant_app_info",
             "result_table_id": "",
             "result_table_label": "kubernetes",
             "where": [
               {
-                "key": "name",
+                "key": "bcs_cluster_id",
                 "method": "eq",
                 "value": [
-                  "qdrant"
+                  "${bcs_cluster_id}"
                 ]
               }
             ]
           },
           "queryType": "dimension",
-          "variables": ""
+          "variables": "${bcs_cluster_id}"
         },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 1,
+        "sort": 0,
         "type": "query"
       },
       {
@@ -6333,7 +7137,7 @@
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
         "includeAll": true,
-        "label": "集群名称",
+        "label": "cluster",
         "multi": true,
         "name": "cluster",
         "options": [],
@@ -6348,16 +7152,24 @@
             "result_table_label": "kubernetes",
             "where": [
               {
-                "key": "namespace",
+                "key": "bk_monitor_namespace",
                 "method": "eq",
                 "value": [
-                  "${namespace}"
+                  "${bk_monitor_namespace}"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "bcs_cluster_id",
+                "method": "eq",
+                "value": [
+                  "${bcs_cluster_id}"
                 ]
               }
             ]
           },
           "queryType": "dimension",
-          "variables": "${namespace}"
+          "variables": "${bk_monitor_namespace} ${bcs_cluster_id}"
         },
         "refresh": 1,
         "regex": "",
@@ -6374,7 +7186,7 @@
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
         "includeAll": true,
-        "label": "集合名称",
+        "label": "collection",
         "multi": true,
         "name": "collection",
         "options": [],
@@ -6389,10 +7201,10 @@
             "result_table_label": "kubernetes",
             "where": [
               {
-                "key": "namespace",
+                "key": "bk_monitor_namespace",
                 "method": "eq",
                 "value": [
-                  "${namespace}"
+                  "${bk_monitor_namespace}"
                 ]
               },
               {
@@ -6402,11 +7214,19 @@
                 "value": [
                   "${cluster}"
                 ]
+              },
+              {
+                "condition": "and",
+                "key": "bcs_cluster_id",
+                "method": "eq",
+                "value": [
+                  "${bcs_cluster_id}"
+                ]
               }
             ]
           },
           "queryType": "dimension",
-          "variables": "${namespace} ${cluster}"
+          "variables": "${bk_monitor_namespace} ${cluster} ${bcs_cluster_id}"
         },
         "refresh": 1,
         "regex": "",
@@ -6422,8 +7242,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "DBM(上云)-Qdrant集群监控2",
-  "version": 5,
+  "title": "DBM(上云)-Qdrant集群监控",
+  "version": 59,
   "weekStart": "",
   "__inputs": [
     {

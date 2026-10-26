@@ -71,7 +71,7 @@ class TestK8sDashboardUrl:
         assert query_of(url) == {
             "orgId": str(DEFAULT_ORG_ID),
             "orgName": DEFAULT_ORG_NAME,
-            "var-namespace": f"qdrant01-testbiz-{BIZ_ID}",
+            "var-bk_monitor_namespace": f"qdrant01-testbiz-{BIZ_ID}",
             "var-cluster": "qdrant01",
             "var-bcs_cluster_id": "BCS-K8S-00001",
         }
@@ -99,7 +99,7 @@ class TestK8sDashboardUrl:
 
         (dash_url,) = response.data["urls"]
         params = query_of(dash_url["url"])
-        assert params["var-namespace"] == f"qdrant01-testbiz-{BIZ_ID}"
+        assert params["var-bk_monitor_namespace"] == f"qdrant01-testbiz-{BIZ_ID}"
         assert params["var-cluster"] == "qdrant01"
         assert params["var-bcs_cluster_id"] == "BCS-K8S-00001"
         assert "var-cluster_domain" not in params
