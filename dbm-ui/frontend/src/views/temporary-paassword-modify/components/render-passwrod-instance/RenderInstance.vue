@@ -161,7 +161,9 @@
             <span
               v-if="isExpiringSoon(data)"
               class="expired-time">
-              {{ data.lockUntilDisplay }}（{{ t('n天后过期', [expireDays(data)]) }}）
+              {{ data.lockUntilDisplay }}（{{
+                expireDays(data) < 0 ? t('已过期') : t('n天后过期', [expireDays(data)])
+              }}）
             </span>
             <span v-else>{{ data.lockUntilDisplay }}</span>
           </template>

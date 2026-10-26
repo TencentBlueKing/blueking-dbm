@@ -207,12 +207,13 @@
       const { clusters, infos } = details;
       Object.assign(formData, {
         payload: createTicketPayload(ticketDetail),
+        // 目标容量方案（规格、机器组数、待下架机器）依赖集群当前拓扑，原单执行后拓扑已变，故意不回填，由用户按现状重选
         tableData: infos.map((item) => {
           const clusterInfo = clusters[item.cluster_id];
           return createTableRow({
             cluster: {
               id: 0,
-              master_domain: clusterInfo.immute_domain,
+              master_domain: clusterInfo?.immute_domain,
             } as RedisModel,
             db_version: item.db_version,
             online_switch_type: item.online_switch_type,

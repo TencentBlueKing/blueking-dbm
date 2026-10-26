@@ -137,7 +137,7 @@
     [DBTypes.TENDBCLUSTER]: 'tendbcluster_subscribe_monitor',
   };
 
-  const indicatorList = computed(() => metricsMap.value[props.clusterType].list || []);
+  const indicatorList = computed(() => metricsMap.value[props.clusterType]?.list || []);
   const permissionId = computed(
     () => subscribeMonitorActionIdMap[props.data.db_type as DBTypes] as keyof typeof props.data.permission,
   );

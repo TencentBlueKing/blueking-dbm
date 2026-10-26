@@ -68,7 +68,7 @@
       ],
     })
       .then((res) => {
-        window.open(res.apply_url, '__blank');
+        window.open(res.apply_url, '_blank');
       })
       .finally(() => {
         isLoading.value = false;

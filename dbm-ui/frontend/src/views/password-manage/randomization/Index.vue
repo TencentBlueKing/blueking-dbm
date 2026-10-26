@@ -179,8 +179,8 @@
       keyboards: t('键盘序'),
       letters: t('字母序'),
       numbers: t('数字序'),
-      repeats: t('连续特殊符号序'),
-      symbols: t('重复字母_数字_特殊符号'),
+      repeats: t('重复字母_数字_特殊符号'),
+      symbols: t('连续特殊符号序'),
     },
     includeRule: {
       lowercase: t('小写字母'),

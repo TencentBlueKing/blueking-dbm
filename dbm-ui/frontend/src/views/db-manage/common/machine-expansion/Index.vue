@@ -232,6 +232,8 @@
     ip_source: string;
     resource_spec: ReturnType<typeof getResourceSpec>;
   }>(ticketTypeMap[props.clusterData.db_type], {
+    // 非工具箱入口：失败由 hook 全局提示
+    isToolbox: false,
     onSuccess() {
       emits('submit');
       isShow.value = false;

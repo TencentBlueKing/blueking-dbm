@@ -72,7 +72,7 @@
               v-if="row.uid"
               text
               theme="primary"
-              @click="handleToTicket(row.uid)">
+              @click="handleToTicket(row)">
               {{ row.uid }}
             </BkButton>
             <span v-else>--</span>
@@ -110,6 +110,8 @@
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
+
+  import { getBusinessHref } from '@utils';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
@@ -178,14 +180,15 @@
     );
   };
 
-  const handleToTicket = (id: string) => {
+  // 关联单据按任务所在业务打开，与任务详情跳转保持一致
+  const handleToTicket = (row: TaskFlowModel) => {
     const url = router.resolve({
       name: 'bizTicketManage',
       params: {
-        ticketId: id,
+        ticketId: row.uid,
       },
     });
-    window.open(url.href, '_blank');
+    window.open(getBusinessHref(url.href, row.bk_biz_id), '_blank');
   };
 
   const handleClearSearch = () => {

@@ -499,7 +499,7 @@
         await deleteDutyRule({ id: row.id });
         fetchHostNodes();
       },
-      subTitle: t('重置 Secure Key,需自定修改 Template 中的地址字段！'),
+      subTitle: t('删除后将不可恢复_请确认操作'),
       title: t('确认删除该轮值?'),
       width: 450,
     });

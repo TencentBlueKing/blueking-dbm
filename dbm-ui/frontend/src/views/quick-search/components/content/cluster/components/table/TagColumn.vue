@@ -6,7 +6,7 @@
     <template #default="{ row: rowData }: { row: QuickSearchClusterModel }">
       <template v-if="rowData.tags.length > 0">
         <div
-          v-for="tagItem in getList(rowData.tags)"
+          v-for="tagItem in getList(rowData.id, rowData.tags)"
           :key="tagItem.id">
           <TextHighlight
             :filter-type="filterType"
@@ -18,8 +18,8 @@
           v-if="rowData.tags.length > 3"
           text
           theme="primary"
-          @click="handleExpand">
-          {{ isExpand ? t('收起') : t('共n个', [rowData.tags.length]) }}
+          @click="handleExpand(rowData.id)">
+          {{ expandedIds.has(rowData.id) ? t('收起') : t('共n个', [rowData.tags.length]) }}
         </BkButton>
       </template>
       <span v-else>--</span>
@@ -45,17 +45,24 @@
 
   const { t } = useI18n();
 
-  const isExpand = ref(false);
+  // 展开状态按行记录，整列共用一个开关会让所有行一起展开
+  const expandedIds = ref(new Set<number>());
 
-  const getList = (data: QuickSearchClusterModel['tags']) => {
-    if (isExpand.value) {
+  const getList = (id: number, data: QuickSearchClusterModel['tags']) => {
+    if (expandedIds.value.has(id)) {
       return data;
     }
     return data.slice(0, 3);
   };
 
-  const handleExpand = () => {
-    isExpand.value = !isExpand.value;
+  const handleExpand = (id: number) => {
+    const ids = new Set(expandedIds.value);
+    if (ids.has(id)) {
+      ids.delete(id);
+    } else {
+      ids.add(id);
+    }
+    expandedIds.value = ids;
   };
 </script>
 

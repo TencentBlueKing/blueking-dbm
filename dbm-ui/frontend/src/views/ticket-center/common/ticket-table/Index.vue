@@ -510,12 +510,18 @@
       return;
     }
     const rowSelect = { ...rowSelectMemo.value };
+    const query = transfromDataToQuery(quickSearchValue.value);
+    // 记下发起时的筛选条件，响应回来时条件已变则丢弃，避免把旧条件下的单据选进来
+    const queryKey = JSON.stringify(query);
     props
       .dataSource({
-        ...transfromDataToQuery(quickSearchValue.value),
+        ...query,
         limit: -1,
       })
       .then((result) => {
+        if (queryKey !== JSON.stringify(transfromDataToQuery(quickSearchValue.value))) {
+          return;
+        }
         result.results.forEach((item) => {
           rowSelect[item.id] = item;
         });

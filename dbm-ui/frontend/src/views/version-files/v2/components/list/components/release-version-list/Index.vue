@@ -117,22 +117,27 @@
   // 新增发行版后需要把列表滚回顶部
   let shouldScrollToTop = false;
 
-  /** 缓存内容可能来自旧版本或被手工改坏，读写都不能让页面挂掉 */
-  const readMemoryIndex = () => {
+  /**
+   * 记忆的是发行版 id（排序下标会随新增发行版偏移）
+   * 缓存内容可能来自旧版本（存的是下标）或被手工改坏，读写都不能让页面挂掉
+   */
+  const readMemoryId = () => {
     try {
       const cacheStr = localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX);
       if (!cacheStr) {
         return 0;
       }
-      const index = Number(JSON.parse(cacheStr)?.[props.dbType]?.[props.pkgType]);
-      return Number.isInteger(index) && index > 0 ? index : 0;
+      const cacheValue = JSON.parse(cacheStr)?.[props.dbType]?.[props.pkgType];
+      // 旧版本存的是数字下标，无法区分，按未记忆处理
+      const id = typeof cacheValue === 'object' ? Number(cacheValue?.id) : 0;
+      return Number.isInteger(id) && id > 0 ? id : 0;
     } catch {
       return 0;
     }
   };
 
-  const writeMemoryIndex = (index: number) => {
-    let cache: Record<string, Record<string, number>> = {};
+  const writeMemoryId = (id: number) => {
+    let cache: Record<string, Record<string, unknown>> = {};
     try {
       cache = JSON.parse(localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX) || '{}') || {};
     } catch {
@@ -141,7 +146,7 @@
     Object.assign(cache, {
       [props.dbType]: {
         ...cache[props.dbType],
-        [props.pkgType]: index,
+        [props.pkgType]: { id },
       },
     });
     localStorage.setItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX, JSON.stringify(cache));
@@ -156,6 +161,10 @@
           sensitivity: 'base',
         }),
       );
+      // 按记忆的发行版 id 定位当前选中项，找不到（已删除或未记忆）回到第一项
+      const memoryId = readMemoryId();
+      const memoryIndex = releaseList.value.findIndex((item) => item.id === memoryId);
+      activeReleaseIndex.value = memoryIndex > -1 ? memoryIndex : 0;
       emits('releaseListCountChange', data.length);
       if (shouldScrollToTop) {
         shouldScrollToTop = false;
@@ -199,7 +208,7 @@
 
   const handleChooseRelease = (index: number) => {
     activeReleaseIndex.value = index;
-    writeMemoryIndex(index);
+    writeMemoryId(releaseList.value[index]?.id ?? 0);
   };
 
   const handleEditRelease = (isEdit: boolean, data?: ReleaseItem) => {
@@ -209,7 +218,6 @@
   };
 
   onMounted(() => {
-    activeReleaseIndex.value = readMemoryIndex();
     fetchReleaseList();
   });
 

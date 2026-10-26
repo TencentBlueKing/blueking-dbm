@@ -129,7 +129,7 @@
     ],
     [] as dataItem[],
   );
-  const clusterIds = props.ticketDetails.details.authorize_data?.[0].cluster_ids || [];
+  const clusterIds = props.ticketDetails.details.authorize_data?.[0]?.cluster_ids || [];
 
   const previewTargetClusterShow = ref(false);
 

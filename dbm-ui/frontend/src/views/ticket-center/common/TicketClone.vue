@@ -92,7 +92,6 @@
     [TicketTypes.REDIS_PROXY_CLOSE]: 'DatabaseRedisList', // Redis 集群禁用
     [TicketTypes.REDIS_PROXY_OPEN]: 'DatabaseRedisList', // Redis 集群启用
     [TicketTypes.RIAK_CLUSTER_APPLY]: TicketTypes.RIAK_CLUSTER_APPLY,
-    [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
     [TicketTypes.SQLSERVER_HA_APPLY]: TicketTypes.SQLSERVER_HA_APPLY,
     [TicketTypes.SQLSERVER_SINGLE_APPLY]: TicketTypes.SQLSERVER_SINGLE_APPLY,
     [TicketTypes.TENDBCLUSTER_ADD_CLB]: 'tendbClusterList', // tendbcluster 启用clb

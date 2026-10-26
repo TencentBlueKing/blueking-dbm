@@ -114,12 +114,11 @@
       return '';
     }
 
-    // 创建一个临时 DOM 元素来解析 HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    // 用 DOMParser 解析：生成的文档不执行脚本、不加载图片，onerror 等事件不会触发
+    const doc = new DOMParser().parseFromString(html, 'text/html');
 
     // 获取纯文本内容
-    const text = tempDiv.textContent || tempDiv.innerText || '';
+    const text = doc.body.textContent || '';
 
     // 清理多余的空白字符
     return text.trim().replace(/\s+/g, ' ');

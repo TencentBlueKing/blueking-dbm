@@ -167,6 +167,10 @@
   const handleAppChange = (appInfo?: IAppItem) => {
     currentApp.value = appInfo;
     formData.for_biz = appInfo!.bk_biz_id;
+    // 公共资源池不挂业务标签；标签控件随之卸载不会自行清空，这里显式清掉，避免旧标签随 for_biz: 0 提交
+    if (appInfo?.bk_biz_id === 0) {
+      formData.labels = [];
+    }
   };
 
   defineExpose<Expose>({

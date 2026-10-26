@@ -235,7 +235,7 @@
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
   import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
 
-  import { getOffset, messageSuccess } from '@utils';
+  import { getOffset, messageSuccess, parseQueryMemo } from '@utils';
 
   import { URL_INSTANCE_MEMO_KEY } from '../../constants';
 
@@ -424,7 +424,7 @@
   };
 
   onMounted(() => {
-    searchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_INSTANCE_MEMO_KEY] || '{}')));
+    searchValue.value = parseQueryMemo(route.query[URL_INSTANCE_MEMO_KEY]);
     fetchData();
 
     setTimeout(() => {

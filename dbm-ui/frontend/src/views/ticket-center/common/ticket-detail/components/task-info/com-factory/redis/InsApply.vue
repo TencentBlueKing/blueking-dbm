@@ -151,15 +151,20 @@
     if (groupCount === 1) {
       portType = 'same'; // 端口号相同
     }
-    const ports = Array(groupCount)
-      .fill(0)
-      .map((_, index) => port + index);
-    const groups = clusterCount / groupCount;
-    portType = _.flatMap(
-      Array(groups)
+    // 历史单据可能缺 count 或除不尽，此时 groupCount 为 Infinity 或小数，Array() 会抛 RangeError，端口按空处理
+    if (Number.isInteger(groupCount) && groupCount > 0 && clusterCount % groupCount === 0) {
+      const ports = Array(groupCount)
         .fill(0)
-        .map(() => ports),
-    );
+        .map((_, index) => port + index);
+      const groups = clusterCount / groupCount;
+      portType = _.flatMap(
+        Array(groups)
+          .fill(0)
+          .map(() => ports),
+      );
+    } else {
+      portType = '';
+    }
   }
 
   const getMasterDomain = (index: number, clusterName: string) => {
