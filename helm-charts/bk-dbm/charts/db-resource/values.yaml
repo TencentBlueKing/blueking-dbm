@@ -92,4 +92,9 @@ serviceMonitor:
 # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
 bkLogConfig:
   enabled: false
+
+# KMS 开关与 Secret 统一由父 Chart 的 global.kms 管理。
+kms:
+  # 信封只读目录；db-resource 不创建 ESO 对象或 ServiceAccount。
+  credentialDir: /etc/secrets/db-resource-kms
   dataId: 1
