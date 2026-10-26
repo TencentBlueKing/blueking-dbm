@@ -28,6 +28,8 @@ import (
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
+	"k8s-dbs/core/preinstall/componentenv"
+	preinstallsvcver "k8s-dbs/core/preinstall/serviceversion"
 	coreutil "k8s-dbs/core/util"
 	infrautil "k8s-dbs/infrastructure/util"
 	metaentity "k8s-dbs/metadata/entity"
@@ -976,7 +978,7 @@ func (c *ClusterProvider) saveClusterMeta(
 		slog.Error("failed to get storage addon", "error", errMsg)
 		return nil, err
 	}
-	serviceVersion, err := coreutil.SVRFactory.
+	serviceVersion, err := preinstallsvcver.Registry.
 		GetResolver(coreconst.StorageAddonType(request.StorageAddonType)).
 		Resolve(request.ComponentList)
 	if err != nil {
@@ -1143,6 +1145,22 @@ func (c *ClusterProvider) installHelmRelease(
 		return nil, fmt.Errorf("failed to load helm chart requested\n%s", err)
 	}
 	values := chart.Values
+
+	// 启动前默认值注入（工厂 + 策略模式）：
+	// 1) 读取既有 Cluster CR 的 env 快照（首次创建时为空），用于幂等复用；
+	// 2) 按 StorageAddonType 分发到对应 AddonDefaultsInjector，未注册的 addon 走 Noop 空实现。
+	// 该入口仅在 install 路径调用，天然满足"非 install 操作不生成"的幂等约束。
+	existingEnvByComp, err := coreutil.BuildExistingEnvByComponent(request, k8sClient)
+	if err != nil {
+		slog.Error("failed to build existing env snapshot for defaults injection", "error", err)
+		return nil, fmt.Errorf("failed to build existing env snapshot: %w", err)
+	}
+	injector := componentenv.Registry.GetInjector(coreconst.StorageAddonType(request.StorageAddonType))
+	if err = injector.Inject(request, existingEnvByComp); err != nil {
+		slog.Error("preinstall env injector failed", "addonType", request.StorageAddonType, "error", err)
+		return nil, fmt.Errorf("preinstall env injector failed: %w", err)
+	}
+
 	err = coreutil.MergeValues(values, request, true)
 	if err != nil {
 		slog.Error("failed to merge dynamic values", "error", err)
