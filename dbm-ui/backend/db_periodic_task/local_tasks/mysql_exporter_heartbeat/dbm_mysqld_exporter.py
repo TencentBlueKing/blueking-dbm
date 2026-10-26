@@ -136,6 +136,7 @@ def report_to_db(c: Cluster, exporter_map: dict, instance, instance_role):
                 cluster_domain=c.immute_domain,
                 report_time=datetime.now(),
                 summary=msg,
+                score=60,
             )
         except PortraitSDKBaseException:
             logger.exception(f"report {c.immute_domain} exporter-up to portrait failed")

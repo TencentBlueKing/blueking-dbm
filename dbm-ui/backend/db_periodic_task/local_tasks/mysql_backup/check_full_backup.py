@@ -314,6 +314,7 @@ def _check_storage_full_backup(cluster_type: str, date_str: str):
                         cluster_domain=c.immute_domain,
                         report_time=datetime.now(),
                         summary=failed_msg,
+                        score=0,  # 无有效备份，0分
                     )
                 except PortraitSDKBaseException:
                     logger.exception(f"report {c.immute_domain} {cluster_type} full backup report to portrait failed")
@@ -419,6 +420,7 @@ def _check_tendbcluster_full_backup(date_str: str):
                         cluster_domain=c.immute_domain,
                         report_time=datetime.now(),
                         summary=failed_msg,
+                        score=0,  # 无有效备份，0分
                     )
                 except PortraitSDKBaseException:
                     logger.exception(f"report {c.immute_domain} tendbcluster full backup report to portrait failed")

@@ -589,6 +589,7 @@ def _call_agent_and_notify(
                 report_time=datetime.now(),
                 summary=result_json.get("summary"),
                 detail_url=result_json.get("share_url"),
+                score=75,
             )
         except PortraitSDKBaseException:
             logger.exception(f"[{log_tag}] report {cluster_domain} to portrait failed")

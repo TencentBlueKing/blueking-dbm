@@ -193,6 +193,46 @@ os_sysctl_init = """
     fi
 """  # noqa
 
+# tcp_tw_recycle 在内核 4.12 中被移除
+# 新机器内核 >= 4.12: 设置 net.ipv4.tcp_timestamps=1
+# 新机器内核 < 4.12: tcp_timestamps、tcp_tw_recycle 与老机器保持一致（老机器未采集到则跳过）
+# tcp_timestamps=1 为的是解决客户端连接偶发出现 1s time-wait 出发 tcp syn 重传的超时问题
+#  但旧内核不能同时设置 tcp_timestamps=1,tcp_tw_recycle=1, 对 NAT 网络环境会连接不稳定
+tcp_sysctl_init = """
+    set_sysctl_param() {
+        key=$1
+        val=$2
+        if [ -z "$val" ]; then
+            echo "skip set ${key}: empty value"
+            return 0
+        fi
+        proc_path="/proc/sys/$(echo ${key} | tr '.' '/')"
+        if [ ! -e "$proc_path" ]; then
+            echo "skip set ${key}: ${proc_path} not exist"
+            return 0
+        fi
+        sed -i "/^[[:space:]]*${key}[[:space:]]*=/d" /etc/sysctl.conf
+        echo "${key}=${val}" >> /etc/sysctl.conf
+        /sbin/sysctl -w "${key}=${val}"
+    }
+    kernel_release=$(uname -r)
+    kernel_major=$(echo "$kernel_release" | cut -d'.' -f1)
+    kernel_minor=$(echo "$kernel_release" | cut -d'.' -f2 | grep -oE '^[0-9]+')
+    if echo "$kernel_major" | grep -qE '^[0-9]+$' && echo "$kernel_minor" | grep -qE '^[0-9]+$'; then
+        kernel_num=$((kernel_major * 1000 + kernel_minor))
+        if [ "$kernel_num" -ge 4012 ]; then
+            echo "kernel ${kernel_release} >= 4.12, set net.ipv4.tcp_timestamps=1"
+            set_sysctl_param net.ipv4.tcp_timestamps 1
+        else
+            echo "kernel ${kernel_release} < 4.12, keep tcp_timestamps/tcp_tw_recycle same as old machine"
+            set_sysctl_param net.ipv4.tcp_timestamps "{{old_tcp_timestamps}}"
+            set_sysctl_param net.ipv4.tcp_tw_recycle "{{old_tcp_tw_recycle}}"
+        fi
+    else
+        echo "parse kernel version failed: ${kernel_release}, skip tcp sysctl init"
+    fi
+"""  # noqa
+
 
 class SysInit(BkJobService):
     def __get_exec_ips(self, kwargs, trans_data) -> list:
@@ -218,14 +258,23 @@ class SysInit(BkJobService):
             max_open_file = kwargs["max_open_file"]
 
         # 如果从从老机器获取max_open_file成功，则使用老实例的值
+        old_tcp_timestamps = ""
+        old_tcp_tw_recycle = ""
         try:
             if trans_data is not None:
-                max_open_file_old = trans_data.system_info
-                if isinstance(max_open_file_old, dict):
-                    if "sys_max_open_file" in max_open_file_old:
-                        max_open_file = max_open_file_old["sys_max_open_file"]
+                old_os_system_info = trans_data.system_info
+                if isinstance(old_os_system_info, dict):
+                    if "sys_max_open_file" in old_os_system_info:
+                        max_open_file = old_os_system_info["sys_max_open_file"]
+                    # 老机器的 tcp 参数, 仅接受纯数字, 参数不存在时为空
+                    old_tcp_timestamps = str(old_os_system_info.get("tcp_timestamps", "")).strip()
+                    old_tcp_tw_recycle = str(old_os_system_info.get("tcp_tw_recycle", "")).strip()
+                    if not old_tcp_timestamps.isdigit():
+                        old_tcp_timestamps = ""
+                    if not old_tcp_tw_recycle.isdigit():
+                        old_tcp_tw_recycle = ""
         except Exception:
-            self.log_warning("get max_open_file_old failed in trans_data.system_info")
+            self.log_warning("get old_os_system_info failed in trans_data.system_info")
 
         nginx_addrs_init = """
         echo '{}' >> /home/mysql/common_config/nginx_proxy.list
@@ -236,9 +285,13 @@ class SysInit(BkJobService):
 
         # 脚本内容
         jinja_env = Environment()
-        template = jinja_env.from_string(os_sysctl_init + nginx_addrs_init)
+        template = jinja_env.from_string(os_sysctl_init + tcp_sysctl_init + nginx_addrs_init)
         script_content = template.render(
-            max_open_file=max_open_file, aio_max_nr=aio_max_nr, mysql_os_password=self._get_os_mysql_password()
+            max_open_file=max_open_file,
+            aio_max_nr=aio_max_nr,
+            mysql_os_password=self._get_os_mysql_password(),
+            old_tcp_timestamps=old_tcp_timestamps,
+            old_tcp_tw_recycle=old_tcp_tw_recycle,
         )
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
@@ -294,7 +347,10 @@ get_os_sys_param = """
         version_id=""
         os_id=""
     fi
-    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file},\\\"glibc_version\\\":${glibc_version},\\\"version_id\\\":\\\"${version_id}\\\",\\\"os_id\\\":\\\"${os_id}\\\"}</ctx>"
+    kernel_release=$(uname -r 2>/dev/null)
+    tcp_timestamps=$(/sbin/sysctl -n net.ipv4.tcp_timestamps 2>/dev/null)
+    tcp_tw_recycle=$(/sbin/sysctl -n net.ipv4.tcp_tw_recycle 2>/dev/null)
+    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file},\\\"glibc_version\\\":${glibc_version},\\\"version_id\\\":\\\"${version_id}\\\",\\\"os_id\\\":\\\"${os_id}\\\",\\\"kernel_release\\\":\\\"${kernel_release}\\\",\\\"tcp_timestamps\\\":\\\"${tcp_timestamps}\\\",\\\"tcp_tw_recycle\\\":\\\"${tcp_tw_recycle}\\\"}</ctx>"
 """  # noqa
 
 
