@@ -265,7 +265,7 @@ func (m *MysqlSlowLogModel) dorisCreate(i interface{}, db *gorm.DB) error {
 
 			kafkaObj.QueryDigestMd5,
 			kafkaObj.QueryDigestText,
-			kafkaObj.QueryString,
+			kafkaObj.QueryString, // 考虑列压缩
 			kafkaObj.QueryLength,
 			kafkaObj.QueryCommand,
 			kafkaObj.QueryDbName,

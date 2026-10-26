@@ -138,6 +138,7 @@ def _check_binlog_backup(cluster_type, date_str):
                     cluster_domain=c.immute_domain,
                     report_time=datetime.now(),
                     summary=failed_msg,
+                    score=50,
                 )
             except PortraitSDKBaseException:
                 logger.exception(f"report {c.immute_domain} binlog to portrait failed")
