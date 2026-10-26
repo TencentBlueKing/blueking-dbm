@@ -58,7 +58,12 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     fetchTicketStatus();
   }, 3000);
 
+  // 请求序号：只处理最后一次发起的请求，丢弃先发后到的旧响应
+  let fetchSeq = 0;
+
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
+    fetchSeq += 1;
+    const currentSeq = fetchSeq;
     isLoading.value = true;
     dataSource({
       limit: pagination.limit,
@@ -67,6 +72,9 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
       ...params,
     })
       .then((data) => {
+        if (currentSeq !== fetchSeq) {
+          return;
+        }
         dataList.value = data.results;
 
         pagination.count = data.count;
@@ -84,7 +92,9 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
         }
       })
       .finally(() => {
-        isLoading.value = false;
+        if (currentSeq === fetchSeq) {
+          isLoading.value = false;
+        }
       });
   };
 

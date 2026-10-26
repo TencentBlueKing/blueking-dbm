@@ -98,7 +98,7 @@
   const alertSeverity = ref<number[]>([]);
   const noticeWays = ref<string[]>([]);
 
-  const indicatorList = computed(() => (props.data ? metricsMap.value[props.data.cluster_type].list : []));
+  const indicatorList = computed(() => (props.data ? metricsMap.value[props.data.cluster_type]?.list || [] : []));
 
   const defaultChecked = true;
 

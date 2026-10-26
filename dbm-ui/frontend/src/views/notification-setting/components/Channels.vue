@@ -120,7 +120,8 @@
       return Object.fromEntries(
         channelList.value.map((channelItem) => {
           if (InputMessageTypes.includes(channelItem.type)) {
-            return [channelItem.type, channelItem.inputValue];
+            // 取消勾选要提交空值，否则重新加载时会按非空值再次勾上
+            return [channelItem.type, channelItem.checked ? channelItem.inputValue : ''];
           } else {
             return [channelItem.type, channelItem.checked];
           }

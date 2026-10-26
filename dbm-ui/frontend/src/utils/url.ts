@@ -17,6 +17,24 @@ import { createBkrepoAccessToken } from '@services/source/storage';
 // 判断是否为 http(s) 协议链接
 export const isHttpUrl = (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value);
 
+/**
+ * 解析 URL query 里 encodeURIComponent(JSON.stringify(obj)) 形式的筛选 memo
+ * 写入方把编码后的字符串交给 router，地址栏上会再被编码一层；route.query 已解掉 router 那层，
+ * 传进来的是 encodeURIComponent 的结果，这里只需再解码一次
+ * 链接被截断、含非法 % 或不是对象时返回空对象，避免页面初始化抛错
+ */
+export const parseQueryMemo = <T extends object = Record<string, string>>(value: unknown): T => {
+  if (!value) {
+    return {} as T;
+  }
+  try {
+    const result = JSON.parse(decodeURIComponent(String(value)));
+    return _.isPlainObject(result) ? (result as T) : ({} as T);
+  } catch {
+    return {} as T;
+  }
+};
+
 export const parseURL = (url: string) => {
   const a = document.createElement('a');
   a.href = url;

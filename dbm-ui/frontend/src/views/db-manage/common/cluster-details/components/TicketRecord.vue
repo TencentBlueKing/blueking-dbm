@@ -107,6 +107,8 @@
   import DbTable from '@components/db-table/IndexNew.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
+  import { parseQueryMemo } from '@utils';
+
   import { URL_RECORD_MEMO_KEY } from '../constants';
 
   interface Props {
@@ -122,7 +124,7 @@
   const router = useRouter();
   const { getSearchParams } = useUrlSearch();
 
-  const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_RECORD_MEMO_KEY] || '{}')));
+  const urlPaylaod = parseQueryMemo(route.query[URL_RECORD_MEMO_KEY]);
 
   const tableRef = ref();
   const daterange = ref<[string, string] | [Date, Date]>([

@@ -110,6 +110,10 @@
     },
     {
       manual: true,
+      onError() {
+        // 请求失败也要结束 loading，否则实施进度一直转圈；失败后不再续轮询，报错由请求层提示
+        isLoading.value = false;
+      },
       onSuccess(data) {
         flowList.value = _.filter(data, (item) => !item.details.related_ticket);
         releateTicketFlow.value = _.find(data, (item) => !!item.details.related_ticket);

@@ -90,7 +90,7 @@
             <TagBlock
               v-else-if="Array.isArray(row[item.name])"
               :data="row[item.name]" />
-            <span v-else>{{ row[item.name] || '--' }}</span>
+            <span v-else>{{ row[item.name] === 0 ? 0 : row[item.name] || '--' }}</span>
           </template>
         </TableColumn>
       </PrimaryTable>
@@ -312,6 +312,8 @@
       if (_.isEqual(searchParams, prevSearchParams)) {
         return;
       }
+      // 条件变了结果集就不同，回到第 1 页，避免按旧 offset 请求出空表
+      pagination.current = 1;
       fetchData();
     },
     {

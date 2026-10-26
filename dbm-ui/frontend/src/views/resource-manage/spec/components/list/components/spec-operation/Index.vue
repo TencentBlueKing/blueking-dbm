@@ -440,6 +440,14 @@
         params.device_class = [];
       }
 
+      // QPS 输入框给的是字符串，编辑与新建都按数字提交
+      if (hasQPS.value && params.qps) {
+        params.qps = {
+          max: Number(params.qps.max),
+          min: Number(params.qps.min),
+        };
+      }
+
       // 编辑规格
       if (props.mode === 'edit') {
         const requestList = [updateResourceSpec(params)];
@@ -459,11 +467,11 @@
             }),
           );
         }
-        Promise.all(requestList).then(() => {
-          messageSuccess(t('编辑成功'));
-          emits('successed');
-          window.changeConfirm = false;
-        });
+        // 等全部请求结束再由 finally 复位 loading，防止重复提交
+        await Promise.all(requestList);
+        messageSuccess(t('编辑成功'));
+        emits('successed');
+        window.changeConfirm = false;
         return;
       }
 
@@ -471,12 +479,7 @@
         delete params.instance_num;
       }
 
-      if (hasQPS) {
-        params.qps = {
-          max: Number(params.qps?.max),
-          min: Number(params.qps?.min),
-        };
-      } else {
+      if (!hasQPS.value) {
         delete params.qps;
       }
 
@@ -499,11 +502,10 @@
           }),
         );
       }
-      Promise.all(requestList).then(() => {
-        messageSuccess(t('新建成功'));
-        emits('successed');
-        window.changeConfirm = false;
-      });
+      await Promise.all(requestList);
+      messageSuccess(t('新建成功'));
+      emits('successed');
+      window.changeConfirm = false;
     } finally {
       isLoading.value = false;
     }

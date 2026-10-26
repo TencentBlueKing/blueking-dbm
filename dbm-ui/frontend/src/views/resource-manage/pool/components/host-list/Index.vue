@@ -530,6 +530,7 @@
   // 复制所有主机
   const handleCopyAllHost = () => {
     fetchList({
+      for_biz: curBizId.value,
       limit: -1,
       offset: 0,
       ...searchParams.value,
@@ -552,6 +553,7 @@
   // 复制所有异常主机
   const handleCopyAllAbnormalHost = () => {
     fetchList({
+      for_biz: curBizId.value,
       limit: -1,
       offset: 0,
       ...searchParams.value,
@@ -570,21 +572,16 @@
     });
   };
 
+  // 复制、导出与列表请求保持同一资源池范围（业务池为当前业务，公共池为 0）
+  // for_biz 写在搜索参数前面：全局池搜索栏选了「所属业务」时以搜索值为准
   const handleExportAll = () => {
-    if (isFilter.value) {
-      resourceExport({
-        ...searchParams.value,
-        headers: exportHeaders.value,
-        limit: -1,
-        offset: 0,
-      });
-    } else {
-      resourceExport({
-        headers: exportHeaders.value,
-        limit: -1,
-        offset: 0,
-      });
-    }
+    resourceExport({
+      for_biz: curBizId.value,
+      ...(isFilter.value ? searchParams.value : {}),
+      headers: exportHeaders.value,
+      limit: -1,
+      offset: 0,
+    });
   };
 
   const handleExportSelected = () => {

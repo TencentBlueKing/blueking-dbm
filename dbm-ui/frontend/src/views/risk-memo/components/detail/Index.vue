@@ -317,7 +317,8 @@
             updater: riskMemoDetail.value.updater,
           });
         }
-        recordList.value = list;
+        // 接口顺序为倒序，用户切到正序后重新拉取详情也要保持正序
+        recordList.value = isDescending.value ? list : list.reverse();
       }
     },
     {

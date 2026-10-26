@@ -161,11 +161,12 @@
         tableData: infos.map((item) => {
           const batchCluster = {
             clusters: {},
-            renderText: '',
+            // 列组件会按 renderText 里的域名查询补全 clusters
+            renderText: item.cluster_ids
+              .map((clusterId) => clusters[clusterId]?.immute_domain)
+              .filter(Boolean)
+              .join('\n'),
           } as RowData['batchCluster'];
-          item.cluster_ids.forEach((clusterId) => {
-            batchCluster.renderText += batchCluster.renderText ? '\n' : '' + clusters[clusterId].immute_domain;
-          });
           const resourceSpec = item.resource_spec.new_hosts || item.resource_spec.backend_group;
           return createTableRow({
             batchCluster,

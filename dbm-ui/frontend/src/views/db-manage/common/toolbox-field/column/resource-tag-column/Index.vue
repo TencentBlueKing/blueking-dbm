@@ -232,8 +232,8 @@
     tagList,
     () => {
       const [firstItem] = modelValue.value;
-      if (!firstItem?.value) {
-        // 如果没有传入值，则默认设置为通用无标签
+      // 只有完全没有传入值时才默认通用无标签；再次提单回填可能只带 id（没有 value），要按 id 去 tagMap 回填
+      if (!firstItem || (!firstItem.id && !firstItem.value)) {
         modelValue.value = [
           {
             id: DEFAULT_TAG_ID,
