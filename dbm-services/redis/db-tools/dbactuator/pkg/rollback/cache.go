@@ -39,6 +39,8 @@ type StagedBackup struct {
 	WorkDir  string
 	DataFile string
 	IsAOF    bool
+	// UnpackCPU is the CPU time unpacking took.
+	UnpackCPU time.Duration
 }
 
 // cacheRestorer boots each instance once, on top of its RDB or AOF. RedisCluster instances also
@@ -199,10 +201,8 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 		log.Info("unpack files=%v into %s", inst.FullFiles, r.portWorkDir(inst.DestPort))
 		var item StagedBackup
 		err := p.timed(stageUnpack, func() (err error) {
-			if files, ferr := resolveFiles(r.SaveDir, inst); ferr == nil {
-				p.add(stageDownload, downloadSpan(files))
-			}
 			item, err = StageBackup(r.SaveDir, r.portWorkDir(inst.DestPort), inst)
+			p.addCPU(stageUnpack, item.UnpackCPU)
 			return err
 		})
 		if err != nil {
@@ -330,14 +330,15 @@ func StageBackup(saveDir, workDir string, inst InstanceRestore) (StagedBackup, e
 	if err != nil {
 		return StagedBackup{}, err
 	}
-	if err = unpackBackup(files, workDir); err != nil {
-		return StagedBackup{}, err
+	cpu, err := unpackBackup(files, workDir)
+	if err != nil {
+		return StagedBackup{UnpackCPU: cpu}, err
 	}
 	dataFile, isAOF, err := pickDataFile(workDir)
 	if err != nil {
-		return StagedBackup{}, err
+		return StagedBackup{UnpackCPU: cpu}, err
 	}
-	return StagedBackup{WorkDir: workDir, DataFile: dataFile, IsAOF: isAOF}, nil
+	return StagedBackup{WorkDir: workDir, DataFile: dataFile, IsAOF: isAOF, UnpackCPU: cpu}, nil
 }
 
 // SetPersistence writes the port's persistence into redis.conf before its only start: appendonly

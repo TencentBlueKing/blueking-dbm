@@ -32,7 +32,11 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
-const ssdCmdTimeout = 2 * time.Hour
+const (
+	ssdCmdTimeout = 2 * time.Hour
+	// ssdApplyTimeout bounds each read and write of a replay connection, not the whole replay.
+	ssdApplyTimeout = 10 * time.Minute
+)
 
 var (
 	// binlog-{ip}-{port}-{index}-{yyyymmddHHMMSS}.log.zst; legacy GCS names carry no ip.
@@ -97,11 +101,11 @@ func (r *ssdRestorer) DoRollback() error {
 	replaying := limits.Replay(len(redo))
 	report.logPlan(limits, plans, r.UnpackDir)
 	mylog.Logger.Info("RedisRollback(ssd) dest=%s recover_at=%s replay=%d parse=%d lookahead=%d order=%v",
-		r.DestIP, r.RecoverAt, replaying, limits.Parse(replaying), parseLookahead, portsOf(redo))
+		r.DestIP, r.RecoverAt, replaying, limits.Parse(), parseLookahead, portsOf(redo))
 
 	window := newMemWindow(limits.MemAvailable, len(redo))
 	replaySlots := make(chan struct{}, replaying)
-	parsePool := make(chan struct{}, limits.Parse(replaying))
+	parsePool := make(chan struct{}, limits.Parse())
 	var wg sync.WaitGroup
 	var errs errCollector
 	errs.add(RunBounded(len(redo), limits.Unpack, func(i int) error {
@@ -177,9 +181,10 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 			if err != nil {
 				return err
 			}
-			p.add(stageDownload, downloadSpan(files))
 			log.Info("unpack files=%v into %s", inst.FullFiles, workDir)
-			if err = unpackBackup(files, workDir); err != nil {
+			cpu, err := unpackBackup(files, workDir)
+			p.addCPU(stageUnpack, cpu)
+			if err != nil {
 				return err
 			}
 			root, err = ssdBackupRoot(workDir)
@@ -262,6 +267,13 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 	if err != nil {
 		return err
 	}
+	applyCli, err := myredis.NewRedisClientWithRetry(addr, password, 0, consts.TendisTypeTendisSSDInsance,
+		ssdApplyTimeout)
+	if err != nil {
+		return err
+	}
+	defer applyCli.Close()
+	pipe := redisPipe{cli: applyCli.InstanceClient}
 	if err = os.MkdirAll(workDir, 0755); err != nil {
 		return err
 	}
@@ -276,11 +288,15 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 		start := time.Now()
 		defer func() { p.add(stageParse, time.Since(start)) }()
 		base := filepath.Base(binlogs[i])
-		if err := decompressFile(binlogs[i], filepath.Join(workDir, base)); err != nil {
+		cpu, err := decompressFile(binlogs[i], filepath.Join(workDir, base))
+		p.addCPU(stageParse, cpu)
+		if err != nil {
 			return corrupted(base, err)
 		}
 		cmdFile := logFile(i) + ".cmd"
-		if err := parseBinlog(logFile(i), cmdFile, startPos, endMs); err != nil {
+		cpu, err = parseBinlog(logFile(i), cmdFile, startPos, endMs)
+		p.addCPU(stageParse, cpu)
+		if err != nil {
 			return fmt.Errorf("parse binlog %s failed: %v", base, err)
 		}
 		_ = os.Remove(logFile(i))
@@ -293,13 +309,10 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 		start := time.Now()
 		defer func() { p.add(stageApply, time.Since(start)) }()
 		base := filepath.Base(binlogs[i])
-		cmdFile, outFile := logFile(i)+".cmd", logFile(i)+".out"
-		if err := applyCommands(r.DestIP, port, password, cmdFile, outFile); err != nil {
-			return fmt.Errorf("apply binlog %s failed: %v", base, err)
-		}
-		stats, err := readReplies(outFile)
+		cmdFile := logFile(i) + ".cmd"
+		stats, err := applyCommands(pipe, cmdFile)
 		if err != nil {
-			return fmt.Errorf("apply binlog %s: %v", base, err)
+			return fmt.Errorf("apply binlog %s failed: %v", base, err)
 		}
 		log.Info("applied %s: %s", base, stats.summary())
 		if stats.Lines > 0 && stats.Errors == stats.Lines {
@@ -308,7 +321,6 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 		}
 		total.add(stats)
 		_ = os.Remove(cmdFile)
-		_ = os.Remove(outFile)
 		return nil
 	}
 	err = runPipeline(len(binlogs), parseLookahead, pool, parse, apply)
@@ -423,10 +435,11 @@ func replayEndMs(recoverAt time.Time) int64 {
 	return recoverAt.Add(time.Second).UnixMilli()
 }
 
-func parseBinlog(logFile, cmdFile string, startPos uint64, endMs int64) error {
+// parseBinlog writes logFile's commands to cmdFile and returns tredisbinlog's CPU time.
+func parseBinlog(logFile, cmdFile string, startPos uint64, endMs int64) (time.Duration, error) {
 	out, err := os.Create(cmdFile)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer out.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), ssdCmdTimeout)
@@ -437,56 +450,74 @@ func parseBinlog(logFile, cmdFile string, startPos uint64, endMs int64) error {
 	var stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = out, &stderr
 	if err = cmd.Run(); err != nil || strings.Contains(stderr.String(), "ERR:") {
-		return fmt.Errorf("%v %s", err, keepOutput(filepath.Dir(cmdFile), filepath.Base(logFile)+".parse.err",
-			stderr.Bytes()))
+		return cpuTime(cmd), fmt.Errorf("%v %s", err, keepOutput(filepath.Dir(cmdFile),
+			filepath.Base(logFile)+".parse.err", stderr.Bytes()))
 	}
-	return nil
+	return cpuTime(cmd), nil
 }
 
-// applyCommands feeds cmdFile to redis-cli. The password goes in as a leading AUTH on stdin
-// so that it never shows up in the process arguments.
-func applyCommands(ip string, port int, password, cmdFile, outFile string) error {
-	in, err := os.Open(cmdFile)
+// applyCommands sends cmdFile's commands in batches, split the way redis-cli splits its input
+// lines. Like redis-cli it goes on past error replies and counts them; a line redis-cli would
+// reject as "Invalid argument(s)" counts as an error.
+func applyCommands(exec pipeExecer, cmdFile string) (replyStats, error) {
+	var st replyStats
+	f, err := os.Open(cmdFile)
 	if err != nil {
-		return err
+		return st, err
 	}
-	defer in.Close()
-	out, err := os.Create(outFile)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), ssdCmdTimeout)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, consts.RedisCliBin, "--no-raw", "-h", ip, "-p", strconv.Itoa(port))
-	var stderr bytes.Buffer
-	cmd.Stdin = io.MultiReader(strings.NewReader(authLine(password)), in)
-	cmd.Stdout, cmd.Stderr = out, &stderr
-	if err = cmd.Run(); err != nil {
-		return fmt.Errorf("%v %s", err, keepOutput(filepath.Dir(outFile), filepath.Base(outFile)+".err",
-			stderr.Bytes()))
-	}
-	return nil
-}
-
-// authLine quotes the password the way redis-cli splits stdin lines: inside double quotes,
-// with \" \\ and \xHH escapes.
-func authLine(password string) string {
-	var b strings.Builder
-	b.WriteString(`AUTH "`)
-	for i := 0; i < len(password); i++ {
-		switch c := password[i]; {
-		case c == '"' || c == '\\':
-			b.WriteByte('\\')
-			b.WriteByte(c)
-		case c >= 0x20 && c < 0x7f:
-			b.WriteByte(c)
-		default:
-			fmt.Fprintf(&b, `\x%02x`, c)
+	defer f.Close()
+	pipe := &commandPipe{exec: exec, onReply: func(args []string, reply error) error {
+		st.Lines++
+		if reply != nil {
+			st.record(reply.Error(), commandPreview(args))
+		}
+		return nil
+	}}
+	reader := bufio.NewReaderSize(f, 1<<20)
+	for {
+		line, readErr := reader.ReadString('\n')
+		if line != "" {
+			args, ok := splitArgs(line)
+			switch {
+			case !ok:
+				st.Lines++
+				st.record("ERR Invalid argument(s)", previewLine(line))
+			case len(args) > 0:
+				if err = pipe.add(args); err != nil {
+					return st, err
+				}
+			}
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return st, readErr
 		}
 	}
-	b.WriteString("\"\n")
-	return b.String()
+	return st, pipe.flush()
+}
+
+const previewBytes = 64
+
+// commandPreview shows a command's name and key for error samples.
+func commandPreview(args []string) string {
+	if len(args) > 2 {
+		args = args[:2]
+	}
+	parts := make([]string, len(args))
+	for i, arg := range args {
+		parts[i] = strconv.Quote(previewLine(arg))
+	}
+	return strings.Join(parts, " ")
+}
+
+func previewLine(s string) string {
+	s = strings.TrimRight(s, "\r\n")
+	if len(s) > previewBytes {
+		return s[:previewBytes] + "..."
+	}
+	return s
 }
 
 // LocalBinlogs returns inst's downloaded binlogs in replay order, after checking that they are
@@ -678,9 +709,8 @@ const replyErrorSamples = 5
 // turns their absolute expiry into a TTL relative to now, which is no longer positive.
 const expectedReplyError = "invalid expire time"
 
-// replyStats counts redis-cli --no-raw output lines, not commands: an array reply spans
-// several lines, so the error ratio means little and only an all-error file fails the port.
-// Errors includes Expected; Kinds counts every error by errorKind.
+// replyStats counts the replies of a replay, one per command; Lines is that count. Errors includes
+// Expected; Kinds counts every error by errorKind. Samples show the reply and its command.
 type replyStats struct {
 	Lines           int
 	Errors          int
@@ -690,9 +720,10 @@ type replyStats struct {
 	ExpectedSamples []string
 }
 
-func (s *replyStats) record(line string) {
+func (s *replyStats) record(reply, command string) {
 	s.Errors++
-	kind := errorKind(line)
+	kind := errorKind(reply)
+	line := fmt.Sprintf("(error) %s <- %s", reply, command)
 	if s.Kinds == nil {
 		s.Kinds = map[string]int{}
 	}
@@ -734,9 +765,9 @@ func (s *replyStats) samples() []string {
 
 func (s *replyStats) summary() string {
 	if s.Errors == 0 {
-		return fmt.Sprintf("%d reply lines, no errors", s.Lines)
+		return fmt.Sprintf("%d commands, no errors", s.Lines)
 	}
-	return fmt.Sprintf("%d reply lines, %d errors (%d need attention, %d expected %q), kinds %v, samples %q",
+	return fmt.Sprintf("%d commands, %d errors (%d need attention, %d expected %q), kinds %v, samples %q",
 		s.Lines, s.Errors, s.Errors-s.Expected, s.Expected, expectedReplyError, s.Kinds, s.samples())
 }
 
@@ -747,10 +778,10 @@ func appendSample(samples []string, line string) []string {
 	return append(samples, line)
 }
 
-// errorKind groups an "(error) ..." reply by its prefix: the error code, plus the next two
-// words for the generic ERR code, e.g. "ERR unknown command" or "WRONGTYPE".
-func errorKind(line string) string {
-	msg := strings.TrimSpace(strings.TrimPrefix(line, "(error)"))
+// errorKind groups an error reply by its prefix: the error code, plus the next two words for the
+// generic ERR code, e.g. "ERR unknown command" or "WRONGTYPE".
+func errorKind(reply string) string {
+	msg := strings.TrimSpace(reply)
 	if strings.Contains(msg, expectedReplyError) {
 		return expectedReplyError
 	}
@@ -764,30 +795,4 @@ func errorKind(line string) string {
 		words = words[:3]
 	}
 	return strings.Join(words, " ")
-}
-
-// readReplies summarizes out, whose first line answers the AUTH applyCommands prepends.
-func readReplies(out string) (replyStats, error) {
-	var st replyStats
-	f, err := os.Open(out)
-	if err != nil {
-		return st, err
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	scanner.Buffer(make([]byte, 64*1024), 64*1024*1024)
-	if !scanner.Scan() {
-		return st, fmt.Errorf("no reply to AUTH: %v", scanner.Err())
-	}
-	if line := scanner.Text(); line != "OK" {
-		return st, fmt.Errorf("auth failed: %s", line)
-	}
-	for scanner.Scan() {
-		line := scanner.Text()
-		st.Lines++
-		if strings.HasPrefix(line, "(error)") {
-			st.record(line)
-		}
-	}
-	return st, scanner.Err()
 }

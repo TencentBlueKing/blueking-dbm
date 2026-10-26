@@ -1,7 +1,9 @@
 package rollback
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -200,37 +202,62 @@ func TestSSDDataDirFromConf(t *testing.T) {
 	}
 }
 
-func writeOut(t *testing.T, content string) string {
+// replyByValue answers a command with the error named by its last argument, OK otherwise.
+func replyByValue(args []string) error {
+	if v := args[len(args)-1]; strings.HasPrefix(v, "ERR") || strings.HasPrefix(v, "WRONGTYPE") ||
+		strings.HasPrefix(v, "BUSYKEY") {
+		return errors.New(v)
+	}
+	return nil
+}
+
+func applyLines(t *testing.T, lines ...string) (replyStats, *fakeExec) {
 	t.Helper()
-	out := filepath.Join(t.TempDir(), "out")
-	if err := os.WriteFile(out, []byte(content), 0644); err != nil {
+	exec := &fakeExec{reply: replyByValue}
+	st, err := applyCommands(exec, writeCmd(t, strings.Join(lines, "\n")))
+	if err != nil {
 		t.Fatal(err)
 	}
-	return out
+	return st, exec
 }
 
-func TestReadRepliesSkipsAuthReply(t *testing.T) {
-	st, err := readReplies(writeOut(t, "OK\nOK\n(error) ERR wrong\n(integer) 1\n\"v\"\n"))
-	if err != nil || st.Lines != 4 || st.Errors != 1 || len(st.Samples) != 1 {
-		t.Fatalf("st=%+v err=%v", st, err)
+func TestApplyCommandsSendsSplitCommands(t *testing.T) {
+	st, exec := applyLines(t, `"set" "k1" "v"`, "", `"setex" "k2" 100 "ERR wrong"`, `"lpush" "l" 7`,
+		`"hset" "h" "f" "\x00v"`)
+	want := [][]string{{"set", "k1", "v"}, {"setex", "k2", "100", "ERR wrong"}, {"lpush", "l", "7"},
+		{"hset", "h", "f", "\x00v"}}
+	if len(exec.batches) != 1 || fmt.Sprint(exec.batches[0]) != fmt.Sprint(want) {
+		t.Fatalf("batches=%q", exec.batches)
+	}
+	if st.Lines != 4 || st.Errors != 1 || len(st.Samples) != 1 ||
+		st.Samples[0] != `(error) ERR wrong <- "setex" "k2"` {
+		t.Fatalf("st=%+v", st)
 	}
 }
 
-func TestReadRepliesFailsOnAuth(t *testing.T) {
-	for name, content := range map[string]string{
-		"wrong password": "(error) WRONGPASS invalid password\nOK\n",
-		"no reply":       "",
-	} {
-		if _, err := readReplies(writeOut(t, content)); err == nil {
-			t.Fatalf("%s: want error", name)
-		}
+func TestApplyCommandsCountsInvalidLinesWithoutSending(t *testing.T) {
+	st, exec := applyLines(t, `"set" "a`, `"set" "b" "v"`)
+	if len(exec.batches) != 1 || len(exec.batches[0]) != 1 || st.Lines != 2 || st.Errors != 1 ||
+		st.Kinds["ERR Invalid argument(s)"] != 1 {
+		t.Fatalf("st=%+v batches=%q", st, exec.batches)
 	}
 }
 
-func TestReadRepliesCapsSamples(t *testing.T) {
-	st, err := readReplies(writeOut(t, "OK\n"+strings.Repeat("(error) BUSYKEY exists\n", 8)))
-	if err != nil || st.Lines != 8 || st.Errors != 8 || len(st.Samples) != replyErrorSamples {
-		t.Fatalf("st=%+v err=%v", st, err)
+func TestApplyCommandsFailsWhenABatchBreaksOff(t *testing.T) {
+	_, err := applyCommands(&fakeExec{fail: io.ErrUnexpectedEOF}, writeCmd(t, `"set" "k" "v"`))
+	if err == nil || !failedInFlight(err) {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestApplyCommandsCapsSamples(t *testing.T) {
+	lines := make([]string, 8)
+	for i := range lines {
+		lines[i] = `"set" "k" "BUSYKEY exists"`
+	}
+	st, _ := applyLines(t, lines...)
+	if st.Lines != 8 || st.Errors != 8 || len(st.Samples) != replyErrorSamples {
+		t.Fatalf("st=%+v", st)
 	}
 	var total replyStats
 	total.add(st)
@@ -314,16 +341,14 @@ func TestCheckParsedCommandsAcceptsQuotedCommands(t *testing.T) {
 	}
 }
 
-func TestReadRepliesClassifiesErrors(t *testing.T) {
-	content := "OK\n" +
-		strings.Repeat("(error) ERR invalid expire time in setex\n", 6) +
-		"(error) WRONGTYPE Operation against a key holding the wrong kind of value\n" +
-		"(error) ERR unknown command 'failedset'\n" +
-		"OK\n"
-	st, err := readReplies(writeOut(t, content))
-	if err != nil {
-		t.Fatal(err)
+func TestApplyCommandsClassifiesErrors(t *testing.T) {
+	var lines []string
+	for i := 0; i < 6; i++ {
+		lines = append(lines, `"setex" "k" -1 "ERR invalid expire time in setex"`)
 	}
+	lines = append(lines, `"lpush" "s" "WRONGTYPE Operation against a key holding the wrong kind of value"`,
+		`"set" "k" "ERR unknown command 'failedset'"`, `"set" "k" "v"`)
+	st, _ := applyLines(t, lines...)
 	if st.Lines != 9 || st.Errors != 8 || st.Expected != 6 {
 		t.Fatalf("st=%+v", st)
 	}
@@ -349,10 +374,10 @@ func TestReadRepliesClassifiesErrors(t *testing.T) {
 	}
 }
 
-func TestReadRepliesOnlyExpectedErrors(t *testing.T) {
-	st, err := readReplies(writeOut(t, "OK\nOK\n(error) ERR invalid expire time in 'set' command\n"))
-	if err != nil || st.Errors != 1 || st.Expected != 1 || len(st.Samples) != 0 || len(st.samples()) != 1 {
-		t.Fatalf("st=%+v err=%v", st, err)
+func TestApplyCommandsOnlyExpectedErrors(t *testing.T) {
+	st, _ := applyLines(t, `"set" "a" "v"`, `"setex" "k" -1 "ERR invalid expire time in 'set' command"`)
+	if st.Errors != 1 || st.Expected != 1 || len(st.Samples) != 0 || len(st.samples()) != 1 {
+		t.Fatalf("st=%+v", st)
 	}
 }
 
@@ -360,19 +385,6 @@ func TestReplayEndIncludesRecoverAtSecond(t *testing.T) {
 	recoverAt := time.Date(2026, 10, 1, 12, 0, 0, 0, time.Local)
 	if got, want := replayEndMs(recoverAt), recoverAt.UnixMilli()+1000; got != want {
 		t.Fatalf("got %d, want %d", got, want)
-	}
-}
-
-func TestAuthLineQuotesPassword(t *testing.T) {
-	cases := map[string]string{
-		"plain":       "AUTH \"plain\"\n",
-		`a"b\c d`:     `AUTH "a\"b\\c d"` + "\n",
-		"tab\there\n": `AUTH "tab\x09here\x0a"` + "\n",
-	}
-	for password, want := range cases {
-		if got := authLine(password); got != want {
-			t.Fatalf("%q: got %q, want %q", password, got, want)
-		}
 	}
 }
 
