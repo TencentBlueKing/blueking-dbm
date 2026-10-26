@@ -69,7 +69,7 @@
 
   const { t } = useI18n();
 
-  const clusterIds = props.ticketDetails.details.authorize_data?.[0].cluster_ids || [];
+  const clusterIds = props.ticketDetails.details.authorize_data?.[0]?.cluster_ids || [];
   const excelUrl = props.ticketDetails.details?.excel_url;
 
   const previewTargetClusterShow = ref(false);

@@ -55,7 +55,7 @@
   const props = defineProps<Props>();
   const { t } = useI18n();
 
-  const domainList = props.ticketDetails.details.authorize_data?.[0].target_instances || [];
+  const domainList = props.ticketDetails.details.authorize_data?.[0]?.target_instances || [];
   const excelUrl = props.ticketDetails.details?.excel_url;
 </script>
 

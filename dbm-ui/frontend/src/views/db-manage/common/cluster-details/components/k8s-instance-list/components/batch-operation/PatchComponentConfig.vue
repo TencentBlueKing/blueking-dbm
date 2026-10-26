@@ -44,6 +44,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import * as monaco from 'monaco-editor';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -52,7 +53,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { objectToJSON } from '@utils';
+  import { messageError, objectToJSON } from '@utils';
 
   interface Props {
     clusterData: {
@@ -98,7 +99,19 @@
   });
 
   const handleConfirm = () => {
-    const config = JSON.parse(editor.getValue());
+    let config: ServiceParameters<typeof patchComponentConfig>['componentList'][number]['config'];
+    try {
+      config = JSON.parse(editor.getValue());
+    } catch {
+      // 编辑器内容不是合法 JSON 时提示并中止，避免点击确认无反馈
+      messageError(t('请输入合法的 JSON'));
+      return;
+    }
+    // 配置必须是键值对象，数组、字符串等合法 JSON 也不能提交
+    if (!_.isPlainObject(config)) {
+      messageError(t('请输入合法的 JSON'));
+      return;
+    }
 
     runPatchComponentConfig({
       bk_username: userProfile.username,

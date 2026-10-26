@@ -256,6 +256,8 @@
     throttle_rate: number;
     topics: string[];
   }>(TicketTypes.KAFKA_REBALANCE, {
+    // 非工具箱入口：失败由 hook 全局提示
+    isToolbox: false,
     onSuccess() {
       isShow.value = false;
     },

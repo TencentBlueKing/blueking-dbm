@@ -257,10 +257,11 @@
         data_check_repair_setting_execution_frequency: details.data_check_repair_setting.execution_frequency,
         data_check_repair_setting_type: details.data_check_repair_setting.type,
         payload: createTicketPayload(ticketDetail),
+        // 目标分片方案依赖集群当前拓扑与资源，原单执行后已变，故意不回填，由用户按现状重选
         tableData: infos.map((infoItem) =>
           createRowData({
             cluster: {
-              master_domain: clusters[infoItem.src_cluster].immute_domain,
+              master_domain: clusters[infoItem.src_cluster]?.immute_domain,
             } as IDataRow['cluster'],
             db_version: infoItem.db_version,
           }),

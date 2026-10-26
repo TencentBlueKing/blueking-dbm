@@ -493,7 +493,8 @@
     runUpdateDbVersion({
       ...commonParams,
       id: props.dbVersion!.id,
-      recommend: props.dbVersion!.recommend,
+      // 停用的版本不能保留推荐星标
+      recommend: formModel.value.enable ? props.dbVersion!.recommend : false,
     });
   };
 

@@ -535,7 +535,14 @@
 
         const content = document.createElement('div');
         content.className = 'description-tippy-content';
-        content.innerHTML = `<div class="desc-title">${confName}</div><div class="desc-text">${description}</div>`;
+        // 描述是接口原文，用 textContent 写入，避免 < 被当成标签解析
+        const titleEl = document.createElement('div');
+        titleEl.className = 'desc-title';
+        titleEl.textContent = confName;
+        const textEl = document.createElement('div');
+        textEl.className = 'desc-text';
+        textEl.textContent = description;
+        content.append(titleEl, textEl);
 
         const instance = dbTippy(iconEl, {
           allowHTML: true,
@@ -824,10 +831,7 @@
   const handleConfirmEdit = async () => {
     const target = allConfItems.value.find((item) => item[rowKeyField.value] === editingRowKey.value);
     if (target) {
-      target.conf_value = editingValue.value;
-      target.op_type = 'update';
-
-      // 后端校验合法性
+      // 后端校验合法性：先校验编辑值，通过后再写回表格，校验失败时表格保持原值
       try {
         await validateConfItems([
           {
@@ -843,6 +847,11 @@
         return;
       }
 
+      const originValue = target.conf_value;
+      const originOpType = target.op_type;
+      target.conf_value = editingValue.value;
+      target.op_type = 'update';
+
       saveLoading.value = true;
       try {
         await updateBusinessConfig(buildUpdateParams([target]));
@@ -851,6 +860,11 @@
         );
         fetchLevelConfig(fetchParams.value); // 重新拉取配置列表（并且刷新表格）
         emit('change');
+      } catch {
+        // 保存失败：回滚表格上的值，保留编辑态让用户修改（报错提示由请求层给出）
+        target.conf_value = originValue;
+        target.op_type = originOpType;
+        return;
       } finally {
         saveLoading.value = false;
       }
@@ -1089,9 +1103,14 @@
 
   /** 回车确认 */
   const handleEnter = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleConfirmEdit();
+    // 只在单元格编辑态响应；多行输入框里的回车用于换行，输入法组字中的回车用于上屏
+    if (e.key !== 'Enter' || !editingRowKey.value || e.isComposing) {
+      return;
     }
+    if ((e.target as HTMLElement | null)?.tagName === 'TEXTAREA') {
+      return;
+    }
+    handleConfirmEdit();
   };
 
   onMounted(() => {

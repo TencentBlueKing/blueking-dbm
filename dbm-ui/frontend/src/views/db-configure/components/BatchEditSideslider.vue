@@ -118,11 +118,11 @@
             fixed="right"
             :title="t('操作')"
             :width="80">
-            <template #default="{ rowIndex }">
+            <template #default="{ row }: { row: ConfItem }">
               <BkButton
                 text
                 theme="primary"
-                @click="handleRemoveItem(rowIndex)">
+                @click="handleRemoveItem(row)">
                 {{ t('移除') }}
               </BkButton>
             </template>
@@ -334,8 +334,12 @@
     filterValue.value = val;
   };
 
-  const handleRemoveItem = (index: number) => {
-    editItems.value.splice(index, 1);
+  // 表格展示的是筛选结果，按参数名在完整列表里定位，不能用筛选后的行号
+  const handleRemoveItem = (row: ConfItem) => {
+    const index = editItems.value.findIndex((item) => item.conf_name === row.conf_name);
+    if (index > -1) {
+      editItems.value.splice(index, 1);
+    }
   };
 
   const handleNextStep = () => {

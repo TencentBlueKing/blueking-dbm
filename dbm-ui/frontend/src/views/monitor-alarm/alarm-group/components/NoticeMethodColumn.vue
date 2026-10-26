@@ -7,7 +7,7 @@
     <template #default="{ row }: { row: NoticGroupModel }">
       <div class="notice-method-column">
         <div
-          v-for="item in row.details.alert_notice[0].notify_config"
+          v-for="item in row.details?.alert_notice?.[0]?.notify_config || []"
           :key="item.level"
           class="notice-method-item">
           <div :class="[`notice-method-${levelMap[item.level].type}`]">
