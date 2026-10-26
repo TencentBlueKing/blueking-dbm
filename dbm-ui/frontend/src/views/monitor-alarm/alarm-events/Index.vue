@@ -409,7 +409,7 @@
         });
       } else {
         Object.assign(item, {
-          count: severityMap[item.value],
+          count: severityMap[item.value] ?? 0,
         });
       }
     });

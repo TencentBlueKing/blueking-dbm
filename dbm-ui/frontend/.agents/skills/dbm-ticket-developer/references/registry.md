@@ -56,8 +56,10 @@ defineOptions({
 三条由此而来的约束：
 
 - **glob 只到 com-factory 下两层**。`{db}/{Xxx}.vue` 和 `{db}/{子目录}/Index.vue` 都能收到，更深收不到
-- **选对目录**：走资源池规格申请的放 `resource-pool-strategy/{db}/`，其余放 `{db}/`。两处都放不报错，
-  会静默只生效资源池那份（两边目前**零重叠**，优先规则实际没产生分流）
+- **选对目录**：走资源池规格申请的放 `resource-pool-strategy/{db}/`，其余放 `{db}/`。两处都放不报错。
+  目前有 36 个单据类型两边各有一份（MySQL / TenDBCluster / SQL Server 加从库、迁移、重建，大数据扩缩容替换等），
+  工厂的分流规则：`details.ip_source === 'manual_input'` 时用 `{db}/` 那份，其余（含字段缺失）用资源池那份。
+  新增同名组件前先确认两份模板读的 details 结构确实不同，否则只留一份
 - `com-factory/common/` 与 `components/` 是给子组件用的，**里面不能出现带 `TicketTypes` 名字的组件**，
   否则被工厂当详情入口收进去
 

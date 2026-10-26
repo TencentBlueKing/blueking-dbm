@@ -91,6 +91,8 @@
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
+  import { parseQueryMemo } from '@utils';
+
   import { URL_INSTANCE_MEMO_KEY } from '../constants';
   import InstanceListFieldColumn from '../InstanceListFieldColumn.vue';
 
@@ -259,7 +261,7 @@
   };
 
   onMounted(() => {
-    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_INSTANCE_MEMO_KEY] || '{}')));
+    quickSearchValue.value = parseQueryMemo(route.query[URL_INSTANCE_MEMO_KEY]);
     fetchData();
   });
 </script>

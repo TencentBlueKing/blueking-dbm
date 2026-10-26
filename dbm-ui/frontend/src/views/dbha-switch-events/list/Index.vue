@@ -92,7 +92,7 @@
 
   import { useTableMaxHeight, useTableSettings } from '@hooks';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -118,7 +118,7 @@
   const isAnomalies = ref(false);
   const isLoading = ref(false);
   const filterDateRang = ref<[string, string]>([
-    dayjs().day(-6).format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD HH:mm:ss'),
     dayjs().format('YYYY-MM-DD HH:mm:ss'),
   ]);
 
@@ -356,6 +356,16 @@
       routeName = 'HdfsManage';
     } else if (clusterType === 'kafka') {
       routeName = 'KafkaManage';
+    } else if (clusterType === ClusterTypes.INFLUXDB) {
+      // clusterTypeInfos 里 InfluxDB 登记的是详情路由（必填 instId），这里跳实例列表
+      routeName = 'InfluxDBInstances';
+    } else {
+      // 其余架构按集群类型登记的列表路由跳转
+      routeName = clusterTypeInfos[clusterType as ClusterTypes]?.listRouteName || '';
+    }
+
+    if (!routeName) {
+      return;
     }
 
     router.push({

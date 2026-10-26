@@ -112,7 +112,7 @@
   const count = computed(() =>
     countBatchOperation(props.selected, {
       hasPermission: hasSubscribePermission,
-      statusMismatch: (item) => !metricsMap.value[item.cluster_type].list.length,
+      statusMismatch: (item) => !metricsMap.value[item.cluster_type]?.list?.length,
     }),
   );
 
@@ -150,7 +150,7 @@
             clusterDomian: item.master_domain,
             clusterType: item.cluster_type,
             hasPermission: hasSubscribePermission(item),
-            isIgnore: !metricsMap.value[item.cluster_type].list.length,
+            isIgnore: !metricsMap.value[item.cluster_type]?.list?.length,
             isNew: !subscribedDomainInfo.value.dataSet.has(item.master_domain),
           });
           return dataMap;

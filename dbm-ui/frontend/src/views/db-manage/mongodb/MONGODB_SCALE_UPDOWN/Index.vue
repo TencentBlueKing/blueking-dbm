@@ -200,11 +200,12 @@
       const { clusters, infos } = details;
       Object.assign(formData, {
         payload: createTicketPayload(ticketDetail),
+        // 目标容量方案依赖集群当前拓扑，原单执行后已变，故意不回填，由用户按现状重选
         tableData: infos.map((item) => {
           const clusterItem = clusters[item.cluster_id];
           return createRowData({
             cluster: {
-              master_domain: clusterItem.immute_domain,
+              master_domain: clusterItem?.immute_domain,
             } as IDataRow['cluster'],
             labels: (item.resource_spec.mongodb.labels || []).map((item) => ({ id: Number(item) })),
           });

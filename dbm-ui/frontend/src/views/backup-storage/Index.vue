@@ -177,14 +177,14 @@
   ] as QuickSearchProps['data'];
 
   // 已配置的云区域 ID 列表
-  const existingCloudIds = computed(() => tableData.value!.map((item) => Number(item.bk_cloud_id)));
+  const existingCloudIds = computed(() => (tableData.value || []).map((item) => Number(item.bk_cloud_id)));
 
   // 搜索过滤
   const filteredData = computed(() => {
     const { bk_cloud_name: cloudName } = quickSearchValue.value;
     if (!cloudName?.trim()) return tableData.value;
     const keyword = cloudName.trim().toLowerCase();
-    return tableData.value!.filter(
+    return (tableData.value || []).filter(
       (item) => item.bk_cloud_name.toLowerCase().includes(keyword) || String(item.bk_cloud_id).includes(keyword),
     );
   });

@@ -214,22 +214,29 @@
           backupSource: ticketDetail.details.backup_source,
           is_check_process: ticketDetail.details.is_check_process,
           need_checksum: ticketDetail.details.need_checksum,
-          tableData: ticketDetail.details.infos.map((item) =>
-            createTableRow({
+          tableData: ticketDetail.details.infos.map((item) => {
+            const backendGroup = item.resource_spec?.backend_group;
+            return createTableRow({
               cluster: {
-                master_domain: clusters[item.cluster_ids[0]].immute_domain,
+                master_domain: clusters[item.cluster_ids[0]]?.immute_domain,
               },
+              // 回填原单选择的规格与资源标签，带上名称避免标签列把只有 id 的值当成「通用无标签」
+              labels: (backendGroup?.labels || []).map((id, index) => ({
+                id: Number(id),
+                value: backendGroup?.label_names?.[index] || '',
+              })),
               new_db_module_id: item.new_db_module_id,
               pkg_id: item.pkg_id,
               read_only_slaves: item.read_only_slaves,
+              specId: backendGroup?.spec_id,
               target_version: {
                 charset: item.display_info.charset,
                 db_module_name: item.display_info.target_module_name,
                 db_version: item.display_info.target_version,
                 pkg_name: item.display_info.target_package,
               },
-            }),
-          ),
+            });
+          }),
         });
       }
     },

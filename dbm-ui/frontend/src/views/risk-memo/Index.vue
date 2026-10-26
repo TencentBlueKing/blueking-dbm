@@ -120,11 +120,14 @@
 
   watch(
     () => [activePanel.value, currentActiveTab.value],
-    () => {
-      const query = {
-        status: 'backlog',
+    (_value, oldValue) => {
+      // 首次进入保留链接上的全部 query（status、id 等筛选）；
+      // 切换页签时只保留 status，其余键（含 id）都丢弃，再写入 tab、is_assist
+      const query = oldValue ? { status: route.query.status } : { ...route.query };
+      Object.assign(query, {
+        status: query.status || 'backlog',
         tab: activePanel.value,
-      };
+      });
       if (currentActiveTab.value) {
         Object.assign(query, {
           is_assist: currentActiveTab.value === 'assist',

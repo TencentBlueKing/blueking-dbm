@@ -49,19 +49,6 @@
     <TicketInfoTableColumn
       v-if="isTableFlashback"
       col-key="databases_ignore"
-      :title="t('忽略库')">
-      <template #default="{ row: data }: { row: RowData }">
-        <DbTag
-          v-for="item in data.databases_ignore"
-          :key="item">
-          {{ item }}
-        </DbTag>
-        <span v-if="data.databases_ignore.length < 1">--</span>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      v-if="isTableFlashback"
-      col-key="databases_ignore"
       :min-width="120"
       :title="t('忽略库')">
       <template #default="{ row: data }: { row: RowData }">

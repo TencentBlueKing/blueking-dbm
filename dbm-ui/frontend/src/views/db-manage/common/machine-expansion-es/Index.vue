@@ -207,6 +207,8 @@
     ip_source: string;
     resource_spec: ReturnType<typeof getResourceSpec>;
   }>(TicketTypes.ES_SCALE_UP, {
+    // 非工具箱入口：失败由 hook 全局提示
+    isToolbox: false,
     onSuccess() {
       emits('submit');
       isShow.value = false;

@@ -344,14 +344,26 @@
     return { ...serviceItem, children: displayChildren };
   });
 
-  const historyCacheIdList = ref<string[]>(
-    _.sortBy(JSON.parse(localStorage.getItem(localHistroyKey) || '[]'), (item) => lastFavorIdMap[item]),
-  );
+  // 读取本地申请历史：缓存损坏或不是数组时按空处理，避免页面初始化失败
+  const readHistoryCache = (): string[] => {
+    try {
+      const value = JSON.parse(localStorage.getItem(localHistroyKey) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const historyCacheIdList = ref<string[]>(_.sortBy(readHistoryCache(), (item) => lastFavorIdMap[item]));
   const favorIdMap = shallowRef({ ...lastFavorIdMap });
 
   const historyCacheIdDisplayList = computed(() =>
     historyCacheIdList.value.filter((cacheItem) => {
       const childItem = serviceIdMap[cacheItem];
+      // 历史里的服务已从目录下线，直接丢掉
+      if (!childItem) {
+        return false;
+      }
       const { controllerId, moduleId } = childItem;
       const funControllerData = funControllerStore.funControllerData.getFlatData(moduleId);
 
