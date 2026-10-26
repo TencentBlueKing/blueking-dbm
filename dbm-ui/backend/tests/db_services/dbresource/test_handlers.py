@@ -397,6 +397,8 @@ class TestResourceHandler:
                 "bk_os_name": "CentOS",
                 "bk_os_type": "Linux",
                 "svr_device_class": "S5",
+                "bk_cloud_region": "ap-shanghai",
+                "bk_cloud_zone": None,
             }
         ]
         mock_batch_find.return_value = [{"bk_host_id": 1, "bk_biz_id": constant.BK_BIZ_ID}]
@@ -409,3 +411,5 @@ class TestResourceHandler:
         assert result[0]["ip"] == "1.1.1.1"
         assert result[0]["bk_biz_id"] == constant.BK_BIZ_ID
         assert result[0]["city"] == "shanghai"
+        assert result[0]["bk_cloud_region"] == "ap-shanghai"
+        assert result[0]["bk_cloud_zone"] == ""
