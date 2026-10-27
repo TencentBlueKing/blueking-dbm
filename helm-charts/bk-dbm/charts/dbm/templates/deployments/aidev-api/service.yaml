@@ -1,0 +1,19 @@
+{{- if .Values.saas.aidevApi.enabled -}}
+{{- $fullName := ( include "dbm.aidev-api.fullname" .) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dbm.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: "{{ $fullName }}"
+{{- end -}}
