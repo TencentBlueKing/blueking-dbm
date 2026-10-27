@@ -22,6 +22,7 @@ package provider
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	commentity "k8s-dbs/common/entity"
@@ -400,13 +401,36 @@ func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog,
 		}
 		k8sLogEntries = append(k8sLogEntries, &coreentity.K8sLog{
 			Timestamp: commtypes.JSONDatetime(timestamp),
-			Message:   commutil.StripAnsiCodes(message),
+			Message:   formatVMLogMessage(commutil.StripAnsiCodes(message)),
 		})
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read log stream: %w", err)
 	}
 	return k8sLogEntries, nil
+}
+
+// formatVMLogMessage 将 VM JSON 日志转成纯文本，失败或非 VM 日志则原样返回
+func formatVMLogMessage(raw string) string {
+	var vmLog struct {
+		Ts     string `json:"ts"`
+		Level  string `json:"level"`
+		Caller string `json:"caller"`
+		Msg    string `json:"msg"`
+	}
+	if err := json.Unmarshal([]byte(raw), &vmLog); err != nil {
+		return raw
+	}
+	// 强约束：只有命中 VM 特征才转换，避免误伤普通 JSON 日志
+	if vmLog.Ts == "" || vmLog.Level == "" || vmLog.Caller == "" {
+		return raw
+	}
+	return fmt.Sprintf("%s %s %s %s",
+		vmLog.Ts,
+		strings.ToUpper(vmLog.Level),
+		vmLog.Caller,
+		strings.TrimSpace(vmLog.Msg),
+	)
 }
 
 // NewK8sProvider 创建 K8sProvider 实例
