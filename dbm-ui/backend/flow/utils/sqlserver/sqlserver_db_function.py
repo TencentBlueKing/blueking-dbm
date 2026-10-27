@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.db_report.enums import ReportStateType
+from backend.db_services.sqlserver.sql_safety import quote_sqlserver_ident
 from backend.flow.consts import (
     SQLSERVER_CUSTOM_SYS_DB,
     SQLSERVER_CUSTOM_SYS_USER,
@@ -138,11 +139,14 @@ def check_sqlserver_db_exist(cluster_id: int, check_dbs: list) -> list:
     master_instance = cluster.storageinstance_set.get(
         instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
     )
+    # 对每个库名做白名单校验，校验通过后用单引号包裹拼入 IN 条件（值比较，非标识符）
+    for item in check_dbs:
+        quote_sqlserver_ident(item)
     in_condition = ",".join(f"'{item}'" for item in check_dbs)
     cmds.append(f"select name from [master].[sys].[databases] where name in ({in_condition})")
 
     # 执行
-    ret = DRSApi.sqlserver_rpc(
+    ret = DRSApi.sqlserver_sys_read_rpc(
         {
             "bk_cloud_id": cluster.bk_cloud_id,
             "addresses": [master_instance.ip_port],
@@ -671,15 +675,18 @@ def get_backup_path_files(cluster_id: int, backup_id: str, db_name: str = None):
     master_instance = cluster.storageinstance_set.get(
         instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
     )
+    # backup_id 做单引号转义防注入（内部生成的 ID，不是标识符，不走 quote_sqlserver_ident）
+    safe_backup_id = backup_id.replace("'", "''")
     if db_name:
+        quote_sqlserver_ident(db_name)
         sql = (
             f"SELECT [PATH],[FILENAME],[DBNAME] FROM [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[BACKUP_TRACE](NOLOCK) "
-            f"where [BACKUP_ID] = '{backup_id}' and [DBNAME]='{db_name}' ;"
+            f"where [BACKUP_ID] = '{safe_backup_id}' and [DBNAME]='{db_name}' ;"
         )
     else:
         sql = (
             f"SELECT [PATH],[FILENAME] FROM [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[BACKUP_TRACE](NOLOCK) "
-            f"where [BACKUP_ID] = '{backup_id}';"
+            f"where [BACKUP_ID] = '{safe_backup_id}';"
         )
 
     ret = DRSApi.sqlserver_rpc(

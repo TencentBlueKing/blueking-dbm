@@ -28,10 +28,10 @@ sqlserver_start_time 是全实例属性，在结果顶层返回一次（行内�
 """
 from typing import Dict, List, Optional
 
+from backend.db_services.sqlserver.sql_safety import quote_sqlserver_ident
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.get_instance_address import resolve_target_instance
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.rpc_runner import run_user_db_read
-from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.sql_safety import quote_sqlserver_ident
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.index_analysis.common import DEFAULT_SCHEMA
 
 # 一行一索引；同时取 sqlserver_start_time 作为参考列（每行都带，便于 LLM 直接看到）

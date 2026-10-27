@@ -11,12 +11,9 @@ specific language governing permissions and limitations under the License.
 from typing import Dict, Optional
 
 from backend.components import DRSApi
+from backend.db_services.sqlserver.sql_safety import quote_sqlserver_ident, sanitize_select_sql_for_sqlserver
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.get_instance_address import resolve_sqlserver_addresses
-from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.sql_safety import (
-    quote_sqlserver_ident,
-    sanitize_select_sql_for_sqlserver,
-)
 
 
 def _extract_explain_xml(table_data) -> str:

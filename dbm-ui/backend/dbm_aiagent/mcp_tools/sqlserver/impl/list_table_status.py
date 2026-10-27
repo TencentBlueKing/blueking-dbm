@@ -63,9 +63,9 @@ list_table_status：列出业务库下用户表的状态信息（行数/大小/�
 """
 from typing import Dict, List, Optional
 
+from backend.db_services.sqlserver.sql_safety import quote_sqlserver_ident, quote_table_idents
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.get_instance_address import resolve_target_instance
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.rpc_runner import run_user_db_read
-from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.sql_safety import quote_sqlserver_ident, quote_table_idents
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.sqlserver_stats import build_stats_outdated_sql
 
 # 默认返回数量上限：避免实例上数千张表时一次返回过大
