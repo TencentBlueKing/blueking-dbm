@@ -69,7 +69,9 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formData.details.ip_source">
+          <BkRadioGroup
+            v-model="formData.details.ip_source"
+            :disabled="modifyState.isAdjustApply">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -210,6 +212,7 @@
                   required>
                   <DbInput
                     v-model="formData.details.resource_spec.master.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="3"
                     type="number" />
                   <span class="input-desc">{{ t('至少3台_且为奇数') }}</span>
@@ -251,6 +254,7 @@
                     <span style="flex-shrink: 0">
                       <DbInput
                         v-model="formData.details.resource_spec.client.count"
+                        :disabled="modifyState.isAdjustApply"
                         :min="0"
                         type="number" />
                     </span>
@@ -316,6 +320,7 @@
                   required>
                   <DbInput
                     v-model="formData.details.resource_spec.hot.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -354,6 +359,7 @@
                   property="details.resource_spec.cold.count">
                   <DbInput
                     v-model="formData.details.resource_spec.cold.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="0"
                     type="number" />
                 </BkFormItem>
@@ -383,7 +389,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
-            :disabled="modifyState.isModify"
+            :disabled="modifyState.isAdjustApply"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -404,6 +410,7 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
+          :content="modifyState.resetContent"
           :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"

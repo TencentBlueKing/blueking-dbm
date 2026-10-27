@@ -123,6 +123,7 @@
   "重置成功": "Reset Successfully",
   "恢复默认成功": "Restore Default Successfully",
   "重置后当前录入的所有内容将清空。": "All entered content will be cleared after reset.",
+  "重置后本次修改将丢弃，内容回到打开时的状态。": "Resetting will discard your changes and restore the content to its state when opened.",
   "当前页面的所有配置将恢复为系统默认值。": "All configurations on this page will be restored to system default values.",
   "重置将会恢复默认设置的内容": "Reset will restore default settings",
   "重复字母_数字_特殊符号": "Repeated letters, digits, special symbols",

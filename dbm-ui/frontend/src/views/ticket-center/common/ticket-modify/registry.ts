@@ -12,7 +12,7 @@
  */
 import _ from 'lodash';
 
-import { TicketTypes } from '@common/const';
+import { affinityMap, mongodbAffinityMap, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -32,9 +32,16 @@ type ReplicaSetList = { domain: string; name: string }[] | undefined;
  * spec_name / cpu / mem / qps / storage_spec / instance_num 由 SpecSelector 按 spec_id 带出，label_names 随 labels 带出，都不计入差异；
  * spec_id、labels 展示为同一角色下的名称
  * capacity 不在这里忽略：有的类型是规格带出，有的类型（TENDBCLUSTER）是用户填写，按类型登记
+ * 顶层容灾级别是枚举值，展示为中文；MongoDB 有自己的取值，两份映射合并查找（同名枚举文案一致）
  */
 export const RESOURCE_SPEC_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths'>> = {
   formatters: {
+    disaster_tolerance_level: (value) =>
+      formatValue(
+        affinityMap[value as keyof typeof affinityMap] ||
+          mongodbAffinityMap[value as keyof typeof mongodbAffinityMap] ||
+          value,
+      ),
     'resource_spec.*.labels': (value, snapshot, path) =>
       formatValue(_.get(snapshot, path.replace(/labels$/, 'label_names')) || value),
     'resource_spec.*.spec_id': (value, snapshot, path) =>
@@ -55,13 +62,14 @@ export const RESOURCE_SPEC_DIFF: Required<Pick<DiffOptions, 'formatters' | 'igno
  * MySQL 单节点 / 主从部署共用 mysql/common/apply：
  * 地域、容灾以顶层 city_code / disaster_tolerance_level 为准；后端不保存顶层园区，园区按 resource_spec 下的
  * location_spec 计。随之带出的 city_name / affinity / location_spec.city、按集群数推算的 count、规格带出的 capacity、
- * 由 DB 模块配置带出的字符集都不计入差异
+ * 由 DB 模块配置带出的字符集、随模块带出的 db_module_name 都不计入差异
  */
 const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' | 'labels'>> = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
     apply_clb: (value) => (value ? 'CLB' : '--'),
     city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     domains: (value) => formatValue((value as DomainList)?.map((item) => item.key)),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
   },
@@ -69,6 +77,7 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
     ...RESOURCE_SPEC_DIFF.ignorePaths,
     'charset',
     'city_name',
+    'db_module_name',
     'resource_spec.*.affinity',
     'resource_spec.*.capacity',
     'resource_spec.*.count',
@@ -82,7 +91,7 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
     city_code: t('地域'),
     cluster_count: t('集群数量'),
     db_module_id: t('所属DB模块'),
-    disaster_tolerance_level: t('容灾要求'),
+    disaster_tolerance_level: t('容灾级别'),
     domains: t('域名设置'),
     'resource_spec.*.labels': t('资源标签'),
     'resource_spec.*.location_spec.include_or_exclude': t('园区'),
@@ -98,18 +107,20 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
 /**
  * SQLServer 单节点 / 主从部署共用 sqlserver/common/apply，口径同 MySQL：
  * 地域、容灾以顶层字段为准，园区按 resource_spec 下的 location_spec 计，顶层园区不重复计；随之带出的
- * city_name / affinity / location_spec.city、按集群数推算的 count、规格带出的 capacity 不计入差异。
+ * city_name / affinity / location_spec.city、按集群数推算的 count、规格带出的 capacity、随模块带出的 db_module_name 不计入差异。
  * 页面未开放手动录入主机，nodes 不参与对比
  */
 const SQLSERVER_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
     city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     domains: (value) => formatValue((value as DomainList)?.map((item) => item.key)),
   },
   ignorePaths: [
     ...RESOURCE_SPEC_DIFF.ignorePaths,
     'city_name',
+    'db_module_name',
     'nodes',
     'resource_spec.*.affinity',
     'resource_spec.*.capacity',
@@ -123,7 +134,7 @@ const SQLSERVER_APPLY_DIFF: DiffOptions = {
     city_code: t('地域'),
     cluster_count: t('集群数量'),
     db_module_id: t('所属DB模块'),
-    disaster_tolerance_level: t('容灾要求'),
+    disaster_tolerance_level: t('容灾级别'),
     domains: t('域名设置'),
     inst_num: t('每组主机部署集群'),
     'resource_spec.*.labels': t('资源标签'),
@@ -136,7 +147,7 @@ const SQLSERVER_APPLY_DIFF: DiffOptions = {
 /**
  * TenDBCluster 集群部署：地域、容灾以顶层字段为准，园区按 backend_group 的 location_spec 计，spider 与之相同不重复计。
  * 随之带出的 city_name / affinity / location_spec.city、spider 规格带出的 capacity、部署方案明细 spec_info、
- * 按「组数 × 单机分片数」推算的集群分片数、由所属业务带出的业务代号不计入差异。
+ * 按「组数 × 单机分片数」推算的集群分片数、由所属业务带出的业务代号、随模块带出的 db_module_name 不计入差异。
  * backend_group 的 capacity / future_capacity 是用户填写的容量需求，计入差异
  */
 const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
@@ -144,6 +155,7 @@ const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
     ...RESOURCE_SPEC_DIFF.formatters,
     apply_clb: (value) => (value ? 'CLB' : '--'),
     city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     // backend_group 同层没有 spec_name，规格名在部署方案明细 spec_info 里
     'resource_spec.backend_group.spec_id': (value, snapshot) =>
       formatValue(_.get(snapshot, 'resource_spec.backend_group.spec_info.spec_name') || value),
@@ -153,6 +165,7 @@ const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
     'city_name',
     'cluster_shard_num',
     'db_app_abbr',
+    'db_module_name',
     'resource_spec.*.affinity',
     'resource_spec.*.location_spec.city',
     'resource_spec.backend_group.spec_info',
@@ -222,7 +235,7 @@ const REDIS_CLUSTER_APPLY_DIFF: DiffOptions = {
     cluster_shard_num: t('集群分片数'),
     cluster_type: t('部署架构'),
     db_version: t('版本'),
-    disaster_tolerance_level: t('容灾要求'),
+    disaster_tolerance_level: t('容灾级别'),
     'nodes.master': t('Master 主机'),
     'nodes.proxy': t('Proxy 主机'),
     'nodes.slave': t('Slave 主机'),
@@ -271,7 +284,7 @@ const REDIS_INS_APPLY_DIFF: DiffOptions = {
     bk_cloud_id: t('管控区域'),
     city_code: t('地域'),
     db_version: t('Redis 版本'),
-    disaster_tolerance_level: t('容灾要求'),
+    disaster_tolerance_level: t('容灾级别'),
     infos: t('域名设置'),
     port: t('Redis 起始端口'),
     redis_pwd: t('访问密码'),

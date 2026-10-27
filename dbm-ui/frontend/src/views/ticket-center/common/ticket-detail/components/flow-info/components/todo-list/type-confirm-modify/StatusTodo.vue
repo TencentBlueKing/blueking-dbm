@@ -50,7 +50,6 @@
     </div>
     <ChangeDiffDrawer
       v-model:is-show="isShowConfirm"
-      :modify-records="modifyRecords"
       :record="pendingRecord"
       :ticket-data="ticketData"
       :todo-id="data.id" />

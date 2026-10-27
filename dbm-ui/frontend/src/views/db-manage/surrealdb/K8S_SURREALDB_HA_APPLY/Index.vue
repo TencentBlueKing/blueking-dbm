@@ -81,7 +81,7 @@
           <DbFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
-              :disabled="modifyState.isModify"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -260,7 +260,7 @@
   const handleResetFormdata = () => {
     InfoBox({
       cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
+      content: modifyState.resetContent || t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         // 改单模式下重置回到单据当前内容
         if (modifyState.isModify) {

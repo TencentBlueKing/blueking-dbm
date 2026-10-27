@@ -13,7 +13,7 @@
 
 import _ from 'lodash';
 
-import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
+import type { TicketModifyChangeItem } from '@services/model/ticket/modify-record';
 
 import { messageError } from '@utils';
 
@@ -34,14 +34,8 @@ export interface DiffOptions {
   unionPaths?: string[];
 }
 
-export interface DiffItem {
-  // 列表字段，展示时逗号连排并默认折叠
-  isList: boolean;
-  label: string;
-  next: string;
-  path: string;
-  prev: string;
-}
+// 与改单记录的 change_details 同一结构：提交时算出的变更项原样存储、原样展示
+export type DiffItem = TicketModifyChangeItem;
 
 // 后端在 details 中注入的字段，提交体里没有
 const COMMON_IGNORE_PATHS = ['__ticket_detail__', 'clusters', 'specs'];
@@ -92,7 +86,7 @@ export const formatValue = (value: unknown): string => {
  * 对象逐层下钻；数组整体比较，有差异计 1 项；两侧都为空（undefined / null / '' / []）视为相同
  * 只对比两侧都有的字段：后端保存时会剔除提交体里未声明的字段（如 db_app_abbr），
  * 并补充展示用字段（如 bk_cloud_name），只在一侧出现的字段不是用户的改动；unionPaths 登记的嵌套字段除外
- * 改单提交时用它算 change_count，详情页用它渲染变更对比，两边口径一致
+ * 改单提交时用它算出变更项，作为 change_details 随改单提交；详情页的变更对比直接展示提交时存下的结果
  */
 export const diffDetails = (prev: unknown, next: unknown, options: DiffOptions = {}) => {
   const ignorePaths = [...COMMON_IGNORE_PATHS, ...(options.ignorePaths || [])];
@@ -132,12 +126,18 @@ export const diffDetails = (prev: unknown, next: unknown, options: DiffOptions =
       return;
     }
     const formatter = findByPath(options.formatters, path);
+    const prevText = formatter ? formatter(prevValue, prevSnapshot, path) : formatValue(prevValue);
+    const nextText = formatter ? formatter(nextValue, nextSnapshot, path) : formatValue(nextValue);
+    // 展示出来一样的不算改动：后端改单后会重算派生字段（如域名对象补全），原值相同但结构不同
+    if (prevText === nextText) {
+      return;
+    }
     result.push({
       isList: Array.isArray(prevValue) || Array.isArray(nextValue),
       label: findByPath(options.labels, path) || path,
-      next: formatter ? formatter(nextValue, nextSnapshot, path) : formatValue(nextValue),
+      next: nextText,
       path,
-      prev: formatter ? formatter(prevValue, prevSnapshot, path) : formatValue(prevValue),
+      prev: prevText,
     });
   };
 
@@ -146,20 +146,6 @@ export const diffDetails = (prev: unknown, next: unknown, options: DiffOptions =
   });
 
   return result;
-};
-
-/**
- * 取某条改单记录的改前、改后 details
- * 记录按接口返回顺序即版本递增，每条记录的 details 为该次修改前的内容：
- * 最新一条与单据详情（最新内容）对比，更早的每条与其后一条对比
- */
-export const getRecordDetailsPair = (records: TicketModifyRecordModel[], recordId: number, ticketDetails: unknown) => {
-  const index = records.findIndex((item) => item.id === recordId);
-  const nextRecord = records[index + 1];
-  return {
-    next: nextRecord ? nextRecord.details : ticketDetails,
-    prev: records[index]?.details,
-  };
 };
 
 /**

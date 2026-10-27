@@ -37,7 +37,6 @@
       </template>
       <SummaryModifyRecord
         v-if="summaryRecord"
-        :modify-records="modifyRecords"
         :record="summaryRecord"
         :ticket-detail="ticketDetail" />
       <TodoList

@@ -56,11 +56,17 @@ export const useApplyBase = () => {
   let prevBizId: number | undefined;
 
   /**
-   * 取消申请；改单模式下返回单据详情
+   * 取消申请；改单模式下回到单据详情：
+   * 从单据详情（详情页或列表侧栏）进入时，入口在当前页跳转，返回上一页即回到原来的详情位置；
+   * 直接打开改单链接、没有上一页时，跳到单据详情页
    */
   function handleCancel() {
     if (modifyState.isModify) {
-      router.push({
+      if (window.history.state?.back) {
+        router.back();
+        return;
+      }
+      router.replace({
         name: 'ticketDetail',
         params: {
           ticketId: Number(route.query.ticketId),
@@ -139,9 +145,10 @@ export const useApplyBase = () => {
 
   /**
    * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到单据详情
-   * 只有重新编辑提交 config（交付通知）：其余模式交付通知只读，且 getValue 会按当前操作人重算收件人，提交会改掉提单人的配置
+   * 确认弹窗展示的变更项原样作为 change_details 提交，详情页的变更对比直接展示它
+   * 重新编辑、代为修改提交补充信息（交付通知 config、单据备注 ticket_remark）；调整申请只改资源条件，补充信息只读，不提交
    */
-  function handleModifyTicket(details: unknown, config: unknown) {
+  function handleModifyTicket(details: unknown, config: unknown, ticketRemark: string) {
     const ticketData = modifyState.ticketData.value;
     const { mode } = modifyState;
     if (!ticketData || !mode) {
@@ -150,12 +157,13 @@ export const useApplyBase = () => {
       return;
     }
     const isReEdit = mode === TicketModifyRecordModel.MODE_RE_EDIT;
+    const isSubmitSupplement = !modifyState.isAdjustApply;
     modifyState
       .validateRemark()
       .then(() => {
         const diffList = [
           ...modifyState.getDiffList(details),
-          ...(isReEdit ? modifyState.getConfigDiffList(config) : []),
+          ...(isSubmitSupplement ? modifyState.getSupplementDiffList(config, ticketRemark) : []),
         ];
         if (diffList.length < 1) {
           messageWarn(t('没有改动'));
@@ -171,7 +179,8 @@ export const useApplyBase = () => {
         return modifyTicket(
           {
             change_count: diffList.length,
-            ...(isReEdit ? { config } : {}),
+            change_details: diffList,
+            ...(isSubmitSupplement ? { config, ticket_remark: ticketRemark } : {}),
             details,
             id: ticketData.id,
             mode,
@@ -210,7 +219,7 @@ export const useApplyBase = () => {
     delete params.city_name;
 
     if (modifyState.isModify) {
-      handleModifyTicket(params.details, params.config);
+      handleModifyTicket(params.details, params.config, params.remark ?? '');
       return;
     }
 

@@ -32,7 +32,7 @@
           text
           theme="primary"
           @click="() => handleShowDiff(item)">
-          {{ t('变更对比（n 项）', { n: changeCountMap[item.id] }) }}
+          {{ t('变更对比（n 项）', { n: item.change_count }) }}
         </BkButton>
       </div>
       <div
@@ -47,7 +47,6 @@
     </div>
     <ChangeDiffDrawer
       v-model:is-show="isShowDiff"
-      :modify-records="modifyRecords"
       :record="currentRecord"
       :ticket-data="ticketDetail" />
   </div>
@@ -60,8 +59,6 @@
   import TicketModel from '@services/model/ticket/ticket';
 
   import ClampText from '@views/ticket-center/common/ticket-modify/ClampText.vue';
-  import { getTicketModifyDiffOptions } from '@views/ticket-center/common/ticket-modify/registry';
-  import { diffDetails, getRecordDetailsPair } from '@views/ticket-center/common/ticket-modify/utils';
 
   import ChangeDiffDrawer from '../../components/ChangeDiffDrawer.vue';
   import { getSummaryRecord } from '../../components/summaryRecord';
@@ -86,17 +83,6 @@
       return [];
     }
     return props.modifyRecords.filter((item) => item.flow_id === props.flowData.id).reverse();
-  });
-
-  // 每条记录相对上一版的差异项数，与提交时的 change_count 同一口径
-  const changeCountMap = computed(() => {
-    const diffOptions = getTicketModifyDiffOptions(props.ticketDetail.ticket_type);
-    return recordList.value.reduce<Record<number, number>>((result, item) => {
-      const { next, prev } = getRecordDetailsPair(props.modifyRecords, item.id, props.ticketDetail.details);
-      return Object.assign(result, {
-        [item.id]: diffDetails(prev, next, diffOptions).length,
-      });
-    }, {});
   });
 
   const handleShowDiff = (record: TicketModifyRecordModel) => {

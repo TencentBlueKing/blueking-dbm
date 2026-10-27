@@ -1,6 +1,7 @@
 <template>
   <BkCheckbox
     v-model="isRandom"
+    :disabled="isAdjustApply"
     @change="handleRandomChange">
     {{ t('随机') }}
   </BkCheckbox>
@@ -11,6 +12,7 @@
     :key="subzoneList?.join(',')"
     v-model="subzoneLocalValue"
     v-bk-tooltips="t('至少选择n个区', { n: 2 })"
+    :disabled="isAdjustApply"
     @change="handleMutipleChange">
     <BkCheckbox
       v-for="item in subzoneList"
@@ -26,6 +28,8 @@
 
   import { getInfrasSubzonesByCity } from '@services/source/infras';
 
+  import { useTicketModifyState } from '@hooks';
+
   interface Props {
     cityCode: string;
     subzoneList?: ServiceReturnType<typeof getInfrasSubzonesByCity>;
@@ -40,6 +44,9 @@
   const modelValue = defineModel<number[]>({
     required: true,
   });
+
+  // 调整申请只能改规格与资源标签，容灾级别、地域、园区只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const { t } = useI18n();
 

@@ -15,7 +15,7 @@
 <template>
   <template v-if="modifyState">
     <BkAlert
-      class="mb-20"
+      class="ticket-modify-alert mb-20"
       :theme="alertConfig.theme">
       <template #title>
         <span class="ticket-modify-alert-mode">{{ alertConfig.modeText }}</span>
@@ -149,6 +149,13 @@
   };
 </script>
 <style lang="less">
+  // 模式说明条随页面滚动始终吸顶，提示当前处于改单模式
+  .ticket-modify-alert {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
   .ticket-modify-alert-mode {
     font-weight: bold;
   }
