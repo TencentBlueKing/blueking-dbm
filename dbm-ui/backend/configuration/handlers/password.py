@@ -30,6 +30,7 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.iam_app.handlers.drf_perm.cluster import QueryClusterPasswordPermission
 from backend.ticket.constants import TicketType
 from backend.utils.basic import generate_root_id
 from backend.utils.string import base64_decode, base64_encode
@@ -100,6 +101,7 @@ class DBPasswordHandler(object):
         begin_time: str = None,
         end_time: str = None,
         db_type: str = None,
+        username: str = None,
     ):
         """
         获取mysql的admin密码
@@ -109,6 +111,8 @@ class DBPasswordHandler(object):
         @param instances: 实例列表
         @param begin_time: 过滤开始时间
         @param end_time: 过滤结束时间
+        @param db_type: db组件类型
+        @param username: 当前用户名，传入后按权限中心对结果做实例级过滤(内部调用可不传)
         """
         instances = instances or []
         # 获取过滤条件
@@ -181,6 +185,13 @@ class DBPasswordHandler(object):
             data["cluster_id"] = cluster_id
             data["immute_domain"] = cluster_id_domain_map.get(cluster_id, "")
             data["bk_cloud_name"] = cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"]
+
+        # 安全加固: 实例级权限过滤，仅返回当前用户有权查看的数据库实例
+        if username:
+            admin_password_data["results"] = QueryClusterPasswordPermission.filter_authorized_admin_password_instance(
+                username, db_type, admin_password_data["results"]
+            )
+            admin_password_data["count"] = len(admin_password_data["results"])
 
         return admin_password_data
 

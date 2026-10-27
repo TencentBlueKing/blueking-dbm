@@ -183,7 +183,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         if validated_data.get("instances"):
             validated_data["instances"] = validated_data["instances"].split(",")
-        return Response(DBPasswordHandler.query_admin_password(**validated_data))
+        return Response(DBPasswordHandler.query_admin_password(**validated_data, username=request.user.username))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询生效实例密码(admin)"),

@@ -10,18 +10,20 @@ specific language governing permissions and limitations under the License.
 """
 import functools
 import operator
-from typing import List
+from collections import defaultdict
+from typing import Dict, List
 
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, Machine, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ResourceInvalidError
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders.common.base import fetch_cluster_ids
 
 
@@ -214,6 +216,72 @@ class QueryClusterPasswordPermission(ResourceActionPermission):
     集群admin密码查询相关动作鉴权
     """
 
+    @staticmethod
+    def get_request_cluster_ids(instances) -> set:
+        """
+        根据ip:port从元数据反查实例真实所属的集群
+        注意: 不能信任请求参数中的cluster_id，否则伪造cluster_id可越权查询其他实例的密码
+        """
+        if not instances:
+            raise ResourceInvalidError(_("实例信息不允许为空"))
+
+        # 以 (ip, port) 作为实例唯一键，SQL 只用 ip__in 过滤，
+        # 避免多条 (ip, port) 拼 OR 造成扫描效率低下，端口维度在本地匹配
+        request_instance_keys = {(inst["ip"], int(inst["port"])) for inst in instances}
+        ip_list = list({ip for ip, _port in request_instance_keys})
+
+        # (ip, port) -> 所属集群id列表
+        instance_cluster_map = defaultdict(set)
+        proxy_instances = (
+            ProxyInstance.objects.filter(machine__ip__in=ip_list).select_related("machine").prefetch_related("cluster")
+        )
+        for pi in proxy_instances:
+            for cluster in pi.cluster.all():
+                # proxy端口和admin端口(spider_ctl)都可能是查询密码时传入的端口
+                instance_cluster_map[(pi.machine.ip, pi.port)].add(cluster.id)
+                if pi.admin_port:
+                    instance_cluster_map[(pi.machine.ip, pi.admin_port)].add(cluster.id)
+
+        storage_instances = (
+            StorageInstance.objects.filter(machine__ip__in=ip_list)
+            .select_related("machine")
+            .prefetch_related("cluster")
+        )
+        for si in storage_instances:
+            for cluster in si.cluster.all():
+                instance_cluster_map[(si.machine.ip, si.port)].add(cluster.id)
+
+        cluster_ids = set()
+        invalid_instances = []
+        for ip, port in request_instance_keys:
+            inst_clusters = instance_cluster_map.get((ip, port))
+            # 元数据中找不到归属集群的实例无法鉴权，直接拒绝
+            if not inst_clusters:
+                invalid_instances.append(f"{ip}:{port}")
+                continue
+            cluster_ids.update(inst_clusters)
+
+        if invalid_instances:
+            raise ResourceInvalidError(_("实例[{}]不存在或未关联集群，无权查询其密码").format(",".join(invalid_instances)))
+        return cluster_ids
+
+    @classmethod
+    def filter_authorized_admin_password_instance(cls, username: str, db_type: str, results: List[Dict]) -> List[Dict]:
+        """
+        过滤 query_admin_password 的查询结果，仅保留当前用户有权查看的实例
+        实例的权限取决于其所属集群的 {db_type}_admin_pwd_view 权限，关联不到集群的实例一律视为无权限
+        """
+        cluster_ids = {data["cluster_id"] for data in results if data.get("cluster_id")}
+        allowed_cluster_ids = set()
+        if cluster_ids:
+            action = getattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW")
+            resource_meta = getattr(ResourceEnum, db_type.upper())
+            resources_list = [[resource] for resource in resource_meta.batch_create_instances(cluster_ids)]
+            permission_result = Permission(username=username).batch_is_allowed([action], resources_list)
+            allowed_cluster_ids = {str(key) for key, perms in permission_result.items() if perms.get(action.id)}
+
+        return [data for data in results if data.get("cluster_id") and str(data["cluster_id"]) in allowed_cluster_ids]
+
     def inst_ids_getter(self, request, view):
         data = request.data or request.query_params
         # admin密码查询鉴权
@@ -224,6 +292,18 @@ class QueryClusterPasswordPermission(ResourceActionPermission):
                 self.resource_meta = getattr(ResourceEnum, db_type.upper())
                 instances = data["instances"]
                 return set([instance.get("cluster_id") for instance in instances])
+            else:
+                raise NotImplementedError
+        elif view.action == "get_instance_password":
+            # 查询实例明文密码前，按实例真实所属集群强鉴权，仅允许查询有权管理的实例
+            db_type = data.get("db_type") or ""
+            instances = data.get("instances") or []
+            if not db_type or not instances:
+                raise ResourceInvalidError(_("db_type和instances参数不允许为空"))
+            if hasattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW"):
+                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW")]
+                self.resource_meta = getattr(ResourceEnum, db_type.upper())
+                return self.get_request_cluster_ids(instances)
             else:
                 raise NotImplementedError
         else:
