@@ -105,6 +105,9 @@ class _KubernetesApi(BaseApi):
             url="/v4/dbs/k8s_cluster/pod/logs",
             description=_("获取组件日志"),
         )
+        self.rawlogs = self.generate_data_api(
+            method="get", url="/v4/dbs/k8s_cluster/pod/rawlogs", description=_("获取组件日志")
+        )
         self.create_cluster = self.generate_data_api(
             method="POST",
             url="/v4/dbs/cluster/create",
