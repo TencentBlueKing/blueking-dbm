@@ -211,9 +211,12 @@
     try {
       const sheetDataList = await Promise.all(dynamicTablesRef.value.map((item) => item.getExportExcelSheetData()));
       const workbook = XLSX.utils.book_new();
-      sheetDataList.forEach((item) => {
-        const { colWidthList, dataList, fileName, headerList } = item;
-        const worksheet = XLSX.utils.aoa_to_sheet([headerList, ...dataList]);
+      sheetDataList.forEach(({ colWidthList, dataList, fileName, headerList }) => {
+        // Excel 单元格文本最多 32767 字符，超长时截断尾部，原始数据不变。
+        const rows = [headerList, ...dataList].map((row) =>
+          row.map((value) => (typeof value === 'string' ? value.slice(0, 32767) : value)),
+        );
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
         XLSX.utils.book_append_sheet(workbook, worksheet, `${tabType.value}-${fileName}`);
         worksheet['!cols'] = colWidthList;
       });
