@@ -18,7 +18,7 @@
     text
     theme="primary"
     @click="handleShowDiff">
-    {{ t('变更对比（n 项）', { n: changeCount }) }}
+    {{ t('变更对比（n 项）', { n: record.change_count }) }}
   </BkButton>
   <div
     v-if="record.remark"
@@ -31,7 +31,6 @@
   </div>
   <ChangeDiffDrawer
     v-model:is-show="isShowDiff"
-    :modify-records="modifyRecords"
     :record="record"
     :ticket-data="ticketDetail" />
 </template>
@@ -42,28 +41,19 @@
   import TicketModel from '@services/model/ticket/ticket';
 
   import ClampText from '@views/ticket-center/common/ticket-modify/ClampText.vue';
-  import { getTicketModifyDiffOptions } from '@views/ticket-center/common/ticket-modify/registry';
-  import { diffDetails, getRecordDetailsPair } from '@views/ticket-center/common/ticket-modify/utils';
 
   import ChangeDiffDrawer from './ChangeDiffDrawer.vue';
 
   interface Props {
-    modifyRecords: TicketModifyRecordModel[];
     record: TicketModifyRecordModel;
     ticketDetail: TicketModel;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
 
   const isShowDiff = ref(false);
-
-  // 相对上一版的差异项数，与记录块同一口径
-  const changeCount = computed(() => {
-    const { next, prev } = getRecordDetailsPair(props.modifyRecords, props.record.id, props.ticketDetail.details);
-    return diffDetails(prev, next, getTicketModifyDiffOptions(props.ticketDetail.ticket_type)).length;
-  });
 
   const handleShowDiff = () => {
     isShowDiff.value = true;

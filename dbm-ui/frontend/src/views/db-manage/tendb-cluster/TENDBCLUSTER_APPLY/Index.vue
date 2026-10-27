@@ -42,6 +42,7 @@
         <DbCard :title="t('部署配置')">
           <ModuleItem
             v-model="formData.details.db_module_id"
+            v-model:module-alias-name="moduleAliasName"
             :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER" />
           <BkFormItem
@@ -98,6 +99,7 @@
                 <div>
                   <DbInput
                     v-model="formData.details.resource_spec.spider.count"
+                    :disabled="modifyState.isAdjustApply"
                     :min="2"
                     type="number" />
                   <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
@@ -146,7 +148,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
-              :disabled="modifyState.isModify"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -167,6 +169,7 @@
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetFormdata"
+        :content="modifyState.resetContent"
         :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"
@@ -356,6 +359,8 @@
   const formRef = ref();
   const specProxyRef = ref();
   const specBackendRef = ref<InstanceType<typeof BackendQPSSpec>>();
+  // 模块名，提交时带上供变更对比展示
+  const moduleAliasName = ref('');
 
   const formData = reactive(initData());
 
@@ -436,6 +441,8 @@
     return {
       ...details,
       cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
+      // 模块名只用于变更对比展示，后端按 db_module_id 重新取，提交时忽略该字段
+      db_module_name: moduleAliasName.value,
       // disaster_tolerance_level: details.resource_spec.backend_group.affinity,
       remote_shard_num: Number(specBackendInfo.cluster_shard_num) / specBackendInfo.machine_pair!,
       resource_spec: {

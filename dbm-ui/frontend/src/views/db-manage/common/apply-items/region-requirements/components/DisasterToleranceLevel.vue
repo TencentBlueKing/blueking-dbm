@@ -17,7 +17,9 @@
     :label="t('容灾级别')"
     property="details.disaster_tolerance_level"
     required>
-    <BkRadioGroup v-model="modelValue">
+    <BkRadioGroup
+      v-model="modelValue"
+      :disabled="isAdjustApply">
       <BkRadio
         v-for="item in radioDataList"
         :key="item.value"
@@ -34,6 +36,8 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { useTicketModifyState } from '@hooks';
 
   import { useSystemEnviron } from '@stores';
 
@@ -57,6 +61,9 @@
   });
 
   const { AFFINITY: systemAffinityList } = useSystemEnviron().urls;
+
+  // 调整申请只能改规格与资源标签，容灾级别、地域、园区只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const { t } = useI18n();
 

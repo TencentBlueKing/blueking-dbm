@@ -83,6 +83,7 @@
             required>
             <BkRadioGroup
               v-model="formData.details.ip_source"
+              :disabled="modifyState.isAdjustApply"
               class="item-input">
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
@@ -183,7 +184,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
-              :disabled="modifyState.isModify"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -211,6 +212,7 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleResetFormdata"
+          :content="modifyState.resetContent"
           :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
@@ -658,7 +660,11 @@
    * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
    */
   const getDetails = () => {
-    const { details } = formData;
+    // 模块名只用于变更对比展示，后端按 db_module_id 重新取，提交时忽略该字段
+    const details = {
+      ...formData.details,
+      db_module_name: moduleAliasName.value,
+    };
 
     const resourceSpecKey = isSingleType ? 'backend' : 'backend_group';
     if (details.ip_source === 'resource_pool') {

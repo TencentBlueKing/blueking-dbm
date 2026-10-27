@@ -14,6 +14,7 @@
 <template>
   <BkButton
     v-if="isRender"
+    theme="primary"
     @click="handleReEdit">
     {{ t('重新编辑') }}
   </BkButton>

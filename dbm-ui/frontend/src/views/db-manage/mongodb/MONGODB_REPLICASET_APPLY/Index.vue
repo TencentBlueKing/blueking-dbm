@@ -99,6 +99,7 @@
             <DbInput
               v-model="formData.details.node_count"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :max="11"
               :min="1"
               show-clear-only-hover
@@ -192,7 +193,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
-              :disabled="modifyState.isModify"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -213,6 +214,7 @@
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetFormdata"
+        :content="modifyState.resetContent"
         :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"

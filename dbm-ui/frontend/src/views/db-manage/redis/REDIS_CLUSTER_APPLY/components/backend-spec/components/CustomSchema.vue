@@ -35,7 +35,7 @@
       <DbInput
         v-model="modelValue.count"
         clearable
-        :disabled="isTendisInstance"
+        :disabled="isTendisInstance || isAdjustApply"
         :min="countMin"
         show-clear-only-hover
         style="width: 314px"

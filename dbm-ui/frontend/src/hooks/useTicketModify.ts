@@ -32,10 +32,10 @@ export interface TicketModifyState {
     isShow: boolean;
     resolve?: (isConfirmed: boolean) => void;
   };
-  // 改后交付通知与进入时的单据配置对比，只有重新编辑提交 config 时使用
-  getConfigDiffList: (config: unknown) => DiffItem[];
   // 改后 details 与进入时的单据内容对比，提交时的变更计数与「重置」置灰共用这一份判据
   getDiffList: (details: unknown) => DiffItem[];
+  // 改后补充信息（交付通知、单据备注）与进入时的单据对比，重新编辑、代为修改提交时使用
+  getSupplementDiffList: (config: unknown, ticketRemark: string) => DiffItem[];
   isAdjustApply: boolean;
   isModify: boolean;
   // 提单人对自己的单据代为修改，提交后自动确认
@@ -43,6 +43,8 @@ export interface TicketModifyState {
   mode: TicketModifyMode | '';
   modifyRemark: Ref<string>;
   openConfirm: (diffList: DiffItem[]) => Promise<boolean>;
+  // 「重置」确认文案：改单模式下重置是丢弃本次修改、回到单据当前内容，不是清空；非改单为空，用各页默认文案
+  resetContent: string;
   submitText: string;
   // 进入工具页时的单据，details 为对比基准，version 为提交时校验的内容版本
   ticketData: ShallowRef<TicketModel | undefined>;
@@ -176,10 +178,10 @@ export const useTicketModify = () => {
   };
 
   /**
-   * 交付通知对比：是否发送、收件人两项；收件人按集合比较，顺序不同不算改动
-   * 不发送时 NotifyRelatedPersons.getValue() 返回空对象，按不发送、无收件人处理
+   * 补充信息对比：交付通知（是否发送、收件人）与单据备注
+   * 收件人按集合比较，顺序不同不算改动；不发送时 NotifyRelatedPersons.getValue() 返回空对象，按不发送、无收件人处理
    */
-  const getConfigDiffList = (config: unknown) => {
+  const getSupplementDiffList = (config: unknown, ticketRemark: string) => {
     const data = ticketData.value;
     if (!data) {
       return [];
@@ -189,7 +191,10 @@ export const useTicketModify = () => {
       isSend: Boolean(sendMsgConfig?.is_send),
       receivers: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username || '').split(',').filter(Boolean) : [],
     });
-    const prev = getSendInfo(data.config?.send_msg_config);
+    const prevSendMsgConfig = data.config?.send_msg_config;
+    // 原单据没有交付通知配置时，回填按默认值（发送）处理，对比基准与回填保持一致
+    const isPrevDefault = prevSendMsgConfig?.is_send === undefined;
+    const prev = isPrevDefault ? { isSend: true, receivers: [] } : getSendInfo(prevSendMsgConfig);
     const next = getSendInfo((config as { send_msg_config?: SendMsgConfig } | undefined)?.send_msg_config);
     const result: DiffItem[] = [];
     if (prev.isSend !== next.isSend) {
@@ -201,7 +206,8 @@ export const useTicketModify = () => {
         prev: prev.isSend ? t('是') : t('否'),
       });
     }
-    if (_.xor(prev.receivers, next.receivers).length > 0) {
+    // 原单据没有配置时收件人没有可比的基准（默认收件人由提交时实时计算），不比较收件人
+    if (!isPrevDefault && _.xor(prev.receivers, next.receivers).length > 0) {
       result.push({
         isList: true,
         label: t('收件人'),
@@ -210,13 +216,22 @@ export const useTicketModify = () => {
         prev: formatValue(prev.receivers),
       });
     }
+    if ((data.remark || '') !== (ticketRemark || '')) {
+      result.push({
+        isList: false,
+        label: t('备注'),
+        next: formatValue(ticketRemark),
+        path: 'ticket_remark',
+        prev: formatValue(data.remark),
+      });
+    }
     return result;
   };
 
   const state: TicketModifyState = {
     confirmState,
-    getConfigDiffList,
     getDiffList,
+    getSupplementDiffList,
     isAdjustApply: mode === TicketModifyRecordModel.MODE_ADJUST_APPLY,
     isModify,
     isSelfOnBehalf: computed(
@@ -225,6 +240,7 @@ export const useTicketModify = () => {
     mode,
     modifyRemark,
     openConfirm,
+    resetContent: isModify ? t('重置后本次修改将丢弃，内容回到打开时的状态。') : '',
     submitText: mode ? submitTextMap[mode] : '',
     ticketData,
     validateRemark: () => Promise.resolve(),

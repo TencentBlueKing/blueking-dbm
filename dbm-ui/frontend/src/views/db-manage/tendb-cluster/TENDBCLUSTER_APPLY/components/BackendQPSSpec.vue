@@ -31,6 +31,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="1"
           :model-value="modelValue.capacity"
           type="number"
@@ -45,6 +46,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
           type="number"
@@ -58,7 +60,7 @@
         required>
         <BkSlider
           v-model="sliderProps.value"
-          :disable="sliderProps.disabled"
+          :disable="sliderProps.disabled || isAdjustApply"
           :formatter-label="formatterLabel"
           :max-value="sliderProps.max"
           :min-value="sliderProps.min"
@@ -147,6 +149,7 @@
         <DbInput
           v-model="modelValue.count"
           clearable
+          :disabled="isAdjustApply"
           :min="1"
           show-clear-only-hover
           type="number" />
@@ -261,6 +264,7 @@
         <bk-radio
           v-model={modelValue.value.spec_id}
           class='spec-radio'
+          disabled={isAdjustApply}
           label={row.spec_id}>
           <div
             v-overflow-tips
@@ -497,6 +501,10 @@
   );
 
   const handleRowClick = ({ row }: { row: TableRowData }) => {
+    // 调整申请只能改规格与资源标签：自动推荐方案的一行同时决定规格与组数，选行会连带改数量，整张方案表只读
+    if (isAdjustApply) {
+      return;
+    }
     modelValue.value.spec_id = row.spec_id;
   };
 
