@@ -35,6 +35,8 @@ func init() {
 	rootCmd.PersistentFlags().String("key_file", "", "key file")
 	rootCmd.PersistentFlags().Bool("tls", false, "use tls")
 
+	rootCmd.PersistentFlags().String("mysql_dts_master_ports", "18301", "allowed mysql dts master ports, comma separated")
+
 	viper.SetEnvPrefix("DRS")
 	viper.AutomaticEnv()
 	_ = viper.BindEnv("mysql_admin_user", "MYSQL_ADMIN_USER")
@@ -67,6 +69,7 @@ func init() {
 	_ = viper.BindEnv("cert_file", "CERT_FILE")
 	_ = viper.BindEnv("key_file", "KEY_FILE")
 	_ = viper.BindEnv("tls", "TLS")
+	_ = viper.BindEnv("mysql_dts_master_ports", "MYSQL_DTS_MASTER_PORTS")
 
 	_ = viper.BindPFlags(rootCmd.PersistentFlags())
 }
