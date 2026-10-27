@@ -40,14 +40,14 @@
           <template
             v-if="ticketData"
             #action>
+            <TicketReEdit
+              class="mr-8"
+              :data="ticketData" />
             <TicketClone
               class="mr-8"
               :data="ticketData"
               :text="false"
               theme="" />
-            <TicketReEdit
-              class="mr-8"
-              :data="ticketData" />
             <TicketRevoke
               class="mr-8"
               :data="ticketData" />

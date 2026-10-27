@@ -10,6 +10,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="1"
           :model-value="modelValue.capacity"
           style="width: 314px"
@@ -23,6 +24,7 @@
         required>
         <DbInput
           allow-empty-value
+          :disabled="isAdjustApply"
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
           style="width: 314px"
@@ -162,6 +164,7 @@
         <bk-radio
           v-model={modelValue.value.spec_id}
           class='spec-radio'
+          disabled={isAdjustApply}
           label={row.spec_id}>
           {row.spec_name}
         </bk-radio>
@@ -310,6 +313,10 @@
   }, 100);
 
   const handleRowClick = ({ row }: { row: TableRowData }) => {
+    // 调整申请只能改规格与资源标签：自动推荐方案的一行同时决定规格与组数，选行会连带改数量，整张方案表只读
+    if (isAdjustApply) {
+      return;
+    }
     modelValue.value.spec_id = row.spec_id;
   };
 

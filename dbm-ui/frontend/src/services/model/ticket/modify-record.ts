@@ -22,6 +22,18 @@ const MODE_ADJUST_APPLY = 'ADJUST_APPLY';
 export type TicketModifyMode = typeof MODE_ON_BEHALF | typeof MODE_RE_EDIT | typeof MODE_ADJUST_APPLY;
 
 /**
+ * 一条变更项：提交时确认弹窗展示什么就存什么，详情页的变更对比原样展示，不再按快照重算
+ */
+export interface TicketModifyChangeItem {
+  // 列表字段，展示时逗号连排并默认折叠
+  isList: boolean;
+  label: string;
+  next: string;
+  path: string;
+  prev: string;
+}
+
+/**
  * 单据改单记录，details 为该次修改的改前快照
  */
 export default class TicketModifyRecord<T = Record<string, unknown>> {
@@ -37,6 +49,8 @@ export default class TicketModifyRecord<T = Record<string, unknown>> {
   };
 
   change_count: number;
+  // 提交时的变更项列表，变更对比直接展示；早于该字段的记录为空
+  change_details: TicketModifyChangeItem[];
   create_at: string;
   details: T;
   flow_id: number;
@@ -49,6 +63,7 @@ export default class TicketModifyRecord<T = Record<string, unknown>> {
 
   constructor(payload = {} as TicketModifyRecord<T>) {
     this.change_count = payload.change_count;
+    this.change_details = payload.change_details || [];
     this.create_at = payload.create_at;
     this.details = payload.details;
     this.flow_id = payload.flow_id;

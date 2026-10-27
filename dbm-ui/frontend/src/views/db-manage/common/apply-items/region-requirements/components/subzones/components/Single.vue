@@ -1,6 +1,7 @@
 <template>
   <BkRadioGroup
     v-model="localValue"
+    :disabled="isAdjustApply"
     @change="handleChange">
     <BkRadio
       v-for="item in subzoneList"
@@ -13,6 +14,8 @@
 
 <script setup lang="ts">
   import { getInfrasSubzonesByCity } from '@services/source/infras';
+
+  import { useTicketModifyState } from '@hooks';
 
   interface Props {
     subzoneList?: ServiceReturnType<typeof getInfrasSubzonesByCity>;
@@ -29,6 +32,9 @@
   });
 
   const localValue = ref<number>();
+
+  // 调整申请只能改规格与资源标签，容灾级别、地域、园区只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const handleChange = (value: number) => {
     modelValue.value = [value];

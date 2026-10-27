@@ -33,7 +33,6 @@
       </template>
       <SummaryModifyRecord
         v-if="summaryRecord"
-        :modify-records="modifyRecords"
         :record="summaryRecord"
         :ticket-detail="ticketDetail" />
       <!-- 主摘要是最后一次处理的结论，带上处理时间；没有待办时通用外壳已在 desc 展示，这里不重复 -->

@@ -21,7 +21,8 @@
       <BkRadioGroup
         v-model="modelValue.city_code"
         class="region-group"
-        :class="{ 'region-group-flex-direction': commonList?.length }">
+        :class="{ 'region-group-flex-direction': commonList?.length }"
+        :disabled="isAdjustApply">
         <div class="region-group-item-box">
           <div
             v-for="info of commonList"
@@ -34,6 +35,7 @@
           <BkButton
             v-if="commonList?.length"
             class="ml-12"
+            :disabled="isAdjustApply"
             size="small"
             style="font-size: 12px"
             text
@@ -71,6 +73,8 @@
 
   import { getCommonCities } from '@services/source/infras';
 
+  import { useTicketModifyState } from '@hooks';
+
   import { Affinity } from '@common/const';
 
   const modelValue = defineModel<{
@@ -80,6 +84,9 @@
   }>({
     required: true,
   });
+
+  // 调整申请只能改规格与资源标签，容灾级别、地域、园区只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const { t } = useI18n();
 

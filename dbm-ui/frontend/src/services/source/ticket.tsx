@@ -10,7 +10,10 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import TicketModifyRecordModel, { type TicketModifyMode } from '@services/model/ticket/modify-record';
+import TicketModifyRecordModel, {
+  type TicketModifyChangeItem,
+  type TicketModifyMode,
+} from '@services/model/ticket/modify-record';
 import TicketModel from '@services/model/ticket/ticket';
 import TicketClusterDisableTodoModel from '@services/model/ticket-cluster-disable-todo/TicketClusterDisableTodo';
 import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
@@ -374,12 +377,17 @@ export function getTicketStatus(params: { ticket_ids: string }) {
 export function modifyTicket(
   params: {
     change_count: number;
-    // 单据配置（交付通知），只有重新编辑提交
+    // 本次变更项，即确认弹窗展示的内容，变更对比原样展示
+    change_details: TicketModifyChangeItem[];
+    // 单据配置（交付通知），重新编辑、代为修改提交
     config?: unknown;
     details: unknown;
     id: number;
     mode: TicketModifyMode;
+    // 修改说明
     remark: string;
+    // 单据备注，重新编辑、代为修改提交
+    ticket_remark?: string;
     version: number | null;
   },
   payload = {} as IRequestPayload,

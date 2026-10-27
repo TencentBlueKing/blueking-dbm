@@ -24,6 +24,7 @@
         required>
         <DbInput
           v-model="modelValue.capacity"
+          :disabled="isAdjustApply"
           :min="0"
           type="number"
           @change="handleCapacityChange" />
@@ -75,6 +76,7 @@
                   :key="index"
                   v-model="modelValue.spec_id"
                   class="spec-radio"
+                  :disabled="isAdjustApply"
                   :label="data.spec_id"
                   @click="() => handleRowClick({ row: data })">
                   <div
@@ -214,6 +216,7 @@
         required>
         <DbInput
           v-model="modelValue.shard_machine_group"
+          :disabled="isAdjustApply"
           :min="0"
           type="number" />
         <span class="input-desc">{{ t('组') }}</span>
@@ -453,6 +456,10 @@
   fetchFilterClusterSpec();
 
   const handleRowClick = ({ row }: { row: TableRowData }) => {
+    // 调整申请只能改规格与资源标签：自动推荐方案的一行同时决定规格与组数，选行会连带改数量，整张方案表只读
+    if (isAdjustApply) {
+      return;
+    }
     Object.assign(modelValue.value, {
       count: row.machine_num,
       shard_machine_group: row.machine_pair,

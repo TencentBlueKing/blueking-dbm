@@ -35,7 +35,7 @@
         <span class="ticket-modify-diff-drawer-remark-label">{{ t('修改说明：') }}</span>
         <span>{{ record.remark }}</span>
       </div>
-      <DiffTable :data="diffList" />
+      <DiffTable :data="record.change_details" />
     </div>
     <template
       v-if="todoId"
@@ -70,14 +70,11 @@
   import { useUserProfile } from '@stores';
 
   import DiffTable from '@views/ticket-center/common/ticket-modify/DiffTable.vue';
-  import { getTicketModifyDiffOptions } from '@views/ticket-center/common/ticket-modify/registry';
   import useOpenTicketModify from '@views/ticket-center/common/ticket-modify/useOpenTicketModify';
-  import { diffDetails, getRecordDetailsPair } from '@views/ticket-center/common/ticket-modify/utils';
 
   import { messageSuccess } from '@utils';
 
   interface Props {
-    modifyRecords: TicketModifyRecordModel[];
     record?: TicketModifyRecordModel;
     ticketData: TicketModel;
     // 传入确认修改待办 id 即为决策态，底部提供「确认修改 / 重新编辑」
@@ -99,14 +96,6 @@
   const openTicketModify = useOpenTicketModify();
 
   const isSubmitting = ref(false);
-
-  const diffList = computed(() => {
-    if (!props.record) {
-      return [];
-    }
-    const { next, prev } = getRecordDetailsPair(props.modifyRecords, props.record.id, props.ticketData.details);
-    return diffDetails(prev, next, getTicketModifyDiffOptions(props.ticketData.ticket_type));
-  });
 
   const handleConfirm = () => {
     InfoBox({

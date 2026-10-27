@@ -117,7 +117,9 @@
             :label="t('服务器选择')"
             property="details.ip_source"
             required>
-            <BkRadioGroup v-model="formData.details.ip_source">
+            <BkRadioGroup
+              v-model="formData.details.ip_source"
+              :disabled="modifyState.isAdjustApply">
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
               </BkRadioButton>
@@ -321,7 +323,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
-              :disabled="modifyState.isModify"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -348,6 +350,7 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleResetFormdata"
+          :content="modifyState.resetContent"
           :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"
@@ -958,6 +961,8 @@
    */
   const getDetails = () => {
     const details: Record<string, any> = _.cloneDeep(formData.details);
+    // 模块名只用于变更对比展示，后端按 db_module_id 重新取，提交时忽略该字段
+    details.db_module_name = moduleAliasName.value;
     const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
     // 单机架构无 Proxy，不上送负载均衡字段

@@ -83,7 +83,9 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formData.details.ip_source">
+          <BkRadioGroup
+            v-model="formData.details.ip_source"
+            :disabled="modifyState.isAdjustApply">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -133,6 +135,7 @@
               <DbInput
                 v-model="formData.details.resource_spec.riak.count"
                 clearable
+                :disabled="modifyState.isAdjustApply"
                 :min="3"
                 show-clear-only-hover
                 style="width: 185px"
@@ -178,7 +181,7 @@
         <BkFormItem :label="t('备注')">
           <DbInput
             v-model="formData.remark"
-            :disabled="modifyState.isModify"
+            :disabled="modifyState.isAdjustApply"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -199,6 +202,7 @@
         <DbResetButton
           class="ml-8"
           :confirm-handler="handleReset"
+          :content="modifyState.resetContent"
           :disabled="baseState.isSubmitting || isModifyUnchanged" />
         <BkButton
           class="ml-8 w-88"

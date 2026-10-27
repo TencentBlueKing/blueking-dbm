@@ -22,7 +22,6 @@
       :start-time="utcTimeToSeconds(data.done_at)" />
     <SummaryModifyRecord
       v-if="summaryRecord"
-      :modify-records="modifyRecords"
       :record="summaryRecord"
       :ticket-detail="ticketData" />
     <div

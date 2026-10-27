@@ -46,7 +46,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import { getAdmins } from '@services/source/dbadmin';
 
   import { useTicketModifyState } from '@hooks';
@@ -72,8 +71,8 @@
 
   const { t } = useI18n();
   const modifyState = useTicketModifyState();
-  // 改单接口只有重新编辑会提交 config：重新编辑可改交付通知，代为修改、调整申请只读
-  const isDisabled = Boolean(modifyState) && modifyState?.mode !== TicketModifyRecordModel.MODE_RE_EDIT;
+  // 重新编辑、代为修改可改交付通知（随改单接口的 config 提交），调整申请只能改资源条件，只读
+  const isDisabled = Boolean(modifyState?.isAdjustApply);
   const { username } = useUserProfile();
 
   const personList = ref<string[]>([]);
@@ -132,12 +131,14 @@
 
   /**
    * 提单人 + 主DBA + 收件人(与提单人、主DBA 合并去重)
+   * 改单时提单人取单据的提单人：代为修改的操作人是审批人，不能把审批人当成提单人写进收件人
    */
   const receiverUsername = () => {
     const defaultDba = defaultAdminData.value?.data?.[0]?.users[0];
     const bizMainDba = bizAdminData.value?.data?.[0]?.users[0] || '';
     const mainDbA = bizMainDba || defaultDba;
-    return _.uniq([username, mainDbA, ...personList.value]);
+    const creator = modifyState?.ticketData.value?.creator || username;
+    return _.uniq([creator, mainDbA, ...personList.value]);
   };
 
   defineExpose({
