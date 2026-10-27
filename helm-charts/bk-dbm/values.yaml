@@ -158,6 +158,8 @@ dbm:
     reverseReportKafkaOptions: ""
     dbmEnableAI: false
     bkaiAgentMetricsPushMode: "direct"
+    # WebConsole WS 链路部署就绪后开启，供前端查询可用模式。
+    ENABLE_WEBCONSOLE_WEBSOCKET: "true"
 
   ingress:
     enabled: true

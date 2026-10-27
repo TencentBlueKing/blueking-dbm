@@ -92,7 +92,7 @@
 
   import { WebconsoleError } from '@services/source/webconsoleWs';
 
-  import type { ConsoleCommandResult } from '@views/db-manage/common/webconsole/hooks/useWebconsoleSession';
+  import type { ConsoleCommandResult } from '@views/db-manage/common/webconsole/types';
 
   import { downloadText } from '@utils';
 
@@ -438,9 +438,7 @@
       }
     },
     export() {
-      const lines = (panelInputMap[clusterId.value] || []).flatMap((item) =>
-        item.rowsAffected === undefined ? [item.message] : [item.message, t('WebConsole_影响行数', [item.rowsAffected])],
-      );
+      const lines = (panelInputMap[clusterId.value] || []).map((item) => item.message);
       let exportTxt = '';
       lines.forEach((item) => {
         if (

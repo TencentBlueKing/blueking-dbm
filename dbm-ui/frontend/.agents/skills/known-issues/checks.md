@@ -26,6 +26,7 @@
   `components/{cluster-selector,host-selector,instance-selector-new,cluster-resource-selector,machine-resource-selector}/**`
   的弹窗外壳 / PanelTab / 表格容器 / 取值语义，或新写「左表格 + 右结果预览」选择器
 - [组件目录必须 kebab-case](doc/component-dir-kebab-case.md) —— 本次新建或重命名带 `Index.vue` 的组件目录
+- [WebConsole 连接方式不要复用 RoleSelect](doc/webconsole-select-semantics.md) —— `views/db-manage/common/webconsole/**` 中 `<RoleSelect>` 的 `v-model` 绑定连接方式而非数据库角色
 - [表格列宽优先 min-width，取值落在约定档位](doc/table-column-width.md) —— 本次新增或改了
   `TableColumn` 的 `width` / `min-width`（不含 `EditableColumn`）
 - [有样式的容器不能由 `$slots.x` 决定渲染](doc/slot-wrapper-container.md) —— 改 `components/bkui-vue/**`

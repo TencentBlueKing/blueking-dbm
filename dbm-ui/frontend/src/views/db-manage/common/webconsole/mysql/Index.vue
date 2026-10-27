@@ -40,14 +40,17 @@
         <div class="content-top">
           <div class="content-top-start ml-14">
             <div
-              v-bk-tooltips="parametersLocked ? t('WebConsole_执行或连接期间不可修改参数') : t('WebConsole_修改参数重建会话')">
+              v-bk-tooltips="
+                parametersLocked ? t('WebConsole_执行或连接期间不可修改参数') : t('WebConsole_修改参数重建会话')
+              ">
               <div
                 class="session-parameters"
                 :class="{ 'session-parameters-locked': parametersLocked }">
-                <RoleSelect
+                <ConnectionModeSelect
                   v-model="connectionMode"
-                  class="session-mode-select"
-                  :list="connectionModeList" />
+                  :allowed-modes="allowedModes"
+                  :disabled="parametersLocked"
+                  @modes-change="supportedModes = $event" />
                 <RoleSelect
                   v-model="role"
                   :list="roleList" />
@@ -97,7 +100,10 @@
             :ref="handleConsolePanelRef"
             :charset="tab.charset"
             :cluster="clusterInfo"
-            :disabled="tab.mode === 'ws' && tab.state !== 'ready'"
+            :disabled="
+              !supportedModes.includes(tab.mode) ||
+              (tab.mode === 'ws' && tab.state !== 'ready')
+            "
             :execute-command="tab.mode === 'ws' ? tab.execute : undefined"
             :role="tab.role"
             :style="currentFontConfig"
@@ -118,8 +124,10 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
+  import ConnectionModeSelect from '@views/db-manage/common/webconsole/components/connection-mode-select/Index.vue';
   import { releaseConsoleTab } from '@views/db-manage/common/webconsole/components/console-panel/components/ConsoleInput.vue';
   import { useWebconsoleSession } from '@views/db-manage/common/webconsole/hooks/useWebconsoleSession';
+  import type { WebconsoleMode } from '@views/db-manage/common/webconsole/types';
 
   import CharacterSet from '../components/CharacterSet.vue';
   import ClearScreen from '../components/ClearScreen.vue';
@@ -150,10 +158,13 @@
   });
   const { connect, ensureTab, removeTab, setMode, tabs } = useWebconsoleSession();
   const currentTab = computed(() => (clusterInfo.value ? tabs[clusterInfo.value.id] : undefined));
+  const allowedModes: WebconsoleMode[] = ['http', 'ws'];
+  const supportedModes = ref<WebconsoleMode[]>([]);
   const modeChanging = ref(false);
   const parametersLocked = computed(
     () =>
       modeChanging.value ||
+      !supportedModes.value.length ||
       Boolean(currentTab.value?.busy) ||
       currentTab.value?.state === 'connecting' ||
       currentTab.value?.state === 'initializing',
@@ -192,16 +203,24 @@
       }
     },
   });
-  const connectionModeList = [
-    { label: 'HTTP', value: 'http' },
-    { label: 'WebSocket', value: 'ws' },
-  ];
-  const connectionMode = computed({
+  watch([currentTab, supportedModes], ([tab, modes]) => {
+    if (tab && modes.length && !modes.includes(tab.mode) && clusterInfo.value) {
+      setMode(clusterInfo.value.id, modes[0]);
+    }
+  });
+  const connectionMode = computed<WebconsoleMode>({
     get: () => currentTab.value?.mode || 'http',
-    set: (value: string) => {
+    set: (value: WebconsoleMode) => {
       const tab = currentTab.value;
       const clusterId = clusterInfo.value?.id;
-      if (!tab || !clusterId || parametersLocked.value || value === tab.mode || (value !== 'http' && value !== 'ws')) {
+      if (
+        !tab ||
+        !clusterId ||
+        parametersLocked.value ||
+        value === tab.mode ||
+        (value !== 'http' && value !== 'ws') ||
+        !supportedModes.value.includes(value)
+      ) {
         return;
       }
       modeChanging.value = true;
@@ -257,7 +276,9 @@
         InfoBox({
           cancelText: t('取消'),
           confirmText: t('关闭'),
-          content: t(tabs[clusterId]?.busy ? 'WebConsole_关闭执行中会话确认' : '关闭后，内容将不会再在保存，请谨慎操作！'),
+          content: t(
+            tabs[clusterId]?.busy ? 'WebConsole_关闭执行中会话确认' : '关闭后，内容将不会再在保存，请谨慎操作！',
+          ),
           footerAlign: 'center',
           headerAlign: 'center',
           onCancel() {
@@ -392,10 +413,6 @@
           align-items: center;
         }
 
-        .session-mode-select .role-select-trigger {
-          width: 96px;
-        }
-
         .session-default-timezone,
         .session-status {
           margin: 0 8px;
@@ -436,7 +453,7 @@
 
     .session-parameters-locked {
       pointer-events: none;
-      opacity: 0.5;
+      opacity: 50%;
     }
 
     .operate-item {

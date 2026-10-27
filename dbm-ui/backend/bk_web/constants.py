@@ -60,6 +60,7 @@ ROUTING_WHITELIST_PATTERNS = [
     r"/apis/dbbase/query_cluster_instance_count/",
     # webconsole
     r"/apis/dbbase/webconsole/",
+    r"/apis/dbbase/support_webconsole_mode/",
     # 平台设置相关接口
     "/apis/conf/biz_settings/simple/",
     # grafana和监控相关接口
