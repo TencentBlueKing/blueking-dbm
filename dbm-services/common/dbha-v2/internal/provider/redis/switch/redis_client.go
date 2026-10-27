@@ -26,11 +26,14 @@ package redisswitch
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/haredis"
 )
 
@@ -101,4 +104,67 @@ func parseRedisInfo(info string) map[string]string {
 		infoRet[strings.TrimSpace(list01[0])] = strings.TrimSpace(list01[1])
 	}
 	return infoRet
+}
+
+// instanceHeartbeatKey is the dbmon key written by MSET, {ip}:{port}:time.
+func instanceHeartbeatKey(ip string, port int) string {
+	return fmt.Sprintf("%s:%d:time", ip, port)
+}
+
+// kvStoreHeartbeatKey is the adminset key dbmon writes once for every kvstore.
+func kvStoreHeartbeatKey(ip string, port int) string {
+	return fmt.Sprintf("%s_%d:heartbeat", ip, port)
+}
+
+// parseKvstoreCount parses the kvstorecount result:
+//
+//	[kvstorecount, count]
+func parseKvstoreCount(raw []interface{}) (int, error) {
+	if len(raw) < 2 || raw[1] == nil {
+		return 0, gerrors.Newf(gerrors.Failure, "kvstorecount result is empty")
+	}
+	countText, ok := raw[1].(string)
+	if !ok {
+		return 0, gerrors.Newf(gerrors.Failure, "kvstorecount value is not a string")
+	}
+	count, err := strconv.Atoi(countText)
+	if err != nil || count <= 0 {
+		return 0, gerrors.Newf(gerrors.Failure, "kvstorecount value is invalid: %s", countText)
+	}
+	return count, nil
+}
+
+// parseAdmingetHeartbeat parses adminget output:
+//
+//	[[storeID, unixSeconds], ...]
+func parseAdmingetHeartbeat(raw interface{}) (map[int]int64, error) {
+	rows, ok := raw.([]interface{})
+	if !ok {
+		return nil, gerrors.Newf(gerrors.Failure, "adminget result is not a list")
+	}
+	heartbeats := make(map[int]int64, len(rows))
+	for _, row := range rows {
+		pair, ok := row.([]interface{})
+		if !ok || len(pair) != 2 || pair[0] == nil || pair[1] == nil {
+			continue
+		}
+		storeText, ok := pair[0].(string)
+		if !ok {
+			continue
+		}
+		valueText, ok := pair[1].(string)
+		if !ok {
+			continue
+		}
+		storeID, err := strconv.Atoi(storeText)
+		if err != nil {
+			continue
+		}
+		unixSec, err := strconv.ParseInt(valueText, 10, 64)
+		if err != nil {
+			return nil, gerrors.Newf(gerrors.Failure, "kvstore %d heartbeat is not a unix timestamp: %s", storeID, valueText)
+		}
+		heartbeats[storeID] = unixSec
+	}
+	return heartbeats, nil
 }
