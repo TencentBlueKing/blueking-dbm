@@ -38,6 +38,9 @@ import (
 // pid-file path.
 const defaultPidFile = "./pids/analysis.pid"
 
+// defaultSshTimeout is the default overall time budget of one SSH probe.
+const defaultSshTimeout = 10 * time.Second
+
 var Cfg = Configuration{
 	Name:    "analysis",
 	PidFile: defaultPidFile,
@@ -261,6 +264,8 @@ func Load(configFilePath string) error {
 		return err
 	}
 
+	Cfg.Detector.Ssh.Timeout = clampSshTimeout(Cfg.Detector.Ssh.Timeout)
+
 	return nil
 }
 
@@ -282,11 +287,20 @@ func clampDbmApiMetadataHashCnt(hashCnt int) int {
 	return hashCnt
 }
 
+func clampSshTimeout(timeout time.Duration) time.Duration {
+	if timeout <= 0 {
+		logger.Warn("invalid detector ssh timeout: %s, fallback: %s", timeout, defaultSshTimeout)
+		return defaultSshTimeout
+	}
+
+	return timeout
+}
+
 func init() {
 	Cfg.Detector.CheckProbeProcessCmd = defaultCheckProbeProcessCmd
 	Cfg.Detector.Ssh.Port = 22
 	Cfg.Detector.Ssh.User = "root"
-	Cfg.Detector.Ssh.Timeout = 10 * time.Second
+	Cfg.Detector.Ssh.Timeout = defaultSshTimeout
 	Cfg.Database.Mysql.Timeout = 10 * time.Second
 	Cfg.Storage.Timeout = 10 * time.Second
 }

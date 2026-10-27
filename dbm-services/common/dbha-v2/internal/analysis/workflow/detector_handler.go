@@ -85,17 +85,20 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 		return ErrDetectorFailure
 	}
 
+	if resp.Err == detector.ErrDetectorSshConnectTimeout ||
+		resp.Err == detector.ErrDetectorSshExecTimeout {
+		resp.DbEventName = haprobe.DbEventNameSshTimeout
+		resp.DbEventNameReason = haprobe.DbEventNameReasonSshTimeout
+
+		content := fmt.Sprintf("%s, host: %d:%s", resp.Err.Error(), resp.Meta.BkCloudID, resp.Meta.IP)
+
+		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Timeout.Int(), resp)
+		return ErrDetectorFailure
+	}
+
 	if resp.Err != nil {
 		h.alarm.TriggerWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
 		return nil
-	}
-
-	if resp.SshResp.ErrMsg == detector.ErrDetectorSshTimeout.Error() {
-		resp.DbEventName = haprobe.DbEventNameSshTimeout
-		resp.DbEventNameReason = haprobe.DbEventNameReasonSshTimeout
-		content := fmt.Sprintf("%s, host: %d:%s", resp.SshResp.ErrMsg, resp.Meta.BkCloudID, resp.Meta.IP)
-		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
-		return ErrDetectorFailure
 	}
 
 	if resp.SshResp.ExitCode == process.ExitCodeHealthDiskWriteFail {
