@@ -27,6 +27,8 @@ PLUS = ClusterType.TendisPredixyTendisplusCluster.value
 REDIS_CLUSTER = ClusterType.TendisPredixyRedisCluster.value
 T0 = datetime(2026, 1, 1, 1, 0, tzinfo=timezone.utc)
 RECOVER_AT = T0 + timedelta(minutes=60)
+# Binlogs are only replayed towards an explicit target time.
+REPLAY = {"recovery_time_point": RECOVER_AT.isoformat()}
 SLOT_SHARDS = ["0-5460", "5461-10922", "10923-16383"]
 CHAIN = ((1, -40), (2, -20), (3, 10), (4, 40), (5, 70))
 GB = 1024**3
@@ -160,7 +162,7 @@ def test_allowed_gaps_are_recorded_per_kvstore():
 
 def test_missing_right_boundary_names_instance_kvstore_side_and_chain_ends():
     no_tail = {1: ((1, -40), (2, -20), (3, 10))}
-    planner = _planner(binlogs=lambda port: _chains(port, override=no_tail if port == 30001 else None))
+    planner = _planner(binlogs=lambda port: _chains(port, override=no_tail if port == 30001 else None), **REPLAY)
     result = planner.precheck()
 
     assert result["exist"] is False
@@ -174,9 +176,27 @@ def test_missing_right_boundary_names_instance_kvstore_side_and_chain_ends():
         planner.build(pack=False)
 
 
+def test_plus_without_time_restores_the_full_only(backup_files_still_present, kvstorecount):
+    no_tail = {1: ((1, -40), (2, -20), (3, 10))}
+    planner = _planner(binlogs=lambda port: _chains(port, override=no_tail))
+
+    assert planner.precheck()["exist"] is True
+    plan = planner.build(pack=False)
+
+    planner.locator.locate_binlogs.assert_not_called()
+    kvstorecount.assert_not_called()
+    assert plan.recover_at == RECOVER_AT
+    assert all(item.binlog_files == [] for item in plan.items)
+    instance = plan.items[0].actuator_instance(plus=True, cluster_protocol=True)
+    assert instance["kvstore_binlogs"] == [] and instance["slots"] == "0-5460"
+    assert all("binlog" not in shard for shard in plan.to_rollback_detail()["shards"])
+    task_ids = backup_files_still_present.call_args.args[0]["task_ids"]
+    assert sorted(task_ids) == ["full-30000", "full-30001", "full-30002"]
+
+
 def test_kvstore_count_comes_from_the_cluster_config(kvstorecount):
     kvstorecount.return_value = {"content": {"kvstorecount": "3"}}
-    result = _planner().precheck()
+    result = _planner(**REPLAY).precheck()
     assert result["exist"] is False
     assert all("kvstore 2" in shard["errors"][0] for shard in result["shards"])
     params = kvstorecount.call_args.kwargs["params"]
@@ -189,7 +209,7 @@ def test_kvstore_count_comes_from_the_cluster_config(kvstorecount):
 
 def test_unknown_kvstore_count_fails_without_binlog_lookup(kvstorecount):
     kvstorecount.side_effect = RuntimeError("dbconfig down")
-    planner = _planner()
+    planner = _planner(**REPLAY)
     result = planner.precheck()
     assert result["exist"] is False
     assert any("kvstorecount" in error for error in result["errors"])
@@ -200,7 +220,7 @@ def test_unknown_kvstore_count_fails_without_binlog_lookup(kvstorecount):
 
 
 def test_plus_plan_sends_slots_and_a_digest_per_kvstore(backup_files_still_present):
-    plan = _planner().build(pack=False)
+    plan = _planner(**REPLAY).build(pack=False)
     assert plan.tendis_type == ClusterType.TendisplusInstance.value
     assert plan.is_plus and plan.is_cluster_protocol
 
@@ -231,7 +251,7 @@ def test_plus_plan_sends_slots_and_a_digest_per_kvstore(backup_files_still_prese
 
 
 def test_partial_cluster_selection_fills_the_other_slots_with_placeholders(backup_files_still_present):
-    planner = _planner(shard_values=[SLOT_SHARDS[0]])
+    planner = _planner(shard_values=[SLOT_SHARDS[0]], **REPLAY)
     result = planner.precheck()
     assert result["exist"] is True
     assert any("slot" in w and "Proxy" not in w for w in result["warnings"] if "未勾选" in w)

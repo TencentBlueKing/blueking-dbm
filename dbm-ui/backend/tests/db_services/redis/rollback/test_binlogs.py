@@ -20,6 +20,8 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import Rollba
 
 T0 = datetime(2026, 1, 1, 1, 0, tzinfo=timezone.utc)
 RECOVER_AT = T0 + timedelta(minutes=60)
+# Binlogs are only replayed towards an explicit target time.
+REPLAY = {"recovery_time_point": RECOVER_AT.isoformat()}
 
 
 def _binlog(index, minutes, ip="1.1.1.1", port=30000):
@@ -246,7 +248,7 @@ def _ssd_planner(binlogs, cluster_type=ClusterType.TwemproxyTendisSSDInstance.va
 
 
 def test_ssd_plan_carries_the_chain_and_confirms_its_tasks(backup_files_still_present):
-    plan = _ssd_planner(_chain(*FULL_CHAIN)).build(pack=False)
+    plan = _ssd_planner(_chain(*FULL_CHAIN), **REPLAY).build(pack=False)
 
     item = plan.items[0]
     assert plan.tendis_type == ClusterType.TendisSSDInstance.value
@@ -266,7 +268,7 @@ def test_ssd_plan_carries_the_chain_and_confirms_its_tasks(backup_files_still_pr
 
 
 def test_ssd_broken_chain_blocks_precheck_and_build(backup_files_still_present):
-    planner = _ssd_planner(_chain((1, -40), (2, -20), (3, 10)))
+    planner = _ssd_planner(_chain((1, -40), (2, -20), (3, 10)), **REPLAY)
     result = planner.precheck()
     assert result["exist"] is False
     assert "0-419999" in result["shards"][0]["errors"][0] and "断裂" in result["shards"][0]["errors"][0]
@@ -278,14 +280,14 @@ GAPPED_CHAIN = ((1, -40), (2, -20), (3, 10), (5, 70))
 
 
 def test_gap_blocks_precheck_unless_allowed(backup_files_still_present):
-    result = _ssd_planner(_chain(*GAPPED_CHAIN)).precheck()
+    result = _ssd_planner(_chain(*GAPPED_CHAIN), **REPLAY).precheck()
     assert result["exist"] is False
     assert result["binlog_nonconsecutive"] is False
     assert "allow_binlog_nonconsecutive" in result["shards"][0]["errors"][0]
 
 
 def test_allowed_gap_passes_precheck_with_warning(backup_files_still_present):
-    result = _ssd_planner(_chain(*GAPPED_CHAIN), allow_binlog_nonconsecutive=True).precheck()
+    result = _ssd_planner(_chain(*GAPPED_CHAIN), allow_binlog_nonconsecutive=True, **REPLAY).precheck()
     assert result["exist"] is True
     assert result["binlog_nonconsecutive"] is True
     assert result["shards"][0]["binlog_gaps"] == {"missing_count": 1, "missing": [4]}
@@ -293,7 +295,7 @@ def test_allowed_gap_passes_precheck_with_warning(backup_files_still_present):
 
 
 def test_allowed_gap_is_carried_by_the_plan_and_the_task_record(backup_files_still_present):
-    plan = _ssd_planner(_chain(*GAPPED_CHAIN), allow_binlog_nonconsecutive=True).build(pack=False)
+    plan = _ssd_planner(_chain(*GAPPED_CHAIN), allow_binlog_nonconsecutive=True, **REPLAY).build(pack=False)
     assert plan.allow_binlog_nonconsecutive is True
     assert any("[4]" in warning for warning in plan.warnings)
     binlog = plan.to_rollback_detail()["shards"][0]["binlog"]
@@ -308,7 +310,7 @@ def test_allowed_gap_is_carried_by_the_plan_and_the_task_record(backup_files_sti
 
 
 def test_contiguous_chain_records_no_gaps_key(backup_files_still_present):
-    plan = _ssd_planner(_chain(*FULL_CHAIN), allow_binlog_nonconsecutive=True).build(pack=False)
+    plan = _ssd_planner(_chain(*FULL_CHAIN), allow_binlog_nonconsecutive=True, **REPLAY).build(pack=False)
     assert "gaps" not in plan.to_rollback_detail()["shards"][0]["binlog"]
 
 
@@ -321,6 +323,37 @@ def test_cache_cluster_skips_binlog_lookup(backup_files_still_present):
 
 
 # --- by_identify with an explicit recovery_time_point -----------------------------
+
+
+@pytest.mark.parametrize(
+    "info",
+    [{}, {"backup_task_ids": ["full-task"], "backup_identify": ""}],
+    ids=["by_identify", "by_task_id"],
+)
+def test_ssd_without_time_restores_the_full_only(backup_files_still_present, info):
+    # The right boundary after the full backup is not uploaded yet: no binlog begins after RECOVER_AT.
+    planner = _ssd_planner(_chain((1, -40), (2, -20), (3, 10)), **info)
+    planner.locator.locate_full_by_task_ids = planner.locator.locate_full_by_identify
+
+    result = planner.precheck()
+    assert result["exist"] is True, result
+    plan = planner.build(pack=False)
+
+    planner.locator.locate_binlogs.assert_not_called()
+    assert plan.recover_at == RECOVER_AT
+    assert plan.items[0].binlog_files == []
+    assert "binlog" not in plan.to_rollback_detail()["shards"][0]
+    assert backup_files_still_present.call_args.args[0]["task_ids"] == ["full-task"]
+    assert plan.items[0].actuator_instance()["binlog_count"] == 0
+
+
+def test_ssd_explicit_time_still_checks_the_right_boundary(backup_files_still_present):
+    planner = _ssd_planner(_chain((1, -40), (2, -20), (3, 10)), **REPLAY)
+    result = planner.precheck()
+
+    assert result["exist"] is False
+    assert "断裂" in result["shards"][0]["errors"][0]
+    planner.locator.locate_binlogs.assert_called_once()
 
 
 def test_ssd_identify_replays_binlogs_up_to_a_later_time(backup_files_still_present):
@@ -383,7 +416,7 @@ def test_invalid_recovery_time_point_is_a_plan_error():
 
 
 def _ssd_multi_planner(shard_count, locate_binlogs, **info):
-    planner = _ssd_planner([], **info)
+    planner = _ssd_planner([], **REPLAY, **info)
     records = []
     for i in range(shard_count):
         port = 30000 + i

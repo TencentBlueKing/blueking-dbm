@@ -264,7 +264,7 @@ class RedisRollbackExercise:
                 return
 
             # Push candidates into Redis queue using pipeline for efficiency
-            pipeline = RedisConn.pipeline()
+            pipeline = RedisConn.pipeline(transaction=False)
 
             for i in range(0, len(candidate_ids), RPUSH_BATCH_SIZE):
                 batch = candidate_ids[i : i + RPUSH_BATCH_SIZE]
