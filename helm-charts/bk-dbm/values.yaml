@@ -156,7 +156,7 @@ dbm:
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
     slowQueryParseApigwDomain: ""
     reverseReportKafkaOptions: ""
-    dbmEnableAI: false
+    dbmEnableAI: true
     bkaiAgentMetricsPushMode: "direct"
     # WebConsole WS 链路部署就绪后开启，供前端查询可用模式。
     ENABLE_WEBCONSOLE_WEBSOCKET: "true"
@@ -221,6 +221,9 @@ dbm:
     tls: []
 
   saas:
+    aidevApi:
+      enabled: true
+      replicaCount: 1
     api:
       enabled: true
       replicaCount: 1
