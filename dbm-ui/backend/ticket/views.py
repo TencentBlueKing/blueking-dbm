@@ -455,6 +455,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             operator=request.user.username,
             mode=data["mode"],
             details=data["details"],
+            change_details=data["change_details"],
+            ticket_remark=data.get("ticket_remark") or "",
             remark=data.get("remark") or "",
             version=data.get("version"),
             change_count=data.get("change_count") or 0,

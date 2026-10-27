@@ -57,7 +57,19 @@ class TicketModifyHandler:
     """
 
     @classmethod
-    def modify(cls, ticket_id, operator, mode, details, remark="", version=None, change_count=0, config=None):
+    def modify(
+        cls,
+        ticket_id,
+        operator,
+        mode,
+        details,
+        change_details,
+        ticket_remark="",
+        remark="",
+        version=None,
+        change_count=0,
+        config=None,
+    ):
         """改单统一入口，事务内完成乐观锁/权限/状态校验并分发到具体模式"""
         with transaction.atomic():
             ticket = Ticket.objects.select_for_update().get(id=ticket_id)
@@ -67,11 +79,13 @@ class TicketModifyHandler:
                 raise TicketContentChangedException()
 
             if mode == TicketModifyType.ON_BEHALF.value:
-                cls.on_behalf_modify(ticket, operator, details, remark, change_count, config)
+                cls.on_behalf_modify(
+                    ticket, operator, details, change_details, ticket_remark, remark, change_count, config
+                )
             elif mode == TicketModifyType.RE_EDIT.value:
-                cls.re_edit(ticket, operator, details, remark, change_count, config)
+                cls.re_edit(ticket, operator, details, change_details, ticket_remark, remark, change_count, config)
             elif mode == TicketModifyType.ADJUST_APPLY.value:
-                cls.adjust_apply(ticket, operator, details, remark, change_count)
+                cls.adjust_apply(ticket, operator, details, change_details, remark, change_count)
             else:
                 raise TicketModifyForbiddenException()
 
@@ -118,7 +132,9 @@ class TicketModifyHandler:
     # 代为修改：审批人 -> 拒绝外部 ITSM -> 待确认修改
     # ------------------------------------------------------------------
     @classmethod
-    def on_behalf_modify(cls, ticket, operator, details, remark, change_count, config=None):
+    def on_behalf_modify(
+        cls, ticket, operator, details, change_details, ticket_remark, remark, change_count, config=None
+    ):
         cls._check_approve_permission(ticket, operator)
         if ticket.status != TicketStatus.APPROVE:
             raise TicketModifyStatusException(status=TicketStatus.get_choice_label(ticket.status))
@@ -133,9 +149,17 @@ class TicketModifyHandler:
         # 覆盖详情并重新初始化派生字段(快照存前端传入、未初始化的原始详情)
         raw_details = copy.deepcopy(ticket.details)
         raw_config = copy.deepcopy(ticket.config)
-        builder = cls._patch_details(ticket, details, config)
+        builder = cls._patch_details(ticket, details, ticket_remark, config)
         cls._record(
-            ticket, itsm_flow, TicketModifyType.ON_BEHALF, operator, remark, raw_details, change_count, raw_config
+            ticket,
+            itsm_flow,
+            TicketModifyType.ON_BEHALF,
+            operator,
+            remark,
+            raw_details,
+            change_count,
+            change_details,
+            raw_config,
         )
 
         # 插入确认修改节点并覆盖 pending 尾巴
@@ -180,18 +204,24 @@ class TicketModifyHandler:
     # 重新编辑：提单人在待审批/待确认修改阶段重新编辑内容
     # ------------------------------------------------------------------
     @classmethod
-    def re_edit(cls, ticket, operator, details, remark, change_count, config=None):
+    def re_edit(cls, ticket, operator, details, change_details, ticket_remark, remark, change_count, config=None):
         if operator != ticket.creator:
             raise TicketModifyForbiddenException()
         if ticket.status == TicketStatus.CONFIRM_PENDING:
-            cls._re_edit_from_confirm(ticket, operator, details, remark, change_count, config)
+            cls._re_edit_from_confirm(
+                ticket, operator, details, change_details, ticket_remark, remark, change_count, config
+            )
         elif ticket.status == TicketStatus.APPROVE:
-            cls._re_edit_from_approve(ticket, operator, details, remark, change_count, config)
+            cls._re_edit_from_approve(
+                ticket, operator, details, change_details, ticket_remark, remark, change_count, config
+            )
         else:
             raise TicketModifyStatusException(status=TicketStatus.get_choice_label(ticket.status))
 
     @classmethod
-    def _re_edit_from_confirm(cls, ticket, operator, details, remark, change_count, config=None):
+    def _re_edit_from_confirm(
+        cls, ticket, operator, details, change_details, ticket_remark, remark, change_count, config=None
+    ):
         """待确认修改阶段的重新编辑：结束确认修改节点，按需重审后重新执行"""
         confirm_flow = ticket.flows.filter(
             flow_type=FlowType.CONFIRM_MODIFY.value, status=TicketFlowStatus.RUNNING
@@ -207,9 +237,17 @@ class TicketModifyHandler:
         # 覆盖详情并重新初始化派生字段(快照存前端传入、未初始化的原始详情)
         raw_details = copy.deepcopy(ticket.details)
         raw_config = copy.deepcopy(ticket.config)
-        builder = cls._patch_details(ticket, details, config)
+        builder = cls._patch_details(ticket, details, ticket_remark, config)
         cls._record(
-            ticket, confirm_flow, TicketModifyType.RE_EDIT, operator, remark, raw_details, change_count, raw_config
+            ticket,
+            confirm_flow,
+            TicketModifyType.RE_EDIT,
+            operator,
+            remark,
+            raw_details,
+            change_count,
+            change_details,
+            raw_config,
         )
 
         if builder.need_itsm:
@@ -223,7 +261,9 @@ class TicketModifyHandler:
         TicketFlowManager(ticket=ticket).run_next_flow()
 
     @classmethod
-    def _re_edit_from_approve(cls, ticket, operator, details, remark, change_count, config=None):
+    def _re_edit_from_approve(
+        cls, ticket, operator, details, change_details, ticket_remark, remark, change_count, config=None
+    ):
         """待审批阶段的重新编辑：先撤销旧审批单再重新提单，单据仍停待审批，支持多次编辑"""
         itsm_flow = cls._get_running_itsm_flow(ticket)
         if not itsm_flow:
@@ -233,9 +273,17 @@ class TicketModifyHandler:
         # 覆盖详情并重新初始化派生字段(快照存前端传入、未初始化的原始详情)
         raw_details = copy.deepcopy(ticket.details)
         raw_config = copy.deepcopy(ticket.config)
-        builder = cls._patch_details(ticket, details, config)
+        builder = cls._patch_details(ticket, details, ticket_remark, config)
         cls._record(
-            ticket, itsm_flow, TicketModifyType.RE_EDIT, operator, remark, raw_details, change_count, raw_config
+            ticket,
+            itsm_flow,
+            TicketModifyType.RE_EDIT,
+            operator,
+            remark,
+            raw_details,
+            change_count,
+            change_details,
+            raw_config,
         )
 
         # 改后内容命中免审批策略：先冻结审批节点，再撤销外部 ITSM 单据，审批节点以「免审批」出口结束，直达待执行
@@ -269,7 +317,7 @@ class TicketModifyHandler:
     # 调整申请：待补货阶段调整资源申请条件并重新申领
     # ------------------------------------------------------------------
     @classmethod
-    def adjust_apply(cls, ticket, operator, details, remark, change_count):
+    def adjust_apply(cls, ticket, operator, details, change_details, remark, change_count):
         cls._check_replenish_permission(ticket, operator)
         if ticket.status != TicketStatus.RESOURCE_REPLENISH:
             raise TicketModifyStatusException(status=TicketStatus.get_choice_label(ticket.status))
@@ -287,7 +335,16 @@ class TicketModifyHandler:
         if not resource_builder:
             raise TicketModifyForbiddenException()
 
-        cls._record(ticket, resource_flow, TicketModifyType.ADJUST_APPLY, operator, remark, raw_details, change_count)
+        cls._record(
+            ticket,
+            resource_flow,
+            TicketModifyType.ADJUST_APPLY,
+            operator,
+            remark,
+            raw_details,
+            change_details,
+            change_count,
+        )
 
         # 用重新初始化后的详情重建资源申请参数(覆盖 resource flow 的 details)
         resource_flow.details = resource_builder(ticket).get_params()
@@ -368,7 +425,7 @@ class TicketModifyHandler:
             todo.set_status(operator, TodoStatus.DONE_SUCCESS)
 
     @staticmethod
-    def _patch_details(ticket, details, config=None):
+    def _patch_details(ticket, details, ticket_remark="", config=None):
         """覆盖单据详情并走 builder.patch_ticket_detail 重新初始化派生字段。
 
         建单时 create_ticket 依次执行 patch_ticket_detail -> init_ticket_flows，
@@ -378,6 +435,9 @@ class TicketModifyHandler:
         """
         ticket.details = details
         update_fields = ["details", "update_at"]
+        if ticket_remark:
+            ticket.remark = ticket_remark
+            update_fields.append("remark")
         if config is not None:
             # config 为可选字段，仅覆盖前端提交的键，避免清空未提交的配置(如 send_msg_config/helpers)
             ticket.config = {**(ticket.config or {}), **config}
@@ -388,7 +448,7 @@ class TicketModifyHandler:
         return builder
 
     @classmethod
-    def _record(cls, ticket, flow, mode, operator, remark, details, change_count, config=None):
+    def _record(cls, ticket, flow, mode, operator, remark, details, change_count, change_details, config=None):
         """落库改单快照：details 存前端传入、尚未经过单据初始化的原始详情"""
         TicketSnapshot.objects.create(
             ticket_id=ticket.id,
@@ -397,6 +457,7 @@ class TicketModifyHandler:
             operator=operator,
             remark=remark,
             details=details,
+            change_details=change_details,
             change_count=change_count,
             creator=operator,
             updater=operator,

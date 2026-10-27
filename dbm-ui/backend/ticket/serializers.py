@@ -564,9 +564,10 @@ class TicketModifySerializer(serializers.Serializer):
     """改单提交请求体：三种模式共用，diff 由前端计算后随 change_count 传入"""
 
     mode = serializers.ChoiceField(choices=TicketModifyType.get_choices(), help_text=_("改单模式"))
-    # details = serializers.JSONField(help_text=_("改单后的单据详情"))
     details = TicketDetailsSerializer(help_text=_("改单后的单据详情"))
+    change_details = serializers.JSONField(help_text=_("改单内容详情"))
     remark = serializers.CharField(help_text=_("改单说明"), required=False, allow_blank=True, default="")
+    ticket_remark = serializers.CharField(help_text=_("单据备注"), required=False, allow_blank=True, default="")
     version = serializers.IntegerField(help_text=_("内容版本号(乐观锁)"), required=False, allow_null=True)
     change_count = serializers.IntegerField(help_text=_("差异字段数"), required=False, default=0)
     # 单据配置/单据上下文
