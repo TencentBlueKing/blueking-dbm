@@ -179,6 +179,17 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         return Response(KubernetesApi.pod_log(validated_data, use_admin=True))
 
     @common_swagger_auto_schema(
+        operation_summary=_("获取组件日志"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, url_path="rawlogs", serializer_class=KubernetesPodLogSerializer)
+    def rawlogs(self, request, *args, **kwargs):
+        """获取组件日志"""
+        validated_data = self.params_validate(self.get_serializer_class())
+        validated_data = offset_to_page(validated_data)
+        return Response(KubernetesApi.rawlogs(validated_data, use_admin=True))
+
+    @common_swagger_auto_schema(
         operation_summary=_("获取区域列表"),
         tags=[SWAGGER_TAG],
     )
