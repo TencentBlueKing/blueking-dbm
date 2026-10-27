@@ -30,6 +30,9 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import TicketType
 from backend.utils.basic import generate_root_id
 from backend.utils.string import base64_decode, base64_encode
@@ -91,6 +94,23 @@ class DBPasswordHandler(object):
         return admin_password_data
 
     @classmethod
+    def _filter_authorized_instances(cls, username: str, db_type: str, results: List[Dict]) -> List[Dict]:
+        """
+        安全加固: 按权限中心对实例所属集群做实例级鉴权，仅保留当前用户有权查看的实例
+        无法关联到集群的实例无法鉴权，一律视为无权限
+        """
+        cluster_ids = {data["cluster_id"] for data in results if data.get("cluster_id")}
+        allowed_cluster_ids = set()
+        if cluster_ids:
+            action = getattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW")
+            resource_meta = getattr(ResourceEnum, db_type.upper())
+            resources_list = [[resource] for resource in resource_meta.batch_create_instances(cluster_ids)]
+            permission_result = Permission(username=username).batch_is_allowed([action], resources_list)
+            allowed_cluster_ids = {str(key) for key, perms in permission_result.items() if perms.get(action.id)}
+
+        return [data for data in results if data.get("cluster_id") and str(data["cluster_id"]) in allowed_cluster_ids]
+
+    @classmethod
     def query_admin_password(
         cls,
         limit: int,
@@ -100,6 +120,7 @@ class DBPasswordHandler(object):
         begin_time: str = None,
         end_time: str = None,
         db_type: str = None,
+        username: str = None,
     ):
         """
         获取mysql的admin密码
@@ -109,6 +130,8 @@ class DBPasswordHandler(object):
         @param instances: 实例列表
         @param begin_time: 过滤开始时间
         @param end_time: 过滤结束时间
+        @param db_type: db组件类型
+        @param username: 当前用户名，传入后按权限中心对结果做实例级过滤(内部调用可不传)
         """
         instances = instances or []
         # 获取过滤条件
@@ -181,6 +204,13 @@ class DBPasswordHandler(object):
             data["cluster_id"] = cluster_id
             data["immute_domain"] = cluster_id_domain_map.get(cluster_id, "")
             data["bk_cloud_name"] = cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"]
+
+        # 安全加固: 实例级权限过滤，仅返回当前用户有权查看的数据库实例
+        if username:
+            admin_password_data["results"] = cls._filter_authorized_instances(
+                username, db_type, admin_password_data["results"]
+            )
+            admin_password_data["count"] = len(admin_password_data["results"])
 
         return admin_password_data
 

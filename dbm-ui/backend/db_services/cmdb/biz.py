@@ -68,13 +68,21 @@ def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
 
     biz_ids = [biz.bk_biz_id for biz in biz_list]
 
+    # 安全加固: 按用户可见权限过滤业务，避免低权限用户通过该接口获取全量业务信息
+    permission_handler = Permission(username=user, request={})
+    allowed_biz_ids = set(permission_handler.policy_query(action=ActionEnum.DB_MANAGE, obj_list=biz_ids))
+    biz_list = [biz for biz in biz_list if biz.bk_biz_id in allowed_biz_ids]
+
     # 填充权限字段
     actions = [action, ActionEnum.DB_MANAGE] if action else [ActionEnum.DB_MANAGE]
-    for action in actions:
-        permission = Permission(username=user, request={}).policy_query(action=action, obj_list=biz_ids)
+    for act in actions:
+        # DB_MANAGE 的鉴权结果前面已查询过，直接复用
+        if act == ActionEnum.DB_MANAGE:
+            permission = allowed_biz_ids
+        else:
+            permission = set(permission_handler.policy_query(action=act, obj_list=biz_ids))
         for biz in biz_list:
-            is_allowed = biz.bk_biz_id in permission
-            biz.permission[action.id] = is_allowed
+            biz.permission[act.id] = biz.bk_biz_id in permission
 
     return sorted(biz_list, key=lambda biz: (-biz.permission[ActionEnum.DB_MANAGE.id], biz.bk_biz_id))
 

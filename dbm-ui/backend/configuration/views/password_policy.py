@@ -83,6 +83,9 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         ("get_password_policy", "verify_password_strength", "get_random_password", "query_random_cycle"): [],
         ("query_async_modify_result",): [],
         ("modify_admin_password",): [ModifyClusterPasswordPermission()],
+        # 注意: 这里不能挂 QueryClusterPasswordPermission。
+        # 该接口是全局实例分页查询，instances 为可选的逗号分隔字符串，预校验阶段拿不到资源ID，
+        # 实例级权限隔离在 DBPasswordHandler.query_admin_password 的结果过滤(_filter_authorized_instances)中完成。
         ("query_admin_password",): [],
         ("get_instance_password",): [QueryClusterPasswordPermission()],
         ("update_password_policy", "modify_random_cycle"): [PasswordPolicyPermission()],
@@ -183,7 +186,8 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         if validated_data.get("instances"):
             validated_data["instances"] = validated_data["instances"].split(",")
-        return Response(DBPasswordHandler.query_admin_password(**validated_data))
+        # 传入username，在handler中对查询结果按权限中心做实例级过滤，仅返回用户有权查看的实例
+        return Response(DBPasswordHandler.query_admin_password(**validated_data, username=request.user.username))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询生效实例密码(admin)"),

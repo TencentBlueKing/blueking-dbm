@@ -15,12 +15,20 @@ from backend.db_services.cmdb.biz import get_resource_biz
 
 
 class ResourceImportHostSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id"), required=False, default=get_resource_biz())
+    # bk_biz_id 不用 default 设置默认值, 改在 to_representation 中判断赋值,
+    # 避免模块导入时查库导致新环境 migrate 失败
+    bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id"), required=False)
     ip = serializers.CharField(help_text=_("主机ipv4(多个则逗号隔开)"), required=False)
     host_name = serializers.CharField(help_text=_("主机名称(多个则逗号隔开)"), required=False)
     ip_v6 = serializers.CharField(help_text=_("主机ipv6(多个则逗号隔开)"), required=False)
     for_biz = serializers.IntegerField(help_text=_("专属业务, 默认公共资源池"), required=False, default=0)
     resource_type = serializers.CharField(help_text=_("专属DB, 默认通用"), required=False, default="PUBLIC")
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if ret.get("bk_biz_id") is None:
+            ret["bk_biz_id"] = get_resource_biz()
+        return ret
 
 
 class ResourceImportOutPutSerializer(serializers.Serializer):
@@ -28,9 +36,15 @@ class ResourceImportOutPutSerializer(serializers.Serializer):
 
 
 class ResourceUnDoImportSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id"), required=False, default=get_resource_biz())
+    bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id"), required=False)
     ip = serializers.CharField(help_text=_("主机ipv4(多个则逗号隔开)"), required=False)
     host_id = serializers.CharField(help_text=_("主机id(多个则逗号隔开)"), required=False)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if ret.get("bk_biz_id") is None:
+            ret["bk_biz_id"] = get_resource_biz()
+        return ret
 
 
 class ResourceUnDoImportOutPutSerializer(serializers.Serializer):

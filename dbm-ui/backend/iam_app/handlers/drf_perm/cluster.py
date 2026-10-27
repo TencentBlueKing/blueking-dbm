@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import functools
 import operator
+from collections import defaultdict
 from typing import List
 
 from django.db.models import Q
@@ -17,7 +18,7 @@ from django.utils.translation import gettext as _
 
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, Machine, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ResourceInvalidError
@@ -215,6 +216,54 @@ class QueryClusterPasswordPermission(ResourceActionPermission):
     集群admin密码查询相关动作鉴权
     """
 
+    @staticmethod
+    def get_request_cluster_ids(instances) -> set:
+        """
+        根据ip:port从元数据反查实例真实所属的集群
+        注意: 不能信任请求参数中的cluster_id，否则伪造cluster_id可越权查询其他实例的密码
+        """
+        if not instances:
+            raise ResourceInvalidError(_("实例信息不允许为空"))
+
+        # 实例端口可能是存储/代理端口，也可能是proxy的admin端口(spider_ctl)
+        proxy_filter = functools.reduce(
+            operator.or_,
+            [
+                Q(machine__ip=inst["ip"]) & (Q(port=int(inst["port"])) | Q(admin_port=int(inst["port"])))
+                for inst in instances
+            ],
+        )
+        storage_filter = functools.reduce(
+            operator.or_, [Q(machine__ip=inst["ip"], port=int(inst["port"])) for inst in instances]
+        )
+
+        # ip:port -> 所属集群id列表
+        instance_cluster_map = defaultdict(set)
+        for pi in ProxyInstance.objects.filter(proxy_filter).select_related("machine").prefetch_related("cluster"):
+            for cluster in pi.cluster.all():
+                instance_cluster_map[(pi.machine.ip, pi.port)].add(cluster.id)
+                if pi.admin_port:
+                    instance_cluster_map[(pi.machine.ip, pi.admin_port)].add(cluster.id)
+        for si in StorageInstance.objects.filter(storage_filter).select_related("machine").prefetch_related("cluster"):
+            for cluster in si.cluster.all():
+                instance_cluster_map[(si.machine.ip, si.port)].add(cluster.id)
+
+        cluster_ids = set()
+        invalid_instances = []
+        for inst in instances:
+            inst_clusters = instance_cluster_map.get((inst["ip"], int(inst["port"])))
+            # 元数据中找不到归属集群的实例无法鉴权，直接拒绝
+            if not inst_clusters:
+                invalid_instances.append(f"{inst['ip']}:{inst['port']}")
+                continue
+            cluster_ids.update(inst_clusters)
+
+        if invalid_instances:
+            raise ResourceInvalidError(
+                _("实例[{}]不存在或未关联集群，无权查询其密码").format(",".join(invalid_instances))
+            )
+        return cluster_ids
+
     def inst_ids_getter(self, request, view):
         data = request.data or request.query_params
         # admin密码查询鉴权
@@ -225,6 +274,18 @@ class QueryClusterPasswordPermission(ResourceActionPermission):
                 self.resource_meta = getattr(ResourceEnum, db_type.upper())
                 instances = data["instances"]
                 return set([instance.get("cluster_id") for instance in instances])
+            else:
+                raise NotImplementedError
+        elif view.action == "get_instance_password":
+            # 查询实例明文密码前，按实例真实所属集群强鉴权，仅允许查询有权管理的实例
+            db_type = data.get("db_type") or ""
+            instances = data.get("instances") or []
+            if not db_type or not instances:
+                raise ResourceInvalidError(_("db_type和instances参数不允许为空"))
+            if hasattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW"):
+                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW")]
+                self.resource_meta = getattr(ResourceEnum, db_type.upper())
+                return self.get_request_cluster_ids(instances)
             else:
                 raise NotImplementedError
         else:
