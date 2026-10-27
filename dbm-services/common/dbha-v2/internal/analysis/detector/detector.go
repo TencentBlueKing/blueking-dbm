@@ -27,6 +27,7 @@ package detector
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -36,6 +37,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -109,7 +111,7 @@ func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 		d.wg.Add(1)
 		go func(task *detectorTask) {
 			defer d.wg.Done()
-			task.run(config.Cfg.Detector.CheckProbeProcessCmd)
+			task.runWithGuard(config.Cfg.Detector.CheckProbeProcessCmd)
 		}(task)
 	}
 
@@ -145,39 +147,111 @@ func (d *detectorTask) id() string {
 	return d.sshCli.Id()
 }
 
-func (d *detectorTask) run(cmd string) {
-	resp := &Response{
+// detectTaskGrace is the extra time the outer guard waits beyond the inner probe
+// budget before it gives up on the task goroutine.
+const detectTaskGrace = 5 * time.Second
+
+// runWithGuard runs the detection task and returns as soon as it finishes.
+// If it does not finish in time, a timeout response is produced, so that
+// WaitResponses is never blocked by a task stuck outside the SSH connection.
+func (d *detectorTask) runWithGuard(cmd string) {
+	start := time.Now()
+	timeout := d.sshCli.timeout + detectTaskGrace
+	respCh := make(chan *Response, 1)
+
+	go func() {
+		safe.Run(func() {
+			resp := d.run(cmd, start)
+			respCh <- resp
+			d.reportSshMetrics(start, resp)
+		},
+			safe.WithLabel("detectorTask.run"),
+			safe.WithOnPanic(func(pi safe.PanicInfo) {
+				panicErr := fmt.Errorf("detector task %s panicked: %v", d.id(), pi.Reason)
+				logger.Error("detector task aborted, errmsg: %s", panicErr)
+
+				// fill in only when no result has been handed over yet
+				select {
+				case respCh <- d.failureResponse(start, panicErr):
+				default:
+				}
+			}))
+	}()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case resp := <-respCh:
+		d.resp = resp
+
+	case <-timer.C:
+		// last glance: the inner run may have finished at the very same moment.
+		select {
+		case resp := <-respCh:
+			d.resp = resp
+		default:
+			logger.Error("detector task exceeded the outer guard timeout, task-id: %s, "+
+				"inner budget: %v, timeout: %v, errmsg: %s",
+				d.id(), d.sshCli.timeout, timeout, ErrDetectorSshConnectTimeout)
+			d.resp = d.failureResponse(start, ErrDetectorSshConnectTimeout)
+		}
+	}
+}
+
+// newResponse builds a response carrying the fields shared by every outcome.
+func (d *detectorTask) newResponse(start time.Time) *Response {
+	return &Response{
+		Id:                d.id(),
 		Meta:              d.meta,
 		DbType:            d.dbType,
-		Id:                d.sshCli.Id(),
 		DbEventName:       haprobe.DbEventNameProbeOffline,
 		DbEventNameReason: haprobe.DbEventNameReasonMissedProbe,
+		CheckStartTime:    &start,
 	}
+}
 
-	start := time.Now()
+// failureResponse builds the response for a task that produced no detection
+// result: the outer guard timed out, or the task panicked.
+func (d *detectorTask) failureResponse(start time.Time, err error) *Response {
+	resp := d.newResponse(start)
+	finish := time.Now()
+	resp.CheckFinishedTime = &finish
+	resp.Err = err
+
+	return resp
+}
+
+// run executes the SSH detection and returns its response.
+func (d *detectorTask) run(cmd string, start time.Time) *Response {
+	resp := d.newResponse(start)
+
 	sshResp, err := d.sshCli.Run(cmd)
 	finish := time.Now()
-	resp.CheckStartTime = &start
 	resp.CheckFinishedTime = &finish
 	resp.SshResp = sshResp
 	resp.Err = err
-	d.resp = resp
 
+	return resp
+}
+
+// reportSshMetrics reports the metrics of a finished detection.
+func (d *detectorTask) reportSshMetrics(start time.Time, resp *Response) {
 	var code int
 	var errMsg string
-	if sshResp != nil {
-		code = sshResp.ExitCode
-		errMsg = sshResp.ErrMsg
+	if resp.SshResp != nil {
+		code = resp.SshResp.ExitCode
+		errMsg = resp.SshResp.ErrMsg
 	} else {
 		var gerr *gerrors.Error
-		if errors.As(err, &gerr) {
+		if errors.As(resp.Err, &gerr) {
 			code = gerr.Code()
 		}
 	}
 
 	d.reportSshTime(start, code)
 
-	if err != nil || errMsg != "" {
+	if resp.Err != nil || errMsg != "" {
 		d.reportSshError(code)
 	}
 }

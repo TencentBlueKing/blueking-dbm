@@ -25,8 +25,10 @@
 package detector
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"io"
+	"net"
 	"strings"
 	"time"
 
@@ -44,7 +46,8 @@ var (
 	ErrDetectorCreateSshConnection = gerrors.Newf(gerrors.NetException, "failed to dial")
 	ErrDetectorCreateSshSession    = gerrors.Newf(gerrors.NetException, "failed to create SSH session")
 	ErrDetectorSshAuth             = gerrors.Newf(gerrors.SshFailure, "ssh auth failed")
-	ErrDetectorSshTimeout          = gerrors.Newf(gerrors.Timeout, "ssh command execution timed out")
+	ErrDetectorSshConnectTimeout   = gerrors.Newf(gerrors.Timeout, "ssh connect timed out")
+	ErrDetectorSshExecTimeout      = gerrors.Newf(gerrors.Timeout, "ssh command execution timed out")
 )
 
 // SshResponse contains the result of the shell that was running on the remote host.
@@ -69,98 +72,129 @@ func (s *Ssh) Id() string {
 	return fmt.Sprintf("ssh-id:%s@%d:%s", s.ip, s.port, s.user)
 }
 
-// Run runs cmd on the remote host and returns it's combined standard output and standard error.
-// Dial and command execution are each bounded by s.timeout independently,
-// so the total elapsed time may reach up to 2× s.timeout in the worst case.
+// Run runs cmd on the remote host and returns its combined standard output and
+// standard error.
+//
+// One overall budget bounds every stage: the TCP dial is bounded by the dialer,
+// while the banner exchange, the key exchange, the authentication, the session
+// setup, the command execution and the close are bounded by the connection deadline.
 func (s *Ssh) Run(cmd string) (*SshResponse, error) {
-	conf := &ssh.ClientConfig{
-		Timeout:         s.timeout,
-		User:            s.user,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	conf.Auth = []ssh.AuthMethod{
-		ssh.KeyboardInteractive(s.keyboardInteractive()),
-		ssh.Password(s.password),
-	}
+	deadline := time.Now().Add(s.timeout)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
 
 	addr := fmt.Sprintf("%s:%d", s.ip, s.port)
 
-	sshClient, err := ssh.Dial("tcp", addr, conf)
+	conn, err := s.dialWithDeadline(ctx, addr, deadline)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = conn.Close() }()
+
+	client, err := s.newClientWithDeadline(conn, addr)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = client.Close() }()
+
+	session, err := client.NewSession()
+	if err != nil {
+		logger.Error("failed to create an SSH session for the remote host: %s, errmsg: %s", addr, err)
+		return nil, classifySshErr(err, ErrDetectorCreateSshSession)
+	}
+	defer func() { _ = session.Close() }()
+
+	resp := &SshResponse{Id: s.Id()}
+	return s.runCombinedOutput(ctx, resp, session, cmd, deadline)
+}
+
+// dialWithDeadline establishes the TCP connection and pins the overall deadline
+// on it. That deadline also bounds the following banner exchange, key exchange,
+// authentication, command execution and close stages.
+func (s *Ssh) dialWithDeadline(ctx context.Context, addr string, deadline time.Time) (net.Conn, error) {
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
 	if err != nil {
 		logger.Error("failed to connect the remote host with SSH, host: %s, errmsg: %s", addr, err)
-		if strings.Contains(err.Error(), sshAuthFailureKeyword) {
-			return nil, ErrDetectorSshAuth
-		}
+		return nil, classifySshErr(err, ErrDetectorCreateSshConnection)
+	}
+
+	if err := conn.SetDeadline(deadline); err != nil {
+		logger.Error("failed to set the deadline on the SSH connection, host: %s, errmsg: %s", addr, err)
+		_ = conn.Close()
 		return nil, ErrDetectorCreateSshConnection
 	}
 
-	defer func() {
-		if err := sshClient.Close(); err != nil && err != io.EOF {
-			logger.Warn("failed to close the connection with the remote host: %s, errmsg: %s", addr, err)
-		}
-	}()
-
-	session, err := sshClient.NewSession()
-	if err != nil {
-		logger.Error("failed to create an SSH session for the remote host: %s, errmsg: %s", addr, err)
-		return nil, ErrDetectorCreateSshSession
-	}
-
-	defer func() {
-		if err := session.Close(); err != nil && err != io.EOF {
-			logger.Warn("failed to close the SSH session with the remote host: %s, errmsg: %s", addr, err)
-		}
-	}()
-
-	resp := &SshResponse{Id: s.Id()}
-	resp = s.runCombinedOutputWithTimeout(resp, session, cmd)
-
-	return resp, nil
+	return conn, nil
 }
 
-func (s *Ssh) runCombinedOutputWithTimeout(resp *SshResponse, session *ssh.Session, cmd string) *SshResponse {
-	type cmdResult struct {
-		data []byte
-		err  error
+// newClientWithDeadline completes the SSH handshake and the authentication over conn.
+func (s *Ssh) newClientWithDeadline(conn net.Conn, addr string) (*ssh.Client, error) {
+	conf := &ssh.ClientConfig{
+		User:            s.user,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Auth: []ssh.AuthMethod{
+			ssh.KeyboardInteractive(s.keyboardInteractive()),
+			ssh.Password(s.password),
+		},
 	}
 
-	resultCh := make(chan cmdResult, 1)
-	go func() {
-		data, cmdErr := session.CombinedOutput(cmd)
-		resultCh <- cmdResult{data: data, err: cmdErr}
-	}()
-
-	timer := time.NewTimer(s.timeout)
-	defer timer.Stop()
-
-	select {
-	case result := <-resultCh:
-		resp.Data = string(result.data)
-
-		if result.err == nil {
-			logger.Debug("shell command response: %s, cmd: %s", string(result.data), cmd)
-			return resp
+	c, chans, reqs, err := ssh.NewClientConn(conn, addr, conf)
+	if err != nil {
+		logger.Error("ssh handshake failed, host: %s, errmsg: %s", addr, err)
+		if strings.Contains(err.Error(), sshAuthFailureKeyword) {
+			return nil, ErrDetectorSshAuth
 		}
+		return nil, classifySshErr(err, ErrDetectorCreateSshConnection)
+	}
 
-		if exitErr, ok := result.err.(*ssh.ExitError); ok {
-			resp.ExitCode = exitErr.ExitStatus()
-			resp.ErrMsg = exitErr.Error()
-			return resp
-		}
+	return ssh.NewClient(c, chans, reqs), nil
+}
 
-		resp.ExitCode = gerrors.Failure.Int()
-		resp.ErrMsg = result.err.Error()
-		return resp
-	case <-timer.C:
-		_ = session.Close()
+// classifySshErr returns the connect timeout sentinel when err is a timeout,
+// otherwise it keeps the error that describes the failed stage.
+func classifySshErr(err error, stageErr error) error {
+	var nerr net.Error
+	if errors.As(err, &nerr) && nerr.Timeout() {
+		return ErrDetectorSshConnectTimeout
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return ErrDetectorSshConnectTimeout
+	}
+	return stageErr
+}
 
+// runCombinedOutput runs cmd and classifies the result.
+func (s *Ssh) runCombinedOutput(ctx context.Context, resp *SshResponse, session *ssh.Session,
+	cmd string, deadline time.Time) (*SshResponse, error) {
+	// execBudget is the remaining budget when exec starts. It tells whether a
+	// timeout came from a squeezed budget or from a slow command.
+	execBudget := time.Until(deadline)
+
+	data, cmdErr := session.CombinedOutput(cmd)
+	resp.Data = string(data)
+
+	var exitErr *ssh.ExitError
+	switch {
+	case cmdErr == nil:
+		logger.Debug("shell command response: %s, cmd: %s", string(data), cmd)
+
+	case errors.As(cmdErr, &exitErr):
+		resp.ExitCode = exitErr.ExitStatus()
+		resp.ErrMsg = exitErr.Error()
+
+	case errors.Is(ctx.Err(), context.DeadlineExceeded) || !time.Now().Before(deadline):
 		resp.ExitCode = gerrors.Timeout.Int()
-		resp.ErrMsg = ErrDetectorSshTimeout.Error()
-		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s",
-			fmt.Sprintf("%s:%d", s.ip, s.port), s.timeout, cmd)
-		return resp
+		resp.ErrMsg = ErrDetectorSshExecTimeout.Error()
+		logger.Error("SSH command execution timed out, host: %s, exec budget: %v, cmd: %s, errmsg: %s",
+			fmt.Sprintf("%s:%d", s.ip, s.port), execBudget, cmd, cmdErr)
+		return resp, ErrDetectorSshExecTimeout
+
+	default:
+		resp.ExitCode = gerrors.Failure.Int()
+		resp.ErrMsg = cmdErr.Error()
 	}
+
+	return resp, nil
 }
 
 func (s *Ssh) keyboardInteractive() ssh.KeyboardInteractiveChallenge {
