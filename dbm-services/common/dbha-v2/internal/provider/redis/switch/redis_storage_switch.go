@@ -41,13 +41,13 @@ import (
 	"dbm-services/common/dbha-v2/pkg/converter"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/pkg/storage/haredis"
 )
 
 const (
 	maxLastIOSecondsAgo      = 600
+	maxHeartbeatDelaySeconds = 600
 	twemproxySwitchMaxRetry  = 10
 	twemproxySwitchRetryWait = 500 * time.Millisecond
 	predixySwitchMaxRetry    = 10
@@ -479,63 +479,6 @@ func proxyInstancesOf(failedProxies []failedRunningProxy) []dbm.DbmMetadataProxy
 	return proxies
 }
 
-// alarmUnbindProxy posts one unbind alarm for a single proxy.
-// The switch log is left unchanged; this only reports to the monitor.
-func (ins *RedisStorageSwitchInstance) alarmUnbindProxy(
-	machineType haprobe.DbmMetadataMachineType,
-	item failedRunningProxy,
-	eventName haprobe.DbEventName,
-	unbindErr string,
-) {
-	proxy := item.proxy
-	var content string
-	switch eventName {
-	case haprobe.DbEventNameRedisUnbindProxySuccess:
-		content = fmt.Sprintf(
-			"When checking the storage backend, failed to query backends from this running proxy, "+
-				"so unbind it from DNS/CLB/Polaris, machineType:%s, status:%s, queryErr:%s",
-			machineType, proxy.Status, item.queryErr)
-	case haprobe.DbEventNameRedisUnbindProxyFailure:
-		content = fmt.Sprintf(
-			"When checking the storage backend, failed to query backends from this running proxy. Even after that, "+
-				"failed to unbind it from DNS/CLB/Polaris, machineType:%s, status:%s, queryErr:%s, unbindErr:%s",
-			machineType, proxy.Status, item.queryErr, unbindErr)
-	default:
-		ins.ReportLogf(switchlogger.SwitchWarn,
-			"skip posting unbind proxy alarm, invalid event:%s, machineType:%s, ip:%s, port:%d",
-			eventName, machineType, proxy.Ip, proxy.Port)
-		return
-	}
-
-	target := fmt.Sprintf("%d:%s:%d", ins.BkCloudID, proxy.Ip, proxy.Port)
-	monitorEvent := &monitor.EventData{
-		Name:      eventName.String(),
-		Target:    target,
-		Timestamp: uint64(time.Now().UnixMilli()),
-	}
-	monitorEvent.Content.Content = content
-	monitorEvent.Dimension.BkCloudId = ins.BkCloudID
-	monitorEvent.Dimension.BkBizId = ins.BkBizID
-	monitorEvent.Dimension.SwitchId = ins.SwitchID
-	monitorEvent.Dimension.IP = proxy.Ip
-	monitorEvent.Dimension.Port = proxy.Port
-	monitorEvent.Dimension.DbTypeName = haprobe.DbTypeRedis
-	monitorEvent.Dimension.DbEventName = eventName
-	monitorEvent.Dimension.DbClusterType = ins.ClusterType
-	monitorEvent.Dimension.DbMachineType = machineType
-	monitorEvent.Dimension.SwitchInfoClusterDomainV1 = ins.Cluster
-	monitorEvent.Dimension.SwitchInfoMachineTypeV1 = string(machineType)
-	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-		ins.ReportLogf(switchlogger.SwitchWarn,
-			"failed to post unbind proxy alarm, event:%s, machineType:%s, ip:%s, port:%d, errmsg:%s",
-			eventName, machineType, proxy.Ip, proxy.Port, err.Error())
-		return
-	}
-	ins.ReportLogf(switchlogger.SwitchInfo,
-		"successfully posted unbind proxy alarm, event:%s, machineType:%s, ip:%s, port:%d",
-		eventName, machineType, proxy.Ip, proxy.Port)
-}
-
 // CheckTwemproxyBackends checks backend consistency of running twemproxies.
 func (ins *RedisStorageSwitchInstance) CheckTwemproxyBackends() error {
 	var wg sync.WaitGroup
@@ -714,14 +657,9 @@ func (ins *RedisStorageSwitchInstance) CheckPredixyBackends() error {
 	return nil
 }
 
-// generateHeartbeatKey generates the heartbeat key.
-func (ins *RedisStorageSwitchInstance) generateHeartbeatKey(ip string, port int) string {
-	return fmt.Sprintf("%s:%d:time", ip, port)
-}
-
 // checkReplicationSync checks the replication sync delay of the slave.
 func (ins *RedisStorageSwitchInstance) checkReplicationSync(slaveConn *haredis.Client) error {
-	heartbeatKey := ins.generateHeartbeatKey(ins.IP, ins.Port)
+	heartbeatKey := instanceHeartbeatKey(ins.IP, ins.Port)
 	cmdCtx, cancel := ins.commandContext()
 	defer cancel()
 
@@ -746,17 +684,98 @@ func (ins *RedisStorageSwitchInstance) checkReplicationSync(slaveConn *haredis.C
 
 	slaveTime := time.Now().Unix()
 	slaveMasterDiffTime := math.Abs(float64(slaveTime) - float64(masterTime))
-	if slaveMasterDiffTime > maxLastIOSecondsAgo {
+	if slaveMasterDiffTime > maxHeartbeatDelaySeconds {
 		return gerrors.Newf(gerrors.Failure,
 			"replication heartbeat delay exceeds allowed time, slaveIp: %s, slavePort: %d, "+
 				"heartbeat: %d, now: %d, diff: %.0f, allowedMaxDelay: %d",
-			slaveConn.Host(), slaveConn.Port(), masterTime, slaveTime, slaveMasterDiffTime, maxLastIOSecondsAgo)
+			slaveConn.Host(), slaveConn.Port(), masterTime, slaveTime, slaveMasterDiffTime, maxHeartbeatDelaySeconds)
 	}
 
 	ins.ReportLogf(switchlogger.SwitchInfo,
 		"replication heartbeat delay is acceptable, slaveIp: %s, slavePort: %d, "+
 			"heartbeat: %d, now: %d, diff: %.0f, allowedMaxDelay: %d",
-		slaveConn.Host(), slaveConn.Port(), masterTime, slaveTime, slaveMasterDiffTime, maxLastIOSecondsAgo)
+		slaveConn.Host(), slaveConn.Port(), masterTime, slaveTime, slaveMasterDiffTime, maxHeartbeatDelaySeconds)
+	return nil
+}
+
+// getKvstoreCount reads kvstorecount. CONFIG may be renamed to confxx, so try that first.
+func (ins *RedisStorageSwitchInstance) getKvstoreCount(ctx context.Context, cli *haredis.Client) (int, error) {
+	raw, err := cli.DB().Do(ctx, "confxx", "get", "kvstorecount").Result()
+	if err != nil {
+		ins.ReportLogf(switchlogger.SwitchWarn,
+			"confxx get kvstorecount failed, slaveIp: %s, slavePort: %d, err: %s",
+			cli.Host(), cli.Port(), err.Error())
+
+		raw, err = cli.DB().Do(ctx, "config", "get", "kvstorecount").Result()
+		if err != nil {
+			ins.ReportLogf(switchlogger.SwitchWarn,
+				"config get kvstorecount failed, slaveIp: %s, slavePort: %d, err: %s",
+				cli.Host(), cli.Port(), err.Error())
+			return 0, err
+		}
+	}
+
+	rows, ok := raw.([]interface{})
+	if !ok {
+		return 0, gerrors.Newf(gerrors.Failure, "kvstorecount result is not a list")
+	}
+
+	return parseKvstoreCount(rows)
+}
+
+// checkTendisplusKvstoreHeartbeat compares each kvstore heartbeat on the slave with now.
+// The value is the unix time dbmon adminset on the master, so the diff includes apply time.
+func (ins *RedisStorageSwitchInstance) checkTendisplusKvstoreHeartbeat(slaveConn *haredis.Client) error {
+	cmdCtx, cancel := ins.commandContext()
+	defer cancel()
+
+	kvstoreCount, err := ins.getKvstoreCount(cmdCtx, slaveConn)
+	if err != nil {
+		return err
+	}
+
+	heartbeatKey := kvStoreHeartbeatKey(ins.IP, ins.Port)
+	raw, err := slaveConn.DB().Do(cmdCtx, "adminget", heartbeatKey).Result()
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to adminget tendisplus kvstore heartbeat, heartbeatKey: %s, slaveIp: %s, slavePort: %d, err: %s",
+			heartbeatKey, slaveConn.Host(), slaveConn.Port(), err.Error())
+	}
+	heartbeats, err := parseAdmingetHeartbeat(raw)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to parse tendisplus kvstore heartbeat, heartbeatKey: %s, slaveIp: %s, slavePort: %d, err: %s",
+			heartbeatKey, slaveConn.Host(), slaveConn.Port(), err.Error())
+	}
+
+	now := time.Now().Unix()
+	details := make([]string, 0, kvstoreCount)
+	failed := false
+	for storeID := 0; storeID < kvstoreCount; storeID++ {
+		heartbeat, ok := heartbeats[storeID]
+		if !ok {
+			failed = true
+			details = append(details, fmt.Sprintf("kvstore=%d,heartbeat=missing", storeID))
+			continue
+		}
+		diff := math.Abs(float64(now) - float64(heartbeat))
+		if diff > maxHeartbeatDelaySeconds {
+			failed = true
+		}
+		details = append(details, fmt.Sprintf("kvstore=%d,heartbeat=%d,diff=%.0f", storeID, heartbeat, diff))
+	}
+	detailText := strings.Join(details, "; ")
+	if failed {
+		return gerrors.Newf(gerrors.Failure,
+			"tendisplus kvstore heartbeat delay is not acceptable, slaveIp: %s, slavePort: %d, "+
+				"allowedMaxDelay: %d, kvstores: [%s]",
+			slaveConn.Host(), slaveConn.Port(), maxHeartbeatDelaySeconds, detailText)
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo,
+		"tendisplus kvstore heartbeat delay is acceptable, slaveIp: %s, slavePort: %d, "+
+			"allowedMaxDelay: %d, kvstores: [%s]",
+		slaveConn.Host(), slaveConn.Port(), maxHeartbeatDelaySeconds, detailText)
 	return nil
 }
 
@@ -818,6 +837,13 @@ func (ins *RedisStorageSwitchInstance) CheckSlaveSyncStatus() error {
 	if err := ins.checkReplicationSync(slaveConn); err != nil {
 		ins.ReportLogf(switchlogger.SwitchWarn, "%s", err.Error())
 		return err
+	}
+
+	if ins.MachineType == haprobe.DbmMetadataMachineTypeTendisPlus {
+		if err := ins.checkTendisplusKvstoreHeartbeat(slaveConn); err != nil {
+			ins.ReportLogf(switchlogger.SwitchWarn, "%s", err.Error())
+			return err
+		}
 	}
 
 	lastIORaw := replic["master_last_io_seconds_ago"]
