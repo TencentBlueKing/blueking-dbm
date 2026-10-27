@@ -40,10 +40,10 @@ P0 - get_table_stats：表上的统计对象状态
 """
 from typing import Dict, List, Optional
 
+from backend.db_services.sqlserver.sql_safety import quote_sqlserver_ident
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.get_instance_address import resolve_target_instance
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.rpc_runner import run_user_db_read
-from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.sql_safety import quote_sqlserver_ident
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.index_analysis.common import DEFAULT_SCHEMA
 
 # 经验阈值：当统计行数较小（<500）时只要修改 >= 500 就视为过期；

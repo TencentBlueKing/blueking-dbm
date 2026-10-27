@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import re
 from typing import Tuple
 
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.db_services.sqlserver.exceptions import UnsafeIdentifierException, UnsafeSQLException
 
 # 数据库名 / 标识符的合法字符（SQL Server 规范子集，足够覆盖普通命名）
 _IDENT_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_$#@]{0,127}$")
@@ -63,7 +63,7 @@ def quote_sqlserver_ident(name: str) -> str:
     返回 "[name]" 形式，可安全用于 USE / FROM 等位置。
     """
     if not name or not _IDENT_PATTERN.match(name):
-        raise DBMMcpBaseException(msg=f"invalid sqlserver identifier: '{name}'")
+        raise UnsafeIdentifierException(msg=f"invalid sqlserver identifier: '{name}'")
     return f"[{name}]"
 
 
@@ -113,7 +113,7 @@ def _strip_string_literals(sql: str) -> str:
 def sanitize_select_sql_for_sqlserver(query_sql: str) -> Tuple[str, bool]:
     """校验并归一化用户提交的 SQL，仅允许 SELECT / WITH(CTE) 形式的只读查询。
 
-    校验规则（任一不满足则抛 DBMMcpBaseException）：
+    校验规则（任一不满足则抛 UnsafeSQLException）：
       1. 非空字符串 + 长度上限（防编译期 DoS）
       2. 去注释后必须以 SELECT 或 WITH 开头（大小写不敏感）
       3. 不允许多语句（去注释/字符串影响后，裸分号最多出现在末尾）
@@ -126,33 +126,33 @@ def sanitize_select_sql_for_sqlserver(query_sql: str) -> Tuple[str, bool]:
         was_rewritten  - 第一阶段始终为 False，保留字段为后续若做改写预留
     """
     if not query_sql or not query_sql.strip():
-        raise DBMMcpBaseException(msg="query_sql is empty")
+        raise UnsafeSQLException(msg="query_sql is empty")
 
     if len(query_sql) > _MAX_SQL_LENGTH:
-        raise DBMMcpBaseException(msg=f"query_sql is too long ({len(query_sql)} > {_MAX_SQL_LENGTH} bytes)")
+        raise UnsafeSQLException(msg=f"query_sql is too long ({len(query_sql)} > {_MAX_SQL_LENGTH} bytes)")
 
     # 先复制一份"干净版"用于规则校验，但最终返回的是去掉首尾空白和结尾分号的原始 SQL
     stripped_sql = _strip_sql_comments(query_sql).strip()
 
     # 规则 2：必须以 SELECT 或 WITH 开头
     if not re.match(r"^(SELECT|WITH)\b", stripped_sql, re.IGNORECASE):
-        raise DBMMcpBaseException(msg="only SELECT / WITH(CTE) statements are allowed")
+        raise UnsafeSQLException(msg="only SELECT / WITH(CTE) statements are allowed")
 
     # 规则 3：去掉末尾分号后，不允许再出现分号（即不允许多语句）
     body = stripped_sql.rstrip(";").rstrip()
     body_no_literal = _strip_string_literals(body)
     if ";" in body_no_literal:
-        raise DBMMcpBaseException(msg="multi-statement is not allowed")
+        raise UnsafeSQLException(msg="multi-statement is not allowed")
 
     # 规则 4：黑名单关键字（剥离字符串字面量后再匹配）
     forbidden = _FORBIDDEN_PATTERN.search(body_no_literal)
     if forbidden:
-        raise DBMMcpBaseException(msg=f"forbidden keyword in query_sql: {forbidden.group(0).upper()}")
+        raise UnsafeSQLException(msg=f"forbidden keyword in query_sql: {forbidden.group(0).upper()}")
 
     # 规则 5：禁止 xp_ / sp_ 调用
     sys_proc = _SYS_PROC_PATTERN.search(body_no_literal)
     if sys_proc:
-        raise DBMMcpBaseException(msg=f"system procedure is not allowed: {sys_proc.group(0)}")
+        raise UnsafeSQLException(msg=f"system procedure is not allowed: {sys_proc.group(0)}")
 
     # 返回原始 SQL（去掉首尾空白和末尾分号），保持用户原文便于排查
     clean_sql = query_sql.strip().rstrip(";").rstrip()

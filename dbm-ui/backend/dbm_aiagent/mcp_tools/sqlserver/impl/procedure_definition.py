@@ -49,10 +49,10 @@ SQLServer 单存储过程定义体获取（按精确坐标 cluster_domain + dbna
 """
 from typing import Dict, Optional, Tuple
 
+from backend.db_services.sqlserver.sql_safety import quote_sqlserver_ident
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.get_instance_address import resolve_target_instance
 from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.rpc_runner import run_user_db_read
-from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.sql_safety import quote_sqlserver_ident
 
 
 class ProcedureDefinitionConstants:
