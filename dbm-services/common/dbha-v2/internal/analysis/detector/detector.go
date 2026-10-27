@@ -159,24 +159,23 @@ func (d *detectorTask) runWithGuard(cmd string) {
 	timeout := d.sshCli.timeout + detectTaskGrace
 	respCh := make(chan *Response, 1)
 
-	go func() {
-		safe.Run(func() {
-			resp := d.run(cmd, start)
-			respCh <- resp
-			d.reportSshMetrics(start, resp)
-		},
-			safe.WithLabel("detectorTask.run"),
-			safe.WithOnPanic(func(pi safe.PanicInfo) {
-				panicErr := fmt.Errorf("detector task %s panicked: %v", d.id(), pi.Reason)
-				logger.Error("detector task aborted, errmsg: %s", panicErr)
+	safe.Go(func() {
+		resp := d.run(cmd, start)
+		respCh <- resp
+		d.reportSshMetrics(start, resp)
+	},
+		safe.WithLabel("detectorTask.run"),
+		safe.WithOnPanic(func(pi safe.PanicInfo) {
+			panicErr := fmt.Errorf("detector task %s panicked: %v", d.id(), pi.Reason)
+			logger.Error("detector task aborted, errmsg: %s", panicErr)
 
-				// fill in only when no result has been handed over yet
-				select {
-				case respCh <- d.failureResponse(start, panicErr):
-				default:
-				}
-			}))
-	}()
+			// fill in only when no result has been handed over yet
+			select {
+			case respCh <- d.failureResponse(start, panicErr):
+			default:
+			}
+		}),
+	)
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
