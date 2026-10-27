@@ -296,3 +296,6 @@ Return the appropriate apiVersion for Horizontal Pod Autoscaler.
 {{- print "autoscaling/v2" -}}
 {{- end -}}
 {{- end -}}
+{{- define "dbm.aidev-api.fullname" -}}
+{{- printf "%s-aidev-api" (include "dbm.fullname" . | trunc 53 | trimSuffix "-") -}}
+{{- end -}}
