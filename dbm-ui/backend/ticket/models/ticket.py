@@ -184,6 +184,7 @@ class TicketSnapshot(AuditedModel):
     operator = models.CharField(_("操作人"), max_length=LEN_NORMAL, default="")
     remark = models.CharField(_("说明"), max_length=LEN_L_LONG, default="")
     details = models.JSONField(_("改单详情(前端传入未初始化的详情)"), default=dict)
+    change_details = models.JSONField(_("修改详情json"), default=dict)
     change_count = models.IntegerField(_("差异字段数"), default=0)
     config = models.JSONField(_("单据配置"), default=dict, blank=True, null=True)
 
