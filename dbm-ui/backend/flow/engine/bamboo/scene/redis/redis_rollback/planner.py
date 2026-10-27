@@ -457,7 +457,8 @@ class RollbackPlanner:
 
         if evaluation.select_mode != SELECT_MODE_BY_TIME:
             self._resolve_recover_at(evaluation, explicit_recover_at)
-        if self._replays_binlog:
+        # Without a target time the batch restores as a plain snapshot; binlogs after it may not be uploaded yet.
+        if self._replays_binlog and explicit_recover_at:
             self._check_binlog_chains(evaluation)
         self._confirm_backup_presence(evaluation)
         self._check_layout(evaluation, needs_routing)

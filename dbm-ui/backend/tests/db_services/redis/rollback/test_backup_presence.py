@@ -137,6 +137,7 @@ def test_build_also_confirms_ssd_binlog_task_ids():
     """The binlog chain Gate C picks is asked about together with the full backup."""
     planner = _planner()
     planner.cluster.cluster_type = ClusterType.TwemproxyTendisSSDInstance.value
+    planner.info = {"backup_identify": "SCHEDULED-1", "recovery_time_point": "2026-01-01T01:01:00+00:00"}
     planner.resolver.from_db_meta = MagicMock(return_value=[])
     planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.tar")])
     planner.locator.locate_binlogs = MagicMock(
