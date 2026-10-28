@@ -342,8 +342,8 @@ class TicketModifyHandler:
             operator,
             remark,
             raw_details,
-            change_details,
             change_count,
+            change_details,
         )
 
         # 用重新初始化后的详情重建资源申请参数(覆盖 resource flow 的 details)
