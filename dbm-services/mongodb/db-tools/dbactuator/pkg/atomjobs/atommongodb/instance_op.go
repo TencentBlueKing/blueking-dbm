@@ -26,7 +26,7 @@ type instOpParams struct {
 	Port                    int    `json:"port"`
 	AdminUsername           string `json:"adminUsername"`
 	AdminPassword           string `json:"adminPassword"`
-	Op                      string `json:"op"` // start, stop, check_empty_data, start_standalone
+	Op                      string `json:"op"` // start, stop, update_mongos_conf, update_slow_op_threshold, check_empty_data, start_standalone
 	GracefulStop            *bool  `json:"gracefulStop,omitempty"`
 	SkipStepDown            *bool  `json:"skipStepDown,omitempty"`
 	SkipRsAvailabilityCheck *bool  `json:"skipRsAvailabilityCheck,omitempty"`
@@ -39,6 +39,12 @@ type instOpParams struct {
 	UpgradePhase string `json:"upgradePhase,omitempty"`
 	DestVersion  string `json:"destVersion,omitempty"`
 	InstanceType string `json:"instanceType,omitempty"`
+	// mongos setParameter. -1 or omitted means unset (remove from mongos.conf).
+	TaskExecutorPoolSize            JSONInt `json:"taskExecutorPoolSize"`
+	ShardingTaskExecutorPoolMinSize JSONInt `json:"ShardingTaskExecutorPoolMinSize"`
+	ShardingTaskExecutorPoolMaxSize JSONInt `json:"ShardingTaskExecutorPoolMaxSize"`
+	// operationProfiling.slowOpThresholdMs. Written on restart when it differs from mongo.conf.
+	SlowOpThresholdMs int `json:"slowOpThresholdMs,omitempty"`
 	// OldFullVersion mongodb-x.y.z (upgrade hop source); used by backup_mongodata directory name.
 	OldFullVersion   string `json:"oldFullVersion,omitempty"`
 	GrantRolesToUser struct {
@@ -72,7 +78,7 @@ func (s *instOpJob) Name() string {
 // Retry 重启类 op 允许 actuator 侧重试；各 op 实现需保持幂等。
 func (s *instOpJob) Retry() uint {
 	switch s.ConfParams.Op {
-	case "shield_dbmon", "stop", "start", "ensure_start", "unblock_dbmon", "check_rs_availability", "check_rs_all_members_ready", "step_down_if_primary":
+	case "shield_dbmon", "stop", "start", "ensure_start", "unblock_dbmon", "update_mongos_conf", "update_slow_op_threshold", "check_rs_availability", "check_rs_all_members_ready", "step_down_if_primary":
 		return 3
 	default:
 		return s.BaseJob.Retry()
@@ -182,6 +188,10 @@ func (s *instOpJob) Run() error {
 	case "show_tables":
 		// 列出db简单信息. 未实现
 		return errors.New("not implemented")
+	case "update_mongos_conf":
+		return s.updateMongosConf()
+	case "update_slow_op_threshold":
+		return s.updateSlowOpThreshold()
 	case "flush_router_config":
 		// 刷新router的配置
 		return op.DoFlushRouterConfig()
@@ -938,6 +948,70 @@ func (s *instOpJob) doAddMember() error {
 	return nil
 	// op := s.GetInstanceOp()
 	// return op.DoAddMember()
+}
+
+// updateMongosConf writes the three executor-pool setParameter values into mongo.conf.
+// noauth.conf is left unchanged. -1 removes that key. A later stop/start restarts the process.
+func (s *instOpJob) updateMongosConf() error {
+	task := s.ConfParams.TaskExecutorPoolSize.OrUnset()
+	minSize := s.ConfParams.ShardingTaskExecutorPoolMinSize.OrUnset()
+	maxSize := s.ConfParams.ShardingTaskExecutorPoolMaxSize.OrUnset()
+	if err := common.ValidateMongosExecutorPool(task, minSize, maxSize); err != nil {
+		return fmt.Errorf("validate mongos executor pool: %w", err)
+	}
+	path := filepath.Join(consts.GetMongoDataDir(), "mongodata", strconv.Itoa(s.ConfParams.Port), "mongo.conf")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read mongos config %s: %w", path, err)
+	}
+	changes, err := common.DescribeMongosExecutorPoolChanges(raw, task, minSize, maxSize)
+	if err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	}
+	backup, err := common.PatchMongosExecutorPoolFile(path, task, minSize, maxSize)
+	if err != nil {
+		return err
+	}
+	if backup == "" {
+		s.runtime.Logger.Info("mongos config unchanged %s", path)
+		return nil
+	}
+	s.runtime.Logger.Info("backed up mongos config %s to %s", path, backup)
+	if changes == "" {
+		s.runtime.Logger.Info("updated mongos config %s", path)
+		return nil
+	}
+	s.runtime.Logger.Info("updated mongos config %s: %s", path, changes)
+	return nil
+}
+
+// updateSlowOpThreshold writes operationProfiling.slowOpThresholdMs into mongo.conf when it differs.
+// noauth.conf is left unchanged. A later stop/start restarts the process.
+func (s *instOpJob) updateSlowOpThreshold() error {
+	value := s.ConfParams.SlowOpThresholdMs
+	if err := common.ValidateSlowOpThresholdMs(value); err != nil {
+		return fmt.Errorf("validate slowOpThresholdMs: %w", err)
+	}
+	path := filepath.Join(consts.GetMongoDataDir(), "mongodata", strconv.Itoa(s.ConfParams.Port), "mongo.conf")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read mongo config %s: %w", path, err)
+	}
+	changes, err := common.DescribeSlowOpThresholdChange(raw, value)
+	if err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	}
+	backup, err := common.PatchSlowOpThresholdFile(path, value)
+	if err != nil {
+		return err
+	}
+	if backup == "" {
+		s.runtime.Logger.Info("mongo config unchanged %s", path)
+		return nil
+	}
+	s.runtime.Logger.Info("backed up mongo config %s to %s", path, backup)
+	s.runtime.Logger.Info("updated mongo config %s: %s", path, changes)
+	return nil
 }
 
 func (s *instOpJob) GetInstanceOp() *common.InstanceOp {

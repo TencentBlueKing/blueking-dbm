@@ -17,9 +17,15 @@ from backend.flow.utils.mongodb.mongodb_conf_file import (
     mongodb_conf_file_mm,
     mongodb_role_conf_files,
     mongodb_versioned_conf_file_candidates,
+    mongos_executor_pool_from_conf,
+    mongos_executor_pool_overrides,
+    parse_mongos_executor_pool_value,
+    parse_slow_op_threshold_ms,
+    query_cluster_mongos_executor_pool,
     query_mongodb_dbconf_content,
     resolve_cluster_dbconf_level_value,
     resolve_flow_dbconf_level_value,
+    slow_op_conf_file_for_restart,
 )
 
 
@@ -40,6 +46,78 @@ def test_mongodb_conf_file_naming():
     ]
     assert mongodb_conf_file_mm("mongodb-8.0.0") == "mongodb-8.0"
     assert mongodb_conf_file_legacy("mongodb-8.0.0") == "Mongodb-8"
+
+
+def test_mongos_executor_pool_from_conf_treats_blank_as_unset():
+    assert parse_mongos_executor_pool_value("taskExecutorPoolSize", None) == -1
+    assert parse_mongos_executor_pool_value("taskExecutorPoolSize", "") == -1
+    assert parse_mongos_executor_pool_value("taskExecutorPoolSize", "-1") == -1
+    assert parse_mongos_executor_pool_value("taskExecutorPoolSize", 16) == 16
+    with pytest.raises(ValueError):
+        parse_mongos_executor_pool_value("taskExecutorPoolSize", "abc")
+
+    pool = mongos_executor_pool_from_conf(
+        {
+            "taskExecutorPoolSize": "16",
+            "ShardingTaskExecutorPoolMaxSize": 64,
+        }
+    )
+    assert pool == {
+        "taskExecutorPoolSize": 16,
+        "ShardingTaskExecutorPoolMinSize": -1,
+        "ShardingTaskExecutorPoolMaxSize": 64,
+    }
+    assert mongos_executor_pool_overrides({"ShardingTaskExecutorPoolMaxSize": "100"}) == {
+        "ShardingTaskExecutorPoolMaxSize": 100,
+    }
+
+
+def test_slow_op_threshold_role_and_range():
+    assert parse_slow_op_threshold_ms("200") == 200
+    assert parse_slow_op_threshold_ms(500) == 500
+    with pytest.raises(ValueError):
+        parse_slow_op_threshold_ms(9)
+    with pytest.raises(ValueError):
+        parse_slow_op_threshold_ms("abc")
+
+    assert slow_op_conf_file_for_restart(cluster_type="MongoReplicaSet", rs_type="", is_mongos=False) == "mongod.conf"
+    assert (
+        slow_op_conf_file_for_restart(cluster_type="MongoShardedCluster", rs_type="shardsvr", is_mongos=False)
+        == "shardsvr.conf"
+    )
+    assert (
+        slow_op_conf_file_for_restart(cluster_type="MongoShardedCluster", rs_type="configsvr", is_mongos=False)
+        == "configsvr.conf"
+    )
+    assert (
+        slow_op_conf_file_for_restart(cluster_type="MongoShardedCluster", rs_type="", is_mongos=True) == "mongos.conf"
+    )
+
+
+@patch("backend.flow.utils.mongodb.mongodb_conf_file.query_mongodb_dbconf_content")
+def test_query_cluster_mongos_executor_pool(mock_query):
+    from unittest.mock import MagicMock
+
+    mock_query.return_value = {
+        "taskExecutorPoolSize": "-1",
+        "ShardingTaskExecutorPoolMinSize": "4",
+        "ShardingTaskExecutorPoolMaxSize": "32",
+    }
+    cluster = MagicMock()
+    cluster.bk_biz_id = 3
+    cluster.major_version = "4.4.6"
+    cluster.cluster_type = "MongoShardedCluster"
+    cluster.immute_domain = "m1.demo.db"
+
+    pool = query_cluster_mongos_executor_pool(cluster)
+    assert pool == {
+        "taskExecutorPoolSize": -1,
+        "ShardingTaskExecutorPoolMinSize": 4,
+        "ShardingTaskExecutorPoolMaxSize": 32,
+    }
+    assert mock_query.call_args.kwargs["version"] == "mongodb-4.4"
+    assert mock_query.call_args.kwargs["namespace"] == "MongoShardedCluster"
+    assert mock_query.call_args.kwargs["level_value"] == "m1.demo.db"
 
 
 def test_cluster_owned_content_excludes_plat_inherited():
@@ -334,6 +412,77 @@ def test_get_cluster_key_file_fallback(mock_query, mock_resolve_level, _mock_ass
     mock_query.return_value = {"key_file": "dba-rs1"}
     assert kwargs.get_cluster_key_file(cluster_name="cyc31rs1") == "dba-rs1"
     mock_resolve_level.assert_called_with(bk_biz_id="3", cluster_type="MongoReplicaSet", cluster_name="cyc31rs1")
+
+
+@patch("backend.flow.utils.mongodb.mongodb_dataclass.upsert_mongodb_cluster_dbconf")
+def test_save_conf_sets_pool_max_for_new_shard_cluster(mock_upsert):
+    from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+    kwargs = ActKwargs()
+    kwargs.payload = {
+        "bk_biz_id": 3,
+        "cluster_id": "cyc",
+        "key_file": "k",
+        "db_version": "4.4.6",
+        "shards": [{"cacheSizeGB": 1, "oplogSizeMB": 1024}],
+        "config": {"cacheSizeGB": 1, "oplogSizeMB": 1024},
+        "mongos": {"domain": "m1.demo.db"},
+    }
+    kwargs.save_conf("MongoShardedCluster")
+    items = mock_upsert.call_args.kwargs["conf_items"]
+    pool_items = [item for item in items if item["conf_name"] == "ShardingTaskExecutorPoolMaxSize"]
+    assert pool_items == [
+        {"conf_name": "ShardingTaskExecutorPoolMaxSize", "conf_value": "100", "op_type": "update"},
+    ]
+    assert mock_upsert.call_args.kwargs["level_value"] == "m1.demo.db"
+
+    kwargs.replicaset_info = {
+        "set_id": "cyc-rs",
+        "key_file": "k",
+        "cacheSizeGB": 1,
+        "oplogSizeMB": 1024,
+        "nodes": [{"domain": "m1.rs.db"}],
+    }
+    kwargs.save_conf("MongoReplicaSet")
+    rs_items = mock_upsert.call_args.kwargs["conf_items"]
+    assert all(item["conf_name"] != "ShardingTaskExecutorPoolMaxSize" for item in rs_items)
+
+
+@patch("backend.flow.utils.mongodb.mongodb_dataclass.query_mongodb_dbconf_content")
+@patch("backend.flow.utils.mongodb.mongodb_dataclass.ActKwargs.get_mongodb_conf")
+@patch("backend.flow.utils.mongodb.mongodb_dataclass.ActKwargs.get_pkg")
+def test_install_mongos_uses_new_shard_cluster_pool_max(mock_pkg, mock_conf, mock_query):
+    from types import SimpleNamespace
+
+    from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+    mock_query.side_effect = [
+        {"taskExecutorPoolSize": "-1", "ShardingTaskExecutorPoolMaxSize": "-1"},
+        {"ShardingTaskExecutorPoolMaxSize": "100"},
+    ]
+    kwargs = ActKwargs()
+    kwargs.db_conf = {"port": 27021}
+    kwargs.cluster_type = "MongoShardedCluster"
+    kwargs.file_path = "/data"
+    kwargs.pkg = SimpleNamespace(path="/tmp/mongodb.tgz", md5="abc")
+    kwargs.mongos_info = {"port": 27021, "conf_set_id": "mongos"}
+    kwargs.payload = {
+        "bk_biz_id": "3",
+        "db_version": "4.4.6",
+        "cluster_id": "cyc",
+        "key_file": "k",
+        "config": {"port": 27019, "nodes": [{"ip": "127.0.0.1"}]},
+        "mongos": {"domain": "m1.demo.db"},
+    }
+    result = kwargs.get_install_mongos_kwargs(node={"ip": "127.0.0.2", "bk_cloud_id": 0}, replace=False)
+    assert mock_pkg.called
+    assert mock_conf.called
+    db_config = result["db_act_template"]["payload"]["dbConfig"]
+    assert db_config["ShardingTaskExecutorPoolMaxSize"] == 100
+    assert db_config["taskExecutorPoolSize"] == -1
+    assert db_config["ShardingTaskExecutorPoolMinSize"] == -1
+    assert mock_query.call_args_list[1].kwargs["level_name"] == "cluster"
+    assert mock_query.call_args_list[1].kwargs["level_value"] == "m1.demo.db"
 
 
 @patch("backend.flow.utils.mongodb.mongodb_conf_file.list_cluster_owned_conf_files", return_value={"mongodb-3.0"})

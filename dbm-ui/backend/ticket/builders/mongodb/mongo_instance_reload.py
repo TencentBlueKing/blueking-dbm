@@ -41,6 +41,8 @@ class MongoDBInstanceReloadDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
     infos = serializers.ListSerializer(help_text=_("重启信息"), child=InstanceReloadDetailSerializer())
     force = serializers.BooleanField(help_text=_("重启策略开关"), required=False, default=False)
+    serial_restart_mongos = serializers.BooleanField(help_text=_("串行重启同一集群的 mongos"), required=False, default=True)
+    update_mongos_conf = serializers.BooleanField(help_text=_("重启时更新 mongos 配置"), required=False, default=True)
     target_select_mode = serializers.ChoiceField(
         help_text=_("目标选择模式"),
         choices=OperaObjType.get_choices(),

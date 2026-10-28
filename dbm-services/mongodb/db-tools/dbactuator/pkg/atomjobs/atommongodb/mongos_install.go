@@ -30,8 +30,11 @@ type MongoSConfParams struct {
 	Auth            bool     `json:"auth"`                         // true：以验证方式启动mongos false：以非验证方式启动mongos
 	ConfigDB        []string `json:"configDB" validate:"required"` // ip:port
 	DbConfig        struct {
-		SlowOpThresholdMs int    `json:"slowOpThresholdMs"`
-		Destination       string `json:"destination"`
+		SlowOpThresholdMs               int     `json:"slowOpThresholdMs"`
+		Destination                     string  `json:"destination"`
+		TaskExecutorPoolSize            JSONInt `json:"taskExecutorPoolSize"`
+		ShardingTaskExecutorPoolMinSize JSONInt `json:"ShardingTaskExecutorPoolMinSize"`
+		ShardingTaskExecutorPoolMaxSize JSONInt `json:"ShardingTaskExecutorPoolMaxSize"`
 	} `json:"dbConfig" validate:"required"`
 }
 
@@ -174,6 +177,14 @@ func (s *MongoSInstall) makeConfContent() error {
 	if mainVersion >= 4 {
 		conf.OperationProfiling.SlowOpThresholdMs = s.ConfParams.DbConfig.SlowOpThresholdMs
 	}
+	conf.SetParameter = common.BuildMongosExecutorPool(
+		s.ConfParams.DbConfig.TaskExecutorPoolSize.OrUnset(),
+		s.ConfParams.DbConfig.ShardingTaskExecutorPoolMinSize.OrUnset(),
+		s.ConfParams.DbConfig.ShardingTaskExecutorPoolMaxSize.OrUnset(),
+	)
+	if len(conf.SetParameter) > 0 {
+		s.runtime.Logger.Info("mongos setParameter executor pool: %+v", conf.SetParameter)
+	}
 
 	s.NoAuthConfFileContent, err = conf.GetConfContent()
 	if err != nil {
@@ -201,6 +212,13 @@ func (s *MongoSInstall) checkParams() (bool, error) {
 		return false, fmt.Errorf("validate parameters of mongos config file fail, error:%s", err)
 	}
 	s.runtime.Logger.Info("= validate parameters of mongos config file successfully")
+	if err := common.ValidateMongosExecutorPool(
+		s.ConfParams.DbConfig.TaskExecutorPoolSize.OrUnset(),
+		s.ConfParams.DbConfig.ShardingTaskExecutorPoolMinSize.OrUnset(),
+		s.ConfParams.DbConfig.ShardingTaskExecutorPoolMaxSize.OrUnset(),
+	); err != nil {
+		return false, fmt.Errorf("validate mongos executor pool: %w", err)
+	}
 
 	// 校验port是否合规
 	s.runtime.Logger.Info("start to validate port if it is correct")

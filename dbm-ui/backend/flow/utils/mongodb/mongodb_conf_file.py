@@ -48,6 +48,120 @@ _MONGODB_ROLE_OWNED_NAMES = {
     ],
 }
 
+# mongos setParameter keys. -1 means unset: do not write the key into mongos.conf.
+MONGOS_EXECUTOR_POOL_UNSET = -1
+MONGOS_EXECUTOR_POOL_NAMES = (
+    "taskExecutorPoolSize",
+    "ShardingTaskExecutorPoolMinSize",
+    "ShardingTaskExecutorPoolMaxSize",
+)
+# 仅新部署的分片集群写入该集群级配置；已有集群保持 dbconfig 原值（默认 -1 表示不写入）。
+NEW_SHARD_CLUSTER_SHARDING_TASK_EXECUTOR_POOL_MAX_SIZE = "100"
+
+
+def parse_mongos_executor_pool_value(name: str, value: Any) -> int:
+    """Parse one executor-pool conf value. Missing or blank is -1."""
+    if value is None or value == "":
+        return MONGOS_EXECUTOR_POOL_UNSET
+    try:
+        return int(value)
+    except (TypeError, ValueError) as err:
+        raise ValueError("invalid {} value: {!r}".format(name, value)) from err
+
+
+def mongos_executor_pool_from_conf(content: Optional[dict]) -> Dict[str, int]:
+    """Pick the three mongos executor-pool values from a flat dbconf map."""
+    content = content or {}
+    return {name: parse_mongos_executor_pool_value(name, content.get(name)) for name in MONGOS_EXECUTOR_POOL_NAMES}
+
+
+def mongos_executor_pool_overrides(content: Optional[dict]) -> Dict[str, int]:
+    """Pool values explicitly present in content. Absent keys stay unchanged."""
+    content = content or {}
+    overrides = {}
+    for name in MONGOS_EXECUTOR_POOL_NAMES:
+        if name not in content or content[name] in (None, ""):
+            continue
+        overrides[name] = parse_mongos_executor_pool_value(name, content[name])
+    return overrides
+
+
+def query_cluster_mongos_executor_pool(cluster: Cluster) -> Dict[str, int]:
+    """Read the cluster's mongos executor-pool settings. Missing values are -1."""
+    version = "mongodb-{}".format(extract_mongodb_major_minor(str(cluster.major_version or "")))
+    content = query_mongodb_dbconf_content(
+        bk_biz_id=str(cluster.bk_biz_id),
+        level_name=LevelName.CLUSTER.value,
+        level_value=resolve_cluster_dbconf_level_value(cluster),
+        namespace=cluster.cluster_type,
+        version=version,
+        conf_type=ConfigTypeEnum.DBConf.value,
+        level_info={"module": str(DEFAULT_DB_MODULE_ID)},
+        plat_fallback=True,
+    )
+    return mongos_executor_pool_from_conf(content)
+
+
+def parse_slow_op_threshold_ms(value: Any) -> int:
+    """Parse dbconfig slowOpThresholdMs. Allowed range matches the conf template, [10, 20000]."""
+    if value is None or value == "":
+        raise ValueError("slowOpThresholdMs is empty")
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as err:
+        raise ValueError("invalid slowOpThresholdMs value: {!r}".format(value)) from err
+    if number < 10 or number > 20000:
+        raise ValueError("slowOpThresholdMs {} is outside [10,20000]".format(number))
+    return number
+
+
+def slow_op_conf_file_for_restart(*, cluster_type: str, rs_type: str, is_mongos: bool) -> str:
+    """Role conf_file that owns slowOpThresholdMs for one restart target."""
+    if is_mongos or rs_type == "mongos":
+        return MONGODB_CONF_FILE_MONGOS
+    if rs_type == "configsvr":
+        return MONGODB_CONF_FILE_CONFIGSVR
+    if cluster_type == ClusterType.MongoReplicaSet.value:
+        return MONGODB_CONF_FILE_MONGOD
+    return MONGODB_CONF_FILE_SHARDSVR
+
+
+def query_conf_file_slow_op_threshold_ms(cluster: Cluster, conf_file: str) -> int:
+    """Read one role file's slowOpThresholdMs. Cluster value wins; otherwise use the platform value."""
+    level_value = resolve_cluster_dbconf_level_value(cluster)
+    attempts = (
+        (str(cluster.bk_biz_id), LevelName.CLUSTER.value, level_value, {"module": str(DEFAULT_DB_MODULE_ID)}),
+        ("0", LevelName.PLAT.value, "0", None),
+    )
+    for bk_biz_id, level_name, attempt_level_value, level_info in attempts:
+        try:
+            result = _query_single_conf_item(
+                bk_biz_id=bk_biz_id,
+                level_name=level_name,
+                level_value=attempt_level_value,
+                namespace=cluster.cluster_type,
+                conf_type=ConfigTypeEnum.DBConf.value,
+                conf_file=conf_file,
+                level_info=level_info,
+            )
+        except Exception as err:
+            if _is_conf_not_found(err):
+                continue
+            raise
+        content = result.get("content") or {}
+        if "slowOpThresholdMs" in content and content["slowOpThresholdMs"] not in (None, ""):
+            return parse_slow_op_threshold_ms(content["slowOpThresholdMs"])
+    raise ValueError("slowOpThresholdMs not found in {}".format(conf_file))
+
+
+def query_cluster_slow_op_thresholds(cluster: Cluster) -> Dict[str, int]:
+    """Map each role conf_file of this cluster to its slowOpThresholdMs."""
+    return {
+        conf_file: query_conf_file_slow_op_threshold_ms(cluster, conf_file)
+        for conf_file in mongodb_role_conf_files(cluster.cluster_type)
+    }
+
+
 # Flat legacy names used by flow payload / old single conf_file.
 _LEGACY_FLAT_NAMES = {
     ClusterType.MongoReplicaSet.value: ["key_file", "cacheSizeGB", "oplogSizeMB", "slowOpThresholdMs"],

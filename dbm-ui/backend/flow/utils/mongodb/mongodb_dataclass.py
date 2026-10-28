@@ -51,7 +51,11 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.mongodb import mongodb_script_template
 from backend.flow.utils.mongodb.calculate_cluster import get_cache_size, get_oplog_size, machine_order_by_tolerance
 from backend.flow.utils.mongodb.mongodb_conf_file import (
+    MONGOS_EXECUTOR_POOL_NAMES,
+    NEW_SHARD_CLUSTER_SHARDING_TASK_EXECUTOR_POOL_MAX_SIZE,
     assert_cluster_dbconf_level_migrated,
+    mongos_executor_pool_from_conf,
+    mongos_executor_pool_overrides,
     query_mongodb_dbconf_content,
     resolve_flow_dbconf_level_value,
     upsert_mongodb_cluster_dbconf,
@@ -276,6 +280,11 @@ class ActKwargs:
                 [
                     {"conf_name": "config_cacheSizeGB", "conf_value": config_cache_size, "op_type": OpType.UPDATE},
                     {"conf_name": "config_oplogSizeMB", "conf_value": config_oplog_size, "op_type": OpType.UPDATE},
+                    {
+                        "conf_name": "ShardingTaskExecutorPoolMaxSize",
+                        "conf_value": NEW_SHARD_CLUSTER_SHARDING_TASK_EXECUTOR_POOL_MAX_SIZE,
+                        "op_type": OpType.UPDATE,
+                    },
                 ]
             )
         conf_items.extend(
@@ -615,6 +624,40 @@ class ActKwargs:
             },
         }
 
+    def _overlay_install_mongos_executor_pool(self):
+        """APP/平台默认补齐线程池参数，集群级显式配置覆盖。
+
+        新部署分片集群会先把 ShardingTaskExecutorPoolMaxSize=100 写入集群 dbconfig，
+        这里再读回来，安装 mongos 时写入 setParameter。
+        """
+
+        app_conf = query_mongodb_dbconf_content(
+            bk_biz_id=str(self.payload["bk_biz_id"]),
+            level_name=LevelName.APP.value,
+            level_value=str(self.payload["bk_biz_id"]),
+            namespace=self.cluster_type,
+            version=self._mongodb_dbconf_version(),
+            conf_type=ConfigTypeEnum.DBConf.value,
+            plat_fallback=True,
+        )
+        self.db_conf.update(mongos_executor_pool_from_conf(app_conf))
+        cluster_name = self.payload.get("cluster_id")
+        if self.cluster_type == ClusterType.MongoShardedCluster.value and cluster_name:
+            level_value = self._resolve_save_conf_level_value(self.cluster_type, cluster_name)
+            cluster_conf = query_mongodb_dbconf_content(
+                bk_biz_id=str(self.payload["bk_biz_id"]),
+                level_name=LevelName.CLUSTER.value,
+                level_value=level_value,
+                namespace=self.cluster_type,
+                version=self._mongodb_dbconf_version(),
+                conf_type=ConfigTypeEnum.DBConf.value,
+                level_info={"module": str(DEFAULT_DB_MODULE_ID)},
+                plat_fallback=True,
+            )
+            self.db_conf.update(mongos_executor_pool_overrides(cluster_conf))
+        for name in MONGOS_EXECUTOR_POOL_NAMES:
+            self.db_conf.setdefault(name, -1)
+
     def get_install_mongos_kwargs(self, node: dict, replace: bool) -> dict:
         """mongos安装"""
 
@@ -622,6 +665,7 @@ class ActKwargs:
         self.get_pkg()
         # 获取配置
         self.get_mongodb_conf()
+        self._overlay_install_mongos_executor_pool()
         # 获取configDB配置
         if replace:
             cluster_id = node["cluster_id"]

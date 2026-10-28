@@ -16,13 +16,21 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
+from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.rolling_restart import (
+    add_mongos_restart_subflows,
     build_mongos_restart_subflow,
     build_rs_restart_subflow,
 )
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
+from backend.flow.utils.mongodb.mongodb_conf_file import (
+    query_cluster_mongos_executor_pool,
+    query_cluster_slow_op_thresholds,
+    slow_op_conf_file_for_restart,
+)
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 from backend.flow.utils.mongodb.restart_target_resolver import (
     ClusterRestartPlan,
@@ -58,6 +66,17 @@ class MongoRestartInstanceFlow:
         self.payload = serializer.validated_data
 
     @staticmethod
+    def _slow_op_threshold_ms(slow_by_conf_file: Optional[dict], node) -> Optional[int]:
+        if not slow_by_conf_file:
+            return None
+        conf_file = slow_op_conf_file_for_restart(
+            cluster_type=node.cluster_type,
+            rs_type=node.rs_type,
+            is_mongos=node.is_mongos or node.role == MongoDBClusterRole.Mongos.value,
+        )
+        return slow_by_conf_file.get(conf_file)
+
+    @staticmethod
     def _build_rs_parallel_pipes(
         root_id: str,
         ticket_data: dict,
@@ -65,11 +84,15 @@ class MongoRestartInstanceFlow:
         rs_map: Dict[str, List],
         force: bool,
         credentials_map: dict,
+        slow_by_conf_file: Optional[dict] = None,
     ) -> List:
         pipes = []
         for rs_key, members in rs_map.items():
             ordered_members = order_rs_members(members, force=force)
             rs_name = ordered_members[0].set_name if ordered_members else rs_key
+            slow_ms = None
+            if ordered_members:
+                slow_ms = MongoRestartInstanceFlow._slow_op_threshold_ms(slow_by_conf_file, ordered_members[0])
             pipes.append(
                 build_rs_restart_subflow(
                     root_id=root_id,
@@ -79,6 +102,7 @@ class MongoRestartInstanceFlow:
                     members=ordered_members,
                     force=force,
                     credentials_map=credentials_map,
+                    slow_op_threshold_ms=slow_ms,
                 )
             )
         return pipes
@@ -89,11 +113,20 @@ class MongoRestartInstanceFlow:
         actuator_workdir: str,
         force: bool,
         credentials_map: dict,
+        serial_restart_mongos: bool,
+        mongos_executor_pool: Optional[dict],
+        slow_by_conf_file: Optional[dict],
     ):
         cluster_sb = SubBuilder(root_id=self.root_id, data=self.payload)
 
         shard_pipes = self._build_rs_parallel_pipes(
-            self.root_id, self.payload, actuator_workdir, plan.shard_rs, force, credentials_map
+            self.root_id,
+            self.payload,
+            actuator_workdir,
+            plan.shard_rs,
+            force,
+            credentials_map,
+            slow_by_conf_file,
         )
         if shard_pipes:
             cluster_sb.add_parallel_sub_pipeline(sub_flow_list=shard_pipes)
@@ -101,6 +134,9 @@ class MongoRestartInstanceFlow:
         for rs_key, members in plan.config_rs.items():
             ordered_members = order_rs_members(members, force=force)
             rs_name = ordered_members[0].set_name if ordered_members else rs_key
+            slow_ms = None
+            if ordered_members:
+                slow_ms = self._slow_op_threshold_ms(slow_by_conf_file, ordered_members[0])
             cluster_sb.add_sub_pipeline(
                 sub_flow=build_rs_restart_subflow(
                     root_id=self.root_id,
@@ -110,6 +146,7 @@ class MongoRestartInstanceFlow:
                     members=ordered_members,
                     force=force,
                     credentials_map=credentials_map,
+                    slow_op_threshold_ms=slow_ms,
                 )
             )
 
@@ -123,15 +160,18 @@ class MongoRestartInstanceFlow:
                     target=mongos,
                     force=force,
                     credentials_map=credentials_map,
+                    mongos_executor_pool=mongos_executor_pool,
+                    slow_op_threshold_ms=self._slow_op_threshold_ms(slow_by_conf_file, mongos),
                 )
             )
-        if mongos_pipes:
-            cluster_sb.add_parallel_sub_pipeline(sub_flow_list=mongos_pipes)
+        add_mongos_restart_subflows(cluster_sb, mongos_pipes, serial_restart_mongos)
 
         return cluster_sb.build_sub_process(sub_name=_("MongoDB-分片集群重启-cluster_id:{}").format(plan.cluster_id))
 
     def start(self):
         force = bool(self.payload.get("force", False))
+        serial_restart_mongos = bool(self.payload.get("serial_restart_mongos", True))
+        update_mongos_conf = bool(self.payload.get("update_mongos_conf", True))
         targets = resolve_restart_targets_from_infos(
             self.payload["infos"],
             bk_biz_id=self.payload["bk_biz_id"],
@@ -154,16 +194,38 @@ class MongoRestartInstanceFlow:
                 )
             )
 
+        mongos_pool_by_cluster = {}
+        slow_by_cluster = {}
+        for plan in cluster_plans.values():
+            cluster = Cluster.objects.get(id=plan.cluster_id)
+            slow_by_cluster[plan.cluster_id] = query_cluster_slow_op_thresholds(cluster)
+            if update_mongos_conf and plan.mongos:
+                mongos_pool_by_cluster[plan.cluster_id] = query_cluster_mongos_executor_pool(cluster)
+
         top_parallel_pipes: List = []
         for plan in cluster_plans.values():
             if plan.cluster_type == ClusterType.MongoShardedCluster.value:
                 top_parallel_pipes.append(
-                    self._build_sharded_cluster_subflow(plan, actuator_workdir, force, credentials_map)
+                    self._build_sharded_cluster_subflow(
+                        plan,
+                        actuator_workdir,
+                        force,
+                        credentials_map,
+                        serial_restart_mongos,
+                        mongos_pool_by_cluster.get(plan.cluster_id),
+                        slow_by_cluster.get(plan.cluster_id),
+                    )
                 )
             else:
                 top_parallel_pipes.extend(
                     self._build_rs_parallel_pipes(
-                        self.root_id, self.payload, actuator_workdir, plan.shard_rs, force, credentials_map
+                        self.root_id,
+                        self.payload,
+                        actuator_workdir,
+                        plan.shard_rs,
+                        force,
+                        credentials_map,
+                        slow_by_cluster.get(plan.cluster_id),
                     )
                 )
 
