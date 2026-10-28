@@ -31,7 +31,7 @@ dependencies:
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.15
+    version: 0.1.15-kms
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
@@ -39,19 +39,19 @@ dependencies:
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.17
+    version: 0.1.17-kms
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
-    version: 0.1.12
+    version: 0.1.12-kms
   - condition: db-dns-api.enabled
     name: db-dns-api
     repository: file://charts/db-dns-api
-    version: 0.1.7
+    version: 0.1.7-kms
   - condition: hadb-api.enabled
     name: hadb-api
     repository: file://charts/hadb-api
-    version: 0.0.12
+    version: 0.0.12-kms
   - condition: db-resource.enabled
     name: db-resource
     repository: file://charts/db-resource
@@ -71,7 +71,7 @@ dependencies:
   - condition: backup-consumer.enabled
     name: backup-consumer
     repository: file://charts/backup-consumer
-    version: 0.0.7
+    version: 0.0.7-kms
   - condition: bkdata-kafka-consumer.enabled
     name: bkdata-kafka-consumer
     repository: file://charts/bkdata-kafka-consumer
@@ -79,7 +79,7 @@ dependencies:
   - condition: db-event-consumer.enabled
     name: db-event-consumer
     repository: file://charts/db-event-consumer
-    version: 0.0.18
+    version: 0.0.18-kms
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service
@@ -107,5 +107,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-community-kms.10
-appVersion: 1.5.0-community-kms.10
+version: 1.5.0-community-kms.11
+appVersion: 1.5.0-community-kms.11
