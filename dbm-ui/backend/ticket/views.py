@@ -40,6 +40,7 @@ from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceAct
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
 from backend.iam_app.handlers.drf_perm.ticket import (
     BatchApprovalPermission,
+    TicketListPermission,
     create_ticket_permission,
     ticket_flows_config_permission,
 )
@@ -142,6 +143,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     def _get_custom_permissions(self):
+        if self.action == "list":
+            return [TicketListPermission()]
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
@@ -178,7 +181,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             return []
         # 其他非敏感GET接口，不鉴权
         elif self.action in [
-            "list",
             "flow_types",
             "get_nodes",
             "get_ticket_version",
