@@ -104,3 +104,6 @@ serviceMonitor:
 bkLogConfig:
   enabled: false
   dataId: 1
+
+kms:
+  credentialDir: /etc/secrets/dbpriv

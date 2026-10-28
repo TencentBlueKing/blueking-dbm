@@ -3,6 +3,7 @@ package main
 import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
+	"dbm-services/common/go-pubpkg/kms"
 	v2 "dbm-services/mysql/priv-service/handler/v2"
 	"dbm-services/mysql/priv-service/service"
 	"dbm-services/mysql/priv-service/util"
@@ -57,10 +58,16 @@ func main() {
 	// apm: add prom metrics middleware
 	metric.NewPrometheus("").Use(engine)
 
-	handler.RegisterRoutes(engine, "/", []*gin.RouteInfo{{Method: http.MethodGet,
-		Path: "ping", HandlerFunc: func(context *gin.Context) {
-			context.String(http.StatusOK, "pong")
-		}}})
+	handler.RegisterRoutes(
+		engine, "/", []*gin.RouteInfo{
+			{
+				Method: http.MethodGet,
+				Path:   "ping", HandlerFunc: func(context *gin.Context) {
+					context.String(http.StatusOK, "pong")
+				},
+			},
+		},
+	)
 	handler.RegisterRoutes(engine, "/priv", (&handler.PrivService{}).Routes())
 	handler.RegisterRoutes(engine, "/priv/v2", v2.Routes())
 
@@ -96,7 +103,21 @@ func init() {
 		"run migrate to databases, not exit.",
 	)
 	_ = viper.BindPFlags(flag.CommandLine)
+
 	InitLog()
+
+	cred, err := loadRuntimeCredentials()
+	if err != nil {
+		slog.Error("load kms failed", slog.String("err", err.Error()))
+		return
+	}
+
+	if cred != nil {
+		viper.Set("db.username", cred.MySQL.DbPriv.Username)
+		viper.Set("db.password", cred.MySQL.DbPriv.Password)
+		viper.Set("bk_app_code", cred.BkAppIdSecret.Default.AppCode)
+		viper.Set("bk_app_secret", cred.BkAppIdSecret.Default.AppSecret)
+	}
 }
 
 // dbMigrate 元数据库 migration
@@ -127,16 +148,68 @@ func InitLog() {
 	logger = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel, AddSource: true})
 	logPath := strings.TrimSpace(viper.GetString("log.path"))
 	if logPath != "" {
-		logger = slog.NewTextHandler(io.MultiWriter(
-			os.Stdout,
-			&lumberjack.Logger{
-				Filename:   logPath,
-				MaxSize:    viper.GetInt("log.max_size"),
-				MaxAge:     viper.GetInt("log.max_age"),
-				MaxBackups: viper.GetInt("log.max_backups"),
-				LocalTime:  true,
-			}),
-			&slog.HandlerOptions{Level: logLevel, AddSource: true})
+		logger = slog.NewTextHandler(
+			io.MultiWriter(
+				os.Stdout,
+				&lumberjack.Logger{
+					Filename:   logPath,
+					MaxSize:    viper.GetInt("log.max_size"),
+					MaxAge:     viper.GetInt("log.max_age"),
+					MaxBackups: viper.GetInt("log.max_backups"),
+					LocalTime:  true,
+				},
+			),
+			&slog.HandlerOptions{Level: logLevel, AddSource: true},
+		)
 	}
 	slog.SetDefault(slog.New(logger))
+}
+
+type RuntimeCredentials struct {
+	MySQL struct {
+		DbPriv struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"dbPriv"`
+	} `json:"mysql"`
+	BkAppIdSecret struct {
+		Default struct {
+			AppCode   string `json:"app_code"`
+			AppSecret string `json:"app_secret"`
+		} `json:"default"`
+	} `json:"bkapp_id_secret"`
+}
+
+func loadRuntimeCredentials() (*RuntimeCredentials, error) {
+	enabled, err := kms.Enabled()
+	if err != nil || !enabled {
+		return nil, err
+	}
+
+	kmsOptions := kms.LoadOptions{
+		CredentialDirEnv: "DB_PRIV_KMS_CREDENTIAL_DIR",
+	}
+
+	plaintext, enabled, err := kms.LoadEnvelope(kmsOptions)
+	if err != nil || !enabled {
+		return nil, err
+	}
+
+	var cred RuntimeCredentials
+	if err := kms.DecodeJSON(plaintext, &cred); err != nil {
+		return nil, err
+	}
+
+	for _, field := range []struct{ name, value string }{
+		{"mysql.dbPriv.username", cred.MySQL.DbPriv.Username},
+		{"mysql.dbPriv.password", cred.MySQL.DbPriv.Password},
+		{"bkapp_id_secret.default.app_code", cred.BkAppIdSecret.Default.AppCode},
+		{"bkapp_id_secret.default.app_secret", cred.BkAppIdSecret.Default.AppSecret},
+	} {
+		if err := kms.RequireNonEmpty(field.value, field.name); err != nil {
+			return nil, err
+		}
+	}
+
+	return &cred, nil
 }
