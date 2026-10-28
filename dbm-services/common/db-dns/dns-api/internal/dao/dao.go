@@ -1,8 +1,13 @@
 package dao
 
 import (
-	"bk-dnsapi/internal/domain/entity"
+	"net"
+	"time"
 
+	"bk-dnsapi/internal/domain/entity"
+	"dbm-services/common/go-pubpkg/kms"
+
+	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/pkg/errors"
@@ -23,7 +28,28 @@ func Init() error {
 
 // InitDnsDB 初始化DB
 func InitDnsDB() error {
-	db, err := gorm.Open("mysql", viper.GetString("db.dns_conn"))
+	username := viper.GetString("db.username")
+	password := viper.GetString("db.password")
+	credentials, err := loadRuntimeCredentials()
+	if err != nil {
+		return errors.Wrap(err, "load DNS API KMS credentials failed")
+	}
+	if credentials != nil {
+		username = credentials.MySQL.DbDnsApi.Username
+		password = credentials.MySQL.DbDnsApi.Password
+	}
+
+	config := mysql.NewConfig()
+	config.User = username
+	config.Passwd = password
+	config.Net = "tcp"
+	config.Addr = net.JoinHostPort(viper.GetString("db.addr"), viper.GetString("db.port"))
+	config.DBName = viper.GetString("db.name")
+	config.Params = map[string]string{"charset": "utf8"}
+	config.ParseTime = true
+	config.Loc = time.Local
+
+	db, err := gorm.Open("mysql", config.FormatDSN())
 	if err != nil {
 		return errors.Wrap(err, "init config db failed")
 	}
@@ -49,6 +75,46 @@ func InitDnsDB() error {
 	}
 	DnsDB = db
 	return nil
+}
+
+type RuntimeCredentials struct {
+	MySQL struct {
+		DbDnsApi struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"dbDnsApi"`
+	} `json:"mysql"`
+}
+
+func loadRuntimeCredentials() (*RuntimeCredentials, error) {
+	enabled, err := kms.Enabled()
+	if err != nil || !enabled {
+		return nil, err
+	}
+
+	plaintext, enabled, err := kms.LoadEnvelope(kms.LoadOptions{
+		CredentialDirEnv: "DB_DNS_API_KMS_CREDENTIAL_DIR",
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !enabled {
+		return nil, errors.New("KMS disabled while loading DNS API credentials")
+	}
+
+	var credentials RuntimeCredentials
+	if err := kms.DecodeJSON(plaintext, &credentials); err != nil {
+		return nil, err
+	}
+	for _, field := range []struct{ name, value string }{
+		{"mysql.dbDnsApi.username", credentials.MySQL.DbDnsApi.Username},
+		{"mysql.dbDnsApi.password", credentials.MySQL.DbDnsApi.Password},
+	} {
+		if err := kms.RequireNonEmpty(field.value, field.name); err != nil {
+			return nil, err
+		}
+	}
+	return &credentials, nil
 }
 
 // Close 关闭连接
