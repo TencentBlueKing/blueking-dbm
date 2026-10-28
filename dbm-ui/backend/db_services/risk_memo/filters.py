@@ -76,6 +76,9 @@ class RiskMemoFollowUpListFilter(filters.FilterSet):
 
 
 class RiskOpRecordListFilter(filters.FilterSet):
+    # 避免未指定业务时查询所有业务的操作记录。
+    # 操作记录表通过 risk 外键关联 RiskMemo，业务 ID 存储在关联的风险表中。
+    bk_biz_id = filters.NumberFilter(field_name="risk__bk_biz_id", required=True, decimal_places=0, label=_("业务ID"))
     op_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("操作时间"))
     oper_type = filters.CharFilter(field_name="oper_type", lookup_expr="exact", label=_("操作类型"))
     creator = filters.CharFilter(field_name="creator", lookup_expr="exact", label=_("操作人"))
