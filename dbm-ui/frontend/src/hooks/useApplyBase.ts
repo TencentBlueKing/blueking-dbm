@@ -146,7 +146,8 @@ export const useApplyBase = () => {
   /**
    * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到单据详情
    * 确认弹窗展示的变更项原样作为 change_details 提交，详情页的变更对比直接展示它
-   * 重新编辑、代为修改提交补充信息（交付通知 config、单据备注 ticket_remark）；调整申请只改资源条件，补充信息只读，不提交
+   * 单据备注 ticket_remark 所有改单模式都可改、都提交；
+   * 交付通知 config 只有重新编辑、代为修改提交，调整申请下只读，不提交也不参与对比
    */
   function handleModifyTicket(details: unknown, config: unknown, ticketRemark: string) {
     const ticketData = modifyState.ticketData.value;
@@ -157,13 +158,15 @@ export const useApplyBase = () => {
       return;
     }
     const isReEdit = mode === TicketModifyRecordModel.MODE_RE_EDIT;
-    const isSubmitSupplement = !modifyState.isAdjustApply;
+    const isSubmitConfig = !modifyState.isAdjustApply;
     modifyState
       .validateRemark()
       .then(() => {
+        const supplementDiffList = modifyState.getSupplementDiffList(config, ticketRemark);
         const diffList = [
           ...modifyState.getDiffList(details),
-          ...(isSubmitSupplement ? modifyState.getSupplementDiffList(config, ticketRemark) : []),
+          // 调整申请只保留单据备注的变更项
+          ...(isSubmitConfig ? supplementDiffList : supplementDiffList.filter((item) => item.path === 'ticket_remark')),
         ];
         if (diffList.length < 1) {
           messageWarn(t('没有改动'));
@@ -180,11 +183,12 @@ export const useApplyBase = () => {
           {
             change_count: diffList.length,
             change_details: diffList,
-            ...(isSubmitSupplement ? { config, ticket_remark: ticketRemark } : {}),
+            ...(isSubmitConfig ? { config } : {}),
             details,
             id: ticketData.id,
             mode,
             remark: isReEdit ? '' : modifyState.modifyRemark.value,
+            ticket_remark: ticketRemark,
             // 直接提交进入时单据详情返回的版本；详情未返回版本表示还没改过单，传 1
             version: ticketData.version ?? 1,
           },
