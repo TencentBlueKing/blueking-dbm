@@ -1,15 +1,30 @@
 package config
 
-// ConfKeyStat TODO
+// DefaultHotKeyQpsThreshold 热key分析实例QPS默认阈值
+const DefaultHotKeyQpsThreshold = 10000
+
+// ConfKeyStat 热key统计配置
 type ConfKeyStat struct {
-	TopCnt   int `json:"top_count" mapstructure:"top_count"`
-	Duration int `json:"duration_seconds" mapstructure:"duration_seconds"`
+	// Enable 是否启用热key分析; 未配置(nil)时默认启用,兼容旧配置文件
+	Enable *bool `json:"enable" mapstructure:"enable"`
+	// QpsThreshold 实例QPS阈值(instantaneous_ops_per_sec), 超过则不发起热key分析;
+	// 未配置/0 时默认 DefaultHotKeyQpsThreshold(10000); 如需不检查可配置足够大的阈值
+	QpsThreshold int64 `json:"qps_threshold" mapstructure:"qps_threshold"`
+	TopCnt       int   `json:"top_count" mapstructure:"top_count"`
+	Duration     int   `json:"duration_seconds" mapstructure:"duration_seconds"`
 }
 
-// ConfBigKeyStat TODO
+// Enabled 热key分析是否启用(未配置默认启用)
+func (c *ConfKeyStat) Enabled() bool {
+	return c.Enable == nil || *c.Enable
+}
+
+// ConfBigKeyStat 大key/key模式统计配置
 type ConfBigKeyStat struct {
-	TopCnt   int `json:"top_count" mapstructure:"top_count"`
-	Duration int `json:"duration_seconds" mapstructure:"duration_seconds"`
+	// Enable 是否启用大key/key模式分析; 未配置(nil)时默认启用,兼容旧配置文件
+	Enable   *bool `json:"enable" mapstructure:"enable"`
+	TopCnt   int   `json:"top_count" mapstructure:"top_count"`
+	Duration int   `json:"duration_seconds" mapstructure:"duration_seconds"`
 	// 是否在Master 上运行， 默认在slave 上运行
 	RunOnMaster bool `json:"on_master" mapstructure:"on_master"`
 	// 是否使用RDB 来分析
@@ -22,6 +37,11 @@ type ConfBigKeyStat struct {
 	KeyModSpec string `json:"keymod_spec"  mapstructure:"keymod_spec"`
 	// 可以模式算法
 	KeyModeEngine string `json:"keymod_engine" mapstructure:"keymod_engine"`
+}
+
+// Enabled 大key/key模式分析是否启用(未配置默认启用)
+func (c *ConfBigKeyStat) Enabled() bool {
+	return c.Enable == nil || *c.Enable
 }
 
 // key模式分析，3个需求:
