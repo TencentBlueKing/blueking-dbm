@@ -1456,10 +1456,16 @@ class RedisActPayload(object):
             "stat_dir": DirEnum.REDIS_KEY_LIFE_DIR,
             "cron": keymod_config.get("cron"),
             "hotkey_conf": {
+                # 热key分析开关，dbconfig 未配置该项时默认启用
+                "enable": keymod_config.get("hotkey.enable", "true"),
+                # 实例QPS阈值,超过该值不发起热key分析; 0表示不检查. dbconfig 未配置该项时默认10000
+                "qps_threshold": keymod_config.get("hotkey.qps_threshold", "10000"),
                 "duration_seconds": keymod_config.get("hotkey.duration_seconds"),
                 "top_count": keymod_config.get("hotkey.top_count"),
             },
             "bigkey_conf": {
+                # 大key/key模式分析开关，dbconfig 未配置该项时默认启用
+                "enable": keymod_config.get("bigkey.enable", "true"),
                 "disk_max_usage": keymod_config.get("bigkey.disk_max_usage"),
                 "duration_seconds": keymod_config.get("bigkey.duration_seconds"),
                 "keymod_engine": keymod_config.get("bigkey.keymod_engine"),

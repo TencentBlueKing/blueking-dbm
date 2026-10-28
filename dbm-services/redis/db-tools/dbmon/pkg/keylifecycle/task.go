@@ -100,6 +100,17 @@ func (t *Task) RunStat() error {
 
 		t.setBasicVals(rstHash, server)
 		if server.Role == "master" { // 热key统计入口
+			if !t.conf.HotKeyConf.Enabled() {
+				// 开关关闭时不写magic标记,重新启用后下次触发即可生效
+				mylog.Logger.Info(fmt.Sprintf("hotkey analyse disabled by config, skip %s", server.Addr))
+				continue
+			}
+			if exceed, qps := t.hotKeyQpsExceed(server); exceed {
+				// QPS超阈值不写magic标记,下次触发(QPS降下来后)即可正常分析
+				mylog.Logger.Info(fmt.Sprintf("hotkey analyse skipped, %s qps:%d exceed threshold:%d",
+					server.Addr, qps, t.conf.HotKeyConf.QpsThreshold))
+				continue
+			}
 			st := time.Now().Unix()
 			rstHash["data_type"] = "tendis_hotkeys"
 			rstHash["stime"] = time.Now().Format("2006-01-02 15:04:05")
@@ -113,6 +124,11 @@ func (t *Task) RunStat() error {
 			err = t.sendAndReport(t.HotKeyRp, f)
 			mylog.Logger.Warn(fmt.Sprintf("role master , do hot key analyse done.. :%s:%+v", server.Addr, err))
 		} else if server.Role == "slave" { // 大key统计入口
+			if !t.conf.BigKeyConf.Enabled() {
+				// 开关关闭时不写magic标记,重新启用后下次触发即可生效
+				mylog.Logger.Info(fmt.Sprintf("bigkey/keymode analyse disabled by config, skip %s", server.Addr))
+				continue
+			}
 			st := time.Now().Unix()
 			rstHash["stime"] = time.Now().Format("2006-01-02 15:04:05")
 			statReports, dbsize, _, err := t.bigKeySmartStat(server)
@@ -209,6 +225,32 @@ func (t *Task) sweepStaleKeysFiles() {
 		}
 		mylog.Logger.Info(fmt.Sprintf("remove stale temp keys file %s success", f))
 	}
+}
+
+// hotKeyQpsExceed 检查实例QPS是否超过热key分析阈值
+// 返回 exceed=true 时应跳过热key分析(保护高负载实例); 阈值未配置时由配置加载补默认10000,
+// 此处 <=0 不检查仅作为兜底保护; INFO获取失败视为超限跳过(实例可能正高负载),只影响当天分析
+func (t *Task) hotKeyQpsExceed(server Instance) (exceed bool, qps int64) {
+	threshold := t.conf.HotKeyConf.QpsThreshold
+	if threshold <= 0 {
+		return false, 0
+	}
+	info, err := server.Cli.Info("stats")
+	if err != nil {
+		mylog.Logger.Warn(fmt.Sprintf("hotkey qps check failed %s:%+v, skip analyse for safety", server.Addr, err))
+		return true, 0
+	}
+	qpsStr := strings.TrimSpace(info["instantaneous_ops_per_sec"])
+	if qpsStr == "" {
+		mylog.Logger.Warn(fmt.Sprintf("hotkey qps check failed %s: info stats no instantaneous_ops_per_sec", server.Addr))
+		return true, 0
+	}
+	qps, err = strconv.ParseInt(qpsStr, 10, 64)
+	if err != nil {
+		mylog.Logger.Warn(fmt.Sprintf("hotkey qps check failed %s: parse qps %q err:%+v", server.Addr, qpsStr, err))
+		return true, 0
+	}
+	return qps > threshold, qps
 }
 
 // hotKeyWithMonitor 热key 分析

@@ -129,6 +129,9 @@ func loadConfigFile() {
 	if conf.RedisBinlogBackup.BinlogBackupTag == "" {
 		conf.RedisBinlogBackup.BinlogBackupTag = consts.RedisBinlogTAG // 默认binlog文件标签，兼容老dbmon没有该配置的情况
 	}
+	if conf.KeyLifeCycle.HotKeyConf.QpsThreshold <= 0 {
+		conf.KeyLifeCycle.HotKeyConf.QpsThreshold = DefaultHotKeyQpsThreshold // 默认热key分析QPS阈值,兼容旧配置文件
+	}
 	if conf.ReportLeftDay == 0 {
 		conf.ReportLeftDay = 15
 	}
