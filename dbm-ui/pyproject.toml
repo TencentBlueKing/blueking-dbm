@@ -52,7 +52,9 @@ mistune = "3.3.4"
 bkoauth = "0.1.0"
 apigw-manager = {version = "4.2.3", extras = ["cryptography", "drf"]}
 bk-audit = "1.1.0rc0"
-bk-crypto-python-sdk = "2.0.0"
+bk-crypto-python-sdk = {version = "4.1.1", extras = ["gm"]}
+bk-kms-sdk = {version = "1.0.0", extras = ["gm"]}
+pycryptodomex = "3.23.0"
 django-environ = "^0.11.2"
 opentelemetry-api = "1.33.1"
 opentelemetry-exporter-otlp = "1.33.1"

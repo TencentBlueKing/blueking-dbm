@@ -27,7 +27,7 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.57
+    version: 0.1.57-kms
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
@@ -35,7 +35,7 @@ dependencies:
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
-    version: 0.1.34
+    version: 0.1.34-kms
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
@@ -55,7 +55,7 @@ dependencies:
   - condition: db-resource.enabled
     name: db-resource
     repository: file://charts/db-resource
-    version: 0.0.12
+    version: 0.0.12-kms
   - condition: db-celery-service.enabled
     name: db-celery-service
     repository: file://charts/db-celery-service
@@ -107,5 +107,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-community-alpha.10
-appVersion: 1.5.0-community-alpha.10
+version: 1.5.0-community-kms.10
+appVersion: 1.5.0-community-kms.10

@@ -701,7 +701,8 @@ BKCRYPTO = {
             #     SymmetricCipherType.SM4.value: "sm4_str:::"
             # },
             # 公共参数配置，不同 cipher 初始化时共用这部分参数
-            "common": {"key": env.SECRET_KEY},
+            # bkcrypto>=4 要求 AES key 长度与 key_size 严格一致（旧版本自动截断），取前 16 位保持与历史密文一致
+            "common": {"key": env.SECRET_KEY[:16]},
             "cipher_options": {
                 # ⚠️这里的配置项为了兼容以前AES的加密模式，如果是新部署的环境可自行修改
                 constants.SymmetricCipherType.AES.value: AESSymmetricOptions(

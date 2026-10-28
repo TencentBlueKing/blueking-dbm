@@ -1,3 +1,4 @@
+bk-kms-sdk[gm]==1.0.0
 bkstorages==2.0.1
 Django==4.2.30
 PyYAML==6.0
