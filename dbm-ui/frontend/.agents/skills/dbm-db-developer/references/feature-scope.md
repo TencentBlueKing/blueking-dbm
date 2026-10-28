@@ -90,6 +90,7 @@ mysql → tendb-cluster → es → kafka → redis → sqlserver → mongodb →
 | 权限查询 | mysql、tendb-cluster | `{db}/routes.ts` 的 `permission-retrieve` |
 | 白名单 | mysql、tendb-cluster | `{db}/routes.ts` 的 whitelist。不要因为有授权就补白名单 |
 | 分区管理 | mysql、tendb-cluster | `{db}/partition-manage` + 侧栏 |
+| 集群参数运行值与应用设定值 | mysql、tendb-cluster；仅集群层 | `db-configure/components/ParamTable.vue` 按层级与 DB 白名单启用；[待确认协议](cluster-config-runtime.md) |
 | Excel 导入授权 | mysql（主从 + 单节点）、tendb-cluster | 列表 header 的 `ExcelAuthorize` |
 | 启用 CLB | `TENDBHA`、`TENDBCLUSTER`、`ES`、`REDIS_CLUSTER`、`MONGO_SHARED_CLUSTER` | `useAddClb.ticketTypeMap` |
 | 绑定 / 解绑 CLB 域名 | `TENDBHA`、`TENDBCLUSTER`、`ES`、`REDIS_CLUSTER` | `useBindOrUnbindClb.ticketTypeMap`（没有 mongo） |
