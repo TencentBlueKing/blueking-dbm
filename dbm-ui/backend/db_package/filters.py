@@ -16,6 +16,8 @@ from backend.db_package.models import Package
 
 
 class PackageListFilter(FilterSet):
+    # 避免未指定业务时查询所有业务的安装包信息。
+    bk_biz_id = filters.NumberFilter(method="filter_bk_biz_id", required=True, decimal_places=0, label=_("业务ID"))
     keyword = filters.CharFilter(method="filter_keyword")
     pkg_type = filters.CharFilter(field_name="pkg_type", lookup_expr="exact", label=_("介质类型"))
     db_type = filters.CharFilter(field_name="db_type", lookup_expr="exact", label=_("DB类型"))
@@ -25,6 +27,12 @@ class PackageListFilter(FilterSet):
     class Meta:
         model = Package
         fields = ("keyword", "db_type", "pkg_type", "version", "db_version")
+
+    def filter_bk_biz_id(self, queryset, name, value):
+        # allow_biz_ids 为 NULL 或 [] 时全业务可用，否则需包含当前业务 ID。
+        return queryset.filter(
+            Q(allow_biz_ids__contains=[int(value)]) | Q(allow_biz_ids__isnull=True) | Q(allow_biz_ids=[])
+        )
 
     def filter_keyword(self, queryset, name, value):
         if name == "keyword":

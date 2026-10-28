@@ -16,11 +16,15 @@ from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
 from backend.db_services.dbresource.models import ResourceReplenishRecord
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus, TicketType, TodoType
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, Todo
 
 
 class TicketListFilter(filters.FilterSet):
+    # 默认要求业务 ID 必传；我的待办和平台管理权限的豁免在初始化时处理。
+    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", required=True, decimal_places=0, label=_("业务ID"))
     ids = filters.CharFilter(field_name="ids", method="filter_ids", label=_("单据ID列表"))
     remark = filters.CharFilter(field_name="remark", lookup_expr="icontains", label=_("备注"))
     status = filters.CharFilter(field_name="status", method="filter_status", label=_("单据状态"))
@@ -45,6 +49,25 @@ class TicketListFilter(filters.FilterSet):
             "creator": ["exact", "in"],
             "group": ["exact", "in"],
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 我的待办按当前登录用户过滤，允许跨业务查询这六类状态。
+        # 仅省略 bk_biz_id 时豁免；显式传空值仍按必填字段校验。
+        if self.request is not None and "bk_biz_id" not in self.data:
+            # 兼容个人工作台的'待我处理' '待我协助'里面的单据查询,不做业务隔离,仅会查询当前用户涉及的单据
+            personal_todo = self.data.get("todo") == "running" and self.data.get("status") in {
+                TicketStatus.APPROVE,
+                TicketStatus.TODO,
+                TicketStatus.RESOURCE_REPLENISH,
+                TicketStatus.FAILED,
+                TicketStatus.INNER_TODO,
+                TicketStatus.TIMER,
+            }
+            self.filters["bk_biz_id"].extra["required"] = not (
+                personal_todo
+                or Permission(request=self.request).is_allowed(action=ActionEnum.PLATFORM_MANAGE, resources=[])
+            )
 
     def filter_cluster(self, queryset, name, value):
         clusters = Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True)
