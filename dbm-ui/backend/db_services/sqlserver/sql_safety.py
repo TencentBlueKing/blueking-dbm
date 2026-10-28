@@ -14,7 +14,8 @@ from typing import Tuple
 from backend.db_services.sqlserver.exceptions import UnsafeIdentifierException, UnsafeSQLException
 
 # 数据库名 / 标识符的合法字符（SQL Server 规范子集，足够覆盖普通命名）
-_IDENT_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_$#@]{0,127}$")
+# 允许以数字开头（SQL Server 在 [xxx] 包裹下支持数字开头的标识符）
+_IDENT_PATTERN = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_$#@]{0,127}$")
 
 # SQL 长度上限：防止编译期 DoS（超长 SQL 让优化器搜索 plan space 时爆炸）
 _MAX_SQL_LENGTH = 64 * 1024  # 64 KB
