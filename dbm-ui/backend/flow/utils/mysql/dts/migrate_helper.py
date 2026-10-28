@@ -561,44 +561,6 @@ def _collect_target_gtid_probe_endpoints(cluster: Cluster, migrate_type: str) ->
     return endpoints
 
 
-def decide_enable_gtid(
-    *,
-    source_host: str,
-    source_port: int,
-    source_cluster: Cluster,
-    target_cluster: Cluster | None,
-    migrate_type: str = "",
-) -> bool:
-    """跨版本/跨架构迁移时决定 Source.enable_gtid。
-
-    DTS 的 enable_gtid 作用在读源 binlog；但跨版本场景下若目标无 GTID、源开 GTID，
-    仍建议走 binlog 位点，避免后续运维/校验假设不一致。
-
-    规则：源端 + 目标侧所有探测点均为 gtid_mode=ON 才返回 True；任一端 OFF/探测失败 → False。
-    """
-    source_ok = probe_instance_gtid_enabled(host=source_host, port=source_port, bk_cloud_id=source_cluster.bk_cloud_id)
-    if not source_ok:
-        logger.info(_("源端 {}:{} 未开启 GTID，enable_gtid=False").format(source_host, source_port))
-        return False
-
-    if not target_cluster:
-        logger.warning(_("未传入目标集群，仅源端开启 GTID，为安全起见 enable_gtid=False"))
-        return False
-
-    target_eps = _collect_target_gtid_probe_endpoints(target_cluster, migrate_type)
-    if not target_eps:
-        logger.warning(_("目标集群 {} 无可用 GTID 探测点，enable_gtid=False").format(target_cluster.id))
-        return False
-
-    for host, port, bk_cloud_id in target_eps:
-        if not probe_instance_gtid_enabled(host=host, port=port, bk_cloud_id=bk_cloud_id):
-            logger.info(_("目标端 {}:{} 未开启 GTID（跨版本/混部），enable_gtid=False").format(host, port))
-            return False
-
-    logger.info(_("源/目标均已开启 GTID（目标探测点 {} 个），enable_gtid=True").format(len(target_eps)))
-    return True
-
-
 def task_mode_runs_incremental(task_mode: str | None) -> bool:
     """单据/plan 的 task_mode：仅纯 full 不会进 Sync。空默认按 all。"""
     return (task_mode or "").strip().lower() != "full"
@@ -693,13 +655,6 @@ def build_create_source_request(
             )
         else:
             cluster_type = "spider"
-    enable_gtid = decide_enable_gtid(
-        source_host=host,
-        source_port=port,
-        source_cluster=cluster,
-        target_cluster=target_cluster,
-        migrate_type=migrate_type,
-    )
     bind_worker = worker_name or source_spec.worker_name or None
     relay_config = None
     if task_mode_runs_incremental(task_mode):
@@ -714,7 +669,8 @@ def build_create_source_request(
         dump_from=dump_from,
         user=user,
         password=password,
-        enable_gtid=enable_gtid,
+        # 固定走 binlog 文件+位点，不启用 GTID
+        enable_gtid=False,
         enable=True,
         cluster_type=cluster_type,
         spider=spider,

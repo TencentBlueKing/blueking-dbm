@@ -39,47 +39,43 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
     def _src(self):
         return SourceSpec(cluster_id=1, source_name="src-1", sync_scope=SyncScope())
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_all_enables_relay_and_default_purge(self, _ep, _dump, _gtid):
+    def test_all_enables_relay_and_default_purge(self, _ep, _dump):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p", task_mode="all")
+        self.assertFalse(req.source.enable_gtid)
         self.assertIsNotNone(req.source.relay_config)
         self.assertTrue(req.source.relay_config.enable_relay)
         self.assertEqual(req.source.purge.interval, 600)
         self.assertEqual(req.source.purge.expires, 6)
         self.assertEqual(req.source.purge.remain_space, 50)
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_incremental_enables_relay(self, _ep, _dump, _gtid):
+    def test_incremental_enables_relay(self, _ep, _dump):
         req = build_create_source_request(
             self._src(), self._cluster(), user="u", password="p", task_mode="incremental"
         )
         self.assertTrue(req.source.relay_config.enable_relay)
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_full_does_not_enable_relay(self, _ep, _dump, _gtid):
+    def test_full_does_not_enable_relay(self, _ep, _dump):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p", task_mode="full")
         self.assertTrue(req.source.relay_config is None or req.source.relay_config.enable_relay is False)
         self.assertEqual(req.source.purge.interval, 600)
         self.assertEqual(req.source.purge.expires, 6)
         self.assertEqual(req.source.purge.remain_space, 50)
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=None)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_default_task_mode_enables_relay(self, _ep, _dump, _gtid):
+    def test_default_task_mode_enables_relay(self, _ep, _dump):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p")
         self.assertTrue(req.source.relay_config.enable_relay)
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=("127.0.0.3", 3306))
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_slave_export_is_dump_from_object(self, _ep, _dump, _gtid):
+    def test_slave_export_is_dump_from_object(self, _ep, _dump):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p")
         self.assertEqual(req.source.host, "127.0.0.2")
         self.assertEqual(req.source.dump_from.host, "127.0.0.3")
@@ -94,10 +90,9 @@ class BuildCreateSourceRelayTest(SimpleTestCase):
         self.assertNotIn("dump_host", dumped["source"])
         self.assertNotIn("dump_port", dumped["source"])
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=False)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_dump_endpoint", return_value=("127.0.0.2", 3306))
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.2", 3306))
-    def test_same_address_omits_dump_from(self, _ep, _dump, _gtid):
+    def test_same_address_omits_dump_from(self, _ep, _dump):
         req = build_create_source_request(self._src(), self._cluster(), user="u", password="p")
         self.assertIsNone(req.source.dump_from)
         dumped = MySQLDTSApi._dump_create_source(req)
