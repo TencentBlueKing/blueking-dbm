@@ -16,8 +16,8 @@
     <BkLoading :loading="loading">
       <div
         class="param-operations mb-16"
-        :class="{ 'is-sticky': stickyOperations }">
-        <div>
+        :class="{ 'param-operations-runtime': runtimeEnabled, 'is-sticky': stickyOperations }">
+        <div class="param-operations-actions">
           <AuthTemplate
             :action-id="actionId"
             class="param-operations-left"
@@ -44,6 +44,19 @@
               {{ t('恢复默认') }}
             </BkButton>
           </AuthTemplate>
+          <AuthButton
+            v-if="runtimeEnabled"
+            v-bk-tooltips="{
+              content: selectedRows.length ? t('所选参数均与运行值一致') : t('请勾选参数'),
+              disabled: applicableItems.length > 0,
+            }"
+            :action-id="actionId"
+            :disabled="applicableItems.length === 0"
+            :permission="permissions[actionId]"
+            :resource="resourceId"
+            @click="handleShowApplyDialog">
+            {{ t('应用设定值') }}
+          </AuthButton>
         </div>
         <div class="param-operations-right">
           <BkCheckbox
@@ -111,7 +124,7 @@
         </TableColumn>
         <TableColumn
           col-key="conf_value"
-          :title="t('当前值')"
+          :title="runtimeEnabled ? t('设定值') : t('当前值')"
           :width="300">
           <template #default="{ row, rowIndex }">
             <!-- 新增行 -->
@@ -202,6 +215,20 @@
                 </AuthTemplate>
               </span>
             </template>
+          </template>
+        </TableColumn>
+        <TableColumn
+          v-if="runtimeEnabled"
+          col-key="runtime_value"
+          :min-width="200"
+          :title="t('运行值')">
+          <template #default="{ row, rowIndex }: { row: ConfItem, rowIndex: number }">
+            <template v-if="isAddingRow && rowIndex === 0">--</template>
+            <RuntimeValue
+              v-else
+              :encrypted="row.flag_encrypt === 1"
+              :runtime="runtimeConfigMap[row.conf_name]"
+              @click="runtimeDetailParameter = row" />
           </template>
         </TableColumn>
         <TableColumn
@@ -296,6 +323,18 @@
         :data="selectedRows"
         :fetch-params="fetchParams"
         @saved="handleBatchEditSaved" />
+      <RuntimeValueDetail
+        v-if="runtimeEnabled && runtimeDetailParameter"
+        :parameter="runtimeDetailParameter"
+        :runtime="runtimeConfigMap[runtimeDetailParameter.conf_name]"
+        @close="runtimeDetailParameter = undefined" />
+      <ApplyConfigDialog
+        v-if="runtimeEnabled"
+        v-model:is-show="applyDialog.isShow"
+        :cluster="String(levelValue)"
+        :items="applyDialog.items"
+        :selected-count="applyDialog.selectedCount"
+        :skipped-count="applyDialog.skippedCount" />
     </BkLoading>
   </ApplyPermissionCatch>
 </template>
@@ -310,6 +349,7 @@
   import {
     getConfigNames,
     getLevelConfig,
+    getLevelConfigWithClusterRuntime,
     recoverDefaultConfigItem,
     updateBusinessConfig,
     validateConfItems,
@@ -325,7 +365,11 @@
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import ApplyConfigDialog from '@views/db-configure/components/ApplyConfigDialog.vue';
   import BatchEditSideslider from '@views/db-configure/components/BatchEditSideslider.vue';
+  import type { RuntimeConfig } from '@views/db-configure/components/runtime-config';
+  import RuntimeValue from '@views/db-configure/components/RuntimeValue.vue';
+  import RuntimeValueDetail from '@views/db-configure/components/RuntimeValueDetail.vue';
   import ValueEditor from '@views/db-configure/components/ValueEditor.vue';
 
   import { messageSuccess } from '@utils';
@@ -389,8 +433,8 @@
     dbconfig_edit: false,
   });
 
-  // 数据库类型对应的参数配置编辑权限 actionId
-  const dbconfigEditActionIdMap: Record<DBTypes, string> = {
+  // 仅登记已提供参数配置编辑权限的数据库，不为其它 DB 编造权限项。
+  const dbconfigEditActionIdMap: Partial<Record<DBTypes, string>> = {
     [DBTypes.DORIS]: 'doris_dbconfig_edit',
     [DBTypes.ES]: 'es_dbconfig_edit',
     [DBTypes.HDFS]: 'hdfs_dbconfig_edit',
@@ -410,7 +454,7 @@
   const actionId = computed(() => {
     if (props.levelName === 'cluster') {
       const dbType = clusterTypeInfos[props.clusterType || (route.params.clusterType as ClusterTypes)]?.dbType;
-      return dbconfigEditActionIdMap[dbType];
+      return dbconfigEditActionIdMap[dbType] ?? '';
     }
     return 'dbconfig_edit';
   });
@@ -423,15 +467,35 @@
     return clusterTypeInfos[props.clusterType || (route.params.clusterType as ClusterTypes)]?.dbType;
   });
 
+  // 运行值能力只属于 MySQL / TenDBCluster 的集群层，不改变其它 DB 和模板配置。
+  const runtimeEnabled = computed(() => {
+    if (props.levelName !== 'cluster' || !props.clusterType) return false;
+    const dbType = clusterTypeInfos[props.clusterType]?.dbType;
+    return dbType === DBTypes.MYSQL || dbType === DBTypes.TENDBCLUSTER;
+  });
+  const runtimeConfigMap = ref<Record<string, RuntimeConfig>>({});
+  const runtimeDetailParameter = ref<ConfItem>();
+  const applicableItems = computed(() =>
+    selectedRows.value.filter(
+      (item) => item.flag_readonly !== 1 && runtimeConfigMap.value[item.conf_name]?.comparison !== 'consistent',
+    ),
+  );
+  const applyDialog = reactive({
+    isShow: false,
+    items: [] as ConfItem[],
+    selectedCount: 0,
+    skippedCount: 0,
+  });
+
   // 行唯一标识字段
   const rowKeyField = computed(() => props.rowKey as keyof ConfItem);
 
   // 参数搜索
-  const searchValue = ref<Record<string, any>>({});
-  const quickSearchData = [
+  const searchValue = ref<Record<string, string>>({});
+  const quickSearchData = computed(() => [
     { id: 'conf_name', name: t('参数名'), type: 'input' as const },
     // { id: 'value_default', name: t('默认值'), type: 'input' as const },
-    { id: 'conf_value', name: t('当前值'), type: 'input' as const },
+    { id: 'conf_value', name: runtimeEnabled.value ? t('设定值') : t('当前值'), type: 'input' as const },
     { id: 'value_allowed', name: t('允许值'), type: 'input' as const },
     {
       id: 'need_restart',
@@ -442,7 +506,7 @@
       name: t('重启生效'),
       type: 'multiple' as const,
     },
-  ];
+  ]);
 
   // 表格
   const paramTableRef = ref<InstanceType<typeof DbTable>>();
@@ -580,9 +644,9 @@
     bk_biz_id: globalBizsStore.currentBizId,
     conf_type: props.confType,
     level_info: props.levelInfo,
-    level_name: (props.levelName as any) ?? 'app',
+    level_name: props.levelName ?? 'app',
     level_value: props.levelValue ?? globalBizsStore.currentBizId,
-    meta_cluster_type: props.namespace,
+    meta_cluster_type: props.namespace as ClusterTypes,
     version: props.version,
   }));
 
@@ -656,13 +720,51 @@
     return Promise.resolve(result);
   };
 
+  // 非集群层和白名单外 DB 仍走原接口，避免后端不支持的 level 请求。
+  const requestLevelConfig = (params: Parameters<typeof getLevelConfig>[0]) =>
+    runtimeEnabled.value && params.level_name === 'cluster'
+      ? getLevelConfigWithClusterRuntime({ ...params, level_name: 'cluster' })
+      : getLevelConfig(params);
+
   /** 拉取配置列表（并且刷新表格） */
-  const { loading, run: fetchLevelConfig } = useRequest(getLevelConfig, {
+  const { loading, run: fetchLevelConfig } = useRequest(requestLevelConfig, {
     manual: true,
     onSuccess(res) {
       permissions.value = res.permission;
       allConfItems.value = res.conf_items || [];
       originConfItems.value = _.cloneDeep(res.conf_items || []);
+      runtimeConfigMap.value = {};
+      if (runtimeEnabled.value) {
+        runtimeConfigMap.value = Object.fromEntries(
+          (res.conf_items || []).map((item) => [
+            item.conf_name,
+            {
+              comparison:
+                item.flag_difference === 1 ? 'inconsistent' : item.flag_difference === 0 ? 'consistent' : 'unknown',
+              equivalentExpressions: false,
+              error: item.runtime_error ?? res.runtime_error,
+              fetchedAt: null,
+              hasFailedInstances: false,
+              instances: (item.difference_detail ?? []).map((detail) => ({
+                address: detail.instance,
+                comparison:
+                  detail.flag_difference === 1
+                    ? 'inconsistent'
+                    : detail.flag_difference === 0
+                      ? 'consistent'
+                      : 'unknown',
+                fetchedAt: detail.updated_at,
+                role: detail.instance_role,
+                value: detail.conf_value_runtime ?? null,
+              })),
+              values: item.conf_value_runtime ? [item.conf_value_runtime] : [],
+            } satisfies RuntimeConfig,
+          ]),
+        );
+        runtimeDetailParameter.value = undefined;
+        applyDialog.isShow = false;
+        selectedRows.value = [];
+      }
       nextTick(() => {
         paramTableRef.value?.fetchData({}, true);
       });
@@ -697,15 +799,23 @@
     },
   });
 
-  // 监听 version 变化重新获取数据
+  // 集群切换时即使配置版本相同，也重新读取配置，不能沿用上一个集群的快照。
   watch(
-    () => [props.namespace, props.version],
-    ([namespace, version]) => {
-      if (namespace && version) {
+    () => [props.namespace, props.version, runtimeEnabled.value ? props.clusterId : undefined],
+    () => {
+      if (props.namespace && props.version) {
+        if (runtimeEnabled.value) {
+          runtimeConfigMap.value = {};
+          runtimeDetailParameter.value = undefined;
+          applyDialog.isShow = false;
+          editingRowKey.value = '';
+          isAddingRow.value = false;
+          selectedRows.value = [];
+        }
         fetchLevelConfig(fetchParams.value);
         fetchConfigNames({
           conf_type: props.confType,
-          meta_cluster_type: namespace,
+          meta_cluster_type: props.namespace as ClusterTypes,
           version: props.version,
         });
       }
@@ -739,7 +849,7 @@
     // 重新拉取可选参数名并根据当前配置列表过滤（排除已存在项）
     fetchConfigNames({
       conf_type: props.confType,
-      meta_cluster_type: props.namespace,
+      meta_cluster_type: props.namespace as ClusterTypes,
       version: props.version,
     });
   };
@@ -892,6 +1002,15 @@
     batchEditConfig.isShow = true;
   };
 
+  const handleShowApplyDialog = () => {
+    if (!applicableItems.value.length) return;
+    // 待 PEER 确认：此处接后台最新运行值预检查；当前仅保留设定值快照供界面预览。
+    applyDialog.items = _.cloneDeep(applicableItems.value);
+    applyDialog.selectedCount = selectedRows.value.length;
+    applyDialog.skippedCount = selectedRows.value.length - applicableItems.value.length;
+    applyDialog.isShow = true;
+  };
+
   /**
    * 批量恢复默认值 InfoBox
    *
@@ -906,11 +1025,10 @@
     const selected = selectedRows.value;
     const total = selected.length;
 
-    // 判断是否可恢复：
-    // 1) 当前层级自定义参数 且 非只读，或
-    // 2) "取消使用"型参数（level_name === PLAT 且 flag_visible === 0）且非只读
+    // 集群模式仅处理当前层级自定义参数，模板模式保留原有取消使用判据。
     const isRestorable = (item: ConfItem) =>
-      item.flag_readonly !== 1 && (item.level_name === props.levelName || isCancelUseParam(item));
+      item.flag_readonly !== 1 &&
+      (item.level_name === props.levelName || (!runtimeEnabled.value && isCancelUseParam(item)));
 
     const restorableItems = selected.filter(isRestorable);
 
@@ -936,7 +1054,7 @@
             conf_type: props.confType,
             level_name: props.levelName || 'app',
             level_value: String(props.levelValue),
-            meta_cluster_type: props.namespace,
+            meta_cluster_type: props.namespace as ClusterTypes,
           });
         }
         return true;
@@ -1072,7 +1190,10 @@
               ]
             : [
                 h('p', `${t('参数名')}：${row.conf_name}`),
-                h('p', `${t('当前值')}：${row.conf_value} → ${row.up_level_value?.conf_value ?? '--'}`),
+                h(
+                  'p',
+                  `${runtimeEnabled.value ? t('设定值') : t('当前值')}：${row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--')} → ${row.flag_encrypt === 1 ? '******' : (row.up_level_value?.conf_value ?? '--')}`,
+                ),
                 h('p', t('恢复后该参数重新继承父级配置，\n随父级配置更新而自动同步')),
               ],
         ),
@@ -1087,7 +1208,7 @@
           conf_type: props.confType,
           level_name: props.levelName || 'app',
           level_value: String(props.levelValue),
-          meta_cluster_type: props.namespace,
+          meta_cluster_type: props.namespace as ClusterTypes,
         });
       },
       title: isCancel ? t('确认不再使用该参数？') : t('确认恢复为默认值？'),
@@ -1102,6 +1223,10 @@
     allConfItems.value = [];
     originConfItems.value = [];
     availableParams.value = [];
+    runtimeConfigMap.value = {};
+    runtimeDetailParameter.value = undefined;
+    applyDialog.isShow = false;
+    applyDialog.items = [];
     tippyInstances.forEach((inst) => inst.destroy());
     tippyInstances.length = 0;
   };
@@ -1148,6 +1273,22 @@
       margin-top: -16px;
       background: #fff;
     }
+  }
+
+  .param-operations-runtime {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .param-operations-right {
+      margin-left: auto;
+    }
+  }
+
+  .param-operations-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .param-operations-left {
