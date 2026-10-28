@@ -12,6 +12,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
@@ -167,6 +169,17 @@ func init() {
 
 	if err := loadConfig(); err != nil {
 		logger.Error("load config file failed:%s", err.Error())
+	}
+	// KMS：必须在 model/service 等包的 init() 建立 MySQL、Redis、BCS 连接之前完成覆盖。
+	// config 包不依赖其他业务包，其 init() 总是最先执行。
+	// 开启 KMS 后加载失败即停止启动，不回退配置文件中的旧凭证。
+	credentials, err := LoadRuntimeCredentials()
+	if err != nil {
+		logger.Error("load KMS runtime credentials failed: %s", err.Error())
+		os.Exit(1)
+	}
+	if credentials != nil {
+		applyRuntimeCredentials(&GAppConfig, credentials)
 	}
 	if v := viper.GetString("LISTEN_ADDR"); v != "" {
 		GAppConfig.ListenAddr = v
