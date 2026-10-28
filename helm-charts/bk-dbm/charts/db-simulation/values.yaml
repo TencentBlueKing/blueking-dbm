@@ -94,3 +94,8 @@ serviceMonitor:
 bkLogConfig:
   enabled: false
   dataId: 1
+
+# KMS 开关与 Secret 统一由父 Chart 的 global.kms 管理。
+kms:
+  # 信封只读目录；db-simulation 不创建 ESO 对象或 ServiceAccount。
+  credentialDir: /etc/secrets/db-simulation-kms

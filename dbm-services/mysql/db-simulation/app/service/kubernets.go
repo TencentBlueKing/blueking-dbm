@@ -1001,6 +1001,18 @@ func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
 	return downloadCmd
 }
 
+// maskBkRepoCredential 隐藏命令中 curl -u user:pwd 的制品库密码，仅用于日志与任务输出，不改变实际执行的命令
+func maskBkRepoCredential(cmd string) string {
+	return hideBasicAuthPassword(cmd, config.GAppConfig.BkRepo.User, config.GAppConfig.BkRepo.Pwd)
+}
+
+func hideBasicAuthPassword(cmd, user, pwd string) string {
+	if pwd == "" {
+		return cmd
+	}
+	return strings.ReplaceAll(cmd, user+":"+pwd, user+":xxxx")
+}
+
 func getdownLoadUrl(bkpath, file string) string {
 	endpoint := config.GAppConfig.BkRepo.EndPointUrl
 	project := config.GAppConfig.BkRepo.Project
@@ -1028,7 +1040,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 	req := k.K8S.Cli.CoreV1().RESTClient().Post().Resource("pods").Name(k.BaseInfo.PodName).Namespace(k.K8S.Namespace).
 		SubResource("exec").
 		Param("container", container)
-	logger.Info(cmd)
+	logger.Info(maskBkRepoCredential(cmd))
 	req.VersionedParams(
 		&v1.PodExecOptions{
 			Command: []string{"/bin/bash", "-c", cmd},

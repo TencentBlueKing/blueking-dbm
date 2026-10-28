@@ -538,7 +538,7 @@ func (t *SimulationTask) executeOneObject(e ExecuteSQLFileObj, containerName str
 
 	// 第一步：下载 SQL 文件
 	downloadCmd := t.DbPodSets.getDownloadSqlCmd(t.Path, e.SQLFile)
-	sstdout += util.RemovePassword(downloadCmd) + "\n"
+	sstdout += util.RemovePassword(maskBkRepoCredential(downloadCmd)) + "\n"
 	stdout, stderr, err := t.DbPodSets.executeInPod(downloadCmd, containerName, t.getExtmap(e.SQLFile), false)
 	sstdout += stdout.String() + "\n"
 	sstderr += stderr.String() + "\n"
