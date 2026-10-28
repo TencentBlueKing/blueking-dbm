@@ -205,7 +205,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ]:
             return []
         # 回调和处理无需鉴权
-        elif self.action in ["callback"]:
+        elif self.action in ["itsm_callback"]:
             return []
 
         return [RejectPermission()]
@@ -213,7 +213,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @classmethod
     def _get_login_exempt_view_func(cls):
         # 需要豁免的接口方法与名字
-        return {"post": [cls.callback.__name__], "put": [], "get": [], "delete": []}
+        return {"post": [cls.itsm_callback.__name__], "put": [], "get": [], "delete": []}
 
     def filter_queryset(self, queryset):
         """filter_class可能导致预取的todo失效，这里重新取一次"""
@@ -405,8 +405,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         request_body=serializers.Serializer(),
         tags=[TICKET_TAG],
     )
-    @action(methods=["POST"], detail=True, permission_classes=[AllowAny])
-    def callback(self, request, pk):
+    @action(methods=["POST"], detail=True, permission_classes=[AllowAny], url_path="callback", url_name="callback")
+    def itsm_callback(self, request, pk):
         logger.info(_("收到 ITSM 回调：单据 ID=%s"), pk)
         stage = _("查询单据")
         try:
