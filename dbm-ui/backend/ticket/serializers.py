@@ -615,6 +615,7 @@ class TicketSnapshotSerializer(serializers.ModelSerializer):
             "operator",
             "remark",
             "details",
+            "change_details",
             "change_count",
             "create_at",
         ]
