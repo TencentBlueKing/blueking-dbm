@@ -147,6 +147,91 @@ def test_instance_restart_payload_uid_accepts_int():
     assert serializer.validated_data["uid"] == "12345"
 
 
+def test_instance_restart_payload_mongos_options_default_true():
+    from backend.flow.utils.mongodb.restart_target_resolver import InstanceRestartPayloadSerializer
+
+    serializer = InstanceRestartPayloadSerializer(
+        data={
+            "created_by": "tester",
+            "bk_biz_id": 1,
+            "bk_cloud_id": 0,
+            "infos": [{"cluster_id": 19}],
+        }
+    )
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["serial_restart_mongos"] is True
+    assert serializer.validated_data["update_mongos_conf"] is True
+
+
+def test_instance_restart_payload_mongos_options_can_disable():
+    from backend.flow.utils.mongodb.restart_target_resolver import InstanceRestartPayloadSerializer
+
+    serializer = InstanceRestartPayloadSerializer(
+        data={
+            "created_by": "tester",
+            "bk_biz_id": 1,
+            "bk_cloud_id": 0,
+            "serial_restart_mongos": False,
+            "update_mongos_conf": False,
+            "infos": [{"cluster_id": 19}],
+        }
+    )
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["serial_restart_mongos"] is False
+    assert serializer.validated_data["update_mongos_conf"] is False
+
+
+def test_add_mongos_restart_subflows_serial_or_parallel(monkeypatch):
+    from backend.flow.engine.bamboo.scene.mongodb.sub_task.rolling_restart import add_mongos_restart_subflows
+
+    class _Parent:
+        def __init__(self, root_id, data):
+            self.serial = []
+            self.parallel = None
+            self.root_id = root_id
+            self.data = data
+
+        def add_sub_pipeline(self, sub_flow):
+            self.serial.append(sub_flow)
+
+        def add_parallel_sub_pipeline(self, sub_flow_list):
+            self.parallel = sub_flow_list
+
+        def build_sub_process(self, sub_name):
+            return {"name": sub_name, "serial": list(self.serial), "parallel": self.parallel}
+
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.sub_task.rolling_restart.SubBuilder",
+        _Parent,
+    )
+
+    class _Cluster:
+        def __init__(self):
+            self.added = []
+            self.root_id = "root"
+            self.data = {"uid": "1"}
+
+        def add_sub_pipeline(self, sub_flow):
+            self.added.append(sub_flow)
+
+    serial_builder = _Cluster()
+    add_mongos_restart_subflows(serial_builder, ["a", "b"], True)
+    assert len(serial_builder.added) == 1
+    assert serial_builder.added[0]["serial"] == ["a", "b"]
+    assert serial_builder.added[0]["parallel"] is None
+    assert serial_builder.added[0]["name"] == "MongoDB-mongos滚动重启"
+
+    parallel_builder = _Cluster()
+    add_mongos_restart_subflows(parallel_builder, ["a", "b"], False)
+    assert len(parallel_builder.added) == 1
+    assert parallel_builder.added[0]["serial"] == []
+    assert parallel_builder.added[0]["parallel"] == ["a", "b"]
+
+    empty_builder = _Cluster()
+    add_mongos_restart_subflows(empty_builder, [], True)
+    assert empty_builder.added == []
+
+
 def test_instance_restart_info_serializer_modes():
     from backend.flow.utils.mongodb.restart_target_resolver import (
         INFO_KIND_CLUSTER,

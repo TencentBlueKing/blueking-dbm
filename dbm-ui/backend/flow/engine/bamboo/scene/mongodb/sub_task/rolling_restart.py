@@ -94,6 +94,8 @@ class MongoRollingRestartSubTask:
         target: RestartTargetNode,
         force: bool,
         credentials_map: RestartNodeCredentials,
+        mongos_executor_pool: Optional[Dict[str, int]] = None,
+        slow_op_threshold_ms: Optional[int] = None,
     ) -> SubBuilder:
         exec_node = target.to_mongo_node()
         instance_type = cls._instance_type(target)
@@ -132,6 +134,30 @@ class MongoRollingRestartSubTask:
         }
         if not force and instance_type != MongoDBClusterRole.Mongos.value:
             stop_extra["skip_rs_availability_check"] = True
+        if mongos_executor_pool is not None and instance_type == MongoDBClusterRole.Mongos.value:
+            cls._add_instance_op_act(
+                sb,
+                _("MongoDB-更新mongos配置-{}:{}").format(target.ip, target.port),
+                file_path,
+                exec_node,
+                "update_mongos_conf",
+                instance_type,
+                admin_username,
+                admin_password,
+                mongos_executor_pool=mongos_executor_pool,
+            )
+        if slow_op_threshold_ms is not None:
+            cls._add_instance_op_act(
+                sb,
+                _("MongoDB-更新slowOpThresholdMs-{}:{}").format(target.ip, target.port),
+                file_path,
+                exec_node,
+                "update_slow_op_threshold",
+                instance_type,
+                admin_username,
+                admin_password,
+                slow_op_threshold_ms=slow_op_threshold_ms,
+            )
         cls._add_instance_op_act(
             sb,
             _("MongoDB-停实例-{}:{}").format(target.ip, target.port),
@@ -180,6 +206,8 @@ class MongoRollingRestartSubTask:
         target: RestartTargetNode,
         force: bool,
         credentials_map: RestartNodeCredentials,
+        mongos_executor_pool: Optional[Dict[str, int]] = None,
+        slow_op_threshold_ms: Optional[int] = None,
     ):
         sb = SubBuilder(root_id=root_id, data=ticket_data)
         cls._append_node_restart_acts(
@@ -188,6 +216,8 @@ class MongoRollingRestartSubTask:
             target=target,
             force=force,
             credentials_map=credentials_map,
+            mongos_executor_pool=mongos_executor_pool,
+            slow_op_threshold_ms=slow_op_threshold_ms,
         )
         return sb.build_sub_process(sub_name=_("MongoDB-滚动重启-{}:{}").format(target.ip, target.port))
 
@@ -200,6 +230,7 @@ def build_rs_restart_subflow(
     members: List[RestartTargetNode],
     force: bool,
     credentials_map: RestartNodeCredentials,
+    slow_op_threshold_ms: Optional[int] = None,
 ):
     sb = SubBuilder(root_id=root_id, data=ticket_data)
     for target in members:
@@ -211,6 +242,7 @@ def build_rs_restart_subflow(
                 target=target,
                 force=force,
                 credentials_map=credentials_map,
+                slow_op_threshold_ms=slow_op_threshold_ms,
             )
         )
     if members:
@@ -232,6 +264,22 @@ def build_rs_restart_subflow(
     return sb.build_sub_process(sub_name=_("MongoDB-RS滚动重启-{}").format(rs_name))
 
 
+def add_mongos_restart_subflows(cluster_sb: SubBuilder, pipes: List, serial: bool) -> None:
+    """Put every mongos restart under one parent node.
+
+    serial=True restarts one mongos at a time inside that parent. Different clusters stay parallel.
+    """
+    if not pipes:
+        return
+    parent = SubBuilder(root_id=cluster_sb.root_id, data=cluster_sb.data)
+    if serial:
+        for pipe in pipes:
+            parent.add_sub_pipeline(sub_flow=pipe)
+    else:
+        parent.add_parallel_sub_pipeline(sub_flow_list=pipes)
+    cluster_sb.add_sub_pipeline(sub_flow=parent.build_sub_process(sub_name=_("MongoDB-mongos滚动重启")))
+
+
 def build_mongos_restart_subflow(
     root_id: str,
     ticket_data: Optional[Dict],
@@ -239,6 +287,8 @@ def build_mongos_restart_subflow(
     target: RestartTargetNode,
     force: bool,
     credentials_map: RestartNodeCredentials,
+    mongos_executor_pool: Optional[Dict[str, int]] = None,
+    slow_op_threshold_ms: Optional[int] = None,
 ):
     return MongoRollingRestartSubTask.build_node_restart_subflow(
         root_id=root_id,
@@ -247,4 +297,6 @@ def build_mongos_restart_subflow(
         target=target,
         force=force,
         credentials_map=credentials_map,
+        mongos_executor_pool=mongos_executor_pool,
+        slow_op_threshold_ms=slow_op_threshold_ms,
     )

@@ -16,6 +16,7 @@ from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
+from backend.flow.utils.mongodb.mongodb_conf_file import MONGOS_EXECUTOR_POOL_NAMES
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoNode
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
@@ -46,6 +47,8 @@ class InstanceOpSubTask(BaseSubTask):
         start_timeout_seconds: Optional[int] = None,
         admin_username: Optional[str] = None,
         admin_password: Optional[str] = None,
+        mongos_executor_pool: Optional[Dict[str, int]] = None,
+        slow_op_threshold_ms: Optional[int] = None,
     ) -> dict:
         if username is None:
             username = MongoDBManagerUser.DbaUser.value
@@ -79,6 +82,11 @@ class InstanceOpSubTask(BaseSubTask):
             payload["destVersion"] = dest_version
         if instance_type:
             payload["instanceType"] = instance_type
+        if mongos_executor_pool:
+            for name in MONGOS_EXECUTOR_POOL_NAMES:
+                payload[name] = int(mongos_executor_pool[name])
+        if slow_op_threshold_ms is not None:
+            payload["slowOpThresholdMs"] = int(slow_op_threshold_ms)
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,

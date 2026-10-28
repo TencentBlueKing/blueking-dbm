@@ -144,6 +144,8 @@ class InstanceRestartPayloadSerializer(serializers.Serializer):
     ticket_type = serializers.CharField(required=False, default="MONGODB_INSTANCE_RELOAD")
     infos = InstanceRestartInfoSerializer(many=True, allow_empty=False)
     force = serializers.BooleanField(required=False, default=False)
+    serial_restart_mongos = serializers.BooleanField(required=False, default=True)
+    update_mongos_conf = serializers.BooleanField(required=False, default=True)
 
     def validate_uid(self, value):
         if value is None or value == "":
