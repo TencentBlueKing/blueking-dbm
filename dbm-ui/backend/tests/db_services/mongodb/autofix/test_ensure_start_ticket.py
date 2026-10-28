@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mongodb.autofix.gates import RESTART_SHIELD_TICKET_TYPES
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import create_mongo_ensure_start_ticket
 from backend.ticket.constants import TicketType
@@ -72,3 +73,39 @@ def test_create_mongo_ensure_start_ticket_details():
     assert kwargs["details"]["infos"][0]["ip"] == "127.0.0.1"
     assert kwargs["details"]["infos"][0]["port"] == 27017
     assert kwargs["details"]["infos"][0]["cluster_id"] == 11
+
+
+def test_fix_instance_status_allows_sharded_cluster_non_mongos_without_dns():
+    from backend.flow.consts import InstanceStatus
+    from backend.flow.plugins.components.collections.mongodb.fix_instance_status import ExecFixInstanceStatusOperation
+
+    cluster = SimpleNamespace(id=21, bk_biz_id=3, cluster_type=ClusterType.MongoShardedCluster.value)
+    storage = MagicMock()
+    storage.status = InstanceStatus.UNAVAILABLE.value
+    storage.cluster.first.return_value = cluster
+
+    svc = ExecFixInstanceStatusOperation()
+    svc.log_info = MagicMock()
+    data = MagicMock()
+    data.outputs = {}
+    data.get_one_of_inputs.return_value = {
+        "trans_data_var": {
+            "instance": {
+                "ip": "127.0.0.1",
+                "port": 27001,
+                "bk_cloud_id": 0,
+                "role": "m2",
+            }
+        }
+    }
+
+    with patch(
+        "backend.flow.plugins.components.collections.mongodb.fix_instance_status.StorageInstance.objects.get",
+        return_value=storage,
+    ):
+        assert svc._execute(data, None) is True
+
+    assert data.outputs["fix_entry_list"][0]["result_code"] == 1
+    assert storage.status == InstanceStatus.RUNNING.value
+    storage.save.assert_called_once()
+    assert data.outputs["fix_instance_meta_status"]["result_code"] is True
