@@ -20,6 +20,13 @@ CACHE_SEMANTIC_TASK_FIELD = "{user}_{cluster_type}_semantic_check_task"
 CACHE_SEMANTIC_DATA_FIELD = "{root_id}_semantic_data"
 SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME = 7 * 24 * 60 * 60
 
+# 语义检查流程(非语义测试节点)失败时的兜底错误信息
+SEMANTIC_FLOW_ERROR_CACHE_KEY = "semantic_flow_error_{root_id}_{node_id}_{version_id}"
+SEMANTIC_FLOW_ERROR_CACHE_TIME = 5 * 60
+SEMANTIC_FLOW_ERROR_LINE_ID = -1
+SEMANTIC_FLOW_ERROR_MAX_LOG_LINES = 5
+SEMANTIC_FLOW_ERROR_MAX_MSG_LENGTH = 1000
+
 # 最大预览SQL文件大小200MB
 MAX_PREVIEW_SQL_FILE_SIZE = 200 * 1024 * 1024
 # 最大上传SQL文件大小1G
