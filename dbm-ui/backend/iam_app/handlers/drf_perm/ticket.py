@@ -32,6 +32,7 @@ from backend.iam_app.handlers.drf_perm.base import (
     ResourceActionPermission,
     bk_audit_client,
 )
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import TicketStatus, TicketType
@@ -42,6 +43,26 @@ from backend.utils.basic import get_target_items_from_details
 logger = logging.getLogger("root")
 
 audit_ticket_status = [TicketStatus.RUNNING, TicketStatus.SUCCEEDED, TicketStatus.FAILED, TicketStatus.TERMINATED]
+
+
+class TicketListPermission(BasePermission):
+    """单据列表跨业务查询权限。"""
+
+    message = _("请指定业务 ID")
+
+    def has_permission(self, request, view):
+        # 单据列表权限按查询场景区分，以下情况无需校验平台管理权限：
+        # 1. 数据库管理 - 单据列表：传入 bk_biz_id，按业务过滤单据。
+        # 2. 个人工作台 - 单据待办：传入 todo，过滤当前用户关联的待办单据。
+        # 3. 个人工作台 - 我的申请：creator 为当前用户，仅查询本人申请的单据。
+        # 其他情况视为平台管理 - 单据页查询，需要校验平台管理权限。
+        params = request.query_params
+        if "bk_biz_id" in params or "todo" in params:
+            return True
+        username = request.user.username
+        if username and params.get("creator") == username:
+            return True
+        return Permission(request=request).is_allowed(action=ActionEnum.PLATFORM_MANAGE, resources=[])
 
 
 class CreateTicketOneResourcePermission(ResourceActionPermission):
