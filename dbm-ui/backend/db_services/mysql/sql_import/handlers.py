@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+import logging
 import os.path
 import re
 import tempfile
@@ -18,6 +19,7 @@ from typing import Any, Dict, List, Optional, Union
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import PLAT_BIZ_ID, BizSettingsEnum, DBType
 from backend.configuration.models import BizSettings
@@ -28,7 +30,13 @@ from backend.db_services.mysql.sql_import.constants import (
     CACHE_SEMANTIC_TASK_FIELD,
     MAX_PREVIEW_SQL_FILE_SIZE,
     MAX_UPLOAD_SQL_FILE_NAME_LENGTH,
+    SEMANTIC_FLOW_ERROR_CACHE_KEY,
+    SEMANTIC_FLOW_ERROR_CACHE_TIME,
+    SEMANTIC_FLOW_ERROR_LINE_ID,
+    SEMANTIC_FLOW_ERROR_MAX_LOG_LINES,
+    SEMANTIC_FLOW_ERROR_MAX_MSG_LENGTH,
     SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME,
+    SemanticExecStatus,
 )
 from backend.db_services.mysql.sql_import.exceptions import SQLFileNameTooLongException, SQLImportBaseException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
@@ -42,6 +50,8 @@ from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketFlowS
 from backend.utils.basic import generate_root_id
 from backend.utils.cache import cache, data_cache
 from backend.utils.redis import RedisConn
+
+logger = logging.getLogger("root")
 
 
 class SQLHandler(object):
@@ -420,25 +430,81 @@ class SQLHandler(object):
         获取语义执行的结果
         :param root_id: 语义执行的root id
         """
-        flow_tree = FlowTree.objects.get(root_id=root_id).tree
+        flow_tree_obj = FlowTree.objects.get(root_id=root_id)
+        flow_tree = flow_tree_obj.tree
         taskflow_handler = TaskFlowHandler(root_id)
 
         # 获取语义执行的版本ID
         node_id = taskflow_handler.get_node_id_by_component(flow_tree, component_code=SemanticCheckComponent.code)[0]
         version_id = FlowNode.objects.get(node_id=node_id).version_id
-        # 没有version id，证明没有执行到此步骤，直接返回空
-        if not version_id:
-            return []
 
-        # 查询执行结果
-        results = SQLSimulationApi.query_semantic_result(params={"root_id": root_id, "version_id": version_id})
+        results = []
+        # 有version id，证明已执行到语义测试步骤，查询执行结果
+        if version_id:
+            results = SQLSimulationApi.query_semantic_result(params={"root_id": root_id, "version_id": version_id})
 
-        # 拼接执行的变更DB
-        node_data = BambooEngine(root_id=root_id).get_node_input_data(node_id).data["global_data"]
-        execute_objects = node_data["execute_objects"]
-        line_id__execute = {obj["line_id"]: obj for obj in execute_objects}
-        for data in results:
-            execute = line_id__execute[data["line_id"]]
-            data.update(dbnames=execute["dbnames"], ignore_dbnames=execute["ignore_dbnames"])
+            # 拼接执行的变更DB
+            node_data = BambooEngine(root_id=root_id).get_node_input_data(node_id).data["global_data"]
+            execute_objects = node_data["execute_objects"]
+            line_id__execute = {obj["line_id"]: obj for obj in execute_objects}
+            for data in results:
+                execute = line_id__execute[data["line_id"]]
+                data.update(dbnames=execute["dbnames"], ignore_dbnames=execute["ignore_dbnames"])
+
+        # 没有语义执行结果且流程失败（非语义测试节点失败、或语义任务未创建成功），兜底展示失败节点的错误信息
+        if not results and flow_tree_obj.status == StateType.FAILED:
+            return [self._get_semantic_flow_error(flow_tree_obj)]
 
         return results
+
+    @staticmethod
+    def _get_semantic_flow_error(flow_tree_obj: FlowTree) -> Dict:
+        """
+        获取语义检查流程失败节点的错误信息，按语义执行结果的结构返回一行，便于前端直接展示
+        :param flow_tree_obj: 语义检查流程树
+        """
+        root_id = flow_tree_obj.root_id
+        task_url = f"{env.BK_SAAS_HOST}/{flow_tree_obj.bk_biz_id}/task-history/detail/{root_id}"
+        flow_error = {
+            "task_id": f"{root_id}_flow_error",
+            "line_id": SEMANTIC_FLOW_ERROR_LINE_ID,
+            "status": SemanticExecStatus.FAILED.value,
+            "file_name": _("模拟执行流程失败"),
+            "err_msg": "",
+            "dbnames": [],
+            "ignore_dbnames": [],
+        }
+
+        taskflow_handler = TaskFlowHandler(root_id)
+        try:
+            failed_nodes = taskflow_handler.get_specific_nodes(status=StateType.FAILED, with_node_name=True)
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception(_("获取语义检查流程{}失败节点异常: {}").format(root_id, e))
+            failed_nodes = []
+
+        if not failed_nodes or not failed_nodes[0]["version_id"]:
+            flow_error["err_msg"] = _("任务详情: {}").format(task_url)
+            return flow_error
+
+        node_id, version_id = failed_nodes[0]["node_id"], failed_nodes[0]["version_id"]
+        flow_error["file_name"] = _("节点「{}」执行失败").format(failed_nodes[0]["node_name"] or node_id)
+
+        cache_key = SEMANTIC_FLOW_ERROR_CACHE_KEY.format(root_id=root_id, node_id=node_id, version_id=version_id)
+        err_logs = cache.get(cache_key)
+        if err_logs is None:
+            try:
+                logs = taskflow_handler.get_version_error_logs(node_id, version_id)
+            except Exception as e:  # pylint: disable=broad-except
+                logger.exception(_("获取语义检查流程{}节点{}错误日志异常: {}").format(root_id, node_id, e))
+                logs = []
+
+            err_logs = "\n".join(
+                [f"[{log['levelname']}] {log['message']}" for log in logs[-SEMANTIC_FLOW_ERROR_MAX_LOG_LINES:]]
+            )[-SEMANTIC_FLOW_ERROR_MAX_MSG_LENGTH:]
+            # 日志可能尚未上报完成，查询为空时不缓存，便于下次刷新重新获取
+            if err_logs:
+                cache.set(cache_key, err_logs, SEMANTIC_FLOW_ERROR_CACHE_TIME)
+
+        err_logs = err_logs or _("错误日志上报中，请稍后刷新")
+        flow_error["err_msg"] = _("任务详情: {} 错误日志: {}").format(task_url, err_logs)
+        return flow_error
