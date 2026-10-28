@@ -137,9 +137,8 @@ class ExpandTendbclusterSourceTest(SimpleTestCase):
 
 
 class BuildCreateSourceSpiderTest(SimpleTestCase):
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=True)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.11", 3306))
-    def test_spider_shard_when_meta_present(self, _mock_ep, _mock_gtid):
+    def test_spider_shard_when_meta_present(self, _mock_ep):
         cluster = MagicMock()
         cluster.id = 100
         cluster.cluster_type = ClusterType.TenDBCluster.value
@@ -159,9 +158,8 @@ class BuildCreateSourceSpiderTest(SimpleTestCase):
         self.assertEqual(req.source.spider.shard_index, 1)
         self.assertEqual(req.worker_name, "worker-2")
 
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.decide_enable_gtid", return_value=True)
     @patch("backend.flow.utils.mysql.dts.migrate_helper.resolve_source_endpoint", return_value=("127.0.0.11", 3306))
-    def test_spider_without_meta_keeps_compat(self, _mock_ep, _mock_gtid):
+    def test_spider_without_meta_keeps_compat(self, _mock_ep):
         cluster = MagicMock()
         cluster.cluster_type = ClusterType.TenDBCluster.value
         cluster.immute_domain = "spider.db.test"

@@ -464,7 +464,7 @@ class SyncScopeMappingTest(SimpleTestCase):
 
 
 class ProbeSourceEnableGtidTest(SimpleTestCase):
-    """探测源/目标 gtid_mode → enable_gtid（双方都 ON 才开）。"""
+    """探测实例 gtid_mode 是否为 ON。"""
 
     @staticmethod
     def _rpc_resp(value: str | None, *, error: str = ""):
@@ -505,76 +505,6 @@ class ProbeSourceEnableGtidTest(SimpleTestCase):
 
         mock_rpc.side_effect = RuntimeError("drs down")
         self.assertFalse(probe_instance_gtid_enabled(host="127.0.0.1", port=3306, bk_cloud_id=0))
-
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.probe_instance_gtid_enabled")
-    def test_decide_requires_source_and_target_both_on(self, mock_probe):
-        from types import SimpleNamespace
-
-        from backend.flow.utils.mysql.dts.migrate_helper import decide_enable_gtid
-
-        # source ON, first target ON, second target OFF → False
-        mock_probe.side_effect = [True, True, False]
-        source_cluster = SimpleNamespace(id=1, bk_cloud_id=0)
-        target_cluster = SimpleNamespace(id=2, bk_cloud_id=0, cluster_type="tendbha")
-        master = SimpleNamespace(machine=SimpleNamespace(ip="127.0.0.2"), port=3306)
-        target_cluster.storageinstance_set = SimpleNamespace(
-            filter=lambda **kwargs: SimpleNamespace(first=lambda: master)
-        )
-
-        with patch(
-            "backend.flow.utils.mysql.dts.migrate_helper._collect_target_gtid_probe_endpoints",
-            return_value=[("127.0.0.2", 3306, 0), ("127.0.0.3", 3306, 0)],
-        ):
-            self.assertFalse(
-                decide_enable_gtid(
-                    source_host="127.0.0.1",
-                    source_port=3306,
-                    source_cluster=source_cluster,
-                    target_cluster=target_cluster,
-                    migrate_type="mysql_to_mysql",
-                )
-            )
-
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.probe_instance_gtid_enabled")
-    def test_decide_both_on(self, mock_probe):
-        from types import SimpleNamespace
-
-        from backend.flow.utils.mysql.dts.migrate_helper import decide_enable_gtid
-
-        mock_probe.return_value = True
-        source_cluster = SimpleNamespace(id=1, bk_cloud_id=0)
-        target_cluster = SimpleNamespace(id=2, bk_cloud_id=0)
-        with patch(
-            "backend.flow.utils.mysql.dts.migrate_helper._collect_target_gtid_probe_endpoints",
-            return_value=[("127.0.0.2", 3306, 0)],
-        ):
-            self.assertTrue(
-                decide_enable_gtid(
-                    source_host="127.0.0.1",
-                    source_port=3306,
-                    source_cluster=source_cluster,
-                    target_cluster=target_cluster,
-                    migrate_type="mysql_to_mysql",
-                )
-            )
-
-    @patch("backend.flow.utils.mysql.dts.migrate_helper.probe_instance_gtid_enabled")
-    def test_decide_no_target_cluster_false(self, mock_probe):
-        from types import SimpleNamespace
-
-        from backend.flow.utils.mysql.dts.migrate_helper import decide_enable_gtid
-
-        mock_probe.return_value = True
-        source_cluster = SimpleNamespace(id=1, bk_cloud_id=0)
-        self.assertFalse(
-            decide_enable_gtid(
-                source_host="127.0.0.1",
-                source_port=3306,
-                source_cluster=source_cluster,
-                target_cluster=None,
-                migrate_type="mysql_to_mysql",
-            )
-        )
 
 
 class MigrateCredentialsTest(SimpleTestCase):
