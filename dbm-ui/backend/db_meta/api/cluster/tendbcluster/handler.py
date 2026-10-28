@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from collections import defaultdict
 from typing import List, Optional
 
@@ -17,7 +18,9 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
+from backend.db_meta.api.db_module.version import get_layer_package
 from backend.db_meta.enums import (
+    AccessLayer,
     ClusterEntryRole,
     ClusterEntryType,
     ClusterType,
@@ -27,7 +30,7 @@ from backend.db_meta.enums import (
     MachineType,
     TenDBClusterSpiderRole,
 )
-from backend.db_meta.exceptions import InstanceNotExistException
+from backend.db_meta.exceptions import DBModuleVersionNotSetException, InstanceNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, TenDBBackUpLocation
@@ -94,10 +97,19 @@ class TenDBClusterClusterHandler(ClusterHandler):
         # 录入机器对应的实例信息
         storages = []
         spiders = []
-        mysql_pkg = Package.get_latest_package(version=mysql_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
-        spider_pkg = Package.get_latest_package(
-            version=spider_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
-        )
+        # 存量模块还没设置版本时，仍按部署配置的版本系列取最新介质
+        try:
+            mysql_pkg = get_layer_package(db_module_id, AccessLayer.STORAGE)
+        except DBModuleVersionNotSetException:
+            mysql_pkg = Package.get_latest_package(
+                version=mysql_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+            )
+        try:
+            spider_pkg = get_layer_package(db_module_id, AccessLayer.PROXY)
+        except DBModuleVersionNotSetException:
+            spider_pkg = Package.get_latest_package(
+                version=spider_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
+            )
         for info in shard_infos:
             storages.append(
                 {

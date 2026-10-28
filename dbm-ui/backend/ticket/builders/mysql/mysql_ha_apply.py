@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import itertools
 from typing import Dict, List
 
@@ -15,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import AccessLayer, ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_PROXY_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
@@ -110,7 +111,12 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
     def format(self):
         # 这里必须用group_count参数，因为需要分组申请后顺序分配
-        self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
+        resource_spec = self.ticket_data["resource_spec"]
+        resource_spec["proxy"]["group_count"] = 2
+        # 补充模块约束的操作系统参数
+        db_module = DBModule.objects.get(db_module_id=self.ticket_data["db_module_id"])
+        self.patch_module_os_params(resource_spec, "backend_group", db_module, AccessLayer.STORAGE)
+        self.patch_module_os_params(resource_spec, "proxy", db_module, AccessLayer.PROXY)
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):

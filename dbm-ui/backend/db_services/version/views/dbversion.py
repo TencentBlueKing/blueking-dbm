@@ -22,6 +22,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.api.db_module.version import enabled_package_os
 from backend.db_meta.models import DBVersion, Distribution, ProxyInstance, StorageInstance, VersionSeries
 from backend.db_package.constants import INIT_DB_PKG_SETTINGS, PackageType
 from backend.db_package.models import Package
@@ -32,6 +33,7 @@ from backend.db_services.version.serializers import (
     DBPackageTypeUpdateSerializer,
     DBVersionConflictCheckResponseSerializer,
     DBVersionConflictCheckSerializer,
+    DBVersionPermitOsSerializer,
     DBVersionSerializer,
 )
 from backend.db_services.version.utils import pad_full_version
@@ -72,7 +74,7 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
     }
 
     action_permission_map = {
-        ("list_pkg_types", "check_name_conflict", "list"): [],
+        ("list_pkg_types", "check_name_conflict", "list", "list_permit_os"): [],
     }
     default_permission_class = [
         ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, instance_getter)
@@ -190,6 +192,20 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
             version_conflict = qs.exists()
 
         return Response({"name_conflict": name_conflict, "version_conflict": version_conflict})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("介质版本可选的操作系统"),
+        responses={200: DBVersionPermitOsSerializer(many=True)},
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=True, methods=["GET"], pagination_class=None, filter_fields=None)
+    def list_permit_os(self, request, *args, **kwargs):
+        """返回该版本已启用介质包支持的操作系统，没有已启用介质包时为空列表"""
+        db_version = self.get_object()
+        package = enabled_package_os([db_version.id]).get(db_version.id)
+        if not package:
+            return Response([])
+        return Response([{"permit_os_type": package.os_type, "permit_os": package.os_names}])
 
     @common_swagger_auto_schema(
         operation_summary=_("获取某 DB 类型下的 pkg 类型配置"),

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, ClusterTypeModuleComponentDefine
 from backend.db_services.cmdb.constants import MAX_DB_APP_ABBR_LIMIT, MAX_DB_MODULE_LIMIT
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -42,10 +42,24 @@ class BIZSLZ(serializers.Serializer):
     managed_time = serializers.DateTimeField(help_text=_("纳管时间"))
 
 
+class ModuleLayerOsSLZ(serializers.Serializer):
+    permit_os_type = serializers.CharField(help_text=_("操作系统类型"))
+    permit_os = serializers.ListField(
+        help_text=_("操作系统范围，空列表表示跟随版本包"),
+        child=serializers.CharField(allow_blank=False),
+        allow_empty=True,
+    )
+
+
+class ModuleLayerVersionSLZ(ModuleLayerOsSLZ):
+    db_version_id = serializers.IntegerField(help_text=_("版本ID"), min_value=1)
+
+
 class ModuleSLZ(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_module_id = serializers.IntegerField(help_text=_("DB模块ID"))
     name = serializers.CharField(help_text=_("DB模块名"))
+    db_version_info = serializers.JSONField(help_text=_("各组件版本与操作系统"), required=False)
 
 
 class ListModulesSLZ(serializers.Serializer):
@@ -56,12 +70,42 @@ class CreateModuleSLZ(serializers.Serializer):
     db_module_name = serializers.CharField(help_text=_("DB模块名"))
     alias_name = serializers.CharField(help_text=_("DB模块别名"), required=False, default="")
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    db_versions = serializers.DictField(
+        help_text=_("各组件版本。MySQL 单节点、主从、TenDBCluster 必填"),
+        required=False,
+    )
 
     def validate(self, attrs):
         if len(attrs["db_module_name"]) > MAX_DB_MODULE_LIMIT:
             raise serializers.ValidationError(_("请确保模块名称的长度不超过: {}").format(MAX_DB_MODULE_LIMIT))
-
+        if attrs["cluster_type"] in ClusterTypeModuleComponentDefine and "db_versions" not in attrs:
+            raise serializers.ValidationError(_("请填写各层版本"))
+        if "db_versions" in attrs:
+            attrs["db_versions"] = self.clean_component_layers(attrs["db_versions"], ModuleLayerVersionSLZ)
         return attrs
+
+    @classmethod
+    def clean_component_layers(cls, raw_versions, layer_serializer):
+        """按组件校验 db_versions，错误按组件名汇总后一次返回。"""
+        cleaned = {}
+        errors = {}
+        for key, layer in raw_versions.items():
+            serializer = layer_serializer(data=layer)
+            if serializer.is_valid():
+                cleaned[key] = dict(serializer.validated_data)
+            else:
+                errors[key] = serializer.errors
+        if errors:
+            raise serializers.ValidationError(errors)
+        return cleaned
+
+
+class UpdateModuleVersionOsSLZ(serializers.Serializer):
+    db_module_id = serializers.IntegerField(help_text=_("DB模块ID"), min_value=1)
+    db_versions = serializers.DictField(help_text=_("要修改操作系统的组件"), allow_empty=False)
+
+    def validate_db_versions(self, value):
+        return CreateModuleSLZ.clean_component_layers(value, ModuleLayerOsSLZ)
 
 
 class CheckDbModuleUniqueSLZ(serializers.Serializer):

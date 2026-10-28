@@ -351,6 +351,7 @@ DEFAULT_MACHINE_PROPERTY = {
     "device_class": True,  # 机型
     "sub_zone_meta": True,  # 园区
     "storage_device": True,  # 磁盘
+    "os_name": True,  # 操作系统
 }
 
 # 默认介质支持的操作系统
