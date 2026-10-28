@@ -536,9 +536,15 @@ class TenDBClusterApplyFlow(object):
         deploy_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
         # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
+        # 增加old_instance_configs的参数，用于安装mysql实例时，需要使用到指定的mysql的配置信息
+        # 增加spider_copy_config的参数，用于安装spider实例时，需要使用到spider的配置信息
         exec_act_kwargs = ExecActuatorKwargs(
             bk_cloud_id=int(self.data["bk_cloud_id"]),
             cluster_type=ClusterType.TenDBCluster,
+            cluster={
+                "old_instance_configs": self.data.get("old_instance_configs", {}),
+                "spider_copy_config": self.data.get("spider_copy_config", {}),
+            },
         )
 
         bk_host_ids = []

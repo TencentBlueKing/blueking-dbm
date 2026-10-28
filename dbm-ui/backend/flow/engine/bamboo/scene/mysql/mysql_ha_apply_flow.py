@@ -187,9 +187,11 @@ class MySQLHAApplyFlow(object):
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
             # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
+            # 增加old_instance_configs的参数，用于安装实例时，需要使用到旧实例的配置信息
             exec_act_kwargs = ExecActuatorKwargs(
                 bk_cloud_id=int(self.data["bk_cloud_id"]),
                 cluster_type=ClusterType.TenDBHA,
+                cluster={"old_instance_configs": info.get("old_instance_configs", {})},
             )
 
             # 初始新机器
