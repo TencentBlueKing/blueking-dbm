@@ -337,7 +337,6 @@
           property="remark">
           <DbInput
             v-model="formData.remark"
-            :disabled="modifyState.isAdjustApply"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
