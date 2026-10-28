@@ -565,7 +565,7 @@ class TicketModifySerializer(serializers.Serializer):
 
     mode = serializers.ChoiceField(choices=TicketModifyType.get_choices(), help_text=_("改单模式"))
     details = TicketDetailsSerializer(help_text=_("改单后的单据详情"))
-    change_details = serializers.JSONField(help_text=_("改单内容详情"))
+    change_details = serializers.ListField(help_text=_("改单内容详情"), child=serializers.DictField())
     remark = serializers.CharField(help_text=_("改单说明"), required=False, allow_blank=True, default="")
     ticket_remark = serializers.CharField(help_text=_("单据备注"), required=False, allow_blank=True, default="")
     version = serializers.IntegerField(help_text=_("内容版本号(乐观锁)"), required=False, allow_null=True)
