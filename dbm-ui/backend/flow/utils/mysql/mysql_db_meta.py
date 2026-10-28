@@ -1326,13 +1326,15 @@ class MySQLDBMeta(object):
                 src_cluster.cluster_type == ClusterType.TENDBCLUSTER.value
                 or src_cluster.cluster_type == ClusterType.TenDBHA.value
             ):
-                #  不一定有从库。。。
-                source_slave_entry = ClusterEntry.objects.get(id=self.cluster["source_slave_entry_id"])
-                destination_slave_entry = ClusterEntry.objects.get(id=self.cluster["destination_slave_entry_id"])
-                source_slave_entry.entry = self.cluster["destination_slave_domain"]
-                destination_slave_entry.entry = self.cluster["source_slave_domain"]
-                source_slave_entry.save()
-                destination_slave_entry.save()
+                # TenDBHA 一定有从库域名 TENDBCLUSTER 不一定有从库域名
+                if self.cluster["source_slave_entry_id"] > 0:
+                    destination_slave_entry = ClusterEntry.objects.get(id=self.cluster["destination_slave_entry_id"])
+                    destination_slave_entry.entry = self.cluster["source_slave_domain"]
+                    destination_slave_entry.save()
+                if self.cluster["destination_slave_entry_id"] > 0:
+                    source_slave_entry = ClusterEntry.objects.get(id=self.cluster["source_slave_entry_id"])
+                    source_slave_entry.entry = self.cluster["destination_slave_domain"]
+                    source_slave_entry.save()
             return True
 
     def tendb_exchange_clb(self):

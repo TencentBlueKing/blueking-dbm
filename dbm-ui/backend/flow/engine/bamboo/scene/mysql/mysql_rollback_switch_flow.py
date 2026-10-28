@@ -72,8 +72,7 @@ class MysqlRollbackSwitchFlow(object):
             }
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
 
-            # 步骤1 检查配置项
-            # 步骤2 复制权限
+            # 步骤1 复制权限
             sync_grants_subflow = rollback_users_grant(
                 root_id=self.root_id,
                 ticket_data=copy.deepcopy(ticket_data),
@@ -82,7 +81,7 @@ class MysqlRollbackSwitchFlow(object):
             )
             sub_pipeline.add_sub_pipeline(sub_flow=sync_grants_subflow)
 
-            # 步骤3 集群互换域名
+            # 步骤2 互换域名
             exchange_domain_subflow = rollback_domain_exchange_subflow(
                 root_id=self.root_id,
                 ticket_data=copy.deepcopy(ticket_data),
@@ -91,7 +90,7 @@ class MysqlRollbackSwitchFlow(object):
             )
             sub_pipeline.add_sub_pipeline(sub_flow=exchange_domain_subflow)
 
-            #  步骤3 域名互切、包括clb域名、proxy 域名。从库域名
+            #  步骤3 CLB互切
             exchange_clb_subflow = rollback_clb_exchange_subflow(
                 root_id=self.root_id,
                 ticket_data=copy.deepcopy(ticket_data),
@@ -101,7 +100,7 @@ class MysqlRollbackSwitchFlow(object):
             if exchange_clb_subflow is not None:
                 sub_pipeline.add_sub_pipeline(sub_flow=exchange_clb_subflow)
 
-            #  todo 标准化。
+            #  todo 插入集群标准化任务
 
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("新机回档集群间互切")))
         mysql_rollback_switch_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
