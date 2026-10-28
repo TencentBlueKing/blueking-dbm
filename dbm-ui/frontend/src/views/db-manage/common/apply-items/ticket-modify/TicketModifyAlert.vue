@@ -14,35 +14,35 @@
 <!-- 改单模式的页面级 UI：顶部 Alert 与提交前的确认弹窗，改单模式下每个申请页都会渲染 -->
 <template>
   <template v-if="modifyState">
-    <BkAlert
-      class="ticket-modify-alert mb-20"
-      :theme="alertConfig.theme">
-      <template #title>
-        <span class="ticket-modify-alert-mode">{{ alertConfig.modeText }}</span>
-        <!-- I18nT 插槽内的 v-if 会留下注释节点占住 {0}，带提单人与不带提单人的文案分开渲染 -->
-        <I18nT
-          v-if="alertConfig.withCreator"
-          :keypath="alertConfig.keypath"
-          scope="global">
-          <bk-user-display-name :user-id="modifyState.ticketData.value?.creator" />
-          <a
-            :href="ticketDetailHref"
-            target="_blank">
-            {{ ticketId }}
-          </a>
-        </I18nT>
-        <I18nT
-          v-else
-          :keypath="alertConfig.keypath"
-          scope="global">
-          <a
-            :href="ticketDetailHref"
-            target="_blank">
-            {{ ticketId }}
-          </a>
-        </I18nT>
-      </template>
-    </BkAlert>
+    <div class="ticket-modify-alert">
+      <BkAlert :theme="alertConfig.theme">
+        <template #title>
+          <span class="ticket-modify-alert-mode">{{ alertConfig.modeText }}</span>
+          <!-- I18nT 插槽内的 v-if 会留下注释节点占住 {0}，带提单人与不带提单人的文案分开渲染 -->
+          <I18nT
+            v-if="alertConfig.withCreator"
+            :keypath="alertConfig.keypath"
+            scope="global">
+            <bk-user-display-name :user-id="modifyState.ticketData.value?.creator" />
+            <a
+              :href="ticketDetailHref"
+              target="_blank">
+              {{ ticketId }}
+            </a>
+          </I18nT>
+          <I18nT
+            v-else
+            :keypath="alertConfig.keypath"
+            scope="global">
+            <a
+              :href="ticketDetailHref"
+              target="_blank">
+              {{ ticketId }}
+            </a>
+          </I18nT>
+        </template>
+      </BkAlert>
+    </div>
     <BkDialog
       :is-show="modifyState.confirmState.isShow"
       :quick-close="false"
@@ -150,10 +150,16 @@
 </script>
 <style lang="less">
   // 模式说明条随页面滚动始终吸顶，提示当前处于改单模式
+  // 外层容器带页面底色和四周留白，盖住下方滚动内容；
+  // 内容区 .db-navigation-content-wrapper 有 20px 24px 0 的内边距，用负 margin / 负 top 抵掉，
+  // 让吸顶后的容器贴住滚动区顶边、背景横向撑满，未滚动时 Alert 位置与原来一致
   .ticket-modify-alert {
     position: sticky;
-    top: 0;
+    top: -20px;
     z-index: 10;
+    padding: 20px 24px;
+    margin: -20px -24px 0;
+    background: @bg-gray;
   }
 
   .ticket-modify-alert-mode {

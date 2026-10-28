@@ -34,7 +34,7 @@ export interface TicketModifyState {
   };
   // 改后 details 与进入时的单据内容对比，提交时的变更计数与「重置」置灰共用这一份判据
   getDiffList: (details: unknown) => DiffItem[];
-  // 改后补充信息（交付通知、单据备注）与进入时的单据对比，重新编辑、代为修改提交时使用
+  // 改后补充信息（交付通知、单据备注）与进入时的单据对比；调整申请只取其中的单据备注
   getSupplementDiffList: (config: unknown, ticketRemark: string) => DiffItem[];
   isAdjustApply: boolean;
   isModify: boolean;
