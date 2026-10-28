@@ -27,6 +27,7 @@ export interface ParameterConfigItem {
   conf_name: string;
   conf_name_lc?: string;
   conf_value?: string;
+  conf_value_runtime?: string | null;
   /**
    * 参数来源（后端返回，区分系统内置与平台自定义）
    * - ''（空值）：系统定义且未修改，不显示删除/恢复操作
@@ -35,7 +36,16 @@ export interface ParameterConfigItem {
    */
   create_from?: '' | 'def' | 'plat';
   description: string;
+  difference_detail?: {
+    conf_value_runtime?: string | null;
+    flag_difference: -1 | 0 | 1;
+    instance: string;
+    instance_role: string;
+    updated_at: string | null;
+  }[];
   extra_info?: string;
+  // 1：不一致，0：一致，-1：未知；仅集群运行配置接口返回。
+  flag_difference?: -1 | 0 | 1;
   flag_disable?: number;
   flag_encrypt?: number;
   flag_locked?: number;
@@ -45,6 +55,7 @@ export interface ParameterConfigItem {
   level_name?: string;
   need_restart?: number;
   op_type: string;
+  runtime_error?: string;
   up_level_value?: {
     conf_value: string;
     level_name: string;
@@ -131,11 +142,25 @@ export function getLevelConfig(
     description: string;
     name: string;
     permission: Record<string, boolean>;
+    runtime_error?: string;
     updated_at?: string;
     updated_by?: string;
     version: string;
   }>(`${path}/get_level_config/`, params, payload);
 }
+
+// 获取集群配置及运行值，其它层级不能调用此接口。
+export function getLevelConfigWithClusterRuntime(
+  params: { level_name: 'cluster' } & Parameters<typeof getLevelConfig>[0],
+  payload = {} as IRequestPayload,
+) {
+  return http.post<Awaited<ReturnType<typeof getLevelConfig>>>(
+    `${path}/get_level_config_with_cluster_runtime/`,
+    params,
+    payload,
+  );
+}
+
 /**
  * 查询平台配置详情
  */
