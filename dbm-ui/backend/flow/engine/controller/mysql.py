@@ -67,6 +67,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRa
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_remote_flow import MySQLRestoreSlaveRemoteFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_flow import MySQLRollbackDataFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_switch_flow import MysqlRollbackSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MySQLSingleDisableFlow
@@ -542,6 +543,13 @@ class MySQLController(BaseController):
         """
         flow = MySQLRollbackDataFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_to_cluster_flow()
+
+    def mysql_rollback_switch_scene(self):
+        """
+        新机回档关联的集群间互切
+        """
+        flow = MysqlRollbackSwitchFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_rollback_switch_flow()
 
     def mysql_pt_table_sync_scene(self):
         """

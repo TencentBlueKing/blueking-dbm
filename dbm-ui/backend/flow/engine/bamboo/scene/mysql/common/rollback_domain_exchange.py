@@ -13,6 +13,7 @@ from dataclasses import asdict
 
 from django.utils.translation import gettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import (
     ClusterEntryRole,
     ClusterEntryType,
@@ -222,7 +223,7 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
             cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.MASTER_ENTRY.value
         )
         dst_master_entry = dst_cluster.clusterentry_set.get(
-            cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+            cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.MASTER_ENTRY.value
         )
         src_master_proxys = src_cluster.proxyinstance_set.filter()
         dst_master_proxys = dst_cluster.proxyinstance_set.filter()
@@ -314,7 +315,7 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
                 DnsOpType.CREATE,
                 {
                     "bk_cloud_id": dst_cluster.bk_cloud_id,
-                    "port": dst_master_entry[0].port,
+                    "port": dst_master_proxys[0].port,
                     "add_ips": dst_master_proxy_ips,
                     "entry": src_master_entry.entry,
                 },
@@ -406,7 +407,7 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
         raise Exception(_("域名互换不支持该集群类型"))
 
     exchange_sub_pipeline.add_act(
-        act_name=_("域名切换修改元数据"),
+        act_name=_("域名切换完成后修改元数据"),
         act_component_code=MySQLDBMetaComponent.code,
         kwargs=asdict(
             DBMetaOPKwargs(
@@ -416,7 +417,7 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
             )
         ),
     )
-    return exchange_sub_pipeline.build_sub_process(sub_name=_("域名互换"))
+    return exchange_sub_pipeline.build_sub_process(sub_name=_("域名切换 {} <-> {}".format(src_cluster.id, dst_cluster.id)))
 
 
 def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: Cluster, dst_cluster: Cluster):
@@ -442,6 +443,14 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
     dst_slave_entrys = ClusterEntry.objects.filter(
         cluster=dst_cluster, cluster_entry_type=ClusterEntryType.CLB.value, role=ClusterEntryRole.SLAVE_ENTRY
     )
+
+    if (
+        len(src_master_entrys) == 0
+        or len(src_slave_entrys) == 0
+        or len(dst_master_entrys) == 0
+        or len(dst_slave_entrys) == 0
+    ):
+        return None
 
     clb_add_list = []
     clb_del_list = []
@@ -585,7 +594,6 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
                     },
                 }
             )
-            # cluster_exchange_clb["destination_slave_entry_id"] = dst_slave_entrys[0].id
 
     elif src_cluster.cluster_type == ClusterType.TenDBHA.value:
         src_proxys = src_cluster.proxyinstance_set.filter()
@@ -621,7 +629,6 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
                     },
                 }
             )
-            # cluster_exchange_clb["source_master_entry_id"] = src_master_entrys[0].id
         if len(dst_master_entrys) == 1:
             if len(src_proxy_ips) == 0:
                 raise Exception(_("源集群没有查询到 master proxy"))
@@ -651,14 +658,13 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
                     },
                 }
             )
-            # cluster_exchange_clb["destination_master_entry_id"] = dst_master_entrys[0].id
     else:
         return None
     if len(clb_del_list) > 0 and len(clb_add_list) > 0:
         exchange_sub_pipeline.add_parallel_acts(acts_list=clb_del_list)
         exchange_sub_pipeline.add_parallel_acts(acts_list=clb_add_list)
         exchange_sub_pipeline.add_act(
-            act_name=_("域名切换修改元数据"),
+            act_name=_("CLB切换完成后修改元数据"),
             act_component_code=MySQLDBMetaComponent.code,
             kwargs=asdict(
                 DBMetaOPKwargs(
@@ -670,7 +676,9 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
         )
     else:
         return None
-    return exchange_sub_pipeline.build_sub_process(sub_name=_("CLB域名互换"))
+    return exchange_sub_pipeline.build_sub_process(
+        sub_name=_("CLB切换 {} <-> {}".format(src_cluster.id, dst_cluster.id))
+    )
 
 
 def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, dst_cluster: Cluster):
@@ -693,6 +701,14 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
         dst_is_standby_slave = dst_cluster.storageinstance_set.get(
             instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
         )
+        # 检查是否存在非is_stand_by从库的
+        src_no_is_standby_slaves = src_cluster.storageinstance_set.filter(
+            instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=False
+        )
+        if len(src_no_is_standby_slaves) > 0:
+            raise Exception(_("切换流程只支持一主一从tendbHa，目前不支持存在非is_stand_by从节点"))
+
+        #  1、并发复制源集群的is_stand_by主从到目标集群的主从
         user_grant_sub_pipeline.add_parallel_sub_pipeline(
             sub_flow_list=[
                 mysql_clone_grants_from_file_subflow(
@@ -713,16 +729,17 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
                 ),
             ]
         )
-        # 从集群内已有 proxy 克隆用户白名单到新 proxy
+        # 2、从源集群内已有的其中一个proxy用户摆明到到目标集群proxys，这里要求源和目标proxy端口必须一致。
         clone_user_acts_list = []
         add_proxy_user_acts_list = []
         src_proxys = src_cluster.proxyinstance_set.all()
         dst_proxys = dst_cluster.proxyinstance_set.all()
         for dst_proxy in dst_proxys:
-            #  proxy 克隆报名单
+            if src_proxys[0].port != dst_proxy.port:
+                raise Exception(_("源集群proxy端口和目标集群proxy端口不一致"))
             clone_user_acts_list.append(
                 {
-                    "act_name": _("克隆proxy用户白名单[{}:{}]".format(dst_proxy.machine.ip, dst_proxy.port)),
+                    "act_name": _("克隆proxy用户白名单 {}".format(dst_proxy.ip_port)),
                     "act_component_code": CloneProxyUsersInClusterComponent.code,
                     "kwargs": asdict(
                         CloneProxyUsersKwargs(
@@ -732,7 +749,7 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
                     ),
                 }
             )
-            #  todo 在后端 MySQL 上为新 proxy 的 IP 创建访问权限 确定是否可跨集群 。需要考虑从所有src_proxy复制吗？
+            # 3、为后端节点加上目标集群proxy的访问权限
             add_proxy_user_acts_list.append(
                 {
                     "act_name": _("集群对新的proxy添加权限[{}:{}]".format(dst_proxy.machine.ip, dst_proxy.port)),
@@ -763,9 +780,16 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
             )
         )
     elif src_cluster.cluster_type == ClusterType.TenDBCluster:
-        src_spider_master = src_cluster.proxyinstance_set.filter(
-            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-        ).first()
+        primary_map = Cluster.get_cluster_id__primary_address_map([src_cluster.id])
+        primary_address = primary_map.get(src_cluster.id, "")
+        primary_address_splits = primary_address.split(IP_PORT_DIVIDER)
+        if len(primary_address_splits) != 2:
+            raise Exception(_("获取中控节点失败 {}".format(primary_address)))
+
+        src_spider_master = src_cluster.proxyinstance_set.get(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+            machine__ip=primary_address_splits[0],
+        )
         dst_spider_masters = dst_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
         )
@@ -775,6 +799,7 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
 
         clone_master_acts_list = []
         clone_slave_acts_list = []
+        # 选择源端中控同机器上的 spider master 的权限复制到所有目标端spider master
         for dst_spider_master in dst_spider_masters:
             clone_master_acts_list.append(
                 mysql_clone_grants_from_file_subflow(
@@ -792,6 +817,7 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
         dst_spider_slaves = dst_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
         )
+        # 选择源端随机一台spider slave 的权限复制到所有目标端spider slave
         if src_spider_slave is not None:
             for dst_spider_slave in dst_spider_slaves:
                 clone_slave_acts_list.append(
@@ -809,4 +835,6 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
             user_grant_sub_pipeline.add_parallel_acts(acts_list=clone_slave_acts_list)
     else:
         raise Exception(_("不支持的集群类型"))
-    return user_grant_sub_pipeline.build_sub_process(sub_name=_("授权到目标集群"))
+    return user_grant_sub_pipeline.build_sub_process(
+        sub_name=_("同步权限到目标集群 {} -> {}".format(src_cluster.id, dst_cluster.id))
+    )
