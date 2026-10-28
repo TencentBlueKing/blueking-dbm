@@ -21,6 +21,7 @@ from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, T
 
 
 class TicketListFilter(filters.FilterSet):
+    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", required=False, decimal_places=0, label=_("业务ID"))
     ids = filters.CharFilter(field_name="ids", method="filter_ids", label=_("单据ID列表"))
     remark = filters.CharFilter(field_name="remark", lookup_expr="icontains", label=_("备注"))
     status = filters.CharFilter(field_name="status", method="filter_status", label=_("单据状态"))
@@ -45,6 +46,11 @@ class TicketListFilter(filters.FilterSet):
             "creator": ["exact", "in"],
             "group": ["exact", "in"],
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 权限类决定能否省略业务 ID；过滤器拒绝显式传入的空值。
+        self.filters["bk_biz_id"].extra["required"] = "bk_biz_id" in self.data
 
     def filter_cluster(self, queryset, name, value):
         clusters = Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True)
