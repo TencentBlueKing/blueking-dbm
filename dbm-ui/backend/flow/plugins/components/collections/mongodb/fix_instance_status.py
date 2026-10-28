@@ -201,7 +201,7 @@ def fix_instance_cluster_entry(ip: str, port: int, bk_cloud_id: int, role_type: 
                 FixEntryInfo(
                     cluster_entry_type="none",
                     entry="none dns entry",
-                    result_code=0,
+                    result_code=1,
                     result_message="cluster type is not replica set, cluster_type:{}".format(cluster_type),
                 )
             )
