@@ -1,3 +1,5 @@
+{{- $kms := (.Values.global | default dict).kms | default dict }}
+{{- $kmsEnabled := $kms.enabled | default false }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,6 +38,15 @@ spec:
                 path: config.yaml
                 mode: 420
             defaultMode: 272
+        {{- if $kmsEnabled }}
+        - name: kms-credentials
+          secret:
+            secretName: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+            defaultMode: 0400
+            items:
+              - key: envelope
+                path: envelope
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           args:
@@ -44,6 +55,18 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ENABLE_KMS
+              value: {{ $kmsEnabled | quote }}
+            {{- if $kmsEnabled }}
+            - name: HADB_API_KMS_CREDENTIAL_DIR
+              value: {{ .Values.kms.credentialDir | quote }}
+            - name: BK_DBM_KMS_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+                  key: privateKey
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -54,6 +77,11 @@ spec:
             -
               name: config-volume
               mountPath: /home/hadb/conf
+            {{- if $kmsEnabled }}
+            - name: kms-credentials
+              mountPath: {{ .Values.kms.credentialDir | quote }}
+              readOnly: true
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
