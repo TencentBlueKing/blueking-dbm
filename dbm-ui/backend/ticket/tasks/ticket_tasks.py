@@ -665,7 +665,10 @@ def send_ticket_delivery_info(ticket_id):
     ticket_dir = f"{env.BK_SAAS_HOST}/ticket/{ticket_id}"
     title = _("【DBM交付】 {}").format(TicketType.get_choice_label(ticket.ticket_type))
 
-    receivers = ticket.config["send_msg_config"]["receiver__username"].split(",")
+    receivers = ticket.config["send_msg_config"]["receiver__username"].split(",") + ticket.config[
+        "send_msg_config"
+    ].get("default_receiver_username", "").split(",")
+    receivers = list(set(receivers))
     for msg_type in ticket.config["send_msg_config"]["msg_type"]:
         if msg_type == notify.constants.MsgType.MAIL.value:
             context = get_mail_context(ticket_id, flow_summary, ticket_dir)
