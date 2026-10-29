@@ -13,19 +13,19 @@
 
 import { Message } from 'bkui-vue';
 import InfoBox from 'bkui-vue/lib/info-box';
+import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
 
 import TicketModifyRecordModel from '@services/model/ticket/modify-record';
-import TicketModel from '@services/model/ticket/ticket';
 import { createAppAbbr } from '@services/source/cmdb';
-import { getTicketStatus, modifyTicket } from '@services/source/ticket';
+import { getTicketDetails, getTicketModifyRecords, modifyTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types';
 
 import { useCreateTicket } from '@hooks';
 
 import { type RequestErrorBody, TICKET_MODIFY_ERROR_CODE } from '@views/ticket-center/common/ticket-modify/constants';
 
-import { getBusinessHref, messageError, messageWarn } from '@utils';
+import { getBusinessHref, messageError, messageWarn, utcDisplayTime } from '@utils';
 
 import { useTicketModify } from './useTicketModify';
 
@@ -34,7 +34,6 @@ import { useTicketModify } from './useTicketModify';
  */
 export const useApplyBase = () => {
   const { t } = useI18n();
-  const route = useRoute();
   const router = useRouter();
 
   const { run: createTicketRun } = useCreateTicket(undefined, {
@@ -56,22 +55,11 @@ export const useApplyBase = () => {
   let prevBizId: number | undefined;
 
   /**
-   * 取消申请；改单模式下回到单据详情：
-   * 从单据详情（详情页或列表侧栏）进入时，入口在当前页跳转，返回上一页即回到原来的详情位置；
-   * 直接打开改单链接、没有上一页时，跳到单据详情页
+   * 取消申请；改单模式下回到单据详情
    */
   function handleCancel() {
     if (modifyState.isModify) {
-      if (window.history.state?.back) {
-        router.back();
-        return;
-      }
-      router.replace({
-        name: 'ticketDetail',
-        params: {
-          ticketId: Number(route.query.ticketId),
-        },
-      });
+      modifyState.backToTicket();
       return;
     }
     router.push({ name: 'serviceApply' });
@@ -120,25 +108,52 @@ export const useApplyBase = () => {
   }
 
   /**
-   * 改单提交被拦截：身份、状态、内容三类提示可区分，留在工具页
+   * 回到业务单据列表并打开该单据详情侧栏（列表页按路由 ticketId 自动打开）；replace 避免返回到已提交的表单
+   * 业务路由前缀在页面初始化时按当前业务固定，单据不属于当前业务时只能整页跳转到单据所属业务
+   */
+  function openTicketInList(ticketId: number, bizId: number) {
+    const ticketRoute = {
+      name: 'bizTicketManage',
+      params: {
+        ticketId,
+      },
+    };
+    if (bizId !== window.PROJECT_CONFIG.BIZ_ID) {
+      window.location.replace(getBusinessHref(router.resolve(ticketRoute).href, bizId));
+      return;
+    }
+    router.replace(ticketRoute);
+  }
+
+  /**
+   * 改单提交被拦截：
+   * 内容已修改、状态不支持修改、已被审批，都是单据在打开后被他人更新，统一弹「单据已更新」只能返回单据；
+   * 无权修改提示后返回单据详情；缺少版本号是页面信息不完整，提示刷新
    * 其余错误码未接管，已由请求层提示
    */
   function handleModifyError(error: unknown, ticketId: number) {
     const code = (error as RequestErrorBody | undefined)?.code;
     if (code === TICKET_MODIFY_ERROR_CODE.NO_PERMISSION) {
-      messageError(t('您没有该单据的改单权限'));
+      messageError(t('无权修改该单据'));
+      window.changeConfirm = false;
+      modifyState.backToTicket();
       return;
     }
+    if (code === TICKET_MODIFY_ERROR_CODE.MISSING_VERSION) {
+      messageError(t('页面信息不完整，请刷新页面后重试'));
+      return;
+    }
+    // 内容被改时更新人取最近一条改单记录；状态变化（审批、撤销等）不产生改单记录，取单据的最后更新人
     if (code === TICKET_MODIFY_ERROR_CODE.CONTENT_CHANGED) {
-      messageError(t('单据内容已被他人修改'));
+      getTicketModifyRecords({ id: ticketId }).then((recordList) => {
+        const latestRecord = _.last(recordList);
+        modifyState.openUpdated(latestRecord?.operator || '', latestRecord?.createAtDisplay || '');
+      });
       return;
     }
     if (code === TICKET_MODIFY_ERROR_CODE.STATUS_UNSUPPORTED || code === TICKET_MODIFY_ERROR_CODE.APPROVED) {
-      getTicketStatus({
-        ticket_ids: `${ticketId}`,
-      }).then((data) => {
-        const status = data[ticketId] as keyof typeof TicketModel.statusTextMap;
-        messageError(t('单据状态已变更为{status}', { status: TicketModel.statusTextMap[status] || status }));
+      getTicketDetails({ id: ticketId }).then((data) => {
+        modifyState.openUpdated(data.updater, utcDisplayTime(data.update_at));
       });
     }
   }
@@ -146,8 +161,7 @@ export const useApplyBase = () => {
   /**
    * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到业务单据列表并打开该单据详情
    * 确认弹窗展示的变更项原样作为 change_details 提交，详情页的变更对比直接展示它
-   * 单据备注 ticket_remark 所有改单模式都可改、都提交；
-   * 交付通知 config 只有重新编辑、代为修改提交，调整申请下只读，不提交也不参与对比
+   * 重新编辑、代为修改提交补充信息（交付通知 config、单据备注 ticket_remark）；调整申请只改资源条件，补充信息只读，不提交
    */
   function handleModifyTicket(details: unknown, config: unknown, ticketRemark: string) {
     const ticketData = modifyState.ticketData.value;
@@ -158,15 +172,13 @@ export const useApplyBase = () => {
       return;
     }
     const isReEdit = mode === TicketModifyRecordModel.MODE_RE_EDIT;
-    const isSubmitConfig = !modifyState.isAdjustApply;
+    const isSubmitSupplement = !modifyState.isAdjustApply;
     modifyState
       .validateRemark()
       .then(() => {
-        const supplementDiffList = modifyState.getSupplementDiffList(config, ticketRemark);
         const diffList = [
           ...modifyState.getDiffList(details),
-          // 调整申请只保留单据备注的变更项
-          ...(isSubmitConfig ? supplementDiffList : supplementDiffList.filter((item) => item.path === 'ticket_remark')),
+          ...(isSubmitSupplement ? modifyState.getSupplementDiffList(config, ticketRemark) : []),
         ];
         if (diffList.length < 1) {
           messageWarn(t('没有改动'));
@@ -178,12 +190,11 @@ export const useApplyBase = () => {
             {
               change_count: diffList.length,
               change_details: diffList,
-              ...(isSubmitConfig ? { config } : {}),
+              ...(isSubmitSupplement ? { config, ticket_remark: ticketRemark } : {}),
               details,
               id: ticketData.id,
               mode,
               remark: isReEdit ? '' : modifyState.modifyRemark.value,
-              ticket_remark: ticketRemark,
               // 直接提交进入时单据详情返回的版本；详情未返回版本表示还没改过单，传 1
               version: ticketData.version ?? 1,
             },
@@ -197,19 +208,7 @@ export const useApplyBase = () => {
                 theme: 'success',
               });
               window.changeConfirm = false;
-              // 回到业务单据列表并打开该单据详情侧栏（列表页按路由 ticketId 自动打开）
-              const ticketRoute = {
-                name: 'bizTicketManage',
-                params: {
-                  ticketId: ticketData.id,
-                },
-              };
-              // 业务路由前缀在页面初始化时按当前业务固定，单据不属于当前业务时只能整页跳转到单据所属业务
-              if (ticketData.bk_biz_id !== window.PROJECT_CONFIG.BIZ_ID) {
-                window.location.replace(getBusinessHref(router.resolve(ticketRoute).href, ticketData.bk_biz_id));
-                return;
-              }
-              router.replace(ticketRoute);
+              openTicketInList(ticketData.id, ticketData.bk_biz_id);
             })
             .catch((error) => {
               handleModifyError(error, ticketData.id);
@@ -242,13 +241,8 @@ export const useApplyBase = () => {
           message: t('申请成功'),
           theme: 'success',
         });
-        // 与改单提交一致，原地跳到新单据详情；replace 避免返回到已提交的表单
-        router.replace({
-          name: 'ticketDetail',
-          params: {
-            ticketId,
-          },
-        });
+        // 与改单提交一致，回到业务单据列表并打开新单据详情
+        openTicketInList(ticketId, params.bk_biz_id ?? window.PROJECT_CONFIG.BIZ_ID);
       })
       .finally(() => {
         baseState.isSubmitting = false;

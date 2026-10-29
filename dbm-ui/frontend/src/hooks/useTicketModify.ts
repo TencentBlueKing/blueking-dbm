@@ -32,12 +32,14 @@ import { diffDetails, type DiffItem, formatValue } from '@views/ticket-center/co
 import { messageError } from '@utils';
 
 export interface TicketModifyState {
+  // 回到单据详情：从详情进入的返回上一页，直接打开改单链接的跳到单据详情页
+  backToTicket: () => void;
   // 提交前确认弹窗，由 TicketModifyAlert 渲染
   confirmState: {
     diffList: DiffItem[];
+    isShow: boolean;
     // 弹窗内提交按钮 loading，提交请求进行中为 true
     isSubmitting: boolean;
-    isShow: boolean;
     // 弹窗关闭（取消，或提交成功）时结束 openConfirm 返回的 Promise
     resolve?: () => void;
     // 点击弹窗提交按钮时执行的提交动作，reject 时弹窗保持打开
@@ -47,7 +49,7 @@ export interface TicketModifyState {
   confirmTitle: string;
   // 改后 details 与进入时的单据内容对比，提交时的变更计数与「重置」置灰共用这一份判据
   getDiffList: (details: unknown) => DiffItem[];
-  // 改后补充信息（交付通知、单据备注）与进入时的单据对比；调整申请只取其中的单据备注
+  // 改后补充信息（交付通知、单据备注）与进入时的单据对比，重新编辑、代为修改提交时使用
   getSupplementDiffList: (config: unknown, ticketRemark: string) => DiffItem[];
   isAdjustApply: boolean;
   isModify: boolean;
@@ -57,11 +59,19 @@ export interface TicketModifyState {
   modifyRemark: Ref<string>;
   // 打开确认弹窗；submit 在点击弹窗提交按钮时执行，弹窗关闭（取消或提交成功）后 Promise 结束
   openConfirm: (diffList: DiffItem[], submit: () => Promise<unknown>) => Promise<void>;
+  // 提交时单据已被他人更新：关闭确认弹窗，改为提示「单据已更新」，只能返回单据
+  openUpdated: (operator: string, time: string) => void;
   // 「重置」确认文案：改单模式下重置是丢弃本次修改、回到单据当前内容，不是清空；非改单为空，用各页默认文案
   resetContent: string;
   submitText: string;
   // 进入工具页时的单据，details 为对比基准，version 为提交时校验的内容版本
   ticketData: ShallowRef<TicketModel | undefined>;
+  // 「单据已更新」弹窗，由 TicketModifyAlert 渲染；operator / time 为最后一次更新单据的人和时间
+  updatedState: {
+    isShow: boolean;
+    operator: string;
+    time: string;
+  };
   // 修改说明校验，由 TicketModifyRemark 挂载时注册；重新编辑模式没有修改说明，默认直接通过
   validateRemark: () => Promise<unknown>;
 }
@@ -114,6 +124,11 @@ export const useTicketModify = () => {
     isShow: false,
     isSubmitting: false,
   });
+  const updatedState = reactive<TicketModifyState['updatedState']>({
+    isShow: false,
+    operator: '',
+    time: '',
+  });
 
   const submitTextMap: Record<TicketModifyMode, string> = {
     [TicketModifyRecordModel.MODE_ADJUST_APPLY]: t('提交调整'),
@@ -135,6 +150,18 @@ export const useTicketModify = () => {
         ticketId,
       },
     });
+  };
+
+  /**
+   * 从单据详情（详情页或列表侧栏）进入时，入口在当前页跳转，返回上一页即回到原来的详情位置；
+   * 直接打开改单链接、没有上一页时，跳到单据详情页
+   */
+  const backToTicket = () => {
+    if (window.history.state?.back) {
+      router.back();
+      return;
+    }
+    backToDetail();
   };
 
   // 进入拦截只用于提前挡住无效进入，最终以后端提交时的校验为准
@@ -188,8 +215,9 @@ export const useTicketModify = () => {
         regionNameMap.value = Object.fromEntries(lists.flat().map((item) => [item.regionCode, item.regionName]));
       });
     }
-    const resourceSpec = (data.details as { resource_spec?: Record<string, { label_names?: string[]; labels?: string[] }> })
-      .resource_spec;
+    const resourceSpec = (
+      data.details as { resource_spec?: Record<string, { label_names?: string[]; labels?: string[] }> }
+    ).resource_spec;
     const labelIds = _.uniq(
       Object.values(resourceSpec || {}).flatMap((item) => (item?.label_names?.length ? [] : item?.labels || [])),
     );
@@ -239,6 +267,19 @@ export const useTicketModify = () => {
         submit,
       });
     });
+
+  const openUpdated = (operator: string, time: string) => {
+    // 确认弹窗与「单据已更新」不同时出现，按取消关闭确认弹窗并结束 openConfirm 返回的 Promise
+    confirmState.isShow = false;
+    confirmState.resolve?.();
+    confirmState.resolve = undefined;
+    confirmState.submit = undefined;
+    Object.assign(updatedState, {
+      isShow: true,
+      operator,
+      time,
+    });
+  };
 
   const getDiffList = (details: unknown) => {
     const data = ticketData.value;
@@ -323,6 +364,7 @@ export const useTicketModify = () => {
   };
 
   const state: TicketModifyState = {
+    backToTicket,
     confirmState,
     confirmTitle: mode ? confirmTitleMap[mode] : '',
     getDiffList,
@@ -335,9 +377,11 @@ export const useTicketModify = () => {
     mode,
     modifyRemark,
     openConfirm,
+    openUpdated,
     resetContent: isModify ? t('重置后本次修改将丢弃，内容回到打开时的状态。') : '',
     submitText: mode ? submitTextMap[mode] : '',
     ticketData,
+    updatedState,
     validateRemark: () => Promise.resolve(),
   };
 
