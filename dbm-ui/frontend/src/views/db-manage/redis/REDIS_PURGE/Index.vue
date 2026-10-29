@@ -294,7 +294,8 @@
             cluster_type: item.cluster.cluster_type,
             db_list: [...new Set(item.dbList)],
             domain: item.cluster.master_domain,
-            flushall: true, // TODO: 目前都是 true, 后续根据后端实现调整
+            // dbList 为空即「全部」走 FLUSHALL；指定了 DB 时走 FLUSHDB，执行端按 db_list 逐库清理
+            flushall: item.dbList.length === 0,
             force: item.force == ForceType.YES,
           })),
         },

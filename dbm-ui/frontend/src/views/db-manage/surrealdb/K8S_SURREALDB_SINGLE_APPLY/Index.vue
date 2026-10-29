@@ -194,7 +194,7 @@
             component_name: 'surreal',
             replicas: surrealItem.replicas,
             request_cpu: Number(surrealItem.request_cpu),
-            request_memory: Number(surrealItem.request_cpu.replace('Gi', '')),
+            request_memory: Number(surrealItem.request_memory.replace('Gi', '')),
             storage: Number(surrealItem.storage.replace('Gi', '')),
           },
         ],

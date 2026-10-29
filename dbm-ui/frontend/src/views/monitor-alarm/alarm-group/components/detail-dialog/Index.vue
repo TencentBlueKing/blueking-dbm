@@ -75,6 +75,7 @@
           :biz-id="bizId"
           :disabled="editDisabled"
           :is-built-in="detailData.is_built_in"
+          :origin-receivers="type === 'add' ? [] : detailData.receivers"
           :type="type" />
       </BkFormItem>
     </DbForm>
