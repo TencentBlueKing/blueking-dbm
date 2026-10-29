@@ -14,7 +14,7 @@ import operator
 from datetime import datetime
 from typing import Any, Dict
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils.timezone import localtime, now
 from django.utils.translation import gettext_lazy as _
@@ -30,6 +30,7 @@ logger = logging.getLogger("root")
 class MysqlDtsClusterStatus(StrStructuredEnum):
     DEPLOYING = EnumField("deploying", _("deploying"))
     RUNNING = EnumField("running", _("running"))
+    DESTROYING = EnumField("destroying", _("destroying"))
     DESTROYED = EnumField("destroyed", _("destroyed"))
 
 
@@ -140,6 +141,7 @@ class MysqlDtsInfo(AuditedModel):
             )
 
     @classmethod
+    @transaction.atomic
     def reserve_todo_placeholders(
         cls,
         *,
@@ -149,11 +151,21 @@ class MysqlDtsInfo(AuditedModel):
         migrate_type: str = "",
         creator: str = "",
     ) -> list["MysqlDtsInfo"]:
-        """按 task_spec 预占 ToDo 行（与 update_meta 的 ticket_id+dts_task_id 对齐）。"""
+        """先锁定复用集群，再按 task_spec 预占；与回收的 DESTROYING 状态切换串行化。"""
         from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plans
 
+        plans = build_migrate_plans({**details, "bk_biz_id": bk_biz_id}, require_task_name=False)
+        cluster_ids = {plan.dts_cluster_id for plan in plans if plan.dts_cluster_id}
+        clusters = list(MysqlDtsCluster.objects.select_for_update().filter(id__in=cluster_ids).order_by("id"))
+        if len(clusters) != len(cluster_ids) or any(
+            cluster.bk_biz_id != bk_biz_id
+            or cluster.status not in (MysqlDtsClusterStatus.DEPLOYING.value, MysqlDtsClusterStatus.RUNNING.value)
+            for cluster in clusters
+        ):
+            raise ClusterExclusiveOperateException(_("DTS 集群不存在、已开始回收或不属于当前业务，不能复用"))
+
         reserved: list[MysqlDtsInfo] = []
-        for plan in build_migrate_plans({**details, "bk_biz_id": bk_biz_id}, require_task_name=False):
+        for plan in plans:
             topology = getattr(plan, "topology", "") or ""
             row_type = migrate_type or getattr(plan, "migrate_type", "") or ""
             for spec in plan.task_specs:
@@ -164,6 +176,9 @@ class MysqlDtsInfo(AuditedModel):
                 source_cluster_ids = [s.cluster_id for s in spec.sources]
                 existing = cls.objects.filter(ticket_id=ticket_id, dts_task_id=task_name).first()
                 if existing:
+                    if plan.dts_cluster_id:
+                        existing.dts_cluster_id = plan.dts_cluster_id
+                        existing.save(update_fields=["dts_cluster_id", "update_at"])
                     # 重试：非进行中行收回 ToDo；已 FullOnline 保持不动
                     if existing.status != MysqlDtsStatus.FullOnline.value:
                         existing.bk_biz_id = bk_biz_id
@@ -193,6 +208,7 @@ class MysqlDtsInfo(AuditedModel):
                         bk_biz_id=bk_biz_id,
                         source_cluster_ids=source_cluster_ids,
                         target_cluster_id=spec.target_cluster_id,
+                        dts_cluster_id=plan.dts_cluster_id or 0,
                         migrate_type=row_type,
                         migrate_topology=topology,
                         ticket_id=ticket_id,
