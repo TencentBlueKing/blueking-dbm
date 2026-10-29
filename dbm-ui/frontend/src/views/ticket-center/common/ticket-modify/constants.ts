@@ -19,6 +19,8 @@ export const TICKET_MODIFY_ERROR_CODE = {
   APPROVED: 8704015,
   // 单据内容已被修改（内容版本不一致）
   CONTENT_CHANGED: 8704011,
+  // 提交缺少内容版本号（页面信息不完整）
+  MISSING_VERSION: 8704014,
   // 无权修改该单据
   NO_PERMISSION: 8704012,
   // 当前单据状态不支持改

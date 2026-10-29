@@ -11,15 +11,17 @@
  * the specific language governing permissions and limitations under the License.
 -->
 
+<!-- 单据已被他人更新：当前详情已失效，只能刷新，不提供关闭 -->
 <template>
   <BkDialog
+    :close-icon="false"
+    :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    :title="t('单据内容已更新')"
-    :width="480"
-    @closed="handleClose">
+    :title="t('单据已更新')"
+    :width="480">
     <I18nT
-      keypath="n_于_t_修改了本单据内容_刷新后可查看最新内容"
+      keypath="n_于_t_更新了单据_当前详情已失效_刷新后可查看最新内容"
       scope="global">
       <bk-user-display-name :user-id="latestRecord?.operator" />
       <span>{{ latestRecord?.createAtDisplay }}</span>
@@ -148,12 +150,6 @@
     isShow.value = false;
     resumeTippyHideOnClick();
     emits('refresh');
-  };
-
-  // 右上角关闭不刷新，保留当前页面
-  const handleClose = () => {
-    isShow.value = false;
-    resumeTippyHideOnClick();
   };
 
   onBeforeUnmount(() => {

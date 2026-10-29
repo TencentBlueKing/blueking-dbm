@@ -49,16 +49,13 @@
       :title="modifyState.confirmTitle"
       :width="800"
       @closed="handleCancel">
-      <!-- 先看修改说明再看变更明细；重新编辑没有修改说明 -->
-      <div
-        v-if="modifyState.mode !== TicketModifyRecordModel.MODE_RE_EDIT"
-        class="ticket-modify-confirm-remark">
-        <span class="ticket-modify-confirm-remark-label">{{ t('修改说明：') }}</span>
-        <span>{{ modifyState.modifyRemark.value }}</span>
-      </div>
       <div class="ticket-modify-confirm-tip">
         {{ t('共n项变更，请确认后提交', { n: modifyState.confirmState.diffList.length }) }}
       </div>
+      <!-- 先看修改说明再看变更明细；重新编辑没有修改说明 -->
+      <ModifyRemarkBlock
+        v-if="modifyState.mode !== TicketModifyRecordModel.MODE_RE_EDIT"
+        :content="modifyState.modifyRemark.value" />
       <DiffTable :data="modifyState.confirmState.diffList" />
       <template #footer>
         <BkButton
@@ -76,6 +73,28 @@
         </BkButton>
       </template>
     </BkDialog>
+    <!-- 提交时单据已被他人更新：当前内容已失效，只能返回单据，不提供关闭 -->
+    <BkDialog
+      :close-icon="false"
+      :esc-close="false"
+      :is-show="modifyState.updatedState.isShow"
+      :quick-close="false"
+      :title="t('单据已更新')"
+      :width="480">
+      <I18nT
+        keypath="n_于_t_更新了单据_当前页面内容已失效_返回单据详情后可基于最新内容重新修改"
+        scope="global">
+        <bk-user-display-name :user-id="modifyState.updatedState.operator" />
+        <span>{{ modifyState.updatedState.time }}</span>
+      </I18nT>
+      <template #footer>
+        <BkButton
+          theme="primary"
+          @click="handleBackToTicket">
+          {{ t('返回单据') }}
+        </BkButton>
+      </template>
+    </BkDialog>
   </template>
 </template>
 <script setup lang="ts">
@@ -86,6 +105,7 @@
   import { useTicketModifyState } from '@hooks';
 
   import DiffTable from '@views/ticket-center/common/ticket-modify/DiffTable.vue';
+  import ModifyRemarkBlock from '@views/ticket-center/common/ticket-modify/ModifyRemarkBlock.vue';
 
   import { getBusinessHref } from '@utils';
 
@@ -179,6 +199,12 @@
     }
     closeConfirm();
   };
+
+  // 当前内容已失效，离开时不再提示未保存
+  const handleBackToTicket = () => {
+    window.changeConfirm = false;
+    modifyState?.backToTicket();
+  };
 </script>
 <style lang="less">
   // 模式说明条随页面滚动始终吸顶，提示当前处于改单模式
@@ -202,18 +228,5 @@
     margin-bottom: 16px;
     font-size: 12px;
     color: #63656e;
-  }
-
-  .ticket-modify-confirm-remark {
-    margin-bottom: 16px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-    word-break: break-all;
-    white-space: pre-wrap;
-
-    .ticket-modify-confirm-remark-label {
-      color: #4d4f56;
-    }
   }
 </style>

@@ -19,16 +19,13 @@
     :title="t('确认修改内容')"
     :width="800"
     @closed="handleCancel">
-    <!-- 先看修改说明再看变更明细 -->
-    <div
-      v-if="record?.remark"
-      class="ticket-confirm-modify-dialog-remark">
-      <span class="ticket-confirm-modify-dialog-remark-label">{{ t('修改说明：') }}</span>
-      <span>{{ record.remark }}</span>
-    </div>
     <div class="ticket-confirm-modify-dialog-tip">
       {{ t('确认后将沿用本次审批结论直接进入待执行，不再重新审批，且不可撤回。') }}
     </div>
+    <!-- 先看修改说明再看变更明细 -->
+    <ModifyRemarkBlock
+      v-if="record?.remark"
+      :content="record.remark" />
     <DiffTable :data="record?.change_details || []" />
     <template #footer>
       <BkButton
@@ -57,6 +54,7 @@
   import { useEventBus } from '@hooks';
 
   import DiffTable from '@views/ticket-center/common/ticket-modify/DiffTable.vue';
+  import ModifyRemarkBlock from '@views/ticket-center/common/ticket-modify/ModifyRemarkBlock.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -118,19 +116,6 @@
   };
 </script>
 <style lang="less">
-  .ticket-confirm-modify-dialog-remark {
-    margin-bottom: 16px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-    word-break: break-all;
-    white-space: pre-wrap;
-
-    .ticket-confirm-modify-dialog-remark-label {
-      color: #4d4f56;
-    }
-  }
-
   .ticket-confirm-modify-dialog-tip {
     margin-bottom: 16px;
     font-size: 12px;

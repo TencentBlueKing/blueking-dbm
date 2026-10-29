@@ -29,12 +29,9 @@
     <div
       v-if="record"
       class="ticket-modify-diff-drawer">
-      <div
+      <ModifyRemarkBlock
         v-if="record.remark"
-        class="ticket-modify-diff-drawer-remark">
-        <span class="ticket-modify-diff-drawer-remark-label">{{ t('修改说明：') }}</span>
-        <span>{{ record.remark }}</span>
-      </div>
+        :content="record.remark" />
       <DiffTable :data="record.change_details" />
     </div>
   </BkSideslider>
@@ -45,6 +42,7 @@
   import TicketModifyRecordModel from '@services/model/ticket/modify-record';
 
   import DiffTable from '@views/ticket-center/common/ticket-modify/DiffTable.vue';
+  import ModifyRemarkBlock from '@views/ticket-center/common/ticket-modify/ModifyRemarkBlock.vue';
 
   interface Props {
     record?: TicketModifyRecordModel;
@@ -74,17 +72,5 @@
   .ticket-modify-diff-drawer {
     padding: 16px 24px;
     font-size: 12px;
-
-    .ticket-modify-diff-drawer-remark {
-      margin-bottom: 16px;
-      line-height: 20px;
-      color: #63656e;
-      word-break: break-all;
-      white-space: pre-wrap;
-
-      .ticket-modify-diff-drawer-remark-label {
-        color: #4d4f56;
-      }
-    }
   }
 </style>
