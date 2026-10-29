@@ -230,11 +230,11 @@
       title: 'Agent ID',
     },
     {
-      cell: (_, { rowIndex }) => (
+      cell: (_, { row }) => (
         <bk-button
           text
           theme='primary'
-          onClick={() => handleRemove(rowIndex)}>
+          onClick={() => handleRemove(row as HostInfo)}>
           {t('删除')}
         </bk-button>
       ),
@@ -326,14 +326,15 @@
   };
 
   // 移除指定主机节点数
-  const handleRemove = (index: number) => {
-    const list = [...props.data];
+  // 表格展示的是搜索 + 分页后的数据，rowIndex 与全量 props.data 的下标对不上，必须按 host_id 删除
+  const handleRemove = (row: HostInfo) => {
+    handleNameNodesChange(false, row);
+    handleZookeeperChange(false, row);
 
-    handleNameNodesChange(false, list[index]);
-    handleZookeeperChange(false, list[index]);
-
-    list.splice(index, 1);
-    emits('update:data', list);
+    emits(
+      'update:data',
+      props.data.filter((item) => item.host_id !== row.host_id),
+    );
   };
   // 清空所有主机
   const handleClearAll = () => {
@@ -347,6 +348,7 @@
     const list = [...props.data];
     _.remove(list, (_) => !_.alive);
     triggerChange();
+    emits('update:data', list);
   };
 
   // 复制所有主机IP

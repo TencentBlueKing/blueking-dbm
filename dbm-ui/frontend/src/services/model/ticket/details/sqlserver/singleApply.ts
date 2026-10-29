@@ -1,5 +1,3 @@
-import { ClusterTypes } from '@common/const';
-
 import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface SingleApply extends DetailBase {
@@ -21,7 +19,8 @@ export interface SingleApply extends DetailBase {
   inst_num: number;
   ip_source: string;
   nodes?: {
-    [ClusterTypes.SQLSERVER_SINGLE]: {
+    // 手动录入主机时提交的是 nodes.backend（申请页与后端 builder 均按此读写）
+    backend: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;

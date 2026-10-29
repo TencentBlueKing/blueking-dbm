@@ -130,14 +130,11 @@
               start_time: '',
             };
       const fetchKey = props.isFetchInstance ? 'instance_id' : 'cluster_id';
-      tableRef.value.fetchData(
-        {
-          ...dateParams,
-        },
-        {
-          [fetchKey]: props.id,
-        },
-      );
+      // DbTable.fetchData 第二参是 loading，集群 / 实例 id 必须并进第一参
+      tableRef.value.fetchData({
+        ...dateParams,
+        [fetchKey]: props.id,
+      });
     });
   };
 

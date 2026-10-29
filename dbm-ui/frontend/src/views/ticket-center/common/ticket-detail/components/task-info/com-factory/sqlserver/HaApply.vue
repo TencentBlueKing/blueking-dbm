@@ -110,7 +110,7 @@
                 theme="info">
                 M
               </DbTag>
-              {{ ticketDetails.details.nodes.backend[rowIndex * 2].ip }}
+              {{ getBackendIp(rowIndex, 'master') }}
             </div>
             <div>
               <DbTag
@@ -118,7 +118,7 @@
                 theme="success">
                 S
               </DbTag>
-              {{ ticketDetails.details.nodes.backend[rowIndex * 2 + 1].ip }}
+              {{ getBackendIp(rowIndex, 'slave') }}
             </div>
           </template>
         </TicketInfoTableColumn>
@@ -167,6 +167,14 @@
     // @ts-ignore
     return data.sqlserver_ha || data.backend_group;
   });
+
+  // 后端按 inst_num 把连续的域名部署到同一组主从上：第 rowIndex 个域名落在第 floor(rowIndex / inst_num) 组，
+  // nodes.backend 按 [master, slave, master, slave, ...] 排列
+  const getBackendIp = (rowIndex: number, role: 'master' | 'slave') => {
+    const { inst_num: instNum, nodes } = props.ticketDetails.details;
+    const groupIndex = Math.floor(rowIndex / (instNum || 1));
+    return nodes?.backend?.[groupIndex * 2 + (role === 'master' ? 0 : 1)]?.ip ?? '--';
+  };
 </script>
 <style lang="less" scoped>
   .info-title {

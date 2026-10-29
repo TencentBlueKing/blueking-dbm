@@ -227,9 +227,11 @@
               trigger="click"
               width="308"
               @confirm="() => handleConfirmNeedReplenish(row)">
+              <!-- needReplenish 是由 tags 派生的只读 getter，不能 v-model；切换由外层 BkPopConfirm 的 @confirm 提交 -->
               <AuthSwitcher
-                v-model="row.needReplenish"
                 action-id="spec_manage"
+                :before-change="() => false"
+                :model-value="row.needReplenish"
                 :permission="row.permission.spec_manage"
                 :resource="dbType"
                 size="small"
