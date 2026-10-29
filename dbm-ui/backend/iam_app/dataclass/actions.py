@@ -642,7 +642,7 @@ class ActionEnum:
 
     MYSQL_ROLLBACK = ActionMeta(
         id=TicketType.MYSQL_ROLLBACK.lower(),
-        name=_("MySQL 原地回档"),
+        name=_("MySQL 回档"),
         name_en="MYSQL_ROLLBACK",
         type="execute",
         related_actions=[],
@@ -1062,7 +1062,7 @@ class ActionEnum:
 
     TENDBCLUSTER_ROLLBACK = ActionMeta(
         id=TicketType.TENDBCLUSTER_ROLLBACK.lower(),
-        name=_("TenDB Cluster 原地回档"),
+        name=_("TenDB Cluster 回档"),
         name_en="TENDBCLUSTER_ROLLBACK",
         type="execute",
         related_actions=[],

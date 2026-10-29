@@ -59,6 +59,8 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
     REMOTE_MASTER_UNAVAILABLE_WHITELIST = [
         TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         TicketType.TENDBCLUSTER_MASTER_FAIL_OVER,
+        # 构造回档切换就是把业务从异常集群切到回档出来的新集群，存储层主库不可用时同样要允许提单
+        TicketType.TENDBCLUSTER_ROLLBACK_SWITCH,
     ]
     # 存储层 slave 异常 (正常情况下,所有存储异常最终都会变成slave异常), 校验单据不可用
     REMOTE_SLAVE_UNAVAILABLE_WHITELIST = [

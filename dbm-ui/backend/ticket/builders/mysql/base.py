@@ -70,6 +70,8 @@ class MySQLBaseOperateDetailSerializer(
         TicketType.MYSQL_IMPORT_SQLFILE.value,
         TicketType.MYSQL_CLIENT_CLONE_RULES.value,
         TicketType.MYSQL_ROLLBACK_CLUSTER.value,
+        TicketType.MYSQL_ROLLBACK_NEW_HOST.value,
+        TicketType.MYSQL_ROLLBACK_SWITCH.value,
         TicketType.MYSQL_HA_RENAME_DATABASE.value,
         TicketType.MYSQL_ADD_SLAVE.value,
         TicketType.MYSQL_RESTORE_LOCAL_SLAVE.value,
@@ -83,6 +85,8 @@ class MySQLBaseOperateDetailSerializer(
     MASTER_UNAVAILABLE_WHITELIST = [
         TicketType.MYSQL_MASTER_FAIL_OVER.value,
         TicketType.MYSQL_MASTER_SLAVE_SWITCH.value,
+        # 构造回档切换就是把业务从异常集群切到回档出来的新集群，主库不可用时同样要允许提单
+        TicketType.MYSQL_ROLLBACK_SWITCH.value,
     ]
     PROXY_UNAVAILABLE_WHITELIST = TicketType.get_values()
     # 集群的flag状态与白名单的映射表

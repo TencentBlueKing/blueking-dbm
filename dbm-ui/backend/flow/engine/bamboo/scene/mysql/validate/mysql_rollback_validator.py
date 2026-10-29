@@ -102,7 +102,8 @@ class TenDbClusterRollbackFlowValidator(MysqlBaseValidator):
     def __call__(self):
         error_msgs = []
         for index, info in enumerate(self.data["infos"]):
-            if self.data["rollback_cluster_type"] != "BUILD_INTO_NEW_CLUSTER":
+            # 单据固定构造新集群时可以不传 rollback_cluster_type，默认按 BUILD_INTO_NEW_CLUSTER 处理
+            if self.data.get("rollback_cluster_type", "BUILD_INTO_NEW_CLUSTER") != "BUILD_INTO_NEW_CLUSTER":
                 source_cluster_id = info["cluster_id"]
                 target_cluster_id = info["target_cluster_id"]
                 source_obj = Cluster.objects.get(id=source_cluster_id)

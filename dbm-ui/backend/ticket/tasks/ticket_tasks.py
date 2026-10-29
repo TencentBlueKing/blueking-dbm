@@ -475,6 +475,63 @@ def create_dts_destroy_after_migrate(ticket_id: int):
     _maybe_create_destroy_after_migrate(ticket)
 
 
+def _create_rollback_switch(ticket_id: int, switch_ticket_type: str):
+    """新机回档单据人工确认执行后，自动发起构造回档切换单据，并关联到新机回档单据"""
+    try:
+        new_host_ticket = Ticket.objects.get(id=ticket_id)
+    except Ticket.DoesNotExist:
+        logger.error(_("单据{}不存在，跳过发起构造回档切换单据").format(ticket_id))
+        return
+
+    # 避免任务重试时重复发起
+    if new_host_ticket.details.get("switch_ticket_id"):
+        logger.info(_("单据{}已发起构造回档切换单据{}，跳过").format(ticket_id, new_host_ticket.details["switch_ticket_id"]))
+        return
+
+    apply_details = new_host_ticket.details.get("apply_details") or {}
+    source_cluster_id = new_host_ticket.details["infos"][0]["cluster_id"]
+    # 回档目标集群由单据流程中的部署节点创建，优先取回档节点回填的集群ID
+    destination_cluster_id = new_host_ticket.details.get("target_cluster_id")
+    if not destination_cluster_id:
+        target_cluster = Cluster.objects.filter(name=apply_details.get("cluster_name")).first()
+        if not target_cluster:
+            logger.error(_("单据{}未找到回档目标集群{}，跳过发起构造回档切换单据").format(ticket_id, apply_details.get("cluster_name")))
+            return
+        destination_cluster_id = target_cluster.id
+
+    switch_ticket = Ticket.create_ticket(
+        ticket_type=switch_ticket_type,
+        creator=new_host_ticket.creator,
+        bk_biz_id=new_host_ticket.bk_biz_id,
+        remark=_("单据{}执行完成并确认后，自动发起构造回档切换单据").format(new_host_ticket.id),
+        details={
+            "bk_cloud_id": apply_details.get("bk_cloud_id", 0),
+            "module": apply_details.get("db_module_id"),
+            "infos": [{"source_cluster_id": source_cluster_id, "destination_cluster_id": destination_cluster_id}],
+            "parent_ticket": new_host_ticket.id,
+            "parent_ticket_type": new_host_ticket.ticket_type,
+        },
+        send_msg_config=new_host_ticket.config.get("send_msg_config"),
+        helpers=new_host_ticket.config.get("helpers") or [],
+    )
+
+    # 关联新机回档单据，便于在单据详情直接跳转构造回档切换单据
+    new_host_ticket.add_related_ticket(switch_ticket, desc=_("构造回档切换"), done=True)
+    new_host_ticket.update_details(switch_ticket_id=switch_ticket.id)
+
+
+@shared_task
+def create_tendb_rollback_switch(ticket_id: int):
+    """TenDBCluster 新机回档单据确认执行后，自动发起构造回档切换单据"""
+    _create_rollback_switch(ticket_id, TicketType.TENDBCLUSTER_ROLLBACK_SWITCH)
+
+
+@shared_task
+def create_mysql_rollback_switch(ticket_id: int):
+    """MySQL 新机回档单据确认执行后，自动发起构造回档切换单据"""
+    _create_rollback_switch(ticket_id, TicketType.MYSQL_ROLLBACK_SWITCH)
+
+
 @shared_task
 def create_cluster_todo(ticket_id, cluster_phase):
     from backend.ticket.todos import ClusterDisableTodoContext, TodoActionType
