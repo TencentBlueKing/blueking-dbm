@@ -60,6 +60,7 @@ EXCLUDE_FILE_PATHS = [
     # 告警回调中的策略名关键字匹配，不需要翻译
     "backend/db_monitor/views/callbacks/mysql.py",
     "backend/db_monitor/views/callbacks/redis.py",
+    "backend/db_monitor/views/callbacks/kafka.py",
 ]
 ALL_EXCLUDE_DIRS = set(EXCLUDE_DIRS + EXCLUDE_FILE_PATHS)
 

@@ -29,3 +29,17 @@ class CheckKafkaClusterCommand(CommandHandler):
         查询起始时间点：{{ start_time }}
         查询截止时间点：{{ end_time }}
         """
+
+
+@command
+class KafkaAlarmAnalyzerCommand(CommandHandler):
+    name = _("Kafka告警分析")
+    command = "kafka_alarm_analyzer"
+    agent_code = DBMAgentCode.KAFKA_INSPECT
+
+    def get_template(self) -> str:
+        return """
+        /kafka_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 1800 字符以内。
+        告警内容:
+        {{alarm_content}}
+        """
