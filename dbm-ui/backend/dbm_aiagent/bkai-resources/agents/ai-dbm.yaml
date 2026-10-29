@@ -4,7 +4,7 @@ kind: Agent
 
 metadata:
   code: ai-dbm
-  name: DBM平台AI助手
+  name: 数据库管理-助手
   description: DBM 平台 AI 助手是DBM平台打造的智能辅助工具，专为降低 DBM 平台使用门槛、提升操作效率而生
 
 spec:

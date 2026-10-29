@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.57
+  version: 0.1.59
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.15
@@ -77,5 +77,5 @@ dependencies:
 - name: tenant-router
   repository: file://charts/tenant-router
   version: 0.1.0
-digest: sha256:a0b2f5a493428375bee10f3d8245bb015d0f38203a17d6ff075cb7817558837f
-generated: "2026-11-10T14:45:40.994794+08:00"
+digest: sha256:c8bd0918186d0a2a1d4a5a0837c388affcada47b4f76d2101d758b9ee58f0e20
+generated: "2026-11-13T14:56:58.930836+08:00"

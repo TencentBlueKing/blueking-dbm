@@ -9,10 +9,10 @@ RUN set -ex && \
     mkdir /data && cd /data && \
     wget -qO dbm_predixy_exporter.tgz ${DOWNLOAD_URL}/${VERSION}/dbm_predixy_exporter.tgz --no-check-certificate  && \
     wget -qO dbm_redis_exporter.tgz ${DOWNLOAD_URL}/${VERSION}/dbm_redis_exporter.tgz --no-check-certificate  && \
-    wget -qO predixy-1.4.3.tar.gz ${DOWNLOAD_URL}/${VERSION}/predixy-1.4.3.tar.gz --no-check-certificate  && \
-    wget -qO redis-5.0.14.tar.gz ${DOWNLOAD_URL}/${VERSION}/redis-5.0.14.tar.gz --no-check-certificate  && \
-    wget -qO redis-6.2.14.tar.gz ${DOWNLOAD_URL}/${VERSION}/redis-6.2.14.tar.gz --no-check-certificate && \
-    wget -qO tendisplus-2.7.3-rocksdb-v8.5.3.tgz ${DOWNLOAD_URL}/${VERSION}/tendisplus-2.7.3-rocksdb-v8.5.3.tgz --no-check-certificate
+    wget -qO predixy-1.6.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/predixy-1.6.2.tar.gz --no-check-certificate  && \
+    wget -qO redis-6.2.21.tar.gz ${DOWNLOAD_URL}/${VERSION}/redis-6.2.21.tar.gz --no-check-certificate && \
+    wget -qO tendisplus-2.8.2-rocksdb-v8.5.3.tgz ${DOWNLOAD_URL}/${VERSION}/tendisplus-2.8.2-rocksdb-v8.5.3.tgz --no-check-certificate && \
+    wget -qO twemproxy-0.4.1-v36.tar.gz ${DOWNLOAD_URL}/${VERSION}/twemproxy-0.4.1-v36.tar.gz --no-check-certificate
 
 ## 将install的文件移动到/install/xxx，这样通过挂载/install可以共享文件
 ENTRYPOINT ["/bin/sh", "-c", "mkdir -p /install/redis && mv /data/* /install/redis/"]

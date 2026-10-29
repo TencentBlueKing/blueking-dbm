@@ -4,7 +4,7 @@ kind: Agent
 
 metadata:
   code: ai-mysql-slowlog
-  name: MySQL慢日志分析
+  name: 数据库管理-MySQL慢日志分析
   description: 对 mysql 集群慢日志分析交付
 
 spec:

@@ -3,7 +3,7 @@ kind: Skill
 
 metadata:
   code: dbm-common-ticket-op
-  name: DBM单据通用操作
+  name: 数据库管理-单据通用操作
 
 spec:
   generate_type: space

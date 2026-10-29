@@ -22,6 +22,12 @@ data:
   REPORT_DB_USER: "{{ $dbmReportDB.user }}"
   REPORT_DB_PASSWORD: "{{ $dbmReportDB.password }}"
   ENABLE_MULTI_TENANT_MODE: "{{ .Values.global.enableMultiTenantMode }}"
+  # blueapps 据此选择登录校验方式：true 走网关 bk-login，否则走 ESB
+  BKPAAS_MULTI_TENANT_MODE: "{{ .Values.global.enableMultiTenantMode }}"
+  {{- if .Values.global.enableMultiTenantMode }}
+  # 空字符串表示全租户应用（网关同步、IAM 迁移按 system 租户处理）；单租户环境不能设置
+  BKPAAS_APP_TENANT_ID: ""
+  {{- end }}
   DJANGO_SETTINGS_MODULE: "{{ .Values.dbm.envs.djangoSettingsModule }}"
   RUN_VER: "{{ .Values.dbm.envs.runVer }}"
   SERVICE_ONLY: "True"
@@ -48,6 +54,8 @@ data:
   BK_PAAS_URL: "{{ .Values.bk.bkPaasUrl }}"
   BK_PAAS_HOST: "{{ .Values.bk.bkPaasUrl }}"
   BK_COMPONENT_API_URL: "{{ .Values.bk.bkComponentApiUrl }}"
+  # 不能渲染成空值：Django 拿到空字符串不会回退默认值，aidev SDK 只读环境变量
+  BK_API_URL_TMPL: "{{ .Values.bk.bkApiUrlTmpl | default (printf "%s/api/{api_name}" (.Values.bk.bkApigatewayDomain | default .Values.bk.bkComponentApiUrl | trimSuffix "/")) }}"
   BKPAAS_LOGIN_URL: "{{ .Values.bk.bkLoginUrl }}"
   LOGIN_URL: "{{ .Values.bk.bkLoginUrl }}"
   # 蓝鲸配置平台
@@ -77,6 +85,8 @@ data:
   BK_IAM_RESOURCE_API_HOST: "{{ .Values.bk.bkIamResourceApiHost }}"
   # 蓝鲸用户管理
   BK_USER_MANAGE_URL: "{{ .Values.bk.bkUserManageUrl }}"
+  USER_MANAGE_APIGW_DOMAIN: "{{ .Values.bk.bkUserManageApiUrl }}"
+  USER_MANAGE_FRONTEND_APIGW_DOMAIN: "{{ .Values.bk.bkUserManageFrontendApiUrl }}"
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
@@ -97,7 +107,6 @@ data:
   DRS_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbRemoteServiceApigwDomain }}"
   SLOW_QUERY_PARSER_DOMAIN: "{{ .Values.dbm.envs.slowQueryParseApigwDomain | default (printf "http://bk-dbm-slow-query-parser-service.%s.svc.cluster.local" .Values.bk.bkBcsNamespace) }}"
   BK_APIGW_STATIC_VERSION: "{{ .Values.bk.bkApigwStaticVersion }}"
-  BK_APIGW_MANAGER_MAINTAINERS: "{{ .Values.bk.bkAdminUser }}"
   BK_APIGW_STAGE_NAME: "{{ .Values.bk.bkApigwStageName }}"
   BK_APIGW_GRANT_APPS: "{{ .Values.bk.bkApigwGrantApps}}"
   BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE: "{{ .Values.bk.bkApigwResourceDocsArchiveFile }}"

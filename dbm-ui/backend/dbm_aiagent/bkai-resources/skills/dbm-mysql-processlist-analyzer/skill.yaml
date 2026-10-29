@@ -3,7 +3,7 @@ kind: Skill
 
 metadata:
   code: dbm-mysql-processlist-analyzer
-  name: MySQL Processlist分析
+  name: 数据库管理-MySQL Processlist分析
 
 spec:
   generate_type: space

@@ -3,7 +3,7 @@ kind: Skill
 
 metadata:
   code: dbm-mysql-perf-compare-report
-  name: MySQL性能对比报告
+  name: 数据库管理-MySQL性能对比报告
 
 spec:
   generate_type: space

@@ -403,16 +403,6 @@ mysql:
     os_version:
 # ----安装包列表----
 - mysql:
-    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
-    name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
-    version: MySQL-5.7
-    installation: true
-    distribution_name: TMySQL
-    version_series: MySQL-5.7
-    full_version: 5.7.20.3.3.0
-    os_type: "Linux"
-    os_version:
-- mysql:
     buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
     name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
     version: MySQL-8.0-Community
@@ -423,23 +413,23 @@ mysql:
     os_type: "Linux"
     os_version:
 - mysql-proxy:
-    buildPath: /install/mysql/mysql-proxy-0.82.15.tar.gz
-    name: mysql-proxy-0.82.15.tar.gz
+    buildPath: /install/mysql/mysql-proxy-0.82.20.tar.gz
+    name: mysql-proxy-0.82.20.tar.gz
     version: latest
     installation: true
     distribution_name: DBM
     version_series: latest
-    full_version: 0.82.15
+    full_version: 0.82.20
     os_type: "Linux"
     os_version:
 - tdbctl:
-    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
-    name: mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tdbctl-2.4.13.tar.gz
+    name: mysql-5.7.20-linux-x86_64-tdbctl-2.4.13.tar.gz
     version: latest
     installation: true
     distribution_name: TMySQL
     version_series: latest
-    full_version: 5.7.20.2.4.12
+    full_version: 5.7.20.2.4.13
     os_type: "Linux"
     os_version:
 - spider:
@@ -547,43 +537,43 @@ redis:
     os_version:
 # ---安装包列表---
 - redis:
-    buildPath: /install/redis/redis-5.0.14.tar.gz
-    name: redis-5.0.14.tar.gz
-    version: Redis-5
-    installation: true
-    distribution_name: DBM
-    version_series: Redis-5
-    full_version: 5.0.14
-    os_type: "Linux"
-    os_version:
-- redis:
-    buildPath: /install/redis/redis-6.2.14.tar.gz
-    name: redis-6.2.14.tar.gz
+    buildPath: /install/redis/redis-6.2.21.tar.gz
+    name: redis-6.2.21.tar.gz
     version: Redis-6
     installation: true
     distribution_name: DBM
     version_series: Redis-6
-    full_version: 6.2.14
+    full_version: 6.2.21.0.0.0
     os_type: "Linux"
     os_version:
 - tendisplus:
-    buildPath: /install/redis/tendisplus-2.7.3-rocksdb-v8.5.3.tgz
-    name: tendisplus-2.7.3-rocksdb-v8.5.3.tgz
-    version: Tendisplus-2.7
+    buildPath: /install/redis/tendisplus-2.8.2-rocksdb-v8.5.3.tgz
+    name: tendisplus-2.8.2-rocksdb-v8.5.3.tgz
+    version: Tendisplus-2.8
     installation: true
     distribution_name: DBM
-    version_series: Tendisplus-2.7
-    full_version: 2.7.3
+    version_series: Tendisplus-2.8
+    full_version: 2.8.2
+    os_type: "Linux"
+    os_version:
+- twemproxy:
+    buildPath: /install/redis/twemproxy-0.4.1-v36.tar.gz
+    name: twemproxy-0.4.1-v36.tar.gz
+    version: Twemproxy-latest
+    installation: true
+    distribution_name: DBM
+    version_series: Twemproxy-latest
+    full_version: 0.4.1
     os_type: "Linux"
     os_version:
 - predixy:
-    buildPath: /install/redis/predixy-1.4.3.tar.gz
-    name: predixy-1.4.3.tar.gz
+    buildPath: /install/redis/predixy-1.6.2.tar.gz
+    name: predixy-1.6.2.tar.gz
     version: Predixy-latest
     installation: true
     distribution_name: DBM
     version_series: Predixy-latest
-    full_version: 1.4.3
+    full_version: 1.6.2
     os_type: "Linux"
     os_version:
 - exporter:

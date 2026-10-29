@@ -129,14 +129,14 @@ BK_APIGW_MCP_NAME = get_type_env(key="BK_APIGW_MCP_NAME", _type=str, default="bk
 BK_APIGATEWAY_DOMAIN = get_type_env(key="BK_APIGATEWAY_DOMAIN", _type=str, default=BK_COMPONENT_API_URL)
 BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", _type=str, default=f"{BK_APIGATEWAY_DOMAIN}/api/{{api_name}}/")
 BK_APIGW_STATIC_VERSION = get_type_env(key="BK_APIGW_STATIC_VERSION", _type=str, default="1.0.0")
-BK_APIGW_MANAGER_MAINTAINERS = get_type_env(key="BK_APIGW_MANAGER_MAINTAINERS", _type=list, default=["admin"])
+BK_APIGW_MANAGER_MAINTAINERS = get_type_env(key="BK_APIGW_MANAGER_MAINTAINERS", _type=list, default=[DEFAULT_USERNAME])
 BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default="prod")
 BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
 BK_APIGW_RESOURCE_DOCS_BASE_DIR = get_type_env(
     key="BK_APIGW_RESOURCE_DOCS_BASE_DIR", _type=str, default="backend/docs/apigw"
 )
 APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
-BK_APIGW_STAGE_ENABLE_MCP_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_MCP_SERVERS", _type=bool, default=False)
+BK_APIGW_STAGE_ENABLE_MCP_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_MCP_SERVERS", _type=bool, default=True)
 BK_APIGW_STAGE_ENABLE_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_SERVERS", _type=bool, default=True)
 
 # 虚拟用户

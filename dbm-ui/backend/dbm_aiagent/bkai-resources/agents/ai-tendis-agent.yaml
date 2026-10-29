@@ -4,7 +4,7 @@ kind: Agent
 
 metadata:
   code: ai-tendis-agent
-  name: DBM-Redis智能助手
+  name: 数据库管理-Redis智能助手
   description: 一个专业的REDIS AI助手，协助人类DBA完成日常运维、自动化任务执行、问题诊断和提供最佳实践建议。
 
 spec:
