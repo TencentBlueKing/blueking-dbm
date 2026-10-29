@@ -17,7 +17,7 @@
     :quick-close="false"
     :title="t('单据内容已更新')"
     :width="480"
-    @closed="handleLater">
+    @closed="handleClose">
     <I18nT
       keypath="n_于_t_修改了本单据内容_刷新后可查看最新内容"
       scope="global">
@@ -30,11 +30,6 @@
         theme="primary"
         @click="handleRefresh">
         {{ t('刷新页面') }}
-      </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        @click="handleLater">
-        {{ t('稍后') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -86,7 +81,7 @@
     () => isTicketModifiable(props.data.ticket_type) && MODIFIABLE_STATUS.includes(props.data.status),
   );
 
-  // 点「稍后」也是一次点击外部，弹窗期间不让已打开的气泡因此关闭，保留其中已填内容
+  // 点弹窗按钮或关闭也是一次点击外部，弹窗期间不让已打开的气泡因此关闭，保留其中已填内容
   const pauseTippyHideOnClick = () => {
     pausedTippyList = Array.from(document.querySelectorAll<{ _tippy?: Instance } & HTMLElement>('[data-tippy-root]'))
       // eslint-disable-next-line no-underscore-dangle
@@ -155,7 +150,8 @@
     emits('refresh');
   };
 
-  const handleLater = () => {
+  // 右上角关闭不刷新，保留当前页面
+  const handleClose = () => {
     isShow.value = false;
     resumeTippyHideOnClick();
   };

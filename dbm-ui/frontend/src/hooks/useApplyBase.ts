@@ -25,7 +25,7 @@ import { useCreateTicket } from '@hooks';
 
 import { type RequestErrorBody, TICKET_MODIFY_ERROR_CODE } from '@views/ticket-center/common/ticket-modify/constants';
 
-import { messageError, messageWarn } from '@utils';
+import { getBusinessHref, messageError, messageWarn } from '@utils';
 
 import { useTicketModify } from './useTicketModify';
 
@@ -144,7 +144,7 @@ export const useApplyBase = () => {
   }
 
   /**
-   * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到单据详情
+   * 改单提交：与进入时的单据内容对比，确认后调用改单接口，成功后回到业务单据列表并打开该单据详情
    * 确认弹窗展示的变更项原样作为 change_details 提交，详情页的变更对比直接展示它
    * 单据备注 ticket_remark 所有改单模式都可改、都提交；
    * 交付通知 config 只有重新编辑、代为修改提交，调整申请下只读，不提交也不参与对比
@@ -172,44 +172,50 @@ export const useApplyBase = () => {
           messageWarn(t('没有改动'));
           return;
         }
-        return modifyState.openConfirm(diffList).then((isConfirmed) => ({ diffList, isConfirmed }));
-      })
-      .then((result) => {
-        if (!result?.isConfirmed) {
-          return;
-        }
-        const { diffList } = result;
-        return modifyTicket(
-          {
-            change_count: diffList.length,
-            change_details: diffList,
-            ...(isSubmitConfig ? { config } : {}),
-            details,
-            id: ticketData.id,
-            mode,
-            remark: isReEdit ? '' : modifyState.modifyRemark.value,
-            ticket_remark: ticketRemark,
-            // 直接提交进入时单据详情返回的版本；详情未返回版本表示还没改过单，传 1
-            version: ticketData.version ?? 1,
-          },
-          {
-            catchErrorCodes: Object.values(TICKET_MODIFY_ERROR_CODE),
-          },
-        )
-          .then(() => {
-            Message({
-              message: t('提交成功'),
-              theme: 'success',
+        // 接口调用交给确认弹窗的提交按钮执行：按钮 loading 到接口返回，成功后跳转，失败弹窗保持打开
+        const submit = () =>
+          modifyTicket(
+            {
+              change_count: diffList.length,
+              change_details: diffList,
+              ...(isSubmitConfig ? { config } : {}),
+              details,
+              id: ticketData.id,
+              mode,
+              remark: isReEdit ? '' : modifyState.modifyRemark.value,
+              ticket_remark: ticketRemark,
+              // 直接提交进入时单据详情返回的版本；详情未返回版本表示还没改过单，传 1
+              version: ticketData.version ?? 1,
+            },
+            {
+              catchErrorCodes: Object.values(TICKET_MODIFY_ERROR_CODE),
+            },
+          )
+            .then(() => {
+              Message({
+                message: t('提交成功'),
+                theme: 'success',
+              });
+              window.changeConfirm = false;
+              // 回到业务单据列表并打开该单据详情侧栏（列表页按路由 ticketId 自动打开）
+              const ticketRoute = {
+                name: 'bizTicketManage',
+                params: {
+                  ticketId: ticketData.id,
+                },
+              };
+              // 业务路由前缀在页面初始化时按当前业务固定，单据不属于当前业务时只能整页跳转到单据所属业务
+              if (ticketData.bk_biz_id !== window.PROJECT_CONFIG.BIZ_ID) {
+                window.location.replace(getBusinessHref(router.resolve(ticketRoute).href, ticketData.bk_biz_id));
+                return;
+              }
+              router.replace(ticketRoute);
+            })
+            .catch((error) => {
+              handleModifyError(error, ticketData.id);
+              return Promise.reject(error);
             });
-            window.changeConfirm = false;
-            router.replace({
-              name: 'ticketDetail',
-              params: {
-                ticketId: ticketData.id,
-              },
-            });
-          })
-          .catch((error) => handleModifyError(error, ticketData.id));
+        return modifyState.openConfirm(diffList, submit);
       })
       .finally(() => {
         baseState.isSubmitting = false;
