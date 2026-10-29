@@ -25,7 +25,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - "python manage.py sync_saas_apigw"
+            - "python manage.py sync_saas_apigw --all"
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.initJob.resources | nindent 12 }}

@@ -1,15 +1,25 @@
-## busybox，集合了常用的linux工具箱
-FROM busybox:latest
+## busybox 自带的 wget 与 GitHub 的 TLS 握手不稳定，改用 curl 下载介质
+FROM curlimages/curl:8.11.1 AS downloader
+USER root
 
-ENV DOWNLOAD_URL=https://github.com/TencentBlueKing/blueking-dbm/releases/download
-ENV VERSION=v1.0.0
+ARG DOWNLOAD_URL=https://github.com/TencentBlueKing/blueking-dbm/releases/download
+ARG VERSION=v1.0.0
 
 ## 获取二进制介质，将静态介质存放到/data目录
 RUN set -ex && \
     mkdir /data && cd /data && \
-    wget -qO kafkapack-2.4.0.tar.gz ${DOWNLOAD_URL}/${VERSION}/kafkapack-2.4.0.tar.gz --no-check-certificate  && \
-    wget -qO dbm_kafka_exporter.tgz ${DOWNLOAD_URL}/${VERSION}/dbm_kafka_exporter.tgz --no-check-certificate && \
-    wget -qO dbm_kafka_bkpull.tgz ${DOWNLOAD_URL}/${VERSION}/dbm_kafka_bkpull.tgz --no-check-certificate
+    for f in \
+        kafkapack-2.4.0.tar.gz \
+        dbm_kafka_exporter.tgz \
+        dbm_kafka_bkpull.tgz \
+    ; do \
+        curl -fsSL -k --retry 5 --retry-delay 3 --retry-all-errors --connect-timeout 30 \
+            -o "$f" "${DOWNLOAD_URL}/${VERSION}/$f"; \
+    done
+
+## busybox，集合了常用的linux工具箱
+FROM busybox:latest
+COPY --from=downloader /data /data
 
 ## 将install的文件移动到/install/xxx，这样通过挂载/install可以共享文件
 ENTRYPOINT ["/bin/sh", "-c", "mkdir -p /install/kafka && mv /data/* /install/kafka/"]

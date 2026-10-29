@@ -38,6 +38,12 @@ stages:
           - "{{ label }}"
           {% endfor %}
         {% endif %}
+        {% if mcp_server.category_names %}
+        category_names:
+          {% for category in mcp_server.category_names %}
+          - "{{ category }}"
+          {% endfor %}
+        {% endif %}
         {% if mcp_server.tools %}
         resource_names:
           {% for resource in mcp_server.tools %}
