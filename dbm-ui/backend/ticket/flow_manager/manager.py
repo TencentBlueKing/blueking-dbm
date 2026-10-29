@@ -42,7 +42,9 @@ from backend.ticket.tasks.ticket_tasks import (
     create_cluster_todo,
     create_dts_destroy_after_migrate,
     create_monitor_grafana,
+    create_mysql_rollback_switch,
     create_recycle_ticket,
+    create_tendb_rollback_switch,
     send_ticket_delivery_info,
 )
 
@@ -172,9 +174,22 @@ class TicketFlowManager(object):
             if self.ticket.ticket_type in DTS_MIGRATE_TICKET_TYPES:
                 create_dts_destroy_after_migrate.apply_async(args=(self.ticket.id,))
 
+        # 新机回档单据的最后一个人工确认节点执行通过后，自动发起构造回档切换单据
+        if target_status == TicketStatus.SUCCEEDED:
+            if self.ticket.ticket_type == TicketType.TENDBCLUSTER_ROLLBACK_NEW_HOST:
+                create_tendb_rollback_switch.apply_async(args=(self.ticket.id,))
+            elif self.ticket.ticket_type == TicketType.MYSQL_ROLLBACK_NEW_HOST:
+                create_mysql_rollback_switch.apply_async(args=(self.ticket.id,))
+
         # 如果是部署类单据，异常终止要联动回收主机
+        # 新机构造回档类单据的机器回收属于集群下架范畴，源集群/目标集群是否保留由用户自己决定，这里不做自动回收
+        recycle_skip_ticket_types = [
+            TicketType.TENDBCLUSTER_ROLLBACK_NEW_HOST,
+            TicketType.MYSQL_ROLLBACK_NEW_HOST,
+        ]
         is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type
-        if target_status == TicketStatus.TERMINATED and is_apply:
+        need_recycle = is_apply and self.ticket.ticket_type not in recycle_skip_ticket_types
+        if target_status == TicketStatus.TERMINATED and need_recycle:
             create_recycle_ticket.apply_async(args=(self.ticket.id, [], TicketType.RECYCLE_APPLY_HOST))
 
         # 如果是集群的禁用、启动、删除、sqlserver重置则处理相对应代办操作
