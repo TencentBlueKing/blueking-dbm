@@ -37,6 +37,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { getUserGroupList } from '@services/source/cmdb';
   import { getAlarmGroupList } from '@services/source/monitorNoticeGroup';
@@ -44,30 +45,37 @@
   import MemberSelector from '@components/db-member-selector/index.vue';
 
   type UserGroup = ServiceReturnType<typeof getUserGroupList>[number];
+  type Receivers = ServiceReturnType<typeof getAlarmGroupList>['results'][number]['receivers'];
 
   interface Props {
+    bizId: number;
     disabled: boolean;
+    // 编辑 / 克隆时原告警组的接收人，用来保留原有 type（用户组列表拉取失败时不至于把组降级成用户）
+    originReceivers?: Receivers;
   }
 
   interface Exposes {
-    getSelectedReceivers: () => ServiceReturnType<typeof getAlarmGroupList>['results'][number]['receivers'];
+    getSelectedReceivers: () => Receivers;
   }
 
-  interface RecipientItem {
-    display_name: string;
-    type: string;
-    username: string;
-  }
-
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    originReceivers: () => [],
+  });
   const modelValue = defineModel<string[]>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const itemMap: Record<string, RecipientItem> = {};
-  const userGroupMap: Record<string, Pick<UserGroup, 'display_name' | 'members'>> = {};
+  const userGroupMap = shallowRef<Record<string, Pick<UserGroup, 'display_name' | 'members'>>>({});
+
+  // CMDB 用户组（如 bk_biz_maintainer）既用于展示组成员，也用于提交时把这些 id 标成 type: 'group'
+  useRequest(getUserGroupList, {
+    defaultParams: [{ bk_biz_id: props.bizId }],
+    onSuccess(userGroupList) {
+      userGroupMap.value = Object.fromEntries(userGroupList.map((item) => [item.id, item]));
+    },
+  });
 
   const memberList = computed(() => {
     const userGroupList: {
@@ -77,7 +85,7 @@
     const userList: string[] = [];
 
     modelValue.value.forEach((valueItem) => {
-      const userGroupMapItem = userGroupMap[valueItem];
+      const userGroupMapItem = userGroupMap.value[valueItem];
       if (userGroupMapItem) {
         userGroupList.push({
           label: userGroupMapItem.display_name,
@@ -103,9 +111,10 @@
 
   defineExpose<Exposes>({
     getSelectedReceivers() {
+      const originTypeMap = Object.fromEntries(props.originReceivers.map((item) => [item.id, item.type]));
       return modelValue.value.map((modelValueItem) => ({
         id: modelValueItem,
-        type: itemMap[modelValueItem]?.type || 'user',
+        type: userGroupMap.value[modelValueItem] ? 'group' : originTypeMap[modelValueItem] || 'user',
       }));
     },
   });

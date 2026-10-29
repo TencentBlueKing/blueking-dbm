@@ -544,13 +544,9 @@
   watch(
     () => [bizStore.bizs, defaultAdminData.value, bizAdminData.value, userData.value],
     () => {
-      if (
-        !defaultAdminData.value ||
-        !defaultAdminData.value.data.length ||
-        !bizAdminData.value ||
-        !bizAdminData.value.data.length ||
-        !userData.value
-      ) {
+      // bizAdminData.data 为空数组表示该组件从未配置过 DBA（合法状态），此时仍要列出全部业务供配置，
+      // 只有接口未返回（undefined）时才不渲染
+      if (!defaultAdminData.value || !defaultAdminData.value.data.length || !bizAdminData.value || !userData.value) {
         bizList.value = [];
         return;
       }

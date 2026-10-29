@@ -110,13 +110,11 @@
   // };
 
   const fetchData = () => {
-    tableRef.value.fetchData(
-      {},
-      {
-        bk_biz_id: currentBizId,
-        cluster_id: props.data.id,
-      },
-    );
+    // DbTable.fetchData 第二参是 loading，固定参数必须并进第一参，否则 cluster_id 丢失、请求路径拼成 undefined
+    tableRef.value.fetchData({
+      bk_biz_id: currentBizId,
+      cluster_id: props.data.id,
+    });
   };
 
   const handleSelection = (_: any, list: RiakNodeModel[]) => {

@@ -129,10 +129,13 @@
   });
 
   const handleSubmit = () => {
+    // 待办行的 cluster_type 是集群级真实值（MongoReplicaSet / sqlserver_ha 等），不能用 DB 级常量 mongodb / sqlserver 做 key
     const ticketTypeMap: Record<string, TicketTypes> = {
-      [ClusterTypes.MONGODB]: TicketTypes.MONGODB_DESTROY,
+      [ClusterTypes.MONGO_REPLICA_SET]: TicketTypes.MONGODB_DESTROY,
+      [ClusterTypes.MONGO_SHARED_CLUSTER]: TicketTypes.MONGODB_DESTROY,
       [ClusterTypes.REDIS_INSTANCE]: TicketTypes.REDIS_INSTANCE_DESTROY,
-      [ClusterTypes.SQLSERVER]: TicketTypes.SQLSERVER_DESTROY,
+      [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_DESTROY,
+      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_DESTROY,
       [ClusterTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_DESTROY,
       [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_DESTROY,
       [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_DESTROY,
@@ -143,7 +146,8 @@
       details: {
         cluster_ids: ticketItem.map((item) => item.id),
         force: [
-          ClusterTypes.SQLSERVER,
+          ClusterTypes.SQLSERVER_HA,
+          ClusterTypes.SQLSERVER_SINGLE,
           ClusterTypes.TENDBCLUSTER,
           ClusterTypes.TENDBHA,
           ClusterTypes.TENDBSINGLE,

@@ -43,7 +43,7 @@
                 :class="{
                   'timezone-picker-option-selected': item.label === localValue,
                 }">
-                <span class="option-name">{{ t('浏览器时区') }} {{ item.label }}</span>
+                <span class="option-name">{{ isBrowserTimeZoneMatched ? t('浏览器时区') : '' }} {{ item.label }}</span>
                 <span
                   v-overflow-tips
                   class="option-country">
@@ -122,8 +122,15 @@
     };
   };
 
+  const browserTimeZone = dayjs.tz.guess();
+  // 浏览器时区是否在内置表里；不在时（如 UTC、Etc/UTC 等别名）首项回退为 Asia/Shanghai，与父组件默认值 +08:00 一致，
+  // 否则下方 timezoneDetails[0].options[0] 取不到值，组件在 setup 阶段抛错
+  const isBrowserTimeZoneMatched = timezoneList.some((group) =>
+    group.options.some((option) => option.value === browserTimeZone),
+  );
+
   const getTimezoneDetails = () => {
-    const browserTimeZone = dayjs.tz.guess();
+    const defaultTimeZone = isBrowserTimeZoneMatched ? browserTimeZone : 'Asia/Shanghai';
     const defaultTimezoneList: TimezoneItem[] = [];
     const list: TimeZoneGroup[] = timezoneList.map((group) => ({
       label: group.label,
@@ -132,7 +139,7 @@
           ...option,
           ...getTimezoneInfo(option.searchIndex),
         };
-        if (option.value === browserTimeZone) {
+        if (option.value === defaultTimeZone) {
           defaultTimezoneList.push({
             ...option,
             ...info,
@@ -158,7 +165,9 @@
 
   const isActive = ref(false);
 
-  const isBrowserTimezone = computed(() => selected.value?.label === timezoneData.value[0].options[0].label);
+  const isBrowserTimezone = computed(
+    () => isBrowserTimeZoneMatched && selected.value?.label === timezoneData.value[0].options[0]?.label,
+  );
 
   const getTimezoneInfoByValue = (value: string) =>
     timezoneDetails.reduce((pre: any, group: TimeZoneGroup) => {
