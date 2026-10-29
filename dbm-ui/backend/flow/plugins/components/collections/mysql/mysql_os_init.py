@@ -194,10 +194,10 @@ os_sysctl_init = """
 """  # noqa
 
 # tcp_tw_recycle 在内核 4.12 中被移除
-# 新机器内核 >= 4.12: 设置 net.ipv4.tcp_timestamps=1
-# 新机器内核 < 4.12: tcp_timestamps、tcp_tw_recycle 与老机器保持一致（老机器未采集到则跳过）
 # tcp_timestamps=1 为的是解决客户端连接偶发出现 1s time-wait 出发 tcp syn 重传的超时问题
 #  但旧内核不能同时设置 tcp_timestamps=1,tcp_tw_recycle=1, 对 NAT 网络环境会连接不稳定
+# 目标值由 python 侧 calc_tcp_sysctl_targets 计算, shell 只负责判断新机器内核版本并设置
+# 值为空表示不设置该参数
 tcp_sysctl_init = """
     set_sysctl_param() {
         key=$1
@@ -221,17 +221,51 @@ tcp_sysctl_init = """
     if echo "$kernel_major" | grep -qE '^[0-9]+$' && echo "$kernel_minor" | grep -qE '^[0-9]+$'; then
         kernel_num=$((kernel_major * 1000 + kernel_minor))
         if [ "$kernel_num" -ge 4012 ]; then
-            echo "kernel ${kernel_release} >= 4.12, set net.ipv4.tcp_timestamps=1"
-            set_sysctl_param net.ipv4.tcp_timestamps 1
+            echo "kernel ${kernel_release} >= 4.12"
+            set_sysctl_param net.ipv4.tcp_timestamps "{{ge_412_tcp_timestamps}}"
+            set_sysctl_param net.ipv4.tcp_tw_recycle "{{ge_412_tcp_tw_recycle}}"
         else
-            echo "kernel ${kernel_release} < 4.12, keep tcp_timestamps/tcp_tw_recycle same as old machine"
-            set_sysctl_param net.ipv4.tcp_timestamps "{{old_tcp_timestamps}}"
-            set_sysctl_param net.ipv4.tcp_tw_recycle "{{old_tcp_tw_recycle}}"
+            echo "kernel ${kernel_release} < 4.12"
+            set_sysctl_param net.ipv4.tcp_timestamps "{{lt_412_tcp_timestamps}}"
+            set_sysctl_param net.ipv4.tcp_tw_recycle "{{lt_412_tcp_tw_recycle}}"
+            # fallback: if old machine params are not collected, nothing is set above,
+            # make sure the new machine does not end up with tcp_timestamps=1 and tcp_tw_recycle=1
+            cur_ts=$(/sbin/sysctl -n net.ipv4.tcp_timestamps 2>/dev/null)
+            cur_rc=$(/sbin/sysctl -n net.ipv4.tcp_tw_recycle 2>/dev/null)
+            if [ "$cur_ts" = "1" ] && [ "$cur_rc" = "1" ]; then
+                echo "current tcp_timestamps=1 and tcp_tw_recycle=1, force tcp_tw_recycle=0"
+                set_sysctl_param net.ipv4.tcp_tw_recycle 0
+            fi
         fi
     else
         echo "parse kernel version failed: ${kernel_release}, skip tcp sysctl init"
     fi
 """  # noqa
+
+
+def calc_tcp_sysctl_targets(old_tcp_timestamps: str, old_tcp_tw_recycle: str) -> dict:
+    """
+    根据老机器的 tcp 参数, 计算新机器在不同内核下的目标值, 空字符串表示不设置
+    1. 新机器内核 >= 4.12: 无脑设置 tcp_timestamps=1 (tcp_tw_recycle 已被移除)
+    2. 新机器内核 < 4.12: 与老机器保持一致, 允许 ts=0,rc=1, 但不允许 tcp_timestamps=1 且 tcp_tw_recycle=1
+       - 老机器 tcp_timestamps=1 时强制 tcp_tw_recycle=0 (含老机器内核 >= 4.12, tcp_tw_recycle 不存在的情况)
+       - 老机器 tcp_timestamps 未知(未采集到)时均不设置, 由 shell 兜底检查新机器当前值
+    @param old_tcp_timestamps: 老机器 net.ipv4.tcp_timestamps, 纯数字字符串或空
+    @param old_tcp_tw_recycle: 老机器 net.ipv4.tcp_tw_recycle, 纯数字字符串或空
+    """
+    lt_412_tcp_timestamps = old_tcp_timestamps
+    lt_412_tcp_tw_recycle = old_tcp_tw_recycle
+    if not old_tcp_timestamps:
+        lt_412_tcp_tw_recycle = ""
+    elif old_tcp_timestamps == "1":
+        lt_412_tcp_tw_recycle = "0"
+
+    return {
+        "ge_412_tcp_timestamps": "1",
+        "ge_412_tcp_tw_recycle": "",
+        "lt_412_tcp_timestamps": lt_412_tcp_timestamps,
+        "lt_412_tcp_tw_recycle": lt_412_tcp_tw_recycle,
+    }
 
 
 class SysInit(BkJobService):
@@ -276,6 +310,13 @@ class SysInit(BkJobService):
         except Exception:
             self.log_warning("get old_os_system_info failed in trans_data.system_info")
 
+        tcp_sysctl_targets = calc_tcp_sysctl_targets(old_tcp_timestamps, old_tcp_tw_recycle)
+        self.log_info(
+            "old machine tcp_timestamps=[{}], tcp_tw_recycle=[{}], tcp sysctl targets: {}".format(
+                old_tcp_timestamps, old_tcp_tw_recycle, tcp_sysctl_targets
+            )
+        )
+
         nginx_addrs_init = """
         echo '{}' >> /home/mysql/common_config/nginx_proxy.list
         chown mysql /home/mysql/common_config/nginx_proxy.list
@@ -290,8 +331,7 @@ class SysInit(BkJobService):
             max_open_file=max_open_file,
             aio_max_nr=aio_max_nr,
             mysql_os_password=self._get_os_mysql_password(),
-            old_tcp_timestamps=old_tcp_timestamps,
-            old_tcp_tw_recycle=old_tcp_tw_recycle,
+            **tcp_sysctl_targets,
         )
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]

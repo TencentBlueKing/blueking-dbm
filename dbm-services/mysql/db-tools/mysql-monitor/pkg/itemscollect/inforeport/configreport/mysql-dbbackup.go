@@ -9,26 +9,73 @@
 package configreport
 
 import (
+	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
 	"path/filepath"
 
 	actorCst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/cmd"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 )
 
 // ReportDbbackupConfig 按端口上报 dbbackup 配置
-func ReportDbbackupConfig(dbPort int) error {
+// 仅当配置文件 mtime 变化或距上次写入超过 24 小时时才写入 local_config 和上报日志
+// 配置文件不存在时删除 local_config 中对应的行
+func ReportDbbackupConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 	confFile := filepath.Join(actorCst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", dbPort))
+	cfg := &ModelLocalConfig{
+		Host:      config.MonitorConfig.Ip,
+		Port:      dbPort,
+		ConfType:  "dbbackup",
+		ConfFile:  confFile,
+		ConfigKey: "",
+	}
+
+	fi, err := os.Stat(confFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return DeleteLocalConfig(db, cfg)
+		}
+		return err
+	}
+	cfg.ConfMtime = fi.ModTime().Unix()
+
+	needWrite, err := NeedWriteLocalConfig(db, cfg)
+	if err != nil {
+		return err
+	}
+	if !needWrite {
+		slog.Debug("skip dbbackup config report, no change", slog.String("file", confFile))
+		return nil
+	}
+
 	cnf, err := cmd.GetConfigForReport(confFile)
 	if err != nil {
 		return err
 	}
+	masked, _, err := MaskedJSONPayload(cnf)
+	if err != nil {
+		return err
+	}
+	payload := FlattenOneLevel(masked)
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	body := string(bodyBytes)
 	report, err := GetMixedReport(fmt.Sprintf("dbbackup_config_%d.log", dbPort))
 	if err != nil {
 		return err
 	}
 	event := NewDynamicEvent("dbbackup_config", "tendbha", 1)
-	event.SetPayload(cnf)
+	event.SetPayload(payload)
 	report.Println(event)
-	return nil
+
+	cfg.ConfigValue = body
+	cfg.ClusterDomain = config.MonitorConfig.ImmuteDomain
+	cfg.ConfFile = filepath.Base(cfg.ConfFile) // 不用绝对路径
+	return ReplaceLocalConfig(db, cfg)
 }
