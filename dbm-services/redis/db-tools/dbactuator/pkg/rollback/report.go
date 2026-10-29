@@ -50,10 +50,11 @@ const (
 	stageRestore = "restore"
 	stageStart   = "start"
 	stageParse   = "parse"
+	stageDecode  = "decode"
 	stageApply   = "apply"
 )
 
-var stageOrder = []string{stageUnpack, stageRestore, stageStart, stageParse, stageApply}
+var stageOrder = []string{stageUnpack, stageRestore, stageStart, stageParse, stageDecode, stageApply}
 
 // Port outcomes in the summary.
 const (

@@ -9,15 +9,10 @@
 package rollback
 
 import (
-	"bufio"
-	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -100,12 +95,11 @@ func (r *ssdRestorer) DoRollback() error {
 	}
 	replaying := limits.Replay(len(redo))
 	report.logPlan(limits, plans, r.UnpackDir)
-	mylog.Logger.Info("RedisRollback(ssd) dest=%s recover_at=%s replay=%d parse=%d lookahead=%d order=%v",
-		r.DestIP, r.RecoverAt, replaying, limits.Parse(), parseLookahead, portsOf(redo))
+	mylog.Logger.Info("RedisRollback(ssd) dest=%s recover_at=%s replay=%d order=%v",
+		r.DestIP, r.RecoverAt, replaying, portsOf(redo))
 
 	window := newMemWindow(limits.MemAvailable, len(redo))
 	replaySlots := make(chan struct{}, replaying)
-	parsePool := make(chan struct{}, limits.Parse())
 	var wg sync.WaitGroup
 	var errs errCollector
 	errs.add(RunBounded(len(redo), limits.Unpack, func(i int) error {
@@ -120,7 +114,7 @@ func (r *ssdRestorer) DoRollback() error {
 		go func() {
 			defer wg.Done()
 			replaySlots <- struct{}{}
-			err := r.replayAndMark(inst, p, binlogs[inst.DestPort], recoverAt, parsePool)
+			err := r.replayAndMark(inst, p, binlogs[inst.DestPort], recoverAt)
 			<-replaySlots
 			p.finish(err)
 			errs.add(err)
@@ -220,16 +214,16 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 }
 
 // replayAndMark replays inst's binlogs, then marks it done and frees its downloads.
-func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs []string, recoverAt time.Time,
-	pool chan struct{}) error {
+func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs []string,
+	recoverAt time.Time) error {
 	log := newPortLog(r.DestIP, inst)
+	// Earlier attempts on older media kept the decompressed binlog and its commands here.
+	_ = os.RemoveAll(filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d", inst.DestPort)))
 	if len(binlogs) > 0 {
-		workDir := filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d", inst.DestPort))
-		if err := r.replay(log, p, inst, recoverAt, binlogs, workDir, pool); err != nil {
+		if err := r.replay(log, p, inst, recoverAt, binlogs); err != nil {
 			log.Error("%v", err)
 			return err
 		}
-		_ = os.RemoveAll(workDir)
 	}
 	instDir := r.Host.InstanceDir(inst.DestPort)
 	if err := MarkDone(instDir, r.fingerprint(inst)); err != nil {
@@ -244,11 +238,12 @@ func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs
 	return nil
 }
 
-// replay applies binlogs in index order while later ones are parsed ahead on the host's pool.
-// Like v1, error replies are counted and logged rather than failing the port, unless every reply
-// of a file is an error.
+// replay decodes binlogs in index order and sends their commands over one connection. Like v1,
+// error replies are counted and logged rather than failing the port, unless every reply of a
+// file is an error. Each file is streamed straight into the connection, so nothing is written
+// to disk between decoding and sending.
 func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, recoverAt time.Time,
-	binlogs []string, workDir string, pool chan struct{}) error {
+	binlogs []string) error {
 	port := inst.DestPort
 	addr := fmt.Sprintf("%s:%d", r.DestIP, port)
 	password, err := myredis.GetRedisPasswdFromConfFile(port)
@@ -273,66 +268,67 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 		return err
 	}
 	defer applyCli.Close()
-	pipe := redisPipe{cli: applyCli.InstanceClient}
-	if err = os.MkdirAll(workDir, 0755); err != nil {
-		return err
-	}
 
 	endMs := replayEndMs(recoverAt)
-	logFile := func(i int) string {
-		base := filepath.Base(binlogs[i])
-		return filepath.Join(workDir, strings.TrimSuffix(base, filepath.Ext(base)))
-	}
 	var total replyStats
-	parse := func(i int) error {
-		start := time.Now()
-		defer func() { p.add(stageParse, time.Since(start)) }()
-		base := filepath.Base(binlogs[i])
-		cpu, err := decompressFile(binlogs[i], filepath.Join(workDir, base))
+	var seen bool
+	var firstSeq, lastSeq int64
+	for _, file := range binlogs {
+		base := filepath.Base(file)
+		begin := time.Now()
+		var applyWall time.Duration
+		var fileStats replyStats
+		pipe := &commandPipe{
+			exec: timedExec{exec: redisPipe{cli: applyCli.InstanceClient}, onBatch: func(d time.Duration) {
+				applyWall += d
+				p.add(stageApply, d)
+			}},
+			onReply: func(args []string, reply error) error {
+				fileStats.Lines++
+				if reply != nil {
+					fileStats.record(reply.Error(), commandPreview(args))
+				}
+				return nil
+			},
+		}
+		stats, cpu, err := decodeSSDFile(file, startPos, endMs, func(rec *ssdBinlogRecord) error {
+			args, skip, err := rec.command(time.Now().UnixMilli())
+			if err != nil {
+				return fmt.Errorf("seq %d: %v", rec.seq, err)
+			}
+			if skip {
+				return nil
+			}
+			return pipe.add(args)
+		})
 		p.addCPU(stageParse, cpu)
+		p.add(stageParse, stats.readTime)
+		p.add(stageDecode, time.Since(begin)-stats.readTime-applyWall)
+		if err == nil {
+			err = pipe.flush()
+		}
 		if err != nil {
-			return corrupted(base, err)
+			return fmt.Errorf("binlog %s: %w", base, err)
 		}
-		cmdFile := logFile(i) + ".cmd"
-		cpu, err = parseBinlog(logFile(i), cmdFile, startPos, endMs)
-		p.addCPU(stageParse, cpu)
-		if err != nil {
-			return fmt.Errorf("parse binlog %s failed: %v", base, err)
+		log.Info("applied %s: %s", base, fileStats.summary())
+		if fileStats.Lines > 0 && fileStats.Errors == fileStats.Lines {
+			return fmt.Errorf("binlog %s: all %d replies are errors, samples %q",
+				base, fileStats.Lines, fileStats.samples())
 		}
-		_ = os.Remove(logFile(i))
-		if err := checkParsedCommands(cmdFile); err != nil {
-			return fmt.Errorf("parse binlog %s: %v", base, err)
+		total.add(fileStats)
+		if stats.records > 0 {
+			if !seen {
+				firstSeq, seen = stats.firstSeq, true
+			}
+			lastSeq = stats.lastSeq
 		}
-		return nil
 	}
-	apply := func(i int) error {
-		start := time.Now()
-		defer func() { p.add(stageApply, time.Since(start)) }()
-		base := filepath.Base(binlogs[i])
-		cmdFile := logFile(i) + ".cmd"
-		stats, err := applyCommands(pipe, cmdFile)
-		if err != nil {
-			return fmt.Errorf("apply binlog %s failed: %v", base, err)
-		}
-		log.Info("applied %s: %s", base, stats.summary())
-		if stats.Lines > 0 && stats.Errors == stats.Lines {
-			return fmt.Errorf("apply binlog %s: all %d replies are errors, samples %q",
-				base, stats.Lines, stats.samples())
-		}
-		total.add(stats)
-		_ = os.Remove(cmdFile)
-		return nil
-	}
-	err = runPipeline(len(binlogs), parseLookahead, pool, parse, apply)
 	p.replayed(len(binlogs), total)
-	if err != nil {
-		return err
-	}
 	if total.Errors > total.Expected {
-		log.Warn("replayed %d binlogs, writes behind unexpected errors may be missing: %s",
-			len(binlogs), total.summary())
+		log.Warn("replayed %d binlogs, seq %d -> %d, writes behind unexpected errors may be missing: %s",
+			len(binlogs), firstSeq, lastSeq, total.summary())
 	} else {
-		log.Info("replayed %d binlogs: %s", len(binlogs), total.summary())
+		log.Info("replayed %d binlogs, seq %d -> %d: %s", len(binlogs), firstSeq, lastSeq, total.summary())
 	}
 	return nil
 }
@@ -367,135 +363,10 @@ func replayStartPos(log portLog, endSeq func() (uint64, error), fullFiles []stri
 	return seq + 1, nil
 }
 
-var wrongLogTypeReg = regexp.MustCompile(`^Wrong log type: (\d+)`)
-
-const (
-	wrongLogTypePrefix = "Wrong log type"
-	// tredisbinlog prints "failed" without a newline after an unknown record, so the next
-	// command is glued to it and lost.
-	failedPrefix = "failed"
-)
-
-// checkParsedCommands fails on records tredisbinlog cannot convert, e.g. ASYNCDEL(17) behind a
-// large-key DEL. Parsed commands are quoted, so no command line starts with either marker.
-func checkParsedCommands(cmdFile string) error {
-	f, err := os.Open(cmdFile)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	reader := bufio.NewReaderSize(f, 64*1024)
-	types := map[string]bool{}
-	var unknown, glued, firstLine, lineNo int
-	atStart := true
-	for {
-		chunk, err := reader.ReadSlice('\n')
-		if atStart && len(chunk) > 0 {
-			lineNo++
-			hit := true
-			switch {
-			case bytes.HasPrefix(chunk, []byte(wrongLogTypePrefix)):
-				unknown++
-				if m := wrongLogTypeReg.FindSubmatch(chunk); m != nil {
-					types[string(m[1])] = true
-				}
-			case bytes.HasPrefix(chunk, []byte(failedPrefix)):
-				glued++
-			default:
-				hit = false
-			}
-			if hit && firstLine == 0 {
-				firstLine = lineNo
-			}
-		}
-		atStart = err != bufio.ErrBufferFull
-		if err == io.EOF {
-			break
-		}
-		if err != nil && err != bufio.ErrBufferFull {
-			return err
-		}
-	}
-	if unknown == 0 && glued == 0 {
-		return nil
-	}
-	kinds := make([]string, 0, len(types))
-	for t := range types {
-		kinds = append(kinds, t)
-	}
-	sort.Strings(kinds)
-	return fmt.Errorf("tredisbinlog met %d records of unknown log type %v and glued %d commands to %q, "+
-		"first at line %d; the glued commands would be lost. Type 17 is the ASYNCDEL behind a large-key DEL",
-		unknown, kinds, glued, failedPrefix, firstLine)
-}
-
-// replayEndMs is the --end-datetime for recoverAt. The bound is exclusive, so like v1 it is one
-// second later to keep the writes made within the recoverAt second.
+// replayEndMs is the exclusive end of the replay window: one second after recoverAt keeps the
+// writes made within the recoverAt second, as v1 does.
 func replayEndMs(recoverAt time.Time) int64 {
 	return recoverAt.Add(time.Second).UnixMilli()
-}
-
-// parseBinlog writes logFile's commands to cmdFile and returns tredisbinlog's CPU time.
-func parseBinlog(logFile, cmdFile string, startPos uint64, endMs int64) (time.Duration, error) {
-	out, err := os.Create(cmdFile)
-	if err != nil {
-		return 0, err
-	}
-	defer out.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), ssdCmdTimeout)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, consts.TredisBinlogBin,
-		fmt.Sprintf("--start-position=%d", startPos), fmt.Sprintf("--end-datetime=%d", endMs), logFile)
-	cmd.Env = append(os.Environ(), ssdToolEnv()...)
-	var stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = out, &stderr
-	if err = cmd.Run(); err != nil || strings.Contains(stderr.String(), "ERR:") {
-		return cpuTime(cmd), fmt.Errorf("%v %s", err, keepOutput(filepath.Dir(cmdFile),
-			filepath.Base(logFile)+".parse.err", stderr.Bytes()))
-	}
-	return cpuTime(cmd), nil
-}
-
-// applyCommands sends cmdFile's commands in batches, split the way redis-cli splits its input
-// lines. Like redis-cli it goes on past error replies and counts them; a line redis-cli would
-// reject as "Invalid argument(s)" counts as an error.
-func applyCommands(exec pipeExecer, cmdFile string) (replyStats, error) {
-	var st replyStats
-	f, err := os.Open(cmdFile)
-	if err != nil {
-		return st, err
-	}
-	defer f.Close()
-	pipe := &commandPipe{exec: exec, onReply: func(args []string, reply error) error {
-		st.Lines++
-		if reply != nil {
-			st.record(reply.Error(), commandPreview(args))
-		}
-		return nil
-	}}
-	reader := bufio.NewReaderSize(f, 1<<20)
-	for {
-		line, readErr := reader.ReadString('\n')
-		if line != "" {
-			args, ok := splitArgs(line)
-			switch {
-			case !ok:
-				st.Lines++
-				st.record("ERR Invalid argument(s)", previewLine(line))
-			case len(args) > 0:
-				if err = pipe.add(args); err != nil {
-					return st, err
-				}
-			}
-		}
-		if readErr == io.EOF {
-			break
-		}
-		if readErr != nil {
-			return st, readErr
-		}
-	}
-	return st, pipe.flush()
 }
 
 const previewBytes = 64

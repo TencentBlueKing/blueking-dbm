@@ -128,7 +128,6 @@ MEMORY_RATIO_AOF = 2.0
 CPU_PER_INSTANCE_HINT = 2
 
 # Mirrors of the actuator's rollback limits (dbactuator pkg/rollback): the window it admits
-# instances into is MemAvailable less a tenth (memReserveDivisor), and a replaying port keeps at
-# most this many binlogs decompressed or parsed on disk (parseLookahead).
+# instances into is MemAvailable less a tenth (memReserveDivisor), and SSD replay streams binlogs
+# from the downloaded files without keeping a decompressed or parsed copy on disk.
 MEMORY_RESERVE_DIVISOR = 10
-REPLAY_PARSE_LOOKAHEAD = 4

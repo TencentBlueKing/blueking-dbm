@@ -5,12 +5,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -20,25 +18,25 @@ import (
 func TestLimitsFollowTheHostAndOnlyGoDown(t *testing.T) {
 	auto := Limits{CPU: 16}
 	auto.Unpack = auto.capped(auto.CPU / 2)
-	if auto.Unpack != 8 || auto.Replay(4) != 4 || auto.Replay(20) != 16 || auto.Parse() != 11 ||
+	if auto.Unpack != 8 || auto.Replay(4) != 4 || auto.Replay(20) != 16 ||
 		auto.Loading() != 16 || auto.KvstoreReplay(4) != 4 || auto.KvstoreReplay(70) != 8 {
-		t.Fatalf("auto limits: unpack=%d replay=%d/%d parse=%d loading=%d kvstore replay=%d/%d",
-			auto.Unpack, auto.Replay(4), auto.Replay(20), auto.Parse(), auto.Loading(),
+		t.Fatalf("auto limits: unpack=%d replay=%d/%d loading=%d kvstore replay=%d/%d",
+			auto.Unpack, auto.Replay(4), auto.Replay(20), auto.Loading(),
 			auto.KvstoreReplay(4), auto.KvstoreReplay(70))
 	}
-	// 10-21: 32 cores, 24 ports all replay instead of 16, parsing on 22 cores
-	if prod := (Limits{CPU: 32}); prod.Replay(24) != 24 || prod.Parse() != 22 {
-		t.Fatalf("32 cores: replay=%d parse=%d", prod.Replay(24), prod.Parse())
+	// 10-21: 32 cores, 24 ports all replay instead of 16; kvstores stay at one per two cores
+	if prod := (Limits{CPU: 32}); prod.Replay(24) != 24 || prod.KvstoreReplay(70) != 16 {
+		t.Fatalf("32 cores: replay=%d kvstore replay=%d", prod.Replay(24), prod.KvstoreReplay(70))
 	}
 	low := Limits{CPU: 16, Max: 2}
-	if low.capped(8) != 2 || low.Replay(4) != 2 || low.Parse() != 2 || low.KvstoreReplay(70) != 2 {
+	if low.capped(8) != 2 || low.Replay(4) != 2 || low.KvstoreReplay(70) != 2 {
 		t.Fatal("max_concurrency should lower every stage")
 	}
 	high := Limits{CPU: 4, Max: 64}
-	if high.capped(high.CPU/2) != 2 || high.Replay(20) != 4 || high.Parse() != 2 {
+	if high.capped(high.CPU/2) != 2 || high.Replay(20) != 4 || high.KvstoreReplay(70) != 2 {
 		t.Fatal("max_concurrency must not raise a stage above the host")
 	}
-	if (Limits{CPU: 1}).Parse() != 1 || (Limits{CPU: 1}).KvstoreReplay(3) != 1 {
+	if (Limits{CPU: 1}).KvstoreReplay(3) != 1 {
 		t.Fatal("every stage keeps at least one slot")
 	}
 }
@@ -156,64 +154,6 @@ func TestSetPersistenceTurnsSaveOffAndFollowsFormat(t *testing.T) {
 }
 
 // --- 9.10 parse ahead, apply in order -------------------------------------------------
-
-func TestPipelineAppliesInOrderWhateverParseOrder(t *testing.T) {
-	const n = 30
-	pool := make(chan struct{}, 8)
-	var applied []int
-	var outstanding, peak int32
-	err := runPipeline(n, parseLookahead, pool, func(i int) error {
-		v := atomic.AddInt32(&outstanding, 1)
-		for p := atomic.LoadInt32(&peak); v > p && !atomic.CompareAndSwapInt32(&peak, p, v); p = atomic.LoadInt32(&peak) {
-		}
-		time.Sleep(time.Duration(rand.Intn(3)) * time.Millisecond)
-		return nil
-	}, func(i int) error {
-		applied = append(applied, i)
-		atomic.AddInt32(&outstanding, -1)
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i, v := range applied {
-		if v != i {
-			t.Fatalf("applied out of order: %v", applied)
-		}
-	}
-	if len(applied) != n {
-		t.Fatalf("applied %d of %d", len(applied), n)
-	}
-	if peak > parseLookahead {
-		t.Fatalf("%d parsed ahead, limit %d", peak, parseLookahead)
-	}
-}
-
-func TestPipelineStopsApplyingAfterAFailure(t *testing.T) {
-	pool := make(chan struct{}, 4)
-	for _, failAt := range []string{"parse", "apply"} {
-		var applied []int
-		boom := errors.New("boom")
-		err := runPipeline(10, parseLookahead, pool, func(i int) error {
-			if failAt == "parse" && i == 3 {
-				return boom
-			}
-			return nil
-		}, func(i int) error {
-			if failAt == "apply" && i == 3 {
-				return boom
-			}
-			applied = append(applied, i)
-			return nil
-		})
-		if !errors.Is(err, boom) || fmt.Sprint(applied) != "[0 1 2]" {
-			t.Fatalf("%s failure: applied %v err=%v", failAt, applied, err)
-		}
-	}
-	if len(pool) != 0 {
-		t.Fatal("parse slots leaked")
-	}
-}
 
 func TestPortsWithMoreBinlogsGoFirst(t *testing.T) {
 	insts := []InstanceRestore{{DestPort: 30000}, {DestPort: 30001}, {DestPort: 30002}}
