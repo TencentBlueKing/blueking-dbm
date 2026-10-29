@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import re
 from collections import defaultdict
 from dataclasses import asdict
@@ -18,6 +19,7 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums.version_phase import PkgSeries
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, RedisCapacityUpdateType
@@ -26,6 +28,8 @@ from backend.flow.plugins.components.collections.name_service.name_service impor
 from backend.flow.plugins.components.collections.redis.redis_apply_summary import RedisApplySummaryComponent
 from backend.flow.utils.name_service.name_service_dataclass import ActKwargs as NsActKwargs
 from backend.flow.utils.name_service.name_service_dataclass import TransDataKwargs as NsTransDataKwargs
+
+logger = logging.getLogger("flow")
 
 
 def build_clb_polaris_apply_subs(
@@ -319,17 +323,42 @@ def is_cross_engine_version_change(current_version: str, target_version: str) ->
     return get_redis_engine_family(current_version) != get_redis_engine_family(target_version)
 
 
-# 根据db_version 获取 redis 最新 Package
+def get_redis_package_v2_release(pkg_type, series: str = PkgSeries.LATEST.value, name_prefix: str = None):
+    """
+    通过介质库 V2（Distribution/VersionSeries/DBVersion）查询 redis 最新 release 介质包。
+    @param pkg_type: 介质类型，见 MediumEnum（redis/tendisplus/tendisssd/predixy/twemproxy/dbmon/tools/...）
+    @param series: 版本系列名，默认 latest（周边介质）；DB 安装包传入 db_version（如 Redis-6、Tendisplus-2.7）；
+                   传空串则不限定版本系列（如 proxy 升级只按 name_prefix 定位目标文件）
+    @param name_prefix: 包文件名前缀过滤（升级场景指定目标版本文件）
+    查询不到时抛 PackageNotExistException，与 V1 get_latest_package 的语义对齐。
+    """
+    pkg = Package.get_latest_package_v2_release(
+        pkg_type=pkg_type, series=series, db_type=DBType.Redis, name_prefix=name_prefix
+    )
+    if pkg:
+        return pkg
+    # 存量环境的 Package 行可能尚未补挂 db_version（未经过 V2 sync），回退 V1 查询并告警，
+    # 待 sync_medium 重建版本链路后自动走 V2
+    logger.warning(
+        "redis v2 medium pkg not found, fallback to v1 query: pkg_type=%s, series=%s, name_prefix=%s",
+        pkg_type,
+        series,
+        name_prefix,
+    )
+    v1_version = series if series else MediumEnum.Latest.value
+    return Package.get_latest_package(
+        version=v1_version, pkg_type=pkg_type, db_type=DBType.Redis, name_prefix=name_prefix
+    )
+
+
+# 根据db_version 获取 redis 最新 Package（走介质库 V2，version_series 与 db_version 同名，如 Redis-6/Tendisplus-2.7）
 def get_latest_redis_package_by_version(db_version, name_prefix=None):
     pkg_type = MediumEnum.Redis
     if db_version.startswith("TendisSSD"):
         pkg_type = MediumEnum.TendisSsd
     if db_version.startswith("Tendisplus"):
         pkg_type = MediumEnum.TendisPlus
-    redis_pkg = Package.get_latest_package(
-        version=db_version, pkg_type=pkg_type, db_type=DBType.Redis, name_prefix=name_prefix
-    )
-    return redis_pkg
+    return get_redis_package_v2_release(pkg_type=pkg_type, series=db_version, name_prefix=name_prefix)
 
 
 def humanbytes(B):

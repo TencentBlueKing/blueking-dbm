@@ -503,7 +503,7 @@ redis:
     name: dbactuator_redis
     version: 1.0.5
     distribution_name: DBM
-    version_series: 1.0.6
+    version_series: latest
     full_version: 26.5.20.0.0.1
     os_type: "Linux"
     os_version:
@@ -523,7 +523,7 @@ redis:
     name: redis_dts.tar.gz
     version: 1.0.0
     distribution_name: DBM
-    version_series: 1.0.0
+    version_series: latest
     full_version: 26.5.20.0.0.1
     os_type: "Linux"
     os_version:
@@ -541,7 +541,7 @@ redis:
     name: redis_modules.tar.gz
     version: 1.0.0
     distribution_name: DBM
-    version_series: 1.0.0
+    version_series: latest
     full_version: 26.5.20.0.0.1
     os_type: "Linux"
     os_version:

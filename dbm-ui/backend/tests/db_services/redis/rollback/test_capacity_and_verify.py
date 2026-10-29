@@ -461,7 +461,9 @@ def _proxy_builder(monkeypatch):
     from backend.flow.utils.redis import redis_act_playload
 
     monkeypatch.setattr(
-        redis_act_playload.Package, "get_latest_package", MagicMock(return_value=MagicMock(name="pkg", md5="m"))
+        redis_act_playload.Package,
+        "get_latest_package_v2_release",
+        MagicMock(return_value=MagicMock(name="pkg", md5="m")),
     )
     builder = RedisActPayload.__new__(RedisActPayload)
     builder.cluster = {

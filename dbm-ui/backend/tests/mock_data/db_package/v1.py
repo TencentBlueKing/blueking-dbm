@@ -44,11 +44,15 @@ def ensure_package(
 
 
 def seed_redis_packages() -> List[Package]:
-    """Redis 单据 patch_ticket_detail 会冻结 RedisTools latest 包。"""
+    """Redis 单据 patch_ticket_detail 会冻结 RedisTools latest 包。
+
+    redis 介质查询已切换介质库 V2，需要造 Distribution->VersionSeries->DBVersion->Package 完整链路。
+    """
+    from backend.tests.mock_data.db_package.v2 import ensure_v2_release_package
+
     return [
-        ensure_package(
+        ensure_v2_release_package(
             pkg_type=PackageType.RedisTools.value,
             db_type=DBType.Redis.value,
-            version=MediumEnum.Latest.value,
         )
     ]

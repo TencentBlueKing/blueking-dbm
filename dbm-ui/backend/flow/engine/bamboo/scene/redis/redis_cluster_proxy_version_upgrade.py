@@ -13,8 +13,8 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
+from backend.db_package.exceptions import PackageNotExistException
 from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
 from backend.flow.consts import MediumEnum
@@ -22,6 +22,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterProxysUpgradeAtomJob
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_proxy_util import async_multi_clusters_precheck
+from backend.flow.utils.redis.redis_util import get_redis_package_v2_release
 
 logger = logging.getLogger("flow")
 
@@ -52,26 +53,22 @@ class RedisProxyVersionUpgradeSceneFlow(object):
             cluster = Cluster.objects.get(id=input_item["cluster_id"])
             to_precheck_cluster_ids.append(cluster.id)
 
-            # 目标版本文件 是否在 "版本文件"中
+            # 目标版本文件 是否在 "版本文件"中（不限定版本系列，按包名前缀定位）
             proxy_pkg: Package = None
             if is_twemproxy_proxy_type(cluster.cluster_type):
-                proxy_pkg = Package.get_latest_package(
-                    version=MediumEnum.Latest,
-                    pkg_type=MediumEnum.Twemproxy,
-                    db_type=DBType.Redis,
-                    name_prefix=input_item["target_version_file"],
-                )
+                pkg_type = MediumEnum.Twemproxy
             elif is_predixy_proxy_type(cluster.cluster_type):
-                proxy_pkg = Package.get_latest_package(
-                    version=MediumEnum.Latest,
-                    pkg_type=MediumEnum.Predixy,
-                    db_type=DBType.Redis,
-                    name_prefix=input_item["target_version_file"],
-                )
+                pkg_type = MediumEnum.Predixy
             else:
                 raise Exception(
                     _("redis集群:{} cluster_type:{} 不认识").format(cluster.immute_domain, cluster.cluster_type)
                 )
+            try:
+                proxy_pkg = get_redis_package_v2_release(
+                    pkg_type=pkg_type, series="", name_prefix=input_item["target_version_file"]
+                )
+            except PackageNotExistException:
+                proxy_pkg = None
 
             # No package matched.
             if not proxy_pkg:

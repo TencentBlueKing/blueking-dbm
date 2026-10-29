@@ -93,7 +93,7 @@ def __init_package(django_db_setup, django_db_blocker):
         Package.objects.bulk_create([Package(**data) for data in packages])
         # GetFileList.mysql_install_package 走 V2 备份包查询，旧 Package 行没有 db_version 会返回 None
         seed_mysql_v2_release_packages()
-        # Redis 单据 patch_ticket_detail 会冻结 RedisTools latest 包
+        # Redis 单据 patch_ticket_detail 会冻结 RedisTools latest 包（介质查询已切 V2，需完整版本链）
         seed_redis_packages()
         yield
         clear_mysql_v2_release_packages()

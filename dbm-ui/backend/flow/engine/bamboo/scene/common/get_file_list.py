@@ -18,7 +18,7 @@ from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import CLOUD_SSL_PATH, MediumEnum, MysqlVersionToDBBackupForMap
-from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
+from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version, get_redis_package_v2_release
 
 
 class GetFileList(object):
@@ -31,11 +31,13 @@ class GetFileList(object):
         """
         @param db_type: db类型，默认是MySQL，如果是Redis这actuator包不一样
         """
-        # Mongo 周边介质只走 V2（series=latest）；其他 DB 暂保留 V1
+        # Mongo/Redis 周边介质走 V2（series=latest）；其他 DB 暂保留 V1
         if str(db_type) == DBType.MongoDB.value:
             from backend.flow.utils.mongodb.version_utils import get_mongodb_package_v2_release
 
             self.actuator_pkg = get_mongodb_package_v2_release(MediumEnum.DBActuator.value)
+        elif str(db_type) == DBType.Redis.value:
+            self.actuator_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DBActuator)
         else:
             self.actuator_pkg = Package.get_latest_package(
                 version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=db_type
@@ -252,15 +254,11 @@ class GetFileList(object):
             version = PredixyVersion.PredixyLatest
             pkg_type = MediumEnum.Predixy
 
-        proxy_pkg = Package.get_latest_package(
-            version=version, pkg_type=pkg_type, db_type=DBType.Redis, name_prefix=proxy_name_prefix
+        proxy_pkg = get_redis_package_v2_release(
+            pkg_type=pkg_type, series=version.value, name_prefix=proxy_name_prefix
         )
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
@@ -273,12 +271,8 @@ class GetFileList(object):
         部署redis,所有节点需要的redis pkg包
         """
         redis_pkg = get_latest_redis_package_by_version(db_version)
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         ret = [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_pkg.path}",
@@ -287,9 +281,7 @@ class GetFileList(object):
         ]
         if db_version.startswith(("Redis-", "Valkey-")):
             # 如果是 cache Redis,则下发 redis modules 介质
-            redismodules_pkg = Package.get_latest_package(
-                version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
-            )
+            redismodules_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisModules)
             ret.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redismodules_pkg.path}")
         return ret
 
@@ -298,9 +290,7 @@ class GetFileList(object):
         redis集群版本升级
         """
         redis_pkg = get_latest_redis_package_by_version(db_version, name_prefix=name_prefix)
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_pkg.path}",
@@ -317,12 +307,8 @@ class GetFileList(object):
         """
         安装 或者重装 dbmon
         """
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
@@ -335,24 +321,18 @@ class GetFileList(object):
         """
         Redis actuator 包
         """
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
         ]
 
     def tendisplus_apply_proxy(self) -> list:
-        proxy_pkg = Package.get_latest_package(
-            version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+        proxy_pkg = get_redis_package_v2_release(
+            pkg_type=MediumEnum.Predixy, series=PredixyVersion.PredixyLatest.value
         )
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
@@ -361,15 +341,9 @@ class GetFileList(object):
         ]
 
     def tendisplus_apply_backend(self, db_version: str) -> list:
-        redis_pkg = Package.get_latest_package(
-            version=db_version, pkg_type=MediumEnum.TendisPlus, db_type=DBType.Redis
-        )
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
+        redis_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.TendisPlus, series=db_version)
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_pkg.path}",
@@ -466,12 +440,8 @@ class GetFileList(object):
         """
         redis单据基础包：act + tool工具包 + dbmon
         """
-        redis_tool_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-        )
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
+        redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
@@ -483,12 +453,8 @@ class GetFileList(object):
         """
         redis load module, actuator + redis_modules
         """
-        redis_actuator_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=DBType.Redis
-        )
-        redis_modules_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
-        )
+        redis_actuator_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DBActuator)
+        redis_modules_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisModules)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_modules_pkg.path}",
@@ -499,12 +465,8 @@ class GetFileList(object):
         """
         redis add dts_server
         """
-        redis_actuator_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=DBType.Redis
-        )
-        redis_dts_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
-        )
+        redis_actuator_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DBActuator)
+        redis_dts_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisDts)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_dts_pkg.path}",

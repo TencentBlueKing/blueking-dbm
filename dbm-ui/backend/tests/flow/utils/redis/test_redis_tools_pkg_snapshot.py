@@ -22,12 +22,12 @@ SRC_IP = "1.1.1.1"
 def _latest_pkg_factory(redis_tools=LATEST_B, others=None):
     others = others or SimpleNamespace(name="other.tgz", md5="other", path="other.tgz")
 
-    def fake_get_latest_package(**kwargs):
+    def fake_get_latest_package_v2_release(**kwargs):
         if kwargs.get("pkg_type") == MediumEnum.RedisTools:
             return redis_tools
         return others
 
-    return fake_get_latest_package
+    return fake_get_latest_package_v2_release
 
 
 def _payload_builder(tools_pkg, cluster=None):
@@ -53,7 +53,7 @@ def _payload_builder(tools_pkg, cluster=None):
 
 
 def test_ensure_writes_pkg_md5_path(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     data = {"bk_biz_id": 100}
     ensure_redis_tools_pkg_snapshot(data)
     assert data["redis_tools_pkg"] == {
@@ -64,7 +64,7 @@ def test_ensure_writes_pkg_md5_path(monkeypatch):
 
 
 def test_ensure_keeps_existing_snapshot(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     data = {"redis_tools_pkg": SNAPSHOT_A}
     ensure_redis_tools_pkg_snapshot(data)
     assert data["redis_tools_pkg"] == SNAPSHOT_A
@@ -77,14 +77,14 @@ def test_ensure_none_is_noop():
 def test_keys_extract_flow_freezes_on_init(monkeypatch):
     from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
 
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     data = {"bk_biz_id": 100, "rules": []}
     RedisKeysExtractFlow(root_id="r", data=data)
     assert data["redis_tools_pkg"]["pkg"] == "dbtools-B.tgz"
 
 
 def test_resolve_prefers_ticket_snapshot_over_latest(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     pkg = resolve_redis_tools_pkg({"redis_tools_pkg": SNAPSHOT_A})
     assert pkg.name == "dbtools-A.tgz"
     assert pkg.md5 == "md5A"
@@ -92,14 +92,14 @@ def test_resolve_prefers_ticket_snapshot_over_latest(monkeypatch):
 
 
 def test_resolve_without_snapshot_uses_latest(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     pkg = resolve_redis_tools_pkg({"bk_biz_id": 100})
     assert pkg.name == "dbtools-B.tgz"
     assert pkg.md5 == "md5B"
 
 
 def test_datacheck_payload_keeps_snapshot_when_latest_changes(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     builder = _payload_builder(SimpleNamespace(name="dbtools-A.tgz", md5="md5A"))
     result = builder.redis_dts_datacheck_payload(ip=SRC_IP, params={})
     assert result["payload"]["pkg"] == "dbtools-A.tgz"
@@ -107,7 +107,7 @@ def test_datacheck_payload_keeps_snapshot_when_latest_changes(monkeypatch):
 
 
 def test_keys_extract_payload_keeps_snapshot_when_latest_changes(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     monkeypatch.setattr(RedisActPayload, "_RedisActPayload__get_fileserver", staticmethod(lambda: {}))
     builder = _payload_builder(SimpleNamespace(name="dbtools-A.tgz", md5="md5A"))
     result = builder.keys_extract_payload(ip=SRC_IP)
@@ -116,7 +116,7 @@ def test_keys_extract_payload_keeps_snapshot_when_latest_changes(monkeypatch):
 
 
 def test_datarepair_payload_keeps_snapshot_when_latest_changes(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     builder = _payload_builder(SimpleNamespace(name="dbtools-A.tgz", md5="md5A"))
     result = builder.redis_dts_datarepair_payload(ip=SRC_IP, params={})
     assert result["payload"]["pkg"] == "dbtools-A.tgz"
@@ -124,7 +124,7 @@ def test_datarepair_payload_keeps_snapshot_when_latest_changes(monkeypatch):
 
 
 def test_act_payload_init_prefers_ticket_snapshot(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     monkeypatch.setattr(RedisActPayload, "_RedisActPayload__init_dbconfig_params", lambda self: None)
     payload = RedisActPayload(
         {
@@ -146,7 +146,7 @@ def test_bkdbmon_header_uses_passed_tools_pkg(monkeypatch):
         "get_setting_value",
         lambda key: {"event": {"data_id": 1, "token": "t"}, "metric": {"data_id": 2, "token": "t"}},
     )
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     header = RedisActPayload.get_bkdbmon_payload_header(
         "100", tools_pkg=SimpleNamespace(name="dbtools-A.tgz", md5="md5A")
     )
@@ -154,7 +154,7 @@ def test_bkdbmon_header_uses_passed_tools_pkg(monkeypatch):
 
 
 def test_payload_without_snapshot_matches_latest(monkeypatch):
-    monkeypatch.setattr(payload_mod.Package, "get_latest_package", _latest_pkg_factory())
+    monkeypatch.setattr(payload_mod.Package, "get_latest_package_v2_release", _latest_pkg_factory())
     pkg = resolve_redis_tools_pkg({})
     builder = _payload_builder(pkg)
     result = builder.redis_dts_datacheck_payload(ip=SRC_IP, params={})

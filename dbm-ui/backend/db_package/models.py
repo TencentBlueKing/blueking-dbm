@@ -177,6 +177,7 @@ class Package(AuditedModel):
         db_type: Optional[str] = DBType.MySQL,
         permit_os_type: str = BkOsType.LINUX.value,
         only_enable_pkg: bool = False,
+        name_prefix: Optional[str] = None,
     ) -> Optional["Package"]:
         """
         获取指定数据库类型、介质类型和版本阶段（phase）的 V2 备份介质包
@@ -186,6 +187,7 @@ class Package(AuditedModel):
         - 默认按 permit_os_type=Linux 过滤介质包
         - 若存在多个备份包，优先选择 full_version 数值最大者；
           同一版本时，优先选择 recommend 和 priority 高的包
+        - name_prefix 用于按包文件名前缀过滤（如 proxy 升级指定目标版本文件）
 
         返回：
         - 若找到符合条件的 Package 实例则返回，否则返回 None
@@ -201,6 +203,8 @@ class Package(AuditedModel):
             filters["enable"] = only_enable_pkg
         if series:
             filters["db_version__version_series__name"] = series
+        if name_prefix:
+            filters["name__startswith"] = name_prefix
 
         packages = list(Package.objects.filter(**filters).select_related("db_version"))
         if not packages:
@@ -213,7 +217,11 @@ class Package(AuditedModel):
 
     @classmethod
     def get_latest_package_v2_release(
-        cls, pkg_type: str, series: str = PkgSeries.LATEST.value, db_type: Optional[str] = DBType.MySQL
+        cls,
+        pkg_type: str,
+        series: str = PkgSeries.LATEST.value,
+        db_type: Optional[str] = DBType.MySQL,
+        name_prefix: Optional[str] = None,
     ) -> Optional["Package"]:
         # series: version_series, or version_no
         return cls.get_package_v2_by_phase(
@@ -223,6 +231,7 @@ class Package(AuditedModel):
             permit_os_type=str(BkOsType.LINUX.value),
             db_type=db_type,
             only_enable_pkg=True,
+            name_prefix=name_prefix,
         )
 
     @classmethod
@@ -231,6 +240,7 @@ class Package(AuditedModel):
         pkg_type: str,
         series: str = PkgSeries.LATEST.value,
         db_type: Optional[str] = DBType.MySQL,
+        name_prefix: Optional[str] = None,
     ) -> Optional["Package"]:
         phase = str(VersionPhase.ALPHA.value)
         permit_os_type = str(BkOsType.LINUX.value)
@@ -241,6 +251,7 @@ class Package(AuditedModel):
             permit_os_type=permit_os_type,
             db_type=db_type,
             only_enable_pkg=True,
+            name_prefix=name_prefix,
         )
 
     @staticmethod
