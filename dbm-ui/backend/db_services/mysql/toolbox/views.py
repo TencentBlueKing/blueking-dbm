@@ -33,19 +33,13 @@ from backend.db_services.mysql.toolbox.serializers import (
     QuerySpiderPkgListByCompareVersionSerializer,
     TdbctlUpgradeProgressSerializer,
     TdbctlUpgradeRecordsSerializer,
-    TdbctlUpgradeScheduleSerializer,
     TdbctlUpgradeSerializer,
     TendbhaAddSlaveDomainSerializer,
     TendbhaTransferToOtherBizSerializer,
 )
 from backend.db_services.mysql.toolbox.storage_upgrade_tool import get_storage_version_modules_api
 from backend.db_services.mysql.toolbox.tdbctl_upgrade_handler import TdbctlUpgradeHandler
-from backend.db_services.mysql.toolbox.tdbctl_upgrade_scheduler import (
-    TdbctlUpgradeScheduler,
-    _check_any_biz_lock_exists,
-    _is_global_lock_held,
-    tdbctl_upgrade_task,
-)
+from backend.db_services.mysql.toolbox.tdbctl_upgrade_scheduler import TdbctlUpgradeScheduler
 from backend.db_services.mysql.toolbox.upgrade_tool import get_spider_version_modules_api
 from backend.flow.engine.bamboo.scene.mysql.mysql_data_merge_disk_space import mysql_data_merge_disk_space
 from backend.flow.engine.controller.mysql_backup_data_recovery_exercise import MySQLBackupDataRecoveryController
@@ -406,99 +400,12 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
     TdbCtl 全局升级调度视图集
 
     提供以下接口：
-    - schedule: 触发一批集群升级
     - progress: 查询升级进度
     - records: 查询升级记录
     """
 
     action_permission_map = {}
     default_permission_class = [DBManagePermission()]
-
-    @common_swagger_auto_schema(
-        operation_summary=_("触发 tdbctl 升级调度"),
-        request_body=TdbctlUpgradeScheduleSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=False, serializer_class=TdbctlUpgradeScheduleSerializer)
-    def schedule(self, request, **kwargs):
-        """
-        触发 tdbctl 升级调度（异步）
-
-        调度一批集群进行 tdbctl 升级，支持：
-        - 指定业务范围
-        - 指定每批集群数量
-        - 自动过滤已成功或正在升级的集群
-        - 后台异步执行，按业务串行调度
-        """
-        data = self.params_validate(self.get_serializer_class())
-        logger.info(_("开始 tdbctl 升级调度（异步）: {}").format(data))
-
-        try:
-            # 先验证升级包是否存在
-            TdbctlUpgradeScheduler(
-                pkg_id=data["pkg_id"],
-                bk_biz_ids=data.get("bk_biz_ids"),
-            )
-
-            # 前置锁检查，避免提交后在异步任务中静默失败
-            is_global_schedule = not data.get("bk_biz_ids")
-            if is_global_schedule:
-                # 全局调度：检查全局锁和业务锁
-                if _is_global_lock_held():
-                    return Response(
-                        {"result": False, "message": _("全局锁被持有，可能存在其他全局调度任务正在执行，请稍后重试")},
-                        status=409,
-                    )
-                locked_biz_ids = _check_any_biz_lock_exists()
-                if locked_biz_ids:
-                    return Response(
-                        {
-                            "result": False,
-                            "message": _("存在业务锁，无法执行全局调度，被锁定的业务ID: {}").format(locked_biz_ids),
-                        },
-                        status=409,
-                    )
-            else:
-                # 业务粒度调度：检查全局锁
-                if _is_global_lock_held():
-                    return Response(
-                        {"result": False, "message": _("全局锁被持有，无法执行业务粒度调度，请稍后重试")},
-                        status=409,
-                    )
-
-            # 异步执行升级调度任务（后台按业务串行调度）
-            task_result = tdbctl_upgrade_task.apply_async(
-                kwargs={
-                    "pkg_id": data["pkg_id"],
-                    "bk_biz_ids": data.get("bk_biz_ids"),
-                    "batch_size": data.get("batch_size", 20),
-                    "operator": request.user.username,
-                    "schedule_interval_seconds": data.get("schedule_interval_seconds", 180),
-                }
-            )
-
-            logger.info(_("tdbctl 升级调度任务已提交，task_id={}").format(task_result.id))
-
-            return Response(
-                {
-                    "result": True,
-                    "message": _("升级调度任务已提交，后台按业务串行执行中"),
-                    "task_id": task_result.id,
-                    "pkg_id": data["pkg_id"],
-                    "bk_biz_ids": data.get("bk_biz_ids"),
-                    "batch_size": data.get("batch_size", 20),
-                    "schedule_interval_seconds": data.get("schedule_interval_seconds", 180),
-                }
-            )
-        except ValueError as e:
-            logger.error(_("tdbctl 升级调度参数错误: {}").format(str(e)))
-            return Response({"result": False, "message": str(e)}, status=400)
-        except Exception as e:
-            logger.exception(_("tdbctl 升级调度异常: {}").format(str(e)))
-            return Response(
-                {"result": False, "message": _("调度异常: {}").format(str(e))},
-                status=500,
-            )
 
     @common_swagger_auto_schema(
         operation_summary=_("查询 tdbctl 升级进度"),

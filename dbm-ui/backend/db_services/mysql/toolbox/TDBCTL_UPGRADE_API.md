@@ -2,11 +2,10 @@
 
 ## API 概览
 
-TdbCtl 升级功能提供了三种不同的接口，满足不同的使用场景：
+TdbCtl 升级功能提供了以下接口，满足不同的使用场景：
 
 | 接口名称 | URL路径 | 执行方式 | 单据 | 使用场景 |
 |---------|---------|---------|------|---------|
-| `schedule` | `/apis/mysql/toolbox/tdbctl_upgrade/schedule/` | 异步 | 否 | 批量调度升级，全局或按业务 |
 | `upgrade` | `/apis/mysql/toolbox/tdbctl_upgrade/upgrade/` | 同步 | 否 | 直接执行升级，无需审批 |
 | `create_upgrade_ticket` | `/apis/mysql/toolbox/tdbctl_upgrade/create_upgrade_ticket/` | 异步 | 是 | 创建升级单据，需要审批 |
 
@@ -125,40 +124,7 @@ POST /apis/mysql/toolbox/tdbctl_upgrade/upgrade/
 
 ---
 
-## 3. 批量调度升级（异步）
-
-### 接口路径
-```
-POST /apis/mysql/toolbox/tdbctl_upgrade/schedule/
-```
-
-### 功能说明
-- 异步批量调度升级
-- 支持全局或指定业务范围
-- 自动过滤已升级和正在升级的集群
-- 按业务串行调度，避免资源冲突
-
-### 请求参数
-```json
-{
-  "pkg_id": 123,
-  "bk_biz_ids": [1, 2, 3],
-  "batch_size": 20,
-  "schedule_interval_seconds": 180
-}
-```
-
-#### 参数说明
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `pkg_id` | int | 是 | tdbctl 升级包ID |
-| `bk_biz_ids` | list[int] | 否 | 业务ID列表，为空则升级全部业务 |
-| `batch_size` | int | 否 | 每批集群数量（默认 20，范围 1-100） |
-| `schedule_interval_seconds` | int | 否 | 每个业务之间的调度间隔（秒，默认 180，范围 0-3600） |
-
----
-
-## 4. 查询升级进度
+## 3. 查询升级进度
 
 ### 接口路径
 ```
@@ -190,7 +156,7 @@ POST /apis/mysql/toolbox/tdbctl_upgrade/progress/
 
 ---
 
-## 5. 查询升级记录
+## 4. 查询升级记录
 
 ### 接口路径
 ```
@@ -272,30 +238,6 @@ response = upgrade({
     "cluster_ids": [1, 2, 3]
 })
 print(response["data"]["message"])
-```
-
-### 场景 3：全局批量升级
-**使用接口：** `schedule`
-
-**原因：**
-- ✅ 支持大规模批量升级
-- ✅ 自动过滤和调度
-- ✅ 按业务串行，避免冲突
-- ✅ 异步执行，不阻塞
-
-**示例：**
-```python
-# 异步批量调度升级
-response = schedule({
-    "pkg_id": 123,
-    "batch_size": 20,
-    "schedule_interval_seconds": 180
-})
-task_id = response["task_id"]
-
-# 轮询查询进度
-progress = get_progress({"pkg_id": 123})
-print(f"成功: {progress['success']}, 失败: {progress['failed']}")
 ```
 
 ---
