@@ -30,6 +30,8 @@ bk:
   # 蓝鲸PaaS平台
   bkPaasUrl: "https://example.com"
   bkComponentApiUrl: "https://bkapi.example.com"
+  # 蓝鲸网关地址模板，如 https://bkapi.example.com/api/{api_name}；留空则按 (bkApigatewayDomain 或 bkComponentApiUrl)/api/{api_name} 拼接
+  bkApiUrlTmpl: ""
   bkLoginUrl: "https://example.com/login"
   # 蓝鲸配置平台
   bkCmdbUrl: "https://cmdb.example.com"
@@ -63,6 +65,10 @@ bk:
   bkIamResourceApiHost: "https://bkdbm.example.com"
   # 蓝鲸用户管理
   bkUserManageUrl: "https://bkuser.example.com"
+  # 用户管理网关地址，如 https://bkapi.example.com/api/bk-user/prod/api/v3/open/ ；留空则回退到 ESB usermanage
+  bkUserManageApiUrl: ""
+  # 用户管理前端网关地址（多租户人员展示/选择器使用），如 https://bkapi.example.com/api/bk-user-web/prod
+  bkUserManageFrontendApiUrl: ""
   # 蓝鲸监控平台
   grafanaUrl: "http://bk-dbm-grafana:3000"
   bkMonitorUrl: "https://bk_monitor.example.com"
@@ -118,14 +124,14 @@ dbm:
       registry: "mirrors.tencent.com"
       repository: "build/blueking/dbm-aidev-init"
       pullPolicy: IfNotPresent
-      tag: "latest"
-    # 仅用于 helm template 暴露镜像地址，供流水线同步仓库；容器本身只 echo 1
-    # Skill 仓库必须通过 BKAI_SKILL_IMAGE_REPO 环境变量传入，值不带末尾 /
+      tag: ""
+    # Skill 基础镜像：仅作为占位容器镜像，供 helm template 暴露给流水线同步仓库（容器本身只 echo 1）
+    # tag 需与 skills/*/Dockerfile 中 FROM 的 tag 保持一致
     skillsEnvImage:
       registry: "mirrors.tencent.com"
       repository: "build/blueking/bkdbm-aidev-skills-env"
       pullPolicy: IfNotPresent
-      tag: "0.0.1-alpha.13"
+      tag: "0.0.1-alpha.17"
 
   image:
     registry: "mirrors.tencent.com"

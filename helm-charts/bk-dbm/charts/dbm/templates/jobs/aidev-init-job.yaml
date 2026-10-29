@@ -1,4 +1,5 @@
 {{- if .Values.bkai.enabled -}}
+{{- $skillsEnvImage := printf "%s/%s:%s" (.Values.global.imageRegistry | default .Values.bkai.skillsEnvImage.registry) .Values.bkai.skillsEnvImage.repository .Values.bkai.skillsEnvImage.tag -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -19,11 +20,16 @@ spec:
       restartPolicy: Never
       containers:
         - name: dbm-aidev-init
-          image: "{{ .Values.global.imageRegistry | default .Values.bkai.image.registry }}/{{ .Values.bkai.image.repository }}:{{ .Values.bkai.image.tag | default "latest" }}"
+          image: "{{ .Values.global.imageRegistry | default .Values.bkai.image.registry }}/{{ .Values.bkai.image.repository }}:{{ .Values.bkai.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.bkai.image.pullPolicy | default .Values.image.pullPolicy }}
           # 镜像 ENTRYPOINT: render mcps → bkai-init validate/sync
           env:
             {{- include "dbm.envs" . | trim | nindent 12 }}
+            # bkai-init 只认 BKAI_APP_* 或 PaaS 内置的 BKPAAS_APP_*，不读 BK_APP_CODE / APP_TOKEN
+            - name: BKAI_APP_CODE
+              value: {{ .Values.envs.bkAppCode | quote }}
+            - name: BKAI_APP_SECRET
+              value: {{ .Values.envs.bkAppToken | quote }}
             - name: BKAI_TENANT_ID
               value: {{ .Values.bkai.tenantId | default "system" | quote }}
             - name: BKAI_SPACE
@@ -42,7 +48,7 @@ spec:
             {{- toYaml .Values.initJob.resources | nindent 12 }}
         # 占位容器：让 helm template 输出 skills-env 镜像，供流水线上传仓库
         - name: dbm-aidev-skills-env
-          image: "{{ .Values.global.imageRegistry | default .Values.bkai.skillsEnvImage.registry }}/{{ .Values.bkai.skillsEnvImage.repository }}:{{ .Values.bkai.skillsEnvImage.tag }}"
+          image: {{ $skillsEnvImage | quote }}
           imagePullPolicy: {{ .Values.bkai.skillsEnvImage.pullPolicy | default .Values.image.pullPolicy }}
           command:
             - /bin/sh

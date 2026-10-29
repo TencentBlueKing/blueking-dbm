@@ -2,7 +2,7 @@
 # build context 必须是 backend/dbm_aiagent：
 #   docker build -f bkai-resources/docker/Dockerfile -t dbm-aidev-init:local .
 
-ARG BKAI_INIT_IMAGE=mirrors.tencent.com/build/blueking/bk-aidev-init:0.1.4
+ARG BKAI_INIT_IMAGE=mirrors.tencent.com/build/blueking/bk-aidev-init:0.1.5
 
 # ---------- extract: 从 config.py 抽出 MCP 绑定（无 Django）----------
 FROM python:3.11-slim AS extract

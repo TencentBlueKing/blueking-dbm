@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dbm-aidev-init: render mcps → bkai-init validate → sync
 #
-# Job 必填: BK_APIGW_STAGE_NAME, BKAI_SPACE（目标空间 ID）, BKAI_SKILL_IMAGE_REPO（仓库地址，不带末尾 /）
+# Job 必填: BK_APIGW_STAGE_NAME, BKAI_SPACE（目标空间 ID）
 # Job 可选:
 #   BK_APIGW_MCP_NAME   (默认 bkdbm-mcp)
 #   BKAI_TENANT_ID      (默认 system)
@@ -14,7 +14,6 @@ PKG=/app/bkai-resources
 GATEWAY="${BK_APIGW_MCP_NAME:-bkdbm-mcp}"
 STAGE="${BK_APIGW_STAGE_NAME:?BK_APIGW_STAGE_NAME is required}"
 SPACE="${BKAI_SPACE:?BKAI_SPACE (space id) is required}"
-SKILL_IMAGE_REPO="${BKAI_SKILL_IMAGE_REPO:?BKAI_SKILL_IMAGE_REPO is required}"
 TENANT_ID="${BKAI_TENANT_ID:-system}"
 PUBLISH="${BKAI_PUBLISH:-1}"
 PUBLISH_CONFIG_ONLY="${BKAI_PUBLISH_CONFIG_ONLY:-1}"
@@ -43,10 +42,7 @@ if [[ -n "${BKAI_ADMINS:-}" ]]; then
   SYNC_ARGS+=(--admins "${ADMINS[@]}")
 fi
 
-SYNC_ARGS+=(--var "BKAI_SKILL_IMAGE_REPO=${SKILL_IMAGE_REPO}")
-
-bkai-init validate -f "${PKG}/bkai.yaml" --space "${SPACE}" \
-  --var "BKAI_SKILL_IMAGE_REPO=${SKILL_IMAGE_REPO}"
+bkai-init validate -f "${PKG}/bkai.yaml" --space "${SPACE}"
 bkai-init sync "${SYNC_ARGS[@]}"
 
 echo "[dbm-aidev-init] done"
