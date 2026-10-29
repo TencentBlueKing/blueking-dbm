@@ -346,23 +346,22 @@ func ShowMysqlMasterStatus(ftwrl bool, db *sql.DB) (status *ShowMasterStatus, er
 }
 
 func StartSlaveThreads(ioThread, sqlThread bool, db *sql.DB, serverVersion string) error {
-	var err error
 	sqlStr := ""
-	if ioThread && sqlThread {
+	switch {
+	case ioThread && sqlThread:
 		sqlStr = "START SLAVE"
-	}
-	if ioThread {
+	case ioThread:
 		sqlStr = "START SLAVE io_thread"
-	}
-	if sqlThread {
+	case sqlThread:
 		sqlStr = "START SLAVE sql_thread"
+	default:
+		return nil
 	}
-	if cmutil.MySQLVersionCompare(serverVersion, "8.4.0") > 0 {
+	if cmutil.MySQLVersionCompare(serverVersion, "8.4.0") >= 0 {
 		sqlStr = strings.ReplaceAll(sqlStr, "SLAVE", "REPLICA")
-		_, err = db.Exec(sqlStr)
-		return err
 	}
-	return nil
+	_, err := db.Exec(sqlStr)
+	return err
 }
 
 // IsPrimaryCtl check tc_is_primary

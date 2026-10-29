@@ -37,10 +37,13 @@ type infoReport struct {
 // Run TODO
 func (c *infoReport) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	dbPort := config.MonitorConfig.Port
-	if err := configreport.ReportDbbackupConfig(dbPort); err != nil {
+	if err := configreport.ReportDbbackupConfig(dbPort, c.db); err != nil {
 		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
-	if err := configreport.ReportRotatebinlogConfig(0); err != nil {
+	if err := configreport.ReportRotatebinlogConfig(dbPort, c.db); err != nil {
+		slog.Warn("config-report", slog.String("error", err.Error()))
+	}
+	if err := configreport.ReportChecksumConfig(dbPort, c.db); err != nil {
 		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
 	if err := pkgversion.CollectPkgVersion(); err != nil {

@@ -2,12 +2,13 @@
 package config
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 
 	"gopkg.in/yaml.v2"
 )
@@ -23,21 +24,21 @@ type Host struct {
 }
 
 type Filter struct {
-	Databases            []string `yaml:"databases"`
-	Tables               []string `yaml:"tables"`
-	IgnoreDatabases      []string `yaml:"ignore_databases"`
-	IgnoreTables         []string `yaml:"ignore_tables"`
-	DatabasesRegex       string   `yaml:"databases_regex"`
-	TablesRegex          string   `yaml:"tables_regex"`
-	IgnoreDatabasesRegex string   `yaml:"ignore_databases_regex"`
-	IgnoreTablesRegex    string   `yaml:"ignore_tables_regex"`
+	Databases            []string `yaml:"databases" json:"databases"`
+	Tables               []string `yaml:"tables" json:"tables"`
+	IgnoreDatabases      []string `yaml:"ignore_databases" json:"ignore_databases"`
+	IgnoreTables         []string `yaml:"ignore_tables" json:"ignore_tables"`
+	DatabasesRegex       string   `yaml:"databases_regex" json:"databases_regex"`
+	TablesRegex          string   `yaml:"tables_regex" json:"tables_regex"`
+	IgnoreDatabasesRegex string   `yaml:"ignore_databases_regex" json:"ignore_databases_regex"`
+	IgnoreTablesRegex    string   `yaml:"ignore_tables_regex" json:"ignore_tables_regex"`
 }
 
 type PtChecksum struct {
-	Path      string                   `yaml:"path"`
-	Switches  []string                 `yaml:"switches"`
-	Args      []map[string]interface{} `yaml:"args"`
-	Replicate string                   `yaml:"replicate"`
+	Path      string                   `yaml:"path" json:"path"`
+	Switches  []string                 `yaml:"switches" json:"switches"`
+	Args      []map[string]interface{} `yaml:"args" json:"args"`
+	Replicate string                   `yaml:"replicate" json:"replicate"`
 }
 
 type Cluster struct {
@@ -59,18 +60,18 @@ const (
 
 // Config 配置结构
 type Config struct {
-	BkBizId    int `yaml:"bk_biz_id"`
-	Cluster    `yaml:"cluster"`
-	Host       `yaml:",inline"`
-	InnerRole  InnerRoleEnum `yaml:"inner_role"`
-	ReportPath string        `yaml:"report_path"`
-	Slaves     []Host        `yaml:"slaves"`
-	Filter     Filter        `yaml:"filter"`
-	PtChecksum PtChecksum    `yaml:"pt_checksum"`
-	Log        *LogConfig    `yaml:"log"`
-	Schedule   string        `yaml:"schedule"`
-	ApiUrl     string        `yaml:"api_url"`
-	Enable     bool          `yaml:"enable"`
+	BkBizId    int `yaml:"bk_biz_id" json:"bk_biz_id"`
+	Cluster    `yaml:"cluster" json:"cluster"`
+	Host       `yaml:",inline" json:"host"`
+	InnerRole  InnerRoleEnum `yaml:"inner_role" json:"inner_role"`
+	ReportPath string        `yaml:"report_path" json:"report_path"`
+	Slaves     []Host        `yaml:"slaves" json:"slaves"`
+	Filter     Filter        `yaml:"filter" json:"filter"`
+	PtChecksum PtChecksum    `yaml:"pt_checksum" json:"pt_checksum"`
+	Log        *LogConfig    `yaml:"log" json:"log"`
+	Schedule   string        `yaml:"schedule" json:"schedule"`
+	ApiUrl     string        `yaml:"api_url" json:"api_url"`
+	Enable     bool          `yaml:"enable" json:"enable"`
 }
 
 // InitConfig 初始化配置
