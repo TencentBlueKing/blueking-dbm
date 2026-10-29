@@ -34,7 +34,7 @@ from backend.iam_app.handlers.drf_perm.base import IAMPermission
 
 from ...db_monitor.constants import DashboardType
 from . import client
-from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME, K8S_AUTH_KEYS, K8S_INSTANCE_KEY, K8S_NAMESPACE_KEY
+from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME, K8S_AUTH_KEYS, K8S_INSTANCE_KEY, K8S_NAMESPACE_KEY, K8S_NS_KEY
 from .promsql import QueryConditions, extract_conditions_from_promql
 from .provisioning import Dashboard, Datasource
 from .settings import grafana_settings
@@ -432,10 +432,13 @@ class ProxyBaseView(View):
     def __check_k8s_cluster_permission(self, request, conditions: QueryConditions) -> bool:
         """
         k8s 集群鉴权：k8s 指标没有 cluster_domain 维度，
-        通过 bk_monitor_namespace 末段解析业务，再结合 app_kubernetes_io_instance（集群名）定位 DBM 集群
+        通过 namespace（优先 bk_monitor_namespace，缺失时回退 namespace）末段解析业务，
+        再结合 app_kubernetes_io_instance（集群名）定位 DBM 集群
         """
+        # 同时存在时优先取 bk_monitor_namespace，否则取 namespace，两者处理方式一致
+        namespaces = conditions.get(K8S_NAMESPACE_KEY) or conditions.get(K8S_NS_KEY, [])
         bk_biz_ids = set()
-        for namespace in conditions.get(K8S_NAMESPACE_KEY, []):
+        for namespace in namespaces:
             bk_biz_id = namespace.rsplit("-", 1)[-1]
             if not bk_biz_id.isdigit():
                 return False

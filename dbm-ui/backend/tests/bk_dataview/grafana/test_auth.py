@@ -69,6 +69,10 @@ def k8s_selector(namespace=NAMESPACE, instance="qdrant01"):
     return f'qdrant_collections_total{{bk_monitor_namespace="{namespace}", app_kubernetes_io_instance="{instance}"}}'
 
 
+def k8s_ns_selector(namespace=NAMESPACE, instance="qdrant01"):
+    return f'qdrant_collections_total{{namespace="{namespace}", app_kubernetes_io_instance="{instance}"}}'
+
+
 class TestK8sAuth:
     def test_allowed(self, qdrant_cluster, iam_check):
         auth_promql(f"sum({k8s_selector()})")
@@ -111,6 +115,49 @@ class TestK8sAuth:
         assert actions == [ActionEnum.DB_MANAGE]
         assert resources == [BIZ_ID]
         assert resource_meta == ResourceEnum.BUSINESS
+
+    def test_namespace_key_allowed(self, qdrant_cluster, iam_check):
+        """namespace 维度（非 bk_monitor_namespace）同样参与 k8s 鉴权"""
+        auth_promql(f"sum({k8s_ns_selector()})")
+
+        _, actions, resources, resource_meta = iam_check.call_args.args
+        assert actions == [ActionEnum.K8S_QDRANT_VIEW]
+        assert resources == [qdrant_cluster.id]
+        assert resource_meta == ResourceEnum.K8S_QDRANT
+
+    def test_namespace_key_cross_biz(self, qdrant_cluster, iam_check):
+        with pytest.raises(PermissionError):
+            auth_promql(k8s_ns_selector(namespace=f"qdrant01-otherbiz-{OTHER_BIZ_ID}"))
+        iam_check.assert_not_called()
+
+    def test_namespace_key_invalid(self, qdrant_cluster, iam_check):
+        with pytest.raises(PermissionError):
+            auth_promql(k8s_ns_selector(namespace="kube-system"))
+
+    def test_namespace_key_only_fallback_biz(self, iam_check):
+        auth_promql(f'container_memory_working_set_bytes{{namespace="{NAMESPACE}"}}')
+
+        _, actions, resources, resource_meta = iam_check.call_args.args
+        assert actions == [ActionEnum.DB_MANAGE]
+        assert resources == [BIZ_ID]
+        assert resource_meta == ResourceEnum.BUSINESS
+
+    def test_bk_monitor_namespace_priority(self, qdrant_cluster, iam_check):
+        """两者同时存在时优先取 bk_monitor_namespace，忽略非法的 namespace"""
+        auth_promql(
+            f'qdrant_collections_total{{bk_monitor_namespace="{NAMESPACE}", '
+            'namespace="kube-system", app_kubernetes_io_instance="qdrant01"}'
+        )
+        iam_check.assert_called_once()
+
+    def test_bk_monitor_namespace_priority_invalid(self, qdrant_cluster, iam_check):
+        """bk_monitor_namespace 存在时以其为准，即使非法也不回退 namespace"""
+        with pytest.raises(PermissionError):
+            auth_promql(
+                f'qdrant_collections_total{{bk_monitor_namespace="kube-system", '
+                f'namespace="{NAMESPACE}", app_kubernetes_io_instance="qdrant01"}}'
+            )
+        iam_check.assert_not_called()
 
     def test_histogram_quantile(self, qdrant_cluster, iam_check):
         auth_promql(f"histogram_quantile(0.99, sum(rate({k8s_selector()}[5m])) by (le))")
