@@ -20,17 +20,6 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
 
-// parseLookahead caps the binlogs parsed ahead of the one being applied on a port, which bounds
-// the .cmd files waiting on disk. The flow's disk precheck mirrors it as REPLAY_PARSE_LOOKAHEAD.
-const parseLookahead = 4
-
-// A binlog takes about 1.8 times as long to parse (one core) as to apply (about 0.8 core: the
-// instance 0.7, the client 0.1), so parsing needs about 7 of every 10 cores to keep pace.
-const (
-	parseShareNum   = 7
-	parseShareDenom = 10
-)
-
 // Limits are the per-stage concurrency of one host, sized from its CPUs and available memory.
 // Stages use different resources, so each has its own bound instead of the tightest one for all.
 type Limits struct {
@@ -65,9 +54,9 @@ func (l Limits) capped(n int) int {
 	return n
 }
 
-// Replay is the number of SSD ports replaying binlogs at once. A replaying port waits for parsed
-// binlogs most of the time and takes a core only while applying, so up to one port per core.
-// The flow's disk precheck mirrors it as replay_slots.
+// Replay is the number of SSD ports replaying binlogs at once. A replaying port spends most of
+// its time decompressing and decoding, and takes a core only while sending, so up to one port
+// per core.
 func (l Limits) Replay(ports int) int {
 	return l.capped(min(ports, l.CPU))
 }
@@ -76,11 +65,6 @@ func (l Limits) Replay(ports int) int {
 // its writes into the instance together, so it stays at one per two cores.
 func (l Limits) KvstoreReplay(streams int) int {
 	return l.capped(min(streams, l.CPU/2))
-}
-
-// Parse is the host-wide SSD binlog parse pool.
-func (l Limits) Parse() int {
-	return l.capped(l.CPU * parseShareNum / parseShareDenom)
 }
 
 // Loading bounds Cache instances loading at once, each taking one core.

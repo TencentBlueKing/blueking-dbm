@@ -363,15 +363,22 @@ func (h dirHost) Stop(int) error              { return nil }
 func (h dirHost) MediaName() string           { return "tendisplus-2.8.2-rocksdb-v8.5.3" }
 
 func TestPlusClusterStepsFollowTheClusterFlag(t *testing.T) {
-	var assigned []int
-	assignPortSlotsFn = func(_ portLog, _ string, inst InstanceRestore) error {
-		assigned = append(assigned, inst.DestPort)
+	var steps []string
+	assignPortSlotsFn = func(_ portLog, _ string, _ InstanceRestore) error {
+		steps = append(steps, "slots")
 		return nil
 	}
-	defer func() { assignPortSlotsFn = assignPortSlots }()
+	restoreEndFn = func(_ portLog, _ string, _ InstanceRestore) error {
+		steps = append(steps, "restoreend")
+		return nil
+	}
+	defer func() {
+		assignPortSlotsFn = assignPortSlots
+		restoreEndFn = restoreEnd
+	}()
 
 	for _, cluster := range []bool{false, true} {
-		assigned = nil
+		steps = nil
 		host := dirHost{root: t.TempDir()}
 		inst := InstanceRestore{DestPort: 30000, Slots: "0-16383"}
 		conf := confFile(host.InstanceDir(inst.DestPort))
@@ -390,8 +397,13 @@ func TestPlusClusterStepsFollowTheClusterFlag(t *testing.T) {
 		if got := strings.Contains(string(raw), "cluster-enabled yes"); got != cluster {
 			t.Fatalf("cluster=%v: conf rendered for a cluster: %v\n%s", cluster, got, raw)
 		}
-		if got := len(assigned) == 1; got != cluster {
-			t.Fatalf("cluster=%v: slots assigned for %v", cluster, assigned)
+		want := []string(nil)
+		if cluster {
+			// restoreend must run after addslots: that is when the instance knows its slots.
+			want = []string{"slots", "restoreend"}
+		}
+		if !reflect.DeepEqual(steps, want) {
+			t.Fatalf("cluster=%v: steps %v, want %v", cluster, steps, want)
 		}
 		if !IsDone(host.InstanceDir(inst.DestPort), r.fingerprint(inst)) {
 			t.Fatalf("cluster=%v: port not marked done", cluster)

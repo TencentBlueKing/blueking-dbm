@@ -20,7 +20,6 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     RollbackPlan,
     host_disk_needs,
     load_memory,
-    replay_slots,
     rollback_manifest,
     stage_slots,
 )
@@ -336,21 +335,14 @@ def test_stage_slots_follow_the_actuator_limits():
     assert stage_slots(cpu=0, max_concurrency=0, ports=5) == 5
 
 
-def test_replay_slots_follow_the_actuator_ssd_replay_limit():
-    assert replay_slots(cpu=32, max_concurrency=0, ports=24) == 24
-    assert replay_slots(cpu=16, max_concurrency=0, ports=20) == 16
-    assert replay_slots(cpu=16, max_concurrency=3, ports=20) == 3
-    assert replay_slots(cpu=0, max_concurrency=0, ports=5) == 5
-
-
-def test_ssd_replay_scratch_counts_one_port_per_core():
+def test_ssd_downloads_are_the_only_backup_disk_need():
     items = [
         _item("0-209999", "2.2.2.2", "a.tar", binlogs=["binlog-1.log.zst"]),
         _item("210000-419999", "2.2.2.2", "b.tar", binlogs=["binlog-2.log.zst"]),
     ]
-    # 2 cores: one port unpacks at a time, both replay; each binlog 5 bytes, 15 decompressed + 15 parsed
+    # Replay streams the downloaded binlogs, so no decompressed or parsed copy adds to them.
     backup, _ = host_disk_needs(items, is_ssd=True, cpu=2, max_concurrency=0)
-    assert backup == 30 + 2 * 30
+    assert backup == 10 + 10 + 5 + 5
 
 
 def test_cache_disks_hold_downloads_and_one_unpacked_copy():
@@ -358,19 +350,13 @@ def test_cache_disks_hold_downloads_and_one_unpacked_copy():
     assert host_disk_needs(items, is_ssd=False, cpu=16, max_concurrency=0) == (20, 30 + 10)
 
 
-def test_ssd_counts_rebuild_replayed_writes_and_parse_scratch():
+def test_ssd_counts_rebuild_and_replayed_writes():
     items = _ssd_host_items()
     # one port at a time: data = unpacked 20 + one port's backup beside its rocksdb 10 + replayed
-    # writes 30; backup = downloads 30 + a's two binlogs, each decompressed and parsed, 60
-    assert host_disk_needs(items, is_ssd=True, cpu=2, max_concurrency=0) == (90, 60)
+    # writes 30; backup = downloads 30, binlogs are streamed and need no room of their own
+    assert host_disk_needs(items, is_ssd=True, cpu=2, max_concurrency=0) == (30, 60)
     # both ports at once
-    assert host_disk_needs(items, is_ssd=True, cpu=0, max_concurrency=0) == (90, 70)
-
-
-def test_replay_scratch_keeps_only_the_lookahead_window():
-    item = _item("0-1", "2.2.2.2", "a.tar", binlogs=["b-{}.log".format(i) for i in range(10)])
-    # uncompressed binlogs are linked, not copied, so only the parsed commands count
-    assert item.replay_scratch_bytes == 4 * 5
+    assert host_disk_needs(items, is_ssd=True, cpu=0, max_concurrency=0) == (30, 70)
 
 
 def test_disk_precheck_sizes_from_the_plan_and_host_cpus():
@@ -394,7 +380,7 @@ def test_disk_precheck_sizes_from_the_plan_and_host_cpus():
     }[key]
     with patch.object(RollbackPlan, "load", return_value=plan):
         assert svc._execute(data, None) is True
-    assert [c.args[3] for c in svc._check.call_args_list] == [90, 60]
+    assert [c.args[3] for c in svc._check.call_args_list] == [30, 60]
 
 
 # --- 9.9 plan_id in the record ---------------------------------------------------------

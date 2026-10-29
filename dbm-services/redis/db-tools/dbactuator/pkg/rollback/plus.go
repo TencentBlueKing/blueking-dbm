@@ -428,7 +428,11 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 		log.Warn("replay failed with a batch out, a retry restores the full backup again")
 	}
 	if err == nil && r.cluster {
-		err = assignPortSlotsFn(log, r.DestIP, inst)
+		if err = assignPortSlotsFn(log, r.DestIP, inst); err == nil {
+			// After addslots, the instance knows which slots it keeps and drops the restored
+			// chunks of any other slot.
+			err = restoreEndFn(log, r.DestIP, inst)
+		}
 	}
 	if err == nil {
 		err = MarkDone(r.Host.InstanceDir(inst.DestPort), r.fingerprint(inst))
@@ -537,6 +541,41 @@ func dialPlus(ip string, port int) (plusReplayer, func(), error) {
 		return nil, nil, err
 	}
 	return redisReplayer{cli: cli}, cli.Close, nil
+}
+
+// restoreEndFn is replaced in tests, which have no instance to connect to.
+var restoreEndFn = restoreEnd
+
+// restoreEnd tells every kvstore of a cluster instance that its replay is over. The replay
+// brings in whatever the backup held, including chunks of slots this instance does not own;
+// restoreend drops those, so it must run after addslots. A non-cluster instance ignores it.
+func restoreEnd(log portLog, destIP string, inst InstanceRestore) error {
+	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
+	if err != nil {
+		return err
+	}
+	addr := fmt.Sprintf("%s:%d", destIP, inst.DestPort)
+	cli, err := myredis.NewRedisClientWithRetry(addr, password, 0, consts.TendisTypeTendisplusInsance,
+		plusCommandTimeout)
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+	count, err := cli.GetKvstoreCount()
+	if err != nil {
+		return err
+	}
+	kvstores, err := strconv.Atoi(strings.TrimSpace(count))
+	if err != nil {
+		return fmt.Errorf("invalid kvstorecount %q of %s", count, addr)
+	}
+	for kvstore := 0; kvstore < kvstores; kvstore++ {
+		if err = cli.InstanceClient.Do(context.TODO(), "restoreend", kvstore).Err(); err != nil {
+			return fmt.Errorf("restoreend %d on %s failed: %v", kvstore, addr, err)
+		}
+	}
+	log.Info("restoreend done for %d kvstores", kvstores)
+	return nil
 }
 
 // errReplayStopped ends a kvstore between batches because another kvstore of its port failed.

@@ -1,9 +1,7 @@
 package rollback
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -202,68 +200,49 @@ func TestSSDDataDirFromConf(t *testing.T) {
 	}
 }
 
-// replyByValue answers a command with the error named by its last argument, OK otherwise.
-func replyByValue(args []string) error {
-	if v := args[len(args)-1]; strings.HasPrefix(v, "ERR") || strings.HasPrefix(v, "WRONGTYPE") ||
-		strings.HasPrefix(v, "BUSYKEY") {
-		return errors.New(v)
+func TestReplyStatsClassifiesErrorsByPrefix(t *testing.T) {
+	var st replyStats
+	for i := 0; i < 6; i++ {
+		st.Lines++
+		st.record(expectedReplyError+" in setex", `"setex" "k"`)
 	}
-	return nil
-}
-
-func applyLines(t *testing.T, lines ...string) (replyStats, *fakeExec) {
-	t.Helper()
-	exec := &fakeExec{reply: replyByValue}
-	st, err := applyCommands(exec, writeCmd(t, strings.Join(lines, "\n")))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return st, exec
-}
-
-func TestApplyCommandsSendsSplitCommands(t *testing.T) {
-	st, exec := applyLines(t, `"set" "k1" "v"`, "", `"setex" "k2" 100 "ERR wrong"`, `"lpush" "l" 7`,
-		`"hset" "h" "f" "\x00v"`)
-	want := [][]string{{"set", "k1", "v"}, {"setex", "k2", "100", "ERR wrong"}, {"lpush", "l", "7"},
-		{"hset", "h", "f", "\x00v"}}
-	if len(exec.batches) != 1 || fmt.Sprint(exec.batches[0]) != fmt.Sprint(want) {
-		t.Fatalf("batches=%q", exec.batches)
-	}
-	if st.Lines != 4 || st.Errors != 1 || len(st.Samples) != 1 ||
-		st.Samples[0] != `(error) ERR wrong <- "setex" "k2"` {
+	st.Lines += 3
+	st.record("WRONGTYPE Operation against a key holding the wrong kind of value", `"lpush" "s"`)
+	st.record("ERR unknown command 'failedset'", `"set" "k"`)
+	if st.Lines != 9 || st.Errors != 8 || st.Expected != 6 {
 		t.Fatalf("st=%+v", st)
 	}
-}
+	wantKinds := map[string]int{expectedReplyError: 6, "WRONGTYPE": 1, "ERR unknown command": 1}
+	if fmt.Sprint(st.Kinds) != fmt.Sprint(wantKinds) {
+		t.Fatalf("kinds=%v, want %v", st.Kinds, wantKinds)
+	}
+	samples := st.samples()
+	if len(samples) != replyErrorSamples || !strings.Contains(samples[0], "WRONGTYPE") ||
+		!strings.Contains(samples[1], "failedset") || !strings.Contains(samples[2], expectedReplyError) {
+		t.Fatalf("attention samples must come first: %q", samples)
+	}
 
-func TestApplyCommandsCountsInvalidLinesWithoutSending(t *testing.T) {
-	st, exec := applyLines(t, `"set" "a`, `"set" "b" "v"`)
-	if len(exec.batches) != 1 || len(exec.batches[0]) != 1 || st.Lines != 2 || st.Errors != 1 ||
-		st.Kinds["ERR Invalid argument(s)"] != 1 {
-		t.Fatalf("st=%+v batches=%q", st, exec.batches)
-	}
-}
-
-func TestApplyCommandsFailsWhenABatchBreaksOff(t *testing.T) {
-	_, err := applyCommands(&fakeExec{fail: io.ErrUnexpectedEOF}, writeCmd(t, `"set" "k" "v"`))
-	if err == nil || !failedInFlight(err) {
-		t.Fatalf("err=%v", err)
-	}
-}
-
-func TestApplyCommandsCapsSamples(t *testing.T) {
-	lines := make([]string, 8)
-	for i := range lines {
-		lines[i] = `"set" "k" "BUSYKEY exists"`
-	}
-	st, _ := applyLines(t, lines...)
-	if st.Lines != 8 || st.Errors != 8 || len(st.Samples) != replyErrorSamples {
-		t.Fatalf("st=%+v", st)
-	}
 	var total replyStats
 	total.add(st)
 	total.add(st)
-	if total.Lines != 16 || total.Errors != 16 || len(total.Samples) != replyErrorSamples {
+	if total.Errors != 16 || total.Expected != 12 || total.Kinds[expectedReplyError] != 12 ||
+		len(total.samples()) != replyErrorSamples {
 		t.Fatalf("total=%+v", total)
+	}
+	if !strings.Contains(total.summary(), "4 need attention, 12 expected") {
+		t.Fatalf("summary=%s", total.summary())
+	}
+}
+
+func TestReplyStatsKeepsExpectedErrorsApart(t *testing.T) {
+	var st replyStats
+	st.Lines = 1
+	st.record("ERR invalid expire time in 'set' command", `"set" "a"`)
+	if st.Errors != 1 || st.Expected != 1 || len(st.Samples) != 0 || len(st.samples()) != 1 {
+		t.Fatalf("st=%+v", st)
+	}
+	if !strings.Contains(st.summary(), "0 need attention, 1 expected") {
+		t.Fatalf("summary=%s", st.summary())
 	}
 }
 
@@ -294,90 +273,6 @@ func TestReplayStartPos(t *testing.T) {
 	}
 	if _, err := replayStartPos(portLog{}, seq(0, down), noSeq); err == nil {
 		t.Fatal("want error when neither source has a seq")
-	}
-}
-
-func writeCmd(t *testing.T, content string) string {
-	t.Helper()
-	cmd := filepath.Join(t.TempDir(), "binlog.log.cmd")
-	if err := os.WriteFile(cmd, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
-	return cmd
-}
-
-func TestCheckParsedCommandsFailsOnUnknownLogType(t *testing.T) {
-	// From ticket 2571128: a DEL of a 210k-member set followed by SET on TendisSSD v1.3.10.
-	content := `"sadd" "rb_asyncdel_test" "m1"` + "\n" +
-		`"del" "rb_asyncdel_test"` + "\n" +
-		"Wrong log type: 17 !!!\n" +
-		`failed"set" "rb_asyncdel_after" "1"` + "\n"
-	err := checkParsedCommands(writeCmd(t, content))
-	if err == nil {
-		t.Fatal("want error")
-	}
-	for _, want := range []string{"1 records of unknown log type [17]", "glued 1 commands", "first at line 3"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Fatalf("err=%v, want %q", err, want)
-		}
-	}
-}
-
-func TestCheckParsedCommandsFailsOnGluedLineAlone(t *testing.T) {
-	if err := checkParsedCommands(writeCmd(t, `"set" "a" "1"`+"\n"+`failed"set" "b" "1"`)); err == nil {
-		t.Fatal("want error for a glued line without a newline at EOF")
-	}
-}
-
-func TestCheckParsedCommandsAcceptsQuotedCommands(t *testing.T) {
-	// Markers inside values or past a long line's first buffer are not line starts.
-	long := `"set" "k" "` + strings.Repeat("x", 200*1024) + `failed"` + "\n"
-	content := `"set" "Wrong log type: 17" "failed"` + "\n" + long + `"del" "k"` + "\n"
-	if err := checkParsedCommands(writeCmd(t, content)); err != nil {
-		t.Fatal(err)
-	}
-	if err := checkParsedCommands(writeCmd(t, "")); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestApplyCommandsClassifiesErrors(t *testing.T) {
-	var lines []string
-	for i := 0; i < 6; i++ {
-		lines = append(lines, `"setex" "k" -1 "ERR invalid expire time in setex"`)
-	}
-	lines = append(lines, `"lpush" "s" "WRONGTYPE Operation against a key holding the wrong kind of value"`,
-		`"set" "k" "ERR unknown command 'failedset'"`, `"set" "k" "v"`)
-	st, _ := applyLines(t, lines...)
-	if st.Lines != 9 || st.Errors != 8 || st.Expected != 6 {
-		t.Fatalf("st=%+v", st)
-	}
-	wantKinds := map[string]int{expectedReplyError: 6, "WRONGTYPE": 1, "ERR unknown command": 1}
-	if fmt.Sprint(st.Kinds) != fmt.Sprint(wantKinds) {
-		t.Fatalf("kinds=%v, want %v", st.Kinds, wantKinds)
-	}
-	samples := st.samples()
-	if len(samples) != replyErrorSamples || !strings.Contains(samples[0], "WRONGTYPE") ||
-		!strings.Contains(samples[1], "failedset") || !strings.Contains(samples[2], expectedReplyError) {
-		t.Fatalf("attention samples must come first: %q", samples)
-	}
-
-	var total replyStats
-	total.add(st)
-	total.add(st)
-	if total.Errors != 16 || total.Expected != 12 || total.Kinds[expectedReplyError] != 12 ||
-		len(total.samples()) != replyErrorSamples {
-		t.Fatalf("total=%+v", total)
-	}
-	if !strings.Contains(total.summary(), "4 need attention, 12 expected") {
-		t.Fatalf("summary=%s", total.summary())
-	}
-}
-
-func TestApplyCommandsOnlyExpectedErrors(t *testing.T) {
-	st, _ := applyLines(t, `"set" "a" "v"`, `"setex" "k" -1 "ERR invalid expire time in 'set' command"`)
-	if st.Errors != 1 || st.Expected != 1 || len(st.Samples) != 0 || len(st.samples()) != 1 {
-		t.Fatalf("st=%+v", st)
 	}
 }
 

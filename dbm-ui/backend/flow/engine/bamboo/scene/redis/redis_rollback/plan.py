@@ -23,7 +23,6 @@ from backend.db_services.redis.rollback.constants import (
     MEMORY_RATIO_AOF,
     MEMORY_RATIO_RDB,
     MEMORY_RESERVE_DIVISOR,
-    REPLAY_PARSE_LOOKAHEAD,
     SCOPE_CLUSTER,
     SELECT_MODE_BY_TIME,
     TENDISPLUS_TYPES,
@@ -62,15 +61,6 @@ def stage_slots(cpu: int, max_concurrency: int, ports: int) -> int:
     sizes both stages (Limits.Unpack, Limits.KvstoreReplay). An unknown CPU count is taken as
     every port at once."""
     slots = cpu // 2 if cpu > 0 else ports
-    if max_concurrency > 0:
-        slots = min(slots, max_concurrency)
-    return max(1, min(slots, ports))
-
-
-def replay_slots(cpu: int, max_concurrency: int, ports: int) -> int:
-    """SSD ports replaying at once on a host, up to one per core as the actuator's Limits.Replay.
-    An unknown CPU count is taken as every port at once."""
-    slots = cpu if cpu > 0 else ports
     if max_concurrency > 0:
         slots = min(slots, max_concurrency)
     return max(1, min(slots, ports))
@@ -160,16 +150,6 @@ class RollbackItem:
     @property
     def binlog_unpacked_bytes(self) -> int:
         return sum(unpacked_size(b.file_name, b.size) for b in self.binlog_files)
-
-    @property
-    def replay_scratch_bytes(self) -> int:
-        """Peak of the binlogs this port keeps beside its downloads while replaying: each holds
-        the commands parsed from it, and while parsing its decompressed copy too."""
-        sizes = []
-        for b in self.binlog_files:
-            unpacked = unpacked_size(b.file_name, b.size)
-            sizes.append(unpacked * 2 if b.file_name.endswith(COMPRESSED_SUFFIXES) else unpacked)
-        return sum(sorted(sizes, reverse=True)[:REPLAY_PARSE_LOOKAHEAD])
 
     @property
     def binlog_digest(self) -> Dict[str, Any]:
@@ -367,9 +347,10 @@ def host_disk_needs(
 
     Downloads stay on the backup disk until their port is done; full backups are unpacked onto
     the data disk. An SSD port also holds its unpacked backup beside the rocksdb rebuilt from it
-    until the rebuild ends, replayed writes grow rocksdb, and replaying ports keep binlogs
-    decompressed and parsed on the backup disk. Tendisplus moves its unpacked backup into place,
-    and each kvstore replaying keeps one binlog decompressed.
+    until the rebuild ends, and replayed writes grow rocksdb; its binlogs are streamed straight
+    from the downloaded files, so replay keeps no extra copy on the backup disk. Tendisplus
+    moves its unpacked backup into place, and each kvstore replaying keeps one binlog
+    decompressed.
     """
     real = [item for item in items if not item.is_placeholder]
     backup = sum(item.download_bytes for item in real)
@@ -389,10 +370,8 @@ def host_disk_needs(
     if not is_ssd or not real:
         return backup, data
     unpacking = stage_slots(cpu, max_concurrency, len(real))
-    replaying = replay_slots(cpu, max_concurrency, len(real))
     data += sum(sorted((item.unpacked_bytes for item in real), reverse=True)[:unpacking])
     data += sum(item.binlog_unpacked_bytes for item in real)
-    backup += sum(sorted((item.replay_scratch_bytes for item in real), reverse=True)[:replaying])
     return backup, data
 
 
