@@ -102,6 +102,13 @@
     },
   );
 
+  // 提单人：改单时取单据的提单人，代为修改的操作人是审批人，不能把审批人当成提单人
+  const creator = computed(() => modifyState?.ticketData.value?.creator || username);
+  // 主 DBA：业务主 DBA 优先，没有时取平台默认 DBA
+  const mainDba = computed(
+    () => bizAdminData.value?.data?.[0]?.users[0] || defaultAdminData.value?.data?.[0]?.users[0] || '',
+  );
+
   watch(
     () => modelValue.value.is_send,
     () => {
@@ -111,12 +118,19 @@
     },
   );
 
+  /**
+   * 回填收件人：单据存的是「提单人 + 主DBA + 追加收件人」去重后的完整名单，去重后无法区分谁是追加的
+   * （如主 DBA 同时被手动追加），按名字或位置剔除都会丢人，所以原样回填完整名单；提交时再与提单人、主 DBA 合并去重，结果不变
+   */
   watch(
     () => modelValue.value.receiver__username,
-    () => {
-      if (modelValue.value.receiver__username.length > 0) {
-        personList.value = modelValue.value.receiver__username.slice(2);
+    (receivers) => {
+      if (receivers.length > 0) {
+        personList.value = receivers.filter(Boolean);
       }
+    },
+    {
+      immediate: true,
     },
   );
 
@@ -131,15 +145,8 @@
 
   /**
    * 提单人 + 主DBA + 收件人(与提单人、主DBA 合并去重)
-   * 改单时提单人取单据的提单人：代为修改的操作人是审批人，不能把审批人当成提单人写进收件人
    */
-  const receiverUsername = () => {
-    const defaultDba = defaultAdminData.value?.data?.[0]?.users[0];
-    const bizMainDba = bizAdminData.value?.data?.[0]?.users[0] || '';
-    const mainDbA = bizMainDba || defaultDba;
-    const creator = modifyState?.ticketData.value?.creator || username;
-    return _.uniq([creator, mainDbA, ...personList.value]);
-  };
+  const receiverUsername = () => _.uniq([creator.value, mainDba.value, ...personList.value].filter(Boolean));
 
   defineExpose({
     getValue() {

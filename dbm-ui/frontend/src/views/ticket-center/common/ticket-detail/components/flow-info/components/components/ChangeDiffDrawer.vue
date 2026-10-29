@@ -37,53 +37,21 @@
       </div>
       <DiffTable :data="record.change_details" />
     </div>
-    <template
-      v-if="todoId"
-      #footer>
-      <BkButton
-        class="w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确认修改') }}
-      </BkButton>
-      <BkButton
-        v-if="ticketData.creator === username"
-        class="w-88 ml-8"
-        :disabled="isSubmitting"
-        @click="handleReEdit">
-        {{ t('重新编辑') }}
-      </BkButton>
-    </template>
   </BkSideslider>
 </template>
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModifyRecordModel from '@services/model/ticket/modify-record';
-  import TicketModel from '@services/model/ticket/ticket';
-  import { batchProcessTodo } from '@services/source/ticketFlow';
-
-  import { useEventBus } from '@hooks';
-
-  import { useUserProfile } from '@stores';
 
   import DiffTable from '@views/ticket-center/common/ticket-modify/DiffTable.vue';
-  import useOpenTicketModify from '@views/ticket-center/common/ticket-modify/useOpenTicketModify';
-
-  import { messageSuccess } from '@utils';
 
   interface Props {
     record?: TicketModifyRecordModel;
-    ticketData: TicketModel;
-    // 传入确认修改待办 id 即为决策态，底部提供「确认修改 / 重新编辑」
-    todoId?: number;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     record: undefined,
-    todoId: undefined,
   });
 
   const isShow = defineModel<boolean>('isShow', {
@@ -91,48 +59,6 @@
   });
 
   const { t } = useI18n();
-  const eventBus = useEventBus();
-  const { username } = useUserProfile();
-  const openTicketModify = useOpenTicketModify();
-
-  const isSubmitting = ref(false);
-
-  const handleConfirm = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('确认修改'),
-      content: t('确认后将沿用本次审批结论直接进入待执行，不再重新审批，且不可撤回。'),
-      onConfirm: () => {
-        isSubmitting.value = true;
-        return batchProcessTodo({
-          action: 'APPROVE',
-          operations: [
-            {
-              params: {
-                version: props.ticketData.version,
-              },
-              todo_id: props.todoId!,
-            },
-          ],
-        })
-          .then(() => {
-            messageSuccess(t('操作成功'));
-            isShow.value = false;
-            eventBus.emit('refreshTicketStatus');
-            eventBus.emit('refreshTicketData');
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-      title: t('确认修改？'),
-    });
-  };
-
-  const handleReEdit = () => {
-    openTicketModify(props.ticketData, TicketModifyRecordModel.MODE_RE_EDIT);
-    isShow.value = false;
-  };
 </script>
 <style lang="less">
   .ticket-modify-diff-drawer-subtitle {
