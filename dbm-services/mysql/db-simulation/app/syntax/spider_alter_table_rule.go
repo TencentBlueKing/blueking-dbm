@@ -25,6 +25,13 @@ func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clu
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
+	hasAddPrimaryKey := false
+	for _, alterCmd := range c.AlterCommands {
+		if alterCmd.Type == "add_key" && alterCmd.KeyDef.PrimaryKey {
+			hasAddPrimaryKey = true
+			break
+		}
+	}
 	for _, alterCmd := range c.AlterCommands {
 		logger.Info("alter cmd: %+v", alterCmd)
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
@@ -34,7 +41,7 @@ func (c AlterTableResult) spiderCheckWithClusterEngines(mysqlVersion string, clu
 			})
 		}
 		logger.Info("alter cmd drop primary: %v", alterCmd.DropPrimary)
-		if alterCmd.Type == AlterTypeDropKey && alterCmd.DropPrimary {
+		if alterCmd.Type == AlterTypeDropKey && alterCmd.DropPrimary && !hasAddPrimaryKey {
 			r.ParseBuiltinBan(func() (bool, string) {
 				return true, "Tendbcluster集群表不允许删除主键"
 			})
