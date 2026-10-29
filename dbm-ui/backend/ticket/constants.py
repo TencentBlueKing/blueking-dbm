@@ -284,7 +284,9 @@ class TicketType(StrStructuredEnum):
     MYSQL_DATA_REPAIR = TicketEnumField("MYSQL_DATA_REPAIR", _("MySQL 数据修复"))
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("数据恢复"), register_iam=True)
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
-    MYSQL_ROLLBACK = TicketEnumField("MYSQL_ROLLBACK", _("MySQL 构造回档"), _("回档"))
+    MYSQL_ROLLBACK = TicketEnumField("MYSQL_ROLLBACK", _("MySQL 原地构造回档"), _("回档"))
+    MYSQL_ROLLBACK_NEW_HOST = TicketEnumField("MYSQL_ROLLBACK_NEW_HOST", _("MySQL 新机构造回档"), _("回档"))
+    MYSQL_ROLLBACK_SWITCH = TicketEnumField("MYSQL_ROLLBACK_SWITCH", _("MySQL 构造回档切换"), _("回档"))
     MYSQL_FIXPOINT_NEW_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_NEW_CLUSTER", _("MySQL 数据构造到新集群"), _("构造"))
     MYSQL_FIXPOINT_EXIST_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_EXIST_CLUSTER", _("MySQL 数据构造到已有集群"), _("构造"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"), register_iam=True)
@@ -412,7 +414,9 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_FULL_BACKUP = TicketEnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"), _("备份"))
     TENDBCLUSTER_ROLLBACK_CLUSTER = TicketEnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点构造"),
                                                     _("回档"))  # noqa
-    TENDBCLUSTER_ROLLBACK = TicketEnumField("TENDBCLUSTER_ROLLBACK", _("TENDBCLUSTER 构造回档"), _("回档"))
+    TENDBCLUSTER_ROLLBACK = TicketEnumField("TENDBCLUSTER_ROLLBACK", _("TENDBCLUSTER 原地构造回档"), _("回档"))
+    TENDBCLUSTER_ROLLBACK_NEW_HOST = TicketEnumField("TENDBCLUSTER_ROLLBACK_NEW_HOST", _("TENDBCLUSTER 新机构造回档"), _("回档")) # noqa
+    TENDBCLUSTER_ROLLBACK_SWITCH = TicketEnumField("TENDBCLUSTER_ROLLBACK_SWITCH", _("TENDBCLUSTER 构造回档切换"), _("回档")) # noqa
     TENDBCLUSTER_FIXPOINT_NEW = TicketEnumField("TENDBCLUSTER_FIXPOINT_NEW", _("TENDBCLUSTER 数据构造到新集群"),
                                                 _("构造"))
     TENDBCLUSTER_FIXPOINT_EXIST = TicketEnumField("TENDBCLUSTER_FIXPOINT_EXIST", _("TENDBCLUSTER 数据构造到已有集群"),
