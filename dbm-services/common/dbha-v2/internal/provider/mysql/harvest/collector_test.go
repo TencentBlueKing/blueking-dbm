@@ -27,9 +27,11 @@ package harvest
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 
 	"dbm-services/common/dbha-v2/pkg/hanet"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
@@ -113,4 +115,70 @@ func TestAdoptOpenedDB_Success(t *testing.T) {
 	if closeCount != 1 {
 		t.Fatalf("expected Close once, got: %d", closeCount)
 	}
+}
+
+func TestIsMissingTableError(t *testing.T) {
+	dbName := hamodel.ProbeMysqlDbName
+	tableName := hamodel.DbhaHeartbeatTableName
+	qualified := dbName + "." + tableName
+
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "nil",
+			err:  nil,
+			want: false,
+		},
+		{
+			name: "errno 1146",
+			err:  errors.New("Error 1146 (42S02): Table 'x.y' doesn't exist"),
+			want: true,
+		},
+		{
+			name: "wrapped errno 1146",
+			err:  fmt.Errorf("exec replace: %s", "Error 1146 (42S02): Table 'x.y' doesn't exist"),
+			want: true,
+		},
+		{
+			name: "message names current table",
+			err:  errors.New("Error 12027: Table '" + qualified + "' doesn't exist"),
+			want: true,
+		},
+		{
+			name: "message uses does not exist",
+			err:  errors.New("error 12027: table '" + qualified + "' does not exist"),
+			want: true,
+		},
+		{
+			name: "timeout",
+			err:  contextDeadlineError(),
+			want: false,
+		},
+		{
+			name: "other table missing without 1146",
+			err:  errors.New("Error 12027: Table 'other.dbha_heartbeat' doesn't exist"),
+			want: false,
+		},
+		{
+			name: "errno 1932 engine missing",
+			err:  errors.New("Error 1932 (42S02): Table '" + qualified + "' doesn't exist in engine"),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isMissingTableError(tt.err, dbName, tableName)
+			if got != tt.want {
+				t.Fatalf("isMissingTableError() = %v, want %v, err=%v", got, tt.want, tt.err)
+			}
+		})
+	}
+}
+
+func contextDeadlineError() error {
+	return errors.New("context deadline exceeded")
 }

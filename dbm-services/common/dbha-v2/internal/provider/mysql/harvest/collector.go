@@ -27,6 +27,7 @@ package harvest
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
@@ -37,14 +38,23 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 const (
 	heartbeatDefaultErrMsg      = string("unknown error")
 	fallbackHeartbeatDelaySec   = uint64(365 * 24 * 60 * 60)
-	heartbeatSQLTimeout         = 1 * time.Second
-	heartbeatWriteRetryInterval = 2 * time.Second
+	heartbeatSQLTimeout         = 3 * time.Second
+	heartbeatWriteRetryInterval = 1 * time.Second
 	heartbeatWriteMaxAttempts   = 3
+
+	// mysqlErrNoSuchTable is ER_NO_SUCH_TABLE. REPLACE INTO db.tbl reports this
+	// when the schema or the table is missing.
+	mysqlErrNoSuchTable = 1146
+
+	missingTableDoesntExistTpl  = "Table '%s.%s' doesn't exist"
+	missingTableDoesNotExistTpl = "Table '%s.%s' does not exist"
+	missingTableInEngineTpl     = "Table '%s.%s' doesn't exist in engine"
 )
 
 type collector struct {
@@ -358,7 +368,7 @@ func (c *collector) hasReplInfo() (bool, error) {
 	return true, nil
 }
 
-// heartbeatExec runs one Exec with a per-statement 1s timeout nested under parent
+// heartbeatExec runs one Exec with a per-statement timeout nested under parent
 // (the collector's overall queryCtx deadline).
 func (c *collector) heartbeatExec(parent context.Context, query string, args ...any) error {
 	ctx, cancel := context.WithTimeout(parent, heartbeatSQLTimeout)
@@ -366,13 +376,84 @@ func (c *collector) heartbeatExec(parent context.Context, query string, args ...
 	return c.db.DB().WithContext(ctx).Exec(query, args...).Error
 }
 
-// heartbeatScan runs one Raw+Scan with a per-statement 1s timeout nested under parent.
+// heartbeatScan runs one Raw+Scan with a per-statement timeout nested under parent.
 // It returns RowsAffected so callers can tell whether the result set was empty.
 func (c *collector) heartbeatScan(parent context.Context, dest any, query string, args ...any) (int64, error) {
 	ctx, cancel := context.WithTimeout(parent, heartbeatSQLTimeout)
 	defer cancel()
 	tx := c.db.DB().WithContext(ctx).Raw(query, args...).Scan(dest)
 	return tx.RowsAffected, tx.Error
+}
+
+// isMissingTableError reports whether err means dbName.tableName is missing.
+// True when NewMySQLError parses errno 1146, or the message matches a missing-table
+// template. The 1932 engine-missing template is not treated as a missing table.
+func isMissingTableError(err error, dbName, tableName string) bool {
+	if err == nil {
+		return false
+	}
+	if cmutil.NewMySQLError(err).Code == mysqlErrNoSuchTable {
+		return true
+	}
+
+	msg := strings.ToLower(err.Error())
+	if containsTableMsgTpl(msg, missingTableInEngineTpl, dbName, tableName) {
+		return false
+	}
+	return containsTableMsgTpl(msg, missingTableDoesntExistTpl, dbName, tableName) ||
+		containsTableMsgTpl(msg, missingTableDoesNotExistTpl, dbName, tableName)
+}
+
+func containsTableMsgTpl(msg, tpl, dbName, tableName string) bool {
+	return strings.Contains(msg, strings.ToLower(fmt.Sprintf(tpl, dbName, tableName)))
+}
+
+// processDbhaHeartbeatFailure handles a failed REPLACE into dbha_heartbeat.
+// Missing table: create the schema and table (REPLACE is not retried here).
+// Otherwise: log suspicious PROCESSLIST rows.
+func (c *collector) processDbhaHeartbeatFailure(parent context.Context, err error) {
+	if !isMissingTableError(err, hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName) {
+		c.logSuspiciousProcesslist(parent)
+		return
+	}
+
+	logger.Warn("dbha_heartbeat is missing, try to repair, db: %s, table: %s",
+		hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName)
+
+	if createErr := c.heartbeatExec(parent, hamodel.CreateProbeMysqlDbSQL); createErr != nil {
+		logger.Warn("failed to create database as dbha_heartbeat repair, db: %s, table: %s, errmsg: %s",
+			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, createErr)
+		return
+	}
+
+	if createErr := c.heartbeatExec(parent, hamodel.CreateDbhaHeartbeatTableSQL); createErr != nil {
+		logger.Warn("failed to create dbha_heartbeat as repair, db: %s, table: %s, errmsg: %s",
+			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, createErr)
+	}
+}
+
+// processDbhaReplHeartbeatFailure handles a failed REPLACE into dbha_repl_heartbeat.
+// Missing table: create the schema and table (REPLACE is not retried here).
+// Otherwise: log suspicious PROCESSLIST rows.
+func (c *collector) processDbhaReplHeartbeatFailure(parent context.Context, err error) {
+	if !isMissingTableError(err, hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName) {
+		c.logSuspiciousProcesslist(parent)
+		return
+	}
+
+	logger.Warn("dbha_repl_heartbeat is missing, try to repair, db: %s, table: %s",
+		hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName)
+
+	if createErr := c.heartbeatExec(parent, hamodel.CreateProbeMysqlDbSQL); createErr != nil {
+		logger.Warn("failed to create database as dbha_repl_heartbeat repair, db: %s, table: %s, errmsg: %s",
+			hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName, createErr)
+		return
+	}
+
+	if createErr := c.heartbeatExec(parent, hamodel.CreateDbhaReplHeartbeatTableSQL); createErr != nil {
+		logger.Warn("failed to create dbha_repl_heartbeat as repair, db: %s, table: %s, errmsg: %s",
+			hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName, createErr)
+	}
 }
 
 func (c *collector) obtainHeartbeatStatus(writeBinlog bool, writeMaxAttempts int) (
@@ -412,10 +493,8 @@ func (c *collector) obtainHeartbeatStatus(writeBinlog bool, writeMaxAttempts int
 	return heartbeatStatus, nil
 }
 
-// writeDbhaHeartbeat ensures the probe-owned heartbeat schema/table exist (DDL with
-// sql_log_bin=OFF, only when the table is missing), then REPLACE a row for host:port.
-// On any failure it records WriteSuccess=false but never aborts the caller — delay
-// is still queried afterward.
+// writeDbhaHeartbeat REPLACE a heartbeat row for host:port.
+// Missing table is repaired with CREATE in this attempt; REPLACE is left to the next retry.
 func (c *collector) writeDbhaHeartbeat(
 	parent context.Context, writeBinlog bool, host string, port int, status *haprobe.MySqlHeartbeatStatus,
 ) {
@@ -427,19 +506,6 @@ func (c *collector) writeDbhaHeartbeat(
 	if err := c.disableSpiderSessionForwarding(parent); err != nil {
 		logger.Warn("failed to disable spider session forwarding, host: %s, port: %d, errmsg: %s",
 			host, port, err)
-		markFail(err)
-		return
-	}
-
-	if err := c.heartbeatExec(parent, "SET SESSION sql_log_bin=OFF"); err != nil {
-		logger.Warn("failed to set session sql_log_bin to OFF, errmsg: %s", err)
-		markFail(err)
-		return
-	}
-
-	if err := c.confirmHeartbeatTable(parent); err != nil {
-		logger.Warn("failed to confirm heartbeat table, db: %s, table: %s, errmsg: %s",
-			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, err)
 		markFail(err)
 		return
 	}
@@ -469,6 +535,7 @@ func (c *collector) writeDbhaHeartbeat(
 	if err := c.heartbeatExec(parent, replaceSQL, host, port, serverID); err != nil {
 		logger.Warn("failed to replace heartbeat, host: %s, port: %d, errmsg: %s", host, port, err)
 		markFail(err)
+		c.processDbhaHeartbeatFailure(parent, err)
 		return
 	}
 
@@ -504,53 +571,6 @@ func (c *collector) readDbhaHeartbeatDelay(
 	status.HeartbeatDelay = uint64(heartbeatDelay)
 }
 
-// confirmReplHeartbeatTable disables spider session forwarding, turns sql_log_bin ON,
-// and creates the probe-owned db/table for dbha_repl_heartbeat if they do not exist.
-func (c *collector) confirmReplHeartbeatTable(parent context.Context) error {
-	if err := c.disableSpiderSessionForwarding(parent); err != nil {
-		return err
-	}
-
-	if err := c.heartbeatExec(parent, "SET SESSION sql_log_bin=ON"); err != nil {
-		return err
-	}
-
-	if err := c.heartbeatExec(parent, hamodel.CreateProbeMysqlDbSQL); err != nil {
-		return err
-	}
-
-	if err := c.heartbeatExec(parent, hamodel.CreateDbhaReplHeartbeatTableSQL); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// confirmHeartbeatTable checks information_schema and only CREATE DATABASE/TABLE
-// IF NOT EXISTS when dbha_heartbeat is missing.
-func (c *collector) confirmHeartbeatTable(parent context.Context) error {
-	var n int
-	rows, err := c.heartbeatScan(parent, &n,
-		"SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? LIMIT 1",
-		hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName)
-
-	if (err == nil) && (rows > 0) {
-		return nil
-	}
-
-	// Some MySQL versions cannot query information_schema.TABLES;
-	// treat failure as missing and fall through to CREATE.
-	if err != nil {
-		logger.Warn("failed to check heartbeat table existence, treat as missing, db: %s, table: %s, errmsg: %s",
-			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, err)
-	}
-
-	if err := c.heartbeatExec(parent, hamodel.CreateProbeMysqlDbSQL); err != nil {
-		return err
-	}
-	return c.heartbeatExec(parent, hamodel.CreateDbhaHeartbeatTableSQL)
-}
-
 // obtainMasterStatus writes a replication-delay heartbeat row (binlog ON, single attempt)
 // into dbha_repl_heartbeat and reports delay from the newest matching row.
 func (c *collector) obtainMasterStatus() (*haprobe.MySqlHeartbeatStatus, error) {
@@ -566,13 +586,6 @@ func (c *collector) obtainMasterStatus() (*haprobe.MySqlHeartbeatStatus, error) 
 	host := c.endpoint.Host
 	port := c.endpoint.Port
 
-	if err := c.confirmReplHeartbeatTable(parentCtx); err != nil {
-		logger.Warn("failed to confirm repl heartbeat table, host: %s, port: %d, errmsg: %s",
-			host, port, err)
-		masterStatus.WriteFailureReason = err.Error()
-		return masterStatus, err
-	}
-
 	serverID := c.writeReplHeartbeat(parentCtx, host, port, masterStatus)
 	if !masterStatus.WriteSuccess {
 		logger.Warn("write repl heartbeat failed, host: %s, port: %d, server_id: %d, errmsg: %s",
@@ -584,6 +597,7 @@ func (c *collector) obtainMasterStatus() (*haprobe.MySqlHeartbeatStatus, error) 
 }
 
 // writeReplHeartbeat turns sql_log_bin ON and REPLACE a row for host:port.
+// Missing table is repaired with CREATE in this attempt; REPLACE is left to the next harvest.
 // Returns the server_id used for the write (0 when it could not be read).
 func (c *collector) writeReplHeartbeat(
 	parent context.Context, host string, port int, status *haprobe.MySqlHeartbeatStatus,
@@ -591,6 +605,13 @@ func (c *collector) writeReplHeartbeat(
 	markFail := func(err error) {
 		status.WriteSuccess = false
 		status.WriteFailureReason = err.Error()
+	}
+
+	if err := c.disableSpiderSessionForwarding(parent); err != nil {
+		logger.Warn("failed to disable spider session forwarding, host: %s, port: %d, errmsg: %s",
+			host, port, err)
+		markFail(err)
+		return 0
 	}
 
 	if err := c.heartbeatExec(parent, "SET SESSION sql_log_bin=ON"); err != nil {
@@ -613,6 +634,7 @@ func (c *collector) writeReplHeartbeat(
 		logger.Warn("failed to replace repl heartbeat, host: %s, port: %d, server_id: %d, errmsg: %s",
 			host, port, serverID, err)
 		markFail(err)
+		c.processDbhaReplHeartbeatFailure(parent, err)
 		return serverID
 	}
 
