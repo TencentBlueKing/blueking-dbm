@@ -41,7 +41,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 5
+                  "threshold": 1
                 }
               ]
             ],
@@ -54,7 +54,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 10
+                  "threshold": 5
                 }
               ]
             ],
@@ -272,7 +272,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "Doris Transaction failed rate",
-  "version": 1,
+  "version": 2,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-10-22T18:50:29+08:00"
