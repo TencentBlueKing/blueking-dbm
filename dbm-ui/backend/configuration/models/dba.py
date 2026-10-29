@@ -8,13 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, DBType
+from backend.configuration.types import BusinessDBAdministrator
 
 
 class DBAdministrator(models.Model):
@@ -29,31 +30,38 @@ class DBAdministrator(models.Model):
         unique_together = ("bk_biz_id", "db_type")
 
     @classmethod
-    def list_biz_admins(cls, bk_biz_id: int) -> List[Dict[str, Union[str, List[str]]]]:
+    def list_biz_admins(cls, bk_biz_id: int) -> List[BusinessDBAdministrator]:
         """获取业务DBA人员"""
+        return cls.list_biz_admins_bulk([bk_biz_id])[bk_biz_id]
+
+    @classmethod
+    def list_biz_admins_bulk(cls, bk_biz_ids: Iterable[int]) -> Dict[int, List[BusinessDBAdministrator]]:
+        """批量获取业务 DBA，平台配置与业务配置在同一次查询中加载。"""
+        biz_ids = set(bk_biz_ids)
+        if not biz_ids:
+            return {}
         # DBA 人员获取优先级： 业务 > 平台 > 默认空值
         valid_db_types = DBType.get_values()
-        db_type_users_map = {db_type: [] for db_type in valid_db_types}
-        # 仅过滤出当前系统支持的DB类型，忽略掉数据库中存量的数据
-        for plat_dba in cls.objects.filter(bk_biz_id=PLAT_BIZ_ID, db_type__in=valid_db_types):
-            db_type_users_map[plat_dba.db_type] = plat_dba.users
-        for biz_dba in cls.objects.filter(bk_biz_id=bk_biz_id, db_type__in=valid_db_types):
-            db_type_users_map[biz_dba.db_type] = biz_dba.users
-        db_admins = [
-            {
-                "db_type": db_type,
-                "db_type_display": DBType.get_choice_label(db_type),
-                "users": users or ["admin"],
-                "is_show": True,
-            }
-            for db_type, users in db_type_users_map.items()
-        ]
-
-        # TODO: 暂时去掉对cloud的展示，看后续云区域管理设计后在考虑
-        cloud_index = [admins["db_type"] for admins in db_admins].index(DBType.Cloud.value)
-        db_admins[cloud_index]["is_show"] = False
-
-        return db_admins
+        configs = {}
+        # 平台与所有目标业务合并为一次 SQL；仅取合并所需字段，避免加载完整模型。
+        for config in cls.objects.filter(bk_biz_id__in=biz_ids | {PLAT_BIZ_ID}, db_type__in=valid_db_types).values(
+            "bk_biz_id", "db_type", "users"
+        ):
+            configs.setdefault(config["bk_biz_id"], {})[config["db_type"]] = config["users"]
+        platform_users = configs.get(PLAT_BIZ_ID, {})
+        result: Dict[int, List[BusinessDBAdministrator]] = {}
+        for biz_id in biz_ids:
+            users_map = {**platform_users, **configs.get(biz_id, {})}
+            result[biz_id] = [
+                {
+                    "db_type": db_type,
+                    "db_type_display": DBType.get_choice_label(db_type),
+                    "users": users_map.get(db_type) or ["admin"],
+                    "is_show": db_type != DBType.Cloud.value,
+                }
+                for db_type in valid_db_types
+            ]
+        return result
 
     @classmethod
     def get_biz_db_type_admins(cls, bk_biz_id: int, db_type: str) -> List[str]:

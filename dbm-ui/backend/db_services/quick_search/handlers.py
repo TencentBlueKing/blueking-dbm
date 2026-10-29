@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import re
 
-from django.db.models import CharField, F, Q, Value
-from django.db.models.functions import Concat
+from django.db.models import CharField, Count, F, Q, Value
+from django.db.models.functions import Coalesce, Concat
 
 from backend.configuration.models import DBAdministrator
 from backend.constants import DOMAIN_PATTERN
@@ -219,13 +219,25 @@ class QSearchHandler(object):
 
     def supplementary_fields(self, objects_list: list):
         """补充 主dba和db类型字段"""
+        # 当前结果的业务配置批量查询，缓存仅在当前 handler 内复用。
+        if not hasattr(self, "_biz_admin_cache"):
+            self._biz_admin_cache = {}
+        missing_biz_ids = {obj["bk_biz_id"] for obj in objects_list} - self._biz_admin_cache.keys()
+        # 每批新增业务只查一次；后续集群/实例结果可复用同一 handler 的配置缓存。
+        if missing_biz_ids:
+            self._biz_admin_cache.update(
+                {
+                    biz_id: {dba["db_type"]: dba for dba in admins}
+                    for biz_id, admins in DBAdministrator.list_biz_admins_bulk(missing_biz_ids).items()
+                }
+            )
         for object in objects_list:
             # 将 db_type 补充到对象中
             object["db_type"] = ClusterType.cluster_type_to_db_type(object["cluster_type"])
 
             # 获取dba人员  # DBA 人员获取优先级： 业务 > 平台 > 默认空值
-            dba_list = DBAdministrator.list_biz_admins(bk_biz_id=object["bk_biz_id"])
-            dba_content = next((dba for dba in dba_list if dba["db_type"] == object["db_type"]))
+            biz_id = object["bk_biz_id"]
+            dba_content = self._biz_admin_cache[biz_id][object["db_type"]]
             object["dba"] = dba_content["users"][0] if dba_content["users"] else None
             object["is_show_dba"] = dba_content["is_show"]
         return objects_list
@@ -246,17 +258,12 @@ class QSearchHandler(object):
         # 构建标签过滤条件
         tag_qs = self._build_tag_filter(keyword_list)
 
-        # 获取通过ClusterEntry.entry匹配到的集群ID
+        # 使用子查询，避免将全部入口匹配 ID 拉到 Python 再构造大 IN 列表。
         entry_match_cluster_ids = self._get_entry_match_cluster_ids(keyword_list)
-
-        # 合并通过ClusterEntry.entry匹配到的集群ID
-        if entry_match_cluster_ids:
-            entry_qs = Q(id__in=list(set(entry_match_cluster_ids)))
-            qs = domain_qs | tag_qs | entry_qs
-        else:
-            qs = domain_qs | tag_qs
-
-        objs = Cluster.objects.filter(qs).distinct()
+        # 标签 JOIN 限制在子查询内，外层不再因多对多展开而需要 DISTINCT。
+        tag_match_cluster_ids = Cluster.objects.filter(tag_qs).order_by().values("id")
+        qs = domain_qs | Q(id__in=tag_match_cluster_ids) | Q(id__in=entry_match_cluster_ids)
+        objs = Cluster.objects.filter(qs)
 
         # 业务 / db_type 过滤必须作用于统计和分页的同一个 queryset，
         # 否则 count 统计的是过滤后的数据，而 results 取的是未过滤的数据，两者数量对不上
@@ -285,6 +292,8 @@ class QSearchHandler(object):
             query_params=query_params,
             limit=len(cluster_ids),
             offset=0,
+            # 模块、规格只查询本页使用的数据，避免完整集群列表逻辑加载全类型配置。
+            scope_related_to_page=True,
         )
 
         return self.supplementary_fields(resource_list.data), total
@@ -334,16 +343,16 @@ class QSearchHandler(object):
 
         return tag_qs
 
-    def _get_entry_match_cluster_ids(self, keyword_list: list) -> list:
+    def _get_entry_match_cluster_ids(self, keyword_list: list):
         """获取通过ClusterEntry.entry匹配到的集群ID
 
         Args:
             keyword_list: 搜索关键字列表
 
         Returns:
-            list: 匹配到的集群ID列表
+            QuerySet: 匹配到的集群ID子查询，不在 Python 中加载结果
         """
-        entry_match_cluster_ids = []
+        domains = []
         for keyword in keyword_list:
             try:
                 domain, _ = keyword.split(":")
@@ -354,18 +363,12 @@ class QSearchHandler(object):
             if not re.compile(DOMAIN_PATTERN).match(domain):
                 domain = keyword
 
-            if self.filter_type == FilterType.EXACT.value:
-                # 精确搜索：通过ClusterEntry.entry匹配集群ID
-                entry_match_cluster_ids.extend(
-                    ClusterEntry.objects.filter(entry=domain).values_list("cluster_id", flat=True)
-                )
-            else:
-                # 模糊搜索：通过ClusterEntry.entry匹配集群ID
-                entry_match_cluster_ids.extend(
-                    ClusterEntry.objects.filter(entry__icontains=domain).values_list("cluster_id", flat=True)
-                )
+            domains.append(domain)
 
-        return entry_match_cluster_ids
+        if not domains:
+            return ClusterEntry.objects.none().values_list("cluster_id", flat=True)
+        qs = self.generate_filter_for_str("entry", list(dict.fromkeys(domains)))
+        return ClusterEntry.objects.filter(qs).order_by().values_list("cluster_id", flat=True)
 
     def filter_instance(self, keyword_list: list):
         """过滤实例"""
@@ -406,33 +409,45 @@ class QSearchHandler(object):
             "phase",
             *common_fields.keys(),
         ]
-        storage_objs = (
-            StorageInstance.objects.prefetch_related("cluster", "machine")
-            .annotate(role=F("instance_role"), **common_fields)
-            .filter(qs)
-        )
-        proxy_objs = (
-            ProxyInstance.objects.prefetch_related("cluster", "machine")
-            .annotate(role=F("access_layer"), **common_fields)
-            .filter(qs)
-        )
+        # 过滤只需要 ip_port 注解，展示字段在分页查询时添加，避免计数引入额外 JOIN。
+        storage_objs = StorageInstance.objects.annotate(ip_port=common_fields["ip_port"]).filter(qs)
+        proxy_objs = ProxyInstance.objects.annotate(ip_port=common_fields["ip_port"]).filter(qs)
 
-        # 统计匹配总数（storage + proxy 合并后的命中数，不受 limit 截断影响）
-        # 这里以合并后的数据长度为准，避免 count 与结果页实际可翻出的数据量不一致
-        combined = list(storage_objs.values(*fields)) + list(proxy_objs.values(*fields))
-        total = len(combined)
-        combined = self._slice(combined)
+        # 原实现会先加载全部命中数据，再在内存中分页。
+        # 显式保留 cluster 多对多 JOIN，按结果行计数；无集群的实例也计为一行。
+        row_count = Count(Coalesce("cluster__id", Value(0)))
+        storage_count = storage_objs.aggregate(total=row_count)["total"]
+        proxy_count = proxy_objs.aggregate(total=row_count)["total"]
+        total = storage_count + proxy_count
+
+        # 保持 storage 在前、proxy 在后的顺序，在数据库中只查询当前页。
+        storage_rows = (
+            storage_objs.annotate(role=F("instance_role"), **common_fields)
+            .order_by("id", "cluster__id")
+            .values(*fields)
+        )
+        proxy_rows = (
+            proxy_objs.annotate(role=F("access_layer"), **common_fields).order_by("id", "cluster__id").values(*fields)
+        )
+        if self.limit == -1:
+            combined = list(storage_rows) + list(proxy_rows)
+        else:
+            storage_start = min(self.offset, storage_count)
+            storage_end = min(self.offset + self.limit, storage_count)
+            proxy_start = max(self.offset - storage_count, 0)
+            proxy_end = max(self.offset + self.limit - storage_count, 0)
+            combined = list(storage_rows[storage_start:storage_end]) + list(proxy_rows[proxy_start:proxy_end])
 
         return self.supplementary_fields(combined), total
 
     def filter_task(self, keyword_list: list):
         """过滤任务，支持按流程ID(root_id)、单据ID(uid)、创建人(created_by)模糊检索"""
-        qs = Q()
-        for keyword in keyword_list:
-            if self.filter_type == FilterType.EXACT.value:
-                qs |= Q(root_id__in=[keyword])
-                qs |= Q(uid__in=[keyword])
-            else:
+        keyword_list = list(dict.fromkeys(keyword_list))
+        if keyword_list and self.filter_type == FilterType.EXACT.value:
+            qs = Q(root_id__in=keyword_list) | Q(uid__in=keyword_list)
+        else:
+            qs = Q()
+            for keyword in keyword_list:
                 qs |= Q(root_id__icontains=keyword)
                 qs |= Q(uid__icontains=keyword)
                 qs |= Q(created_by__icontains=keyword)
@@ -442,6 +457,10 @@ class QSearchHandler(object):
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
 
         total = objs.count()
+
+        # 已知无命中时省去分页 SELECT；命中时仍保留完整总数和原分页语义。
+        if not total:
+            return [], 0
 
         results = list(
             self._slice(objs).values(
@@ -458,6 +477,9 @@ class QSearchHandler(object):
         qs = self.generate_filter_for_ip_port("ip", keyword_list, not_port=True)
         objs = DirtyMachine.objects.filter(qs)
         total = objs.count()
+        # 无命中时省去分页 SELECT 和序列化。
+        if not total:
+            return [], 0
         objs = self._slice(objs)
         machine_data = ListMachinePoolSerializer(objs, many=True).data
         # 补充主机agent状态
@@ -467,7 +489,9 @@ class QSearchHandler(object):
 
     def filter_ticket(self, keyword_list: list):
         """过滤单据，单号为递增数字，采用startswith过滤"""
-        ticket_ids = [int(keyword) for keyword in keyword_list if isinstance(keyword, int) or keyword.isdigit()]
+        ticket_ids = list(
+            dict.fromkeys(int(keyword) for keyword in keyword_list if isinstance(keyword, int) or keyword.isdigit())
+        )
         if not ticket_ids:
             return [], 0
 
@@ -482,6 +506,9 @@ class QSearchHandler(object):
             qs = qs & Q(bk_biz_id__in=self.bk_biz_ids)
         tickets = Ticket.objects.filter(qs).order_by("id")
         total = tickets.count()
+        # 无命中时省去分页 SELECT，避免再次执行同样的过滤条件。
+        if not total:
+            return [], 0
         results = list(
             self._slice(tickets).values(
                 "id", "creator", "create_at", "bk_biz_id", "ticket_type", "group", "status", "is_reviewed"

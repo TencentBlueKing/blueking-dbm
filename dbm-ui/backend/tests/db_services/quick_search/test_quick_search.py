@@ -15,6 +15,7 @@ import pytest
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_services.quick_search.handlers import QSearchHandler
 from backend.db_services.quick_search.serializers import QuickSearchResultSerializer
 from backend.db_services.quick_search.views import QuickSearchViewSet
 from backend.tests.mock_data.iam_app.permission import PermissionMock
@@ -23,6 +24,65 @@ from backend.utils.pytest import AuthorizedAPIRequestFactory
 pytestmark = pytest.mark.django_db
 
 factory = AuthorizedAPIRequestFactory()
+
+
+def test_supplementary_fields_reuses_business_admins():
+    handler = QSearchHandler.__new__(QSearchHandler)
+    rows = [{"bk_biz_id": i % 100, "cluster_type": ClusterType.TenDBHA.value} for i in range(1000)]
+    admins = [{"db_type": "mysql", "users": ["test_dba"], "is_show": True}]
+
+    def bulk_admins(biz_ids):
+        return {biz_id: admins for biz_id in biz_ids}
+
+    with patch(
+        "backend.db_services.quick_search.handlers.DBAdministrator.list_biz_admins_bulk", side_effect=bulk_admins
+    ) as get:
+        handler.supplementary_fields(rows)
+        handler.supplementary_fields([{"bk_biz_id": 1, "cluster_type": ClusterType.TenDBHA.value}])
+        get.assert_called_once_with(set(range(100)))
+        handler.supplementary_fields([{"bk_biz_id": 101, "cluster_type": ClusterType.TenDBHA.value}])
+        assert get.call_count == 2
+        # 缓存不跨请求共享。
+        QSearchHandler.__new__(QSearchHandler).supplementary_fields(
+            [{"bk_biz_id": 1, "cluster_type": ClusterType.TenDBHA.value}]
+        )
+        assert get.call_count == 3
+    assert all(row["dba"] == "test_dba" and row["is_show_dba"] for row in rows)
+
+
+def test_bulk_admins_priority_and_query_count(django_assert_num_queries):
+    from backend.configuration.constants import PLAT_BIZ_ID, DBType
+    from backend.configuration.models import DBAdministrator
+
+    biz_ids = [-901, -902]
+    db_type = DBType.MySQL.value
+    for biz_id, users in [(PLAT_BIZ_ID, ["platform"]), (biz_ids[0], ["business"]), (biz_ids[1], [])]:
+        DBAdministrator.objects.update_or_create(bk_biz_id=biz_id, db_type=db_type, defaults={"users": users})
+    with django_assert_num_queries(1):
+        results = DBAdministrator.list_biz_admins_bulk([*biz_ids, -903])
+    assert next(dba for dba in results[-901] if dba["db_type"] == db_type)["users"] == ["business"]
+    assert next(dba for dba in results[-902] if dba["db_type"] == db_type)["users"] == ["admin"]
+    assert next(dba for dba in results[-903] if dba["db_type"] == db_type)["users"] == ["platform"]
+    assert all(not dba["is_show"] for dba in results[-901] if dba["db_type"] == DBType.Cloud.value)
+    with django_assert_num_queries(0):
+        assert DBAdministrator.list_biz_admins_bulk([]) == {}
+
+
+@pytest.mark.parametrize("filter_type", ["EXACT", "CONTAINS"])
+def test_entry_search_is_lazy_and_combines_keywords(init_mysql_cluster, django_assert_num_queries, filter_type):
+    from backend.db_meta.models import ClusterEntry
+
+    cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+    domains = ["quick-search-first.example.com", "quick-search-second.example.com"]
+    for domain in domains:
+        ClusterEntry.objects.create(cluster=cluster, entry=domain)
+    handler = QSearchHandler.__new__(QSearchHandler)
+    handler.filter_type = filter_type
+    with django_assert_num_queries(0):
+        ids = handler._get_entry_match_cluster_ids([domains[0] + ":3306", domains[1], domains[1]])
+    with django_assert_num_queries(1):
+        assert list(ids).count(cluster.id) == 2
+
 
 QUICK_SEARCH_CONTAINS_PARAMS = {
     "bk_biz_ids": [],
