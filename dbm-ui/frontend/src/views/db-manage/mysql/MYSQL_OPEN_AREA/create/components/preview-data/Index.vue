@@ -115,6 +115,8 @@
       force: boolean;
     } & Props['data']
   >(TicketTypes.MYSQL_OPEN_AREA, {
+    // 开区页路由不在工具箱壳内，没有 db-toolbox-error 的监听方，失败必须走全局提示
+    isToolbox: false,
     onSuccess(ticketId) {
       ticketMessage(ticketId);
       window.changeConfirm = false;

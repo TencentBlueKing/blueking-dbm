@@ -78,7 +78,7 @@
           :min-width="180"
           :title="t('服务器')">
           <template #default="{ rowIndex }">
-            {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
+            {{ getBackendIp(rowIndex) }}
           </template>
         </TicketInfoTableColumn>
       </TicketInfoTable>
@@ -154,6 +154,12 @@
     // @ts-ignore
     return data.sqlserver_single || data.backend_group || data.backend;
   });
+
+  // 后端按 inst_num 把连续的域名部署到同一台主机：第 rowIndex 个域名落在第 floor(rowIndex / inst_num) 台
+  const getBackendIp = (rowIndex: number) => {
+    const { inst_num: instNum, nodes } = props.ticketDetails.details;
+    return nodes?.backend?.[Math.floor(rowIndex / (instNum || 1))]?.ip ?? '--';
+  };
 </script>
 <style lang="less" scoped>
   .info-title {

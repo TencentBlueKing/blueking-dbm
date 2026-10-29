@@ -68,11 +68,11 @@
         <TicketInfoTableColumn
           v-if="ticketDetails.details.nodes?.backend"
           col-key="backend"
-          :get-copy-value="(_: any, rowIndex: number) => ticketDetails.details.nodes.backend[rowIndex].ip"
+          :get-copy-value="() => (ticketDetails.details.nodes?.backend ?? []).map((item) => item.ip)"
           :min-width="180"
           :title="t('服务器')">
           <template #default="{ rowIndex }">
-            {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
+            {{ getBackendIp(rowIndex) }}
           </template>
         </TicketInfoTableColumn>
       </TicketInfoTable>
@@ -135,9 +135,15 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  // 后端按 inst_num 把连续的域名部署到同一台主机：第 rowIndex 个域名落在第 floor(rowIndex / inst_num) 台
+  const getBackendIp = (rowIndex: number) => {
+    const { inst_num: instNum, nodes } = props.ticketDetails.details;
+    return nodes?.backend?.[Math.floor(rowIndex / (instNum || 1))]?.ip ?? '--';
+  };
 </script>
 <style lang="less" scoped>
   .info-title {
