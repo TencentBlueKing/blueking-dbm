@@ -20,7 +20,7 @@
       {{ ticketDetails.details.clusters[ticketDetails.details.cluster_id].id || '--' }}
     </InfoItem>
     <InfoItem :label="t('服务器选择方式')">
-      {{ ticketDetails.details.resource_spec.riak.hosts.length ? t('从资源池手动选择') : t('从资源池自动匹配') }}
+      {{ ticketDetails.details.resource_spec.riak.hosts?.length ? t('从资源池手动选择') : t('从资源池自动匹配') }}
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.specs[ticketDetails.details.resource_spec.riak.spec_id]"
@@ -31,7 +31,7 @@
       {{ t('n台', [ticketDetails.details.resource_spec.riak.count]) || '--' }}
     </InfoItem>
     <InfoItem
-      v-if="ticketDetails.details.resource_spec.riak.hosts.length"
+      v-if="ticketDetails.details.resource_spec.riak.hosts?.length"
       :label="t('已选IP')"
       style="width: 100%">
       <TicketInfoTable

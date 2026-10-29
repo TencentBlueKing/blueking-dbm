@@ -105,7 +105,7 @@
   import { getModules } from '@services/source/cmdb';
   import { getLevelConfig } from '@services/source/configs';
 
-  import { clusterTypeInfos, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import useBase from '@components/auth-component/use-base';
 
@@ -362,22 +362,15 @@
       return;
     }
 
-    const typeMap: Record<string, string> = {
-      [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
-      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
-      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
-      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
-    };
-
     isBindModule.value = true;
+    // 旧绑定页 SelfServiceBindDbModule 已随旧配置管理目录删除，改为新开 tab 定位到新版配置管理的模块节点
     const url = router.resolve({
-      name: 'SelfServiceBindDbModule',
+      name: 'DbConfigureList',
       params: {
-        bk_biz_id: props.bizId,
-        db_module_id: modelValue.value,
-        type: typeMap[props.clusterType],
+        clusterType: props.clusterType,
+        parentId: `app-${props.bizId}`,
+        treeId: `module-${modelValue.value}`,
       },
-      query: dbType === DBTypes.MYSQL ? { alias_name: moduleAliasName.value } : {},
     });
     window.open(url.href, '_blank');
   };

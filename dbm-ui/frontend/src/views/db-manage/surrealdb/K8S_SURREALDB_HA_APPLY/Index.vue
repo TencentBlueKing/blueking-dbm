@@ -182,7 +182,16 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
-      const [surrealItem, tikvItem, pdItem] = details.component_list;
+      // 按 component_name 取，不依赖数组下标（本页提交顺序是 surreal / pd / tikv）
+      type ComponentItem = SurrealDB.HaApply['component_list'][number];
+      const getComponent = <N extends ComponentItem['component_name']>(name: N) =>
+        details.component_list.find((item) => item.component_name === name) as Extract<
+          ComponentItem,
+          { component_name: N }
+        >;
+      const surrealItem = getComponent('surreal');
+      const pdItem = getComponent('pd');
+      const tikvItem = getComponent('tikv');
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
@@ -202,7 +211,7 @@
             component_name: 'pd',
             replicas: pdItem.replicas,
             request_cpu: Number(pdItem.request_cpu),
-            request_memory: Number(pdItem.request_cpu.replace('Gi', '')),
+            request_memory: Number(pdItem.request_memory.replace('Gi', '')),
             storage: Number(pdItem.storage.replace('Gi', '')),
           },
         ],
@@ -211,7 +220,7 @@
             component_name: 'surreal',
             replicas: surrealItem.replicas,
             request_cpu: Number(surrealItem.request_cpu),
-            request_memory: Number(surrealItem.request_cpu.replace('Gi', '')),
+            request_memory: Number(surrealItem.request_memory.replace('Gi', '')),
           },
         ],
         tikv: [
@@ -219,7 +228,7 @@
             component_name: 'tikv',
             replicas: tikvItem.replicas,
             request_cpu: Number(tikvItem.request_cpu),
-            request_memory: Number(tikvItem.request_cpu.replace('Gi', '')),
+            request_memory: Number(tikvItem.request_memory.replace('Gi', '')),
             storage: Number(tikvItem.storage.replace('Gi', '')),
           },
         ],

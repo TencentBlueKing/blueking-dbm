@@ -323,7 +323,8 @@
   watch(
     () => formData.tableData.length,
     () => {
-      sortTableByCluster();
+      // 排序结果必须写回，否则同集群行不连续时 rowspan 合并的是错位的行
+      formData.tableData = sortTableByCluster();
     },
   );
 
