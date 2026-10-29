@@ -416,12 +416,14 @@ func (ins *RedisStorageSwitchInstance) ProcessFailedTwemproxies(failedProxies []
 		didUnbind, err := ins.unbindFailedTwemproxyFromNameService(ins.BkCloudID, item.proxy)
 		if err != nil {
 			unbindFailed = append(unbindFailed, item.proxy)
-			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypeTwemProxy, item, haprobe.DbEventNameRedisUnbindProxyFailure, err.Error())
+			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypeTwemProxy, item,
+				haprobe.DbEventNameRedisUnbindProxyFailure, err.Error())
 			continue
 		}
 		successCnt++
 		if didUnbind {
-			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypeTwemProxy, item, haprobe.DbEventNameRedisUnbindProxySuccess, "")
+			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypeTwemProxy, item,
+				haprobe.DbEventNameRedisUnbindProxySuccess, "")
 		}
 	}
 
@@ -453,12 +455,14 @@ func (ins *RedisStorageSwitchInstance) ProcessFailedPredixies(failedProxies []fa
 		didUnbind, err := ins.unbindFailedPredixyFromNameService(ins.BkCloudID, item.proxy)
 		if err != nil {
 			unbindFailed = append(unbindFailed, item.proxy)
-			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypePredixy, item, haprobe.DbEventNameRedisUnbindProxyFailure, err.Error())
+			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypePredixy, item,
+				haprobe.DbEventNameRedisUnbindProxyFailure, err.Error())
 			continue
 		}
 		successCnt++
 		if didUnbind {
-			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypePredixy, item, haprobe.DbEventNameRedisUnbindProxySuccess, "")
+			ins.alarmUnbindProxy(haprobe.DbmMetadataMachineTypePredixy, item,
+				haprobe.DbEventNameRedisUnbindProxySuccess, "")
 		}
 	}
 
@@ -698,8 +702,10 @@ func (ins *RedisStorageSwitchInstance) checkReplicationSync(slaveConn *haredis.C
 	return nil
 }
 
-// getKvstoreCount reads kvstorecount. CONFIG may be renamed to confxx, so try that first.
+// getKvstoreCount reads kvstorecount.
 func (ins *RedisStorageSwitchInstance) getKvstoreCount(ctx context.Context, cli *haredis.Client) (int, error) {
+	// Production Redis renames CONFIG to confxx. Existing clusters, or instances that were
+	// never renamed, still accept CONFIG, so try confxx first and fall back when it fails.
 	raw, err := cli.DB().Do(ctx, "confxx", "get", "kvstorecount").Result()
 	if err != nil {
 		ins.ReportLogf(switchlogger.SwitchWarn,
