@@ -81,6 +81,7 @@ RANGE_FUNC_MAP = {
     "sum": promql.sum_over_time,
     "avg": promql.avg_over_time,
     "rate": promql.rate,
+    "irate": promql.irate,
     "increase": promql.increase,
     "count": promql.count_over_time,
 }

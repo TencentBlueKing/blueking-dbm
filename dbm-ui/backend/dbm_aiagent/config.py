@@ -687,6 +687,36 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "doris-metrics",
+        "description": """Doris cluster monitoring metrics query services, covering FE/BE system resources
+        and Doris internal metrics such as capacity, JVM heap, query error rate, transaction,
+        metadata editlog latency and compaction score""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["doris-metrics"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "doris-query-meta",
+        "description": """Doris cluster meta information query services, covering business and cluster
+        discovery, cluster overview with per-role node counts and machine specs, and spec search.
+        Meta data only, no monitoring metrics: use doris-metrics for usage and capacity""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["doris-query-meta"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
         "name": "kafka-rebalance-control",
         "description": """Kafka rebalance ticket progress query and throttle control services""",
         # 主动授权 app_code

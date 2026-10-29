@@ -21,4 +21,5 @@ urlpatterns = [
     path("resource/", include("backend.dbm_aiagent.mcp_tools.resource.urls")),
     path("pulsar/", include("backend.dbm_aiagent.mcp_tools.pulsar.urls")),
     path("es/", include("backend.dbm_aiagent.mcp_tools.es.urls")),
+    path("doris/", include("backend.dbm_aiagent.mcp_tools.doris.urls")),
 ]

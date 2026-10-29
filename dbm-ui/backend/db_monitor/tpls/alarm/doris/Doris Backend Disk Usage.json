@@ -56,7 +56,8 @@
                 "key": "instance_role",
                 "value": [
                   "doris_backend_cold",
-                  "doris_backend_hot"
+                  "doris_backend_hot",
+                  "doris_backend_warm"
                 ],
                 "method": "include",
                 "condition": "and",
@@ -307,7 +308,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(磁盘空间使用率)",
-  "version": 1,
+  "version": 2,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2025-01-06T16:34:43+08:00"
