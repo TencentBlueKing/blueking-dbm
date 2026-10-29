@@ -39,7 +39,7 @@
         class="w-88"
         theme="primary"
         @click="handleShowConfirm">
-        {{ t('确认') }}
+        {{ t('确认修改') }}
       </BkButton>
       <BkButton
         v-if="isCreator"
@@ -48,7 +48,7 @@
         {{ t('重新编辑') }}
       </BkButton>
     </div>
-    <ChangeDiffDrawer
+    <ConfirmModifyDialog
       v-model:is-show="isShowConfirm"
       :record="pendingRecord"
       :ticket-data="ticketData"
@@ -71,8 +71,7 @@
 
   import { utcTimeToSeconds } from '@utils';
 
-  import ChangeDiffDrawer from '../../components/ChangeDiffDrawer.vue';
-
+  import ConfirmModifyDialog from './ConfirmModifyDialog.vue';
   import useOpenConfirmModify from './hooks/useOpenConfirmModify';
 
   interface Props {

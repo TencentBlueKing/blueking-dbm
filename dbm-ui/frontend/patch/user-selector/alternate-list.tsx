@@ -107,7 +107,7 @@ export default defineComponent({
       <div
         ref='alternateListContainer'
         class={[
-          'user-selector-alternate-list-wrapper',
+          'dbm-user-selector-alternate-list-wrapper',
           this.selector?.displayListTips ? 'has-folder' : '',
           this.loading ? 'is-loading' : '',
         ]}

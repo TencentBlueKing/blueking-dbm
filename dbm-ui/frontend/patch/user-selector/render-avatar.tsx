@@ -25,6 +25,6 @@ export default {
       }
     });
 
-    return () => <span ref={userSelectorAvatarRef} class="user-selector-avatar"></span>;
+    return () => <span ref={userSelectorAvatarRef} class="dbm-user-selector-avatar"></span>;
   },
 };

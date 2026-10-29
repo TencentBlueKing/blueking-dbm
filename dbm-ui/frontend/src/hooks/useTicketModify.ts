@@ -16,9 +16,15 @@ import { useI18n } from 'vue-i18n';
 
 import TicketModifyRecordModel, { type TicketModifyMode } from '@services/model/ticket/modify-record';
 import TicketModel from '@services/model/ticket/ticket';
+import { getInfrasSubzonesByCity } from '@services/source/infras';
+import { getCloudList } from '@services/source/ipchooser';
+import { getRegions } from '@services/source/kubernetesToolbox';
+import { listTag } from '@services/source/tag';
 import { getTicketDetails } from '@services/source/ticket';
 
 import { useUserProfile } from '@stores';
+
+import { TicketTypes } from '@common/const';
 
 import { getTicketModifyDiffOptions, isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
 import { diffDetails, type DiffItem, formatValue } from '@views/ticket-center/common/ticket-modify/utils';
@@ -29,9 +35,16 @@ export interface TicketModifyState {
   // 提交前确认弹窗，由 TicketModifyAlert 渲染
   confirmState: {
     diffList: DiffItem[];
+    // 弹窗内提交按钮 loading，提交请求进行中为 true
+    isSubmitting: boolean;
     isShow: boolean;
-    resolve?: (isConfirmed: boolean) => void;
+    // 弹窗关闭（取消，或提交成功）时结束 openConfirm 返回的 Promise
+    resolve?: () => void;
+    // 点击弹窗提交按钮时执行的提交动作，reject 时弹窗保持打开
+    submit?: () => Promise<unknown>;
   };
+  // 提交前确认弹窗标题，按改单模式区分
+  confirmTitle: string;
   // 改后 details 与进入时的单据内容对比，提交时的变更计数与「重置」置灰共用这一份判据
   getDiffList: (details: unknown) => DiffItem[];
   // 改后补充信息（交付通知、单据备注）与进入时的单据对比；调整申请只取其中的单据备注
@@ -42,7 +55,8 @@ export interface TicketModifyState {
   isSelfOnBehalf: ComputedRef<boolean>;
   mode: TicketModifyMode | '';
   modifyRemark: Ref<string>;
-  openConfirm: (diffList: DiffItem[]) => Promise<boolean>;
+  // 打开确认弹窗；submit 在点击弹窗提交按钮时执行，弹窗关闭（取消或提交成功）后 Promise 结束
+  openConfirm: (diffList: DiffItem[], submit: () => Promise<unknown>) => Promise<void>;
   // 「重置」确认文案：改单模式下重置是丢弃本次修改、回到单据当前内容，不是清空；非改单为空，用各页默认文案
   resetContent: string;
   submitText: string;
@@ -85,16 +99,33 @@ export const useTicketModify = () => {
   }
 
   const ticketData = shallowRef<TicketModel>();
+  // 以下映射只用于变更对比把 id / 代码展示为名称；列表未就绪或数据已下线时展示原值
+  // 园区 id → 名称；不传城市返回全部园区，改前改后可能跨城市
+  const subzoneNameMap = shallowRef<Record<number, string>>({});
+  // 管控区域 id → 名称
+  const cloudNameMap = shallowRef<Record<number, string>>({});
+  // K8s 地域代码 → 名称，共享集群与业务独占集群的地域合并
+  const regionNameMap = shallowRef<Record<string, string>>({});
+  // 资源标签 id → 名称，只补单据快照里缺 label_names 的角色（API / MCP 建的单据）
+  const labelNameMap = shallowRef<Record<string, string>>({});
   const modifyRemark = ref('');
   const confirmState = reactive<TicketModifyState['confirmState']>({
     diffList: [],
     isShow: false,
+    isSubmitting: false,
   });
 
   const submitTextMap: Record<TicketModifyMode, string> = {
     [TicketModifyRecordModel.MODE_ADJUST_APPLY]: t('提交调整'),
     [TicketModifyRecordModel.MODE_ON_BEHALF]: t('提交修改'),
     [TicketModifyRecordModel.MODE_RE_EDIT]: t('重新提交'),
+  };
+
+  // 提交前确认弹窗标题，与工具页主按钮一一对应
+  const confirmTitleMap: Record<TicketModifyMode, string> = {
+    [TicketModifyRecordModel.MODE_ADJUST_APPLY]: t('确认提交调整'),
+    [TicketModifyRecordModel.MODE_ON_BEHALF]: t('确认提交修改'),
+    [TicketModifyRecordModel.MODE_RE_EDIT]: t('确认重新提交'),
   };
 
   const backToDetail = () => {
@@ -138,7 +169,44 @@ export const useTicketModify = () => {
     return true;
   };
 
+  const K8S_TICKET_TYPES: TicketTypes[] = [
+    TicketTypes.K8S_QDRANT_HA_APPLY,
+    TicketTypes.K8S_SURREALDB_HA_APPLY,
+    TicketTypes.K8S_SURREALDB_SINGLE_APPLY,
+  ];
+
+  /**
+   * 按单据补齐依赖单据内容的名称映射：K8s 地域按业务取，资源标签按快照里缺名称的标签 id 取
+   */
+  const fetchTicketNameMaps = (data: TicketModel) => {
+    if (K8S_TICKET_TYPES.includes(data.ticket_type) && data.bk_biz_id) {
+      // 共享 / 独占两种部署类型的可选地域不同，改单可能在两者间切换，两份都取
+      Promise.all([
+        getRegions({ bkBizId: data.bk_biz_id, isPublic: true }),
+        getRegions({ bkBizId: data.bk_biz_id, isPublic: false }),
+      ]).then((lists) => {
+        regionNameMap.value = Object.fromEntries(lists.flat().map((item) => [item.regionCode, item.regionName]));
+      });
+    }
+    const resourceSpec = (data.details as { resource_spec?: Record<string, { label_names?: string[]; labels?: string[] }> })
+      .resource_spec;
+    const labelIds = _.uniq(
+      Object.values(resourceSpec || {}).flatMap((item) => (item?.label_names?.length ? [] : item?.labels || [])),
+    );
+    if (labelIds.length > 0) {
+      listTag({ ids: labelIds.join(','), limit: labelIds.length, type: 'resource' }).then((res) => {
+        labelNameMap.value = Object.fromEntries(res.results.map((item) => [String(item.id), item.value]));
+      });
+    }
+  };
+
   if (isModify) {
+    getInfrasSubzonesByCity().then((list) => {
+      subzoneNameMap.value = Object.fromEntries(list.map((item) => [item.bk_sub_zone_id, item.bk_sub_zone]));
+    });
+    getCloudList().then((list) => {
+      cloudNameMap.value = Object.fromEntries(list.map((item) => [item.bk_cloud_id, item.bk_cloud_name]));
+    });
     getTicketDetails(
       { id: ticketId },
       {
@@ -153,6 +221,7 @@ export const useTicketModify = () => {
         }
         // 与页面回填共用同一份缓存响应，页面会就地改其中的对象（如域名），对比基准要深拷贝一份
         ticketData.value = _.cloneDeep(data);
+        fetchTicketNameMaps(data);
       })
       .catch(() => {
         // 拉取失败无法回填也无法对比，回到单据详情页（请求层已提示错误）
@@ -160,12 +229,14 @@ export const useTicketModify = () => {
       });
   }
 
-  const openConfirm = (diffList: DiffItem[]) =>
-    new Promise<boolean>((resolve) => {
+  const openConfirm = (diffList: DiffItem[], submit: () => Promise<unknown>) =>
+    new Promise<void>((resolve) => {
       Object.assign(confirmState, {
         diffList,
         isShow: true,
+        isSubmitting: false,
         resolve,
+        submit,
       });
     });
 
@@ -174,7 +245,30 @@ export const useTicketModify = () => {
     if (!data) {
       return [];
     }
-    return diffDetails(data.details, details, getTicketModifyDiffOptions(data.ticket_type));
+    const options = getTicketModifyDiffOptions(data.ticket_type);
+    return diffDetails(data.details, details, {
+      ...options,
+      formatters: {
+        ...options.formatters,
+        // 下列字段单据里只存 id / 代码，名称要靠接口补齐，所以在这里统一登记，覆盖 registry 里只读快照的同名格式
+        bk_cloud_id: (value) => {
+          const name = cloudNameMap.value[value as number];
+          return name ? `${name}[${value}]` : formatValue(value);
+        },
+        // 非 K8s 类型的快照带 city_name；K8s 类型只有地域代码，按地域列表取名
+        city_code: (value, snapshot) =>
+          formatValue(snapshot.city_name || regionNameMap.value[value as string] || value),
+        'resource_spec.*.labels': (value, snapshot, path) => {
+          const labelNames = _.get(snapshot, path.replace(/labels$/, 'label_names')) as string[] | undefined;
+          if (labelNames?.length) {
+            return formatValue(labelNames);
+          }
+          return formatValue((value as string[] | undefined)?.map((id) => labelNameMap.value[String(id)] || id));
+        },
+        'resource_spec.*.location_spec.sub_zone_ids': (value) =>
+          formatValue((value as number[] | undefined)?.map((id) => subzoneNameMap.value[id] || id)),
+      },
+    });
   };
 
   /**
@@ -230,6 +324,7 @@ export const useTicketModify = () => {
 
   const state: TicketModifyState = {
     confirmState,
+    confirmTitle: mode ? confirmTitleMap[mode] : '',
     getDiffList,
     getSupplementDiffList,
     isAdjustApply: mode === TicketModifyRecordModel.MODE_ADJUST_APPLY,

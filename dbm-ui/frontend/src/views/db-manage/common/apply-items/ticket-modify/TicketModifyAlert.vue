@@ -46,29 +46,32 @@
     <BkDialog
       :is-show="modifyState.confirmState.isShow"
       :quick-close="false"
-      :title="t('确认提交')"
+      :title="modifyState.confirmTitle"
       :width="800"
-      @closed="() => handleClose(false)">
-      <div class="ticket-modify-confirm-tip">
-        {{ t('共n项变更，请确认后提交', { n: modifyState.confirmState.diffList.length }) }}
-      </div>
-      <DiffTable :data="modifyState.confirmState.diffList" />
+      @closed="handleCancel">
+      <!-- 先看修改说明再看变更明细；重新编辑没有修改说明 -->
       <div
         v-if="modifyState.mode !== TicketModifyRecordModel.MODE_RE_EDIT"
         class="ticket-modify-confirm-remark">
         <span class="ticket-modify-confirm-remark-label">{{ t('修改说明：') }}</span>
         <span>{{ modifyState.modifyRemark.value }}</span>
       </div>
+      <div class="ticket-modify-confirm-tip">
+        {{ t('共n项变更，请确认后提交', { n: modifyState.confirmState.diffList.length }) }}
+      </div>
+      <DiffTable :data="modifyState.confirmState.diffList" />
       <template #footer>
         <BkButton
           class="w-88"
+          :loading="modifyState.confirmState.isSubmitting"
           theme="primary"
-          @click="() => handleClose(true)">
-          {{ modifyState.submitText }}
+          @click="handleConfirm">
+          {{ t('确认') }}
         </BkButton>
         <BkButton
           class="w-88 ml-8"
-          @click="() => handleClose(false)">
+          :disabled="modifyState.confirmState.isSubmitting"
+          @click="handleCancel">
           {{ t('取消') }}
         </BkButton>
       </template>
@@ -139,13 +142,42 @@
     };
   });
 
-  const handleClose = (isConfirmed: boolean) => {
+  // 关闭弹窗并结束 openConfirm 返回的 Promise
+  const closeConfirm = () => {
     if (!modifyState) {
       return;
     }
-    modifyState.confirmState.isShow = false;
-    modifyState.confirmState.resolve?.(isConfirmed);
-    modifyState.confirmState.resolve = undefined;
+    const { confirmState } = modifyState;
+    confirmState.isShow = false;
+    confirmState.resolve?.();
+    confirmState.resolve = undefined;
+    confirmState.submit = undefined;
+  };
+
+  /**
+   * 提交：按钮 loading 直到接口返回；成功后关闭弹窗（路由跳转在 submit 内完成），失败保持弹窗打开，错误已由 submit 提示
+   */
+  const handleConfirm = () => {
+    if (!modifyState?.confirmState.submit || modifyState.confirmState.isSubmitting) {
+      return;
+    }
+    const { confirmState } = modifyState;
+    confirmState.isSubmitting = true;
+    confirmState
+      .submit()
+      .then(closeConfirm)
+      .catch(() => undefined)
+      .finally(() => {
+        confirmState.isSubmitting = false;
+      });
+  };
+
+  // 取消；提交中不允许关闭，避免请求返回后才跳转
+  const handleCancel = () => {
+    if (modifyState?.confirmState.isSubmitting) {
+      return;
+    }
+    closeConfirm();
   };
 </script>
 <style lang="less">
@@ -173,7 +205,7 @@
   }
 
   .ticket-modify-confirm-remark {
-    margin-top: 16px;
+    margin-bottom: 16px;
     font-size: 12px;
     line-height: 20px;
     color: #63656e;

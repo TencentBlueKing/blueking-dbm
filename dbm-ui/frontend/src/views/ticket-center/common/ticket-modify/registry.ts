@@ -12,7 +12,9 @@
  */
 import _ from 'lodash';
 
-import { affinityMap, mongodbAffinityMap, TicketTypes } from '@common/const';
+import { affinityMap, ClusterTypes, mongodbAffinityMap, TicketTypes } from '@common/const';
+
+import { redisClusterTypes } from '@views/db-manage/redis/REDIS_CLUSTER_APPLY/common/const';
 
 import { t } from '@locales/index';
 
@@ -204,7 +206,24 @@ const REDIS_CLUSTER_APPLY_DIFF: DiffOptions = {
     ...RESOURCE_SPEC_DIFF.formatters,
     apply_clb: (value) => (value ? 'CLB' : '--'),
     apply_polaris: (value) => (value ? t('北极星') : '--'),
+    /**
+     * 总容量（手动录入主机时）：cap_key 由后端拼成「总内存:单实例内存MB:总磁盘:单实例磁盘:分片数:组数」，
+     * 按申请页下拉的格式展示；TendisSSD 看磁盘，其余看内存；格式不符时展示原值
+     */
+    cap_key: (value, snapshot) => {
+      const parts = String(value ?? '').split(':');
+      if (parts.length !== 6) {
+        return formatValue(value);
+      }
+      const [totalMemory, maxMemory, totalDisk, maxDisk, shardNum] = parts;
+      if (snapshot.cluster_type === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE) {
+        return `${totalDisk}(${maxDisk} GB x ${shardNum}${t('分片')})`;
+      }
+      return `${totalMemory}(${(Number(maxMemory) / 1024).toFixed(1)} GB x ${shardNum}${t('分片')})`;
+    },
     city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    cluster_type: (value) =>
+      formatValue(redisClusterTypes[value as keyof typeof redisClusterTypes]?.text || value),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
     // details 里是明文密码，不展示
     proxy_pwd: (value) => (value ? '******' : '--'),
