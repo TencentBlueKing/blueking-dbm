@@ -193,7 +193,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "title": "DBM TenDBHA/TenDBCluster SQL语法检查",
+        "title": "数据库管理-SQL语法检查",
         "name": "sql-syntax-check",
         "description": """SQL syntax check and validation services for TenDBHA/TenDBCluster.
         SQL语法检查与验证服务，适用于TenDBHA/TenDBCluster集群。
@@ -212,6 +212,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 主动授权 app_code
         "target_app_codes": [env.APP_CODE, "ai-dbm"],
         "labels": ["sql-syntax-check"],
+        "category_names": ["Automation"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开
@@ -493,12 +494,13 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "title": "[DBM] 公共服务",
+        "title": "数据库管理-公共服务",
         "name": "dbm-public-market",
         "description": """dbm 公共服务""",
         # 主动授权 app_code
         "target_app_codes": [env.APP_CODE, "ai-dbm"],
         "labels": ["dbm-public-market"],
+        "category_names": ["Automation"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

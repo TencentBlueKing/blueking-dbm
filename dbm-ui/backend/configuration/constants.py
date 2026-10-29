@@ -364,7 +364,7 @@ DEFAULT_MACHINE_PROPERTY = {
 }
 
 # 默认介质支持的操作系统
-DEFAULT_PACKAGE_SUPPORT_SYSTEMS = {"linux": ["ubuntu", "centos7", "centos8"], "windows": ["win7", "win10"]}
+DEFAULT_PACKAGE_SUPPORT_SYSTEMS = {"Linux": ["ubuntu", "centos7", "centos8"], "Windows": ["win7", "win10"]}
 
 # 默认智能体场景映射表
 DEFAULT_AI_CODE_SCENE_MAP = {"log_analysis": {"default": "LogAnalysis"}}

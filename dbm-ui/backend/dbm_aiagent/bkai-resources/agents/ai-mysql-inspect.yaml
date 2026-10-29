@@ -4,7 +4,7 @@ kind: Agent
 
 metadata:
   code: ai-mysql-inspect
-  name: MySQL智能诊断
+  name: 数据库管理-MySQL智能诊断
   description: 分析集群整体情况
 
 spec:
