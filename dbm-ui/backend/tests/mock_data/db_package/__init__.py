@@ -11,16 +11,20 @@ specific language governing permissions and limitations under the License.
 from backend.tests.mock_data.db_package.v1 import ensure_package, seed_redis_packages
 from backend.tests.mock_data.db_package.v2 import (
     MYSQL_V2_RELEASE_PKG_TYPES,
+    REDIS_V2_RELEASE_PKG_SPECS,
     clear_mysql_v2_release_packages,
     ensure_v2_release_package,
     seed_mysql_v2_release_packages,
+    seed_redis_v2_release_packages,
 )
 
 __all__ = [
     "MYSQL_V2_RELEASE_PKG_TYPES",
+    "REDIS_V2_RELEASE_PKG_SPECS",
     "clear_mysql_v2_release_packages",
     "ensure_package",
     "ensure_v2_release_package",
     "seed_mysql_v2_release_packages",
     "seed_redis_packages",
+    "seed_redis_v2_release_packages",
 ]

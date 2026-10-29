@@ -21,7 +21,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.configuration.constants import PLAT_BIZ_ID
 from backend.configuration.models.system import SystemSettings
 from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
@@ -69,7 +69,7 @@ from backend.flow.utils.redis.redis_proxy_util import (
     get_twemproxy_cluster_server_shards,
     set_backup_mode,
 )
-from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
+from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version, get_redis_package_v2_release
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -117,7 +117,7 @@ cache_cluster_type_list = [
 
 def snapshot_redis_tools_pkg() -> dict:
     """查当前 latest RedisTools，返回可写入 global_data 的快照。"""
-    tools = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis)
+    tools = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
     return {"pkg": tools.name, "pkg_md5": tools.md5, "path": tools.path}
 
 
@@ -144,7 +144,7 @@ def resolve_redis_tools_pkg(ticket_data: dict | None):
     pkg_md5 = snapshot.get("pkg_md5")
     if pkg and pkg_md5:
         return SimpleNamespace(name=pkg, md5=pkg_md5, path=snapshot.get("path") or "")
-    return Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis)
+    return get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
 
 
 def query_cluster_dbconf_map(
@@ -192,9 +192,7 @@ class RedisActPayload(object):
         self.cluster = cluster
         self.bk_biz_id = str(self.ticket_data["bk_biz_id"])
         self.tools_pkg = resolve_redis_tools_pkg(self.ticket_data)
-        self.redis_modules_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
-        )
+        self.redis_modules_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisModules)
 
         self.__init_dbconfig_params()
         if self.ticket_data["ticket_type"] in apply_list + cutoff_list + tool_list + migrate_list:
@@ -980,8 +978,8 @@ class RedisActPayload(object):
         }
 
     def get_install_predixy_payload(self, **kwargs) -> dict:
-        self.proxy_pkg = Package.get_latest_package(
-            version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+        self.proxy_pkg = get_redis_package_v2_release(
+            pkg_type=MediumEnum.Predixy, series=PredixyVersion.PredixyLatest.value
         )
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
@@ -1016,8 +1014,8 @@ class RedisActPayload(object):
         Port and passwords come from the source cluster's config; `servers` is passed by the calling
         node via `params`. Proxy scale-out uses `get_install_predixy_payload` instead.
         """
-        self.proxy_pkg = Package.get_latest_package(
-            version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+        self.proxy_pkg = get_redis_package_v2_release(
+            pkg_type=MediumEnum.Predixy, series=PredixyVersion.PredixyLatest.value
         )
         proxy_config = self.__rollback_proxy_config(
             self.__get_cluster_config(
@@ -1048,8 +1046,8 @@ class RedisActPayload(object):
         """
         初始化twemproxy
         """
-        self.proxy_pkg = Package.get_latest_package(
-            version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+        self.proxy_pkg = get_redis_package_v2_release(
+            pkg_type=MediumEnum.Twemproxy, series=TwemproxyVersion.TwemproxyLatest.value
         )
 
         return {
@@ -1069,8 +1067,8 @@ class RedisActPayload(object):
         Port and passwords come from the source cluster's config; `servers` is passed by the calling
         node via `params`. Proxy scale-out uses `get_install_twemproxy_payload` instead.
         """
-        self.proxy_pkg = Package.get_latest_package(
-            version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+        self.proxy_pkg = get_redis_package_v2_release(
+            pkg_type=MediumEnum.Twemproxy, series=TwemproxyVersion.TwemproxyLatest.value
         )
         proxy_config = self.__rollback_proxy_config(
             self.__get_cluster_config(
@@ -1402,13 +1400,9 @@ class RedisActPayload(object):
         namespace = namespace or NameSpaceEnum.RedisCommon
         # cluster_domain 传入时，会按集群级别(LevelName.CLUSTER)取配置，从而支持集群粒度的自定义覆盖；
         # 不传时按业务级别(LevelName.APP)取配置。
-        bkdbmon_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
-        )
+        bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         if tools_pkg is None:
-            tools_pkg = Package.get_latest_package(
-                version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
-            )
+            tools_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
         fullbackup_config = RedisActPayload.get_common_config(
             bk_biz_id=bk_biz_id,
             namespace=namespace,
@@ -1671,28 +1665,18 @@ class RedisActPayload(object):
     # 场景化需求
     def __get_redis_pkg(self, cluster_type, db_version):
         if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-            self.redis_pkg = Package.get_latest_package(
-                version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
-            )
+            self.redis_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.Redis, series=db_version)
         elif cluster_type in [
             ClusterType.TendisPredixyTendisplusCluster.value,
             ClusterType.TendisPredixyTendisplusInstance.value,
         ]:
-            self.redis_pkg = Package.get_latest_package(
-                version=db_version, pkg_type=MediumEnum.TendisPlus, db_type=DBType.Redis
-            )
+            self.redis_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.TendisPlus, series=db_version)
         elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-            self.redis_pkg = Package.get_latest_package(
-                version=db_version, pkg_type=MediumEnum.TendisSsd, db_type=DBType.Redis
-            )
+            self.redis_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.TendisSsd, series=db_version)
         elif cluster_type == ClusterType.TendisPredixyRedisCluster.value:
-            self.redis_pkg = Package.get_latest_package(
-                version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
-            )
+            self.redis_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.Redis, series=db_version)
         elif cluster_type == ClusterType.TendisRedisInstance.value:
-            self.redis_pkg = Package.get_latest_package(
-                version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
-            )
+            self.redis_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.Redis, series=db_version)
         else:
             raise Exception("unknown cluster type:" + cluster_type)
 
@@ -2105,12 +2089,12 @@ class RedisActPayload(object):
         params = kwargs["params"]
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["dst_cluster_type"]):
-            proxy_pkg = Package.get_latest_package(
-                version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+            proxy_pkg = get_redis_package_v2_release(
+                pkg_type=MediumEnum.Twemproxy, series=TwemproxyVersion.TwemproxyLatest.value
             )
         elif is_predixy_proxy_type(params["dst_cluster_type"]):
-            proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+            proxy_pkg = get_redis_package_v2_release(
+                pkg_type=MediumEnum.Predixy, series=PredixyVersion.PredixyLatest.value
             )
         logger.info(
             "redis_dts_src_proxys_online_switch_payload dst_proxy_config ===>{}".format(
@@ -2158,12 +2142,12 @@ class RedisActPayload(object):
         params = kwargs["params"]
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["dst_cluster_type"]):
-            proxy_pkg = Package.get_latest_package(
-                version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+            proxy_pkg = get_redis_package_v2_release(
+                pkg_type=MediumEnum.Twemproxy, series=TwemproxyVersion.TwemproxyLatest.value
             )
         elif is_predixy_proxy_type(params["dst_cluster_type"]):
-            proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+            proxy_pkg = get_redis_package_v2_release(
+                pkg_type=MediumEnum.Predixy, series=PredixyVersion.PredixyLatest.value
             )
         logger.info(
             "redis_dts_dst_proxys_online_switch_payload src_proxy_config ===>{}".format(
@@ -2235,9 +2219,7 @@ class RedisActPayload(object):
         """
         获取dts server部署的payload
         """
-        dts_server_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
-        )
+        dts_server_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisDts)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ADD_DTS_SERVER.value,
@@ -2259,9 +2241,7 @@ class RedisActPayload(object):
         """
         获取dts server删除的payload
         """
-        dts_server_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
-        )
+        dts_server_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisDts)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REMOVE_DTS_SERVER.value,
@@ -2767,17 +2747,15 @@ class RedisActPayload(object):
         proxy_pkg_prefix = params.get("proxy_pkg_prefix", None)
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["cluster_type"]):
-            proxy_pkg = Package.get_latest_package(
-                version=TwemproxyVersion.TwemproxyLatest,
+            proxy_pkg = get_redis_package_v2_release(
                 pkg_type=MediumEnum.Twemproxy,
-                db_type=DBType.Redis,
+                series=TwemproxyVersion.TwemproxyLatest.value,
                 name_prefix=proxy_pkg_prefix,
             )
         elif is_predixy_proxy_type(params["cluster_type"]):
-            proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest,
+            proxy_pkg = get_redis_package_v2_release(
                 pkg_type=MediumEnum.Predixy,
-                db_type=DBType.Redis,
+                series=PredixyVersion.PredixyLatest.value,
                 name_prefix=proxy_pkg_prefix,
             )
         return {
@@ -2978,9 +2956,7 @@ class RedisActPayload(object):
         Redis加载模块
         """
         params = kwargs["params"]
-        redis_modules_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
-        )
+        redis_modules_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisModules)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.LOAD_MODULES.value,
