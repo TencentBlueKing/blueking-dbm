@@ -36,6 +36,7 @@
               "bk_target_service_instance_id",
               "app",
               "cluster_name",
+              "cluster_domain",
               "consumergroup",
               "topic",
               "appid"
@@ -267,7 +268,7 @@
   },
   "is_enabled": false,
   "monitor_indicator": "avg_without_time(kafka_consumergroup_lag_sum)",
-  "version": 23,
+  "version": 24,
   "alert_source": "time_series",
   "custom_conditions": [
     {
