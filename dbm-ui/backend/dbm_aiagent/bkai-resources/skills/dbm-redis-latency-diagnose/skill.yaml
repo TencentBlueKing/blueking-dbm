@@ -3,7 +3,7 @@ kind: Skill
 
 metadata:
   code: dbm-redis-latency-diagnose
-  name: Redis集群延迟问题诊断
+  name: 数据库管理-Redis集群延迟问题诊断
 
 spec:
   generate_type: space

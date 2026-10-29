@@ -3,7 +3,7 @@ kind: Skill
 
 metadata:
   code: dbm-mysql-slow-query-tuning
-  name: MySQL慢查询分析与调优
+  name: 数据库管理-MySQL慢查询分析与调优
 
 spec:
   generate_type: space
