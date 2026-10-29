@@ -196,7 +196,7 @@
         tableData: details.infos.map((item) =>
           createTableRow({
             master: {
-              ip: item.switch_tuples?.[0].master.ip,
+              ip: item.switch_tuples?.[0]?.master?.ip,
             },
           }),
         ),

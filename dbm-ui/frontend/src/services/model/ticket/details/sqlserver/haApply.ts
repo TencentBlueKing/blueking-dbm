@@ -1,5 +1,3 @@
-import { ClusterTypes } from '@common/const';
-
 import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface HaApply extends DetailBase {
@@ -22,7 +20,8 @@ export interface HaApply extends DetailBase {
   inst_num: number;
   ip_source: string;
   nodes?: {
-    [ClusterTypes.SQLSERVER_HA]: {
+    // 手动录入主机时提交的是 nodes.backend（申请页与后端 builder 均按此读写），按 [master, slave, ...] 排列
+    backend: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;

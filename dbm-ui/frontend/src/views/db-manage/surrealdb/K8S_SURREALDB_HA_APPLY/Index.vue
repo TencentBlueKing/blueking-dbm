@@ -188,7 +188,16 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
-      const [surrealItem, pdItem, tikvItem] = details.component_list;
+      // 按 component_name 取，不依赖数组下标（本页提交顺序是 surreal / pd / tikv）
+      type ComponentItem = SurrealDB.HaApply['component_list'][number];
+      const getComponent = <N extends ComponentItem['component_name']>(name: N) =>
+        details.component_list.find((item) => item.component_name === name) as Extract<
+          ComponentItem,
+          { component_name: N }
+        >;
+      const surrealItem = getComponent('surreal');
+      const pdItem = getComponent('pd');
+      const tikvItem = getComponent('tikv');
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,

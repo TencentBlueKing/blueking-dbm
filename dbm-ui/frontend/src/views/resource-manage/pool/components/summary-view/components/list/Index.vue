@@ -211,10 +211,10 @@
     const params = {
       city: row.cityValue,
       device_class: row.device_class,
-      disk: row.disk_summary?.[0].size ? `${row.disk_summary?.[0].size}-` : '',
-      disk_type: row.disk_summary?.[0].disk_type,
+      disk: row.disk_summary?.[0]?.size ? `${row.disk_summary[0].size}-` : '',
+      disk_type: row.disk_summary?.[0]?.disk_type,
       for_biz: row.dedicated_biz,
-      mount_point: row.disk_summary?.[0].mount_point,
+      mount_point: row.disk_summary?.[0]?.mount_point,
       resource_type: getSearchParams().db_type,
       spec_id: row.spec_id,
       subzone_ids: subzoneId || '',
