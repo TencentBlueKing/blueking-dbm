@@ -44,7 +44,11 @@ from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import (
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import (
     create_mongo_reload_ticket as _create_mongo_reload_ticket,
 )
-from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import is_mongos_core, mongo_create_ticket
+from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import (
+    is_mongos_core,
+    mongo_create_ticket,
+    stamp_mongo_group,
+)
 from backend.db_services.mongodb.autofix.remark import autofix_core_tag
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -86,6 +90,7 @@ def create_autofix_pre_ticket(core: MongoAutofixCore) -> Optional[Ticket]:
             }
         ]
     }
+    stamp_mongo_group(details, core)
     creator = _mongodb_dba(core.bk_biz_id)
     ticket = Ticket.create_ticket(
         ticket_type=TicketType.MONGODB_AUTOFIX_PRE.value,
