@@ -156,7 +156,7 @@ dbm:
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
     slowQueryParseApigwDomain: ""
     reverseReportKafkaOptions: ""
-    dbmEnableAI: false
+    dbmEnableAI: true
     bkaiAgentMetricsPushMode: "direct"
 
   ingress:
@@ -207,6 +207,28 @@ dbm:
     tls: []
 
   saas:
+    aidevApi:
+      enabled: true
+      replicaCount: 1
+      gunicornWorker: 8
+      threads: 4
+      timeout: 300
+      gracefulTimeout: 300
+      terminationGracePeriodSeconds: 330
+      maxRequests: 5000
+      maxRequestsJitter: 500
+      resources: {}
+      ingress:
+        enabled: true
+        className: ""
+        # Add any separate MCP origin hostname here along with the SaaS hostname.
+        hosts: []
+        tls: []
+        pathPrefix: /bkdbm
+        annotations:
+          nginx.ingress.kubernetes.io/proxy-buffering: "off"
+          nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+          nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     api:
       enabled: true
       replicaCount: 1

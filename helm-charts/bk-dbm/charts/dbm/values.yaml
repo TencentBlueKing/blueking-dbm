@@ -23,6 +23,29 @@ initJob:
   resources: {}
 
 saas:
+  aidevApi:
+    enabled: false
+    replicaCount: 1
+    gunicornWorker: 8
+    threads: 4
+    timeout: 300
+    gracefulTimeout: 300
+    terminationGracePeriodSeconds: 330
+    maxRequests: 5000
+    maxRequestsJitter: 500
+    resources: {}
+    ingress:
+      enabled: true
+      # Empty values inherit the SaaS Ingress class/hostname/TLS.
+      className: ""
+      hosts: []
+      tls: []
+      # Set to "" when the external URL has no subpath.
+      pathPrefix: /bkdbm
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-buffering: "off"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
   api:
     enabled: true
     resources: {}

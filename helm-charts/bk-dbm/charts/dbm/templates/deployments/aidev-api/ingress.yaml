@@ -1,0 +1,46 @@
+{{- if and .Values.saas.aidevApi.enabled .Values.saas.aidevApi.ingress.enabled -}}
+{{- $cfg := .Values.saas.aidevApi.ingress -}}
+{{- $fullName := include "dbm.aidev-api.fullname" . -}}
+{{- $hosts := $cfg.hosts -}}
+{{- if not $hosts -}}
+{{- $hosts = list (required "aidevApi ingress requires hosts or ingress.hostname" .Values.ingress.hostname) -}}
+{{- end -}}
+{{- $className := $cfg.className | default .Values.ingress.className -}}
+{{- $annotations := mergeOverwrite (deepCopy (.Values.ingress.annotations | default dict)) (deepCopy $cfg.annotations) (dict "nginx.ingress.kubernetes.io/use-regex" "true" "nginx.ingress.kubernetes.io/rewrite-target" "/apis/ai$1$2") -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+spec:
+  {{- if $className }}
+  ingressClassName: {{ $className | quote }}
+  {{- end }}
+  {{- with ($cfg.tls | default .Values.ingress.tls) }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          {{- $prefix := trimSuffix "/" $cfg.pathPrefix }}
+          {{- $paths := list "/apis/ai(/|$)(.*)" }}
+          {{- if $prefix }}
+          {{- $paths = prepend $paths (printf "%s/apis/ai(/|$)(.*)" (regexQuoteMeta $prefix)) }}
+          {{- end }}
+          {{- range $paths }}
+          - path: {{ . | quote }}
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}
