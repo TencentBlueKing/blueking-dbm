@@ -67,6 +67,7 @@ from backend.flow.plugins.components.collections.redis.conf_check.storage_conf_p
     parse_store_masters,
     resolve_expected_conf,
     same_conf_value,
+    same_conf_value_for,
     split_dbconfig_entries,
 )
 from backend.flow.utils.redis.redis_script_template import (
@@ -689,6 +690,17 @@ _COBL_MEM = {
     "save": "",
 }
 _COBL_MEM_SAVE = dict(_COBL_MEM, save="3600 1 300 100")
+_COBL_DB_REPLICA = {
+    "client-output-buffer-limit": "normal 256mb 512mb 300\nclient-output-buffer-limit replica 2048mb 2048mb 300"
+    "\nclient-output-buffer-limit pubsub 32mb 8mb 60",
+    "save": "",
+}
+_COBL_REPLICA_DISK = (
+    "client-output-buffer-limit normal 256mb 512mb 300\n"
+    "client-output-buffer-limit replica 2gb 2gb 300\n"
+    "client-output-buffer-limit pubsub 32mb 8mb 60\n"
+    'save ""\n'
+)
 _T300 = {"timeout": "300"}
 _RO = {"slave-read-only": "yes"}
 _RO_DRIFT = "slave-read-only(dbconfig=yes, memory=no, disk=no)"
@@ -719,6 +731,16 @@ _COMPARE_CASES = [
     ("empty_expected_absent", {"unixsocket": ""}, "port 30000\n", {"unixsocket": ""}, []),
     ("unknown_to_both", {"repl-diskless-sync": "no"}, "port 30000\n", {}, []),
     ("multi_entry_match", _COBL_DB, _COBL_DISK, _COBL_MEM, []),
+    ("multi_entry_replica_class", _COBL_DB, _COBL_REPLICA_DISK, _COBL_MEM, []),
+    ("multi_entry_replica_class_memory", _COBL_DB_REPLICA, _COBL_REPLICA_DISK, _COBL_MEM, []),
+    ("rewrite_renamed_lua", {"lua-time-limit": "5000"}, "busy-reply-threshold 5000\n", {"lua-time-limit": "5000"}, []),
+    (
+        "rewrite_renamed_cpulist",
+        {"aof_rewrite_cpulist": "0-3"},
+        "aof-rewrite-cpulist 0-3\n",
+        {},
+        [],
+    ),
     ("multi_entry_save_drift", _COBL_DB, _COBL_DISK, _COBL_MEM_SAVE, [_SAVE_DRIFT]),
 ]
 
@@ -740,6 +762,22 @@ class TestStorageConfCompare:
     )
     def test_same_conf_value(self, a, b, eq):
         assert same_conf_value(a, b) is eq
+
+    def test_cobl_rewrite_canonicalization(self):
+        # CONFIG REWRITE writes "replica" and human units; CONFIG GET/dbconfig keep "slave"/bytes.
+        assert same_conf_value_for(
+            "client-output-buffer-limit",
+            "normal 256mb 512mb 300 slave 2048mb 2048mb 300 pubsub 32mb 8mb 60",
+            "normal 256mb 512mb 300 replica 2gb 2gb 300 pubsub 32mb 8mb 60",
+        )
+        # Valkey dbconfig uses "replica" while runtime CONFIG GET reports "slave".
+        assert same_conf_value_for(
+            "client-output-buffer-limit", "replica 2048mb 2048mb 300", "slave 2147483648 2147483648 300"
+        )
+        # A changed limit is still drift.
+        assert not same_conf_value_for("client-output-buffer-limit", "slave 2048mb 2048mb 300", "replica 1gb 2gb 300")
+        # The alias is scoped to client-output-buffer-limit.
+        assert not same_conf_value_for("timeout", "slave", "replica")
 
     def test_value_helpers(self):
         # join_directive_values ported from runtime_test.go TestJoinDirectiveValues
@@ -782,6 +820,9 @@ class TestStorageConfCompare:
             {
                 "requirepass": "{{password}}x",
                 "masterauth": "abc",
+                "masteruser": "def",
+                "primaryauth": "abc",
+                "primaryuser": "def",
                 "rename-command": "config confxx \nrename-command flushdb cleandb",
                 "maxmemory": "1gb",
                 "appendonly": "yes",
