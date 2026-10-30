@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 
 from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.models import Cluster
 
 
@@ -25,43 +25,45 @@ def scan_cluster(
     graph = Graphic(node_id=clb_dns.entry if clb_dns else Graphic.generate_graphic_id(cluster))
 
     # 获取访问入口clb_dns和clb ip
-    entry_group = Group(node_id="entry_group", group_name=_("访问入口"))
-    clb_entries = cluster.clusterentry_set.filter(
-        cluster_entry_type__in=[ClusterEntryType.CLBDNS, ClusterEntryType.CLB]
-    )
-    entry_nodes = []
-    for clb_entry in clb_entries:
-        entry_node, __ = graph.add_node(clb_entry, to_group=entry_group)
-        entry_nodes.append(entry_node)
-
-    data = {
-        "k8sClusterName": k8s_cluster_name,
-        "clusterName": cluster.name,
-        "namespace": namespace,
-        "componentName": "qdrant",
+    master_entry_group = Group(node_id="master_entry_group", group_name=_("访问入口"))
+    # 域名在上、CLB IP 在下，和拓扑原型的入口卡片顺序一致
+    entry_order = {
+        ClusterEntryType.CLBDNS.value: 0,
+        ClusterEntryType.CLB.value: 1,
     }
-    resp = KubernetesApi.component_pods(data, use_admin=True)
+    clb_entries = sorted(
+        cluster.clusterentry_set.filter(cluster_entry_type__in=[ClusterEntryType.CLBDNS, ClusterEntryType.CLB]),
+        key=lambda entry: entry_order.get(entry.cluster_entry_type, 2),
+    )
+    for clb_entry in clb_entries:
+        graph.add_node(clb_entry, to_group=master_entry_group)
 
-    peer_group = Group(node_id="qdrant", group_name="Qdrant")
-    peer_nodes = []
-    for pod in resp.get("result", []):
-        peer_node, __ = graph.add_node(
+    def get_instances(instance_role):
+        data = {
+            "k8sClusterName": k8s_cluster_name,
+            "clusterName": cluster.name,
+            "namespace": namespace,
+            "componentName": instance_role,
+        }
+        resp = KubernetesApi.component_pods(data, use_admin=True)
+        infos = [
             {
-                "component_name": "qdrant",
-                "pod_name": pod.get("podName"),
-                "status": pod.get("status"),
-            },
-            to_group=peer_group,
-        )
-        peer_nodes.append(peer_node)
+                "component_name": instance_role,
+                "pod_name": res["podName"],
+                "status": res["status"],
+                "role": res.get("role") or "",
+            }
+            for res in resp.get("result", [])
+        ]
+        return infos
 
-    # 为入口与组件补充连线，避免前端布局在无边场景下节点重叠
-    # 使用组到组的连线方式
-    graph.add_line(source=entry_group, target=peer_group, label=LineLabel.Access)
+    # Pod 挂到分组 children_id，连线只从访问入口指向 Qdrant 分组。
+    # Raft 角色写入 instance_state，供拓扑卡片展示 Leader / Follower。
+    qdrant_infos = get_instances(InstanceRole.QDRANT)
+    qdrant_group = Group(node_id=InstanceRole.QDRANT, group_name="Qdrant")
+    for qdrant_info in qdrant_infos:
+        node, __ = graph.add_node(qdrant_info, to_group=qdrant_group)
+        node.instance_state = qdrant_info.get("role") or ""
 
-    # Qdrant 节点间通过 Raft 同步，使用同步边表达 peer 关系
-    for idx, source_node in enumerate(peer_nodes):
-        for target_node in peer_nodes[idx + 1 :]:
-            graph.add_line(source=source_node, target=target_node, label=LineLabel.Rep)
-
+    graph.add_line(source=master_entry_group, target=qdrant_group, label=LineLabel.Access)
     return graph
