@@ -209,6 +209,8 @@ const k8sStrategy: BaseDomainStrategy = (ctx, params) => {
     [ClusterTypes.K8S_QDRANT_HA]: 'qdrant',
     [ClusterTypes.K8S_SURREALDB_HA]: 'surrealdb',
     [ClusterTypes.K8S_SURREALDB_SINGLE]: 'surrealdb',
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'victoriametrics',
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: 'victoriametrics',
   };
   const prefix = DbTypeToPrefixMap[params.clusterType as BigDataType];
   return { masterDomain: { prefix: `${prefix}.`, suffix: `.${ctx.dbAppAbbr}.db` } };
@@ -229,6 +231,8 @@ const strategyMap: Partial<Record<ClusterTypes, BaseDomainStrategy>> = {
   [ClusterTypes.K8S_QDRANT_HA]: k8sStrategy,
   [ClusterTypes.K8S_SURREALDB_HA]: k8sStrategy,
   [ClusterTypes.K8S_SURREALDB_SINGLE]: k8sStrategy,
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: k8sStrategy,
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: k8sStrategy,
   [ClusterTypes.KAFKA]: bigDataNoModuleStrategy,
   [ClusterTypes.MONGO_REPLICA_SET]: mongodbStrategy,
   [ClusterTypes.MONGO_SHARED_CLUSTER]: mongodbStrategy,

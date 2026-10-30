@@ -6,8 +6,25 @@
         :data="data"
         @success="handleSuccess" />
     </InfoItem>
-    <InfoItem :label="masterDomainLabel">
+    <InfoItem
+      v-if="!hasVmEntryRows"
+      :label="masterDomainLabel">
       {{ data.masterDomainDisplayName }}
+    </InfoItem>
+    <InfoItem
+      v-if="slots.writeEntry"
+      :label="t('写入入口')">
+      <slot name="writeEntry" />
+    </InfoItem>
+    <InfoItem
+      v-if="slots.queryEntry"
+      :label="t('查询入口')">
+      <slot name="queryEntry" />
+    </InfoItem>
+    <InfoItem
+      v-if="slots.storageEntry"
+      :label="t('存储入口')">
+      <slot name="storageEntry" />
     </InfoItem>
     <slot name="clbMaster" />
     <slot name="polaris" />
@@ -56,6 +73,11 @@
       <template #spec>
         <slot name="spec" />
       </template>
+      <template
+        v-if="slots.storageNode"
+        #storageNode>
+        <slot name="storageNode" />
+      </template>
     </CommonInfo>
   </InfoList>
 </template>
@@ -98,9 +120,13 @@
     moduleName: () => VNode;
     moduleNames: () => VNode;
     polaris: () => VNode;
+    queryEntry: () => VNode;
     slaveDomain: () => VNode;
     spec: () => VNode;
+    storageEntry: () => VNode;
+    storageNode: () => VNode;
     syncMode: () => VNode;
+    writeEntry: () => VNode;
   }
 
   defineProps<Props<T>>();
@@ -115,6 +141,15 @@
     }
     return t('访问入口');
   });
+
+  // VictoriaMetrics 多入口按字段独立 slot 注入；任一存在即隐藏通用单入口行
+  const hasVmEntryRows = computed(
+    () =>
+      Boolean(slots.writeEntry) ||
+      Boolean(slots.queryEntry) ||
+      Boolean(slots.storageEntry) ||
+      Boolean(slots.storageNode),
+  );
 
   const handleSuccess = () => {
     emits('refresh');

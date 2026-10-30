@@ -11,20 +11,15 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { ClusterTypes } from './clusterTypes';
+import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 
-/**
- * 允许申请独占集群（独立 BCS 集群资源）的集群类型白名单
- * 与后端 isPublic=false 的生效范围保持一致
- */
-export const exclusiveClusterTypeWhitelist: ClusterTypes[] = [
-  ClusterTypes.K8S_QDRANT_HA,
-  ClusterTypes.K8S_SURREALDB_HA,
-  ClusterTypes.K8S_SURREALDB_SINGLE,
-];
+import VictoriametricsSelectModel from './victoriametrics-select';
 
-/**
- * 判断集群类型是否允许申请独占集群
- */
-export const isExclusiveClusterType = (clusterType?: string) =>
-  exclusiveClusterTypeWhitelist.includes(clusterType as ClusterTypes);
+export default class VictoriametricsSelectDetail extends VictoriametricsSelectModel {
+  cluster_entry_details: ClusterEntryDetailModel[];
+
+  constructor(payload = {} as VictoriametricsSelectDetail) {
+    super(payload);
+    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
+  }
+}

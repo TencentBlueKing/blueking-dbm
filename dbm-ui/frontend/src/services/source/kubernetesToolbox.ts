@@ -21,7 +21,11 @@ import http from '../http';
  * 获取存储版本信息
  * bkBizId / isPublic 为独占集群参数：isPublic=false 表示独占集群，bkBizId 为该独占集群所属业务 ID
  */
-export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant'; bkBizId?: number; isPublic?: boolean }) {
+export function getAddonVersions(params: {
+  addonType: 'surrealdb' | 'qdrant' | 'victoriametrics';
+  bkBizId?: number;
+  isPublic?: boolean;
+}) {
   return http.get<
     {
       addonVersion: string;
@@ -75,7 +79,7 @@ export function getBcsClusters(params: {
  * bkBizId / isPublic 为独占集群参数：isPublic=false 表示独占集群，bkBizId 为该独占集群所属业务 ID
  */
 export function getAddonSpecPlan(params: {
-  addonType: 'surrealdb' | 'qdrant';
+  addonType: 'surrealdb' | 'qdrant' | 'victoriametrics';
   addonVersion: string;
   bkBizId?: number;
   isPublic?: boolean;
@@ -140,7 +144,13 @@ export function restartComponent(params: {
 export function hscalingComponent(params: {
   bk_username: string;
   clusterName: string;
-  horizontalScaling: { componentName: string; scaleOut: { replicaChanges: number } }[];
+  horizontalScaling: {
+    componentName: string;
+    /** 缩容：减少的副本数（缩容前节点数 - 缩容后节点数） */
+    scaleIn?: { replicaChanges: number };
+    /** 扩容：增加的副本数（扩容后节点数 - 扩容前节点数） */
+    scaleOut?: { replicaChanges: number };
+  }[];
   k8sClusterName: string;
   namespace: string;
 }) {
