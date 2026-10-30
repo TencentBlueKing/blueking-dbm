@@ -227,8 +227,8 @@ func (job *RedisClusterForget) clusterForgetNode(
 		nodeConn, err := myredis.NewRedisClientWithRetry(node.Addr,
 			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 		if err != nil {
-			job.runtime.Logger.Warn("connect node failed %s:%+v", x, err)
-			return err
+			job.runtime.Logger.Warn("connect node failed, skip forget on this node %s:%+v", x, err)
+			continue
 		}
 		defer nodeConn.Close()
 
