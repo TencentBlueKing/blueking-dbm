@@ -267,7 +267,7 @@ def calculate_clusters_skew(cluster_type: str, cluster_domains: list[str], lock_
         len(cluster_domains),
     )
     try:
-        now = timezone.now().replace(tzinfo=None)
+        now = timezone.now()
         skew_results, fetch_elapsed, analyze_elapsed = _detect_clusters_skew(
             ClusterType(cluster_type), cluster_domains, now
         )

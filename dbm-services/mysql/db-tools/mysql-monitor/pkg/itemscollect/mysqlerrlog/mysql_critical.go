@@ -43,7 +43,3 @@ func init() {
 		regexp2.IgnoreCase,
 	)
 }
-
-func mysqlCritical() (string, error) {
-	return scanSnapShot(nameMySQLErrCritical, mysqlCriticalExcludePattern)
-}

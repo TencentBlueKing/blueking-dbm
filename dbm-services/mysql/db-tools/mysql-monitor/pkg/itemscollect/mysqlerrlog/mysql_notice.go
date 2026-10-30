@@ -28,7 +28,3 @@ func init() {
 	)
 
 }
-
-func mysqlNotice() (string, error) {
-	return scanSnapShot(nameMySQLErrNotice, mysqlNoticePattern)
-}
