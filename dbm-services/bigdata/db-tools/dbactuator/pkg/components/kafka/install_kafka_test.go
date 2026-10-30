@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -361,5 +362,91 @@ func TestDeleteConfigLines_NoKeysIsNoop(t *testing.T) {
 	lines := readLines(t, filePath)
 	if len(lines) != 1 || lines[0] != "broker.id=1" {
 		t.Fatalf("expected file untouched, got: %v", lines)
+	}
+}
+
+// TestKafkaUIClusterEnv_ZKMode verifies a ZK broker config yields both SUPERUSERS and ZOOKEEPERCONNECT,
+// taken verbatim from the rendered config.
+func TestKafkaUIClusterEnv_ZKMode(t *testing.T) {
+	filePath := writePropertiesFile(t, t.TempDir(),
+		"broker.id=1",
+		"super.users=User:test_admin;User:kafka",
+		"zookeeper.connect=127.0.0.1:2181,127.0.0.2:2181,127.0.0.3:2181/",
+	)
+	got, err := kafkaUIClusterEnv(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{
+		"export KAFKA_CLUSTERS_0_SUPERUSERS='User:test_admin;User:kafka'\n",
+		"export KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT='127.0.0.1:2181,127.0.0.2:2181,127.0.0.3:2181/'\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
+// TestKafkaUIClusterEnv_KRaftMode verifies a KRaft config (no zookeeper.connect, and a commented-out
+// one must not count) gets SUPERUSERS only — ZOOKEEPERCONNECT must never be set for KRaft.
+func TestKafkaUIClusterEnv_KRaftMode(t *testing.T) {
+	filePath := writePropertiesFile(t, t.TempDir(),
+		"process.roles=broker",
+		"super.users=User:test_admin;User:kafka",
+		"#zookeeper.connect=127.0.0.1:2181/",
+	)
+	got, err := kafkaUIClusterEnv(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "KAFKA_CLUSTERS_0_SUPERUSERS='User:test_admin;User:kafka'") {
+		t.Errorf("missing SUPERUSERS in:\n%s", got)
+	}
+	if strings.Contains(got, "ZOOKEEPERCONNECT") {
+		t.Errorf("ZOOKEEPERCONNECT must not be set for KRaft, got:\n%s", got)
+	}
+}
+
+// TestKafkaUIClusterEnv_NoSuperUsers verifies a config without super.users (e.g. no-security) is not an
+// error and emits no SUPERUSERS line; a missing file is an error.
+func TestKafkaUIClusterEnv_NoSuperUsers(t *testing.T) {
+	dir := t.TempDir()
+	got, err := kafkaUIClusterEnv(writePropertiesFile(t, dir, "broker.id=1", "super.users="))
+	if err != nil || got != "" {
+		t.Fatalf("expected empty env and nil error, got %q, %v", got, err)
+	}
+	if _, err := kafkaUIClusterEnv(filepath.Join(dir, "missing.properties")); err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
+
+// TestKafkaUIClusterEnv_ShellRoundTrip sources the generated env through bash and checks the values
+// come back unchanged, including a single quote that would otherwise break the file.
+func TestKafkaUIClusterEnv_ShellRoundTrip(t *testing.T) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		t.Skip("bash not available")
+	}
+	const superUsers = "User:ops'admin;User:kafka"
+	const zkConnect = "127.0.0.1:2181,127.0.0.2:2181/it's"
+	filePath := writePropertiesFile(t, t.TempDir(),
+		"super.users="+superUsers,
+		"zookeeper.connect="+zkConnect,
+	)
+	got, err := kafkaUIClusterEnv(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	envFile := filepath.Join(t.TempDir(), "kafkaui.sh")
+	if err := os.WriteFile(envFile, []byte(got), 0644); err != nil {
+		t.Fatalf("write env file: %v", err)
+	}
+	out, err := exec.Command("bash", "-c",
+		`. "$1" && printf '%s\n%s' "$KAFKA_CLUSTERS_0_SUPERUSERS" "$KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT"`,
+		"_", envFile).CombinedOutput()
+	if err != nil {
+		t.Fatalf("sourcing generated env failed: %v\n%s", err, out)
+	}
+	if want := superUsers + "\n" + zkConnect; string(out) != want {
+		t.Errorf("round-trip mismatch:\n got %q\nwant %q", out, want)
 	}
 }
