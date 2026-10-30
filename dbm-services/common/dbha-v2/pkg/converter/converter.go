@@ -30,6 +30,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
@@ -142,6 +143,42 @@ func ToUint[T Number](value T) (uint, error) {
 
 	default:
 		return 0, gerrors.Newf(gerrors.Unsupported, "Unsupported type: %T", value)
+	}
+}
+
+// ToBool converts a value to a bool.
+func ToBool[T Number | bool](value T) (bool, error) {
+	switch v := any(value).(type) {
+	case bool:
+		return v, nil
+
+	case int:
+		return v != 0, nil
+
+	case uint:
+		return v != 0, nil
+
+	case int64:
+		return v != 0, nil
+
+	case uint64:
+		return v != 0, nil
+
+	case float64:
+		return v != 0, nil
+
+	case string:
+		switch strings.ToLower(strings.TrimSpace(v)) {
+		case "1", "true", "on", "yes":
+			return true, nil
+		case "0", "false", "off", "no":
+			return false, nil
+		default:
+			return false, gerrors.Newf(gerrors.Unsupported, "Unsupported bool value: %s", v)
+		}
+
+	default:
+		return false, gerrors.Newf(gerrors.Unsupported, "Unsupported type: %T", value)
 	}
 }
 
