@@ -10,7 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from typing import Optional, TypedDict
+
+from django.utils import timezone
 
 from backend.db_meta.models import Cluster
 from backend.db_report.models.cluster_skew_detection import ClusterSkewDetection
@@ -38,6 +41,17 @@ class _NodeSnapshot(TypedDict):
 
 def _to_float(value) -> Optional[float]:
     return float(value) if value is not None else None
+
+
+def _local_str(dt: datetime) -> str:
+    """Doris 的 detect_time 约定为 UTC 存储。
+
+    统一转本地时区后输出带偏移的 ISO8601（2026-10-30T08:36+08:00），
+    下游（LLM / skill）无需猜测这是 UTC 还是本地时间，也不应再做二次换算。
+    """
+    if timezone.is_naive(dt):
+        dt = dt.replace(tzinfo=dt_timezone.utc)
+    return timezone.localtime(dt).isoformat(timespec="minutes")
 
 
 def _to_table(columns: list[str], rows: list[list]) -> dict:
@@ -172,8 +186,8 @@ def _build_episodes(
             if not hot_nodes and not cold_nodes:
                 continue
 
-            start = episode[0][0].strftime("%Y-%m-%d %H:%M")
-            end = episode[-1][0].strftime("%Y-%m-%d %H:%M")
+            start = _local_str(episode[0][0])
+            end = _local_str(episode[-1][0])
             pattern, transitions = _classify_hot_pattern(episode)
             episode_rows.append(
                 [
@@ -208,7 +222,8 @@ def _has_episodes(
 def _skew_detection_filter(cluster_obj: Cluster, from_date: datetime, to_date: datetime):
     return ClusterSkewDetection.objects.using("doris").filter(
         cluster_domain=cluster_obj.immute_domain,
-        dt__range=(from_date.date(), to_date.date()),
+        # dt 列为 UTC 日期，而入参可能是本地自然日，放宽一天避免跨天批次被漏掉
+        dt__range=(from_date.date() - timedelta(days=1), to_date.date() + timedelta(days=1)),
         detect_time__gte=from_date,
         detect_time__lte=to_date,
     )
@@ -279,8 +294,8 @@ def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: 
     rows = _fetch_skew_detection_rows(cluster_obj, from_date, to_date)
 
     period = {
-        "from": from_date.strftime("%Y-%m-%d %H:%M"),
-        "to": to_date.strftime("%Y-%m-%d %H:%M"),
+        "from": _local_str(from_date),
+        "to": _local_str(to_date),
     }
     empty_result = {
         "has_skew": False,
