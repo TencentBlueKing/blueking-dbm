@@ -33,8 +33,22 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.InitConfig(configFile)
 		initLogger(config.MainConfig.Log)
+		// KMS：开启后加载失败即停止启动，不回退配置文件中的旧凭证
+		credentials, err := config.LoadRuntimeCredentials()
+		if err != nil {
+			return fmt.Errorf("load KMS runtime credentials failed: %w", err)
+		}
+		if credentials != nil {
+			config.ApplyRuntimeCredentials(config.MainConfig, credentials)
+		}
 		if err := sinkerPkg.InitDatasource(); err != nil {
 			return err
+		}
+		if credentials != nil {
+			if err := config.ApplyDatasourceCredentials(sinkerPkg.DatasourceMap, credentials); err != nil {
+				return fmt.Errorf("apply KMS runtime credentials failed: %w", err)
+			}
+			slog.Info("KMS runtime credentials applied")
 		}
 
 		base.GetTopicMetrics()
