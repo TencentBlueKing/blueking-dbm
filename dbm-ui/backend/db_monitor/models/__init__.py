@@ -13,3 +13,4 @@ from .alarm import *
 from .collect import *
 from .dashboard import *
 from .mysql_dbha_autofix_event import *
+from .tencent_cloud_alarm import *

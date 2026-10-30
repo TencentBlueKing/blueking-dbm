@@ -217,6 +217,9 @@ class SystemSettingsEnum(StrStructuredEnum):
     MONGODB_PITR_SET_QUERY_BATCH = EnumField("MONGODB_PITR_SET_QUERY_BATCH", _("MongoDB PITR单次查询分片数"))
     # 默认关闭。tlinux4 机器优先留给 MongoDB 8.0；打开后 7.0 及以下也可以申请 tlinux4。
     MONGODB_LEGACY_ALLOW_TLINUX4 = EnumField("MONGODB_LEGACY_ALLOW_TLINUX4", _("MongoDB 7.0及以下允许申请tlinux4"))
+    # 腾讯云监控拉取告警。环境变量 DBM_TENCENTCLOUD_MONITOR_SECRET_ID / SECRET_KEY 优先于本配置。
+    TENCENT_CLOUD_MONITOR = EnumField("TENCENT_CLOUD_MONITOR", _("腾讯云监控访问凭证"))
+    TENCENT_CLOUD_ALARM_SYNC = EnumField("TENCENT_CLOUD_ALARM_SYNC", _("腾讯云告警同步水位"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):
@@ -364,6 +367,16 @@ DEFAULT_AI_CODE_SCENE_MAP = {"log_analysis": {"default": "LogAnalysis"}}
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
 
+# 腾讯云监控访问凭证。密钥留空，由环境变量或系统配置补上，不要把密钥写进代码。
+TENCENT_CLOUD_MONITOR_INITIAL_VALUE = {
+    "secret_id": "",
+    "secret_key": "",
+    "token": "",
+    "region": "ap-guangzhou",
+    "domain": "monitor.internal.tencentcloudapi.com",
+}
+TENCENT_CLOUD_ALARM_SYNC_INITIAL_VALUE = {"watermark": 0}
+
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
     [SystemSettingsEnum.BKM_DBM_TOKEN.value, "str", "", _("监控数据源token")],
@@ -401,6 +414,18 @@ DEFAULT_SETTINGS = [
         "bool",
         False,
         _("MongoDB 7.0及以下允许申请tlinux4，默认关闭以留给8.0"),
+    ],
+    [
+        SystemSettingsEnum.TENCENT_CLOUD_MONITOR.value,
+        "dict",
+        TENCENT_CLOUD_MONITOR_INITIAL_VALUE,
+        _("腾讯云监控访问凭证"),
+    ],
+    [
+        SystemSettingsEnum.TENCENT_CLOUD_ALARM_SYNC.value,
+        "dict",
+        TENCENT_CLOUD_ALARM_SYNC_INITIAL_VALUE,
+        _("腾讯云告警同步水位"),
     ],
 ]
 
