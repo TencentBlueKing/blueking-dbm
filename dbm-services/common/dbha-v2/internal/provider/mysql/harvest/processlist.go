@@ -39,7 +39,7 @@ const (
 		"FROM information_schema.PROCESSLIST"
 
 	processlistSuspiciousTimeSec = int64(10)
-	processlistMaxLogRows        = 20
+	processlistMaxLogRows        = 50
 	processlistInfoMaxLen        = 256
 )
 
@@ -95,7 +95,7 @@ func truncateProcesslistInfo(info string) string {
 }
 
 // isSuspiciousProcesslistRow reports whether a session looks like it could block heartbeat writes:
-// STATE contains "waiting for", INFO mentions LOCK/FLUSH TABLES, or TIME > 10s.
+// STATE contains "waiting for", INFO mentions LOCK/FLUSH TABLE(S), or TIME > 10s.
 // Binlog dump and idle Sleep sessions are excluded: they stay up for hours and would drown the log.
 func isSuspiciousProcesslistRow(row processlistRow) bool {
 	cmd := strings.ToLower(row.Command)
@@ -108,7 +108,7 @@ func isSuspiciousProcesslistRow(row processlistRow) bool {
 		return true
 	}
 	info := strings.ToLower(nullStringValue(row.Info))
-	if strings.Contains(info, "lock tables") || strings.Contains(info, "flush tables") {
+	if strings.Contains(info, "lock table") || strings.Contains(info, "flush table") {
 		return true
 	}
 	return row.Time > processlistSuspiciousTimeSec && cmd != "sleep"
