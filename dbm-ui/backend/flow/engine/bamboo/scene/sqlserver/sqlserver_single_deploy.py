@@ -14,6 +14,7 @@ from dataclasses import asdict
 
 from django.utils.translation import gettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
@@ -23,8 +24,8 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     install_surrounding_apps_sub_flow,
 )
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
-from backend.flow.plugins.components.collections.sqlserver.sqlserver_cluster_apply_summary import (
-    SqlserverClusterApplySummaryComponent,
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
 )
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs
@@ -45,32 +46,40 @@ class SqlserverSingleApplyFlow(BaseFlow):
 
     @staticmethod
     def build_cluster_apply_summary_items(data: dict) -> list:
-        """从单据顶层 data 扁平化构造"集群交付摘要"节点的 clusters kwargs。
+        """从单据顶层 data 构建期装配"集群交付摘要"节点的 items。
 
         设计要点 / 怎么做：
-          - 作为 SQLServer 部署类单据（Single / HA）通用的 kwargs 装配器；两者 data 结构
-            一致：顶层 `bk_biz_id` + `infos` 列表，每个 info 带 `clusters` 列表，每个 cluster
-            带 `immutable_domain`。
-          - 本方法只做扁平化与字段裁剪，不触碰 db_meta（反查装配由
-            SqlserverClusterApplySummaryService 内部完成）；因此调用方只需在"主流程 /
-            所有子流程完成之后"调一次即可，天然幂等。
+          - 作为 SQLServer 部署类单据（Single / HA）通用的 items 装配器；两者 data 结构一致：
+            顶层 `infos` 列表，每个 info 带 `clusters` 列表（port 已由 calc_install_ports
+            在构建期写回 cluster；HA 的 cluster 额外带 `slave_domain`）。
+          - 全部字段取自单据参数，**不反查 db_meta**——摘要节点排在流程末尾，节点执行时
+            即代表部署完成，构建期装配的数据与最终落库结果一致（SQLServer 无 CLB，
+            域名 / 端口均来自单据，流程不改写）。
           - HA Flow 通过 `SqlserverSingleApplyFlow.build_cluster_apply_summary_items(self.data)`
-            跨类复用，避免同样的扁平化逻辑在两个 Flow 中各写一份。
+            跨类复用，避免同样的装配逻辑在两个 Flow 中各写一份。
 
         :param data: 单据顶层 data；必须包含：
-            - bk_biz_id (int|str): 业务 ID
             - infos (list[dict]): 每项为一行部署信息；需包含 `clusters` 列表，每个 cluster
-              含 `immutable_domain` 字段
-        :return: list[dict]，每项形如 `{"bk_biz_id": int, "cluster_domain": str}`；
-            供 SqlserverClusterApplySummaryComponent 的 kwargs["clusters"] 使用。
+              含 `immutable_domain` / `port` 字段（HA 场景额外含 `slave_domain`）
+        :return: list[dict]，每项对齐 :class:`SqlserverClusterApplySummarySerializer` 契约；
+            供通用组件 SqlserverFlowOutputSummaryComponent 的 kwargs["items"] 使用。
 
         边界 / 异常：
           - infos 为空 / 其中 clusters 为空 -> 返回空列表（下游组件走 "items 空 no-op" 分支）；
-          - cluster 缺少 immutable_domain -> KeyError（视为单据数据严重异常，向上抛以暴露问题，
-            而非静默写入半死行）。
+          - cluster 缺少 immutable_domain / port -> KeyError（视为单据数据严重异常，向上抛
+            以暴露问题，而非静默写入半死行）；
+          - Single 场景 cluster 无 slave_domain -> readonly_domain_and_port 留空。
         """
         return [
-            {"bk_biz_id": int(data["bk_biz_id"]), "cluster_domain": cluster["immutable_domain"]}
+            {
+                "cluster_domain_and_port": f"{cluster['immutable_domain']}{IP_PORT_DIVIDER}{cluster['port']}",
+                # HA 场景承载 slave_domain:port（主从端口对齐）；Single 场景无只读入口，留空
+                "readonly_domain_and_port": (
+                    f"{cluster['slave_domain']}{IP_PORT_DIVIDER}{cluster['port']}"
+                    if cluster.get("slave_domain")
+                    else ""
+                ),
+            }
             for info in data["infos"]
             for cluster in info["clusters"]
         ]
@@ -188,11 +197,15 @@ class SqlserverSingleApplyFlow(BaseFlow):
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 写入集群交付摘要（主流程末尾一次性写入全部 info 的所有集群，天然幂等；
-        # 避免并行子流程各自写摘要导致"部分子流程失败时摘要只覆盖部分集群"）
+        # 避免并行子流程各自写摘要导致"部分子流程失败时摘要只覆盖部分集群"。
+        # items 构建期装配（域名 / 端口 / slave 域名均来自单据参数），复用通用组件）
         main_pipeline.add_act(
             act_name=_("写入集群交付摘要"),
-            act_component_code=SqlserverClusterApplySummaryComponent.code,
-            kwargs={"clusters": self.build_cluster_apply_summary_items(self.data)},
+            act_component_code=SqlserverFlowOutputSummaryComponent.code,
+            kwargs={
+                "preset": "cluster_apply",
+                "items": self.build_cluster_apply_summary_items(self.data),
+            },
         )
 
         main_pipeline.run_pipeline()

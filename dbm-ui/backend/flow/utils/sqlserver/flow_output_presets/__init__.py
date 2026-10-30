@@ -35,7 +35,33 @@ SQLServer 单据流程输出预设 Serializer 统一入口。
 """
 
 from backend.flow.utils.sqlserver.flow_output_presets.cluster_apply import SqlserverClusterApplySummarySerializer
+from backend.flow.utils.sqlserver.flow_output_presets.cluster_lifecycle import (
+    SqlserverClusterLifecycleAction,
+    SqlserverClusterLifecycleSummarySerializer,
+)
+from backend.flow.utils.sqlserver.flow_output_presets.data_transfer import (
+    SqlserverDataTransferMode,
+    SqlserverDataTransferSummarySerializer,
+)
+from backend.flow.utils.sqlserver.flow_output_presets.db_operation import (
+    SqlserverDbOperationAction,
+    SqlserverDbOperationSummarySerializer,
+)
+from backend.flow.utils.sqlserver.flow_output_presets.instance_change import (
+    SqlserverInstanceChangeAction,
+    SqlserverInstanceChangeSummarySerializer,
+)
+from backend.flow.utils.sqlserver.flow_output_presets.sql_exec import SqlserverSqlExecSummarySerializer
 
 __all__ = [
     "SqlserverClusterApplySummarySerializer",
+    "SqlserverClusterLifecycleAction",
+    "SqlserverClusterLifecycleSummarySerializer",
+    "SqlserverDataTransferMode",
+    "SqlserverDataTransferSummarySerializer",
+    "SqlserverDbOperationAction",
+    "SqlserverDbOperationSummarySerializer",
+    "SqlserverInstanceChangeAction",
+    "SqlserverInstanceChangeSummarySerializer",
+    "SqlserverSqlExecSummarySerializer",
 ]

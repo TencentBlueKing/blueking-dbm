@@ -45,7 +45,14 @@ from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryService
 from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer
-from backend.flow.utils.sqlserver.flow_output_presets import SqlserverClusterApplySummarySerializer
+from backend.flow.utils.sqlserver.flow_output_presets import (
+    SqlserverClusterApplySummarySerializer,
+    SqlserverClusterLifecycleSummarySerializer,
+    SqlserverDataTransferSummarySerializer,
+    SqlserverDbOperationSummarySerializer,
+    SqlserverInstanceChangeSummarySerializer,
+    SqlserverSqlExecSummarySerializer,
+)
 
 logger = logging.getLogger("flow")
 
@@ -87,6 +94,11 @@ class SqlserverFlowOutputSummaryService(MysqlFlowOutputSummaryService):
     #: 再在此登记一行即可；键约定为语义短名（无 sqlserver_ 前缀）。
     _PRESET_REGISTRY: Dict[str, Type[BaseFlowOutputSerializer]] = {
         "cluster_apply": SqlserverClusterApplySummarySerializer,
+        "sql_exec": SqlserverSqlExecSummarySerializer,
+        "cluster_lifecycle": SqlserverClusterLifecycleSummarySerializer,
+        "instance_change": SqlserverInstanceChangeSummarySerializer,
+        "db_operation": SqlserverDbOperationSummarySerializer,
+        "data_transfer": SqlserverDataTransferSummarySerializer,
     }
 
 

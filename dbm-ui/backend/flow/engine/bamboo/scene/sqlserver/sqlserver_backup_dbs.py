@@ -15,6 +15,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT
@@ -25,7 +26,11 @@ from backend.flow.plugins.components.collections.sqlserver.check_db_exist import
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverDbOperationAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CheckDBExistKwargs,
     CreateRandomJobUserKwargs,
@@ -52,6 +57,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
         执行逻辑：
         1: 下发执行器
         2: 执行备份
+        3: 写入备份执行摘要（每个集群子流程末尾各写一次，主键幂等）
         """
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -133,10 +139,27 @@ class SqlserverBackupDBSFlow(BaseFlow):
                 kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )
 
+            # 写入备份执行摘要（每集群子流程末尾各写一次；主键幂等，节点重试不产生重复行）
+            sub_pipeline.add_act(
+                act_name=_("写入备份执行摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "db_operation",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                            "instance": master_instance.ip_port,
+                            "action": SqlserverDbOperationAction.BACKUP.value,
+                            "databases": ",".join(sub_flow_context["backup_dbs"]),
+                            "extra": _("备份类型: {}").format(sub_flow_context["backup_type"]),
+                        }
+                    ],
+                },
+            )
+
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}执行备份".format(cluster.name))))
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        # main_pipeline.run_pipeline()
         main_pipeline.run_pipeline_with_sidecar(
             check_ai_monitor_cluster_list=[info["cluster_id"] for info in self.data["infos"]]
         )

@@ -15,6 +15,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
@@ -28,8 +29,12 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
 )
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverInstanceChangeAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
@@ -60,6 +65,7 @@ class SqlserverSwitchFlow(BaseFlow):
         4：执行互切
         5：切换域名
         6：变更元数据
+        7：写入切换摘要（变更元信息之后，每集群一行，主键幂等）
         """
 
         # 定义主流程
@@ -92,11 +98,27 @@ class SqlserverSwitchFlow(BaseFlow):
                 ),
             )
             act_list = []
+            # 逐集群装配"主从切换"摘要行（元数据切换后反查到的是新 master，旧 master 须装配期捕获）
+            switch_items = []
             for cluster_id in info["cluster_ids"]:
                 # 以集群维度操作切换子流程
                 cluster = Cluster.objects.get(id=cluster_id)
                 old_master = cluster.storageinstance_set.get(machine__ip=info["master"]["ip"])
                 new_master = cluster.storageinstance_set.get(machine__ip=info["slave"]["ip"])
+
+                # 装配摘要行：new_instance=新 master，peer_old_instance=原 master；动作按 force 区分互切/强切
+                switch_items.append(
+                    {
+                        "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{new_master.port}",
+                        "new_instance": f"{new_master.machine.ip}{IP_PORT_DIVIDER}{new_master.port}",
+                        "peer_old_instance": f"{old_master.machine.ip}{IP_PORT_DIVIDER}{old_master.port}",
+                        "action": (
+                            SqlserverInstanceChangeAction.FAILOVER.value
+                            if self.data["force"]
+                            else SqlserverInstanceChangeAction.SWITCH.value
+                        ),
+                    }
+                )
 
                 # 判断传入slave的is_stand_by是否为true
                 if not new_master.is_stand_by:
@@ -202,6 +224,17 @@ class SqlserverSwitchFlow(BaseFlow):
                     )
                 ),
             )
+
+            # 写入主从切换摘要（放在"变更元信息"之后；一台机器上多集群各一行，按集群主键幂等）
+            if switch_items:
+                sub_pipeline.add_act(
+                    act_name=_("写入{}摘要".format(sub_name)),
+                    act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                    kwargs={
+                        "preset": "instance_change",
+                        "items": switch_items,
+                    },
+                )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("切换子流程")))
 
