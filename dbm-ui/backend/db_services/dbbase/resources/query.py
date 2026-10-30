@@ -156,10 +156,10 @@ class CommonExportQueryResourceMixin:
 
             # 添加实例信息
             if role in cluster_info:
-                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"  # noqa: E231
             else:
                 role_header_ids.add(role)
-                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"  # noqa: E231
 
 
 class CommonQueryResourceMixin(abc.ABC):
@@ -282,7 +282,7 @@ class CommonQueryResourceMixin(abc.ABC):
             )
 
             # 补充标签字段信息
-            tag_list = [f"{tag.key}:{tag.value}" for tag in cluster.tags.all() if tag.key]
+            tag_list = [f"{tag.key}:{tag.value}" for tag in cluster.tags.all() if tag.key]  # noqa: E231
             tags = "\n".join(tag_list)
 
             # 创建一个空字典来保存当前集群的信息
@@ -721,6 +721,9 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
         if bk_biz_id is not None:
             db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
+        # 快速搜索按当前页模块 ID 缩小范围，减少跨业务模块数据的传输和映射开销。
+        if kwargs.get("scope_related_to_page"):
+            db_module_queryset = db_module_queryset.filter(db_module_id__in={c.db_module_id for c in cluster_list})
         # 提取所需的字段和构建映射
         db_module_names_map = {
             module["db_module_id"]: module["alias_name"]
@@ -742,7 +745,16 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
 
         # 预取集群的规格信息
         db_types = set([ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cls.cluster_types])
-        kwargs["remote_spec_map"] = {s.spec_id: s for s in Spec.objects.filter(spec_cluster_type__in=db_types)}
+        spec_queryset = Spec.objects.filter(spec_cluster_type__in=db_types)
+        # 从已预取的实例与机器收集规格 ID，不额外查询机器，也不加载无关规格。
+        if kwargs.get("scope_related_to_page"):
+            spec_ids = {
+                instance.machine.spec_id
+                for cluster in cluster_list
+                for instance in (*cluster.proxies, *cluster.storages)
+            }
+            spec_queryset = spec_queryset.filter(spec_id__in=spec_ids)
+        kwargs["remote_spec_map"] = {s.spec_id: s for s in spec_queryset}
 
         # 预取园区信息
         cluster_zone_map = BKSubzone.get_subzone_map(get_cache=True)
@@ -882,7 +894,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         machine_map = {}
         for instance in list(cluster.proxies) + list(cluster.storages):
             machine = instance.machine
-            machine_key = machine.bk_host_id or f"{machine.bk_cloud_id}:{machine.ip}"
+            machine_key = machine.bk_host_id or f"{machine.bk_cloud_id}:{machine.ip}"  # noqa: E231
             machine_map[machine_key] = machine
 
         grouped_specs = {}
