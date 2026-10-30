@@ -142,7 +142,11 @@ func (s *Sinker) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 
 	consumerConfig.ClientID = fmt.Sprintf("%s%s", s.RuntimeConfig.Topic, s.RuntimeConfig.ClientIdSuffix)
 
-	slog.Debug("build consumer config", slog.Any("config", consumerConfig))
+	logConfig := *consumerConfig
+	if logConfig.Net.SASL.Password != "" {
+		logConfig.Net.SASL.Password = "xxxx"
+	}
+	slog.Debug("build consumer config", slog.Any("config", &logConfig))
 
 	groupId := fmt.Sprintf("%s_%s", s.RuntimeConfig.Topic, s.RuntimeConfig.GroupIdSuffix)
 	brokerIps := strings.Split(s.MetaInfo.ClusterConfig.Brokers, ",")

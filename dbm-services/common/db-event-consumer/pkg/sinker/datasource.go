@@ -22,6 +22,9 @@ type Datasource struct {
 	Name string                 `yaml:"name"`
 	Type string                 `yaml:"type"`
 	Dsn  map[string]interface{} `yaml:"dsn" json:"dsn"`
+	// KMSCredential 开启 KMS 时该 datasource 使用的 KMS mysql 凭证名称，如 dbmReport、dbmStats。
+	// 为空时按内置 datasource 名称映射
+	KMSCredential string `yaml:"kms_credential" json:"kms_credential"`
 }
 
 var DatasourceMap = make(map[string]*Datasource)
@@ -65,35 +68,35 @@ func GetDSWriter(ds *Datasource) (base.DSWriter, error) {
 	if ds.Type == "mysql" {
 		var mysqlDsn InstanceDsn
 		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {
-			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+			return nil, errors.WithMessagef(err, "decode dsn of datasource %s", ds.Name)
 		}
 		return NewMysqlWriter(&mysqlDsn, nil)
 
 	} else if ds.Type == "mysql_xorm" {
 		var mysqlDsn InstanceDsn
 		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {
-			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+			return nil, errors.WithMessagef(err, "decode dsn of datasource %s", ds.Name)
 		}
 		return NewXormWriter(&mysqlDsn, nil)
 
 	} else if ds.Type == "mysql_raw" {
 		var mysqlDsn InstanceDsn
 		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {
-			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+			return nil, errors.WithMessagef(err, "decode dsn of datasource %s", ds.Name)
 		}
 		return NewMysqlRawWriter(&mysqlDsn)
 
 	} else if ds.Type == "doris" {
 		var dorisDsn InstanceDsn // same with mysql
 		if err := mapstructure.Decode(ds.Dsn, &dorisDsn); err != nil {
-			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+			return nil, errors.WithMessagef(err, "decode dsn of datasource %s", ds.Name)
 		}
 		return NewDorisWriter(&dorisDsn)
 
 	} else if ds.Type == "doris_http" {
 		var dorisDsn DorisHttpDsn
 		if err := mapstructure.Decode(ds.Dsn, &dorisDsn); err != nil {
-			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+			return nil, errors.WithMessagef(err, "decode dsn of datasource %s", ds.Name)
 		}
 		return NewDorisHttpWriter(&dorisDsn)
 
