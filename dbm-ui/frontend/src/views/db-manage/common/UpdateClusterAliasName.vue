@@ -68,7 +68,6 @@
 
   import { DBTypes } from '@common/const';
 
-  import { getExclusiveClusterParams } from '../utils/exclusiveClusterParams';
   import { getClusterMetaUpdater } from '../utils/updateK8sClusterMeta';
 
   interface Props {
@@ -101,7 +100,6 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_alias: params.new_alias,
           cluster_id: params.cluster_id,
-          ...getExclusiveClusterParams(props.data),
         });
       }
       return updateClusterAlias(params);
@@ -128,6 +126,7 @@
     [DBTypes.INFLUXDB]: 'influxdb_edit',
     [DBTypes.K8S_QDRANT]: 'k8s_qdrant_edit',
     [DBTypes.K8S_SURREALDB]: 'k8s_surrealdb_edit',
+    [DBTypes.K8S_VICTORIAMETRICS]: 'k8s_victoriametrics_edit',
     [DBTypes.KAFKA]: 'kafka_edit',
     [DBTypes.MONGODB]: 'mongodb_edit',
     [DBTypes.MYSQL]: 'mysql_edit',

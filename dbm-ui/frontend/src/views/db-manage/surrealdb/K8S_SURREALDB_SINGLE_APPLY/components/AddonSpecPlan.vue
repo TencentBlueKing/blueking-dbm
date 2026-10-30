@@ -124,7 +124,7 @@
   interface Props {
     addonType: ServiceParameters<typeof getAddonSpecPlan>['addonType'];
     addonVersion: string;
-    applyMode?: string;
+    applyMode: string;
     bkBizId?: number | string;
   }
 
@@ -139,7 +139,6 @@
 
 <script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
-    applyMode: 'SharedMode',
     bkBizId: '',
   });
 

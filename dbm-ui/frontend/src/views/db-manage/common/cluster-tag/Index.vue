@@ -55,12 +55,10 @@
   </div>
   <ClusterAddTag
     v-model:is-show="isShowAddTag"
-    :bk-biz-id="data.bk_biz_id"
     :cluster-id="data.id"
     :cluster-type="data.cluster_type"
     :data="data.availableTags"
     :domain="data.masterDomain"
-    :is-public="data.is_public"
     @success="handleOperateSuccess" />
 </template>
 <script setup lang="ts">
@@ -99,6 +97,7 @@
     [DBTypes.INFLUXDB]: 'influxdb_edit',
     [DBTypes.K8S_QDRANT]: 'k8s_qdrant_edit',
     [DBTypes.K8S_SURREALDB]: 'k8s_surrealdb_edit',
+    [DBTypes.K8S_VICTORIAMETRICS]: 'k8s_victoriametrics_edit',
     [DBTypes.KAFKA]: 'kafka_edit',
     [DBTypes.MONGODB]: 'mongodb_edit',
     [DBTypes.MYSQL]: 'mysql_edit',

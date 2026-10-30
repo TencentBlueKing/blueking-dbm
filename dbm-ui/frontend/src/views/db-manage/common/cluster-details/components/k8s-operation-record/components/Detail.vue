@@ -22,7 +22,7 @@
       <div class="info-box mt-4">
         <div class="info-item">
           <span class="info-label">{{ t('操作类型') }}：</span>
-          <span>{{ data.requestType }}</span>
+          <span>{{ data.requestTypeDisplay }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">{{ t('操作对象') }}：</span>

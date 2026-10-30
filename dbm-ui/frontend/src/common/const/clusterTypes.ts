@@ -64,5 +64,11 @@ export enum ClusterTypes {
 export enum ClusterTypes {
   K8S_QDRANT_HA = 'k8s_qdrant_ha',
 }
+// victoriametrics
+export enum ClusterTypes {
+  K8S_VICTORIAMETRICS = 'k8s_victoriametrics',
+  K8S_VICTORIAMETRICS_CLUSTER = 'k8s_victoriametrics_cluster',
+  K8S_VICTORIAMETRICS_SELECT = 'k8s_victoriametrics_select',
+}
 
 export type ClusterTypeValues = keyof typeof ClusterTypes;
