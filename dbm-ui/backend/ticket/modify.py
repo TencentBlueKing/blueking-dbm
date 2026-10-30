@@ -353,7 +353,19 @@ class TicketModifyHandler:
         # 覆盖资源申请节点及其之后的 flow(inner/自定义)，而非仅覆盖资源申请节点
         cls._rebuild_pending_tail(ticket, builder.build_flows_after_resource(), resource_flow)
 
-        TicketFlowManager.get_ticket_flow_cls(resource_flow.flow_type)(resource_flow).retry()
+        # _rebuild_pending_tail/_relink_flows 内部通过重新查询出的 Flow 实例写 next_flow，
+        # resource_flow 本体的 context 仍是调整前的旧值；retry -> flush_error_status_handler ->
+        # init_flow_context 会用旧 context 覆盖落库，把刚写好的 next_flow 指针抹掉。
+        resource_flow.refresh_from_db()
+
+        # 资源申请及其后的部署编排必须在事务提交后再发起：
+        # retry() 会同步跑到 run_pipeline(建 FlowTree + 启动 bamboo pipeline)，首节点由独立的
+        # worker 去库里读编排数据，事务未提交时读不到，节点永远不会被调度；而 flow 与 FlowTree
+        # 的 RUNNING 状态已经落库，单据就永久卡在「执行中」且无报错。
+        # on_commit 回调在 commit 之后、请求返回之前执行，接口仍保持同步语义。
+        transaction.on_commit(
+            lambda: TicketFlowManager.get_ticket_flow_cls(resource_flow.flow_type)(resource_flow).retry()
+        )
 
         # 调整申请：仅当操作人非提单人时通知提单人
         # TODO: 暂时先注释，等通知模板出来再放开
