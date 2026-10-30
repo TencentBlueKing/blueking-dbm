@@ -800,22 +800,6 @@
     "since_version": ""
   },
   {
-    "conf_name": "save",
-    "value_default": "",
-    "value_allowed": "",
-    "value_type": "STRING",
-    "value_type_sub": "",
-    "conf_name_lc": "",
-    "description": "",
-    "need_restart": 0,
-    "flag_readonly": 0,
-    "flag_visible": 1,
-    "flag_status": 1,
-    "flag_locked": 0,
-    "flag_encrypt": 0,
-    "since_version": ""
-  },
-  {
     "conf_name": "scan-expires-time",
     "value_default": "1",
     "value_allowed": "[1,16]",

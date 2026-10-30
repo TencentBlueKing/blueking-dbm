@@ -146,6 +146,7 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
     "PSYNC",
     "twemproxy_mon",
     "readonly",
+    "maint_notifications",
 ]
 
 # twemproxy seg总数
