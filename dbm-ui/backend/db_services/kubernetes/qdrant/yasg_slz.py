@@ -54,7 +54,7 @@ resource_topo_graph_example = {
             "node_id": "qdrant::peer_nodes",
             "children_id": ["qdrant-pod-0", "qdrant-pod-1", "qdrant-pod-2"],
         },
-        {"node_id": "entry_dns", "children_id": ["qdrant-cluster-db.ha-test2.blueking.db"]},
+        {"node_id": "entry_dns", "children_id": ["qdrant-cluster-db.ha-test2.blueking.db:6333"]},
     ],
     "lines": [
         {
@@ -79,7 +79,7 @@ resource_topo_graph_example = {
             "label": "raft",
         },
         {
-            "source": "qdrant-cluster-db.ha-test2.blueking.db",
+            "source": "qdrant-cluster-db.ha-test2.blueking.db:6333",
             "source_type": "node",
             "target": "qdrant::peer_nodes",
             "target_type": "group",
