@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Any, Dict, List, Union
 
 from backend.components import DBConfigApi
@@ -25,7 +26,14 @@ from backend.db_services.dbconfig.dataclass import (
     DBConfigLevelData,
     UpsertConfigData,
 )
+from backend.db_services.dbconfig.runtime import (
+    patch_conf_items_runtime,
+    query_cluster_runtime_config,
+    support_cluster_runtime,
+)
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+
+logger = logging.getLogger("root")
 
 """
 DBConfig 配置文件相关参数
@@ -283,6 +291,35 @@ class DBConfigHandler:
             "updated_by": conf_file_info["updated_by"],
             "conf_items": conf_items,
         }
+
+    def get_level_config_with_cluster_runtime(
+        self, dbconfig_level_data: DBConfigLevelData
+    ) -> Dict[str, Union[str, List[Dict[str, str]]]]:
+        """
+        查询层级配置，并为集群级配置补充运行时配置（infodba_schema.local_config）
+        每个配置项额外返回:
+        - conf_value_runtime: 运行时值，多实例去重后以 , 分隔
+        - flag_difference: -1 未取得有效运行时配置；0 一致；1 不一致
+        """
+        level_config = self.get_level_config(dbconfig_level_data)
+
+        runtime_configs, runtime_error = None, ""
+        if dbconfig_level_data.level_name != LevelName.CLUSTER:
+            runtime_error = "only cluster level support runtime config"
+        else:
+            cluster = Cluster.objects.get(immute_domain=dbconfig_level_data.level_value)
+            if not support_cluster_runtime(cluster.cluster_type, dbconfig_level_data.version):
+                runtime_error = f"{cluster.cluster_type}/{dbconfig_level_data.version} not support runtime config"
+            else:
+                try:
+                    runtime_configs = query_cluster_runtime_config(cluster, dbconfig_level_data.version)
+                except Exception as e:  # pylint: disable=broad-except
+                    logger.warning(f"query cluster runtime config failed, {cluster.immute_domain}: {e}")
+                    runtime_error = str(e)
+
+        patch_conf_items_runtime(level_config["conf_items"], runtime_configs)
+        level_config["runtime_error"] = runtime_error
+        return level_config
 
     def list_config_version_history(self, dbconfig_level_data: DBConfigLevelData) -> List[Dict]:
         """

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import re
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
@@ -28,8 +29,16 @@ from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("root")
 
+# 实例地址（ip:port，兼容 ipv6）与实例角色的合法字符白名单
+INSTANCE_ADDR_PATTERN = re.compile(r"^[0-9a-zA-Z.:\[\]-]+$")
+INSTANCE_ROLE_PATTERN = re.compile(r"^[a-zA-Z_]+$")
+
 
 def query_promql_metrics_with_roles(cluster_domain, instance_role, p: PromQLQueryBuilder):
+    for role in instance_role or []:
+        if not INSTANCE_ROLE_PATTERN.match(role):
+            raise ValueError(f"Invalid instance_role: {role!r}")
+
     p.filters.append({"label_name": "cluster_domain", "op": "equal", "value": cluster_domain})
     if "cluster_domain" not in p.group_by:
         p.group_by.append("cluster_domain")
@@ -47,6 +56,10 @@ def query_promql_metrics_with_roles(cluster_domain, instance_role, p: PromQLQuer
 
 
 def query_promql_metrics_with_instances(cluster_domain, instance, p: PromQLQueryBuilder):
+    for addr in instance or []:
+        if not INSTANCE_ADDR_PATTERN.match(addr):
+            raise ValueError(f"Invalid instance address: {addr!r}")
+
     p.filters.append({"label_name": "cluster_domain", "op": "equal", "value": cluster_domain})
     if "cluster_domain" not in p.group_by:
         p.group_by.append("cluster_domain")
