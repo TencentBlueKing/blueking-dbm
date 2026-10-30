@@ -27,8 +27,6 @@ def _fetch_metric_of_cluster_instances(
     end_time: datetime,
     time_window_len: timedelta = timedelta(minutes=5),
 ) -> list[dict]:
-    end_time_str = end_time.strftime("%Y-%m-%d %H:%M:%S")
-    start_time_str = (end_time - time_window_len).strftime("%Y-%m-%d %H:%M:%S")
 
     promql_tmpl = METRIC_TYPES[metric_name]
     query_builder = promql_tmpl.get(cluster_type) or promql_tmpl.get("default")
@@ -36,11 +34,17 @@ def _fetch_metric_of_cluster_instances(
     query_builder = copy.deepcopy(query_builder)
 
     query_builder.group_by += ["bk_target_ip", "cluster_domain"]
-    query_builder.start_time = start_time_str
-    query_builder.end_time = end_time_str
+    query_builder.start_time = end_time - time_window_len
+    query_builder.end_time = end_time
 
     domains_match_filter = "|".join(cluster_domains)
-    logger.info(f"cluster_domains: {cluster_domains}, domains_match_filter: {domains_match_filter}")
+    logger.info(
+        "prom query window: metric=%s start=%s end=%s domains=%s",
+        metric_name,
+        query_builder.start_time,
+        query_builder.end_time,
+        domains_match_filter,
+    )
 
     res = []
     if not cluster_domains:

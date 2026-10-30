@@ -21,6 +21,3 @@ func init() {
 		regexp2.IgnoreCase,
 	)
 }
-func mysqldRestart() (string, error) {
-	return scanSnapShot(nameMySQLDRestart, mysqldRestartPattern)
-}

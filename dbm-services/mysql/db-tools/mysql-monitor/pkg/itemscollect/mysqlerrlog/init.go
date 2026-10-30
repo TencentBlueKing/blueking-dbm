@@ -13,12 +13,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
-	"sync"
-	"time"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/dlclark/regexp2"
@@ -26,12 +22,7 @@ import (
 
 var executable string
 var maxScanSize int64 = 50 * 1024 * 1024
-var offsetRegFile string
-var errLogRegFile string
 
-//var scanned bool
-
-var rowStartPattern *regexp2.Regexp
 var baseErrTokenPattern *regexp2.Regexp
 
 var nameMySQLErrNotice = "mysql-err-notice"
@@ -49,22 +40,8 @@ var spiderWarnPattern *regexp2.Regexp
 var spiderCriticalPattern *regexp2.Regexp
 var mysqldRestartPattern *regexp2.Regexp
 
-var once sync.Once
-var snapShotErr error
-
 func init() {
 	executable, _ = os.Executable()
-
-	now := time.Now()
-	rowStartPattern = regexp2.MustCompile(
-		fmt.Sprintf(
-			`^(?=(?:(%s|%s|%s)))`,
-			now.Format("060102"),
-			now.Format("20060102"),
-			now.Format("2006-01-02"),
-		),
-		regexp2.None,
-	)
 
 	baseErrTokenPattern = regexp2.MustCompile(
 		fmt.Sprintf(
@@ -115,34 +92,20 @@ func init() {
 
 // Checker TODO
 type Checker struct {
-	db   *pkg.MySQLMonitorDBH
-	name string
-	f    func() (string, error)
+	db      *pkg.MySQLMonitorDBH
+	name    string
+	pattern *regexp2.Regexp
 }
 
 // Run TODO
 func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
-	offsetRegFile = filepath.Join(
-		filepath.Dir(executable),
-		fmt.Sprintf("errlog_offset.%d.reg", config.MonitorConfig.Port),
-	)
-	errLogRegFile = filepath.Join(
-		filepath.Dir(executable),
-		fmt.Sprintf("errlog.%d.reg", config.MonitorConfig.Port),
-	)
-
-	once.Do(
-		func() {
-			snapShotErr = snapShot(c.db)
-		},
-	)
-	//err = snapShot(c.db)
-	if snapShotErr != nil {
-		slog.Error(c.name, slog.String("error", snapShotErr.Error()))
-		return nil, "", snapShotErr
+	lines, err := snapShot(c.db, c.name)
+	if err != nil {
+		slog.Error(c.name, slog.String("error", err.Error()))
+		return nil, "", err
 	}
 
-	msg, err = c.f()
+	msg, err = scanSnapShot(c.name, c.pattern, lines)
 	return nil, msg, err
 }
 
@@ -154,53 +117,53 @@ func (c *Checker) Name() string {
 // NewMySQLErrNotice TODO
 func NewMySQLErrNotice(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameMySQLErrNotice,
-		f:    mysqlNotice,
+		db:      cc.MySqlDB,
+		name:    nameMySQLErrNotice,
+		pattern: mysqlNoticePattern,
 	}
 }
 
 // NewMySQLErrCritical TODO
 func NewMySQLErrCritical(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameMySQLErrCritical,
-		f:    mysqlCritical,
+		db:      cc.MySqlDB,
+		name:    nameMySQLErrCritical,
+		pattern: mysqlCriticalExcludePattern,
 	}
 }
 
 // NewSpiderErrNotice TODO
 func NewSpiderErrNotice(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameSpiderErrNotice,
-		f:    spiderNotice,
+		db:      cc.MySqlDB,
+		name:    nameSpiderErrNotice,
+		pattern: spiderNoticePattern,
 	}
 }
 
 // NewSpiderErrWarn TODO
 func NewSpiderErrWarn(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameSpiderErrWarn,
-		f:    spiderWarn,
+		db:      cc.MySqlDB,
+		name:    nameSpiderErrWarn,
+		pattern: spiderWarnPattern,
 	}
 }
 
 // NewSpiderErrCritical TODO
 func NewSpiderErrCritical(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameSpiderErrCritical,
-		f:    spiderCritical,
+		db:      cc.MySqlDB,
+		name:    nameSpiderErrCritical,
+		pattern: spiderCriticalPattern,
 	}
 }
 
 func NewMySQLDRestartWarn(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameMySQLDRestart,
-		f:    mysqldRestart,
+		db:      cc.MySqlDB,
+		name:    nameMySQLDRestart,
+		pattern: mysqldRestartPattern,
 	}
 }
 

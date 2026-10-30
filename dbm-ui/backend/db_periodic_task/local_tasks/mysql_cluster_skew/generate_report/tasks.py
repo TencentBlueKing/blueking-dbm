@@ -28,7 +28,6 @@ from jsonschema.validators import validate
 
 from backend import env
 from backend.configuration.constants import DBType
-from backend.constants import DEFAULT_TIME_ZONE_AREA
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks import register_periodic_task, start_new_span
@@ -54,11 +53,6 @@ _SKEW_REPORT_SHARE_URL_RE = re.compile(
     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/?",
     re.IGNORECASE,
 )
-
-
-def _localize_time(dt_utc):
-    local_dt = timezone.localtime(dt_utc.replace(tzinfo=dt_timezone.utc))
-    return f"{local_dt.strftime('%Y-%m-%d %H:%M:%S')} {DEFAULT_TIME_ZONE_AREA}"
 
 
 def _parse_skew_report_res(res: str):
@@ -152,6 +146,8 @@ def generate_report():
                 countdown,
             )
         except Exception:  # noqa
+            # 投递失败时释放占位，避免该集群当天再也不被重试
+            cache.delete(lock_key)
             logger.exception("report schedule failed: lock_key=%s", lock_key)
 
     logger.info(
@@ -170,39 +166,43 @@ def _generate_cluster_skew_report(cluster_type: str, domain: str, lock_key: str,
 
     logger.info("generate %s skew report start: lock_key=%s", domain, lock_key)
     try:
-        # 本地墙钟时间，不带时区，与 Doris detect_time、倾斜检测写入方式一致
+        # 报告周期 = 本地(Asia/Shanghai)自然日 [昨天 00:00, 今天 00:00)，显式 aware。
+        # Doris 的 detect_time 约定存 UTC，比较时由 Django 归一到 UTC。
         local_today = timezone.localdate()
-        report_to_utc = datetime.combine(local_today, dt_time.min)
-        report_from_utc = report_to_utc - timedelta(days=1)
+        report_to = timezone.make_aware(datetime.combine(local_today, dt_time.min))
+        report_from = report_to - timedelta(days=1)
         logger.info(
-            "generate %s skew report period: lock_key=%s report_from=%s report_to=%s",
+            "generate %s skew report period: lock_key=%s report_from=%s report_to=%s utc=%s~%s",
             domain,
             lock_key,
-            report_from_utc,
-            report_to_utc,
+            report_from,
+            report_to,
+            report_from.astimezone(dt_timezone.utc),
+            report_to.astimezone(dt_timezone.utc),
         )
 
         cluster_obj = Cluster.objects.get(immute_domain=domain, cluster_type=cluster_type)
-        if not has_cluster_skew(cluster_obj, report_from_utc, report_to_utc):
+        if not has_cluster_skew(cluster_obj, report_from, report_to):
             logger.info(
                 "generate %s skew report skip, no skew: lock_key=%s report_from=%s report_to=%s",
                 domain,
                 lock_key,
-                report_from_utc,
-                report_to_utc,
+                report_from,
+                report_to,
             )
             return
 
-        report_from_str = f"{report_from_utc.strftime('%Y-%m-%d %H:%M:%S')} {DEFAULT_TIME_ZONE_AREA}"
-        report_to_str = f"{report_to_utc.strftime('%Y-%m-%d %H:%M:%S')} {DEFAULT_TIME_ZONE_AREA}"
+        # 用 ISO8601 传给 LLM/MCP，避免非标时间串被解析歧义
+        report_from_str = report_from.isoformat(timespec="seconds")
+        report_to_str = report_to.isoformat(timespec="seconds")
 
         try:
             report_obj = MysqlClusterSkewReport.objects.create(
                 bk_biz_id=bk_biz_id,
                 cluster_type=cluster_type,
                 cluster_domain=domain,
-                report_from=report_from_utc,
-                report_to=report_to_utc,
+                report_from=report_from,
+                report_to=report_to,
                 summary="",
                 share_url="",
                 creator="system",
@@ -267,7 +267,7 @@ def _generate_cluster_skew_report(cluster_type: str, domain: str, lock_key: str,
                     dimension=MysqlPortraitDimensionCode.CLUSTER_SKEW,
                     bk_biz_id=cluster_obj.bk_biz_id,
                     cluster_domain=cluster_obj.immute_domain,
-                    report_time=datetime.now(),
+                    report_time=timezone.now(),
                     summary=report_obj.summary,
                     detail_url=report_obj.share_url,
                 )

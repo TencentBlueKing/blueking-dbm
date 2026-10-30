@@ -10,95 +10,100 @@ package mysqlerrlog
 
 import (
 	"bufio"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+
+	"github.com/dlclark/regexp2"
 )
 
-func snapShot(db *pkg.MySQLMonitorDBH) error {
+// offsetRegFilePath 每个监控项独立记录 errlog 扫描位置.
+// 不同调度组的 mysql-monitor 进程互不共享 offset 文件,
+// 避免互相推进扫描位置导致对方漏扫
+func offsetRegFilePath(name string) string {
+	return filepath.Join(
+		filepath.Dir(executable),
+		fmt.Sprintf("errlog_offset.%d.%s.reg", config.MonitorConfig.Port, name),
+	)
+}
+
+// snapShot 从该监控项上次的扫描位置开始增量扫描 errlog,
+// 返回通过行首日期和错误 token 预过滤的行
+func snapShot(db *pkg.MySQLMonitorDBH, name string) ([]string, error) {
 	errLogPath, err := findErrLogFile(db)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	slog.Info("snap shot err log", slog.String("path", errLogPath))
+	slog.Info("snap shot err log", slog.String("path", errLogPath), slog.String("item", name))
 
-	scanner, offset, err := newScanner(errLogPath)
+	offsetFile := offsetRegFilePath(name)
+	f, offset, err := newScanner(errLogPath, offsetFile)
 	if err != nil {
-		return err
-	}
-
-	regFile, err := os.OpenFile(
-		errLogRegFile,
-		os.O_CREATE|os.O_TRUNC|os.O_RDWR,
-		0755,
-	)
-	if err != nil {
-		slog.Error("create reg file", slog.String("error", err.Error()))
-		return err
-	}
-	defer func() {
-		_ = regFile.Close()
-	}()
-
-	for scanner.Scan() {
-		content := scanner.Bytes()
-		err := scanner.Err()
-		if err != nil {
-			slog.Error("scan err log", err)
-			return err
-		}
-		offset += int64(len(content)) + 1
-
-		startMatch, err := rowStartPattern.MatchString(string(content))
-		if err != nil {
-			slog.Error("apply row start pattern", slog.String("error", err.Error()))
-			return err
-		}
-
-		baseErrTokenMatch, err := baseErrTokenPattern.MatchString(string(content))
-		if err != nil {
-			slog.Error("apply base error token pattern", slog.String("error", err.Error()))
-			return err
-		}
-
-		if startMatch && baseErrTokenMatch {
-			_, err = regFile.Write(append(content, []byte("\n")...))
-			if err != nil {
-				slog.Error("write errlog.reg", err)
-				return err
-			}
-		}
-	}
-
-	f, err := os.OpenFile(offsetRegFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0755)
-	if err != nil {
-		slog.Error("open offset reg", slog.String("error", err.Error()))
-		return err
+		return nil, err
 	}
 	defer func() {
 		_ = f.Close()
 	}()
 
-	_, err = f.WriteString(strconv.FormatInt(offset, 10))
-	if err != nil {
-		slog.Error("update offset reg", slog.String("error", err.Error()))
-		return err
+	// 每次快照现编译, 进程跨天后日期 pattern 不会失效
+	rowStartPattern := regexp2.MustCompile(
+		fmt.Sprintf(
+			`^(?=(?:(%s|%s|%s)))`,
+			time.Now().Format("060102"),
+			time.Now().Format("20060102"),
+			time.Now().Format("2006-01-02"),
+		),
+		regexp2.None,
+	)
+
+	var lines []string
+	reader := bufio.NewReader(f)
+	for {
+		chunk, rerr := reader.ReadBytes('\n')
+		if rerr == io.EOF {
+			// MySQL 还在写的半截行: 不处理、offset 不推进, 下一轮重新扫
+			break
+		}
+		if rerr != nil {
+			slog.Error("read err log", slog.String("error", rerr.Error()), slog.String("item", name))
+			return nil, rerr
+		}
+		// chunk 自带 \n, 长度即精确偏移, 不能无脑 +1
+		offset += int64(len(chunk))
+		line := strings.TrimRight(string(chunk), "\r\n")
+
+		startMatch, err := rowStartPattern.MatchString(line)
+		if err != nil {
+			slog.Error("apply row start pattern", slog.String("error", err.Error()))
+			return nil, err
+		}
+
+		baseErrTokenMatch, err := baseErrTokenPattern.MatchString(line)
+		if err != nil {
+			slog.Error("apply base error token pattern", slog.String("error", err.Error()))
+			return nil, err
+		}
+
+		if startMatch && baseErrTokenMatch {
+			lines = append(lines, line)
+		}
 	}
 
-	//scanned = true
-	return nil
-}
-
-func loadSnapShot() (*bufio.Scanner, error) {
-	f, err := os.Open(errLogRegFile)
+	err = os.WriteFile(offsetFile, []byte(strconv.FormatInt(offset, 10)), 0755)
 	if err != nil {
-		slog.Error("open err log reg", slog.String("error", err.Error()))
+		slog.Error("update offset reg", slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	return bufio.NewScanner(f), nil
+	return lines, nil
 }
 
 func findErrLogFile(db *pkg.MySQLMonitorDBH) (string, error) {
@@ -115,7 +120,7 @@ func findErrLogFile(db *pkg.MySQLMonitorDBH) (string, error) {
 	return errLogPath, nil
 }
 
-func newScanner(logPath string) (*bufio.Scanner, int64, error) {
+func newScanner(logPath string, offsetFile string) (*os.File, int64, error) {
 	f, err := os.Open(logPath)
 	if err != nil {
 		slog.Error("open err log", slog.String("error", err.Error()))
@@ -135,9 +140,13 @@ func newScanner(logPath string) (*bufio.Scanner, int64, error) {
 	errLogSize := st.Size()
 	slog.Debug("snap shot err log", slog.Int64("err log size", errLogSize))
 
-	lastOffset, err := lastRoundOffset()
+	lastOffset, err := lastRoundOffset(offsetFile)
 	if err != nil {
 		return nil, 0, err
+	}
+	if lastOffset < 0 {
+		// offset 文件不存在或内容损坏: 首轮定位到文件尾, 不扫历史, 避免补报历史告警
+		lastOffset = errLogSize
 	}
 
 	slog.Debug("snap shot err log", slog.Int64("last offset", lastOffset))
@@ -157,17 +166,17 @@ func newScanner(logPath string) (*bufio.Scanner, int64, error) {
 		return nil, 0, err
 	}
 
-	return bufio.NewScanner(f), offset, nil
+	return f, offset, nil
 }
 
-func lastRoundOffset() (int64, error) {
-	content, err := os.ReadFile(offsetRegFile)
+func lastRoundOffset(offsetFile string) (int64, error) {
+	content, err := os.ReadFile(offsetFile)
 
 	if err != nil {
 		if os.IsNotExist(err) {
-			return 0, nil
+			return -1, nil
 		}
-		slog.Error("read offset reg", err, slog.String("file", offsetRegFile))
+		slog.Error("read offset reg", slog.String("error", err.Error()), slog.String("file", offsetFile))
 		return 0, err
 	}
 
@@ -176,7 +185,7 @@ func lastRoundOffset() (int64, error) {
 	r, err := strconv.ParseInt(string(content), 10, 64)
 	if err != nil {
 		slog.Warn("parse last offset", slog.String("error", err.Error()))
-		return 0, nil
+		return -1, nil
 	}
 
 	return r, nil

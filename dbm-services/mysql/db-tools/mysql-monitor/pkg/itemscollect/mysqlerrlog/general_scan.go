@@ -15,29 +15,20 @@ import (
 	"github.com/dlclark/regexp2"
 )
 
-func scanSnapShot(name string, pattern *regexp2.Regexp) (string, error) {
+func scanSnapShot(name string, pattern *regexp2.Regexp, snapShotLines []string) (string, error) {
 	slog.Debug("scan err log", slog.String("name", name), slog.String("pattern", pattern.String()))
-	scanner, err := loadSnapShot()
-	if err != nil {
-		return "", err
-	}
 
 	var lines []string
-	for scanner.Scan() {
-		line := scanner.Text()
-		err := scanner.Err()
-		if err != nil {
-			slog.Error("scan err log", slog.String("error", err.Error()), slog.String("item", name))
-			return "", err
-		}
+	for _, line := range snapShotLines {
 		slog.Debug("scan err log", slog.String("line", line))
 
 		match, err := pattern.MatchString(line)
 		if err != nil {
 			slog.Error(
-				"apply pattern", err,
+				"apply pattern", slog.String("error", err.Error()),
 				slog.String("item", name), slog.String("pattern", pattern.String()),
 			)
+			continue
 		}
 		slog.Debug("scan err log", slog.Any("match", match))
 
