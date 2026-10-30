@@ -31,6 +31,7 @@
 
   interface Props {
     data?: {
+      default_receiver_username?: string;
       is_send: boolean;
       msg_type: MessageTypes[];
       receiver__username: string;
@@ -41,5 +42,13 @@
 
   const { t } = useI18n();
 
-  const receiverUsername = (props.data?.receiver__username?.split(',') ?? []).filter(Boolean).slice(2).join('，');
+  const receiverList = (props.data?.receiver__username?.split(',') ?? []).filter(Boolean);
+  /**
+   * 只展示额外收件人
+   * 新单据有 default_receiver_username，receiver__username 即额外收件人；
+   * 旧单据没有该字段，receiver__username 前两位是提单人与主DBA，需剔除
+   */
+  const receiverUsername = (
+    props.data?.default_receiver_username === undefined ? receiverList.slice(2) : receiverList
+  ).join('，');
 </script>
