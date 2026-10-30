@@ -18,6 +18,7 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.exceptions import ValidationError
@@ -26,6 +27,9 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
@@ -67,6 +71,7 @@ class SqlserverSQLExecuteFlow(BaseFlow):
         1: 下发执行器
         2: 下发SQL文件
         3: 执行SQL文件
+        4: 写入SQL执行摘要（每个集群子流程末尾各写一次，主键幂等）
         """
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -139,6 +144,22 @@ class SqlserverSQLExecuteFlow(BaseFlow):
                         job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
+            )
+
+            # 写入SQL执行摘要（每集群子流程末尾各写一次；主键幂等，节点重试不产生重复行）
+            sub_pipeline.add_act(
+                act_name=_("写入SQL执行摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "sql_exec",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                            "instance": master_instance.ip_port,
+                            "extra": _("变更完成"),
+                        }
+                    ],
+                },
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}SQL文件导入".format(cluster.immute_domain))))

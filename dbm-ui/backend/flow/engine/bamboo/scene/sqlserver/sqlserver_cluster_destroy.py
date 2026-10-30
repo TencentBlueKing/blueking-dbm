@@ -15,6 +15,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -22,9 +23,13 @@ from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DeleteClusterDnsKwargs, DelServiceInstKwargs
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverClusterLifecycleAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
@@ -49,6 +54,7 @@ class SqlserverDestroyFlow(BaseFlow):
         1：关闭sqlserver进程
         2：清理域名
         3：清理元数据
+        4：写入集群下架摘要（清理元信息之前，每集群子流程各写一次，主键幂等）
         """
 
         # 定义主流程
@@ -120,6 +126,22 @@ class SqlserverDestroyFlow(BaseFlow):
                         delete_cluster_id=cluster.id,
                     )
                 ),
+            )
+
+            # 写入集群下架摘要：放在"清理元信息"之前——集群元数据即将删除，域名 / 主实例
+            sub_pipeline.add_act(
+                act_name=_("写入集群下架摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "cluster_lifecycle",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                            "action": SqlserverClusterLifecycleAction.DESTROY.value,
+                            "extra": _("卸载实例: {}").format(",".join(f"{i['host']}:{i['port']}" for i in instances)),
+                        }
+                    ],
+                },
             )
 
             # 清理元数据

@@ -13,6 +13,7 @@ from dataclasses import asdict
 
 from django.utils.translation import gettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -20,6 +21,10 @@ from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import sync_dbs_for_cluster_sub_flow
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverDbOperationAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DropRandomJobUserKwargs,
@@ -100,6 +105,24 @@ class SqlserverBuildDBSyncFlow(BaseFlow):
                 act_name=_("remove temp job account"),
                 act_component_code=SqlserverDropJobUserComponent.code,
                 kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
+            )
+
+            # 写入建立同步摘要（每集群子流程末尾各写一次；主键幂等，节点重试不产生重复行。
+            sub_pipeline.add_act(
+                act_name=_("写入建立同步摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "db_operation",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                            "instance": master_instance.ip_port,
+                            "action": SqlserverDbOperationAction.BUILD_SYNC.value,
+                            "databases": ",".join(info["sync_dbs"]),
+                            "extra": _("同步Slave: {}").format(",".join(i.ip_port for i in slave_instance)),
+                        }
+                    ],
+                },
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群建立数据库同步".format(cluster.name))))

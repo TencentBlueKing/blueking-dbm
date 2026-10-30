@@ -16,6 +16,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import SqlserverLoginExecMode
@@ -26,8 +27,12 @@ from backend.flow.plugins.components.collections.sqlserver.create_random_job_use
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_login import ExecSqlserverLoginComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverClusterLifecycleAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
@@ -157,6 +162,21 @@ class SqlserverDisableFlow(BaseFlow):
                 act_name=_("remove temp job account"),
                 act_component_code=SqlserverDropJobUserComponent.code,
                 kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
+            )
+
+            # 写入集群禁用摘要（每集群子流程末尾各写一次；主键幂等，节点重试不产生重复行）
+            sub_pipeline.add_act(
+                act_name=_("写入集群禁用摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "cluster_lifecycle",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                            "action": SqlserverClusterLifecycleAction.DISABLE.value,
+                        }
+                    ],
+                },
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群禁用".format(cluster.name))))

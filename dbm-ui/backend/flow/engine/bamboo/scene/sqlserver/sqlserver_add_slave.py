@@ -15,6 +15,7 @@ from typing import List
 
 from django.utils.translation import gettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -29,7 +30,11 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
 )
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverInstanceChangeAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
@@ -69,7 +74,6 @@ class SqlserverAddSlaveFlow(BaseFlow):
                 instance_role__in=[InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN]
             ).port
             # 分配部署port、cluster的关系
-            # clusters.append({"cluster_id": cluster_id, "port": port, "immutable_domain": cluster.immute_domain})
             clusters.append(SqlserverCluster(port=port, immutable_domain=cluster.immute_domain, cluster_id=cluster_id))
         return clusters
 
@@ -82,6 +86,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
         3: 加入到AlwaysOn可用组
         4: 新slave同步数据
         5: 变更元数据信息
+        6: 写入添加Slave摘要（变更元信息之后，每集群一行，主键幂等）
         """
 
         # 定义主流程
@@ -136,11 +141,22 @@ class SqlserverAddSlaveFlow(BaseFlow):
 
             # 对应的新slave实例加入到集群的AlwaysOn可用组, 并且同步数据
             cluster_flows = []
+            # 逐集群装配"添加Slave"摘要行（一台新机可挂多个集群，每集群一行）
+            instance_change_items = []
             for cluster_id in info["cluster_ids"]:
                 cluster = Cluster.objects.get(id=cluster_id)
                 master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
                 slave_instances = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
                 cluster_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+                # 装配摘要行：集群定位信息 + 新 slave 实例（new_slave_host.ip + master 端口）
+                instance_change_items.append(
+                    {
+                        "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                        "new_instance": f"{info['new_slave_host']['ip']}{IP_PORT_DIVIDER}{master_instance.port}",
+                        "action": SqlserverInstanceChangeAction.ADD_SLAVE.value,
+                    }
+                )
 
                 # 计算集群slaves信息
                 slaves = [
@@ -247,6 +263,18 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     )
                 ),
             )
+
+            # 写入添加Slave摘要（放在"变更元信息"之后，保证新实例已录入 db_meta；
+            # 一台新机挂 N 个集群即 N 行，按集群主键幂等）
+            if instance_change_items:
+                sub_pipeline.add_act(
+                    act_name=_("写入添加Slave摘要"),
+                    act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                    kwargs={
+                        "preset": "instance_change",
+                        "items": instance_change_items,
+                    },
+                )
 
             # 机器维度，给新机器部署周边程序
             sub_pipeline.add_sub_pipeline(

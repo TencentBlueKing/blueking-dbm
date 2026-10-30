@@ -17,6 +17,7 @@ from pathlib import PureWindowsPath
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
@@ -29,7 +30,11 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import download_
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverDataTransferMode
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DownloadMediaKwargs,
@@ -317,6 +322,37 @@ class SqlserverDataConstruct(BaseFlow):
                         )
                     ),
                 )
+
+            # 写入数据构造摘要（每个 info 子流程恢复完成后各写一次；以目标集群为主键幂等。
+            # 有 restore_time 为定点构造，否则为原地回档；库映射取自 rename_infos）
+            sub_pipeline.add_act(
+                act_name=_("写入数据构造摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "data_transfer",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": (
+                                f"{target_cluster.immute_domain}{IP_PORT_DIVIDER}{target_cluster.access_port}"
+                            ),
+                            "source_cluster_domain": cluster.immute_domain,
+                            "databases": ";\n ".join(
+                                _("{} -> {}").format(i["db_name"], i["target_db_name"]) for i in info["rename_infos"]
+                            ),
+                            "mode": (
+                                SqlserverDataTransferMode.ROLLBACK.value
+                                if info.get("restore_time", "") != ""
+                                else SqlserverDataTransferMode.ROLLBACK_LOCAL.value
+                            ),
+                            "extra": (
+                                _("恢复时间点: {}").format(info["restore_time"])
+                                if info.get("restore_time", "") != ""
+                                else ""
+                            ),
+                        }
+                    ],
+                },
+            )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(

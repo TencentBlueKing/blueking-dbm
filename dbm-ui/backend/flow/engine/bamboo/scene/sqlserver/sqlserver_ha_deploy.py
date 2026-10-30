@@ -26,8 +26,8 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
 )
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_single_deploy import SqlserverSingleApplyFlow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
-from backend.flow.plugins.components.collections.sqlserver.sqlserver_cluster_apply_summary import (
-    SqlserverClusterApplySummaryComponent,
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
 )
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs
@@ -219,12 +219,15 @@ class SqlserverHAApplyFlow(BaseFlow):
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 写入集群交付摘要（主流程末尾一次性写入全部 info 的所有集群，天然幂等；
-        # 避免并行子流程各自写摘要导致"部分子流程失败时摘要只覆盖部分集群"）
-        # 复用 SqlserverSingleApplyFlow 的通用扁平化方法；Single / HA 的 data.infos 结构一致。
+        # 避免并行子流程各自写摘要导致"部分子流程失败时摘要只覆盖部分集群"。
+        # items 构建期装配，复用 SqlserverSingleApplyFlow 的通用装配方法 + 通用摘要组件）
         main_pipeline.add_act(
             act_name=_("写入集群交付摘要"),
-            act_component_code=SqlserverClusterApplySummaryComponent.code,
-            kwargs={"clusters": SqlserverSingleApplyFlow.build_cluster_apply_summary_items(self.data)},
+            act_component_code=SqlserverFlowOutputSummaryComponent.code,
+            kwargs={
+                "preset": "cluster_apply",
+                "items": SqlserverSingleApplyFlow.build_cluster_apply_summary_items(self.data),
+            },
         )
 
         main_pipeline.run_pipeline()

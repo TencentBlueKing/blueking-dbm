@@ -16,6 +16,7 @@ from typing import List
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
@@ -44,6 +45,9 @@ from backend.flow.plugins.components.collections.sqlserver.create_random_job_use
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_login import ExecSqlserverLoginComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.dns_manage import DnsManage
@@ -52,6 +56,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DelServiceInstKwargs,
     IpDnsRecordRecycleKwargs,
 )
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverInstanceChangeAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CheckSlaveSyncStatusKwargs,
     CreateRandomJobUserKwargs,
@@ -298,6 +303,22 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )
 
+            # 写入Slave原地重建摘要（每集群子流程末尾各写一次；主键幂等，节点重试不产生重复行）
+            sub_pipeline.add_act(
+                act_name=_("写入Slave原地重建摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "instance_change",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{rebuild_slave.port}",
+                            "new_instance": f"{rebuild_slave.machine.ip}{IP_PORT_DIVIDER}{rebuild_slave.port}",
+                            "action": SqlserverInstanceChangeAction.REBUILD_LOCAL.value,
+                        }
+                    ],
+                },
+            )
+
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
                     sub_name=_("{}集群slave[{}:{}]原地重建").format(cluster.name, info["slave_host"]["ip"], info["port"])
@@ -374,11 +395,23 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             # 在新实例建立数据库级别同步关系, 替换域名，集群级别并发操作
             cluster_flows = []
+            # 逐集群装配"新机重建"摘要行（旧 slave 元数据在流程末尾 reduce_slave 才回收，装配期捕获）
+            rebuild_new_items = []
             for cluster_id in info["cluster_ids"]:
                 cluster = Cluster.objects.get(id=cluster_id)
                 master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
                 old_slave = cluster.storageinstance_set.get(machine__ip=info["old_slave_host"]["ip"])
                 cluster_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+                # 装配摘要行：new_instance=新 slave（沿用旧 slave 端口），peer_old_instance=被顶替的旧 slave
+                rebuild_new_items.append(
+                    {
+                        "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{old_slave.port}",
+                        "new_instance": f"{info['new_slave_host']['ip']}{IP_PORT_DIVIDER}{old_slave.port}",
+                        "peer_old_instance": f"{old_slave.machine.ip}{IP_PORT_DIVIDER}{old_slave.port}",
+                        "action": SqlserverInstanceChangeAction.REBUILD_NEW.value,
+                    }
+                )
 
                 # 创建随机账号
                 cluster_sub_pipeline.add_act(
@@ -589,6 +622,18 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     )
                 ),
             )
+
+            # 写入Slave新机重建摘要（放在"变更元信息"之后，保证新 slave 已录入 db_meta；
+            # 一台新机挂 N 个集群即 N 行，按集群主键幂等）
+            if rebuild_new_items:
+                sub_pipeline.add_act(
+                    act_name=_("写入Slave新机重建摘要"),
+                    act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                    kwargs={
+                        "preset": "instance_change",
+                        "items": rebuild_new_items,
+                    },
+                )
 
             # 机器维度，给新机器部署周边程序
             # nginx_exclude_ips 说明：

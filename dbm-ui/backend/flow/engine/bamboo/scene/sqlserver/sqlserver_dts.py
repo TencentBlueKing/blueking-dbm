@@ -14,6 +14,7 @@ from pathlib import PureWindowsPath
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
@@ -38,9 +39,13 @@ from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script 
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
     ExecSqlserverBackupJobComponent,
 )
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.restore_for_dts import RestoreForDtsComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverDataTransferMode
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
@@ -75,6 +80,30 @@ class SqlserverDTSFlow(BaseFlow):
             return str(PureWindowsPath("d:/") / "dbbak" / f"dts_{tag}_{self.root_id}_{port}")
         else:
             return str(PureWindowsPath(cluster_backup_path) / f"dts_{tag}_{self.root_id}_{port}")
+
+    @staticmethod
+    def __build_dts_summary_items(source_cluster: Cluster, target_clusters, rename_infos: list, mode: str) -> list:
+        """
+        内部函数，装配 DTS 迁移摘要行：每个目标集群一行（一对多迁移按 dst 展开多行）。
+
+        :param source_cluster: 源集群
+        :param target_clusters: 目标集群集合
+        :param rename_infos: 库映射信息（db_name -> target_db_name）
+        :param mode: 传输模式（全量迁移 / 增量迁移）
+        :return: 对齐 SqlserverDataTransferSummarySerializer 契约的 items 列表
+        """
+        databases = ";\n ".join(_("{} -> {}").format(i["db_name"], i["target_db_name"]) for i in rename_infos)
+        items = []
+        for target_cluster in target_clusters:
+            items.append(
+                {
+                    "cluster_domain_and_port": f"{target_cluster.immute_domain}{IP_PORT_DIVIDER}{target_cluster.access_port}",
+                    "source_cluster_domain": source_cluster.immute_domain,
+                    "databases": databases,
+                    "mode": mode,
+                }
+            )
+        return items
 
     def termination_dts_flow(self):
         """
@@ -249,6 +278,21 @@ class SqlserverDTSFlow(BaseFlow):
                 ),
             )
 
+            # 写入全量迁移摘要（目标集群恢复完成后；每个目标集群一行，以目标集群为主键幂等）
+            sub_pipeline.add_act(
+                act_name=_("写入全量迁移摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "data_transfer",
+                    "items": self.__build_dts_summary_items(
+                        source_cluster=cluster,
+                        target_clusters=target_clusters,
+                        rename_infos=info["rename_infos"],
+                        mode=SqlserverDataTransferMode.FULL_MIGRATE.value,
+                    ),
+                },
+            )
+
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]全量数据迁移流程".format(cluster.name))))
             # 更新root_id在迁移表上，并标记online状态
             SqlserverDtsInfo.objects.filter(id=info["dts_id"]).update(
@@ -392,6 +436,21 @@ class SqlserverDTSFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.update_dts_status.__name__,
                     )
                 ),
+            )
+
+            # 写入增量迁移摘要（目标集群恢复完成后；每个目标集群一行，以目标集群为主键幂等）
+            sub_pipeline.add_act(
+                act_name=_("写入增量迁移摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "data_transfer",
+                    "items": self.__build_dts_summary_items(
+                        source_cluster=cluster,
+                        target_clusters=target_clusters,
+                        rename_infos=info["rename_infos"],
+                        mode=SqlserverDataTransferMode.INCR_MIGRATE.value,
+                    ),
+                },
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]增量数据迁移流程".format(cluster.name))))

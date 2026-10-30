@@ -15,6 +15,7 @@ from bamboo_engine.builder import SubProcess
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
@@ -46,12 +47,16 @@ from backend.flow.plugins.components.collections.sqlserver.copy_app_setting impo
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.remove_mirroring_config import (
     RemoveMirroringConfigComponent,
 )
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DelServiceInstKwargs
+from backend.flow.utils.sqlserver.flow_output_presets import SqlserverInstanceChangeAction
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
@@ -1017,6 +1022,25 @@ class SqlserverClusterMigrateFlow(BaseFlow):
             kwargs={},
         )
 
+        # 写入单节点集群迁移摘要（切换+域名迁移+元数据变更完成、旧实例回收之前；
+        # 旧实例信息在装配期捕获；同机关联多集群各一行，按集群主键幂等）
+        sub_pipeline.add_act(
+            act_name=_("写入单节点集群迁移摘要"),
+            act_component_code=SqlserverFlowOutputSummaryComponent.code,
+            kwargs={
+                "preset": "instance_change",
+                "items": [
+                    {
+                        "cluster_domain_and_port": f"{c.immutable_domain}{IP_PORT_DIVIDER}{c.port}",
+                        "new_instance": f"{new_host.ip}{IP_PORT_DIVIDER}{c.port}",
+                        "peer_old_instance": f"{old_orphan_machine.ip}{IP_PORT_DIVIDER}{c.port}",
+                        "action": SqlserverInstanceChangeAction.MIGRATE.value,
+                    }
+                    for c in associated_clusters
+                ],
+            },
+        )
+
         # 回收相关实例信息
         sub_pipeline.add_sub_pipeline(
             sub_flow=self.remove_old_instance_sub_flow(
@@ -1156,6 +1180,27 @@ class SqlserverClusterMigrateFlow(BaseFlow):
                 cluster_type=ClusterType.SqlserverHA,
             )
         )
+
+        # 写入主从集群迁移摘要（切换+域名迁移+元数据变更完成、旧实例回收之前；
+        # 旧 master/standby 信息在装配期捕获；同机关联多集群各一行，按集群主键幂等）
+        sub_pipeline.add_act(
+            act_name=_("写入主从集群迁移摘要"),
+            act_component_code=SqlserverFlowOutputSummaryComponent.code,
+            kwargs={
+                "preset": "instance_change",
+                "items": [
+                    {
+                        "cluster_domain_and_port": f"{c.immutable_domain}{IP_PORT_DIVIDER}{c.port}",
+                        "new_instance": f"{new_master_host.ip}{IP_PORT_DIVIDER}{c.port}",
+                        "peer_old_instance": f"{master_machine.ip}{IP_PORT_DIVIDER}{c.port}",
+                        "action": SqlserverInstanceChangeAction.MIGRATE.value,
+                        "extra": _("旧standby[{}] -> 新standby[{}]").format(stand_by_machine.ip, new_stand_by_host.ip),
+                    }
+                    for c in associated_clusters
+                ],
+            },
+        )
+
         return sub_pipeline.build_sub_process(
             sub_name=_("[{}]主从集群迁移".format([i.immutable_domain for i in associated_clusters]))
         )

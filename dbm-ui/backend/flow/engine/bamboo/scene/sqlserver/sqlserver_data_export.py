@@ -15,12 +15,16 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_sql_execute import SqlserverSQLExecuteFlow
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
+from backend.flow.plugins.components.collections.sqlserver.flow_output_summary import (
+    SqlserverFlowOutputSummaryComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
@@ -118,7 +122,24 @@ class SqlserverDataExportFlow(SqlserverSQLExecuteFlow):
                 ),
             )
 
+            # 写入数据导出摘要（每集群子流程末尾各写一次；主键幂等，节点重试不产生重复行。
+            # 导出复用 sql_exec 预设，摘要落在 sqlserver_sql_exec 表；该预设无 source_cluster_domain 字段，
+            # extra 承载导出结果文本）
+            sub_pipeline.add_act(
+                act_name=_("写入数据导出摘要"),
+                act_component_code=SqlserverFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "sql_exec",
+                    "items": [
+                        {
+                            "cluster_domain_and_port": f"{cluster.immute_domain}{IP_PORT_DIVIDER}{cluster.access_port}",
+                            "instance": f"{master_instance.machine.ip}{IP_PORT_DIVIDER}{master_instance.port}",
+                            "extra": _("导出成功"),
+                        }
+                    ],
+                },
+            )
+
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群数据导出".format(cluster.immute_domain))))
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        # main_pipeline.run_pipeline()
         main_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=self.data["cluster_ids"])

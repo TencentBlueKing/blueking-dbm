@@ -10,66 +10,70 @@ specific language governing permissions and limitations under the License.
 
 ------------------------------------------------------------------------------
 
-SQLServer 集群交付类摘要预设（继承 MySQL 预设、仅覆盖命名空间）。
+SQLServer 集群交付类摘要预设。
 
 模块职责：
-  - 为 SQLServer 单据（SqlserverSingleApplyFlow / SqlserverHAApplyFlow 等）提供"每套集群一行"
-    的集群部署 / 交付摘要字段契约。
-  - 直接继承 :class:`backend.flow.utils.mysql.flow_output_presets.ClusterApplySummarySerializer`，
-    字段契约、幂等主键 `cluster_domain_and_port` 全部沿用，避免跨 DB 类型的重复定义。
-  - 仅覆盖 `table_name = "sqlserver_cluster_apply"` 与 `table_display_name`，让 FlowSummary
-    在同一 pipeline 内与 mysql / spider 的交付摘要分表存放，前端渲染时自然区分。
+  - 为 SQLServer 部署单据（SqlserverSingleApplyFlow / SqlserverHAApplyFlow）提供"每套集群一行"
+    的集群交付摘要字段契约。
 
-设计要点 / 数据源 / 调用通道：
-  - 使用方通过 `from backend.flow.utils.sqlserver.flow_output_presets import SqlserverClusterApplySummarySerializer`
-    引用，禁止深路径 import。
-  - SQLServer 组件（SqlserverClusterApplySummaryComponent）在 pipeline 的"录入 db_meta"节点
-    之后调用 `FlowOutputHandler(SqlserverClusterApplySummarySerializer).insert_data(root_id, items)`
-    完成写入。
+设计要点（为何不继承 mysql 的 ClusterApplySummarySerializer）：
+  - mysql 预设携带 clb_ip / clb_domain（mysql 部署时 CLB 实例运行时分配，必须运行期反查）；
+    SQLServer 产品无 CLB，直接裁掉这两个字段，避免前端渲染两列恒空列。
+  - SQLServer 部署摘要的全部字段（域名 / 端口 / slave 域名）在 flow 构建期即可从单据参数
+    （self.data["infos"][].clusters[]，port 由 calc_install_ports 构建期写回）获得，
+    因此部署单据同样走"通用组件 + 构建期装配"，无需专用反查组件。
+
+数据源 / 调用通道：
+  - 部署 flow 在主流程末尾 add_act 通用组件 :class:`SqlserverFlowOutputSummaryComponent`
+    （preset="cluster_apply"）写入；items 由
+    :meth:`SqlserverSingleApplyFlow.build_cluster_apply_summary_items` 构建期装配。
 
 边界：
-  - SQLServer 场景下 **clb_ip / clb_domain 恒为空字符串**（SQLServer 产品无 CLB 入口），
-    调用方应始终把这两个字段留空，不改字段契约。
-  - `readonly_domain_and_port` 字段在 SQLServer 场景承载 SqlserverHA 的 "slave_domain:port"
-    （主从端口对齐）；SqlserverSingle 场景无只读入口，字段留空。
-  - 其他字段 / 幂等语义与 MySQL 预设一致，详见父类 docstring。
+  - readonly_domain_and_port 在 SqlserverHA 场景为 "slave_domain:port"（主从端口对齐）；
+    SqlserverSingle 场景无只读入口，留空。
 """
 
 from django.utils.translation import gettext as _
+from rest_framework import serializers
 
-from backend.flow.utils.mysql.flow_output_presets import ClusterApplySummarySerializer
+from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer
 
 
-class SqlserverClusterApplySummarySerializer(ClusterApplySummarySerializer):
+class SqlserverClusterApplySummarySerializer(BaseFlowOutputSerializer):
     """SQLServer 集群交付摘要（每集群主入口一行）。
 
     功能说明：
-      - 继承 MySQL 的 :class:`ClusterApplySummarySerializer`，字段结构 / 幂等主键完全沿用，
-        仅覆盖 `table_name` 与 `table_display_name` 以独立命名空间落入 FlowSummary；
-      - 字段顺序即前端表头顺序，第一个字段 `cluster_domain_and_port`（形如 "c1.example.db:1433"）
-        同时作为行主键，重复写入走"后写覆盖前写"分支，天然幂等。
+      - 描述部署交付的集群访问入口信息，供前端在单据执行摘要 tab 中展示。
+      - 通过 `table_primary_key = "cluster_domain_and_port"` 让 FlowOutputHandler.insert_data 在遇到
+        相同集群的重复写入时走"后写覆盖前写"分支，天然幂等。
+      - 字段顺序即前端表头顺序；SQLServer 无 CLB，不设 clb 字段。
 
-    输入参数（即 data 每一行的字段结构，与父类完全一致）：
+    输入参数（即 data 每一行的字段结构）：
       - cluster_domain_and_port (str, 必填, 非空): 集群主访问入口 `"domain:port"`，作为主键
       - readonly_domain_and_port (str, 可空, 默认 ""): SqlserverHA 的只读入口 `"slave_domain:port"`；
         SqlserverSingle 场景留空
-      - clb_ip (str, 可空, 默认 ""): SQLServer 场景无 CLB，调用方应恒传 ""
-      - clb_domain (str, 可空, 默认 ""): SQLServer 场景无 CLB，调用方应恒传 ""
       - extra (str, 可空, 默认 ""): 单据私有展示文本兜底；前端按纯文本渲染
 
     输出：
-      - 写入 FlowSummary.summary 中 `table_name="sqlserver_cluster_apply"` 的表 values；
-        每次调用产出的 dict 会按主键合并进该表 values 数组。
+      - 写入 FlowSummary.summary 中 table_name = "sqlserver_cluster_apply" 的表 values。
 
     边界：
-      - cluster_domain_and_port 为空 / 缺失 -> is_valid 抛 ValidationError（沿用父类字段约束）。
-      - 相同 cluster_domain_and_port 的重复写入 -> 依赖 FlowOutputHandler.insert_data 主键合并
-        分支覆盖旧行，`values` 长度不变（重试幂等）。
-      - CLB 字段在 SQLServer 场景无意义：契约不变（允许空字符串），调用方负责始终留空；
-        相关约束不在 Serializer 层强制，避免破坏父类 MySQL 场景的字段契约。
+      - cluster_domain_and_port 缺失或空串 -> is_valid 抛 ValidationError。
+      - 重复主键写入 -> 依赖 insert_data 主键合并分支覆盖旧行，行数不变。
     """
 
     #: 表名（sqlserver 命名空间下唯一，前缀 sqlserver_）；与 mysql_cluster_apply 分表存放
     table_name: str = "sqlserver_cluster_apply"
     #: 前端表格展示名
     table_display_name: str = _("SQLServer 集群交付信息")
+    #: 表主键：每集群一行，重复写入按 cluster_domain_and_port 覆盖合并
+    table_primary_key: str = "cluster_domain_and_port"
+
+    cluster_domain_and_port = serializers.CharField(
+        help_text=_("集群主入口(domain:port)"), required=True, allow_blank=False
+    )
+    readonly_domain_and_port = serializers.CharField(
+        help_text=_("只读入口(domain:port)"), required=False, allow_blank=True, default=""
+    )
+    #: 单据私有展示文本兜底；前端按纯文本渲染，禁止塞 dict / list 结构化数据
+    extra = serializers.CharField(help_text=_("扩展信息"), required=False, allow_blank=True, default="")
