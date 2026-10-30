@@ -345,7 +345,7 @@ export const useTicketModify = () => {
     if (!isPrevDefault && _.xor(prev.receivers, next.receivers).length > 0) {
       result.push({
         isList: true,
-        label: t('收件人'),
+        label: t('额外收件人'),
         next: formatValue(next.receivers),
         path: 'config.send_msg_config.receiver__username',
         prev: formatValue(prev.receivers),

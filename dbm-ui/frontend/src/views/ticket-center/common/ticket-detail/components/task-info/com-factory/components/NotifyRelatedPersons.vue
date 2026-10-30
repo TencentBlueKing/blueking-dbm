@@ -17,7 +17,7 @@
   </InfoItem>
   <InfoItem
     v-if="data?.is_send"
-    :label="t('收件人')">
+    :label="t('额外收件人')">
     {{ receiverUsername || '--' }}
   </InfoItem>
 </template>

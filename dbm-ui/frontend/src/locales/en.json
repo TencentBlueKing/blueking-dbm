@@ -6428,7 +6428,7 @@
   "搜索操作人、操作时间、操作类型、DB 类型、变更角色、变更人员": "Search operator, time, operation type, DB type, changed role, or person",
   "支持 *通配符": "Supports * wildcard",
   "支持中文、字母、数字、连字符、下划线、点号，": "Supports Chinese, letters, digits, hyphens, underscores, and dots,",
-  "收件人": "Recipients",
+  "额外收件人": "Additional Recipients",
   "故障修复": "Fault Repair",
   "故障池主机：展示待我处理的故障主机，一般是uwork、xwork检测有异常的已下架主机": "Fault-pool hosts: hosts pending my action, typically decommissioned hosts flagged abnormal by uwork/xwork",
   "数据步长": "Data Step",
