@@ -965,38 +965,56 @@ func (k *DbPodSets) DeletePod() (err error) {
 	return err
 }
 
-// getLoadSchemaSQLCmd create load schema sql cmd
+// shellQuote protects a single argument from shell expansion.
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
+}
+
+func (k *DbPodSets) redactCommand(cmd string) string {
+	if k.BaseInfo.RootPwd != "" {
+		cmd = strings.ReplaceAll(cmd, "-p"+shellQuote(k.BaseInfo.RootPwd), "-p'xxxx'")
+	}
+	if config.GAppConfig.BkRepo.User != "" && config.GAppConfig.BkRepo.Pwd != "" {
+		credentials := config.GAppConfig.BkRepo.User + ":" + config.GAppConfig.BkRepo.Pwd
+		cmd = strings.ReplaceAll(cmd, shellQuote(credentials), "'xxxx:xxxx'")
+	}
+	return cmd
+}
+
 func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
+	quotedFile := shellQuote(file)
 	commands := []string{}
 	commands = append(commands, k.getDownloadSqlCmd(bkpath, file))
 	// sed -i '/50720 SET tc_admin=0/d'
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
-	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' %s", file))
+	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' -- %s", quotedFile))
 	// del definer: 兼容 DEFINER=`user`@`host`（如 CREATE DEFINER=`ADMIN`@`localhost`）与 DEFINER='user'@'host' 两种格式
-	commands = append(commands, fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file))
-	commands = append(commands, fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file))
-	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s", k.BaseInfo.RootPwd,
-		k.BaseInfo.Charset, file))
+	commands = append(commands, fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' -- %s", quotedFile))
+	commands = append(commands, fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" -- %s", quotedFile))
+	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s",
+		shellQuote(k.BaseInfo.RootPwd), shellQuote(k.BaseInfo.Charset), quotedFile))
 	return strings.Join(commands, " && ")
 }
 
 // getExecuteSQLCmds 获取针对单个数据库的 SQL 执行命令列表
 // 包括清理 DEFINER 和执行 SQL 的命令
 func (k *DbPodSets) getExecuteSQLCmds(file, db string) []string {
+	quotedFile := shellQuote(file)
 	return []string{
-		fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file),
-		fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file),
-		fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
-			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file),
+		fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' -- %s", quotedFile),
+		fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" -- %s", quotedFile),
+		fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv --database=%s < %s",
+			shellQuote(k.BaseInfo.RootPwd), shellQuote(k.BaseInfo.Charset), shellQuote(db), quotedFile),
 	}
 }
 
 func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
-	downloadCmd := fmt.Sprintf("curl -s -S -o %s %s", file, getdownLoadUrl(bkpath, file))
+	downloadCmd := fmt.Sprintf("curl -s -S -o %s -- %s", shellQuote(file), shellQuote(getdownLoadUrl(bkpath, file)))
 	if cmutil.IsNotEmpty(config.GAppConfig.BkRepo.User) && cmutil.IsNotEmpty(config.GAppConfig.BkRepo.Pwd) {
-		downloadCmd = fmt.Sprintf("curl -u %s:%s  -s -S -o %s %s", config.GAppConfig.BkRepo.User,
-			config.GAppConfig.BkRepo.Pwd, file, getdownLoadUrl(bkpath, file))
+		credentials := config.GAppConfig.BkRepo.User + ":" + config.GAppConfig.BkRepo.Pwd
+		downloadCmd = fmt.Sprintf("curl -u %s -s -S -o %s -- %s", shellQuote(credentials),
+			shellQuote(file), shellQuote(getdownLoadUrl(bkpath, file)))
 	}
 	return downloadCmd
 }
@@ -1009,13 +1027,9 @@ func getdownLoadUrl(bkpath, file string) string {
 	if err != nil {
 		return ""
 	}
-	r, err := url.Parse(path.Join("/generic", project, publicBucket, bkpath, file))
-	if err != nil {
-		logger.Error(err.Error())
-		return ""
-	}
+	r := &url.URL{Path: path.Join("/generic", project, publicBucket, bkpath, file)}
 	ll := u.ResolveReference(r).String()
-	logger.Info("download url: %s", ll)
+	logger.Info("download url: %q", ll)
 	return ll
 }
 
@@ -1028,7 +1042,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 	req := k.K8S.Cli.CoreV1().RESTClient().Post().Resource("pods").Name(k.BaseInfo.PodName).Namespace(k.K8S.Namespace).
 		SubResource("exec").
 		Param("container", container)
-	logger.Info(cmd)
+	logger.Info("simulation command: %q", k.redactCommand(cmd))
 	req.VersionedParams(
 		&v1.PodExecOptions{
 			Command: []string{"/bin/bash", "-c", cmd},
