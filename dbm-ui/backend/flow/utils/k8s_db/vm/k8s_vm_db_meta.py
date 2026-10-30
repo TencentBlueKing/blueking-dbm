@@ -41,6 +41,9 @@ class VmDBMeta(object):
         api.cluster.k8s_vm.delete(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
+    def k8s_victoriametrics_destroy(self) -> dict:
+        return self.k8s_victoriametrics_delete()
+
     def k8s_victoriametrics_disable(self) -> dict:
         api.cluster.k8s_vm.disable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
