@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-// Package migrator provides database migration functionality
+// Package migrator migrates Admin schema and data with explicit, idempotent steps.
 package migrator
 
 import (
@@ -31,246 +31,53 @@ import (
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
-	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-
-	"gorm.io/gorm"
 )
 
-const (
-	// MigrateTypeSchema migrate table schema only
-	MigrateTypeSchema = "schema"
-	// MigrateTypeStrategy create default global strategies only
-	MigrateTypeStrategy = "strategy"
-	// MigrateTypeAll execute all migrations
-	MigrateTypeAll = "all"
-
-	// CreateDbIfNotExistSql creates the storage database with utf8mb4 if missing.
-	CreateDbIfNotExistSql = "CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-)
-
-// defaultGlobalStrategies defines the default global strategy list
-var defaultGlobalStrategies = []hamodel.DbSwitchingStrategy{
-	{
-		Name:                   haprobe.DbEventNameDoubleCheckSshFailureV1.String(),
-		BkBizID:                0,
-		Status:                 hamodel.StatusTypeEnabled,
-		TriggerEventName:       haprobe.DbEventNameDoubleCheckSshFailureV1,
-		TriggerEventNameReason: haprobe.DbEventNameReasonConnectionException,
-		TriggerCount:           1,
-		Priority:               9999,
-		Scope:                  hamodel.ActionScopeTypeHost,
-		Action:                 hamodel.ActionTypeSwitch,
-		Description:            "",
-	},
-	{
-		Name:                   haprobe.DbEventNameSshAuthFailure.String(),
-		BkBizID:                0,
-		Status:                 hamodel.StatusTypeEnabled,
-		TriggerEventName:       haprobe.DbEventNameSshAuthFailure,
-		TriggerEventNameReason: haprobe.DbEventNameReasonSSHAuthException,
-		TriggerCount:           1,
-		Priority:               9999,
-		Scope:                  hamodel.ActionScopeTypeHost,
-		Action:                 hamodel.ActionTypeSwitch,
-		Description:            "",
-	},
-	{
-		Name:                   haprobe.DbEventNameSshTimeout.String(),
-		BkBizID:                0,
-		Status:                 hamodel.StatusTypeEnabled,
-		TriggerEventName:       haprobe.DbEventNameSshTimeout,
-		TriggerEventNameReason: haprobe.DbEventNameReasonSshTimeout,
-		TriggerCount:           1,
-		Priority:               9999,
-		Scope:                  hamodel.ActionScopeTypeHost,
-		Action:                 hamodel.ActionTypeSwitch,
-		Description:            "",
-	},
-	{
-		Name:                   haprobe.DbEventNameDiskWriteFailure.String(),
-		BkBizID:                0,
-		Status:                 hamodel.StatusTypeEnabled,
-		TriggerEventName:       haprobe.DbEventNameDiskWriteFailure,
-		TriggerEventNameReason: haprobe.DbEventNameReasonDiskWriteException,
-		TriggerCount:           1,
-		Priority:               9999,
-		Scope:                  hamodel.ActionScopeTypeHost,
-		Action:                 hamodel.ActionTypeSwitch,
-		Description:            "",
-	},
-	{
-		Name:                   haprobe.DbEventNameUptimeFailure.String(),
-		BkBizID:                0,
-		Status:                 hamodel.StatusTypeEnabled,
-		TriggerEventName:       haprobe.DbEventNameUptimeFailure,
-		TriggerEventNameReason: haprobe.DbEventNameReasonUptimeException,
-		TriggerCount:           1,
-		Priority:               9999,
-		Scope:                  hamodel.ActionScopeTypeHost,
-		Action:                 hamodel.ActionTypeSwitch,
-		Description:            "",
-	},
-}
-
-var tables = []any{
-	&hamodel.DbhaDataStatus{},
-	&hamodel.SkipDbInstance{},
-	&hamodel.DbmMetadata{},
-	&hamodel.DbSwitchingLog{},
-	&hamodel.DbSwitchingSnapshotLog{},
-	&hamodel.DbSwitchingStrategy{},
-}
-
-// Migrator implements database migration
-type Migrator struct {
-	dbs []*hamysql.GormDB
-}
-
-// initDbs initializes database connections
-func (m *Migrator) initDbs() error {
-	if len(m.dbs) > 0 {
-		return nil
-	}
-
-	epoints, err := hanet.NewEndpoints(config.Cfg.Storage.Endpoint)
-	if err != nil {
-		return err
-	}
-
-	for _, epoint := range epoints {
-		db, err := hamysql.NewGormDB(
-			hamysql.OptionProto(epoint.Proto),
-			hamysql.OptionIP(epoint.Host),
-			hamysql.OptionPort(epoint.Port),
-			hamysql.OptionUser(config.Cfg.Storage.User),
-			hamysql.OptionPassword(config.Cfg.Storage.Password),
+// Run migrates every configured storage endpoint. Failures return a non-nil error.
+func Run(opts Options) error {
+	if !opts.RunsInventory() && !opts.ValidType() {
+		return gerrors.Newf(
+			gerrors.InvalidParameter,
+			"unknown migrate type: %s; supported types: schema, data, all",
+			opts.Type,
 		)
-
-		if err != nil {
-			return err
-		}
-
-		m.dbs = append(m.dbs, db)
 	}
-	return nil
-}
 
-// MigrateSchema migrates table schema
-func (m *Migrator) MigrateSchema() error {
-	if err := m.initDbs(); err != nil {
+	// Reject a broken catalog before touching any endpoint.
+	if _, err := assembledSteps(); err != nil {
 		return err
 	}
 
-	for _, db := range m.dbs {
-		if err := m.createAndMigrateSchema(db); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// MigrateStrategy creates default global strategies
-func (m *Migrator) MigrateStrategy() error {
-	if err := m.initDbs(); err != nil {
-		return err
-	}
-
-	for _, db := range m.dbs {
-		gdb := m.switchDatabase(db.DB(), hamodel.DatabaseName)
-		if err := m.createDefaultGlobalStrategies(gdb); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// MigrateAll executes all migrations (table schema + default global strategies)
-func (m *Migrator) MigrateAll() error {
-	if err := m.initDbs(); err != nil {
-		return err
-	}
-
-	for _, db := range m.dbs {
-		if err := m.createOrUseDatabase(db); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (m *Migrator) switchDatabase(db *gorm.DB, dbName string) *gorm.DB {
-	return db.Session(&gorm.Session{}).Exec("USE " + dbName)
-}
-
-// createAndMigrateSchema creates database and migrates table schema only
-func (m *Migrator) createAndMigrateSchema(db *hamysql.GormDB) error {
-	sql := fmt.Sprintf(CreateDbIfNotExistSql, hamodel.DatabaseName)
-	err := db.DB().Exec(sql).Error
+	stores, err := openConfigured()
 	if err != nil {
-		return gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), errmsg: %s", hamodel.DatabaseName, err)
-	}
-
-	gdb := m.switchDatabase(db.DB(), hamodel.DatabaseName)
-
-	if err := gdb.AutoMigrate(tables...); err != nil {
-		return gerrors.Newf(gerrors.MysqlFailure, "auto migrate failed, errmsg: %s", err)
-	}
-
-	return nil
-}
-
-func (m *Migrator) createOrUseDatabase(db *hamysql.GormDB) error {
-	if err := m.createAndMigrateSchema(db); err != nil {
 		return err
 	}
 
-	gdb := m.switchDatabase(db.DB(), hamodel.DatabaseName)
-
-	// create default global strategies
-	if err := m.createDefaultGlobalStrategies(gdb); err != nil {
-		return err
-	}
-
-	return nil
+	return run(opts, stores)
 }
 
-// createDefaultGlobalStrategies creates default global strategies.
-func (m *Migrator) createDefaultGlobalStrategies(db *gorm.DB) error {
-	for _, strategy := range defaultGlobalStrategies {
-		exists, err := m.isStrategyExists(db, &strategy)
-		if err != nil {
-			return err
-		}
-		if exists {
-			logger.Info("default global strategy already exists, skip. trigger_event_name:%s",
-				strategy.TriggerEventName.String())
-			continue
-		}
-
-		if err := db.Model(&hamodel.DbSwitchingStrategy{}).Create(&strategy).Error; err != nil {
-			return gerrors.Newf(gerrors.MysqlFailure,
-				"failed to create default global strategy(%s), errmsg: %s", strategy.Name, err)
-		}
-		logger.Info("default global strategy created successfully. name:%s, trigger_event_name:%s",
-			strategy.Name, strategy.TriggerEventName.String())
+// openConfigured builds one Store per endpoint declared in the storage config.
+func openConfigured() ([]Store, error) {
+	storage := config.Cfg.Storage
+	if storage.Endpoint == "" || storage.User == "" {
+		return nil, gerrors.New(gerrors.InvalidParameter, "storage endpoint and user are required")
 	}
-	return nil
-}
 
-// isStrategyExists checks whether a strategy with the same TriggerEventName already exists.
-func (m *Migrator) isStrategyExists(db *gorm.DB, strategy *hamodel.DbSwitchingStrategy) (bool, error) {
-	var count int64
-	err := db.Session(&gorm.Session{}).Model(&hamodel.DbSwitchingStrategy{}).
-		Where(map[string]any{
-			hamodel.DbSwitchingStrategyFieldBkBizID:          strategy.BkBizID,
-			hamodel.DbSwitchingStrategyFieldTriggerEventName: strategy.TriggerEventName,
-		}).Count(&count).Error
+	endpoints, err := hanet.NewEndpoints(storage.Endpoint)
 	if err != nil {
-		return false, gerrors.Newf(gerrors.MysqlFailure,
-			"failed to query default global strategy(%s), errmsg: %s", strategy.Name, err)
+		return nil, err
 	}
-	return count > 0, nil
+
+	stores := make([]Store, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		stores = append(stores, newMySQLStore(
+			endpoint.Proto, endpoint.Host, endpoint.Port, storage.User, storage.Password,
+		))
+	}
+
+	if len(stores) == 0 {
+		return nil, fmt.Errorf("storage endpoint is empty")
+	}
+
+	return stores, nil
 }

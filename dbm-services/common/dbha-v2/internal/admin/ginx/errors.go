@@ -29,4 +29,8 @@ import "errors"
 var (
 	ErrStrategyNotFound   = errors.New("strategy not found")
 	ErrStrategyNameExists = errors.New("strategy name already exists")
+	// ErrStrategyEventExists also covers soft-deleted rows, which keep their unique key.
+	ErrStrategyEventExists = errors.New(
+		"strategy with the same business, trigger event and reason already exists, possibly soft-deleted",
+	)
 )

@@ -68,13 +68,11 @@ MySQL harvester 分成三个独立定时循环，各自按自己的间隔上报�
 
 ### 升级顺序与回滚
 
-`t_dbha_status` 新增 `probe` 列由 `dbha-admin migrate`（GORM AutoMigrate）完成。
+`t_dbha_status` 的列、二级索引、列定义和主键由 `dbha-admin migrate --type schema`（或默认 `--type all`）按模型收敛。该过程可能锁表，执行窗口需要先停止 receiver 对受管表的写入。迁移只向前追加步骤，不执行 down。判定规则见 [migrator 设计](../architecture/migrator-design.md)。
 
-**升级顺序（硬约束）**：先 `dbha-admin migrate` → 再升 receiver → 最后升 probe。若 receiver 已升级而表尚无 `probe` 列，全字段 upsert 会因 `Unknown column 'probe'` 失败，实例状态全部写不进库。
+**升级顺序（硬约束）**：先停止受管表写入并完成 `dbha-admin migrate` → 再升 receiver → 最后升 probe。若 receiver 已升级而表尚无 `probe` 列，全字段 upsert 会因 `Unknown column 'probe'` 失败，实例状态全部写不进库。多采集组 probe 只能在 `harvest_type` 已经进入主键之后上线。
 
-**回滚 / 止血**：立刻补跑 migrate（推荐），或回滚 receiver。probe 侧无需回滚；多出的 `probe` JSON 字段会被旧 receiver 忽略。
-
-**`harvest_type` 主键（需人工处理）**：`t_dbha_status` 主键新增 `harvest_type`，而 AutoMigrate 只加列不改主键。已有环境升级后需手工调整主键（把 `harvest_type` 加入主键），否则三类采集会因 `OnConflict UpdateAll` 相互覆盖，只剩最后一次写入。
+**回滚 / 止血**：立刻补跑 migrate，或回滚 receiver。probe 侧无需回滚；多出的 `probe` JSON 字段会被旧 receiver 忽略。旧四列主键上已被覆盖的历史采集组无法恢复。
 
 ## 3. 交互顺序图
 
