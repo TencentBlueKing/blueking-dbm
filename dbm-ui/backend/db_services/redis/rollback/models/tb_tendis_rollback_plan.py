@@ -13,6 +13,8 @@ class TbTendisRollbackPlan(AuditedModel):
     # Plans are saved while the ticket serializer validates, before the ticket exists.
     ticket_id = models.BigIntegerField(verbose_name=_("单据id"), null=True, blank=True, db_index=True)
     plan = models.JSONField(default=dict, verbose_name=_("回档计划"))
+    # Runtime coordination for the plan-wide download window: inflight count and batch ledger.
+    download_state = models.JSONField(default=dict, verbose_name=_("下载窗口与批次台账"))
 
     class Meta:
         db_table = "tb_tendis_rollback_plan"

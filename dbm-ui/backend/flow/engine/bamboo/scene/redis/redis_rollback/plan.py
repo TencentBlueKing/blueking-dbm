@@ -334,7 +334,7 @@ class RollbackPlan:
         return cls(**data)
 
     def save(self, plan_id: Optional[int] = None, ticket_id: Optional[int] = None) -> int:
-        fields = {"plan": self.to_dict()}
+        fields: Dict[str, Any] = {"plan": self.to_dict()}
         if ticket_id:
             fields["ticket_id"] = int(ticket_id)
         if plan_id:
@@ -358,6 +358,14 @@ class RollbackPlan:
     @classmethod
     def load(cls, plan_id: int) -> "RollbackPlan":
         return cls.from_dict(TbTendisRollbackPlan.objects.get(id=plan_id).plan)
+
+    def layout_signature(self) -> Dict[str, Tuple[str, ...]]:
+        """The layout the download ledger assumes: dest_ip -> task_ids order."""
+        return {host.ip: tuple(host.task_ids) for host in self.dest_hosts}
+
+    @staticmethod
+    def download_state_of(plan_id: int) -> Dict[str, Any]:
+        return TbTendisRollbackPlan.objects.filter(id=plan_id).values_list("download_state", flat=True).first() or {}
 
 
 def host_disk_needs(

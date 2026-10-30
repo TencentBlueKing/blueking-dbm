@@ -22,10 +22,12 @@ import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components import JobApi
 from backend.components.mysql_backup.client import RedisBackupApi
 from backend.core import consts
+from backend.db_services.redis.rollback import download_window
 from backend.db_services.redis.rollback.constants import (
     DISK_USED_PLUS_NEED_RATIO_FAIL,
     DISK_USED_RATIO_FAIL,
     DOWNLOAD_BATCH_SIZE,
+    DOWNLOAD_INFLIGHT_TASK_LIMIT,
     SSD_CLUSTER_TYPES,
 )
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
@@ -179,31 +181,27 @@ class RedisRollbackDiskPrecheckComponent(Component):
 
 
 class RedisRollbackDownloadService(BaseService):
-    """Download all backup files of one dest_ip, submitted in bills of DOWNLOAD_BATCH_SIZE task_ids."""
+    """Download one host's files in fixed batches under the plan-wide window.
+
+    Capacity is reserved on the plan row before a bill is submitted and released when it
+    finishes. The persisted ledger lets a retry resume submitted batches instead of
+    resubmitting them.
+    """
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(15)
 
     @staticmethod
-    def _download_targets(kwargs):
+    def _download_targets(kwargs, plan=None):
         """``(task_ids, bytes)`` from the persisted plan; nodes built before plans were persisted carry them."""
-        if kwargs.get("plan_id"):
-            host = RollbackPlan.load(kwargs["plan_id"]).dest_host(kwargs["dest_ip"])
+        if plan is not None:
+            host = plan.dest_host(kwargs["dest_ip"])
             return host.task_ids, host.download_bytes
         return kwargs["task_ids"], kwargs.get("download_bytes")
 
-    def _execute(self, data, parent_data) -> bool:
-        kwargs = data.get_one_of_inputs("kwargs")
-        trans_data = data.get_one_of_inputs("trans_data")
-        if trans_data is None or trans_data == "${trans_data}":
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
-        host_disk = (getattr(trans_data, "disk_used", None) or {}).get(kwargs["dest_ip"]) or {}
-        backup_dir = host_disk.get("backup_dir")
-        if not backup_dir:
-            self.log_error(_("{} 缺少备份目录信息，无法确定下载路径").format(kwargs["dest_ip"]))
-            return False
-        task_ids, total_bytes = self._download_targets(kwargs)
-        params = {
+    @staticmethod
+    def _host_params(kwargs, backup_dir):
+        return {
             "bk_cloud_id": kwargs["bk_cloud_id"],
             "dest_ip": kwargs["dest_ip"],
             "login_user": kwargs["login_user"],
@@ -211,6 +209,87 @@ class RedisRollbackDownloadService(BaseService):
             "dest_dir": backup_dir.rstrip("/") + "/dbbak/recover_redis",
             "reason": kwargs.get("reason") or "redis rollback",
         }
+
+    @staticmethod
+    def _backup_dir(data, kwargs):
+        trans_data = data.get_one_of_inputs("trans_data")
+        if trans_data is None or trans_data == "${trans_data}":
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        return ((getattr(trans_data, "disk_used", None) or {}).get(kwargs["dest_ip"]) or {}).get("backup_dir")
+
+    def _init_window(self, data, kwargs):
+        backup_dir = self._backup_dir(data, kwargs)
+        if not backup_dir:
+            self.log_error(_("{} 缺少备份目录信息，无法确定下载路径").format(kwargs["dest_ip"]))
+            return False
+        plan = RollbackPlan.load(kwargs["plan_id"])
+        task_ids, total_bytes = self._download_targets(kwargs, plan)
+        self._batches = [task_ids[i : i + DOWNLOAD_BATCH_SIZE] for i in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE)]
+        self._batch_sizes = [len(batch) for batch in self._batches]
+        self._plan_id = int(kwargs["plan_id"])
+        self._dest_ip = kwargs["dest_ip"]
+        self._params = self._host_params(kwargs, backup_dir)
+        self._total_bytes = total_bytes
+        self._window_ready = True
+        data.outputs.batch_sizes = self._batch_sizes
+        return True
+
+    def _restore_window(self, data, kwargs):
+        """A new worker rebuilds the service instance; batch sizes come from outputs, so the
+        plan is only loaded when a batch's task ids are actually needed for submission."""
+        backup_dir = self._backup_dir(data, kwargs)
+        if not backup_dir:
+            self.log_error(_("{} 缺少备份目录信息，无法确定下载路径").format(kwargs["dest_ip"]))
+            return False
+        self._plan_id = int(kwargs["plan_id"])
+        self._dest_ip = kwargs["dest_ip"]
+        self._batches = None
+        self._batch_sizes = [int(size) for size in (data.get_one_of_outputs("batch_sizes") or [])]
+        self._params = self._host_params(kwargs, backup_dir)
+        self._total_bytes = data.get_one_of_outputs("download_bytes")
+        self._window_ready = True
+        return True
+
+    def _batch_at(self, index):
+        """Load the plan once, only when a batch's task ids are needed for submission."""
+        if self._batches is None:
+            task_ids = RollbackPlan.load(self._plan_id).dest_host(self._dest_ip).task_ids
+            self._batches = [
+                task_ids[i : i + DOWNLOAD_BATCH_SIZE] for i in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE)
+            ]
+        return self._batches[index]
+
+    def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        if not kwargs.get("plan_id"):
+            return self._execute_legacy(data, kwargs)
+        if not self._init_window(data, kwargs):
+            return False
+        self.log_debug({k: v for k, v in self._params.items() if k != "login_passwd"})
+        data.outputs.download_mode = "window"
+        data.outputs.total = sum(self._batch_sizes)
+        data.outputs.download_bytes = self._total_bytes
+        data.outputs.failed = False
+        data.outputs.first_submit_at = None
+        data.outputs.last_progress_ts = 0
+        self._unknown = set()
+        data.outputs.unknown_batches = []
+        if not self._batch_sizes:
+            self.log_info(_("{} 没有需要下载的备份文件").format(self._dest_ip))
+            return True
+        self._reconcile(data)
+        self._advance(data)
+        self._log_progress(data, self._read_entries(), force=True)
+        return True
+
+    def _execute_legacy(self, data, kwargs) -> bool:
+        """Nodes built before plans were persisted: submit everything at once, no window."""
+        backup_dir = self._backup_dir(data, kwargs)
+        if not backup_dir:
+            self.log_error(_("{} 缺少备份目录信息，无法确定下载路径").format(kwargs["dest_ip"]))
+            return False
+        task_ids, total_bytes = self._download_targets(kwargs)
+        params = self._host_params(kwargs, backup_dir)
         self.log_debug({k: v for k, v in params.items() if k != "login_passwd"})
         bill_ids = []
         for start in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE):
@@ -234,6 +313,7 @@ class RedisRollbackDownloadService(BaseService):
         data.outputs.backup_bill_ids = bill_ids
         data.outputs.download_started_at = time.time()
         data.outputs.download_bytes = total_bytes
+        data.outputs.download_mode = "legacy"
         return True
 
     @staticmethod
@@ -247,7 +327,325 @@ class RedisRollbackDownloadService(BaseService):
             summary += _("，大小 {}，吞吐 {}/s").format(format_size(total_bytes), format_size(total_bytes // elapsed))
         return summary
 
+    def _execute_failed(self, data, message):
+        self.log_error(message)
+        data.outputs.failed = True
+
+    def _mark_unknown(self, data, index):
+        self._unknown.add(index)
+        data.outputs.unknown_batches = sorted(self._unknown)
+
+    def _clear_unknown(self, data, index):
+        self._unknown.discard(index)
+        data.outputs.unknown_batches = sorted(self._unknown)
+
+    def _read_entries(self):
+        return download_window.read_batches(self._plan_id, self._dest_ip)
+
+    def _query_bill(self, bill_id):
+        try:
+            response = RedisBackupApi.download_result({"bill_id": bill_id})
+        except Exception as exc:  # pylint: disable=broad-except
+            self.log_error(_("查询下载结果异常: bill={}, {}").format(bill_id, exc))
+            return None
+        if response is None or "total" not in response:
+            return None
+        return response["total"]
+
+    def _call_download(self, batch):
+        try:
+            response = RedisBackupApi.download(params={**self._params, "taskid_list": batch})
+        except Exception as exc:  # pylint: disable=broad-except
+            self.log_error(_("提交下载异常: {}").format(exc))
+            return -1
+        return int((response or {}).get("bill_id", -1))
+
+    def _submitted_bills(self):
+        return sorted(
+            {int(entry["bill_id"]) for entry in self._read_entries().values() if entry.get("bill_id") is not None}
+        )
+
+    def _release(self, index, entry, state):
+        left = download_window.release(self._plan_id, self._dest_ip, index, state)
+        bill_id = entry.get("bill_id")
+        self.log_info(
+            _("{} 批次 {}/{} 释放: bill={}, state={}, window={}/{}").format(
+                self._dest_ip,
+                index + 1,
+                len(self._batch_sizes),
+                bill_id if bill_id is not None else "-",
+                state,
+                left,
+                DOWNLOAD_INFLIGHT_TASK_LIMIT,
+            )
+        )
+        return left
+
+    def _mark_open(self, data, index, bill_id):
+        opened = download_window.mark_open(self._plan_id, self._dest_ip, index, bill_id)
+        if not opened:
+            self._execute_failed(
+                data,
+                _("{} 批次 {}/{} 台账状态异常，无法标记 open: bill={}").format(
+                    self._dest_ip, index + 1, len(self._batch_sizes), bill_id
+                ),
+            )
+            return False
+        if not data.get_one_of_outputs("first_submit_at"):
+            data.outputs.first_submit_at = time.time()
+        return True
+
+    def _submit_reserved(self, data, index, entry):
+        """Resubmit a batch whose reservation is still counted (submitting without a bill id)."""
+        batch = self._batch_at(index)
+        bill_id = self._call_download(batch)
+        if bill_id <= 0:
+            self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
+            self._mark_unknown(data, index)
+            self._execute_failed(
+                data,
+                _("{} 批次 {}/{} 重新提交失败；已提交: {}").format(
+                    self._dest_ip, index + 1, len(self._batch_sizes), self._submitted_bills()
+                ),
+            )
+            return False
+        if not self._mark_open(data, index, bill_id):
+            self._mark_unknown(data, index)
+            return False
+        self.log_info(
+            _("{} 批次 {}/{} 重新提交: files={}, bill={}").format(
+                self._dest_ip, index + 1, len(self._batch_sizes), len(batch), bill_id
+            )
+        )
+        return True
+
+    def _reconcile(self, data):
+        entries = self._read_entries()
+        for index in sorted(entries):
+            if index >= len(self._batch_sizes):
+                self.log_error(_("{} 台账批次 {} 超出计划范围，已忽略").format(self._dest_ip, index))
+                continue
+            entry = entries[index]
+            state = entry.get("state")
+            if state in (download_window.DOWNLOAD_STATE_CLOSED, download_window.DOWNLOAD_STATE_FAILED):
+                continue
+            bill_id = entry.get("bill_id")
+            if not bill_id and state in (
+                download_window.DOWNLOAD_STATE_SUBMITTING,
+                download_window.DOWNLOAD_STATE_OPEN,
+            ):
+                self.log_info(
+                    _("{} 批次 {}/{} 上次提交结果未知，重新提交（可能重复下载）").format(self._dest_ip, index + 1, len(self._batch_sizes))
+                )
+                if not self._submit_reserved(data, index, entry):
+                    break
+                continue
+            total = self._query_bill(bill_id)
+            if total is None:
+                self._mark_unknown(data, index)
+                self._execute_failed(
+                    data,
+                    _("{} 批次 {}/{} 查询下载结果失败: bill={}").format(
+                        self._dest_ip, index + 1, len(self._batch_sizes), bill_id
+                    ),
+                )
+                continue
+            if int(total.get("fail", 0)) > 0:
+                self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
+                self._execute_failed(
+                    data,
+                    _("{} 批次 {}/{} 下载失败: bill={}；已提交: {}").format(
+                        self._dest_ip,
+                        index + 1,
+                        len(self._batch_sizes),
+                        bill_id,
+                        self._submitted_bills(),
+                    ),
+                )
+            elif not total.get("todo") and not total.get("doing"):
+                self._release(index, entry, download_window.DOWNLOAD_STATE_CLOSED)
+
+    def _advance(self, data):
+        if data.get_one_of_outputs("failed"):
+            return
+        entries = self._read_entries()
+        for index in range(len(self._batch_sizes)):
+            entry = entries.get(index) or {}
+            if entry.get("state") in (
+                download_window.DOWNLOAD_STATE_OPEN,
+                download_window.DOWNLOAD_STATE_SUBMITTING,
+                download_window.DOWNLOAD_STATE_CLOSED,
+            ):
+                continue
+            task_count = self._batch_sizes[index]
+            result = download_window.reserve(
+                self._plan_id, self._dest_ip, index, task_count, DOWNLOAD_INFLIGHT_TASK_LIMIT
+            )
+            if result == download_window.RESERVE_NO_WINDOW:
+                return
+            if result < 0:
+                self._execute_failed(
+                    data,
+                    _("{} 批次 {}/{} 台账已被占用，无法提交").format(self._dest_ip, index + 1, len(self._batch_sizes)),
+                )
+                return
+            batch = self._batch_at(index)
+            bill_id = self._call_download(batch)
+            if bill_id <= 0:
+                download_window.release(self._plan_id, self._dest_ip, index, download_window.DOWNLOAD_STATE_FAILED)
+                self._execute_failed(
+                    data,
+                    _("提交下载失败: 已提交: {}").format(self._submitted_bills()),
+                )
+                return
+            if not self._mark_open(data, index, bill_id):
+                self._mark_unknown(data, index)
+                return
+            self.log_info(
+                _("{} 提交下载批次 {}/{}: files={}, bill={}, window={}/{}").format(
+                    self._dest_ip,
+                    index + 1,
+                    len(self._batch_sizes),
+                    task_count,
+                    bill_id,
+                    result,
+                    DOWNLOAD_INFLIGHT_TASK_LIMIT,
+                )
+            )
+
+    def _all_closed(self, entries):
+        return all(
+            entries.get(index, {}).get("state") == download_window.DOWNLOAD_STATE_CLOSED
+            for index in range(len(self._batch_sizes))
+        )
+
+    def _finish_success(self, data, entries):
+        bill_ids = sorted({int(entry["bill_id"]) for entry in entries.values() if entry.get("bill_id") is not None})
+        summary = self._download_summary(
+            data.get_one_of_outputs("first_submit_at"), data.get_one_of_outputs("download_bytes"), time.time()
+        )
+        self.log_info(_("{} 下载成功 {}").format(bill_ids, summary).rstrip())
+        self.finish_schedule()
+
+    def _log_progress(self, data, entries, totals=None, force=False):
+        total = data.get_one_of_outputs("total") or 0
+        if total <= 0:
+            return
+        now = time.time()
+        started = data.get_one_of_outputs("first_submit_at")
+        last = data.get_one_of_outputs("last_progress_ts") or 0
+        if not force and now - last < download_window.progress_interval(total):
+            return
+        totals = totals or {}
+        done = 0
+        open_bills = []
+        for index, entry in entries.items():
+            count = int(entry.get("task_count") or 0)
+            state = entry.get("state")
+            if state == download_window.DOWNLOAD_STATE_CLOSED:
+                done += count
+            elif state == download_window.DOWNLOAD_STATE_OPEN:
+                bill_total = totals.get(index)
+                if bill_total is None:
+                    # No poll result yet: the whole batch still counts as unfinished.
+                    open_bills.append({"bill_id": entry.get("bill_id"), "doing": 0})
+                    continue
+                remaining = int(bill_total.get("todo", 0)) + int(bill_total.get("doing", 0))
+                done += max(count - remaining, 0)
+                open_bills.append({"bill_id": entry.get("bill_id"), "doing": int(bill_total.get("doing", 0))})
+        elapsed = max(now - started, 0) if started else 0
+        self.log_info(download_window.format_progress(total, done, open_bills, elapsed))
+        data.outputs.last_progress_ts = now
+
     def _schedule(self, data, parent_data, callback_data=None):
+        if data.get_one_of_outputs("download_mode") != "window":
+            return self._schedule_legacy(data)
+        return self._schedule_window(data)
+
+    def _schedule_window(self, data):
+        # A new worker rebuilds the service instance; keep the failed-query set across rounds.
+        self._unknown = set(data.get_one_of_outputs("unknown_batches") or [])
+        if not getattr(self, "_window_ready", False):
+            kwargs = data.get_one_of_inputs("kwargs")
+            if data.get_one_of_outputs("batch_sizes") is not None:
+                if not self._restore_window(data, kwargs):
+                    return False
+            elif not self._init_window(data, kwargs):
+                return False
+        entries = self._read_entries()
+        # A reservation without a bill id (process died between submit and ledger update) is
+        # resubmitted here, still counted against the window.
+        if not data.get_one_of_outputs("failed"):
+            for index in sorted(entries):
+                entry = entries[index]
+                if (
+                    index < len(self._batch_sizes)
+                    and entry.get("state")
+                    in (
+                        download_window.DOWNLOAD_STATE_SUBMITTING,
+                        download_window.DOWNLOAD_STATE_OPEN,
+                    )
+                    and not entry.get("bill_id")
+                ):
+                    if not self._submit_reserved(data, index, entry):
+                        break
+            entries = self._read_entries()
+        totals = {}
+        for index in sorted(entries):
+            if index >= len(self._batch_sizes):
+                continue
+            entry = entries[index]
+            if entry.get("state") != download_window.DOWNLOAD_STATE_OPEN or not entry.get("bill_id"):
+                continue
+            total = self._query_bill(entry["bill_id"])
+            if total is None:
+                self._mark_unknown(data, index)
+                self._execute_failed(
+                    data,
+                    _("{} 批次 {}/{} 查询下载结果失败: bill={}").format(
+                        self._dest_ip, index + 1, len(self._batch_sizes), entry.get("bill_id")
+                    ),
+                )
+                continue
+            self._clear_unknown(data, index)
+            totals[index] = total
+            if int(total.get("fail", 0)) > 0:
+                self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
+                self._execute_failed(
+                    data,
+                    _("{} 批次 {}/{} 下载失败: bill={}；已提交: {}").format(
+                        self._dest_ip,
+                        index + 1,
+                        len(self._batch_sizes),
+                        entry.get("bill_id"),
+                        self._submitted_bills(),
+                    ),
+                )
+            elif not total.get("todo") and not total.get("doing"):
+                self._release(index, entry, download_window.DOWNLOAD_STATE_CLOSED)
+
+        entries = self._read_entries()
+        self._log_progress(data, entries, totals)
+        if self._all_closed(entries):
+            self._log_progress(data, entries, totals, force=True)
+            self._finish_success(data, entries)
+            return True
+        if data.get_one_of_outputs("failed"):
+            running = [
+                index
+                for index, entry in entries.items()
+                if entry.get("state")
+                in (download_window.DOWNLOAD_STATE_OPEN, download_window.DOWNLOAD_STATE_SUBMITTING)
+                and index not in self._unknown
+            ]
+            if not running:
+                self.finish_schedule()
+                return False
+            return True
+        self._advance(data)
+        return True
+
+    def _schedule_legacy(self, data):
         bill_ids = data.get_one_of_outputs("backup_bill_ids") or [data.get_one_of_outputs("backup_bill_id")]
         todo = doing = 0
         for bill_id in bill_ids:

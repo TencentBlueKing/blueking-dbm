@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from contextlib import ExitStack
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -8,6 +9,7 @@ import pytest
 from django.utils import timezone as django_timezone
 
 from backend.db_meta.enums import ClusterType
+from backend.db_services.redis.rollback import download_window
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
@@ -269,6 +271,38 @@ def test_flow_refuses_a_plan_whose_files_are_gone():
     assert "已过期" in exc.value.message
 
 
+@pytest.mark.django_db
+def test_flow_rejects_a_repacked_plan_with_download_state():
+    plan = _plan(packed=True)
+    plan_id = plan.save()
+    TbTendisRollbackPlan.objects.filter(id=plan_id).update(
+        download_state={"inflight": 50, "batches": {"2.2.2.2": {"0": {"state": "closed"}}}}
+    )
+
+    with patch.object(rollback_flow, "confirm_backup_tasks", return_value={}):
+        with pytest.raises(RollbackPlanError) as exc:
+            rollback_flow.RedisRollbackFlow._load_plan(MagicMock(), {"plan_id": plan_id}, ["3.3.3.3"])
+
+    assert "布局已变化" in exc.value.message
+
+
+@pytest.mark.django_db
+def test_flow_allows_the_same_layout_with_download_state():
+    plan = _plan(packed=True)
+    plan_id = plan.save()
+    TbTendisRollbackPlan.objects.filter(id=plan_id).update(
+        download_state={"inflight": 50, "batches": {"2.2.2.2": {"0": {"state": "closed"}}}}
+    )
+
+    with patch.object(rollback_flow, "confirm_backup_tasks", return_value={}):
+        returned_id, packed = rollback_flow.RedisRollbackFlow._load_plan(
+            MagicMock(), {"plan_id": plan_id}, ["2.2.2.2"]
+        )
+
+    assert returned_id == plan_id
+    assert packed.layout_signature() == plan.layout_signature()
+
+
 def _download_service():
     svc = rollback_components.RedisRollbackDownloadService.__new__(rollback_components.RedisRollbackDownloadService)
     svc.log_info = svc.log_error = svc.log_debug = lambda *a, **k: None
@@ -276,55 +310,432 @@ def _download_service():
     return svc
 
 
-def test_download_submits_one_bill_per_batch():
-    plan = _plan(binlog_count=rollback_components.DOWNLOAD_BATCH_SIZE)
-    kwargs = {
+class _Data:
+    """Pipeline data double whose outputs stay readable through get_one_of_outputs."""
+
+    def __init__(self, kwargs, trans_data):
+        self.kwargs = kwargs
+        self.trans_data = trans_data
+        self.outputs = SimpleNamespace()
+
+    def get_one_of_inputs(self, name):
+        return {"kwargs": self.kwargs, "trans_data": self.trans_data}.get(name)
+
+    def get_one_of_outputs(self, name):
+        return getattr(self.outputs, name, None)
+
+
+class _FakeWindow:
+    """In-memory stand-in for download_window with the same reserve/open/release rules."""
+
+    def __init__(self, limit=rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT):
+        self.limit = limit
+        self.inflight = 0
+        self.entries = {}
+
+    def reserve(self, plan_id, dest_ip, index, count, limit):
+        entry = self.entries.get(index)
+        if entry and entry["state"] != download_window.DOWNLOAD_STATE_FAILED:
+            return download_window.RESERVE_OCCUPIED
+        if self.inflight + count > limit:
+            return download_window.RESERVE_NO_WINDOW
+        self.entries[index] = {
+            "bill_id": None,
+            "task_count": count,
+            "state": download_window.DOWNLOAD_STATE_SUBMITTING,
+        }
+        self.inflight += count
+        return self.inflight
+
+    def mark_open(self, plan_id, dest_ip, index, bill_id):
+        self.entries[index].update({"bill_id": bill_id, "state": download_window.DOWNLOAD_STATE_OPEN})
+        return True
+
+    def release(self, plan_id, dest_ip, index, state):
+        current = self.entries.get(index)
+        if not current or current["state"] not in (
+            download_window.DOWNLOAD_STATE_OPEN,
+            download_window.DOWNLOAD_STATE_SUBMITTING,
+        ):
+            return 0
+        current["state"] = state
+        self.inflight = max(self.inflight - current["task_count"], 0)
+        return self.inflight
+
+    def read_batches(self, plan_id, dest_ip):
+        return {index: dict(entry) for index, entry in self.entries.items()}
+
+    def patches(self):
+        return [
+            patch.object(download_window, "reserve", side_effect=self.reserve),
+            patch.object(download_window, "mark_open", side_effect=self.mark_open),
+            patch.object(download_window, "release", side_effect=self.release),
+            patch.object(download_window, "read_batches", side_effect=self.read_batches),
+        ]
+
+
+def _window_kwargs(dest_ip="2.2.2.2"):
+    return {
         "bk_cloud_id": 0,
         "plan_id": 7,
-        "dest_ip": "2.2.2.2",
+        "dest_ip": dest_ip,
         "login_user": "u",
         "login_passwd": "p",
         "set_trans_data_dataclass": RedisRollbackContext.__name__,
     }
-    trans_data = RedisRollbackContext(disk_used={"2.2.2.2": {"backup_dir": "/data"}})
-    data = SimpleNamespace(
-        get_one_of_inputs={"kwargs": kwargs, "trans_data": trans_data}.get, outputs=SimpleNamespace()
-    )
-    bills = iter([11, 12])
-    with patch.object(RollbackPlan, "load", return_value=plan), patch.object(
-        rollback_components.RedisBackupApi, "download", side_effect=lambda params: {"bill_id": next(bills)}
-    ) as download:
+
+
+def _window_data(kwargs):
+    trans_data = RedisRollbackContext(disk_used={kwargs["dest_ip"]: {"backup_dir": "/data"}})
+    return _Data(kwargs, trans_data)
+
+
+def _window_outputs(data, plan, total):
+    data.outputs.download_mode = "window"
+    data.outputs.total = total
+    data.outputs.download_bytes = plan.dest_hosts[0].download_bytes
+    data.outputs.first_submit_at = 1000.0
+    data.outputs.last_progress_ts = 0
+    data.outputs.failed = False
+
+
+def test_window_submits_only_five_hundred_task_ids():
+    plan = _plan(binlog_count=1999)  # 2000 task ids = 40 batches
+    window = _FakeWindow()
+    data = _window_data(_window_kwargs())
+    bills = iter(range(100, 200))
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download",
+                side_effect=lambda params: {"bill_id": next(bills)},
+            )
+        )
         assert _download_service()._execute(data, None) is True
 
     batches = [call.kwargs["params"]["taskid_list"] for call in download.call_args_list]
-    assert [len(batch) for batch in batches] == [rollback_components.DOWNLOAD_BATCH_SIZE, 1]
-    assert sum(batches, []) == plan.dest_hosts[0].task_ids
-    assert data.outputs.backup_bill_ids == [11, 12]
-    assert data.outputs.download_started_at > 0
-    assert data.outputs.download_bytes == plan.dest_hosts[0].download_bytes
+    assert len(batches) == 10
+    assert [len(batch) for batch in batches] == [rollback_components.DOWNLOAD_BATCH_SIZE] * 10
+    assert sum(len(batch) for batch in batches) == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
+    assert window.inflight == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
 
 
-def test_download_failure_logs_the_bills_already_submitted():
+def test_window_releases_finished_batches_and_submits_more():
+    plan = _plan(binlog_count=1999)
+    window = _FakeWindow()
+    data = _window_data(_window_kwargs())
+    bills = iter(range(100, 300))
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download",
+                side_effect=lambda params: {"bill_id": next(bills)},
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download_result",
+                return_value={"total": {"todo": 0, "doing": 0, "fail": 0}},
+            )
+        )
+        svc = _download_service()
+        assert svc._execute(data, None) is True
+        assert download.call_count == 10
+        assert svc._schedule(data, None) is True
+
+    assert download.call_count == 20
+    assert window.inflight == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
+
+
+def test_schedule_restores_window_without_reloading_the_plan():
+    plan = _plan(binlog_count=99)  # 100 task ids, two batches
+    window = _FakeWindow()
+    data = _window_data(_window_kwargs())
+    bills = iter(range(100, 200))
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download",
+                side_effect=lambda params: {"bill_id": next(bills)},
+            )
+        )
+        assert _download_service()._execute(data, None) is True
+
+    assert data.outputs.batch_sizes == [50, 50]
+    # A new worker rebuilds the service instance; schedule restores the batch layout from
+    # outputs and does not reload the plan while nothing needs to be submitted.
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        load = stack.enter_context(patch.object(RollbackPlan, "load"))
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download_result",
+                return_value={"total": {"todo": 0, "doing": 0, "fail": 0}},
+            )
+        )
+        assert _download_service()._schedule(data, None) is True
+
+    load.assert_not_called()
+    assert window.inflight == 0
+
+
+def test_schedule_keeps_unknown_batches_across_service_instances():
+    plan = _plan(binlog_count=99)
+    window = _FakeWindow()
+    window.entries[0] = {
+        "bill_id": None,
+        "task_count": 50,
+        "state": download_window.DOWNLOAD_STATE_SUBMITTING,
+    }
+    window.entries[1] = {"bill_id": 12, "task_count": 50, "state": download_window.DOWNLOAD_STATE_OPEN}
+    window.inflight = 100
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=100)
+    data.outputs.batch_sizes = [50, 50]
+    data.outputs.failed = True
+    # The previous worker already flagged batch 0 as unknown; a new worker must not count it
+    # as running, otherwise the node polls forever instead of failing.
+    data.outputs.unknown_batches = [0]
+    svc = _download_service()
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download_result",
+                return_value={"total": {"todo": 0, "doing": 0, "fail": 0}},
+            )
+        )
+        with patch.object(rollback_components.time, "time", return_value=1000.0 + 20):
+            assert svc._schedule(data, None) is False
+
+    assert svc.finish_schedule.called
+
+
+def test_retry_skips_closed_batches():
+    plan = _plan(binlog_count=rollback_components.DOWNLOAD_BATCH_SIZE)  # 51 task ids, two batches
+    window = _FakeWindow()
+    window.entries[0] = {
+        "bill_id": 11,
+        "task_count": rollback_components.DOWNLOAD_BATCH_SIZE,
+        "state": download_window.DOWNLOAD_STATE_CLOSED,
+    }
+    data = _window_data(_window_kwargs())
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(rollback_components.RedisBackupApi, "download", return_value={"bill_id": 12})
+        )
+        assert _download_service()._execute(data, None) is True
+
+    assert [call.kwargs["params"]["taskid_list"] for call in download.call_args_list] == [
+        plan.dest_hosts[0].task_ids[rollback_components.DOWNLOAD_BATCH_SIZE :]
+    ]
+
+
+def test_retry_resubmits_unknown_submitting_batch():
     plan = _plan(binlog_count=rollback_components.DOWNLOAD_BATCH_SIZE)
+    window = _FakeWindow()
+    window.entries[0] = {
+        "bill_id": None,
+        "task_count": rollback_components.DOWNLOAD_BATCH_SIZE,
+        "state": download_window.DOWNLOAD_STATE_SUBMITTING,
+    }
+    window.inflight = rollback_components.DOWNLOAD_BATCH_SIZE
+    data = _window_data(_window_kwargs())
+    logs = []
+    svc = _download_service()
+    svc.log_info = logs.append
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(rollback_components.RedisBackupApi, "download", return_value={"bill_id": 12})
+        )
+        assert svc._execute(data, None) is True
+
+    assert download.call_count == 2  # resubmit batch 0 without reserving, then submit batch 1
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_OPEN
+    assert window.entries[0]["bill_id"] == 12
+    assert any("可能重复下载" in line for line in logs)
+
+
+def test_database_failure_fails_the_node_without_downloading():
+    plan = _plan(binlog_count=99)
+    data = _window_data(_window_kwargs())
+    with patch.object(RollbackPlan, "load", return_value=plan), patch.object(
+        download_window, "read_batches", side_effect=RuntimeError("db down")
+    ), patch.object(rollback_components.RedisBackupApi, "download") as download:
+        with pytest.raises(RuntimeError):
+            _download_service()._execute(data, None)
+
+    download.assert_not_called()
+
+
+def test_query_bill_returns_none_on_api_error():
+    svc = _download_service()
+    errors = []
+    svc.log_error = errors.append
+    with patch.object(rollback_components.RedisBackupApi, "download_result", side_effect=RuntimeError("timeout")):
+        assert svc._query_bill(11) is None
+
+    assert errors
+
+
+def test_reconcile_stops_resubmitting_after_the_first_failure():
+    plan = _plan(binlog_count=99)  # 100 task ids, two batches
+    window = _FakeWindow()
+    for index in range(2):
+        window.entries[index] = {
+            "bill_id": None,
+            "task_count": 50,
+            "state": download_window.DOWNLOAD_STATE_SUBMITTING,
+        }
+    window.inflight = 100
+    data = _window_data(_window_kwargs())
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download",
+                side_effect=[{"bill_id": -1}, {"bill_id": 12}],
+            )
+        )
+        assert _download_service()._execute(data, None) is True
+
+    assert download.call_count == 1
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_FAILED
+    assert window.entries[1]["state"] == download_window.DOWNLOAD_STATE_SUBMITTING
+
+
+def test_window_failure_drains_open_batches_then_fails():
+    plan = _plan(binlog_count=99)  # 100 task ids, two batches
+    window = _FakeWindow()
+    window.entries[0] = {"bill_id": 11, "task_count": 50, "state": download_window.DOWNLOAD_STATE_OPEN}
+    window.entries[1] = {"bill_id": 12, "task_count": 50, "state": download_window.DOWNLOAD_STATE_OPEN}
+    window.inflight = 100
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=100)
+    svc = _download_service()
+
+    def result(params):
+        if params["bill_id"] == 11:
+            return {"total": {"todo": 0, "doing": 0, "fail": 1}}
+        return {"total": {"todo": 0, "doing": 0, "fail": 0}}
+
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(patch.object(rollback_components.RedisBackupApi, "download_result", side_effect=result))
+        with patch.object(rollback_components.time, "time", return_value=1000.0 + 20):
+            assert svc._schedule(data, None) is False
+
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_FAILED
+    assert window.entries[1]["state"] == download_window.DOWNLOAD_STATE_CLOSED
+    assert svc.finish_schedule.called
+
+
+def test_window_success_when_every_batch_is_closed():
+    plan = _plan(binlog_count=99)
+    window = _FakeWindow()
+    for index in range(2):
+        window.entries[index] = {
+            "bill_id": 10 + index,
+            "task_count": 50,
+            "state": download_window.DOWNLOAD_STATE_CLOSED,
+        }
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=100)
+    logs = []
+    svc = _download_service()
+    svc.log_info = logs.append
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        with patch.object(rollback_components.time, "time", return_value=1000.0 + 17):
+            assert svc._schedule(data, None) is True
+
+    assert svc.finish_schedule.called
+    assert "下载成功" in logs[-1]
+    assert any("100%" in line for line in logs)
+
+
+def test_progress_counts_partial_open_bills():
+    plan = _plan(binlog_count=99)  # 100 task ids
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=100)
+    entries = {
+        0: {"bill_id": 11, "task_count": 50, "state": download_window.DOWNLOAD_STATE_CLOSED},
+        1: {"bill_id": 12, "task_count": 50, "state": download_window.DOWNLOAD_STATE_OPEN},
+    }
+    logs = []
+    svc = _download_service()
+    svc.log_info = logs.append
+    with patch.object(rollback_components.time, "time", return_value=1000.0 + 20):
+        svc._log_progress(data, entries, totals={1: {"todo": 10, "doing": 5, "fail": 0}}, force=True)
+
+    assert "done=85" in logs[-1]
+    assert "wait=15" in logs[-1]
+
+
+def test_progress_counts_freshly_submitted_batches_as_waiting():
+    plan = _plan(binlog_count=99)  # 100 task ids
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=100)
+    entries = {
+        0: {"bill_id": 11, "task_count": 50, "state": download_window.DOWNLOAD_STATE_OPEN},
+        1: {"bill_id": 12, "task_count": 50, "state": download_window.DOWNLOAD_STATE_OPEN},
+    }
+    logs = []
+    svc = _download_service()
+    svc.log_info = logs.append
+    with patch.object(rollback_components.time, "time", return_value=1000.0):
+        svc._log_progress(data, entries, force=True)
+
+    assert "done=0" in logs[-1]
+    assert "wait=100" in logs[-1]
+
+
+def test_legacy_download_failure_logs_the_bills_already_submitted():
     kwargs = {
         "bk_cloud_id": 0,
-        "plan_id": 7,
+        "task_ids": ["t{}".format(index) for index in range(51)],
         "dest_ip": "2.2.2.2",
         "login_user": "u",
         "login_passwd": "p",
         "set_trans_data_dataclass": RedisRollbackContext.__name__,
     }
-    trans_data = RedisRollbackContext(disk_used={"2.2.2.2": {"backup_dir": "/data"}})
-    data = SimpleNamespace(
-        get_one_of_inputs={"kwargs": kwargs, "trans_data": trans_data}.get, outputs=SimpleNamespace()
-    )
+    data = _window_data(kwargs)
     svc = _download_service()
     errors = []
     svc.log_error = errors.append
     bills = iter([{"bill_id": 11}, {"bill_id": -1}])
-    with patch.object(RollbackPlan, "load", return_value=plan), patch.object(
-        rollback_components.RedisBackupApi, "download", side_effect=lambda params: next(bills)
-    ):
+    with patch.object(rollback_components.RedisBackupApi, "download", side_effect=lambda params: next(bills)):
         assert svc._execute(data, None) is False
     assert "[11]" in errors[0]
 
