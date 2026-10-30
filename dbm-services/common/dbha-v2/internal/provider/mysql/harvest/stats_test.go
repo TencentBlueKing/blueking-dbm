@@ -25,14 +25,27 @@
 package harvest
 
 import (
-	"fmt"
 	"testing"
 )
 
-func TestGlobalStatus(t *testing.T) {
-	gstats := []globalStatus{}
+func TestConvertToMySqlStatus_TcIsPrimary(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  int
+	}{
+		{name: "primary", value: "1", want: 1},
+		{name: "secondary", value: "0", want: 0},
+	}
 
-	dbMetrics := convertToMySqlStatus(gstats)
-
-	fmt.Println("db-metrics: ", dbMetrics)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := convertToMySqlStatus([]globalStatus{
+				{Variable: "Tc_is_primary", Value: tt.value},
+			})
+			if got.TcIsPrimary != tt.want {
+				t.Fatalf("TcIsPrimary = %d, want %d", got.TcIsPrimary, tt.want)
+			}
+		})
+	}
 }

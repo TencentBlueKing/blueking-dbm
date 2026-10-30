@@ -103,6 +103,16 @@ func convertToMySqlStatus(status []globalStatus) *haprobe.MySqlGlobalStatus {
 			}
 
 			fieldValue.SetFloat(sVal)
+
+		case reflect.Bool:
+			sVal, err := converter.ToBool(statusValue)
+			if err != nil {
+				logger.Warn("can not convert the value: %s to bool, errmsg: %s", statusValue, err)
+				continue
+			}
+
+			fieldValue.SetBool(sVal)
+
 		default:
 			logger.Warn("unsurpported the type: %s, field: %s", field.Type.Kind(), field.Name)
 		}

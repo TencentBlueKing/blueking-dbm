@@ -218,6 +218,53 @@ func TestToUint(t *testing.T) {
 	}
 }
 
+func TestToBool(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   any
+		want    bool
+		wantErr bool
+	}{
+		{"bool true", true, true, false},
+		{"bool false", false, false, false},
+		{"int 1", 1, true, false},
+		{"int 0", 0, false, false},
+		{"string 1", "1", true, false},
+		{"string 0", "0", false, false},
+		{"string true", "true", true, false},
+		{"string FALSE", "FALSE", false, false},
+		{"string ON", "ON", true, false},
+		{"string off", "off", false, false},
+		{"string yes", "yes", true, false},
+		{"string no", "no", false, false},
+		{"string invalid", "maybe", false, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got bool
+			var err error
+
+			switch v := tt.input.(type) {
+			case bool:
+				got, err = ToBool(v)
+			case int:
+				got, err = ToBool(v)
+			case string:
+				got, err = ToBool(v)
+			}
+
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ToBool() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Fatalf("ToBool() = %v, want %v", got, tt.want)
+			}
+			t.Logf("ToBool(%v) = %v", tt.input, got)
+		})
+	}
+}
+
 func TestTo(t *testing.T) {
 	t.Run("successful conversion", func(t *testing.T) {
 		input := "hello"

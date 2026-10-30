@@ -46,7 +46,7 @@ type MySqlGlobalStatus struct {
 	TableOpenCacheMisses   int    `json:"table_open_cache_misses,omitempty"`
 
 	// Control Center Status
-	TcIsPrimary bool `json:"tc_is_primary,omitempty"`
+	TcIsPrimary int `json:"tc_is_primary,omitempty"`
 
 	// Performance Connection metric
 	ThreadsCached             int  `json:"threads_cached,omitempty"`
