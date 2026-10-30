@@ -430,6 +430,9 @@ func (c *collector) processDbhaHeartbeatFailure(parent context.Context, err erro
 		logger.Warn("failed to create dbha_heartbeat as repair, db: %s, table: %s, errmsg: %s",
 			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, createErr)
 	}
+
+	logger.Info("create dbha_heartbeat table successfully, db: %s, table: %s",
+		hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName)
 }
 
 // processDbhaReplHeartbeatFailure handles a failed REPLACE into dbha_repl_heartbeat.
@@ -454,6 +457,9 @@ func (c *collector) processDbhaReplHeartbeatFailure(parent context.Context, err 
 		logger.Warn("failed to create dbha_repl_heartbeat as repair, db: %s, table: %s, errmsg: %s",
 			hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName, createErr)
 	}
+
+	logger.Info("create dbha_repl_heartbeat table successfully, db: %s, table: %s",
+		hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName)
 }
 
 func (c *collector) obtainHeartbeatStatus(writeBinlog bool, writeMaxAttempts int) (
