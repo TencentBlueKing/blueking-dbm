@@ -26,8 +26,14 @@ def scan_cluster(
 
     # 获取访问入口clb_dns和clb ip
     master_entry_group = Group(node_id="master_entry_group", group_name=_("访问入口"))
-    clb_entries = cluster.clusterentry_set.filter(
-        cluster_entry_type__in=[ClusterEntryType.CLBDNS, ClusterEntryType.CLB]
+    # 域名在上、CLB IP 在下，和拓扑原型的入口卡片顺序一致
+    entry_order = {
+        ClusterEntryType.CLBDNS.value: 0,
+        ClusterEntryType.CLB.value: 1,
+    }
+    clb_entries = sorted(
+        cluster.clusterentry_set.filter(cluster_entry_type__in=[ClusterEntryType.CLBDNS, ClusterEntryType.CLB]),
+        key=lambda entry: entry_order.get(entry.cluster_entry_type, 2),
     )
     for clb_entry in clb_entries:
         graph.add_node(clb_entry, to_group=master_entry_group)
@@ -41,16 +47,23 @@ def scan_cluster(
         }
         resp = KubernetesApi.component_pods(data, use_admin=True)
         infos = [
-            {"component_name": instance_role, "pod_name": res["podName"], "status": res["status"]}
+            {
+                "component_name": instance_role,
+                "pod_name": res["podName"],
+                "status": res["status"],
+                "role": res.get("role") or "",
+            }
             for res in resp.get("result", [])
         ]
         return infos
 
-    # 获取集群 qdrant 实例。Pod 只挂到分组的 children_id，连线只发生在分组之间。
+    # Pod 挂到分组 children_id，连线只从访问入口指向 Qdrant 分组。
+    # Raft 角色写入 instance_state，供拓扑卡片展示 Leader / Follower。
     qdrant_infos = get_instances(InstanceRole.QDRANT)
     qdrant_group = Group(node_id=InstanceRole.QDRANT, group_name="Qdrant")
     for qdrant_info in qdrant_infos:
-        graph.add_node(qdrant_info, to_group=qdrant_group)
+        node, __ = graph.add_node(qdrant_info, to_group=qdrant_group)
+        node.instance_state = qdrant_info.get("role") or ""
 
     graph.add_line(source=master_entry_group, target=qdrant_group, label=LineLabel.Access)
     return graph

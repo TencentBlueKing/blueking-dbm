@@ -46,9 +46,9 @@ resource_topo_graph_example = {
     "nodes": [
         {"node_id": "qdrant-cluster-db.ha-test2.blueking.db:6333", "node_type": "entry_clbDns"},
         {"node_id": "1.1.1.1:6333", "node_type": "entry_clb"},
-        {"node_id": "qdrant-pod-0", "node_type": "qdrant"},
-        {"node_id": "qdrant-pod-1", "node_type": "qdrant"},
-        {"node_id": "qdrant-pod-2", "node_type": "qdrant"},
+        {"node_id": "qdrant-pod-0", "node_type": "qdrant", "instance_state": "leader"},
+        {"node_id": "qdrant-pod-1", "node_type": "qdrant", "instance_state": "follower"},
+        {"node_id": "qdrant-pod-2", "node_type": "qdrant", "instance_state": "follower"},
     ],
     "groups": [
         {
