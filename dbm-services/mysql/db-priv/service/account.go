@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 	"time"
 
@@ -64,6 +63,12 @@ func (m *AccountPara) AddAccount(jsonPara string, ticket string) (TbAccounts, er
 	// 从旧系统迁移的，不检查是否帐号和密码不同
 	if psw == m.User && !m.MigrateFlag {
 		return detail, errno.PasswordConsistentWithAccountName
+	}
+	// 检查mysql账号名称长度
+	if (*m.ClusterType == mysql || *m.ClusterType == tendbcluster) && !m.MigrateFlag {
+		if len(m.User) > 16 {
+			return detail, errno.AccountNameTooLong
+		}
 	}
 	// 从旧系统迁移的，存储的密码为mysql password()允许迁移，old_password()已过滤不迁移
 	if m.PasswordFunc {
@@ -184,38 +189,46 @@ func (m *AccountPara) DeleteAccount(jsonPara string, ticket string) error {
 	return nil
 }
 
+// escapeLike 转义 LIKE 查询中的通配符，防止通配符注入，需配合 escape '\\' 使用
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
 // GetAccountList 获取账号列表
 func (m *GetAccountListPara) GetAccountList() ([]*TbAccounts, int, error) {
 	var (
 		accounts []*TbAccounts
 	)
-	where := " 1=1 "
+	// 使用占位符参数化拼接查询条件，避免 SQL 注入
+	conditions := []string{"1=1"}
+	var args []interface{}
 	if m.BkBizId > 0 {
-		where = fmt.Sprintf("%s and bk_biz_id=%d", where, m.BkBizId)
+		conditions = append(conditions, "bk_biz_id = ?")
+		args = append(args, m.BkBizId)
 	}
 	if m.ClusterType != nil {
-		where = fmt.Sprintf("%s and cluster_type='%s'", where, *m.ClusterType)
+		conditions = append(conditions, "cluster_type = ?")
+		args = append(args, *m.ClusterType)
 	}
 	if m.UserLike != "" {
-		where = fmt.Sprintf("%s and user like '%%%s%%'", where, m.UserLike)
+		conditions = append(conditions, `user like ? escape '\\'`)
+		args = append(args, "%"+escapeLike(m.UserLike)+"%")
 	}
 	if m.User != "" {
-		where = fmt.Sprintf("%s and user = '%s'", where, m.User)
+		conditions = append(conditions, "user = ?")
+		args = append(args, m.User)
 	}
 	if m.Id != nil {
 		m.Ids = append(m.Ids, *m.Id)
 	}
 	if len(m.Ids) != 0 {
-		var temp = make([]string, len(m.Ids))
-		for k, id := range m.Ids {
-			temp[k] = strconv.FormatInt(id, 10)
-		}
-		ids := " and id in (" + strings.Join(temp, ",") + ") "
-		where = where + ids
+		conditions = append(conditions, "id in (?)")
+		args = append(args, m.Ids)
 	}
+	where := strings.Join(conditions, " and ")
 	cnt := Cnt{}
 	vsql := fmt.Sprintf("select count(*) as cnt from tb_accounts where %s", where)
-	err := DB.Self.Raw(vsql).Scan(&cnt).Error
+	err := DB.Self.Raw(vsql, args...).Scan(&cnt).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -226,10 +239,10 @@ func (m *GetAccountListPara) GetAccountList() ([]*TbAccounts, int, error) {
 	if m.Limit == nil {
 		vsql = fmt.Sprintf("select id, user, creator, bk_biz_id from tb_accounts where %s", where)
 	} else {
-		limitCondition := fmt.Sprintf("limit %d offset %d", *m.Limit, *m.Offset)
-		vsql = fmt.Sprintf("select id, user, creator, bk_biz_id from tb_accounts where %s %s", where, limitCondition)
+		vsql = fmt.Sprintf("select id, user, creator, bk_biz_id from tb_accounts where %s limit ? offset ?", where)
+		args = append(args, *m.Limit, *m.Offset)
 	}
-	err = DB.Self.Raw(vsql).Scan(&accounts).Error
+	err = DB.Self.Raw(vsql, args...).Scan(&accounts).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -252,10 +265,9 @@ func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int, e
 	if m.ClusterType == nil {
 		return nil, 0, errno.ClusterTypeIsEmpty
 	}
-	// mongodb 需要查询psw
-	users := "'" + strings.Join(m.Users, "','") + "'"
-	where := fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and user in (%s)", m.BkBizId, *m.ClusterType, users)
-	result = DB.Self.Model(&TbAccounts{}).Where(where).
+	// mongodb 需要查询psw，使用占位符参数化查询，避免 SQL 注入
+	result = DB.Self.Model(&TbAccounts{}).
+		Where("bk_biz_id = ? and cluster_type = ? and user in (?)", m.BkBizId, *m.ClusterType, m.Users).
 		Select("id,bk_biz_id,user,cluster_type,json_unquote(json_extract(psw,'$.sm4')) as psw," +
 			"creator,create_time,update_time,sid").Scan(&accounts)
 	if result.Error != nil {

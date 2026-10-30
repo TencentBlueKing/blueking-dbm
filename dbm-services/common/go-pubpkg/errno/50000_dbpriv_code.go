@@ -98,5 +98,6 @@ var (
 	QueryPrivilegesFail           = Errno{Code: 51042, Message: "query privileges fail", CNMessage: "查询权限失败"}
 	InternalAccountNameNotAllowed = Errno{Code: 51043, Message: "internal account name is not allowed",
 		CNMessage: "不允许使用内部账号名称"}
-	DbContainMysql = Errno{Code: 51044, Message: "Database should not contain [mysql] DB", CNMessage: "数据库不能包含[mysql] DB"}
+	DbContainMysql     = Errno{Code: 51044, Message: "Database should not contain [mysql] DB", CNMessage: "数据库不能包含[mysql] DB"}
+	AccountNameTooLong = Errno{Code: 51045, Message: "Account name is too long", CNMessage: "账号名称过长"}
 )

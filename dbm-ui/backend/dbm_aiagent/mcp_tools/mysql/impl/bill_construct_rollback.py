@@ -10,11 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 import json
 from datetime import datetime
+from typing import Dict, List
 
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpBackupNotFoundException,
@@ -24,7 +26,6 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 )
 from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_backup_log import query_backup_log
-from backend.dbm_aiagent.mcp_tools.mysql.impl.show_databases_with_patterns import show_databases_with_patterns
 from backend.flow.consts import RollbackType
 from backend.ticket.builders.common.constants import MySQLBackupSource, RollbackBuildClusterType
 from backend.ticket.builders.mysql.mysql_fixpoint_rollback import MySQLFixPointRollbackDetailSerializer
@@ -115,7 +116,7 @@ def bill_construct_rollback(
     rollback_type = _get_rollback_type(rollback_time, backup_id)
 
     # 检查目标集群是否存在同名数据库
-    affect_database_list = show_databases_with_patterns(target_cluster_domain, databases, []).get("databases")
+    affect_database_list = _show_databases_with_patterns(target_cluster_domain, databases, []).get("databases")
 
     backup_results = query_backup_log(
         cluster_id=cluster_obj.pk,
@@ -167,3 +168,20 @@ def bill_construct_rollback(
     slz.is_valid(raise_exception=True)
 
     return Ticket.create_ticket(**ticket_param)
+
+
+def _show_databases_with_patterns(cluster_domain: str, dbs: List[str], ignore_dbs: List[str]) -> Dict:
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
+
+    info = {
+        "cluster_id": cluster_obj.pk,
+        "dbs": dbs,
+        "ignore_dbs": ignore_dbs,
+    }
+
+    result = RemoteServiceHandler(bk_biz_id=cluster_obj.bk_biz_id).show_databases_with_db_patterns([info])
+
+    return {
+        "cluster_id": cluster_obj.pk,
+        "databases": result[0]["databases"] if result else [],
+    }
