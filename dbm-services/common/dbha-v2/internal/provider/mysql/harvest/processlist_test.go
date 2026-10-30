@@ -45,6 +45,42 @@ func TestIsSuspiciousProcesslistRow(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "flush table singular",
+			row: processlistRow{
+				Command: "Query",
+				Time:    2,
+				Info:    sql.NullString{String: "FLUSH TABLE t WITH READ LOCK", Valid: true},
+			},
+			want: true,
+		},
+		{
+			name: "lock tables",
+			row: processlistRow{
+				Command: "Query",
+				Time:    2,
+				Info:    sql.NullString{String: "LOCK TABLES t WRITE", Valid: true},
+			},
+			want: true,
+		},
+		{
+			name: "lock table singular",
+			row: processlistRow{
+				Command: "Query",
+				Time:    2,
+				Info:    sql.NullString{String: "LOCK TABLE t WRITE", Valid: true},
+			},
+			want: true,
+		},
+		{
+			name: "unlock tables",
+			row: processlistRow{
+				Command: "Query",
+				Time:    2,
+				Info:    sql.NullString{String: "UNLOCK TABLES", Valid: true},
+			},
+			want: true,
+		},
+		{
 			name: "waiting for global read lock",
 			row: processlistRow{
 				Command: "Query",
