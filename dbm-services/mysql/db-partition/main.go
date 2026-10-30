@@ -83,6 +83,16 @@ func main() {
 func init() {
 	model.InitEnv()
 	model.InitLog()
+	// KMS：必须在元数据库、Redis、制品库初始化之前覆盖账号密码。
+	// 开启后加载失败即停止启动，不回退 ConfigMap 中的旧凭证。
+	credentials, err := model.LoadRuntimeCredentials()
+	if err != nil {
+		slog.Error("load KMS runtime credentials failed", err)
+		os.Exit(1)
+	}
+	if credentials != nil {
+		model.ApplyRuntimeCredentials(credentials)
+	}
 	model.DB.Init()
 	model.InitClient()
 	model.InitBkRepo()
