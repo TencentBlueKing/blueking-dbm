@@ -1,3 +1,5 @@
+{{- $kms := (.Values.global | default dict).kms | default dict }}
+{{- $kmsEnabled := $kms.enabled | default false }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,6 +27,16 @@ spec:
       serviceAccountName: {{ include "dbpartition.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if $kmsEnabled }}
+      volumes:
+        - name: kms-credentials
+          secret:
+            secretName: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+            defaultMode: 0400
+            items:
+              - key: envelope
+                path: envelope
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -57,6 +69,17 @@ spec:
             {{- if .Values.envs -}}
               {{- include "envs" . | trim | nindent 12 }}
             {{- end }}
+            - name: ENABLE_KMS
+              value: {{ $kmsEnabled | quote }}
+            {{- if $kmsEnabled }}
+            - name: DB_PARTITION_KMS_CREDENTIAL_DIR
+              value: {{ .Values.kms.credentialDir | quote }}
+            - name: BK_DBM_KMS_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+                  key: privateKey
+            {{- end }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:
@@ -64,6 +87,12 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if $kmsEnabled }}
+          volumeMounts:
+            - name: kms-credentials
+              mountPath: {{ .Values.kms.credentialDir | quote }}
+              readOnly: true
+          {{- end }}
       initContainers:
         - name: check-saas-api
           image: {{ include "dbpartition.k8sWaitFor.image" . }}
