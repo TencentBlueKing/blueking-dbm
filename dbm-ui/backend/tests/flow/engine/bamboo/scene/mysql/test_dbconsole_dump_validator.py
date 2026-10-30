@@ -23,7 +23,7 @@ def _make_validator(data: dict) -> DbConsoleDumpFlowValidator:
 
 
 class TestDbConsoleDumpFlowValidatorInject(SimpleTestCase):
-    """覆盖 where 注入检查：命中拒绝 / 放行进 EXPLAIN / API 异常失败放行。"""
+    """覆盖 where 注入检查：命中拒绝 / 放行进 EXPLAIN / API 异常不放行。"""
 
     def test_empty_where_skips_all_checks(self):
         with patch.object(DbConsoleDumpFlowValidator, "_check_where_inject") as mock_inject, patch.object(
@@ -92,7 +92,7 @@ class TestDbConsoleDumpFlowValidatorInject(SimpleTestCase):
         "backend.flow.engine.bamboo.scene.mysql.validate.dbconsole_dump_validator.Cluster.objects.get",
         return_value=MagicMock(),
     )
-    def test_inject_api_error_fail_open(self, mock_cluster, mock_addr, mock_resolve, mock_explain, mock_inject):
+    def test_inject_api_error_fail_closed(self, mock_cluster, mock_addr, mock_resolve, mock_explain, mock_inject):
         result = DbConsoleDumpFlowValidator(
             {
                 "where": "id > 1",
@@ -101,6 +101,8 @@ class TestDbConsoleDumpFlowValidatorInject(SimpleTestCase):
                 "tables": ["t1"],
             }
         )
-        self.assertIsNone(result)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["field"], "where")
+        self.assertIn("simulation down", result[0]["errors"])
         mock_inject.assert_called_once()
-        mock_explain.assert_called_once()
+        mock_explain.assert_not_called()

@@ -39,6 +39,7 @@ from backend.db_services.mysql.sql_import.constants import (
     SemanticExecStatus,
 )
 from backend.db_services.mysql.sql_import.exceptions import SQLFileNameTooLongException, SQLImportBaseException
+from backend.db_services.mysql.sql_import.validators import validate_sql_file_list, validate_sql_file_name
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -141,6 +142,14 @@ class SQLHandler(object):
         @param versions 版本列表
         @param execute_objects sql执行体信息
         """
+        if sql_filenames is not None:
+            validate_sql_file_list(sql_filenames)
+        if not sql_content:
+            for sql_file in sql_files or []:
+                validate_sql_file_name(sql_file.name)
+        if not (sql_filenames or sql_files or sql_content):
+            validate_sql_file_list([])
+
         if sql_filenames:
             sql_file_info_list = [
                 {"sql_path": BKREPO_SQLFILE_PATH.format(biz=self.bk_biz_id) + "/" + filename}

@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.mysql.remote_service.serializers import DBTablePatternField
+from backend.db_services.mysql.sql_import.validators import validate_sql_file_name
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
 from backend.ticket.builders.mysql.base import DBTableField
 
@@ -172,11 +174,13 @@ class SqlFileSyntaxCheckInputSerializer(serializers.Serializer):
         )
     )
     file_list = serializers.ListField(
-        child=serializers.CharField(),
+        child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+        allow_empty=False,
         help_text=_(
-            "List of SQL file names to check (filenames only, not full paths). "
+            "List of SQL file names to check (.sql suffix, up to 120 characters, no paths or control characters). "
             "Example: ['create_table.sql', 'alter_table.sql']. "
-            "待检查的SQL文件名列表（仅文件名，非完整路径），如 ['create_table.sql', 'alter_table.sql']。"
+            "待检查的SQL文件名列表（.sql后缀、不超过120个字符，不能包含路径或控制字符），"
+            "如 ['create_table.sql', 'alter_table.sql']。"
         ),
     )
     versions = serializers.ListField(

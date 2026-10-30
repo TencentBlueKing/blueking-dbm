@@ -16,12 +16,12 @@ from rest_framework import serializers
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
-    MAX_UPLOAD_SQL_FILE_NAME_LENGTH,
     MAX_UPLOAD_SQL_FILE_SIZE,
     SQLCharset,
     SQLExecuteTicketMode,
     SQLImportMode,
 )
+from backend.db_services.mysql.sql_import.validators import validate_sql_file_name
 from backend.exceptions import ValidationError
 from backend.flow.models import StateType
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -31,7 +31,11 @@ from backend.ticket.constants import TicketType
 class ExecuteSQLObjectsSerializer(serializers.Serializer):
     dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
     ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
-    sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
+    sql_files = serializers.ListField(
+        help_text=_("sql执行文件"),
+        child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+        allow_empty=True,
+    )
 
 
 class SQLGrammarCheckClusterInfoSerializer(serializers.Serializer):
@@ -42,7 +46,12 @@ class SQLGrammarCheckClusterInfoSerializer(serializers.Serializer):
 
 class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
-    sql_filenames = serializers.ListField(help_text=_("sql文件名列表"), child=serializers.CharField(), required=False)
+    sql_filenames = serializers.ListField(
+        help_text=_("sql文件名列表"),
+        child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+        required=False,
+        allow_empty=False,
+    )
     sql_files = serializers.ListField(
         help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
     )
@@ -79,11 +88,8 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
 
         for file in attrs.get("sql_files", []):
             if file.size > MAX_UPLOAD_SQL_FILE_SIZE:
-                raise ValidationError(_("请保证单个文件{}不超过1G").fromat(file.name))
-            if len(file.name.split("/")[-1]) > MAX_UPLOAD_SQL_FILE_NAME_LENGTH:
-                raise ValidationError(_("请保证sql文件[{}]的文件名不超过{}个字符").format(file.name, MAX_UPLOAD_SQL_FILE_NAME_LENGTH))
-            if file.name.rsplit(".")[-1].lower() != "sql":
-                raise ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
+                raise ValidationError(_("请保证单个文件{}不超过1G").format(file.name))
+            validate_sql_file_name(file.name)
 
         return attrs
 
@@ -103,6 +109,12 @@ class SQLGrammarCheckResponseSerializer(serializers.Serializer):
 class SQLSemanticCheckSerializer(serializers.Serializer):
     class ExecuteSQLObjectSerializer(ExecuteSQLObjectsSerializer):
         import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
+
+        sql_files = serializers.ListField(
+            help_text=_("sql执行文件"),
+            child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+            allow_empty=False,
+        )
 
     class SQLImportModeSerializer(serializers.Serializer):
         mode = serializers.ChoiceField(help_text=_("单据执行模式"), choices=SQLExecuteTicketMode.get_choices())
@@ -155,7 +167,11 @@ class ImportSQLForceSerializer(SQLSemanticCheckSerializer):
         # 支持sql文件或者sql内容
         sql_content = serializers.CharField(help_text=_("sql执行内容"), required=False, default=None)
         sql_files = serializers.ListField(
-            help_text=_("sql执行文件"), child=serializers.CharField(), required=False, default=None
+            help_text=_("sql执行文件"),
+            child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+            required=False,
+            default=None,
+            allow_empty=False,
         )
 
     ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices(), required=False)
