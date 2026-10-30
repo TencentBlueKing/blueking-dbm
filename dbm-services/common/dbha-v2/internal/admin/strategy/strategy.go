@@ -27,14 +27,24 @@ package strategy
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/ginx"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+)
+
+const (
+	duplicateEntryCode  = 1062
+	bizEventReasonIndex = "idx_biz_event_reason"
+	nameIndex           = "idx_name"
 )
 
 // Strategy db connection
@@ -47,7 +57,7 @@ type Strategy struct {
 func (s *Strategy) CreateStrategy(ctx context.Context, strategy *hamodel.DbSwitchingStrategy) error {
 	query := s.db(ctx).DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Create(&strategy).Error; err != nil {
-		return gerrors.NewE(gerrors.MysqlFailure, err)
+		return writeError(err)
 	}
 
 	return nil
@@ -181,7 +191,7 @@ func (s *Strategy) UpdateStrategy(ctx context.Context, strategy *hamodel.DbSwitc
 		hamodel.DbSwitchingStrategyFieldAction,
 		hamodel.DbSwitchingStrategyFieldDescription,
 	).Updates(&strategy).Error; err != nil {
-		return gerrors.NewE(gerrors.MysqlFailure, err)
+		return writeError(err)
 	}
 
 	return nil
@@ -221,7 +231,7 @@ func (s *Strategy) UpdateStrategyStatus(
 func (s *Strategy) BatchCreateStrategy(ctx context.Context, strategies []*hamodel.DbSwitchingStrategy) error {
 	query := s.db(ctx).DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Create(&strategies).Error; err != nil {
-		return gerrors.NewE(gerrors.MysqlFailure, err)
+		return writeError(err)
 	}
 
 	return nil
@@ -248,7 +258,7 @@ func (s *Strategy) BatchUpdateStrategy(ctx context.Context, strategies []*hamode
 					hamodel.DbSwitchingStrategyFieldAction,
 					hamodel.DbSwitchingStrategyFieldDescription,
 				).Updates(strategyItem).Error; err != nil {
-				return gerrors.NewE(gerrors.MysqlFailure, err)
+				return writeError(err)
 			}
 		}
 		return nil
@@ -283,6 +293,26 @@ func (s *Strategy) BatchUpdateStrategyStatus(
 	}
 
 	return nil
+}
+
+// writeError turns unique-key violations into business errors and wraps everything else.
+func writeError(err error) error {
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == duplicateEntryCode {
+		switch {
+		case duplicateKey(mysqlErr.Message, bizEventReasonIndex):
+			return ginx.ErrStrategyEventExists
+		case duplicateKey(mysqlErr.Message, nameIndex):
+			return ginx.ErrStrategyNameExists
+		}
+	}
+
+	return gerrors.NewE(gerrors.MysqlFailure, err)
+}
+
+// duplicateKey reports whether a 1062 message names the index, with or without a table prefix.
+func duplicateKey(message, index string) bool {
+	return strings.HasSuffix(message, "key '"+index+"'") || strings.HasSuffix(message, "."+index+"'")
 }
 
 func (s *Strategy) db(ctx context.Context) *hamysql.GormDB {

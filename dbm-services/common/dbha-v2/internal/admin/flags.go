@@ -27,13 +27,30 @@ package admin
 import "dbm-services/common/dbha-v2/internal/admin/cmds"
 
 var (
-	ConfigFilePath = ""
-	MigrateType    = ""
+	ConfigFilePath             = ""
+	MigrateType                = ""
+	MigrateInventory           = false
+	MigrateInventoryFull       = false
+	MigrateRepairMissing       = false
+	MigrateRepairMissingSchema = false
+	MigrateRepairMissingData   = false
 )
 
 func init() {
 	MigrateCmd.Flags().StringVarP(&MigrateType, "type", "t", "all",
-		"Migrate type: schema (table schema only), strategy (default global strategies only), all (both)")
+		"Migrate type: schema (structure only), data (data initialization only), all (schema then data)")
+
+	MigrateCmd.Flags().BoolVar(&MigrateInventory, "inventory", false,
+		"Read-only inventory of each endpoint; no schema, data, or ledger writes")
+	MigrateCmd.Flags().BoolVar(&MigrateInventoryFull, "inventory-full", false,
+		"Read-only inventory that also prints every column of each existing managed table")
+
+	MigrateCmd.Flags().BoolVar(&MigrateRepairMissing, "repair-missing", false,
+		"Repair missing schema objects and missing default data; only the parts run by --type are repaired")
+	MigrateCmd.Flags().BoolVar(&MigrateRepairMissingSchema, "repair-missing-schema", false,
+		"Rebuild missing tables, columns, and secondary indexes; rebuilt tables are empty and deleted rows are not restored")
+	MigrateCmd.Flags().BoolVar(&MigrateRepairMissingData, "repair-missing-data", false,
+		"Let data steps insert missing default rows when managed data already exists")
 
 	StopCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
 	StopCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")

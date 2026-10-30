@@ -184,7 +184,11 @@ flowchart TD
 
 配置要点：
 
-- **默认全局策略种子**（`dbha-admin migrate strategy`）：`TriggerEventName=DoubleCheckSshFailureV1`，`action=switch`，`scope=host`，`TriggerCount=1`，`Priority=9999`，`BkBizID=0`。
+- **默认全局策略种子**：策略表为空时，`dbha-admin migrate --type data` 插入默认行
+  （`DoubleCheckSshFailureV1`，`action=switch`，`scope=host`，`TriggerCount=1`，`Priority=9999`，`BkBizID=0`）。
+  已有任意策略行时，缺失行需要 `--repair-missing-data`；软删除行不会恢复。
+  `--type data` 不修改主键或列定义。`schema` / `all` 收敛策略表主键时可能锁表，执行前需要停止写入。
+  完整维护规则见 [migrator 设计](../architecture/migrator-design.md)。
 - **special 常量**（非 harvester emit、**非**入窗 EventName）：`TendbhaProxyBackendFailure`、`TendbclusterSpiderRemoteFailure`；见 [`strategy.go`](../../internal/analysis/workflow/strategy.go)。
 - 策略表：`t_db_switching_strategy`；`TriggerEventName` / `action`（`switch`|`notify`）可配；总开关 `EnableSwitching`。
 

@@ -25,6 +25,8 @@
 package handler
 
 import (
+	"errors"
+
 	"dbm-services/common/dbha-v2/internal/admin/api/open/serializer"
 	"dbm-services/common/dbha-v2/internal/admin/ginx"
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
@@ -45,6 +47,16 @@ func NewStrategyHandler(strategyService *strategy.Strategy) *StrategyHandler {
 	return &StrategyHandler{
 		strategyService: strategyService,
 	}
+}
+
+// strategyWriteErrorResponse answers unique-key conflicts as bad requests and the rest as system errors.
+func strategyWriteErrorResponse(c *gin.Context, err error) {
+	if errors.Is(err, ginx.ErrStrategyNameExists) || errors.Is(err, ginx.ErrStrategyEventExists) {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	ginx.SystemErrorJSONResponse(c, err)
 }
 
 // Create creates a strategy
@@ -93,7 +105,7 @@ func (h *StrategyHandler) Create(c *gin.Context) {
 	}
 
 	if err := h.strategyService.CreateStrategy(c.Request.Context(), strategyInfo); err != nil {
-		ginx.SystemErrorJSONResponse(c, err)
+		strategyWriteErrorResponse(c, err)
 		return
 	}
 
@@ -157,7 +169,7 @@ func (h *StrategyHandler) BatchCreate(c *gin.Context) {
 	}
 
 	if err := h.strategyService.BatchCreateStrategy(c.Request.Context(), strategies); err != nil {
-		ginx.SystemErrorJSONResponse(c, err)
+		strategyWriteErrorResponse(c, err)
 		return
 	}
 
@@ -222,7 +234,7 @@ func (h *StrategyHandler) BatchUpdate(c *gin.Context) {
 	}
 
 	if err := h.strategyService.BatchUpdateStrategy(c.Request.Context(), strategies); err != nil {
-		ginx.SystemErrorJSONResponse(c, err)
+		strategyWriteErrorResponse(c, err)
 		return
 	}
 
@@ -472,7 +484,7 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.strategyService.UpdateStrategy(c.Request.Context(), strategyInfo); err != nil {
-		ginx.SystemErrorJSONResponse(c, err)
+		strategyWriteErrorResponse(c, err)
 		return
 	}
 
@@ -669,7 +681,7 @@ func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
 	}
 
 	if err := h.strategyService.CreateStrategy(c.Request.Context(), strategyInfo); err != nil {
-		ginx.SystemErrorJSONResponse(c, err)
+		strategyWriteErrorResponse(c, err)
 		return
 	}
 
@@ -787,7 +799,7 @@ func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 	}
 
 	if err := h.strategyService.UpdateStrategy(c.Request.Context(), strategyInfo); err != nil {
-		ginx.SystemErrorJSONResponse(c, err)
+		strategyWriteErrorResponse(c, err)
 		return
 	}
 
