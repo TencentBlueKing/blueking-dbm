@@ -72,9 +72,16 @@ SHARD_ROUTE_CONCURRENCY = 8
 # Shards whose binlogs are looked up at once; each costs a report_db query and a BKLog search.
 BINLOG_LOCATE_CONCURRENCY = 4
 
-# Task ids per download bill. The backup system's cap is unconfirmed; kept well below the 100
-# queryTasks is known to accept.
+# Task ids per download bill. This is a scheduling granularity, not a backup system limit:
+# MySQL rollback already submits up to 500 task ids per bill through the same backupapi/recover.
+# Small bills release the shared window sooner and let hosts interleave; 2000 files = 40 calls.
 DOWNLOAD_BATCH_SIZE = 50
+
+# One rollback plan keeps at most this many task ids in flight across every target host.
+# The backup system sustains about 5000 concurrent downloads; 500 per plan leaves room for
+# other plans. The window and its batch ledger are persisted on the plan row
+# (TbTendisRollbackPlan.download_state, see download_window.py).
+DOWNLOAD_INFLIGHT_TASK_LIMIT = 500
 
 # rollback_version: datastructure = v1 construction flow, rollback = v2 implementation
 DATASTRUCTURE_VERSION = "datastructure"

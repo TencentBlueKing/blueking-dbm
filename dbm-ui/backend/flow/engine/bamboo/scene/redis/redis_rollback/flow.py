@@ -114,6 +114,7 @@ class RedisRollbackFlow:
             return plan.save(ticket_id=ticket_id), plan
 
         plan = RollbackPlan.load(plan_id)
+        old_layout = plan.layout_signature()
         problems = confirm_backup_tasks(
             {item.shard.shard_value: item.task_ids for item in plan.items if not item.is_placeholder}
         )
@@ -122,6 +123,10 @@ class RedisRollbackFlow:
                 context={"message": "; ".join(m for messages in problems.values() for m in messages)}
             )
         RollbackPlanner.pack_dest_hosts(plan, dest_ips, len(dest_ips))
+        # The ledger is keyed by (dest_ip, batch index). A flow-level retry re-packs the plan, so
+        # reject a changed layout once downloads have started: the same index would name other files.
+        if old_layout and plan.layout_signature() != old_layout and RollbackPlan.download_state_of(plan_id):
+            raise RollbackPlanError(context={"message": _("计划布局已变化，已有下载台账不可复用；请终止该流程后重新提单")})
         return plan.save(plan_id, ticket_id=ticket_id), plan
 
     def build_cluster_rollback(self, info: dict):
@@ -257,6 +262,7 @@ class RedisRollbackFlow:
                 kwargs={
                     "bk_cloud_id": plan.bk_cloud_id,
                     "plan_id": plan_id,
+                    "ticket_id": self.data.get("uid"),
                     "dest_ip": dest_host.ip,
                     "login_user": os_account["os_user"],
                     "login_passwd": os_account["os_password"],
