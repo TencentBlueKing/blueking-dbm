@@ -81,9 +81,11 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
     @classmethod
     def _enrich_topo_graph_node_port(cls, graph: dict, port: int) -> dict:
         """
-        为拓扑图中所有入口节点（pod 节点）的 node_id 追加 :port 后缀，
+        为拓扑图中入口节点的 node_id 追加 :port 后缀。
 
-        入口节点（node_type 以 "entry_" 开头）追加端口号.
+        入口节点（node_type 以 "entry_" 开头）的 node_id 会同步改写
+        nodes、根 node_id、groups.children_id 以及 lines 的 source/target，
+        保证同一节点在各字段中的 id 一致。
         """
         if not port:
             return graph
@@ -102,21 +104,26 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
 
         port_suffix = f":{port}"
 
-        # 2. 更新 nodes 的 node_id: pod_name -> pod_name:port
-        for node in graph.get("nodes", []):
-            node_id = node.get("node_id", "")
+        def _with_port(node_id: str) -> str:
             if node_id in node_ids_to_update:
-                node["node_id"] = f"{node_id}{port_suffix}"
+                return f"{node_id}{port_suffix}"
+            return node_id
 
-        # 3. 更改node_id
-        graph["node_id"] = f"{graph.get('node_id')}{port_suffix}"
+        # 2. 更新 nodes 的 node_id
+        for node in graph.get("nodes", []):
+            node["node_id"] = _with_port(node.get("node_id", ""))
 
-        # 4. 更改groups里的children_id
+        # 3. 根 node_id 若指向入口节点，一并追加端口
+        graph["node_id"] = _with_port(graph.get("node_id") or "")
+
+        # 4. 更改 groups 里的 children_id
         for group in graph.get("groups", []):
-            group["children_id"] = [
-                f"{child_id}{port_suffix}" if child_id in node_ids_to_update else child_id
-                for child_id in group.get("children_id", [])
-            ]
+            group["children_id"] = [_with_port(child_id) for child_id in group.get("children_id", [])]
+
+        # 5. 同步 lines 端点，避免 source/target 仍是未加端口的旧 id
+        for line in graph.get("lines", []):
+            line["source"] = _with_port(line.get("source", ""))
+            line["target"] = _with_port(line.get("target", ""))
 
         return graph
 
