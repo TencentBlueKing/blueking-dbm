@@ -283,7 +283,7 @@ func (m *MySql) makeCollectorGroup(hGroup *harvestGroup) []*collector {
 
 // collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with
 // a lightweight reachability probe (SELECT 1) followed by a write-heartbeat path.
-// It deliberately skips obtainGlobalStatus / obtainHostStatus / obtainSlaveStatus
+// It deliberately skips obtainGlobalStatus / obtainSlaveStatus
 // (all forward to the backend master and only duplicate the direct backend probe).
 // It assumes c.db is already opened by the caller.
 func (m *MySql) collectProxyServicePort(c *collector, status *haprobe.MySqlStatus) {
@@ -370,12 +370,16 @@ func (m *MySql) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 
 	isProxyServicePort := c.isTendbHaProxy() && !c.isAdmin()
 
-	if !isProxyServicePort {
-		if hostStatus, err := c.obtainHostStatus(); err != nil {
-			logger.Warn("failed to obtain the host status, errmsg: %s", err)
-		} else {
-			data.Host = hostStatus
-		}
+	if hostStatus, err := c.obtainHostStatus(); err != nil {
+		logger.Warn("failed to obtain the host status, errmsg: %s", err)
+	} else {
+		data.Host = hostStatus
+	}
+
+	if config.Snapshot().IsPortPaused(c.endpoint.Port) {
+		logger.Info("collection paused, skip probing, ip: %s, port: %d",
+			c.endpoint.Host, c.endpoint.Port)
+		return
 	}
 
 	dbEvent, err := c.open()
@@ -530,6 +534,18 @@ func (m *MySql) emitDbStatus(ctx context.Context, c *collector, htype haprobe.Ha
 
 	if c.endpoint == nil {
 		logger.Error("invalid collector, its endpoint is nil, group: %s", htype)
+		return
+	}
+
+	if hostStatus, err := c.obtainHostStatus(); err != nil {
+		logger.Warn("failed to obtain the host status, errmsg: %s", err)
+	} else {
+		data.Host = hostStatus
+	}
+
+	if config.Snapshot().IsPortPaused(c.endpoint.Port) {
+		logger.Info("collection paused, skip probing, ip: %s, port: %d, group: %s",
+			c.endpoint.Host, c.endpoint.Port, htype)
 		return
 	}
 

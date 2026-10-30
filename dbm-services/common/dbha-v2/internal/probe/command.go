@@ -106,6 +106,27 @@ var EnsureKeepaliveCmd = &cobra.Command{
 	RunE:  cmds.EnsureKeepaliveCmdRunE,
 }
 
+// CollectPauseCmd temporarily stops collecting the given ports.
+var CollectPauseCmd = &cobra.Command{
+	Use:   "collect-pause [ports]",
+	Short: "Temporarily stop collecting the given ports (host-only reporting until it expires).",
+	Long: "Ports are positional. Separate them with spaces or commas; a semicolon works " +
+		"too but the shell needs it quoted, so prefer spaces or commas in scripts. A dash " +
+		"introduces an inclusive range, e.g. 3306 6379,6380 30000-30010. Without a port " +
+		"every collected port is paused. A running probe applies the change on the next " +
+		"collection round of each group; if it is not running, it applies on the next start.",
+	RunE: cmds.CollectPauseCmdRunE,
+}
+
+// CollectResumeCmd resumes collecting the paused ports.
+var CollectResumeCmd = &cobra.Command{
+	Use:   "collect-resume [ports]",
+	Short: "Resume collecting the paused ports.",
+	Long: "Ports are positional and use the same syntax as collect-pause: separate them " +
+		"with spaces or commas, quote a semicolon. Without a port every paused port is resumed.",
+	RunE: cmds.CollectResumeCmdRunE,
+}
+
 func init() {
 	GenConfigCmd.Flags().String("admin-endpoints", "",
 		"Admin service endpoints, separated by ; (e.g. host1:port1;host2:port2)")
@@ -136,6 +157,18 @@ func init() {
 		"reload",
 		false,
 		"After writing the config file, signal the running probe to reload it",
+	)
+
+	CollectPauseCmd.Flags().Duration(
+		"duration",
+		cmds.DefaultPauseDuration,
+		"How long the ports stay paused; a positive value with a unit, e.g. 100s, 10m, 1h "+
+			"(default 10m; a bare number is rejected)",
+	)
+	CollectPauseCmd.Flags().Bool(
+		"show",
+		false,
+		"Print the ports that are still paused and exit without changing anything",
 	)
 
 	EnsureCmd.Flags().BoolVar(&cmds.FromCron, "from-cron", false,
