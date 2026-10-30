@@ -260,7 +260,7 @@
       "DBM",
       "DBM_REDIS",
       "NO_MONITOR_TARGET",
-      "ALL_NODES"
+      "NODE_ALL"
     ],
     "app": "",
     "path": "",
@@ -273,7 +273,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[TendisCache]集群P99访问耗时",
-  "version": 7,
+  "version": 8,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
