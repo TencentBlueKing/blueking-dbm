@@ -257,7 +257,8 @@
       }
     },
     "labels": [
-      "DBM_REDIS"
+      "DBM_REDIS",
+      "WORST_NODE"
     ],
     "app": "",
     "path": "",
@@ -270,7 +271,7 @@
   },
   "is_enabled": false,
   "monitor_indicator": "Redis(主从版)实例连接数增速",
-  "version": 6,
+  "version": 7,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
