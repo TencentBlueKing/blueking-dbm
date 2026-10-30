@@ -21,6 +21,7 @@ from backend.db_meta.models.mysql_dts import MysqlDtsInfo
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.db_services.mysql.remote_service.serializers import DBTablePatternField
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.utils.mysql.dts.constants import (
     DtsLifecycleMode,
@@ -67,12 +68,10 @@ class TableRouteSerializer(serializers.Serializer):
     """库表路由（对应 DTS routes / table_migrate_rule）。"""
 
     source_name = serializers.CharField(required=False, allow_blank=True, help_text=_("源名称（可选）"))
-    source_db = serializers.CharField(required=False, allow_blank=True, help_text=_("源库名"))
-    source_db_pattern = serializers.CharField(required=False, allow_blank=True, help_text=_("源库通配（优先于 source_db）"))
-    source_table = serializers.CharField(required=False, allow_blank=True, help_text=_("源表名"))
-    source_table_pattern = serializers.CharField(
-        required=False, allow_blank=True, help_text=_("源表通配（优先于 source_table）")
-    )
+    source_db = DBTablePatternField(required=False, allow_blank=True, help_text=_("源库名"))
+    source_db_pattern = DBTablePatternField(required=False, allow_blank=True, help_text=_("源库通配（优先于 source_db）"))
+    source_table = DBTablePatternField(required=False, allow_blank=True, help_text=_("源表名"))
+    source_table_pattern = DBTablePatternField(required=False, allow_blank=True, help_text=_("源表通配（优先于 source_table）"))
     target_db = serializers.CharField(required=False, allow_blank=True, help_text=_("目标库名（可选）"))
     target_table = serializers.CharField(required=False, allow_blank=True, help_text=_("目标表名（可选）"))
 

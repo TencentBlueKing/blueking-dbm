@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.db_services.mysql.remote_service.mock_data import (
     CHECK_CLUSTER_DATABASE_REQUEST_DATA,
     CHECK_CLUSTER_DATABASE_RESPONSE_DATA,
@@ -21,6 +22,19 @@ from backend.db_services.mysql.remote_service.mock_data import (
     SHOW_TABLES_RESPONSE_DATA,
 )
 from backend.ticket.builders.mysql.base import DBTableField
+
+
+class DBTablePatternField(serializers.CharField):
+    """
+    库表名/匹配规则字段，只校验字符集，与 RemoteServiceHandler 拼接 SQL 前的校验保持一致
+    不限制系统库和通配符位置，适用于排除项、DTS 路由等 DBTableField 规则过严的场景
+    """
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+        if not RemoteServiceHandler.DB_TB_PATTERN_RE.fullmatch(data):
+            raise serializers.ValidationError(_("库表名只能由`[0-9],[a-z],[A-Z],-,_`及通配符`*,%,?`组成"))
+        return data
 
 
 class ShowDatabasesRequestSerializer(serializers.Serializer):

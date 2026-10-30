@@ -92,6 +92,22 @@ class MyBKGenericRepoClient(BKGenericRepoClient):
         logger.info("Calling BkRepo: %s", curlify.to_curl(resp.request))
         return resp
 
+    def temporary_download(self, path: str, token: str, force_download: bool = True) -> requests.Response:
+        """
+        凭临时 token 下载单个文件
+        不能携带平台账号凭据，否则制品库会以平台身份放行，token 与路径的绑定、时效、次数校验全部失效
+        :param path: 文件完整路径
+        :param token: create_bkrepo_access_token 签发的临时 token
+        :param force_download: 是否强制下载
+        """
+        key = path.lstrip("/")
+        url = urljoin(self.endpoint_url, f"/generic/temporary/download/{self.project}/{self.bucket}/{key}")
+        params = {"token": token, "download": "true" if force_download else "false"}
+        resp = requests.get(url, params=params, stream=True, timeout=TIMEOUT_THRESHOLD)
+        if not resp.ok:
+            logger.error("Temporary download rejected by bkrepo, status: %s, path: %s", resp.status_code, path)
+        return resp
+
     def move_file(self, src_full_path: str, dest_full_path: str, overwrite: bool = False) -> dict:
         """
         在同一制品库仓库内移动文件/目录（制品库原生接口，不产生数据传输）

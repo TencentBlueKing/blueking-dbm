@@ -62,8 +62,14 @@ class StorageViewSet(viewsets.SystemViewSet):
         url_path=r"generic/temporary/download/(?P<project>[\.\w-]+)/(?P<repo>[\.\w-]+)/(?P<path>[\./\w-]+)",
     )
     def temporary_download(self, request, *args, **kwargs):
-        file_path_list = [kwargs["path"]]
-        return StorageHandler().batch_download(file_path_list)
+        data = self.params_validate(self.get_serializer_class())
+        return StorageHandler().temporary_download(
+            project=kwargs["project"],
+            repo=kwargs["repo"],
+            path=kwargs["path"],
+            token=data["token"],
+            force_download=data["download"],
+        )
 
     @common_swagger_auto_schema(operation_summary=_("获取文件内容"), query_serializer=FileSerializer(), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False, serializer_class=FileSerializer)

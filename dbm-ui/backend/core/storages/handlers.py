@@ -15,6 +15,7 @@ import posixpath
 import zipfile
 from typing import Any, Dict, List
 
+import requests
 from bkstorages.exceptions import RequestError as BKStorageError
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
@@ -22,7 +23,7 @@ from rest_framework.status import HTTP_200_OK
 
 from backend import env
 from backend.core.storages.constants import STAGING_PREFIX
-from backend.core.storages.exceptions import StagingFileError
+from backend.core.storages.exceptions import StagingFileError, TemporaryDownloadError
 from backend.core.storages.storage import CustomBKRepoStorage, get_storage
 from backend.exceptions import ApiRequestError, ApiResultError
 
@@ -94,6 +95,45 @@ class StorageHandler(object):
             headers={"Content-Disposition": content_disposition},
         )
         return resp
+
+    def temporary_download(
+        self, project: str, repo: str, path: str, token: str, force_download: bool = True
+    ) -> StreamingHttpResponse:
+        """
+        凭制品库临时 token 下载文件，由制品库校验 token 与路径的绑定关系
+        :param project: 制品库项目
+        :param repo: 制品库仓库
+        :param path: 文件路径
+        :param token: 临时 token
+        :param force_download: 是否强制下载
+        """
+        client = self.storage.client
+        if project != client.project or repo != client.bucket:
+            raise TemporaryDownloadError(_("不支持的制品库仓库: {}/{}").format(project, repo))
+        if ".." in path.split("/"):
+            raise TemporaryDownloadError(_("非法的文件路径: {}").format(path))
+
+        try:
+            resp = client.temporary_download(path=path, token=token, force_download=force_download)
+        except requests.RequestException as err:
+            # 异常信息中的 URL 带有 token，不能进入日志或异常链
+            logger.error("Temporary download request to bkrepo failed: %s, path: %s", type(err).__name__, path)
+            raise TemporaryDownloadError(_("请求制品库失败")) from None
+        if not resp.ok:
+            resp.close()
+            raise TemporaryDownloadError(_("制品库拒绝下载请求，状态码: {}").format(resp.status_code))
+
+        chunk_size = 1024 * 1024
+        filename = posixpath.basename(path.rstrip("/"))
+        content_disposition = resp.headers.get("Content-Disposition", f'attachment; filename="{filename}"')
+        response = StreamingHttpResponse(
+            resp.iter_content(chunk_size=chunk_size),
+            content_type="application/octet-stream",
+            headers={"Content-Disposition": content_disposition},
+        )
+        # 客户端中途断开时 iter_content 生成器被关闭，但不会释放上游连接
+        response._resource_closers.append(resp.close)
+        return response
 
     def delete_file(self, file_path) -> bool:
         """

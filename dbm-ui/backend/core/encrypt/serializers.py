@@ -20,5 +20,5 @@ class FetchPublicKeysSerializer(serializers.Serializer):
         help_text=_("密钥名称列表"),
         default=[AsymmetricCipherConfigType.PASSWORD.value],
         min_length=1,
-        child=serializers.ChoiceField(help_text=_("密钥名称"), choices=AsymmetricCipherConfigType.get_choices()),
+        child=serializers.ChoiceField(help_text=_("密钥名称"), choices=[AsymmetricCipherConfigType.PASSWORD.value]),
     )

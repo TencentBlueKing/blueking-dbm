@@ -42,3 +42,8 @@ class FilesTransferError(CoreBaseException):
 class StagingFileError(CoreBaseException):
     MESSAGE = _("暂存区文件异常")
     ERROR_CODE = 5
+
+
+class TemporaryDownloadError(CoreBaseException):
+    MESSAGE = _("临时下载文件失败")
+    ERROR_CODE = 6
