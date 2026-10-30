@@ -34,6 +34,7 @@ import (
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
+	sqlfileutil "dbm-services/mysql/db-simulation/pkg/util"
 )
 
 // DelPod 控制运行模拟执行后是否删除拉起的Pod的开关
@@ -61,6 +62,26 @@ type BaseParam struct {
 	Path              string                `json:"path"  binding:"required"`
 	SchemaSQLFile     string                `json:"schema_sql_file"  binding:"required"`
 	ExecuteObjects    []ExecuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
+}
+
+func (b BaseParam) validateFileNames() error {
+	if err := sqlfileutil.ValidateSQLFileName(b.SchemaSQLFile); err != nil {
+		return err
+	}
+	if len(b.ExecuteObjects) == 0 {
+		return fmt.Errorf("SQL execution objects are empty")
+	}
+	for _, object := range b.ExecuteObjects {
+		if len(object.SQLFiles) == 0 {
+			return fmt.Errorf("SQL file list is empty for execution object %d", object.LineID)
+		}
+		for _, file := range object.SQLFiles {
+			if err := sqlfileutil.ValidateSQLFileName(file); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (b BaseParam) GetMySQLEngine() string {
@@ -373,6 +394,10 @@ func run(task SimulationTask, tkType string) {
 	// 关闭协程
 	defer func() { ticker.Stop(); doneChan <- struct{}{} }()
 	xlogger := task.getXlogger()
+	if err = task.BaseParam.validateFileNames(); err != nil {
+		xlogger.Error("invalid simulation SQL files: %s", err.Error())
+		return
+	}
 	// create Pod
 	model.UpdatePhase(task.TaskId, task.MySQLVersion, model.PhaseCreatePod)
 	defer func() {
@@ -538,7 +563,7 @@ func (t *SimulationTask) executeOneObject(e ExecuteSQLFileObj, containerName str
 
 	// 第一步：下载 SQL 文件
 	downloadCmd := t.DbPodSets.getDownloadSqlCmd(t.Path, e.SQLFile)
-	sstdout += util.RemovePassword(downloadCmd) + "\n"
+	sstdout += t.DbPodSets.redactCommand(downloadCmd) + "\n"
 	stdout, stderr, err := t.DbPodSets.executeInPod(downloadCmd, containerName, t.getExtmap(e.SQLFile), false)
 	sstdout += stdout.String() + "\n"
 	sstderr += stderr.String() + "\n"
@@ -552,7 +577,7 @@ func (t *SimulationTask) executeOneObject(e ExecuteSQLFileObj, containerName str
 	for _, db := range realexcutedbs {
 		dbCmds := t.DbPodSets.getExecuteSQLCmds(e.SQLFile, db)
 		for _, cmd := range dbCmds {
-			sstdout += util.RemovePassword(cmd) + "\n"
+			sstdout += t.DbPodSets.redactCommand(cmd) + "\n"
 			stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap(e.SQLFile), false)
 			sstdout += stdout.String() + "\n"
 			sstderr += stderr.String() + "\n"

@@ -21,7 +21,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -36,6 +35,7 @@ import (
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
+	"dbm-services/mysql/db-simulation/pkg/util"
 )
 
 // CheckSyntax 语法检查
@@ -233,6 +233,9 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 	}
 	// 最后删除临时目录,不会返回错误
 	defer tf.DelTempDir()
+	if err = tf.validateFileNames(); err != nil {
+		return nil, err
+	}
 	if !tf.IsLocalFile {
 		if err = tf.rejectEmptySQLFilesFromRepo(); err != nil {
 			logger.Error("reject empty sql file: %s", err.Error())
@@ -605,8 +608,35 @@ func (tf *TmysqlParseFile) uniqueFileNames() []string {
 	return lo.Uniq(tf.Param.FileNames)
 }
 
+func (tf *TmysqlParseFile) validateFileNames() error {
+	if len(tf.Param.FileNames) == 0 {
+		return fmt.Errorf("SQL file list is empty")
+	}
+	files := make(map[string]struct{}, len(tf.Param.FileNames))
+	for _, fileName := range tf.Param.FileNames {
+		if _, err := util.SQLFilePath(tf.tmpWorkdir, fileName); err != nil {
+			return err
+		}
+		files[fileName] = struct{}{}
+	}
+	for _, object := range tf.Param.ExecuteObjects {
+		for _, fileName := range object.SQLFiles {
+			if _, err := util.SQLFilePath(tf.tmpWorkdir, fileName); err != nil {
+				return err
+			}
+			if _, exists := files[fileName]; !exists {
+				return fmt.Errorf("execution object references an unknown SQL file %q", fileName)
+			}
+		}
+	}
+	return nil
+}
+
 // rejectEmptySQLFilesFromRepo 用制品库 node/detail 的 size 拒绝空文件，下载前拦截。
 func (tf *TmysqlParseFile) rejectEmptySQLFilesFromRepo() error {
+	if err := tf.validateFileNames(); err != nil {
+		return err
+	}
 	if tf.bkRepoClient == nil {
 		return fmt.Errorf("bkrepo client is not initialized")
 	}
@@ -626,6 +656,9 @@ func (tf *TmysqlParseFile) rejectEmptySQLFilesFromRepo() error {
 
 // Downloadfile download sqlfile
 func (tf *TmysqlParseFile) Downloadfile() (err error) {
+	if err = tf.validateFileNames(); err != nil {
+		return err
+	}
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error)
 	c := make(chan struct{}, 5)
@@ -675,35 +708,46 @@ func getSQLParseResultFile(fileName, version string) string {
 	return fileName + ".json"
 }
 
-// getCommand generates the command string for running TmysqlParse
-// It takes the input filename and MySQL version as parameters
-func (t *TmysqlParse) getCommand(filename, version, cluster_type string) string {
-	// Construct input and output file paths
-	inputPath := path.Join(t.tmpWorkdir, filename)
-	outputFileName := getSQLParseResultFile(filename, version)
-	outputPath := path.Join(t.tmpWorkdir, outputFileName)
-
-	// Build the base command with common options
-	cmd := fmt.Sprintf(`%s --sql-file=%s --output-path=%s `+
-		`--print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT' --sql-mode=''`,
-		t.TmysqlParseBinPath, inputPath, outputPath)
-
-	// Add MySQL version if provided
+// getCommandArgs builds arguments without interpreting filenames as shell commands.
+func (t *TmysqlParse) getCommandArgs(filename, version, clusterType string) ([]string, error) {
+	inputPath, err := util.SQLFilePath(t.tmpWorkdir, filename)
+	if err != nil {
+		return nil, err
+	}
+	outputPath, err := util.SQLFilePath(t.tmpWorkdir, getSQLParseResultFile(filename, version))
+	if err != nil {
+		return nil, err
+	}
+	args := []string{
+		"--sql-file=" + inputPath,
+		"--output-path=" + outputPath,
+		"--print-query-mode=2",
+		"--output-format=JSON_LINE_PER_OBJECT",
+		"--sql-mode=",
+	}
 	if lo.IsNotEmpty(version) {
-		cmd += fmt.Sprintf(" --mysql-version=%s", version)
+		args = append(args, "--mysql-version="+version)
 	}
-	if lo.Contains([]string{app.Spider, app.TendbCluster}, cluster_type) {
-		cmd += (" --mysql-variant=mariadb")
+	if lo.Contains([]string{app.Spider, app.TendbCluster}, clusterType) {
+		args = append(args, "--mysql-variant=mariadb")
 	} else {
-		cmd += (" --mysql-variant=mysql")
+		args = append(args, "--mysql-variant=mysql")
 	}
-	return cmd
+	return args, nil
 }
 
 // Execute runs the TmysqlParse command for each SQL file in parallel.
 // It takes a channel to send the names of successfully executed files and the MySQL version as parameters.
 // The function returns an error if any of the executions fail.
 func (tf *TmysqlParseFile) Execute(executedSqlFileCh chan string, version string) (err error) {
+	if err = tf.validateFileNames(); err != nil {
+		return err
+	}
+	for _, fileName := range tf.uniqueFileNames() {
+		if _, err = tf.getCommandArgs(fileName, version, tf.Param.ClusterType); err != nil {
+			return err
+		}
+	}
 	var wg sync.WaitGroup
 	var errs []error
 	c := make(chan struct{}, 10) // Semaphore to limit concurrent goroutines
@@ -714,9 +758,13 @@ func (tf *TmysqlParseFile) Execute(executedSqlFileCh chan string, version string
 		go func(sqlfile, ver string) {
 			c <- struct{}{}
 			defer func() { <-c; wg.Done() }()
-			//nolint
-			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver, tf.Param.ClusterType))
-			logger.Info("command is %s", command)
+			args, err := tf.getCommandArgs(sqlfile, ver, tf.Param.ClusterType)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			command := exec.Command(tf.TmysqlParseBinPath, args...)
+			logger.Info("parser command: %q", command.Args)
 
 			output, err := command.CombinedOutput()
 			if err != nil {
@@ -743,7 +791,15 @@ func (tf *TmysqlParseFile) Execute(executedSqlFileCh chan string, version string
 }
 
 func (t *TmysqlParse) getAbsOutputFilePath(sqlFile, version string) string {
-	fileAbPath, _ := filepath.Abs(path.Join(t.tmpWorkdir, getSQLParseResultFile(sqlFile, version)))
+	if err := util.ValidateSQLFileName(sqlFile); err != nil {
+		logger.Error("invalid SQL output filename: %s", err.Error())
+		return ""
+	}
+	fileAbPath, err := util.SQLFilePath(t.tmpWorkdir, getSQLParseResultFile(sqlFile, version))
+	if err != nil {
+		logger.Error("invalid SQL output path: %s", err.Error())
+		return ""
+	}
 	return fileAbPath
 }
 

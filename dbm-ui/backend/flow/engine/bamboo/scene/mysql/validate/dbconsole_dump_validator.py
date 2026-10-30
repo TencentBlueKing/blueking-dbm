@@ -36,7 +36,7 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
 
     EXPLAIN_BATCH_SIZE = 20
     MAX_WORKERS = 5
-    # 注入预检只是一次轻量语法判断，服务不可用时应快速失败放行，
+    # 注入预检只是一次轻量语法判断，服务不可用时应快速失败并不放行 where，
     # 避免命中 DataAPI 默认的 30s 超时 + 3 次递归重试（最长约 180s）拖慢整个 where 校验。
     INJECT_CHECK_TIMEOUT = 5
     INJECT_CHECK_RETRY_TIMES = 1
@@ -82,7 +82,7 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
         return None
 
     def _check_where_inject(self, where: str, target: Tuple[str, str]) -> Optional[dict]:
-        """用第一张导出表拼一条 SQL，调用一次 inject 检查；服务不可用则失败放行。"""
+        """用第一张导出表拼一条 SQL，调用一次 inject 检查；服务不可用或结果无法判定时不放行。"""
         db, table = target
         sql = "SELECT * FROM {}.{} WHERE ({})".format(self._quote_ident(db), self._quote_ident(table), where)
         try:
@@ -92,10 +92,14 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
                 retry_times=self.INJECT_CHECK_RETRY_TIMES,
             )
         except Exception as exc:  # noqa: BLE001
-            logger.warning(_("where 注入检查服务不可用，失败放行: {}").format(str(exc)))
-            return None
+            logger.exception(_("where 注入检查服务不可用，不放行: {}").format(str(exc)))
+            return self._build_where_error(_("where 注入检查服务不可用，请稍后重试: {}").format(str(exc)))
 
-        if isinstance(result, dict) and result.get("is_inject"):
+        if not isinstance(result, dict) or "is_inject" not in result:
+            logger.error(_("where 注入检查返回结果无效，不放行: 返回类型 {}").format(type(result).__name__))
+            return self._build_where_error(_("where 注入检查返回结果无效，请稍后重试"))
+
+        if result["is_inject"]:
             reason = result.get("reason") or _("未知注入风险")
             return self._build_where_error(_("where 条件存在注入风险: {}").format(reason))
         return None
