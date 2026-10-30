@@ -25,7 +25,7 @@
       {{ utcDisplayTime(data.done_at) }}
     </div>
     <div
-      v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
+      v-if="isOperable"
       class="mt-12">
       <ProcessResourceReplenish
         :data="ticketData"
@@ -73,6 +73,17 @@
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
   const openTicketModify = useOpenTicketModify();
+
+  /**
+   * 重试、调整申请的可见判据
+   * 补货待办只在自身「重试」成功时关闭；资源申请经其他途径（如调整申请后重新申请）成功时，待办可能仍是待处理，
+   * 此时再重试或调整申请都没有意义，流程已成功就不再给入口
+   */
+  const isOperable = computed(
+    () =>
+      props.flowData.status !== FlowMode.STATUS_SUCCEEDED &&
+      (isSuperuser || props.data.operators.includes(username) || props.ticketData.todo_helpers.includes(username)),
+  );
 
   // 调整申请与「重试」同权，入口放在同一个可见块里
   const handleAdjustApply = () => {
