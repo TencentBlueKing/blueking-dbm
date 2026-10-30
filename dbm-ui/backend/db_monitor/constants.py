@@ -344,6 +344,7 @@ class MonitorEventType(StrStructuredEnum):
     MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED = EnumField("mysql-dbha-autofix-validate-failed", _("MySQL DBHA 事件校验失败"))
     MYSQL_DBHA_AUTOFIX_COMMIT_FAILED = EnumField("mysql-dbha-autofix-commit-failed", _("MySQL DBHA自愈提单异常"))
     TICKET_FLOW_TREE_MISSING = EnumField("ticket-flow-tree-missing", _("单据流程树创建异常"))
+    TENCENT_LB_ALARM = EnumField("tencentyun-lb-alarm", _("腾讯云负载均衡告警"))
 
 
 UNIFY_QUERY_PARAMS = {
