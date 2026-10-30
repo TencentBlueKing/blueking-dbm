@@ -762,6 +762,7 @@ class TicketType(StrStructuredEnum):
 
     # 测试
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"))
+    FAKE_LOG_TICKET = TicketEnumField("FAKE_LOG_TICKET", _("日志模拟测试单据"))
 
     # 注册MCP callee计划
     REGISTER_MCP_CALLEE_PLAN = TicketEnumField("REGISTER_MCP_CALLEE_PLAN", _("注册 MCP 执行计划"))
