@@ -39,7 +39,7 @@
             theme: 'light',
             content: userPlaceholder,
           }"
-          :maxlength="32"
+          :maxlength="16"
           :placeholder="userPlaceholder"
           show-word-limit />
       </BkFormItem>
