@@ -51,7 +51,6 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.show_binlog_events import (
     show_relaylog_events as run_show_relaylog_events,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
-from backend.dbm_aiagent.mcp_tools.mysql.impl.show_databases_with_patterns import show_databases_with_patterns
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_engine_status import show_engine_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import (
@@ -102,10 +101,6 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_create_table import (
     ShowCreateTableOutputSerializer,
     ShowCreateTablesInputSerializer,
     ShowCreateTablesOutputSerializer,
-)
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_databases_with_patterns import (
-    ShowDatabasesWithPatternsInputSerializer,
-    ShowDatabasesWithPatternsOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_engine_status import (
     ShowInstanceEngineStatusInputSerializer,
@@ -779,29 +774,6 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 cluster_id=cluster_obj.id,
                 dbname=dbname,
                 table_names=table_names,
-            )
-        )
-
-    @mcp_tools_api_decorator(
-        description=str(_("根据库名正则模式查询集群的数据库列表")),
-        request_slz=ShowDatabasesWithPatternsInputSerializer,
-        response_slz=ShowDatabasesWithPatternsOutputSerializer,
-        permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
-        name_prefix="mysql_query",
-    )
-    def show_databases_with_patterns(self, request, *args, **kwargs):
-        cluster_domain = self.get_param("cluster_domain")
-        dbs = self.get_param("dbs")
-        ignore_dbs = self.get_param("ignore_dbs")
-
-        return Response(
-            show_databases_with_patterns(
-                cluster_domain=cluster_domain,
-                dbs=dbs,
-                ignore_dbs=ignore_dbs,
             )
         )
 
