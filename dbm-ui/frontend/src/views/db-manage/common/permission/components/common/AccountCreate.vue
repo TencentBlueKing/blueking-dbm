@@ -39,7 +39,7 @@
             theme: 'light',
             content: userPlaceholder,
           }"
-          :maxlength="16"
+          :maxlength="accountType === AccountTypes.MYSQL || accountType === AccountTypes.TENDBCLUSTER ? 16 : 32"
           :placeholder="userPlaceholder"
           show-word-limit />
       </BkFormItem>
