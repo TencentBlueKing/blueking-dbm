@@ -32,7 +32,7 @@
     <DbFormItem
       v-if="modelValue.is_send"
       class="mb-24"
-      :label="t('收件人')">
+      :label="t('额外收件人')">
       <MemberSelector
         v-model="personList"
         :disabled="isDisabled"
