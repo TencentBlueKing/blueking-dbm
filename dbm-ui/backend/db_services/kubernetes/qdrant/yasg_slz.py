@@ -44,49 +44,35 @@ paginated_resource_example = {
 resource_topo_graph_example = {
     "node_id": "qdrant-cluster-db.ha-test2.blueking.db:6333",
     "nodes": [
-        {"node_id": "qdrant-pod-0", "node_type": "qdrant::peer_node"},
-        {"node_id": "qdrant-pod-1", "node_type": "qdrant::peer_node"},
-        {"node_id": "qdrant-pod-2", "node_type": "qdrant::peer_node"},
-        {"node_id": "qdrant-cluster-db.ha-test2.blueking.db:6333", "node_type": "entry_dns"},
+        {"node_id": "qdrant-cluster-db.ha-test2.blueking.db:6333", "node_type": "entry_clbDns"},
+        {"node_id": "1.1.1.1:6333", "node_type": "entry_clb"},
+        {"node_id": "qdrant-pod-0", "node_type": "qdrant", "instance_state": "leader"},
+        {"node_id": "qdrant-pod-1", "node_type": "qdrant", "instance_state": "follower"},
+        {"node_id": "qdrant-pod-2", "node_type": "qdrant", "instance_state": "follower"},
     ],
     "groups": [
         {
-            "node_id": "qdrant::peer_nodes",
+            "node_id": "master_entry_group",
+            "group_name": "访问入口",
+            "children_id": ["qdrant-cluster-db.ha-test2.blueking.db:6333", "1.1.1.1:6333"],
+        },
+        {
+            "node_id": "qdrant",
+            "group_name": "Qdrant",
             "children_id": ["qdrant-pod-0", "qdrant-pod-1", "qdrant-pod-2"],
         },
-        {"node_id": "entry_dns", "children_id": ["qdrant-cluster-db.ha-test2.blueking.db"]},
     ],
     "lines": [
         {
-            "source": "qdrant-pod-0",
-            "source_type": "node",
-            "target": "qdrant-pod-1",
-            "target_type": "node",
-            "label": "raft",
-        },
-        {
-            "source": "qdrant-pod-0",
-            "source_type": "node",
-            "target": "qdrant-pod-2",
-            "target_type": "node",
-            "label": "raft",
-        },
-        {
-            "source": "qdrant-pod-1",
-            "source_type": "node",
-            "target": "qdrant-pod-2",
-            "target_type": "node",
-            "label": "raft",
-        },
-        {
-            "source": "qdrant-cluster-db.ha-test2.blueking.db",
-            "source_type": "node",
-            "target": "qdrant::peer_nodes",
+            "source": "master_entry_group",
+            "source_type": "group",
+            "target": "qdrant",
             "target_type": "group",
             "label": "access",
-        },
+            "label_name": "访问",
+        }
     ],
-    "foreign_relations": {"raft_to": [], "raft_from": [], "access_to": [], "access_from": []},
+    "foreign_relations": {"rep_to": [], "rep_from": [], "access_to": [], "access_from": []},
 }
 
 
