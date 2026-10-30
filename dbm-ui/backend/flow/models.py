@@ -332,6 +332,6 @@ class RedisClusterShutdownMetaSnapshot(models.Model):
     class Meta:
         db_table = "flow_redis_cluster_shutdown_meta_snapshot"
         indexes = [
-            models.Index(fields=["cluster_id"]),
-            models.Index(fields=["bk_biz_id"]),
+            models.Index(fields=["cluster_id"], name="flow_redis_meta_cluster_idx"),
+            models.Index(fields=["bk_biz_id"], name="flow_redis_meta_bizid_idx"),
         ]
