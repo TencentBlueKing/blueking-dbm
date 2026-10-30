@@ -3638,7 +3638,7 @@
           "promqlAlias": "$tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m])) or sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m]))",
+          "source": "sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])) or sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m]))",
           "step": "1m",
           "type": "range"
         },
@@ -3658,7 +3658,7 @@
           "promqlAlias": "Total",
           "query_configs": [],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m])) or sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])) or sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m]))",
           "step": "1m",
           "type": "range"
         }
@@ -3778,7 +3778,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [
             {
               "active": true,
@@ -3801,7 +3801,7 @@
           "promqlAlias": "$tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\"}[2m])) or sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[2m]))",
+          "source": "sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\"}[$__interval:1m])) or sum by (type) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m]))",
           "step": "1m",
           "type": "range"
         }
@@ -3944,7 +3944,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "host": [],
@@ -3953,7 +3953,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m])) or sum by (instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])) or sum by (instance) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m]))",
           "step": "1m",
           "type": "range"
         }
@@ -4097,7 +4097,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "host": [],
@@ -4106,7 +4106,7 @@
           "promqlAlias": "$tag_shard $tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\navg by (instance,shard,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval])) or avg by (instance,shard,instance_role,) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval])),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\navg by (instance,shard,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m])) or avg by (instance,shard,instance_role,) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m])),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -4760,7 +4760,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -4770,7 +4770,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "J",
-          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=\"proxy\"}[$__interval])  or  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval])",
+          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=\"proxy\"}[$__interval:1m])  or  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongos_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])",
           "step": "1m",
           "type": "range"
         }
@@ -4880,7 +4880,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -4890,7 +4890,7 @@
           "promqlAlias": "$tag_rs_nm",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type!=\"command\",instance_role=~\"m.*\"}[2m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type!=\"command\",instance_role=~\"m.*\"}[$__interval:1m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         },
@@ -4900,7 +4900,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -4910,7 +4910,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type!=\"command\",instance_role=~\"m.*\"}[2m])) by (instance)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type!=\"command\",instance_role=~\"m.*\"}[$__interval:1m])) by (instance)",
           "step": "1m",
           "type": "range"
         }
@@ -5140,7 +5140,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5150,7 +5150,7 @@
           "promqlAlias": "$tag_rs_nm",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"query\",instance_role=~\"m.*\"}[2m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"query\",instance_role=~\"m.*\"}[$__interval:1m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         },
@@ -5160,7 +5160,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5170,7 +5170,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"query\",instance_role=~\"m.*\"}[2m])) by (instance)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"query\",instance_role=~\"m.*\"}[$__interval:1m])) by (instance)",
           "step": "1m",
           "type": "range"
         }
@@ -5280,7 +5280,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5290,7 +5290,7 @@
           "promqlAlias": "$tag_rs_nm",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"insert\",instance_role=~\"m.*\"}[2m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"insert\",instance_role=~\"m.*\"}[$__interval:1m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         },
@@ -5300,7 +5300,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5310,7 +5310,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"insert\",instance_role=~\"m.*\"}[2m])) by (instance)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"insert\",instance_role=~\"m.*\"}[$__interval:1m])) by (instance)",
           "step": "1m",
           "type": "range"
         }
@@ -5420,7 +5420,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5430,7 +5430,7 @@
           "promqlAlias": "$tag_rs_nm",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"update\",instance_role=~\"m.*\"}[2m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"update\",instance_role=~\"m.*\"}[$__interval:1m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         },
@@ -5440,7 +5440,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5450,7 +5450,7 @@
           "promqlAlias": "$tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"update\",instance_role=~\"m.*\"}[2m])) by (instance)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=\"update\",instance_role=~\"m.*\"}[$__interval:1m])) by (instance)",
           "step": "1m",
           "type": "range"
         }
@@ -5554,7 +5554,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5564,7 +5564,7 @@
           "promqlAlias": "$tag_instance_role $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "sum by (type, instance_role) (\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_asserts_total{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=~\"user|warning\"}[2m])\n)",
+          "source": "sum by (type, instance_role) (\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_asserts_total{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",type=~\"user|warning\"}[$__interval:1m])\n)",
           "step": "1m",
           "type": "range"
         }
@@ -6761,7 +6761,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -6771,7 +6771,7 @@
               "promqlAlias": "$tag_type",
               "query_configs": [],
               "refId": "C",
-              "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_repl_total{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\"}[1m])) by (type)",
+              "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_repl_total{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\"}[$__interval:1m])) by (type)",
               "step": "1m",
               "type": "range"
             }
@@ -7009,7 +7009,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -7019,7 +7019,7 @@
               "promqlAlias": "$tag_shard $tag_instance_role",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nsum by (instance_role, shard) (\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_network_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[2m])\n  or\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_metrics_repl_network_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[2m])\n),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+              "source": "label_replace(\nsum by (instance_role, shard) (\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_network_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m])\n  or\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_metrics_repl_network_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m])\n),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -7711,7 +7711,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -7721,7 +7721,7 @@
               "promqlAlias": "$tag_shard $tag_state",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\navg by (state, instance_role, shard) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+              "source": "label_replace(\navg by (state, instance_role, shard) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -7939,7 +7939,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -7949,7 +7949,7 @@
               "promqlAlias": "$tag_shard $tag_instance_role",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nsum by (instance_role, shard) (\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_extra_info_page_faults_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[2m])\n  or\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_extra_info_page_faults{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[2m])\n),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+              "source": "label_replace(\nsum by (instance_role, shard) (\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_extra_info_page_faults_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m])\n  or\n  irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_extra_info_page_faults{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role=~\"m.*\"}[$__interval:1m])\n),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -8079,7 +8079,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8089,7 +8089,7 @@
           "promqlAlias": "$tag_shard $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",instance_role!=\"proxy\"}[5m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",instance_role!=\"proxy\"}[$__interval:1m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8193,7 +8193,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8203,7 +8203,7 @@
           "promqlAlias": "$tag_shard $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[5m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[5m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[$__interval:1m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[$__interval:1m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8307,7 +8307,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8317,7 +8317,7 @@
           "promqlAlias": "$tag_shard $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"write\"}[5m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"write\"}[5m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"write\"}[$__interval:1m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"write\"}[$__interval:1m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8421,7 +8421,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8431,7 +8431,7 @@
           "promqlAlias": "$tag_shard $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[5m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[5m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[$__interval:1m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"read\"}[$__interval:1m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8535,7 +8535,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8545,7 +8545,7 @@
           "promqlAlias": "$tag_shard $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"command\"}[5m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"command\"}[5m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"command\"}[$__interval:1m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"command\"}[$__interval:1m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8649,7 +8649,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8659,7 +8659,7 @@
           "promqlAlias": "$tag_shard $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"transactions\"}[5m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"transactions\"}[5m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"transactions\"}[$__interval:1m])) by (shard, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\",type=\"transactions\"}[$__interval:1m])) by (shard, type),\n\"shard\", \"$1\", \"shard\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8763,7 +8763,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8773,7 +8773,7 @@
           "promqlAlias": "$tag_rs_nm operation_read",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_read_latency_microseconds_sum{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[5m])) by (rs_nm) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_read_latency_microseconds_count{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[5m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_read_latency_microseconds_sum{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[$__interval:1m])) by (rs_nm) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_read_latency_microseconds_count{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[$__interval:1m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         },
@@ -8783,7 +8783,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -8793,7 +8793,7 @@
           "promqlAlias": "$tag_rs_nm operation_write",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_write_latency_microseconds_sum{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[5m])) by (rs_nm) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_write_latency_microseconds_count{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[5m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
+          "source": "label_replace(\nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_write_latency_microseconds_sum{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[$__interval:1m])) by (rs_nm) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_wt_perf_operation_write_latency_microseconds_count{instance_role!=\"backup\",shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",rs_state=\"1\"}[$__interval:1m])) by (rs_nm),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n)",
           "step": "1m",
           "type": "range"
         }
@@ -8902,7 +8902,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -8912,7 +8912,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state r",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Global_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Global_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -8922,7 +8922,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -8932,7 +8932,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state w",
               "query_configs": [],
               "refId": "B",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Global_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Global_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -8942,7 +8942,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -8952,7 +8952,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state W",
               "query_configs": [],
               "refId": "C",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Global_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Global_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -9051,7 +9051,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9061,7 +9061,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state R",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_R{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_R{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9071,7 +9071,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9081,7 +9081,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state W",
               "query_configs": [],
               "refId": "B",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9091,7 +9091,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9101,7 +9101,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state r",
               "query_configs": [],
               "refId": "C",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9111,7 +9111,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9121,7 +9121,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state w",
               "query_configs": [],
               "refId": "D",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Database_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -9219,7 +9219,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9229,7 +9229,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state R",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_R{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_R{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9239,7 +9239,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9249,7 +9249,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state W",
               "query_configs": [],
               "refId": "B",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9259,7 +9259,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9269,7 +9269,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state r",
               "query_configs": [],
               "refId": "C",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9279,7 +9279,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9289,7 +9289,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state w",
               "query_configs": [],
               "refId": "D",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Collection_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -9387,7 +9387,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9397,7 +9397,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state R",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_R{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_R{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9407,7 +9407,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9417,7 +9417,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state W",
               "query_configs": [],
               "refId": "B",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_W{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9427,7 +9427,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9437,7 +9437,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state r",
               "query_configs": [],
               "refId": "C",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9447,7 +9447,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9457,7 +9457,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state w",
               "query_configs": [],
               "refId": "D",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_Mutex_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -9555,7 +9555,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9565,7 +9565,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state w",
               "query_configs": [],
               "refId": "A",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_oplog_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_oplog_acquireCount_w{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             },
@@ -9575,7 +9575,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
-              "enableDownSampling": true,
+              "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
               "hide": false,
@@ -9585,7 +9585,7 @@
               "promqlAlias": "$tag_rs_nm $tag_instance_role $tag_rs_state r",
               "query_configs": [],
               "refId": "B",
-              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_oplog_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[2m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
+              "source": "label_replace(\nlabel_replace(\nlabel_replace(\navg by (rs_nm, rs_state, instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_locks_oplog_acquireCount_r{shard_name!~\".*conf\",rs_nm!~\".*conf\",set!~\".*conf\",shard!~\".*conf\",cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])),\n\"rs_nm\", \"$1\", \"rs_nm\", \".*-([^-]+)$\"\n),\n\"rs_state\", \"SEC\", \"rs_state\", \"2\"\n),\n\"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)",
               "step": "1m",
               "type": "range"
             }
@@ -9879,7 +9879,7 @@
   "timezone": "browser",
   "title": "MongoShardedCluster",
   "uid": "mongodbCluster",
-  "version": 221,
+  "version": 222,
   "weekStart": "",
   "__inputs": [
     {

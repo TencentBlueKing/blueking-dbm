@@ -2431,7 +2431,7 @@
           "promqlAlias": "$tag_type",
           "query_configs": [],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]) ) by (type)\nor \nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])) by (type)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]) ) by (type)\nor \nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m])) by (type)",
           "step": "1m",
           "type": "range"
         }
@@ -2670,7 +2670,7 @@
           "promqlAlias": "$tag_instance_role $tag_rs_state $tag_type",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"}[2m]))\n            or \n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"}[2m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
+          "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or \n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
           "step": "1m",
           "type": "range"
         }
@@ -2787,7 +2787,7 @@
           "promqlAlias": "$tag_instance_role $tag_rs_state $tag_type",
           "query_configs": [],
           "refId": "B",
-          "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n            or\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
+          "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
           "step": "1m",
           "type": "range"
         }
@@ -2894,6 +2894,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -2903,7 +2904,7 @@
           "promqlAlias": "$tag_instance_role Apply",
           "query_configs": [],
           "refId": "B",
-          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_apply_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])",
+          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_apply_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m])",
           "step": "1m",
           "type": "range"
         }
@@ -3346,7 +3347,7 @@
           "promqlAlias": "$tag_instance_role",
           "query_configs": [],
           "refId": "A",
-          "source": "increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=~\"$instance_role\"}[2m])  or  increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]) ",
+          "source": "increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=~\"$instance_role\"}[$__interval:1m])  or  increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]) ",
           "step": "1m",
           "type": "range"
         }
@@ -3688,7 +3689,7 @@
           "promqlAlias": "$tag_instance_role $tag_rs_state $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_asserts_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n            or\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_asserts_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
+          "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_asserts_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_asserts_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
           "step": "1m",
           "type": "range"
         }
@@ -4051,7 +4052,7 @@
           "promqlAlias": "$tag_instance_role $tag_rs_state",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\n    label_replace(\n        (\n            sum by (instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_network_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n            or\n            sum by (instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_metrics_repl_network_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
+          "source": "label_replace(\n    label_replace(\n        (\n            sum by (instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_network_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_metrics_repl_network_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
           "step": "1m",
           "type": "range"
         }
@@ -5010,7 +5011,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5020,7 +5021,7 @@
           "promqlAlias": "$tag_instance_role $tag_instance $tag_state",
           "query_configs": [],
           "refId": "A",
-          "source": "avg by (state, instance,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))",
+          "source": "avg by (state, instance,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))",
           "step": "1m",
           "type": "range"
         }
@@ -5249,7 +5250,7 @@
           "promqlAlias": "$tag_instance_role $tag_instance",
           "query_configs": [],
           "refId": "A",
-          "source": "label_replace(\n    label_replace(\n        (\n            sum by (instance_role, instance, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_extra_info_page_faults_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n            or\n            sum by (instance_role, instance, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_extra_info_page_faults{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
+          "source": "label_replace(\n    label_replace(\n        (\n            sum by (instance_role, instance, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_extra_info_page_faults_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (instance_role, instance, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_extra_info_page_faults{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
           "step": "1m",
           "type": "range"
         }
@@ -5366,7 +5367,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5376,7 +5377,7 @@
           "promqlAlias": "$tag_instance_role $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[5m])) by (instance_role, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[5m])) by (instance_role, type)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])) by (instance_role, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])) by (instance_role, type)",
           "step": "1m",
           "type": "range"
         }
@@ -5480,7 +5481,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -5490,7 +5491,7 @@
           "promqlAlias": "$tag_instance_role $tag_type",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[5m])) by (instance_role, type)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])) by (instance_role, type)",
           "step": "1m",
           "type": "range"
         }
@@ -5716,6 +5717,6 @@
   "timezone": "browser",
   "title": "MongoReplicaSet",
   "uid": "MongoReplicaSet",
-  "version": 134,
+  "version": 136,
   "weekStart": ""
 }
