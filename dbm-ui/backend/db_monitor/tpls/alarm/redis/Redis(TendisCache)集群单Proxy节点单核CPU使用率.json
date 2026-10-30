@@ -259,7 +259,7 @@
     "labels": [
       "DBM_REDIS",
       "NO_MONITOR_TARGET",
-      "WORST_NODE"
+      "NODE_WORST"
     ],
     "app": "",
     "path": "",
@@ -272,7 +272,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "Redis(TendisCache)集群单Proxy节点单核CPU使用率",
-  "version": 7,
+  "version": 8,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
