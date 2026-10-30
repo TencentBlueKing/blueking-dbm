@@ -26,8 +26,7 @@ export const useK8sInstanceOperations = (options: { onSuccess: () => void }) => 
   const handleDeleteInstance = (params: ServiceParameters<typeof deleteComponent>, node: string) => {
     InfoBox({
       cancelText: t('取消'),
-      confirmButtonTheme: 'danger',
-      confirmText: t('删除'),
+      confirmText: t('重启'),
       content: () => (
         <>
           <div style='background-color: #F5F7FA; padding: 8px 16px;'>
@@ -43,7 +42,7 @@ export const useK8sInstanceOperations = (options: { onSuccess: () => void }) => 
           <BkAlert
             class='mt-12'
             theme='warning'
-            title={t('注意：删除完成后，将按副本配置自动生成新的实例')}
+            title={t('注意：重启完成后，将按副本配置自动生成新的实例')}
           />
         </>
       ),
@@ -54,7 +53,7 @@ export const useK8sInstanceOperations = (options: { onSuccess: () => void }) => 
           handleSuccess();
         });
       },
-      title: t('确定禁删除该实例？'),
+      title: t('确定重启该实例？'),
       width: 400,
     });
   };

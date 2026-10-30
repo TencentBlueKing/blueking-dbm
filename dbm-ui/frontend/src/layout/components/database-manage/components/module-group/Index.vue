@@ -25,6 +25,7 @@
   import SqlServer from './SqlServer.vue';
   import SurrealDB from './SurrealDB.vue';
   import TendbCluster from './TendbCluster.vue';
+  import VictoriaMetrics from './VictoriaMetrics.vue';
 
   interface Props {
     isError: boolean;
@@ -40,6 +41,7 @@
     [DBTypes.INFLUXDB]: Influxdb,
     [DBTypes.K8S_QDRANT]: Qdrant,
     [DBTypes.K8S_SURREALDB]: SurrealDB,
+    [DBTypes.K8S_VICTORIAMETRICS]: VictoriaMetrics,
     [DBTypes.KAFKA]: Kafka,
     [DBTypes.MONGODB]: MongoDB,
     [DBTypes.MYSQL]: Mysql,

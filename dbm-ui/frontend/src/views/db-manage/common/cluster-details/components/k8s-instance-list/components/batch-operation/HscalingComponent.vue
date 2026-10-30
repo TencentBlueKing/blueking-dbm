@@ -121,6 +121,15 @@
       tikv: {
         max: 100,
       },
+      vminsert: {
+        max: 100,
+      },
+      vmselect: {
+        max: 100,
+      },
+      vmstorage: {
+        max: 100,
+      },
     };
     return limitMap[props.role as keyof typeof limitMap];
   });

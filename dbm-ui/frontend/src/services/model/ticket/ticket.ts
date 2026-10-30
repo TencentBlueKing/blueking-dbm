@@ -38,6 +38,7 @@ export type * as Riak from './details/riak';
 export type * as Sqlserver from './details/sqlserver';
 export type * as SurrealDB from './details/surrealdb';
 export type * as TendbCluster from './details/tendbCluster';
+export type * as VictoriaMetrics from './details/victoriametrics';
 
 const STATUS_APPROVE = 'APPROVE';
 const STATUS_FAILED = 'FAILED';

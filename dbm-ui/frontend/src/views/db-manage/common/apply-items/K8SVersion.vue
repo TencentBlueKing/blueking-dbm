@@ -40,12 +40,11 @@
 
   interface Props {
     addonType: ServiceParameters<typeof getAddonVersions>['addonType'];
-    applyMode?: string;
+    applyMode: string;
     bkBizId?: number | string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    applyMode: 'SharedMode',
     bkBizId: '',
   });
   const modelValue = defineModel<string>({

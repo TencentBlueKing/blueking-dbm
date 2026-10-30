@@ -32,17 +32,24 @@
 <script
   setup
   lang="ts"
-  generic="T extends ClusterTypes.K8S_SURREALDB_HA | ClusterTypes.K8S_SURREALDB_SINGLE | ClusterTypes.K8S_QDRANT_HA">
+  generic="
+    T extends
+      | ClusterTypes.K8S_SURREALDB_HA
+      | ClusterTypes.K8S_SURREALDB_SINGLE
+      | ClusterTypes.K8S_QDRANT_HA
+      | ClusterTypes.K8S_VICTORIAMETRICS_SELECT
+      | ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER
+  ">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getQdrantHaComponentSpec } from '@services/source/qdrantHa';
   import { getSurrealdbHaComponentSpec } from '@services/source/surrealdbHa';
   import { getSurrealdbSingleComponentSpec } from '@services/source/surrealdbSingle';
+  import { getVictoriametricsClusterComponentSpec } from '@services/source/victoriametricsCluster.ts';
+  import { getVictoriametricsSelectComponentSpec } from '@services/source/victoriametricsSelect.ts';
 
   import { ClusterTypes } from '@common/const';
-
-  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
 
   import { InfoItem } from './components/Index.vue';
   import type { ClusterDetailModel, ISupportClusterType } from './types';
@@ -60,6 +67,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaComponentSpec,
     [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaComponentSpec,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleComponentSpec,
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsClusterComponentSpec,
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsSelectComponentSpec,
   };
 
   const { data: specData, loading: isLoading } = useRequest(
@@ -70,7 +79,6 @@
           clusterName: props.data.cluster_name,
           k8sClusterName: props.data.k8s_cluster_name,
           namespace: props.data.namespace,
-          ...getExclusiveClusterParams(props.data),
         },
       ],
     },

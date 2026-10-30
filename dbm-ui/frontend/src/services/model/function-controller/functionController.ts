@@ -22,7 +22,7 @@ export type RedisFunctions =
   | 'RedisInstance'
   | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak' | 'doris';
-export type K8sFunctions = 'k8s_surrealdb' | 'k8s_qdrant';
+export type K8sFunctions = 'k8s_surrealdb' | 'k8s_qdrant' | 'k8s_victoriametrics';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb' | 'replicaSetList' | 'sharedClusterList' | 'toolbox';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';

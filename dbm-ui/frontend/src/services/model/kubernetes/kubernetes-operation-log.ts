@@ -38,7 +38,7 @@ export default class KubernetesOperationLog {
     [KubernetesOperationLog.CreateCluster]: t('创建集群'),
     [KubernetesOperationLog.CreateK8sNamespace]: t('创建 K8s 命名空间'),
     [KubernetesOperationLog.DeleteCluster]: t('删除集群'),
-    [KubernetesOperationLog.DeleteK8sPod]: t('删除 K8s Pod'),
+    [KubernetesOperationLog.DeleteK8sPod]: t('重启实例'),
     [KubernetesOperationLog.ExposeService]: t('暴露服务'),
     [KubernetesOperationLog.HorizontalScaling]: t('水平扩缩容'),
     [KubernetesOperationLog.PartialUpdateCluster]: t('局部更新集群'),
@@ -100,6 +100,16 @@ export default class KubernetesOperationLog {
 
   get requestParamsFormat() {
     return JSON.parse(this.requestParams);
+  }
+
+  /**
+   * 操作类型文案以后端返回的 requestType 为准，取前端枚举；
+   * 前端还没登记的枚举再回退到后端别名
+   */
+  get requestTypeDisplay() {
+    const requestType = this.requestType as keyof typeof KubernetesOperationLog.RequestTypeMap;
+
+    return KubernetesOperationLog.RequestTypeMap[requestType] || this.requestTypeAlias;
   }
 
   get updateAtDisplay() {
