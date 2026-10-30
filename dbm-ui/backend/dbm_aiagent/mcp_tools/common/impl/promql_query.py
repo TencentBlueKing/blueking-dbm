@@ -65,6 +65,36 @@ LABEL_OP_METHOD_MAP = {
     "not_match": "label_not_match_regexp",
 }
 
+# 正则类操作符
+REGEX_OP_NAMES = ("match", "not_match")
+
+# PromQL 合法字符集/格式，用于校验用户输入，防止拼接到 PromQL 表达式时注入
+# 指标名: [a-zA-Z_:][a-zA-Z0-9_:]*，标签名: [a-zA-Z_][a-zA-Z0-9_]*
+LABEL_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+METRIC_NAME_PATTERN = re.compile(r"^[a-zA-Z_:][a-zA-Z0-9_:]*$")
+DURATION_PATTERN = re.compile(r"^(\d+(ms|s|m|h|d|w|y))+$")
+
+
+def validate_label_name(name: str) -> str:
+    """校验标签名，标签名会直接拼入 PromQL 表达式（by(...) / {name=...}），只允许合法字符"""
+    name = str(name)
+    if not LABEL_NAME_PATTERN.match(name):
+        raise ValueError(f"Invalid label name: {name!r}")
+    return name
+
+
+def escape_label_value(value, is_regex: bool = False) -> str:
+    """
+    转义 label value，防止 value 中的引号逃逸出 PromQL 字符串字面量
+    例如 value 为 `x"} or up{`，不转义时会拼出 `cluster_domain="x"} or up{"`，注入额外的查询
+    """
+    value = str(value)
+    if is_regex:
+        # 正则匹配只转义引号，保留 \d、.* 等用户正则语义
+        return value.replace('"', '\\"')
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 # 支持的外层聚合函数（promql_builder 中的函数）
 AGGREGATION_FUNC_MAP = {
     "max": promql.max,
@@ -106,15 +136,22 @@ class PromQLQueryBuilder:
     end_time: Optional[datetime.datetime] = None
     step: str = "1m"
 
-    def build_promql(self) -> Dict[str, str]:
-        """
-        使用 promql-builder 根据自身参数构建 PromQL 查询字符串
-
-        @return: 构建好的 PromQL 字符串
-        """
+    def _validate_query_params(self):
+        """校验 alias / time_window / group_by 参数"""
         if not self.alias:
             self.alias = self.metric_name
 
+        # time_window 会拼入 [time_window]，校验合法的 duration 格式
+        if self.time_window and not DURATION_PATTERN.match(self.time_window):
+            raise ValueError(f"Invalid time_window: {self.time_window!r}")
+
+        # group_by 的标签会拼入 by(...)，校验合法的标签名
+        if self.group_by:
+            for label in self.group_by:
+                validate_label_name(label)
+
+    def _normalize_metric_name(self):
+        """转换并校验 metric_name"""
         # 转换一下 metric_name
         if self.metric_name.startswith("mysql_"):
             self.metric_name = "bkmonitor:exporter_dbm_mysqld_exporter:__default__:" + self.metric_name
@@ -123,12 +160,18 @@ class PromQLQueryBuilder:
         elif not self.metric_name.startswith("bkmonitor:"):
             self.metric_name = "bkmonitor:dbm_system:" + self.metric_name
 
-        # 1. 使用 promql-builder 构建 VectorExpr（metric + label 过滤）
+        # metric_name 会直接拼入 PromQL，校验合法字符集，防止注入
+        if not METRIC_NAME_PATTERN.match(self.metric_name):
+            raise ValueError(f"Invalid metric_name: {self.metric_name!r}")
+
+    def _build_vector(self) -> "promql.VectorExpr":
+        """使用 promql-builder 构建 VectorExpr（metric + label 过滤）"""
         vector = promql.VectorExpr().metric(self.metric_name)
 
         if self.filters:
             for f in self.filters:
-                label_name = f["label_name"]
+                # 兼容序列化器字段名 label / label_name
+                label_name = f.get("label_name") or f.get("label")
                 op = f["op"]
                 value = f["value"]
 
@@ -138,54 +181,87 @@ class PromQLQueryBuilder:
                         f"Unsupported label operator: {op}, supported: {list(LABEL_OP_METHOD_MAP.keys())}"
                     )
 
-                # 调用 VectorExpr 对应的 label 方法
-                vector = getattr(vector, method_name)(label_name, value)
+                # 标签名只允许合法字符，value 转义引号，防止逃逸出 label 匹配器注入额外 PromQL
+                validate_label_name(label_name)
+                vector = getattr(vector, method_name)(
+                    label_name, escape_label_value(value, is_regex=op in REGEX_OP_NAMES)
+                )
+
+        return vector
+
+    def _apply_range_function(self, vector: "promql.VectorExpr"):
+        """应用 range function（如果指定）"""
+        if not self.range_function:
+            return vector
+
+        range_func = RANGE_FUNC_MAP.get(self.range_function)
+        if range_func is None:
+            raise ValueError(
+                f"Unsupported range_function: {self.range_function}, supported: {list(RANGE_FUNC_MAP.keys())}"
+            )
+
+        if not self.time_window:
+            raise ValueError("time_window must be specified when using range_function")
+
+        return range_func(vector.range(self.time_window))
+
+    def _get_aggregation_func(self, aggregation: str):
+        """获取外层聚合函数，不支持则抛错"""
+        agg_func = AGGREGATION_FUNC_MAP.get(aggregation)
+        if agg_func is None:
+            raise ValueError(
+                f"Unsupported aggregation function: {aggregation}, supported: {list(AGGREGATION_FUNC_MAP.keys())}"
+            )
+        return agg_func
+
+    def _apply_aggregation_outer(self, agg_expr):
+        """应用最外层聚合（aggregation_outer，格式如 sum:cluster_domain,instance_role）"""
+        # sum:cluster_domain,instance_role
+        agg_outer_type, agg_outer_labels = self.aggregation_outer.split(":")
+        agg_func_outer = self._get_aggregation_func(agg_outer_type)
+        agg_expr = agg_func_outer(agg_expr)
+        if agg_outer_labels:
+            agg_outer_labels_list = agg_outer_labels.split(",")
+            for label in agg_outer_labels_list:
+                validate_label_name(label)
+            agg_expr = agg_expr.by(agg_outer_labels_list)
+        return agg_expr
+
+    def _apply_aggregation(self, expr) -> str:
+        """应用外层聚合函数（如果指定），返回构建好的 PromQL 字符串"""
+        if not self.aggregation:
+            return str(expr.build())
+
+        agg_func = self._get_aggregation_func(self.aggregation)
+        agg_expr = agg_func(expr)
+        if self.group_by:
+            agg_expr = agg_expr.by(self.group_by)
+
+        if self.aggregation_outer:
+            agg_expr = self._apply_aggregation_outer(agg_expr)
+
+        return str(agg_expr.build())
+
+    def build_promql(self) -> Dict[str, str]:
+        """
+        使用 promql-builder 根据自身参数构建 PromQL 查询字符串
+
+        @return: 构建好的 PromQL 字符串
+        """
+        # 校验并规范化参数
+        self._validate_query_params()
+        self._normalize_metric_name()
+
+        # 1. 构建 VectorExpr（metric + label 过滤）
+        vector = self._build_vector()
 
         # 2. 应用 range function（如果指定）
-        if self.range_function:
-            range_func = RANGE_FUNC_MAP.get(self.range_function)
-            if range_func is None:
-                raise ValueError(
-                    f"Unsupported range_function: {self.range_function}, supported: {list(RANGE_FUNC_MAP.keys())}"
-                )
+        expr = self._apply_range_function(vector)
 
-            if not self.time_window:
-                raise ValueError("time_window must be specified when using range_function")
+        # 3. 应用外层聚合函数（如果指定）并构建 PromQL 字符串
+        promql_str = self._apply_aggregation(expr)
 
-            range_vector = vector.range(self.time_window)
-            expr = range_func(range_vector)
-        else:
-            expr = vector
-
-        # 3. 应用外层聚合函数（如果指定）
-        if self.aggregation:
-            agg_func = AGGREGATION_FUNC_MAP.get(self.aggregation)
-            if agg_func is None:
-                raise ValueError(
-                    f"Unsupported aggregation function: {self.aggregation}, "
-                    f"supported: {list(AGGREGATION_FUNC_MAP.keys())}"
-                )
-            agg_expr = agg_func(expr)
-            if self.group_by:
-                agg_expr = agg_expr.by(self.group_by)
-
-            if self.aggregation_outer:
-                # sum:cluster_domain,instance_role
-                agg_outer_type, agg_outer_labels = self.aggregation_outer.split(":")
-                agg_func_outer = AGGREGATION_FUNC_MAP.get(agg_outer_type)
-                if agg_func_outer is None:
-                    raise ValueError(
-                        f"Unsupported aggregation function: {self.aggregation_outer}, "
-                        f"supported: {list(AGGREGATION_FUNC_MAP.keys())}"
-                    )
-                agg_expr = agg_func_outer(agg_expr)
-                if agg_outer_labels:
-                    agg_expr = agg_expr.by(agg_outer_labels.split(","))
-            promql_str = agg_expr.build()
-        else:
-            promql_str = expr.build()
-
-        return {self.alias: str(promql_str)}
+        return {self.alias: promql_str}
 
     def prepare_promql(self) -> Dict[str, str]:
         """

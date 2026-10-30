@@ -76,7 +76,7 @@ def _get_level_config_perm_resource(kwargs):
 
 class ConfigViewSet(viewsets.SystemViewSet):
     # 层级感知查看：app/module 级用 db_manage，cluster 级用 {dbtype}_view
-    LEVEL_VIEW_ACTIONS = ("get_level_config", "list_confitem_changes")
+    LEVEL_VIEW_ACTIONS = ("get_level_config", "get_level_config_with_cluster_runtime", "list_confitem_changes")
     # 层级感知编辑：app/module 级用 dbconfig_edit，cluster 级用 {dbtype}_dbconfig_edit
     LEVEL_EDIT_ACTIONS = ("upsert_level_config", "recover_default_conf_item")
 
@@ -327,6 +327,26 @@ class ConfigViewSet(viewsets.SystemViewSet):
         base_conf = DBBaseConfig.from_dict(validated_data)
         dbconfig_level_data = DBConfigLevelData.from_dict(validated_data)
         return Response(DBConfigHandler(base_conf, True).get_level_config(dbconfig_level_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群层级配置详情(含运行时配置)"),
+        request_body=serializers.GetLevelConfigDetailSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        action_filed=_get_level_config_perm_action,
+        param_field=_get_level_config_perm_resource,
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.GetLevelConfigDetailSerializer)
+    def get_level_config_with_cluster_runtime(self, request):
+        """
+        在 get_level_config 基础上，通过 DRS 查询集群各实例 infodba_schema.local_config，
+        为配置项补充 conf_value_runtime 和 flag_difference(-1: 未取得运行时配置, 0: 一致, 1: 不一致)
+        """
+        validated_data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig.from_dict(validated_data)
+        dbconfig_level_data = DBConfigLevelData.from_dict(validated_data)
+        return Response(DBConfigHandler(base_conf, True).get_level_config_with_cluster_runtime(dbconfig_level_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询通用层级配置详情"),
