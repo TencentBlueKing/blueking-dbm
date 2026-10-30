@@ -85,6 +85,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   bk_biz_name: string;
   config: {
     send_msg_config: {
+      default_receiver_username?: string; // 默认收件人（提单人 + 主DBA），逗号分隔
       is_send: boolean;
       msg_type: MessageTypes[]; // 目前只有邮件的方式
       receiver__username: string;

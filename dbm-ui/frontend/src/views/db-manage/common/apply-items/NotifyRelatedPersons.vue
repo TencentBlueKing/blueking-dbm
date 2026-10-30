@@ -119,8 +119,9 @@
   );
 
   /**
-   * 回填收件人：单据存的是「提单人 + 主DBA + 追加收件人」去重后的完整名单，去重后无法区分谁是追加的
-   * （如主 DBA 同时被手动追加），按名字或位置剔除都会丢人，所以原样回填完整名单；提交时再与提单人、主 DBA 合并去重，结果不变
+   * 回填收件人：receiver__username 只存额外收件人，原样回填
+   * 旧单据（没有 default_receiver_username）存的是「提单人 + 主DBA + 追加收件人」去重后的完整名单，无法区分谁是追加的，
+   * 按名字或位置剔除都会丢人，所以同样原样回填
    */
   watch(
     () => modelValue.value.receiver__username,
@@ -143,11 +144,6 @@
     modelValue.value = newValue;
   };
 
-  /**
-   * 提单人 + 主DBA + 收件人(与提单人、主DBA 合并去重)
-   */
-  const receiverUsername = () => _.uniq([creator.value, mainDba.value, ...personList.value].filter(Boolean));
-
   defineExpose({
     getValue() {
       if (!modelValue.value.is_send) {
@@ -155,7 +151,10 @@
       }
       return {
         ...modelValue.value,
-        receiver__username: receiverUsername().join(','),
+        // 默认收件人：提单人 + 主DBA
+        default_receiver_username: _.uniq([creator.value, mainDba.value].filter(Boolean)).join(','),
+        // 额外收件人：仅用户追加的，没有追加时传空字符串
+        receiver__username: _.uniq(personList.value.filter(Boolean)).join(','),
       };
     },
   });
