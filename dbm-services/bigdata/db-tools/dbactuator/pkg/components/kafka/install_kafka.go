@@ -121,6 +121,83 @@ func configHasKey(filePath, key string) (bool, error) {
 	return false, nil
 }
 
+// readConfigValue returns the trimmed value of the top-level "key=" line in filePath. found reports
+// whether the key is present at all; the value may still be empty. Same line-anchoring rule as
+// configHasKey, so a commented-out line never matches.
+func readConfigValue(filePath, key string) (value string, found bool, err error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", false, fmt.Errorf("read %s failed: %w", filePath, err)
+	}
+	prefix := key + "="
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimLeft(line, " \t")
+		if strings.HasPrefix(trimmed, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(trimmed, prefix)), true, nil
+		}
+	}
+	return "", false, nil
+}
+
+// shellSingleQuote wraps s in single quotes for safe use in a sourced shell file, rewriting each
+// embedded single quote as close-quote, escaped quote, reopen-quote so the value round-trips unchanged.
+func shellSingleQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// kafkaUIClusterEnv renders the broker-derived kafka-ui env lines from the rendered broker config at
+// filePath, so kafka-ui always follows what the broker actually runs with instead of a second copy:
+//   - KAFKA_CLUSTERS_0_SUPERUSERS from super.users, for both ZK and KRaft. This is an extension of the
+//     DBM-built kafka-ui (the upstream kafbat/provectus ClustersProperties has no such field); it drives
+//     the hidden/protected super-user behaviour. Skipped (with a warning) when absent or empty, e.g. a
+//     no-security cluster.
+//   - KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT from zookeeper.connect, ZK mode only. It switches kafka-ui's
+//     SCRAM user management to ZooKeeper, so it must never be set for KRaft, where the address is
+//     either absent or points at a ZooKeeper the brokers do not read. KRaft is told apart by
+//     process.roles, which only a KRaft broker/controller config carries; if a KRaft config also has
+//     zookeeper.connect (custom parameter, migration leftover) it is ignored with a warning.
+func kafkaUIClusterEnv(filePath string) (string, error) {
+	var sb strings.Builder
+
+	superUsers, found, err := readConfigValue(filePath, "super.users")
+	if err != nil {
+		return "", err
+	}
+	switch {
+	case !found:
+		logger.Warn("super.users not found in %s, skip KAFKA_CLUSTERS_0_SUPERUSERS", filePath)
+	case superUsers == "":
+		logger.Warn("super.users is empty in %s, skip KAFKA_CLUSTERS_0_SUPERUSERS", filePath)
+	default:
+		fmt.Fprintf(&sb, "export KAFKA_CLUSTERS_0_SUPERUSERS=%s\n", shellSingleQuote(superUsers))
+	}
+
+	processRoles, isKRaft, err := readConfigValue(filePath, "process.roles")
+	if err != nil {
+		return "", err
+	}
+	isKRaft = isKRaft && processRoles != ""
+
+	zkConnect, found, err := readConfigValue(filePath, "zookeeper.connect")
+	if err != nil {
+		return "", err
+	}
+	switch {
+	case isKRaft && found:
+		logger.Warn("%s has both process.roles and zookeeper.connect, treat as KRaft and skip "+
+			"KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT", filePath)
+	case isKRaft:
+		// KRaft: user management goes through the Admin API, nothing to set
+	case !found:
+		logger.Info("zookeeper.connect not found in %s, skip KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT", filePath)
+	case zkConnect == "":
+		logger.Warn("zookeeper.connect is empty in %s, skip KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT", filePath)
+	default:
+		fmt.Fprintf(&sb, "export KAFKA_CLUSTERS_0_ZOOKEEPERCONNECT=%s\n", shellSingleQuote(zkConnect))
+	}
+	return sb.String(), nil
+}
+
 // InstallKafkaComp TODO
 type InstallKafkaComp struct {
 	GeneralParam *components.GeneralParam
@@ -1303,18 +1380,30 @@ func (i *InstallKafkaComp) InstallKafkaUI() error {
 
 	// 1. 生成 kafkaui.sh
 	logger.Info("生成 kafkaui.sh")
-	envContent := fmt.Sprintf(`export KAFKA_CLUSTERS_0_NAME='%s'
-export KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS='%s'
+	envContent := fmt.Sprintf(`export KAFKA_CLUSTERS_0_NAME=%s
+export KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=%s
 export KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL='SASL_PLAINTEXT'
 export KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM='SCRAM-SHA-512'
-export KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG='%s'
+export KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG=%s
 export AUTH_TYPE='LOGIN_FORM'
-export SPRING_SECURITY_USER_NAME='%s'
-export SPRING_SECURITY_USER_PASSWORD='%s'
-export SERVER_SERVLET_CONTEXT_PATH='%s'
+export SPRING_SECURITY_USER_NAME=%s
+export SPRING_SECURITY_USER_PASSWORD=%s
+export SERVER_SERVLET_CONTEXT_PATH=%s
 export DYNAMIC_CONFIG_ENABLED='true'
 export SERVER_PORT='%d'
-`, clusterName, bootstrapServers, jaasConfig, username, password, httpPath, servicePort)
+`, shellSingleQuote(clusterName), shellSingleQuote(bootstrapServers), shellSingleQuote(jaasConfig),
+		shellSingleQuote(username), shellSingleQuote(password), shellSingleQuote(httpPath), servicePort)
+
+	// Broker-derived lines are best effort: an unreadable broker config must not fail the kafka-ui
+	// install (it never depended on that file before), but the super-user protection and ZK user
+	// management are then off, so say so loudly.
+	clusterEnv, err := kafkaUIClusterEnv(cst.KafkaConfigFile)
+	if err != nil {
+		logger.Error("render kafkaui SUPERUSERS/ZOOKEEPERCONNECT from broker config failed, "+
+			"kafkaui will start without them: %v", err)
+		clusterEnv = ""
+	}
+	envContent += clusterEnv
 
 	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
 		logger.Error("write kafkaui.sh failed: %v", err)
