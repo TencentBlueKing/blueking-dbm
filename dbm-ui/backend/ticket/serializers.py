@@ -47,9 +47,9 @@ class TicketConfigSerializer(serializers.Serializer):
         msg_type = serializers.ListField(
             help_text=_("发送类型"), child=serializers.ChoiceField(choices=MsgType.get_choices()), required=False
         )
-        receiver__username = serializers.CharField(help_text=_("包含用户名，多个以逗号分隔"), required=False)
+        receiver__username = serializers.CharField(help_text=_("包含用户名，多个以逗号分隔"), required=False, allow_blank=True)
         default_receiver_username = serializers.CharField(help_text=_("默认用户名，多个以逗号分隔"), required=False)
-        sender = serializers.CharField(help_text=_("发件人/企微机器人ID"), required=False)
+        sender = serializers.CharField(help_text=_("发件人/企微机器人ID"), required=False, allow_blank=True)
         group_receiver = serializers.ListField(help_text=_("(机器人专用)接收者，可以传@all，或者会话id"), required=False)
         mentioned_list = serializers.ListField(help_text=_("提醒群中@某个成员，@all提醒所有人"), required=False)
         mentioned_mobile_list = serializers.ListField(help_text=_("提醒手机号@某个成员，@all提醒所有人"), required=False)
