@@ -82,6 +82,8 @@ func run(args []string) int {
 	rootCmd.AddCommand(probe.GenConfigCmd)
 	rootCmd.AddCommand(probe.EnsureCmd)
 	rootCmd.AddCommand(probe.EnsureKeepaliveCmd)
+	rootCmd.AddCommand(probe.CollectPauseCmd)
+	rootCmd.AddCommand(probe.CollectResumeCmd)
 
 	rootCmd.SetArgs(args)
 

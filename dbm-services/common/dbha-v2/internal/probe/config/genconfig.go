@@ -530,6 +530,7 @@ func LocalFields(cfg Configuration) []GenOption {
 		WithAdmin(cfg.Admin),
 		WithCollect(cfg.Collect),
 		WithClearPorts(cfg.ClearPorts),
+		WithPausePorts(cfg.PausePorts),
 	}
 	if cfg.Reporter != nil {
 		opts = append(opts, WithBkCloudID(cfg.Reporter.BkCloudID))
@@ -663,6 +664,17 @@ func WithClearPorts(ports []int) GenOption {
 		}
 		cfg.ClearPorts = normalizeClearPorts(ports)
 		dropClearedPorts(&cfg.Harvester, cfg.ClearPorts)
+	}
+}
+
+// WithPausePorts carries the operator's temporarily paused ports into the
+// rendered config.
+func WithPausePorts(ports []PausePort) GenOption {
+	return func(cfg *probeYAML) {
+		if len(ports) == 0 {
+			return
+		}
+		cfg.PausePorts = NormalizePausePorts(ports)
 	}
 }
 

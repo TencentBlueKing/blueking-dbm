@@ -27,6 +27,7 @@ package config
 
 import (
 	"bytes"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -191,7 +192,7 @@ type HarvesterConfig struct {
 	MySql           *RawHarvesterConfig            `yaml:"mysql"           mapstructure:"mysql"`
 	MySqlProxyAdmin *RawHarvesterConfig            `yaml:"mysqlProxyAdmin" mapstructure:"mysqlProxyAdmin"`
 	Redis           *RawHarvesterConfig            `yaml:"redis"           mapstructure:"redis"`
-	Extra           map[string]*RawHarvesterConfig `yaml:",inline"        mapstructure:",remain"`
+	Extra           map[string]*RawHarvesterConfig `yaml:",inline"         mapstructure:",remain"`
 }
 
 // Block returns the config for a harvester block name, or nil if absent.
@@ -234,6 +235,13 @@ type LogConfig struct {
 	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
+// PausePort is one port whose collection is temporarily paused.
+type PausePort struct {
+	Port     int           `yaml:"port"     mapstructure:"port"`
+	Duration time.Duration `yaml:"duration" mapstructure:"duration"`
+	ExpireAt int64         `yaml:"expireAt" mapstructure:"expireAt"`
+}
+
 // Configuration receiver's configuration
 type Configuration struct {
 	Name       string          `yaml:"name"       mapstructure:"name"`
@@ -248,6 +256,41 @@ type Configuration struct {
 	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
 	Collect    CollectConfig   `yaml:"collect"    mapstructure:"collect"`
 	ClearPorts []int           `yaml:"clearPorts" mapstructure:"clearPorts"`
+	PausePorts []PausePort     `yaml:"pausePorts" mapstructure:"pausePorts"`
+}
+
+// IsPortPaused reports whether collection of port is currently paused.
+func (c Configuration) IsPortPaused(port int) bool {
+	if len(c.PausePorts) == 0 {
+		return false
+	}
+
+	now := time.Now().Unix()
+	for _, p := range c.PausePorts {
+		if p.Port == port && p.ExpireAt > now {
+			return true
+		}
+	}
+	return false
+}
+
+// NormalizePausePorts sorts entries by port and drops duplicates.
+func NormalizePausePorts(ports []PausePort) []PausePort {
+	if len(ports) == 0 {
+		return nil
+	}
+
+	byPort := make(map[int]PausePort, len(ports))
+	for _, p := range ports {
+		byPort[p.Port] = p
+	}
+
+	out := make([]PausePort, 0, len(byPort))
+	for _, p := range byPort {
+		out = append(out, p)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Port < out[j].Port })
+	return out
 }
 
 // Parse reads probe configuration from path without mutating the package-level Cfg

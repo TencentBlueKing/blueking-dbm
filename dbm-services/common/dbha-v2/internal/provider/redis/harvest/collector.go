@@ -106,6 +106,7 @@ func (c *collector) close() {
 	if err := c.rdb.Close(); err != nil {
 		logger.Warn("failed to close redis db, errmsg: %s", err)
 	}
+	c.rdb = nil
 }
 
 // isAuthError reports whether err is a redis authentication failure.
