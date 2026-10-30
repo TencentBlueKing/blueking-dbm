@@ -31,8 +31,8 @@ APP_ID = ""
 APP_TOKEN = ""
 BK_PAAS_HOST = ""
 BK_URL = BK_PAAS_HOST
-APP_CODE = APP_ID = django_env("APP_ID", default=APP_ID)
-SECRET_KEY = APP_TOKEN = django_env("APP_TOKEN", default=APP_TOKEN)
+BK_APP_CODE = APP_CODE = APP_ID = django_env("APP_ID", default=APP_ID)
+BK_APP_SECRET = SECRET_KEY = APP_TOKEN = django_env("APP_TOKEN", default=APP_TOKEN)
 RUN_VER = django_env("RUN_VER", default=RUN_VER)
 
 
