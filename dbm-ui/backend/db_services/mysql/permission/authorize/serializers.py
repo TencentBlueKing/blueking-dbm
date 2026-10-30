@@ -12,6 +12,9 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.dbpermission.constants import AccountType
+from backend.db_services.dbpermission.db_account.serializers import DBAccountBaseSerializer
+
 
 class GetHostInAuthorizeSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(help_text=_("单据id"))
@@ -29,6 +32,10 @@ class IntegrationGrantSerializer(serializers.Serializer):
     user_name = serializers.CharField(help_text=_("用户名"))
     password = serializers.CharField(help_text=_("密码"))
     privileges = serializers.CharField(help_text=_("权限列表，多个权限以逗号分隔"))
+
+    def validate_user_name(self, value):
+        DBAccountBaseSerializer.check_username_valid(AccountType.MYSQL, value)
+        return value
 
     class Meta:
         swagger_schema_fields = {

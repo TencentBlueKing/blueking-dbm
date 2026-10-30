@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.mysql.remote_service.serializers import DBTablePatternField
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
+from backend.ticket.builders.mysql.base import DBTableField
 
 
 class SqlSyntaxCheckInputSerializer(serializers.Serializer):
@@ -193,11 +195,11 @@ class ParseSqlExecuteObjectSerializer(serializers.Serializer):
     """SQL 变更单据 execute_objects 子集，用于展开未指定库名的 DDL。"""
 
     dbnames = serializers.ListField(
-        child=serializers.CharField(),
+        child=DBTableField(db_field=True),
         help_text=_("Target DB name patterns (supports %/?/*). 目标库名/通配。"),
     )
     ignore_dbnames = serializers.ListField(
-        child=serializers.CharField(),
+        child=DBTablePatternField(),
         required=False,
         default=list,
         help_text=_("DB name patterns to exclude. 忽略的库名/通配。"),

@@ -228,15 +228,18 @@ class ExternalProxyViewSet(viewsets.ViewSet):
             data["url"] = settings.BKREPO_ENDPOINT_URL
             return Response(data)
 
-        # 制品库临时下载接口以文件流返回
-        if "/storage/generic/temporary/download/" in request.path:
+        # 制品库临时下载接口以文件流返回，下载被拒绝时内部返回的是 JSON 错误信息，不能包装成文件
+        is_json_response = response.headers.get("Content-Type", "").startswith("application/json")
+        if "/storage/generic/temporary/download/" in request.path and not is_json_response:
             chunk_size = 1024 * 1024
             content_disposition = response.headers.get("Content-Disposition", 'attachment; filename="download.tar.gz"')
-            return StreamingHttpResponse(
+            stream_response = StreamingHttpResponse(
                 response.iter_content(chunk_size=chunk_size),
-                content_type="application/octet‑stream",
+                content_type="application/octet-stream",
                 headers={"Content-Disposition": content_disposition},
             )
+            stream_response._resource_closers.append(response.close)
+            return stream_response
 
         # 外部 API 转发请求，把 IP 替换为 *.*.*.*。适用于json响应
         if request.path.startswith("/external/apis/") and response.headers.get("Content-Type").startswith(
