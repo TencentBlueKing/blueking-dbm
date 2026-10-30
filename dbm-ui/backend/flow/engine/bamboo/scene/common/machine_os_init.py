@@ -37,6 +37,7 @@ from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import buil
 from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_clean_sub_flow
 from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.host_data_dir_check import build_host_data_dir_check_acts
 from backend.flow.plugins.components.collections.common.machine_os_baseline import (
     build_machine_os_baseline_acts,
     init_timesync_enabled,
@@ -175,10 +176,8 @@ class ImportResourceInitStepFlow(object):
         else:
             account_name = LINUX_ADMIN_USER_FOR_CHECK
 
-        # 执行空闲检查
-        # 严格空闲检查（SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID）与标准空闲检查（SA_CHECK_TEMPLATE_ID）
-        # 调用的是相互独立的标准运维模板，没有顺序依赖。两者都配置时并行执行以缩短整体耗时；
-        # 仅配置其一时只跑对应那一个；都未配置则跳过。
+        # SA 空闲检查按模板配置执行，与 Linux 残留数据目录检查无顺序依赖，可并行执行。
+        # 未配置 SA 模板时仍检查残留目录，全部检查通过后才允许初始化及入池。
         idle_check_ips = [host["ip"] for host in host_list]
         idle_check_acts = []
         if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID:
@@ -211,6 +210,8 @@ class ImportResourceInitStepFlow(object):
                     ),
                 }
             )
+        if not is_windows:
+            idle_check_acts.extend(build_host_data_dir_check_acts(host_list))
         if len(idle_check_acts) >= 2:
             p.add_parallel_acts(acts_list=idle_check_acts)
         elif idle_check_acts:
