@@ -24,8 +24,8 @@ class FileSerializer(serializers.Serializer):
 
 
 class TemporaryDownloadSerializer(serializers.Serializer):
-    token = serializers.CharField(help_text=_("临时下载的token"), required=False)
-    download = serializers.BooleanField(help_text=_("是否强制下载"), required=False)
+    token = serializers.CharField(help_text=_("临时下载的token"))
+    download = serializers.BooleanField(help_text=_("是否强制下载"), required=False, default=True)
 
 
 class CreateTokenSerializer(serializers.Serializer):

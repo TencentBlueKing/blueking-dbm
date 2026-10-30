@@ -11,13 +11,17 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.ticket.builders.mysql.base import DBTableField
+
 
 class SubmitBillMySQLConstructRollbackInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     target_cluster_domain = serializers.CharField(help_text=_("目标集群域名"))
-    databases = serializers.ListField(child=serializers.CharField(), help_text=_('数据库列表, 允许带有 %, ?, * 这样的通配，所有库["*"]'))
-    tables = serializers.ListField(child=serializers.CharField(), help_text=_('表列表, 允许带有 %, ?, * 这样的通配，所有表["*"]'))
+    databases = serializers.ListField(
+        child=DBTableField(db_field=True), help_text=_('数据库列表, 允许带有 %, ?, * 这样的通配，所有库["*"]')
+    )
+    tables = serializers.ListField(child=DBTableField(), help_text=_('表列表, 允许带有 %, ?, * 这样的通配，所有表["*"]'))
     rollback_time = serializers.DateTimeField(
         help_text=_("Rollback time in ISO 8601 format (e.g. '2026-01-08T16:33:38+08:00'). "),
         default=None,

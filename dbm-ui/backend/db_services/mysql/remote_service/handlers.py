@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import re
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
@@ -26,8 +27,27 @@ from backend.flow.consts import SYSTEM_DBS
 
 
 class RemoteServiceHandler:
+    # 库表匹配规则字符集，与 DBTableField 保持一致
+    DB_TB_PATTERN_RE = re.compile(r"[-_a-zA-Z0-9*?%]+")
+    # 拼入单引号字面量时能闭合或转义引号的字符
+    SQL_LITERAL_UNSAFE_RE = re.compile(r"['\\\x00]")
+
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
+
+    @classmethod
+    def _check_db_tb_patterns(cls, patterns: List[str]):
+        """校验用户传入的库表名/匹配规则"""
+        for pattern in patterns:
+            if not isinstance(pattern, str) or not cls.DB_TB_PATTERN_RE.fullmatch(pattern):
+                raise RemoteServiceBaseException(_("非法的库表匹配规则: {}").format(pattern))
+
+    @classmethod
+    def _check_sql_literals(cls, names: List[str]):
+        """校验从实例查询得到的库表名，名称可能含有特殊字符，只拦截能逃逸单引号字面量的字符"""
+        for name in names:
+            if not isinstance(name, str) or cls.SQL_LITERAL_UNSAFE_RE.search(name):
+                raise RemoteServiceBaseException(_("非法的库表名: {}").format(name))
 
     @classmethod
     def _format_db_tb_name(cls, _data_names):
@@ -41,6 +61,7 @@ class RemoteServiceHandler:
 
     @classmethod
     def _get_db_tb_sts(cls, _data_names, key, default):
+        cls._check_db_tb_patterns(_data_names)
         _data_names = cls._format_db_tb_name(_data_names)
         _sts = "(" + " or ".join([f"{key} like '{name}'" for name in _data_names]) + ")"
         _sts = f"({default})" if _sts == "()" else _sts
@@ -130,6 +151,7 @@ class RemoteServiceHandler:
             cluster_handler, address = self._get_cluster_address(cluster_id__role_map, info["cluster_id"])
 
             # 构造数据表查询语句
+            self._check_sql_literals(info["dbs"])
             db_sts = " or ".join([f"table_schema='{db}'" for db in info["dbs"]])
             query_table_sql = QUERY_TABLES_FROM_DB_SQL.format(db_sts=db_sts)
 
@@ -210,6 +232,7 @@ class RemoteServiceHandler:
         cluster_handler, address = self._get_cluster_address({}, cluster_id)
 
         # 构造查询表的sql语句
+        self._check_sql_literals(dbs)
         db_list = "(" + ",".join([f"'{db}'" for db in dbs]) + ")"
         table_sts = self._get_db_tb_sts(tables, "TABLE_NAME", 1)
         ignore_table_sts = self._get_db_tb_sts(ignore_tables, "TABLE_NAME", 0)
@@ -313,6 +336,7 @@ class RemoteServiceHandler:
         cluster = Cluster.objects.get(id=cluster_id)
         address = ClusterHandler.get_exact_handler(bk_biz_id=bk_biz_id, cluster_id=cluster_id).get_remote_address()
 
+        self._check_db_tb_patterns(info["tables"] + info["databases"])
         table_sts = "(" + " or ".join([f"table_name = '{table}'" for table in info["tables"]]) + ")"
         db_sts = "(" + " or ".join([f"table_schema like '{db}'" for db in info["databases"]]) + ")"
         fields_type_sql = QUERY_DATABASE_FIELD_TYPE.format(table_sts=table_sts, db_sts=db_sts)

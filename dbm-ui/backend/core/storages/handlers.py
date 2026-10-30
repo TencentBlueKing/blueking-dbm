@@ -22,7 +22,7 @@ from rest_framework.status import HTTP_200_OK
 
 from backend import env
 from backend.core.storages.constants import STAGING_PREFIX
-from backend.core.storages.exceptions import StagingFileError
+from backend.core.storages.exceptions import StagingFileError, TemporaryDownloadError
 from backend.core.storages.storage import CustomBKRepoStorage, get_storage
 from backend.exceptions import ApiRequestError, ApiResultError
 
@@ -94,6 +94,36 @@ class StorageHandler(object):
             headers={"Content-Disposition": content_disposition},
         )
         return resp
+
+    def temporary_download(
+        self, project: str, repo: str, path: str, token: str, force_download: bool = True
+    ) -> StreamingHttpResponse:
+        """
+        凭制品库临时 token 下载文件，由制品库校验 token 与路径的绑定关系
+        :param project: 制品库项目
+        :param repo: 制品库仓库
+        :param path: 文件路径
+        :param token: 临时 token
+        :param force_download: 是否强制下载
+        """
+        client = self.storage.client
+        if project != client.project or repo != client.bucket:
+            raise TemporaryDownloadError(_("不支持的制品库仓库: {}/{}").format(project, repo))
+        if ".." in path.split("/"):
+            raise TemporaryDownloadError(_("非法的文件路径: {}").format(path))
+
+        resp = client.temporary_download(path=path, token=token, force_download=force_download)
+        if not resp.ok:
+            resp.close()
+            raise TemporaryDownloadError(_("制品库拒绝下载请求，状态码: {}").format(resp.status_code))
+
+        chunk_size = 1024 * 1024
+        content_disposition = resp.headers.get("Content-Disposition", 'attachment; filename="download.tar.gz"')
+        return StreamingHttpResponse(
+            resp.iter_content(chunk_size=chunk_size),
+            content_type="application/octet-stream",
+            headers={"Content-Disposition": content_disposition},
+        )
 
     def delete_file(self, file_path) -> bool:
         """
