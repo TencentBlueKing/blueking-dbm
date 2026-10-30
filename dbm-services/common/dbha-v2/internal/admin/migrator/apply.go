@@ -113,6 +113,9 @@ func applyStep(
 		result.schemaUnchanged++
 		return nil
 	case decisionApply:
+		if err = recheckDuplicates(store, snap, step); err != nil {
+			return err
+		}
 		changed, err := applyChosen(store, step, snap)
 		if err != nil {
 			return err
@@ -135,6 +138,50 @@ func applyStep(
 			store.Endpoint(), step.Version, choiceName(choice),
 		)
 	}
+}
+
+// recheckDuplicates probes again, right before the DDL, the duplicate rows that would make a unique
+// index or a primary key rebuild fail. Earlier steps may have added or backfilled the key columns
+// since the precheck ran. It calls the duplicate probe directly, never ProbeFacts.
+func recheckDuplicates(store Store, snap *Snapshot, step schemaStep) error {
+	if snap == nil || !snap.Database || (step.Kind != objectIndex && step.Kind != objectPrimaryKey) {
+		return nil
+	}
+	spec, ok := tableByName(step.Table)
+	live := snap.Tables[step.Table]
+	if !ok || live == nil {
+		return nil
+	}
+
+	return recheckStepDuplicates(store, snap, spec, live, step)
+}
+
+// recheckStepDuplicates probes one step's key on spec and blocks the step on duplicates.
+func recheckStepDuplicates(store Store, snap *Snapshot, spec tableSpec, live *Table, step schemaStep) error {
+	if snap.DuplicateKeys == nil {
+		snap.DuplicateKeys = map[string]bool{}
+	}
+
+	var err error
+	switch step.Kind {
+	case objectIndex:
+		if index, found := findIndexSpec(spec, step.Index); found {
+			err = probeIndexDuplicates(store, snap, spec, live, index)
+		}
+	case objectPrimaryKey:
+		err = probePrimaryKeyDuplicates(store, snap, spec, live)
+	}
+	if err != nil {
+		return stepError("probe duplicate keys", store, step, err)
+	}
+	if duplicateBlocked(snap, step) {
+		return fmt.Errorf(
+			"schema step blocked, endpoint: %s, version: %d, result: duplicate",
+			store.Endpoint(), step.Version,
+		)
+	}
+
+	return nil
 }
 
 // verifyStep reloads the object and fails when the applied DDL did not take effect.
@@ -296,8 +343,10 @@ func schemaTarget(step schemaStep) string {
 func logDataActions(endpoint string, actions []strategyAction) {
 	for _, action := range actions {
 		logger.Info(
-			"default strategy, endpoint: %s, bk_biz_id: %d, trigger_event_name: %s, action: %s",
-			endpoint, action.Seed.BkBizID, action.Seed.TriggerEventName, action.Action,
+			"default strategy, endpoint: %s, bk_biz_id: %d, trigger_event_name: %s, "+
+				"trigger_event_name_reason: %d, action: %s",
+			endpoint, action.Seed.BkBizID, action.Seed.TriggerEventName,
+			int(action.Seed.TriggerEventNameReason), action.Action,
 		)
 	}
 }

@@ -25,6 +25,7 @@
 package migrator
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -115,9 +116,11 @@ func TestExistingRowsDoNotBackfill(t *testing.T) {
 
 func TestSoftDeletedStrategyIsNotRestored(t *testing.T) {
 	store := schemaStore(t)
-	event := defaultStrategies()[0].TriggerEventName.String()
+	seed := defaultStrategies()[0]
+	event := seed.TriggerEventName.String()
 	store.strategies = []StrategyState{{
-		BkBizID: 0, Event: event, Priority: 3, UpdatedAt: "edited", Status: "deleted",
+		BkBizID: 0, Event: event, Reason: int(seed.TriggerEventNameReason), Priority: 3, UpdatedAt: "edited",
+		Status: "deleted",
 	}}
 	recorded := captureWarn(t)
 	if err := run(Options{Type: MigrateTypeData}, []Store{store}); err != nil {
@@ -150,15 +153,19 @@ func TestStrategyDeletedEitherMarker(t *testing.T) {
 	}
 }
 
-func TestStrategyHitPrefersSeedReasonThenLiveRow(t *testing.T) {
-	seed := defaultStrategies()[0]
+// A row of the same business and event but another reason is a different identity, as in idx_biz_event_reason.
+func TestStrategyHitIgnoresOtherReason(t *testing.T) {
+	seed := defaultStrategies()[1]
 	event, reason := seed.TriggerEventName.String(), int(seed.TriggerEventNameReason)
 	own := StrategyState{BkBizID: seed.BkBizID, Event: event, Reason: reason, Status: "enabled"}
-	other := StrategyState{BkBizID: seed.BkBizID, Event: event, Reason: reason + 100, Status: "deleted"}
+	other := StrategyState{BkBizID: seed.BkBizID, Event: event, Reason: reason + 100, Status: "enabled"}
+	if hit := strategyHits([]StrategyState{other})[seedIdentity(seed)]; hit.Found {
+		t.Fatal("a row with another reason hit the default strategy")
+	}
 	for _, rows := range [][]StrategyState{{own, other}, {other, own}} {
 		hit := strategyHits(rows)[seedIdentity(seed)]
 		if !hit.Found || strategyDeleted(hit) {
-			t.Fatal("hit depended on row order instead of the seed reason")
+			t.Fatal("own reason row was not the hit")
 		}
 	}
 
@@ -166,58 +173,146 @@ func TestStrategyHitPrefersSeedReasonThenLiveRow(t *testing.T) {
 	ownDeleted.Status = "deleted"
 	for _, rows := range [][]StrategyState{{ownDeleted, other}, {other, ownDeleted}} {
 		if hit := strategyHits(rows)[seedIdentity(seed)]; !strategyDeleted(hit) {
-			t.Fatal("soft-deleted seed row lost to another reason")
-		}
-	}
-
-	live := other
-	live.Status = "enabled"
-	for _, rows := range [][]StrategyState{{live, other}, {other, live}} {
-		if hit := strategyHits(rows)[seedIdentity(seed)]; strategyDeleted(hit) {
-			t.Fatal("live row lost to a deleted row of the same rank")
+			t.Fatal("a live row with another reason replaced the soft-deleted own row")
 		}
 	}
 }
 
-// A NULL reason ranks below any other reason, as NULL sorts last in MySQL descending order.
-// A live NULL-reason row must not win over a deleted row whose reason is merely different.
-func TestStrategyHitNullReasonRanksLast(t *testing.T) {
+// A NULL reason equals no reason, so it never matches a default strategy.
+func TestStrategyHitIgnoresNullReason(t *testing.T) {
 	seed := defaultStrategies()[0]
-	event, reason := seed.TriggerEventName.String(), int(seed.TriggerEventNameReason)
-	nullLive := StrategyState{BkBizID: seed.BkBizID, Event: event, ReasonNull: true, Status: "enabled"}
-	otherDeleted := StrategyState{BkBizID: seed.BkBizID, Event: event, Reason: reason + 100, Status: "deleted"}
-	for _, rows := range [][]StrategyState{{nullLive, otherDeleted}, {otherDeleted, nullLive}} {
-		if hit := strategyHits(rows)[seedIdentity(seed)]; !strategyDeleted(hit) {
-			t.Fatal("null-reason row outranked a row with another reason")
-		}
+	nullLive := StrategyState{
+		BkBizID: seed.BkBizID, Event: seed.TriggerEventName.String(), ReasonNull: true, Status: "enabled",
 	}
-
-	nullDeleted := nullLive
-	nullDeleted.Status = "deleted"
-	for _, rows := range [][]StrategyState{{nullLive, nullDeleted}, {nullDeleted, nullLive}} {
-		if hit := strategyHits(rows)[seedIdentity(seed)]; strategyDeleted(hit) {
-			t.Fatal("live null-reason row lost to a deleted null-reason row")
-		}
+	if hit := strategyHits([]StrategyState{nullLive})[seedIdentity(seed)]; hit.Found {
+		t.Fatal("a null-reason row hit the default strategy")
 	}
 }
 
 func TestStrategyHitRankOrder(t *testing.T) {
-	const reason = 7
 	order := []strategyRow{
-		{Reason: reason, ReasonValid: true},
-		{Reason: reason, ReasonValid: true, Deleted: true},
-		{Reason: reason + 1, ReasonValid: true},
-		{Reason: reason + 1, ReasonValid: true, Status: "deleted"},
-		{ReasonValid: false},
-		{ReasonValid: false, Deleted: true},
+		{Status: "enabled"},
+		{Deleted: true},
 	}
-	for i := 1; i < len(order); i++ {
-		if strategyHitRank(order[i-1], reason) <= strategyHitRank(order[i], reason) {
-			t.Fatalf("rank order broken, position: %d", i)
+	if strategyHitRank(order[0]) <= strategyHitRank(order[1]) {
+		t.Fatal("live row did not rank above a soft-deleted row")
+	}
+	if strategyHitRank(strategyRow{Status: "deleted"}) != strategyHitRank(strategyRow{Deleted: true}) {
+		t.Fatal("soft-delete markers ranked differently")
+	}
+	if hit := bestStrategyHit(nil); hit.Found {
+		t.Fatal("no rows must mean not found")
+	}
+}
+
+func TestDefaultStrategyIdentityUnique(t *testing.T) {
+	seen := map[string]bool{}
+	for _, seed := range defaultStrategies() {
+		id := seedIdentity(seed)
+		if seen[id] {
+			t.Fatalf("default strategy identity repeated, trigger_event_name: %s", seed.TriggerEventName)
+		}
+		seen[id] = true
+	}
+}
+
+// Default strategies must not collide with each other on any unique index of the model.
+func TestDefaultStrategiesUniquePerIndex(t *testing.T) {
+	seen := map[string]bool{}
+	for _, seed := range defaultStrategies() {
+		lookups, err := strategyLookups(seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, lookup := range lookups {
+			key := lookup.Index + fmt.Sprint(lookup.Values)
+			if seen[key] {
+				t.Fatalf("default strategies share a unique key, index: %s", lookup.Index)
+			}
+			seen[key] = true
 		}
 	}
-	if hit := bestStrategyHit(nil, reason); hit.Found {
-		t.Fatal("no rows must mean not found")
+}
+
+// Every column of every unique index must map to a model value, so a new index cannot skip the check.
+func TestStrategyLookupsCoverUniqueIndexes(t *testing.T) {
+	spec, _ := tableByName(strategyTableName())
+	unique := 0
+	for _, index := range spec.Indexes {
+		if index.Unique {
+			unique++
+		}
+	}
+	lookups, err := strategyLookups(defaultStrategies()[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unique == 0 || len(lookups) != unique {
+		t.Fatalf("unique index lookups, want: %d, got: %d", unique, len(lookups))
+	}
+	for _, lookup := range lookups {
+		index, _ := findIndexSpec(spec, lookup.Index)
+		if len(lookup.Values) != len(index.Columns) {
+			t.Fatalf("unique index lookup misses columns, index: %s", lookup.Index)
+		}
+	}
+	values, err := modelColumnValues(defaultStrategies()[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	extended := spec
+	extended.Indexes = append(append([]indexSpec{}, spec.Indexes...), indexSpec{
+		Name: "idx_missing", Unique: true, Columns: []string{"missing"},
+	})
+	if _, err = strategyLookupsFrom(extended, values); err == nil {
+		t.Fatal("a unique index column without a model value was accepted")
+	}
+}
+
+func TestOtherReasonSkipsThenRepairInserts(t *testing.T) {
+	store := schemaStore(t)
+	seed := defaultStrategies()[1]
+	store.strategies = []StrategyState{{
+		Name: "custom", BkBizID: seed.BkBizID, Event: seed.TriggerEventName.String(),
+		Reason: int(seed.TriggerEventNameReason) + 100, Priority: 4, Status: "enabled",
+	}}
+	recorded := captureWarn(t)
+	if err := run(Options{Type: MigrateTypeData}, []Store{store}); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.strategies) != 1 || len(store.snap.Data) != 0 {
+		t.Fatal("a row with another reason was taken as the default strategy")
+	}
+	if !infoHas(recorded, "action: skip", seed.TriggerEventName.String()) {
+		t.Fatal("default strategy with another reason row did not log action: skip")
+	}
+	if err := run(Options{Type: MigrateTypeData, RepairMissingData: true}, []Store{store}); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.strategies) != len(defaultStrategies())+1 || store.strategies[0].Priority != 4 {
+		t.Fatal("repair-missing-data did not insert the defaults beside the other reason row")
+	}
+}
+
+func TestUniqueConflictBlocksDataPrecheck(t *testing.T) {
+	for _, status := range []string{"enabled", "deleted"} {
+		t.Run(status, func(t *testing.T) {
+			store := schemaStore(t)
+			seed := defaultStrategies()[1]
+			store.strategies = []StrategyState{{
+				Name: seed.Name, BkBizID: seed.BkBizID, Event: seed.TriggerEventName.String(),
+				Reason: 0, Priority: 4, Status: status,
+			}}
+			err := run(Options{Type: MigrateTypeData, RepairMissingData: true}, []Store{store})
+			if err == nil || !strings.Contains(err.Error(), "precheck failed") ||
+				!strings.Contains(err.Error(), "index: idx_name") ||
+				!strings.Contains(err.Error(), "result: unique_conflict") {
+				t.Fatalf("unique conflict was not blocked in precheck, errmsg: %v", err)
+			}
+			if len(store.strategies) != 1 || len(store.snap.Data) != 0 || store.snap.Tables[dataLedgerTable] != nil {
+				t.Fatal("blocked data migrate wrote strategies or the data ledger")
+			}
+		})
 	}
 }
 

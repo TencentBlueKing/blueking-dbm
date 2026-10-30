@@ -46,9 +46,10 @@ type Store interface {
 	ExecDDL(sql string) error
 	RecordSchema(version int64, name string) error
 	ApplyStrategies(repairMissing bool) (dataApplyResult, error)
+	PlanStrategies(snap *Snapshot, repairMissing bool) (strategyPlan, error)
 	ApplyConverge(plan convergePlan) error
 	ProbeFacts(snap *Snapshot, scope factScope) error
 	LoadStep(table string) (*Snapshot, error)
-	HasDuplicate(table string, columns []string, nullable []bool) (bool, error)
+	DuplicateSamples(table string, keys []keyExpr, limit int) ([]duplicateSample, error)
 	TableNonEmpty(table string) (bool, error)
 }

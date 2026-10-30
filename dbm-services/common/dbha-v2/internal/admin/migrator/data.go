@@ -26,6 +26,7 @@ package migrator
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -90,12 +91,25 @@ type strategyHit struct {
 }
 
 // strategyRow is one live row that shares the identity of a default strategy.
-// ReasonValid is false when trigger_event_name_reason is NULL. Deleted is true when deleted_at is not NULL.
+// Deleted is true when deleted_at is not NULL.
 type strategyRow struct {
-	Reason      int
-	ReasonValid bool
-	Status      string
-	Deleted     bool
+	Status  string
+	Deleted bool
+}
+
+// strategyConflict is an existing row that holds a unique key a default strategy would insert.
+type strategyConflict struct {
+	Index   string
+	Name    string
+	BkBizID int
+	Event   string
+	Reason  int
+}
+
+// strategyLookup is the value set one default strategy would occupy in one unique index.
+type strategyLookup struct {
+	Index  string
+	Values map[string]any
 }
 
 // strategyAction is one logged decision for one default strategy.
@@ -267,10 +281,10 @@ func strategyDeleted(hit strategyHit) bool {
 
 // bestStrategyHit picks the highest-ranked row of one identity; no rows means not found.
 // Rows of equal rank share the same deleted state, so whichever is picked yields the same action.
-func bestStrategyHit(rows []strategyRow, reason int) strategyHit {
+func bestStrategyHit(rows []strategyRow) strategyHit {
 	best, bestRank := strategyHit{}, -1
 	for _, row := range rows {
-		if rank := strategyHitRank(row, reason); rank > bestRank {
+		if rank := strategyHitRank(row); rank > bestRank {
 			best, bestRank = rowHit(row), rank
 		}
 	}
@@ -278,24 +292,13 @@ func bestStrategyHit(rows []strategyRow, reason int) strategyHit {
 	return best
 }
 
-// strategyHitRank orders rows that share one identity, the same way MySQL orders
-// "(reason = ?) DESC, live DESC": the seed's own reason first, then another reason, then a NULL
-// reason (NULL sorts last in descending order); within each group live rows come first.
-func strategyHitRank(row strategyRow, reason int) int {
-	level := 0
-	if row.ReasonValid {
-		level = 1
-		if row.Reason == reason {
-			level = 2
-		}
+// strategyHitRank orders rows that share one identity: live rows before soft-deleted ones.
+func strategyHitRank(row strategyRow) int {
+	if strategyDeleted(rowHit(row)) {
+		return 0
 	}
 
-	rank := level * 2
-	if !strategyDeleted(rowHit(row)) {
-		rank++
-	}
-
-	return rank
+	return 1
 }
 
 // rowHit turns one live row into the hit the plan works with.
@@ -305,10 +308,137 @@ func rowHit(row strategyRow) strategyHit {
 
 // seedIdentity is the business key of one default strategy.
 func seedIdentity(seed hamodel.DbSwitchingStrategy) string {
-	return strategyIdentity(seed.BkBizID, seed.TriggerEventName.String())
+	return strategyIdentity(seed.BkBizID, seed.TriggerEventName.String(), int(seed.TriggerEventNameReason))
 }
 
-// strategyIdentity is the business key of one strategy: business plus event.
-func strategyIdentity(bkBizID int, event string) string {
-	return strconv.Itoa(bkBizID) + "\x00" + event
+// strategyIdentity is the business key of one strategy: business, event and reason,
+// the same columns as the idx_biz_event_reason unique index.
+func strategyIdentity(bkBizID int, event string, reason int) string {
+	return strconv.Itoa(bkBizID) + "\x00" + event + "\x00" + strconv.Itoa(reason)
+}
+
+// insertConflictsWanted reports whether a plan writes rows that existing rows could collide with.
+func insertConflictsWanted(empty bool, plan strategyPlan) bool {
+	return !empty && plan.Complete && !plan.SkipWrite && len(plan.Insert) > 0
+}
+
+// strategyLookups lists the value set a default strategy occupies in every unique index of the model.
+// Column values come from the model fields by their gorm column tag, so a new unique index is covered
+// without listing its columns here.
+func strategyLookups(seed hamodel.DbSwitchingStrategy) ([]strategyLookup, error) {
+	spec, ok := tableByName(hamodel.DbSwitchingStrategyTableName)
+	if !ok {
+		return nil, fmt.Errorf("strategy table is not managed")
+	}
+	values, err := modelColumnValues(seed)
+	if err != nil {
+		return nil, err
+	}
+
+	return strategyLookupsFrom(spec, values)
+}
+
+// strategyLookupsFrom builds one lookup per unique index of spec from model column values.
+// It fails when a unique index column has no model value.
+func strategyLookupsFrom(spec tableSpec, values map[string]any) ([]strategyLookup, error) {
+	var lookups []strategyLookup
+	for _, index := range spec.Indexes {
+		if !index.Unique {
+			continue
+		}
+		lookup := strategyLookup{Index: index.Name, Values: map[string]any{}}
+		for _, column := range index.Columns {
+			value, ok := values[column]
+			if !ok {
+				return nil, fmt.Errorf("unique index column has no model value, index: %s, column: %s",
+					index.Name, column)
+			}
+			lookup.Values[column] = value
+		}
+		lookups = append(lookups, lookup)
+	}
+
+	return lookups, nil
+}
+
+// modelColumnValues maps every gorm column of a model value to a driver-ready value.
+func modelColumnValues(model any) (map[string]any, error) {
+	value := reflect.ValueOf(model)
+	if value.Kind() == reflect.Pointer {
+		value = value.Elem()
+	}
+
+	values := map[string]any{}
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Type().Field(i)
+		if field.PkgPath != "" {
+			continue
+		}
+		parsed, ok, err := parseField(field)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			continue
+		}
+		if plain, ok := plainValue(value.Field(i)); ok {
+			values[parsed.column] = plain
+		}
+	}
+
+	return values, nil
+}
+
+// plainValue unwraps named string and integer types to their base value.
+func plainValue(value reflect.Value) (any, bool) {
+	switch value.Kind() {
+	case reflect.String:
+		return value.String(), true
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int(), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return value.Uint(), true
+	default:
+		return nil, false
+	}
+}
+
+// uniqueConflictError renders the blocker for a default strategy that an existing row would collide with.
+func uniqueConflictError(seed hamodel.DbSwitchingStrategy, conflict strategyConflict) error {
+	return fmt.Errorf(
+		"data blocked, bk_biz_id: %d, trigger_event_name: %s, trigger_event_name_reason: %d, index: %s, "+
+			"conflict_name: %s, conflict_bk_biz_id: %d, conflict_event: %s, conflict_reason: %d, "+
+			"result: unique_conflict",
+		seed.BkBizID, seed.TriggerEventName, int(seed.TriggerEventNameReason), conflict.Index,
+		conflict.Name, conflict.BkBizID, conflict.Event, conflict.Reason,
+	)
+}
+
+// strategyPlanReady reports whether the strategy table has every column the data plan reads,
+// so the plan can be checked before schema convergence runs.
+func strategyPlanReady(snap *Snapshot) bool {
+	if snap == nil || !snap.Database {
+		return false
+	}
+	table := snap.Tables[hamodel.DbSwitchingStrategyTableName]
+	spec, ok := tableByName(hamodel.DbSwitchingStrategyTableName)
+	if table == nil || !ok {
+		return false
+	}
+
+	columns := []string{
+		hamodel.DbSwitchingStrategyFieldBkBizID,
+		hamodel.DbSwitchingStrategyFieldTriggerEventName,
+		hamodel.DbSwitchingStrategyFieldTriggerEventNameReason,
+		hamodel.DbSwitchingStrategyFieldStatus,
+		hamodel.DbSwitchingStrategyFieldDeletedAt,
+		hamodel.DbSwitchingStrategyFieldName,
+	}
+	for _, index := range spec.Indexes {
+		if index.Unique {
+			columns = append(columns, index.Columns...)
+		}
+	}
+
+	return columnsPresent(table, columns)
 }

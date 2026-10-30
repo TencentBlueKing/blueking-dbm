@@ -140,16 +140,175 @@ func TestTimestampAttributesSatisfyWithoutModify(t *testing.T) {
 }
 
 func TestDuplicateSQLIgnoresNullsInNullableColumns(t *testing.T) {
-	query, err := duplicateSQL("t_db_switching_strategy", []string{"name", "bk_biz_id"}, []bool{true, false})
+	query, err := duplicateSQL("t_db_switching_strategy", []keyExpr{
+		{Column: "name", SkipNull: true}, {Column: "bk_biz_id"},
+	}, duplicateSampleLimit)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(query, "WHERE `name` IS NOT NULL") || strings.Contains(query, "`bk_biz_id` IS NOT NULL") {
 		t.Fatalf("nullable duplicate filter, query: %s", query)
 	}
-	if !strings.Contains(query, "GROUP BY `name`, `bk_biz_id` HAVING COUNT(*) > 1 LIMIT 1") {
+	if !strings.HasPrefix(query, "SELECT `name`, `bk_biz_id`, COUNT(*) FROM `t_db_switching_strategy`") ||
+		!strings.HasSuffix(query, "GROUP BY `name`, `bk_biz_id` HAVING COUNT(*) > 1 LIMIT 5") {
 		t.Fatalf("duplicate query, query: %s", query)
 	}
+}
+
+func TestDuplicateSQLGroupsConvergedValues(t *testing.T) {
+	query, err := duplicateSQL("t", []keyExpr{
+		{Column: "id", SkipNull: true},
+		{Column: "harvest_type", Default: "'default'", EmptyAsDefault: true},
+		{Column: "kind", Default: "'x'"},
+	}, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	group := "`id`, COALESCE(NULLIF(`harvest_type`, ''), 'default'), COALESCE(`kind`, 'x')"
+	if !strings.Contains(query, "SELECT "+group+", COUNT(*)") ||
+		!strings.Contains(query, "WHERE `id` IS NOT NULL") ||
+		!strings.HasSuffix(query, "GROUP BY "+group+" HAVING COUNT(*) > 1 LIMIT 3") {
+		t.Fatalf("converged duplicate query, query: %s", query)
+	}
+	if _, err = duplicateSQL("t", nil, 1); err == nil {
+		t.Fatal("a duplicate probe without columns was accepted")
+	}
+	if _, err = duplicateSQL("t", []keyExpr{{Column: "a`b"}}, 1); err == nil {
+		t.Fatal("an unsafe identifier was accepted")
+	}
+}
+
+func TestPKKeyExprFollowsBackfill(t *testing.T) {
+	auto := pkKeyExpr(columnSpec{Name: "id", Target: columnForm{AutoIncrement: true}}, Column{Nullable: true})
+	if !auto.SkipNull || auto.Default != "" {
+		t.Fatalf("auto increment key, key: %+v", auto)
+	}
+	fill := pkKeyExpr(columnSpec{
+		Name: "harvest_type", EmptyAsDefault: true,
+		Target: columnForm{HasDefault: true, DefaultLiteral: "default"},
+	}, Column{})
+	if fill.Default != "'default'" || !fill.EmptyAsDefault || fill.SkipNull {
+		t.Fatalf("default key, key: %+v", fill)
+	}
+	plain := pkKeyExpr(columnSpec{Name: "a"}, Column{Nullable: true})
+	if !plain.SkipNull || plain.Default != "" {
+		t.Fatalf("plain nullable key, key: %+v", plain)
+	}
+}
+
+// pkSpec is a table whose baseline drops a legacy key column, so a rebuild may hit duplicates.
+func pkSpec() (tableSpec, *Table) {
+	spec := tableSpec{
+		Name:     "t_pk",
+		Columns:  []columnSpec{{Name: "a", Primary: true}, {Name: "b", Primary: true}, {Name: "c"}},
+		Baseline: []string{"a", "b"},
+		KnownPKs: [][]string{{"a", "c"}},
+	}
+	live := &Table{
+		Columns: map[string]Column{"a": {Name: "a"}, "b": {Name: "b"}, "c": {Name: "c"}},
+		PK:      []string{"a", "c"},
+	}
+
+	return spec, live
+}
+
+func TestPKProbeSkipsKeptUniqueKey(t *testing.T) {
+	for _, table := range []string{strategyTableName(), statusTable} {
+		spec, _ := tableByName(table)
+		for _, known := range spec.KnownPKs {
+			live := &Table{Columns: map[string]Column{}, PK: known}
+			for _, name := range spec.Baseline {
+				live.Columns[name] = Column{Name: name}
+			}
+			if pkProbeNeeded(spec, live) {
+				t.Fatalf("legacy key inside the baseline was probed, table: %s, pk: %v", table, known)
+			}
+		}
+	}
+
+	spec, live := pkSpec()
+	if !pkProbeNeeded(spec, live) {
+		t.Fatal("legacy key outside the baseline was not probed")
+	}
+	live.PK = []string{"a", "b"}
+	if pkProbeNeeded(spec, live) {
+		t.Fatal("baseline key was probed")
+	}
+	spec.Columns[0].EmptyAsDefault = true
+	live.PK = []string{"a"}
+	spec.KnownPKs = [][]string{{"a"}}
+	if !pkProbeNeeded(spec, live) {
+		t.Fatal("legacy key rewritten by the empty backfill was not probed")
+	}
+}
+
+func TestPKDuplicateBlocksStep(t *testing.T) {
+	spec, live := pkSpec()
+	store := newMem("127.0.0.1:3306", testIdentity("u1"))
+	recorded := captureWarn(t)
+	snap := &Snapshot{Database: true, DuplicateKeys: map[string]bool{}}
+	if err := probePrimaryKeyDuplicates(store, snap, spec, live); err != nil {
+		t.Fatal(err)
+	}
+	step := schemaStep{Version: 9, Table: spec.Name, Kind: objectPrimaryKey}
+	if duplicateBlocked(snap, step) {
+		t.Fatal("primary key without duplicates was blocked")
+	}
+
+	store.duplicates = map[string]bool{duplicateKey(spec.Name, spec.Baseline): true}
+	err := recheckStepDuplicates(store, snap, spec, live, step)
+	if err == nil || !strings.Contains(err.Error(), "result: duplicate") {
+		t.Fatalf("primary key duplicate was not blocked, errmsg: %v", err)
+	}
+	if stepDataBlock(snap, step, decisionApply) != "duplicate" {
+		t.Fatal("precheck did not report the primary key duplicate")
+	}
+	if !warnHas(recorded, "primary key duplicate", "table: t_pk", "columns: a, b", "rows: 2") {
+		t.Fatal("primary key duplicate sample was not logged")
+	}
+}
+
+// Duplicates that appear after the precheck block the unique index step before its DDL.
+func TestUniqueIndexRecheckBlocksBeforeDDL(t *testing.T) {
+	store := migrated("127.0.0.1:3306", "u1")
+	step := findStep(objectIndex, strategyTableName(), "", "idx_biz_event_reason")
+	delete(store.snap.Schema, step.Version)
+	table := store.snap.Tables[strategyTableName()]
+	table.Indexes = dropNamedIndex(table.Indexes, "idx_biz_event_reason")
+	late := &lateDuplicateStore{memStore: store, key: duplicateKey(strategyTableName(), []string{
+		"bk_biz_id", "trigger_event_name", "trigger_event_name_reason",
+	})}
+	ddl := store.ddl
+	err := run(Options{Type: MigrateTypeSchema}, []Store{late})
+	if err == nil || !strings.Contains(err.Error(), "result: duplicate") || late.calls < 2 {
+		t.Fatalf("late duplicate was not blocked before ddl, calls: %d, errmsg: %v", late.calls, err)
+	}
+	if store.ddl != ddl {
+		t.Fatal("blocked unique index step wrote ddl")
+	}
+	if _, ok := store.snap.Schema[step.Version]; ok {
+		t.Fatal("blocked unique index step was recorded")
+	}
+}
+
+// lateDuplicateStore reports a duplicate key only after the first probe, as if rows changed after precheck.
+type lateDuplicateStore struct {
+	*memStore
+	key   string
+	calls int
+}
+
+func (s *lateDuplicateStore) DuplicateSamples(table string, keys []keyExpr, limit int) ([]duplicateSample, error) {
+	s.calls++
+	columns := make([]string, 0, len(keys))
+	for _, key := range keys {
+		columns = append(columns, key.Column)
+	}
+	if s.calls > 1 && duplicateKey(table, columns) == s.key {
+		return []duplicateSample{{Values: columns, Rows: 2}}, nil
+	}
+
+	return s.memStore.DuplicateSamples(table, keys, limit)
 }
 
 func TestOnlyAlterStatementsTakeLockWait(t *testing.T) {

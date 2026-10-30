@@ -42,6 +42,7 @@ func duplicateKey(table string, columns []string) string {
 
 // StrategyState is one strategy row held by memStore. ReasonNull models a NULL trigger_event_name_reason.
 type StrategyState struct {
+	Name       string
 	BkBizID    int
 	Event      string
 	Reason     int
@@ -152,9 +153,17 @@ func (m *memStore) LoadStep(string) (*Snapshot, error) {
 	return m.Load()
 }
 
-// HasDuplicate reports whether a configured duplicate key exists.
-func (m *memStore) HasDuplicate(table string, columns []string, _ []bool) (bool, error) {
-	return m.duplicates[duplicateKey(table, columns)], nil
+// DuplicateSamples returns one sample when a duplicate key is configured for the key columns.
+func (m *memStore) DuplicateSamples(table string, keys []keyExpr, _ int) ([]duplicateSample, error) {
+	columns := make([]string, 0, len(keys))
+	for _, key := range keys {
+		columns = append(columns, key.Column)
+	}
+	if !m.duplicates[duplicateKey(table, columns)] {
+		return nil, nil
+	}
+
+	return []duplicateSample{{Values: columns, Rows: 2}}, nil
 }
 
 // TableNonEmpty reports whether a configured table has rows.

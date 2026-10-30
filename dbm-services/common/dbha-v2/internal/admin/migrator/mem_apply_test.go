@@ -150,8 +150,7 @@ func (m *memStore) ApplyStrategies(repair bool) (dataApplyResult, error) {
 		return dataApplyResult{}, fmt.Errorf("strategy table is not ready")
 	}
 
-	empty := len(m.strategies) == 0
-	plan, err := planDefaultStrategies(empty, strategyHits(m.strategies), repair, ledgerFrom(m.snap))
+	plan, err := m.PlanStrategies(m.snap, repair)
 	if err != nil {
 		return dataApplyResult{}, err
 	}
@@ -178,31 +177,92 @@ func (m *memStore) ApplyStrategies(repair bool) (dataApplyResult, error) {
 	return dataResult(plan, true), nil
 }
 
+// PlanStrategies plans the default strategies with the production planner and conflict rules.
+func (m *memStore) PlanStrategies(snap *Snapshot, repair bool) (strategyPlan, error) {
+	empty := len(m.strategies) == 0
+	plan, err := planDefaultStrategies(empty, strategyHits(m.strategies), repair, ledgerFrom(snap))
+	if err != nil || !insertConflictsWanted(empty, plan) {
+		return plan, err
+	}
+
+	for _, seed := range plan.Insert {
+		if err = m.seedConflict(seed); err != nil {
+			return strategyPlan{}, err
+		}
+	}
+
+	return plan, nil
+}
+
+// seedConflict fails when a held row occupies any unique key of seed.
+func (m *memStore) seedConflict(seed hamodel.DbSwitchingStrategy) error {
+	lookups, err := strategyLookups(seed)
+	if err != nil {
+		return err
+	}
+
+	for _, lookup := range lookups {
+		for _, row := range m.strategies {
+			if rowHolds(row, lookup.Values) {
+				return uniqueConflictError(seed, strategyConflict{
+					Index: lookup.Index, Name: row.Name, BkBizID: row.BkBizID, Event: row.Event, Reason: row.Reason,
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
+// rowHolds reports whether a held row has every value of a unique key; a NULL never matches.
+func rowHolds(row StrategyState, values map[string]any) bool {
+	columns := map[string]any{
+		hamodel.DbSwitchingStrategyFieldName:             row.Name,
+		hamodel.DbSwitchingStrategyFieldBkBizID:          int64(row.BkBizID),
+		hamodel.DbSwitchingStrategyFieldTriggerEventName: row.Event,
+	}
+	if !row.ReasonNull {
+		columns[hamodel.DbSwitchingStrategyFieldTriggerEventNameReason] = int64(row.Reason)
+	}
+
+	for column, want := range values {
+		have, ok := columns[column]
+		if !ok || have != want {
+			return false
+		}
+	}
+
+	return true
+}
+
 // insertPlannedStrategies appends the planned default strategies to the store.
 func (m *memStore) insertPlannedStrategies(seeds []hamodel.DbSwitchingStrategy) {
 	for _, seed := range seeds {
 		m.strategies = append(m.strategies, StrategyState{
-			BkBizID: seed.BkBizID, Event: seed.TriggerEventName.String(), Reason: int(seed.TriggerEventNameReason),
-			Status: seed.Status.String(), Priority: seed.Priority, UpdatedAt: "inserted",
+			Name: seed.Name, BkBizID: seed.BkBizID, Event: seed.TriggerEventName.String(),
+			Reason: int(seed.TriggerEventNameReason), Status: seed.Status.String(), Priority: seed.Priority,
+			UpdatedAt: "inserted",
 		})
 	}
 }
 
-// strategyHits groups live strategy rows by seed identity and ranks them with the production ranking.
+// strategyHits groups strategy rows by identity and ranks them with the production ranking.
+// A NULL reason never matches a default strategy.
 func strategyHits(rows []StrategyState) map[string]strategyHit {
 	grouped := map[string][]strategyRow{}
 	for _, row := range rows {
-		id := strategyIdentity(row.BkBizID, row.Event)
-		grouped[id] = append(grouped[id], strategyRow{
-			Reason: row.Reason, ReasonValid: !row.ReasonNull, Status: row.Status, Deleted: row.Deleted,
-		})
+		if row.ReasonNull {
+			continue
+		}
+		id := strategyIdentity(row.BkBizID, row.Event, row.Reason)
+		grouped[id] = append(grouped[id], strategyRow{Status: row.Status, Deleted: row.Deleted})
 	}
 
 	hits := map[string]strategyHit{}
 	for _, seed := range defaultStrategies() {
 		id := seedIdentity(seed)
 		if live, ok := grouped[id]; ok {
-			hits[id] = bestStrategyHit(live, int(seed.TriggerEventNameReason))
+			hits[id] = bestStrategyHit(live)
 		}
 	}
 

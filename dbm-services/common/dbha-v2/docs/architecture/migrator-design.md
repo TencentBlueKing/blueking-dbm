@@ -188,6 +188,8 @@ flowchart TD
 
 空字符串只在主键仍是历史主键并准备替换时处理，而且列必须带 `emptyAsDefault`。主键已经是目标形态时不再改空字符串。NULL 回填属于列定义步骤，主键步骤不重复填充 NULL。
 
+主键替换前按模型主键探测重复行，探测值与收敛后的值一致：有具体默认值的列按 `COALESCE(列, 默认值)` 分组，带 `emptyAsDefault` 的列先把空字符串视为默认值，自增列的 NULL 行不参与分组。发现重复时预检查阻断（`result: duplicate`），所有端点零写入，并按 `table, columns, key, rows` 打印最多 5 组样例。线上主键的列全部属于模型主键、且都不带 `emptyAsDefault` 时，旧主键的唯一性已经保证新主键不重复，跳过探测，不扫描全表。
+
 ### 5.4 自增临时索引
 
 自增列还不是任何索引的最左列时，补列或补 `AUTO_INCREMENT` 的同一条 `ALTER` 创建普通索引 `idx_migrate_<column>`。同名但列或顺序不符是冲突。
@@ -216,7 +218,7 @@ DDL、复查或记账失败都返回失败。DDL 已经提交时无法回滚，�
 
 ### 6.2 默认策略
 
-[`planDefaultStrategies`](../../internal/admin/migrator/data.go) 只维护五条 `bk_biz_id=0` 的默认策略。身份只看 `bk_biz_id` 与 `trigger_event_name`，同一身份只读取一行。同一身份有多行（`trigger_event_name_reason` 不同）时，按原因相同、原因不同、原因为 NULL 的顺序取行，其次取未软删除的行；排名相同的行得出的动作相同。身份匹配在数据库里完成，大小写等比较由列的排序规则决定。默认策略的读写通过 GORM 使用 hamodel 模型，不手写列名；`created_at`、`updated_at` 和账本的 `applied_at` 取数据库的 `NOW()`。迁移连接按 UTC 解析与写回时间，字面值不随迁移机时区变化。
+[`planDefaultStrategies`](../../internal/admin/migrator/data.go) 只维护五条 `bk_biz_id=0` 的默认策略。身份是 `(bk_biz_id, trigger_event_name, trigger_event_name_reason)`，与唯一索引 `idx_biz_event_reason` 一致，不看业务代码如何查询策略。原因不同或原因为 NULL 的行不算命中该身份。同一身份理论上只有一行；若读到多行，优先取未软删除的行。身份匹配在数据库里完成，大小写等比较由列的排序规则决定。默认策略的读写通过 GORM 使用 hamodel 模型，不手写列名；`created_at`、`updated_at` 和账本的 `applied_at` 取数据库的 `NOW()`。迁移连接按 UTC 解析与写回时间，字面值不随迁移机时区变化。
 
 | 事件名 | 事件原因 |
 | --- | --- |
@@ -239,6 +241,8 @@ DDL、复查或记账失败都返回失败。DDL 已经提交时无法回滚，�
 | 已有任意行，缺少身份，且未带修复开关 | 命令成功返回，不插入，也不写 data 账本 |
 
 软删除是 `status='deleted'` 或 `deleted_at IS NOT NULL`。命中软删除时记 `action: keep-deleted`，不恢复该行。日志字段见第 6.4 节。
+
+准备插入缺失身份时（表非空且开了数据修复），先按模型声明的全部唯一索引逐条查询待插入行会不会撞上已有行，包括软删除的行。例如原因为 `SSHAuthException` 的默认行缺失，而另一行原因不同但 `name` 仍是 `dbha_ssh_auth_failure`，插入会撞上 `idx_name(name, bk_biz_id)`。这种情况在预检查阶段失败，所有端点零写入，错误带 `index`、冲突行的 `name`、`bk_biz_id`、事件和原因，以及 `result: unique_conflict`。执行阶段写入前再做一次同样的检查。未开修复开关时不插入，因此不做这项检查。
 
 ### 6.3 data 账本
 
@@ -293,7 +297,7 @@ data 只在 `ApplyStrategies` 成功返回后逐条打印。日志字段是 `end
 
 追加步骤的 version 按"表顺序、普通步骤、收敛步骤"在运行时依次分配，没有冻结就会被后续模型改动挤到别的 version，存量库账本随之冲突。因此每次模型变更都要在同一个改动里把追加步骤冻结进 `published_steps.go`。`TestNoUnpublishedSchemaSteps` 在存在未冻结步骤时失败，并打印可直接粘贴的步骤字面量。
 
-策略表在主键收敛前追加唯一索引 `idx_biz_event_reason(bk_biz_id, trigger_event_name, trigger_event_name_reason)`，用来保留旧三元组唯一性。软删除只改状态或删除时间，行仍占用这三列，因此不能按同一业务、事件和原因再插入一行。admin 的创建、批量创建、更新和批量更新遇到该唯一键冲突时返回 400，说明同一业务、事件和原因已存在（可能已软删除），不返回原始数据库错误；名称唯一键 `idx_name` 的并发冲突同样返回“名称已存在”。即将创建的唯一索引会先做重复行探测；可空列上的多个 `NULL` 按 MySQL 规则不算重复，非空且完全相同的行才会阻断。`NOT NULL`、无默认值、非自增的列在表已有数据时也会在预检查被阻断。`--type data` 要求模型里的唯一索引已经存在，所以存量库要先完成 schema。
+策略表在主键收敛前追加唯一索引 `idx_biz_event_reason(bk_biz_id, trigger_event_name, trigger_event_name_reason)`，用来保留旧三元组唯一性。软删除只改状态或删除时间，行仍占用这三列，因此不能按同一业务、事件和原因再插入一行。admin 的创建、批量创建、更新和批量更新遇到该唯一键冲突时返回 400，说明同一业务、事件和原因已存在（可能已软删除），不返回原始数据库错误；名称唯一键 `idx_name` 的并发冲突同样返回“名称已存在”。即将创建的唯一索引会先做重复行探测；可空列上的多个 `NULL` 按 MySQL 规则不算重复，非空且完全相同的行才会阻断，并打印最多 5 组样例。唯一索引和主键步骤在执行 DDL 前会再探测一次，预检查之后才写入的重复行同样阻断，不执行 DDL。`NOT NULL`、无默认值、非自增的列在表已有数据时也会在预检查被阻断。`--type data` 要求模型里的唯一索引已经存在，所以存量库要先完成 schema。
 
 普通已记账步骤不会因为 Apply 文本变化而重放。列定义和主键只收敛代码明确识别的安全历史形态。改旧字段标签、旧索引标签或旧建表 SQL，不能假定存量库会自动重放。
 

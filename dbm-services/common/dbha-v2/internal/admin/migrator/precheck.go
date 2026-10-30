@@ -71,6 +71,11 @@ func precheckAll(stores []Store, opts Options) error {
 		if err = validateWrite(snap, opts); err != nil {
 			return precheckError(store, err)
 		}
+		if opts.RunsData() && strategyPlanReady(snap) {
+			if _, err = store.PlanStrategies(snap, opts.RepairsData()); err != nil {
+				return precheckError(store, err)
+			}
+		}
 	}
 
 	return nil

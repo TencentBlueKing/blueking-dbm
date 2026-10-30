@@ -167,6 +167,15 @@ func TestRepairMissingDataLogsIdentity(t *testing.T) {
 	if !infoHas(recorded, "default strategy", "action: repair", "trigger_event_name: "+otherEvent(kept.Event)) {
 		t.Fatalf("missing data repair log, infos: %v", recorded.infos)
 	}
+	for _, seed := range defaultStrategies() {
+		if seed.TriggerEventName.String() == kept.Event {
+			continue
+		}
+		reason := "trigger_event_name_reason: " + strconv.Itoa(int(seed.TriggerEventNameReason))
+		if !infoHas(recorded, "trigger_event_name: "+seed.TriggerEventName.String()+", "+reason) {
+			t.Fatalf("data repair log missed the reason, infos: %v", recorded.infos)
+		}
+	}
 	if infoHas(recorded, "trigger_event_name: "+kept.Event) {
 		t.Fatal("existing identity was logged")
 	}

@@ -43,11 +43,7 @@ func (s *mysqlStore) ApplyStrategies(repair bool) (dataApplyResult, error) {
 		return dataApplyResult{}, fmt.Errorf("strategy table is not ready")
 	}
 
-	empty, hits, err := s.defaultStrategyHits()
-	if err != nil {
-		return dataApplyResult{}, err
-	}
-	plan, err := planDefaultStrategies(empty, hits, repair, ledgerFrom(snap))
+	plan, err := s.PlanStrategies(snap, repair)
 	if err != nil {
 		return dataApplyResult{}, err
 	}
@@ -63,6 +59,84 @@ func (s *mysqlStore) ApplyStrategies(repair bool) (dataApplyResult, error) {
 	}
 
 	return dataResult(plan, true), nil
+}
+
+// PlanStrategies decides what the data step would do on snap's ledger, without writing.
+// It fails with a unique_conflict blocker when a strategy to insert would collide with an existing row.
+func (s *mysqlStore) PlanStrategies(snap *Snapshot, repair bool) (strategyPlan, error) {
+	empty, hits, err := s.defaultStrategyHits()
+	if err != nil {
+		return strategyPlan{}, err
+	}
+	plan, err := planDefaultStrategies(empty, hits, repair, ledgerFrom(snap))
+	if err != nil {
+		return strategyPlan{}, err
+	}
+	if !insertConflictsWanted(empty, plan) {
+		return plan, nil
+	}
+
+	db, err := s.orm()
+	if err != nil {
+		return strategyPlan{}, err
+	}
+	for _, seed := range plan.Insert {
+		if err = seedConflict(db, seed); err != nil {
+			return strategyPlan{}, err
+		}
+	}
+
+	return plan, nil
+}
+
+// seedConflict fails when an existing row, soft-deleted or not, holds any unique key of seed.
+func seedConflict(db *gorm.DB, seed hamodel.DbSwitchingStrategy) error {
+	lookups, err := strategyLookups(seed)
+	if err != nil {
+		return err
+	}
+
+	for _, lookup := range lookups {
+		conflict, found, err := oneStrategyConflict(db, lookup)
+		if err != nil {
+			return err
+		}
+		if found {
+			return uniqueConflictError(seed, conflict)
+		}
+	}
+
+	return nil
+}
+
+// oneStrategyConflict reads one row holding a unique key value set; the column collation decides equality.
+func oneStrategyConflict(db *gorm.DB, lookup strategyLookup) (strategyConflict, bool, error) {
+	rows, err := db.Model(&hamodel.DbSwitchingStrategy{}).Unscoped().
+		Select([]string{
+			hamodel.DbSwitchingStrategyFieldName,
+			hamodel.DbSwitchingStrategyFieldBkBizID,
+			hamodel.DbSwitchingStrategyFieldTriggerEventName,
+			hamodel.DbSwitchingStrategyFieldTriggerEventNameReason,
+		}).
+		Where(lookup.Values).Limit(1).Rows()
+	if err != nil {
+		return strategyConflict{}, false, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return strategyConflict{}, false, rows.Err()
+	}
+	var name, event sql.NullString
+	var bkBizID, reason sql.NullInt64
+	if err = rows.Scan(&name, &bkBizID, &event, &reason); err != nil {
+		return strategyConflict{}, false, err
+	}
+
+	return strategyConflict{
+		Index: lookup.Index, Name: name.String, BkBizID: int(bkBizID.Int64), Event: event.String,
+		Reason: int(reason.Int64),
+	}, true, nil
 }
 
 // defaultStrategyHits reports whether the table is empty, and what each seed matches.
@@ -136,17 +210,17 @@ func strategyTableEmpty(db *gorm.DB) (bool, error) {
 }
 
 // oneStrategyHit reads every row that shares the identity of one default strategy and ranks them.
-// Matching stays in MySQL so the column collation decides identity, as it always did.
+// Matching stays in MySQL so the column collation decides identity. A NULL reason never matches.
 func oneStrategyHit(db *gorm.DB, seed hamodel.DbSwitchingStrategy) (strategyHit, error) {
 	rows, err := db.Model(&hamodel.DbSwitchingStrategy{}).Unscoped().
 		Select([]string{
-			hamodel.DbSwitchingStrategyFieldTriggerEventNameReason,
 			hamodel.DbSwitchingStrategyFieldStatus,
 			hamodel.DbSwitchingStrategyFieldDeletedAt,
 		}).
 		Where(map[string]any{
-			hamodel.DbSwitchingStrategyFieldBkBizID:          seed.BkBizID,
-			hamodel.DbSwitchingStrategyFieldTriggerEventName: seed.TriggerEventName.String(),
+			hamodel.DbSwitchingStrategyFieldBkBizID:                seed.BkBizID,
+			hamodel.DbSwitchingStrategyFieldTriggerEventName:       seed.TriggerEventName.String(),
+			hamodel.DbSwitchingStrategyFieldTriggerEventNameReason: int(seed.TriggerEventNameReason),
 		}).
 		Rows()
 	if err != nil {
@@ -156,19 +230,16 @@ func oneStrategyHit(db *gorm.DB, seed hamodel.DbSwitchingStrategy) (strategyHit,
 
 	var live []strategyRow
 	for rows.Next() {
-		var reason sql.NullInt64
 		var status sql.NullString
 		var deleted sql.NullTime
-		if err = rows.Scan(&reason, &status, &deleted); err != nil {
+		if err = rows.Scan(&status, &deleted); err != nil {
 			return strategyHit{}, err
 		}
-		live = append(live, strategyRow{
-			Reason: int(reason.Int64), ReasonValid: reason.Valid, Status: status.String, Deleted: deleted.Valid,
-		})
+		live = append(live, strategyRow{Status: status.String, Deleted: deleted.Valid})
 	}
 	if err = rows.Err(); err != nil {
 		return strategyHit{}, err
 	}
 
-	return bestStrategyHit(live, int(seed.TriggerEventNameReason)), nil
+	return bestStrategyHit(live), nil
 }

@@ -231,11 +231,11 @@ func (s *trackedStore) TableNonEmpty(table string) (bool, error) {
 	return s.memStore.TableNonEmpty(table)
 }
 
-func (s *trackedStore) HasDuplicate(table string, columns []string, nullable []bool) (bool, error) {
+func (s *trackedStore) DuplicateSamples(table string, keys []keyExpr, limit int) ([]duplicateSample, error) {
 	if s.duplicateErr != nil {
-		return false, s.duplicateErr
+		return nil, s.duplicateErr
 	}
-	return s.memStore.HasDuplicate(table, columns, nullable)
+	return s.memStore.DuplicateSamples(table, keys, limit)
 }
 
 func (s *trackedStore) record(action string) {

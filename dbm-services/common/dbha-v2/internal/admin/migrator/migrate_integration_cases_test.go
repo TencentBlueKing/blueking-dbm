@@ -49,6 +49,7 @@ func TestMySQLMigrateFunctions(t *testing.T) {
 	t.Run("partial-strategies", func(t *testing.T) { testPartialStrategies(t, store) })
 	t.Run("soft-deleted-strategies", func(t *testing.T) { testSoftDeletedStrategies(t, store) })
 	t.Run("existing-data-blocks-defaults", func(t *testing.T) { testExistingDataBlocksDefaults(t, store) })
+	t.Run("default-name-conflict", func(t *testing.T) { testDefaultNameConflict(t, store) })
 	t.Run("data-precheck", func(t *testing.T) { testDataPrecheckWritesNothing(t, store) })
 	t.Run("concurrent-lock", func(t *testing.T) { testConcurrentLock(t) })
 	t.Run("read-only-endpoint", func(t *testing.T) { testReadOnlyEndpoint(t, store) })
@@ -313,6 +314,34 @@ func testSoftDeletedStrategies(t *testing.T, store *mysqlStore) {
 		t.Fatal("repair-missing-data did not insert the absent rows")
 	}
 	assertStrategyKeptDeleted(t, store, event, before)
+}
+
+// A row of another reason keeps the default's name: identity misses, and repair is blocked before writing.
+func testDefaultNameConflict(t *testing.T, store *mysqlStore) {
+	t.Helper()
+	resetIntegration(t, store)
+	mustRun(t, Options{Type: MigrateTypeAll}, store)
+	seed := defaultStrategies()[1]
+	mustExec(t, store,
+		"UPDATE `t_db_switching_strategy` SET trigger_event_name_reason = ? "+
+			"WHERE bk_biz_id = 0 AND trigger_event_name = ?",
+		int(seed.TriggerEventNameReason)+100, seed.TriggerEventName.String(),
+	)
+
+	if err := run(Options{Type: MigrateTypeData}, []Store{store}); err != nil {
+		t.Fatal(err)
+	}
+	if strategyCount(t, store) != len(defaultStrategies()) {
+		t.Fatal("data migrate without repair inserted a strategy")
+	}
+	err := run(Options{Type: MigrateTypeData, RepairMissingData: true}, []Store{store})
+	if err == nil || !strings.Contains(err.Error(), "index: idx_name") ||
+		!strings.Contains(err.Error(), "result: unique_conflict") {
+		t.Fatalf("default name conflict was not blocked, errmsg: %v", err)
+	}
+	if strategyCount(t, store) != len(defaultStrategies()) {
+		t.Fatal("blocked repair inserted a strategy")
+	}
 }
 
 func testExistingDataBlocksDefaults(t *testing.T, store *mysqlStore) {

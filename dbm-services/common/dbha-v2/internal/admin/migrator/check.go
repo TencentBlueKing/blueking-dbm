@@ -315,8 +315,7 @@ func stepDataBlock(snap *Snapshot, step schemaStep, choice decision) string {
 		return ""
 	}
 
-	// A unique index cannot be created while duplicate keys exist.
-	if step.Kind == objectIndex && snap != nil && snap.DuplicateKeys[step.Table+"\x00"+step.Index] {
+	if duplicateBlocked(snap, step) {
 		return "duplicate"
 	}
 
@@ -325,6 +324,22 @@ func stepDataBlock(snap *Snapshot, step schemaStep, choice decision) string {
 	}
 
 	return ""
+}
+
+// duplicateBlocked reports whether duplicate rows block a unique index or a primary key rebuild.
+func duplicateBlocked(snap *Snapshot, step schemaStep) bool {
+	if snap == nil {
+		return false
+	}
+
+	switch step.Kind {
+	case objectIndex:
+		return snap.DuplicateKeys[indexDuplicateKey(step.Table, step.Index)]
+	case objectPrimaryKey:
+		return snap.DuplicateKeys[primaryDuplicateKey(step.Table)]
+	default:
+		return false
+	}
 }
 
 // blockedNotNull reports whether a NOT NULL converge is impossible because of null data.

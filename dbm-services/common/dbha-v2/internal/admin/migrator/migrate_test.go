@@ -120,8 +120,10 @@ func TestPartialTablesRequireRepair(t *testing.T) {
 	store := newMem("127.0.0.1:3306", Identity{ServerUUID: "u1", Hostname: "db", Port: 3306})
 	store.snap.Tables[statusTable] = tableFromSpec(statusSpec())
 	store.snap.Tables["t_db_switching_strategy"] = withIndexes(strategySpec())
+	seed := defaultStrategies()[0]
 	store.strategies = []StrategyState{{
-		BkBizID: 0, Event: defaultStrategies()[0].TriggerEventName.String(), Priority: 1, UpdatedAt: "kept",
+		BkBizID: 0, Event: seed.TriggerEventName.String(), Reason: int(seed.TriggerEventNameReason), Priority: 1,
+		UpdatedAt: "kept",
 	}}
 	err := run(Options{Type: MigrateTypeAll}, []Store{store})
 	if err == nil || !strings.Contains(err.Error(), "result: need_repair") {
