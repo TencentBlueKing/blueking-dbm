@@ -70,7 +70,29 @@ func (p *Probe) reloadOnce(path string) {
 		return
 	}
 
+	// Paused ports only steer what each collector skips on its next round, so
+	// applying them never needs a new harvester generation: rebuilding would
+	// restart collection of ports that are not paused at all.
+	if onlyPausePortsChanged(config.Cfg, next) {
+		config.Apply(next)
+		logger.Info("probe pause ports updated without runtime rebuild, config_path: %s", path)
+		return
+	}
+
 	p.applyReload(next, path)
+}
+
+// onlyPausePortsChanged reports whether next differs from the applied config in
+// the pausePorts list and nowhere else.
+func onlyPausePortsChanged(current, next config.Configuration) bool {
+	if reflect.DeepEqual(current.PausePorts, next.PausePorts) {
+		return false
+	}
+
+	withoutPause := next
+	withoutPause.PausePorts = current.PausePorts
+
+	return reflect.DeepEqual(withoutPause, current)
 }
 
 // onlyAdminChanged reports whether next differs from the applied config in the admin block and

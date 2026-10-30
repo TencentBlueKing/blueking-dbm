@@ -48,6 +48,7 @@ type probeYAML struct {
 	Log        LogConfig          `yaml:"log"`
 	Collect    *probeCollectYAML  `yaml:"collect,omitempty"`
 	ClearPorts []int              `yaml:"clearPorts,omitempty"`
+	PausePorts []PausePort        `yaml:"pausePorts,omitempty"`
 }
 
 // probeCollectYAML is the on-wire shape of the machine-wide collection settings.

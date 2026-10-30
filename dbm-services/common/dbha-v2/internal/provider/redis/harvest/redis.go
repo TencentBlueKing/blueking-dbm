@@ -210,6 +210,12 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 		data.Host = hostStatus
 	}
 
+	if config.Snapshot().IsPortPaused(c.endpoint.Port) {
+		logger.Info("collection paused, skip probing, ip: %s, port: %d",
+			c.endpoint.Host, c.endpoint.Port)
+		return
+	}
+
 	dbEvent, err := c.open(ctx)
 	if err != nil {
 		dbEvent.BkCloudID = r.bkCloudID
