@@ -116,6 +116,8 @@
   import { getTendbclusterTopoGraph } from '@services/source/tendbcluster';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
+  import { getVictoriametricsClusterTopoGraph } from '@services/source/victoriametricsCluster';
+  import { getVictoriametricsSelectTopoGraph } from '@services/source/victoriametricsSelect';
   import { type ResourceTopo } from '@services/types';
 
   import { ClusterTypes } from '@common/const';
@@ -155,6 +157,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaTopoGraph,
     [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaTopoGraph,
     [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleTopoGraph,
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: getVictoriametricsClusterTopoGraph,
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: getVictoriametricsSelectTopoGraph,
   };
 
   // 节点详情浮层的展示列

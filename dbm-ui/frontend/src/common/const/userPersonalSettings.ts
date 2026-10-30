@@ -82,6 +82,11 @@ export enum UserPersonalSettings {
 export enum UserPersonalSettings {
   QDRANT_HA_TABLE_SETTINGS = 'QDRANT_HA_TABLE_SETTINGS',
 }
+// k8s victoriametrics
+export enum UserPersonalSettings {
+  VM_CLUSTER_TABLE_SETTINGS = 'VM_CLUSTER_TABLE_SETTINGS',
+  VM_SELECT_TABLE_SETTINGS = 'VM_SELECT_TABLE_SETTINGS',
+}
 // quicksearch
 export enum UserPersonalSettings {
   QUICK_SEARCH_CLUSTER_DOMAIN = 'QUICK_SEARCH_CLUSTER_DOMAIN',

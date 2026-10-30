@@ -20,6 +20,11 @@
         :specs="data.machine_specs" />
     </InfoItem>
   </slot>
+  <InfoItem
+    v-if="slots.storageNode"
+    :label="t('Storage 节点')">
+    <slot name="storageNode" />
+  </InfoItem>
   <InfoItem :label="t('管控区域')">
     {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
   </InfoItem>
@@ -49,9 +54,11 @@
 
   export interface Slots {
     spec: () => VNode;
+    storageNode: () => VNode;
   }
 
   defineProps<Props<T>>();
+  const slots = defineSlots<Slots>();
 
   const { t } = useI18n();
 </script>

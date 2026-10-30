@@ -156,6 +156,8 @@
 
   const ticketId = ref(0);
   const showHostPreview = ref(false);
+  // 先按「有交付结果」渲染，请求未回来前由 DeliverResult 自己展示 loading；
+  // 只有拿到确定的空结果才置 false
   const showDeliverResult = ref(true);
   const activePanelId = ref('deliver_result');
   const showRelatedTicketDetail = ref(false);
@@ -260,9 +262,10 @@
       },
     ).then((data) => {
       currentTaskflowDetail.value = data;
+      // uid 缺失时 Number 会得到 NaN，透传下去子组件既不会发请求、又会被判成「无交付结果」
       ticketId.value = Number(data.flow_info.uid);
       if (showDeliverResult.value) {
-        showDeliverResult.value = !!ticketId.value;
+        showDeliverResult.value = Number.isFinite(ticketId.value) && ticketId.value > 0;
       }
 
       if (['FINISHED', 'REVOKED'].includes(data.flow_info.status)) {

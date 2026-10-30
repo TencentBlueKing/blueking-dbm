@@ -101,6 +101,7 @@ const withBizActionList = [
   'influxdb_dbconfig_edit',
   'k8s_surrealdb_apply',
   'k8s_qdrant_apply',
+  'k8s_victoriametrics_apply',
 ];
 
 export default function (props: Props) {

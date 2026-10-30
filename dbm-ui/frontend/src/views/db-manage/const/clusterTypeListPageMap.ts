@@ -80,12 +80,19 @@ const qdrantClusterTypePageMap = {
   [ClusterTypes.K8S_QDRANT_HA]: 'QdrantHaDetail',
 };
 
+// victoriametrics
+const victoriametricsClusterTypePageMap = {
+  [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: 'VictoriametricsClusterDetail',
+  [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: 'VictoriametricsQueryDetail',
+};
+
 export const clusterTypeListPageMap: Record<string, string> = {
   ...redisClusterTypePageMap,
   ...mysqlClusterTypePageMap,
   ...oracleClusterTypePageMap,
   ...qdrantClusterTypePageMap,
   ...surrealdbClusterTypePageMap,
+  ...victoriametricsClusterTypePageMap,
   ...pulsarClusterTypePageMap,
   ...riakClusterTypePageMap,
   ...sqlserverClusterTypePageMap,

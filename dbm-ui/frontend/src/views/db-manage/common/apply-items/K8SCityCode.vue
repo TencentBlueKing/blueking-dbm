@@ -44,12 +44,11 @@
   import { getRegions } from '@services/source/kubernetesToolbox';
 
   interface Props {
-    applyMode?: string;
+    applyMode: string;
     bkBizId?: number | string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    applyMode: 'SharedMode',
     bkBizId: '',
   });
   const modelValue = defineModel<string>({

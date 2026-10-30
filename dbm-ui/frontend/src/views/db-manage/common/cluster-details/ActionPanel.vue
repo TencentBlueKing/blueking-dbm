@@ -184,6 +184,8 @@
   import SurrealdbHaModel from '@services/model/surrealdb/surrealdb-ha';
   import SurrealdbSingleModel from '@services/model/surrealdb/surrealdb-single';
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import VictoriametricsClusterModel from '@services/model/victoriametrics/victoriametrics-cluster';
+  import VictoriametricsSelectModel from '@services/model/victoriametrics/victoriametrics-select.ts';
   import { getClusterHealthReport } from '@services/source/dbReport';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import type { ClusterListNode } from '@services/types';
@@ -241,6 +243,8 @@
     [ClusterTypes.K8S_QDRANT_HA]: QdrantHaModel;
     [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaModel;
     [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: VictoriametricsClusterModel;
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: VictoriametricsSelectModel;
     [ClusterTypes.KAFKA]: KafkaModel;
     [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
     [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
@@ -275,9 +279,7 @@
   const { removeSearchParam } = useUrlSearch();
   const { metricsMap } = useAlarmSubscribe();
   const { ENABLE_EXTERNAL_PROXY } = useSystemEnviron().urls;
-  const isParamConfigVisible = computed(
-    () => !props.clusterType.includes('k8s') && ENABLE_EXTERNAL_PROXY !== true,
-  );
+  const isParamConfigVisible = computed(() => !props.clusterType.includes('k8s') && ENABLE_EXTERNAL_PROXY !== true);
 
   const isFixedTab = ref(false);
 
@@ -296,7 +298,11 @@
   const isAbleSubscribe = computed(() => metricsMap.value[props.clusterData.cluster_type]?.list?.length > 0);
 
   type ExludeClusterTypes =
-    ClusterTypes.K8S_SURREALDB_HA | ClusterTypes.K8S_SURREALDB_SINGLE | ClusterTypes.K8S_QDRANT_HA;
+    | ClusterTypes.K8S_SURREALDB_HA
+    | ClusterTypes.K8S_SURREALDB_SINGLE
+    | ClusterTypes.K8S_QDRANT_HA
+    | ClusterTypes.K8S_VICTORIAMETRICS_SELECT
+    | ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER;
   const hostListRelatedClusterTypes = computed(
     () => props.clusterType as Exclude<keyof ClusterTypeRelateClusterModel, ExludeClusterTypes>,
   );
@@ -365,6 +371,8 @@
           // ClusterTypes.K8S_QDRANT_HA,
           // ClusterTypes.K8S_SURREALDB_HA,
           // ClusterTypes.K8S_SURREALDB_SINGLE,
+          ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER,
+          ClusterTypes.K8S_VICTORIAMETRICS_SELECT,
           ClusterTypes.ORACLE_PRIMARY_STANDBY,
           ClusterTypes.ORACLE_SINGLE_NONE,
         ].includes(props.clusterData.cluster_type)

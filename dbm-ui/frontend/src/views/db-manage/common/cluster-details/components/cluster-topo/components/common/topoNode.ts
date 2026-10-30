@@ -1,7 +1,9 @@
 import { type ResourceTopo } from '@services/types';
 
-import { type Group, Rect as GRect, Text as GText } from '@antv/g';
+import { type Group, Rect as GRect, Text as GText, type TextStyleProps } from '@antv/g';
 import { type BaseNodeStyleProps, type BaseStyleProps, Rect } from '@antv/g6';
+
+import { TEXT_LEFT_OFFSET, TEXT_LINE_HEIGHT, TEXT_MAX_LINES, TEXT_RIGHT_PADDING } from './graphData';
 
 type Node = { id: string; name: string; type: string } & ResourceTopo['groups'][number];
 type AttributesType = Required<BaseNodeStyleProps>;
@@ -20,13 +22,19 @@ export class TopoNode extends Rect {
 
   drawContentShape(attributes: AttributesType, container: Group) {
     const [width, height] = this.getSize(attributes);
-    const style = {
+    // 实例名过长时折行展示，行高由 graphData 按行数计算；超出上限走省略号
+    const style: TextStyleProps = {
       cursor: 'pointer' as BaseStyleProps['cursor'],
       fill: '#63656e',
       fontFamily: 'Arial',
       fontSize: 12,
+      lineHeight: TEXT_LINE_HEIGHT,
+      maxLines: TEXT_MAX_LINES,
       text: this.data.name,
-      x: -width / 2 + 46,
+      textOverflow: 'ellipsis',
+      wordWrap: true,
+      wordWrapWidth: width - TEXT_LEFT_OFFSET - TEXT_RIGHT_PADDING,
+      x: -width / 2 + TEXT_LEFT_OFFSET,
       y: -height / 2 + 23,
     };
 
@@ -67,7 +75,7 @@ export class TopoNode extends Rect {
     const titleTextStyle = {
       fill: '#63656e',
       text: this.data.name,
-      x: startWidth + 46,
+      x: startWidth + TEXT_LEFT_OFFSET,
       y: startHeight + 32,
       ...commonStyle,
     };

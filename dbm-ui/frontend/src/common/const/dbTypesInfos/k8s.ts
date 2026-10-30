@@ -19,4 +19,12 @@ export const k8s: DbInfoType = {
     name: 'SurrealDB',
     routeIndexName: 'SurrealDBManage',
   },
+  [DBTypes.K8S_VICTORIAMETRICS]: {
+    icon: 'cluster',
+    id: DBTypes.K8S_VICTORIAMETRICS,
+    machineList: [],
+    moduleId: 'k8s',
+    name: 'VictoriaMetrics',
+    routeIndexName: 'VictoriaMetricsManage',
+  },
 };

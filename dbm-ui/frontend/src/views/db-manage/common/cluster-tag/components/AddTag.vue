@@ -55,11 +55,9 @@
   import { updateQdrantHaClusterMeta } from '@services/source/qdrantHa';
 
   import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
-  import { getExclusiveClusterParams } from '@views/db-manage/utils/exclusiveClusterParams';
   import { getClusterMetaUpdater } from '@views/db-manage/utils/updateK8sClusterMeta';
 
   interface Props {
-    bkBizId?: number;
     clusterId: number;
     clusterType: string;
     data: {
@@ -68,7 +66,6 @@
       value: string;
     }[];
     domain: string;
-    isPublic?: boolean;
   }
 
   type Emits = (e: 'success') => void;
@@ -131,11 +128,6 @@
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: props.clusterId,
             tags,
-            ...getExclusiveClusterParams({
-              bk_biz_id: props.bkBizId,
-              cluster_type: props.clusterType,
-              is_public: props.isPublic,
-            }),
           });
         } else if (!props.data.length) {
           // 新增
