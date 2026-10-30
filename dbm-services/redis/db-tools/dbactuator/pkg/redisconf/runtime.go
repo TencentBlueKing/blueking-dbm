@@ -38,8 +38,13 @@ var confSetNeverNames = map[string]bool{
 	"databases":   true,
 }
 
+// confSetNeverName 凭据等不该 CONFIG SET 的项, 改名别名按同一项处理.
+func confSetNeverName(name string) bool {
+	return confSetNeverNames[name] || confSetNeverNames[confNameAliasIndex[name]]
+}
+
 func classifyConfSetKind(name string) confSetKind {
-	if confSetNeverNames[name] {
+	if confSetNeverName(name) {
 		return confSetSkip
 	}
 	return confSetApply
@@ -72,9 +77,37 @@ func RuntimeLookup(got map[string]string, name string) (value string, found bool
 	return "", false
 }
 
+// confValueTokenAliases 取值 token 的 CONFIG REWRITE 写法, 按指令名限定.
+//
+// redis >=5 把 client-output-buffer-limit 的 class slave 改写成 replica,
+// CONFIG GET 仍然返回 slave; 不能全局把两个词当成同义.
+var confValueTokenAliases = map[string]map[string]string{
+	"client-output-buffer-limit": {"slave": "replica"},
+}
+
+// normalizeConfValueTokens 按指令名替换取值 token, 没配置别名的指令原样返回.
+func normalizeConfValueTokens(name, value string) string {
+	aliases := confValueTokenAliases[strings.ToLower(name)]
+	if len(aliases) == 0 {
+		return value
+	}
+	fields := strings.Fields(Unquote(strings.TrimSpace(value)))
+	for i, field := range fields {
+		if canonical, ok := aliases[strings.ToLower(field)]; ok {
+			fields[i] = canonical
+		}
+	}
+	return strings.Join(fields, " ")
+}
+
+// sameConfValueFor 按指令名归一化后比较两个取值.
+func sameConfValueFor(name, a, b string) bool {
+	return sameConfRuntimeValue(normalizeConfValueTokens(name, a), normalizeConfValueTokens(name, b))
+}
+
 // sameConfRuntimeValueFor 按指令名比较. 路径类指令还要走 SamePathValue, 容忍软链别名.
 func sameConfRuntimeValueFor(name, rendered, runtime string) bool {
-	if sameConfRuntimeValue(rendered, runtime) {
+	if sameConfValueFor(name, rendered, runtime) {
 		return true
 	}
 	switch name {

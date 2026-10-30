@@ -32,6 +32,16 @@ var confNameAliasPairs = map[string]string{
 	"list-max-ziplist-size":         "list-max-listpack-size",
 	"slowlog-log-slower-than":       "commandlog-execution-slower-than",
 	"slowlog-max-len":               "commandlog-slow-execution-max-len",
+	"lua-time-limit":                "busy-reply-threshold",
+	"aof_rewrite_cpulist":           "aof-rewrite-cpulist",
+	"bgsave_cpulist":                "bgsave-cpulist",
+	"bio_cpulist":                   "bio-cpulist",
+	"server_cpulist":                "server-cpulist",
+	// Valkey 8 把凭据指令的规范名改为 primaryauth/primaryuser (valkey-io/valkey#598),
+	// masterauth/masteruser 仍作为 alias; CONFIG REWRITE 写规范名, dbconfig 模板
+	// 仍用旧名, 所以升级 diff 会看到改名. 这两个名字都按凭据处理, 见 sensitiveConfBaseName.
+	"masterauth": "primaryauth",
+	"masteruser": "primaryuser",
 }
 
 // confNameAliasIndex confNameAliasPairs 的双向索引, diff 里正反都要查
@@ -52,12 +62,26 @@ var sensitiveConfNames = map[string]bool{
 	"user":        true,
 }
 
+// sensitiveConfBaseName 把改名别名归一到敏感表里的名字; 非敏感项返回空串.
+//
+// 同一个凭据在不同版本下可能有两个名字 (masterauth/primaryauth), 打码和严格
+// 比对都必须按同一项处理, 否则新名字会绕过 sensitiveConfNames.
+func sensitiveConfBaseName(name string) string {
+	if sensitiveConfNames[name] {
+		return name
+	}
+	if alias := confNameAliasIndex[name]; alias != "" && sensitiveConfNames[alias] {
+		return alias
+	}
+	return ""
+}
+
 // maskConfValue 打日志前给敏感取值打码, 避免密码进任务日志
 func maskConfValue(name, value string) string {
 	if value == "" {
 		return value
 	}
-	switch name {
+	switch sensitiveConfBaseName(name) {
 	case "requirepass", "masterauth", "masteruser":
 		return "<masked>"
 	case "user":
@@ -96,7 +120,7 @@ func joinMaskedValues(name string, values []string) string {
 // redis 两种写法都认: 我们按 dbconfig 原样渲染(不加引号), 引号是 redis 自己
 // rewrite 时补的, 这种纯写法差异不该在 diff 里刷屏.
 // rewrite 还会把 yes/no 归一、把 256mb 折算成字节数, 同样不算变更;
-// 凭据类指令(见 sensitiveConfNames)除外, 密码按原文严格比.
+// 凭据类指令(含别名, 见 sensitiveConfBaseName)除外, 密码按原文严格比.
 func sameConfValues(name string, oldValues, newValues []string) bool {
 	if len(oldValues) != len(newValues) {
 		return false
@@ -107,7 +131,7 @@ func sameConfValues(name string, oldValues, newValues []string) bool {
 		if oldVal == newVal {
 			continue
 		}
-		if sensitiveConfNames[name] || !sameConfRuntimeValue(oldVal, newVal) {
+		if sensitiveConfBaseName(name) != "" || !sameConfValueFor(name, oldVal, newVal) {
 			return false
 		}
 	}

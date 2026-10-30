@@ -211,6 +211,8 @@ EXCLUDED_DIRECTIVES = frozenset(
         "requirepass",
         "masterauth",
         "masteruser",
+        "primaryauth",
+        "primaryuser",
         "user",
         "rename-command",
         "loadmodule",
@@ -243,7 +245,10 @@ DYNAMIC_DIRECTIVES = frozenset(
 MULTI_ENTRY_DIRECTIVES = frozenset({"save", "client-output-buffer-limit"})
 PATH_DIRECTIVES = frozenset({"dir", "pidfile", "logfile", "unixsocket", "dumpdir", "logdir", "slowlog"})
 
-# legacy name -> current name; same as dbactuator confNameAliasPairs
+# legacy name -> current name; same as dbactuator confNameAliasPairs.
+# masterauth/masteruser (and their Valkey 8 names primaryauth/primaryuser) are
+# intentionally absent: they are in EXCLUDED_DIRECTIVES, so the inspection never
+# compares them; the Go alias exists only for the upgrade diff and credential masking.
 CONF_NAME_ALIASES = {
     "slave-priority": "replica-priority",
     "slave-read-only": "replica-read-only",
@@ -262,8 +267,18 @@ CONF_NAME_ALIASES = {
     "list-max-ziplist-size": "list-max-listpack-size",
     "slowlog-log-slower-than": "commandlog-execution-slower-than",
     "slowlog-max-len": "commandlog-slow-execution-max-len",
+    "lua-time-limit": "busy-reply-threshold",
+    "aof_rewrite_cpulist": "aof-rewrite-cpulist",
+    "bgsave_cpulist": "bgsave-cpulist",
+    "bio_cpulist": "bio-cpulist",
+    "server_cpulist": "server-cpulist",
 }
 _ALIAS_INDEX = {**CONF_NAME_ALIASES, **{v: k for k, v in CONF_NAME_ALIASES.items()}}
+
+# Values CONFIG REWRITE canonicalizes, scoped by directive name.
+# Redis 5.0+ rewrites the client-output-buffer-limit class "slave" to "replica"
+# while CONFIG GET keeps reporting "slave"; never alias these tokens globally.
+VALUE_TOKEN_ALIASES = {"client-output-buffer-limit": {"slave": "replica"}}
 
 _TRUTHY = frozenset({"yes", "true", "on", "1"})
 _FALSY = frozenset({"no", "false", "off", "0"})
@@ -366,7 +381,16 @@ def _normalize_path(value: str) -> str:
     return path
 
 
+def _canonicalize_value_tokens(name: str, value: str) -> str:
+    """Apply CONFIG REWRITE token spellings scoped to this directive, if any."""
+    aliases = VALUE_TOKEN_ALIASES.get(name)
+    if not aliases:
+        return value
+    return " ".join(aliases.get(token.lower(), token) for token in unquote(value).split())
+
+
 def same_conf_value_for(name: str, a: str, b: str) -> bool:
+    a, b = _canonicalize_value_tokens(name, a), _canonicalize_value_tokens(name, b)
     if same_conf_value(a, b):
         return True
     if name in PATH_DIRECTIVES:

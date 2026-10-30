@@ -25,6 +25,11 @@ func TestClassifyConfSetKind(t *testing.T) {
 	if classifyConfSetKind("databases") != confSetSkip {
 		t.Error("databases should be skip (restart-only, RedisInstance rewrites conf)")
 	}
+	for _, name := range []string{"masterauth", "primaryauth", "masteruser", "primaryuser"} {
+		if classifyConfSetKind(name) != confSetSkip {
+			t.Errorf("%s should be skip (credential alias)", name)
+		}
+	}
 	if classifyConfSetKind("dir") != confSetApply {
 		t.Error("dir should be apply (python chooses restart vs set)")
 	}
@@ -60,6 +65,89 @@ func TestSameConfRuntimeValue(t *testing.T) {
 		if got := sameConfRuntimeValue(tc.a, tc.b); got != tc.eq {
 			t.Errorf("sameConfRuntimeValue(%q,%q)=%v, want %v", tc.a, tc.b, got, tc.eq)
 		}
+	}
+}
+
+func TestSameConfValueFor(t *testing.T) {
+	cases := []struct {
+		name, a, b string
+		eq         bool
+	}{
+		{
+			"client-output-buffer-limit",
+			"normal 256mb 512mb 300 slave 2048mb 2048mb 300 pubsub 32mb 8mb 60",
+			"normal 256mb 512mb 300 replica 2gb 2gb 300 pubsub 32mb 8mb 60",
+			true,
+		},
+		{
+			"client-output-buffer-limit",
+			"replica 2048mb 2048mb 300",
+			"slave 2147483648 2147483648 300",
+			true,
+		},
+		{
+			"client-output-buffer-limit",
+			"slave 2048mb 2048mb 300",
+			"replica 1gb 2gb 300",
+			false,
+		},
+		{"timeout", "slave", "replica", false},
+	}
+	for _, tc := range cases {
+		if got := sameConfValueFor(tc.name, tc.a, tc.b); got != tc.eq {
+			t.Errorf("sameConfValueFor(%q,%q,%q)=%v, want %v", tc.name, tc.a, tc.b, got, tc.eq)
+		}
+	}
+}
+
+func TestCoblRewriteSpellingsMatchRuntime(t *testing.T) {
+	log := logger.New(io.Discard, false, logger.InfoLevel)
+	runtimeValue := "normal 268435456 536870912 300 slave 2147483648 2147483648 300 pubsub 33554432 8388608 60"
+	cli := &fakeConfClient{get: map[string]string{"client-output-buffer-limit": runtimeValue}}
+	rendered := strings.Join([]string{
+		"client-output-buffer-limit normal 256mb 512mb 300",
+		"client-output-buffer-limit slave 2048mb 2048mb 300",
+		"client-output-buffer-limit pubsub 32mb 8mb 60",
+	}, "\n") + "\n"
+
+	ok, err := RuntimeMatches(cli, rendered)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Error("slave/2gb rewrite form should match runtime")
+	}
+
+	valkey := strings.Replace(rendered, "slave 2048mb 2048mb 300", "replica 2048mb 2048mb 300", 1)
+	ok, err = RuntimeMatches(cli, valkey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Error("Valkey replica dbconfig should match runtime slave")
+	}
+
+	if err = ApplyConfigSet(cli, rendered, log); err != nil {
+		t.Fatal(err)
+	}
+	if len(cli.sets) != 0 {
+		t.Errorf("matching COBL should not be set, got %v", cli.sets)
+	}
+
+	changed := strings.Replace(rendered, "slave 2048mb 2048mb 300", "slave 1024mb 2048mb 300", 1)
+	ok, err = RuntimeMatches(cli, changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok {
+		t.Error("changed COBL limit should not match runtime")
+	}
+	cli.sets = nil
+	if err = ApplyConfigSet(cli, changed, log); err != nil {
+		t.Fatal(err)
+	}
+	if len(cli.sets) != 1 || cli.sets[0][0] != "client-output-buffer-limit" {
+		t.Errorf("changed COBL limit should be set, got %v", cli.sets)
 	}
 }
 
@@ -195,5 +283,16 @@ func TestJoinDirectiveValues(t *testing.T) {
 	got = joinDirectiveValues([]string{`"xxxxpasswd"`})
 	if got != "xxxxpasswd" {
 		t.Errorf("unquote join = %q", got)
+	}
+}
+
+func TestApplyConfigSetNeverSetsCredentialAliases(t *testing.T) {
+	log := logger.New(io.Discard, false, logger.InfoLevel)
+	cli := &fakeConfClient{get: map[string]string{"primaryauth": "oldpass"}}
+	if err := ApplyConfigSet(cli, "primaryauth \"newpass\"\n", log); err != nil {
+		t.Fatalf("err:%v", err)
+	}
+	if len(cli.sets) != 0 {
+		t.Errorf("credential alias must not be SET, got %v", cli.sets)
 	}
 }

@@ -651,6 +651,36 @@ func TestDecideRestartAction(t *testing.T) {
 	}
 }
 
+func TestRewriteCanonicalizationAllowsRestartSkip(t *testing.T) {
+	rendered := strings.Join([]string{
+		"client-output-buffer-limit normal 256mb 512mb 300",
+		"client-output-buffer-limit slave 2048mb 2048mb 300",
+		"client-output-buffer-limit pubsub 32mb 8mb 60",
+	}, "\n") + "\n"
+	rewritten := strings.Join([]string{
+		"client-output-buffer-limit normal 256mb 512mb 300",
+		"client-output-buffer-limit replica 2gb 2gb 300",
+		"client-output-buffer-limit pubsub 32mb 8mb 60",
+	}, "\n") + "\n"
+
+	confEqual := redisconf.DirectivesEqual(rewritten, rendered)
+	if !confEqual {
+		t.Fatal("rewrite-form-only difference should compare equal")
+	}
+	if got := decideRestartAction(true, confEqual, true); got != restartSkip {
+		t.Errorf("rewrite-form-only difference should skip restart, got %d", got)
+	}
+
+	changed := strings.Replace(rewritten, "2gb 2gb", "1gb 2gb", 1)
+	confEqual = redisconf.DirectivesEqual(changed, rendered)
+	if confEqual {
+		t.Fatal("a genuine value change should not compare equal")
+	}
+	if got := decideRestartAction(true, confEqual, true); got != restartBounce {
+		t.Errorf("a genuine value change should bounce, got %d", got)
+	}
+}
+
 func TestRedisConfRefreshName(t *testing.T) {
 	if NewRedisConfRefresh().Name() != "redis_conf_refresh" {
 		t.Errorf("Name()=%q", NewRedisConfRefresh().Name())

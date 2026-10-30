@@ -139,6 +139,65 @@ func TestConfDirectivesEqualToleratesRewriteNormalization(t *testing.T) {
 	}
 }
 
+func TestConfDirectivesEqualToleratesCoblRewrite(t *testing.T) {
+	rendered := strings.Join([]string{
+		"client-output-buffer-limit normal 256mb 512mb 300",
+		"client-output-buffer-limit slave 2048mb 2048mb 300",
+		"client-output-buffer-limit pubsub 32mb 8mb 60",
+	}, "\n") + "\n"
+	rewritten := strings.Join([]string{
+		"client-output-buffer-limit normal 256mb 512mb 300",
+		"client-output-buffer-limit replica 2gb 2gb 300",
+		"client-output-buffer-limit pubsub 32mb 8mb 60",
+	}, "\n") + "\n"
+
+	if !DirectivesEqual(rewritten, rendered) {
+		t.Error("COBL rewrite class and units should equal")
+	}
+	changed := strings.Replace(rewritten, "2gb 2gb", "1gb 2gb", 1)
+	if DirectivesEqual(changed, rendered) {
+		t.Error("changed COBL limit should not equal")
+	}
+}
+
+func TestConfDirectivesEqualToleratesRewriteRenames(t *testing.T) {
+	pairs := [][2]string{
+		{"lua-time-limit 5000\n", "busy-reply-threshold 5000\n"},
+		{"aof_rewrite_cpulist 0-3\n", "aof-rewrite-cpulist 0-3\n"},
+		{`masterauth "samepass"` + "\n", `primaryauth "samepass"` + "\n"},
+		{"masteruser sameuser\n", "primaryuser sameuser\n"},
+	}
+	for _, pair := range pairs {
+		if !DirectivesEqual(pair[0], pair[1]) {
+			t.Errorf("rewrite rename should equal: %q vs %q", pair[0], pair[1])
+		}
+	}
+	if DirectivesEqual(`masterauth "samepass"`+"\n", `primaryauth "otherpass"`+"\n") {
+		t.Error("credential rename with a different value must not equal")
+	}
+}
+
+func TestConfDirectivesEqualTreatsPrimaryAuthAsSensitive(t *testing.T) {
+	if DirectivesEqual(`primaryauth "SamePass"`+"\n", `primaryauth "samepass"`+"\n") {
+		t.Error("a case-only password change must not compare equal")
+	}
+	if !DirectivesEqual(`primaryauth "samepass"`+"\n", `masterauth "samepass"`+"\n") {
+		t.Error("a credential rename with the same value should compare equal")
+	}
+}
+
+func TestDiffDirectivesMasksRenamedCredential(t *testing.T) {
+	got := DiffDirectives(`primaryauth "oldsecretpass"`+"\n", `masterauth "newsecretpass"`+"\n")
+	for _, secret := range []string{"oldsecretpass", "newsecretpass"} {
+		if strings.Contains(got, secret) {
+			t.Errorf("secret %q leaked into diff\ngot:\n%s", secret, got)
+		}
+	}
+	if !strings.Contains(got, "primaryauth <masked> => masterauth <masked>") {
+		t.Errorf("renamed credential should be masked on both sides\ngot:\n%s", got)
+	}
+}
+
 func TestDiffRedisConfDirectivesMasksSecrets(t *testing.T) {
 	oldConf := strings.Join([]string{
 		"requirepass \"oldsecretpass\"",
