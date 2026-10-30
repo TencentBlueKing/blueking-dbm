@@ -46,22 +46,18 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketStatus } from '@services/source/ticket';
-
-  import { useEventBus } from '@hooks';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
-  import { useTimeoutFn } from '@vueuse/core';
-
   interface Props {
+    /** 父组件轮询得到的最新单据状态 */
+    status: TicketModel['status'];
     ticketData: TicketModel;
   }
 
@@ -69,34 +65,14 @@
 
   const { t } = useI18n();
   const route = useRoute();
-  const eventBus = useEventBus();
 
   const isBaseinfoCardCollapse = ref(false);
-  const localTicketData = ref<TicketModel>();
-
-  const { refresh: refreshTicketStatus } = useRequest(
-    () => {
-      if (!props.ticketData) {
-        return Promise.reject();
-      }
-      return getTicketStatus({
-        ticket_ids: `${props.ticketData.id}`,
-      });
-    },
-    {
-      manual: true,
-      onSuccess(data) {
-        localTicketData.value!.status = data[props.ticketData.id] as TicketModel['status'];
-        if (!localTicketData.value!.isFinished) {
-          loopFetchTicketStatus();
-        }
-      },
-    },
-  );
-
-  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
-    refreshTicketStatus();
-  }, 3000);
+  // 用最新状态覆盖详情数据里的状态，供状态标签与计时器使用
+  const localTicketData = computed(() => {
+    const data = new TicketModel(props.ticketData);
+    data.status = props.status;
+    return data;
+  });
 
   watch(
     route,
@@ -107,25 +83,6 @@
       immediate: true,
     },
   );
-
-  watch(
-    () => props.ticketData,
-    () => {
-      if (props.ticketData) {
-        localTicketData.value = new TicketModel(props.ticketData);
-        refreshTicketStatus();
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  eventBus.on('refreshTicketStatus', refreshTicketStatus);
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', refreshTicketStatus);
-  });
 </script>
 <style lang="less">
   .ticket-base-info {
