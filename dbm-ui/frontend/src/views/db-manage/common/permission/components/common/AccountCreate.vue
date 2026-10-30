@@ -39,7 +39,7 @@
             theme: 'light',
             content: userPlaceholder,
           }"
-          :maxlength="16"
+          :maxlength="accountMaxLength"
           :placeholder="userPlaceholder"
           show-word-limit />
       </BkFormItem>
@@ -147,14 +147,21 @@
   const passwordRef = ref<InstanceType<typeof PasswordInput>>();
   const passwordIsPass = ref(false);
 
-  const defaultUserPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
+  const accountMaxLength = computed(() =>
+    props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER ? 16 : 32,
+  );
+  const defaultUserPlaceholder = computed(() =>
+    t('由_1_~_n_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头', {
+      n: accountMaxLength.value,
+    }),
+  );
   let validValue = '';
 
   const userPlaceholder = computed(() => {
     if (props.accountType === AccountTypes.MONGODB) {
       return t('格式为：(库名).（名称）_如 admin.linda');
     }
-    return defaultUserPlaceholder;
+    return defaultUserPlaceholder.value;
   });
 
   const rules = computed(() => ({
@@ -177,7 +184,7 @@
         validator: (value: string) => !!value,
       },
       {
-        message: defaultUserPlaceholder,
+        message: defaultUserPlaceholder.value,
         trigger: 'blur',
         validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
       },
