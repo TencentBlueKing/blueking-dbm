@@ -639,7 +639,7 @@
   "不能连续重复n位字母_数字_特殊符号": "Must not contain {n} consecutive repeated letters, digits, or special symbols",
   "密码长度为_min_max": "Password length is {0} ~ {1}",
   "密码不满足要求": "Password Does Not Meet Requirements",
-  "由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头": "1-32 characters composed of letters, digits, underscore (_), dot (.), hyphen (-), starting with a letter or digit",
+  "由_1_~_n_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头": "1-{n} characters composed of letters, digits, underscore (_), dot (.), hyphen (-), starting with a letter or digit",
   "账户名": "Account Name",
   "新建账号": "Create Account",
   "账号名称_DB名称_权限名称": "Account Name/DB Name/Permission Name",
