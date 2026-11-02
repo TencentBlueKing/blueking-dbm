@@ -406,7 +406,8 @@ class TestTicketViewSet:
         assert response.status_code == status.HTTP_200_OK
 
     @patch("backend.ticket.views.TicketFlowManager")
-    def test_callback(self, mock_flow_manager, test_mysql_single_apply_ticket):
+    @patch("backend.ticket.views.verify_callback")
+    def test_callback(self, mock_verify_callback, mock_flow_manager, test_mysql_single_apply_ticket):
         """测试单据回调"""
         ticket = test_mysql_single_apply_ticket
         mock_manager_instance = MagicMock()
@@ -416,6 +417,7 @@ class TestTicketViewSet:
         response = client.post(url, {}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
+        mock_verify_callback.assert_called_once_with(ticket, {})
         # 验证TicketFlowManager被正确调用
         mock_flow_manager.assert_called_once_with(ticket=ticket)
         mock_manager_instance.run_next_flow.assert_called_once()
