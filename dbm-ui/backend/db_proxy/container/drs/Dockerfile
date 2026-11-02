@@ -9,8 +9,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 ## 获取drs介质文件
-COPY --from=medium /app/medium/cloud/cloud-drs/*/db-remote-service  /data/install/
-COPY --from=medium /app/medium/cloud/cloud-drs-tmysqlparse/*/tmysqlparse /data/install/
+COPY --from=medium /app/medium/cloud/cloud-drs/*/*/db-remote-service  /data/install/
+COPY --from=medium /app/medium/cloud/cloud-drs-tmysqlparse/*/*/tmysqlparse /data/install/
 COPY ./start.bash  /data/install/
 
 WORKDIR /data/install
