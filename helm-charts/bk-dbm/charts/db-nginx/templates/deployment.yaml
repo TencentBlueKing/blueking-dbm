@@ -35,13 +35,25 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
+          {{- with include "bk-dbm.kms.cloudEnvs" . | trim }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:
                 name: {{ .Values.extraEnvVarsCM }}
             {{- end }}
+          {{- with include "bk-dbm.kms.cloudVolumeMounts" . | trim }}
+          volumeMounts:
+            {{- . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- with include "bk-dbm.kms.cloudVolumes" . | trim }}
+      volumes:
+        {{- . | nindent 8 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
       {{- toYaml . | nindent 8 }}

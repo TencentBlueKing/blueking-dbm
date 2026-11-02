@@ -190,7 +190,9 @@ RUN set -ex && \
     cd /blueking-dbm/dbm-services/common/db-dns/dns-reload && \
     make build VER=$(/lock.sh cloud cloud-dns-pullcrond version) && \
     cd /blueking-dbm/dbm-services/mysql/db-remote-service && \
-    make VERSION=$(/lock.sh cloud cloud-drs version) GITHASH=$(/lock.sh cloud cloud-drs commitId) -j4
+    make VERSION=$(/lock.sh cloud cloud-drs version) GITHASH=$(/lock.sh cloud cloud-drs commitId) -j4 && \
+    cd /blueking-dbm/dbm-services/common/go-pubpkg/kms/cmd/bk-dbm-kms && \
+    make build
 
 
 FROM base-app AS medium-app

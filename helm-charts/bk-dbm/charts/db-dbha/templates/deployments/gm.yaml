@@ -47,13 +47,25 @@ spec:
               value: {{ $gmComponentName }}
             - name: DBHA_TYPE
               value: {{ $dbhaType }}
+            {{- with include "bk-dbm.kms.cloudEnvs" . | trim }}{{ . | nindent 12 }}{{ end }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:
                 name: {{ .Values.extraEnvVarsCM }}
             {{- end }}
+          volumeMounts:
+            # 启动脚本渲染出的 dbha 配置含 token 和密码，放在内存盘中
+            - name: secure-conf
+              mountPath: /data/secure
+            {{- with include "bk-dbm.kms.cloudVolumeMounts" . | trim }}{{ . | nindent 12 }}{{ end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: secure-conf
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+        {{- with include "bk-dbm.kms.cloudVolumes" . | trim }}{{ . | nindent 8 }}{{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
       {{- toYaml . | nindent 8 }}

@@ -83,19 +83,19 @@ dependencies:
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service
-    version: 0.9.6
+    version: 0.9.6-kms
   - condition: global.cloudContainer
     name: db-dns
     repository: file://charts/db-dns
-    version: 0.1.0
+    version: 0.1.0-kms
   - condition: global.cloudContainer
     name: db-nginx
     repository: file://charts/db-nginx
-    version: 0.1.2
+    version: 0.1.2-kms
   - condition: global.cloudContainer
     name: db-dbha
     repository: file://charts/db-dbha
-    version: 0.1.0
+    version: 0.1.0-kms
   - condition: k8s-dbs.enabled
     name: k8s-dbs
     repository: file://charts/k8s-dbs
@@ -107,5 +107,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-community-kms.11
-appVersion: 1.5.0-community-kms.11
+version: 1.5.0-community-kms.12
+appVersion: 1.5.0-community-kms.12

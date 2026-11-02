@@ -9,12 +9,13 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 ## 获取dns介质文件
-COPY --from=medium /app/medium/cloud/cloud-dbha/*/dbha /data/install/
+COPY --from=medium /app/medium/cloud/cloud-dbha/*/*/dbha /data/install/
+COPY --from=medium /app/medium/cloud/cloud-kms-tool/*/*/bk-dbm-kms /data/install/
 COPY ./start.bash ./dbha-conf-tpl.yaml /data/install/
 
 WORKDIR /data/install
 
-RUN chmod +x start.bash
+RUN chmod +x start.bash bk-dbm-kms
 
 ## 启动dbha服务
 ENTRYPOINT ["/bin/bash", "-c", "/data/install/start.bash"]
