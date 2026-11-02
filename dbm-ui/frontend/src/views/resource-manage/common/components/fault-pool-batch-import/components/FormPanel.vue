@@ -16,7 +16,7 @@
     <div class="title">
       {{ t('批量导入资源池') }}
     </div>
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mt-16"
       form-type="vertical"
@@ -63,7 +63,7 @@
           v-model="formData.labels"
           :bk-biz-id="formData.for_biz" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 

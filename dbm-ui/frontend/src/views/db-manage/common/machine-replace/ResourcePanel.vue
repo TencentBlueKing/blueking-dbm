@@ -115,6 +115,8 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { useMarkChanged } from '@hooks';
+
   import { random } from '@utils';
 
   import ResourceHostSelect from './components/ResourceHostSelect.vue';
@@ -153,6 +155,9 @@
 
   const { t } = useI18n();
 
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
+
   const hostEditBtnPlaceholderId = `replaceHostEditBtn${random()}`;
 
   const resourcePoolSelectorRef = useTemplateRef('resourcePoolSelector');
@@ -189,14 +194,14 @@
       }
       return result;
     }, []);
-    window.changeConfirm = true;
+    markChanged();
     emits('removeNode', node);
   };
 
   // 资源池自动匹配不需要校验主机数
   const handleValueChange = () => {
     // isValidated.value = false;
-    window.changeConfirm = true;
+    markChanged();
   };
 
   defineExpose<Exposes>({

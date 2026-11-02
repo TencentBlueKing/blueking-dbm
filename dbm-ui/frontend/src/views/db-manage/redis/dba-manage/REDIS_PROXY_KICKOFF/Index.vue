@@ -116,6 +116,8 @@
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   import HostColumn, { type IValue } from './components/HostColumn.vue';
 
   interface IDataRow {
@@ -171,10 +173,18 @@
   watch(
     () => formData.ticketType,
     () => {
-      if (formData.ticketType === TicketTypes.REDIS_PROXY_FIX)
-        router.push({
-          name: `DBA_${TicketTypes.REDIS_PROXY_FIX}`,
-        });
+      if (formData.ticketType === TicketTypes.REDIS_PROXY_FIX) {
+        // 离开确认被取消时选项还原为当前页面
+        switchSiblingRoute(
+          () =>
+            router.push({
+              name: `DBA_${TicketTypes.REDIS_PROXY_FIX}`,
+            }),
+          () => {
+            formData.ticketType = TicketTypes.REDIS_PROXY_KICKOFF;
+          },
+        );
+      }
     },
   );
 

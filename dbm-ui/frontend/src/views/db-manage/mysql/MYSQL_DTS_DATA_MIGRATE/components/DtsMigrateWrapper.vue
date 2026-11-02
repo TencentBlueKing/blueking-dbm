@@ -53,6 +53,8 @@
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
@@ -63,9 +65,15 @@
 
   watch(
     () => formData.migrateMethod,
-    (val) => {
+    (val, oldVal) => {
       if (val !== route.meta.ticketType) {
-        router.push({ name: val });
+        // 离开确认被取消时选项还原为当前页面
+        switchSiblingRoute(
+          () => router.push({ name: val }),
+          () => {
+            formData.migrateMethod = oldVal;
+          },
+        );
       }
     },
   );

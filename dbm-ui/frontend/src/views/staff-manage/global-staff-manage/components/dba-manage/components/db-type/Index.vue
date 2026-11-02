@@ -415,7 +415,7 @@
   import MemberDisplay from '@views/staff-manage/common/MemberDisplay.vue';
   import { usePagination } from '@views/staff-manage/common/use-pagination.ts';
 
-  import { execCopy, getOffset, messageSuccess } from '@utils';
+  import { execCopy, getOffset, markSourceChanged, messageSuccess, releaseSourceChanged } from '@utils';
 
   import BizDbaModel from './bizDba';
   import BatchAppendL2DBA from './components/BatchAppendL2DBA.vue';
@@ -662,6 +662,23 @@
     (row.is_edit && !_.isEqual(row.primary_dba ? [row.primary_dba] : [], row.primary_dba_edit)) ||
     !_.isEqual(row.standby_dba ? [row.standby_dba] : [], row.standby_dba_edit) ||
     !_.isEqual(_.sortBy(row.level2_dba), _.sortBy(row.level2_dba_edit));
+
+  /**
+   * 离开确认：表格整体放在 BkForm 里只是为了行内校验，列表数据会随查询刷新，不能按表单整体判断修改。
+   * 只看处于编辑态的行是否改过（isRowChanged 对非编辑行也可能为 true，需先限定 is_edit）；
+   * 保存或取消后行退出编辑态，只撤销本表格这一份编辑状态，不影响页面其它来源
+   */
+  const changeSource = Symbol('dba-manage-db-type');
+  watch(
+    () => formData.value.tableData.some((row) => row.is_edit && isRowChanged(row)),
+    (isChanged) => {
+      if (isChanged) {
+        markSourceChanged(changeSource, false);
+        return;
+      }
+      releaseSourceChanged(changeSource);
+    },
+  );
 
   const handleEdit = (row: BizDbaModel, rowIndex: number) => {
     let tableList = formData.value.tableData;

@@ -80,6 +80,8 @@
   import { onActivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { useMarkChanged } from '@hooks';
+
   import { useSqlImport } from '@stores';
 
   import Editor from '../editor/Index.vue';
@@ -110,6 +112,9 @@
   });
   const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   const {
     fetchFileContentByFileName,
@@ -150,7 +155,7 @@
   );
 
   const triggerChange = () => {
-    window.changeConfirm = true;
+    markChanged();
     const uploadFileDataList = Object.values(uploadFileDataMap.value);
 
     if (_.some(uploadFileDataList, (item) => item.isUploadFailed || item.isCheckFailded)) {

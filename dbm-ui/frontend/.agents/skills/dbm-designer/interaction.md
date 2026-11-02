@@ -15,13 +15,21 @@
 
 ## 离开拦截
 
-用户改过表单 → `window.changeConfirm = true`（`DbForm` 已做）。提交 / 关闭 / 卸载时清掉。
+用户改过表单 → `window.changeConfirm = true`（`DbForm` / `EditableTable` 已做）。提交 / 关闭 / 卸载时清掉。
 
 ```
 无变更或 changeConfirm === 'popover' → 直接离开
 有变更                               → InfoBox「确认离开当前页」
-侧滑打开期间                         → 外层标成 'popover'，避免套弹
+侧滑打开期间                         → 外层标成 'popover'，避免套弹；关闭时还原为打开前的页面状态
 ```
+
+拦截点：路由守卫（菜单、面包屑、`router.push`、前进后退；只改 query 的同页跳转不拦）、`beforeunload`、
+`DbSideslider` / `DbDialog` 的关闭。表单一律用 `DbForm`；不走 `DbForm` 的自定义控件用 `useMarkChanged()` 标记，
+不要直接写 `window.changeConfirm = true`（弹层打开期间会被还原掉）；
+要在退出编辑 / 卸载时撤销的来源用 `markSourceChanged` / `releaseSourceChanged` 按 key 登记，不要直接写 `false`
+（会清掉页面其它来源）。页面内切换选项跳到同族页面用
+`switchSiblingRoute`，取消离开时把选项还原；选项组件在 `DbForm` 内部时不要改选项，直接 `router.push`。
+只改 query 的同页切换（会卸载内容）路由守卫不拦，先 `leaveConfirm()` 再切换。
 
 用 `leaveConfirm` / `useBeforeClose` / `DbSideslider` 的 `showLeaveConfirm`，不要手写文案。
 

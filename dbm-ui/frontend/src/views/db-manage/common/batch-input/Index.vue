@@ -84,7 +84,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useCopy, useEventBus } from '@hooks';
+  import { useCopy, useEventBus, useMarkChanged } from '@hooks';
 
   interface Props {
     /**
@@ -112,6 +112,9 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
   const copy = useCopy();
   const eventBus = useEventBus();
   const route = useRoute();
@@ -156,7 +159,7 @@
     });
 
     emits('change', result, isClear.value);
-    window.changeConfirm = true;
+    markChanged();
     // 通知页面上的可编辑表格触发整表校验（回填的数据中可能存在非法值）
     eventBus.emit('editable-table-validate');
     handleClose();

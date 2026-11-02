@@ -60,7 +60,13 @@
 
   import { useModelProvider } from '@hooks';
 
-  import { leaveConfirm, markCoveredPageChanged, popoverInjectKey, registerOpenedPopover } from '@utils';
+  import {
+    leaveConfirm,
+    markCoveredPageChanged,
+    popoverInjectKey,
+    popoverShowInjectKey,
+    registerOpenedPopover,
+  } from '@utils';
 
   interface Props {
     /**
@@ -127,8 +133,9 @@
   // 注销本实例在打开中弹层登记表里的记录
   let unregisterOpenedPopover = () => {};
 
-  // 告知弹窗内容的 DbForm / EditableTable 自己在弹层内
+  // 告知弹窗内容的 DbForm / EditableTable 自己在弹层内，以及弹层的显示状态
   provide(popoverInjectKey, true);
+  provide(popoverShowInjectKey, toRef(props, 'isShow'));
 
   /**
    * BkDialog 会把自身 vnode 的 scopeId 加到 teleport 出去的弹窗根节点上，
@@ -168,9 +175,9 @@
 
   /**
    * 关闭兜底：调用方直接把 isShow 置为 false、或打开状态下被 v-if 卸载时，组件内部的还原走不到。
-   * 不是 true 说明弹窗内容没被编辑（仍是 'popover'），或弹窗内的 DbForm / EditableTable 已随关闭卸载、
-   * 提交成功后被置为 false，都还原为打开前的页面状态。
-   * 已是 true（弹窗内容被编辑过且仍挂载）保持不动，与 DbSideslider 一致
+   * 弹窗关闭后其内容的编辑状态已无意义，一律还原为打开前的页面状态：
+   * BkDialog 默认 render-directive 为 show，内容不卸载，内部 DbForm 不会复位，保留 true 会让页面一直被当成已编辑。
+   * 弹窗打开期间页面被修改的情况由 markPageChanged 改写打开前的记录，还原时不会丢
    */
   const restoreUnchangedPageChangeConfirm = () => {
     // 本实例没打开过不处理，否则会改掉外层弹层置的 'popover'
@@ -178,11 +185,7 @@
       return;
     }
     isOpened = false;
-    unregisterOpenedPopover();
-    markCoveredPageChanged(coveredPageKey, false);
-    if (window.changeConfirm !== true) {
-      restorePageChangeConfirm();
-    }
+    restorePageChangeConfirm();
   };
 
   /**
@@ -200,9 +203,15 @@
         isOpened = true;
         // 打开期间页面被修改（如提交后回填页面表单）时，把记录的页面状态改为已编辑，关闭还原时不丢
         unregisterOpenedPopover();
-        unregisterOpenedPopover = registerOpenedPopover(() => {
-          pageChangeConfirm = true;
-          markCoveredPageChanged(coveredPageKey, true);
+        unregisterOpenedPopover = registerOpenedPopover({
+          markPageChanged: () => {
+            pageChangeConfirm = true;
+            markCoveredPageChanged(coveredPageKey, true);
+          },
+          resetPageChanged: () => {
+            pageChangeConfirm = false;
+            markCoveredPageChanged(coveredPageKey, false);
+          },
         });
       }
     },
