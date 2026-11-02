@@ -17,7 +17,6 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
-from backend.ticket.exceptions import TicketParamsVerifyException
 
 
 class MySQLRollbackSwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -29,8 +28,7 @@ class MySQLRollbackSwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MySQLRollbackSwitchFlowParamBuilder(builders.FlowParamBuilder):
-    # TODO: 构造回档切换的controller待新版本合入后再指定，这里先做兼容取值，避免导入期取不到属性
-    controller = getattr(MySQLController, "mysql_rollback_switch_scene", None)
+    controller = MySQLController.mysql_rollback_switch_scene
 
     def format_ticket_data(self):
         # 云区域和模块信息与源集群保持一致，单据由新机回档单据自动发起时会在details中带上，
@@ -41,11 +39,6 @@ class MySQLRollbackSwitchFlowParamBuilder(builders.FlowParamBuilder):
                 bk_cloud_id=self.ticket_data.get("bk_cloud_id") or source_cluster.bk_cloud_id,
                 module=self.ticket_data.get("module") or source_cluster.db_module_id,
             )
-
-    def get_params(self) -> dict:
-        if not self.controller:
-            raise TicketParamsVerifyException(errors=_("构造回档切换流程的controller尚未指定，暂不支持发起该单据"))
-        return super().get_params()
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_SWITCH, is_apply=True, iam=ActionEnum.MYSQL_ROLLBACK)
