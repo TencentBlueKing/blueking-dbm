@@ -1,3 +1,11 @@
+# 开启 KMS 时用信封中的 app_code / app_secret 覆盖 ConfigMap 中的 DB_CLOUD_TOKEN，明文只保留在进程环境变量中
+if [ "$ENABLE_KMS" = "true" ]; then
+    app_code=$(/data/install/bk-dbm-kms get bkapp_id_secret.default.app_code) || exit 1
+    app_secret=$(/data/install/bk-dbm-kms get bkapp_id_secret.default.app_secret) || exit 1
+    export DB_CLOUD_TOKEN="${app_code}:${app_secret}"
+    unset app_code app_secret BK_DBM_KMS_PRIVATE_KEY
+fi
+
 # 写入dbha记录
 # city_id: -1 表示探测所有实例
 data=$(
@@ -32,7 +40,9 @@ export BKMONITOR_EVENT_DATA_ID=$(echo $data | jq -r '.data.bkm_dbm_report.event.
 export BKMONITOR_EVENT_TOKEN=$(echo $data | jq -r '.data.bkm_dbm_report.event.token')
 
 # 配置文件注入环境变量，启动dbha服务
+# 渲染后的配置含 token 和密码，写到 helm 挂载的内存盘 /data/secure，不落磁盘
 mkdir logs && touch logs/log
-envsubst < ./dbha-conf-tpl.yaml > ./dbha.conf
-nohup ./dbha -config_file=dbha.conf -type=$DBHA_TYPE -> dbha-apply.log 2>&1 &
+mkdir -p /data/secure
+envsubst < ./dbha-conf-tpl.yaml > /data/secure/dbha.conf
+nohup ./dbha -config_file=/data/secure/dbha.conf -type=$DBHA_TYPE -> dbha-apply.log 2>&1 &
 tail -f logs/log

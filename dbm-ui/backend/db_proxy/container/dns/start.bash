@@ -1,5 +1,13 @@
 path=/usr/local;
 
+# 开启 KMS 时用信封中的 app_code / app_secret 覆盖 ConfigMap 中的 DB_CLOUD_TOKEN，明文只保留在进程环境变量中
+if [ "$ENABLE_KMS" = "true" ]; then
+    app_code=$(/data/install/bk-dbm-kms get bkapp_id_secret.default.app_code) || exit 1
+    app_secret=$(/data/install/bk-dbm-kms get bkapp_id_secret.default.app_secret) || exit 1
+    export DB_CLOUD_TOKEN="${app_code}:${app_secret}"
+    unset app_code app_secret BK_DBM_KMS_PRIVATE_KEY
+fi
+
 # 写入dns记录
 data=$(
 curl -XPOST "$BK_DBM_URL/apis/proxypass/cloud/insert/" \
@@ -47,5 +55,8 @@ fi
 # 启动pull-crond服务
 cd $path/bind/admin/;
 chmod 777 pull-crond;
-envsubst < pull-crond.conf > pull-crond-run.conf
+# 渲染后的配置含 token，写到 helm 挂载的内存盘 /data/secure；原路径保留软链，兼容 crontab 保活脚本
+mkdir -p /data/secure
+envsubst < pull-crond.conf > /data/secure/pull-crond-run.conf
+ln -sf /data/secure/pull-crond-run.conf pull-crond-run.conf
 ./pull-crond -c pull-crond-run.conf;

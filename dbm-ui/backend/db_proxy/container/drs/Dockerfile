@@ -9,13 +9,14 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 ## 获取drs介质文件
-COPY --from=medium /app/medium/cloud/cloud-drs/*/db-remote-service  /data/install/
-COPY --from=medium /app/medium/cloud/cloud-drs-tmysqlparse/*/tmysqlparse /data/install/
+COPY --from=medium /app/medium/cloud/cloud-drs/*/*/db-remote-service  /data/install/
+COPY --from=medium /app/medium/cloud/cloud-drs-tmysqlparse/*/*/tmysqlparse /data/install/
+COPY --from=medium /app/medium/cloud/cloud-kms-tool/*/*/bk-dbm-kms /data/install/
 COPY ./start.bash  /data/install/
 
 WORKDIR /data/install
 
-RUN chmod +x start.bash
+RUN chmod +x start.bash bk-dbm-kms
 
 ## 启动drs服务
 ENTRYPOINT ["/bin/bash", "-c", "/data/install/start.bash"]

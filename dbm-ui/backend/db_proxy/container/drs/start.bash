@@ -1,3 +1,11 @@
+# 开启 KMS 时用信封中的 app_code / app_secret 覆盖 ConfigMap 中的 DB_CLOUD_TOKEN，明文只保留在进程环境变量中
+if [ "$ENABLE_KMS" = "true" ]; then
+    app_code=$(/data/install/bk-dbm-kms get bkapp_id_secret.default.app_code) || exit 1
+    app_secret=$(/data/install/bk-dbm-kms get bkapp_id_secret.default.app_secret) || exit 1
+    export DB_CLOUD_TOKEN="${app_code}:${app_secret}"
+    unset app_code app_secret BK_DBM_KMS_PRIVATE_KEY
+fi
+
 # 写入DRS记录
 data=$(
 curl -XPOST "$BK_DBM_URL/apis/proxypass/cloud/insert/" \

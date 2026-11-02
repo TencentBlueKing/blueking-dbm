@@ -9,13 +9,14 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 ## 获取dns介质文件
-COPY --from=medium /app/medium/cloud/cloud-dns-bind/*/bind.tar.gz /data/install/
-COPY --from=medium /app/medium/cloud/cloud-dns-pullcrond/*/pull-crond /data/install/
+COPY --from=medium /app/medium/cloud/cloud-dns-bind/*/*/bind.tar.gz /data/install/
+COPY --from=medium /app/medium/cloud/cloud-dns-pullcrond/*/*/pull-crond /data/install/
+COPY --from=medium /app/medium/cloud/cloud-kms-tool/*/*/bk-dbm-kms /data/install/
 COPY ./start.bash ./pull-crond.conf /data/install/
 
 WORKDIR /data/install
 
-RUN chmod +x start.bash
+RUN chmod +x start.bash bk-dbm-kms
 
 ## 启动dns服务
 ENTRYPOINT ["/bin/bash", "-c", "/data/install/start.bash"]

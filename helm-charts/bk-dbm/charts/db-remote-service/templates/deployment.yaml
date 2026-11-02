@@ -46,6 +46,7 @@ spec:
           volumeMounts:
             - name: shared-env
               mountPath: /data/install/shard_env/
+            {{- with include "bk-dbm.kms.cloudVolumeMounts" . | trim }}{{ . | nindent 12 }}{{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -60,3 +61,4 @@ spec:
       {{- end }}
       volumes:
       {{- toYaml .Values.volumes | nindent 8}}
+      {{- with include "bk-dbm.kms.cloudVolumes" . | trim }}{{ . | nindent 8 }}{{ end }}

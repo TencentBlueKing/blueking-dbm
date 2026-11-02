@@ -61,21 +61,21 @@ dependencies:
   version: 0.0.18-kms
 - name: db-remote-service
   repository: file://charts/db-remote-service
-  version: 0.9.6
+  version: 0.9.6-kms
 - name: db-dns
   repository: file://charts/db-dns
-  version: 0.1.0
+  version: 0.1.0-kms
 - name: db-nginx
   repository: file://charts/db-nginx
-  version: 0.1.2
+  version: 0.1.2-kms
 - name: db-dbha
   repository: file://charts/db-dbha
-  version: 0.1.0
+  version: 0.1.0-kms
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 4.0.0-kms
 - name: tenant-router
   repository: file://charts/tenant-router
   version: 0.1.0
-digest: sha256:5457d2e8dfd5d808375ce761be42e94515b3778f2de3efe09e0261df67d61a40
-generated: "2026-11-02T16:18:55.505312+08:00"
+digest: sha256:4d986a44d94b89d56f41b50623b1a559e5946008dc4070263a0d64b7a2b01db4
+generated: "2026-11-02T21:50:37.356434+08:00"

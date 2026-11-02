@@ -50,6 +50,17 @@ cloud:
     full_version: 1.0.0
     os_type: "Linux"
     os_version:
+- cloud-kms-tool:
+    buildPath: /blueking-dbm/dbm-services/common/go-pubpkg/kms/cmd/bk-dbm-kms/build/bk-dbm-kms
+    commitDate: '202611022100'
+    commitId: 69971262b64cff927d280a4a4be922f3c659e45a
+    name: bk-dbm-kms
+    version: 1.0.0
+    distribution_name: DBM
+    version_series: KMS-Tool
+    full_version: 1.0.0
+    os_type: "Linux"
+    os_version:
 - cloud-nginx:
     buildPath: /toolkit/nginx-portable.tgz
     name: nginx-portable.tgz
