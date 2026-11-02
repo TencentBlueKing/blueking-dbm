@@ -1,3 +1,5 @@
+{{- $kms := (.Values.global | default dict).kms | default dict }}
+{{- $kmsEnabled := $kms.enabled | default false }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,6 +38,15 @@ spec:
                 mode: 420
                 path: path/to/config.yaml
             defaultMode: 272
+        {{- if $kmsEnabled }}
+        - name: kms-credentials
+          secret:
+            secretName: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+            defaultMode: 0400
+            items:
+              - key: envelope
+                path: envelope
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -49,6 +60,17 @@ spec:
           env:
             - name: BK_TENANT_ID
               value: "{{ .Values.global.tenantId }}"
+            - name: ENABLE_KMS
+              value: {{ $kmsEnabled | quote }}
+            {{- if $kmsEnabled }}
+            - name: BACKUP_CONSUMER_KMS_CREDENTIAL_DIR
+              value: {{ .Values.kms.credentialDir | quote }}
+            - name: BK_DBM_KMS_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+                  key: privateKey
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -56,6 +78,11 @@ spec:
               name: config-volume
               subPath: path/to/config.yaml
               mountPath: /runtime_config.yaml
+            {{- if $kmsEnabled }}
+            - name: kms-credentials
+              mountPath: {{ .Values.kms.credentialDir | quote }}
+              readOnly: true
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

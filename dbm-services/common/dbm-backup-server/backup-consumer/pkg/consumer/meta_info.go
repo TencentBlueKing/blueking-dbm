@@ -55,14 +55,14 @@ func queryMeta() error {
 		slog.Error("pack header", err.Error())
 		return err
 	}
-	slog.Info("pack header", slog.String("header", string(content)))
+	// 不打印 header 与整个 request，其中包含 bk_app_secret
 
 	req.Header.Set("X-Bkapi-Authorization", string(content))
 	if bkTenantId := os.Getenv("BK_TENANT_ID"); bkTenantId != "" {
 		req.Header.Set("X-Bk-Tenant-Id", bkTenantId)
 	}
 	//req.Header.Set("Content-Type", "application/json")
-	slog.Info("request", slog.Any("request", req))
+	slog.Info("request", slog.String("url", endpoint.String()))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

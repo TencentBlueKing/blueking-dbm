@@ -24,6 +24,15 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 		initLogger(config.RuntimeConfig.Log)
+		// KMS：开启后加载失败即停止启动，不回退配置文件中的旧凭证
+		credentials, err := config.LoadRuntimeCredentials()
+		if err != nil {
+			return fmt.Errorf("load KMS runtime credentials failed: %w", err)
+		}
+		if credentials != nil {
+			config.ApplyRuntimeCredentials(config.RuntimeConfig, credentials)
+			slog.Info("KMS runtime credentials applied")
+		}
 
 		r := gin.Default()
 		r.Handle("GET", "/ping", func(context *gin.Context) {
