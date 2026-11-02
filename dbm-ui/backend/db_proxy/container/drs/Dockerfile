@@ -3,7 +3,9 @@ FROM mirrors.tencent.com/build/blueking/dbmedium:latest as medium
 FROM debian:bookworm-slim
 
 ## 更新包列表并安装 cron 和 gettext-base
-RUN apt-get update && \
+# 使用腾讯内网 Debian 源；bookworm 的源配置在 deb822 格式的 debian.sources 中，没有 sources.list
+RUN sed -i 's|deb.debian.org|mirrors.tencent.com|g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
     apt-get install -y curl jq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
