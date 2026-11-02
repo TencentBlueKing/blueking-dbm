@@ -57,7 +57,7 @@
               controller-id="duty_rule"
               module-id="monitor">
               <DbMenuItem
-                icon="db-config"
+                icon="lunzhicelve"
                 route-name="dutyRuleManange">
                 {{ t('轮值策略') }}
               </DbMenuItem>
@@ -66,7 +66,7 @@
               controller-id="monitor_policy"
               module-id="monitor">
               <DbMenuItem
-                icon="note"
+                icon="lunzhitongzhi"
                 route-name="PlatformNotificationSetting">
                 {{ t('轮值通知') }}
               </DbMenuItem>
@@ -78,7 +78,7 @@
           :fold-name="t('密码')"
           :name="t('密码安全')">
           <DbMenuItem
-            icon="pingbi"
+            icon="mimasuijihuaguanli"
             route-name="PlatformPasswordRandomization">
             {{ t('密码随机化管理') }}
           </DbMenuItem>
@@ -97,13 +97,13 @@
           </DbMenuItem>
           <DbMenuItem
             v-db-console="'globalConfigManage.ticketFlowSetting'"
-            icon="dba-config"
+            icon="danjuliuchengshezhi"
             route-name="PlatformTicketFlowSetting">
             {{ t('单据流程设置') }}
           </DbMenuItem>
           <DbMenuItem
             v-db-console="'globalConfigManage.todoRemind'"
-            icon="note"
+            icon="meiridaibantixing"
             route-name="TodoRemind">
             {{ t('每日待办提醒') }}
           </DbMenuItem>
