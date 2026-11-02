@@ -294,10 +294,13 @@ func (c *Client) DeleteFromDomain(bkCloudId int, domainName string, instance str
 		return gerrors.Newf(gerrors.Failure, "request failed: %s", domainDeleteRes.Message)
 	}
 
+	// The DNS delete API returns result=true even when no matching row exists
+	// (rowsNum=0). Accept that as success so a second unbind of the same instance
+	// does not fail the switch.
 	if domainDeleteRes.Data.RowsNum != 1 {
-		errMsg := fmt.Sprintf("rowsAffected = %d, failed to delete instance (%s) (app=%s) from domain (%s)",
-			domainDeleteRes.Data.RowsNum, instance, app, domainName)
-		return gerrors.New(gerrors.Failure, errMsg)
+		logger.Warn(
+			"domain delete succeeded with rowsNum=%d, expected 1, domain: %s, instance: %s, app: %s",
+			domainDeleteRes.Data.RowsNum, domainName, instance, app)
 	}
 	return nil
 }
