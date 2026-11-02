@@ -7,7 +7,7 @@
         controller-id="k8s_surrealdb"
         module-id="k8s">
         <DbMenuItem
-          icon="cluster"
+          icon="zhucong"
           route-name="SurrealdbHaList">
           {{ t('集群管理') }}
           <template #append>
@@ -21,7 +21,7 @@
         controller-id="k8s_surrealdb"
         module-id="k8s">
         <DbMenuItem
-          icon="node"
+          icon="danjiedi-2"
           route-name="SurrealdbSingleList">
           {{ t('单节点') }}
           <template #append>

@@ -30,7 +30,7 @@
           :name="t('数据库部署')">
           <DbMenuItem
             v-db-console="'personalWorkbench.serviceApply'"
-            icon="ticket"
+            icon="bushushenqing-2"
             route-name="BussinessServiceApply">
             {{ t('部署申请') }}
           </DbMenuItem>
@@ -50,7 +50,7 @@
           :name="t('单据中心')">
           <DbMenuItem
             v-db-console="'databaseManage.missionManage.ticketManage'"
-            icon="ticket"
+            icon="danju-2"
             route-name="bizTicketManage">
             {{ t('单据') }}
           </DbMenuItem>

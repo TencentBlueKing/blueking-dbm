@@ -8,24 +8,23 @@
       :fold-name="t('单据')"
       :name="t('单据中心')">
       <DbMenuItem
-        icon="ticket"
+        icon="danju-2"
         route-name="ticketPlatformManage">
         {{ t('单据') }}
       </DbMenuItem>
       <DbMenuItem
-        icon="history"
+        icon="renwu-2"
         route-name="platformTaskManage">
         {{ t('任务') }}
       </DbMenuItem>
     </DbMenuGroup>
-
     <DbMenuGroup
       v-db-console="'platformManage.dbaManage'"
       :fold-name="t('工具')"
       :name="t('DBA 工具箱')">
       <DbMenuItem
         v-if="ENABLE_DBM_AI"
-        icon="mysql"
+        icon="dbazhinengzhushou"
         route-name="AgentChat">
         {{ t('DBA 智能助手') }}
       </DbMenuItem>
@@ -37,7 +36,7 @@
       </DbMenuItem>
       <DbMenuItem
         v-db-console="'platformManage.dbaManage.tendbCluster'"
-        icon="mysql"
+        icon="tendbcluster"
         route-name="DbaManageTendbCluster">
         Tendb Cluster
       </DbMenuItem>
@@ -57,22 +56,22 @@
       :fold-name="t('异常')"
       :name="t('异常中心')">
       <DbMenuItem
-        icon="db-config"
+        icon="gaojing"
         route-name="platformAlarmEvents">
         {{ t('告警事件') }}
       </DbMenuItem>
       <DbMenuItem
-        icon="db-config"
+        icon="xunjianbaogao"
         route-name="inspectionReportGlobal">
         {{ t('巡检报告') }}
       </DbMenuItem>
       <DbMenuItem
-        icon="yanlianbaogao"
+        icon="yanlianbaogao-2"
         route-name="ExerciseReportGlobal">
         {{ t('演练报告') }}
       </DbMenuItem>
       <DbMenuItem
-        icon="file"
+        icon="fengxianbaowanglu"
         route-name="RiskMemoGlobal">
         {{ t('风险备忘录') }}
       </DbMenuItem>
@@ -84,7 +83,7 @@
       <DbMenuItem
         v-for="dashboardItem in dashboardList"
         :key="dashboardItem.uid"
-        icon="ticket"
+        :icon="dashboardIconMap[dashboardItem.name] || 'yunyingshuju'"
         :route-name="`DashboradView#${dashboardItem.uid}`">
         {{ dashboardItem.name }}
       </DbMenuItem>
@@ -93,7 +92,7 @@
       :fold-name="t('观测')"
       :name="t('平台观测')">
       <DbMenuItem
-        icon="ticket"
+        icon="fuwuzhuangtai"
         route-name="ServiceStatus">
         {{ t('服务状态') }}
       </DbMenuItem>
@@ -123,6 +122,21 @@
   const { ENABLE_DBM_AI } = systemEnvironStore.urls;
 
   const menuRef = ref<InstanceType<typeof DbMenu>>();
+
+  // 运营数据看板名称 -> 菜单图标映射，未命中默认取 ticket
+  const dashboardIconMap: Record<string, string> = {
+    'DBA-AI工时': 'dba-aigongshi',
+    'DBA(武汉)': 'dba-config',
+    'DBA(深圳)': 'dba-config',
+    单据: 'danju-2',
+    可靠: 'kekao',
+    告警: 'gaojing',
+    平台观测数据: 'pingtaiguanceshuju',
+    概览: 'gailan',
+    版本: 'version',
+    负载: 'fuzai',
+    资源: 'ziyuan',
+  };
 
   const { data: dashboardList, runAsync: fetchAppShareList } = useRequest(getAppShareList, {
     manual: true,
