@@ -111,7 +111,7 @@
 
   import { createAlarmShield, getAlarmShieldDetails } from '@services/source/monitor';
 
-  import { useBeforeClose } from '@hooks';
+  import { useBeforeClose, useMarkChanged } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -144,6 +144,9 @@
   });
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
   const { bizs } = useGlobalBizs();
 
   const formRef = ref();
@@ -227,7 +230,7 @@
   watch(
     formModel,
     () => {
-      window.changeConfirm = true;
+      markChanged();
     },
     {
       deep: true,

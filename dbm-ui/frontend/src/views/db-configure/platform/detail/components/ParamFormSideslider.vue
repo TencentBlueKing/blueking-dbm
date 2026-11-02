@@ -25,7 +25,7 @@
       </span>
     </template>
     <div class="add-param-content">
-      <BkForm
+      <DbForm
         ref="addFormRef"
         form-type="vertical"
         :model="addParamForm"
@@ -208,7 +208,7 @@
             type="textarea"
             @change="markDirty" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </div>
     <template #footer>
       <BkButton

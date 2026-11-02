@@ -281,7 +281,7 @@
       class="replenish-batch-terminate-dialog"
       :title="t('批量终止')"
       :width="480">
-      <BkForm
+      <DbForm
         ref="terminateFormRef"
         form-type="vertical"
         :model="terminateForm"
@@ -303,7 +303,7 @@
             :rows="3"
             type="textarea" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <template #footer>
         <BkButton
           :loading="isTerminating"

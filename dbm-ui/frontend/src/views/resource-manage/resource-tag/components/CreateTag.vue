@@ -26,7 +26,7 @@
         </span>
       </div>
     </template>
-    <BkForm
+    <DbForm
       ref="formRef"
       form-type="vertical"
       :model="formModel"
@@ -40,7 +40,7 @@
           allow-create
           multiple />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <div class="footer-wrapper">
         <BkButton

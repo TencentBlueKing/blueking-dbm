@@ -132,7 +132,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   import DstClusterColumn from './components/DstClusterColumn.vue';
   import RenameColumn from './components/RenameColumn.vue';
@@ -313,10 +313,17 @@
     });
   };
 
+  // 离开确认被取消时选项还原为当前页面
   const handleMigrateTypeChange = (ticketType: TicketTypes) => {
-    router.push({
-      name: ticketType,
-    });
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: ticketType,
+        }),
+      () => {
+        formData.ticketType = TicketTypes.SQLSERVER_FULL_MIGRATE;
+      },
+    );
   };
 
   const handleReset = () => {

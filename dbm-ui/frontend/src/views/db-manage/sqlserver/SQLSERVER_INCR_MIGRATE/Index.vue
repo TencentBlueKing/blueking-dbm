@@ -135,7 +135,7 @@
   import RenameColumn from '@views/db-manage/sqlserver/SQLSERVER_FULL_MIGRATE/components/RenameColumn.vue';
   import SrcClusterColumn from '@views/db-manage/sqlserver/SQLSERVER_FULL_MIGRATE/components/SrcClusterColumn.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   interface RowData {
     dbIgnoreName: string[];
@@ -312,10 +312,17 @@
     });
   };
 
+  // 离开确认被取消时选项还原为当前页面
   const handleMigrateTypeChange = (ticketType: TicketTypes) => {
-    router.push({
-      name: ticketType,
-    });
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: ticketType,
+        }),
+      () => {
+        formData.ticketType = TicketTypes.SQLSERVER_INCR_MIGRATE;
+      },
+    );
   };
 
   const handleReset = () => {

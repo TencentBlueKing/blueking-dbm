@@ -25,7 +25,7 @@
 <script setup lang="ts">
   import { debounce } from 'lodash';
 
-  import { markPageChanged, popoverInjectKey } from '@utils';
+  import { markSourceChanged, popoverInjectKey, popoverShowInjectKey, releaseSourceChanged } from '@utils';
 
   export interface Props {
     autoLabelWidth?: boolean;
@@ -49,17 +49,15 @@
 
   // 是否渲染在 DbSideslider / DbDialog 内
   const isInPopover = inject(popoverInjectKey, false);
+  // 本表单在离开确认里的编辑来源：卸载时只撤销自己这一份，页面其它表单 / 表格的编辑状态不受影响
+  const changeSource = Symbol('db-form');
 
   watch(
     () => props.model,
     () => {
       if (isUserChange.value) {
         // 弹层内的修改由弹层管理；页面上的修改在弹层打开期间（如弹层提交后回填）也要记到页面状态上
-        if (isInPopover) {
-          window.changeConfirm = true;
-        } else {
-          markPageChanged();
-        }
+        markSourceChanged(changeSource, isInPopover);
       }
     },
     { deep: true },
@@ -68,6 +66,20 @@
   /** 用户主动操作变更表单 */
   const isUserChange = ref(false);
   const handleUserChange = () => (isUserChange.value = true);
+
+  /**
+   * 弹层内容不随关闭卸载时（render-directive 为 show），关闭时清掉本次的操作标记，下次打开时重置表单数据不算用户修改。
+   * 不放在打开时清：调用方打开时重置数据的 watch 先于弹层 props 更新执行，那时标记还没清
+   */
+  const popoverShow = inject(popoverShowInjectKey, undefined);
+  if (popoverShow) {
+    watch(popoverShow, (isShow) => {
+      if (!isShow) {
+        isUserChange.value = false;
+        releaseSourceChanged(changeSource);
+      }
+    });
+  }
 
   const getCssStyle = (el: HTMLElement, prop: string) => window.getComputedStyle(el, null).getPropertyValue(prop);
   const calcLableWidth = () => {
@@ -122,7 +134,7 @@
   });
 
   onBeforeUnmount(() => {
-    window.changeConfirm = false;
+    releaseSourceChanged(changeSource);
   });
 
   defineExpose({

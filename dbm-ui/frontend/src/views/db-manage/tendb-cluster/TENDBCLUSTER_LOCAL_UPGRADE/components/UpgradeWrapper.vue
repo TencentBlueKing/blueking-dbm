@@ -82,6 +82,8 @@
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   const modelValue = defineModel<{
     roleType: string;
     updateType: string;
@@ -91,24 +93,38 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  // 当前页面的角色类型，跳转被离开确认取消时还原
+  let currentRoleType = modelValue.value.roleType;
+
   const handleChange = (value: string) => {
-    if (value === 'spider') {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
-      });
-    } else {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
-      });
-    }
+    const previousRoleType = currentRoleType;
+    currentRoleType = value;
+    // 离开确认被取消时选项还原为当前页面
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: value === 'spider' ? TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE : TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+        }),
+      () => {
+        currentRoleType = previousRoleType;
+        modelValue.value.roleType = previousRoleType;
+      },
+    );
   };
 
   watch(
     () => modelValue.value.updateType,
-    () => {
-      router.push({
-        name: modelValue.value.updateType,
-      });
+    (_, oldUpdateType) => {
+      // 离开确认被取消时选项还原为当前页面；还原触发的跳转目标是当前页面，不会再拦截
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name: modelValue.value.updateType,
+          }),
+        () => {
+          modelValue.value.updateType = oldUpdateType;
+        },
+      );
     },
   );
 </script>

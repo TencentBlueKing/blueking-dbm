@@ -10,7 +10,7 @@
       v-model:is-show="isShow"
       class="ticket-self-todo-batch-operation"
       :title="title">
-      <BkForm
+      <DbForm
         ref="form"
         form-type="vertical"
         :model="formData">
@@ -32,7 +32,7 @@
             :rows="3"
             type="textarea" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <template #footer>
         <BkButton
           :loading="isSubmiting"

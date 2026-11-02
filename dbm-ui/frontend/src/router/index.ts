@@ -19,7 +19,7 @@ import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
 
-import { checkDbConsole, siteBasePath } from '@utils';
+import { checkDbConsole, resetChangeConfirm, routeLeaveConfirm, siteBasePath } from '@utils';
 
 // 各模块的路由由自身 routes.ts 默认导出的函数调用 registerModule / registerBusinessModule 注册
 // deployment-plan、尚未接入路由，排除
@@ -124,6 +124,24 @@ export default () => {
     routes,
   });
   connectToMain(appRouter);
+
+  /**
+   * 站内跳转的离开确认（菜单、面包屑、router.push、浏览器前进后退）。
+   * 只改 query / hash 的同页跳转（Tab 切换、?open= 直达链接）页面不卸载，不拦截
+   */
+  appRouter.beforeEach((to, from) => {
+    if (to.path === from.path) {
+      return true;
+    }
+    return routeLeaveConfirm();
+  });
+  // 真正离开页面后清空离开确认状态（新页面从未编辑开始）；导航被取消或失败时页面还在，保留状态
+  appRouter.afterEach((to, from, failure) => {
+    if (failure || to.path === from.path) {
+      return;
+    }
+    resetChangeConfirm();
+  });
 
   let lastRouterHrefCache = '/';
   const routerPush = appRouter.push;

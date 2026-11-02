@@ -153,7 +153,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/mongodb/common/toolbox-field/cutoff/HostColumn.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   interface IDataRow {
     host: {
@@ -328,10 +328,17 @@
     },
   );
 
+  // 离开确认被取消时选项还原为当前页面
   const handleClusterTypeChange = () => {
-    router.push({
-      name: TicketTypes.MONGODB_REPLICASET_CUTOFF,
-    });
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: TicketTypes.MONGODB_REPLICASET_CUTOFF,
+        }),
+      () => {
+        formData.clusterType = ClusterTypes.MONGO_SHARED_CLUSTER;
+      },
+    );
   };
 
   const generateRequestParam = () => {

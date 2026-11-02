@@ -26,7 +26,7 @@
         </span>
       </div>
     </template>
-    <BkForm
+    <DbForm
       ref="formRef"
       class="backup-config-form"
       form-type="vertical"
@@ -137,7 +137,7 @@
           v-model="formData.bucket_name"
           :placeholder="t('请输入 Bucket')" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <AuthButton
         action-id="dbconfig_edit"

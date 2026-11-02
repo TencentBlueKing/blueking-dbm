@@ -113,7 +113,7 @@
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   import SlaveInstanceColumn from './components/SlaveInstanceColumn.vue';
 
@@ -196,9 +196,16 @@
 
   watch(restoreType, () => {
     if (restoreType.value === TicketTypes.MYSQL_RESTORE_SLAVE) {
-      router.push({
-        name: TicketTypes.MYSQL_RESTORE_SLAVE,
-      });
+      // 离开确认被取消时选项还原为当前页面
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name: TicketTypes.MYSQL_RESTORE_SLAVE,
+          }),
+        () => {
+          restoreType.value = TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE;
+        },
+      );
     }
   });
 

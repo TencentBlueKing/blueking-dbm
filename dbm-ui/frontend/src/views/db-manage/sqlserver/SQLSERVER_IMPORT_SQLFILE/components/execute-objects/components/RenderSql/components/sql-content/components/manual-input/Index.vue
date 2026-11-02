@@ -92,6 +92,8 @@
   import { onActivated, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { useMarkChanged } from '@hooks';
+
   import { useSqlImport } from '@stores';
 
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
@@ -133,6 +135,9 @@
   const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
 
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
+
   const {
     fetchFileContentByFileName,
     fileDataMap: uploadFileDataMap,
@@ -167,7 +172,7 @@
   );
 
   const triggerChange = () => {
-    window.changeConfirm = true;
+    markChanged();
     isInnerChange = true;
     modelValue.value = uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
   };

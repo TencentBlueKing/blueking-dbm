@@ -21,7 +21,7 @@
     :title="t('新建账号')"
     :width="580"
     @closed="handleClose">
-    <BkForm
+    <DbForm
       v-if="isShow"
       ref="accountRef"
       form-type="vertical"
@@ -71,7 +71,7 @@
           {{ t('复制密码') }}
         </BkButton>
       </div>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton
         v-bk-tooltips="{

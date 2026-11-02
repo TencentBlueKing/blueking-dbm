@@ -4,21 +4,23 @@
     property="updateType"
     required>
     <CardCheckbox
-      v-model="modelValue.architectureType"
       :desc="t('如 TendisCache 等，迁移过程保持规格、版本不变')"
       icon="cluster"
+      :model-value="modelValue.architectureType"
       style="width: 400px"
       :title="t('集群架构')"
-      :true-value="ArchitectureType.CLUSTER" />
+      :true-value="ArchitectureType.CLUSTER"
+      @update:model-value="handleArchitectureTypeChange" />
     <CardCheckbox
-      v-model="modelValue.architectureType"
       class="ml-8"
       :desc="t('支持部分或整机所有实例成对迁移至新主机，版本规格可变')"
       :disabled-tooltips="t('单节点仅支持原地升级')"
       icon="gaokeyong"
+      :model-value="modelValue.architectureType"
       style="width: 400px"
       :title="t('主从架构')"
-      :true-value="ArchitectureType.MASTER_SLAVE" />
+      :true-value="ArchitectureType.MASTER_SLAVE"
+      @update:model-value="handleArchitectureTypeChange" />
   </BkFormItem>
   <BkFormItem
     :label="t('迁移类型')"
@@ -70,16 +72,17 @@
   const { t } = useI18n();
   const router = useRouter();
 
-  watch(
-    () => modelValue.value.architectureType,
-    () => {
-      const routeMap = {
-        [ArchitectureType.CLUSTER]: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
-        [ArchitectureType.MASTER_SLAVE]: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
-      };
-      router.push({
-        name: routeMap[modelValue.value.architectureType],
-      });
-    },
-  );
+  /**
+   * 两种架构是两个页面：选项不改本页数据，直接跳转，有未保存修改时由路由守卫确认，取消离开则选项保持不变。
+   * 不能先改选项再跳：本组件在页面 DbForm 内，DbForm 先于本组件的 watch 把选项变化记为修改，取不到切换前的状态
+   */
+  const handleArchitectureTypeChange = (value: boolean | string) => {
+    const routeMap: Record<string, string> = {
+      [ArchitectureType.CLUSTER]: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
+      [ArchitectureType.MASTER_SLAVE]: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
+    };
+    router.push({
+      name: routeMap[value as string],
+    });
+  };
 </script>

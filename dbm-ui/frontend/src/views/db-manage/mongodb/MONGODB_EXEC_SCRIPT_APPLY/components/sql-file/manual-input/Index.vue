@@ -63,6 +63,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { useMarkChanged } from '@hooks';
+
   import { useSqlImport } from '@stores';
 
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
@@ -101,6 +103,9 @@
   const { grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
 
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
+
   // 单文件模式：直接使用一个 SqlFileModel 实例
   const fileData = ref(
     new SqlFileModel({
@@ -123,7 +128,7 @@
   });
 
   const triggerChange = () => {
-    window.changeConfirm = true;
+    markChanged();
     const fileNameList = [fileData.value.realFilePath || 'FILE_NAME'];
     emits('change', fileNameList);
   };

@@ -35,6 +35,7 @@ export * from './useIsWidthOverflow';
 export * from './useListeners';
 export * from './useLocalPagination';
 export * from './useLocation';
+export * from './useMarkChanged';
 export * from './useModelProvider';
 export * from './useProps';
 export * from './useReportCount';

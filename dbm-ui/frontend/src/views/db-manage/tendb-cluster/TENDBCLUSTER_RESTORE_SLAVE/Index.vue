@@ -134,7 +134,7 @@
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
@@ -247,9 +247,16 @@
 
   watch(restoreType, () => {
     if (restoreType.value === TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE) {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
-      });
+      // 离开确认被取消时选项还原为当前页面
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
+          }),
+        () => {
+          restoreType.value = TicketTypes.TENDBCLUSTER_RESTORE_SLAVE;
+        },
+      );
     }
   });
 

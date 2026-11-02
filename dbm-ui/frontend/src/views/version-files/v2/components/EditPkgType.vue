@@ -19,7 +19,7 @@
     render-directive="if"
     :title="isEdit ? t('编辑包类型') : t('新建包类型')"
     :width="480">
-    <BkForm
+    <DbForm
       ref="formRef"
       class="edit-pkg-type-form"
       form-type="vertical"
@@ -81,7 +81,7 @@
           {{ t('添加版本后将锁定位数，清空版本后可重新选择') }}
         </div>
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton @click="handleCancel">
         {{ t('取消') }}

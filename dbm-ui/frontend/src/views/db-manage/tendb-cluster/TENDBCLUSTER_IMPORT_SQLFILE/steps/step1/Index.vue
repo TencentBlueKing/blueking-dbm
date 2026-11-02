@@ -65,7 +65,7 @@
   import { type TendbCluster } from '@services/model/ticket/ticket';
   import { querySemanticData, semanticCheck } from '@services/source/mysqlSqlImport';
 
-  import { useTicketDetail } from '@hooks';
+  import { useMarkChanged, useTicketDetail } from '@hooks';
 
   import { useSqlImport } from '@stores';
 
@@ -86,6 +86,9 @@
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   const { rootId } = route.query as { rootId: string | undefined };
 
@@ -139,7 +142,7 @@
         },
       });
       uploadFilePath.value = details.path;
-      window.changeConfirm = true;
+      markChanged();
 
       nextTick(() => {
         executeObjectsRef.value!.setReEditValue(details.execute_objects);
@@ -168,7 +171,7 @@
         },
       });
       uploadFilePath.value = semanticData.path;
-      window.changeConfirm = true;
+      markChanged();
 
       nextTick(() => {
         executeObjectsRef.value!.setReEditValue(semanticData.execute_objects);

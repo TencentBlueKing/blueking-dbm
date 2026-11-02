@@ -1,6 +1,6 @@
 <template>
   <div class="recommend-architecture-form">
-    <BkForm
+    <DbForm
       ref="formRef"
       form-type="vertical"
       :model="formData">
@@ -41,7 +41,7 @@
           <BkRadio label="no">{{ t('否') }}</BkRadio>
         </BkRadioGroup>
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <div class="mt-36">
       <BkButton
         theme="primary"
@@ -67,11 +67,12 @@
 </template>
 
 <script setup lang="ts">
-  import { Form } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes } from '@common/const';
+
+  import DbForm from '@components/db-form/index.vue';
 
   import { redisClusterTypes } from '../../../common/const';
 
@@ -81,7 +82,7 @@
 
   const { t } = useI18n();
 
-  const formRef = ref<InstanceType<typeof Form>>();
+  const formRef = ref<InstanceType<typeof DbForm>>();
 
   const formData = reactive({
     complexity: '',

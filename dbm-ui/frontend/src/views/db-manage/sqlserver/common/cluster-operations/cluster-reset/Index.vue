@@ -10,7 +10,7 @@
       closable
       theme="warning"
       :title="t('集群的数据将会被全部清空')" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="reset-form"
       label-width="80"
@@ -42,12 +42,11 @@
           </div>
         </BkFormItem>
       </BkComposeFormItem>
-    </BkForm>
+    </DbForm>
   </DbDialog>
 </template>
 
 <script setup lang="ts" generic="T extends SqlServerSingleModel | SqlServerHaModel">
-  import { Form } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -57,6 +56,8 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
+
+  import DbForm from '@components/db-form/index.vue';
 
   export interface Props<C> {
     data: C;
@@ -95,7 +96,7 @@
     },
   ];
 
-  const formRef = ref<InstanceType<typeof Form>>();
+  const formRef = ref<InstanceType<typeof DbForm>>();
   const formData = reactive({
     newClusterName: '',
   });

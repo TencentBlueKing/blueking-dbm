@@ -46,7 +46,7 @@
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { type Rules, useValidtor } from '@hooks';
+  import { type Rules, useMarkChanged, useValidtor } from '@hooks';
 
   import { batchSplitRegex } from '@common/regex';
 
@@ -55,6 +55,9 @@
   }
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   const rootRef = ref();
   const popRef = ref();
@@ -80,7 +83,7 @@
   const handleTagValueChange = (value: string[]) => {
     nextTick(() => {
       validator(value).then(() => {
-        window.changeConfirm = true;
+        markChanged();
       });
     });
   };

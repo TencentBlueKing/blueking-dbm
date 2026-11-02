@@ -26,15 +26,24 @@
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   const modelValue = defineModel<string>({
     required: true,
   });
   const { t } = useI18n();
   const router = useRouter();
 
-  watch(modelValue, () => {
-    router.push({
-      name: modelValue.value,
-    });
+  watch(modelValue, (_, oldValue) => {
+    // 离开确认被取消时选项还原为当前页面
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: modelValue.value,
+        }),
+      () => {
+        modelValue.value = oldValue;
+      },
+    );
   });
 </script>

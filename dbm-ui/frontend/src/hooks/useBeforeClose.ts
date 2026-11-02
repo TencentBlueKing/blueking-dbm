@@ -31,6 +31,10 @@ export const useBeforeClose = () =>
           cancelText: t('取消'),
           confirmText: t('离开'),
           content: t('离开将会导致未保存信息丢失'),
+          // 点取消或关闭图标：不允许关闭（原来没有 onCancel，Promise 永远不结束）
+          onCancel: () => {
+            resolve(false);
+          },
           onConfirm: () => {
             const hasFlag = typeof flag === 'boolean';
             if (hasFlag === false) {

@@ -54,6 +54,7 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   let isRouteChange = false;
 
@@ -103,6 +104,13 @@
 
   onBeforeRouteLeave(() => {
     isRouteChange = true;
+    // 组件离开钩子早于全局守卫的离开确认，用户取消离开、页面留下时恢复点击外部关闭
+    const removeAfterEach = router.afterEach((to, from, failure) => {
+      removeAfterEach();
+      if (failure) {
+        isRouteChange = false;
+      }
+    });
   });
 
   onMounted(() => {
