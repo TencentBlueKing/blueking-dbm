@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import json
+import re
+from urllib.parse import urlsplit
+
+from django.utils.crypto import salted_hmac
+from django.utils.translation import gettext as _
 
 from ..client import ItsmV4Api
 from ..constants import ItsmTicketStatus, ItsmV4TicketStatus
@@ -12,6 +17,11 @@ class ItsmV4Backend(BaseItsmBackend):
 
     version = "v4"
     SN_PREFIX = "ITSM_V4:"
+
+    @staticmethod
+    def get_callback_token(ticket_id):
+        """生成与 DBM 单据绑定的回调凭证。"""
+        return salted_hmac("ticket.itsm.callback", str(ticket_id), algorithm="sha256").hexdigest()
 
     @classmethod
     def format_ticket_sn(cls, ticket_id):
@@ -129,6 +139,13 @@ class ItsmV4Backend(BaseItsmBackend):
 
     def create_ticket(self, params, *args, **kwargs):
         """创建 ITSM V4 单据，并将返回 ID 兼容为旧版 sn。"""
+        params = dict(params)
+        callback_url = params.get("callback_url") or params.get("meta", {}).get("callback_url")
+        if callback_url:
+            match = re.search(r"/apis/tickets/(\d+)/callback/$", urlsplit(callback_url).path)
+            if not match:
+                raise ValueError(_("无效的 DBM 单据回调地址"))
+            params["callback_token"] = self.get_callback_token(int(match.group(1)))
         data = ItsmV4Api.create_ticket(params, *args, **kwargs)
         if "id" in data:
             data = {**data, "sn": self.format_ticket_sn(data["id"])}
