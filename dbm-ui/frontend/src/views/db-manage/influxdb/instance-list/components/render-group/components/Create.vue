@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkForm
+  <DbForm
     ref="formRef"
     class="group-form"
     :model="{ name }">
@@ -29,7 +29,7 @@
         @click.stop
         @enter="handleSubmit" />
     </BkFormItem>
-  </BkForm>
+  </DbForm>
 </template>
 
 <script setup lang="ts">

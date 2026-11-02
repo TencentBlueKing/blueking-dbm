@@ -58,6 +58,8 @@
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
@@ -66,9 +68,16 @@
     fixpointType: (route.meta.ticketType as TicketTypes) || TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST,
   });
 
+  // 离开确认被取消时选项还原为当前页面
   const handleChange = (value: string) => {
-    router.push({
-      name: value,
-    });
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: value,
+        }),
+      () => {
+        formData.fixpointType = (route.meta.ticketType as TicketTypes) || TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST;
+      },
+    );
   };
 </script>

@@ -19,7 +19,7 @@
     :title="t('版本升级')"
     width="480">
     <template v-if="isShow">
-      <BkForm
+      <DbForm
         form-type="vertical"
         :label-width="80"
         :model="formData">
@@ -48,7 +48,7 @@
               :value="version" />
           </DbSelect>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div class="upgrade-hint">
         {{ t('升级将对集群执行原地滚动升级_期间服务可能短暂受影响') }}
       </div>

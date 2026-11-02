@@ -53,6 +53,8 @@
 <script setup lang="ts">
   import _ from 'lodash';
 
+  import { useMarkChanged } from '@hooks';
+
   import { encodeMult } from '@utils';
 
   import useValidtor, { type Rules } from './hooks/useValidtor';
@@ -96,6 +98,9 @@
     default: '',
   });
 
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
+
   const inputRef = ref();
   const isFocused = ref(false);
   const localValue = ref('');
@@ -122,7 +127,7 @@
         if (localValue.value !== value) {
           localValue.value = value;
           inputRef.value.innerText = localValue.value;
-          window.changeConfirm = true;
+          markChanged();
         }
       });
       if (value) {
@@ -156,7 +161,7 @@
     }
     localValue.value = currentValue;
     inputRef.value.innerText = localValue.value;
-    window.changeConfirm = true;
+    markChanged();
     modelValue.value = currentValue;
   };
 
@@ -177,7 +182,7 @@
       localValue.value = _.trim(target.outerText);
       emits('input', localValue.value);
       if (!props.multiInput) {
-        window.changeConfirm = true;
+        markChanged();
         modelValue.value = localValue.value;
       }
     });
@@ -194,7 +199,7 @@
       return;
     }
     validator(localValue.value).then(() => {
-      window.changeConfirm = true;
+      markChanged();
       emits('submit', localValue.value);
     });
   };
@@ -214,7 +219,7 @@
         validator(localValue.value).then((result) => {
           if (result) {
             isFocused.value = false;
-            window.changeConfirm = true;
+            markChanged();
             emits('submit', localValue.value);
           }
         });
@@ -238,7 +243,7 @@
     localValue.value = paste;
     event.preventDefault();
     if (!props.multiInput) {
-      window.changeConfirm = true;
+      markChanged();
       modelValue.value = paste.replace(/^\s+|\s+$/g, '');
     }
   };

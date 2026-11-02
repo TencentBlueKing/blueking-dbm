@@ -75,6 +75,8 @@
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
@@ -85,10 +87,17 @@
 
   watch(
     () => modelValue.value.ticketType,
-    () => {
-      router.push({
-        name: modelValue.value.ticketType,
-      });
+    (_, oldTicketType) => {
+      // 离开确认被取消时选项还原为当前页面；还原触发的跳转目标是当前页面，不会再拦截
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name: modelValue.value.ticketType,
+          }),
+        () => {
+          modelValue.value.ticketType = oldTicketType;
+        },
+      );
     },
   );
 </script>

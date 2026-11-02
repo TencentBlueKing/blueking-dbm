@@ -57,7 +57,13 @@
 
   import { useModelProvider } from '@hooks';
 
-  import { leaveConfirm, markCoveredPageChanged, popoverInjectKey, registerOpenedPopover } from '@utils';
+  import {
+    leaveConfirm,
+    markCoveredPageChanged,
+    popoverInjectKey,
+    popoverShowInjectKey,
+    registerOpenedPopover,
+  } from '@utils';
 
   interface Props {
     /**
@@ -117,8 +123,9 @@
   // 注销本实例在打开中弹层登记表里的记录
   let unregisterOpenedPopover = () => {};
 
-  // 告知侧栏内容的 DbForm / EditableTable 自己在弹层内
+  // 告知侧栏内容的 DbForm / EditableTable 自己在弹层内，以及弹层的显示状态
   provide(popoverInjectKey, true);
+  provide(popoverShowInjectKey, toRef(props, 'isShow'));
 
   /**
    * BkSideslider 会把自身 vnode 的 scopeId 加到 teleport 出去的侧栏根节点上，
@@ -158,9 +165,9 @@
 
   /**
    * 关闭兜底：调用方直接把 isShow 置为 false、或打开状态下被 v-if 卸载时，组件内部的还原走不到。
-   * 不是 true 说明侧栏内容没被编辑（仍是 'popover'），或侧栏内的 DbForm / EditableTable 已随关闭卸载、
-   * 提交成功后被置为 false，都还原为打开前的页面状态，避免页面原本的已编辑状态丢失。
-   * 已是 true（侧栏内容被编辑过且仍挂载）保持不动，与原来一致
+   * 侧栏关闭后其内容的编辑状态已无意义，一律还原为打开前的页面状态：
+   * render-directive 为 show 时内容不卸载，内部 DbForm 不会复位，保留 true 会让页面一直被当成已编辑。
+   * 侧栏打开期间页面被修改的情况由 markPageChanged 改写打开前的记录，还原时不会丢
    */
   const restoreUnchangedPageChangeConfirm = () => {
     // 本实例没打开过（如初始挂载时 isShow 为 false）不处理，否则会改掉外层侧栏置的 'popover'
@@ -168,11 +175,7 @@
       return;
     }
     isOpened = false;
-    unregisterOpenedPopover();
-    markCoveredPageChanged(coveredPageKey, false);
-    if (window.changeConfirm !== true) {
-      restorePageChangeConfirm();
-    }
+    restorePageChangeConfirm();
   };
 
   /**
@@ -190,9 +193,15 @@
         isOpened = true;
         // 打开期间页面被修改（如提交后回填页面表单）时，把记录的页面状态改为已编辑，关闭还原时不丢
         unregisterOpenedPopover();
-        unregisterOpenedPopover = registerOpenedPopover(() => {
-          pageChangeConfirm = true;
-          markCoveredPageChanged(coveredPageKey, true);
+        unregisterOpenedPopover = registerOpenedPopover({
+          markPageChanged: () => {
+            pageChangeConfirm = true;
+            markCoveredPageChanged(coveredPageKey, true);
+          },
+          resetPageChanged: () => {
+            pageChangeConfirm = false;
+            markCoveredPageChanged(coveredPageKey, false);
+          },
         });
       }
     },
@@ -245,6 +254,11 @@
         return !!result;
       });
     }
+    // 不需要离开确认时直接关闭
+    if (!props.showLeaveConfirm) {
+      restorePageChangeConfirm();
+      return Promise.resolve(true);
+    }
     // 取消离开时返回 false 阻止关闭（原来是 reject，会产生未处理的 Promise 异常）
     return confirmLeave().catch(() => false);
   };
@@ -281,12 +295,16 @@
       });
     }
 
-    return leaveConfirm()
-      .then(() => cancel())
-      .then(() => {
-        restorePageChangeConfirm();
-        close();
-      });
+    return (
+      leaveConfirm()
+        .then(() => cancel())
+        .then(() => {
+          restorePageChangeConfirm();
+          close();
+        })
+        // 离开确认点了取消：保持打开，吞掉 leaveConfirm 的 reject，避免未处理的 Promise 异常
+        .catch(() => {})
+    );
   };
 
   defineExpose<Exposes>({

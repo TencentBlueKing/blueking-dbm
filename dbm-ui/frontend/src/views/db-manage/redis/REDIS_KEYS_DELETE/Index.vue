@@ -109,7 +109,7 @@
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
   import KeyOperationColumn from '@views/db-manage/redis/common/toolbox-field/key-operation-column/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   import DeleteRateColumn from './components/DeleteRateColumn.vue';
 
@@ -321,8 +321,14 @@
     Object.assign(formData, createDefaultFormData());
   };
 
+  // 切换到提取 Key；离开确认被取消时选项还原为当前页面
   const handleTypeChange = () => {
-    router.replace({ name: TicketTypes.REDIS_KEYS_EXTRACT });
+    switchSiblingRoute(
+      () => router.replace({ name: TicketTypes.REDIS_KEYS_EXTRACT }),
+      () => {
+        formData.type = TicketTypes.REDIS_KEYS_DELETE;
+      },
+    );
   };
 
   defineExpose({

@@ -22,7 +22,7 @@
       theme="warning">
       {{ t('为主机添加资源标签，若标签不存在则添加，已存在则忽略') }}
     </BkAlert>
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mt-16"
       form-type="vertical"
@@ -50,7 +50,7 @@
           :bk-biz-id="formData.for_biz"
           :default-list="currentData" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 

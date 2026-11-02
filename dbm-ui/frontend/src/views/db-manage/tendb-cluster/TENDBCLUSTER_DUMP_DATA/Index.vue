@@ -19,7 +19,7 @@
       :title="
         t('将源集群中指定库表的数据与表结构导出为文件；支持整表导出，或按条件筛选记录后导出。系统库不在导出范围内。')
       " />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="dump-data-form mb-20"
       form-type="vertical"
@@ -127,7 +127,7 @@
       <TicketPayload
         v-model="formData.payload"
         :width="560" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

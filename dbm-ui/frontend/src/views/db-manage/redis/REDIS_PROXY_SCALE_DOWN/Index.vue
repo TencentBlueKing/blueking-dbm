@@ -31,7 +31,7 @@
         </BkRadioButton>
       </BkRadioGroup>
     </div>
-    <BkForm
+    <DbForm
       class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
@@ -40,7 +40,7 @@
         ref="table"
         :ticket-details="ticketDetails" />
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

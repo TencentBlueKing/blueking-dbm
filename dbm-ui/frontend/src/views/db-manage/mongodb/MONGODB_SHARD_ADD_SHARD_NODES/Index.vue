@@ -158,7 +158,7 @@
   import AddShardNodesNumColumn from '@views/db-manage/mongodb/common/toolbox-field/addShardNodes/AddShardNodesNumColumn.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   export interface IDataRow {
     add_shard_nodes_num: number;
@@ -285,10 +285,17 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
 
+  // 离开确认被取消时选项还原为当前页面
   const handleClusterTypeChange = () => {
-    router.push({
-      name: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES,
-    });
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES,
+        }),
+      () => {
+        formData.clusterType = ClusterTypes.MONGO_SHARED_CLUSTER;
+      },
+    );
   };
 
   const getCurrentSpecId = (data: MongodbModel) => data.mongodb[0]!.spec_config.id;

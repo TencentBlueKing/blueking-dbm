@@ -70,6 +70,8 @@
   import AlarmShieldModel from '@services/model/monitor/alarm-shield';
   import { createAlarmShield, EditAlarmShield } from '@services/source/monitor';
 
+  import { useMarkChanged } from '@hooks';
+
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
 
   import AlertShield from './components/AlertShield.vue';
@@ -105,6 +107,9 @@
   });
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   const formRef = ref();
   const dynamicRef = ref();
@@ -216,7 +221,7 @@
   watch(
     formModel,
     () => {
-      window.changeConfirm = true;
+      markChanged();
     },
     {
       deep: true,
