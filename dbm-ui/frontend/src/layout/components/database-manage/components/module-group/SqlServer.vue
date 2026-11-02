@@ -5,7 +5,7 @@
       :is-error="isError">
       <DbSubmenu
         id="SqlServerHaClusterManage"
-        icon="cluster"
+        icon="sqlserver"
         :title="t('主从')">
         <template #append>
           <CountTag
@@ -33,7 +33,7 @@
       </DbSubmenu>
       <DbMenuItem
         v-db-console="'sqlserver.singleClusterList'"
-        icon="node"
+        icon="sqlserver"
         route-name="SqlServerSingle">
         {{ t('单节点') }}
         <template #append>
@@ -45,7 +45,7 @@
       <DbSubmenu
         id="sqlserver-permission"
         v-db-console="'sqlserver.permissionManage'"
-        icon="history"
+        icon="quanxianguanli"
         :title="t('权限管理')">
         <DbMenuItem route-name="SqlServerPermissionRules">
           {{ t('授权规则') }}
