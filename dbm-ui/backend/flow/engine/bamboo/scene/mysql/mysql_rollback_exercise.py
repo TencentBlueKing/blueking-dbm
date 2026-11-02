@@ -23,6 +23,7 @@ from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, VersionPhase
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
 from backend.db_package.exceptions import DBPackageBaseException
 from backend.db_package.models import Package
@@ -286,6 +287,7 @@ class MySQLRollbackExerciseFlow(object):
                 skip_install_bk_plugin=True,
                 # 演练临时实例不接入 dbha，标准化子流程去掉「探针升级」
                 with_probe=False,
+                builtin_cluster_tags=(SystemTagEnum.EXERCISE,),
             )
         )
         sub_pipeline.add_sub_pipeline(self._build_reinstall_v2_dbbackup_subflow(cluster_class))

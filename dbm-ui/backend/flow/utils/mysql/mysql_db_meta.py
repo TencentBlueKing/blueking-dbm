@@ -32,6 +32,7 @@ from backend.db_meta.enums import (
     InstanceStatus,
     MachineType,
 )
+from backend.db_meta.enums.comm import TagType
 from backend.db_meta.models import (
     Cluster,
     ClusterEntry,
@@ -40,6 +41,7 @@ from backend.db_meta.models import (
     ProxyInstance,
     StorageInstance,
     StorageInstanceTuple,
+    Tag,
 )
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
@@ -67,7 +69,7 @@ class MySQLDBMeta(object):
         self.cluster = cluster
         self.bk_biz_id = self.ticket_data["bk_biz_id"]
 
-    def mysql_single_apply(self) -> bool:
+    def mysql_single_apply(self, builtin_cluster_tags=()) -> bool:
         """
         部署mysql单节点版集群，更新db-meta
         支持单台机器属于多个集群录入的场景
@@ -86,6 +88,11 @@ class MySQLDBMeta(object):
             region=self.ticket_data["city"],
             zone_list=self.ticket_data.get("zone_list", []),
         )
+        for tag_key in builtin_cluster_tags:
+            builtin_tag = Tag.get_builtin_tag(key=tag_key, value=True, type=TagType.CLUSTER)[0]
+            for cluster_info in self.ticket_data["clusters"]:
+                cluster = Cluster.objects.get(bk_biz_id=self.bk_biz_id, immute_domain=cluster_info["master"])
+                cluster.tags.add(builtin_tag)
         return True
 
     def mysql_ha_apply(self) -> bool:
