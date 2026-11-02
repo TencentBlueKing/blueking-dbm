@@ -42,7 +42,11 @@ func newConsumerGroup() (sarama.ConsumerGroup, error) {
 
 	consumerConfig.ClientID = config.RuntimeConfig.ClientId
 
-	slog.Debug("build consumer config", slog.Any("config", consumerConfig))
+	logConfig := *consumerConfig
+	if logConfig.Net.SASL.Password != "" {
+		logConfig.Net.SASL.Password = "xxxx"
+	}
+	slog.Debug("build consumer config", slog.Any("config", &logConfig))
 
 	group, err := sarama.NewConsumerGroup(
 		[]string{
