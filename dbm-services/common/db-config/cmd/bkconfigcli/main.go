@@ -34,6 +34,11 @@ func Execute() {
 func init() {
 	// init db config
 	config.InitConfig("config")
+	// KMS：必须在 main() 建立数据库连接之前完成覆盖；开启后加载失败即停止，不回退配置文件中的旧凭证
+	if _, err := config.ApplyKMSCredentials(); err != nil {
+		_, _ = os.Stderr.WriteString("load KMS runtime credentials failed: " + err.Error() + "\n")
+		os.Exit(1)
+	}
 
 	// rootCmd global flags
 	rootCmd.PersistentFlags().String("namespace", "", "namespace")
