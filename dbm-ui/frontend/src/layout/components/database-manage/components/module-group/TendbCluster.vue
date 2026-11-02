@@ -7,7 +7,7 @@
       :is-error="isError">
       <DbSubmenu
         id="tendb-cluster-manage"
-        icon="cluster"
+        icon="tendbcluster"
         :title="t('TendbCluster集群')">
         <template #append>
           <CountTag
@@ -42,7 +42,7 @@
       <DbSubmenu
         id="spider-permission"
         v-db-console="'tendbCluster.permissionManage'"
-        icon="history"
+        icon="quanxianguanli"
         :title="t('权限管理')">
         <DbMenuItem route-name="spiderPermission">
           {{ t('授权规则') }}

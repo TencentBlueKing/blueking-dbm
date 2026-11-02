@@ -14,17 +14,17 @@
           :fold-name="t('告警')"
           :name="t('监控告警')">
           <DbMenuItem
-            icon="db-config"
+            icon="yewujiankongdapan"
             route-name="bussinessDashboard">
             {{ t('业务监控大盘') }}
           </DbMenuItem>
           <DbMenuItem
-            icon="db-config"
+            icon="gaojing"
             route-name="AlarmEvents">
             {{ t('告警事件') }}
           </DbMenuItem>
           <DbMenuItem
-            icon="file"
+            icon="fengxianbaowanglu"
             route-name="RiskMemo">
             {{ t('风险备忘录') }}
           </DbMenuItem>
@@ -33,7 +33,7 @@
           v-db-console="'observableManage.DBHASwitchEvents'"
           name="DBHA">
           <DbMenuItem
-            icon="db-config"
+            icon="dbhaqiehuanshijian"
             route-name="DBHASwitchEvents">
             {{ t('DBHA切换事件') }}
           </DbMenuItem>
@@ -42,7 +42,7 @@
           v-db-console="'observableManage.healthReport'"
           :name="t('巡检')">
           <DbMenuItem
-            icon="db-config"
+            icon="xunjianbaogao"
             route-name="inspectionManage">
             {{ t('巡检报告') }}
           </DbMenuItem>

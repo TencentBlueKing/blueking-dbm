@@ -5,7 +5,7 @@
       :is-error="isError">
       <DbSubmenu
         id="RedisManage"
-        icon="fenbushijiqun"
+        icon="redis"
         :title="t('集群')">
         <template #append>
           <!-- prettier-ignore -->
@@ -31,7 +31,7 @@
       <DbSubmenu
         id="RedisHaManage"
         v-db-console="'redis.haClusterManage'"
-        icon="cluster"
+        icon="redis"
         :title="t('主从')">
         <template #append>
           <!-- prettier-ignore -->
