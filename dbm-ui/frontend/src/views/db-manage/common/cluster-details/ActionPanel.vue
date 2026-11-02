@@ -192,7 +192,7 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import AlarmSubscription from './components/AlarmSubscription.vue';
   import BaseInfo from './components/BaseInfo.vue';
@@ -287,6 +287,8 @@
   const tabcontentheight = ref('0');
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
+  // 健康报告只有 MySQL、TenDBCluster 集群提供
+  const isHealthReportSupported = computed(() => [DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType.value));
   // URL 直接指定健康报告 Tab 时，需等接入状态返回才能判定 Tab 是否存在
   const isLoading = computed(
     () =>
@@ -334,7 +336,10 @@
   });
 
   const isHealthReportConnected = computed(
-    () => !!healthReportProbe.value && healthReportProbe.value.report_status !== 'not_connected',
+    () =>
+      isHealthReportSupported.value &&
+      !!healthReportProbe.value &&
+      healthReportProbe.value.report_status !== 'not_connected',
   );
 
   // 与模板中各 Tab 的渲染条件保持一致，用于忽略报告里指向不存在 Tab 的跳转
@@ -352,7 +357,7 @@
   watch(
     () => props.clusterData.id,
     () => {
-      if (props.clusterData.id) {
+      if (props.clusterData.id && isHealthReportSupported.value) {
         fetchHealthReportProbe({
           bk_biz_id: props.clusterData.bk_biz_id,
           cluster_domain: props.clusterData.master_domain,
@@ -431,6 +436,19 @@
       handlePanelChange(value);
     }
   };
+
+  // 不支持健康报告的集群不渲染该 Tab，URL 指定了健康报告 Tab 时落到默认 Tab
+  watch(
+    [isHealthReportSupported, activePanel],
+    () => {
+      if (!isHealthReportSupported.value && activePanel.value === 'healthReport') {
+        handlePanelChange('');
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onMounted(() => {
     calcTabContentHeight();
