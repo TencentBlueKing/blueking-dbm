@@ -64,6 +64,8 @@ class HostCandidate:
     cluster_ids: List[int] = field(default_factory=list)
     rs_keys: Set[str] = field(default_factory=set)
     names: Set[str] = field(default_factory=set)  # ip:port
+    # 每个副本集自己的异常成员。一台机器组会同时挂多个分片，不能把整机端口都算进每一个副本集。
+    names_by_rs: Dict[str, Set[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -132,14 +134,26 @@ def zone_city_circuit_breaker(
     return ZoneBreakerResult(passed=passed, suppressed=suppressed, reason_by_ip=reason_by_ip)
 
 
+def _names_for_rs(cand: HostCandidate, rs_key: str) -> Set[str]:
+    """只取这个副本集自己的成员。多副本集共处一台机器时，不把整机端口摊到每个副本集。"""
+    mapped = (cand.names_by_rs or {}).get(rs_key)
+    if mapped:
+        return set(mapped)
+    usable = [key for key in cand.rs_keys if is_usable_rs_key(key)]
+    if len(usable) == 1 and usable[0] == rs_key:
+        return set(cand.names)
+    return set()
+
+
 def same_rs_limit(
     candidates: Iterable[HostCandidate],
     active_names_by_rs: Optional[Dict[str, Set[str]]] = None,
     max_abnormal: int = 2,
 ) -> Tuple[List[HostCandidate], Dict[str, str]]:
     """
-    纯函数：同 RS 已有 >= max_abnormal 个异常成员（含进行中 Core）则拒绝该 RS 全部候选。
+    纯函数：同一个副本集已有 >= max_abnormal 个异常成员（含进行中 Core）则拒绝该副本集全部候选。
 
+    计数单位是该副本集的成员，不是机器组上的实例数。
     返回 (passed, reason_by_ip)。
     """
     active_names_by_rs = active_names_by_rs or {}
@@ -151,10 +165,11 @@ def same_rs_limit(
             continue
         abnormal_by_rs[rs_key].update(names)
     for cand in candidates:
-        for rs_key in cand.rs_keys:
+        rs_keys = set(cand.rs_keys) | set(cand.names_by_rs or {})
+        for rs_key in rs_keys:
             if not is_usable_rs_key(rs_key):
                 continue
-            abnormal_by_rs[rs_key].update(cand.names)
+            abnormal_by_rs[rs_key].update(_names_for_rs(cand, rs_key))
 
     blocked_rs = {rs_key for rs_key, names in abnormal_by_rs.items() if len(names) >= max_abnormal}
 

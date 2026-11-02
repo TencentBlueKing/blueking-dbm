@@ -38,6 +38,7 @@ from backend.db_services.mongodb.autofix.metrics import (
     aggregate_abnormal_peers,
     filter_by_peer_min,
     is_delay_satisfied,
+    is_usable_rs_key,
     make_rs_key,
     peer_first_seen_key,
     query_disk_rw_ok,
@@ -298,6 +299,7 @@ def _aggregate_by_ip(
         rs_key = _rs_key_for_storage(storage, summary)
         if rs_key:
             cand.rs_keys.add(rs_key)
+            cand.names_by_rs.setdefault(rs_key, set()).add(name)
             # 回填 summary，避免后续仍用空维度 rs_key
             if not summary.cluster_domain:
                 summary.cluster_domain = cluster.immute_domain
@@ -322,9 +324,18 @@ def _active_core_names_by_rs() -> Dict[str, Set[str]]:
         ports = core.ports or []
         names = {f"{core.ip}:{port}" for port in ports} if ports else {f"{core.ip}:0"}
         rs_keys: List[str] = []
+        names_by_rs: Dict[str, Set[str]] = defaultdict(set)
         for fm in core.fault_machines or []:
-            if isinstance(fm, dict):
-                rs_keys.extend(fm.get("rs_keys") or [])
+            if not isinstance(fm, dict):
+                continue
+            rs_keys.extend(fm.get("rs_keys") or [])
+            for rs_key, member_names in (fm.get("names_by_rs") or {}).items():
+                names_by_rs[rs_key].update(member_names or [])
+        if names_by_rs:
+            for rs_key, member_names in names_by_rs.items():
+                if is_usable_rs_key(rs_key):
+                    result[rs_key].update(member_names)
+            continue
         if not rs_keys:
             if core.cluster_type == ClusterType.MongoReplicaSet.value:
                 cluster = Cluster.objects.filter(id=core.cluster_id).only("immute_domain", "name").first()
@@ -333,8 +344,13 @@ def _active_core_names_by_rs() -> Dict[str, Set[str]]:
                 rs_keys = [make_rs_key(domain, group)]
             else:
                 rs_keys = [make_rs_key(core.immute_domain, f"host:{core.ip}")]
-        for rs_key in rs_keys:
-            result[rs_key].update(names)
+        usable_keys = [rs_key for rs_key in rs_keys if is_usable_rs_key(rs_key)]
+        if len(usable_keys) == 1:
+            result[usable_keys[0]].update(names)
+        else:
+            # 旧数据没有成员映射。一台机器组上的多个端口分属不同副本集，每组只计这一台机器一次。
+            for rs_key in usable_keys:
+                result[rs_key].add(core.ip)
     return result
 
 
@@ -361,6 +377,7 @@ def _create_core_for_candidate(cand: HostCandidate) -> Optional[MongoAutofixCore
             "roles": roles,
             "machine_type": primary.machine_type,
             "rs_keys": sorted(cand.rs_keys),
+            "names_by_rs": {rs_key: sorted(members) for rs_key, members in (cand.names_by_rs or {}).items()},
         }
     ]
 

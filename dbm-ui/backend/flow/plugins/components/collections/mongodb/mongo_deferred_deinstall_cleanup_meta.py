@@ -34,8 +34,16 @@ class MongoDeferredDeinstallCleanupMeta(BaseService):
         ip = kwargs["ip"]
         bk_cloud_id = kwargs["bk_cloud_id"]
         machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+        recycle = kwargs.get("recycle_host") or {}
         if not machine:
-            self.log_info("machine already gone ip={} bk_cloud_id={}, cleanup noop".format(ip, bk_cloud_id))
+            if recycle.get("bk_host_id"):
+                cc_manage = CcManage(recycle.get("bk_biz_id"), recycle.get("cluster_type") or "")
+                self.log_info(
+                    "deferred deinstall recycle detached host ip={} bk_host_id={}".format(ip, recycle["bk_host_id"])
+                )
+                cc_manage.recycle_host([recycle["bk_host_id"]])
+            else:
+                self.log_info("machine already gone ip={} bk_cloud_id={}, cleanup noop".format(ip, bk_cloud_id))
             return True
 
         if (

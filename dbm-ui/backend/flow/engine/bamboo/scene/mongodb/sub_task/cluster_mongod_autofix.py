@@ -25,8 +25,9 @@ def mongod_autofix(
     info: dict,
 ) -> SubBuilder:
     """
-    mongod 自愈叶子：统一走 mongod_replace 的 sourceDown 切主 + 叶子内创下架单。
+    mongod 自愈叶子：统一走 mongod_replace 的 sourceDown 切主。
 
+    延迟下架单由 shard_autofix 在 CMR 之后创建，避免摘 meta 早于换 meta。
     get_conf / cache&oplog / key_file 等由 mongod_replace 在 cluster_role 路径内补齐。
     """
     return mongod_replace(
@@ -37,5 +38,6 @@ def mongod_autofix(
         info=info,
         mongod_scale=False,
         cutover_mode=CUTOVER_REPLACE_WITH_SOURCE_DOWN,
-        emit_deinstall_ticket=True,
+        # down 的延迟下架单改到 CMR 之后；活机实例下架仍在叶子里、换 meta 之前。
+        emit_deinstall_ticket=not info.get("down"),
     )

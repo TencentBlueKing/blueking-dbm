@@ -27,10 +27,18 @@ class MongoDeferredDeinstallCheckMeta(BaseService):
         kwargs = data.get_one_of_inputs("kwargs") or {}
         ip = kwargs["ip"]
         bk_cloud_id = kwargs["bk_cloud_id"]
+        force_physical = bool(kwargs.get("force_physical"))
         exists = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).exists()
-        data.outputs.machine_exists = 1 if exists else 0
+        # 建延迟下架单前已删 Machine。force_physical 仍要走物理卸载，不能因为 meta 没了就跳过。
+        data.outputs.machine_exists = 1 if exists or force_physical else 0
         if exists:
             self.log_info("machine still in meta ip={} bk_cloud_id={}".format(ip, bk_cloud_id))
+        elif force_physical:
+            self.log_info(
+                "machine meta already detached ip={} bk_cloud_id={}, continue physical uninstall".format(
+                    ip, bk_cloud_id
+                )
+            )
         else:
             self.log_info(
                 "machine already gone from meta ip={} bk_cloud_id={}, skip deferred deinstall".format(ip, bk_cloud_id)

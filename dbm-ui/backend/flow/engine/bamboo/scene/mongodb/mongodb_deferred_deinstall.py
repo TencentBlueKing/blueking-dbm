@@ -94,7 +94,11 @@ def _build_reachable_deinstall_sub(root_id: str, ticket_data: dict, get_kwargs: 
     sub.add_act(
         act_name=_("MongoDB-清理残留Machine-{}".format(info["ip"])),
         act_component_code=MongoDeferredDeinstallCleanupMetaComponent.code,
-        kwargs={"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]},
+        kwargs={
+            "ip": info["ip"],
+            "bk_cloud_id": info["bk_cloud_id"],
+            "recycle_host": info.get("recycle_host") or {},
+        },
     )
     return sub
 
@@ -121,7 +125,11 @@ class MongoDeferredDeInstallFlow(object):
             check_act = sub.add_act(
                 act_name=_("MongoDB-确认meta仍有主机-{}".format(info["ip"])),
                 act_component_code=MongoDeferredDeinstallCheckMetaComponent.code,
-                kwargs={"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]},
+                kwargs={
+                    "ip": info["ip"],
+                    "bk_cloud_id": info["bk_cloud_id"],
+                    "force_physical": bool(info.get("force_physical")),
+                },
                 extend=False,
             )
 

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 from copy import deepcopy
 from typing import Dict, Optional
 
@@ -16,7 +17,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
-from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
@@ -24,12 +25,18 @@ from backend.flow.plugins.components.collections.mongodb.deferred_deinstall_tick
     ExecDeferredDeInstallTicketOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import (
+    MongoReplaceLiveUnavailableComponent,
+    MongoReplaceProbeDownComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 
 from .mongod_replace import CUTOVER_REPLACE_WITH_SOURCE_DOWN, mongod_replace
+
+logger = logging.getLogger("flow")
 
 
 def _build_deferred_deinstall_infos(info: dict, old_instances: list, instance_type: str) -> list:
@@ -85,13 +92,99 @@ def _fill_instance_roles_from_meta(info: dict, cluster_role: str) -> list:
     return instances
 
 
+def _replace_host(info: dict, cluster_role: str):
+    if not cluster_role:
+        hosts = info.get("mongodb") or []
+        return hosts[0] if hosts else None
+    return info if isinstance(info, dict) and info.get("ip") else None
+
+
+def _old_host_instances(info: dict, cluster_role: str):
+    old_hosts = [{"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]}]
+    old_instances = []
+    for instance in info.get("instances") or []:
+        set_id = (
+            (instance.get("seg_range") or instance.get("cluster_name") or "")
+            if cluster_role
+            else (instance.get("cluster_name") or "")
+        )
+        old_instances.append(
+            {
+                "ip": info["ip"],
+                "bk_cloud_id": info["bk_cloud_id"],
+                "port": instance["port"],
+                "set_id": set_id,
+            }
+        )
+    return old_hosts, old_instances
+
+
+def _live_replace_unavailable(root_id: str, ticket_data: Optional[Dict], ip: str, message: str):
+    sub = SubBuilder(root_id=root_id, data=ticket_data)
+    sub.add_act(
+        act_name=_("MongoDB-活机替换无法编排-{}".format(ip)),
+        act_component_code=MongoReplaceLiveUnavailableComponent.code,
+        kwargs={"message": message},
+    )
+    return sub.build_sub_process(sub_name=_("MongoDB-活机替换不可用-{}".format(ip)))
+
+
 def replicaset_replace(
-    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, info: dict, cluster_role: str
+    root_id: str,
+    ticket_data: Optional[Dict],
+    sub_kwargs: ActKwargs,
+    info: dict,
+    cluster_role: str,
+    probed: bool = False,
 ) -> SubBuilder:
     """
     replicaset 替换流程
     info 表示replicaset信息
+
+    尚未标记故障的机器先走独立探测节点，再按 replace_down 进入故障路径或活机路径。
     """
+    host = _replace_host(info, cluster_role)
+    if not probed and host and not host.get("down"):
+        probe_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+        probe_act = probe_pipeline.add_act(
+            act_name=_("MongoDB-探测故障机-{}".format(host["ip"])),
+            act_component_code=MongoReplaceProbeDownComponent.code,
+            kwargs={"ip": host["ip"], "bk_cloud_id": host.get("bk_cloud_id") or 0},
+            extend=False,
+        )
+        down_info = deepcopy(info)
+        down_host = _replace_host(down_info, cluster_role)
+        down_host["down"] = True
+        down_sub = replicaset_replace(
+            root_id=root_id,
+            ticket_data=ticket_data,
+            sub_kwargs=sub_kwargs,
+            info=down_info,
+            cluster_role=cluster_role,
+            probed=True,
+        )
+        try:
+            live_sub = replicaset_replace(
+                root_id=root_id,
+                ticket_data=ticket_data,
+                sub_kwargs=sub_kwargs,
+                info=deepcopy(info),
+                cluster_role=cluster_role,
+                probed=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("build live replace fail ip=%s", host.get("ip"))
+            live_sub = _live_replace_unavailable(root_id, ticket_data, host.get("ip") or "", str(exc))
+        probe_pipeline.add_conditional_subs(
+            source_act=probe_act,
+            conditions=[
+                Conditions(act_object=down_sub, express="==1"),
+                Conditions(act_object=live_sub, express="==0"),
+            ],
+            name=_("判断是否按故障机替换"),
+            conditions_param="replace_down",
+        )
+        return probe_pipeline.build_sub_process(sub_name=_("MongoDB-探测后替换-{}".format(host["ip"])))
 
     # 获取变量
     sub_get_kwargs = deepcopy(sub_kwargs)
@@ -192,34 +285,33 @@ def replicaset_replace(
             allow_empty_instance=True,
         )
 
-        # 下架：故障机 down=True 出延迟下架单；否则内联卸载
-        old_hosts, old_instances = sub_get_kwargs.get_old_host_replace(
-            info=info, cluster_type=ClusterType.MongoReplicaSet.value
+    # 下架：故障机 down=True 出延迟下架单；否则内联卸载。
+    # 放在单次探活对应的分支内，确保与上面 CMR 的 defer_deinstall 完全一致。
+    old_hosts, old_instances = _old_host_instances(info=info, cluster_role=cluster_role)
+    if info.get("down"):
+        defer_infos = _build_deferred_deinstall_infos(
+            info=info, old_instances=old_instances, instance_type=MongoDBInstanceType.MongoD.value
         )
-        if info.get("down"):
-            defer_infos = _build_deferred_deinstall_infos(
-                info=info, old_instances=old_instances, instance_type=MongoDBInstanceType.MongoD.value
-            )
-            kwargs = {
-                "infos": defer_infos,
-                "creator": sub_get_kwargs.payload["created_by"],
-                "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
-                "parent_ticket_id": ticket_data.get("uid"),
-            }
-            sub_pipeline.add_act(
-                act_name=_("MongoDB-延迟下架单据"),
-                act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
-                kwargs=kwargs,
-            )
-        else:
-            sub_sub_pipeline = multi_instance_deinstall(
-                root_id=root_id,
-                ticket_data=ticket_data,
-                sub_kwargs=sub_get_kwargs,
-                old_hosts=old_hosts,
-                old_instances=old_instances,
-                instance_type=MongoDBInstanceType.MongoD.value,
-            )
-            sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
+        kwargs = {
+            "infos": defer_infos,
+            "creator": sub_get_kwargs.payload["created_by"],
+            "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
+            "parent_ticket_id": ticket_data.get("uid") if ticket_data else None,
+        }
+        sub_pipeline.add_act(
+            act_name=_("MongoDB-延迟下架单据"),
+            act_component_code=ExecDeferredDeInstallTicketOperationComponent.code,
+            kwargs=kwargs,
+        )
+    else:
+        sub_sub_pipeline = multi_instance_deinstall(
+            root_id=root_id,
+            ticket_data=ticket_data,
+            sub_kwargs=sub_get_kwargs,
+            old_hosts=old_hosts,
+            old_instances=old_instances,
+            instance_type=MongoDBInstanceType.MongoD.value,
+        )
+        sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}整机替换--ip:{}".format(name, info["ip"])))

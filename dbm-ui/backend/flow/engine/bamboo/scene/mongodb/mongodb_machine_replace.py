@@ -96,7 +96,7 @@ class MongoMachineReplaceFlow(object):
         return isinstance(infos, dict) and ClusterType.MongoShardedCluster.value in infos
 
     def multi_host_replace_flow(self):
-        """统一换机入口。"""
+        """统一换机入口。故障机探测在替换子流程前的独立节点里做。"""
         if self._is_shard_autofix_payload():
             self._run_shard_autofix_orchestrator()
             return
