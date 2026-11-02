@@ -8,7 +8,7 @@
         module-id="mysql">
         <DbSubmenu
           id="MysqlManage"
-          icon="cluster"
+          icon="zhucong"
           :title="t('主从')">
           <template #append>
             <CountTag
@@ -40,7 +40,7 @@
         module-id="mysql">
         <DbMenuItem
           v-db-console="'mysql.singleClusterList'"
-          icon="node"
+          icon="danjiedi-2"
           route-name="tendbsingle">
           {{ t('单节点') }}
           <template #append>
@@ -59,7 +59,7 @@
       <DbSubmenu
         id="database-permission"
         v-db-console="'mysql.permissionManage'"
-        icon="history"
+        icon="quanxianguanli"
         :title="t('权限管理')">
         <DbMenuItem route-name="PermissionRules">
           {{ t('授权规则') }}
@@ -76,7 +76,7 @@
         module-id="mysql">
         <DbMenuItem
           v-db-console="'mysql.dataSubscription'"
-          icon="mobanshili"
+          icon="shujudingyue"
           route-name="DumperDataSubscription">
           {{ t('数据订阅') }}
         </DbMenuItem>

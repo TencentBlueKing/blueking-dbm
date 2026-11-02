@@ -7,7 +7,7 @@
         controller-id="replicaSetList"
         module-id="mongodb">
         <DbSubmenu
-          icon="cluster"
+          icon="fubenjiqun"
           :title="t('副本集群')">
           <template #append>
             <CountTag
@@ -38,7 +38,7 @@
         controller-id="sharedClusterList"
         module-id="mongodb">
         <DbSubmenu
-          icon="history"
+          icon="fenpianjiqun-2"
           :title="t('分片集群')">
           <template #append>
             <CountTag
@@ -68,7 +68,7 @@
       <DbSubmenu
         id="mongodb-permission"
         v-db-console="'mongodb.permissionManage'"
-        icon="history"
+        icon="quanxianguanli"
         :title="t('权限管理')">
         <DbMenuItem route-name="MongodbPermission">
           {{ t('授权规则') }}

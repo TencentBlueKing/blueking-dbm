@@ -30,7 +30,7 @@
           </template>
         </DbMenuItem>
         <DbMenuItem
-          icon="node"
+          icon="danjiedi-2"
           route-name="VictoriametricsSelectList">
           {{ t('查询集群') }}
           <template #append>

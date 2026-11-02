@@ -169,7 +169,7 @@
         },
         {
           controllerId: 'tendbcluster',
-          icon: 'mysql',
+          icon: 'tendbcluster',
           id: TicketTypes.TENDBCLUSTER_APPLY,
           name: t('TendbCluster分布式集群部署'),
         },

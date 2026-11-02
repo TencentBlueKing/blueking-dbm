@@ -39,7 +39,7 @@
         controller-id="oracle_single_none"
         module-id="oracle">
         <DbMenuItem
-          icon="node"
+          icon="danjiedi-2"
           route-name="OracleSingleClusterList">
           {{ t('单节点') }}
           <template #append>

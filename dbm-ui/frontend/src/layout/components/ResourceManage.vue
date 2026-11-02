@@ -27,7 +27,7 @@
       </DbMenuItem>
       <DbMenuItem
         v-db-console="'resourceManage.allHost'"
-        icon="list"
+        icon="suoyouzhuji"
         route-name="allHost">
         {{ t('所有主机') }}
       </DbMenuItem>
@@ -47,7 +47,7 @@
     <DbMenuGroup :name="t('其他')">
       <DbMenuItem
         v-db-console="'resourceManage.resourceOperationRecord'"
-        icon="list"
+        icon="history"
         route-name="resourcePoolOperationRecord">
         {{ t('资源操作记录') }}
       </DbMenuItem>
