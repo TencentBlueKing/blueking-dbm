@@ -60,6 +60,44 @@ volumes:
 {{- end }}
 {{- end -}}
 
+{{/*
+云区域组件（db-dns、db-dbha、db-nginx、db-remote-service）专用：
+启动脚本调用 bk-dbm-kms 工具解密，信封按目录挂载，与 go-pubpkg/kms.LoadEnvelope 的约定一致
+*/}}
+{{- define "bk-dbm.kms.cloudEnvs" -}}
+{{- if include "bk-dbm.kms.enabled" . }}
+- name: ENABLE_KMS
+  value: "true"
+- name: BK_DBM_KMS_CREDENTIAL_DIR
+  value: /etc/secrets/cloud-kms
+- name: BK_DBM_KMS_PRIVATE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "bk-dbm.kms.secretName" . }}
+      key: privateKey
+{{- end }}
+{{- end -}}
+
+{{- define "bk-dbm.kms.cloudVolumeMounts" -}}
+{{- if include "bk-dbm.kms.enabled" . }}
+- name: kms-credentials
+  mountPath: /etc/secrets/cloud-kms
+  readOnly: true
+{{- end }}
+{{- end -}}
+
+{{- define "bk-dbm.kms.cloudVolumes" -}}
+{{- if include "bk-dbm.kms.enabled" . }}
+- name: kms-credentials
+  secret:
+    secretName: {{ include "bk-dbm.kms.secretName" . }}
+    defaultMode: 0400
+    items:
+      - key: envelope
+        path: envelope
+{{- end }}
+{{- end -}}
+
 {{/* 渲染期校验，仅在开启 KMS 时执行 */}}
 {{- define "bk-dbm.kms.validate" -}}
 {{- if include "bk-dbm.kms.enabled" . -}}
