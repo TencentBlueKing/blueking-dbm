@@ -69,7 +69,7 @@ type DbhaDataStatus struct {
 	BkCloudID       int                                `gorm:"column:bk_cloud_id;primaryKey"`
 	DbIp            string                             `gorm:"column:db_ip;primaryKey"`
 	DbPort          int                                `gorm:"column:db_port;primaryKey"`
-	HarvestType     haprobe.HarvestType                `gorm:"column:harvest_type;primaryKey;type:varchar(32);not null"`
+	HarvestType     haprobe.HarvestType                `gorm:"column:harvest_type;primaryKey;type:varchar(32);not null;default:default" migrate:"emptyAsDefault"`
 	SequenceID      uint64                             `gorm:"column:sequence_id"`
 	AgentID         string                             `gorm:"column:agent_id"`
 	IPs             JSON[[]string]                     `gorm:"column:ips;type:json"`
@@ -90,6 +90,16 @@ type DbhaDataStatus struct {
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
 	DeletedAt time.Time `gorm:"column:deleted_at"`
+}
+
+// MigrateKnownPKs returns historical primary keys that schema migration may replace.
+func (DbhaDataStatus) MigrateKnownPKs() [][]string {
+	return [][]string{{
+		DbhaStatusFieldMachineID,
+		DbhaStatusFieldBkCloudID,
+		DbhaStatusFieldDbIp,
+		DbhaStatusFieldDbPort,
+	}}
 }
 
 // NewDbhaData creates a new DbhaDataStatus

@@ -7,6 +7,7 @@
 | 文档 | 说明 |
 | --- | --- |
 | [架构总览](architecture/overview.md) | 组件职责、部署拓扑、外部依赖、端到端数据流 |
+| [migrator 设计](architecture/migrator-design.md) | schema 与 data 的维护规则、收敛判定和账本语义 |
 
 ## 2. 工作流程
 
