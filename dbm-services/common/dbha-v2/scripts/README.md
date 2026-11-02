@@ -19,6 +19,7 @@
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
 - `probe-sandbox-full.sh`: 本地 mock 全链路（gen-config → 采集 → 上报），见 [probe-sandbox-mock README](../tools/cmd/probe-sandbox-mock/README.md)
+- `migrate-mysql-smoke.sh`: 对两个环回 MySQL（默认 `127.0.0.1:13306` / `13307`）跑 `admin migrate` 全参数冒烟；需设置 `DBHA_TEST_MYSQL_PASSWORD`，目标实例上已有 `dbha_data` 时拒绝执行，只清理自己创建的库
 
 ## compare_probe_config.py
 
