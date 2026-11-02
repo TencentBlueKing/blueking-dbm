@@ -43,6 +43,7 @@ from backend.db_meta.enums.cluster_status import (
     ClusterRedisStatusFlags,
     ClusterSqlserverStatusFlags,
 )
+from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_meta.models.tag import Tag
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
@@ -53,8 +54,41 @@ from backend.ticket.models import ClusterOperateRecord
 
 logger = logging.getLogger("root")
 
+# 演练源集群要排除的内置集群标签。replenish 是资源标签，不在这里。
+BUILTIN_CLUSTER_TAG_KEYS = (
+    SystemTagEnum.TEMPORARY.value,
+    SystemTagEnum.EXERCISE.value,
+)
+
+
+class ClusterQuerySet(models.QuerySet):
+    def _builtin_tagged_cluster_ids(self, tag_keys):
+        # 先取标签主键，再查中间表的 cluster_id。集群扫描不再 join 标签表。
+        tag_ids = Tag.objects.filter(
+            key__in=tag_keys,
+            is_builtin=True,
+            type=TagType.CLUSTER,
+        ).values("id")
+        return self.model.tags.through.objects.filter(tag_id__in=tag_ids).values("cluster_id")
+
+    def filter_builtin_cluster_tags(self, tag_keys=None):
+        """只保留带指定内置集群标签的集群。默认是 temporary 和 exercise。"""
+        keys = BUILTIN_CLUSTER_TAG_KEYS if tag_keys is None else tuple(tag_keys)
+        if not keys:
+            return self.none()
+        return self.filter(id__in=self._builtin_tagged_cluster_ids(keys))
+
+    def exclude_builtin_cluster_tags(self, tag_keys=None):
+        """排除带指定内置集群标签的集群。默认是 temporary 和 exercise。"""
+        keys = BUILTIN_CLUSTER_TAG_KEYS if tag_keys is None else tuple(tag_keys)
+        if not keys:
+            return self
+        return self.exclude(id__in=self._builtin_tagged_cluster_ids(keys))
+
 
 class Cluster(AuditedModel):
+    objects = ClusterQuerySet.as_manager()
+
     name = models.CharField(max_length=64, default="", help_text=_("集群英文名"))
     alias = models.CharField(max_length=64, default="", help_text=_("集群别名"))
     bk_biz_id = models.IntegerField(default=0)

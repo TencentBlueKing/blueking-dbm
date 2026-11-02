@@ -153,6 +153,7 @@ class MySQLSingleApplyFlow(object):
         skip_add_domain: bool = False,
         skip_install_bk_plugin: bool = False,
         with_probe: bool = True,
+        builtin_cluster_tags: tuple = (),
     ) -> SubBuilder:
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
@@ -270,6 +271,7 @@ class MySQLSingleApplyFlow(object):
                         db_meta_class_func=MySQLDBMeta.mysql_single_apply.__name__,
                         cluster={"new_ip": info["new_ip"]["ip"]},
                         is_update_trans_data=True,
+                        component_kwargs={"builtin_cluster_tags": list(builtin_cluster_tags)},
                     )
                 ),
             )

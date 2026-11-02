@@ -43,5 +43,10 @@ class TagType(StrStructuredEnum):
 class SystemTagEnum(StrStructuredEnum):
     """系统内置的tag名称"""
 
+    # 集群内置标签。TenDBCluster 定点回档、Mongo 回档建出的临时集群打上它。
+    # 用来补临时集群的来源信息、筛出定点回档临时集群，并限制销毁单据只能打在这类集群上。
     TEMPORARY = EnumField("temporary", _("临时集群"))
+    # 集群内置标签。MySQL 备份恢复演练建出的 TenDBSingle 打上它。
+    # 用来标明这台集群是演练产物。演练结束删掉集群时，这枚标签的关联一起消失。
+    EXERCISE = EnumField("exercise", _("演练集群"))
     REPLENISH = EnumField("replenish", _("可补货"))
