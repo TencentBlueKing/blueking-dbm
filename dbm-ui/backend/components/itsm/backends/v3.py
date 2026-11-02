@@ -9,6 +9,9 @@ class ItsmV3Backend(BaseItsmBackend):
 
     version = "v3"
 
+    def verify_token(self, params, *args, **kwargs):
+        return ItsmApi.verify_token(params, *args, **kwargs)
+
     def create_ticket(self, params, *args, **kwargs):
         """创建 ITSM V3 单据。"""
         return ItsmApi.create_ticket(params, *args, **kwargs)
