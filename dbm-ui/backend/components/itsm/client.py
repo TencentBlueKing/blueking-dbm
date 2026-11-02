@@ -24,6 +24,11 @@ class _ItsmApi(BaseApi):
     BASE = ITSM_APIGW_DOMAIN
 
     def __init__(self):
+        self.verify_token = self.generate_data_api(
+            method="POST",
+            url="token/verify/",
+            description=_("验证 ITSM 回调 token"),
+        )
         self.create_ticket = self.generate_data_api(
             method="POST",
             url="create_ticket/",

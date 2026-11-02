@@ -19,6 +19,11 @@ class ItsmApiMock(object):
     """
 
     base_info = {"message": "success", "code": 0, "result": "true", "request_id": "0"}
+    callback_token = "test-itsm-callback-token"
+
+    @classmethod
+    def verify_token(cls, params, *args, **kwargs):
+        return {"is_passed": params.get("token") == cls.callback_token}
 
     @classmethod
     def get_service_catalogs(cls, *args, **kwargs):
