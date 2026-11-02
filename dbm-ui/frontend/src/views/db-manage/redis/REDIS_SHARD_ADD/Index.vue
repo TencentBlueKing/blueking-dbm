@@ -132,7 +132,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
   import GroupNumColumn from './components/GroupNumColumn.vue';
@@ -264,10 +264,17 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
 
+  // 离开确认被取消时选项还原为当前页面
   const handleClusterTypeChange = () => {
-    router.push({
-      name: TicketTypes.REDIS_SHARD_REDUCE,
-    });
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: TicketTypes.REDIS_SHARD_REDUCE,
+        }),
+      () => {
+        formData.ticket_type = TicketTypes.REDIS_SHARD_ADD;
+      },
+    );
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {

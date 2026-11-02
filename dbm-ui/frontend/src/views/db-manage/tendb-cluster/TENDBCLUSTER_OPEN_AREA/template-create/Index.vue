@@ -82,7 +82,7 @@
 
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
 
-  import { useBeforeClose } from '@hooks';
+  import { useBeforeClose, useMarkChanged } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -95,6 +95,9 @@
   type CreateOpenareaParams = ServiceParameters<typeof createOpenarea>;
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
   const router = useRouter();
   const route = useRoute();
   const handleBeforeClose = useBeforeClose();
@@ -141,7 +144,7 @@
   watch(
     formData,
     () => {
-      window.changeConfirm = true;
+      markChanged();
       formDataChanged.value = true;
     },
     {

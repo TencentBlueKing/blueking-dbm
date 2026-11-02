@@ -112,7 +112,7 @@
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 
-  import { useDebouncedRef } from '@hooks';
+  import { useDebouncedRef, useMarkChanged } from '@hooks';
 
   import { encodeMult, encodeRegexp } from '@utils';
 
@@ -167,10 +167,13 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineSlots<Slots>();
   const modelValue = defineModel<string>({
     default: '',
   });
-  defineSlots<Slots>();
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   let selectorInstance: Instance;
 
@@ -215,7 +218,7 @@
     (value) => {
       if (localValue.value !== value) {
         localValue.value = value;
-        window.changeConfirm = true;
+        markChanged();
       }
       if (value) {
         setTimeout(() => {
@@ -292,7 +295,7 @@
       return;
     }
     validator(localValue.value).then(() => {
-      window.changeConfirm = true;
+      markChanged();
       emits('submit', localValue.value);
     });
   };
@@ -313,7 +316,7 @@
         validator(localValue.value).then((result) => {
           if (result) {
             isFocused.value = false;
-            window.changeConfirm = true;
+            markChanged();
             emits('submit', localValue.value);
           }
         });
@@ -348,7 +351,7 @@
     selectorInstance.hide();
     modelValue.value = localValue.value;
     emits('change', localValue.value);
-    window.changeConfirm = true;
+    markChanged();
   };
 
   // 删除值
@@ -356,7 +359,7 @@
     localValue.value = '';
     currentSelectItem.value = undefined;
     validator(localValue.value).then(() => {
-      window.changeConfirm = true;
+      markChanged();
       modelValue.value = localValue.value;
       emits('change', localValue.value);
     });

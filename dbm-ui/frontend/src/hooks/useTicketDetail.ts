@@ -17,11 +17,9 @@ import type { DetailBase } from '@services/model/ticket/details/common';
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketDetails } from '@services/source/ticket';
 
+import { useMarkChanged } from '@hooks';
+
 import { TicketTypes } from '@common/const';
-
-import { messageError } from '@utils';
-
-import { t } from '@locales/index';
 
 export function useTicketDetail<T extends DetailBase>(
   ticketType: TicketTypes,
@@ -31,6 +29,8 @@ export function useTicketDetail<T extends DetailBase>(
 ) {
   const route = useRoute();
   const { ticketId } = route.query;
+  // 克隆单回填后内容视为已编辑；在弹层内时记到弹层，页面上时记到页面状态
+  const markChanged = useMarkChanged();
 
   if (!ticketId) {
     return;
@@ -51,7 +51,7 @@ export function useTicketDetail<T extends DetailBase>(
           return;
         }
         options.onSuccess(ticketData as TicketModel<T>);
-        window.changeConfirm = true;
+        markChanged();
       },
     },
   );

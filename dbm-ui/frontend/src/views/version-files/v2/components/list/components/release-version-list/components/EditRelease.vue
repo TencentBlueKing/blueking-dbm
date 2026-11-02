@@ -25,7 +25,7 @@
       </div>
     </template>
     <div class="content-main">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="mt-14"
         form-type="vertical"
@@ -66,7 +66,7 @@
               :value="item.value" />
           </DbSelect>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div class="operate-main">
         <BkButton
           class="operate-button"

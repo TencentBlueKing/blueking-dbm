@@ -4,7 +4,7 @@
       <DbCard
         mode="collapse"
         :title="t('单据协助')">
-        <BkForm
+        <DbForm
           ref="formRef"
           :model="formModel">
           <BkFormItem :label="t('单据协助')">
@@ -21,7 +21,7 @@
             required>
             <MemberSelector v-model="formModel.members" />
           </BkFormItem>
-        </BkForm>
+        </DbForm>
       </DbCard>
       <template #action>
         <AuthButton

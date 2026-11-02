@@ -21,7 +21,9 @@
         {{ data.tagText }}
       </DbTag>
     </div>
-    <BkForm form-type="vertical">
+    <DbForm
+      form-type="vertical"
+      :model="formModel">
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
@@ -36,7 +38,7 @@
           :db-type="dbType">
         </ResourceHostSelect>
       </BkFormItem>
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="tsx">
@@ -65,6 +67,13 @@
   const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
     required: true,
   });
+
+  // 交给 DbForm 判断用户是否修改过（离开确认）
+  const formModel = computed(() => ({
+    expansionDisk: expansionDisk.value,
+    hostList: hostList.value,
+    resourceSpec: resourceSpec.value,
+  }));
 </script>
 <style lang="less">
   .big-data-cluster-expansion-machine-box {

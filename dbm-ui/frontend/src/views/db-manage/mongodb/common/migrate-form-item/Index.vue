@@ -4,15 +4,15 @@
     property="architectureType"
     required>
     <CardCheckbox
-      v-model="modelValue"
       :desc-list="[t('功能说明：将指定副本集迁移至一组新机器'), t('应用场景：减少机器数量，节省成本时使用')]"
       icon="fubenji"
+      :model-value="modelValue"
       style="width: 460px"
       :title="t('副本集迁移')"
-      :true-value="TicketTypes.MONGODB_REPLICASET_MIGRATE">
+      :true-value="TicketTypes.MONGODB_REPLICASET_MIGRATE"
+      @update:model-value="handleChange">
     </CardCheckbox>
     <CardCheckbox
-      v-model="modelValue"
       class="ml-8"
       :desc="t('支持部分或整机所有实例成对迁移至新主机，版本规格可变')"
       :desc-list="[
@@ -20,9 +20,11 @@
         t('使用场景：调整分片分布，均衡机器负载时使用'),
       ]"
       icon="fenpianjiqun"
+      :model-value="modelValue"
       style="width: 460px"
       :title="t('分片集群迁移')"
-      :true-value="TicketTypes.MONGODB_SHARD_MIGRATE">
+      :true-value="TicketTypes.MONGODB_SHARD_MIGRATE"
+      @update:model-value="handleChange">
     </CardCheckbox>
   </BkFormItem>
 </template>
@@ -40,9 +42,13 @@
   const { t } = useI18n();
   const router = useRouter();
 
-  watch(modelValue, () => {
+  /**
+   * 两种架构是两个页面：选项不改本页数据，直接跳转，有未保存修改时由路由守卫确认，取消离开则选项保持不变。
+   * 不能先改选项再跳：本组件在页面 DbForm 内，DbForm 先于本组件的 watch 把选项变化记为修改，取不到切换前的状态
+   */
+  const handleChange = (value: boolean | string) => {
     router.push({
-      name: modelValue.value,
+      name: value as string,
     });
-  });
+  };
 </script>

@@ -35,7 +35,7 @@
           </BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
-      <Component :is="comMap[flashbackType]" />
+      <Component :is="comMap[renderType]" />
     </BkForm>
   </div>
 </template>
@@ -50,6 +50,8 @@
   import { TicketTypes } from '@common/const';
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
+
+  import { leaveConfirm, switchSiblingRoute } from '@utils';
 
   import RECORD_FLASHBACK from './RECORD_FLASHBACK/Index.vue';
   import TABLE_FLASHBACK from './TABLE_FLASHBACK/Index.vue';
@@ -66,31 +68,48 @@
   const flashbackType = ref<'RECORD_FLASHBACK' | 'TABLE_FLASHBACK'>(
     (route.query.type as keyof typeof comMap) || 'TABLE_FLASHBACK',
   );
+  // 当前展示的闪回类型：选项随点击先变，确认可以离开后才切换内容
+  const renderType = ref(flashbackType.value);
 
   useTicketDetail<Mysql.FlashBack>(TicketTypes.MYSQL_FLASHBACK, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       flashbackType.value = details.flashback_type;
+      renderType.value = details.flashback_type;
     },
   });
 
+  // 选项还原为当前展示的类型（离开确认被取消、跳转失败时）
+  const rollbackFlashbackType = () => {
+    flashbackType.value = renderType.value;
+  };
+
   const handleFlashbackTypeChange = (type: string) => {
-    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
-      router.push({
-        name: TicketTypes.MYSQL_FLASHBACK,
-        query: {
-          type,
-        },
-      });
-    } else if (type === 'BUILD_INTO_NEW_CLUSTER') {
-      router.push({
-        name: TicketTypes.MYSQL_ROLLBACK_NEW_HOST,
-      });
-    } else if (type === 'ROLLBACK_FLASHBACK') {
-      router.push({
-        name: TicketTypes.MYSQL_ROLLBACK,
-      });
+    if (type === 'ROLLBACK_FLASHBACK') {
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name: TicketTypes.MYSQL_ROLLBACK,
+          }),
+        rollbackFlashbackType,
+      );
+      return;
     }
+    /**
+     * 库表闪回 / 记录级闪回是同一路由只改 query，路由守卫不拦截；切换会卸载当前闪回表单，
+     * 这里先做离开确认，确认后才切换展示内容，取消时选项还原、已填内容保留
+     */
+    leaveConfirm()
+      .then(() => {
+        renderType.value = type as keyof typeof comMap;
+        router.push({
+          name: TicketTypes.MYSQL_FLASHBACK,
+          query: {
+            type,
+          },
+        });
+      })
+      .catch(rollbackFlashbackType);
   };
 
   defineExpose({
