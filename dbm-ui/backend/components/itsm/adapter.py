@@ -54,6 +54,14 @@ class _ItsmApiAdapter:
         """创建 ITSM 单据。"""
         return self._backend().create_ticket(params, *args, **kwargs)
 
+    def verify_token(self, params, *args, **kwargs):
+        """验证 ITSM V3 回调 token，始终使用 V3 接口。"""
+        return self._backend(itsm_version=self.V3).verify_token(params, *args, **kwargs)
+
+    def verify_callback(self, ticket_id, sn, data):
+        """根据历史单据 sn 路由回调校验。"""
+        return self._backend({"sn": sn}).verify_callback(ticket_id, data)
+
     def ticket_approval_result(self, params, *args, **kwargs):
         """查询 ITSM 单据审批结果。"""
         return self._backend(params).ticket_approval_result(params, *args, **kwargs)
