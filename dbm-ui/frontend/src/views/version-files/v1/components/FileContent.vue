@@ -200,7 +200,7 @@
     theme="primary"
     :title="t('新增版本')"
     :width="480">
-    <BkForm
+    <DbForm
       ref="versionFormRef"
       class="create-new-version-dialog"
       form-type="vertical"
@@ -265,7 +265,7 @@
           @delete="handleDeleteFile"
           @success="handleUpdateSuccess" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton
         class="mr-8"
@@ -283,7 +283,7 @@
   </DbDialog>
 </template>
 <script setup lang="ts">
-  import { Form, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { UploadProgressEvent, UploadRequestOptions } from 'bkui-vue/lib/upload/upload.type';
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
@@ -299,6 +299,7 @@
   import { DBTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
+  import DbForm from '@components/db-form/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -327,7 +328,7 @@
   const tableMaxHeight = useTableMaxHeight(340);
 
   const uplodRef = ref();
-  const versionFormRef = ref<InstanceType<typeof Form>>();
+  const versionFormRef = ref<InstanceType<typeof DbForm>>();
 
   const state = reactive<IState>({
     active: '',

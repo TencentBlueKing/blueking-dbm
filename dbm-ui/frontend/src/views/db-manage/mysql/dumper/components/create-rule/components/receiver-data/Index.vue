@@ -208,6 +208,8 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
+  import { useMarkChanged } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
   import { domainPort } from '@common/regex';
 
@@ -247,6 +249,9 @@
   });
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   const tableRef = ref();
   const tableData = ref<IDataRow[]>([]);
@@ -441,7 +446,7 @@
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
-    window.changeConfirm = true;
+    markChanged();
   };
 
   // 检测列表是否为空

@@ -87,7 +87,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useDebouncedRef } from '@hooks';
+  import { useDebouncedRef, useMarkChanged } from '@hooks';
 
   import { encodeRegexp } from '@utils';
 
@@ -126,6 +126,9 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
 
   let tippyIns: Instance;
 
@@ -171,7 +174,7 @@
     tippyIns.hide();
 
     validator(localValue.value).then(() => {
-      window.changeConfirm = true;
+      markChanged();
       emits('update:modelValue', localValue.value);
       emits('change', localValue.value);
     });
@@ -180,7 +183,7 @@
   const handleRemove = () => {
     localValue.value = '';
     validator(localValue.value).then(() => {
-      window.changeConfirm = true;
+      markChanged();
       emits('update:modelValue', localValue.value);
       emits('change', localValue.value);
     });

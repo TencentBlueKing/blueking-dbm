@@ -132,6 +132,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import { useMarkChanged } from '@hooks';
+
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
   import SelectOriginalHost from './components/SelectOriginalHost.vue';
@@ -186,6 +188,9 @@
 
   const { t } = useI18n();
 
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
+
   const nodeTableData = shallowRef(props.data.hostList || []);
   const isShowHostDialog = ref(false);
 
@@ -210,7 +215,7 @@
       bk_host_id: item.bk_host_id,
       ip: item.ip,
     }));
-    window.changeConfirm = true;
+    markChanged();
     emits('change', [...nodeTableData.value]);
   };
 
@@ -227,7 +232,7 @@
     );
 
     nodeTableData.value = hostList;
-    window.changeConfirm = true;
+    markChanged();
     emits('change', hostList);
   };
 </script>

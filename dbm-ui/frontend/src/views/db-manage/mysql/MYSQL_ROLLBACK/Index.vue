@@ -20,8 +20,7 @@
         <BkRadioGroup
           v-model="formData.rollbackType"
           style="width: 450px"
-          type="card"
-          @change="handleFlashbackTypeChange">
+          type="card">
           <BkRadioButton label="BUILD_INTO_METACLUSTER">
             {{ t('构造回档') }}
           </BkRadioButton>
@@ -166,7 +165,7 @@
   import ConflictDbColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/conflict-db-column/Index.vue';
   import TimeBackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/time-backup-record-column/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   interface RowData {
     affectDb: string[];
@@ -331,20 +330,33 @@
     return false;
   };
 
-  const handleFlashbackTypeChange = (type: string) => {
-    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
-      router.push({
-        name: TicketTypes.MYSQL_FLASHBACK,
-        query: {
-          type,
-        },
-      });
-    } else if (type === 'ROLLBACK_FLASHBACK') {
-      router.push({
-        name: TicketTypes.MYSQL_ROLLBACK,
-      });
-    }
-  };
+  /**
+   * 切换回档类型：闪回类型跳到闪回页面，离开确认被取消时选项还原为变化前的值。
+   * 回填、重置、还原选项引起的变化不是闪回类型，不会跳转
+   */
+  watch(
+    () => formData.rollbackType,
+    (type, oldType) => {
+      if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
+        switchSiblingRoute(
+          () =>
+            router.push({
+              name: TicketTypes.MYSQL_FLASHBACK,
+              query: {
+                type,
+              },
+            }),
+          () => {
+            formData.rollbackType = oldType;
+          },
+        );
+      } else if (type === 'ROLLBACK_FLASHBACK') {
+        router.push({
+          name: TicketTypes.MYSQL_ROLLBACK,
+        });
+      }
+    },
+  );
 
   const handleChangeRowData = (row: RowData) => {
     if (isTicketLoaded) {

@@ -40,6 +40,8 @@
 <script setup lang="ts">
   import { ref, useAttrs } from 'vue';
 
+  import { useMarkChanged } from '@hooks';
+
   import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
@@ -69,6 +71,9 @@
 
   const emits = defineEmits<Emits>();
 
+  // 标记所在内容（弹层内或页面上）已编辑
+  const markChanged = useMarkChanged();
+
   const attrs = useAttrs();
 
   const localValue = ref(props.modelValue);
@@ -85,7 +90,7 @@
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
     validator(localValue.value).then(() => {
-      window.changeConfirm = true;
+      markChanged();
       emits('update:modelValue', localValue.value);
       emits('change', localValue.value);
     });

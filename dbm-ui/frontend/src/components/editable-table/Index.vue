@@ -74,7 +74,7 @@
 
   import { useEventBus } from '@hooks';
 
-  import { markPageChanged, popoverInjectKey } from '@utils';
+  import { markSourceChanged, popoverInjectKey, popoverShowInjectKey, releaseSourceChanged } from '@utils';
 
   import Column, { type IColumnElement, type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
@@ -164,8 +164,8 @@
 
   const isShowScrollX = ref(true);
   const isUserChange = ref(false);
-  // 离开确认是全局标志，只在本表格置过位时才由本表格复位，避免卸载时清掉页面其它表单的编辑状态
-  let isChangeConfirmOwner = false;
+  // 本表格在离开确认里的编辑来源：卸载时只撤销自己这一份，页面其它表单 / 表格的编辑状态不受影响
+  const changeSource = Symbol('editable-table');
   // 是否渲染在 DbSideslider / DbDialog 内
   const isInPopover = inject(popoverInjectKey, false);
 
@@ -207,12 +207,7 @@
     () => {
       if (isUserChange.value) {
         // 弹层内的修改由弹层管理；页面上的修改在弹层打开期间（如弹层提交后回填）也要记到页面状态上
-        if (isInPopover) {
-          window.changeConfirm = true;
-        } else {
-          markPageChanged();
-        }
-        isChangeConfirmOwner = true;
+        markSourceChanged(changeSource, isInPopover);
       }
       eventBus.emit('editable-table-model-change');
     },
@@ -228,6 +223,20 @@
     }
     isUserChange.value = true;
   };
+
+  /**
+   * 弹层内容不随关闭卸载时（render-directive 为 show），关闭时清掉本次的操作标记，下次打开时重置表格数据不算用户修改。
+   * 不放在打开时清：调用方打开时重置数据的 watch 先于弹层 props 更新执行，那时标记还没清
+   */
+  const popoverShow = inject(popoverShowInjectKey, undefined);
+  if (popoverShow) {
+    watch(popoverShow, (isShow) => {
+      if (!isShow) {
+        isUserChange.value = false;
+        releaseSourceChanged(changeSource);
+      }
+    });
+  }
 
   // 行的注册顺序不一定与 DOM 顺序一致，按 DOM 位置插入保证行序正确
   const registerRow = (rowColumnList: IColumnContext[], rowElement: HTMLElement) => {
@@ -399,9 +408,7 @@
     // 节流的末次调用会在卸载后访问已置空的 ref
     handleScrollX.cancel();
     handleContentScroll.cancel();
-    if (isChangeConfirmOwner) {
-      window.changeConfirm = false;
-    }
+    releaseSourceChanged(changeSource);
   });
 
   defineExpose<Expose>({

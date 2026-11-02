@@ -77,6 +77,8 @@
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
+  import { switchSiblingRoute } from '@utils';
+
   type Emits = (e: 'change', data: typeof modelValue.value) => void;
 
   const emits = defineEmits<Emits>();
@@ -91,35 +93,78 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  // 当前页面的角色类型，跳转被离开确认取消时还原
+  let currentRoleType = modelValue.value.roleType;
+  // 正在还原升级类型：还原触发的 watch 不再跳转
+  let isUpdateTypeRollback = false;
+
   const handleChange = (value: string) => {
+    const previousRoleType = currentRoleType;
+    currentRoleType = value;
+    // 离开确认被取消时选项还原为当前页面
+    const rollback = () => {
+      currentRoleType = previousRoleType;
+      modelValue.value.roleType = previousRoleType;
+    };
+
     if (value === TicketTypes.MYSQL_PROXY_UPGRADE) {
-      router.push({
-        name: TicketTypes.MYSQL_PROXY_UPGRADE,
-      });
-    } else {
-      router.push({
-        name: TicketTypes.MYSQL_LOCAL_UPGRADE,
-        query: {
-          roleType: value,
-        },
-      });
+      // 跳到另一个页面，不需要通知当前页面重置
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name: TicketTypes.MYSQL_PROXY_UPGRADE,
+          }),
+        rollback,
+      );
+      return;
     }
+
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: TicketTypes.MYSQL_LOCAL_UPGRADE,
+          query: {
+            roleType: value,
+          },
+        }),
+      rollback,
+    );
     emits('change', modelValue.value);
   };
 
+  /**
+   * 升级类型切换都是跳到另一个页面（原地升级 / 迁移升级），不通知当前页面重置：
+   * 原来先重置再跳转，离开确认被取消时当前页面数据已被清空
+   */
   watch(
     () => modelValue.value.updateType,
-    () => {
-      if (modelValue.value.updateType === TicketTypes.MYSQL_MIGRATE_UPGRADE) {
-        router.push({
-          name: TicketTypes.MYSQL_MIGRATE_UPGRADE,
-        });
-      } else {
-        router.push({
-          name: TicketTypes.MYSQL_LOCAL_UPGRADE,
-        });
+    (_, oldUpdateType) => {
+      if (isUpdateTypeRollback) {
+        isUpdateTypeRollback = false;
+        return;
       }
-      emits('change', modelValue.value);
+      // 离开确认被取消时选项还原为当前页面
+      const rollback = () => {
+        isUpdateTypeRollback = true;
+        modelValue.value.updateType = oldUpdateType;
+      };
+      if (modelValue.value.updateType === TicketTypes.MYSQL_MIGRATE_UPGRADE) {
+        switchSiblingRoute(
+          () =>
+            router.push({
+              name: TicketTypes.MYSQL_MIGRATE_UPGRADE,
+            }),
+          rollback,
+        );
+      } else {
+        switchSiblingRoute(
+          () =>
+            router.push({
+              name: TicketTypes.MYSQL_LOCAL_UPGRADE,
+            }),
+          rollback,
+        );
+      }
     },
   );
 </script>

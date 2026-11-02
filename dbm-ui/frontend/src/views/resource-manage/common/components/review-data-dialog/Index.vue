@@ -42,7 +42,7 @@
           </div>
         </div>
       </div>
-      <BkForm
+      <DbForm
         v-if="showRemark"
         ref="formRef"
         class="mt-16"
@@ -56,7 +56,7 @@
             v-model="formData.remark"
             class="mt-6" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <slot name="append" />
     </div>
     <template #footer>

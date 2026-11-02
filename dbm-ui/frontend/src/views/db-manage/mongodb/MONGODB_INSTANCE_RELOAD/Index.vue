@@ -21,7 +21,7 @@
           '对 MongoDB 实例执行滚动重启，按 RS 内串行、分片分阶段编排。适用于计划性重启维护；支持按集群、按主机、按实例三种模式提单。',
         )
       " />
-    <BkForm
+    <DbForm
       class="toolbox-form mb-16"
       form-type="vertical"
       :model="formData">
@@ -68,7 +68,7 @@
         </span>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"
