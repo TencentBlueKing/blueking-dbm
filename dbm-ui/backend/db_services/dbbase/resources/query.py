@@ -18,6 +18,7 @@ from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.api.cluster_state.filters import build_state_filter_q
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import (
@@ -389,6 +390,7 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
     def list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
         """查询集群列表，补充公共字段"""
         resource_list = cls._list_clusters(bk_biz_id, query_params, limit, offset)
+        # ClusterStateService.fill_states(resource_list.data)
         return resource_list
 
     @classmethod
@@ -580,7 +582,11 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             ).distinct()
             return _cluster_queryset
 
-        inner_filter_func_map = {"instance": filter_instance_func}
+        def filter_state_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
+            """集群状态过滤 state__{key}[__gte|__lte]"""
+            return _cluster_queryset.filter(build_state_filter_q(cls.cluster_types, _query_params["state_filters"]))
+
+        inner_filter_func_map = {"instance": filter_instance_func, "state_filters": filter_state_func}
         filter_func_map = filter_func_map or {}
         filter_func_map.update(inner_filter_func_map)
 

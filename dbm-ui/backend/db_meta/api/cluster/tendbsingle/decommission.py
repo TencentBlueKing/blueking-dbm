@@ -13,6 +13,7 @@ import logging
 from django.db import transaction
 
 from backend.components import DBPrivManagerApi
+from backend.db_meta.api.cluster_state import ClusterStateService
 from backend.db_meta.models import Cluster, ClusterDBHAExt, ClusterEntry
 from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.cc_manage import CcManage
@@ -46,6 +47,9 @@ def decommission(cluster: Cluster):
 
     # 删除dbha配置信息
     ClusterDBHAExt.objects.filter(cluster=cluster).delete()
+
+    # 删除集群状态
+    ClusterStateService.clear(cluster.id)
 
     # 删除集群在bkcc对应的模块
     # cc_manage.delete_cluster_modules(db_type=DBType.MySQL.value, cluster=cluster)

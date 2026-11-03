@@ -396,8 +396,40 @@ def sync_cluster_stat_by_cluster_type(bk_biz_id, cluster_type):
     cache.set(
         f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", json.dumps(cluster_stats), timeout=2 * TimeUnit.HOUR
     )
+    # 写入集群状态表，统一管理
+    try:
+        sync_cluster_capacity_state(bk_biz_id, cluster_type, cluster_stats)
+    except Exception as e:  # pylint: disable=broad-except
+        logger.exception("sync_cluster_capacity_state error: %s_%s -> %s", bk_biz_id, cluster_type, e)
 
     return cluster_stats
+
+
+def sync_cluster_capacity_state(bk_biz_id, cluster_type, cluster_stats):
+    """
+    容量写入集群状态的 CapacityField（未声明该字段的集群类型跳过）。
+    每次采集覆盖同业务同类型的全部集群：采集到有效容量的写入，其余清除，避免展示过期的容量
+    """
+    # db_meta.api 会间接 import db_monitor.models，模块级 import 会循环引用
+    from backend.db_meta.api.cluster_state import ClusterStateService
+    from backend.db_meta.api.cluster_state.fields import CapacityExtra, CapacityField
+
+    if CapacityField.key not in ClusterStateService.get_fields(cluster_type):
+        return
+
+    domain_ids = dict(
+        Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type).values_list("immute_domain", "id")
+    )
+    values = {
+        domain_ids[domain]: (
+            round(cap["in_use"]),
+            CapacityExtra(used=cap["used"], total=cap["total"], in_use=cap["in_use"]),
+        )
+        for domain, cap in cluster_stats.items()
+        if domain in domain_ids and "in_use" in cap
+    }
+    ClusterStateService.bulk_mark(CapacityField.key, values)
+    ClusterStateService.bulk_unmark(CapacityField.key, set(domain_ids.values()) - set(values))
 
 
 @shared_task

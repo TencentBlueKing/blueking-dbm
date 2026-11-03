@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.api.cluster_state.filters import collect_state_filters
 from backend.db_meta.enums import (
     ClusterEntryRole,
     ClusterEntryType,
@@ -45,6 +46,13 @@ class ListResourceSLZ(serializers.Serializer):
     tag_keys = serializers.CharField(required=False, help_text=_("标签键"))
     create_at__gte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
     create_at__lte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
+
+    def validate(self, attrs):
+        # 集群状态过滤参数 state__{key}[__gte|__lte] 随字段声明动态变化，不逐个声明，统一透传给状态框架校验
+        state_filters = collect_state_filters(self.initial_data)
+        if state_filters:
+            attrs["state_filters"] = state_filters
+        return attrs
 
 
 class ListKubernetesResourceSLZ(ListResourceSLZ):

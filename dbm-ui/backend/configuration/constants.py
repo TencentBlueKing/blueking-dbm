@@ -225,6 +225,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     # 节点日志V2
     LOG_DOWNLOAD_PAGE_SIZE = EnumField("LOG_DOWNLOAD_PAGE_SIZE", _("节点日志按页拉取的页大小"))
     LOG_LINES_CONFIG = EnumField("LOG_LINES_CONFIG", _("节点日志V2预览行数配置"))
+    # 集群状态默认展示字段，格式：{cluster_type: [state_key, ...]}，只决定前端默认展示哪些字段
+    CLUSTER_STATE_DISPLAY_FIELDS = EnumField("CLUSTER_STATE_DISPLAY_FIELDS", _("集群状态默认展示字段"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):
@@ -367,6 +369,13 @@ DEFAULT_PACKAGE_SUPPORT_SYSTEMS = {"linux": ["ubuntu", "centos7", "centos8"], "w
 # 默认智能体场景映射表
 DEFAULT_AI_CODE_SCENE_MAP = {"log_analysis": {"default": "LogAnalysis"}}
 
+# 默认集群状态展示字段
+DEFAULT_CLUSTER_STATE_DISPLAY_FIELDS = {
+    "tendbsingle": ["phase", "status", "running_ticket"],
+    "tendbha": ["phase", "status", "running_ticket", "dbha_disabled", "capacity", "portrait_report"],
+    "tendbcluster": ["phase", "status", "running_ticket", "dbha_disabled", "capacity", "portrait_report"],
+}
+
 # DEFAULT_REVERSE_REPORT_EVENT_TYPES = ["mysql_dbbackup_result", "mysql_dbbackup_progress", "mysql_binlog_result"]
 
 # 默认具备迁移权限的人员
@@ -451,6 +460,12 @@ DEFAULT_SETTINGS = [
         "dict",
         DEFAULT_LOG_LINES_CONFIG,
         _("节点日志V2预览行数配置(前缀/后缀最大展示行数): prefix_max 默认100, suffix_max 默认9889; 只能调小不能调大, 配置值大于默认值时按默认值生效"),
+    ],
+    [
+        SystemSettingsEnum.CLUSTER_STATE_DISPLAY_FIELDS.value,
+        "dict",
+        DEFAULT_CLUSTER_STATE_DISPLAY_FIELDS,
+        _("集群状态默认展示字段"),
     ],
 ]
 

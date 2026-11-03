@@ -13,6 +13,7 @@ from .city_map import BKCity, LogicalCity
 from .cluster import Cluster, ClusterDBHAExt
 from .cluster_entry import CLBEntryDetail, ClusterEntry, PolarisEntryDetail
 from .cluster_monitor import AppMonitorTopo, ClusterMonitorTopo
+from .cluster_state import ClusterState
 from .db_module import DBModule
 from .db_version import DBVersion, Distribution, VersionSeries
 from .extra_process import ExtraProcessInstance

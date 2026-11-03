@@ -24,6 +24,7 @@ logger = logging.getLogger("celery")
 def sync_cluster_stat_from_monitor():
     """
     同步各集群容量状态
+    TODO：后续接入dispatch queue
     """
 
     logger.info("sync_cluster_stat_from_monitor started")

@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.components import DBPrivManagerApi
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.db_meta.api.cluster_state import ClusterStateService
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterDBHAExt, ClusterEntry, StorageInstanceTuple
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
@@ -71,6 +72,8 @@ def decommission(cluster: Cluster):
 
     # 删除dbha配置信息
     ClusterDBHAExt.objects.filter(cluster=cluster).delete()
+    # 删除集群状态
+    ClusterStateService.clear(cluster.id)
     # 删除集群相关的配置模板
     TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
     try:
