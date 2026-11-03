@@ -13,12 +13,10 @@ package middleware
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"time"
 
-	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -27,15 +25,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RequestLoggerFilter TODO
-var RequestLoggerFilter *ApiLoggerFilter
+// RequestBodyLoggerFilter 这些 POST 会插入一行请求日志。
+var RequestBodyLoggerFilter *ApiLoggerFilter
+
+// ResponseSkipLoggerFilter 这些路径不回写响应。导入不在这里。
+var ResponseSkipLoggerFilter *ApiLoggerFilter
 
 func init() {
-	RequestLoggerFilter = &ApiLoggerFilter{}
-	RequestLoggerFilter.Add("/ping")
-	RequestLoggerFilter.Add("/metrics")
-	RequestLoggerFilter.Add("/resource/list")
-	RequestLoggerFilter.Add("/resource/list/all")
+	RequestBodyLoggerFilter = &ApiLoggerFilter{}
+	ResponseSkipLoggerFilter = &ApiLoggerFilter{}
+	RequestBodyLoggerFilter.Add("/resource/list")
+	RequestBodyLoggerFilter.Add("/resource/list/all")
+	ResponseSkipLoggerFilter.Add("/ping")
+	ResponseSkipLoggerFilter.Add("/metrics")
+	ResponseSkipLoggerFilter.Add("/resource/list")
+	ResponseSkipLoggerFilter.Add("/resource/list/all")
 }
 
 // ApiLoggerFilter TODO
@@ -65,7 +69,7 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 
 // BodyLogMiddleware TODO
 func BodyLogMiddleware(c *gin.Context) {
-	if RequestLoggerFilter.filter(c.Request.URL.Path) {
+	if ResponseSkipLoggerFilter.filter(c.Request.URL.Path) {
 		c.Next()
 		return
 	}
@@ -73,21 +77,16 @@ func BodyLogMiddleware(c *gin.Context) {
 	blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 	c.Writer = blw
 	c.Next()
-	statusCode := c.Writer.Status()
-	// if statusCode >= 400 {
-	// ok this is an request with error, let's make a record for it
-	// now print body (or log in your preferred way)
-	var rp controller.Response
-	if blw.body == nil {
-		rp = controller.Response{}
-	} else {
-		if err := json.Unmarshal(blw.body.Bytes(), &rp); err != nil {
-			logger.Error("unmarshal response body failed %s", err.Error())
-			return
-		}
+	requestID := c.GetString("request_id")
+	if requestID == "" {
+		logger.Warn("skip update request log, empty request id")
+		return
 	}
-	if err := model.UpdateTbRequestLog(rp.RequestId, map[string]interface{}{"response_body": blw.body.String(),
-		"response_code": statusCode, "update_time": time.Now()}); err != nil {
+	if err := model.UpdateTbRequestLog(requestID, map[string]interface{}{
+		"response_body": blw.body.String(),
+		"response_code": c.Writer.Status(),
+		"update_time":   time.Now(),
+	}); err != nil {
 		logger.Warn("update request response failed %s", err.Error())
 	}
 }
@@ -132,7 +131,7 @@ func ApiLogger(c *gin.Context) {
 	rid := requestid.Get(c)
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {
-		if !RequestLoggerFilter.filter(c.Request.RequestURI) {
+		if !RequestBodyLoggerFilter.filter(c.Request.RequestURI) {
 			c.Next()
 			return
 		}

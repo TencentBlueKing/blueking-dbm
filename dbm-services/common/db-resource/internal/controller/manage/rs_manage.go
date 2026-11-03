@@ -34,11 +34,12 @@ type MachineResourceHandler struct {
 }
 
 func init() {
-	middleware.RequestLoggerFilter.Add("/resource/import")
-	middleware.RequestLoggerFilter.Add("/resource/update")
-	middleware.RequestLoggerFilter.Add("/resource/delete")
-	middleware.RequestLoggerFilter.Add("/resource/batch/update")
-	middleware.RequestLoggerFilter.Add("/resource/list")
+	middleware.RequestBodyLoggerFilter.Add("/resource/reimport")
+	middleware.RequestBodyLoggerFilter.Add("/resource/import")
+	middleware.RequestBodyLoggerFilter.Add("/resource/update")
+	middleware.RequestBodyLoggerFilter.Add("/resource/delete")
+	middleware.RequestBodyLoggerFilter.Add("/resource/batch/update")
+	middleware.RequestBodyLoggerFilter.Add("/resource/append/labels")
 }
 
 // RegisterRouter 注册路由信息
