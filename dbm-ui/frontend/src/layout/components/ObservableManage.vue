@@ -33,7 +33,7 @@
           v-db-console="'observableManage.DBHASwitchEvents'"
           name="DBHA">
           <DbMenuItem
-            icon="dbhaqiehuanshijian"
+            icon="dbha-qiehuanshijian"
             route-name="DBHASwitchEvents">
             {{ t('DBHA切换事件') }}
           </DbMenuItem>
