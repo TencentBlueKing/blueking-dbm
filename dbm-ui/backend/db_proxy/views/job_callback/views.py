@@ -43,7 +43,14 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         if request.method == "POST":
-            verify_job_callback_token(self.action, request.query_params.get("token"))
+            self.callback_token_key = verify_job_callback_token(self.action, request.query_params.get("token"))
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        # 异常或失败响应保留凭证以便重试；正常处理完成后删除。
+        token_key = getattr(self, "callback_token_key", None)
+        if token_key and not getattr(response, "exception", False) and 200 <= response.status_code < 300:
+            RedisConn.delete(token_key)
+        return super().finalize_response(request, response, *args, **kwargs)
 
     @common_swagger_auto_schema(
         operation_summary=_("nginx文件下发job回调视图"),
