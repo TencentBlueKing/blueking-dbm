@@ -54,6 +54,12 @@ func (e *PartitionResultReportEvent) EventBkBizId() int64 {
 }
 
 func ReportPartitionResult(result *PartitionResultReportEvent) (err error) {
+	// ConfigId=0 表示临时手动执行分区，无需上报执行结果
+	if result.ConfigId == 0 {
+		logger.Info("skip report partition result, ConfigId=0")
+		logger.Info("ReportPartitionResult: %+v", result)
+		return nil
+	}
 	logger.Info("ReportPartitionResult: %+v", result)
 	reportCore, err := recore.NewCore(int64(result.BkCloudId))
 	if err != nil {
