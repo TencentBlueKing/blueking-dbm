@@ -22,6 +22,8 @@ package-lock.json
 .cursorrules
 .cursor/
 .cursorindexingignore
+# Workbuddy
+.workbuddy/
 # Claude
 CLAUDE.md
 .claude/
