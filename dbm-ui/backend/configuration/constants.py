@@ -486,7 +486,12 @@ DAILY_TODO_REMIND_DEFAULT = {
         "hour": "9",
     },
     "notice": [{"type": "rtx", "value": ""}],
+    # 企微群通知规则：[{"chat_id": "群ID", "components": ["mysql", "redis"]}]
+    "wecom_group_rules": [],
 }
+
+# 每日待办提醒：单条企微群消息最多汇总的 DBA 人数
+WECOM_GROUP_MAX_USERS_PER_MSG = 5
 
 DBM_USER_TODO_TYPE_MAP_DEFAULT = {
     "types": {
