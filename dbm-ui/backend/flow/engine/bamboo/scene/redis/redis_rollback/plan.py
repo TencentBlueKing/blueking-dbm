@@ -23,6 +23,7 @@ from backend.db_services.redis.rollback.constants import (
     MEMORY_RATIO_AOF,
     MEMORY_RATIO_RDB,
     MEMORY_RESERVE_DIVISOR,
+    ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER,
     SCOPE_CLUSTER,
     SELECT_MODE_BY_TIME,
     TENDISPLUS_TYPES,
@@ -56,14 +57,49 @@ def memory_budget(available: int) -> int:
     return available - available // MEMORY_RESERVE_DIVISOR
 
 
-def stage_slots(cpu: int, max_concurrency: int, ports: int) -> int:
-    """Ports unpacking, or Tendisplus kvstores replaying, at once on a host, as the actuator
-    sizes both stages (Limits.Unpack, Limits.KvstoreReplay). An unknown CPU count is taken as
-    every port at once."""
-    slots = cpu // 2 if cpu > 0 else ports
+def _slots(cpu: int, per_cpu: int, max_concurrency: int, count: int) -> int:
+    slots = per_cpu if cpu > 0 else count
     if max_concurrency > 0:
         slots = min(slots, max_concurrency)
-    return max(1, min(slots, ports))
+    return max(1, min(slots, count))
+
+
+def unpack_slots(cpu: int, max_concurrency: int, ports: int) -> int:
+    """Ports unpacking at once on a host, as the actuator sizes it (Limits.Unpack: NumCPU / 2).
+    An unknown CPU count is taken as every port at once."""
+    return _slots(cpu, cpu // 2, max_concurrency, ports)
+
+
+def replay_slots(cpu: int, max_concurrency: int, streams: int) -> int:
+    """Tendisplus kvstores replaying at once on a host, as the actuator sizes it
+    (Limits.KvstoreReplay: one per CPU). An unknown CPU count is taken as every stream at once."""
+    return _slots(cpu, cpu, max_concurrency, streams)
+
+
+def plus_host_memory(mem_total: int, instances: int, kvstores: int, write_buffer_mb: int) -> int:
+    """What the Tendisplus temp instances of one host keep resident whatever their data, as the
+    actuator's PlusMemory reads it from their rendered redis.conf: the block cache install gives
+    each (util.GetTendisplusBlockcache: 43% of the host's memory, 30% below 4GB, split over the
+    instances, at least 128MB) plus two write buffers per kvstore. 0, skipping the precheck, when
+    the host's memory is unknown or the plan does not set the buffer, as plans saved before it."""
+    if mem_total <= 0 or instances <= 0 or write_buffer_mb <= 0:
+        return 0
+    share = (3, 10) if mem_total < 4 * 1024**3 else (43, 100)
+    block_cache = max(mem_total * share[0] // (share[1] * instances), 128 << 20) >> 20 << 20
+    return instances * (block_cache + max(kvstores, 0) * 2 * (write_buffer_mb << 20))
+
+
+def plus_wal_bytes(
+    cpu: int, max_concurrency: int, ports: int, streams: int, kvstore_count: int, write_buffer_mb: int
+) -> int:
+    """WAL the replaying Tendisplus ports keep on the data disk while their kvstores are open:
+    every concurrently replaying port can hold up to
+    ``kvstorecount × max_write_buffer_number × write_buffer_size``. ``replay_slots`` bounds the
+    replaying kvstore streams, and each replaying port needs at least one of them."""
+    if ports <= 0 or streams <= 0 or kvstore_count <= 0 or write_buffer_mb <= 0:
+        return 0
+    concurrent_ports = min(ports, replay_slots(cpu, max_concurrency, streams))
+    return concurrent_ports * kvstore_count * ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER * (write_buffer_mb << 20)
 
 
 @dataclass
@@ -211,7 +247,8 @@ class DestHost:
     task_ids: List[str] = field(default_factory=list)
     download_bytes: int = 0
     unpacked_bytes: int = 0
-    # Cache only: what its instances hold once loaded; 0 skips the memory precheck.
+    # Cache only: what its instances hold once loaded; 0 skips the memory precheck. Tendisplus is
+    # sized on the host itself (plus_host_memory), its block cache being a share of the host.
     memory_bytes: int = 0
 
 
@@ -238,6 +275,10 @@ class RollbackPlan:
     warnings: List[str] = field(default_factory=list)
     # Caps the actuator's per-stage concurrency; 0 lets it size each stage from the host.
     max_concurrency: int = 0
+    # Tendisplus temp instances' write buffer; 0, as in plans saved before it, keeps the template's.
+    write_buffer_mb: int = 0
+    # Tendisplus kvstorecount, read only when binlogs are located; 0 when unknown.
+    kvstore_count: int = 0
 
     @property
     def locked_rounds(self) -> List[Dict[str, str]]:
@@ -349,35 +390,37 @@ class RollbackPlan:
 
 
 def host_disk_needs(
-    items: List[RollbackItem], is_ssd: bool, cpu: int, max_concurrency: int, is_plus: bool = False
+    items: List[RollbackItem],
+    is_ssd: bool,
+    cpu: int,
+    max_concurrency: int,
+    is_plus: bool = False,
+    write_buffer_mb: int = 0,
+    kvstore_count: int = 0,
 ) -> Tuple[int, int]:
     """Peak ``(backup disk, data disk)`` bytes of one host's restore.
 
     Downloads stay on the backup disk until their port is done; full backups are unpacked onto
     the data disk. An SSD port also holds its unpacked backup beside the rocksdb rebuilt from it
     until the rebuild ends, and replayed writes grow rocksdb; its binlogs are streamed straight
-    from the downloaded files, so replay keeps no extra copy on the backup disk. Tendisplus
-    moves its unpacked backup into place, and each kvstore replaying keeps one binlog
-    decompressed.
-    """
+    from the downloaded files, so replay keeps no extra copy on the backup disk. A Tendisplus
+    port holds the unpacked backup beside the instance copy until restorebackup finishes,
+    replays from the downloaded binlogs without a .log, grows rocksdb by the replayed binlogs,
+    and its replaying ports add the WAL of their write buffers."""
     real = [item for item in items if not item.is_placeholder]
     backup = sum(item.download_bytes for item in real)
     data = sum(item.unpacked_bytes for item in real)
     if is_plus and real:
         streams = sum(len(item.kvstore_binlogs) for item in real)
-        decompressed = [
-            unpacked_size(b.file_name, b.size)
-            for item in real
-            for b in item.binlog_files
-            if b.file_name.endswith(COMPRESSED_SUFFIXES)
-        ]
-        if streams and decompressed:
-            backup += stage_slots(cpu, max_concurrency, streams) * max(decompressed)
+        # restorebackup copies the unpacked full backup into each instance, so the unpacked
+        # copy and the instance copy coexist until the work dir is removed.
+        data += sum(item.unpacked_bytes for item in real)
         data += sum(item.binlog_unpacked_bytes for item in real)
+        data += plus_wal_bytes(cpu, max_concurrency, len(real), streams, kvstore_count, write_buffer_mb)
         return backup, data
     if not is_ssd or not real:
         return backup, data
-    unpacking = stage_slots(cpu, max_concurrency, len(real))
+    unpacking = unpack_slots(cpu, max_concurrency, len(real))
     data += sum(sorted((item.unpacked_bytes for item in real), reverse=True)[:unpacking])
     data += sum(item.binlog_unpacked_bytes for item in real)
     return backup, data

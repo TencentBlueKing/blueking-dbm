@@ -66,6 +66,28 @@ def test_only_download_state_is_written():
     assert plan.download_state["batches"]["2.2.2.2"]["0"]["state"] == download_window.DOWNLOAD_STATE_CLOSED
 
 
+@pytest.mark.django_db
+def test_release_lost_frees_the_batch_and_keeps_its_history_across_reserve():
+    plan = _plan_row()
+    download_window.reserve(plan.id, "2.2.2.2", 0, 50, 500)
+    download_window.mark_open(plan.id, "2.2.2.2", 0, 8700500)
+
+    assert download_window.release_lost(plan.id, "2.2.2.2", 0) == 0
+    # Only an open batch is released; a second call must not decrement again.
+    assert download_window.release_lost(plan.id, "2.2.2.2", 0) == 0
+    entry = download_window.read_batches(plan.id, "2.2.2.2")[0]
+    assert entry["state"] == download_window.DOWNLOAD_STATE_FAILED
+    assert entry["lost_bills"] == [8700500]
+    assert entry["lost_resubmits"] == 1
+
+    assert download_window.reserve(plan.id, "2.2.2.2", 0, 50, 500) == 50
+    download_window.mark_open(plan.id, "2.2.2.2", 0, 8700600)
+    entry = download_window.read_batches(plan.id, "2.2.2.2")[0]
+    assert entry["bill_id"] == 8700600
+    assert entry["lost_bills"] == [8700500]
+    assert entry["lost_resubmits"] == 1
+
+
 @pytest.mark.django_db(transaction=True)
 def test_concurrent_reservations_do_not_exceed_the_plan_limit():
     if not connection.features.has_select_for_update:

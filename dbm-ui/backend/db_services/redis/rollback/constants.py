@@ -78,10 +78,19 @@ BINLOG_LOCATE_CONCURRENCY = 4
 DOWNLOAD_BATCH_SIZE = 50
 
 # One rollback plan keeps at most this many task ids in flight across every target host.
-# The backup system sustains about 5000 concurrent downloads; 500 per plan leaves room for
-# other plans. The window and its batch ledger are persisted on the plan row
+# The backup system sustains about 5000 concurrent downloads shared with every other ticket;
+# 100 per plan (two bills of DOWNLOAD_BATCH_SIZE) keeps one rollback well inside that.
+# The window and its batch ledger are persisted on the plan row
 # (TbTendisRollbackPlan.download_state, see download_window.py).
-DOWNLOAD_INFLIGHT_TASK_LIMIT = 500
+DOWNLOAD_INFLIGHT_TASK_LIMIT = 100
+
+# The backup system loses some bills: get_recover_result then answers HTTP 500 with
+# {"code": 13, "message": "fail,can not find this file"} and the bill never reports again.
+# That body only reaches us inside the ApiRequestError message, so a bill counts as lost only
+# when every pattern matches it; anything else (timeouts, other 5xx) stays "unknown".
+DOWNLOAD_BILL_LOST_PATTERNS = (r"get_recover_result", r'"code"\s*:\s*13\b', r"can not find this file")
+# Automatic resubmissions of one batch after its bill was lost; one more loss fails the node.
+DOWNLOAD_LOST_RESUBMIT_LIMIT = 2
 
 # rollback_version: datastructure = v1 construction flow, rollback = v2 implementation
 DATASTRUCTURE_VERSION = "datastructure"
@@ -133,6 +142,16 @@ MEMORY_RATIO_RDB = 2.0
 MEMORY_RATIO_AOF = 2.0
 # Unpacking runs NumCPU / 2 ports at a time, so fewer cores per instance means queueing.
 CPU_PER_INSTANCE_HINT = 2
+
+# rocks.write_buffer_size of the Tendisplus temp instances, sent to the actuator as
+# write_buffer_mb. Larger buffers flush less often and cut the replay's write amplification
+# (S6 bench: 128MB took the restore + replay from 41s to 34s). Every kvstore keeps up to two in
+# memory, which the memory precheck counts with the block cache. Compaction and the WAL stay on:
+# a failed replay must resume from binlogpos, and the instance must need no settling afterwards.
+ROLLBACK_PLUS_WRITE_BUFFER_MB = 128
+# Tendisplus keeps up to this many write buffers per kvstore before flushing; the disk precheck
+# reserves their worst-case WAL while the replay has the kvstores open.
+ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER = 4
 
 # Mirrors of the actuator's rollback limits (dbactuator pkg/rollback): the window it admits
 # instances into is MemAvailable less a tenth (memReserveDivisor), and SSD replay streams binlogs

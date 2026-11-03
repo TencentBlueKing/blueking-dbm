@@ -43,6 +43,7 @@ from backend.db_services.redis.rollback.constants import (
     CPU_PER_INSTANCE_HINT,
     IN_MEMORY_CLUSTER_TYPES,
     ROLLBACK_CLUSTER_TYPES,
+    ROLLBACK_PLUS_WRITE_BUFFER_MB,
     SCOPE_CLUSTER,
     SCOPE_INSTANCES,
     SELECT_MODE_BY_IDENTIFY,
@@ -241,6 +242,8 @@ class RollbackPlanner:
         self.resolver = ShardResolver(cluster)
         self.locator = BackupLocator(cluster)
         self.allow_binlog_nonconsecutive = bool(info.get("allow_binlog_nonconsecutive"))
+        # Set once binlogs are located; a plan restoring the full backup only never reads it.
+        self._known_kvstore_count = 0
 
     # --- rendering ---------------------------------------------------------------------
 
@@ -280,6 +283,9 @@ class RollbackPlanner:
             warnings=list(evaluation.warnings),
             max_concurrency=int(self.info.get("max_concurrency") or 0),
         )
+        if self._plus:
+            plan.write_buffer_mb = ROLLBACK_PLUS_WRITE_BUFFER_MB
+            plan.kvstore_count = self._known_kvstore_count
         if pack:
             dest_ips = list(dest_ips or [])
             if not dest_ips:
@@ -877,6 +883,7 @@ class RollbackPlanner:
             raise RollbackPlanError(
                 context={"message": _("集群 {} 的 kvstorecount 为 {}").format(self.cluster.immute_domain, count)}
             )
+        self._known_kvstore_count = count
         return count
 
     def _explicit_recover_at(self) -> Optional[datetime]:

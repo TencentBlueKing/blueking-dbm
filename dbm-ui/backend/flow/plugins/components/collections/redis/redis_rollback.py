@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import copy
 import logging
+import re
 import time
 import traceback
 
@@ -27,13 +28,16 @@ from backend.db_services.redis.rollback.constants import (
     DISK_USED_PLUS_NEED_RATIO_FAIL,
     DISK_USED_RATIO_FAIL,
     DOWNLOAD_BATCH_SIZE,
+    DOWNLOAD_BILL_LOST_PATTERNS,
     DOWNLOAD_INFLIGHT_TASK_LIMIT,
+    DOWNLOAD_LOST_RESUBMIT_LIMIT,
     SSD_CLUSTER_TYPES,
 )
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     RollbackPlan,
     host_disk_needs,
     memory_budget,
+    plus_host_memory,
     rollback_manifest,
 )
 from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
@@ -42,6 +46,14 @@ from backend.utils.string import base64_encode, format_size
 logger = logging.getLogger("flow")
 
 _PROGRESS_LOG_INTERVAL_SEC = 60
+
+# _query_bill result for a bill the backup system no longer knows; None means "unknown".
+BILL_LOST = object()
+
+
+def is_bill_lost(exc: Exception) -> bool:
+    message = str(exc)
+    return all(re.search(pattern, message) for pattern in DOWNLOAD_BILL_LOST_PATTERNS)
 
 
 def decode_df_line(disk_line: str) -> dict:
@@ -102,6 +114,8 @@ class RedisRollbackDiskPrecheckService(BaseService):
                 int(host_disk.get("cpu_count") or 0),
                 plan.max_concurrency,
                 is_plus=plan.is_plus,
+                write_buffer_mb=plan.write_buffer_mb,
+                kvstore_count=plan.kvstore_count,
             )
             needs = disk_needs(
                 disks["redis_backup_dir_data"], disks["redis_data_dir_data"], backup_bytes, data_bytes, same_fs
@@ -109,7 +123,16 @@ class RedisRollbackDiskPrecheckService(BaseService):
             for label, disk_info, needed_size in needs:
                 if not self._check(exec_ip, label, disk_info, needed_size):
                     return False
-            if not self._check_memory(exec_ip, host_disk, plan.dest_host(exec_ip).memory_bytes):
+            dest_host = plan.dest_host(exec_ip)
+            memory_bytes = dest_host.memory_bytes
+            if plan.is_plus:
+                memory_bytes = plus_host_memory(
+                    int(host_disk.get("mem_total_kb") or 0) * 1024,
+                    len(dest_host.ports),
+                    plan.kvstore_count,
+                    plan.write_buffer_mb,
+                )
+            if not self._check_memory(exec_ip, host_disk, memory_bytes):
                 return False
         except Exception as exc:  # pylint: disable=broad-except
             traceback.print_exc()
@@ -120,7 +143,8 @@ class RedisRollbackDiskPrecheckService(BaseService):
         return True
 
     def _check_memory(self, exec_ip, host_disk, memory_bytes) -> bool:
-        """The shards packed here must fit in memory once loaded; the ticket only checked the spec."""
+        """The shards packed here must fit in memory once loaded, or for Tendisplus once started with
+        their block cache and write buffers; the ticket only checked the spec."""
         if not memory_bytes:
             return True
         available_kb = host_disk.get("mem_available_kb")
@@ -278,6 +302,10 @@ class RedisRollbackDownloadService(BaseService):
             self.log_info(_("{} 没有需要下载的备份文件").format(self._dest_ip))
             return True
         self._reconcile(data)
+        if data.get_one_of_outputs("failed"):
+            # Open batches stay counted in the window; the next retry reconciles them again.
+            self.log_error(_("{} 下载台账对账未完成，请处理后重试节点").format(self._dest_ip))
+            return False
         self._advance(data)
         self._log_progress(data, self._read_entries(), force=True)
         return True
@@ -343,14 +371,38 @@ class RedisRollbackDownloadService(BaseService):
         return download_window.read_batches(self._plan_id, self._dest_ip)
 
     def _query_bill(self, bill_id):
+        """The bill's totals, None when its state is unknown, or BILL_LOST."""
         try:
             response = RedisBackupApi.download_result({"bill_id": bill_id})
         except Exception as exc:  # pylint: disable=broad-except
+            if is_bill_lost(exc):
+                return BILL_LOST
             self.log_error(_("查询下载结果异常: bill={}, {}").format(bill_id, exc))
             return None
         if response is None or "total" not in response:
             return None
         return response["total"]
+
+    def _release_lost(self, data, index, entry):
+        """Free a batch whose bill was lost so _advance resubmits it, at most
+        DOWNLOAD_LOST_RESUBMIT_LIMIT times; the next loss fails the node."""
+        bill_id = int(entry["bill_id"])
+        lost_bills = [int(bill) for bill in entry.get("lost_bills") or []] + [bill_id]
+        if int(entry.get("lost_resubmits") or 0) >= DOWNLOAD_LOST_RESUBMIT_LIMIT:
+            self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
+            self._execute_failed(
+                data,
+                _("{} 批次 {}/{} 下载单在备份系统中丢失 {} 次，不再重提: bills={}").format(
+                    self._dest_ip, index + 1, len(self._batch_sizes), len(lost_bills), lost_bills
+                ),
+            )
+            return
+        left = download_window.release_lost(self._plan_id, self._dest_ip, index)
+        self.log_info(
+            _("{} 批次 {}/{} 下载单在备份系统中丢失: bill={}，释放后重提, window={}/{}").format(
+                self._dest_ip, index + 1, len(self._batch_sizes), bill_id, left, DOWNLOAD_INFLIGHT_TASK_LIMIT
+            )
+        )
 
     def _call_download(self, batch):
         try:
@@ -441,6 +493,9 @@ class RedisRollbackDownloadService(BaseService):
                     break
                 continue
             total = self._query_bill(bill_id)
+            if total is BILL_LOST:
+                self._release_lost(data, index, entry)
+                continue
             if total is None:
                 self._mark_unknown(data, index)
                 self._execute_failed(
@@ -501,6 +556,19 @@ class RedisRollbackDownloadService(BaseService):
             if not self._mark_open(data, index, bill_id):
                 self._mark_unknown(data, index)
                 return
+            lost_bills = entry.get("lost_bills") or []
+            if entry.get("state") == download_window.DOWNLOAD_STATE_FAILED and entry.get("bill_id") in lost_bills:
+                self.log_info(
+                    _("{} 批次 {}/{} 下载单丢失后重提({}/{}): bill {} -> {}").format(
+                        self._dest_ip,
+                        index + 1,
+                        len(self._batch_sizes),
+                        len(lost_bills),
+                        DOWNLOAD_LOST_RESUBMIT_LIMIT,
+                        entry.get("bill_id"),
+                        bill_id,
+                    )
+                )
             self.log_info(
                 _("{} 提交下载批次 {}/{}: files={}, bill={}, window={}/{}").format(
                     self._dest_ip,
@@ -598,6 +666,10 @@ class RedisRollbackDownloadService(BaseService):
             if entry.get("state") != download_window.DOWNLOAD_STATE_OPEN or not entry.get("bill_id"):
                 continue
             total = self._query_bill(entry["bill_id"])
+            if total is BILL_LOST:
+                self._clear_unknown(data, index)
+                self._release_lost(data, index, entry)
+                continue
             if total is None:
                 self._mark_unknown(data, index)
                 self._execute_failed(

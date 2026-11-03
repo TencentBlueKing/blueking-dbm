@@ -8,7 +8,11 @@ import pytest
 
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint, plus_binlog_position, select_kvstore_chains
-from backend.db_services.redis.rollback.constants import ROLLBACK_CLUSTER_TYPES
+from backend.db_services.redis.rollback.constants import (
+    ROLLBACK_CLUSTER_TYPES,
+    ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER,
+    ROLLBACK_PLUS_WRITE_BUFFER_MB,
+)
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.locator import binlog_record
 from backend.db_services.redis.rollback.shards import ShardRef, round_key_from_filename, slot_ranges
@@ -300,8 +304,8 @@ def test_redis_cluster_restores_without_binlogs_and_checks_memory():
 # --- 3.10 formation node ---------------------------------------------------------------
 
 
-def _item(shard, dest_ip, dest_port, placeholder=False, binlogs=()):
-    full = FullBackupRef("f", "a.tar", 10, "1.1.1.1", 30000, shard, "SCHEDULED-1", "", "", "a.tar")
+def _item(shard, dest_ip, dest_port, placeholder=False, binlogs=(), full_size=10, binlog_size=5):
+    full = FullBackupRef("f", "a.tar", full_size, "1.1.1.1", 30000, shard, "SCHEDULED-1", "", "", "a.tar")
     return RollbackItem(
         shard=ShardRef(shard),
         source_ip="1.1.1.1",
@@ -311,7 +315,8 @@ def _item(shard, dest_ip, dest_port, placeholder=False, binlogs=()):
         dest_port=dest_port,
         full_files=[] if placeholder else [full],
         binlog_files=[
-            BinlogRef("b", name, 5, "1.1.1.1", 30000, index=index, kvstore=kvstore) for kvstore, index, name in binlogs
+            BinlogRef("b", name, binlog_size, "1.1.1.1", 30000, index=index, kvstore=kvstore)
+            for kvstore, index, name in binlogs
         ],
         is_placeholder=placeholder,
     )
@@ -361,10 +366,90 @@ def test_cluster_is_formed_once_after_restore_and_before_the_proxy():
 # --- disk peaks for Tendisplus ---------------------------------------------------------
 
 
-def test_plus_disks_hold_one_decompressed_binlog_per_replaying_kvstore():
+def test_plus_disks_hold_the_restore_copy_binlogs_and_wal():
     binlogs = [(kv, index, "binlog-{}-{}.log.zst".format(kv, index)) for kv in (0, 1) for index in (1, 2)]
     items = [_item("0-8191", "2.2.2.2", 30000, binlogs=binlogs), _item("8192-16383", "2.2.2.2", 30001, True)]
-    # a.tar 10 plus four 5-byte binlogs downloaded; each decompresses to 15
-    assert host_disk_needs(items, False, cpu=4, max_concurrency=0, is_plus=True) == (30 + 2 * 15, 10 + 4 * 15)
-    assert host_disk_needs(items, False, cpu=2, max_concurrency=0, is_plus=True) == (30 + 15, 10 + 4 * 15)
-    assert host_disk_needs(items, False, cpu=4, max_concurrency=1, is_plus=True) == (30 + 15, 10 + 4 * 15)
+    wal = 1 * 2 * ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER * ROLLBACK_PLUS_WRITE_BUFFER_MB * 1024**2
+    # backup: a.tar 10 plus four binlogs 5 each; the binlogs stream, so no .log joins them
+    # data: unpacked 10 + the restore copy 10 + replayed binlogs 4 * 15 + the one port's WAL
+    expected = (30, 20 + 4 * 15 + wal)
+    for cpu, max_concurrency in ((4, 0), (1, 0), (4, 1)):
+        assert (
+            host_disk_needs(
+                items,
+                False,
+                cpu=cpu,
+                max_concurrency=max_concurrency,
+                is_plus=True,
+                write_buffer_mb=ROLLBACK_PLUS_WRITE_BUFFER_MB,
+                kvstore_count=2,
+            )
+            == expected
+        )
+
+
+def test_plus_wal_counts_only_the_ports_replaying_at_once():
+    binlogs = [(kv, index, "binlog-{}-{}.log.zst".format(kv, index)) for kv in (0, 1) for index in (1, 2)]
+    items = [
+        _item("0-8191", "2.2.2.2", 30000, binlogs=binlogs),
+        _item("8192-16383", "2.2.2.2", 30001, binlogs=binlogs),
+    ]
+    per_port = 2 * ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER * ROLLBACK_PLUS_WRITE_BUFFER_MB * 1024**2
+    # two ports, four streams: one replay slot keeps one port's WAL, four slots keep both
+    assert host_disk_needs(
+        items,
+        False,
+        cpu=1,
+        max_concurrency=0,
+        is_plus=True,
+        write_buffer_mb=ROLLBACK_PLUS_WRITE_BUFFER_MB,
+        kvstore_count=2,
+    ) == (60, 160 + per_port)
+    assert host_disk_needs(
+        items,
+        False,
+        cpu=4,
+        max_concurrency=0,
+        is_plus=True,
+        write_buffer_mb=ROLLBACK_PLUS_WRITE_BUFFER_MB,
+        kvstore_count=2,
+    ) == (60, 160 + 2 * per_port)
+
+
+def test_plus_disk_peak_for_the_bench_case():
+    # 4.8GB full, 10 kvstores with 2.17GB of compressed binlogs (6.5GB unpacked), 128MB buffers
+    binlogs = [(kv, 1, "binlog-{}-1.log.zst".format(kv)) for kv in range(10)]
+    item = _item("0-8191", "2.2.2.2", 30000, binlogs=binlogs, full_size=4_800_000_000, binlog_size=216_666_667)
+    backup, data = host_disk_needs(
+        [item],
+        False,
+        cpu=16,
+        max_concurrency=0,
+        is_plus=True,
+        write_buffer_mb=ROLLBACK_PLUS_WRITE_BUFFER_MB,
+        kvstore_count=10,
+    )
+    assert backup == 4_800_000_000 + 10 * 216_666_667
+    assert data == (
+        2 * 4_800_000_000
+        + 10 * 3 * 216_666_667
+        + 10 * ROLLBACK_PLUS_MAX_WRITE_BUFFER_NUMBER * ROLLBACK_PLUS_WRITE_BUFFER_MB * 1024**2
+    )
+
+
+def test_plus_plan_sets_the_write_buffer_and_the_known_kvstore_count(kvstorecount):
+    plan = _planner(**REPLAY).build(pack=False)
+    assert (plan.write_buffer_mb, plan.kvstore_count) == (ROLLBACK_PLUS_WRITE_BUFFER_MB, 2)
+    restored = RollbackPlan.from_dict(plan.to_dict())
+    assert (restored.write_buffer_mb, restored.kvstore_count) == (ROLLBACK_PLUS_WRITE_BUFFER_MB, 2)
+
+    # restoring the full backup only reads no config: the count stays unknown
+    kvstorecount.reset_mock()
+    plan = _planner().build(pack=False)
+    kvstorecount.assert_not_called()
+    assert (plan.write_buffer_mb, plan.kvstore_count) == (ROLLBACK_PLUS_WRITE_BUFFER_MB, 0)
+
+    # other engines keep their template
+    planner = _planner(cluster_type=REDIS_CLUSTER)
+    planner._spec = MagicMock(return_value=SimpleNamespace(mem={"min": 64}, cpu={"min": 16}))
+    assert planner.build(pack=False).write_buffer_mb == 0
