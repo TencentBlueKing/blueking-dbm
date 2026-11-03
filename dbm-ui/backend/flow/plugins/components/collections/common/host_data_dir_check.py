@@ -46,6 +46,10 @@ HOST_DATA_DIR_CHECK_RULES = (
 
 HOST_DATA_DIR_CHECK_SCRIPT_TEMPLATE = r"""#!/bin/bash
 set -euo pipefail
+# bash < 4.4 cannot `wait` a process substitution PID ("not a child of this
+# shell"), so feed `find` through pipelines instead; `lastpipe` (bash >= 4.2)
+# keeps the loops in the current shell so failed/reported stay visible.
+shopt -s lastpipe
 export LC_ALL=C
 SCAN_ROOT=/
 failed=0
@@ -93,30 +97,24 @@ if [[ ! -d "$SCAN_ROOT" || ! -r "$SCAN_ROOT" || ! -x "$SCAN_ROOT" ]]; then
     exit 1
 fi
 
-exec 3< <(find -H "$SCAN_ROOT" -mindepth 1 -maxdepth 1 -name 'data*' -print0)
-root_scan_pid=$!
-while IFS= read -r -d '' data_dir <&3; do
-    [[ "${data_dir##*/}" =~ ^data[0-9]*$ ]] || continue
-    if [[ ! -d "$data_dir" || ! -r "$data_dir" || ! -x "$data_dir" ]]; then
-        report_error 'data path is not an accessible directory' "$data_dir"
-        continue
-    fi
-    exec 4< <(find -H "$data_dir" -mindepth 1 -maxdepth 1 \
-        \( -false{% for rule in rules %} -o -name {{ rule.pattern | shellquote }}{% endfor %} \) -print0)
-    data_scan_pid=$!
-    while IFS= read -r -d '' candidate <&4; do
+if ! find -H "$SCAN_ROOT" -mindepth 1 -maxdepth 1 -name 'data*' -print0 |
+    while IFS= read -r -d '' data_dir; do
+        [[ "${data_dir##*/}" =~ ^data[0-9]*$ ]] || continue
+        if [[ ! -d "$data_dir" || ! -r "$data_dir" || ! -x "$data_dir" ]]; then
+            report_error 'data path is not an accessible directory' "$data_dir"
+            continue
+        fi
+        if ! find -H "$data_dir" -mindepth 1 -maxdepth 1 \
+            \( -false{% for rule in rules %} -o -name {{ rule.pattern | shellquote }}{% endfor %} \) -print0 |
+            while IFS= read -r -d '' candidate; do
 {% for rule in rules %}
-        check_candidate "$candidate" {{ rule.pattern | shellquote }} {{ 1 if rule.allow_empty else 0 }} \
-            {{ rule.exempt_dir_patterns | map('shellquote') | join(' ') }}
+                check_candidate "$candidate" {{ rule.pattern | shellquote }} {{ 1 if rule.allow_empty else 0 }} \
+                    {{ rule.exempt_dir_patterns | map('shellquote') | join(' ') }}
 {% endfor %}
-    done
-    exec 4<&-
-    if ! wait "$data_scan_pid"; then
-        report_error 'cannot scan data directory' "$data_dir"
-    fi
-done
-exec 3<&-
-if ! wait "$root_scan_pid"; then
+            done; then
+            report_error 'cannot scan data directory' "$data_dir"
+        fi
+    done; then
     report_error 'cannot enumerate data directories' "$SCAN_ROOT"
 fi
 
