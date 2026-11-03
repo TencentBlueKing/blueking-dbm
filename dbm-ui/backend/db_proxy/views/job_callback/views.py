@@ -23,6 +23,7 @@ from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBExtension
 from backend.db_proxy.nginxconf_tpl import restart_nginx_tpl
 from backend.db_proxy.views.job_callback.serialiers import JobCallBackSerializer
+from backend.db_proxy.views.job_callback.token import build_job_callback_url, verify_job_callback_token
 from backend.db_proxy.views.views import BaseProxyPassViewSet
 from backend.flow.consts import SUCCESS_LIST
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
@@ -36,8 +37,13 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
     """专门用于nginx文件下发回调的视图"""
 
     def get_permissions(self):
-        # job回调无需鉴权
+        # 回调认证由 initial() 中绑定具体接口的凭证校验负责。
         return []
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if request.method == "POST":
+            verify_job_callback_token(self.action, request.query_params.get("token"))
 
     @common_swagger_auto_schema(
         operation_summary=_("nginx文件下发job回调视图"),
@@ -82,9 +88,11 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
                 ]
             },
             # 因为证书原因，让job请求http的地址
-            "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/restart_callback/",
+            "callback_url": build_job_callback_url("restart_callback"),
         }
-        logger.info(_("nginx重启参数：{}").format(job_payload))
+        logger.info(
+            _("nginx重启参数：{}").format({**job_payload, "callback_url": job_payload["callback_url"].split("?", 1)[0]})
+        )
         resp = JobApi.fast_execute_script(
             {**fast_execute_script_common_kwargs, **job_payload}, use_admin=True, raw=True
         )
