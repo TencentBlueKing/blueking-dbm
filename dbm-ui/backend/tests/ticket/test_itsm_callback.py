@@ -14,40 +14,39 @@ class TestItsmCallback(SimpleTestCase):
     def setUp(self):
         self.flow = SimpleNamespace(flow_type=FlowType.BK_ITSM, flow_obj_id="REQ123")
         self.ticket = SimpleNamespace(pk=123, current_flow=Mock(return_value=self.flow))
-        self.api_patch = patch("backend.ticket.itsm_callback.ItsmApiAdapter")
-        self.api = self.api_patch.start()
+        self.api_patch = patch("backend.components.itsm.backends.v3.ItsmV3Backend.verify_token")
+        self.verify_token = self.api_patch.start()
         self.addCleanup(self.api_patch.stop)
-        self.api.V4 = "v4"
-        self.api._get_itsm_version_by_sn.return_value = "v3"
 
     def test_missing_and_malformed_tokens_are_rejected(self):
         for token in (None, "", [], {}, 123):
             with self.subTest(token=token), self.assertRaises(PermissionDenied):
                 verify_callback(self.ticket, {"token": token})
-        self.api.verify_token.assert_not_called()
+        self.verify_token.assert_not_called()
 
     def test_v3_verifies_token_remotely(self):
-        self.api.verify_token.return_value = {"is_passed": True}
+        self.verify_token.return_value = {"is_passed": True}
         verify_callback(self.ticket, {"token": "remote-token"})
-        self.api.verify_token.assert_called_once_with({"token": "remote-token"}, use_admin=True)
+        self.verify_token.assert_called_once_with({"token": "remote-token"}, use_admin=True)
 
     def test_v3_rejects_invalid_results_and_propagates_verification_failure(self):
         for result in ({"is_passed": False}, {}, None, False, {"is_passed": "true"}, {"is_passed": 1}):
-            self.api.verify_token.return_value = result
+            self.verify_token.return_value = result
             with self.subTest(result=result), self.assertRaises(PermissionDenied):
                 verify_callback(self.ticket, {"token": "invalid"})
-        self.api.verify_token.side_effect = RuntimeError("verification unavailable")
+        self.verify_token.side_effect = RuntimeError("verification unavailable")
         with self.assertRaises(RuntimeError):
             verify_callback(self.ticket, {"token": "invalid"})
 
     def test_v4_verifies_ticket_bound_token(self):
         self.flow.flow_obj_id = "ITSM_V4:456"
-        self.api._get_itsm_version_by_sn.return_value = "v4"
-        verify_callback(self.ticket, {"token": get_callback_token(self.ticket.pk)})
-        for token in ("invalid", get_callback_token(124)):
+        verify_callback(self.ticket, {"callback_token": get_callback_token(self.ticket.pk)})
+        for token in (None, "", [], {}, 123, "invalid", get_callback_token(124)):
             with self.subTest(token=token), self.assertRaises(PermissionDenied):
-                verify_callback(self.ticket, {"token": token})
-        self.api.verify_token.assert_not_called()
+                verify_callback(self.ticket, {"callback_token": token})
+        with self.assertRaises(PermissionDenied):
+            verify_callback(self.ticket, {"token": get_callback_token(self.ticket.pk)})
+        self.verify_token.assert_not_called()
 
     def test_non_itsm_and_uncreated_flows_are_rejected(self):
         for flow in (
@@ -58,7 +57,7 @@ class TestItsmCallback(SimpleTestCase):
             self.ticket.current_flow.return_value = flow
             with self.subTest(flow=flow), self.assertRaises(PermissionDenied):
                 verify_callback(self.ticket, {"token": "token"})
-        self.api.verify_token.assert_not_called()
+        self.verify_token.assert_not_called()
 
     @patch("backend.components.itsm.backends.v4.ItsmV4Api")
     def test_v4_creation_injects_token_without_mutating_params(self, itsm_api):
