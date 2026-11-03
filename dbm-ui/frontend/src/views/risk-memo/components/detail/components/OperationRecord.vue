@@ -38,6 +38,7 @@
   type OperateRecordList = ServiceReturnType<typeof getRiskOperateRecords>['results'];
 
   interface Props {
+    bizId: number;
     riskId?: number;
   }
 
@@ -72,10 +73,10 @@
   };
 
   watch(
-    () => props.riskId,
+    [() => props.bizId, () => props.riskId],
     () => {
-      if (props.riskId) {
-        runGetRiskMemoList({ limit: -1, offset: 0, risk: props.riskId });
+      if (props.bizId && props.riskId) {
+        runGetRiskMemoList({ bk_biz_id: props.bizId, limit: -1, offset: 0, risk: props.riskId });
       }
     },
     {

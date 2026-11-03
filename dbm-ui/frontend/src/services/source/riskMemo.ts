@@ -90,7 +90,7 @@ export const updateRiskStatus = (params: {
 };
 
 // 获取业务风险/具体特殊要求操作记录
-export const getRiskOperateRecords = (params: { limit?: number; offset?: number; risk: number }) => {
+export const getRiskOperateRecords = (params: { bk_biz_id: number; limit?: number; offset?: number; risk: number }) => {
   return http.get<
     ListBase<
       {
