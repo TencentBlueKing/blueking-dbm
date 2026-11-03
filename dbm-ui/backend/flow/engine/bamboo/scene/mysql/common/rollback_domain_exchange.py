@@ -26,6 +26,7 @@ from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildDNSManageSubflow
 from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import mysql_clone_grants_from_file_subflow
+from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.mysql.clone_proxy_client_in_backend import (
     CloneProxyUsersInBackendComponent,
 )
@@ -41,6 +42,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     CloneProxyClientInBackendKwargs,
     CloneProxyUsersKwargs,
     DBMetaOPKwargs,
+    DelServiceInstKwargs,
 )
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
@@ -57,7 +59,7 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
     """
     exchange_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     #  查询从节点域名
-    if src_cluster.cluster_type == ClusterType.TENDBCLUSTER.value:
+    if src_cluster.cluster_type == ClusterType.TenDBCluster.value:
         src_master_entry = src_cluster.clusterentry_set.get(
             cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.MASTER_ENTRY.value
         )
@@ -406,6 +408,50 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
     else:
         raise Exception(_("域名互换不支持该集群类型"))
 
+    # 先回收集群所有服务实例内容
+    src_backend_storages = src_cluster.storageinstance_set.all()
+    src_proxy_instances = src_cluster.proxyinstance_set.all()
+    src_cc_instance_List = []
+
+    dst_backend_storages = dst_cluster.storageinstance_set.all()
+    dst_proxy_instances = dst_cluster.proxyinstance_set.all()
+    dst_cc_instance_List = []
+
+    for storage in src_backend_storages:
+        src_cc_instance_List.append({"ip": storage.machine.ip, "port": storage.port})
+    for proxy in src_proxy_instances:
+        src_cc_instance_List.append({"ip": proxy.machine.ip, "port": proxy.port})
+
+    for storage in dst_backend_storages:
+        dst_cc_instance_List.append({"ip": storage.machine.ip, "port": storage.port})
+    for proxy in dst_proxy_instances:
+        dst_cc_instance_List.append({"ip": proxy.machine.ip, "port": proxy.port})
+
+    del_cc_service_inst_list = [
+        {
+            "act_name": _("删除源集群注册在CC系统的服务实例"),
+            "act_component_code": DelCCServiceInstComponent.code,
+            "kwargs": asdict(
+                DelServiceInstKwargs(
+                    cluster_id=src_cluster.id,
+                    del_instance_list=src_cc_instance_List,
+                )
+            ),
+        },
+        {
+            "act_name": _("删除目标集群注册在CC系统的服务实例"),
+            "act_component_code": DelCCServiceInstComponent.code,
+            "kwargs": asdict(
+                DelServiceInstKwargs(
+                    cluster_id=dst_cluster.id,
+                    del_instance_list=dst_cc_instance_List,
+                )
+            ),
+        },
+    ]
+    exchange_sub_pipeline.add_parallel_acts(acts_list=del_cc_service_inst_list)
+    cluster_exchange_meta["source_cluster_name"] = src_cluster.name
+    cluster_exchange_meta["destination_cluster_name"] = dst_cluster.name
     exchange_sub_pipeline.add_act(
         act_name=_("域名切换完成后修改元数据"),
         act_component_code=MySQLDBMetaComponent.code,
@@ -417,6 +463,18 @@ def rollback_domain_exchange_subflow(root_id: str, ticket_data: dict, src_cluste
             )
         ),
     )
+    exchange_sub_pipeline.add_act(
+        act_name=_("注册源/目标集群到cc系统的服务实例"),
+        act_component_code=MySQLDBMetaComponent.code,
+        kwargs=asdict(
+            DBMetaOPKwargs(
+                db_meta_class_func=MySQLDBMeta.tendb_exchange_add_cc.__name__,
+                cluster=cluster_exchange_meta,
+                is_update_trans_data=False,
+            )
+        ),
+    )
+
     return exchange_sub_pipeline.build_sub_process(sub_name=_("域名切换 {} <-> {}".format(src_cluster.id, dst_cluster.id)))
 
 
@@ -428,6 +486,8 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
     @param src_cluster: 源集群
     @param dst_cluster: 目标集群
     """
+    if src_cluster.cluster_type == ClusterType.TenDBSingle.value:
+        return None
     exchange_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
 
     #  先查看是否有dns
@@ -446,25 +506,30 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
 
     if (
         len(src_master_entrys) == 0
-        or len(src_slave_entrys) == 0
-        or len(dst_master_entrys) == 0
-        or len(dst_slave_entrys) == 0
+        and len(src_slave_entrys) == 0
+        and len(dst_master_entrys) == 0
+        and len(dst_slave_entrys) == 0
     ):
         return None
+    if (
+        len(src_master_entrys) > 1
+        or len(src_slave_entrys) > 1
+        or len(dst_master_entrys) > 1
+        or len(dst_slave_entrys) > 1
+    ):
+        raise Exception(_("CLB互换不支持集群存在多个CLB类型的"))
 
     clb_add_list = []
     clb_del_list = []
-    if src_cluster.cluster_type == ClusterType.TenDBSingle.value:
-        return None
-    elif src_cluster.cluster_type == ClusterType.TENDBCLUSTER.value:
-        scr_spider_master_ips = src_cluster.proxyinstance_set.filter(
+    if src_cluster.cluster_type == ClusterType.TenDBCluster.value:
+        scr_spider_masters = src_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
         )
-        dst_spider_master_ips = dst_cluster.proxyinstance_set.filter(
+        dst_spider_masters = dst_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
         )
-        dst_spider_master_ips = [i.machine.ip for i in dst_spider_master_ips]
-        src_spider_master_ips = [i.machine.ip for i in scr_spider_master_ips]
+        dst_spider_master_ips = [i.machine.ip for i in dst_spider_masters]
+        src_spider_master_ips = [i.machine.ip for i in scr_spider_masters]
         if len(src_master_entrys) == 1:
             if len(dst_spider_master_ips) == 0:
                 raise Exception(_("目标集群没有查询到 spider master"))
@@ -494,7 +559,6 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
                     },
                 }
             )
-            # cluster_exchange_clb["source_master_entry_id"] = src_master_entrys[0].id
         if len(dst_master_entrys) == 1:
             if len(src_spider_master_ips) == 0:
                 raise Exception(_("源集群没有查询到 spider master"))
@@ -526,14 +590,14 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
             )
             # cluster_exchange_clb["destination_master_entry_id"] = dst_master_entrys[0].id
 
-        scr_spider_slave_ips = src_cluster.proxyinstance_set.filter(
+        scr_spider_slaves = src_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
         )
-        dst_spider_slave_ips = dst_cluster.proxyinstance_set.filter(
+        dst_spider_slaves = dst_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
         )
-        src_spider_slave_ips = [i.machine.ip for i in scr_spider_slave_ips]
-        dst_spider_slave_ips = [i.machine.ip for i in dst_spider_slave_ips]
+        src_spider_slave_ips = [i.machine.ip for i in scr_spider_slaves]
+        dst_spider_slave_ips = [i.machine.ip for i in dst_spider_slaves]
         if len(src_slave_entrys) == 1:
             if len(dst_spider_slave_ips) == 0:
                 raise Exception(_("目标集群没有查询到 spider slave"))
@@ -563,7 +627,6 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
                     },
                 }
             )
-            # cluster_exchange_clb["source_slave_entry_id"] = src_slave_entrys[0].id
 
         if len(dst_slave_entrys) == 1:
             if len(src_spider_slave_ips) == 0:
@@ -766,7 +829,7 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
         user_grant_sub_pipeline.add_parallel_acts(acts_list=clone_user_acts_list)
         user_grant_sub_pipeline.add_parallel_acts(acts_list=add_proxy_user_acts_list)
 
-    elif src_cluster.cluster_type == ClusterType.TenDBSingle:
+    elif src_cluster.cluster_type == ClusterType.TenDBSingle.value:
         src_master = src_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN.value)
         dst_master = dst_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN.value)
         user_grant_sub_pipeline.add_sub_pipeline(
@@ -779,7 +842,7 @@ def rollback_users_grant(root_id: str, ticket_data: dict, src_cluster: Cluster, 
                 dest_addresses=[dst_master.ip_port],
             )
         )
-    elif src_cluster.cluster_type == ClusterType.TenDBCluster:
+    elif src_cluster.cluster_type == ClusterType.TenDBCluster.value:
         primary_map = Cluster.get_cluster_id__primary_address_map([src_cluster.id])
         primary_address = primary_map.get(src_cluster.id, "")
         primary_address_splits = primary_address.split(IP_PORT_DIVIDER)
