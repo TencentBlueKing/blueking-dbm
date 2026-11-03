@@ -26,10 +26,40 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
 from backend.db_report.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
-from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.builders.common.constants import MySQLBackupSource, MySQLBackupType
 from backend.utils.time import compare_time, datetime2str, str2datetime
 
 logger = logging.getLogger("flow")
+
+_BACKUP_TYPE_LIST = {
+    MySQLBackupType.FULL_BY_TICKET.value,
+    MySQLBackupType.PARTIAL_BY_TICKET.value,
+    MySQLBackupType.FULL_BY_REGULAR.value,
+    MySQLBackupType.NON_FULL_BY_REGULAR.value,
+    MySQLBackupType.FULL_WITH_NODATA.value,
+}
+
+
+def _mysql_quote_literal(value: str) -> str:
+    """
+    对要放入 MySQL 单引号字符串字面量中的内容做转义，
+    用于无法使用参数化查询（如 DRS 远程执行）的场景。
+    """
+    if value is None:
+        return ""
+    return str(value).replace("\\", "\\\\").replace("'", "\\'").replace("\0", "\\0")
+
+
+def _mysql_quote_like(value: str) -> str:
+    """
+    对要放入 LIKE 子句字面量中的内容做转义：
+    1. 先转义反斜杠和单引号
+    2. 再转义 LIKE 通配符 % 和 _，避免被当做通配符
+    """
+    if value is None:
+        return ""
+    escaped = _mysql_quote_literal(value)
+    return escaped.replace("%", "\\%").replace("_", "\\_")
 
 
 class MySQLBackupHandler:
@@ -624,7 +654,7 @@ class MySQLBackupHandler:
         return result
 
     def get_local_backup_infos(
-        self, latest_time: datetime = None, limit: str = "", include_proxy: bool = False, start_time: datetime = None
+        self, latest_time: datetime = None, limit: int = 0, include_proxy: bool = False, start_time: datetime = None
     ) -> list[dict]:
         """
         获取指定集群本地备份信息 本地查询不需要条件 check_instance_exist shard_id filter_ips is_standby
@@ -640,6 +670,10 @@ class MySQLBackupHandler:
         as backup_consistent_time
         from infodba_schema.local_backup_report r
         where 1=1 {condition} order by backup_consistent_time desc {limit}"""
+        limit_str = ""
+        limit_int = int(limit)
+        if limit_int > 0:
+            limit_str = "limit {}".format(limit_int)
         conditions = (
             f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
             f" and backup_status!='local_removed' "
@@ -647,7 +681,8 @@ class MySQLBackupHandler:
 
         if self.backup_id is not None and self.backup_id != "":
             logger.info(_("指定了backup_id {} 查询,其他条件失效".format(self.backup_id)))
-            conditions = f" {conditions} and backup_id='{self.backup_id}'"
+            safe_backup_id = _mysql_quote_literal(self.backup_id)
+            conditions = f" {conditions} and backup_id='{safe_backup_id}'"
         else:
             if self.is_full_backup:
                 # spider dbctl 节点只是备份权限。
@@ -674,6 +709,10 @@ class MySQLBackupHandler:
                 conditions = f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time_str}','+00:00',@@time_zone) "
 
             if self.backup_method is not None and len(self.backup_method) > 0:
+                # backup_method 来自接口参数，做白名单校验，拒绝未知值
+                invalid_methods = [m for m in self.backup_method if m not in _BACKUP_TYPE_LIST]
+                if invalid_methods:
+                    raise ValueError("invalid backup_method: {}".format(invalid_methods))
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
                 backup_method_str = "','".join(self.backup_method)
                 conditions = (
@@ -681,8 +720,10 @@ class MySQLBackupHandler:
                     f" or mysql_role in ('spider_master','TDBCTL'))"
                 )
             if self.need_binlog_check != "":
+                # 用户输入会被拼到 LIKE 字面量中，需转义单引号/反斜杠以及 LIKE 通配符
+                safe_binlog_check = _mysql_quote_like(self.need_binlog_check)
                 logger.info(_("指定备份binlog_info必须匹配信息 {}".format(self.need_binlog_check)))
-                conditions = f" {conditions} and binlog_info like '%{self.need_binlog_check}%' "
+                conditions = f" {conditions} and binlog_info like '%{safe_binlog_check}%' "
 
         backup_infos = []
 
@@ -708,7 +749,7 @@ class MySQLBackupHandler:
 
         for storage in storages:
             conditions_tmp = f" {conditions} and backup_host='{storage.machine.ip}' and backup_port={storage.port} "
-            query_cmds = cmds.format(condition=conditions_tmp, limit=limit)
+            query_cmds = cmds.format(condition=conditions_tmp, limit=limit_str)
             self.query = query_cmds
             logger.info(query_cmds)
             res = DRSApi.rpc(
@@ -752,7 +793,7 @@ class MySQLBackupHandler:
         @param latest_time: 备份最大时间
         @return: 返回一条本地备份记录
         """
-        backup_infos = self.get_local_backup_infos(latest_time=latest_time, limit=" limit 1 ")
+        backup_infos = self.get_local_backup_infos(latest_time=latest_time, limit=1)
         backup_time = "1999-01-01T11:11:11+08:00"
         if backup_infos is None or len(backup_infos) == 0:
             return None

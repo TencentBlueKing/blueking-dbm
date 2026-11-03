@@ -20,10 +20,15 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpNotSupportClusterTypeException,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
+from backend.ticket.builders.common.constants import MySQLBackupType
 
 BYTES_PER_GB = 1024 * 1024 * 1024
 
-DEFAULT_BACKUP_METHODS = ["full_by_ticket", "full_by_regular", "partial_by_ticket"]
+DEFAULT_BACKUP_METHODS = [
+    MySQLBackupType.FULL_BY_TICKET.value,
+    MySQLBackupType.FULL_BY_REGULAR.value,
+    MySQLBackupType.PARTIAL_BY_TICKET.value,
+]
 
 
 def query_backup_logs(

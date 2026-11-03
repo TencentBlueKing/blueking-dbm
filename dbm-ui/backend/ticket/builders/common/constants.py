@@ -97,6 +97,7 @@ class MySQLBackupType(StrStructuredEnum):
     PARTIAL_BY_TICKET = EnumField("partial_by_ticket", _("单据库表备份"))
     FULL_BY_REGULAR = EnumField("full_by_regular", _("例行全备"))
     NON_FULL_BY_REGULAR = EnumField("non_full_by_regular", _("例行非全备"))
+    FULL_WITH_NODATA = EnumField("full_with_nodata", _("备份表结构和权限"))
 
 
 class MySQLChecksumTicketMode(StrStructuredEnum):
