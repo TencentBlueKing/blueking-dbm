@@ -2,7 +2,6 @@
 
 import logging
 
-from django.utils.crypto import constant_time_compare
 from django.utils.translation import gettext as _
 from rest_framework.exceptions import PermissionDenied
 
@@ -30,19 +29,9 @@ def verify_callback(ticket, data):
         flow.flow_obj_id,
         version,
     )
-    token = data.get("token")
-    if not isinstance(token, str) or not token:
-        logger.warning(_("ITSM 回调被拒绝：单据 ID=%s，原因=回调凭证缺失或格式错误"), ticket.pk)
-        raise PermissionDenied(_("ITSM 回调凭证缺失或格式错误"))
-
-    if version == ItsmApiAdapter.V4:
-        if not constant_time_compare(token, get_callback_token(ticket.pk)):
-            logger.warning(_("ITSM 回调被拒绝：单据 ID=%s，版本=v4，原因=回调凭证不匹配"), ticket.pk)
-            raise PermissionDenied(_("无效的 ITSM 回调凭证"))
-    else:
-        # 组件接口已解包外层响应，此处读取 data 中的校验结果。
-        result = ItsmApiAdapter.verify_token({"token": token}, use_admin=True)
-        if not isinstance(result, dict) or result.get("is_passed") is not True:
-            logger.warning(_("ITSM 回调被拒绝：单据 ID=%s，版本=v3，原因=回调凭证无效"), ticket.pk)
-            raise PermissionDenied(_("无效的 ITSM 回调凭证"))
+    try:
+        ItsmApiAdapter.verify_callback(ticket.pk, flow.flow_obj_id, data)
+    except PermissionDenied as exc:
+        logger.warning(_("ITSM 回调被拒绝：单据 ID=%s，版本=%s，原因=%s"), ticket.pk, version, exc.detail)
+        raise
     logger.info(_("ITSM 回调校验通过：单据 ID=%s，版本=%s"), ticket.pk, version)

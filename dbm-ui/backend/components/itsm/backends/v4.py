@@ -4,8 +4,9 @@ import json
 import re
 from urllib.parse import urlsplit
 
-from django.utils.crypto import salted_hmac
+from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.translation import gettext as _
+from rest_framework.exceptions import PermissionDenied
 
 from ..client import ItsmV4Api
 from ..constants import ItsmTicketStatus, ItsmV4TicketStatus
@@ -17,6 +18,14 @@ class ItsmV4Backend(BaseItsmBackend):
 
     version = "v4"
     SN_PREFIX = "ITSM_V4:"
+
+    def verify_callback(self, ticket_id, data):
+        """校验 V4 回调中的 callback_token，凭证与 DBM 单据绑定。"""
+        token = data.get("callback_token")
+        if not isinstance(token, str) or not token:
+            raise PermissionDenied(_("ITSM 回调凭证缺失或格式错误"))
+        if not constant_time_compare(token, self.get_callback_token(ticket_id)):
+            raise PermissionDenied(_("无效的 ITSM 回调凭证"))
 
     @staticmethod
     def get_callback_token(ticket_id):
