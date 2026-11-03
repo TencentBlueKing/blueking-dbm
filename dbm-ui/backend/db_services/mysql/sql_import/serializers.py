@@ -31,9 +31,10 @@ from backend.ticket.constants import TicketType
 class ExecuteSQLObjectsSerializer(serializers.Serializer):
     dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
     ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
+    # 语法检查会用实际上传的文件名覆盖这里，页面占位符是 "/"
     sql_files = serializers.ListField(
         help_text=_("sql执行文件"),
-        child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+        child=serializers.CharField(trim_whitespace=False),
         allow_empty=True,
     )
 
