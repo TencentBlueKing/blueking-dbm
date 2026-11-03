@@ -107,6 +107,7 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
         # switch_version 用于区分 v2 的日志详情接口，但 env.ENABLE_DBHA_V2_SWITCH_LOG = False 时禁用 v2 接口
         if switch_version == "v2" and env.ENABLE_DBHA_V2_SWITCH_LOG:
             # 由于在 v2 中一条切换记录包含多个实例信息，所以 v2 需要额外的 ip, port 参数来定位具体的实例日志
+            log_source = "dbhav2"
             logs = HADBApiV2.switch_logs(
                 params={
                     "query_args": {
@@ -118,6 +119,7 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
                 raw=False,
             )
         else:
+            log_source = "dbha"
             logs = HADBApi.switch_logs(
                 params={"name": "query_switch_log", "query_args": {"sw_id": validated_data["sw_id"]}},
                 raw=False,
@@ -132,7 +134,7 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
                 {
                     "timestamp": datetime.timestamp(log_time) * 1000,
                     "levelname": log.get("result"),
-                    "message": f"[dbha]: {log['comment']}",
+                    "message": f"[{log_source}]: {log['comment']}",
                 }
             )
 
