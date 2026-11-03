@@ -29,8 +29,8 @@ class MySQLCloneRulesPluginSerializer(serializers.Serializer):
     source = serializers.CharField(help_text=_("源IP"))
     target = serializers.ListField(help_text=_("目标IP列表"), child=serializers.CharField())
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    user = serializers.CharField(help_text=_("用户名"))
-    target_instances = serializers.ListField(help_text=_("目标域名"), child=serializers.CharField())
+    user = serializers.CharField(help_text=_("用户名"), required=False)
+    target_instances = serializers.ListField(help_text=_("目标域名"), child=serializers.CharField(), required=False)
 
 
 class MySQLCloneRulesSerializer(MySQLBaseOperateDetailSerializer):
