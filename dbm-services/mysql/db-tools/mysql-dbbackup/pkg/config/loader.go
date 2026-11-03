@@ -37,6 +37,8 @@ type LogicalLoad struct {
 	DBListDropIfExists string `ini:"DBListDropIfExists"`
 	// CreateTableIfNotExists true will add --append-if-not-exist for myloader
 	CreateTableIfNotExists bool `ini:"CreateTableIfNotExists"`
+	// SkipRewriteInfodbaSchema default false means rewrite infodba_schema
+	SkipRewriteInfodbaSchema bool `ini:"SkipRewriteInfodbaSchema"`
 
 	// filterType form, regex, tables
 	TableFilter `ini:"LogicalLoad" mapstructure:",squash"` // viper squash is used to simplify code
