@@ -18,6 +18,7 @@ from backend.db_periodic_task.dispatch import (  # noqa: F401  # isort:skip — 
     pump,
     stats_publisher,
 )
+from backend.db_periodic_task import clb_snapshot  # noqa: F401  # isort:skip — registers clb_snapshot task
 
 # 再导入各个任务模块
 from backend.db_periodic_task.local_tasks.ai_mysql_tasks.mysql_slowlog_analysis import *

@@ -19,7 +19,10 @@ from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_check import check_mysql_affinity
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo import tendbcluster, tendbha
-from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.redis_cluster_check import check_redis_clusters
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.redis_cluster_check import (
+    check_redis_clusters,
+    submit_redis_clb_snapshot,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.sqlserver_cluster_topo.check import (
     sqlserver_dbmeta_check,
 )
@@ -29,6 +32,14 @@ from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summar
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 
 logger = logging.getLogger("celery")
+
+
+@register_periodic_task(run_every=crontab(minute=3, hour=0))
+def redis_clb_snapshot_task():
+    """
+    为 Redis 入口巡检提前生成 CLB 快照（早于 02:03 的巡检）
+    """
+    submit_redis_clb_snapshot()
 
 
 @register_periodic_task(run_every=crontab(minute=3, hour=2))

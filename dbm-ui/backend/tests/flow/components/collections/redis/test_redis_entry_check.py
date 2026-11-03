@@ -6,13 +6,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_periodic_task.clb_snapshot import CLBEntrySnapshot, ClusterCLBSnapshot
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
-from backend.exceptions import ApiRequestError
-from backend.flow.plugins.components.collections.redis.redis_entry_check import (
-    CLB_DESCRIBE_HEALTH_QPS,
-    RedisEntryCheckService,
-)
+from backend.flow.plugins.components.collections.redis import redis_entry_check
+from backend.flow.plugins.components.collections.redis.redis_entry_check import RedisEntryCheckService
 from backend.flow.utils.clb_manage import CLBManage
+
+CLB_ENTRY_ID = 11
+HOUR = 3600
 
 
 @pytest.fixture
@@ -20,14 +21,21 @@ def service():
     svc = RedisEntryCheckService()
     svc.log_warning = MagicMock()
     svc.log_exception = MagicMock()
+    svc.log_info = MagicMock()
     return svc
 
 
 @pytest.fixture
-def health_gate():
-    gate = MagicMock()
-    with patch.object(RedisEntryCheckService, "clb_health_gate", gate):
-        yield gate
+def no_name_service():
+    """Fail the test if the CLB branch touches the name service in any way."""
+    with patch.object(CLBManage, "get_clb_rs") as get_rs, patch.object(
+        CLBManage, "describe_target_health"
+    ) as describe, patch("backend.components.NameServiceApi.clb_get_target_private_ips") as private_ips, patch(
+        "backend.components.NameServiceApi.clb_describe_target_health"
+    ) as api_health:
+        yield
+    for mocked in (get_rs, describe, private_ips, api_health):
+        assert not mocked.called
 
 
 def _proxy_cluster(entries, proxy_ips=("1.1.1.1",)):
@@ -44,61 +52,49 @@ def _proxy_cluster(entries, proxy_ips=("1.1.1.1",)):
     )
 
 
-def _clb_entry(clb_id="lb-1", clb_region="ap-guangzhou"):
-    detail = SimpleNamespace(clb_id=clb_id, clb_ip="3.3.3.3", listener_id="lbl-1", clb_region=clb_region)
+def _clb_entry(entry_id=CLB_ENTRY_ID):
     return SimpleNamespace(
-        entry="3.3.3.3",
-        cluster_entry_type=ClusterEntryType.CLB.value,
-        forward_to=None,
-        clbentrydetail_set=SimpleNamespace(all=lambda: [detail]),
+        id=entry_id, entry="3.3.3.3", cluster_entry_type=ClusterEntryType.CLB.value, forward_to=None
     )
 
 
 def _entry(entry_type, name="redis.test.db"):
-    return SimpleNamespace(entry=name, cluster_entry_type=entry_type, forward_to=None, detail={"polaris_name": "p"})
+    return SimpleNamespace(
+        id=99, entry=name, cluster_entry_type=entry_type, forward_to=None, detail={"polaris_name": "p"}
+    )
 
 
-def test_clb_health_gate_spaces_calls_across_instances():
-    first, second = RedisEntryCheckService(), RedisEntryCheckService()
-    assert first.clb_health_gate is second.clb_health_gate
-
-    first.clb_health_gate.acquire()
-    start = time.monotonic()
-    second.clb_health_gate.acquire()
-    assert time.monotonic() - start >= 1.0 / CLB_DESCRIBE_HEALTH_QPS - 0.005
+def _snap(age_hours=3.0, entry_id=CLB_ENTRY_ID, **entry_fields):
+    fields = {"listener_rs": ["1.1.1.1:30000"], "unhealthy_rs": [], **entry_fields}
+    entry = CLBEntrySnapshot(cluster_entry_id=entry_id, entry="3.3.3.3", clb_id="lb-1", region="ap-test", **fields)
+    return ClusterCLBSnapshot(cluster_id=1, checked_at=time.time() - age_hours * HOUR, entries=[entry])
 
 
-def test_health_query_only_for_clb_with_id_and_region(service, health_gate):
+# ---------------------------------------------------------------- CLB data source
+
+
+def test_clb_branch_reads_snapshot_only(service, no_name_service):
     cluster = _proxy_cluster([])
-    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
-        CLBManage, "describe_target_health", return_value={"abnormalips": []}
-    ) as describe, patch.object(service, "_get_dns_ips", return_value=({"1.1.1.1"}, None)), patch.object(
+    assert service._check_entry_consistency(cluster, _clb_entry(), _snap()) is None
+
+
+def test_non_clb_entries_ignore_clb_health(service, no_name_service):
+    cluster = _proxy_cluster([])
+    snap = _snap(unhealthy_rs=["1.1.1.1:30000"])
+    with patch.object(service, "_get_dns_ips", return_value=({"1.1.1.1"}, None)), patch.object(
         service, "_get_polaris_ips", return_value=({"1.1.1.1"}, None)
     ):
-        assert service._check_entry_consistency(cluster, _clb_entry()) is None
-        assert describe.call_count == 1
-
         for entry in (
             _entry(ClusterEntryType.DNS.value),
             _entry(ClusterEntryType.CLBDNS.value),
             _entry(ClusterEntryType.POLARIS.value),
-            _clb_entry(clb_id=""),
-            _clb_entry(clb_region=""),
         ):
-            service._check_entry_consistency(cluster, entry)
-
-    assert describe.call_count == 1
-    assert health_gate.acquire.call_count == 1
+            assert service._check_entry_consistency(cluster, entry, snap) is None
 
 
-def test_unhealthy_is_listener_intersection(service, health_gate):
+def test_unhealthy_rs_from_snapshot_is_reported(service, no_name_service):
     cluster = _proxy_cluster([])
-    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
-        CLBManage,
-        "describe_target_health",
-        return_value={"totalcount": 2, "abnormalcount": 2, "abnormalips": ["1.1.1.1:30000", "2.2.2.2:30000"]},
-    ):
-        detail = service._check_entry_consistency(cluster, _clb_entry())
+    detail = service._check_entry_consistency(cluster, _clb_entry(), _snap(unhealthy_rs=["1.1.1.1:30000"]))
 
     assert detail["unhealthy_rs"] == ["1.1.1.1:30000"]
     assert "missing_ips" not in detail
@@ -106,46 +102,105 @@ def test_unhealthy_is_listener_intersection(service, health_gate):
     assert row["state"] == ReportStateType.ABNORMAL
     assert row["subtype"] == MetaCheckSubType.EntryInconsistent
     assert "unhealthy: 1.1.1.1:30000" in row["msg"]
-    assert "2.2.2.2" not in row["msg"]
 
 
-def test_abnormal_outside_listener_keeps_report_normal(service, health_gate):
+def test_membership_uses_snapshot_listener_rs(service, no_name_service):
+    cluster = _proxy_cluster([], proxy_ips=("1.1.1.1", "1.1.1.9"))
+    detail = service._check_entry_consistency(cluster, _clb_entry(), _snap(listener_rs=["1.1.1.1:30000"]))
+    assert detail["missing_ips"] == ["1.1.1.9"]
+
+
+def test_incomplete_metadata_error_is_reported(service, no_name_service):
+    cluster = _proxy_cluster([])
+    snap = _snap(listener_rs=None, unhealthy_rs=None, meta_error="CLB metadata incomplete")
+    detail = service._check_entry_consistency(cluster, _clb_entry(), snap)
+    assert detail["error"] == "CLB metadata incomplete"
+    assert "missing_ips" not in detail
+
+
+def test_unknown_listener_rs_is_query_failure_not_missing(service, no_name_service):
+    cluster = _proxy_cluster([])
+    snap = _snap(listener_rs=None, unhealthy_rs=None, listener_rs_error="CLB listener RS query failed: err")
+    detail = service._check_entry_consistency(cluster, _clb_entry(), snap)
+    assert detail["error"] == "CLB listener RS query failed: err"
+    assert "missing_ips" not in detail
+    row = RedisEntryCheckService._build_entry_report_row(cluster, [detail])
+    assert "missing:" not in row["msg"]
+    assert row["state"] == ReportStateType.ABNORMAL
+
+
+# ---------------------------------------------------------------- snapshot age
+
+
+def test_fresh_snapshot_without_findings_is_normal(service, no_name_service):
     cluster = _proxy_cluster([_clb_entry()])
-    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
-        CLBManage, "describe_target_health", return_value={"abnormalcount": 1, "abnormalips": ["2.2.2.2:30000"]}
-    ):
-        result = service._check_single_cluster(cluster)
-
+    result = service._check_single_cluster(cluster, _snap(age_hours=3))
     assert result["inconsistent"] == 0
     assert result["report_row"]["state"] == ReportStateType.NORMAL
 
 
-def test_null_abnormalips_when_healthy_keeps_report_normal(service, health_gate):
+def test_stale_snapshot_without_findings_is_warning(service, no_name_service):
     cluster = _proxy_cluster([_clb_entry()])
-    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
-        CLBManage, "describe_target_health", return_value={"totalcount": 15, "abnormalcount": 0, "abnormalips": None}
-    ):
-        result = service._check_single_cluster(cluster)
-
+    result = service._check_single_cluster(cluster, _snap(age_hours=30))
+    row = result["report_row"]
+    assert row["state"] == ReportStateType.WARNING
+    assert "CLB snapshot stale (30h old)" in row["msg"]
     assert result["inconsistent"] == 0
-    assert result["report_row"]["state"] == ReportStateType.NORMAL
+    service.log_warning.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    "describe_kwargs",
-    [
-        {"side_effect": ApiRequestError("404 not found")},
-        {"side_effect": RuntimeError("boom")},
-        {"return_value": {}},
-    ],
-)
-def test_health_query_failure_is_recorded_and_batch_continues(service, health_gate, describe_kwargs):
+def test_stale_snapshot_with_unhealthy_rs_is_abnormal(service, no_name_service):
+    cluster = _proxy_cluster([_clb_entry()])
+    result = service._check_single_cluster(cluster, _snap(age_hours=30, unhealthy_rs=["1.1.1.1:30000"]))
+    row = result["report_row"]
+    assert result["inconsistent"] == 1
+    assert row["state"] == ReportStateType.ABNORMAL
+    assert "unhealthy: 1.1.1.1:30000" in row["msg"]
+    assert "CLB snapshot stale (30h old)" in row["msg"]
+
+
+def test_outdated_snapshot_is_not_used(service, no_name_service):
+    cluster = _proxy_cluster([_clb_entry()], proxy_ips=("1.1.1.1", "1.1.1.9"))
+    row = service._check_single_cluster(cluster, _snap(age_hours=50, unhealthy_rs=["1.1.1.1:30000"]))["report_row"]
+    assert row["state"] == ReportStateType.ABNORMAL
+    assert "CLB snapshot outdated (50h old)" in row["msg"]
+    assert "missing:" not in row["msg"]
+    assert "unhealthy:" not in row["msg"]
+
+
+def test_missing_snapshot_is_abnormal(service, no_name_service):
+    cluster = _proxy_cluster([_clb_entry()])
+    row = service._check_single_cluster(cluster, None)["report_row"]
+    assert row["state"] == ReportStateType.ABNORMAL
+    assert "CLB snapshot missing" in row["msg"]
+
+
+def test_entry_absent_from_snapshot_is_abnormal(service, no_name_service):
+    cluster = _proxy_cluster([_clb_entry(entry_id=12)])
+    row = service._check_single_cluster(cluster, _snap())["report_row"]
+    assert row["state"] == ReportStateType.ABNORMAL
+    assert "CLB snapshot has no record of this entry" in row["msg"]
+
+
+def test_warning_only_when_every_finding_is_stale():
+    cluster = SimpleNamespace(id=1, immute_domain="redis.test.db")
+    stale = {"entry_type": "clb", "entry_name": "a", "snapshot_stale": "CLB snapshot stale (30h old)"}
+    missing = {"entry_type": "dns", "entry_name": "b", "missing_ips": ["1.1.1.9"]}
+    assert RedisEntryCheckService._build_entry_report_row(cluster, [stale])["state"] == ReportStateType.WARNING
+    assert (
+        RedisEntryCheckService._build_entry_report_row(cluster, [stale, missing])["state"] == ReportStateType.ABNORMAL
+    )
+
+
+# ---------------------------------------------------------------- health errors
+
+
+def test_health_error_is_recorded_and_batch_continues(service, no_name_service):
     dns_entry = _entry(ClusterEntryType.DNS.value)
     cluster = _proxy_cluster([_clb_entry(), dns_entry])
-    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
-        CLBManage, "describe_target_health", **describe_kwargs
-    ), patch.object(service, "_get_dns_ips", return_value=({"2.2.2.2"}, None)) as dns:
-        result = service._check_single_cluster(cluster)
+    snap = _snap(unhealthy_rs=None, health_error="CLB target health query failed: boom")
+    with patch.object(service, "_get_dns_ips", return_value=({"2.2.2.2"}, None)) as dns:
+        result = service._check_single_cluster(cluster, snap)
 
     assert "error" not in result
     assert result["checked"] == 2
@@ -156,30 +211,18 @@ def test_health_query_failure_is_recorded_and_batch_continues(service, health_ga
     assert "unhealthy" not in msg
 
 
-def test_membership_mismatch_and_health_failure_share_one_row(service, health_gate):
+def test_membership_mismatch_and_health_failure_share_one_row(service, no_name_service):
     cluster = _proxy_cluster([_clb_entry()], proxy_ips=("1.1.1.1", "1.1.1.9"))
-    with patch.object(CLBManage, "get_clb_rs", return_value=["1.1.1.1:30000"]), patch.object(
-        CLBManage, "describe_target_health", return_value={}
-    ):
-        result = service._check_single_cluster(cluster)
+    snap = _snap(unhealthy_rs=None, health_error="CLB target health query failed: empty or invalid response")
+    row = service._check_single_cluster(cluster, snap)["report_row"]
 
-    row = result["report_row"]
     assert row["state"] == ReportStateType.ABNORMAL
     assert row["subtype"] == MetaCheckSubType.EntryInconsistent
     assert "missing: 1.1.1.9" in row["msg"]
     assert "CLB target health query failed" in row["msg"]
 
 
-def test_load_batch_clusters_prefetches_clb_details():
-    qs = MagicMock()
-    qs.prefetch_related.return_value = []
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_entry_check.Cluster.objects.filter",
-        return_value=qs,
-    ):
-        RedisEntryCheckService._load_batch_clusters([1])
-
-    assert "clusterentry_set__clbentrydetail_set" in qs.prefetch_related.call_args.args
+# ---------------------------------------------------------------- batch plumbing
 
 
 def test_load_batch_clusters_prefetches_ids(service):
@@ -194,6 +237,7 @@ def test_load_batch_clusters_prefetches_ids(service):
 
     cluster_filter.assert_called_once_with(id__in=[1, 2])
     qs.prefetch_related.assert_called_once()
+    assert "clusterentry_set__clbentrydetail_set" not in qs.prefetch_related.call_args.args
     assert result == {1: cluster}
 
 
@@ -218,7 +262,23 @@ def test_check_single_cluster_returns_report_row_without_db_write(service):
     assert result["checked"] == 0
 
 
-def test_schedule_writes_reports_on_main_thread(service):
+def _ok_result(cluster):
+    return {
+        "checked": 1,
+        "inconsistent": 0,
+        "report_row": {
+            "cluster": cluster,
+            "ip": None,
+            "port": None,
+            "subtype": MetaCheckSubType.EntryInconsistent,
+            "msg": "ok",
+            "state": ReportStateType.NORMAL,
+            "creator": "system",
+        },
+    }
+
+
+def _schedule_data(total_batches):
     data = MagicMock()
     data.outputs = {
         "candidates_key": "key",
@@ -226,73 +286,60 @@ def test_schedule_writes_reports_on_main_thread(service):
         "current_batch": 0,
         "total_checked": 0,
         "total_inconsistent": 0,
-        "total_batches": 1,
+        "total_batches": total_batches,
     }
+    return data
+
+
+def test_schedule_passes_batch_snapshots_to_workers(service):
+    data = _schedule_data(total_batches=1)
     cluster = SimpleNamespace(id=1, immute_domain="redis.test.db")
+    snap = _snap()
     service._pop_batch_from_redis = MagicMock(return_value=[1])
     service._load_batch_clusters = MagicMock(return_value={1: cluster})
-    service._check_single_cluster = MagicMock(
-        return_value={
-            "checked": 1,
-            "inconsistent": 0,
-            "report_row": {
-                "cluster": cluster,
-                "ip": None,
-                "port": None,
-                "subtype": MetaCheckSubType.EntryInconsistent,
-                "msg": "ok",
-                "state": ReportStateType.NORMAL,
-                "creator": "system",
-            },
-        }
-    )
+    service._check_single_cluster = MagicMock(return_value=_ok_result(cluster))
     service.finish_schedule = MagicMock()
     service.log_info = MagicMock()
 
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_entry_check.safe_write_meta_reports",
-        return_value=True,
+    with patch.object(redis_entry_check.clb_snapshot, "get_many", return_value={1: snap}) as get_many, patch.object(
+        redis_entry_check, "safe_write_meta_reports", return_value=True
     ) as safe_write:
         service._schedule(data, parent_data=None)
 
+    get_many.assert_called_once_with([1])
     safe_write.assert_called_once()
-    service._check_single_cluster.assert_called_once_with(cluster)
+    service._check_single_cluster.assert_called_once_with(cluster, snap)
+
+
+def test_schedule_treats_unreadable_snapshots_as_missing(service):
+    data = _schedule_data(total_batches=1)
+    cluster = SimpleNamespace(id=1, immute_domain="redis.test.db")
+    service._pop_batch_from_redis = MagicMock(return_value=[1])
+    service._load_batch_clusters = MagicMock(return_value={1: cluster})
+    service._check_single_cluster = MagicMock(return_value=_ok_result(cluster))
+    service.finish_schedule = MagicMock()
+    service.log_info = MagicMock()
+
+    with patch.object(
+        redis_entry_check.clb_snapshot, "get_many", side_effect=RuntimeError("cache down")
+    ), patch.object(redis_entry_check, "safe_write_meta_reports", return_value=True):
+        service._schedule(data, parent_data=None)
+
+    service._check_single_cluster.assert_called_once_with(cluster, None)
+    service.log_exception.assert_called_once()
 
 
 def test_schedule_requeues_batch_when_write_fails(service):
-    data = MagicMock()
-    data.outputs = {
-        "candidates_key": "key",
-        "batch_size": 2,
-        "current_batch": 0,
-        "total_checked": 0,
-        "total_inconsistent": 0,
-        "total_batches": 2,
-    }
+    data = _schedule_data(total_batches=2)
     cluster = SimpleNamespace(id=1, immute_domain="redis.test.db")
     service._pop_batch_from_redis = MagicMock(return_value=[1, 2])
     service._load_batch_clusters = MagicMock(return_value={1: cluster})
-    service._check_single_cluster = MagicMock(
-        return_value={
-            "checked": 1,
-            "inconsistent": 0,
-            "report_row": {
-                "cluster": cluster,
-                "ip": None,
-                "port": None,
-                "subtype": MetaCheckSubType.EntryInconsistent,
-                "msg": "ok",
-                "state": ReportStateType.NORMAL,
-                "creator": "system",
-            },
-        }
-    )
+    service._check_single_cluster = MagicMock(return_value=_ok_result(cluster))
     service._requeue_batch_to_redis = MagicMock()
     service.log_warning = MagicMock()
 
-    with patch(
-        "backend.flow.plugins.components.collections.redis.redis_entry_check.safe_write_meta_reports",
-        return_value=False,
+    with patch.object(redis_entry_check.clb_snapshot, "get_many", return_value={}), patch.object(
+        redis_entry_check, "safe_write_meta_reports", return_value=False
     ):
         service._schedule(data, parent_data=None)
 
