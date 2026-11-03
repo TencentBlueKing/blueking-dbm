@@ -619,7 +619,9 @@ class CheckNodeDurationForAIService(SidecarServiceABC):
             self.log_info(
                 _("[NodeDuration] 推送 P95 提醒 node_id={} elapsed={}s".format(rn.node.node_id, rn.elapsed_seconds))
             )
-            notify.send_msg_for_ai_task_guardian(ticket_id=ctx["ticket_id"], ai_result=content)
+            notify.send_msg_for_ai_task_guardian(
+                ticket_id=ctx["ticket_id"], ai_result=content, receiver_role=notify.ReceiverRole.FIRST_DBA
+            )
         except Exception as err:
             # 推送失败不更新 p95_notified，下一轮重试
             self.log_error(_("[NodeDuration] P95 推送失败 node_id={} err={}".format(rn.node.node_id, err)))
@@ -695,7 +697,9 @@ class CheckNodeDurationForAIService(SidecarServiceABC):
             self.log_info(
                 _("[NodeDuration] 推送 P99 提醒 node_id={} elapsed={}s".format(rn.node.node_id, rn.elapsed_seconds))
             )
-            notify.send_msg_for_ai_task_guardian(ticket_id=ctx["ticket_id"], ai_result=content)
+            notify.send_msg_for_ai_task_guardian(
+                ticket_id=ctx["ticket_id"], ai_result=content, receiver_role=notify.ReceiverRole.FIRST_DBA
+            )
         except Exception as err:
             self.log_error(_("[NodeDuration] P99 推送失败 node_id={} err={}".format(rn.node.node_id, err)))
             return
