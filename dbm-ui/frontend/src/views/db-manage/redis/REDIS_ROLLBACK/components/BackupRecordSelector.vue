@@ -355,6 +355,14 @@
     return recoveryValue < lowerBoundValue;
   });
 
+  // 构造到晚于当前实际时间（未来时间无法构造）
+  const isRecoveryFuture = computed(() => {
+    if (!recoveryTimePoint.value) {
+      return false;
+    }
+    return dayjs(`${recoveryTimePoint.value}${getTimeZoneOffset()}`).valueOf() > dayjs().valueOf();
+  });
+
   // Key 筛选命中（shard_route 反查结果）：有 key 筛选时表格只展示命中的分片，无 key 展示全量
   const keyHitShardValues = ref<string[]>([]);
 
@@ -407,13 +415,16 @@
     if (scope.value === 'pick' && checkedShardValues.value.length === 0) {
       return true;
     }
-    return isRecoveryInvalid.value;
+    return isRecoveryInvalid.value || isRecoveryFuture.value;
   });
 
   // 确认按钮 tooltips：仅禁用时提示原因，可用时不显示
   const confirmTooltip = computed(() => {
     if (!selectedBatch.value) {
       return { content: t('请先在左侧选择备份记录'), disabled: false };
+    }
+    if (isRecoveryFuture.value) {
+      return { content: t('构造到的时间不能晚于当前时间'), disabled: false };
     }
     if (isRecoveryInvalid.value) {
       return {

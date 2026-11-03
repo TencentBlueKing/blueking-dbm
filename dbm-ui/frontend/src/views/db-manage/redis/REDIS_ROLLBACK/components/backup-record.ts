@@ -16,6 +16,8 @@ import { BackupType } from '@services/model/redis/rollback-batch';
 
 import { useTimeZoneFormat } from '@hooks';
 
+import { ClusterTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 // 行内已选的备份记录快照（选择器确认后写入行数据）
@@ -66,7 +68,10 @@ export const createBackupRecord = (values = {} as Partial<IBackupRecord>): IBack
 export const getBackupTypeText = (identify: string) => (identify.startsWith('BILL') ? t('单据备份') : t('例行备份'));
 
 // TendisSSD / TendisPlus 有 binlog，可填写构造到
-export const hasBinlog = (clusterType: string) => /tendisssd|tendisplus/i.test(clusterType);
+export const hasBinlog = (clusterType: string) =>
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE, ClusterTypes.TWEMPROXY_TENDISPLUS_INSTANCE].includes(
+    clusterType as ClusterTypes,
+  );
 
 export const getScopeText = (record: IBackupRecord) =>
   record.scope === 'all'

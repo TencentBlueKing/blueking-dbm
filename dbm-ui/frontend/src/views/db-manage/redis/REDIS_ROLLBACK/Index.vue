@@ -123,6 +123,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -426,13 +427,22 @@
       });
   };
 
-  // 备份记录 / 构造范围 / 构造到 / binlog 勾选任一变更后重新预校验；集群解析完成（拿到 id）后同样重跑
+  // 备份记录 / 构造范围 / 构造到 / binlog 勾选 / 构造主机数量任一变更后重新预校验；集群解析完成（拿到 id）后同样重跑。
+  // 加防抖：分片变化会联动下调构造主机数量，等联动完成后再用最终参数发起校验
+  const pendingPrecheckIndexes = new Set<number>();
+  const schedulePrecheck = _.debounce(() => {
+    const indexes = [...pendingPrecheckIndexes];
+    pendingPrecheckIndexes.clear();
+    indexes.forEach((rowIndex) => runPrecheck(formData.tableData[rowIndex]));
+  }, 300);
+
   watch(
-    () => formData.tableData.map((item) => `${item.cluster.id}_${JSON.stringify(item.backupRecord)}`),
+    () => formData.tableData.map((item) => `${item.cluster.id}_${item.hostCount}_${JSON.stringify(item.backupRecord)}`),
     (newList, oldList) => {
       newList.forEach((snapshot, index) => {
         if (snapshot !== oldList?.[index]) {
-          runPrecheck(formData.tableData[index]);
+          pendingPrecheckIndexes.add(index);
+          schedulePrecheck();
         }
       });
     },
