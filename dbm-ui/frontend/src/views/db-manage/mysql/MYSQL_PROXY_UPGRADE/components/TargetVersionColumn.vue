@@ -118,6 +118,7 @@
     (value) => {
       if (value) {
         fetchClusterVersions({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_type: 'mysql',
           pkg_type: 'mysql-proxy',
         });
