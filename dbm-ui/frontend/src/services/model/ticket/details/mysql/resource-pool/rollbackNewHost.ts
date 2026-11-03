@@ -42,7 +42,7 @@ export interface RollbackNewHost extends DetailBase {
       databases_ignore?: string[];
       label?: {
         label_names: string[];
-        labels: number[];
+        labels: string[];
       };
       rollback_time?: string;
       rollback_type: 'REMOTE_AND_TIME' | 'REMOTE_AND_BACKUPID' | 'LOCAL_AND_TIME' | 'LOCAL_AND_BACKUPID';

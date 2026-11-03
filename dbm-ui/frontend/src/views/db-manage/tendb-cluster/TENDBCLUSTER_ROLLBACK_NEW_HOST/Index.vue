@@ -364,7 +364,7 @@
             master_domain: clusters?.[info.cluster_id]?.immute_domain || '',
           },
           labels: (info.label?.labels || []).map((id, index) => ({
-            id,
+            id: Number(id),
             value: info.label?.label_names[index] || '',
           })),
         }),
@@ -432,7 +432,7 @@
             databases_ignore: [],
             label: {
               label_names: item.labels.map((label) => label.value),
-              labels: item.labels.map((label) => label.id),
+              labels: item.labels.map((label) => String(label.id)),
             },
             rollback_time:
               formData.rollbackMethod === 'TIME' && item.backupTime ? formatDateToUTC(item.backupTime) : undefined,
