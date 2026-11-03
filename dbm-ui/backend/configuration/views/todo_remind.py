@@ -37,9 +37,13 @@ class TodoRemindViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(operation_summary=_("查询代办提醒配置"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
     def get_todo_remind_conf(self, request, *args, **kwargs):
-        todo_remind_conf = SystemSettings.get_setting_value(
-            SystemSettingsEnum.DBM_DAILY_TODO_REMIND, default=DAILY_TODO_REMIND_DEFAULT
+        todo_remind_conf = dict(
+            SystemSettings.get_setting_value(
+                SystemSettingsEnum.DBM_DAILY_TODO_REMIND, default=DAILY_TODO_REMIND_DEFAULT
+            )
         )
+        # 历史配置中没有群通知规则字段，返回空列表避免前端拿到 undefined
+        todo_remind_conf.setdefault("wecom_group_rules", [])
         return Response(todo_remind_conf)
 
     @common_swagger_auto_schema(operation_summary=_("新增代办提醒配置"), tags=[SWAGGER_TAG])

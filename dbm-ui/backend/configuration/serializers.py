@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
+from collections import Counter
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -79,6 +80,27 @@ class ProfileSerializer(serializers.Serializer):
     values = serializers.JSONField()
 
 
+class TodoRemindWecomRuleSerializer(serializers.Serializer):
+    """单条企微群通知规则"""
+
+    chat_id = serializers.CharField(help_text=_("企微群ID"), max_length=LEN_NORMAL)
+    components = serializers.ListField(
+        child=serializers.ChoiceField(help_text=_("数据库组件类型"), choices=DBType.get_choices()),
+        allow_empty=False,
+        help_text=_("待办人员范围：数据库组件类型，如 mysql、redis，按所选组件圈定全平台当前 DBA"),
+    )
+
+    def validate_chat_id(self, value):
+        chat_id = (value or "").strip()
+        if not chat_id:
+            raise serializers.ValidationError(_("企微群 ID 不能为空"))
+        return chat_id
+
+    def validate_components(self, value):
+        # 同一规则内重复选择的组件去重（同一组件可被多条规则使用，此处不做拦截）
+        return list(dict.fromkeys(value))
+
+
 class TodoRemindSerializer(serializers.Serializer):
     class TodoCrontabSerializer(serializers.Serializer):
         minute = serializers.CharField(help_text=_("分钟"))
@@ -88,6 +110,27 @@ class TodoRemindSerializer(serializers.Serializer):
     is_enable = serializers.BooleanField(help_text=_("是否开启"), default=True)
     remind_time = TodoCrontabSerializer(help_text=_("通知周期"))
     notice = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("通知渠道"))
+    wecom_group_rules = TodoRemindWecomRuleSerializer(many=True, required=False, default=list, help_text=_("企微群通知规则"))
+
+    def validate(self, attrs):
+        wecom_group_rules = attrs.get("wecom_group_rules") or []
+
+        # 企微群 ID 全局唯一：同一群 ID 只允许配置一条规则
+        duplicated_chat_ids = [
+            chat_id for chat_id, count in Counter(rule["chat_id"] for rule in wecom_group_rules).items() if count > 1
+        ]
+        if duplicated_chat_ids:
+            raise serializers.ValidationError(
+                {"wecom_group_rules": _("企微群 ID 不能重复配置：{}").format("，".join(duplicated_chat_ids))}
+            )
+
+        # 开启提醒时，至少要有一个可用的通知渠道（个人渠道或群通知规则）
+        has_personal_notice = any(conf.get("type") for conf in attrs.get("notice") or [])
+        if attrs.get("is_enable") and not has_personal_notice and not wecom_group_rules:
+            raise serializers.ValidationError(_("请至少配置一种通知渠道"))
+
+        attrs["wecom_group_rules"] = wecom_group_rules
+        return attrs
 
 
 class ProfileSqlSerializer(serializers.Serializer):
