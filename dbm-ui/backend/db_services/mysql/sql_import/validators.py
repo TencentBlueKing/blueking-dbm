@@ -40,3 +40,25 @@ def validate_sql_file_list(names: List[str]) -> List[str]:
     for name in names:
         validate_sql_file_name(name)
     return names
+
+
+def validate_uploaded_sql_repo_path(path: str, root: str, bk_biz_id: str) -> str:
+    """制品库相对路径只允许 {root}/{bk_biz_id}/{文件名.sql}。"""
+    invalid = _("SQL文件路径必须为制品库中的单个.sql文件：{}").format(repr(path))
+    if (
+        not isinstance(path, str)
+        or not path
+        or "\\" in path
+        or any(unicodedata.category(char) in ("Cc", "Cs") for char in path)
+    ):
+        raise ValidationError(invalid)
+    root_parts = [part for part in root.strip("/").split("/") if part]
+    parts = path.split("/")
+    if len(parts) != len(root_parts) + 2 or parts[: len(root_parts)] != root_parts:
+        raise ValidationError(invalid)
+    if any(part in ("", ".", "..") for part in parts):
+        raise ValidationError(invalid)
+    if parts[-2] != str(bk_biz_id):
+        raise ValidationError(invalid)
+    validate_sql_file_name(parts[-1])
+    return path
