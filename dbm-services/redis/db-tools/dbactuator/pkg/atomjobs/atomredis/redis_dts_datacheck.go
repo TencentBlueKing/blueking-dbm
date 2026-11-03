@@ -54,12 +54,16 @@ type RedisDtsDataCheckAndRpaireParams struct {
 	DstClusterPassword string `json:"dst_cluster_password" validate:"required"`
 	KeyWhiteRegex      string `json:"key_white_regex" validate:"required"`
 	KeyBlackRegex      string `json:"key_black_regex"`
-	// Concurrency 并发度(同时对多少个redis实例做数据校验/修复),不传或<=0时使用默认值(5)
+	// Concurrency 并发度(同时对多少个redis实例做数据校验/修复),不传或<=0时使用默认值(2)
+	// 运行过程中可通过并发度控制文件动态调整,见 getConcurrencyCtrlFile
 	Concurrency int `json:"concurrency"`
 }
 
 // defaultDtsDataCheckRepairConcurrency 数据校验/修复默认并发度
-const defaultDtsDataCheckRepairConcurrency = 5
+const defaultDtsDataCheckRepairConcurrency = 2
+
+// concurrencyCtrlFilePollInterval 并发度控制文件轮询间隔
+const concurrencyCtrlFilePollInterval = 5 * time.Second
 
 // GetConcurrency 获取并发度,未传或非法时使用默认值
 func (params *RedisDtsDataCheckAndRpaireParams) GetConcurrency() int {
@@ -144,31 +148,13 @@ func (job *RedisDtsDataCheck) Run() (err error) {
 		return
 	}
 
-	// 3. 并发提取与校验,并发度默认5,可通过参数concurrency传入
-	var wg sync.WaitGroup
-	taskList := make([]*RedisInsDtsDataCheckAndRepairTask, 0, len(job.params.SrcRedisPortSegmentList))
-	pool, err := ants.NewPoolWithFunc(job.params.GetConcurrency(), func(i interface{}) {
-		defer wg.Done()
-		task := i.(*RedisInsDtsDataCheckAndRepairTask)
+	// 3. 并发提取与校验,并发度默认2,可通过参数concurrency传入,运行中可通过并发度控制文件动态调整
+	taskList, err := job.runTasksWithDynamicConcurrency(func(task *RedisInsDtsDataCheckAndRepairTask) {
 		task.KeyPatternAndDataCheck()
 	})
 	if err != nil {
-		job.runtime.Logger.Error("RedisDtsDataCheck Run NewPoolWithFunc failed,err:%v", err)
 		return err
 	}
-	defer pool.Release()
-
-	for _, portItem := range job.params.SrcRedisPortSegmentList {
-		wg.Add(1)
-		task, err := NewRedisInsDtsDataCheckAndRepairTask(job.params.SrcRedisIP, portItem, job)
-		if err != nil {
-			continue
-		}
-		taskList = append(taskList, task)
-		_ = pool.Invoke(task)
-	}
-	// 等待所有task执行完毕
-	wg.Wait()
 
 	var totalDiffKeysCnt uint64 = 0
 	for _, tmp := range taskList {
@@ -185,6 +171,110 @@ func (job *RedisDtsDataCheck) Run() (err error) {
 	}
 	job.runtime.Logger.Info("RedisDtsDataCheck success totalDiffKeysCnt:%d", totalDiffKeysCnt)
 	return
+}
+
+// getConcurrencyCtrlFile 并发度控制文件路径,文件内容为一个正整数。
+// 运行中修改该文件(如 echo 4 > file),新并发度会在一个轮询周期内生效。
+// 调大立即放行等待中的实例;调小不会中断已在运行的实例,仅约束后续待启动的实例。
+func (job *RedisDtsDataCheck) getConcurrencyCtrlFile() string {
+	safe := func(s string) string {
+		return strings.Map(func(r rune) rune {
+			if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '.' || r == '-' {
+				return r
+			}
+			return '_'
+		}, s)
+	}
+	basename := fmt.Sprintf("%s_concurrency.%s.%s.%s", job.Name(), safe(job.params.BkBizID),
+		safe(job.params.SrcClusterAddr), safe(job.params.SrcRedisIP))
+	return filepath.Join(job.saveDir, basename)
+}
+
+// watchConcurrencyCtrlFile 周期性读取并发度控制文件,值合法且与当前不同则动态调整协程池大小
+func (job *RedisDtsDataCheck) watchConcurrencyCtrlFile(ctx context.Context, pool *ants.PoolWithFunc,
+	ctrlFile string, maxConcurrency int) {
+	ticker := time.NewTicker(concurrencyCtrlFilePollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+		content, err := os.ReadFile(ctrlFile)
+		if err != nil {
+			// 文件不存在或读取失败,保持当前并发度
+			continue
+		}
+		newVal, err := strconv.Atoi(strings.TrimSpace(string(content)))
+		if err != nil || newVal <= 0 {
+			job.runtime.Logger.Warn("concurrency ctrl file(%s) content invalid,ignore,content:%q",
+				ctrlFile, strings.TrimSpace(string(content)))
+			continue
+		}
+		if newVal > maxConcurrency {
+			newVal = maxConcurrency
+		}
+		oldVal := pool.Cap()
+		if newVal == oldVal {
+			continue
+		}
+		pool.Tune(newVal)
+		job.runtime.Logger.Info("%s concurrency changed from %d to %d,ctrlFile:%s",
+			job.Name(), oldVal, newVal, ctrlFile)
+	}
+}
+
+// runTasksWithDynamicConcurrency 按并发度对 SrcRedisPortSegmentList 中的每个实例执行 taskFn,
+// 并发度可通过并发度控制文件在运行时动态调整。返回所有成功创建的task(含执行结果)。
+func (job *RedisDtsDataCheck) runTasksWithDynamicConcurrency(taskFn func(task *RedisInsDtsDataCheckAndRepairTask)) (
+	taskList []*RedisInsDtsDataCheckAndRepairTask, err error) {
+	var wg sync.WaitGroup
+	taskList = make([]*RedisInsDtsDataCheckAndRepairTask, 0, len(job.params.SrcRedisPortSegmentList))
+	concurrency := job.params.GetConcurrency()
+	pool, err := ants.NewPoolWithFunc(concurrency, func(i interface{}) {
+		defer wg.Done()
+		taskFn(i.(*RedisInsDtsDataCheckAndRepairTask))
+	})
+	if err != nil {
+		job.runtime.Logger.Error("%s Run NewPoolWithFunc failed,err:%v", job.Name(), err)
+		return nil, err
+	}
+	defer pool.Release()
+
+	// 写入初始并发度,方便使用者发现并修改
+	ctrlFile := job.getConcurrencyCtrlFile()
+	if werr := os.WriteFile(ctrlFile, []byte(strconv.Itoa(concurrency)+"\n"), 0644); werr != nil {
+		job.runtime.Logger.Warn("write concurrency ctrl file(%s) failed,err:%v", ctrlFile, werr)
+	} else {
+		job.runtime.Logger.Info("%s concurrency:%d,modify ctrlFile to change it at runtime:%s",
+			job.Name(), concurrency, ctrlFile)
+	}
+	// 并发度上限为实例数,再大没有意义
+	maxConcurrency := len(job.params.SrcRedisPortSegmentList)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go job.watchConcurrencyCtrlFile(ctx, pool, ctrlFile, maxConcurrency)
+
+	for _, portItem := range job.params.SrcRedisPortSegmentList {
+		task, terr := NewRedisInsDtsDataCheckAndRepairTask(job.params.SrcRedisIP, portItem, job)
+		if terr != nil {
+			job.runtime.Logger.Error("%s NewRedisInsDtsDataCheckAndRepairTask failed,port:%d,err:%v",
+				job.Name(), portItem.Port, terr)
+			continue
+		}
+		taskList = append(taskList, task)
+		wg.Add(1)
+		// 池满时 Invoke 会阻塞,直到有空闲槽位或并发度被调大
+		if ierr := pool.Invoke(task); ierr != nil {
+			wg.Done()
+			task.Err = fmt.Errorf("pool.Invoke failed,err:%v,addr:%s", ierr, task.getSrcRedisAddr())
+			job.runtime.Logger.Error("%v", task.Err)
+		}
+	}
+	// 等待所有task执行完毕
+	wg.Wait()
+	return taskList, nil
 }
 
 func (job *RedisDtsDataCheck) getSaveDir() {
